@@ -124,6 +124,16 @@ NTSTATUS KphpSetDynamicConfigiration(
         KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "CI INVALID");
     }
 
+    if (Configuration->LxVersion == KPH_DYN_LX_V1)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "LX V1");
+        KphDynLxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
+    }
+    else
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "LX INVALID");
+    }
+
     KphDynAlpcCommunicationInfo = C_2sTo4(Configuration->AlpcCommunicationInfo);
     KphDynAlpcOwnerProcess = C_2sTo4(Configuration->AlpcOwnerProcess);
     KphDynAlpcConnectionPort = C_2sTo4(Configuration->AlpcConnectionPort);
@@ -142,6 +152,11 @@ NTSTATUS KphpSetDynamicConfigiration(
     KphDynKtReadTransferCount = C_2sTo4(Configuration->KtReadTransferCount);
     KphDynKtWriteTransferCount = C_2sTo4(Configuration->KtWriteTransferCount);
     KphDynKtOtherTransferCount = C_2sTo4(Configuration->KtOtherTransferCount);
+    KphDynLxPicoProc = C_2sTo4(Configuration->LxPicoProc);
+    KphDynLxPicoProcInfo = C_2sTo4(Configuration->LxPicoProcInfo);
+    KphDynLxPicoProcInfoPID = C_2sTo4(Configuration->LxPicoProcInfoPID);
+    KphDynLxPicoThrdInfo = C_2sTo4(Configuration->LxPicoThrdInfo);
+    KphDynLxPicoThrdInfoTID = C_2sTo4(Configuration->LxPicoThrdInfoTID);
 
     return STATUS_SUCCESS;
 }

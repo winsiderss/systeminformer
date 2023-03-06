@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 7;
+        private const UInt32 Version = 8;
 
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
@@ -34,6 +34,9 @@ $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
 #define KPH_DYN_CI_V2      ((SHORT)2)
+    
+#define KPH_DYN_LX_INVALID ((SHORT)-1)
+#define KPH_DYN_LX_V1      ((SHORT)1)
 
 #include <pshpack1.h>
 
@@ -73,6 +76,12 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT KtReadTransferCount;          // dt nt!_KTHREAD ReadTransferCount
     USHORT KtWriteTransferCount;         // dt nt!_KTHREAD WriteTransferCount
     USHORT KtOtherTransferCount;         // dt nt!_KTHREAD OtherTransferCount
+    USHORT LxVersion;                    // lxcore.sys exports version
+    USHORT LxPicoProc;                   // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoProcInfo;               // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoThrdInfo;               // uf lxcore!LxpSyscall_GETTID
+    USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
 
 }} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
@@ -123,6 +132,12 @@ typedef struct _KPH_DYNDATA
             public UInt16 KtReadTransferCount;
             public UInt16 KtWriteTransferCount;
             public UInt16 KtOtherTransferCount;
+            public UInt16 LxVersion;
+            public UInt16 LxPicoProc;
+            public UInt16 LxPicoProcInfo;
+            public UInt16 LxPicoProcInfoPID;
+            public UInt16 LxPicoThrdInfo;
+            public UInt16 LxPicoThrdInfoTID;
 
             public DynConfig()
             {
@@ -160,6 +175,12 @@ typedef struct _KPH_DYNDATA
                 KtReadTransferCount = ushort.MaxValue;
                 KtWriteTransferCount = ushort.MaxValue;
                 KtOtherTransferCount = ushort.MaxValue;
+                LxVersion = ushort.MaxValue;
+                LxPicoProc = ushort.MaxValue;
+                LxPicoProcInfo = ushort.MaxValue;
+                LxPicoProcInfoPID = ushort.MaxValue;
+                LxPicoThrdInfo = ushort.MaxValue;
+                LxPicoThrdInfoTID = ushort.MaxValue;
             }
         }
 

@@ -2651,7 +2651,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
                     {
-                        PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessIdString);
+                        if (processItem->AlternateProcessIdString)
+                            getCellText->Text = processItem->AlternateProcessIdString->sr;
+                        else
+                            PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessIdString);
                     }
                 }
                 break;

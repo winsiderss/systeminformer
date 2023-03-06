@@ -11,11 +11,14 @@
 
 #include <kphlibbase.h>
 
-#define KPH_DYN_CONFIGURATION_VERSION 7
+#define KPH_DYN_CONFIGURATION_VERSION 8
 
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
 #define KPH_DYN_CI_V2      ((SHORT)2)
+    
+#define KPH_DYN_LX_INVALID ((SHORT)-1)
+#define KPH_DYN_LX_V1      ((SHORT)1)
 
 #include <pshpack1.h>
 
@@ -55,6 +58,12 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT KtReadTransferCount;          // dt nt!_KTHREAD ReadTransferCount
     USHORT KtWriteTransferCount;         // dt nt!_KTHREAD WriteTransferCount
     USHORT KtOtherTransferCount;         // dt nt!_KTHREAD OtherTransferCount
+    USHORT LxVersion;                    // lxcore.sys exports version
+    USHORT LxPicoProc;                   // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoProcInfo;               // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoThrdInfo;               // uf lxcore!LxpSyscall_GETTID
+    USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
 
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 

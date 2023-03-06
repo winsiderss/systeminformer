@@ -1621,7 +1621,7 @@ NTSTATUS KphQueryInformationThread(
     msg->User.QueryInformationThread.ReturnLength = ReturnLength;
     status = KphCommsSendMessage(msg);
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
         status = msg->User.QueryInformationThread.Status;
     }

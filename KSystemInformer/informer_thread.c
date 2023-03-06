@@ -65,21 +65,6 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
 
         thread->ExitNotification = TRUE;
 
-        if (thread->ProcessContext)
-        {
-            KphAcquireRWLockExclusive(&thread->ProcessContext->ThreadListLock);
-
-            if (thread->InThreadList)
-            {
-                RemoveEntryList(&thread->ThreadListEntry);
-                thread->ProcessContext->NumberOfThreads--;
-                thread->InThreadList = FALSE;
-                KphDereferenceObject(thread);
-            }
-
-            KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
-        }
-
         return thread;
     }
 
@@ -100,27 +85,6 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
     thread->CreateNotification = TRUE;
     thread->CreatorClientId.UniqueProcess = PsGetCurrentProcessId();
     thread->CreatorClientId.UniqueThread = PsGetCurrentThreadId();
-
-    if (!thread->ProcessContext)
-    {
-        thread->ProcessContext = KphGetProcessContext(ProcessId);
-    }
-
-    if (thread->ProcessContext)
-    {
-        KphAcquireRWLockExclusive(&thread->ProcessContext->ThreadListLock);
-
-        if (!thread->InThreadList)
-        {
-            InsertTailList(&thread->ProcessContext->ThreadListHead,
-                           &thread->ThreadListEntry);
-            thread->ProcessContext->NumberOfThreads++;
-            thread->InThreadList = TRUE;
-            KphReferenceObject(thread);
-        }
-
-        KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
-    }
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   TRACKING,

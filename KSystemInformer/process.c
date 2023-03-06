@@ -749,6 +749,54 @@ NTSTATUS KphQueryInformationProcess(
 
             break;
         }
+        case KphProcessWSLProcessId:
+        {
+            PULONG processId;
+
+            if (process->SubsystemType != SubsystemInformationTypeWSL)
+            {
+                KphTracePrint(TRACE_LEVEL_WARNING,
+                              GENERAL,
+                              "Invalid subsystem for WSL process ID query.");
+
+                status = STATUS_INVALID_HANDLE;
+                goto Exit;
+            }
+
+            if (!process->WSL.ValidProcessId)
+            {
+                KphTracePrint(TRACE_LEVEL_WARNING,
+                              GENERAL,
+                              "WSL process ID is not valid.");
+
+                status = STATUS_OBJECTID_NOT_FOUND;
+                goto Exit;
+            }
+
+            if (!ProcessInformation ||
+                (ProcessInformationLength < sizeof(ULONG)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(ULONG);
+                goto Exit;
+            }
+
+            processId = ProcessInformation;
+
+            __try
+            {
+                *processId = process->WSL.ProcessId;
+                returnLength = sizeof(ULONG);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
         default:
         {
             status = STATUS_INVALID_INFO_CLASS;
