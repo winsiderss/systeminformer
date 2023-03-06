@@ -2314,6 +2314,52 @@ VOID PhSetApplicationWindowIconEx(
     }
 }
 
+VOID PhDeleteApplicationWindowIcon(
+    _In_ HWND WindowHandle
+    )
+{
+    HICON destroyIcon;
+
+    if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, 0))
+    {
+        DestroyIcon(destroyIcon);
+    }
+
+    if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, 0))
+    {
+        DestroyIcon(destroyIcon);
+    }
+}
+
+VOID PhSetStaticWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    )
+{
+    HICON largeIcon;
+    HICON destroyIcon;
+
+    if (largeIcon = PhGetApplicationIconEx(FALSE, WindowDpi))
+    {
+        if (destroyIcon = Static_SetIcon(WindowHandle, largeIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
+    }
+}
+
+VOID PhDeleteStaticWindowIcon(
+    _In_ HWND WindowHandle
+    )
+{
+    HICON destroyIcon;
+
+    if (destroyIcon = Static_GetIcon(WindowHandle, 0))
+    {
+        DestroyIcon(destroyIcon);
+    }
+}
+
 BOOLEAN PhWordMatchStringRef(
     _In_ PPH_STRINGREF SearchText,
     _In_ PPH_STRINGREF Text

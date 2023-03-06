@@ -496,6 +496,27 @@ PhSetApplicationWindowIconEx(
     _In_opt_ LONG WindowDpi
     );
 
+PHAPPAPI
+VOID
+NTAPI
+PhDeleteApplicationWindowIcon(
+    _In_ HWND WindowHandle
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhSetStaticWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDeleteStaticWindowIcon(
+    _In_ HWND WindowHandle
+    );
 // end_phapppub
 
 #define SI_RUNAS_ADMIN_TASK_NAME ((PH_STRINGREF)PH_STRINGREF_INIT(L"SystemInformerTaskAdmin"))

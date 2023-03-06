@@ -2833,7 +2833,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
 
             PhSetApplicationWindowIconEx(hwndDlg, context->WindowDpi);
-            SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)PhGetApplicationIconEx(FALSE, context->WindowDpi), 0);
+            PhSetStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON), context->WindowDpi);
 
             PhpAddProgramsToComboBox(context->ComboBoxHandle);
             ComboBox_SetCurSel(context->ComboBoxHandle, 0);
@@ -2867,6 +2867,9 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             if (context->ImageListHandle)
                 PhImageListDestroy(context->ImageListHandle);
 
+            PhDeleteApplicationWindowIcon(hwndDlg);
+            PhDeleteStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON));
+
             PhFree(context);
         }
         break;
@@ -2875,7 +2878,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
 
             PhSetApplicationWindowIconEx(hwndDlg, context->WindowDpi);
-            SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)PhGetApplicationIconEx(FALSE, context->WindowDpi), 0);
+            PhSetStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON), context->WindowDpi);
 
             PhpRunFileSetImageList(context);
         }
