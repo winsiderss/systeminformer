@@ -1326,8 +1326,6 @@ PVOID DnLoadMscordaccore(
 TryAppLocal:
     if (!mscordacBaseAddress && dataTargetDirectory)
     {
-        VERIFY_RESULT verifyResult;
-        PPH_STRING signerName;
         PPH_STRING fileName;
 
         // We couldn't find any compatible versions of the CLR installed. Try loading
@@ -1341,15 +1339,7 @@ TryAppLocal:
 
         PhMoveReference(&fileName, PhGetFileName(fileName));
 
-        verifyResult = PhVerifyFile(
-            PhGetString(fileName),
-            &signerName
-            );
-
-        if (
-            verifyResult == VrTrusted &&
-            signerName && PhEqualString2(signerName, L"Microsoft Corporation", TRUE)
-            )
+        if (PhVerifyFileIsChainedToMicrosoft(fileName, FALSE))
         {
             HANDLE processHandle;
             HANDLE tokenHandle = NULL;
@@ -1390,7 +1380,6 @@ TryAppLocal:
             }
         }
 
-        PhClearReference(&signerName);
         PhClearReference(&fileName);
     }
 
@@ -1450,18 +1439,7 @@ TryAppLocal:
 
                 if (NT_SUCCESS(status))
                 {
-                    VERIFY_RESULT verifyResult;
-                    PPH_STRING signerName;
-
-                    verifyResult = PhVerifyFile(
-                        PhGetString(fileName),
-                        &signerName
-                        );
-
-                    if (
-                        verifyResult == VrTrusted &&
-                        signerName && PhEqualString2(signerName, L"Microsoft Corporation", TRUE)
-                        )
+                    if (PhVerifyFileIsChainedToMicrosoft(fileName, FALSE))
                     {
                         mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
                     }
@@ -1470,8 +1448,6 @@ TryAppLocal:
                         PhSetReference(&dataTarget->DaccorePath, fileName);
                     else
                         PhDeleteFileWin32(PhGetString(fileName));
-
-                    PhClearReference(&signerName);
                 }
 
                 PhClearReference(&fileName);
@@ -1574,7 +1550,7 @@ HRESULT CreateXCLRDataProcess(
     if (status != S_OK)
     {
         PhFreeLibrary(dllBase);
-        return status;
+        return E_FAIL;
     }
 
     *BaseAddress = dllBase;
