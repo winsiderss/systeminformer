@@ -929,6 +929,15 @@ WinStationNameFromLogonIdW(
 // rev
 BOOLEAN
 WINAPI
+LogonIdFromWinStationNameW(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ PWSTR pWinStationName,
+    _Out_ PULONG SessionId
+    );
+
+// rev
+BOOLEAN
+WINAPI
 WinStationSendMessageW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
