@@ -186,7 +186,7 @@ static NTSTATUS PvpQueryWslImageThreadStart(
 {
     HWND windowHandle = Parameter;
 
-    PhInitializeLxssImageVersionInfo(&PvImageVersionInfo, PvFileName);
+    PhInitializeLxssImageVersionInfo(&PvImageVersionInfo, &PvFileName->sr);
 
     PhSetDialogItemText(windowHandle, IDC_NAME, PvpGetStringOrNa(PvImageVersionInfo.FileDescription));
     PhSetDialogItemText(windowHandle, IDC_COMPANYNAME, PvpGetStringOrNa(PvImageVersionInfo.CompanyName));
