@@ -84,6 +84,7 @@
 #define KPH_TAG_CID_POPULATE                    '1cpK'
 #define KPH_TAG_PROCESS_CONTEXT                 '2cpK'
 #define KPH_TAG_THREAD_CONTEXT                  '3cpK'
+#define KPH_TAG_CID_APC                         '4cpK'
 
 // protection
 

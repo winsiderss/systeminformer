@@ -1120,11 +1120,13 @@ NTSTATUS KphQueryInformationThread(
 {
     NTSTATUS status;
     PETHREAD threadObject;
+    PKPH_THREAD_CONTEXT thread;
     ULONG returnLength;
 
     PAGED_PASSIVE();
 
     threadObject = NULL;
+    thread = NULL;
     returnLength = 0;
 
     if (AccessMode != KernelMode)
@@ -1162,6 +1164,17 @@ NTSTATUS KphQueryInformationThread(
                       status);
 
         threadObject = NULL;
+        goto Exit;
+    }
+
+    thread = KphGetThreadContext(PsGetThreadId(threadObject));
+    if (!thread)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "KphGetThreadContext returned null.");
+
+        status = STATUS_OBJECTID_NOT_FOUND;
         goto Exit;
     }
 
@@ -1224,6 +1237,54 @@ NTSTATUS KphQueryInformationThread(
 
             break;
         }
+        case KphThreadWSLThreadId:
+        {
+            PULONG threadId;
+
+            if (thread->SubsystemType != SubsystemInformationTypeWSL)
+            {
+                KphTracePrint(TRACE_LEVEL_WARNING,
+                              GENERAL,
+                              "Invalid subsystem for WSL thread ID query.");
+
+                status = STATUS_INVALID_HANDLE;
+                goto Exit;
+            }
+
+            if (!thread->WSL.ValidThreadId)
+            {
+                KphTracePrint(TRACE_LEVEL_WARNING,
+                              GENERAL,
+                              "WSL thread ID is not valid.");
+
+                status = STATUS_OBJECTID_NOT_FOUND;
+                goto Exit;
+            }
+
+            if (!ThreadInformation ||
+                (ThreadInformationLength < sizeof(ULONG)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(ULONG);
+                goto Exit;
+            }
+
+            threadId = ThreadInformation;
+
+            __try
+            {
+                *threadId = thread->WSL.ThreadId;
+                returnLength = sizeof(ULONG);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
         default:
         {
             status = STATUS_INVALID_INFO_CLASS;
@@ -1250,6 +1311,11 @@ Exit:
         {
             *ReturnLength = returnLength;
         }
+    }
+
+    if (thread)
+    {
+        KphDereferenceObject(thread);
     }
 
     if (threadObject)

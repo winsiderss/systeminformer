@@ -1294,7 +1294,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             switch (getCellText->Id)
             {
             case PH_THREAD_TREELIST_COLUMN_TID:
-                PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
+                {
+                    if (threadItem->AlternateThreadIdString)
+                        getCellText->Text = threadItem->AlternateThreadIdString->sr;
+                    else
+                        PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
+                }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CPU:
                 {

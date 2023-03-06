@@ -34,6 +34,18 @@ dt nt!_ALPC_PORT_ATTRIBUTES Flags
 dt nt!_ALPC_PORT PortContext
 dt nt!_ALPC_PORT SequenceNo
 dt nt!_ALPC_PORT State
+dt nt!_KTHREAD ReadOperationCount
+dt nt!_KTHREAD WriteOperationCount
+dt nt!_KTHREAD OtherOperationCount
+dt nt!_KTHREAD ReadTransferCount
+dt nt!_KTHREAD WriteTransferCount
+dt nt!_KTHREAD OtherTransferCount
+lxcore.sys exports version
+uf lxcore!LxpSyscall_GETPID
+uf lxcore!LxpSyscall_GETPID
+uf lxcore!LxpSyscall_GETPID
+uf lxcore!LxpSyscall_GETTID
+uf lxcore!LxpSyscall_GETTID
 
 -->
 <dyn>
@@ -73,6 +85,12 @@ dt nt!_ALPC_PORT State
             <field value="0x398"  name="KtReadTransferCount"/>
             <field value="0x3a0"  name="KtWriteTransferCount"/>
             <field value="0x3a8"  name="KtOtherTransferCount"/>
+            <field value="1"      name="LxVersion"/>
+            <field value="0x80"   name="LxPicoProc"/>
+            <field value="0x10"   name="LxPicoProcInfo"/>
+            <field value="0x10"   name="LxPicoProcInfoPID"/>
+            <field value="0x10"   name="LxPicoThrdInfo"/>
+            <field value="0x10"   name="LxPicoThrdInfoTID"/>
         </data>
         <data name="10.0.19042 - 10.0.22621">
             <field value="10"     name="MajorVersion"/>
@@ -109,6 +127,12 @@ dt nt!_ALPC_PORT State
             <field value="0x398"  name="KtReadTransferCount"/>
             <field value="0x3a0"  name="KtWriteTransferCount"/>
             <field value="0x3a8"  name="KtOtherTransferCount"/>
+            <field value="1"      name="LxVersion"/>
+            <field value="0x80"   name="LxPicoProc"/>
+            <field value="0x10"   name="LxPicoProcInfo"/>
+            <field value="0x10"   name="LxPicoProcInfoPID"/>
+            <field value="0x10"   name="LxPicoThrdInfo"/>
+            <field value="0x10"   name="LxPicoThrdInfoTID"/>
         </data>
         <data name="10.0.19041.264 - 10.0.19042">
             <field value="10"     name="MajorVersion"/>
@@ -145,6 +169,12 @@ dt nt!_ALPC_PORT State
             <field value="0x398"  name="KtReadTransferCount"/>
             <field value="0x3a0"  name="KtWriteTransferCount"/>
             <field value="0x3a8"  name="KtOtherTransferCount"/>
+            <field value="1"      name="LxVersion"/>
+            <field value="0x80"   name="LxPicoProc"/>
+            <field value="0x10"   name="LxPicoProcInfo"/>
+            <field value="0x10"   name="LxPicoProcInfoPID"/>
+            <field value="0x10"   name="LxPicoThrdInfo"/>
+            <field value="0x10"   name="LxPicoThrdInfoTID"/>
         </data>
         <data name="10.0.18363.693 - 10.0.19041.264">
             <field value="10"     name="MajorVersion"/>
@@ -181,6 +211,12 @@ dt nt!_ALPC_PORT State
             <field value="0x5c0"  name="KtReadTransferCount"/>
             <field value="0x5c8"  name="KtWriteTransferCount"/>
             <field value="0x5d0"  name="KtOtherTransferCount"/>
+            <field value="1"      name="LxVersion"/>
+            <field value="0x80"   name="LxPicoProc"/>
+            <field value="0x10"   name="LxPicoProcInfo"/>
+            <field value="0x10"   name="LxPicoProcInfoPID"/>
+            <field value="0x10"   name="LxPicoThrdInfo"/>
+            <field value="0x10"   name="LxPicoThrdInfoTID"/>
         </data>
         <data name="10.0.14393.0 - 10.0.18363.693">
             <field value="10"     name="MajorVersion"/>

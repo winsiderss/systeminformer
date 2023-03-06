@@ -112,6 +112,7 @@ typedef enum _KPH_PROCESS_INFORMATION_CLASS
     KphProcessPowerThrottlingState,  // s: POWER_THROTTLING_PROCESS_STATE
     KphProcessPriorityClassEx,       // s: PROCESS_PRIORITY_CLASS_EX
     KphProcessEmptyWorkingSet,       // s
+    KphProcessWSLProcessId,          // q: ULONG 
 
 } KPH_PROCESS_INFORMATION_CLASS;
 
@@ -130,6 +131,7 @@ typedef enum _KPH_THREAD_INFORMATION_CLASS
     KphThreadActualGroupAffinity,    // s: GROUP_AFFINITY
     KphThreadPowerThrottlingState,   // s: POWER_THROTTLING_THREAD_STATE
     KphThreadIoCounters,             // q: IO_COUNTERS
+    KphThreadWSLThreadId,            // q: ULONG 
 
 } KPH_THREAD_INFORMATION_CLASS;
 

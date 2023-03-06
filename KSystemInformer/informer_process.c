@@ -113,8 +113,6 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
 
         process->ExitNotification = TRUE;
 
-        KphUnlinkProcessContextThreadContexts(process);
-
         NT_ASSERT(process->NumberOfThreads == 0);
         NT_ASSERT(IsListEmpty(&process->ThreadListHead));
 
@@ -137,7 +135,6 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     process->CreateNotification = TRUE;
     process->CreatorClientId.UniqueProcess = PsGetCurrentProcessId();
     process->CreatorClientId.UniqueThread = PsGetCurrentThreadId();
-    process->IsSubsystemProcess = CreateInfo->IsSubsystemProcess;
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   TRACKING,

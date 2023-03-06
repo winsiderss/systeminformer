@@ -1251,3 +1251,25 @@ ZwAlpcConnectPort(
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
     _In_opt_ PLARGE_INTEGER Timeout
     );
+
+// LXCORE
+
+typedef
+_Function_class_(LXP_PROCESS_GET_CURRENT)
+_Must_inspect_result_
+BOOLEAN
+NTAPI
+LXP_PROCESS_GET_CURRENT(
+    _Out_ PVOID* Thread
+    );
+typedef LXP_PROCESS_GET_CURRENT* PLXP_PROCESS_GET_CURRENT;
+
+typedef
+_Function_class_(LXP_THREAD_GET_CURRENT)
+_Must_inspect_result_
+BOOLEAN
+NTAPI
+LXP_THREAD_GET_CURRENT(
+    _Out_ PVOID* Thread
+    );
+typedef LXP_THREAD_GET_CURRENT* PLXP_THREAD_GET_CURRENT;

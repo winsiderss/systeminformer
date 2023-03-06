@@ -1150,6 +1150,7 @@ typedef struct _KPH_PROCESS_CONTEXT
     };
 
     KPH_RWLOCK ThreadListLock;
+    struct _KPH_THREAD_CONTEXT* InitialThread;
     SIZE_T NumberOfThreads;
     LIST_ENTRY ThreadListHead;
     SIZE_T NumberOfUnlinkedThreads;
@@ -1170,6 +1171,18 @@ typedef struct _KPH_PROCESS_CONTEXT
     volatile SIZE_T NumberOfUntrustedImageLoads;
 
     PKNORMAL_ROUTINE ApcNoopRoutine;
+
+    SUBSYSTEM_INFORMATION_TYPE SubsystemType;
+
+    //
+    // SubsystemInformationTypeWSL information
+    //
+    struct
+    {
+        BOOLEAN ValidProcessId;
+        ULONG ProcessId;
+
+    } WSL;
 
 } KPH_PROCESS_CONTEXT, *PKPH_PROCESS_CONTEXT;
 
@@ -1194,7 +1207,9 @@ typedef struct _KPH_THREAD_CONTEXT
             ULONG ExitNotification : 1;
             ULONG InThreadList : 1;
             ULONG IsCreatingProcess : 1;
-            ULONG Reserved : 27;
+            ULONG InitApcQueued : 1;
+            ULONG InitApcExecuted : 1;
+            ULONG Reserved : 25;
         };
     };
 
@@ -1204,6 +1219,18 @@ typedef struct _KPH_THREAD_CONTEXT
     // Only valid if IsCreatingProcess flag is set.
     //
     HANDLE IsCreatingProcessId;
+
+    SUBSYSTEM_INFORMATION_TYPE SubsystemType;
+
+    //
+    // SubsystemInformationTypeWSL information
+    //
+    struct
+    {
+        BOOLEAN ValidThreadId;
+        ULONG ThreadId;
+
+    } WSL;
 
 } KPH_THREAD_CONTEXT, *PKPH_THREAD_CONTEXT;
 
@@ -1320,11 +1347,6 @@ _IRQL_requires_max_(APC_LEVEL)
 VOID KphEnumerateCidContexts(
     _In_ KPH_ENUM_CID_CONTEXTS_CALLBACK Callback,
     _In_opt_ PVOID Parameter
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphUnlinkProcessContextThreadContexts(
-    _In_ PKPH_PROCESS_CONTEXT Process
     );
 
 // protection
