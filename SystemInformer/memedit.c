@@ -546,6 +546,12 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             HexEdit_SetSel(context->HexEditHandle, (ULONG)wParam, PtrToUlong(PTR_ADD_OFFSET(wParam, lParam)));
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

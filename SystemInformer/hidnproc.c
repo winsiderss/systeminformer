@@ -41,6 +41,7 @@
 #include <procprv.h>
 #include <settings.h>
 #include <phsettings.h>
+#include <emenu.h>
 
 INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     _In_ HWND hwndDlg,
@@ -81,11 +82,12 @@ VOID PhShowHiddenProcessesDialog(
 {
     if (!PhHiddenProcessesWindowHandle)
     {
-        PhHiddenProcessesWindowHandle = CreateDialog(
+        PhHiddenProcessesWindowHandle = PhCreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_HIDDENPROCESSES),
             NULL,
-            PhpHiddenProcessesDlgProc
+            PhpHiddenProcessesDlgProc,
+            NULL
             );
     }
 
@@ -453,6 +455,66 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     case WM_SIZING:
         {
             PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == PhHiddenProcessesListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID* listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(PhHiddenProcessesListViewHandle, &point);
+
+                PhGetSelectedListViewItemParams(PhHiddenProcessesListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, PhHiddenProcessesListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        BOOLEAN handled = FALSE;
+
+                        handled = PhHandleCopyListViewEMenuItem(item);
+
+                        //if (!handled && PhPluginsEnabled)
+                        //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
+
+                        if (!handled)
+                        {
+                            switch (item->Id)
+                            {
+                            case IDC_COPY:
+                                PhCopyListView(PhHiddenProcessesListViewHandle);
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     case WM_CTLCOLORBTN:

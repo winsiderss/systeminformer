@@ -137,6 +137,27 @@ PVOID PhLoadLibrary(
     return NULL;
 }
 
+PVOID PhLoadLibraryUtf8Ex(
+    _In_ PCSTR FileName,
+    _In_ HANDLE FileHandle,
+    _In_ ULONG Flags
+    )
+{
+    PPH_STRING fileName;
+    PVOID baseAddress;
+
+    fileName = PhConvertUtf8ToUtf16((PSTR)FileName);
+
+    if (baseAddress = PhLoadLibrary(PhGetString(fileName)))
+    {
+        PhDereferenceObject(fileName);
+        return baseAddress;
+    }
+
+    PhDereferenceObject(fileName);
+    return NULL;
+}
+
 BOOLEAN PhFreeLibrary(
     _In_ PVOID BaseAddress
     )
@@ -1243,6 +1264,11 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
     if (PhEqualBytesZ(ProcedureName, "GetProcAddress", FALSE))
     {
         return PhGetDllBaseProcAddress;
+    }
+    // This is a workaround for the CRT __delayLoadHelper2.
+    if (PhEqualBytesZ(ProcedureName, "LoadLibraryExA", FALSE))
+    {
+        return PhLoadLibraryUtf8Ex;
     }
 
     if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(BaseAddress, &imageNtHeader)))
