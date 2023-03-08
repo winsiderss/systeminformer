@@ -331,10 +331,6 @@ typedef struct _KSYSTEM_TIME
 
 #include <poppack.h>
 
-#ifndef IMAGE_FILE_MACHINE_CHPE_X86
-#define IMAGE_FILE_MACHINE_CHPE_X86 0x3A64
-#endif
-
 #ifndef AFFINITY_MASK
 #define AFFINITY_MASK(n) ((KAFFINITY)1 << (n))
 #endif

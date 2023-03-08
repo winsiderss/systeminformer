@@ -13,6 +13,10 @@
 #include <pshpack1.h>
 #endif
 
+#ifndef IMAGE_FILE_MACHINE_CHPE_X86
+#define IMAGE_FILE_MACHINE_CHPE_X86 0x3A64
+#endif
+
 typedef struct _IMAGE_DEBUG_POGO_ENTRY
 {
     ULONG Rva;
