@@ -543,13 +543,20 @@ PhWordMatchStringRef(
     _In_ PPH_STRINGREF Text
     );
 
-PHAPPAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhWordMatchStringZ(
     _In_ PPH_STRING SearchText,
     _In_ PWSTR Text
-    );
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRefLongHint(&text, Text);
+
+    return PhWordMatchStringRef(&SearchText->sr, &text);
+}
 
 PHAPPAPI
 PVOID
