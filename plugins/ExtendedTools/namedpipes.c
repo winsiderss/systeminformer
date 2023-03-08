@@ -20,6 +20,7 @@ typedef struct _PIPE_ENUM_DIALOG_CONTEXT
 } PIPE_ENUM_DIALOG_CONTEXT, *PPIPE_ENUM_DIALOG_CONTEXT;
 
 BOOLEAN NTAPI EtNamedPipeDirectoryCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
     )
