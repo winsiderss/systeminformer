@@ -6803,16 +6803,16 @@ typedef struct _PHP_PIPE_NAME_HASH
 } PHP_PIPE_NAME_HASH, *PPHP_PIPE_NAME_HASH;
 
 static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
-    _In_ PVOID Information,
+    _In_ HANDLE RootDirectory,
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
     )
 {
-    PFILE_DIRECTORY_INFORMATION fileInfo = Information;
     PHP_PIPE_NAME_HASH objectPipe;
     PH_STRINGREF objectName;
 
-    objectName.Length = fileInfo->FileNameLength;
-    objectName.Buffer = fileInfo->FileName;
+    objectName.Length = Information->FileNameLength;
+    objectName.Buffer = Information->FileName;
     objectPipe.Hash = PhHashStringRefEx(&objectName, TRUE, PH_STRING_HASH_X65599);
 
     PhAddItemArray(Context, &objectPipe);
@@ -7303,7 +7303,7 @@ NTSTATUS PhEnumDirectoryFileEx(
             // HACK: Use the wrong structure for the NextEntryOffset. (dmex)
             information = PTR_ADD_OFFSET(buffer, i);
 
-            if (!Callback(information, Context))
+            if (!Callback(FileHandle, information, Context))
             {
                 cont = FALSE;
                 break;
@@ -10208,6 +10208,7 @@ NTSTATUS PhCreateDirectoryFullPathWin32(
 }
 
 static BOOLEAN PhpDeleteDirectoryCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
     )

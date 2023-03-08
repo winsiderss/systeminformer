@@ -293,6 +293,7 @@ PPH_STRING PhpGetPluginDirectoryPath(
 //}
 
 static BOOLEAN EnumPluginsDirectoryCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PFILE_NAMES_INFORMATION Information,
     _In_opt_ PVOID Context
     )
