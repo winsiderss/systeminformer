@@ -172,6 +172,7 @@ static int __cdecl PvClrCoreNameCompare(
 }
 
 static BOOLEAN PvClrCoreDirectoryCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_ PVOID Context
     )
