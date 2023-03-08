@@ -7359,7 +7359,7 @@ HRESULT PhCreateProcessAsInteractiveUser(
 
     if (WdcRunTaskAsInteractiveUser_I)
     {
-        return WdcRunTaskAsInteractiveUser_I(CommandLine, CurrentDirectory, 0) == S_OK;
+        return WdcRunTaskAsInteractiveUser_I(CommandLine, CurrentDirectory, 0);
     }
 
     return E_NOTIMPL;
