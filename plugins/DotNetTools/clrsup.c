@@ -1353,9 +1353,12 @@ TryAppLocal:
                 ProcessId
                 )))
             {
-                PPH_STRING packageName = PhGetProcessPackageFullName(processHandle);
+                PROCESS_EXTENDED_BASIC_INFORMATION basicInformation;
 
-                if (!PhIsNullOrEmptyString(packageName))
+                if (
+                    NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInformation)) &&
+                    basicInformation.IsStronglyNamed // IsPackagedProcess
+                    )
                 {
                     if (NT_SUCCESS(PhOpenProcessToken(
                         processHandle,
@@ -1367,7 +1370,6 @@ TryAppLocal:
                     }
                 }
 
-                PhClearReference(&packageName);
                 NtClose(processHandle);
             }
 
