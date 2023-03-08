@@ -6524,8 +6524,6 @@ C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x738);
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 
-#if (PHNT_VERSION >= PHNT_WS03)
-
 FORCEINLINE
 ULONGLONG
 NtGetTickCount64(
@@ -6587,28 +6585,6 @@ NtGetTickCount(
 
 #endif
 }
-
-#else
-
-FORCEINLINE
-ULONGLONG
-NtGetTickCount64(
-    VOID
-    )
-{
-    return GetTickCount(); // pre PHNT_WS03 support (dmex)
-}
-
-FORCEINLINE
-ULONG
-NtGetTickCount(
-    VOID
-    )
-{
-    return GetTickCount();
-}
-
-#endif
 
 // Locale
 
