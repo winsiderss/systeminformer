@@ -112,7 +112,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
     PhpAddStringSetting(L"IconTrayGuids", L"");
     PhpAddIntegerSetting(L"IconTrayPersistGuidEnabled", L"0");
-    PhpAddIntegerSetting(L"IconTrayLazyStartDelay", L"0");
+    PhpAddIntegerSetting(L"IconTrayLazyStartDelay", L"1");
     PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
     PhpAddStringSetting(L"IconSettings", L"2|1");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
