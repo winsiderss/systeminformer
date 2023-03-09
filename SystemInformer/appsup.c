@@ -1289,6 +1289,7 @@ BOOLEAN PhShellProcessHackerEx(
         WindowHandle,
         FileName ? FileName : PhGetString(applicationFileName),
         parameters,
+        NULL,
         ShowWindowType,
         Flags,
         Timeout,
@@ -2070,7 +2071,7 @@ VOID PhShellOpenKey(
     }
     else
     {
-        PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
+        PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, NULL, SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
     }
 
     PhDereferenceObject(regeditFileName);

@@ -112,6 +112,7 @@ BOOLEAN PvShellExecuteRestart(
         WindowHandle,
         PhGetString(filename),
         PhGetString(parameters),
+        NULL,
         SW_SHOW,
         0,
         0,

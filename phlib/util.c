@@ -4954,6 +4954,7 @@ VOID PhShellExecute(
  * \param hWnd The window to display user interface components on.
  * \param FileName A file name or location.
  * \param Parameters The parameters to pass to the executed application.
+ * \param Directory The default working directory. If this value is NULL, the current process working directory is used.
  * \param ShowWindowType A value specifying how to show the application.
  * \param Flags A combination of the following:
  * \li \c PH_SHELL_EXECUTE_ADMIN Execute the application elevated.
@@ -4968,6 +4969,7 @@ BOOLEAN PhShellExecuteEx(
     _In_opt_ HWND hWnd,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
+    _In_opt_ PWSTR Directory,
     _In_ ULONG ShowWindowType,
     _In_ ULONG Flags,
     _In_opt_ ULONG Timeout,
@@ -4978,6 +4980,7 @@ BOOLEAN PhShellExecuteEx(
 
     info.lpFile = FileName;
     info.lpParameters = Parameters;
+    info.lpDirectory = Directory;
     info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
     info.nShow = ShowWindowType;
     info.hwnd = hWnd;
