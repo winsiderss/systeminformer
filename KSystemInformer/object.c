@@ -924,7 +924,11 @@ NTSTATUS KphQueryInformationObject(
     }
     else
     {
-        if (IsKernelHandle(Handle) && !IsPseudoHandle(Handle))
+        //
+        // Make sure the handle isn't a kernel handle if we're not going to
+        // attach to the System process.
+        //
+        if (IsKernelHandle(Handle))
         {
             status = STATUS_INVALID_HANDLE;
             goto Exit;

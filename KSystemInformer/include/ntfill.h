@@ -830,21 +830,6 @@ typedef MM_PROTECT_DRIVER_SECTION* PMM_PROTECT_DRIVER_SECTION;
 #define MM_PROTECT_DRIVER_SECTION_VALID_FLAGS \
     (MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD)
 
-typedef
-_Function_class_(MM_MAP_VIEW_IN_SYSTEM_SPACE_EX)
-_Must_inspect_result_
-_IRQL_requires_max_ (APC_LEVEL)
-NTKERNELAPI
-NTSTATUS
-MM_MAP_VIEW_IN_SYSTEM_SPACE_EX (
-    _In_ PVOID Section,
-    _Outptr_result_bytebuffer_ (*ViewSize) PVOID *MappedBase,
-    _Inout_ PSIZE_T ViewSize,
-    _Inout_ PLARGE_INTEGER SectionOffset,
-    _In_ ULONG_PTR Flags
-    );
-typedef MM_MAP_VIEW_IN_SYSTEM_SPACE_EX* PMM_MAP_VIEW_IN_SYSTEM_SPACE_EX;
-
 // SE
 
 #define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
