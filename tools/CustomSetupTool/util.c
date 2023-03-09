@@ -631,6 +631,7 @@ BOOLEAN SetupExecuteApplication(
             Context->DialogHandle,
             PhGetString(string),
             NULL,
+            NULL,
             SW_SHOW,
             0,
             0,

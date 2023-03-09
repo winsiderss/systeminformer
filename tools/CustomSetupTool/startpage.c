@@ -66,6 +66,7 @@ CleanupExit:
 }
 
 static BOOLEAN SetupCheckDirectoryCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
     )
