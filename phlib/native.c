@@ -12163,7 +12163,7 @@ NTSTATUS PhQueryProcessHeapInformation(
             heapInfo.BaseAddress = heapInfoV1.BaseAddress;
         }
 
-        // go through all heap entries and compute amount of allocated and committed bytes
+        // go through all heap entries and compute amount of allocated and committed bytes (ge0rdi)
         for (ULONG e = 0; e < heapInfo.NumberOfEntries; e++)
         {
             PRTL_HEAP_ENTRY entry = &heapInfo.Entries[e];
@@ -12174,11 +12174,11 @@ NTSTATUS PhQueryProcessHeapInformation(
                 committed += entry->u.s2.CommittedSize;
         }
 
-        // sometimes computed number if commited bytes is few pages smaller than the one reported by API, lets use the higher value
+        // sometimes computed number if committed bytes is few pages smaller than the one reported by API, lets use the higher value (ge0rdi)
         if (committed < heapInfo.BytesCommitted)
             committed = heapInfo.BytesCommitted;
 
-        // make sure number of allocated bytes is not higher than number of committed bytes (as that would make no sense)
+        // make sure number of allocated bytes is not higher than number of committed bytes (as that would make no sense) (ge0rdi)
         if (allocated > committed)
             allocated = committed;
 
