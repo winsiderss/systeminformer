@@ -437,6 +437,7 @@ BOOLEAN HardwareDeviceShowProperties(
     //    GetParent(WindowHandle),
     //    L"DeviceProperties.exe", // auto-elevated (dmex)
     //    PhGetString(DeviceInstance),
+    //    NULL,
     //    SW_SHOWDEFAULT,
     //    0,
     //    0,

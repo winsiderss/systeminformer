@@ -1195,6 +1195,7 @@ PhShellExecuteEx(
     _In_opt_ HWND hWnd,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
+    _In_opt_ PWSTR Directory,
     _In_ ULONG ShowWindowType,
     _In_ ULONG Flags,
     _In_opt_ ULONG Timeout,
