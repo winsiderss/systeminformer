@@ -306,11 +306,6 @@ VOID PhLoadSettingsProcessTreeUpdateMask(
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
 
-    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_ARCHITECTURE, &column) && column.Visible)
-        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE);
-    else
-        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE);
-
     PhInitializeProcessTreeColumnHeaderCache();
 }
 
@@ -718,7 +713,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_CODEPAGE | PHPN_GRANTEDACCESS; // Items that always remain valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_CODEPAGE | PHPN_ARCHITECTURE | PHPN_GRANTEDACCESS; // Items that always remain valid
 
         // The DPI awareness defaults to unaware if not set or declared in the manifest in which case
         // it can be changed once, so we can only be sure that it won't be changed again if it is different
@@ -1174,6 +1169,7 @@ static VOID PhpUpdateProcessNodeImage(
 
             if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
             {
+                ProcessNode->ImageReserved = mappedImage.NtHeaders->FileHeader.Machine;
                 ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
                 ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
 
@@ -1497,6 +1493,28 @@ static VOID PhpUpdateProcessNodePowerThrottling(
         }
 
         ProcessNode->ValidMask |= PHPN_POWERTHROTTLING;
+    }
+}
+
+static VOID PhpUpdateProcessNodeArchitecture(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_ARCHITECTURE))
+    {
+        ProcessNode->ImageReserved = IMAGE_FILE_MACHINE_UNKNOWN;
+
+        if (ProcessNode->ProcessItem->QueryHandle)
+        {
+            USHORT processArchitecture;
+
+            if (NT_SUCCESS(PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &processArchitecture)))
+            {
+                ProcessNode->ImageReserved = processArchitecture;
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_ARCHITECTURE;
     }
 }
 
@@ -2268,7 +2286,18 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Architecture)
 {
-    sortResult = uintcmp(processItem1->Architecture, processItem2->Architecture);
+    if (WindowsVersion >= WINDOWS_11)
+    {
+        PhpUpdateProcessNodeArchitecture(node1);
+        PhpUpdateProcessNodeArchitecture(node2);
+    }
+    else
+    {
+        PhpUpdateProcessNodeImage(node1);
+        PhpUpdateProcessNodeImage(node2);
+    }
+
+    sortResult = uintcmp(node1->ImageReserved, node2->ImageReserved);
 }
 END_SORT_FUNCTION
 
@@ -3488,7 +3517,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_ARCHITECTURE:
                 {
-                    switch (processItem->Architecture)
+                    if (WindowsVersion >= WINDOWS_11)
+                        PhpUpdateProcessNodeArchitecture(node);
+                    else
+                        PhpUpdateProcessNodeImage(node);
+
+                    switch (node->ImageReserved)
                     {
                     case IMAGE_FILE_MACHINE_I386:
                         PhInitializeStringRef(&getCellText->Text, L"x86");

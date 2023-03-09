@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -14,6 +14,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 
+#include <mapimg.h>
 #include <secedit.h>
 #include <verify.h>
 
@@ -86,10 +87,33 @@ PPH_STRING PhGetProcessItemImageTypeText(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    USHORT architecture = IMAGE_FILE_MACHINE_UNKNOWN;
     PWSTR arch = L"";
     PWSTR bits = L"";
 
-    switch (ProcessItem->Architecture)
+    {
+        USHORT processArchitecture;
+
+        if (
+            WindowsVersion >= WINDOWS_11 && ProcessItem->QueryHandle && 
+            NT_SUCCESS(PhGetProcessArchitecture(ProcessItem->QueryHandle, &processArchitecture))
+            )
+        {
+            architecture = processArchitecture;
+        }
+        else if (ProcessItem->FileName)
+        {
+            PH_MAPPED_IMAGE mappedImage;
+
+            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessItem->FileName->sr, NULL, &mappedImage)))
+            {
+                architecture = mappedImage.NtHeaders->FileHeader.Machine;
+                PhUnloadMappedImage(&mappedImage);
+            }
+        }
+    }
+
+    switch (architecture)
     {
     case IMAGE_FILE_MACHINE_I386:
         arch = L"I386 ";

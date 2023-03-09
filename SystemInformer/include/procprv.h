@@ -36,7 +36,6 @@ typedef enum _PH_PROCESS_PROVIDER_FLAG
     PH_PROCESS_PROVIDER_FLAG_CFGUARD = 0x80000,
     PH_PROCESS_PROVIDER_FLAG_CET = 0x100000,
     PH_PROCESS_PROVIDER_FLAG_AVERAGE = 0x200000,
-    PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE = 0x400000,
 } PH_PROCESS_PROVIDER_FLAG;
 
 extern ULONG PhProcessProviderFlagsMask;
@@ -280,8 +279,6 @@ typedef struct _PH_PROCESS_ITEM
 
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
-
-    USHORT Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
 
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub

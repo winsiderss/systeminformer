@@ -91,8 +91,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsBeingDebugged : 1;
             ULONG IsImmersive : 1;
             ULONG IsFilteredHandle : 1;
-            ULONG Architecture : 16; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
-            ULONG Spare : 9;
+            ULONG Spare : 25;
         };
     };
 
@@ -871,39 +870,6 @@ VOID PhpProcessQueryStage1(
         }
     }
 
-    // Architecture
-    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId) && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
-    {
-        status = STATUS_NOT_FOUND;
-
-        //
-        // First try to use the new API if it makes sense to. (jxy-s)
-        //
-        if (WindowsVersion >= WINDOWS_11 && processItem->QueryHandle)
-        {
-            USHORT processArchitecture;
-
-            status = PhGetProcessArchitecture(
-                processItem->QueryHandle,
-                &processArchitecture
-                );
-
-            if (NT_SUCCESS(status))
-            {
-                Data->Architecture = processArchitecture;
-            }
-        }
-
-        //
-        // Check if we succeeded above. (jxy-s)
-        //
-        if (!NT_SUCCESS(status))
-        {
-            // Set the special value for a delayed stage2 query. (dmex)
-            Data->Architecture = USHRT_MAX;
-        }
-    }
-
     if (processItem->Sid && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
     {
         // Note: We delay resolving the SID name because the local LSA cache might still be
@@ -950,21 +916,6 @@ VOID PhpProcessQueryStage2(
             Data->ImportModules = ULONG_MAX;
             Data->ImportFunctions = ULONG_MAX;
         }
-
-        //if (processItem->Architecture == USHRT_MAX && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
-        //{
-        //    PH_MAPPED_IMAGE mappedImage;
-        //
-        //    // For backward compatibility we'll read the Machine from the file.
-        //    // If we fail to access the file we could go read from the remote
-        //    // process memory, but for now we only read from the file. (jxy-s)
-        //
-        //    if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&processItem->FileName->sr, NULL, &mappedImage)))
-        //    {
-        //        Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
-        //        PhUnloadMappedImage(&mappedImage);
-        //    }
-        //}
     }
 
     if (PhEnableImageCoherencySupport && processItem->FileName && !processItem->IsSubsystemProcess)
@@ -1100,7 +1051,6 @@ VOID PhpFillProcessItemStage1(
     processItem->IsBeingDebugged = Data->IsBeingDebugged;
     processItem->IsImmersive = Data->IsImmersive;
     processItem->IsProtectedHandle = Data->IsFilteredHandle;
-    processItem->Architecture = (USHORT)Data->Architecture;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 
@@ -1141,12 +1091,6 @@ VOID PhpFillProcessItemStage2(
     {
         memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
     }
-
-    // Note: We query the architecture in stage1 so don't overwrite the previous data. (dmex)
-    //if (processItem->Architecture == USHRT_MAX)
-    //{
-    //    processItem->Architecture = Data->Architecture;
-    //}
 }
 
 VOID PhpFillProcessItemExtension(
@@ -2892,26 +2836,6 @@ VOID PhProcessProviderUpdate(
                 {
                     processItem->IsProtectedHandle = filteredHandle;
                     modified = TRUE;
-                }
-            }
-
-            // Architecture
-            if (processItem->QueryHandle && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
-            {
-                if (processItem->Architecture == IMAGE_FILE_MACHINE_UNKNOWN)
-                {
-                    processItem->Architecture = IMAGE_FILE_MACHINE_TARGET_HOST;
-
-                    if (WindowsVersion >= WINDOWS_11)
-                    {
-                        USHORT processArchitecture;
-
-                        if (NT_SUCCESS(PhGetProcessArchitecture(processItem->QueryHandle, &processArchitecture)))
-                        {
-                            processItem->Architecture = processArchitecture;
-                            modified = TRUE;
-                        }
-                    }
                 }
             }
 
