@@ -450,7 +450,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
                 );
         }
     }
-    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE) || PhEqualString2(Context->HandleItem->TypeName, L"EtwConsumer", TRUE))
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
         PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_ETW, L"Event trace information");
         Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME] = PhAddListViewGroupItem(
@@ -1099,7 +1099,7 @@ VOID PhpUpdateHandleGeneral(
             }
         }
     }
-    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE) || PhEqualString2(Context->HandleItem->TypeName, L"EtwConsumer", TRUE))
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
         PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME], 1, PhGetString(Context->HandleItem->ObjectName));
     }
