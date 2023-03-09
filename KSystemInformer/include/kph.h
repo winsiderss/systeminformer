@@ -96,10 +96,6 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
 _Pragma("warning(suppress : 6001)")\
 ProbeForWrite(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
-#define ProbeInputType(pointer, type)\
-_Pragma("warning(suppress : 6001)")\
-ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
-
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
 #define RebaseUnicodeString(string, oldBase, newBase)\
@@ -297,8 +293,6 @@ NTSTATUS KphLocateKernelImage(
 
 #define IsKernelHandle(Handle) ((LONG_PTR)(Handle) < 0)
 #define MakeKernelHandle(Handle) ((HANDLE)((ULONG_PTR)(Handle) | KERNEL_HANDLE_BIT))
-#define IsPseudoHandle(Handle) (((ULONG_PTR)(Handle) <= (ULONG_PTR)-1) &&\
-                                ((ULONG_PTR)(Handle) >= (ULONG_PTR)-6))
 
 _Acquires_lock_(Process)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -762,7 +756,7 @@ NTSTATUS KphMappedImageRvaToVa(
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphMapViewInSystem(
+NTSTATUS KphMapViewOfFileInSystemProcess(
     _In_ HANDLE FileHandle,
     _In_ ULONG Flags,
     _Outptr_result_bytebuffer_(*ViewSize) PVOID *MappedBase,
@@ -771,7 +765,7 @@ NTSTATUS KphMapViewInSystem(
     );
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)
-VOID KphUnmapViewInSystem(
+VOID KphUnmapViewInSystemProcess(
     _In_ PVOID MappedBase,
     _In_ PKAPC_STATE ApcState
     );
@@ -1512,24 +1506,6 @@ NTSTATUS KphQueryVolumeInformationFile(
     _Out_writes_bytes_(FsInformationLength) PVOID FsInformation,
     _In_ ULONG FsInformationLength,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
-    _In_ KPROCESSOR_MODE AccessMode
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphCreateFile(
-    _Out_ PHANDLE FileHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
-    _In_opt_ PLARGE_INTEGER AllocationSize,
-    _In_ ULONG FileAttributes,
-    _In_ ULONG ShareAccess,
-    _In_ ULONG CreateDisposition,
-    _In_ ULONG CreateOptions,
-    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
-    _In_ ULONG EaLength,
-    _In_ ULONG Options,
     _In_ KPROCESSOR_MODE AccessMode
     );
 

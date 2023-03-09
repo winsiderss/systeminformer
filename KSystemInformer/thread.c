@@ -68,7 +68,9 @@ NTSTATUS KphOpenThread(
         __try
         {
             ProbeOutputType(ThreadHandle, HANDLE);
-            ProbeInputType(ClientId, CLIENT_ID);
+            ProbeForRead(ClientId,
+                         sizeof(CLIENT_ID),
+                         TYPE_ALIGNMENT(CLIENT_ID));
             clientId = *ClientId;
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -636,7 +638,10 @@ NTSTATUS KphCaptureStackBackTraceThread(
 
             if (Timeout)
             {
-                ProbeInputType(Timeout, LARGE_INTEGER);
+                ProbeForRead(Timeout,
+                             sizeof(LARGE_INTEGER),
+                             TYPE_ALIGNMENT(LARGE_INTEGER));
+
                 timeout.QuadPart = Timeout->QuadPart;
             }
         }

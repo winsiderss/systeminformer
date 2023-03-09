@@ -400,36 +400,6 @@ KphDuplicateObject(
     _Out_ PHANDLE TargetHandle
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphQueryPerformanceCounter(
-    _Out_ PLARGE_INTEGER PerformanceCounter,
-    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
-    );
-
-#define IO_OPEN_TARGET_DIRECTORY        0x0004
-#define IO_STOP_ON_SYMLINK              0x0008
-#define IO_IGNORE_SHARE_ACCESS_CHECK    0x0800  // Ignores share access checks on opens.
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphCreateFile(
-    _Out_ PHANDLE FileHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
-    _In_opt_ PLARGE_INTEGER AllocationSize,
-    _In_ ULONG FileAttributes,
-    _In_ ULONG ShareAccess,
-    _In_ ULONG CreateDisposition,
-    _In_ ULONG CreateOptions,
-    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
-    _In_ ULONG EaLength,
-    _In_ ULONG Options
-    );
-
 EXTERN_C_END
 
 #endif

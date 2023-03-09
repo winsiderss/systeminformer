@@ -85,7 +85,9 @@ NTSTATUS KphOpenProcess(
         __try
         {
             ProbeOutputType(ProcessHandle, HANDLE);
-            ProbeInputType(ClientId, CLIENT_ID);
+            ProbeForRead(ClientId,
+                         sizeof(CLIENT_ID),
+                         TYPE_ALIGNMENT(CLIENT_ID));
             clientId = *ClientId;
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
