@@ -12493,10 +12493,12 @@ NTSTATUS PhGetProcessConsoleCodePage(
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInformation;
     HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
     PVOID getConsoleCP = NULL;
     PPH_TARGET_LIBS libs;
 
     status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
+
     if (!NT_SUCCESS(status))
         return status;
 
@@ -12511,6 +12513,14 @@ NTSTATUS PhGetProcessConsoleCodePage(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
 
     status = RtlCreateUserThread(
         ProcessHandle,
@@ -12544,6 +12554,11 @@ CleanupExit:
     if (threadHandle)
     {
         NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
     }
 
     return status;
@@ -12602,10 +12617,16 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
     PVOID ldrInitBlockAddress;
+    PPH_TARGET_LIBS runtime;
 
-    status = PhGetProcedureAddressRemoteZ(
+    status = PhpGetProcessTargetLibs(ProcessHandle, &runtime, NULL);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        L"\\SystemRoot\\System32\\ntdll.dll",
+        &runtime->Ntdll,
         "LdrSystemDllInitBlock",
         0,
         &ldrInitBlockAddress,
@@ -12628,7 +12649,15 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
 
     if (NT_SUCCESS(status))
     {
-        *SystemDllInitBlock = ldrInitBlock;
+        if (ldrInitBlock->Size == sizeof(PS_SYSTEM_DLL_INIT_BLOCK))
+        {
+            *SystemDllInitBlock = ldrInitBlock;
+        }
+        else
+        {
+            status = STATUS_INFO_LENGTH_MISMATCH;
+            PhFree(ldrInitBlock);
+        }
     }
     else
     {
@@ -13311,32 +13340,13 @@ NTSTATUS PhCreateExecutionRequiredRequest(
 {
     NTSTATUS status;
     HANDLE powerRequestHandle = NULL;
-    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
     COUNTED_REASON_CONTEXT powerRequestReason;
     POWER_REQUEST_ACTION powerRequestAction;
-
-    status = PhGetProcessExtendedBasicInformation(ProcessHandle, &basicInfo);
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    if (!basicInfo.IsFrozen)
-    {
-        // CreateToolhelp32Snapshot uses RtlpCreateExecutionRequiredRequest but it doesn't create an execution request
-        // when IsFrozen==false (such as when the immersive window is visible), CreateToolhelp32Snapshot proceeds to
-        // inject the debug thread but if the window closes, there's a race here where the debug thread gets frozen because
-        // RtlpCreateExecutionRequiredRequest never created the execution request. We can resolve the race condition
-        // by removing the above code checking IsFrozen but for now just copy what RtlpCreateExecutionRequiredRequest
-        // does (and copy the race condition) by returning here instead of always creating the execution request. (dmex)
-        // TODO: We should remove the check for IsFrozen if the race condition becomes an issue at some point in the future.
-        *PowerRequestHandle = NULL;
-        return STATUS_SUCCESS;
-    }
 
     memset(&powerRequestReason, 0, sizeof(COUNTED_REASON_CONTEXT));
     powerRequestReason.Version = POWER_REQUEST_CONTEXT_VERSION;
     powerRequestReason.Flags = POWER_REQUEST_CONTEXT_SIMPLE_STRING;
-    RtlInitUnicodeString(&powerRequestReason.SimpleString, L"DebugExecutionRequired request");
+    RtlInitUnicodeString(&powerRequestReason.SimpleString, L"QueryDebugInformation request");
 
     status = NtPowerInformation(
         PlmPowerRequestCreate,
