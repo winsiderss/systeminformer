@@ -620,6 +620,23 @@ PhGetTokenSecurityAttributes(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenSecurityAttribute(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF AttributeName,
+    _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDoesTokenSecurityAttributeExist(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF AttributeName
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhIsTokenFullTrustPackage(
