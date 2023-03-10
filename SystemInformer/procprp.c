@@ -495,12 +495,25 @@ VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
 {
     PPH_PROCESS_WAITPROPCONTEXT context = (PPH_PROCESS_WAITPROPCONTEXT)Object;
 
+    PhpFlushProcessPropSheetWaitContextData();
+
     if (context->ProcessWaitHandle)
+    {
         RtlDeregisterWaitEx(context->ProcessWaitHandle, RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION);
+        context->ProcessWaitHandle = NULL;
+    }
+
     if (context->ProcessHandle)
+    {
         NtClose(context->ProcessHandle);
+        context->ProcessHandle = NULL;
+    }
+
     if (context->ProcessItem)
+    {
         PhDereferenceObject(context->ProcessItem);
+        context->ProcessItem = NULL;
+    }
 }
 
 VOID PhpCreateProcessPropSheetWaitContext(
