@@ -657,6 +657,21 @@ PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
 
+// rev from RtlInitializeSid (dmex)
+FORCEINLINE
+BOOLEAN
+PhInitializeSid(
+    _In_ PSID Sid,
+    _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
+    _In_ UCHAR SubAuthorityCount
+    )
+{
+    ((PISID)Sid)->Revision = SID_REVISION;
+    ((PISID)Sid)->IdentifierAuthority = *IdentifierAuthority;
+    ((PISID)Sid)->SubAuthorityCount = SubAuthorityCount;
+    return TRUE;
+}
+
 // rev from RtlLengthSid (dmex)
 FORCEINLINE
 ULONG
@@ -677,7 +692,18 @@ PhEqualSid(
     _In_ PSID Sid2
     )
 {
-    return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, PhLengthSid(Sid1));;
+    return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, PhLengthSid(Sid1));
+}
+
+// rev from RtlSubAuthoritySid (dmex)
+FORCEINLINE
+PULONG
+PhSubAuthoritySid(
+    _In_ PSID Sid,
+    _In_ ULONG SubAuthority
+    )
+{
+    return &((PISID)Sid)->SubAuthority[SubAuthority];
 }
 
 PHLIBAPI
