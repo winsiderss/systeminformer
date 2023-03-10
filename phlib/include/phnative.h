@@ -1316,6 +1316,37 @@ PhEnumProcessesEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
     );
 
+typedef BOOLEAN (NTAPI *PPH_ENUM_NEXT_PROCESS)(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumNextProcess(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_ENUM_NEXT_PROCESS Callback,
+    _In_opt_ PVOID Context
+    );
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_NEXT_THREAD)(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumNextThread(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_ENUM_NEXT_THREAD Callback,
+    _In_opt_ PVOID Context
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI

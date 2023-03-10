@@ -6391,6 +6391,64 @@ NTSTATUS PhEnumProcessesEx(
     return status;
 }
 
+NTSTATUS PhEnumNextProcess(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_ENUM_NEXT_PROCESS Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle = ProcessHandle;
+
+    while (NT_SUCCESS(status = NtGetNextProcess(
+        processHandle,
+        DesiredAccess,
+        0,
+        0,
+        &processHandle
+        )))
+    {
+        if (!Callback(processHandle, Context))
+            break;
+    }
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+        status = STATUS_SUCCESS;
+
+    return status;
+}
+
+NTSTATUS PhEnumNextThread(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_ENUM_NEXT_THREAD Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle = ThreadHandle;
+
+    while (NT_SUCCESS(status = NtGetNextThread(
+        ProcessHandle,
+        threadHandle,
+        DesiredAccess,
+        0,
+        0,
+        &threadHandle
+        )))
+    {
+        if (!Callback(threadHandle, Context))
+            break;
+    }
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+        status = STATUS_SUCCESS;
+
+    return status;
+}
+
 /**
  * Enumerates the running processes for a session.
  *
