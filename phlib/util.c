@@ -2841,12 +2841,22 @@ BOOLEAN PhInitializeImageVersionInfoCached(
     if (IsSubsystemProcess)
     {
         if (!PhInitializeLxssImageVersionInfo(&versionInfo, &FileName->sr))
-            return FALSE;
+        {
+            // Note: If the function fails the version info is empty. For extra performance
+            // we still update the cache with a reference to the filename (without version info)
+            // and just return the empty result from the cache instead of loading the same file again.
+            // We flush every few hours so the cache doesn't waste memory or become state. (dmex)
+        }
     }
     else
     {
         if (!PhInitializeImageVersionInfoEx(&versionInfo, &FileName->sr, ExtendedVersion))
-            return FALSE;
+        {
+            // Note: If the function fails the version info is empty. For extra performance
+            // we still update the cache with a reference to the filename (without version info)
+            // and just return the empty result from the cache instead of loading the same file again.
+            // We flush every few hours so the cache doesn't waste memory or become state. (dmex)
+        }
     }
 
     if (!PhpImageVersionInfoCacheHashtable)
