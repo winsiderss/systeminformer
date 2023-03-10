@@ -603,7 +603,6 @@ EXPORTS
     PhUnregisterWindowCallback
     PhInitializeWindowTheme
     PhReInitializeWindowTheme
-    PhInitializeThemeWindowHeader
     PhImageListCreate
     PhImageListDestroy
     PhImageListSetImageCount
