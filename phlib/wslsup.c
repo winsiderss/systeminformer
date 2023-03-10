@@ -140,75 +140,128 @@ BOOLEAN PhGetWslDistributionFromPath(
     return FALSE;
 }
 
-BOOLEAN PhInitializeLxssImageVersionInfo(
-    _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRINGREF FileName
+_Success_(return)
+BOOLEAN PhDosPathNameToWslPathName(
+    _In_ PPH_STRINGREF FileName,
+    _Out_ PPH_STRING* LxssFileName
     )
 {
-    static PH_STRINGREF lxssDpkgCommandLine = PH_STRINGREF_INIT(L"dpkg -S ");
-    static PH_STRINGREF lxssDpkgQueryCommandLine = PH_STRINGREF_INIT(L"dpkg-query -W -f=${Version}|${Maintainer}|${binary:Summary} ");
     BOOLEAN success = FALSE;
-    PPH_STRING lxssCommandResult = NULL;
+    PPH_STRING win32FileName = NULL;
+    PPH_STRING lxssDistroName = NULL;
     PPH_STRING lxssCommandLine = NULL;
-    PPH_STRING lxssPackageName = NULL;
-    PPH_STRING lxssDistroName;
-    PPH_STRING lxssFileName;
+    PPH_STRING lxssCommandResult = NULL;
     PH_FORMAT format[3];
 
-    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, &lxssFileName))
+    win32FileName = PhCreateString2(FileName);
+    PhMoveReference(&win32FileName, PhGetFileName(win32FileName));
+
+    if (PhIsNullOrEmptyString(win32FileName))
         return FALSE;
-    if (PhIsNullOrEmptyString(lxssDistroName) || PhIsNullOrEmptyString(lxssFileName))
+
+    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, NULL))
         goto CleanupExit;
-    if (PhEqualString2(lxssFileName, L"/init", FALSE))
+
+    PhInitFormatS(&format[0], L"wslpath -a -u \"");
+    PhInitFormatSR(&format[1], win32FileName->sr);
+    PhInitFormatC(&format[2], L'\"');
+    lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+
+    if (!PhCreateProcessLxss(lxssDistroName, lxssCommandLine, &lxssCommandResult))
         goto CleanupExit;
 
-    // "rpm -qf %s --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\""
-    PhInitFormatS(&format[0], L"rpm -qf ");
-    PhInitFormatSR(&format[1], lxssFileName->sr);
-    PhInitFormatS(&format[2], L" --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\"");
+    if (PhIsNullOrEmptyString(lxssCommandResult))
+        goto CleanupExit;
 
-    lxssCommandLine = PhFormat(
-        format,
-        RTL_NUMBER_OF(format),
-        0x100
-        );
-
-    if (PhCreateProcessLxss(
-        lxssDistroName,
-        lxssCommandLine,
-        &lxssCommandResult
-        ))
+    if (PhEndsWithString2(lxssCommandResult, L"\n", FALSE))
     {
-        goto ParseResult;
+        lxssCommandResult->Length -= sizeof(WCHAR[1]);
+        lxssCommandResult->Buffer[lxssCommandResult->Length / sizeof(WCHAR)] = UNICODE_NULL;
     }
 
-    PhMoveReference(&lxssCommandLine, PhConcatStringRef2(
-        &lxssDpkgCommandLine,
-        &lxssFileName->sr
-        ));
+    *LxssFileName = PhReferenceObject(lxssCommandResult);
+    success = TRUE;
 
-    if (!PhCreateProcessLxss(
-        lxssDistroName,
-        lxssCommandLine,
-        &lxssCommandResult
-        ))
+CleanupExit:
+
+    if (lxssCommandResult) PhDereferenceObject(lxssCommandResult);
+    if (lxssCommandLine) PhDereferenceObject(lxssCommandLine);
+    if (lxssDistroName) PhDereferenceObject(lxssDistroName);
+    if (win32FileName) PhDereferenceObject(win32FileName);
+
+    return success;
+}
+
+_Success_(return)
+BOOLEAN PhWslQueryRpmPackageFromFileName(
+    _In_ PPH_STRING LxssDistribution,
+    _In_ PPH_STRING LxssFileName,
+    _Out_ PPH_STRING* Result
+    )
+{
+    PPH_STRING lxssCommandLine;
+    PPH_STRING lxssCommandResult;
+    PH_FORMAT format[3];
+
+    // "rpm -qf %s --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\""
+    PhInitFormatS(&format[0], L"rpm -qf \"");
+    PhInitFormatSR(&format[1], LxssFileName->sr);
+    PhInitFormatS(&format[2], L"\" --queryformat \"%%{VERSION}|%%{VENDOR}|%%{SUMMARY}\"");
+    lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+
+    if (PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
     {
-        // The dpkg metadata for some packages doesn't contain /usr for
-        // /usr/bin/ paths. Try lookup the package again without /usr. (dmex)
-        if (PhStartsWithString2(lxssFileName, L"/usr", TRUE))
+        *Result = lxssCommandResult;
+        PhDereferenceObject(lxssCommandLine);
+        return TRUE;
+    }
+
+    PhDereferenceObject(lxssCommandLine);
+    return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhWslQueryDebianPackageFromFileName(
+    _In_ PPH_STRING LxssDistribution,
+    _In_ PPH_STRING LxssFileName,
+    _Out_ PPH_STRING* Result
+    )
+{
+    BOOLEAN success = FALSE;
+    PPH_STRING lxssCommandLine;
+    PPH_STRING lxssCommandResult = NULL;
+    PPH_STRING lxssPackageName = NULL;
+    PH_FORMAT format[3];
+
+    // "dpkg -S %s"
+    PhInitFormatS(&format[0], L"dpkg -S \"");
+    PhInitFormatSR(&format[1], LxssFileName->sr);
+    PhInitFormatS(&format[2], L"\"");
+    lxssCommandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+
+    if (!PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
+    {
+        // The dpkg metadata doesn't contain information for symbolic links
+        // from "/usr/bin -> /bin" so remove the /usr prefix and try again. (dmex)
+
+        if (PhStartsWithString2(LxssFileName, L"/usr", FALSE))
         {
-            PhSkipStringRef(&lxssFileName->sr, 4 * sizeof(WCHAR));
+            PhSkipStringRef(&LxssFileName->sr, sizeof(WCHAR[4]));
 
-            PhMoveReference(&lxssCommandLine, PhConcatStringRef2(
-                &lxssDpkgCommandLine,
-                &lxssFileName->sr
-                ));
+            // "dpkg -S %s"
+            PhInitFormatS(&format[0], L"dpkg -S \"");
+            PhInitFormatSR(&format[1], LxssFileName->sr);
+            PhInitFormatS(&format[2], L"\"");
+            PhMoveReference(&lxssCommandLine, PhFormat(format, RTL_NUMBER_OF(format), 0x100));
 
-            PhCreateProcessLxss(
-                lxssDistroName,
-                lxssCommandLine,
-                &lxssCommandResult
-                );
+            if (!PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
+            {
+                goto CleanupExit;
+            }
+        }
+        else
+        {
+            goto CleanupExit;
         }
     }
 
@@ -228,54 +281,104 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
     if (PhIsNullOrEmptyString(lxssPackageName))
         goto CleanupExit;
 
-    PhMoveReference(&lxssCommandLine, PhConcatStringRef2(
-        &lxssDpkgQueryCommandLine,
-        &lxssPackageName->sr
-        ));
+    // "dpkg-query -W -f=${Version}|${Maintainer}|${binary:Summary} %s"
+    PhInitFormatS(&format[0], L"dpkg-query -W -f=${Version}|${Maintainer}|${binary:Summary} \"");
+    PhInitFormatSR(&format[1], lxssPackageName->sr);
+    PhInitFormatS(&format[2], L"\"");
+    PhMoveReference(&lxssCommandLine, PhFormat(format, RTL_NUMBER_OF(format), 0x100));
 
-    if (!PhCreateProcessLxss(
-        lxssDistroName,
-        lxssCommandLine,
-        &lxssCommandResult
-        ))
+    if (!PhCreateProcessLxss(LxssDistribution, lxssCommandLine, &lxssCommandResult))
     {
         goto CleanupExit;
     }
 
-ParseResult:
-    if (
-        !ImageVersionInfo->FileVersion &&
-        !ImageVersionInfo->CompanyName &&
-        !ImageVersionInfo->FileDescription
-        )
-    {
-        PH_STRINGREF remainingPart;
-        PH_STRINGREF companyPart;
-        PH_STRINGREF descriptionPart;
-        PH_STRINGREF versionPart;
-
-        remainingPart = PhGetStringRef(lxssCommandResult);
-        PhSplitStringRefAtChar(&remainingPart, L'|', &versionPart, &remainingPart);
-        PhSplitStringRefAtChar(&remainingPart, L'|', &companyPart, &remainingPart);
-        PhSplitStringRefAtChar(&remainingPart, L'|', &descriptionPart, &remainingPart);
-
-        if (versionPart.Length != 0)
-            ImageVersionInfo->FileVersion = PhCreateString2(&versionPart);
-        if (companyPart.Length != 0)
-            ImageVersionInfo->CompanyName = PhCreateString2(&companyPart);
-        if (descriptionPart.Length != 0)
-            ImageVersionInfo->FileDescription = PhCreateString2(&descriptionPart);
-    }
-
+    *Result = PhReferenceObject(lxssCommandResult);
     success = TRUE;
 
 CleanupExit:
-
+    if (lxssPackageName) PhDereferenceObject(lxssPackageName);
     if (lxssCommandResult) PhDereferenceObject(lxssCommandResult);
     if (lxssCommandLine) PhDereferenceObject(lxssCommandLine);
-    if (lxssPackageName) PhDereferenceObject(lxssPackageName);
-    if (lxssDistroName) PhDereferenceObject(lxssDistroName);
-    if (lxssFileName) PhDereferenceObject(lxssFileName);
+
+    return success;
+}
+
+_Success_(return)
+BOOLEAN PhWslParsePackageVersionInfo(
+    _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_ PPH_STRING LxssCommandResult
+    )
+{
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF companyPart;
+    PH_STRINGREF descriptionPart;
+    PH_STRINGREF versionPart;
+
+    if (PhIsNullOrEmptyString(LxssCommandResult))
+        return FALSE;
+
+    remainingPart = PhGetStringRef(LxssCommandResult);
+    PhSplitStringRefAtChar(&remainingPart, L'|', &versionPart, &remainingPart);
+    PhSplitStringRefAtChar(&remainingPart, L'|', &companyPart, &remainingPart);
+    PhSplitStringRefAtChar(&remainingPart, L'|', &descriptionPart, &remainingPart);
+
+    if (versionPart.Length != 0 && !ImageVersionInfo->FileVersion)
+    {
+        ImageVersionInfo->FileVersion = PhCreateString2(&versionPart);
+    }
+
+    if (companyPart.Length != 0 && !ImageVersionInfo->CompanyName)
+    {
+        ImageVersionInfo->CompanyName = PhCreateString2(&companyPart);
+    }
+
+    if (descriptionPart.Length != 0 && !ImageVersionInfo->FileDescription)
+    {
+        ImageVersionInfo->FileDescription = PhCreateString2(&descriptionPart);
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhInitializeLxssImageVersionInfo(
+    _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    BOOLEAN success = FALSE;
+    PPH_STRING lxssCommandResult = NULL;
+    PPH_STRING lxssDistroName = NULL;
+    PPH_STRING lxssFileName = NULL;
+
+    if (!PhGetWslDistributionFromPath(FileName, &lxssDistroName, NULL, &lxssFileName))
+        return FALSE;
+    if (PhIsNullOrEmptyString(lxssFileName))
+        goto CleanupExit;
+    if (PhEqualString2(lxssFileName, L"/init", FALSE))
+        goto CleanupExit;
+
+    if (PhWslQueryDebianPackageFromFileName(lxssDistroName, lxssFileName, &lxssCommandResult))
+    {
+        if (PhWslParsePackageVersionInfo(ImageVersionInfo, lxssCommandResult))
+        {
+            success = TRUE;
+            goto CleanupExit;
+        }
+    }
+
+    if (PhWslQueryRpmPackageFromFileName(lxssDistroName, lxssFileName, &lxssCommandResult))
+    {
+        if (PhWslParsePackageVersionInfo(ImageVersionInfo, lxssCommandResult))
+        {
+            success = TRUE;
+            goto CleanupExit;
+        }
+    }
+
+CleanupExit:
+    PhClearReference(&lxssCommandResult);
+    PhClearReference(&lxssDistroName);
+    PhClearReference(&lxssFileName);
 
     return success;
 }
