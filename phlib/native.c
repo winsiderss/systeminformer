@@ -3436,8 +3436,6 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
         subAuthority = SECURITY_MANDATORY_UNTRUSTED_RID;
     }
 
-    //PhFree(mandatoryLabel);
-
     if (IntegrityString)
     {
         if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)) && tokenIsAppContainer)
@@ -3521,9 +3519,9 @@ NTSTATUS PhGetTokenIntegrityLevel(
         case SECURITY_MANDATORY_MEDIUM_RID:
             integrityLevel = MandatoryLevelMedium;
             break;
-        //case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
-        //    integrityLevel = MandatoryLevelMedium;
-        //    break;
+        case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+            integrityLevel = MandatoryLevelMedium;
+            break;
         case SECURITY_MANDATORY_HIGH_RID:
             integrityLevel = MandatoryLevelHigh;
             break;
