@@ -1628,13 +1628,6 @@ PhWindowThemeControlColor(
     );
 
 PHLIBAPI
-VOID
-NTAPI
-PhInitializeThemeWindowHeader(
-    _In_ HWND HeaderWindow
-    );
-
-PHLIBAPI
 BOOLEAN
 NTAPI
 PhThemeWindowDrawItem(
