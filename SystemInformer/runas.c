@@ -2248,28 +2248,21 @@ NTSTATUS PhpRunAsShellExecute(
     )
 {
     NTSTATUS status;
-    PPH_STRING parentDirectory = NULL;
-    SHELLEXECUTEINFO info;
+    PPH_STRING parentDirectory;
 
     parentDirectory = PhpQueryRunFileParentDirectory(Elevated);
 
-    memset(&info, 0, sizeof(SHELLEXECUTEINFO));
-    info.cbSize = sizeof(SHELLEXECUTEINFO);
-    info.lpFile = FileName;
-    info.lpParameters = Parameters;
-    info.lpDirectory = PhGetString(parentDirectory);
-    info.fMask = SEE_MASK_FLAG_NO_UI;
-    info.nShow = SW_SHOWNORMAL;
-    info.hwnd = hWnd;
-
-    if (Elevated)
-        info.lpVerb = L"runas";
-
-    if (ShellExecuteEx(&info))
+    if (PhShellExecuteEx(
+        hWnd,
+        FileName,
+        Parameters,
+        PhGetString(parentDirectory),
+        SW_SHOW,
+        PH_SHELL_EXECUTE_NOASYNC | (Elevated ? PH_SHELL_EXECUTE_ADMIN : 0),
+        0,
+        NULL
+        ))
     {
-        if (info.hProcess)
-            NtClose(info.hProcess);
-
         status = STATUS_SUCCESS;
     }
     else
@@ -2277,8 +2270,7 @@ NTSTATUS PhpRunAsShellExecute(
         status = PhGetLastWin32ErrorAsNtStatus();
     }
 
-    if (parentDirectory)
-        PhDereferenceObject(parentDirectory);
+    PhClearReference(&parentDirectory);
 
     return status;
 }
