@@ -1169,7 +1169,8 @@ static VOID PhpUpdateProcessNodeImage(
 
             if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
             {
-                ProcessNode->ImageReserved = mappedImage.NtHeaders->FileHeader.Machine;
+                if (WindowsVersion < WINDOWS_11)
+                    ProcessNode->ImageReserved = mappedImage.NtHeaders->FileHeader.Machine;
                 ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
                 ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
 
