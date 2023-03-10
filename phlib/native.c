@@ -2888,6 +2888,90 @@ NTSTATUS PhGetTokenSecurityAttributes(
         );
 }
 
+NTSTATUS PhGetTokenSecurityAttribute(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF AttributeName,
+    _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
+    )
+{
+    UNICODE_STRING attributeName;
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferLength;
+    ULONG returnLength;
+
+    if (!PhStringRefToUnicodeString(AttributeName, &attributeName))
+        return STATUS_NAME_TOO_LONG;
+
+    returnLength = 0;
+    bufferLength = 0x200;
+    buffer = PhAllocate(bufferLength);
+    memset(buffer, 0, bufferLength);
+
+    status = NtQuerySecurityAttributesToken(
+        TokenHandle,
+        &attributeName,
+        1,
+        buffer,
+        bufferLength,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
+    {
+        bufferLength = returnLength;
+        buffer = PhAllocate(bufferLength);
+        memset(buffer, 0, bufferLength);
+
+        status = NtQuerySecurityAttributesToken(
+            TokenHandle,
+            &attributeName,
+            1,
+            buffer,
+            bufferLength,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *SecurityAttributes = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
+BOOLEAN PhDoesTokenSecurityAttributeExist(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF AttributeName
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING attributeName;
+    ULONG returnLength;
+
+    if (!PhStringRefToUnicodeString(AttributeName, &attributeName))
+        return FALSE;
+
+    status = NtQuerySecurityAttributesToken(
+        TokenHandle,
+        &attributeName,
+        1,
+        NULL,
+        0,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return TRUE;
+
+    return FALSE;
+}
+
 PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
     _In_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes,
     _In_ PPH_STRINGREF AttributeName
@@ -2914,29 +2998,83 @@ BOOLEAN PhIsTokenFullTrustPackage(
     )
 {
     static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
-    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     BOOLEAN tokenIsAppContainer = FALSE;
-    BOOLEAN tokenHasAppId = FALSE;
 
-    if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)))
+    if (NT_SUCCESS(PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName)))
     {
-        if (tokenIsAppContainer)
-            return FALSE;
-    }
-
-    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
-    {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
-
-        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+        if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)))
         {
-            tokenHasAppId = TRUE;
+            if (tokenIsAppContainer)
+                return FALSE;
         }
 
-        PhFree(info);
+        return TRUE;
     }
 
-    return tokenHasAppId;
+    return FALSE;
+}
+
+NTSTATUS PhGetProcessIsStronglyNamed(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsStronglyNamed
+    )
+{
+    NTSTATUS status;
+    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+
+    status = PhGetProcessExtendedBasicInformation(ProcessHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        *IsStronglyNamed = !!basicInfo.IsStronglyNamed;
+    }
+
+    return status;
+}
+
+BOOLEAN PhIsProcessFullTrustPackage(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    BOOLEAN processIsStronglyNamed = FALSE;
+    BOOLEAN tokenIsAppContainer = FALSE;
+
+    if (NT_SUCCESS(PhGetProcessIsStronglyNamed(ProcessHandle, &processIsStronglyNamed)))
+    {
+        if (processIsStronglyNamed)
+        {
+            HANDLE tokenHandle;
+
+            if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
+            {
+                PhGetTokenIsAppContainer(tokenHandle, &tokenIsAppContainer);
+                NtClose(tokenHandle);
+            }
+
+            if (tokenIsAppContainer)
+                return FALSE;
+
+            return TRUE;
+        }
+
+    return FALSE;
+}
+
+// rev from PackageIdFromFullName (dmex)
+PPH_STRING PhGetProcessPackageFullName(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    HANDLE tokenHandle;
+    PPH_STRING packageName = NULL;
+
+    if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
+    {
+        packageName = PhGetTokenPackageFullName(tokenHandle);
+        NtClose(tokenHandle);
+    }
+
+    return packageName;
 }
 
 NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
@@ -2945,30 +3083,15 @@ NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
     )
 {
     static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://NOALLAPPPKG");
-    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
-    NTSTATUS status;
 
-    status = PhGetTokenSecurityAttributes(TokenHandle, &info);
-
-    if (NT_SUCCESS(status))
-    {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
-
-        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64)
-        {
-            *IsLessPrivilegedAppContainer = TRUE; // attribute->Values.pUint64[0] == 1;
-        }
-        else
-        {
-            status = STATUS_UNSUCCESSFUL;
-        }
-
-        PhFree(info);
-    }
+    if (PhDoesTokenSecurityAttributeExist(TokenHandle, &attributeName))
+        *IsLessPrivilegedAppContainer = TRUE;
+    else
+        *IsLessPrivilegedAppContainer = FALSE;
 
     // TODO: NtQueryInformationToken(TokenIsLessPrivilegedAppContainer);
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 ULONG64 PhGetTokenSecurityAttributeValueUlong64(
@@ -2980,7 +3103,7 @@ ULONG64 PhGetTokenSecurityAttributeValueUlong64(
     ULONG64 value = MAXULONG64;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
 
-    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, Name, &info)))
     {
         PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, Name);
 
@@ -3004,7 +3127,7 @@ PPH_STRING PhGetTokenSecurityAttributeValueString(
     PPH_STRING value = NULL;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
 
-    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, Name, &info)))
     {
         PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, Name);
 
@@ -3029,7 +3152,7 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING applicationUserModelId = NULL;
 
-    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, &attributeName, &info)))
     {
         PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
 
@@ -3065,7 +3188,7 @@ PPH_STRING PhGetTokenPackageFullName(
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING packageFullName = NULL;
 
-    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, &attributeName, &info)))
     {
         PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
 
@@ -3078,23 +3201,6 @@ PPH_STRING PhGetTokenPackageFullName(
     }
 
     return packageFullName;
-}
-
-// rev from PackageIdFromFullName (dmex)
-PPH_STRING PhGetProcessPackageFullName(
-    _In_ HANDLE ProcessHandle
-    )
-{
-    HANDLE tokenHandle;
-    PPH_STRING packageName = NULL;
-
-    if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
-    {
-        packageName = PhGetTokenPackageFullName(tokenHandle);
-        NtClose(tokenHandle);
-    }
-
-    return packageName;
 }
 
 NTSTATUS PhGetTokenNamedObjectPath(
@@ -4625,7 +4731,9 @@ NTSTATUS PhOpenDriver(
         UNICODE_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
 
-        PhStringRefToUnicodeString(ObjectName, &objectName);
+        if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+            return STATUS_NAME_TOO_LONG;
+
         InitializeObjectAttributes(
             &objectAttributes,
             &objectName,
