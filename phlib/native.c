@@ -3056,6 +3056,7 @@ BOOLEAN PhIsProcessFullTrustPackage(
 
             return TRUE;
         }
+    }
 
     return FALSE;
 }
