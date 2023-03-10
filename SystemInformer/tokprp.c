@@ -1545,9 +1545,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySecureProcessRID, L"Protected", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySystemRID, L"System", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryHighRID, L"High", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryMediumPlusRID, L"Medium +", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryMediumRID, L"Medium", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLowRID, L"Low", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryUntrustedRID, L"Untrusted", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"Custom...", NULL, NULL), ULONG_MAX);
 
                     integrityLevelRID = ULONG_MAX;
 
@@ -1577,7 +1580,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
                                     customLevelPosition = 0; // The integrity level is a well-known one. No need to add a new menu item.
                                 }
-                                else if (menuItem->Id > (ULONG)integrityLevelRID)
+                                else if (menuItem->Id > (ULONG)integrityLevelRID && menuItem->Id != USHRT_MAX)
                                 {
                                     PhSetDisabledEMenuItem(menuItem);
                                     customLevelPosition = i + 1;
@@ -1624,6 +1627,44 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             FALSE
                             ))
                         {
+                            ULONG integrityLevel = ULONG_MAX;
+
+                            if (selectedItem->Id == USHRT_MAX)
+                            {
+                                PPH_STRING selectedChoice = NULL;
+                                ULONG64 integer = 0;
+
+                                while (PhaChoiceDialog(
+                                    hwndDlg,
+                                    L"Integrity Level",
+                                    L"Enter a custom integrity level:",
+                                    NULL,
+                                    0,
+                                    NULL,
+                                    PH_CHOICE_DIALOG_USER_CHOICE,
+                                    &selectedChoice,
+                                    NULL,
+                                    NULL
+                                    ))
+                                {
+                                    if (PhStringToInteger64(&selectedChoice->sr, 0, &integer))
+                                    {
+                                        if ((ULONG)integer < (ULONG)integrityLevelRID)
+                                        {
+                                            integrityLevel = (ULONG)integer;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (integrityLevel == ULONG_MAX)
+                                    goto CleanupExit;
+                            }
+                            else
+                            {
+                                integrityLevel = selectedItem->Id;
+                            }
+
                             if (NT_SUCCESS(status = tokenPageContext->OpenObject(
                                 &tokenHandle,
                                 TOKEN_QUERY | TOKEN_ADJUST_DEFAULT,
@@ -1637,7 +1678,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                                 newSid = (PSID)newSidBuffer;
                                 RtlInitializeSid(newSid, &mandatoryLabelAuthority, 1);
-                                *RtlSubAuthoritySid(newSid, 0) = selectedItem->Id;
+                                *RtlSubAuthoritySid(newSid, 0) = integrityLevel;
                                 mandatoryLabel.Label.Sid = newSid;
                                 mandatoryLabel.Label.Attributes = SE_GROUP_INTEGRITY;
 
@@ -1667,6 +1708,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         }
                     }
 
+                CleanupExit:
                     PhDestroyEMenu(menu);
                 }
                 break;
