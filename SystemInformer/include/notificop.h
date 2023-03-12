@@ -187,4 +187,11 @@ VOID PhNfpIconRestoreHoverTimerProc(
     _In_ ULONG dwTime
     );
 
+VOID PhNfpIconShowPopupHoverTimerProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ UINT_PTR idEvent,
+    _In_ ULONG dwTime
+    );
+
 #endif
