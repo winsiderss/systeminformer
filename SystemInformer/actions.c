@@ -2310,12 +2310,14 @@ BOOLEAN PhUiRestartProcess(
 
     PH_AUTO(commandLine);
 
-    if (!NT_SUCCESS(status = PhGetProcessPebString(
+    if (!NT_SUCCESS(status = PhGetProcessCurrentDirectory(
         processHandle,
-        PhpoCurrentDirectory,
+        !!Process->IsWow64,
         &currentDirectory
         )))
+    {
         goto CleanupExit;
+    }
 
     PH_AUTO(currentDirectory);
 
