@@ -377,6 +377,22 @@ PhGetSelectedProcessItems(
 PHAPPAPI
 VOID
 NTAPI
+PhGetSelectedProcessNodes(
+    _Out_ PPH_PROCESS_NODE** Nodes,
+    _Out_ PULONG NumberOfNodes
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhGetSelectedAndPropagateProcessItems(
+    _Out_ PPH_PROCESS_ITEM** Processes,
+    _Out_ PULONG NumberOfProcesses
+    );
+
+PHAPPAPI
+VOID
+NTAPI
 PhDeselectAllProcessNodes(
     VOID
     );
