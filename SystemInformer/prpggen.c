@@ -130,10 +130,7 @@ PPH_STRING PhGetProcessItemImageTypeText(
     }
 
 #if _WIN64
-    if (ProcessItem->IsWow64Valid)
-    {
-        bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
-    }
+    bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
 #else
     bits = L"(32-bit)";
 #endif

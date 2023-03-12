@@ -1159,7 +1159,6 @@ VOID PhpFillProcessItem(
             ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
             ProcessItem->IsWow64 = basicInfo.IsWow64Process;
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
-            ProcessItem->IsWow64Valid = TRUE;
         }
     }
 
