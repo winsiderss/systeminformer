@@ -1218,6 +1218,7 @@ VOID PhpFillProcessItem(
             PH_TOKEN_USER tokenUser;
             TOKEN_ELEVATION_TYPE elevationType;
             BOOLEAN isElevated;
+            BOOLEAN tokenIsUIAccessEnabled;
             MANDATORY_LEVEL integrityLevel;
             PWSTR integrityString;
 
@@ -1244,6 +1245,12 @@ VOID PhpFillProcessItem(
             {
                 ProcessItem->IntegrityLevel = integrityLevel;
                 ProcessItem->IntegrityString = integrityString;
+            }
+
+            // UIAccess
+            if (NT_SUCCESS(PhGetTokenIsUIAccessEnabled(tokenHandle, &tokenIsUIAccessEnabled)))
+            {
+                ProcessItem->IsUIAccessEnabled = !!tokenIsUIAccessEnabled;
             }
 
             // Package name
