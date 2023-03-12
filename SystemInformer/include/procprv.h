@@ -191,7 +191,6 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsHandleValid : 1;
             ULONG IsSuspended : 1;
             ULONG IsWow64 : 1;
-            ULONG IsWow64Valid : 1;
             ULONG IsImmersive : 1;
             ULONG IsPartiallySuspended : 1;
             ULONG IsProtectedHandle : 1;
@@ -203,7 +202,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsCetEnabled : 1;
             ULONG IsXfgEnabled : 1;
             ULONG IsXfgAuditEnabled : 1;
-            ULONG Spare : 10;
+            ULONG Spare : 11;
         };
     };
 
