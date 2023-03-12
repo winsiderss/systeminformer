@@ -70,13 +70,21 @@ VOID PhPinMiniInformation(
     if (PinDelayMs && PinCount < 0)
     {
         PhMipDelayedPinAdjustments[PinType] = PinCount;
-        SetTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType, PinDelayMs, NULL);
+
+        if (PhMipContainerWindow)
+        {
+            SetTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType, PinDelayMs, NULL);
+        }
         return;
     }
     else
     {
         PhMipDelayedPinAdjustments[PinType] = 0;
-        KillTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType);
+
+        if (PhMipContainerWindow)
+        {
+            KillTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType);
+        }
     }
 
     adjustPinResult = PhMipAdjustPin(PinType, PinCount);
@@ -174,7 +182,7 @@ VOID PhPinMiniInformation(
     }
     else
     {
-        if ((Flags & PH_MINIINFO_ACTIVATE_WINDOW) && IsWindowVisible(PhMipContainerWindow))
+        if ((Flags & PH_MINIINFO_ACTIVATE_WINDOW) && PhMipContainerWindow && IsWindowVisible(PhMipContainerWindow))
             SetActiveWindow(PhMipContainerWindow);
     }
 
