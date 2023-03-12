@@ -4684,6 +4684,44 @@ VOID PhGetSelectedProcessNodes(
     *Nodes = PhFinalArrayItems(&array);
 }
 
+VOID PhGetSelectedAndPropagateProcessItems(
+    _Out_ PPH_PROCESS_ITEM **Processes,
+    _Out_ PULONG NumberOfProcesses
+    )
+{
+    PH_ARRAY array;
+    ULONG i;
+    ULONG j;
+
+    PhInitializeArray(&array, sizeof(PVOID), 2);
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        if (PhCsPropagateCpuUsage)
+        {
+            for (j = 0; j < node->Children->Count; j++)
+            {
+                PPH_PROCESS_NODE child = node->Children->Items[j];
+
+                if (child->Node.Visible && child->Node.Selected)
+                {
+                    PhAddItemArray(&array, &node->ProcessItem);
+                }
+            }
+        }
+
+        if (node->Node.Visible && node->Node.Selected)
+        {
+            PhAddItemArray(&array, &node->ProcessItem);
+        }
+    }
+
+    *NumberOfProcesses = (ULONG)array.Count;
+    *Processes = PhFinalArrayItems(&array);
+}
+
 VOID PhDeselectAllProcessNodes(
     VOID
     )
