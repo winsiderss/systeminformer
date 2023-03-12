@@ -76,6 +76,8 @@ EXT ULONG PhCsUseColorHandleFiltered;
 EXT ULONG PhCsColorHandleFiltered;
 EXT ULONG PhCsUseColorImmersiveProcesses;
 EXT ULONG PhCsColorImmersiveProcesses;
+EXT ULONG PhCsUseColorUIAccessProcesses;
+EXT ULONG PhCsColorUIAccessProcesses;
 EXT ULONG PhCsUseColorPicoProcesses;
 EXT ULONG PhCsColorPicoProcesses;
 EXT ULONG PhCsUseColorSuspended;

@@ -458,6 +458,8 @@ PPH_STRING PhGetProcessTooltipText(
             else
                 PhAppendStringBuilder2(&notes, L"    Process is elevated.\n");
         }
+        if (Process->IsUIAccessEnabled)
+            PhAppendStringBuilder2(&notes, L"    Process is UIAccess.\n");
         if (Process->IsImmersive)
             PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");
         if (Process->IsInJob)
