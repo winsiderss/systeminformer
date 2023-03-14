@@ -2356,6 +2356,18 @@ BEGIN_SORT_FUNCTION(CpuAverage)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CpuKernel)
+{
+    sortResult = singlecmp(processItem1->CpuKernelUsage, processItem2->CpuKernelUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CpuUser)
+{
+    sortResult = singlecmp(processItem1->CpuUserUsage, processItem2->CpuUserUsage);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(GrantedAccess)
 {
     PhpUpdateProcessNodeGrantedAccess(node1);
@@ -2502,8 +2514,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(SharedCommit),
                         SORT_FUNCTION(PriorityBoost),
                         SORT_FUNCTION(CpuAverage),
-                        SORT_FUNCTION(Cpu), // CPU Kernel
-                        SORT_FUNCTION(Cpu), // CPU User
+                        SORT_FUNCTION(CpuKernel),
+                        SORT_FUNCTION(CpuUser),
                         SORT_FUNCTION(GrantedAccess),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
