@@ -4696,6 +4696,24 @@ VOID PhGetSelectedProcessNodes(
     *Nodes = PhFinalArrayItems(&array);
 }
 
+static VOID PhpAddAndPropagateProcessItems(
+    _In_ PPH_ARRAY ProcessesArray,
+    _In_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    for (ULONG i = 0; i < ProcessNode->Children->Count; i++)
+    {
+        PPH_PROCESS_NODE child = ProcessNode->Children->Items[i];
+
+        if (child->Children)
+        {
+            PhpAddAndPropagateProcessItems(ProcessesArray, child);
+        }
+    }
+
+    PhAddItemArray(ProcessesArray, &ProcessNode->ProcessItem);
+}
+
 VOID PhGetSelectedAndPropagateProcessItems(
     _Out_ PPH_PROCESS_ITEM **Processes,
     _Out_ PULONG NumberOfProcesses
@@ -4703,7 +4721,6 @@ VOID PhGetSelectedAndPropagateProcessItems(
 {
     PH_ARRAY array;
     ULONG i;
-    ULONG j;
 
     PhInitializeArray(&array, sizeof(PVOID), 2);
 
@@ -4711,22 +4728,16 @@ VOID PhGetSelectedAndPropagateProcessItems(
     {
         PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
 
-        if (PhCsPropagateCpuUsage)
-        {
-            for (j = 0; j < node->Children->Count; j++)
-            {
-                PPH_PROCESS_NODE child = node->Children->Items[j];
-
-                if (child->Node.Visible && child->Node.Selected)
-                {
-                    PhAddItemArray(&array, &node->ProcessItem);
-                }
-            }
-        }
-
         if (node->Node.Visible && node->Node.Selected)
         {
-            PhAddItemArray(&array, &node->ProcessItem);
+            if (PhCsPropagateCpuUsage && !node->Node.Expanded)
+            {
+                PhpAddAndPropagateProcessItems(&array, node);
+            }
+            else
+            {
+                PhAddItemArray(&array, &node->ProcessItem);
+            }
         }
     }
 
