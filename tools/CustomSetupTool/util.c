@@ -304,69 +304,15 @@ BOOLEAN SetupUninstallDriver(
     return success;
 }
 
-VOID SetupSetWindowsOptions(
+VOID SetupCreateWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    //PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
-    //PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
-    //PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
-    PPH_STRING clientPathString;
-    PPH_STRING string;
-
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
-    {
-        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
-
-        SetupCreateLink(
-            PhGetString(string),
-            PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath),
-            L"SystemInformer"
-            );
-
-        PhDereferenceObject(clientPathString);
-        PhDereferenceObject(string);
-    }
-
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
-    {
-        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\peview.exe");
-
-        SetupCreateLink(
-            PhGetString(string),
-            PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath),
-            L"SystemInformer_PEViewer"
-            );
-
-        PhDereferenceObject(clientPathString);
-        PhDereferenceObject(string);
-    }
-
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
-    {
-        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
-
-        SetupCreateLink(
-            PhGetString(string),
-            PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath),
-            L"SystemInformer"
-            );
-
-        PhDereferenceObject(clientPathString);
-        PhDereferenceObject(string);
-    }
-
-    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\System Informer.lnk"))
-    // PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\System Informer.lnk")
-    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk")
-
     // Create the app paths keys
     {
         NTSTATUS status;
         HANDLE keyHandle;
+        PPH_STRING string;
 
         status = PhCreateKey(
             &keyHandle,
@@ -380,12 +326,12 @@ VOID SetupSetWindowsOptions(
 
         if (NT_SUCCESS(status))
         {
-            //clientPathString = PhFormatString(L"\"%s\\SystemInformer.exe\"", PhGetString(Context->SetupInstallPath));
+            //string = PhFormatString(L"\"%s\\SystemInformer.exe\"", PhGetString(Context->SetupInstallPath));
 
-            if (clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe"))
+            if (string = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe"))
             {
-                PhSetValueKey(keyHandle, NULL, REG_SZ, clientPathString->Buffer, (ULONG)clientPathString->Length + sizeof(UNICODE_NULL));
-                PhDereferenceObject(clientPathString);
+                PhSetValueKey(keyHandle, NULL, REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
+                PhDereferenceObject(string);
             }
 
             NtClose(keyHandle);
@@ -576,40 +522,116 @@ VOID SetupDeleteWindowsOptions(
     }
 }
 
-VOID SetupChangeNotifyShortcuts(
+VOID SetupCreateShortcuts(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
     PPH_STRING string;
+    PPH_STRING clientPathString;
+    //PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
+    //PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
+    //PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
 
     if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
     {
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+
+        SetupCreateLink(
+            PhGetString(string),
+            PhGetString(clientPathString),
+            PhGetString(Context->SetupInstallPath),
+            L"SystemInformer"
+            );
+
         if (PhDoesFileExistWin32(PhGetString(string)))
         {
             SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
         }
 
-        PhDereferenceObject(string);
-    }
-
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
-    {
-        if (PhDoesFileExistWin32(PhGetString(string)))
-        {
-            SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
-        }
-
+        PhDereferenceObject(clientPathString);
         PhDereferenceObject(string);
     }
 
     if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
     {
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\peview.exe");
+
+        SetupCreateLink(
+            PhGetString(string),
+            PhGetString(clientPathString),
+            PhGetString(Context->SetupInstallPath),
+            L"SystemInformer_PEViewer"
+            );
+
         if (PhDoesFileExistWin32(PhGetString(string)))
         {
             SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
         }
 
+        PhDereferenceObject(clientPathString);
         PhDereferenceObject(string);
+    }
+
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+    {
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+
+        SetupCreateLink(
+            PhGetString(string),
+            PhGetString(clientPathString),
+            PhGetString(Context->SetupInstallPath),
+            L"SystemInformer"
+            );
+
+        if (PhDoesFileExistWin32(PhGetString(string)))
+        {
+            SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
+        }
+
+        PhDereferenceObject(clientPathString);
+        PhDereferenceObject(string);
+    }
+
+    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\System Informer.lnk"))
+    // PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\System Informer.lnk")
+    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk")
+}
+
+VOID SetupDeleteShortcuts(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    PPH_STRING string;
+    HANDLE keyHandle;
+
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
+    {
+        PhDeleteFileWin32(string->Buffer);
+        PhDereferenceObject(string);
+    }
+
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
+    {
+        PhDeleteFileWin32(string->Buffer);
+        PhDereferenceObject(string);
+    }
+
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+    {
+        PhDeleteFileWin32(string->Buffer);
+        PhDereferenceObject(string);
+    }
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &AppPathsKeyName,
+        0
+        )))
+    {
+        NtDeleteKey(keyHandle);
+        NtClose(keyHandle);
     }
 }
 
@@ -1063,7 +1085,6 @@ PPH_STRING SetupCreateFullPath(
 
     return pathString;
 }
-
 
 BOOLEAN SetupOverwriteFile(
     _In_ PPH_STRING FileName,

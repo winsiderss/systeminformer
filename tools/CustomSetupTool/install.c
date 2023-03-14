@@ -47,10 +47,10 @@ NTSTATUS SetupProgressThread(
     SetupCreateUninstallKey(Context);
 
     // Create autorun.
-    SetupSetWindowsOptions(Context);
+    SetupCreateWindowsOptions(Context);
 
     // Create shortcuts.
-    SetupChangeNotifyShortcuts(Context);
+    SetupCreateShortcuts(Context);
 
     // Set the default image execution options.
     //SetupCreateImageFileExecutionOptions();
