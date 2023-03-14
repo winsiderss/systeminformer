@@ -117,6 +117,16 @@ PhOpenProcessToken(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhOpenThreadToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ BOOLEAN OpenAsSelf,
+    _Out_ PHANDLE TokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetObjectSecurity(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
