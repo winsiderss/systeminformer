@@ -265,6 +265,7 @@
   <ItemGroup>
     <ClCompile Include="apiimport.c" />
     <ClCompile Include="appresolver.c" />
+    <ClCompile Include="appruntime.c" />
     <ClCompile Include="avltree.c" />
     <ClCompile Include="basesup.c" />
     <ClCompile Include="bcd.cpp" />
