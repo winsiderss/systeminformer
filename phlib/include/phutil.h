@@ -1657,7 +1657,6 @@ PhFileReadAllTextWin32(
     _In_ BOOLEAN Unicode
     );
 
-_Success_(return == S_OK)
 PHLIBAPI
 HRESULT
 NTAPI
@@ -1668,13 +1667,22 @@ PhGetClassObjectDllBase(
     _Out_ PVOID * Ppv
     );
 
-_Success_(return == S_OK)
 PHLIBAPI
 HRESULT
 NTAPI
 PhGetClassObject(
-    _In_ PWSTR DllName,
+    _In_ PCWSTR DllName,
     _In_ REFCLSID Rclsid,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhGetActivationFactory(
+    _In_ PCWSTR DllName,
+    _In_ PCWSTR RuntimeClass,
     _In_ REFIID Riid,
     _Out_ PVOID* Ppv
     );
