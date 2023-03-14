@@ -3071,7 +3071,7 @@ PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
     return NULL;
 }
 
-BOOLEAN PhIsTokenFullTrustPackage(
+BOOLEAN PhGetTokenIsFullTrustPackage(
     _In_ HANDLE TokenHandle
     )
 {
@@ -3110,7 +3110,7 @@ NTSTATUS PhGetProcessIsStronglyNamed(
     return status;
 }
 
-BOOLEAN PhIsProcessFullTrustPackage(
+BOOLEAN PhGetProcessIsFullTrustPackage(
     _In_ HANDLE ProcessHandle
     )
 {
@@ -3184,9 +3184,9 @@ ULONG64 PhGetTokenSecurityAttributeValueUlong64(
 
     if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, Name, &info)))
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, Name);
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = info->Attribute.pAttributeV1;
 
-        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 && ValueIndex < attribute->ValueCount)
+        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 && ValueIndex < attribute->ValueCount)
         {
             value = attribute->Values.pUint64[ValueIndex];
         }
@@ -3208,9 +3208,9 @@ PPH_STRING PhGetTokenSecurityAttributeValueString(
 
     if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, Name, &info)))
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, Name);
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = info->Attribute.pAttributeV1;
 
-        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && ValueIndex < attribute->ValueCount)
+        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && ValueIndex < attribute->ValueCount)
         {
             value = PhCreateStringFromUnicodeString(&attribute->Values.pString[ValueIndex]);
         }
@@ -3233,9 +3233,9 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
 
     if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, &attributeName, &info)))
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = info->Attribute.pAttributeV1;
 
-        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && attribute->ValueCount >= 3)
+        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && attribute->ValueCount >= 3)
         {
             PPH_STRING relativeIdName;
             PPH_STRING packageFamilyName;
@@ -3269,9 +3269,9 @@ PPH_STRING PhGetTokenPackageFullName(
 
     if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, &attributeName, &info)))
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = info->Attribute.pAttributeV1;
 
-        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
         {
             packageFullName = PhCreateStringFromUnicodeString(&attribute->Values.pString[0]);
         }
@@ -3610,11 +3610,11 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
     if (!NT_SUCCESS(status))
         return status;
 
-    subAuthoritiesCount = *RtlSubAuthorityCountSid(mandatoryLabel->Label.Sid);
+    subAuthoritiesCount = *PhSubAuthorityCountSid(mandatoryLabel->Label.Sid);
 
     if (subAuthoritiesCount > 0)
     {
-        subAuthority = *RtlSubAuthoritySid(mandatoryLabel->Label.Sid, subAuthoritiesCount - 1);
+        subAuthority = *PhSubAuthoritySid(mandatoryLabel->Label.Sid, subAuthoritiesCount - 1);
     }
     else
     {
@@ -3748,13 +3748,15 @@ NTSTATUS PhGetTokenProcessTrustLevelRID(
     if (!trustLevel->TrustLevelSid)
         return STATUS_UNSUCCESSFUL;
 
-    subAuthoritiesCount = *RtlSubAuthorityCountSid(trustLevel->TrustLevelSid);
-    //RtlIdentifierAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid) == (BYTE[])SECURITY_PROCESS_TRUST_AUTHORITY
+    if (!PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(trustLevel->TrustLevelSid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_PROCESS_TRUST_AUTHORITY))
+        return STATUS_INVALID_SUB_AUTHORITY;
+
+    subAuthoritiesCount = *PhSubAuthorityCountSid(trustLevel->TrustLevelSid);
 
     if (subAuthoritiesCount == SECURITY_PROCESS_TRUST_AUTHORITY_RID_COUNT)
     {
-        protectionType = *RtlSubAuthoritySid(trustLevel->TrustLevelSid, 0);
-        protectionLevel = *RtlSubAuthoritySid(trustLevel->TrustLevelSid, 1);
+        protectionType = *PhSubAuthoritySid(trustLevel->TrustLevelSid, 0);
+        protectionLevel = *PhSubAuthoritySid(trustLevel->TrustLevelSid, 1);
     }
     else
     {
