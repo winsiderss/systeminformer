@@ -524,12 +524,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
-            SetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, 1, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, 1);
 
             if (context->ProgramIcon)
             {

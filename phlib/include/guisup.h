@@ -235,6 +235,26 @@ FORCEINLINE PVOID PhSetWindowProcedure(
     return (PVOID)SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)SubclassProcedure);
 }
 
+FORCEINLINE UINT_PTR PhSetTimer(
+    _In_ HWND WindowHandle,
+    _In_ UINT_PTR TimerID,
+    _In_ UINT Elapse,
+    _In_opt_ TIMERPROC TimerProcedure
+    )
+{
+    assert(WindowHandle);
+    return SetTimer(WindowHandle, TimerID, Elapse, TimerProcedure);
+}
+
+FORCEINLINE BOOL PhKillTimer(
+    _In_ HWND WindowHandle,
+    _In_ UINT_PTR TimerID
+    )
+{
+    assert(WindowHandle);
+    return KillTimer(WindowHandle, TimerID);
+}
+
 #ifndef WM_REFLECT
 #define WM_REFLECT 0x2000
 #endif

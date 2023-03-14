@@ -73,7 +73,7 @@ VOID PhPinMiniInformation(
 
         if (PhMipContainerWindow)
         {
-            SetTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType, PinDelayMs, NULL);
+            PhSetTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType, PinDelayMs, NULL);
         }
         return;
     }
@@ -83,7 +83,7 @@ VOID PhPinMiniInformation(
 
         if (PhMipContainerWindow)
         {
-            KillTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType);
+            PhKillTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType);
         }
     }
 
