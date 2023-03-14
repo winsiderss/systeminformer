@@ -834,17 +834,70 @@ PPH_STRING PhGetWin32Message(
     message = PhGetMessage(PhGetLoaderEntryDllBaseZ(L"kernel32.dll"), 0xb, PhGetUserDefaultLangID(), Result);
 
     if (message)
+    {
+        ULONG_PTR index;
+
         PhTrimToNullTerminatorString(message);
 
-    // Remove any trailing newline.
-    if (message && message->Length >= 2 * sizeof(WCHAR) &&
-        message->Buffer[message->Length / sizeof(WCHAR) - 2] == L'\r' &&
-        message->Buffer[message->Length / sizeof(WCHAR) - 1] == L'\n')
+        // Remove any trailing newline.
+        //if (message && message->Length >= 2 * sizeof(WCHAR) &&
+        //    message->Buffer[message->Length / sizeof(WCHAR) - 2] == L'\r' &&
+        //    message->Buffer[message->Length / sizeof(WCHAR) - 1] == L'\n')
+        //{
+        //    PhMoveReference(&message, PhCreateStringEx(message->Buffer, message->Length - 2 * sizeof(WCHAR)));
+        //}
+
+        if ((index = PhFindStringInStringRefZ(&message->sr, L"\r\n", FALSE)) != SIZE_MAX)
+        {
+            PhMoveReference(&message, PhCreateStringEx(message->Buffer, index * sizeof(WCHAR)));
+        }
+    }
+    else
     {
-        PhMoveReference(&message, PhCreateStringEx(message->Buffer, message->Length - 2 * sizeof(WCHAR)));
+        message = PhGetWin32FormatMessage(Result);
     }
 
     return message;
+}
+
+PPH_STRING PhGetWin32FormatMessage(
+    _In_ ULONG Result
+    )
+{
+    PPH_STRING messageString = NULL;
+    ULONG messageLength = 0;
+    PWSTR messageBuffer = NULL;
+
+    messageLength = FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        Result,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (PWSTR)&messageBuffer,
+        0,
+        NULL
+        );
+
+    if (messageBuffer)
+    {
+        if (messageLength)
+        {
+            ULONG_PTR index;
+            PH_STRINGREF string;
+
+            string.Buffer = messageBuffer;
+            string.Length = messageLength * sizeof(WCHAR);
+
+            if ((index = PhFindStringInStringRefZ(&string, L"\r\n", FALSE)) != SIZE_MAX)
+                messageString = PhCreateStringEx(messageBuffer, index * sizeof(WCHAR));
+            else
+                messageString = PhCreateStringEx(messageBuffer, messageLength * sizeof(WCHAR));
+        }
+
+        LocalFree(messageBuffer);
+    }
+
+    return messageString;
 }
 
 /**
