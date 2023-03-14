@@ -21,6 +21,7 @@
 #include <winsta.h>
 
 #include <apiimport.h>
+#include <appresolver.h>
 #include <mapimg.h>
 #include <mapldr.h>
 #include <lsasup.h>
@@ -7027,7 +7028,6 @@ PVOID PhFileReadAllTextWin32(
     return string;
 }
 
-_Success_(return == S_OK)
 HRESULT PhGetClassObjectDllBase(
     _In_ PVOID DllBase,
     _In_ REFCLSID Rclsid,
@@ -7062,23 +7062,127 @@ HRESULT PhGetClassObjectDllBase(
     return status;
 }
 
-_Success_(return == S_OK)
 HRESULT PhGetClassObject(
-    _In_ PWSTR DllName,
+    _In_ PCWSTR DllName,
     _In_ REFCLSID Rclsid,
     _In_ REFIID Riid,
     _Out_ PVOID* Ppv
     )
 {
+#if (PH_NATIVE_COM_CLASS_FACTORY)
+    HRESULT status;
+    IClassFactory* classFactory;
+
+    status = CoGetClassObject(
+        Rclsid,
+        CLSCTX_INPROC_SERVER,
+        NULL,
+        &IID_IClassFactory,
+        &classFactory
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IClassFactory_CreateInstance(
+            classFactory,
+            NULL,
+            Riid,
+            Ppv
+            );
+        IClassFactory_Release(classFactory);
+    }
+
+    return status;
+#else
     PVOID baseAddress;
 
-    if (!(baseAddress = PhGetLoaderEntryDllBaseZ(DllName)))
+    if (!(baseAddress = PhGetLoaderEntryDllBaseZ((PWSTR)DllName)))
     {
         if (!(baseAddress = PhLoadLibrary(DllName)))
             return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
     }
 
     return PhGetClassObjectDllBase(baseAddress, Rclsid, Riid, Ppv);
+#endif
+}
+
+HRESULT PhGetActivationFactoryDllBase(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR RuntimeClass,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
+    )
+{
+    HRESULT (WINAPI* DllGetActivationFactory_I)(_In_ HSTRING RuntimeClassId, _Out_ PVOID* ActivationFactory);
+    HRESULT status;
+    HSTRING_REFERENCE string;
+    IUnknown* activationFactory; // IActivationFactory
+
+    PhCreateWindowsRuntimeStringReference(RuntimeClass, &string);
+
+    if (!(DllGetActivationFactory_I = PhGetDllBaseProcedureAddress(DllBase, "DllGetActivationFactory", 0)))
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    status = DllGetActivationFactory_I(
+        HSTRING_FROM_STRING(string),
+        &activationFactory
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IUnknown_QueryInterface(
+            activationFactory,
+            Riid,
+            Ppv
+            );
+        IUnknown_Release(activationFactory);
+    }
+
+    return status;
+}
+
+HRESULT PhGetActivationFactory(
+    _In_ PCWSTR DllName,
+    _In_ PCWSTR RuntimeClass,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
+    )
+{
+#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+    #include <roapi.h>
+    #include <winstring.h>
+    HRESULT status;
+    HSTRING runtimeClassStringHandle = NULL;
+    HSTRING_HEADER runtimeClassStringHeader;
+
+    status = WindowsCreateStringReference(
+        RuntimeClass, 
+        (UINT32)PhCountStringZ((PWSTR)RuntimeClass), 
+        &runtimeClassStringHeader,
+        &runtimeClassStringHandle
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = RoGetActivationFactory(
+            runtimeClassStringHandle,
+            Riid,
+            Ppv
+            );
+    }
+
+    return status;
+#else
+    PVOID baseAddress;
+
+    if (!(baseAddress = PhGetLoaderEntryDllBaseZ((PWSTR)DllName)))
+    {
+        if (!(baseAddress = PhLoadLibrary(DllName)))
+            return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
+    }
+
+    return PhGetActivationFactoryDllBase(baseAddress, RuntimeClass, Riid, Ppv);
+#endif
 }
 
 #if (PH_NATIVE_RING_BUFFER)

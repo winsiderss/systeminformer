@@ -124,6 +124,124 @@ HRESULT PhCreateProcessDesktopPackage(
     _Out_opt_ PHANDLE ProcessHandle
     );
 
+// Windows Runtime
+
+#ifndef __hstring_h__
+typedef struct HSTRING__* HSTRING;
+#endif
+
+// Note: The HSTRING structures can be found in the Windows SDK
+// \cppwinrt\winrt\base.h under MIT License. (dmex)
+
+typedef struct _WSTRING_HEADER // HSTRING_HEADER (WinSDK)
+{
+    union
+    {
+        PVOID Reserved1;
+#if defined(_WIN64)
+        char Reserved2[24];
+#else
+        char Reserved2[20];
+#endif
+    } Reserved;
+} WSTRING_HEADER;
+
+#define HSTRING_REFERENCE_FLAG 0x1 // hstring_reference_flag (WinSDK)
+
+typedef struct _HSTRING_REFERENCE // Stack
+{
+    union
+    {
+        WSTRING_HEADER Header;
+        struct
+        {
+            UINT32 Flags;
+            UINT32 Length;
+            UINT32 Padding1;
+            UINT32 Padding2;
+            PCWSTR Buffer;
+        };
+    };
+} HSTRING_REFERENCE;
+
+typedef struct _HSTRING_INSTANCE // Heap
+{
+    // Header
+    union
+    {
+        WSTRING_HEADER Header;
+        struct
+        {
+            UINT32 Flags;
+            UINT32 Length;
+            UINT32 Padding1;
+            UINT32 Padding2;
+            PCWSTR Buffer;
+        };
+    };
+
+    // Data
+    volatile LONG ReferenceCount;
+    WCHAR Data[ANYSIZE_ARRAY];
+} HSTRING_INSTANCE;
+
+#define HSTRING_FROM_STRING(Header) \
+    ((HSTRING)&(Header))
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhCreateStringFromWindowsRuntimeString(
+    _In_ HSTRING String
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhCreateWindowsRuntimeStringReference(
+    _In_ PCWSTR SourceString,
+    _Out_ PVOID String
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhCreateWindowsRuntimeString(
+    _In_ PCWSTR SourceString,
+    _Out_ HSTRING* String
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteWindowsRuntimeString(
+    _In_opt_ HSTRING String
+    );
+
+PHLIBAPI
+UINT32
+NTAPI
+PhGetWindowsRuntimeStringLength(
+    _In_opt_ HSTRING String
+    );
+
+PHLIBAPI
+PCWSTR
+NTAPI
+PhGetWindowsRuntimeStringBuffer(
+    _In_opt_ HSTRING String,
+    _Out_opt_ PUINT32 Length
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhGetProcessSystemIdentification(
+    _In_ HANDLE ProcessId,
+    _Out_ PPH_STRING* SystemIdForPublisher,
+    _Out_ PPH_STRING* SystemIdForUser
+    );
+
 EXTERN_C_END
 
 #endif
