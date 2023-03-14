@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -49,9 +49,9 @@ PSID PhSeAdministratorsSid( // WinBuiltinAdministratorsSid (dmex)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        RtlInitializeSid(administratorsSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
-        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+        PhInitializeSid(administratorsSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
+        *PhSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *PhSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
 
         PhEndInitOnce(&initOnce);
     }
@@ -69,9 +69,9 @@ PSID PhSeUsersSid( // WinBuiltinUsersSid (dmex)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        RtlInitializeSid(usersSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
-        *RtlSubAuthoritySid(usersSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(usersSid, 1) = DOMAIN_ALIAS_RID_USERS;
+        PhInitializeSid(usersSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
+        *PhSubAuthoritySid(usersSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *PhSubAuthoritySid(usersSid, 1) = DOMAIN_ALIAS_RID_USERS;
 
         PhEndInitOnce(&initOnce);
     }
@@ -89,9 +89,9 @@ PSID PhSeAnyPackageSid( // WinBuiltinAnyPackageSid (dmex)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        RtlInitializeSid(anyAppPackagesSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_APP_PACKAGE_AUTHORITY }, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
-        *RtlSubAuthoritySid(anyAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
-        *RtlSubAuthoritySid(anyAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
+        PhInitializeSid(anyAppPackagesSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_APP_PACKAGE_AUTHORITY }, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+        *PhSubAuthoritySid(anyAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
+        *PhSubAuthoritySid(anyAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
 
         PhEndInitOnce(&initOnce);
     }

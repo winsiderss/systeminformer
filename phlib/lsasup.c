@@ -704,7 +704,7 @@ NTSTATUS PhGetSidAccountType(
     return status;
 }
 
-PPH_STRING PhGetSidAccountTypeString(
+PCWSTR PhGetSidAccountTypeString(
     _In_ PSID Sid
     )
 {
@@ -715,32 +715,63 @@ PPH_STRING PhGetSidAccountTypeString(
         switch (accountType)
         {
         case LocalUserAccountType:
-            return PhCreateString(L"Local");
+            return L"Local";
         case PrimaryDomainUserAccountType:
         case ExternalDomainUserAccountType:
-            return PhCreateString(L"ActiveDirectory");
+            return L"ActiveDirectory";
         case LocalConnectedUserAccountType:
         case MSAUserAccountType:
-            return PhCreateString(L"MicrosoftAccount");
+            return L"Microsoft";
         case AADUserAccountType:
-            return PhCreateString(L"AzureAD");
+            return L"AzureAD";
         case InternetUserAccountType:
             {
                 SID_IDENTIFIER_AUTHORITY msaAuthority = { 0, 0, 0, 0, 0, 11 };
-                SID_IDENTIFIER_AUTHORITY sidAuthority = ((PISID)Sid)->IdentifierAuthority;
 
-                // TODO: We should be using RtlIdentifierAuthoritySid here but this function
-                // isn't currently used so we'll save the import. (dmex)
-                if (RtlEqualMemory(&sidAuthority, &msaAuthority, sizeof(msaAuthority)))
+                if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &msaAuthority))
                 {
-                    return PhCreateString(L"MicrosoftAccount");
+                    return L"Microsoft";
                 }
+
+                return L"Internet";
             }
             break;
         }
     }
 
-    return PhCreateString(L"Unknown");
+    // If we don't get a result from LsaLookupUserAccountType then return the SID authority (or some other value?)  (dmex)
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NULL_SID_AUTHORITY)) // 0
+    {
+        return L"NULL (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_WORLD_SID_AUTHORITY)) // 1
+    {
+        return L"World (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_LOCAL_SID_AUTHORITY)) // 2
+    {
+        return L"Local (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY)) // 5
+    {
+        return L"NT (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_APP_PACKAGE_AUTHORITY)) // 15
+    {
+        return L"APP_PACKAGE (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_MANDATORY_LABEL_AUTHORITY)) // 16
+    {
+        return L"Mandatory label";
+    }
+
+    return L"Unknown";
 }
 
 typedef struct _PH_CAPABILITY_ENTRY

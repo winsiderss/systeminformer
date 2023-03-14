@@ -230,8 +230,8 @@ NTSTATUS PhSvcCaptureSid(
     if (sid)
     {
         if (String->Length < UFIELD_OFFSET(struct _SID, IdentifierAuthority) ||
-            String->Length < RtlLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
-            !RtlValidSid(sid))
+            String->Length < PhLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
+            !PhValidSid(sid))
         {
             PhFree(sid);
             return STATUS_INVALID_SID;
