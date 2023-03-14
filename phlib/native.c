@@ -7987,7 +7987,7 @@ VOID PhUpdateDosDevicePrefixes(
  * PhDereferenceObject() when you no longer need it.
  */
 PPH_STRING PhResolveDevicePrefix(
-    _In_ PPH_STRING Name
+    _In_ PPH_STRINGREF Name
     )
 {
     ULONG i;
@@ -8014,7 +8014,7 @@ PPH_STRING PhResolveDevicePrefix(
 
         if (prefix.Length != 0)
         {
-            if (PhStartsWithStringRef(&Name->sr, &prefix, TRUE))
+            if (PhStartsWithStringRef(Name, &prefix, TRUE))
             {
                 // To ensure we match the longest prefix, make sure the next character is a
                 // backslash or the path is equal to the prefix.
@@ -8058,7 +8058,7 @@ PPH_STRING PhResolveDevicePrefix(
 
             if (prefixLength != 0)
             {
-                if (PhStartsWithString(Name, PhDeviceMupPrefixes[i], TRUE))
+                if (PhStartsWithStringRef(Name, &PhDeviceMupPrefixes[i]->sr, TRUE))
                 {
                     // To ensure we match the longest prefix, make sure the next character is a
                     // backslash. Don't resolve if the name *is* the prefix. Otherwise, we will end
@@ -8157,7 +8157,7 @@ PPH_STRING PhGetFileName(
     {
         PPH_STRING resolvedName;
 
-        resolvedName = PhResolveDevicePrefix(FileName);
+        resolvedName = PhResolveDevicePrefix(&FileName->sr);
 
         if (resolvedName)
         {
