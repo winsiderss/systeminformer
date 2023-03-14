@@ -269,10 +269,34 @@ BOOLEAN SetupExtractBuild(
         //    PhDereferenceObject(backupFilePath);
         //}
 
-        if (!SetupOverwriteFile(extractPath, buffer, zipFileBufferLength))
         {
-            if (!PhEndsWithString2(extractPath, L"\\ksi.dll", FALSE) ||
-                !SetupUpdateKsi(Context, extractPath, buffer, zipFileBufferLength))
+            ULONG attempts = 5;
+            BOOLEAN updateKsiAttempt = FALSE;
+
+            do
+            {
+                if (!SetupOverwriteFile(extractPath, buffer, zipFileBufferLength))
+                {
+                    if (!PhEndsWithString2(extractPath, L"\\ksi.dll", FALSE) ||
+                        !SetupUpdateKsi(Context, extractPath, buffer, zipFileBufferLength))
+                    {
+                        updateKsiAttempt = TRUE;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+
+                PhDelayExecution(1000); // Wait 1 second and try again
+
+            } while (--attempts);
+
+            if (updateKsiAttempt)
             {
                 Context->ErrorCode = ERROR_PATH_BUSY;
                 goto CleanupExit;
