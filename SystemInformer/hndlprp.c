@@ -1608,7 +1608,7 @@ VOID PhpUpdateHandleGeneral(
             {
                 PPH_STRING newFileName;
 
-                if (newFileName = PhResolveDevicePrefix(fileName))
+                if (newFileName = PhResolveDevicePrefix(&fileName->sr))
                 {
                     PhDereferenceObject(fileName);
                     fileName = newFileName;

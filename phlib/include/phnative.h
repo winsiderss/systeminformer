@@ -1651,7 +1651,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhResolveDevicePrefix(
-    _In_ PPH_STRING Name
+    _In_ PPH_STRINGREF Name
     );
 
 PHLIBAPI
