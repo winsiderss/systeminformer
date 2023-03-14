@@ -170,6 +170,9 @@
     <ClCompile Include="mapldr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="appruntime.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
