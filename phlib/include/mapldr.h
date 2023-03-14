@@ -166,6 +166,13 @@ PhGetDllFileName(
 PHLIBAPI
 PVOID
 NTAPI
+PhGetLoaderEntryAddressDllBase(
+    _In_ PVOID PcAddress
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
 PhGetLoaderEntryDllBase(
     _In_opt_ PPH_STRINGREF FullDllName,
     _In_opt_ PPH_STRINGREF BaseDllName
@@ -279,6 +286,17 @@ NTAPI
 PhGetExportNameFromOrdinal(
     _In_ PVOID DllBase,
     _In_opt_ USHORT ProcedureNumber
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoaderEntryDetourImportProcedure(
+    _In_ PVOID BaseAddress,
+    _In_ PSTR ImportName,
+    _In_ PSTR ProcedureName,
+    _In_ PVOID FunctionAddress,
+    _Out_opt_ PVOID* OriginalAddress
     );
 
 PHLIBAPI

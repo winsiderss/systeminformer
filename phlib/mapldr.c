@@ -62,6 +62,37 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
     return result;
 }
 
+PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryAddress(
+    _In_ PVOID Address
+    )
+{
+    PLDR_DATA_TABLE_ENTRY result = NULL;
+    PLDR_DATA_TABLE_ENTRY entry;
+    PLIST_ENTRY listHead;
+    PLIST_ENTRY listEntry;
+
+    listHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
+    listEntry = listHead->Flink;
+
+    while (listEntry != listHead)
+    {
+        entry = CONTAINING_RECORD(listEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
+
+        if (
+            (ULONG_PTR)Address >= (ULONG_PTR)entry->DllBase &&
+            (ULONG_PTR)Address < (ULONG_PTR)PTR_ADD_OFFSET(entry->DllBase, entry->SizeOfImage)
+            )
+        {
+            result = entry;
+            break;
+        }
+
+        listEntry = listEntry->Flink;
+    }
+
+    return result;
+}
+
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryNameHash(
     _In_ ULONG BaseNameHash
     )
@@ -146,16 +177,11 @@ PVOID PhLoadLibraryUtf8Ex(
     PPH_STRING fileName;
     PVOID baseAddress;
 
-    fileName = PhConvertUtf8ToUtf16((PSTR)FileName);
-
-    if (baseAddress = PhLoadLibrary(PhGetString(fileName)))
-    {
-        PhDereferenceObject(fileName);
-        return baseAddress;
-    }
-
+    fileName = PhZeroExtendToUtf16((PSTR)FileName);
+    baseAddress = PhLoadLibrary(PhGetString(fileName));
     PhDereferenceObject(fileName);
-    return NULL;
+
+    return baseAddress;
 }
 
 BOOLEAN PhFreeLibrary(
@@ -800,6 +826,22 @@ PPH_STRING PhGetDllFileName(
     return fileName;
 }
 
+PVOID PhGetLoaderEntryAddressDllBase(
+    _In_ PVOID Address
+    )
+{
+    PLDR_DATA_TABLE_ENTRY ldrEntry;
+
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+    ldrEntry = PhFindLoaderEntryAddress(Address);
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    if (ldrEntry)
+        return ldrEntry->DllBase;
+    else
+        return NULL;
+}
+
 PVOID PhGetLoaderEntryDllBase(
     _In_opt_ PPH_STRINGREF FullDllName,
     _In_opt_ PPH_STRINGREF BaseDllName
@@ -1357,6 +1399,88 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
     }
 
     return PhGetDllBaseProcedureAddress(BaseAddress, ProcedureName, 0);
+}
+
+NTSTATUS PhLoaderEntryDetourImportProcedure(
+    _In_ PVOID BaseAddress,
+    _In_ PSTR ImportName,
+    _In_ PSTR ProcedureName,
+    _In_ PVOID FunctionAddress,
+    _Out_opt_ PVOID* OriginalAddress
+    )
+{
+    NTSTATUS status;
+    PIMAGE_NT_HEADERS imageNtHeaders;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_IMPORT_DESCRIPTOR importDirectory;
+
+    status = PhGetLoaderEntryImageNtHeaders(
+        BaseAddress,
+        &imageNtHeaders
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetLoaderEntryImageDirectory(
+        BaseAddress,
+        imageNtHeaders,
+        IMAGE_DIRECTORY_ENTRY_IMPORT,
+        &dataDirectory,
+        &importDirectory,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = STATUS_UNSUCCESSFUL;
+
+    for (importDirectory = importDirectory; importDirectory->Name; importDirectory++)
+    {
+        PSTR importName;
+        PIMAGE_THUNK_DATA importThunk;
+        PIMAGE_THUNK_DATA originalThunk;
+        PIMAGE_IMPORT_BY_NAME importByName;
+
+        importName = PTR_ADD_OFFSET(BaseAddress, importDirectory->Name);
+        importThunk = PTR_ADD_OFFSET(BaseAddress, importDirectory->FirstThunk);
+        originalThunk = PTR_ADD_OFFSET(BaseAddress, importDirectory->OriginalFirstThunk ? importDirectory->OriginalFirstThunk : importDirectory->FirstThunk);
+
+        if (!PhEqualBytesZ(importName, ImportName, TRUE))
+            continue;
+
+        for (
+            originalThunk = originalThunk, importThunk = importThunk;
+            originalThunk->u1.AddressOfData;
+            originalThunk++, importThunk++
+            )
+        {
+            SIZE_T importThunkSize = sizeof(IMAGE_THUNK_DATA);
+            PVOID importThunkAddress = importThunk;
+            ULONG importThunkProtect = 0;
+
+            if (IMAGE_SNAP_BY_ORDINAL(originalThunk->u1.Ordinal))
+                continue;
+
+            importByName = PTR_ADD_OFFSET(BaseAddress, originalThunk->u1.AddressOfData);
+
+            if (!PhEqualBytesZ(importByName->Name, ProcedureName, FALSE))
+                continue;
+
+            if (OriginalAddress)
+                *OriginalAddress = (PVOID)importThunk->u1.Function;
+
+            NtProtectVirtualMemory(NtCurrentProcess(), &importThunkAddress, &importThunkSize, PAGE_READWRITE, &importThunkProtect);
+            importThunk->u1.Function = (ULONG_PTR)FunctionAddress;
+            NtProtectVirtualMemory(NtCurrentProcess(), &importThunkAddress, &importThunkSize, importThunkProtect, &importThunkProtect);
+
+            status = STATUS_SUCCESS;
+            break;
+        }
+    }
+
+    return status;
 }
 
 static NTSTATUS PhpFixupLoaderEntryImageImports(
