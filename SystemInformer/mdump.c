@@ -592,12 +592,12 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             PhReferenceObject(context);
             PhCreateThread2(PhpProcessMiniDumpThreadStart, context);
 
-            SetTimer(hwndDlg, 1, 500, NULL);
+            PhSetTimer(hwndDlg, 1, 500, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, 1);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 

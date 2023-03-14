@@ -2042,12 +2042,12 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             if (PhEnableThemeSupport)
                 PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
-            SetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, 1, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, 1);
 
             PhSaveListViewGroupStatesToSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);

@@ -178,7 +178,7 @@ INT CALLBACK PhpPropSheetProc(
                 MinimumSize.left = 0;
             }
 
-            SetTimer(hwndDlg, 2000, 2000, NULL);
+            PhSetTimer(hwndDlg, 2000, 2000, NULL);
         }
         break;
     }
@@ -218,7 +218,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             TCITEM tabItem;
             WCHAR text[128] = L"";
 
-            KillTimer(hwnd, 2000);
+            PhKillTimer(hwnd, 2000);
 
             // Save the window position and size.
 

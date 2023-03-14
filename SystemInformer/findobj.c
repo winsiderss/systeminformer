@@ -1241,7 +1241,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->SearchResults = PhCreateList(128);
             context->SearchResultsAddIndex = 0;
 
-            SetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, 1, 1000, NULL);
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
@@ -1253,7 +1253,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             context->SearchStop = TRUE;
 
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, 1);
 
             if (context->SearchThreadHandle)
             {

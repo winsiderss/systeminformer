@@ -502,11 +502,11 @@ VOID PhNfForwardMessage(
                         IconClickShowMiniInfoSectionData.SectionName = PhDuplicateStringZ(showMiniInfoSectionData.SectionName);
                     }
 
-                    SetTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE, GetDoubleClickTime() + NFP_ICON_CLICK_ACTIVATE_DELAY, PhNfpIconClickActivateTimerProc);
+                    PhSetTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE, GetDoubleClickTime() + NFP_ICON_CLICK_ACTIVATE_DELAY, PhNfpIconClickActivateTimerProc);
                 }
                 else
                 {
-                    KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
+                    PhKillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
                 }
             }
         }
@@ -519,7 +519,7 @@ VOID PhNfForwardMessage(
                 {
                     // We will get another WM_LBUTTONUP message corresponding to the double-click,
                     // and we need to make sure that it doesn't start the activation timer again.
-                    KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
+                    PhKillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
                     IconClickUpDueToDown = FALSE;
                     PhNfpDisableHover();
                 }
@@ -534,7 +534,7 @@ VOID PhNfForwardMessage(
             POINT location;
 
             if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled)
-                KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
+                PhKillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
 
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             GetCursorPos(&location);
@@ -564,7 +564,7 @@ VOID PhNfForwardMessage(
                 PopupIconIndex = iconIndex;
                 PopupRegisteredIcon = registeredIcon;
 
-                SetTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconShowPopupHoverTimerProc);
+                PhSetTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconShowPopupHoverTimerProc);
             }
             else
             {
@@ -587,7 +587,7 @@ VOID PhNfForwardMessage(
                 PopupIconIndex = ULONG_MAX;
                 PopupRegisteredIcon = NULL;
 
-                KillTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN);
+                PhKillTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN);
             }
 
             PhPinMiniInformation(MiniInfoIconPinType, -1, 350, 0, NULL, NULL);
@@ -2243,7 +2243,7 @@ VOID PhNfpIconClickActivateTimerProc(
     PhPinMiniInformation(MiniInfoActivePinType, 1, 0,
         PH_MINIINFO_ACTIVATE_WINDOW | PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
         IconClickShowMiniInfoSectionData.SectionName, &IconClickLocation);
-    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+    PhKillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
 }
 
 VOID PhNfpDisableHover(
@@ -2251,7 +2251,7 @@ VOID PhNfpDisableHover(
     )
 {
     IconDisableHover = TRUE;
-    SetTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconRestoreHoverTimerProc);
+    PhSetTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconRestoreHoverTimerProc);
 }
 
 VOID PhNfpIconRestoreHoverTimerProc(
@@ -2262,7 +2262,7 @@ VOID PhNfpIconRestoreHoverTimerProc(
     )
 {
     IconDisableHover = FALSE;
-    KillTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER);
+    PhKillTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER);
 }
 
 VOID PhNfpIconShowPopupHoverTimerProc(

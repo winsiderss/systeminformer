@@ -836,7 +836,7 @@ VOID PhTnpOnTimer(
             {
                 Context->DividerHot = 100;
                 Context->AnimateDividerFadingIn = FALSE;
-                KillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
+                PhKillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
             }
 
             InvalidateRect(hwnd, &dividerRect, FALSE);
@@ -847,7 +847,7 @@ VOID PhTnpOnTimer(
             {
                 Context->DividerHot = 0;
                 Context->AnimateDividerFadingOut = FALSE;
-                KillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
+                PhKillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
             }
             else
             {
@@ -911,7 +911,7 @@ VOID PhTnpOnMouseLeave(
             // Fade out the divider.
             Context->AnimateDividerFadingOut = TRUE;
             Context->AnimateDividerFadingIn = FALSE;
-            SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+            PhSetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
         }
     }
 
@@ -964,7 +964,7 @@ VOID PhTnpOnXxxButtonXxx(
                 Context->TrackOldFixedWidth = Context->FixedWidth;
                 SetCapture(hwnd);
 
-                SetTimer(hwnd, TNP_TIMER_NULL, 100, NULL); // make sure we get messages once in a while so we can detect the escape key
+                PhSetTimer(hwnd, TNP_TIMER_NULL, 100, NULL); // make sure we get messages once in a while so we can detect the escape key
                 GetAsyncKeyState(VK_ESCAPE);
             }
         }
@@ -1232,7 +1232,7 @@ VOID PhTnpOnCaptureChanged(
     )
 {
     Context->Tracking = FALSE;
-    KillTimer(hwnd, TNP_TIMER_NULL);
+    PhKillTimer(hwnd, TNP_TIMER_NULL);
 }
 
 VOID PhTnpOnKeyDown(
@@ -4164,7 +4164,7 @@ VOID PhTnpProcessMoveMouse(
                 // Begin fading in the divider.
                 Context->AnimateDividerFadingIn = TRUE;
                 Context->AnimateDividerFadingOut = FALSE;
-                SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+                PhSetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
             }
         }
         else
@@ -4173,7 +4173,7 @@ VOID PhTnpProcessMoveMouse(
             {
                 Context->AnimateDividerFadingOut = TRUE;
                 Context->AnimateDividerFadingIn = FALSE;
-                SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+                PhSetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
             }
         }
     }
