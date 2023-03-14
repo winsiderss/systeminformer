@@ -300,6 +300,13 @@ PhGetWin32Message(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetWin32FormatMessage(
+    _In_ ULONG Result
+    );
+
+PHLIBAPI
 INT
 NTAPI
 PhShowMessage(
