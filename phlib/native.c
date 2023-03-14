@@ -316,6 +316,25 @@ NTSTATUS PhOpenProcessToken(
     return status;
 }
 
+NTSTATUS PhOpenThreadToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ BOOLEAN OpenAsSelf,
+    _Out_ PHANDLE TokenHandle
+    )
+{
+    NTSTATUS status;
+
+    status = NtOpenThreadToken(
+        ThreadHandle,
+        DesiredAccess,
+        OpenAsSelf,
+        TokenHandle
+        );
+
+    return status;
+}
+
 NTSTATUS PhGetObjectSecurity(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
