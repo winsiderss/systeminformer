@@ -152,7 +152,7 @@ PhGetSidAccountType(
     );
 
 PHLIBAPI
-PPH_STRING
+PCWSTR
 NTAPI
 PhGetSidAccountTypeString(
     _In_ PSID Sid

@@ -4765,8 +4765,8 @@ NTSTATUS PhFilterTokenForLimitedUser(
     // Set the integrity level to Low if we're on Vista and above.
     {
         lowMandatoryLevelSid = (PSID)lowMandatoryLevelSidBuffer;
-        RtlInitializeSid(lowMandatoryLevelSid, &mandatoryLabelAuthority, 1);
-        *RtlSubAuthoritySid(lowMandatoryLevelSid, 0) = SECURITY_MANDATORY_LOW_RID;
+        PhInitializeSid(lowMandatoryLevelSid, &mandatoryLabelAuthority, 1);
+        *PhSubAuthoritySid(lowMandatoryLevelSid, 0) = SECURITY_MANDATORY_LOW_RID;
 
         mandatoryLabel.Label.Sid = lowMandatoryLevelSid;
         mandatoryLabel.Label.Attributes = SE_GROUP_INTEGRITY;

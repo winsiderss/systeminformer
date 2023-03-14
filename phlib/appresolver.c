@@ -514,7 +514,7 @@ PPH_STRING PhGetAppContainerSidFromName(
     {
         packageSidString = PhSidToStringSid(appContainerSid);
 
-        RtlFreeSid(appContainerSid);
+        PhFreeSid(appContainerSid);
     }
 
     return packageSidString;
@@ -626,7 +626,7 @@ PPH_STRING PhGetPackageAppDataPath(
 
     if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
     {
-        if (NT_SUCCESS(PhGetTokenSecurityAttributes(tokenHandle, &info)))
+        if (NT_SUCCESS(PhGetTokenSecurityAttribute(tokenHandle, &attributeName, &info)))
         {
             for (ULONG i = 0; i < info->AttributeCount; i++)
             {
@@ -672,8 +672,8 @@ BOOLEAN PhIsPackageCapabilitySid(
     for (ULONG i = 1; i < SECURITY_APP_PACKAGE_RID_COUNT - 1; i++)
     {
         if (
-            *RtlSubAuthoritySid(AppContainerSid, i) !=
-            *RtlSubAuthoritySid(Sid, i)
+            *PhSubAuthoritySid(AppContainerSid, i) !=
+            *PhSubAuthoritySid(Sid, i)
             )
         {
             isPackageCapability = FALSE;
