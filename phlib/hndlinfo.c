@@ -1983,7 +1983,7 @@ CleanupExit:
             PhSetReference(BestObjectName, bestObjectName);
     }
 
-    if (objectHandle && ProcessHandle != NtCurrentProcess())
+    if (!useKph && objectHandle && ProcessHandle != NtCurrentProcess())
         NtClose(objectHandle);
 
     PhClearReference(&typeName);
