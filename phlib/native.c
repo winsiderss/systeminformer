@@ -12151,6 +12151,49 @@ NTSTATUS PhGetThreadLastSystemCall(
     }
 }
 
+NTSTATUS PhCreateImpersonationToken(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PHANDLE TokenHandle
+    )
+{
+    NTSTATUS status;
+    HANDLE tokenHandle;
+    SECURITY_QUALITY_OF_SERVICE securityService;
+
+    status = PhRevertImpersonationToken(ThreadHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    securityService.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
+    securityService.ImpersonationLevel = SecurityImpersonation;
+    securityService.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+    securityService.EffectiveOnly = FALSE;
+
+    status = NtImpersonateThread(
+        ThreadHandle,
+        ThreadHandle,
+        &securityService
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhOpenThreadToken(
+        ThreadHandle, 
+        TOKEN_DUPLICATE | TOKEN_IMPERSONATE,
+        FALSE, 
+        &tokenHandle
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *TokenHandle = tokenHandle;
+    }
+
+    return status;
+}
+
 NTSTATUS PhImpersonateToken(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE TokenHandle

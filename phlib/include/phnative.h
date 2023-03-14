@@ -2481,6 +2481,14 @@ PhGetThreadLastSystemCall(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateImpersonationToken(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PHANDLE TokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhImpersonateToken(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE TokenHandle
