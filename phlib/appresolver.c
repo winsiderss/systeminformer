@@ -230,7 +230,7 @@ HRESULT PhAppResolverActivateAppId(
 
     if (SUCCEEDED(status))
     {
-        //CoAllowSetForegroundWindow((IUnknown*)applicationActivationManager, NULL);
+        CoAllowSetForegroundWindow((IUnknown*)applicationActivationManager, NULL);
 
         status = IApplicationActivationManager_ActivateApplication(
             applicationActivationManager,
@@ -246,6 +246,33 @@ HRESULT PhAppResolverActivateAppId(
     if (SUCCEEDED(status))
     {
         if (ProcessId) *ProcessId = UlongToHandle(processId);
+    }
+
+    return status;
+}
+
+HRESULT PhAppResolverPackageTerminateProcess(
+    _In_ PPH_STRING PackageFullName
+    )
+{
+    HRESULT status;
+    IPackageDebugSettings* packageDebugSettings;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_PackageDebugSettings,
+        &IID_IPackageDebugSettings,
+        &packageDebugSettings
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IPackageDebugSettings_TerminateAllProcesses(
+            packageDebugSettings,
+            PhGetString(PackageFullName)
+            );
+
+        IPackageDebugSettings_Release(packageDebugSettings);
     }
 
     return status;

@@ -32,6 +32,10 @@ HRESULT PhAppResolverActivateAppId(
     _Out_opt_ HANDLE *ProcessId
     );
 
+HRESULT PhAppResolverPackageTerminateProcess(
+    _In_ PPH_STRING PackageFullName
+    );
+
 typedef struct _PH_PACKAGE_TASK_ENTRY
 {
     PPH_STRING TaskName;
