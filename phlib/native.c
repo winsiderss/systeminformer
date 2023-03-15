@@ -3184,9 +3184,9 @@ ULONG64 PhGetTokenSecurityAttributeValueUlong64(
 
     if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, Name, &info)))
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = info->Attribute.pAttributeV1;
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, Name);
 
-        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 && ValueIndex < attribute->ValueCount)
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 && ValueIndex < attribute->ValueCount)
         {
             value = attribute->Values.pUint64[ValueIndex];
         }
@@ -3208,9 +3208,9 @@ PPH_STRING PhGetTokenSecurityAttributeValueString(
 
     if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, Name, &info)))
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = info->Attribute.pAttributeV1;
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, Name);
 
-        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && ValueIndex < attribute->ValueCount)
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && ValueIndex < attribute->ValueCount)
         {
             value = PhCreateStringFromUnicodeString(&attribute->Values.pString[ValueIndex]);
         }
@@ -3233,9 +3233,9 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
 
     if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, &attributeName, &info)))
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = info->Attribute.pAttributeV1;
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
 
-        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && attribute->ValueCount >= 3)
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && attribute->ValueCount >= 3)
         {
             PPH_STRING relativeIdName;
             PPH_STRING packageFamilyName;
@@ -3269,9 +3269,9 @@ PPH_STRING PhGetTokenPackageFullName(
 
     if (NT_SUCCESS(PhGetTokenSecurityAttribute(TokenHandle, &attributeName, &info)))
     {
-        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = info->Attribute.pAttributeV1;
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
 
-        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
         {
             packageFullName = PhCreateStringFromUnicodeString(&attribute->Values.pString[0]);
         }
