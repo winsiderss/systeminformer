@@ -1159,7 +1159,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         // an access check on the target token, we can reliably determine the token's presence
                         // even if we fail the subsequent access check. (diversenok)
 
-                        status = NtOpenThreadToken(threadItem->ThreadHandle, 0, TRUE, &tokenHandle);
+                        status = PhOpenThreadToken(threadItem->ThreadHandle, 0, TRUE, &tokenHandle);
 
                         if (status == STATUS_NO_TOKEN)
                         {

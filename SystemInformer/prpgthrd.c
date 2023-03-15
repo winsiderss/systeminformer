@@ -182,7 +182,7 @@ VOID PhpInitializeThreadMenu(
             PhGetThreadPagePriority(threadHandle, &pagePriority);
             PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
 
-            if (NT_SUCCESS(NtOpenThreadToken(
+            if (NT_SUCCESS(PhOpenThreadToken(
                 threadHandle,
                 TOKEN_QUERY,
                 TRUE,
@@ -315,7 +315,7 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     )
 {
     if (Context)
-        return NtOpenThreadToken((HANDLE)Context, DesiredAccess, TRUE, Handle);
+        return PhOpenThreadToken((HANDLE)Context, DesiredAccess, TRUE, Handle);
 
     return STATUS_UNSUCCESSFUL;
 }
