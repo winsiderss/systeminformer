@@ -52,6 +52,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnablePackageIconSupport", L"0");
     PhpAddIntegerSetting(L"EnableProcessHandlePnPDeviceNameSupport", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
+    PhpAddIntegerSetting(L"EnablePluginsNative", L"0");
     PhpAddIntegerSetting(L"EnableGraphMaxScale", L"0");
     PhpAddIntegerSetting(L"EnableGraphMaxText", L"1");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");

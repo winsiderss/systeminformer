@@ -2220,11 +2220,13 @@ NTSTATUS PhLoadPluginImage(
     )
 {
     NTSTATUS status;
-    ULONG imageType;
     PVOID imageBaseAddress;
     PIMAGE_NT_HEADERS imageNtHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
+
+#if (PH_NATIVE_PLUGIN_IMAGE_LOAD)
     UNICODE_STRING imageFileName;
+    ULONG imageType;
 
     imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
     PhStringRefToUnicodeString(FileName, &imageFileName);
@@ -2235,11 +2237,12 @@ NTSTATUS PhLoadPluginImage(
         &imageFileName,
         &imageBaseAddress
         );
-
-    //status = PhLoaderEntryLoadDll(
-    //    FileName,
-    //    &imageBaseAddress
-    //    );
+#else
+    status = PhLoaderEntryLoadDll(
+        FileName,
+        &imageBaseAddress
+        );
+#endif
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2287,12 +2290,17 @@ CleanupExit:
     if (NT_SUCCESS(status))
     {
         if (BaseAddress)
+        {
             *BaseAddress = imageBaseAddress;
+        }
     }
     else
     {
+#if (PH_NATIVE_PLUGIN_IMAGE_LOAD)
         LdrUnloadDll(imageBaseAddress);
-        //PhLoaderEntryUnloadDll(imageBaseAddress);
+#else
+        PhLoaderEntryUnloadDll(imageBaseAddress);
+#endif
     }
 
     return status;
