@@ -598,13 +598,12 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     _In_ BOOLEAN MoreInfoDump
     )
 {
-    static PH_STRINGREF dumpFilePath = PH_STRINGREF_INIT(L"%USERPROFILE%\\Desktop\\");
     HANDLE fileHandle;
     PPH_STRING dumpDirectory;
     PPH_STRING dumpFileName;
     WCHAR alphastring[16] = L"";
 
-    dumpDirectory = PhExpandEnvironmentStrings(&dumpFilePath);
+    dumpDirectory = PhExpandEnvironmentStringsZ(L"%USERPROFILE%\\Desktop\\");
     PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
 
     dumpFileName = PhConcatStrings(
@@ -617,10 +616,10 @@ VOID PhpCreateUnhandledExceptionCrashDump(
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
-        dumpFileName->Buffer,
+        PhGetString(dumpFileName),
         FILE_GENERIC_WRITE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_SHARE_WRITE,
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
@@ -629,7 +628,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
 
         exceptionInfo.ThreadId = HandleToUlong(NtCurrentThreadId());
         exceptionInfo.ExceptionPointers = ExceptionInfo;
-        exceptionInfo.ClientPointers = FALSE;
+        exceptionInfo.ClientPointers = TRUE;
 
         if (MoreInfoDump)
         {
@@ -650,7 +649,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
                 NtCurrentProcess(),
                 NtCurrentProcessId(),
                 fileHandle,
-                MiniDumpNormal,
+                MiniDumpNormal | MiniDumpWithDataSegs,
                 &exceptionInfo,
                 NULL,
                 NULL
@@ -763,9 +762,6 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
     }
 
     PhExitApplication(ExceptionInfo->ExceptionRecord->ExceptionCode);
-
-    PhDereferenceObject(message);
-    PhDereferenceObject(errorMessage);
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
