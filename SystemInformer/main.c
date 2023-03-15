@@ -772,13 +772,14 @@ BOOLEAN PhInitializeExceptionPolicy(
     )
 {
 #ifndef DEBUG
-    ULONG errorMode;
-
-    if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
-    {
-        ClearFlag(errorMode, SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-        PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
-    }
+    //ULONG errorMode;
+    //
+    //if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
+    //{
+    //    ClearFlag(errorMode, SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+    //    PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
+    //}
+    PhSetProcessErrorMode(NtCurrentProcess(), 0);
 
     RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
 #endif
