@@ -2972,9 +2972,9 @@ NTSTATUS PhGetTokenSecurityAttribute(
     _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
     )
 {
-    UNICODE_STRING attributeName;
     NTSTATUS status;
-    PVOID buffer;
+    UNICODE_STRING attributeName;
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION buffer;
     ULONG bufferLength;
     ULONG returnLength;
 
@@ -3013,6 +3013,12 @@ NTSTATUS PhGetTokenSecurityAttribute(
 
     if (NT_SUCCESS(status))
     {
+        if (returnLength == sizeof(TOKEN_SECURITY_ATTRIBUTES_INFORMATION))
+        {
+            PhFree(buffer);
+            return STATUS_NOT_FOUND;
+        }
+
         *SecurityAttributes = buffer;
     }
     else
