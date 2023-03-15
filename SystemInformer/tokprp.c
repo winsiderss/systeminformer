@@ -2252,6 +2252,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PPH_STRING tokenTrustLevelNameString;
             PPH_STRING tokenProfilePathString;
             PPH_STRING tokenProfileRegistryString;
+            PPH_STRING tokenSystemIdForPublisher = NULL;
+            PPH_STRING tokenSystemIdForUser = NULL;
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -2397,6 +2399,27 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 }
 
                 NtClose(tokenHandle);
+            }
+
+            if (SUCCEEDED(PhGetProcessSystemIdentification(
+                tokenPageContext->Context, // ProcessId,
+                &tokenSystemIdForPublisher,
+                &tokenSystemIdForUser
+                )))
+            {
+                INT systemIdGroupIndex;
+                INT systemIdPublisherIndex;
+                INT systemIdUserIndex;
+
+                systemIdGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"System ID");
+                systemIdPublisherIndex = PhAddListViewGroupItem(context->ListViewHandle, systemIdGroupIndex, MAXINT, L"HWID (Publisher)", NULL);
+                systemIdUserIndex = PhAddListViewGroupItem(context->ListViewHandle, systemIdGroupIndex, MAXINT, L"HWID (User)", NULL);
+
+                PhSetListViewSubItem(context->ListViewHandle, systemIdPublisherIndex, 1, PhGetStringOrDefault(tokenSystemIdForPublisher, L"N/A"));
+                PhSetListViewSubItem(context->ListViewHandle, systemIdUserIndex, 1, PhGetStringOrDefault(tokenSystemIdForUser, L"N/A"));
+
+                PhClearReference(&tokenSystemIdForPublisher);
+                PhClearReference(&tokenSystemIdForUser);
             }
 
             PhSetListViewSubItem(context->ListViewHandle, 0, 1, tokenType);
