@@ -20,7 +20,6 @@
 
 #include <math.h>
 #include <commoncontrols.h>
-#include <shellapi.h>
 #include <shellscalingapi.h>
 #include <wincodec.h>
 
@@ -1035,76 +1034,76 @@ VOID PhGetStockApplicationIcon(
         *LargeIcon = largeIcon;
 }
 
-HICON PhGetFileShellIcon(
-    _In_opt_ PWSTR FileName,
-    _In_opt_ PWSTR DefaultExtension,
-    _In_ BOOLEAN LargeIcon
-    )
-{
-    SHFILEINFO fileInfo;
-    ULONG iconFlag;
-    HICON icon;
-
-    if (DefaultExtension && PhEqualStringZ(DefaultExtension, L".exe", TRUE))
-    {
-        // Special case for executable files (see above for reasoning).
-
-        icon = NULL;
-
-        if (FileName)
-        {
-            PhExtractIcon(
-                FileName,
-                LargeIcon ? &icon : NULL,
-                !LargeIcon ? &icon : NULL
-                );
-        }
-
-        if (!icon)
-        {
-            PhGetStockApplicationIcon(
-                !LargeIcon ? &icon : NULL,
-                LargeIcon ? &icon : NULL
-                );
-
-            if (icon)
-                icon = CopyIcon(icon);
-        }
-
-        return icon;
-    }
-
-    iconFlag = LargeIcon ? SHGFI_LARGEICON : SHGFI_SMALLICON;
-    icon = NULL;
-    memset(&fileInfo, 0, sizeof(SHFILEINFO));
-
-    if (FileName && SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
-        FileName,
-        0,
-        &fileInfo,
-        sizeof(SHFILEINFO),
-        SHGFI_ICON | iconFlag
-        ))
-    {
-        icon = fileInfo.hIcon;
-    }
-
-    if (!icon && DefaultExtension)
-    {
-        memset(&fileInfo, 0, sizeof(SHFILEINFO));
-
-        if (SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
-            DefaultExtension,
-            FILE_ATTRIBUTE_NORMAL,
-            &fileInfo,
-            sizeof(SHFILEINFO),
-            SHGFI_ICON | iconFlag | SHGFI_USEFILEATTRIBUTES
-            ))
-            icon = fileInfo.hIcon;
-    }
-
-    return icon;
-}
+//HICON PhGetFileShellIcon(
+//    _In_opt_ PWSTR FileName,
+//    _In_opt_ PWSTR DefaultExtension,
+//    _In_ BOOLEAN LargeIcon
+//    )
+//{
+//    SHFILEINFO fileInfo;
+//    ULONG iconFlag;
+//    HICON icon;
+//
+//    if (DefaultExtension && PhEqualStringZ(DefaultExtension, L".exe", TRUE))
+//    {
+//        // Special case for executable files (see above for reasoning).
+//
+//        icon = NULL;
+//
+//        if (FileName)
+//        {
+//            PhExtractIcon(
+//                FileName,
+//                LargeIcon ? &icon : NULL,
+//                !LargeIcon ? &icon : NULL
+//                );
+//        }
+//
+//        if (!icon)
+//        {
+//            PhGetStockApplicationIcon(
+//                !LargeIcon ? &icon : NULL,
+//                LargeIcon ? &icon : NULL
+//                );
+//
+//            if (icon)
+//                icon = CopyIcon(icon);
+//        }
+//
+//        return icon;
+//    }
+//
+//    iconFlag = LargeIcon ? SHGFI_LARGEICON : SHGFI_SMALLICON;
+//    icon = NULL;
+//    memset(&fileInfo, 0, sizeof(SHFILEINFO));
+//
+//    if (FileName && SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
+//        FileName,
+//        0,
+//        &fileInfo,
+//        sizeof(SHFILEINFO),
+//        SHGFI_ICON | iconFlag
+//        ))
+//    {
+//        icon = fileInfo.hIcon;
+//    }
+//
+//    if (!icon && DefaultExtension)
+//    {
+//        memset(&fileInfo, 0, sizeof(SHFILEINFO));
+//
+//        if (SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
+//            DefaultExtension,
+//            FILE_ATTRIBUTE_NORMAL,
+//            &fileInfo,
+//            sizeof(SHFILEINFO),
+//            SHGFI_ICON | iconFlag | SHGFI_USEFILEATTRIBUTES
+//            ))
+//            icon = fileInfo.hIcon;
+//    }
+//
+//    return icon;
+//}
 
 VOID PhpSetClipboardData(
     _In_ HWND hWnd,
