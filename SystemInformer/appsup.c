@@ -813,7 +813,7 @@ VOID PhShellExecuteUserString(
             // Make sure the string is absolute and escape the filename.
             if (PhDetermineDosPathNameType(fileName->Buffer) == RtlPathTypeRelative)
             {
-                PhMoveReference(&fileName, PhConcatStringRef2(&seperator, &applicationDirectory->sr));
+                PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &fileName->sr));
                 PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &seperator));
             }
             else
@@ -831,7 +831,7 @@ VOID PhShellExecuteUserString(
         {
             if (PhDetermineDosPathNameType(executeString->Buffer) == RtlPathTypeRelative)
             {
-                PhMoveReference(&executeString, PhConcatStringRef2(&seperator, &applicationDirectory->sr));
+                PhMoveReference(&executeString, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &executeString->sr));
                 PhMoveReference(&executeString, PhConcatStringRef2(&executeString->sr, &seperator));
             }
             else
