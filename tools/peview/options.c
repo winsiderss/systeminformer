@@ -114,7 +114,7 @@ BOOLEAN PvShellExecuteRestart(
         PhGetString(parameters),
         NULL,
         SW_SHOW,
-        0,
+        PH_SHELL_EXECUTE_DEFAULT,
         0,
         NULL
         );

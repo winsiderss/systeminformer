@@ -25,7 +25,6 @@
 #include <netlistmgr.h>
 #include <propvarutil.h>
 #include <propkey.h>
-#include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <sddl.h>

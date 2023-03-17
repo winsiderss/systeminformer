@@ -5045,16 +5045,12 @@ BOOLEAN PhShellExecuteEx(
     info.lpFile = FileName;
     info.lpParameters = Parameters;
     info.lpDirectory = Directory;
-    info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
+    info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC | SEE_MASK_NOZONECHECKS;
     info.nShow = ShowWindowType;
     info.hwnd = hWnd;
 
     if (Flags & PH_SHELL_EXECUTE_ADMIN)
         info.lpVerb = L"runas";
-    if (Flags & PH_SHELL_EXECUTE_NOZONECHECKS)
-        info.fMask |= SEE_MASK_NOZONECHECKS;
-    if (Flags & PH_SHELL_EXECUTE_NOASYNC)
-        info.fMask |= SEE_MASK_NOASYNC;
 
     if (ShellExecuteEx(&info))
     {

@@ -161,7 +161,7 @@ INT WINAPI wWinMain(
                         PvFileName->Buffer,
                         NULL,
                         SW_SHOWNORMAL,
-                        PH_SHELL_EXECUTE_NOZONECHECKS,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         0,
                         NULL
                         ))

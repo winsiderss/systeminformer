@@ -2257,7 +2257,7 @@ NTSTATUS PhpRunAsShellExecute(
         Parameters,
         PhGetString(parentDirectory),
         SW_SHOW,
-        PH_SHELL_EXECUTE_NOASYNC | (Elevated ? PH_SHELL_EXECUTE_ADMIN : 0),
+        Elevated ? PH_SHELL_EXECUTE_ADMIN : PH_SHELL_EXECUTE_DEFAULT,
         0,
         NULL
         ))
