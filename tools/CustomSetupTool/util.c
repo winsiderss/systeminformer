@@ -37,11 +37,10 @@ NTSTATUS SetupCreateUninstallKey(
 
     if (NT_SUCCESS(status))
     {
-        PPH_STRING tempString;
+        PPH_STRING string;
 
-        tempString = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
-        PhSetValueKeyZ(keyHandle, L"DisplayIcon", REG_SZ, tempString->Buffer, (ULONG)tempString->Length + sizeof(UNICODE_NULL));
-        PhDereferenceObject(tempString);
+        string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
+        PhSetValueKeyZ(keyHandle, L"DisplayIcon", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
         PhInitializeStringRef(&value, L"System Informer");
         PhSetValueKeyZ(keyHandle, L"DisplayName", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
@@ -52,15 +51,15 @@ NTSTATUS SetupCreateUninstallKey(
         PhInitializeStringRef(&value, L"https://systeminformer.sourceforge.io/");
         PhSetValueKeyZ(keyHandle, L"HelpLink", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        PhInitializeStringRef(&value, PhGetString(Context->SetupInstallPath));
-        PhSetValueKeyZ(keyHandle, L"InstallLocation", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        string = SetupCreateFullPath(Context->SetupInstallPath, L"");
+        PhSetValueKeyZ(keyHandle, L"InstallLocation", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
         PhInitializeStringRef(&value, L"System Informer");
         PhSetValueKeyZ(keyHandle, L"Publisher", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
 
-        tempString = PhFormatString(L"\"%s\\systeminformer-setup.exe\" -uninstall", PhGetString(Context->SetupInstallPath));
-        PhSetValueKeyZ(keyHandle, L"UninstallString", REG_SZ, tempString->Buffer, (ULONG)tempString->Length + sizeof(UNICODE_NULL));
-        PhDereferenceObject(tempString);
+        string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
+        PhMoveReference(&string, PhFormatString(L"\"%s\" -uninstall", PhGetString(string)));
+        PhSetValueKeyZ(keyHandle, L"UninstallString", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
 
         PhSetValueKeyZ(keyHandle, L"NoModify", REG_DWORD, &(ULONG){TRUE}, sizeof(ULONG));
         PhSetValueKeyZ(keyHandle, L"NoRepair", REG_DWORD, &(ULONG){TRUE}, sizeof(ULONG));
@@ -151,7 +150,6 @@ BOOLEAN SetupCreateUninstallFile(
 {
     NTSTATUS status;
     PPH_STRING currentFilePath;
-    PPH_STRING backupFilePath;
     PPH_STRING uninstallFilePath;
 
     if (!NT_SUCCESS(status = PhGetProcessImageFileNameWin32(NtCurrentProcess(), &currentFilePath)))
@@ -160,26 +158,16 @@ BOOLEAN SetupCreateUninstallFile(
         return FALSE;
     }
 
-    // Check if the user has started the setup from the installation folder.
+    // Check if the current image is running from the installation folder.
+
     if (PhStartsWithStringRef2(&currentFilePath->sr, PhGetString(Context->SetupInstallPath), TRUE))
     {
-        PhDereferenceObject(currentFilePath);
         return TRUE;
     }
 
-    backupFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\systeminformer-setup.bak");
-    uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\systeminformer-setup.exe");
+    // Move the outdated setup.exe into the trash (temp) folder.
 
-    if (PhDoesFileExistWin32(PhGetString(backupFilePath)))
-    {
-        PPH_STRING tempFileName = PhGetTemporaryDirectoryRandomAlphaFileName();
-
-        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(backupFilePath), PhGetString(tempFileName), FALSE)))
-        {
-            Context->ErrorCode = PhNtStatusToDosError(status);
-            return FALSE;
-        }
-    }
+    uninstallFilePath = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
 
     if (PhDoesFileExistWin32(PhGetString(uninstallFilePath)))
     {
@@ -192,14 +180,14 @@ BOOLEAN SetupCreateUninstallFile(
         }
     }
 
-    if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), FALSE)))
+    // Move the latest setup.exe to the installation folder.
+
+    if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), FALSE)))
     {
         Context->ErrorCode = PhNtStatusToDosError(status);
         return FALSE;
     }
 
-    PhDereferenceObject(uninstallFilePath);
-    PhDereferenceObject(currentFilePath);
     return TRUE;
 }
 
@@ -209,7 +197,7 @@ VOID SetupDeleteUninstallFile(
 {
     PPH_STRING uninstallFilePath;
 
-    uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\systeminformer-setup.exe");
+    uninstallFilePath = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
 
     if (PhDoesFileExistWin32(PhGetString(uninstallFilePath)))
     {
