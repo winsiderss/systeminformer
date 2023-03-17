@@ -4610,9 +4610,22 @@ BOOLEAN PhUiUnloadModule(
     case PH_MODULE_TYPE_MODULE:
     case PH_MODULE_TYPE_WOW64_MODULE:
         {
-            // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
-            if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
+            if (WindowsVersion < WINDOWS_8)
             {
+                // Windows 7 requires QUERY_INFORMATION for MemoryMappedFileName. (dmex)
+
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+                    PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+                    PROCESS_VM_READ | PROCESS_VM_WRITE,
+                    ProcessId
+                    );
+            }
+            else if (WindowsVersion < WINDOWS_10)
+            {
+                // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+
                 status = PhOpenProcess(
                     &processHandle,
                     PROCESS_ALL_ACCESS,
@@ -4620,9 +4633,10 @@ BOOLEAN PhUiUnloadModule(
                     );
             }
 
-            // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
             if (!NT_SUCCESS(status))
             {
+                // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
+
                 status = PhOpenProcess(
                     &processHandle,
                     PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
