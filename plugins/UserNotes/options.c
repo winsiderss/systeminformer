@@ -218,6 +218,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                     AddOrRemoveCollapseServicesOnStart(
                         Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
 
+                    SaveDb();
+
                     // uncomment for realtime toggle
                     //LoadCollapseServicesOnStart();
                     //PhExpandAllProcessNodes(TRUE);
