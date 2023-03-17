@@ -25,8 +25,6 @@
 #include <procprv.h>
 #include <settings.h>
 
-#include <shellapi.h>
-
 static PWSTR ProtectedSignerStrings[] =
     { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)", L" (StoreApp)" };
 
@@ -614,25 +612,25 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     if (processItem->CommandLine)
                     {
                         PPH_STRING commandLineString;
-                        INT stringArgCount;
-                        PWSTR* stringArgList;
+                        PPH_LIST commandLineList;
 
-                        if (stringArgList = CommandLineToArgvW(processItem->CommandLine->Buffer, &stringArgCount))
+                        if (commandLineList = PhCommandLineToList(processItem->CommandLine->Buffer))
                         {
                             PH_STRING_BUILDER sb;
 
                             PhInitializeStringBuilder(&sb, 260);
 
-                            for (INT i = 0; i < stringArgCount; i++)
+                            for (ULONG i = 0; i < commandLineList->Count; i++)
                             {
-                                PhAppendFormatStringBuilder(&sb, L"[%d] %s\r\n\r\n", i, stringArgList[i]);
+                                PhAppendFormatStringBuilder(&sb, L"[%d] %s\r\n\r\n", i, PhGetString(commandLineList->Items[i]));
                             }
 
                             PhAppendFormatStringBuilder(&sb, L"[FULL] %s\r\n", processItem->CommandLine->Buffer);
 
                             commandLineString = PhFinalStringBuilderString(&sb);
 
-                            LocalFree(stringArgList);
+                            PhDereferenceObjects(commandLineList->Items, commandLineList->Count);
+                            PhDereferenceObject(commandLineList);
                         }
                         else
                         {
