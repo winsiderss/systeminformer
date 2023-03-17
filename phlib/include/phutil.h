@@ -1598,6 +1598,13 @@ PhParseCommandLineFuzzy(
     );
 
 PHLIBAPI
+PPH_LIST
+NTAPI
+PhCommandLineToList(
+    _In_ PCWSTR CommandLine
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhSearchFilePath(

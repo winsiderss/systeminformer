@@ -50,7 +50,6 @@
 
 #include <phapp.h>
 
-#include <shellapi.h>
 #include <shlwapi.h>
 #include <winsta.h>
 #include <lm.h>
@@ -2282,53 +2281,58 @@ BOOLEAN PhpRunFileAsInteractiveUser(
 {
     BOOLEAN success = FALSE;
     PPH_STRING executeString = NULL;
-    INT cmdlineArgCount;
-    PWSTR* cmdlineArgList;
+    PPH_STRING fileName = NULL;
+    PPH_STRING fileArgs = NULL;
+    PPH_LIST cmdlineArgList;
 
     // Extract the filename.
-    if (cmdlineArgList = CommandLineToArgvW(Command->Buffer, &cmdlineArgCount))
+    if (cmdlineArgList = PhCommandLineToList(Command->Buffer))
     {
-        PPH_STRING fileName = PhCreateString(cmdlineArgList[0]);
+        fileName = PhReferenceObject(cmdlineArgList->Items[0]);
 
-        if (fileName && !PhDoesFileExistWin32(fileName->Buffer))
+        if (cmdlineArgList->Count == 2)
         {
-            PPH_STRING filePathString;
-
-            // The user typed a name without a path so attempt to locate the executable.
-            if (filePathString = PhSearchFilePath(fileName->Buffer, L".exe"))
-                PhMoveReference(&fileName, filePathString);
-            else
-                PhClearReference(&fileName);
+            fileArgs = PhReferenceObject(cmdlineArgList->Items[1]);
         }
 
-        if (fileName)
+        PhDereferenceObjects(cmdlineArgList->Items, cmdlineArgList->Count);
+        PhDereferenceObject(cmdlineArgList);
+    }
+
+    if (fileName && !PhDoesFileExistWin32(PhGetString(fileName)))
+    {
+        PPH_STRING filePathString;
+
+        // The user typed a name without a path so attempt to locate the executable.
+        if (filePathString = PhSearchFilePath(PhGetString(fileName), L".exe"))
+            PhMoveReference(&fileName, filePathString);
+        else
+            PhClearReference(&fileName);
+    }
+
+    if (fileName)
+    {
+        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+
+        // Escape the filename.
+        PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+
+        if (fileArgs)
         {
-            // Escape the filename.
-            PhMoveReference(&fileName, PhConcatStrings(3, L"\"", fileName->Buffer, L"\""));
+            // Escape the parameters.
+            PhMoveReference(&fileArgs, PhConcatStringRef3(&seperator, &fileArgs->sr, &seperator));
 
-            if (cmdlineArgCount == 2)
-            {
-                PPH_STRING fileArgs = PhCreateString(cmdlineArgList[1]);
+            // Create the escaped execute string.
+            executeString = PhConcatStringRef3(&fileName->sr, &space, &fileArgs->sr);
 
-                // Escape the parameters.
-                PhMoveReference(&fileArgs, PhConcatStrings(3, L"\"", fileArgs->Buffer, L"\""));
-
-                // Create the escaped execute string.
-                PhMoveReference(&executeString, PhConcatStrings(3, fileName->Buffer, L" ", fileArgs->Buffer));
-
-                // Cleanup.
-                PhDereferenceObject(fileArgs);
-            }
-            else
-            {
-                // Create the escaped execute string.
-                executeString = PhReferenceObject(fileName);
-            }
-
-            PhDereferenceObject(fileName);
+            // Cleanup.
+            PhClearReference(&fileArgs);
         }
-
-        LocalFree(cmdlineArgList);
+        else
+        {
+            executeString = fileName;
+        }
     }
 
     if (!PhIsNullOrEmptyString(executeString))

@@ -6720,6 +6720,27 @@ BOOLEAN PhParseCommandLineFuzzy(
     return FALSE;
 }
 
+PPH_LIST PhCommandLineToList(
+    _In_ PCWSTR CommandLine
+    )
+{
+    PPH_LIST commandLineList = NULL;
+    INT32 commandLineCount;
+    PWSTR* commandLineArray;
+
+    if (commandLineArray = CommandLineToArgvW(CommandLine, &commandLineCount))
+    {
+        commandLineList = PhCreateList(commandLineCount);
+
+        for (INT32 i = 0; i < commandLineCount; i++)
+            PhAddItemList(commandLineList, PhCreateString(commandLineArray[i]));
+
+        LocalFree(commandLineArray);
+    }
+
+    return commandLineList;
+}
+
 PPH_STRING PhSearchFilePath(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Extension
