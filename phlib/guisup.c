@@ -1020,13 +1020,10 @@ VOID PhGetStockApplicationIcon(
         }
     }
 
-    if (!smallIcon || !largeIcon)
-    {
-        if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
-        if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
-    }
+    if (!smallIcon)
+        smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
+    if (!largeIcon)
+        largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
 
     if (SmallIcon)
         *SmallIcon = smallIcon;
@@ -2647,7 +2644,7 @@ BOOLEAN PhExtractIconEx(
     else
     {
         status = PhLoadMappedImage(
-            PhGetString(fileName),
+            PhGetStringRefZ(&fileName),
             NULL,
             &mappedImage
             );
