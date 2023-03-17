@@ -2528,28 +2528,25 @@ HICON PhCreateIconFromResourceDirectory(
         );
 }
 
-PPH_STRING PhpGetImageMunResourcePath(
-    _In_ PPH_STRING FileName,
-    _In_ BOOLEAN NativeFileName
+_Success_(return)
+BOOLEAN PhGetSystemResourcesFileName(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName,
+    _Out_ PPH_STRING* ResourceFileName
     )
 {
-    static PH_STRINGREF systemResourcePathSr = PH_STRINGREF_INIT(L"\\SystemResources\\");
-    static PH_STRINGREF systemResourceExtensionSr = PH_STRINGREF_INIT(L".mun");
-    PPH_STRING filePath = NULL;
-    PPH_STRING directory;
-    PPH_STRING fileName;
+    static PH_STRINGREF systemResourcesPath = PH_STRINGREF_INIT(L"\\SystemResources\\");
+    static PH_STRINGREF systemResourcesExtension = PH_STRINGREF_INIT(L".mun");
+    PPH_STRING fileName = NULL;
+    PH_STRINGREF directoryPart;
+    PH_STRINGREF fileNamePart;
+    PH_STRINGREF directoryBasePart;
+    PH_STRINGREF fileNameBasePart;
 
     if (WindowsVersion < WINDOWS_10_19H1)
-    {
-        PhReferenceObject(FileName);
-        return FileName;
-    }
-
-    if (PhDetermineDosPathNameType(PhGetString(FileName)) == RtlPathTypeUncAbsolute)
-    {
-        PhReferenceObject(FileName);
-        return FileName;
-    }
+        return FALSE;
+    if (PhDetermineDosPathNameType(PhGetStringRefZ(FileName)) == RtlPathTypeUncAbsolute)
+        return FALSE;
 
     // 19H1 and above relocated binary resources into the \SystemResources\ directory.
     // This is implemented as a hook inside EnumResourceNamesExW:
@@ -2566,49 +2563,44 @@ PPH_STRING PhpGetImageMunResourcePath(
     //
     // The below code has the same logic and semantics. (dmex)
 
-    directory = PhGetBaseDirectory(FileName);
-    fileName = PhGetBaseName(FileName);
+    if (!PhSplitStringRefAtLastChar(FileName, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &fileNamePart))
+        return FALSE;
 
-    if (directory)
+    if (directoryPart.Length && fileNamePart.Length)
     {
-        PhMoveReference(&directory, PhGetBaseDirectory(directory));
-    }
+        if (!PhSplitStringRefAtLastChar(&directoryPart, OBJ_NAME_PATH_SEPARATOR, &directoryBasePart, &fileNameBasePart))
+            return FALSE;
 
-    if (directory && fileName)
-    {
-        PhMoveReference(&fileName, PhConcatStringRef3(&directory->sr, &systemResourcePathSr, &fileName->sr));
-        PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &systemResourceExtensionSr));
+        PhMoveReference(&fileName, PhConcatStringRef3(&directoryBasePart, &systemResourcesPath, &fileNamePart));
+        PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &systemResourcesExtension));
 
         if (NativeFileName)
         {
             if (PhDoesFileExist(&fileName->sr))
             {
-                PhDereferenceObject(directory);
-                return fileName;
+                *ResourceFileName = fileName;
+                return TRUE;
             }
         }
         else
         {
             if (PhDoesFileExistWin32(PhGetString(fileName)))
             {
-                PhDereferenceObject(directory);
-                return fileName;
+                *ResourceFileName = fileName;
+                return TRUE;
             }
         }
     }
 
-    PhClearReference(&directory);
     PhClearReference(&fileName);
-
-    PhReferenceObject(FileName);
-    return FileName;
+    return FALSE;
 }
 
 // rev from PrivateExtractIconExW with changes
 // for using SEC_COMMIT instead of SEC_IMAGE. (dmex)
 _Success_(return)
 BOOLEAN PhExtractIconEx(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
@@ -2619,25 +2611,35 @@ BOOLEAN PhExtractIconEx(
     NTSTATUS status;
     HICON iconLarge = NULL;
     HICON iconSmall = NULL;
-    PPH_STRING fileName;
+    PPH_STRING resourceFileName = NULL;
+    PH_STRINGREF fileName;
     PH_MAPPED_IMAGE mappedImage;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_RESOURCE_DIRECTORY resourceDirectory;
     ULONG iconDirectoryResourceLength;
     PNEWHEADER iconDirectoryResource;
 
-    if (!(fileName = PhpGetImageMunResourcePath(
-        FileName,
-        NativeFileName
-        )))
+    if (PhGetSystemResourcesFileName(FileName, NativeFileName, &resourceFileName))
     {
+        fileName.Buffer = resourceFileName->Buffer;
+        fileName.Length = resourceFileName->Length;
+    }
+    else
+    {
+        fileName.Buffer = FileName->Buffer;
+        fileName.Length = FileName->Length;
+    }
+
+    if (PhIsNullOrEmptyString(&fileName))
+    {
+        PhClearReference(&resourceFileName);
         return FALSE;
     }
 
     if (NativeFileName)
     {
         status = PhLoadMappedImageEx(
-            &fileName->sr,
+            &fileName,
             NULL,
             &mappedImage
             );
@@ -2653,7 +2655,7 @@ BOOLEAN PhExtractIconEx(
 
     if (!NT_SUCCESS(status))
     {
-        PhDereferenceObject(fileName);
+        PhClearReference(&resourceFileName);
         return FALSE;
     }
 
@@ -2675,56 +2677,49 @@ BOOLEAN PhExtractIconEx(
     if (!resourceDirectory)
         goto CleanupExit;
 
-    __try
+    if (!PhLoadIconFromResourceDirectory(
+        &mappedImage,
+        resourceDirectory,
+        IconIndex,
+        RT_GROUP_ICON,
+        &iconDirectoryResourceLength,
+        &iconDirectoryResource
+        ))
     {
-        if (!PhLoadIconFromResourceDirectory(
+        goto CleanupExit;
+    }
+
+    if (iconDirectoryResource->ResourceType != RES_ICON)
+        goto CleanupExit;
+
+    if (IconLarge)
+    {
+        iconLarge = PhCreateIconFromResourceDirectory(
             &mappedImage,
             resourceDirectory,
-            IconIndex,
-            RT_GROUP_ICON,
-            &iconDirectoryResourceLength,
-            &iconDirectoryResource
-            ))
-        {
-            goto CleanupExit;
-        }
-
-        if (iconDirectoryResource->ResourceType != RES_ICON)
-            goto CleanupExit;
-
-        if (IconLarge)
-        {
-            iconLarge = PhCreateIconFromResourceDirectory(
-                &mappedImage,
-                resourceDirectory,
-                iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXICON, SystemDpi),
-                PhGetSystemMetrics(SM_CYICON, SystemDpi),
-                LR_DEFAULTCOLOR
-                );
-        }
-
-        if (IconSmall)
-        {
-            iconSmall = PhCreateIconFromResourceDirectory(
-                &mappedImage,
-                resourceDirectory,
-                iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
-                PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
-                LR_DEFAULTCOLOR
-                );
-        }
+            iconDirectoryResource,
+            PhGetSystemMetrics(SM_CXICON, SystemDpi),
+            PhGetSystemMetrics(SM_CYICON, SystemDpi),
+            LR_DEFAULTCOLOR
+            );
     }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+
+    if (IconSmall)
     {
-        NOTHING;
+        iconSmall = PhCreateIconFromResourceDirectory(
+            &mappedImage,
+            resourceDirectory,
+            iconDirectoryResource,
+            PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
+            PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
+            LR_DEFAULTCOLOR
+            );
     }
 
 CleanupExit:
 
     PhUnloadMappedImage(&mappedImage);
-    PhDereferenceObject(fileName);
+    PhClearReference(&resourceFileName);
 
     if (IconLarge && IconSmall)
     {

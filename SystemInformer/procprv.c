@@ -3600,7 +3600,7 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
             ))
         {
             PhExtractIconEx(
-                FileName,
+                &FileName->sr,
                 NativeFileName,
                 0,
                 &largeIcon,
@@ -3612,7 +3612,7 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     else
     {
         PhExtractIconEx(
-            FileName,
+            &FileName->sr,
             NativeFileName,
             0,
             &largeIcon,
