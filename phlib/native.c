@@ -6365,7 +6365,7 @@ PPH_STRING PhGetKernelFileName(
 
     if (modules->NumberOfModules >= 1)
     {
-        fileName = PhConvertMultiByteToUtf16(modules->Modules[0].FullPathName);
+        fileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
     }
 
     PhFree(modules);
@@ -8367,7 +8367,6 @@ static BOOLEAN EnumGenericProcessModulesCallback(
 
     moduleInfo.Name = PhCreateStringFromUnicodeString(&Module->BaseDllName);
     moduleInfo.FileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
-    moduleInfo.FileNameWin32 = PhGetFileName(moduleInfo.FileName);
 
     if (WindowsVersion >= WINDOWS_8)
     {
@@ -8387,7 +8386,6 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     cont = context->Callback(&moduleInfo, context->Context);
 
     PhDereferenceObject(moduleInfo.Name);
-    PhDereferenceObject(moduleInfo.FileNameWin32);
     PhDereferenceObject(moduleInfo.FileName);
 
     return cont;
@@ -8407,8 +8405,6 @@ VOID PhpRtlModulesToGenericModules(
 
     for (i = 0; i < Modules->NumberOfModules; i++)
     {
-        PPH_STRING fileName;
-
         module = &Modules->Modules[i];
 
         // Check if we have a duplicate base address.
@@ -8421,8 +8417,6 @@ VOID PhpRtlModulesToGenericModules(
             PhAddEntryHashtable(BaseAddressHashtable, &module->ImageBase);
         }
 
-        fileName = PhConvertMultiByteToUtf16(module->FullPathName);
-
         if ((ULONG_PTR)module->ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
         else
@@ -8432,9 +8426,8 @@ VOID PhpRtlModulesToGenericModules(
         moduleInfo.Size = module->ImageSize;
         moduleInfo.EntryPoint = NULL;
         moduleInfo.Flags = module->Flags;
-        moduleInfo.Name = PhConvertMultiByteToUtf16(&module->FullPathName[module->OffsetToFileName]);
-        moduleInfo.FileNameWin32 = PhGetFileName(fileName); // convert to DOS file name
-        moduleInfo.FileName = fileName;
+        moduleInfo.Name = PhConvertUtf8ToUtf16(&module->FullPathName[module->OffsetToFileName]);
+        moduleInfo.FileName = PhConvertUtf8ToUtf16(module->FullPathName);
         moduleInfo.LoadOrderIndex = module->LoadOrderIndex;
         moduleInfo.LoadCount = module->LoadCount;
         moduleInfo.LoadReason = USHRT_MAX;
@@ -8452,13 +8445,13 @@ VOID PhpRtlModulesToGenericModules(
             // directory.
             PhGetSystemRoot(&systemRoot);
             newFileName = PhConcatStringRef3(&systemRoot, &driversString, &moduleInfo.Name->sr);
-            PhMoveReference(&moduleInfo.FileNameWin32, newFileName);
+            PhMoveReference(&newFileName, PhDosPathNameToNtPathName(&newFileName->sr));
+            PhMoveReference(&moduleInfo.FileName, newFileName);
         }
 
         cont = Callback(&moduleInfo, Context);
 
         PhDereferenceObject(moduleInfo.Name);
-        PhDereferenceObject(moduleInfo.FileNameWin32);
         PhDereferenceObject(moduleInfo.FileName);
 
         if (!cont)
@@ -8481,8 +8474,6 @@ VOID PhpRtlModulesExToGenericModules(
 
     while (module->NextOffset != 0)
     {
-        PPH_STRING fileName;
-
         // Check if we have a duplicate base address.
         if (PhFindEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase))
         {
@@ -8493,8 +8484,6 @@ VOID PhpRtlModulesExToGenericModules(
             PhAddEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase);
         }
 
-        fileName = PhConvertMultiByteToUtf16(module->BaseInfo.FullPathName);
-
         if ((ULONG_PTR)module->BaseInfo.ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
         else
@@ -8504,9 +8493,8 @@ VOID PhpRtlModulesExToGenericModules(
         moduleInfo.Size = module->BaseInfo.ImageSize;
         moduleInfo.EntryPoint = NULL;
         moduleInfo.Flags = module->BaseInfo.Flags;
-        moduleInfo.Name = PhConvertMultiByteToUtf16(&module->BaseInfo.FullPathName[module->BaseInfo.OffsetToFileName]);
-        moduleInfo.FileNameWin32 = PhGetFileName(fileName); // convert to DOS file name
-        moduleInfo.FileName = fileName;
+        moduleInfo.Name = PhConvertUtf8ToUtf16(&module->BaseInfo.FullPathName[module->BaseInfo.OffsetToFileName]);
+        moduleInfo.FileName = PhConvertUtf8ToUtf16(module->BaseInfo.FullPathName);
         moduleInfo.LoadOrderIndex = module->BaseInfo.LoadOrderIndex;
         moduleInfo.LoadCount = module->BaseInfo.LoadCount;
         moduleInfo.LoadReason = USHRT_MAX;
@@ -8517,7 +8505,6 @@ VOID PhpRtlModulesExToGenericModules(
         cont = Callback(&moduleInfo, Context);
 
         PhDereferenceObject(moduleInfo.Name);
-        PhDereferenceObject(moduleInfo.FileNameWin32);
         PhDereferenceObject(moduleInfo.FileName);
 
         if (!cont)
@@ -8545,9 +8532,8 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     moduleInfo.Size = (ULONG)AllocationSize;
     moduleInfo.EntryPoint = NULL;
     moduleInfo.Flags = 0;
-    moduleInfo.FileNameWin32 = PhGetFileName(FileName);
     moduleInfo.FileName = FileName;
-    moduleInfo.Name = PhGetBaseName(moduleInfo.FileNameWin32);
+    moduleInfo.Name = PhGetBaseName(moduleInfo.FileName);
     moduleInfo.LoadOrderIndex = USHRT_MAX;
     moduleInfo.LoadCount = USHRT_MAX;
     moduleInfo.LoadReason = USHRT_MAX;
@@ -8557,7 +8543,6 @@ BOOLEAN PhpCallbackMappedFileOrImage(
 
     cont = Callback(&moduleInfo, Context);
 
-    PhDereferenceObject(moduleInfo.FileNameWin32);
     PhDereferenceObject(moduleInfo.FileName);
     PhDereferenceObject(moduleInfo.Name);
 

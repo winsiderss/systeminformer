@@ -65,7 +65,7 @@ VOID ProcessesUpdatedCallback(
         }
         else if (extension->ModuleItem)
         {
-            filePath = extension->ModuleItem->FileNameWin32;
+            filePath = PhGetFileName(extension->ModuleItem->FileName);
         }
         else if (extension->ServiceItem)
         {
@@ -363,7 +363,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? moduleItem->FileNameWin32 : NULL);
+    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? PhGetFileName(moduleItem->FileName) : NULL);
 
     if (!moduleItem)
     {
