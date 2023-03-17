@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2019
+ *     dmex    2019-2023
  *
  */
 
@@ -14,10 +14,9 @@
 
 EXTERN_C_START
 
-_Success_(return)
 BOOLEAN PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     );
 
 _Success_(return)

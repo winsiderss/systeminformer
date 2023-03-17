@@ -150,7 +150,7 @@ VOID PhUiAnalyzeWaitThread(
         processHandle,
         &clientId,
         SymbolProvider,
-        PH_WALK_I386_STACK,
+        PH_WALK_USER_WOW64_STACK,
         PhpWalkThreadStackAnalyzeCallback,
         &context
         );
@@ -259,14 +259,11 @@ VOID PhpAnalyzeWaitPassive(
 
 static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PANALYZE_WAIT_CONTEXT context = (PANALYZE_WAIT_CONTEXT)Context;
     PPH_STRING name;
-
-    if (!context)
-        return TRUE;
 
     name = PhGetSymbolFromAddress(
         context->SymbolProvider,

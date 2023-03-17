@@ -5,11 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
 #include <phapp.h>
+#include <mapldr.h>
 
 // CRT delayload support
 // The msvc delayload handler throws exceptions when
@@ -148,7 +149,7 @@ PVOID WINAPI __delayLoadHelper2(
 
     if ((InterlockedExchangePointer(importHandle, moduleHandle) == moduleHandle) && importNeedsFree)
     {
-        FreeLibrary(moduleHandle); // already updated the cache (dmex)
+        PhFreeLibrary(moduleHandle); // already updated the cache (dmex)
     }
 
     return procedureAddress;

@@ -21,6 +21,7 @@
 #include <refp.h>
 #include <settings.h>
 #include <symprv.h>
+#include <mapldr.h>
 #include <workqueue.h>
 #include <workqueuep.h>
 
@@ -130,12 +131,9 @@ static BOOL ConsoleHandlerRoutine(
 
 static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
-    if (!Context)
-        return TRUE;
-
     if (!PhLoadModuleSymbolProvider(
         (PPH_SYMBOL_PROVIDER)Context,
         Module->FileName,
@@ -143,7 +141,7 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
         Module->Size
         ))
     {
-        wprintf(L"Unable to load symbols: %s\n", PhGetStringOrEmpty(Module->FileNameWin32));
+        wprintf(L"Unable to load symbols: %s\n", PhGetStringOrEmpty(Module->FileName));
     }
 
     return TRUE;
@@ -469,7 +467,8 @@ static VOID PhStartStopwatch(
     _Inout_ PSTOPWATCH Stopwatch
     )
 {
-    NtQueryPerformanceCounter(&Stopwatch->StartCounter, &Stopwatch->Frequency);
+    PhQueryPerformanceCounter(&Stopwatch->StartCounter);
+    PhQueryPerformanceFrequency(&Stopwatch->Frequency);
 }
 
 static VOID PhStopStopwatch(

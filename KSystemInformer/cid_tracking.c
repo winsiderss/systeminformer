@@ -924,6 +924,8 @@ NTSTATUS KphCidPopulate(
         }
         else
         {
+            LARGE_INTEGER timeout;
+
             //
             // Check if we should track this process during population.
             // Ultimately here we're ensuring the process isn't already exited.
@@ -942,28 +944,18 @@ NTSTATUS KphCidPopulate(
                 continue;
             }
 
-            status = PsAcquireProcessExitSynchronization(processObject);
-            if (!NT_SUCCESS(status))
+            timeout.QuadPart = 0;
+            status = KeWaitForSingleObject(processObject,
+                                           Executive,
+                                           KernelMode,
+                                           FALSE,
+                                           &timeout);
+            if (status != STATUS_TIMEOUT)
             {
                 KphTracePrint(TRACE_LEVEL_WARNING,
                               TRACKING,
-                              "PsAcquireProcessExitSynchronization failed: %!STATUS!",
-                              status);
-
-
-                ObDereferenceObject(processObject);
-                continue;
-            }
-
-            status = PsGetProcessExitStatus(processObject);
-
-            PsReleaseProcessExitSynchronization(processObject);
-
-            if (status != STATUS_PENDING)
-            {
-                KphTracePrint(TRACE_LEVEL_WARNING,
-                              TRACKING,
-                              "PsGetProcessExitStatus reported: %!STATUS!",
+                              "KeWaitForSingleObject(processObject) "
+                              "reported: %!STATUS!",
                               status);
 
                 ObDereferenceObject(processObject);
@@ -1015,13 +1007,11 @@ NTSTATUS KphCidPopulate(
                 continue;
             }
 
-            status = KphGetThreadExitStatus(threadObject);
-            if (status != STATUS_PENDING)
+            if (PsIsThreadTerminating(threadObject))
             {
                 KphTracePrint(TRACE_LEVEL_WARNING,
                               TRACKING,
-                              "KphGetThreadExitStatus reported: %!STATUS!",
-                              status);
+                              "PsIsThreadTerminating reported: TRUE");
 
                 ObDereferenceObject(threadObject);
                 continue;

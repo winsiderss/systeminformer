@@ -65,7 +65,7 @@ VOID ProcessesUpdatedCallback(
         }
         else if (extension->ModuleItem)
         {
-            filePath = extension->ModuleItem->FileNameWin32;
+            filePath = PhGetFileName(extension->ModuleItem->FileName);
         }
         else if (extension->ServiceItem)
         {
@@ -200,7 +200,7 @@ VOID NTAPI MenuItemCallback(
                         menuItem->OwnerWindow,
                         L"-v",
                         SW_SHOW,
-                        0,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                         0,
                         NULL
@@ -363,7 +363,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? moduleItem->FileNameWin32 : NULL);
+    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? PhGetFileName(moduleItem->FileName) : NULL);
 
     if (!moduleItem)
     {

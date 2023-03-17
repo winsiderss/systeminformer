@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_MAINWND_H
 #define PH_MAINWND_H
 
@@ -17,24 +29,6 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_LAST (WM_APP + 145)
 
 // begin_phapppub
-PHAPPAPI
-HWND
-NTAPI
-PhGetMainWindowHandle(
-    VOID
-    );
-
-PHAPPAPI
-ULONG
-NTAPI
-PhGetWindowsVersion(
-    VOID
-    );
-
-// plugin macros (dmex)
-#define PhWindowsVersion PhGetWindowsVersion()
-#define PhMainWindowHandle PhGetMainWindowHandle()
-
 typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
 {
     PH_MAINWINDOW_CALLBACK_TYPE_DESTROY,
@@ -59,6 +53,11 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY,
     PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY,
     PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK,
+    PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE,
+    PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE,
+    PH_MAINWINDOW_CALLBACK_TYPE_VERSION,
+    PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE,
+    PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
 
 PHAPPAPI
@@ -104,17 +103,28 @@ PhPluginInvokeWindowCallback(
     ((HFONT)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT, 0, 0))
 #define ProcessHacker_Invoke(Function, Parameter) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_INVOKE, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
-#define ProcessHacker_CreateTabPage(Template) \
-    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Template))
+//#define ProcessHacker_CreateTabPage(Template) \
+//    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Template))
 #define ProcessHacker_Refresh() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_REFRESH, 0, 0)
 #define ProcessHacker_GetUpdateAutomatically() \
     ((BOOLEAN)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY, 0, 0))
 #define ProcessHacker_SetUpdateAutomatically(Value) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY, (PVOID)(ULONG_PTR)(Value), 0)
-// end_phapppub
 #define ProcessHacker_IconClick() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK, 0, 0)
+#define ProcessHacker_GetWindowProcedure() \
+    ((WNDPROC)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE, 0, 0))
+#define ProcessHacker_GetWindowHandle() \
+    ((HWND)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE, 0, 0))
+#define ProcessHacker_GetWindowsVersion() \
+    (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_VERSION, 0, 0)))
+#define ProcessHacker_IsPortableMode() \
+    ((BOOLEAN)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE, 0, 0))
+
+#define PhWindowsVersion ProcessHacker_GetWindowsVersion() // Temporary backwards compat (dmex)
+#define PhMainWindowHandle ProcessHacker_GetWindowHandle() // Temporary backwards compat (dmex)
+// end_phapppub
 
 // begin_phapppub
 PHAPPAPI
@@ -164,6 +174,7 @@ typedef enum _PH_MAIN_TAB_PAGE_MESSAGE
     MainTabPageExportContent, // PPH_MAIN_TAB_PAGE_EXPORT_CONTENT Parameter1
     MainTabPageFontChanged, // HFONT Parameter1 (Font)
     MainTabPageUpdateAutomaticallyChanged, // BOOLEAN Parameter1 (UpdateAutomatically)
+    MainTabPageDpiChanged,
 
     MaxMainTabPageMessage
 } PH_MAIN_TAB_PAGE_MESSAGE;
@@ -259,6 +270,10 @@ PhShowIconNotification(
 
 VOID PhShowDetailsForIconNotification(
     VOID
+    );
+
+VOID PhShowOptionsRestartRequired(
+    _In_ HWND WindowHandle
     );
 
 VOID PhShowProcessContextMenu(

@@ -1,8 +1,17 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2016-2023
+ *
+ */
+
 #ifndef _PH_SECEDITP_H
 #define _PH_SECEDITP_H
-
-#include <aclui.h>
-#include <aclapi.h>
 
 typedef struct
 {
@@ -328,36 +337,6 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     _Out_ PULONG ObjectTypeListLength,
     _Out_ PACCESS_MASK* GrantedAccessList,
     _Out_ PULONG GrantedAccessListLength
-    );
-
-// Power policy (Todo: Move to better location) (dmex)
-
-NTSTATUS PhpGetPowerPolicySecurityDescriptor(
-    _Out_ PPH_STRING* StringSecurityDescriptor
-    );
-
-NTSTATUS PhpSetPowerPolicySecurityDescriptor(
-    _In_ PPH_STRING StringSecurityDescriptor
-    );
-
-// Terminal server policy (Todo: Move to better location) (dmex)
-
-NTSTATUS PhpGetRemoteDesktopSecurityDescriptor(
-    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
-    );
-
-NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    );
-
-// Wbem namespace policy (Todo: Move to better location) (dmex)
-
-NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
-    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
-    );
-
-NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 #endif

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2019-2022
+ *     dmex    2019-2023
  *
  */
 
@@ -22,6 +22,7 @@
 
 #include <accctrl.h>
 #include <lsasup.h>
+#include <mapldr.h>
 
 NTSTATUS PhOpenLsaPolicy(
     _Out_ PLSA_HANDLE PolicyHandle,
@@ -427,7 +428,7 @@ NTSTATUS PhLookupName(
         {
             if (Sid)
             {
-                *Sid = PhAllocateCopy(sids[0].Sid, RtlLengthSid(sids[0].Sid));
+                *Sid = PhAllocateCopy(sids[0].Sid, PhLengthSid(sids[0].Sid));
             }
 
             if (DomainName)
@@ -587,8 +588,37 @@ PPH_STRING PhSidToStringSid(
     }
     else
     {
+        PhDereferenceObject(string);
+
         return NULL;
     }
+}
+
+NTSTATUS PhSidToStringBuffer(
+    _In_ PSID Sid,
+    _Writable_bytes_(BufferLength) PWCHAR Buffer,
+    _In_ USHORT BufferLength,
+    _Out_opt_ PUSHORT ReturnLength
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING unicodeString;
+
+    RtlInitEmptyUnicodeString(&unicodeString, Buffer, BufferLength);
+
+    status = RtlConvertSidToUnicodeString(
+        &unicodeString,
+        Sid,
+        FALSE
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ReturnLength)
+            *ReturnLength = unicodeString.Length;
+    }
+
+    return status;
 }
 
 PPH_STRING PhGetTokenUserString(
@@ -597,12 +627,11 @@ PPH_STRING PhGetTokenUserString(
     )
 {
     PPH_STRING tokenUserString = NULL;
-    PTOKEN_USER tokenUser;
+    PH_TOKEN_USER tokenUser;
 
     if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
     {
-        tokenUserString = PhGetSidFullName(tokenUser->User.Sid, IncludeDomain, NULL);
-        PhFree(tokenUser);
+        tokenUserString = PhGetSidFullName(tokenUser.User.Sid, IncludeDomain, NULL);
     }
 
     return tokenUserString;
@@ -675,7 +704,7 @@ NTSTATUS PhGetSidAccountType(
     return status;
 }
 
-PPH_STRING PhGetSidAccountTypeString(
+PCWSTR PhGetSidAccountTypeString(
     _In_ PSID Sid
     )
 {
@@ -686,32 +715,63 @@ PPH_STRING PhGetSidAccountTypeString(
         switch (accountType)
         {
         case LocalUserAccountType:
-            return PhCreateString(L"Local");
+            return L"Local";
         case PrimaryDomainUserAccountType:
         case ExternalDomainUserAccountType:
-            return PhCreateString(L"ActiveDirectory");
+            return L"ActiveDirectory";
         case LocalConnectedUserAccountType:
         case MSAUserAccountType:
-            return PhCreateString(L"MicrosoftAccount");
+            return L"Microsoft";
         case AADUserAccountType:
-            return PhCreateString(L"AzureAD");
+            return L"AzureAD";
         case InternetUserAccountType:
             {
                 SID_IDENTIFIER_AUTHORITY msaAuthority = { 0, 0, 0, 0, 0, 11 };
-                SID_IDENTIFIER_AUTHORITY sidAuthority = ((PISID)Sid)->IdentifierAuthority;
 
-                // TODO: We should be using RtlIdentifierAuthoritySid here but this function
-                // isn't currently used so we'll save the import. (dmex)
-                if (RtlEqualMemory(&sidAuthority, &msaAuthority, sizeof(msaAuthority)))
+                if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &msaAuthority))
                 {
-                    return PhCreateString(L"MicrosoftAccount");
+                    return L"Microsoft";
                 }
+
+                return L"Internet";
             }
             break;
         }
     }
 
-    return PhCreateString(L"Unknown");
+    // If we don't get a result from LsaLookupUserAccountType then return the SID authority (or some other value?)  (dmex)
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NULL_SID_AUTHORITY)) // 0
+    {
+        return L"NULL (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_WORLD_SID_AUTHORITY)) // 1
+    {
+        return L"World (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_LOCAL_SID_AUTHORITY)) // 2
+    {
+        return L"Local (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY)) // 5
+    {
+        return L"NT (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_APP_PACKAGE_AUTHORITY)) // 15
+    {
+        return L"APP_PACKAGE (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_MANDATORY_LABEL_AUTHORITY)) // 16
+    {
+        return L"Mandatory label";
+    }
+
+    return L"Unknown";
 }
 
 typedef struct _PH_CAPABILITY_ENTRY
@@ -756,25 +816,25 @@ VOID PhInitializeCapabilitySidCache(
             BYTE capabilitySidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
             PSID capabilityGroupSid = (PSID)capabilityGroupSidBuffer;
             PSID capabilitySid = (PSID)capabilitySidBuffer;
-            UNICODE_STRING capabilityNameUs;
+            UNICODE_STRING capabilityName;
 
             if (PhEndsWithStringRef2(&namePart, L"\r", FALSE))
                 namePart.Length -= sizeof(WCHAR);
 
-            if (!PhStringRefToUnicodeString(&namePart, &capabilityNameUs))
+            if (!PhStringRefToUnicodeString(&namePart, &capabilityName))
                 continue;
 
             if (NT_SUCCESS(RtlDeriveCapabilitySidsFromName_Import()(
-                &capabilityNameUs,
+                &capabilityName,
                 capabilityGroupSid,
                 capabilitySid
                 )))
             {
                 PH_CAPABILITY_ENTRY entry;
 
-                entry.Name = PhCreateStringFromUnicodeString(&capabilityNameUs);
-                entry.CapabilityGroupSid = PhAllocateCopy(capabilityGroupSid, RtlLengthSid(capabilityGroupSid));
-                entry.CapabilitySid = PhAllocateCopy(capabilitySid, RtlLengthSid(capabilitySid));
+                entry.Name = PhCreateStringFromUnicodeString(&capabilityName);
+                entry.CapabilityGroupSid = PhAllocateCopy(capabilityGroupSid, PhLengthSid(capabilityGroupSid));
+                entry.CapabilitySid = PhAllocateCopy(capabilitySid, PhLengthSid(capabilitySid));
 
                 PhAddItemArray(CapabilitySidArrayList, &entry);
             }
@@ -806,12 +866,12 @@ PPH_STRING PhGetCapabilitySidName(
     {
         entry = PhItemArray(&capabilitySidArrayList, i);
 
-        if (RtlEqualSid(entry->CapabilitySid, CapabilitySid))
+        if (PhEqualSid(entry->CapabilitySid, CapabilitySid))
         {
             return PhReferenceObject(entry->Name);
         }
 
-        if (RtlEqualSid(entry->CapabilityGroupSid, CapabilitySid))
+        if (PhEqualSid(entry->CapabilityGroupSid, CapabilitySid))
         {
             return PhReferenceObject(entry->Name);
         }
@@ -835,15 +895,12 @@ typedef struct _PH_CAPABILITY_KEY_CALLBACK
 BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     HANDLE keyHandle;
     PPH_STRING guidString;
     PH_STRINGREF keyName;
-
-    if (!Context)
-        return FALSE;
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
@@ -856,7 +913,7 @@ BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
         0
         )))
     {
-        if (guidString = PhQueryRegistryString(keyHandle, L"LegacyInterfaceClassGuid"))
+        if (guidString = PhQueryRegistryStringZ(keyHandle, L"LegacyInterfaceClassGuid"))
         {
             PH_CAPABILITY_GUID_ENTRY entry;
 
@@ -876,15 +933,12 @@ BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
 BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_CAPABILITY_KEY_CALLBACK context = Context;
     HANDLE keyHandle;
     PH_STRINGREF keyName;
-
-    if (!Context)
-        return FALSE;
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
@@ -912,7 +966,7 @@ BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
 BOOLEAN NTAPI PhpDeviceAccessEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     HANDLE keyHandle;

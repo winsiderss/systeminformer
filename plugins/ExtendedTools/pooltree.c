@@ -782,6 +782,7 @@ VOID EtInitializePoolTagTree(
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
     TreeNew_SetCallback(Context->TreeNewHandle, EtPoolTagTreeNewCallback, Context);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TAG, TRUE, L"Tag Name", 50, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_DRIVER, TRUE, L"Driver", 82, PH_ALIGN_LEFT, 0, 0);
@@ -803,6 +804,7 @@ VOID EtInitializePoolTagTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDCURRENTDELTA, FALSE, L"Non-paged current (delta)", 80, PH_ALIGN_RIGHT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDTOTALDELTA, FALSE, L"Non-paged bytes (delta)", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDTOTAL, DescendingSortOrder);
 

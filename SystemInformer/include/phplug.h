@@ -71,7 +71,7 @@ typedef enum _PH_GENERAL_CALLBACK
 typedef enum _PH_PLUGIN_CALLBACK
 {
     PluginCallbackLoad = 0, // PPH_LIST Parameters [main thread] // list of strings, might be NULL
-    PluginCallbackUnload = 1, // [main thread]
+    PluginCallbackUnload = 1, // BOOLEAN SessionEnding [main thread]
     PluginCallbackShowOptions = 2, // HWND ParentWindowHandle [main thread]
     PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main/properties thread]
     PluginCallbackTreeNewMessage = 4, // PPH_PLUGIN_TREENEW_MESSAGE Message [main/properties thread]

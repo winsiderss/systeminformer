@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_PHNATIVE_H
 #define _PH_PHNATIVE_H
 
@@ -53,7 +65,7 @@ typedef enum _MANDATORY_LEVEL_RID {
     MandatoryUntrustedRID = SECURITY_MANDATORY_UNTRUSTED_RID,
     MandatoryLowRID = SECURITY_MANDATORY_LOW_RID,
     MandatoryMediumRID = SECURITY_MANDATORY_MEDIUM_RID,
-    //MandatoryMediumPlusRID = SECURITY_MANDATORY_MEDIUM_PLUS_RID,
+    MandatoryMediumPlusRID = SECURITY_MANDATORY_MEDIUM_PLUS_RID,
     MandatoryHighRID = SECURITY_MANDATORY_HIGH_RID,
     MandatorySystemRID = SECURITY_MANDATORY_SYSTEM_RID,
     MandatorySecureProcessRID = SECURITY_MANDATORY_PROTECTED_PROCESS_RID
@@ -78,7 +90,25 @@ PhOpenProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhOpenProcessPublic(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhOpenThread(
+    _Out_ PHANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ HANDLE ThreadId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenThreadPublic(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ HANDLE ThreadId
@@ -105,6 +135,25 @@ PhOpenProcessToken(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhOpenProcessTokenPublic(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenThreadToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ BOOLEAN OpenAsSelf,
+    _Out_ PHANDLE TokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetObjectSecurity(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
@@ -125,6 +174,14 @@ NTSTATUS
 NTAPI
 PhTerminateProcess(
     _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhTerminateThread(
+    _In_ HANDLE ThreadHandle,
     _In_ NTSTATUS ExitStatus
     );
 
@@ -293,6 +350,22 @@ PhQueryEnvironmentVariable(
     _Out_opt_ PPH_STRING* Value
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhQueryEnvironmentVariableZ(
+    _In_opt_ PVOID Environment,
+    _In_ PWSTR Name,
+    _Out_opt_ PPH_STRING* Value
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhQueryEnvironmentVariable(Environment, &name, Value);
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -301,6 +374,35 @@ PhSetEnvironmentVariable(
     _In_ PPH_STRINGREF Name,
     _In_opt_ PPH_STRINGREF Value
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetEnvironmentVariableZ(
+    _In_opt_ PVOID Environment,
+    _In_ PWSTR Name,
+    _In_opt_ PWSTR Value
+    )
+{
+    if (Value)
+    {
+        PH_STRINGREF name;
+        PH_STRINGREF value;
+
+        PhInitializeStringRef(&name, Name);
+        PhInitializeStringRef(&value, Value);
+
+        return PhSetEnvironmentVariable(Environment, &name, &value);
+    }
+    else
+    {
+        PH_STRINGREF name;
+
+        PhInitializeStringRef(&name, Name);
+
+        return PhSetEnvironmentVariable(Environment, &name, NULL);
+    }
+}
 
 PHLIBAPI
 NTSTATUS
@@ -433,20 +535,53 @@ PhQueryTokenVariableSize(
     _Out_ PVOID *Buffer
     );
 
+// rev from SE_TOKEN_USER (dmex)
+typedef struct _PH_TOKEN_USER
+{
+    union
+    {
+        TOKEN_USER TokenUser;
+        SID_AND_ATTRIBUTES User;
+    };
+    union
+    {
+        SID Sid;
+        BYTE Buffer[SECURITY_MAX_SID_SIZE];
+    };
+} PH_TOKEN_USER, *PPH_TOKEN_USER;
+
+C_ASSERT(sizeof(PH_TOKEN_USER) >= TOKEN_USER_MAX_SIZE);
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetTokenUser(
     _In_ HANDLE TokenHandle,
-    _Out_ PTOKEN_USER *User
+    _Out_ PPH_TOKEN_USER User
     );
+
+typedef struct _PH_TOKEN_OWNER
+{
+    union
+    {
+        TOKEN_OWNER TokenOwner;
+        SID_AND_ATTRIBUTES Owner;
+    };
+    union
+    {
+        SID Sid;
+        BYTE Buffer[SECURITY_MAX_SID_SIZE];
+    };
+} PH_TOKEN_OWNER, *PPH_TOKEN_OWNER;
+
+C_ASSERT(sizeof(PH_TOKEN_OWNER) >= TOKEN_OWNER_MAX_SIZE);
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetTokenOwner(
     _In_ HANDLE TokenHandle,
-    _Out_ PTOKEN_OWNER *Owner
+    _Out_ PPH_TOKEN_OWNER Owner
     );
 
 PHLIBAPI
@@ -489,12 +624,28 @@ PhGetTokenTrustLevel(
     _Out_ PTOKEN_PROCESS_TRUST_LEVEL *TrustLevel
     );
 
+typedef struct _PH_TOKEN_APPCONTAINER
+{
+    union
+    {
+        TOKEN_APPCONTAINER_INFORMATION TokenAppContainer;
+        SID_AND_ATTRIBUTES AppContainer;
+    };
+    union
+    {
+        SID Sid;
+        BYTE Buffer[SECURITY_MAX_SID_SIZE];
+    };
+} PH_TOKEN_APPCONTAINER, *PPH_TOKEN_APPCONTAINER;
+
+C_ASSERT(sizeof(PH_TOKEN_APPCONTAINER) >= TOKEN_APPCONTAINER_SID_MAX_SIZE);
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetTokenAppContainerSid(
     _In_ HANDLE TokenHandle,
-    _Out_ PSID* AppContainerSid
+    _Out_ PPH_TOKEN_APPCONTAINER AppContainerSid
     );
 
 PHLIBAPI
@@ -506,9 +657,26 @@ PhGetTokenSecurityAttributes(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenSecurityAttribute(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF AttributeName,
+    _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
-PhIsTokenFullTrustPackage(
+PhDoesTokenSecurityAttributeExist(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF AttributeName
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetTokenIsFullTrustPackage(
     _In_ HANDLE TokenHandle
     );
 
@@ -537,11 +705,174 @@ PhGetTokenPackageFullName(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessIsStronglyNamed(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsStronglyNamed
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetProcessIsFullTrustPackage(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
+
+// rev from RtlInitializeSid (dmex)
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhInitializeSid(
+    _Out_ PSID Sid,
+    _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
+    _In_ UCHAR SubAuthorityCount
+    )
+{
+    ((PISID)Sid)->Revision = SID_REVISION;
+    ((PISID)Sid)->IdentifierAuthority = *IdentifierAuthority;
+    ((PISID)Sid)->SubAuthorityCount = SubAuthorityCount;
+
+    for (UCHAR i = 0; i < SubAuthorityCount; i++)
+    {
+        ((PISID)Sid)->SubAuthority[i] = 0;
+    }
+
+    return TRUE;
+}
+
+// rev from RtlLengthSid (dmex)
+FORCEINLINE
+ULONG
+NTAPI
+PhLengthSid(
+    _In_ PSID Sid
+    )
+{
+    //return UFIELD_OFFSET(SID, SubAuthority) + (((PISID)Sid)->SubAuthorityCount * sizeof(ULONG));
+    return UFIELD_OFFSET(SID, SubAuthority[((PISID)Sid)->SubAuthorityCount]);
+}
+
+// rev from RtlLengthRequiredSid (dmex)
+FORCEINLINE
+ULONG
+NTAPI
+PhLengthRequiredSid(
+    _In_ ULONG SubAuthorityCount
+    )
+{
+    return UFIELD_OFFSET(SID, SubAuthority[SubAuthorityCount]);
+}
+
+// rev from RtlEqualSid (dmex)
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhEqualSid(
+    _In_ PSID Sid1,
+    _In_ PSID Sid2
+    )
+{
+    return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, PhLengthSid(Sid1));
+}
+
+// rev from RtlValidSid (dmex)
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhValidSid(
+    _In_ PSID Sid
+    )
+{
+    if (
+        ((PISID)Sid) &&
+        ((PISID)Sid)->Revision == SID_REVISION &&
+        ((PISID)Sid)->SubAuthorityCount <= SID_MAX_SUB_AUTHORITIES
+        )
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+// rev from RtlSubAuthoritySid (dmex)
+FORCEINLINE
+PULONG
+NTAPI
+PhSubAuthoritySid(
+    _In_ PSID Sid,
+    _In_ ULONG SubAuthority
+    )
+{
+    return &((PISID)Sid)->SubAuthority[SubAuthority];
+}
+
+// rev from RtlSubAuthorityCountSid (dmex)
+FORCEINLINE
+PUCHAR
+NTAPI
+PhSubAuthorityCountSid(
+    _In_ PSID Sid
+    )
+{
+    return &((PISID)Sid)->SubAuthorityCount;
+}
+
+// rev from RtlIdentifierAuthoritySid (dmex)
+FORCEINLINE
+PSID_IDENTIFIER_AUTHORITY
+NTAPI
+PhIdentifierAuthoritySid(
+    _In_ PSID Sid
+    )
+{
+    return &((PISID)Sid)->IdentifierAuthority;
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhEqualIdentifierAuthoritySid(
+    _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthoritySid1,
+    _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthoritySid2
+    )
+{
+    return (BOOLEAN)RtlEqualMemory(IdentifierAuthoritySid1, IdentifierAuthoritySid2, sizeof(SID_IDENTIFIER_AUTHORITY));
+}
+
+// rev from RtlFreeSid (dmex)
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhFreeSid(
+    _In_ _Post_invalid_ PSID Sid
+    )
+{
+    return !!RtlFreeHeap(RtlProcessHeap(), 0, Sid);
+}
+
+// rev from RtlFreeUnicodeString (dmex)
+FORCEINLINE
+VOID
+NTAPI
+PhFreeUnicodeString(
+    _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_ _Post_invalid_) PUNICODE_STRING UnicodeString
+    )
+{
+#ifdef PHNT_INLINE_FREE_UNICODE_STRING
+    RtlFreeUnicodeString(UnicodeString);
+#else
+    RtlFreeHeap(RtlProcessHeap(), 0, UnicodeString->Buffer);
+#endif
+}
 
 PHLIBAPI
 NTSTATUS
@@ -770,6 +1101,14 @@ NTAPI
 PhGetFileUsn(
     _In_ HANDLE FileHandle,
     _Out_ PLONGLONG Usn
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetFileBypassIO(
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN Enable
     );
 
 PHLIBAPI
@@ -1019,7 +1358,7 @@ NTSTATUS
 NTAPI
 PhSetProcessPriorityBoost(
     _In_ HANDLE ProcessHandle,
-    _In_ BOOLEAN PriorityBoost
+    _In_ BOOLEAN DisablePriorityBoost
     );
 
 PHLIBAPI
@@ -1048,68 +1387,6 @@ PhSetProcessPowerThrottlingState(
     );
 
 PHLIBAPI
-PVOID
-NTAPI
-PhGetDllHandle(
-    _In_ PWSTR DllName
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetModuleProcAddress(
-    _In_ PWSTR ModuleName,
-    _In_opt_ PSTR ProcedureName
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetProcedureAddress(
-    _In_ PVOID DllHandle,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ ULONG ProcedureNumber
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetProcedureAddressRemoteStringRef(
-    _In_ HANDLE ProcessHandle,
-    _In_ PPH_STRINGREF FileName,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber,
-    _Out_ PVOID *ProcedureAddress,
-    _Out_opt_ PVOID *DllBase
-    );
-
-FORCEINLINE
-NTSTATUS
-NTAPI
-PhGetProcedureAddressRemote(
-    _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber,
-    _Out_ PVOID *ProcedureAddress,
-    _Out_opt_ PVOID *DllBase
-    )
-{
-    PH_STRINGREF fileName;
-
-    PhInitializeStringRef(&fileName, FileName);
-
-    return PhGetProcedureAddressRemoteStringRef(
-        ProcessHandle,
-        &fileName,
-        ProcedureName,
-        ProcedureNumber,
-        ProcedureAddress,
-        DllBase
-        );
-}
-
-PHLIBAPI
 NTSTATUS
 NTAPI
 PhEnumKernelModules(
@@ -1127,6 +1404,13 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetKernelFileName(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetKernelFileName2(
     VOID
     );
 
@@ -1181,6 +1465,37 @@ NTAPI
 PhEnumProcessesEx(
     _Out_ PVOID *Processes,
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
+    );
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_NEXT_PROCESS)(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumNextProcess(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_ENUM_NEXT_PROCESS Callback,
+    _In_opt_ PVOID Context
+    );
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_NEXT_THREAD)(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumNextThread(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_ENUM_NEXT_THREAD Callback,
+    _In_opt_ PVOID Context
     );
 
 PHLIBAPI
@@ -1286,7 +1601,7 @@ PhGetProcessIsDotNet(
 #define PH_CLR_VERSION_2_0 0x4
 #define PH_CLR_VERSION_4_ABOVE 0x8
 #define PH_CLR_CORE_3_0_ABOVE 0x10
-#define PH_CLR_VERSION_MASK 0x20
+#define PH_CLR_VERSION_MASK 0x1f
 
 #define PH_CLR_MSCORLIB_PRESENT 0x10000
 #define PH_CLR_CORELIB_PRESENT 0x20000
@@ -1328,6 +1643,7 @@ PhEnumDirectoryObjects(
     );
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_FILE)(
+    _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_opt_ PVOID Context
     );
@@ -1446,6 +1762,29 @@ PhEnumFileHardLinksEx(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhQuerySymbolicLinkObject(
+    _In_ PPH_STRINGREF Name,
+    _Out_ PPH_STRING* LinkTarget
+    );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhQuerySymbolicLinkObjectZ(
+    _In_ PWSTR Name,
+    _Out_ PPH_STRING* LinkTarget
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhQuerySymbolicLinkObject(&name, LinkTarget);
+}
+
+PHLIBAPI
 VOID
 NTAPI
 PhUpdateMupDevicePrefixes(
@@ -1463,7 +1802,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhResolveDevicePrefix(
-    _In_ PPH_STRING Name
+    _In_ PPH_STRINGREF Name
     );
 
 PHLIBAPI
@@ -1471,6 +1810,29 @@ PPH_STRING
 NTAPI
 PhGetFileName(
     _In_ PPH_STRING FileName
+    );
+
+// "X:\"
+#define PATH_IS_WIN32_DRIVE_PREFIX(s) ( \
+    (s)->Length >= 2 && \
+    (s)->Buffer[0] >= L'A' && \
+    (s)->Buffer[0] <= L'Z' && \
+    (s)->Buffer[1] == L':' && \
+    (s)->Buffer[2] == OBJ_NAME_PATH_SEPARATOR)
+
+// "\??\" or "\\?\" or "\\.\"
+#define PATH_IS_WIN32_DOSDEVICES_PREFIX(s) ( \
+    (s)->Length >= 3 && \
+    (s)->Buffer[0] == '\\' && \
+    ((s)->Buffer[1] == '?' || (s)->Buffer[1] == '\\') && \
+    (s)->Buffer[2] == '?' || (s)->Buffer[2] == '.'&& \
+    (s)->Buffer[3] == '\\')
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhDosPathNameToNtPathName(
+    _In_ PPH_STRINGREF Name
     );
 
 #define PH_MODULE_TYPE_MODULE 1
@@ -1490,7 +1852,6 @@ typedef struct _PH_MODULE_INFO
     PVOID EntryPoint;
     ULONG Flags;
     PPH_STRING Name;
-    PPH_STRING FileNameWin32;
     PPH_STRING FileName;
 
     USHORT LoadOrderIndex; // -1 if N/A
@@ -1615,36 +1976,23 @@ NTSTATUS
 NTAPI
 PhSetValueKeyZ(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName,
+    _In_ PWSTR ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID Buffer,
     _In_ ULONG BufferLength
     )
 {
-    if (ValueName)
-    {
-        PH_STRINGREF valueNameSr;
+    PH_STRINGREF valueName;
 
-        PhInitializeStringRef(&valueNameSr, ValueName);
+    PhInitializeStringRef(&valueName, ValueName);
 
-        return PhSetValueKey(
-            KeyHandle,
-            &valueNameSr,
-            ValueType,
-            Buffer,
-            BufferLength
-            );
-    }
-    else
-    {
-        return PhSetValueKey(
-            KeyHandle,
-            NULL,
-            ValueType,
-            Buffer,
-            BufferLength
-            );
-    }
+    return PhSetValueKey(
+        KeyHandle,
+        &valueName,
+        ValueType,
+        Buffer,
+        BufferLength
+        );
 }
 
 PHLIBAPI
@@ -1654,6 +2002,21 @@ PhDeleteValueKey(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhDeleteValueKeyZ(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
+    )
+{
+    PH_STRINGREF valueName;
+
+    PhInitializeStringRef(&valueName, ValueName);
+
+    return PhDeleteValueKey(KeyHandle, &valueName);
+}
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_KEY_CALLBACK)(
     _In_ HANDLE RootDirectory,
@@ -1706,6 +2069,22 @@ PhCreateFileWin32Ex(
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions,
+    _Out_opt_ PULONG CreateStatus
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateFileWin32ExAlt(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_ ULONG CreateFlags,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
     _Out_opt_ PULONG CreateStatus
     );
 
@@ -1784,6 +2163,17 @@ PhOpenFileById(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhReOpenFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ HANDLE OriginalFileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhQueryFullAttributesFileWin32(
     _In_ PWSTR FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
@@ -1852,6 +2242,15 @@ PhCopyFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCopyFileChunkWin32(
+    _In_ PWSTR OldFileName,
+    _In_ PWSTR NewFileName,
+    _In_ BOOLEAN FailIfExists
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhMoveFileWin32(
     _In_ PWSTR OldFileName,
     _In_ PWSTR NewFileName,
@@ -1862,7 +2261,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateDirectoryWin32(
-    _In_ PPH_STRING DirectoryPath
+    _In_ PPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI
@@ -1876,7 +2275,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteDirectoryWin32(
-    _In_ PPH_STRING DirectoryPath
+    _In_ PPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI
@@ -2050,7 +2449,7 @@ NTSTATUS
 NTAPI
 PhSetThreadPriorityBoost(
     _In_ HANDLE ThreadHandle,
-    _In_ BOOLEAN PriorityBoost
+    _In_ BOOLEAN DisablePriorityBoost
     );
 
 PHLIBAPI
@@ -2076,6 +2475,14 @@ NTAPI
 PhGetThreadLastSystemCall(
     _In_ HANDLE ThreadHandle,
     _Out_ PTHREAD_LAST_SYSCALL_INFORMATION LastSystemCall
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateImpersonationToken(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PHANDLE TokenHandle
     );
 
 PHLIBAPI
@@ -2129,27 +2536,32 @@ typedef struct _PH_PROCESS_DEBUG_HEAP_INFORMATION32
     PH_PROCESS_DEBUG_HEAP_ENTRY32 Heaps[1];
 } PH_PROCESS_DEBUG_HEAP_INFORMATION32, *PPH_PROCESS_DEBUG_HEAP_INFORMATION32;
 
-typedef struct _PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 {
-    DWORD BeginAddress;
-    DWORD EndAddress;
-    union {
-        DWORD UnwindInfoAddress;
-        DWORD UnwindData;
+typedef struct _PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64
+{
+    ULONG BeginAddress;
+    ULONG EndAddress;
+    union
+    {
+        ULONG UnwindInfoAddress;
+        ULONG UnwindData;
     } DUMMYUNIONNAME;
 } PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64, *PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64;
 
-typedef struct _PH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64 {
-    DWORD BeginAddress;
-    union {
-        DWORD UnwindData;
-        struct {
-            DWORD Flag : 2;
-            DWORD FunctionLength : 11;
-            DWORD RegF : 3;
-            DWORD RegI : 4;
-            DWORD H : 1;
-            DWORD CR : 2;
-            DWORD FrameSize : 9;
+typedef struct _PH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64
+{
+    ULONG BeginAddress;
+    union
+    {
+        ULONG UnwindData;
+        struct
+        {
+            ULONG Flag : 2;
+            ULONG FunctionLength : 11;
+            ULONG RegF : 3;
+            ULONG RegI : 4;
+            ULONG H : 1;
+            ULONG CR : 2;
+            ULONG FrameSize : 9;
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
 } PH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64, *PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64;
@@ -2160,6 +2572,14 @@ NTAPI
 PhQueryProcessHeapInformation(
     _In_ HANDLE ProcessId,
     _Out_ PPH_PROCESS_DEBUG_HEAP_INFORMATION* HeapInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMachineTypeAttributes(
+    _In_ USHORT Machine,
+    _Out_ MACHINE_ATTRIBUTES* Attributes
     );
 
 PHLIBAPI
@@ -2315,8 +2735,20 @@ NTAPI
 PhGetFirmwareEnvironmentVariable(
     _In_ PPH_STRINGREF VariableName,
     _In_ PPH_STRINGREF VendorGuid,
-    _Out_ PVOID* VariableValueBuffer,
-    _Out_opt_ PULONG VariableValueLength
+    _Out_writes_bytes_opt_(*ValueLength) PVOID* ValueBuffer,
+    _Out_opt_ PULONG ValueLength,
+    _Out_opt_ PULONG ValueAttributes
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetFirmwareEnvironmentVariable(
+    _In_ PPH_STRINGREF VariableName,
+    _In_ PPH_STRINGREF VendorGuid,
+    _In_reads_bytes_opt_(ValueLength) PVOID ValueBuffer,
+    _In_ ULONG ValueLength,
+    _In_ ULONG Attributes
     );
 
 #define PH_FIRST_FIRMWARE_VALUE(Variables) ((PVARIABLE_NAME_AND_VALUE)(Variables))
@@ -2448,7 +2880,7 @@ PhGetNumaProcessorNode(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhSetProcessValidCallTarget(
+PhGuardGrantSuppressedCallAccess(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID VirtualAddress
     );

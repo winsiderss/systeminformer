@@ -277,6 +277,7 @@ EXPORTS
     PhGetFirmwareEnvironmentVariable
     PhGetJobProcessIdList
     PhGetKernelFileName
+    PhGetKernelFileName2
     PhGetObjectSecurity
     PhGetOwnTokenAttributes
     PhGetDllHandle
@@ -285,7 +286,7 @@ EXPORTS
     PhGetNamedPipeClientProcessId
     PhGetNamedPipeServerProcessId
     PhGetProcedureAddress
-    PhGetProcedureAddressRemoteStringRef
+    PhGetProcedureAddressRemote
     PhGetProcessCommandLine
     PhGetProcessDepStatus
     PhGetProcessDeviceMap
@@ -297,6 +298,7 @@ EXPORTS
     PhGetProcessIsDotNetEx
     PhGetProcessMappedFileName
     PhGetProcessPebString
+    PhGetProcessPriority
     PhGetProcessUnloadedDlls
     PhGetProcessWindowTitle
     PhGetProcessWorkingSetInformation
@@ -331,6 +333,7 @@ EXPORTS
     PhSetFileAllocationSize
     PhSetFilePosition
     PhSetFileSize
+    PhSetFirmwareEnvironmentVariable
     PhSetObjectSecurity
     PhSetThreadName
     PhSetTokenIsVirtualizationEnabled
@@ -393,6 +396,7 @@ EXPORTS
     PhFormatTimeSpanRelative
     PhFormatUInt64
     PhFreeFileDialog
+    PhFreeLibrary
     PhFreeLibraryAsImageResource
     PhGenerateGuid
     PhGenerateGuidFromName
@@ -411,12 +415,14 @@ EXPORTS
     PhGetFileDialogFilterIndex
     PhGetFileDialogOptions
     PhGetFileVersionInfo
+    PhGetFileVersionInfoEx
     PhGetFileVersionFixedInfo
     PhGetFileVersionInfoLangCodePage
     PhGetFileVersionInfoString
     PhGetFileVersionInfoString2
     PhGetFullPath
     PhGetKnownFolderPath
+    PhGetKnownLocation
     PhGetMessage
     PhGetNtMessage
     PhGetStatusMessage
@@ -426,6 +432,7 @@ EXPORTS
     PhGetTemporaryDirectoryRandomAlphaFileName
     PhInitializeHash
     PhInitializeImageVersionInfo
+    PhInitializeImageVersionInfoEx
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
     PhLoadLibrary
@@ -436,9 +443,9 @@ EXPORTS
     PhParseCommandLine
     PhParseCommandLineFuzzy
     PhParseCommandLinePart
-    PhQueryRegistryStringRef
-    PhQueryRegistryUlongStringRef
-    PhQueryRegistryUlong64StringRef
+    PhQueryRegistryString
+    PhQueryRegistryUlong
+    PhQueryRegistryUlong64
     PhReferenceObjects
     PhSetFileDialogFileName
     PhSetFileDialogFilter
@@ -446,7 +453,6 @@ EXPORTS
     PhShellExecute
     PhShellExecuteEx
     PhShellExploreFile
-    PhShellOpenKey
     PhShellProperties
     PhShowConfirmMessage
     PhShowContinueStatus
@@ -547,12 +553,12 @@ EXPORTS
     PhBitmapSetAlpha
     PhCreateDialog
     PhDeleteLayoutManager
+    PhDialogBox
     PhEnumWindows
     PhEnumChildWindows
     PhFindListViewItemByFlags
     PhFindListViewItemByParam
     PhGetComboBoxString
-    PhGetFileShellIcon
     PhGetListBoxString
     PhGetListViewItemImageIndex
     PhGetListViewItemParam
@@ -596,9 +602,6 @@ EXPORTS
     PhUnregisterWindowCallback
     PhInitializeWindowTheme
     PhReInitializeWindowTheme
-    PhInitializeWindowThemeStatusBar
-    PhInitializeWindowThemeRebar
-    PhInitializeThemeWindowHeader
     PhImageListCreate
     PhImageListDestroy
     PhImageListSetImageCount
@@ -620,6 +623,8 @@ EXPORTS
     PhGetEtwPublisherName
     PhGetHandleInformation
     PhGetHandleInformationEx
+    PhGetObjectTypeName
+    PhQueryObjectName
     PhStdGetClientIdName
 
 ; lsasup
@@ -734,6 +739,7 @@ EXPORTS
 
 ; verify
     PhVerifyFile
+    PhVerifyFileIsChainedToMicrosoft
 
 ; workqueue
     PhDeleteWorkQueue
@@ -790,7 +796,6 @@ EXPORTS
 
 ; cache
     PhCreateCacheFile
-    PhClearCacheDirectory
     PhDeleteCacheFile
 
 ; appresolver

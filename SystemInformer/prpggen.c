@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -14,6 +14,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 
+#include <mapimg.h>
 #include <secedit.h>
 #include <verify.h>
 
@@ -23,8 +24,6 @@
 #include <procmtgn.h>
 #include <procprv.h>
 #include <settings.h>
-
-#include <shellapi.h>
 
 static PWSTR ProtectedSignerStrings[] =
     { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)", L" (StoreApp)" };
@@ -86,10 +85,33 @@ PPH_STRING PhGetProcessItemImageTypeText(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    USHORT architecture = IMAGE_FILE_MACHINE_UNKNOWN;
     PWSTR arch = L"";
     PWSTR bits = L"";
 
-    switch (ProcessItem->Architecture)
+    {
+        USHORT processArchitecture;
+
+        if (
+            WindowsVersion >= WINDOWS_11 && ProcessItem->QueryHandle && 
+            NT_SUCCESS(PhGetProcessArchitecture(ProcessItem->QueryHandle, &processArchitecture))
+            )
+        {
+            architecture = processArchitecture;
+        }
+        else if (ProcessItem->FileName)
+        {
+            PH_MAPPED_IMAGE mappedImage;
+
+            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessItem->FileName->sr, NULL, &mappedImage)))
+            {
+                architecture = mappedImage.NtHeaders->FileHeader.Machine;
+                PhUnloadMappedImage(&mappedImage);
+            }
+        }
+    }
+
+    switch (architecture)
     {
     case IMAGE_FILE_MACHINE_I386:
         arch = L"I386 ";
@@ -106,10 +128,7 @@ PPH_STRING PhGetProcessItemImageTypeText(
     }
 
 #if _WIN64
-    if (ProcessItem->IsWow64Valid)
-    {
-        bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
-    }
+    bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
 #else
     bits = L"(32-bit)";
 #endif
@@ -237,7 +256,7 @@ typedef struct _PH_PROCGENERAL_CONTEXT
     HICON ProgramIcon;
 } PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
 
-VOID PhSetIcons(
+VOID PphProcessGeneralDlgUpdateIcons(
     _In_ HWND hwndDlg
     )
 {
@@ -293,7 +312,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             context->StartedLabelHandle = GetDlgItem(hwndDlg, IDC_STARTED);
             context->Enabled = TRUE;
 
-            PhSetIcons(hwndDlg);
+            PphProcessGeneralDlgUpdateIcons(hwndDlg);
 
             // File
 
@@ -501,16 +520,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, PH_AUTO_T(PH_STRING, PhGetProcessItemImageTypeText(processItem))->Buffer);
 
-            if (PhEnableThemeSupport)
-                PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
-            SetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, 1, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, 1);
 
             if (context->ProgramIcon)
             {
@@ -520,9 +537,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            PhSetIcons(hwndDlg);
+            PphProcessGeneralDlgUpdateIcons(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
@@ -595,25 +612,25 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     if (processItem->CommandLine)
                     {
                         PPH_STRING commandLineString;
-                        INT stringArgCount;
-                        PWSTR* stringArgList;
+                        PPH_LIST commandLineList;
 
-                        if (stringArgList = CommandLineToArgvW(processItem->CommandLine->Buffer, &stringArgCount))
+                        if (commandLineList = PhCommandLineToList(processItem->CommandLine->Buffer))
                         {
                             PH_STRING_BUILDER sb;
 
                             PhInitializeStringBuilder(&sb, 260);
 
-                            for (INT i = 0; i < stringArgCount; i++)
+                            for (ULONG i = 0; i < commandLineList->Count; i++)
                             {
-                                PhAppendFormatStringBuilder(&sb, L"[%d] %s\r\n\r\n", i, stringArgList[i]);
+                                PhAppendFormatStringBuilder(&sb, L"[%d] %s\r\n\r\n", i, PhGetString(commandLineList->Items[i]));
                             }
 
                             PhAppendFormatStringBuilder(&sb, L"[FULL] %s\r\n", processItem->CommandLine->Buffer);
 
                             commandLineString = PhFinalStringBuilderString(&sb);
 
-                            LocalFree(stringArgList);
+                            PhDereferenceObjects(commandLineList->Items, commandLineList->Count);
+                            PhDereferenceObject(commandLineList);
                         }
                         else
                         {

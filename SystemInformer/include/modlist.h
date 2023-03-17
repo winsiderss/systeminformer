@@ -52,6 +52,7 @@ typedef struct _PH_MODULE_NODE
 
     PPH_STRING TooltipText;
 
+    PPH_STRING FileNameWin32;
     PPH_STRING SizeText;
     WCHAR LoadCountText[PH_INT32_STR_LEN_1];
     PPH_STRING TimeStampText;

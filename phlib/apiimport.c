@@ -6,12 +6,13 @@
  * Authors:
  *
  *     wj32    2015
- *     dmex    2019-2020
+ *     dmex    2019-2023
  *
  */
 
 #include <ph.h>
 #include <apiimport.h>
+#include <mapldr.h>
 
 FORCEINLINE
 PVOID PhpImportProcedure(
@@ -27,7 +28,7 @@ PVOID PhpImportProcedure(
         PVOID module;
         PVOID procedure;
 
-        module = PhGetLoaderEntryDllBase(ModuleName);
+        module = PhGetLoaderEntryDllBaseZ(ModuleName);
 
         if (!module)
             module = PhLoadLibrary(ModuleName);
@@ -99,6 +100,8 @@ PH_DEFINE_IMPORT(L"userenv.dll", DestroyEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
-PH_DEFINE_IMPORT(L"user32.dll", MessageBoxW)
-PH_DEFINE_IMPORT(L"user32.dll", MessageBeep)
+PH_DEFINE_IMPORT(L"user32.dll", MessageBoxW);
+PH_DEFINE_IMPORT(L"user32.dll", MessageBeep);
+PH_DEFINE_IMPORT(L"user32.dll", SetWindowDisplayAffinity);
+
 PH_DEFINE_IMPORT(L"winsta.dll", WinStationQueryInformationW);

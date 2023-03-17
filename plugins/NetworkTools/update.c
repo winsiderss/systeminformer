@@ -5,12 +5,11 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "nettools.h"
-#include <commonutil.h>
 
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
@@ -19,7 +18,7 @@ PPH_OBJECT_TYPE UpdateContextType = NULL;
 PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
 
 // Note: We're using the built-in tar.exe on Windows 10/11 for extracting the database
-// updates since SI doesn't currently ship with a tar library. (dmex) 
+// updates since SI doesn't currently ship with a tar library. (dmex)
 BOOLEAN GeoLiteCheckUpdatePlatformSupported(
     VOID
     )
@@ -585,7 +584,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
 
     switch (uMsg)
     {
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
@@ -635,7 +634,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             // Create the Taskdialog icons
             PhSetApplicationWindowIcon(hwndDlg);
@@ -666,12 +665,12 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     PhInitializeAutoPool(&autoPool);
 
     context = CreateUpdateContext();
+    context->ParentWindowHandle = Parameter;
 
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
-    config.hwndParent = Parameter;
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
@@ -693,7 +692,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //info.lpFile = L"ProcessHacker.exe";
     //info.lpParameters = L"-plugin " PLUGIN_NAME L":UpdateGeoIp";
     //info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
-    //info.nShow = SW_SHOW;
+    //info.nShow = SW_SHOWNORMAL;
     //info.hwnd = Parameter;
     //info.lpVerb = L"runas";
     //
@@ -713,8 +712,8 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //            PhShellProcessHacker(
     //                Parameter,
     //                NULL,
-    //                SW_SHOW,
-    //                0,
+    //                SW_SHOWNORMAL,
+    //                PH_SHELL_EXECUTE_NOASYNC,
     //                PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
     //                0,
     //                NULL
@@ -794,7 +793,7 @@ VOID ShowGeoLiteUpdateDialog(
 
         if (!UpdateDialogThreadHandle)
         {
-            if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoLiteUpdateTaskDialogThread, NULL)))
+            if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoLiteUpdateTaskDialogThread, ParentWindowHandle)))
             {
                 PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
                 return;

@@ -59,7 +59,7 @@
 #endif
 
 #ifndef PHNT_VERSION
-#define PHNT_VERSION PHNT_THRESHOLD
+#define PHNT_VERSION PHNT_WIN11
 #endif
 
 // Options
@@ -94,6 +94,7 @@ extern "C" {
 #include <ntpoapi.h>
 #include <ntregapi.h>
 #include <ntrtl.h>
+#include <ntimage.h>
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)

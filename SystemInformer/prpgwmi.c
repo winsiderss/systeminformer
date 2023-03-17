@@ -12,7 +12,9 @@
 #include <phapp.h>
 #include <cpysave.h>
 #include <emenu.h>
+#include <secwmi.h>
 #include <settings.h>
+#include <mapldr.h>
 
 #include <phsettings.h>
 #include <procprp.h>
@@ -113,37 +115,6 @@ BOOLEAN PhpGetSelectedWmiProviderNodes(
     _Out_ PULONG NumberOfNodes
     );
 
-PVOID PhpGetWmiProviderDllBase(
-    VOID
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID imageBaseAddress = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PPH_STRING systemDirectory;
-        PPH_STRING systemFileName;
-
-        if (systemDirectory = PhGetSystemDirectory())
-        {
-            if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
-            {
-                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
-                    imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
-
-                PhDereferenceObject(systemFileName);
-            }
-
-            PhDereferenceObject(systemDirectory);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    return imageBaseAddress;
-}
-
 PVOID PhpGetWmiUtilsDllBase(
     VOID
     )
@@ -160,7 +131,7 @@ PVOID PhpGetWmiUtilsDllBase(
         {
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wmiutils.dll"))
             {
-                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
+                if (!(imageBaseAddress = PhGetLoaderEntryDllBase(&systemFileName->sr, NULL)))
                     imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
 
                 PhDereferenceObject(systemFileName);
@@ -215,7 +186,7 @@ HRESULT PhpWmiProviderExecMethod(
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject* wbemClassObject;
 
-    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return ERROR_MOD_NOT_FOUND;
 
     status = PhGetClassObjectDllBase(
@@ -361,7 +332,7 @@ HRESULT PhpQueryWmiProviderFileName(
     IWbemClassObject *wbemClassObject = NULL;
     ULONG count = 0;
 
-    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return ERROR_MOD_NOT_FOUND;
 
     status = PhGetClassObjectDllBase(
@@ -507,7 +478,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject *wbemClassObject;
 
-    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
 
     status = PhGetClassObjectDllBase(
@@ -629,7 +600,7 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject *wbemClassObject;
 
-    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return NULL;
 
     status = PhGetClassObjectDllBase(
@@ -904,7 +875,7 @@ PPH_STRING PhpQueryWmiDefaultNamespace(
         0
         )))
     {
-        defaultNameSpace = PhQueryRegistryString(keyHandle, L"Default Namespace");
+        defaultNameSpace = PhQueryRegistryStringZ(keyHandle, L"Default Namespace");
         NtClose(keyHandle);
     }
 
@@ -1017,9 +988,9 @@ VOID PhpShowWmiProviderStatus(
     PPH_STRING statusMessage;
 
     statusMessage = PhGetMessage(
-        PhpGetWmiUtilsDllBase(), 
-        0xb, 
-        PhGetUserDefaultLangID(), 
+        PhpGetWmiUtilsDllBase(),
+        0xb,
+        PhGetUserDefaultLangID(),
         Win32Result
         );
 
@@ -1689,12 +1660,14 @@ VOID PhpInitializeWmiProviderTree(
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
     TreeNew_SetCallback(Context->TreeNewHandle, PhpWmiProviderTreeNewCallback, Context);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, TRUE, L"Provider", 140, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_NAMESPACE, TRUE, L"Namespace", 180, PH_ALIGN_LEFT, 1, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_FILENAME, TRUE, L"File name", 260, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_USER, TRUE, L"User", 80, PH_ALIGN_LEFT, 3, 0);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, NoSortOrder);
 
@@ -1845,9 +1818,9 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-             TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi (22, LOWORD(wParam)));
+             TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi(22, LOWORD(wParam)));
         }
         break;
     case WM_SHOWWINDOW:

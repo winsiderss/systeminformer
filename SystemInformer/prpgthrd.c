@@ -29,16 +29,11 @@
 static PH_STRINGREF EmptyThreadsText = PH_STRINGREF_INIT(L"There are no threads to display.");
 
 static VOID NTAPI ThreadAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
-    if (!Parameter)
-        return;
 
     // Parameter contains a pointer to the added thread item.
     PhReferenceObject(Parameter);
@@ -46,53 +41,41 @@ static VOID NTAPI ThreadAddedHandler(
 }
 
 static VOID NTAPI ThreadModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderModifiedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderRemovedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadsUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, (ULONG)threadsContext->Provider->RunId, threadsContext->Provider->RunId == 1);
 }
 
 static VOID NTAPI ThreadsLoadingStateChangedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     //PostMessage(
     //    threadsContext->ListContext.TreeNewHandle,
@@ -183,7 +166,7 @@ VOID PhpInitializeThreadMenu(
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         IO_PRIORITY_HINT ioPriority = ULONG_MAX;
         ULONG pagePriority = ULONG_MAX;
-        BOOLEAN threadPriorityBoost = FALSE;
+        BOOLEAN threadPriorityBoostDisabled = FALSE;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
@@ -197,9 +180,9 @@ VOID PhpInitializeThreadMenu(
             PhGetThreadBasePriority(threadHandle, &threadPriority);
             PhGetThreadIoPriority(threadHandle, &ioPriority);
             PhGetThreadPagePriority(threadHandle, &pagePriority);
-            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
+            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
 
-            if (NT_SUCCESS(NtOpenThreadToken(
+            if (NT_SUCCESS(PhOpenThreadToken(
                 threadHandle,
                 TOKEN_QUERY,
                 TRUE,
@@ -306,10 +289,9 @@ VOID PhpInitializeThreadMenu(
             }
         }
 
-        if (threadPriorityBoost)
+        if (!threadPriorityBoostDisabled)
         {
-            PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST,
-                PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+            PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
     }
 }
@@ -333,7 +315,7 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     )
 {
     if (Context)
-        return NtOpenThreadToken((HANDLE)Context, DesiredAccess, TRUE, Handle);
+        return PhOpenThreadToken((HANDLE)Context, DesiredAccess, TRUE, Handle);
 
     return STATUS_UNSUCCESSFUL;
 }
@@ -356,9 +338,9 @@ BOOLEAN PhpThreadTreeFilterCallback(
 
     // thread properties
 
-    if (threadNode->ThreadIdText[0])
+    if (threadItem->ThreadIdString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->ThreadIdText))
+        if (PhWordMatchStringZ(Context->SearchboxText, threadItem->ThreadIdString))
             return TRUE;
     }
 
@@ -754,16 +736,13 @@ VOID PhpProcessThreadsSave(
 }
 
 VOID PhpSymbolProviderEventCallbackThreadStatus(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_SYMBOL_EVENT_DATA event = Parameter;
     PPH_THREADS_CONTEXT context = Context;
     PPH_STRING statusMessage = NULL;
-
-    if (!event) return;
-    if (!context) return;
 
     switch (event->EventType)
     {
@@ -891,7 +870,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     // We can't use cycle time for protected processes (without KSystemInformer). (wj32)
                     if (processItem->IsProtectedProcess)
                     {
-                        threadsContext->ListContext.UseCycleTime = FALSE;
+                        // Windows 10 allows elevated processes to query cycle time for protected processes (dmex)
+                        if (WindowsVersion < WINDOWS_10 || !PhGetOwnTokenAttributes().Elevated)
+                        {
+                            threadsContext->ListContext.UseCycleTime = FALSE;
+                        }
                     }
 
                     NtClose(processHandle);
@@ -1122,15 +1105,15 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             threadItem->ThreadId
                             )))
                         {
-                            BOOLEAN threadPriorityBoost = FALSE;
+                            BOOLEAN threadPriorityBoostDisabled = FALSE;
                             ULONG numberOfThreads;
                             PPH_THREAD_ITEM* threads;
 
-                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
+                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
 
                             PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
                             PhReferenceObjects(threads, numberOfThreads);
-                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoost);
+                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoostDisabled);
                             PhDereferenceObjects(threads, numberOfThreads);
                             PhFree(threads);
 

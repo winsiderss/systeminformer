@@ -13,7 +13,13 @@
 #define _PH_KPHCOMMS_H
 
 #include <ph.h>
+#include <mapldr.h>
 #include <kphmsg.h>
+
+NTSTATUS KphFilterLoadUnload(
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ BOOLEAN LoadDriver
+    );
 
 typedef
 VOID (NTAPI *PKPH_COMMS_CALLBACK)(

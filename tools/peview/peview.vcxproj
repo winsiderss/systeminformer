@@ -354,9 +354,12 @@
   <ItemGroup>
     <ClCompile Include="cfgprp.c" />
     <ClCompile Include="chcol.c" />
+    <ClCompile Include="delayhook.c" />
+    <ClCompile Include="pechpeprp.c" />
     <ClCompile Include="clrtableimports.cpp" />
     <ClCompile Include="clrprp.c" />
     <ClCompile Include="clrtableimportprp.c" />
+    <ClCompile Include="clrprptables.c" />
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="attributes.c" />
     <ClCompile Include="debugprp.c" />
@@ -367,6 +370,7 @@
     <ClCompile Include="exlfprp.c" />
     <ClCompile Include="hashprp.c" />
     <ClCompile Include="layout.c" />
+    <ClCompile Include="pedynrelocprp.c" />
     <ClCompile Include="peheaderprp.c" />
     <ClCompile Include="peprpwnd.c" />
     <ClCompile Include="options.c" />
@@ -396,12 +400,11 @@
     <ClCompile Include="settings.c" />
     <ClCompile Include="streams.c" />
     <ClCompile Include="tlsprp.c" />
+    <ClCompile Include="versioninfoprp.c" />
     <ClCompile Include="volatileprp.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="colmgr.h" />
-    <ClInclude Include="include\cvconst.h" />
-    <ClInclude Include="include\dia2.h" />
     <ClInclude Include="include\peview.h" />
     <ClInclude Include="include\prpsh.h" />
     <ClInclude Include="resource.h" />

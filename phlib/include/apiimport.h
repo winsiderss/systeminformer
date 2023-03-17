@@ -226,6 +226,11 @@ typedef BOOL (WINAPI* _MessageBeep)(
     _In_ UINT uType
     );
 
+typedef BOOL (WINAPI* _SetWindowDisplayAffinity)(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Affinity
+    );
+
 typedef BOOLEAN (WINAPI* _WinStationQueryInformationW)(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -278,6 +283,8 @@ PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 
 PH_DECLARE_IMPORT(MessageBoxW);
 PH_DECLARE_IMPORT(MessageBeep);
+PH_DECLARE_IMPORT(SetWindowDisplayAffinity);
+
 PH_DECLARE_IMPORT(WinStationQueryInformationW);
 
 #endif

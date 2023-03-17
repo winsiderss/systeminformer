@@ -14,6 +14,7 @@
 #include <phsvc.h>
 #include <extmgri.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <phplug.h>
 #include <secedit.h>
 #include <svcsup.h>
@@ -229,8 +230,8 @@ NTSTATUS PhSvcCaptureSid(
     if (sid)
     {
         if (String->Length < UFIELD_OFFSET(struct _SID, IdentifierAuthority) ||
-            String->Length < RtlLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
-            !RtlValidSid(sid))
+            String->Length < PhLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
+            !PhValidSid(sid))
         {
             PhFree(sid);
             return STATUS_INVALID_SID;
@@ -485,6 +486,10 @@ NTSTATUS PhSvcApiControlProcess(
         if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_TERMINATE, processId)))
         {
             status = PhTerminateProcess(processHandle, 1); // see notes in PhUiTerminateProcesses
+
+            if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+                PhTerminateProcess(processHandle, DBG_TERMINATE_PROCESS); // debug terminate (dmex)
+
             NtClose(processHandle);
         }
         break;
@@ -1113,7 +1118,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
 
     if (!localSetTcpEntry)
     {
-        HMODULE iphlpapiModule;
+        PVOID iphlpapiModule;
 
         iphlpapiModule = PhLoadLibrary(L"iphlpapi.dll");
 
@@ -1127,7 +1132,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
                 {
                     // Another thread got the address of SetTcpEntry already.
                     // Decrement the reference count of iphlpapi.dll.
-                    FreeLibrary(iphlpapiModule);
+                    PhFreeLibrary(iphlpapiModule);
                 }
             }
         }
@@ -1162,7 +1167,7 @@ NTSTATUS PhSvcApiControlThread(
     case PhSvcControlThreadTerminate:
         if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_TERMINATE, threadId)))
         {
-            status = NtTerminateThread(threadHandle, STATUS_SUCCESS);
+            status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
             NtClose(threadHandle);
         }
         break;

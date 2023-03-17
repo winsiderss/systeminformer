@@ -67,6 +67,8 @@ typedef struct _PV_EXPORT_CONTEXT
     PH_TN_FILTER_SUPPORT FilterSupport;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
+
+    ULONG ExportsFlags;
 } PV_EXPORT_CONTEXT, *PPV_EXPORT_CONTEXT;
 
 BOOLEAN PvExportNodeHashtableCompareFunction(
@@ -151,7 +153,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
     PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
     ULONG i;
 
-    if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)))
+    if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, Context->ExportsFlags)))
     {
         for (i = 0; i < exports.NumberOfEntries; i++)
         {
@@ -288,6 +290,25 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
         {
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+
+            if (context->PropSheetContext->Context)
+            {
+                PPV_EXPORTS_PAGECONTEXT exportsPageContext = context->PropSheetContext->Context;
+
+                context->ExportsFlags = PtrToUlong(exportsPageContext->Context);
+
+                if (exportsPageContext->FreePropPageContext)
+                {
+                    PhFree(exportsPageContext);
+                    exportsPageContext = NULL;
+
+                    PhFree(context->PropSheetContext);
+                    context->PropSheetContext = NULL;
+
+                    PhFree(propSheetPage);
+                    propSheetPage = NULL;
+                }
+            }
         }
     }
     else
@@ -323,7 +344,7 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
 
             PhCreateThread2(PvpPeExportsEnumerateThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

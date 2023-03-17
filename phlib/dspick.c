@@ -194,7 +194,7 @@ BOOLEAN PhShowDsObjectPickerDialog(
 
                 if (PhHexStringToBuffer(&path, (PUCHAR)sid))
                 {
-                    if (RtlValidSid(sid))
+                    if (PhValidSid(sid))
                         objects->Objects[i].Sid = sid;
                     else
                         PhFree(sid);

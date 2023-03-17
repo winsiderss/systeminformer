@@ -186,7 +186,7 @@ VOID EtInitializeListImages(
 
     dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
     size = PhGetDpi(16, dpiValue); // 24
-    
+
     Context->ListImageList = PhImageListCreate(
         size,
         size,
@@ -780,7 +780,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             context->RootTreeObject = EtTreeViewAddItem(context->TreeViewHandle, TVI_ROOT, TRUE, &EtObjectManagerRootDirectoryObject);
 
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhSetListViewStyle(context->ListViewHandle, FALSE, FALSE);
+            PhSetListViewStyle(context->ListViewHandle, TRUE, FALSE);
             PhSetExtendedListView(context->ListViewHandle);
             ListView_SetImageList(context->ListViewHandle, context->ListImageList, LVSIL_SMALL);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 620, L"Name");
@@ -923,7 +923,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
@@ -1109,12 +1109,12 @@ NTSTATUS EtShowObjectManagerDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtObjectManagerDialogHandle = CreateDialogParam(
+    EtObjectManagerDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OBJMGR),
         NULL,
         WinObjDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     PhSetEvent(&EtObjectManagerDialogInitializedEvent);

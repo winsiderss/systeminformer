@@ -198,6 +198,7 @@ VOID PvInitializeCertificateTree(
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
     TreeNew_SetCallback(Context->TreeNewHandle, PvCertificateTreeNewCallback, Context);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX, TRUE, L"#", 25, PH_ALIGN_LEFT, 1, 0);
@@ -209,6 +210,7 @@ VOID PvInitializeCertificateTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_SIZE, TRUE, L"Size", 50, PH_ALIGN_LEFT, 7, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_ALG, TRUE, L"Algorithm", 50, PH_ALIGN_LEFT, 8, 0);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX, NoSortOrder);
     TreeNew_SetRowHeight(Context->TreeNewHandle, 22);
@@ -1504,7 +1506,7 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
 
             PvpPeEnumerateFileCertificates(context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

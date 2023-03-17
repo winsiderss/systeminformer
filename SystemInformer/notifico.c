@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -49,6 +49,8 @@ static HANDLE PhpTrayIconEventHandle = NULL;
 #ifdef PH_NF_ENABLE_WORKQUEUE
 static SLIST_HEADER PhpTrayIconWorkQueueListHead;
 #endif
+static ULONG PopupIconIndex = ULONG_MAX; // Win11 workaround (dmex)
+static PPH_NF_ICON PopupRegisteredIcon = NULL; // Win11 workaround (dmex)
 
 VOID PhNfLoadStage1(
     VOID
@@ -100,12 +102,16 @@ VOID PhNfLoadSettings(
             if (pluginNamePart.Length)
             {
                 if (icon = PhNfFindIcon(&pluginNamePart, (ULONG)idInteger))
-                    icon->Flags |= PH_NF_ICON_ENABLED;
+                {
+                    RtlInterlockedSetBits(&icon->Flags, PH_NF_ICON_ENABLED);
+                }
             }
             else
             {
                 if (icon = PhNfGetIconById((ULONG)idInteger))
-                    icon->Flags |= PH_NF_ICON_ENABLED;
+                {
+                    RtlInterlockedSetBits(&icon->Flags, PH_NF_ICON_ENABLED);
+                }
             }
         }
     }
@@ -126,7 +132,7 @@ VOID PhNfSaveSettings(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (icon->Flags & PH_NF_ICON_ENABLED)
+        if (BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
         {
             PH_FORMAT format[6];
             SIZE_T returnLength;
@@ -135,7 +141,7 @@ VOID PhNfSaveSettings(
             // %lu|%lu|%s|
             PhInitFormatU(&format[0], icon->SubId);
             PhInitFormatC(&format[1], L'|');
-            PhInitFormatU(&format[2], icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0);
+            PhInitFormatU(&format[2], TRUE);
             PhInitFormatC(&format[3], L'|');
             if (icon->Plugin)
                 PhInitFormatSR(&format[4], icon->Plugin->Name);
@@ -153,7 +159,7 @@ VOID PhNfSaveSettings(
                     &iconListBuilder,
                     L"%lu|%lu|%s|",
                     icon->SubId,
-                    icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0,
+                    TRUE,
                     icon->Plugin ? PhGetStringRefZ(&icon->Plugin->Name) : L""
                     );
             }
@@ -246,7 +252,7 @@ VOID PhNfCreateIconThreadDelayed(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
             continue;
 
         if (icon->SubId == PH_TRAY_ICON_ID_PLAIN_ICON)
@@ -262,7 +268,7 @@ VOID PhNfCreateIconThreadDelayed(
             EVENT_ALL_ACCESS,
             NULL,
             SynchronizationEvent,
-            FALSE
+            !PhGetIntegerSetting(L"IconTrayLazyStartDelay")
             )))
         {
             // Set the event when the only icon is the static icon. (dmex)
@@ -373,7 +379,7 @@ VOID PhNfLoadStage2(
     //{
     //    PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
     //
-    //    if (!(icon->Flags & PH_NF_ICON_ENABLED))
+    //    if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
     //        continue;
     //
     //    PhNfpAddNotifyIcon(icon);
@@ -393,34 +399,32 @@ VOID PhNfUninitialization(
     VOID
     )
 {
+#ifdef PH_NF_ENABLE_WORKQUEUE
     if (PhpTrayIconEventHandle)
-    {
         NtSetEvent(PhpTrayIconEventHandle, NULL);
-    }
+#endif
 
-#ifndef PH_NF_ENABLE_WORKQUEUE
     // Remove all icons to prevent them hanging around after we exit.
 
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
             continue;
 
-        PhNfpRemoveNotifyIcon(icon);
+        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE) == (PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
+        {
+            PhNfpRemoveNotifyIcon(icon);
+        }
     }
-#else
 
-    if (PhpTrayIconThreadHandle)
-    {
-        LARGE_INTEGER timeout;
-
-        timeout.QuadPart = -(LONGLONG)UInt32x32To64(2000, PH_TIMEOUT_MS);
-
-        NtWaitForSingleObject(PhpTrayIconThreadHandle, FALSE, &timeout);
-    }
-#endif
+//#ifdef PH_NF_ENABLE_WORKQUEUE
+//    if (PhpTrayIconThreadHandle)
+//    {
+//        NtWaitForSingleObject(PhpTrayIconThreadHandle, FALSE, PhTimeoutFromMillisecondsEx(1000));
+//    }
+//#endif
 }
 
 VOID PhNfForwardMessage(
@@ -498,11 +502,11 @@ VOID PhNfForwardMessage(
                         IconClickShowMiniInfoSectionData.SectionName = PhDuplicateStringZ(showMiniInfoSectionData.SectionName);
                     }
 
-                    SetTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE, GetDoubleClickTime() + NFP_ICON_CLICK_ACTIVATE_DELAY, PhNfpIconClickActivateTimerProc);
+                    PhSetTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE, GetDoubleClickTime() + NFP_ICON_CLICK_ACTIVATE_DELAY, PhNfpIconClickActivateTimerProc);
                 }
                 else
                 {
-                    KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
+                    PhKillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
                 }
             }
         }
@@ -515,7 +519,7 @@ VOID PhNfForwardMessage(
                 {
                     // We will get another WM_LBUTTONUP message corresponding to the double-click,
                     // and we need to make sure that it doesn't start the activation timer again.
-                    KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
+                    PhKillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
                     IconClickUpDueToDown = FALSE;
                     PhNfpDisableHover();
                 }
@@ -530,7 +534,7 @@ VOID PhNfForwardMessage(
             POINT location;
 
             if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled)
-                KillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
+                PhKillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
 
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             GetCursorPos(&location);
@@ -548,19 +552,46 @@ VOID PhNfForwardMessage(
         break;
     case NIN_POPUPOPEN:
         {
-            PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
-            POINT location;
-
-            if (PhNfMiniInfoEnabled && !IconDisableHover && PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData))
+            if (WindowsVersion >= WINDOWS_11_22H1)
             {
-                GetCursorPos(&location);
-                PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
-                    showMiniInfoSectionData.SectionName, &location);
+                // NIN_POPUPOPEN is sent when the user hovers the cursor over an icon BUT Windows 11 either blocks the notification
+                // or ignores the hover time and displays the popup instantly. We try and workaround the missing hover time by using 
+                // a timer to delay the popup for 1 second. If we get a NIN_POPUPCLOSE then cancel the timer and the popup. 
+                // Note: We only workaround the missing hover time not the blocked/missing NIN_POPUPOPEN notifications. If we want to workaround 
+                // the broken NIN_POPUPOPEN notifications on Win11 the tray icons also send WM_MOUSEMOSE and before NIN_POPUPOPEN existed 
+                // XP applications would compare the cursor position in a timer callback to show or hide the popup. (dmex)
+
+                PopupIconIndex = iconIndex;
+                PopupRegisteredIcon = registeredIcon;
+
+                PhSetTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconShowPopupHoverTimerProc);
+            }
+            else
+            {
+                PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
+                POINT location;
+
+                if (PhNfMiniInfoEnabled && !IconDisableHover && PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData))
+                {
+                    GetCursorPos(&location);
+                    PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
+                        showMiniInfoSectionData.SectionName, &location);
+                }
             }
         }
         break;
     case NIN_POPUPCLOSE:
-        PhPinMiniInformation(MiniInfoIconPinType, -1, 350, 0, NULL, NULL);
+        {
+            if (WindowsVersion >= WINDOWS_11_22H1)
+            {
+                PopupIconIndex = ULONG_MAX;
+                PopupRegisteredIcon = NULL;
+
+                PhKillTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN);
+            }
+
+            PhPinMiniInformation(MiniInfoIconPinType, -1, 350, 0, NULL, NULL);
+        }
         break;
     }
 }
@@ -572,7 +603,7 @@ VOID PhNfSetVisibleIcon(
 {
     if (Visible)
     {
-        Icon->Flags |= PH_NF_ICON_ENABLED;
+        RtlInterlockedSetBits(&Icon->Flags, PH_NF_ICON_ENABLED);
 
 #ifndef PH_NF_ENABLE_WORKQUEUE
         PhNfpAddNotifyIcon(Icon);
@@ -588,7 +619,7 @@ VOID PhNfSetVisibleIcon(
     }
     else
     {
-        Icon->Flags &= ~PH_NF_ICON_ENABLED;
+        RtlInterlockedClearBits(&Icon->Flags, PH_NF_ICON_ENABLED);
 
 #ifndef PH_NF_ENABLE_WORKQUEUE
         PhNfpRemoveNotifyIcon(Icon);
@@ -623,7 +654,7 @@ BOOLEAN PhNfShowBalloonTip(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
             continue;
 
         registeredIcon = icon;
@@ -719,7 +750,7 @@ BOOLEAN PhNfIconsEnabled(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (icon->Flags & PH_NF_ICON_ENABLED)
+        if (BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
         {
             enabled = TRUE;
             break;
@@ -745,7 +776,7 @@ VOID PhNfNotifyMiniInfoPinned(
         {
             PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-            if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
                 continue;
 
             PhNfpModifyNotifyIcon(icon, NIF_TIP, icon->TextCache, NULL);
@@ -964,7 +995,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
 
     if (PhMainWndExiting)
         return FALSE;
-    if (Icon->Flags & PH_NF_ICON_UNAVAILABLE)
+    if (BooleanFlagOn(Icon->Flags, PH_NF_ICON_UNAVAILABLE))
         return FALSE;
 
     memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
@@ -980,7 +1011,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
         notifyIcon.guidItem = Icon->IconGuid;
     }
 
-    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (Icon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
+    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || BooleanFlagOn(Icon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
     if (Flags & NIF_TIP)
@@ -1044,6 +1075,9 @@ VOID PhNfTrayIconFlushWorkQueueData(
         data = CONTAINING_RECORD(entry, PH_NF_WORKQUEUE_DATA, ListEntry);
         entry = entry->Next;
 
+        if (PhMainWndExiting)
+            break;
+
         if (data->Add)
         {
             PhNfpAddNotifyIcon(data->Icon);
@@ -1064,12 +1098,12 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     )
 {
     PhSetThreadName(NtCurrentThread(), L"TrayIconUpdateThread");
-    
+
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
             continue;
 
         PhNfpAddNotifyIcon(icon);
@@ -1095,7 +1129,7 @@ NTSTATUS PhNfpTrayIconUpdateThread(
             {
                 PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-                if (!(icon->Flags & PH_NF_ICON_ENABLED))
+                if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
                     continue;
 
                 if (PhMainWndExiting)
@@ -1113,12 +1147,16 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
             continue;
 
-        PhNfpRemoveNotifyIcon(icon);
+        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE) == (PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
+        {
+            PhNfpRemoveNotifyIcon(icon);
+        }
     }
 #endif
+
     return STATUS_SUCCESS;
 }
 
@@ -2131,6 +2169,7 @@ VOID PhNfpPlainIconUpdateCallback(
 {
     *NewIconOrBitmap = PhGetApplicationIcon(TRUE);
     *NewText = PhCreateString(L"System Informer");
+    *Flags = 0;
 }
 
 _Success_(return)
@@ -2146,7 +2185,7 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
     {
         Data->SectionName = NULL;
 
-        if (!(RegisteredIcon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
+        if (!BooleanFlagOn(RegisteredIcon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
         {
             if (RegisteredIcon->MessageCallback)
             {
@@ -2204,7 +2243,7 @@ VOID PhNfpIconClickActivateTimerProc(
     PhPinMiniInformation(MiniInfoActivePinType, 1, 0,
         PH_MINIINFO_ACTIVATE_WINDOW | PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
         IconClickShowMiniInfoSectionData.SectionName, &IconClickLocation);
-    KillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
+    PhKillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
 }
 
 VOID PhNfpDisableHover(
@@ -2212,7 +2251,7 @@ VOID PhNfpDisableHover(
     )
 {
     IconDisableHover = TRUE;
-    SetTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconRestoreHoverTimerProc);
+    PhSetTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconRestoreHoverTimerProc);
 }
 
 VOID PhNfpIconRestoreHoverTimerProc(
@@ -2223,5 +2262,27 @@ VOID PhNfpIconRestoreHoverTimerProc(
     )
 {
     IconDisableHover = FALSE;
-    KillTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER);
+    PhKillTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER);
+}
+
+VOID PhNfpIconShowPopupHoverTimerProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ UINT_PTR idEvent,
+    _In_ ULONG dwTime
+    )
+{
+    PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
+    POINT location;
+
+    if (
+        PhNfMiniInfoEnabled && !IconDisableHover && 
+        PopupIconIndex != ULONG_MAX && PopupRegisteredIcon && 
+        PhNfpGetShowMiniInfoSectionData(PopupIconIndex, PopupRegisteredIcon, &showMiniInfoSectionData)
+        )
+    {
+        GetCursorPos(&location);
+        PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
+            showMiniInfoSectionData.SectionName, &location);
+    }
 }

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
@@ -38,6 +38,8 @@ BOOLEAN EnableThemeSupport = FALSE;
 BOOLEAN IsWindowSizeMove = FALSE;
 BOOLEAN IsWindowMinimized = FALSE;
 BOOLEAN IsWindowMaximized = FALSE;
+BOOLEAN IconSingleClick = FALSE;
+BOOLEAN RestoreRowAfterSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
@@ -48,6 +50,7 @@ WNDPROC MainWindowHookProc = NULL;
 HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
+ULONG RestoreSearchSelectedProcessId = ULONG_MAX;
 PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics = { 0 };
 PH_CALLBACK_DECLARE(SearchChangedEvent);
 PPH_HASHTABLE TabInfoHashtable;
@@ -77,6 +80,7 @@ static PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
@@ -325,7 +329,7 @@ VOID ShowCustomizeMenu(
             break;
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
             {
-                ToolBarShowCustomizeDialog();
+                ToolBarShowCustomizeDialog(WindowHandle);
             }
             break;
         case COMMAND_ID_GRAPHS_CUSTOMIZE:
@@ -512,7 +516,8 @@ BOOLEAN CheckRebarLastRedrawMessage(
     LARGE_INTEGER currentUpdateTimeTicks;
     LARGE_INTEGER currentUpdateTimeFrequency;
 
-    PhQueryPerformanceCounter(&currentUpdateTimeTicks, &currentUpdateTimeFrequency);
+    PhQueryPerformanceCounter(&currentUpdateTimeTicks);
+    PhQueryPerformanceFrequency(&currentUpdateTimeFrequency);
 
     if (lastUpdateTimeTicks.QuadPart == 0)
         lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
@@ -623,14 +628,12 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT oldFont = ToolbarWindowFont;
-
-            // Let Process Hacker perform the default processing.
-            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
-
-            ToolbarWindowFont = ProcessHacker_GetFont();
+            // Let System Informer perform the default processing.
+            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
             // Update fonts/sizes for new DPI.
+            ToolbarWindowFont = ProcessHacker_GetFont();
+
             if (ToolBarHandle)
             {
                 SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
@@ -672,9 +675,9 @@ LRESULT CALLBACK MainWndSubclassProc(
                 StatusBarUpdate(TRUE);
             }
 
-            if (oldFont) DeleteFont(oldFont);
+            ToolbarGraphsInitializeDpi();
 
-            goto DefaultWndProc;
+            return result;
         }
         break;
     case WM_COMMAND:
@@ -711,6 +714,25 @@ LRESULT CALLBACK MainWndSubclassProc(
                     }
                 }
                 goto DefaultWndProc;
+            case EN_SETFOCUS:
+                {
+                    if (!SearchboxHandle)
+                        break;
+
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
+                        break;
+
+                    if (RestoreRowAfterSearch)
+                    {
+                        PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+                        if (processItem)
+                            RestoreSearchSelectedProcessId = HandleToUlong(processItem->ProcessId);
+                        else
+                            RestoreSearchSelectedProcessId = ULONG_MAX;
+                    }
+                }
+                break;
             case EN_KILLFOCUS:
                 {
                     if (!SearchboxHandle)
@@ -719,10 +741,22 @@ LRESULT CALLBACK MainWndSubclassProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    if (SearchBoxDisplayMode != SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
-                        break;
+                    if (RestoreRowAfterSearch && SearchboxText->Length == 0)
+                    {
+                        if (RestoreSearchSelectedProcessId != ULONG_MAX)
+                        {
+                            PPH_PROCESS_NODE node;
 
-                    if (SearchboxText->Length == 0)
+                            if (node = PhFindProcessNode(UlongToHandle(RestoreSearchSelectedProcessId)))
+                            {
+                                PhSelectAndEnsureVisibleProcessNode(node);
+                            }
+
+                            RestoreSearchSelectedProcessId = ULONG_MAX;
+                        }
+                    }
+
+                    if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE && SearchboxText->Length == 0)
                     {
                         if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                             RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
@@ -800,28 +834,32 @@ LRESULT CALLBACK MainWndSubclassProc(
                 goto DefaultWndProc;
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
-                    // Let Process Hacker perform the default processing.
-                    CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+                    // Let System Informer perform the default processing.
+                    LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     // Query the settings.
                     BOOLEAN isAlwaysOnTopEnabled = !!PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
 
                     // Set the pressed button state.
                     SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0)));
+
+                    return result;
                 }
-                goto DefaultWndProc;
+                break;
             case PHAPP_ID_UPDATEINTERVAL_FAST:
             case PHAPP_ID_UPDATEINTERVAL_NORMAL:
             case PHAPP_ID_UPDATEINTERVAL_BELOWNORMAL:
             case PHAPP_ID_UPDATEINTERVAL_SLOW:
             case PHAPP_ID_UPDATEINTERVAL_VERYSLOW:
                 {
-                    // Let Process Hacker perform the default processing.
-                    CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+                    // Let System Informer perform the default processing.
+                    LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     StatusBarUpdate(TRUE);
+
+                    return result;
                 }
-                goto DefaultWndProc;
+                break;
             case PHAPP_ID_VIEW_UPDATEAUTOMATICALLY:
                 {
                     UpdateAutomatically = !UpdateAutomatically;
@@ -1166,7 +1204,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 {
                 case NM_RCLICK:
                     {
-                        StatusBarShowMenu();
+                        StatusBarShowMenu(hWnd);
                     }
                     break;
                 }
@@ -1331,6 +1369,8 @@ LRESULT CALLBACK MainWndSubclassProc(
             {
                 // The user cancelled the targeting, probably by pressing the Esc key.
 
+                TargetingCompleted = TRUE;
+
                 // Remove the border on the currently selected window.
                 if (TargetingCurrentWindow)
                 {
@@ -1344,7 +1384,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 SetWindowPos(hWnd, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
                     0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
-                TargetingCompleted = TRUE;
+                TargetingWindow = FALSE;
             }
         }
         break;
@@ -1477,8 +1517,8 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_PH_UPDATE_FONT:
         {
-            // Let Process Hacker perform the default processing.
-            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+            // Let System Informer perform the default processing.
+            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
             ToolbarWindowFont = ProcessHacker_GetFont();
             SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
@@ -1504,7 +1544,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
             ToolbarLoadSettings(FALSE);
 
-            goto DefaultWndProc;
+            return result;
         }
         break;
     case WM_PH_NOTIFY_ICON_MESSAGE:
@@ -1513,15 +1553,15 @@ LRESULT CALLBACK MainWndSubclassProc(
             if (!ToolStatusConfig.SearchAutoFocus)
                 break;
 
-            // Let Process Hacker perform the default processing.
-            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+            // Let System Informer perform the default processing.
+            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
             // This fixes the search focus for the 'Hide when closed' option. See GH #663 (dmex)
             switch (LOWORD(lParam))
             {
             case WM_LBUTTONDOWN:
                 {
-                    if (PhGetIntegerSetting(L"IconSingleClick"))
+                    if (IconSingleClick)
                     {
                         if (IsWindowVisible(hWnd))
                         {
@@ -1532,7 +1572,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 break;
             case WM_LBUTTONDBLCLK:
                 {
-                    if (!PhGetIntegerSetting(L"IconSingleClick"))
+                    if (!IconSingleClick)
                     {
                         if (IsWindowVisible(hWnd))
                         {
@@ -1543,7 +1583,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 break;
             }
 
-            goto DefaultWndProc;
+            return result;
         }
         break;
     case WM_PH_ACTIVATE:
@@ -1552,7 +1592,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             if (!ToolStatusConfig.SearchAutoFocus)
                 break;
 
-            // Let Process Hacker perform the default processing. (dmex)
+            // Let System Informer perform the default processing. (dmex)
             LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
             // Re-focus the searchbox when we're already running and we're moved
@@ -1650,6 +1690,20 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(menuInfo->Menu, menu, insertIndex);
 }
 
+VOID UpdateCachedSettings(
+    VOID
+    )
+{
+    IconSingleClick = !!PhGetIntegerSetting(L"IconSingleClick");
+
+    CpuHistoryGraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+    CpuHistoryGraphColor2 = PhGetIntegerSetting(L"ColorCpuUser");
+    PhysicalHistoryGraphColor1 = PhGetIntegerSetting(L"ColorPhysical");
+    CommitHistoryGraph1Color1 = PhGetIntegerSetting(L"ColorPrivate");
+    IoHistoryGraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
+    IoHistoryGraphColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+}
+
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1659,6 +1713,7 @@ VOID NTAPI LoadCallback(
     DisplayStyle = PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     TaskbarListIconType = PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE);
+    RestoreRowAfterSearch = !!PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH);
     EnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
     TabInfoHashtable = PhCreateSimpleHashtable(3);
@@ -1668,7 +1723,17 @@ VOID NTAPI LoadCallback(
     MaxInitializationDelay = PhGetIntegerSetting(SETTING_NAME_DELAYED_INITIALIZATION_MAX);
     MaxInitializationDelay = __max(0, __min(MaxInitializationDelay, 5));
 
+    UpdateCachedSettings();
+
     ToolbarGraphsInitialize();
+}
+
+VOID NTAPI SettingsUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    UpdateCachedSettings();
 }
 
 VOID NTAPI MenuItemCallback(
@@ -1690,12 +1755,12 @@ VOID NTAPI MenuItemCallback(
 
                 if (ToolStatusConfig.AutoHideMenu)
                 {
-                    SetMenu(PhMainWndHandle, NULL);
+                    SetMenu(menuItem->OwnerWindow, NULL);
                 }
                 else
                 {
-                    SetMenu(PhMainWndHandle, MainMenu);
-                    DrawMenuBar(PhMainWndHandle);
+                    SetMenu(menuItem->OwnerWindow, MainMenu);
+                    DrawMenuBar(menuItem->OwnerWindow);
                 }
             }
             break;
@@ -1712,7 +1777,7 @@ VOID NTAPI MenuItemCallback(
                 {
                     // Adding the Searchbox makes it focused,
                     // reset the focus back to the main window.
-                    SetFocus(PhMainWndHandle);
+                    SetFocus(menuItem->OwnerWindow);
                 }
             }
             break;
@@ -1766,7 +1831,7 @@ VOID NTAPI MenuItemCallback(
             break;
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
             {
-                ToolBarShowCustomizeDialog();
+                ToolBarShowCustomizeDialog(menuItem->OwnerWindow);
             }
             break;
         case COMMAND_ID_GRAPHS_CUSTOMIZE:
@@ -1826,6 +1891,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" },
+                { IntegerSettingType, SETTING_NAME_RESTOREROWAFTERSEARCH, L"0" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
@@ -1867,6 +1933,12 @@ LOGICAL DllMain(
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackSettingsUpdated),
+                SettingsUpdatedCallback,
+                NULL,
+                &SettingsUpdatedCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),

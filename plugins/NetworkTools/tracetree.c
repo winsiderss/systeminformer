@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2015-2021
+ *     dmex    2015-2023
  *
  */
 
 #include "nettools.h"
 #include "tracert.h"
-#include <commonutil.h>
 
 PPH_OBJECT_TYPE TracertTreeNodeItemType;
 
@@ -586,6 +585,7 @@ VOID InitializeTracertTree(
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
     TreeNew_SetCallback(Context->TreeNewHandle, TracertTreeNewCallback, Context);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, TRUE, L"TTL", 30, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING1, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING1, DT_RIGHT);
@@ -599,6 +599,7 @@ VOID InitializeTracertTree(
     //for (INT i = 0; i < MAX_PINGS; i++)
     //    PhAddTreeNewColumn(context->TreeNewHandle, i + 1, i + 1, i + 1, LVCFMT_RIGHT, 50, L"Time");
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, AscendingSortOrder);
 
     TracertLoadSettingsTreeList(Context);

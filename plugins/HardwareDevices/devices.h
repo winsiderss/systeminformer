@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *     jxy-s   2022
  *
  */
@@ -30,8 +30,6 @@
 #define SETTING_NAME_GRAPHICS_LIST (PLUGIN_NAME L".GraphicsList")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION (PLUGIN_NAME L".GraphicsNodesWindowPosition")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE (PLUGIN_NAME L".GraphicsNodesWindowSize")
-#define SETTING_NAME_DEVICE_TREE_WINDOW_POSITION (PLUGIN_NAME L".DeviceTreeWindowPosition")
-#define SETTING_NAME_DEVICE_TREE_WINDOW_SIZE (PLUGIN_NAME L".DeviceTreeWindowSize")
 #define SETTING_NAME_DEVICE_TREE_AUTO_REFRESH (PLUGIN_NAME L".DeviceTreeAutoRefresh")
 #define SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED (PLUGIN_NAME L".DeviceTreeShowDisconnected")
 #define SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED (PLUGIN_NAME L".DeviceTreeHighlightUpperFiltered")
@@ -44,18 +42,18 @@
 #define SETTING_NAME_DEVICE_HIGHLIGHT_COLOR (PLUGIN_NAME L".ColorDeviceHighlight")
 #define SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME (PLUGIN_NAME L".SortDeviceChildrenByName")
 #define SETTING_NAME_DEVICE_SHOW_ROOT (PLUGIN_NAME L".ShowRootDevice")
-
-#define UM_NDIS687
-#define UM_NDIS60
+#define SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS (PLUGIN_NAME L".ShowSoftwareComponents")
 
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
-#include <math.h>
+#include <workqueue.h>
+#include <mapldr.h>
 
+#include <math.h>
 #include <cfgmgr32.h>
-#include <nldef.h>
-#include <netioapi.h>
+
+#include <phnet.h>
 
 // d3dkmddi requires the WDK (dmex)
 #if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
@@ -81,6 +79,7 @@ __has_include (<d3dkmthk.h>)
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN NetAdapterEnableNdis;
+extern ULONG NetWindowsVersion;
 
 extern PPH_OBJECT_TYPE NetAdapterEntryType;
 extern PPH_LIST NetworkAdaptersList;
@@ -97,6 +96,10 @@ extern PH_QUEUED_LOCK RaplDevicesListLock;
 extern PPH_OBJECT_TYPE GraphicsDeviceEntryType;
 extern PPH_LIST GraphicsDevicesList;
 extern PH_QUEUED_LOCK GraphicsDevicesListLock;
+
+#ifdef _DEBUG
+//#define FORCE_DELAY_LABEL_WORKQUEUE
+#endif
 
 // main.c
 
@@ -174,7 +177,8 @@ typedef struct _DV_NETADAPTER_ENTRY
             BOOLEAN CheckedDeviceSupport : 1;
             BOOLEAN DeviceSupported : 1;
             BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN PendingQuery : 1;
+            BOOLEAN Spare : 2;
         };
     };
 
@@ -188,12 +192,13 @@ typedef struct _DV_NETADAPTER_ENTRY
 
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
+
+    volatile LONG JustProcessed;
 } DV_NETADAPTER_ENTRY, *PDV_NETADAPTER_ENTRY;
 
 typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
     PDV_NETADAPTER_ENTRY AdapterEntry;
-    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
@@ -272,11 +277,6 @@ VOID NetAdaptersLoadList(
     VOID
     );
 
-BOOLEAN HardwareDeviceShowProperties(
-    _In_ HWND WindowHandle,
-    _In_ PPH_STRING DeviceInstance
-    );
-
 // adapter.c
 
 VOID NetAdaptersInitialize(
@@ -333,10 +333,16 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     NETADAPTER_DETAILS_INDEX_STATE,
     //NETADAPTER_DETAILS_INDEX_CONNECTIVITY,
 
-    NETADAPTER_DETAILS_INDEX_IPADDRESS,
-    NETADAPTER_DETAILS_INDEX_SUBNET,
-    NETADAPTER_DETAILS_INDEX_GATEWAY,
-    NETADAPTER_DETAILS_INDEX_DNS,
+    NETADAPTER_DETAILS_INDEX_IPV4ADDRESS,
+    NETADAPTER_DETAILS_INDEX_IPV4SUBNET,
+    NETADAPTER_DETAILS_INDEX_IPV4GATEWAY,
+    NETADAPTER_DETAILS_INDEX_IPV4DNS,
+
+    NETADAPTER_DETAILS_INDEX_IPV6ADDRESS,
+    NETADAPTER_DETAILS_INDEX_IPV6TEMPADDRESS,
+    NETADAPTER_DETAILS_INDEX_IPV6GATEWAY,
+    NETADAPTER_DETAILS_INDEX_IPV6DNS,
+
     NETADAPTER_DETAILS_INDEX_DOMAIN,
 
     NETADAPTER_DETAILS_INDEX_LINKSPEED,
@@ -452,9 +458,8 @@ PWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     );
 
-_Success_(return)
-BOOLEAN NetworkAdapterQueryWlanConfig(
-    _In_ PGUID InterfaceGuid
+PPH_STRING NetAdapterFormatBitratePrefix(
+    _In_ ULONG64 Value
     );
 
 // netoptions.c
@@ -498,7 +503,8 @@ typedef struct _DV_DISK_ENTRY
             BOOLEAN UserReference : 1;
             BOOLEAN HaveFirstSample : 1;
             BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN PendingQuery : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
@@ -518,12 +524,13 @@ typedef struct _DV_DISK_ENTRY
     FLOAT ActiveTime;
     ULONG QueueDepth;
     ULONG SplitCount;
+
+    volatile LONG JustProcessed;
 } DV_DISK_ENTRY, *PDV_DISK_ENTRY;
 
 typedef struct _DV_DISK_SYSINFO_CONTEXT
 {
     PDV_DISK_ENTRY DiskEntry;
-    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
@@ -967,6 +974,10 @@ PWSTR SmartAttributeGetText(
 
 // diskgraph.c
 
+VOID DiskDriveQueueNameUpdate(
+    _In_ PDV_DISK_ENTRY DiskEntry
+    );
+
 VOID DiskDriveSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_DISK_ENTRY DiskEntry
@@ -1052,6 +1063,7 @@ typedef struct _DV_RAPL_SYSINFO_CONTEXT
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    LONG GraphPadding;
 
     PH_GRAPH_STATE ProcessorGraphState;
     PH_GRAPH_STATE CoreGraphState;
@@ -1218,6 +1230,7 @@ typedef struct _DV_GPU_SYSINFO_CONTEXT
     RECT GraphMargin;
 
     PPH_STRING Description;
+    LONG SysInfoGraphPadding;
 
     HWND NodeWindowHandle;
     HANDLE NodeWindowThreadHandle;
@@ -1492,4 +1505,4 @@ VOID InitializeDevicesTab(
     VOID
     );
 
-#endif _DEVICES_H_
+#endif

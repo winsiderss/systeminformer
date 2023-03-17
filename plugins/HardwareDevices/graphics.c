@@ -122,7 +122,7 @@ NTSTATUS GraphicsQueryAdapterSegmentLimits(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (PhWindowsVersion >= WINDOWS_8)
+        if (NetWindowsVersion >= WINDOWS_8)
         {
             if (queryStatistics.QueryResult.SegmentInformation.Aperture)
             {
@@ -424,10 +424,10 @@ ULONG64 GraphicsQueryInstalledMemory(
         CM_REGISTRY_SOFTWARE
         ) == CR_SUCCESS)
     {
-        installedMemory = PhQueryRegistryUlong64(keyHandle, L"HardwareInformation.qwMemorySize");
+        installedMemory = PhQueryRegistryUlong64Z(keyHandle, L"HardwareInformation.qwMemorySize");
 
         if (installedMemory == ULLONG_MAX)
-            installedMemory = PhQueryRegistryUlong(keyHandle, L"HardwareInformation.MemorySize");
+            installedMemory = PhQueryRegistryUlongZ(keyHandle, L"HardwareInformation.MemorySize");
 
         if (installedMemory == ULONG_MAX) // HACK
             installedMemory = ULLONG_MAX;
@@ -435,10 +435,8 @@ ULONG64 GraphicsQueryInstalledMemory(
         // Intel GPU devices incorrectly create the key with type REG_BINARY.
         if (installedMemory == ULLONG_MAX)
         {
-            PH_STRINGREF valueName;
+            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"HardwareInformation.MemorySize");
             PKEY_VALUE_PARTIAL_INFORMATION buffer;
-
-            PhInitializeStringRef(&valueName, L"HardwareInformation.MemorySize");
 
             if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
             {
@@ -619,7 +617,7 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
         return FALSE;
     }
 
-    if (PhWindowsVersion >= WINDOWS_10)
+    if (NetWindowsVersion >= WINDOWS_10)
     {
         ULONG adapterIndex;
         ULONG adapterIndexSize;

@@ -752,7 +752,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
             if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, memoryItem->BaseAddress, &fileName)))
             {
-                PPH_STRING newFileName = PhResolveDevicePrefix(fileName);
+                PPH_STRING newFileName = PhResolveDevicePrefix(&fileName->sr);
 
                 if (newFileName)
                     PhMoveReference(&fileName, newFileName);

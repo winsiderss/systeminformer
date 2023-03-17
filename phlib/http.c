@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -13,6 +13,7 @@
 #include <phnet.h>
 #include <winhttp.h>
 #include <apiimport.h>
+#include <mapldr.h>
 
 static const PH_FLAG_MAPPING PhpHttpRequestFlagMappings[] =
 {
@@ -477,6 +478,7 @@ BOOLEAN PhHttpSocketQueryHeaderUlong(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhHttpSocketQueryHeaderUlong64(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG QueryValue,
@@ -529,7 +531,7 @@ BOOLEAN PhHttpSocketQueryHeaderUlong64(
 //{
 //    ULONG headerValue = 0;
 //    ULONG valueLength = sizeof(ULONG);
-//    
+//
 //    if (WinHttpQueryHeaders(
 //        HttpContext->RequestHandle,
 //        WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
@@ -914,7 +916,7 @@ PPH_STRING PhHttpSocketGetErrorMessage(
     PVOID winhttpHandle;
     PPH_STRING message = NULL;
 
-    if (!(winhttpHandle = PhGetLoaderEntryDllBase(L"winhttp.dll")))
+    if (!(winhttpHandle = PhGetLoaderEntryDllBaseZ(L"winhttp.dll")))
         return NULL;
 
     if (message = PhGetMessage(winhttpHandle, 0xb, PhGetUserDefaultLangID(), ErrorCode))

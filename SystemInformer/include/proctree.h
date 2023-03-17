@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_PROCTREE_H
 #define PH_PROCTREE_H
 
@@ -110,8 +122,9 @@
 #define PHPRTLC_CPUAVERAGE 97
 #define PHPRTLC_CPUKERNEL 98
 #define PHPRTLC_CPUUSER 99
+#define PHPRTLC_GRANTEDACCESS 100
 
-#define PHPRTLC_MAXIMUM 100
+#define PHPRTLC_MAXIMUM 101
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -132,7 +145,9 @@
 #define PHPN_ERRORMODE 0x8000
 #define PHPN_CODEPAGE 0x10000
 #define PHPN_POWERTHROTTLING 0x20000
-#define PHPN_PRIORITYBOOST 0x40000
+#define PHPN_ARCHITECTURE 0x40000
+#define PHPN_PRIORITYBOOST 0x80000
+#define PHPN_GRANTEDACCESS 0x100000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -263,6 +278,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING CpuAverageText;
     PPH_STRING CpuKernelText;
     PPH_STRING CpuUserText;
+    PPH_STRING GrantedAccessText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
@@ -355,6 +371,22 @@ VOID
 NTAPI
 PhGetSelectedProcessItems(
     _Out_ PPH_PROCESS_ITEM **Processes,
+    _Out_ PULONG NumberOfProcesses
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhGetSelectedProcessNodes(
+    _Out_ PPH_PROCESS_NODE** Nodes,
+    _Out_ PULONG NumberOfNodes
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhGetSelectedAndPropagateProcessItems(
+    _Out_ PPH_PROCESS_ITEM** Processes,
     _Out_ PULONG NumberOfProcesses
     );
 

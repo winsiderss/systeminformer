@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2015
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_PHSUP_H
 #define _PH_PHSUP_H
 
@@ -22,6 +34,7 @@
 #define ALIGN_DOWN_POINTER(Pointer, Type) ((PVOID)ALIGN_DOWN(Pointer, Type))
 
 #define PAGE_SIZE 0x1000
+#define PAGE_MASK 0xFFF
 
 #define PH_LARGE_BUFFER_SIZE (256 * 1024 * 1024)
 
@@ -44,8 +57,13 @@
 
 // Math
 
-#define UInt32Add32To64(a, b) ((unsigned __int64)((unsigned __int64)(a) + ((unsigned __int64)(b)))) // Avoids warning C26451 (dmex)
-#define UInt32Mul32To64(a, b) ((unsigned __int64)((unsigned __int64)(a) * ((unsigned __int64)(b))))
+#if defined(_M_IX86)
+#define UInt32Add32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) + ((unsigned int)(b)))) // Avoids warning C26451 (dmex)
+#define UInt32Sub32To64(a, b) ((unsigned __int64)(((unsigned __int64)((unsigned int)(a))) - ((unsigned int)(b))))
+#else
+#define UInt32Add32To64(a, b) (((unsigned __int64)((unsigned int)(a))) + ((unsigned __int64)((unsigned int)(b)))) // from UInt32x32To64 (dmex)
+#define UInt32Sub32To64(a, b) (((unsigned __int64)((unsigned int)(a))) - ((unsigned __int64)((unsigned int)(b))))
+#endif
 
 // Time
 

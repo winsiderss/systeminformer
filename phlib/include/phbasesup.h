@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_PHBASESUP_H
 #define _PH_PHBASESUP_H
 
@@ -94,7 +106,6 @@ PhLocalTimeToSystemTime(
 PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
-DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhAllocate(
@@ -105,7 +116,6 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
-DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhAllocateSafe(
@@ -116,7 +126,6 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
-DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhAllocateExSafe(
@@ -134,7 +143,6 @@ PhFree(
 PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
-DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhReAllocate(
@@ -146,7 +154,6 @@ PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
-DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhReAllocateSafe(
@@ -159,7 +166,6 @@ _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
 _Success_(return != NULL)
-DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhAllocatePage(
@@ -757,8 +763,13 @@ typedef struct _PH_RELATIVE_BYTESREF
     ULONG Offset;
 } PH_RELATIVE_BYTESREF, *PPH_RELATIVE_BYTESREF, PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
 
+#ifdef __cplusplus
+#define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), const_cast<PWCH>(String) }
+#define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), const_cast<PCH>(String) }
+#else
 #define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), (String) }
 #define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), (String) }
+#endif
 
 FORCEINLINE
 VOID
@@ -872,6 +883,21 @@ PhFindStringInStringRef(
     _In_ PPH_STRINGREF SubString,
     _In_ BOOLEAN IgnoreCase
     );
+
+FORCEINLINE
+ULONG_PTR
+PhFindStringInStringRefZ(
+    _In_ PPH_STRINGREF String,
+    _In_ PWSTR SubString,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF sr2;
+
+    PhInitializeStringRef(&sr2, SubString);
+
+    return PhFindStringInStringRef(String, &sr2, IgnoreCase);
+}
 
 PHLIBAPI
 BOOLEAN
@@ -2930,7 +2956,7 @@ typedef struct _PH_HASHTABLE
 } PH_HASHTABLE, *PPH_HASHTABLE;
 
 #define PH_HASHTABLE_ENTRY_SIZE(InnerSize) (UInt32Add32To64(UFIELD_OFFSET(PH_HASHTABLE_ENTRY, Body), (InnerSize)))
-#define PH_HASHTABLE_GET_ENTRY(Hashtable, Index) ((PPH_HASHTABLE_ENTRY)PTR_ADD_OFFSET((Hashtable)->Entries, UInt32Mul32To64(PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize), (Index))))
+#define PH_HASHTABLE_GET_ENTRY(Hashtable, Index) ((PPH_HASHTABLE_ENTRY)PTR_ADD_OFFSET((Hashtable)->Entries, UInt32x32To64(PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize), (Index))))
 #define PH_HASHTABLE_GET_ENTRY_INDEX(Hashtable, Entry) ((ULONG)(PTR_ADD_OFFSET(Entry, -(Hashtable)->Entries) / PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize)))
 
 PHLIBAPI
@@ -3385,6 +3411,19 @@ PhBufferToHexStringEx(
     _In_ BOOLEAN UpperCase
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBufferToHexStringBuffer(
+    _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ BOOLEAN UpperCase,
+    _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
+
 PHLIBAPI
 _Success_(return)
 BOOLEAN
@@ -3457,6 +3496,26 @@ PhDivideSinglesBySingle(
     _Inout_updates_(Count) PFLOAT A,
     _In_ FLOAT B,
     _In_ SIZE_T Count
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCalculateEntropy(
+    _In_ PBYTE Buffer,
+    _In_ ULONG64 BufferLength,
+    _Out_opt_ DOUBLE *Entropy,
+    _Out_opt_ DOUBLE *Variance
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatEntropy(
+    _In_ DOUBLE Entropy,
+    _In_ USHORT EntropyPrecision,
+    _In_opt_ DOUBLE Variance,
+    _In_opt_ USHORT VariancePrecision
     );
 
 // Auto-dereference convenience functions

@@ -129,7 +129,6 @@
       <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;WIN32;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>StdCall</CallingConvention>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -138,17 +137,16 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -157,7 +155,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformArchitecture)</Command>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -167,7 +165,6 @@
       <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>StdCall</CallingConvention>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -176,17 +173,16 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -195,7 +191,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformArchitecture)</Command>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -205,7 +201,6 @@
       <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <StringPooling>true</StringPooling>
@@ -213,17 +208,17 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <SupportJustMyCode>false</SupportJustMyCode>
+      <CallingConvention>StdCall</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineARM64</TargetMachine>
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -232,7 +227,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformArchitecture)</Command>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -258,7 +253,7 @@
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -267,7 +262,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
@@ -279,7 +274,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformArchitecture)</Command>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -305,7 +300,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -314,7 +309,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
@@ -326,7 +321,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformArchitecture)</Command>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -348,9 +343,10 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
       <GuardSignedReturns>true</GuardSignedReturns>
+      <CallingConvention>StdCall</CallingConvention>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -359,7 +355,7 @@
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
@@ -370,7 +366,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformArchitecture)</Command>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sdk -$(Configuration) -$(PlatformName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -386,6 +382,7 @@
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="colsetmgr.c" />
     <ClCompile Include="dbgcon.c" />
+    <ClCompile Include="delayhook.c" />
     <ClCompile Include="delayload.c" />
     <ClCompile Include="extmgr.c" />
     <ClCompile Include="findobj.c" />
@@ -402,6 +399,7 @@
     <ClCompile Include="jobprp.c" />
     <ClCompile Include="kdump.c" />
     <ClCompile Include="ksisup.c" />
+    <ClCompile Include="ksyscall.c" />
     <ClCompile Include="log.c" />
     <ClCompile Include="logwnd.c" />
     <ClCompile Include="main.c" />

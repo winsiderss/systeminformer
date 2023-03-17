@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -177,6 +177,8 @@ INT CALLBACK PhpPropSheetProc(
                 MinimumSize = rect;
                 MinimumSize.left = 0;
             }
+
+            PhSetTimer(hwndDlg, 2000, 2000, NULL);
         }
         break;
     }
@@ -208,18 +210,15 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
     oldWndProc = propSheetContext->PropSheetWindowHookProc;
 
-    if (RtlQueryDepthSList(&WaitContextQueryListHead))
-    {
-        PhpFlushProcessPropSheetWaitContextData();
-    }
-
     switch (uMsg)
     {
     case WM_DESTROY:
         {
             HWND tabControl;
             TCITEM tabItem;
-            WCHAR text[128];
+            WCHAR text[128] = L"";
+
+            PhKillTimer(hwnd, 2000);
 
             // Save the window position and size.
 
@@ -304,6 +303,16 @@ LRESULT CALLBACK PhpPropSheetWndProc(
                 {
                     return TRUE;
                 }
+            }
+        }
+        break;
+    case WM_TIMER:
+        {
+            UINT id = (UINT)wParam;
+
+            if (id == 2000)
+            {
+                PhpFlushProcessPropSheetWaitContextData();
             }
         }
         break;
@@ -486,12 +495,25 @@ VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
 {
     PPH_PROCESS_WAITPROPCONTEXT context = (PPH_PROCESS_WAITPROPCONTEXT)Object;
 
+    PhpFlushProcessPropSheetWaitContextData();
+
     if (context->ProcessWaitHandle)
+    {
         RtlDeregisterWaitEx(context->ProcessWaitHandle, RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION);
+        context->ProcessWaitHandle = NULL;
+    }
+
     if (context->ProcessHandle)
+    {
         NtClose(context->ProcessHandle);
+        context->ProcessHandle = NULL;
+    }
+
     if (context->ProcessItem)
+    {
         PhDereferenceObject(context->ProcessItem);
+        context->ProcessItem = NULL;
+    }
 }
 
 VOID PhpCreateProcessPropSheetWaitContext(
@@ -532,7 +554,7 @@ VOID PhpCreateProcessPropSheetWaitContext(
         PhpProcessPropertiesWaitCallback,
         waitContext,
         INFINITE,
-        WT_EXECUTEONLYONCE | WT_EXECUTEINIOTHREAD
+        WT_EXECUTEONLYONCE | WT_EXECUTEINWAITTHREAD
         )))
     {
         PropContext->ProcessWaitContext = waitContext;
@@ -540,8 +562,12 @@ VOID PhpCreateProcessPropSheetWaitContext(
     else
     {
         PhDereferenceObject(waitContext->ProcessItem);
+        waitContext->ProcessItem = NULL;
+
+        NtClose(waitContext->ProcessHandle);
+        waitContext->ProcessHandle = NULL;
+
         PhDereferenceObject(waitContext);
-        NtClose(processHandle);
     }
 }
 
@@ -553,7 +579,9 @@ VOID PhpFlushProcessPropSheetWaitContextData(
     PPH_PROCESS_WAITPROPCONTEXT data;
     PROCESS_BASIC_INFORMATION basicInfo;
 
-    //if (!RtlFirstEntrySList(&QueryListHead))
+    //if (!RtlQueryDepthSList(&WaitContextQueryListHead))
+    //    return;
+    //if (!RtlFirstEntrySList(&WaitContextQueryListHead))
     //    return;
 
     entry = RtlInterlockedFlushSList(&WaitContextQueryListHead);
@@ -661,7 +689,7 @@ BOOLEAN PhPropPageDlgProcHeader(
     if (ProcessItem)
         *ProcessItem = propPageContext->PropContext->ProcessItem;
 
-    if (uMsg == WM_DESTROY)
+    if (uMsg == WM_NCDESTROY)
     {
         PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
@@ -866,9 +894,11 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     }
 
     // WMI Provider Host
-    // Note: The Winmgmt service includes WMI providers but the process doesn't get tagged with WmiProviderHostType
-    // and the perf cost adding service detection is too high for just this one usage case. (dmex)
-    //if ((PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == WmiProviderHostType)
+    // Note: The Winmgmt service has WMI providers but doesn't get tagged with WmiProviderHostType. (dmex)
+    if (
+        (PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == WmiProviderHostType || 
+        (PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == ServiceHostProcessType
+        )
     {
         newPage = PhCreateProcessPropPageContext(
             MAKEINTRESOURCE(IDD_PROCWMIPROVIDERS),

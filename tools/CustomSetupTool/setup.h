@@ -15,9 +15,9 @@
 #include <ph.h>
 #include <guisup.h>
 #include <prsht.h>
-#include <workqueue.h>
 #include <svcsup.h>
 #include <json.h>
+#include <mapldr.h>
 #include <phnet.h>
 
 #include <aclapi.h>
@@ -25,12 +25,9 @@
 #include <netlistmgr.h>
 #include <propvarutil.h>
 #include <propkey.h>
-#include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <sddl.h>
-#include <wincodec.h>
-#include <wincrypt.h>
 #include <winhttp.h>
 #include <uxtheme.h>
 
@@ -49,15 +46,20 @@
 #define SETUP_SHOWUPDATEERROR (WM_APP + 10)
 
 #define TaskDialogNavigatePage(WindowHandle, Config) \
-    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL)); \
-    SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)Config);
+    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId((WindowHandle), NULL)); \
+    SendMessage((WindowHandle), TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
 
-DEFINE_GUID(FOLDERID_ProgramData, 0x62AB5D82, 0xFDC1, 0x4DC3, 0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97);
-DEFINE_GUID(FOLDERID_PublicDesktop, 0xC4AA340D, 0xF20F, 0x4863, 0xAF, 0xEF, 0xF8, 0x7E, 0xF2, 0xE6, 0xBA, 0x25);
+#ifdef DEBUG
+//#define FORCE_TEST_UPDATE_LOCAL_INSTALL 1
+#endif
+
+DECLSPEC_SELECTANY GUID FOLDERID_ProgramData = { 0x62AB5D82, 0xFDC1, 0x4DC3, { 0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97 } };
+DECLSPEC_SELECTANY GUID FOLDERID_PublicDesktop = { 0xC4AA340D, 0xF20F, 0x4863, { 0xAF, 0xEF, 0xF8, 0x7E, 0xF2, 0xE6, 0xBA, 0x25 } };
 
 typedef enum _SETUP_COMMAND_TYPE
 {
     SETUP_COMMAND_INSTALL,
+    SETUP_COMMAND_SILENTINSTALL,
     SETUP_COMMAND_UNINSTALL,
     SETUP_COMMAND_UPDATE,
 } SETUP_COMMAND_TYPE;
@@ -84,8 +86,10 @@ typedef struct _PH_SETUP_CONTEXT
     PPH_STRING SetupInstallPath;
     PPH_STRING SetupServiceName;
 
+    PVOID ZipDownloadBuffer;
+    ULONG ZipDownloadBufferLength;
+
     ULONG ErrorCode;
-    PPH_STRING FilePath;
 
     PPH_STRING RelDate;
     PPH_STRING RelVersion;
@@ -121,6 +125,10 @@ VOID ShowWelcomePageDialog(
     );
 
 VOID ShowConfigPageDialog(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID ShowConfigDirectoryNonEmptyDialog(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
@@ -190,22 +198,23 @@ NTSTATUS SetupDeleteUninstallKey(
     VOID
     );
 
-VOID SetupSetWindowsOptions(
+VOID SetupCreateWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
-
 VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-VOID SetupChangeNotifyShortcuts(
+VOID SetupCreateShortcuts(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+VOID SetupDeleteShortcuts(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
 BOOLEAN SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
-
 VOID SetupDeleteUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
@@ -250,8 +259,8 @@ PPH_STRING GetApplicationInstallPath(
     VOID
     );
 
-BOOLEAN ShutdownApplication(
-    VOID
+BOOLEAN SetupShutdownApplication(
+    _In_ PPH_SETUP_CONTEXT Context
     );
 
 NTSTATUS QueryProcessesUsingVolumeOrFile(
@@ -262,6 +271,18 @@ NTSTATUS QueryProcessesUsingVolumeOrFile(
 PPH_STRING SetupCreateFullPath(
     _In_ PPH_STRING Path,
     _In_ PWSTR FileName
+    );
+
+BOOLEAN SetupOverwriteFile(
+    _In_ PPH_STRING FileName,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength
+    );
+
+_Success_(return)
+BOOLEAN SetupHashFile(
+    _In_ PPH_STRING FileName,
+    _Out_writes_all_(256 / 8) PBYTE Buffer
     );
 
 // download.c
@@ -285,6 +306,10 @@ BOOLEAN UpdateDownloadUpdateData(
     );
 
 // extract.c
+
+NTSTATUS SetupProgressThread(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
 
 BOOLEAN SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context

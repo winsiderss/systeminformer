@@ -1491,7 +1491,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemIsolatedUserModeInformation, // q: SYSTEM_ISOLATED_USER_MODE_INFORMATION
     SystemHardwareSecurityTestInterfaceResultsInformation,
     SystemSingleModuleInformation, // q: SYSTEM_SINGLE_MODULE_INFORMATION
-    SystemAllowedCpuSetsInformation,
+    SystemAllowedCpuSetsInformation, // s: SYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION
     SystemVsmProtectionInformation, // q: SYSTEM_VSM_PROTECTION_INFORMATION (previously SystemDmaProtectionInformation)
     SystemInterruptCpuSetsInformation, // q: SYSTEM_INTERRUPT_CPU_SET_INFORMATION // 170
     SystemSecureBootPolicyFullInformation, // q: SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
@@ -1503,7 +1503,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemWin32WerStartCallout,
     SystemSecureKernelProfileInformation, // q: SYSTEM_SECURE_KERNEL_HYPERGUARD_PROFILE_INFORMATION
     SystemCodeIntegrityPlatformManifestInformation, // q: SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION // since REDSTONE
-    SystemInterruptSteeringInformation, // SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT // 180
+    SystemInterruptSteeringInformation, // q: in: SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT, out: SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT // NtQuerySystemInformationEx // 180
     SystemSupportedProcessorArchitectures, // p: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
     SystemCodeIntegrityCertificateInformation, // q: SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
@@ -1528,7 +1528,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemDmaGuardPolicyInformation, // SYSTEM_DMA_GUARD_POLICY_INFORMATION
     SystemEnclaveLaunchControlInformation, // SYSTEM_ENCLAVE_LAUNCH_CONTROL_INFORMATION
     SystemWorkloadAllowedCpuSetsInformation, // SYSTEM_WORKLOAD_ALLOWED_CPU_SET_INFORMATION // since REDSTONE5
-    SystemCodeIntegrityUnlockModeInformation,
+    SystemCodeIntegrityUnlockModeInformation, // SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION
     SystemLeapSecondInformation, // SYSTEM_LEAP_SECOND_INFORMATION
     SystemFlags2Information, // q: SYSTEM_FLAGS_INFORMATION
     SystemSecurityModelInformation, // SYSTEM_SECURITY_MODEL_INFORMATION // since 19H1
@@ -1540,28 +1540,28 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSpacesBootInformation, // since 20H2
     SystemFwRamdiskInformation, // SYSTEM_FIRMWARE_RAMDISK_INFORMATION
     SystemWheaIpmiHardwareInformation,
-    SystemDifSetRuleClassInformation,
+    SystemDifSetRuleClassInformation, // SYSTEM_DIF_VOLATILE_INFORMATION
     SystemDifClearRuleClassInformation,
-    SystemDifApplyPluginVerificationOnDriver,
-    SystemDifRemovePluginVerificationOnDriver, // 220
+    SystemDifApplyPluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION
+    SystemDifRemovePluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION // 220
     SystemShadowStackInformation, // SYSTEM_SHADOW_STACK_INFORMATION
-    SystemBuildVersionInformation, // SYSTEM_BUILD_VERSION_INFORMATION
+    SystemBuildVersionInformation, // q: in: ULONG (LayerNumber), out: SYSTEM_BUILD_VERSION_INFORMATION // NtQuerySystemInformationEx // 222
     SystemPoolLimitInformation, // SYSTEM_POOL_LIMIT_INFORMATION (requires SeIncreaseQuotaPrivilege)
     SystemCodeIntegrityAddDynamicStore,
     SystemCodeIntegrityClearDynamicStores,
     SystemDifPoolTrackingInformation,
-    SystemPoolZeroingInformation, // SYSTEM_POOL_ZEROING_INFORMATION
-    SystemDpcWatchdogInformation,
-    SystemDpcWatchdogInformation2,
-    SystemSupportedProcessorArchitectures2, // q: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx  // 230
+    SystemPoolZeroingInformation, // q: SYSTEM_POOL_ZEROING_INFORMATION
+    SystemDpcWatchdogInformation, // q; s: SYSTEM_DPC_WATCHDOG_CONFIGURATION_INFORMATION
+    SystemDpcWatchdogInformation2, // q; s: SYSTEM_DPC_WATCHDOG_CONFIGURATION_INFORMATION_V2
+    SystemSupportedProcessorArchitectures2, // q: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx // 230
     SystemSingleProcessorRelationshipInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // (EX in: PROCESSOR_NUMBER Processor)
-    SystemXfgCheckFailureInformation,
+    SystemXfgCheckFailureInformation, // q: SYSTEM_XFG_FAILURE_INFORMATION
     SystemIommuStateInformation, // SYSTEM_IOMMU_STATE_INFORMATION // since 22H1
     SystemHypervisorMinrootInformation, // SYSTEM_HYPERVISOR_MINROOT_INFORMATION
     SystemHypervisorBootPagesInformation, // SYSTEM_HYPERVISOR_BOOT_PAGES_INFORMATION
     SystemPointerAuthInformation, // SYSTEM_POINTER_AUTH_INFORMATION
     SystemSecureKernelDebuggerInformation,
-    SystemOriginalImageFeatureInformation,
+    SystemOriginalImageFeatureInformation, // q: in: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, out: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT // NtQuerySystemInformationEx
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2057,12 +2057,6 @@ typedef enum _EVENT_TRACE_INFORMATION_CLASS
     EventTraceUnifiedStackCachingInformation, // sicne 21H1
     MaxEventTraceInfoClass
 } EVENT_TRACE_INFORMATION_CLASS;
-
-typedef struct _EVENT_TRACE_VERSION_INFORMATION
-{
-    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
-    ULONG EventTraceKernelVersion;
-} EVENT_TRACE_VERSION_INFORMATION, *PEVENT_TRACE_VERSION_INFORMATION;
 
 typedef struct _TRACE_ENABLE_FLAG_EXTENSION
 {
@@ -3091,6 +3085,12 @@ typedef struct _PERFINFO_GROUPMASK
     ULONG Masks[PERF_NUM_MASKS];
 } PERFINFO_GROUPMASK, *PPERFINFO_GROUPMASK;
 
+typedef struct _EVENT_TRACE_VERSION_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG EventTraceKernelVersion;
+} EVENT_TRACE_VERSION_INFORMATION, *PEVENT_TRACE_VERSION_INFORMATION;
+
 typedef struct _EVENT_TRACE_GROUPMASK_INFORMATION
 {
     EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
@@ -3220,7 +3220,7 @@ typedef struct _EVENT_TRACE_PROFILE_REMOVE_INFORMATION
 typedef struct _EVENT_TRACE_COVERAGE_SAMPLER_INFORMATION
 {
     EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
-    BOOLEAN CoverageSamplerInformationClass;
+    UCHAR CoverageSamplerInformationClass;
     UCHAR MajorVersion;
     UCHAR MinorVersion;
     UCHAR Reserved;
@@ -5126,6 +5126,7 @@ typedef struct _SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT
     GROUP_AFFINITY TargetAffinity;
 } SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT, *PSYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT;
 
+// private
 typedef union _SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT
 {
     ULONG AsULONG;
@@ -5136,7 +5137,7 @@ typedef union _SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT
     };
 } SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT, *PSYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT;
 
-#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+#if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
 // private
 typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
 {
@@ -5147,7 +5148,7 @@ typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
     ULONG Process : 1;
     ULONG WoW64Container : 1;
     ULONG ReservedZero0 : 11;
-} SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION;
+} SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION, *PSYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION;
 #endif
 
 // private
@@ -5514,6 +5515,15 @@ typedef struct _HV_MINROOT_NUMA_LPS
 } HV_MINROOT_NUMA_LPS, *PHV_MINROOT_NUMA_LPS;
 
 // private
+typedef struct _SYSTEM_XFG_FAILURE_INFORMATION
+{
+    PVOID ReturnAddress;
+    PVOID TargetAddress;
+    ULONG DispatchMode;
+    ULONGLONG XfgValue;
+} SYSTEM_XFG_FAILURE_INFORMATION, *PSYSTEM_XFG_FAILURE_INFORMATION;
+
+// private
 typedef enum _SYSTEM_IOMMU_STATE
 {
     IommuStateBlock,
@@ -5575,6 +5585,21 @@ typedef struct _SYSTEM_POINTER_AUTH_INFORMATION
         };
     };
 } SYSTEM_POINTER_AUTH_INFORMATION, *PSYSTEM_POINTER_AUTH_INFORMATION;
+
+// private
+typedef struct _SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT
+{
+    ULONG Version;
+    PWSTR FeatureName;
+    ULONG BornOnVersion;
+} SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, *PSYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT;
+
+// private
+typedef struct _SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT
+{
+    ULONG Version;
+    BOOLEAN FeatureIsEnabled;
+} SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT, *PSYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -6499,8 +6524,6 @@ C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x738);
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 
-#if (PHNT_VERSION >= PHNT_WS03)
-
 FORCEINLINE
 ULONGLONG
 NtGetTickCount64(
@@ -6562,28 +6585,6 @@ NtGetTickCount(
 
 #endif
 }
-
-#else
-
-FORCEINLINE
-ULONGLONG
-NtGetTickCount64(
-    VOID
-    )
-{
-    return GetTickCount(); // pre PHNT_WS03 support (dmex)
-}
-
-FORCEINLINE
-ULONG
-NtGetTickCount(
-    VOID
-    )
-{
-    return GetTickCount();
-}
-
-#endif
 
 // Locale
 

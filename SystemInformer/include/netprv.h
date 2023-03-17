@@ -21,7 +21,7 @@ typedef struct _PH_NETWORK_ITEM
     BOOLEAN ProcessIconValid;
     PPH_STRING OwnerName;
 
-    ULONG JustResolved;
+    volatile LONG JustResolved;
 
     ULONG LocalAddressStringLength;
     ULONG RemoteAddressStringLength;

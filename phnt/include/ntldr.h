@@ -213,6 +213,8 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
+//STATIC_ASSERT(sizeof(LDR_DATA_TABLE_ENTRY) == 0x138);
+
 #define LDR_IS_DATAFILE(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)1)
 #define LDR_IS_IMAGEMAPPING(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)2)
 #define LDR_MAPPEDVIEW_TO_DATAFILE(BaseAddress) ((PVOID)(((ULONG_PTR)(BaseAddress)) | (ULONG_PTR)1))

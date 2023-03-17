@@ -5,15 +5,17 @@
  *
  * Authors:
  *
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
 #include <ph.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <guisup.h>
 
 #include <shobjidl.h>
+#include <shlobj_core.h>
 
 #include <appresolverp.h>
 #include <appresolver.h>
@@ -228,7 +230,7 @@ HRESULT PhAppResolverActivateAppId(
 
     if (SUCCEEDED(status))
     {
-        //CoAllowSetForegroundWindow((IUnknown*)applicationActivationManager, NULL);
+        CoAllowSetForegroundWindow((IUnknown*)applicationActivationManager, NULL);
 
         status = IApplicationActivationManager_ActivateApplication(
             applicationActivationManager,
@@ -244,6 +246,33 @@ HRESULT PhAppResolverActivateAppId(
     if (SUCCEEDED(status))
     {
         if (ProcessId) *ProcessId = UlongToHandle(processId);
+    }
+
+    return status;
+}
+
+HRESULT PhAppResolverPackageTerminateProcess(
+    _In_ PPH_STRING PackageFullName
+    )
+{
+    HRESULT status;
+    IPackageDebugSettings* packageDebugSettings;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_PackageDebugSettings,
+        &IID_IPackageDebugSettings,
+        &packageDebugSettings
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IPackageDebugSettings_TerminateAllProcesses(
+            packageDebugSettings,
+            PhGetString(PackageFullName)
+            );
+
+        IPackageDebugSettings_Release(packageDebugSettings);
     }
 
     return status;
@@ -484,7 +513,7 @@ PPH_STRING PhGetAppContainerName(
             0
             )))
         {
-            PhMoveReference(&appContainerName, PhQueryRegistryString(keyHandle, L"Moniker"));
+            PhMoveReference(&appContainerName, PhQueryRegistryStringZ(keyHandle, L"Moniker"));
             NtClose(keyHandle);
         }
 
@@ -512,7 +541,7 @@ PPH_STRING PhGetAppContainerSidFromName(
     {
         packageSidString = PhSidToStringSid(appContainerSid);
 
-        RtlFreeSid(appContainerSid);
+        PhFreeSid(appContainerSid);
     }
 
     return packageSidString;
@@ -547,7 +576,7 @@ PPH_STRING PhGetAppContainerPackageName(
         0
         )))
     {
-        PhMoveReference(&packageName, PhQueryRegistryString(keyHandle, L"Moniker"));
+        PhMoveReference(&packageName, PhQueryRegistryStringZ(keyHandle, L"Moniker"));
         NtClose(keyHandle);
     }
 
@@ -566,7 +595,7 @@ PPH_STRING PhGetAppContainerPackageName(
             0
             )))
         {
-            PhMoveReference(&packageName, PhQueryRegistryString(keyHandle, L"Moniker"));
+            PhMoveReference(&packageName, PhQueryRegistryStringZ(keyHandle, L"Moniker"));
             NtClose(keyHandle);
         }
 
@@ -598,7 +627,7 @@ PPH_STRING PhGetPackagePath(
         0
         )))
     {
-        packagePath = PhQueryRegistryString(keyHandle, L"PackageRootFolder");
+        packagePath = PhQueryRegistryStringZ(keyHandle, L"PackageRootFolder");
         NtClose(keyHandle);
     }
 
@@ -612,44 +641,43 @@ PPH_STRING PhGetPackageAppDataPath(
     )
 {
     static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
-    static PH_STRINGREF localAppDataPackages = PH_STRINGREF_INIT(L"%APPDATALOCAL%\\Packages\\");
     PPH_STRING packageAppDataPath = NULL;
     PPH_STRING localAppDataPath;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     HANDLE tokenHandle;
 
-    localAppDataPath = PhExpandEnvironmentStrings(&localAppDataPackages);
+    localAppDataPath = PhGetKnownLocationZ(PH_FOLDERID_LocalAppData, L"\\Packages\\");
 
     if (PhIsNullOrEmptyString(localAppDataPath))
         return NULL;
 
     if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
     {
-        if (NT_SUCCESS(PhGetTokenSecurityAttributes(tokenHandle, &info)))
+        if (NT_SUCCESS(PhGetTokenSecurityAttribute(tokenHandle, &attributeName, &info)))
         {
             for (ULONG i = 0; i < info->AttributeCount; i++)
             {
                 PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-        
+
                 if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
                 {
                     PH_STRINGREF valueAttributeName;
-        
+
                     PhUnicodeStringToStringRef(&attribute->Name, &valueAttributeName);
-        
+
                     if (PhEqualStringRef(&valueAttributeName, &attributeName, FALSE))
                     {
                         PPH_STRING attributeValue;
-        
+
                         attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
                         packageAppDataPath = PhConcatStringRef2(&localAppDataPath->sr, &attributeValue->sr);
-        
+
                         PhDereferenceObject(attributeValue);
                         break;
                     }
                 }
             }
-        
+
             PhFree(info);
         }
 
@@ -671,8 +699,8 @@ BOOLEAN PhIsPackageCapabilitySid(
     for (ULONG i = 1; i < SECURITY_APP_PACKAGE_RID_COUNT - 1; i++)
     {
         if (
-            *RtlSubAuthoritySid(AppContainerSid, i) !=
-            *RtlSubAuthoritySid(Sid, i)
+            *PhSubAuthoritySid(AppContainerSid, i) !=
+            *PhSubAuthoritySid(Sid, i)
             )
         {
             isPackageCapability = FALSE;
@@ -903,6 +931,7 @@ HRESULT PhAppResolverGetEdpContextForProcess(
     return status;
 }
 
+// Note: IStartMenuAppItems_EnumItems doesn't return immersive items on Win11 (dmex)
 //VOID PhEnumerateStartMenuAppUserModelIds(VOID)
 //{
 //    PVOID startMenuInterface;
@@ -955,6 +984,136 @@ HRESULT PhAppResolverGetEdpContextForProcess(
 //
 //    IStartMenuAppItems_Release(startMenuEnumObjects);
 //}
+
+DEFINE_GUID(FOLDERID_AppsFolder, 0x1e87508d, 0x89c2, 0x42f0, 0x8a, 0x7e, 0x64, 0x5a, 0x0f, 0x50, 0xca, 0x58);
+DEFINE_GUID(BHID_EnumItems, 0x94f60519, 0x2850, 0x4924, 0xaa, 0x5a, 0xd1, 0x5e, 0x84, 0x86, 0x80, 0x39);
+DEFINE_GUID(BHID_PropertyStore, 0x0384e1a4, 0x1523, 0x439c, 0xa4, 0xc8, 0xab, 0x91, 0x10, 0x52, 0xf5, 0x86);
+
+static BOOLEAN PhParseStartMenuAppShellItem(
+    _In_ IShellItem2* ShellItem,
+    _In_ PPH_LIST List
+    )
+{
+    PROPVARIANT packageHostEnvironment = { 0 };
+    PWSTR packageAppUserModelID = NULL;
+    PWSTR packageInstallPath = NULL;
+    PWSTR packageFullName = NULL;
+    PWSTR packageSmallLogoPath = NULL;
+    PWSTR packageLongDisplayName = NULL;
+
+    if (FAILED(IShellItem2_GetProperty(ShellItem, &PKEY_AppUserModel_HostEnvironment, &packageHostEnvironment)))
+        return FALSE;
+    if (!(V_VT(&packageHostEnvironment) == VT_UI4 && V_UI4(&packageHostEnvironment)))
+        return FALSE;
+
+    IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_ID, &packageAppUserModelID);
+    IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_PackageInstallPath, &packageInstallPath);
+    IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_PackageFullName, &packageFullName);
+    IShellItem2_GetString(ShellItem, &PKEY_Tile_SmallLogoPath, &packageSmallLogoPath);
+    IShellItem2_GetString(ShellItem, &PKEY_Tile_LongDisplayName, &packageLongDisplayName);
+
+    if (packageAppUserModelID &&
+        packageInstallPath &&
+        packageFullName &&
+        packageSmallLogoPath &&
+        packageLongDisplayName)
+    {
+        PPH_APPUSERMODELID_ENUM_ENTRY entry;
+
+        entry = PhAllocateZero(sizeof(PH_APPUSERMODELID_ENUM_ENTRY));
+        entry->AppUserModelId = PhCreateString(packageAppUserModelID);
+        entry->DisplayName = PhCreateString(packageLongDisplayName);
+        entry->PackageInstallPath = PhCreateString(packageInstallPath);
+        entry->PackageFullName = PhCreateString(packageFullName);
+        entry->SmallLogoPath = PhCreateString(packageSmallLogoPath);
+        PhAddItemList(List, entry);
+
+        return TRUE;
+    }
+
+    if (packageAppUserModelID)
+        CoTaskMemFree(packageAppUserModelID);
+    if (packageInstallPath)
+        CoTaskMemFree(packageInstallPath);
+    if (packageFullName)
+        CoTaskMemFree(packageFullName);
+    if (packageSmallLogoPath)
+        CoTaskMemFree(packageSmallLogoPath);
+    if (packageLongDisplayName)
+        CoTaskMemFree(packageLongDisplayName);
+    return FALSE;
+}
+
+PPH_LIST PhEnumerateApplicationUserModelIds(
+    VOID
+    )
+{
+    HRESULT status;
+    PPH_LIST list = NULL;
+    IShellItem2* shellKnownFolderItem = NULL;
+    IEnumShellItems* shellEnumFolderItem = NULL;
+
+    status = SHGetKnownFolderItem(
+        &FOLDERID_AppsFolder,
+        KF_FLAG_DONT_VERIFY,
+        NULL,
+        &IID_IShellItem2,
+        &shellKnownFolderItem
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = IShellItem2_BindToHandler(
+        shellKnownFolderItem,
+        NULL,
+        &BHID_EnumItems,
+        &IID_IEnumShellItems,
+        &shellEnumFolderItem
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    list = PhCreateList(10);
+
+    while (TRUE)
+    {
+        ULONG count = 0;
+        IShellItem* itemlist[10];
+
+        if (FAILED(IEnumShellItems_Next(shellEnumFolderItem, 10, itemlist, &count)))
+            break;
+        if (count == 0)
+            break;
+
+        for (ULONG i = 0; i < count; i++)
+        {
+            IShellItem2* item;
+
+            if (SUCCEEDED(IShellItem_QueryInterface(itemlist[i], &IID_IShellItem2, &item)))
+            {
+                PhParseStartMenuAppShellItem(item, list);
+
+                IShellItem2_Release(item);
+            }
+
+            IShellItem_Release(itemlist[i]);
+        }
+    }
+
+CleanupExit:
+    if (shellEnumFolderItem)
+    {
+        IEnumShellItems_Release(shellEnumFolderItem);
+    }
+    if (shellKnownFolderItem)
+    {
+        IShellItem2_Release(shellKnownFolderItem);
+    }
+
+    return list;
+}
 
 HRESULT PhAppResolverGetPackageResourceFilePath(
     _In_ PPH_STRING PackageFullName,
@@ -1014,10 +1173,10 @@ HRESULT PhAppResolverGetPackageStartMenuPropertyStore(
     IPropertyStore* propertyStore = NULL;
 
     if (!(startMenuInterface = PhpQueryStartMenuCacheInterface()))
-        return S_FALSE;
+        return E_FAIL;
 
     if (!PhAppResolverGetAppIdForProcess(ProcessId, &applicationUserModelId))
-        return S_FALSE;
+        return E_FAIL;
 
     if (WindowsVersion < WINDOWS_8)
     {
@@ -1050,6 +1209,7 @@ HRESULT PhAppResolverGetPackageStartMenuPropertyStore(
     return status;
 }
 
+_Success_(return)
 BOOLEAN PhAppResolverGetPackageIcon(
     _In_ HANDLE ProcessId,
     _In_ PPH_STRING PackageFullName,
@@ -1114,8 +1274,16 @@ CleanupExit:
 
     if (largeIcon && smallIcon)
     {
-        *IconLarge = largeIcon;
-        *IconSmall = smallIcon;
+        if (IconLarge)
+            *IconLarge = largeIcon;
+        else
+            DestroyIcon(largeIcon);
+
+        if (IconSmall)
+            *IconSmall = smallIcon;
+        else
+            DestroyIcon(smallIcon);
+
         return TRUE;
     }
     else

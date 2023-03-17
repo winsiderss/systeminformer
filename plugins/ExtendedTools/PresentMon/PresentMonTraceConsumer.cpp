@@ -590,7 +590,7 @@ void HandleDxgkSyncDPCMPO(EVENT_HEADER const& hdr, uint32_t flipSubmitSequence, 
 
     // VSyncDPC and VSyncDPCMultiPlaneOverlay are both sent, with VSyncDPC only including flipSubmitSequence for one layer.
     // VSyncDPCMultiPlaneOverlay is sent afterward and contains info on whether this vsync/hsync contains an overlay.
-    // So we should avoid updating ScreenTime and FinalState with the second event, but update isMultiPlane with the 
+    // So we should avoid updating ScreenTime and FinalState with the second event, but update isMultiPlane with the
     // correct information when we have them.
     if (pEvent->FinalState != PresentResult::Presented) {
         //DebugModifyPresent(pEvent.get());
@@ -1339,7 +1339,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
         break;
 
     // These events are only used for Composed_Copy_CPU_GDI presents.  They are
-    // used to identify when such presents are handed off to DWM. 
+    // used to identify when such presents are handed off to DWM.
     case Microsoft_Windows_Dwm_Core::FlipChain_Pending::Id:
     case Microsoft_Windows_Dwm_Core::FlipChain_Complete::Id:
     case Microsoft_Windows_Dwm_Core::FlipChain_Dirty::Id:
@@ -1348,7 +1348,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
                 break;
             }
 
-            if (PhWindowsVersion > WINDOWS_7 && PhWindowsVersion < WINDOWS_10)
+            if (EtWindowsVersion > WINDOWS_7 && EtWindowsVersion < WINDOWS_10)
             {
                 EventDataDesc desc[] = {
                     { L"ulFlipChain" },
@@ -1414,7 +1414,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
         break;
     case Microsoft_Windows_Dwm_Core::SCHEDULE_SURFACEUPDATE_Info::Id:
         {
-            if (PhWindowsVersion > WINDOWS_7 && PhWindowsVersion < WINDOWS_10)
+            if (EtWindowsVersion > WINDOWS_7 && EtWindowsVersion < WINDOWS_10)
             {
                 EventDataDesc desc[] = {
                     { L"luidSurface" },
@@ -1946,7 +1946,7 @@ void RuntimePresentStop(Runtime runtime, EVENT_HEADER const& hdr, uint32_t resul
                 }
 
                 if (enqueuePresents) {
-                    EnqueueDeferredCompletions(deferredCompletions); 
+                    EnqueueDeferredCompletions(deferredCompletions);
                 }
             }
         }

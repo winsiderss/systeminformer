@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -29,9 +29,9 @@ VOID WepDestroyWindowNode(
 BOOLEAN NTAPI WepWindowTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 BOOLEAN WepEnableWindowIcons = FALSE;
@@ -134,12 +134,15 @@ VOID WeInitializeWindowTree(
         PhImageListAddIcon(Context->NodeImageList, iconSmall);
     }
 
+    TreeNew_SetRedraw(hwnd, FALSE);
+
     PhAddTreeNewColumn(hwnd, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_TEXT, TRUE, L"Text", 220, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_MODULE, TRUE, L"Module", 150, PH_ALIGN_LEFT, 4, 0);
 
+    TreeNew_SetRedraw(hwnd, TRUE);
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, WEWNTLC_CLASS, NoSortOrder);
 
@@ -367,10 +370,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PWE_WINDOW_NODE)getChildren->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)

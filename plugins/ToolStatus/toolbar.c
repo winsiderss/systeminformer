@@ -5,12 +5,11 @@
  *
  * Authors:
  *
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
 #include "toolstatus.h"
-#include "commonutil.h"
 
 SIZE ToolBarImageSize = { 16, 16 };
 HIMAGELIST ToolBarImageList = NULL;
@@ -130,10 +129,7 @@ VOID RebarCreateOrUpdateWindow(
                 SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
 
                 // Remove all buttons.
-                INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-
-                while (buttonCount--)
-                    SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+                ToolbarRemoveButons();
 
                 // Re-add/update buttons.
                 ToolbarLoadButtonSettings();
@@ -207,11 +203,6 @@ VOID RebarCreateOrUpdateWindow(
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 
-        if (RebarHandle && PhGetIntegerSetting(L"EnableThemeSupport"))
-        {
-            PhInitializeWindowThemeRebar(RebarHandle);
-        }
-
         if (SearchboxHandle = CreateWindowEx(
             WS_EX_CLIENTEDGE,
             WC_EDIT,
@@ -256,11 +247,6 @@ VOID RebarCreateOrUpdateWindow(
             {
                 SendMessage(StatusBarHandle, SB_SETMINHEIGHT, height, 0);
             }
-        }
-
-        if (StatusBarHandle && PhGetIntegerSetting(L"EnableThemeSupport"))
-        {
-            PhInitializeWindowThemeStatusBar(StatusBarHandle);
         }
     }
 
@@ -452,15 +438,22 @@ VOID ToolbarLoadSettings(
     SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 }
 
+VOID ToolbarRemoveButons(
+    VOID
+    )
+{
+    INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+    while (buttonCount--)
+        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+}
+
 VOID ToolbarResetSettings(
     VOID
     )
 {
     // Remove all buttons.
-    INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-
-    while (buttonCount--)
-        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+    ToolbarRemoveButons();
 
     // Add the default buttons.
     ToolbarLoadDefaultButtonSettings();
@@ -784,7 +777,8 @@ VOID ToolbarLoadButtonSettings(
     dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     // Allocate the button array
-    buttonArray = PhAllocate(count * sizeof(TBBUTTON));
+    buttonArray = _malloca(count * sizeof(TBBUTTON));
+    if (!buttonArray) goto CleanupExit;
     memset(buttonArray, 0, count * sizeof(TBBUTTON));
 
     for (INT index = 0; index < count; index++)
@@ -840,12 +834,11 @@ VOID ToolbarLoadButtonSettings(
         }
     }
 
-    for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
-        SendMessage(ToolBarHandle, TB_DELETEBUTTON, i, 0);
+    ToolbarRemoveButons();
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, count, (LPARAM)buttonArray);
 
-    PhFree(buttonArray);
+    _freea(buttonArray);
 
 CleanupExit:
     PhClearReference(&settingsString);
@@ -891,8 +884,9 @@ VOID ToolbarSaveButtonSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_TOOLBAR_CONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID ReBarLoadLayoutSettings(
@@ -1006,8 +1000,9 @@ VOID ReBarSaveLayoutSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_REBAR_CONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID RebarAdjustBandHeightLayout(

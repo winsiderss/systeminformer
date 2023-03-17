@@ -16,15 +16,18 @@ NTSTATUS SetupUninstallBuild(
     )
 {
     // Stop the application.
-    if (!ShutdownApplication())
+    if (!SetupShutdownApplication(Context))
         goto CleanupExit;
 
-    // Stop the kernel driver(s).
+    // Stop the kernel driver.
     if (!SetupUninstallDriver(Context))
         goto CleanupExit;
 
-    // Remove autorun and shortcuts.
+    // Remove autorun.
     SetupDeleteWindowsOptions(Context);
+
+    // Remove shortcuts.
+    SetupDeleteShortcuts(Context);
 
     // Remove the uninstaller.
     SetupDeleteUninstallFile(Context);
@@ -33,7 +36,7 @@ NTSTATUS SetupUninstallBuild(
     SetupDeleteUninstallKey();
 
     // Remove the previous installation.
-    if (!NT_SUCCESS(PhDeleteDirectoryWin32(Context->SetupInstallPath)))
+    if (!NT_SUCCESS(PhDeleteDirectoryWin32(&Context->SetupInstallPath->sr)))
     {
         static PH_STRINGREF ksiFileName = PH_STRINGREF_INIT(L"ksi.dll");
         static PH_STRINGREF ksiOldFileName = PH_STRINGREF_INIT(L"ksi.dll-old");
@@ -149,7 +152,7 @@ HRESULT CALLBACK TaskDialogUninstallCallbackProc(
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
-            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), SetupUninstallBuild, context);
+            PhCreateThread2(SetupUninstallBuild, context);
         }
         break;
     }
@@ -260,7 +263,7 @@ VOID ShowUninstallPageDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.hMainIcon = Context->IconLargeHandle;
     config.pButtons = buttonArray;
-    config.cButtons = RTL_NUMBER_OF(buttonArray);
+    config.cButtons = ARRAYSIZE(buttonArray);
     config.pfCallback = TaskDialogUninstallConfirmCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 

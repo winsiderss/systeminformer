@@ -596,6 +596,19 @@ VOID PhClearIgnoredSettings(
     PhpClearIgnoredSettings();
 }
 
+ULONG PhCountIgnoredSettings(
+    VOID
+    )
+{
+    ULONG count;
+
+    PhAcquireQueuedLockShared(&PhSettingsLock);
+    count = PhIgnoredSettings->Count;
+    PhReleaseQueuedLockShared(&PhSettingsLock);
+
+    return count;
+}
+
 VOID PhConvertIgnoredSettings(
     VOID
     )

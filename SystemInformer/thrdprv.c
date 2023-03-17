@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -221,13 +221,11 @@ VOID PhSetTerminatingThreadProvider(
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
 
-    if (!context)
-        return FALSE;
     if (context->ThreadProvider->Terminating)
         return FALSE;
 
@@ -252,13 +250,11 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 
 static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
 
-    if (!context)
-        return FALSE;
     if (context->ThreadProvider->Terminating)
         return FALSE;
 
@@ -340,9 +336,7 @@ VOID PhLoadSymbolsThreadProvider(
         {
             if (kernelModules->NumberOfModules > 0)
             {
-                PPH_STRING fileName;
-
-                fileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
+                PPH_STRING fileName = PhConvertUtf8ToUtf16(kernelModules->Modules[0].FullPathName);
 
                 PhLoadModuleSymbolProvider(
                     ThreadProvider->SymbolProvider,
@@ -350,6 +344,7 @@ VOID PhLoadSymbolsThreadProvider(
                     (ULONG64)kernelModules->Modules[0].ImageBase,
                     kernelModules->Modules[0].ImageSize
                     );
+
                 PhDereferenceObject(fileName);
             }
 
@@ -373,6 +368,8 @@ PPH_THREAD_ITEM PhCreateThreadItem(
         );
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
+
+    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 

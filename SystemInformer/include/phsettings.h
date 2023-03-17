@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_SETTINGS_H
 #define PH_SETTINGS_H
 
@@ -27,7 +39,7 @@ PhUpdateCachedSettings(
 
 EXT BOOLEAN PhEnableProcessQueryStage2;
 EXT BOOLEAN PhEnableServiceQueryStage2;
-EXT BOOLEAN PhEnableThemeSupport;
+EXT BOOLEAN PhEnableWindowText;
 EXT BOOLEAN PhEnableTooltipSupport;
 EXT BOOLEAN PhEnableLinuxSubsystemSupport;
 EXT BOOLEAN PhEnableNetworkResolveDoHSupport;
@@ -38,6 +50,7 @@ EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsHideOtherUserProcesses;
 EXT ULONG PhCsPropagateCpuUsage;
 EXT ULONG PhCsScrollToNewProcesses;
+EXT ULONG PhCsScrollToRemovedProcesses;
 EXT ULONG PhCsShowCpuBelow001;
 EXT ULONG PhCsUpdateInterval;
 
@@ -63,6 +76,8 @@ EXT ULONG PhCsUseColorHandleFiltered;
 EXT ULONG PhCsColorHandleFiltered;
 EXT ULONG PhCsUseColorImmersiveProcesses;
 EXT ULONG PhCsColorImmersiveProcesses;
+EXT ULONG PhCsUseColorUIAccessProcesses;
+EXT ULONG PhCsColorUIAccessProcesses;
 EXT ULONG PhCsUseColorPicoProcesses;
 EXT ULONG PhCsColorPicoProcesses;
 EXT ULONG PhCsUseColorSuspended;

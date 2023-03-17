@@ -30,8 +30,8 @@ typedef HRESULT (WINAPI* _CloseThemeData)(
 
 typedef HRESULT (WINAPI *_SetWindowTheme)(
     _In_ HWND WindowHandle,
-    _In_ PCWSTR SubAppName,
-    _In_ PCWSTR SubIdList
+    _In_opt_ PCWSTR SubAppName,
+    _In_opt_ PCWSTR SubIdList
     );
 
 typedef BOOL (WINAPI *_IsThemeActive)(
@@ -50,7 +50,7 @@ typedef HRESULT (WINAPI *_DrawThemeBackground)(
     _In_ INT iPartId,
     _In_ INT iStateId,
     _In_ const RECT *pRect,
-    _In_ const RECT *pClipRect
+    _In_opt_ const RECT *pClipRect
     );
 
 typedef HRESULT (WINAPI *_DrawThemeText)(
@@ -67,7 +67,7 @@ typedef HRESULT (WINAPI *_DrawThemeText)(
 
 typedef HRESULT (WINAPI* _GetThemeClass)(
     _In_ HTHEME ThemeHandle,
-    _Out_writes_z_(*BufferLength) PWSTR Buffer,
+    _Out_writes_z_(BufferLength) PWSTR Buffer,
     _In_ ULONG BufferLength
     );
 

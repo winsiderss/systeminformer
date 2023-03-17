@@ -23,6 +23,22 @@
 #define INT_ERROR (-1)
 #endif
 
+#ifndef ULONG64_MAX
+#define ULONG64_MAX 0xffffffffffffffffui64
+#endif
+
+#ifndef SIZE_T_MAX
+#ifdef _WIN64
+#define SIZE_T_MAX 0xffffffffffffffffui64
+#else
+#define SIZE_T_MAX 0xffffffffUL
+#endif
+#endif
+
+#ifndef ENABLE_RTL_NUMBER_OF_V2
+#define ENABLE_RTL_NUMBER_OF_V2
+#endif
+
 #ifndef INITGUID
 #define INITGUID
 #endif

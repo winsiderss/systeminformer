@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -38,6 +38,66 @@ SID PhSeRemoteInteractiveLogonSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { 
 SID PhSeLocalSystemSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_LOCAL_SYSTEM_RID } };
 SID PhSeLocalServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_LOCAL_SERVICE_RID } };
 SID PhSeNetworkServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_NETWORK_SERVICE_RID } };
+
+PSID PhSeAdministratorsSid( // WinBuiltinAdministratorsSid (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID administratorsSid = (PSID)administratorsSidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(administratorsSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
+        *PhSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *PhSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return administratorsSid;
+}
+
+PSID PhSeUsersSid( // WinBuiltinUsersSid (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR usersSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID usersSid = (PSID)usersSidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(usersSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
+        *PhSubAuthoritySid(usersSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *PhSubAuthoritySid(usersSid, 1) = DOMAIN_ALIAS_RID_USERS;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return usersSid;
+}
+
+PSID PhSeAnyPackageSid( // WinBuiltinAnyPackageSid (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR anyAppPackagesSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID anyAppPackagesSid = (PSID)anyAppPackagesSidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(anyAppPackagesSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_APP_PACKAGE_AUTHORITY }, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+        *PhSubAuthoritySid(anyAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
+        *PhSubAuthoritySid(anyAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return anyAppPackagesSid;
+}
 
 // Unicode
 

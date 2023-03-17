@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -168,6 +168,7 @@ VOID PhShowMemoryListCommand(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMBINEMEMORYLISTS, L"&Combine memory pages", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMPRESSIONSTORE, L"Empty &compression cache", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_SYSTEMFILECACHE, L"Empty system &file cache", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYREGISTRYCACHE, L"Empty &registry cache", NULL, NULL), ULONG_MAX);   
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYWORKINGSETS, L"Empty &working sets", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYMODIFIEDPAGELIST, L"Empty &modified page list", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYSTANDBYLIST, L"Empty &standby list", NULL, NULL), ULONG_MAX);
@@ -270,6 +271,24 @@ VOID PhShowMemoryListCommand(
                 if (!NT_SUCCESS(status))
                 {
                     PhShowStatus(ParentWindow, L"Unable to empty compression stores", status, 0);
+                }
+            }
+            break;
+        case ID_EMPTY_EMPTYREGISTRYCACHE:
+            {
+                NTSTATUS status;
+
+                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                status = NtSetSystemInformation(SystemRegistryReconciliationInformation, NULL, 0);
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+                if (NT_SUCCESS(status))
+                {
+                    PhShowInformation2(ParentWindow, L"Registry cache flushed", L"", L"");
+                }
+                else
+                {
+                    PhShowStatus(ParentWindow, L"Unable to flush registry cache.", status, 0);
                 }
             }
             break;

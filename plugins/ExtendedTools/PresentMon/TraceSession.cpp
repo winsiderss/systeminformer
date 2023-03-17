@@ -17,7 +17,7 @@
 
 struct TraceProperties : public EVENT_TRACE_PROPERTIES
 {
-    wchar_t mSessionName[MAX_PATH];
+    wchar_t mSessionName[sizeof(L"SiPresentTraceSession")];
 };
 
 static LARGE_INTEGER TraceStartQpc = {};
@@ -141,7 +141,7 @@ ULONG EnableProviders(
     ULONG status = 0;
 
     // Scope filtering based on event ID only works on Win8.1 or greater.
-    bool filterEventIds = PhWindowsVersion >= WINDOWS_8_1;
+    bool filterEventIds = EtWindowsVersion >= WINDOWS_8_1;
 
     // Start backend providers first to reduce Presents being queued up before
     // we can track them.
@@ -182,7 +182,7 @@ ULONG EnableProviders(
     //     Present_Info
     //     VSyncDPC_Info
 
-    if (PhWindowsVersion >= WINDOWS_11)
+    if (EtWindowsVersion >= WINDOWS_11)
     {
         provider.AddKeyword((uint64_t)Microsoft_Windows_DxgKrnl::Keyword::Microsoft_Windows_DxgKrnl_Performance |
             (uint64_t)Microsoft_Windows_DxgKrnl::Keyword::Base |
@@ -224,7 +224,7 @@ ULONG EnableProviders(
         // BEGIN WORKAROUND: Windows11 uses Scheduling keyword instead of DwmCore keyword for:
         //     SCHEDULE_PRESENT_Start
         //     SCHEDULE_SURFACEUPDATE_Info
-        if (PhWindowsVersion >= WINDOWS_11)
+        if (EtWindowsVersion >= WINDOWS_11)
         {
             provider.AddKeyword((uint64_t)Microsoft_Windows_Dwm_Core::Keyword::Microsoft_Windows_Dwm_Core_Diagnostic |
                 (uint64_t)Microsoft_Windows_Dwm_Core::Keyword::Scheduling);
@@ -356,7 +356,8 @@ BOOLEAN StartFpsTraceSession(
 {
     ULONG status;
 
-    PhQueryPerformanceCounter(&TraceStartQpc, &TraceFrequencyQpc);
+    PhQueryPerformanceCounter(&TraceStartQpc);
+    PhQueryPerformanceFrequency(&TraceFrequencyQpc);
 
     TraceProperties sessionProps = {};
     sessionProps.Wnode.BufferSize = (ULONG)sizeof(TraceProperties);

@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "exttools.h"
 #include "poolmon.h"
-#include "commonutil.h"
 
 static HWND EtPoolTagDialogHandle = NULL;
 static HANDLE EtPoolTagDialogThreadHandle = NULL;
@@ -394,12 +393,12 @@ NTSTATUS EtShowPoolMonDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtPoolTagDialogHandle = CreateDialogParam(
+    EtPoolTagDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_POOL),
         NULL,
         EtPoolMonDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     PhSetEvent(&EtPoolTagDialogInitializedEvent);

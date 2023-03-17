@@ -5,12 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2011-2019
+ *     dmex    2011-2023
  *
  */
 
-#ifndef __UPDATER_H__
-#define __UPDATER_H__
+#ifndef UPDATER_H
+#define UPDATER_H
 
 #include <phdk.h>
 #include <phappresource.h>
@@ -19,7 +19,7 @@
 #include <settings.h>
 #include <workqueue.h>
 
-#include <commonutil.h>
+#include <bcrypt.h>
 
 #include "resource.h"
 
@@ -52,6 +52,7 @@
 #ifdef _DEBUG
 //#define FORCE_UPDATE_CHECK
 //#define FORCE_LATEST_VERSION
+//#define FORCE_ELEVATION_CHECK
 #endif
 
 extern HWND UpdateDialogHandle;
@@ -87,7 +88,8 @@ typedef struct _PH_UPDATER_CONTEXT
             BOOLEAN FixedWindowStyles : 1;
             BOOLEAN Cancel : 1;
             BOOLEAN DirectoryElevationRequired : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN Cleanup : 1;
+            BOOLEAN Spare : 3;
         };
     };
 
@@ -169,6 +171,15 @@ VOID ShowUpdateFailedDialog(
     );
 
 // updater.c
+
+BOOLEAN UpdateShellExecute(
+    _In_ PPH_UPDATER_CONTEXT Context,
+    _In_opt_ HWND WindowHandle
+    );
+
+BOOLEAN UpdateCheckDirectoryElevationRequired(
+    VOID
+    );
 
 VOID ShowUpdateDialog(
     _In_opt_ PPH_UPDATER_CONTEXT Context

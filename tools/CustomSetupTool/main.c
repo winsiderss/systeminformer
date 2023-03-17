@@ -75,6 +75,7 @@ LRESULT CALLBACK SetupTaskDialogSubclassProc(
             //ShowUpdateCompletedPageDialog(context);
 
             SetupExecuteApplication(context);
+
             PostMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
         }
         break;
@@ -102,12 +103,9 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
     {
     case TDN_CREATED:
         {
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(hwndDlg);
+            LONG dpiValue = PhGetWindowDpi(hwndDlg);
 
             context->DialogHandle = hwndDlg;
-
             context->IconLargeHandle = PhLoadIcon(
                 PhInstanceHandle,
                 MAKEINTRESOURCE(IDI_ICON),
@@ -196,12 +194,22 @@ INT SetupShowMessagePromptForLegacyVersion(
     }
 }
 
+NTSTATUS SetupCommandQuietInstall(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+
+    status = SetupProgressThread(Context);
+
+    return status;
+}
+
 VOID SetupShowDialog(
     VOID
     )
 {
     PPH_SETUP_CONTEXT context;
-    TASKDIALOGCONFIG config;
     PH_AUTO_POOL autoPool;
     BOOL value = FALSE;
 
@@ -217,24 +225,38 @@ VOID SetupShowDialog(
         context->SetupInstallPath = SetupFindInstallDirectory();
     }
 
-    if (context->SetupIsLegacyUpdate)
+    if (context->SetupMode == SETUP_COMMAND_SILENTINSTALL)
     {
-        SetupShowMessagePromptForLegacyVersion();
+        NTSTATUS status = SetupCommandQuietInstall(context);
+
+        if (NT_SUCCESS(status))
+        {
+            SetupExecuteApplication(context);
+        }
     }
-
-    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
-    config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-    config.hInstance = PhInstanceHandle;
-    config.pszContent = L"Initializing...";
-    config.pfCallback = SetupTaskDialogBootstrapCallback;
-    config.lpCallbackData = (LONG_PTR)context;
-
-    TaskDialogIndirect(&config, NULL, NULL, &value);
-
-    if (value)
+    else
     {
-        SetupExecuteApplication(context);
+        TASKDIALOGCONFIG config;
+
+        if (context->SetupIsLegacyUpdate)
+        {
+            SetupShowMessagePromptForLegacyVersion();
+        }
+
+        memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+        config.cbSize = sizeof(TASKDIALOGCONFIG);
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+        config.hInstance = PhInstanceHandle;
+        config.pszContent = L"Initializing...";
+        config.pfCallback = SetupTaskDialogBootstrapCallback;
+        config.lpCallbackData = (LONG_PTR)context;
+
+        TaskDialogIndirect(&config, NULL, NULL, &value);
+
+        if (value)
+        {
+            SetupExecuteApplication(context);
+        }
     }
 
     PhDeleteAutoPool(&autoPool);
@@ -343,14 +365,14 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     {
         // HACK: PhParseCommandLine requires the - symbol for commandline parameters
         // and we already support the -silent parameter however we need to maintain
-        // compatibility with the legacy Inno Setup.
-        //if (!PhIsNullOrEmptyString(Value))
-        //{
-        //    if (Value && PhEqualString2(Value, L"/silent", TRUE))
-        //    {
-        //        context->SetupMode = SETUP_COMMAND_SILENTINSTALL;
-        //    }
-        //}
+        // compatibility with the legacy Inno Setup. (dmex)
+        if (!PhIsNullOrEmptyString(Value))
+        {
+            if (Value && PhEqualString2(Value, L"/silent", TRUE))
+            {
+                //context->SetupMode = SETUP_COMMAND_SILENTINSTALL;
+            }
+        }
     }
 
     if (PhIsNullOrEmptyString(context->SetupInstallPath))
@@ -370,7 +392,7 @@ VOID SetupParseCommandLine(
         { SETUP_COMMAND_INSTALL, L"install", NoArgumentType },
         { SETUP_COMMAND_UNINSTALL, L"uninstall", NoArgumentType },
         { SETUP_COMMAND_UPDATE, L"update", OptionalArgumentType },
-        { SETUP_COMMAND_UPDATE, L"silent", NoArgumentType },
+        //{ SETUP_COMMAND_UPDATE, L"silent", NoArgumentType },
         //{ SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
     };
     PH_STRINGREF commandLine;
@@ -380,7 +402,7 @@ VOID SetupParseCommandLine(
         PhParseCommandLine(
             &commandLine,
             options,
-            RTL_NUMBER_OF(options),
+            ARRAYSIZE(options),
             PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART,
             MainPropSheetCommandLineCallback,
             Context

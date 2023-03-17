@@ -44,12 +44,15 @@ typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
     _In_ INT Index
     );
 typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_PING)(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_TRACERT)(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_WHOIS)(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
@@ -220,13 +223,13 @@ VOID NTAPI MenuItemCallback(
     switch (menuItem->Id)
     {
     case NETWORK_ACTION_PING:
-        ShowPingWindow((PPH_NETWORK_ITEM)menuItem->Context);
+        ShowPingWindow(menuItem->OwnerWindow, (PPH_NETWORK_ITEM)menuItem->Context);
         break;
     case NETWORK_ACTION_TRACEROUTE:
-        ShowTracertWindow((PPH_NETWORK_ITEM)menuItem->Context);
+        ShowTracertWindow(menuItem->OwnerWindow, (PPH_NETWORK_ITEM)menuItem->Context);
         break;
     case NETWORK_ACTION_WHOIS:
-        ShowWhoisWindow((PPH_NETWORK_ITEM)menuItem->Context);
+        ShowWhoisWindow(menuItem->OwnerWindow, (PPH_NETWORK_ITEM)menuItem->Context);
         break;
     case MAINMENU_ACTION_PING:
         {
@@ -248,7 +251,7 @@ VOID NTAPI MenuItemCallback(
             {
                 if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
-                    ShowPingWindowFromAddress(remoteEndpoint);
+                    ShowPingWindowFromAddress(menuItem->OwnerWindow, remoteEndpoint);
                     break;
                 }
             }
@@ -274,7 +277,7 @@ VOID NTAPI MenuItemCallback(
             {
                 if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
-                    ShowTracertWindowFromAddress(remoteEndpoint);
+                    ShowTracertWindowFromAddress(menuItem->OwnerWindow, remoteEndpoint);
                     break;
                 }
             }
@@ -300,7 +303,7 @@ VOID NTAPI MenuItemCallback(
             {
                 if (ParseNetworkAddress(selectedChoice->Buffer, &remoteEndpoint))
                 {
-                    ShowWhoisWindowFromAddress(remoteEndpoint);
+                    ShowWhoisWindowFromAddress(menuItem->OwnerWindow, remoteEndpoint);
                     break;
                 }
             }

@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2017-2023
+ *     jxy-s   2021-2022
+ *
+ */
+
 #ifndef _PH_KPHUSER_H
 #define _PH_KPHUSER_H
 
@@ -24,7 +37,19 @@ typedef struct _KPH_CONFIG_PARAMETERS
     _In_ PPH_STRINGREF ObjectName;
     _In_ PPH_STRINGREF PortName;
     _In_ PPH_STRINGREF Altitude;
-    _In_ BOOLEAN DisableImageLoadProtection;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN EnableNativeLoad : 1;
+            BOOLEAN EnableFilterLoad : 1;
+            BOOLEAN DisableImageLoadProtection : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
+
     _In_opt_ PKPH_COMMS_CALLBACK Callback;
 } KPH_CONFIG_PARAMETERS, *PKPH_CONFIG_PARAMETERS;
 
@@ -49,6 +74,21 @@ KphSetServiceSecurity(
     _In_ SC_HANDLE ServiceHandle
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KsiLoadUnloadService(
+    _In_ PKPH_CONFIG_PARAMETERS Config,
+    _In_ BOOLEAN LoadDriver
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphServiceStop(
+    _In_ PKPH_CONFIG_PARAMETERS Config
+    );
+
 //PHLIBAPI
 //NTSTATUS
 //NTAPI
@@ -67,13 +107,6 @@ KphSetServiceSecurity(
 //KphUninstall(
 //    _In_ PPH_STRINGREF ServiceName
 //    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphServiceStop(
-    _In_ PPH_STRINGREF ServiceName
-    );
 
 PHLIBAPI
 PPH_FREE_LIST

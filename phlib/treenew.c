@@ -38,6 +38,7 @@
 #include <apiimport.h>
 #include <guisup.h>
 #include <treenewp.h>
+#include <mapldr.h>
 
 static PVOID ComCtl32Handle;
 
@@ -62,7 +63,7 @@ BOOLEAN PhTreeNewInitialization(
     if (!RegisterClassEx(&c))
         return FALSE;
 
-    ComCtl32Handle = PhGetLoaderEntryDllBase(L"comctl32.dll");
+    ComCtl32Handle = PhGetLoaderEntryDllBaseZ(L"comctl32.dll");
 
     return TRUE;
 }
@@ -156,7 +157,7 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnThemeChanged(hwnd, context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhTnpOnDpiChanged(hwnd, context);
         }
@@ -440,21 +441,36 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->Style & TN_STYLE_NO_COLUMN_HEADER))
         headerStyle |= WS_VISIBLE;
 
-    if (Context->Style & TN_STYLE_CUSTOM_COLORS)
+    if (createParamaters)
     {
-        Context->CustomTextColor = createParamaters->TextColor ? createParamaters->TextColor : RGB(0xff, 0xff, 0xff);
-        Context->CustomFocusColor = createParamaters->FocusColor ? createParamaters->FocusColor : RGB(0x0, 0x0, 0xff);
-        Context->CustomSelectedColor = createParamaters->SelectionColor ? createParamaters->SelectionColor : RGB(0x0, 0x0, 0x80);
-        Context->CustomColors = TRUE;
+        if (Context->Style & TN_STYLE_CUSTOM_COLORS && RTL_CONTAINS_FIELD(createParamaters, createParamaters->Size, SelectionColor))
+        {
+            Context->CustomTextColor = createParamaters->TextColor ? createParamaters->TextColor : RGB(0xff, 0xff, 0xff);
+            Context->CustomFocusColor = createParamaters->FocusColor ? createParamaters->FocusColor : RGB(0x0, 0x0, 0xff);
+            Context->CustomSelectedColor = createParamaters->SelectionColor ? createParamaters->SelectionColor : RGB(0x0, 0x0, 0x80);
+            Context->CustomColors = TRUE;
+        }
+        else
+        {
+            Context->CustomTextColor = GetSysColor(COLOR_WINDOWTEXT);
+            Context->CustomFocusColor = GetSysColor(COLOR_HOTLIGHT);
+            Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
+        }
+
+        if (RTL_CONTAINS_FIELD(createParamaters, createParamaters->Size, RowHeight) && createParamaters->RowHeight)
+        {
+            Context->CustomRowHeight = TRUE;
+            Context->RowHeight = max(createParamaters->RowHeight, 15);   
+        }
     }
     else
     {
+        Context->CustomTextColor = GetSysColor(COLOR_WINDOWTEXT);
         Context->CustomFocusColor = GetSysColor(COLOR_HOTLIGHT);
         Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
     }
 
-    // TODO: HeaderCustomDraw doesn't support classic theme on Windows 7 (dmex)
-    if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW && WindowsVersion > WINDOWS_7)
+    if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW)
         Context->HeaderCustomDraw = TRUE;
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
@@ -820,7 +836,7 @@ VOID PhTnpOnTimer(
             {
                 Context->DividerHot = 100;
                 Context->AnimateDividerFadingIn = FALSE;
-                KillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
+                PhKillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
             }
 
             InvalidateRect(hwnd, &dividerRect, FALSE);
@@ -831,7 +847,7 @@ VOID PhTnpOnTimer(
             {
                 Context->DividerHot = 0;
                 Context->AnimateDividerFadingOut = FALSE;
-                KillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
+                PhKillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
             }
             else
             {
@@ -895,7 +911,7 @@ VOID PhTnpOnMouseLeave(
             // Fade out the divider.
             Context->AnimateDividerFadingOut = TRUE;
             Context->AnimateDividerFadingIn = FALSE;
-            SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+            PhSetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
         }
     }
 
@@ -948,7 +964,7 @@ VOID PhTnpOnXxxButtonXxx(
                 Context->TrackOldFixedWidth = Context->FixedWidth;
                 SetCapture(hwnd);
 
-                SetTimer(hwnd, TNP_TIMER_NULL, 100, NULL); // make sure we get messages once in a while so we can detect the escape key
+                PhSetTimer(hwnd, TNP_TIMER_NULL, 100, NULL); // make sure we get messages once in a while so we can detect the escape key
                 GetAsyncKeyState(VK_ESCAPE);
             }
         }
@@ -1216,7 +1232,7 @@ VOID PhTnpOnCaptureChanged(
     )
 {
     Context->Tracking = FALSE;
-    KillTimer(hwnd, TNP_TIMER_NULL);
+    PhKillTimer(hwnd, TNP_TIMER_NULL);
 }
 
 VOID PhTnpOnKeyDown(
@@ -1764,26 +1780,29 @@ ULONG_PTR PhTnpOnUserMessage(
             PULONG newOrder;
             PPH_TREENEW_COLUMN column;
 
-            newOrder = PhAllocate(count * sizeof(ULONG));
-
-            for (i = 0; i < count; i++)
+            if (count)
             {
-                if (!(column = PhTnpLookupColumnById(Context, order[i])))
+                newOrder = PhAllocate(count * sizeof(ULONG));
+
+                for (i = 0; i < count; i++)
+                {
+                    if (!(column = PhTnpLookupColumnById(Context, order[i])))
+                    {
+                        PhFree(newOrder);
+                        return FALSE;
+                    }
+
+                    newOrder[i] = column->s.ViewIndex;
+                }
+
+                if (!Header_SetOrderArray(Context->HeaderHandle, count, newOrder))
                 {
                     PhFree(newOrder);
                     return FALSE;
                 }
 
-                newOrder[i] = column->s.ViewIndex;
-            }
-
-            if (!Header_SetOrderArray(Context->HeaderHandle, count, newOrder))
-            {
                 PhFree(newOrder);
-                return FALSE;
             }
-
-            PhFree(newOrder);
 
             PhTnpUpdateColumnHeaders(Context);
             PhTnpUpdateColumnMaps(Context);
@@ -2061,6 +2080,20 @@ ULONG_PTR PhTnpOnUserMessage(
             Context->HeaderTextCache = headerCache->HeaderTreeColumnTextCache;
         }
         return TRUE;
+    case TNM_ENSUREVISIBLEINDEX:
+        return PhTnpEnsureVisibleNode(Context, (ULONG)LParam);
+    case TNM_GETVISIBLECOLUMN:
+        {
+            ULONG index = (ULONG)WParam;
+
+            if (index >= Context->NumberOfColumnsByDisplay + (Context->FixedColumnVisible ? 1 : 0))
+                return FALSE;
+
+            index = Context->ColumnsByDisplay[index - (Context->FixedColumnVisible ? 1 : 0)]->Id;
+
+            return PhTnpCopyColumn(Context, index, (PPH_TREENEW_COLUMN)LParam);
+        }
+        break;
     }
 
     return 0;
@@ -4131,7 +4164,7 @@ VOID PhTnpProcessMoveMouse(
                 // Begin fading in the divider.
                 Context->AnimateDividerFadingIn = TRUE;
                 Context->AnimateDividerFadingOut = FALSE;
-                SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+                PhSetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
             }
         }
         else
@@ -4140,7 +4173,7 @@ VOID PhTnpProcessMoveMouse(
             {
                 Context->AnimateDividerFadingOut = TRUE;
                 Context->AnimateDividerFadingIn = FALSE;
-                SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+                PhSetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
             }
         }
     }

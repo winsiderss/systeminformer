@@ -15,6 +15,7 @@
 #include <phplug.h>
 #include <phsettings.h>
 #include <extmgri.h>
+#include <mapldr.h>
 #include <netprv.h>
 #include <procprv.h>
 #include <svcsup.h>
@@ -90,7 +91,6 @@ SLIST_HEADER PhNetworkItemQueryListHead;
 
 BOOLEAN PhEnableNetworkProviderResolve = TRUE;
 BOOLEAN PhEnableNetworkBoundConnections = TRUE;
-static BOOLEAN NetworkImportDone = FALSE;
 static PPH_HASHTABLE PhpResolveCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
@@ -679,15 +679,6 @@ VOID PhNetworkProviderUpdate(
     ULONG numberOfConnections;
     ULONG i;
 
-    if (!NetworkImportDone)
-    {
-        WSADATA wsaData;
-        // Make sure WSA is initialized. (wj32)
-        WSAStartup(WINSOCK_VERSION, &wsaData);
-        PhLoaderEntryLoadAllImportsForDll(PhInstanceHandle, "iphlpapi.dll");
-        NetworkImportDone = TRUE;
-    }
-
     if (!PhGetNetworkConnections(&connections, &numberOfConnections))
         return;
 
@@ -1146,11 +1137,11 @@ BOOLEAN PhGetNetworkConnections(
         udp6Table = NULL;
     }
 
-    if (PhEnableNetworkBoundConnections)
+    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5)
     {
         // Bound TCP IPv4
 
-        if (InternalGetBoundTcpEndpointTable && InternalGetBoundTcpEndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        if (InternalGetBoundTcpEndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
         {
             boundTcpTable = table;
             count += boundTcpTable->dwNumEntries;
@@ -1162,7 +1153,7 @@ BOOLEAN PhGetNetworkConnections(
 
         // Bound TCP IPv6
 
-        if (InternalGetBoundTcp6EndpointTable && InternalGetBoundTcp6EndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        if (InternalGetBoundTcp6EndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
         {
             boundTcp6Table = table;
             count += boundTcp6Table->dwNumEntries;
@@ -1299,7 +1290,7 @@ BOOLEAN PhGetNetworkConnections(
         PhFree(udp6Table);
     }
 
-    if (PhEnableNetworkBoundConnections)
+    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5)
     {
         if (boundTcpTable)
         {

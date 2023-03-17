@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -59,8 +59,8 @@ static HWND CpuPanelLatencyLabel;
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -122,9 +122,6 @@ BOOLEAN PhSipCpuSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
-            if (!createDialog)
-                break;
-
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_CPU);
             createDialog->DialogProc = PhSipCpuDialogProc;
@@ -133,14 +130,9 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
-            LONG dpiValue;
 
-            if (!drawInfo)
-                break;
-
-            dpiValue = PhGetWindowDpi(Section->GraphHandle);
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | PH_GRAPH_LABEL_MAX_Y;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, Section->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCpuKernelHistory.Count);
 
             if (!Section->GraphState.Valid)
@@ -515,8 +507,33 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             PhDeleteLayoutManager(&CpuLayoutManager);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
+            if (CpuSection->Parameters->LargeFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), CpuSection->Parameters->LargeFont, FALSE);
+            }
+
+            if (CpuSection->Parameters->MediumFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_CPUNAME), CpuSection->Parameters->MediumFont, FALSE);
+            }
+
+            if (OneGraphPerCpu)
+            {
+                for (ULONG i = 0; i < NumberOfProcessors; i++)
+                {
+                    CpusGraphState[i].Valid = FALSE;
+                    CpusGraphState[i].TooltipIndex = ULONG_MAX;
+                }
+            }
+            else
+            {
+                CpuGraphState.Valid = FALSE;
+                CpuGraphState.TooltipIndex = ULONG_MAX;
+            }
+
+            PhLayoutManagerLayout(&CpuLayoutManager);
             PhSipLayoutCpuGraphs();
         }
         break;
@@ -617,6 +634,21 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
             }
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            if (CpuSection->Parameters->MediumFont)
+            {
+                SetWindowFont(CpuPanelUtilizationLabel, CpuSection->Parameters->MediumFont, FALSE);
+            }
+
+            if (CpuSection->Parameters->MediumFont)
+            {
+                SetWindowFont(CpuPanelSpeedLabel, CpuSection->Parameters->MediumFont, FALSE);
+            }
+
+            PhSipLayoutCpuGraphs();
+        }
+        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -673,12 +705,9 @@ VOID PhSipLayoutCpuGraphs(
     RECT clientRect;
     RECT rect;
     HDWP deferHandle;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(CpuDialog);
 
     rect = CpuGraphMargin;
-    PhGetSizeDpiValue(&rect, dpiValue, TRUE);
+    PhGetSizeDpiValue(&rect, CpuSection->Parameters->WindowDpi, TRUE);
 
     GetClientRect(CpuDialog, &clientRect);
     deferHandle = BeginDeferWindowPos(OneGraphPerCpu ? NumberOfProcessors : 1);
@@ -790,11 +819,9 @@ VOID PhSipNotifyCpuGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, CpuSection->Parameters->WindowDpi);
 
             if (Index == ULONG_MAX)
             {
@@ -1098,7 +1125,7 @@ VOID PhSipUpdateCpuPanel(
     LARGE_INTEGER performanceCounterTicks;
     ULONG64 timeStampCounterStart;
     ULONG64 timeStampCounterEnd;
-#if _M_ARM64
+#ifdef _ARM64_
     ULONG64 currentExceptionLevel;
 #else
     INT cpubrand[4];
@@ -1297,10 +1324,10 @@ VOID PhSipUpdateCpuPanel(
     }
 
     // Do not optimize (dmex)
-    PhQueryPerformanceCounter(&performanceCounterStart, NULL);
+    PhQueryPerformanceCounter(&performanceCounterStart);
     timeStampCounterStart = PhReadTimeStampCounter();
     MemoryBarrier();
-#if _M_ARM64
+#ifdef _ARM64_
     // 0b11    0b000    0b0100    0b0010    0b010    CurrentEL     Current Exception Level
     currentExceptionLevel = _ReadStatusReg(ARM64_SYSREG(3, 0, 4, 2, 2));
 #else
@@ -1309,11 +1336,11 @@ VOID PhSipUpdateCpuPanel(
     MemoryBarrier();
     timeStampCounterEnd = PhReadTimeStampCounter();
     MemoryBarrier();
-    PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
+    PhQueryPerformanceCounter(&performanceCounterEnd);
     performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
 
     if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 &&
-#if _M_ARM64
+#ifdef _ARM64_
         currentExceptionLevel == MAXULONG64
 #else
         cpubrand[0] == 0 && cpubrand[3] == 0
@@ -1468,7 +1495,7 @@ PPH_STRING PhSipGetCpuBrandString(
 
         if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
         {
-            brand = PhQueryRegistryString(keyHandle, L"ProcessorNameString");
+            brand = PhQueryRegistryStringZ(keyHandle, L"ProcessorNameString");
             NtClose(keyHandle);
         }
 
@@ -1508,12 +1535,12 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
         return FALSE;
 
     stateSize = FIELD_OFFSET(SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION, States) + sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * 2;
-    differences = PhAllocate(UInt32Mul32To64(stateSize, NumberOfProcessors));
+    differences = PhAllocate(UInt32x32To64(stateSize, NumberOfProcessors));
 
     for (i = 0; i < NumberOfProcessors; i++)
     {
         stateDistribution = PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
-        stateDifference = PTR_ADD_OFFSET(differences, UInt32Mul32To64(stateSize, i));
+        stateDifference = PTR_ADD_OFFSET(differences, UInt32x32To64(stateSize, i));
 
         if (stateDistribution->StateCount != 2)
         {
@@ -1539,7 +1566,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     for (i = 0; i < NumberOfProcessors; i++)
     {
         stateDistribution = PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
-        stateDifference = PTR_ADD_OFFSET(differences, UInt32Mul32To64(stateSize, i));
+        stateDifference = PTR_ADD_OFFSET(differences, UInt32x32To64(stateSize, i));
 
         if (stateDistribution->StateCount != 2)
         {
@@ -1568,7 +1595,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
     for (i = 0; i < NumberOfProcessors; i++)
     {
-        stateDifference = PTR_ADD_OFFSET(differences, UInt32Mul32To64(stateSize, i));
+        stateDifference = PTR_ADD_OFFSET(differences, UInt32x32To64(stateSize, i));
 
         for (j = 0; j < 2; j++)
         {

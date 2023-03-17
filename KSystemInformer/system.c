@@ -20,7 +20,7 @@ PAGED_FILE();
  * \brief Performs generic system control actions.
  *
  * \param[in] SystemControlClass System control classification.
- * \param[in] SystemControlInfo Control input buffer. 
+ * \param[in] SystemControlInfo Control input buffer.
  * \param[in] SystemControlInfoLength Length of control input buffer.
  * \param[in] AccessMode The mode in which to perform access checks.
  *

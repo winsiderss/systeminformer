@@ -1,12 +1,19 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2013-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_VERIFY_H
 #define _PH_VERIFY_H
 
-#include <wintrust.h>
-#include <softpub.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define PH_VERIFY_DEFAULT_SIZE_LIMIT (32 * 1024 * 1024)
 
@@ -21,6 +28,15 @@ typedef enum _VERIFY_RESULT
     VrSecuritySettings,
     VrBadSignature
 } VERIFY_RESULT, *PVERIFY_RESULT;
+
+#define PH_VERIFY_UNTRUSTED(x) (x != VrUnknown && x != VrTrusted) 
+
+PHLIBAPI
+PH_STRINGREF
+NTAPI
+PhVerifyResultToStringRef(
+    _In_ VERIFY_RESULT Result
+    );
 
 #define PH_VERIFY_PREVENT_NETWORK_ACCESS 0x1
 #define PH_VERIFY_VIEW_PROPERTIES 0x2
@@ -44,6 +60,17 @@ PhVerifyFile(
     _In_ PWSTR FileName,
     _Out_opt_ PPH_STRING *SignerName
     );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhVerifyFileIsChainedToMicrosoft(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
+    );
+
+typedef struct _CERT_CONTEXT CERT_CONTEXT;
+typedef CERT_CONTEXT *PCERT_CONTEXT;
 
 PHLIBAPI
 NTSTATUS
@@ -70,8 +97,13 @@ PhGetSignerNameFromCertificate(
     _In_ PCERT_CONTEXT Certificate
     );
 
-#ifdef __cplusplus
-}
-#endif
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetSystemComponentFromCertificate(
+    _In_ PCERT_CONTEXT Certificate
+    );
+
+EXTERN_C_END
 
 #endif

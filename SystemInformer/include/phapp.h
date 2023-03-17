@@ -75,6 +75,7 @@ typedef struct _PH_STARTUP_PARAMETERS
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;
+extern BOOLEAN PhPortableEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 
@@ -124,14 +125,6 @@ PhUnregisterMessageLoopFilter(
     );
 // end_phapppub
 
-VOID PhInitializeFont(
-    _In_ HWND hwnd
-    );
-
-VOID PhInitializeMonospaceFont(
-    _In_ HWND hwnd
-    );
-
 // plugin
 
 extern PH_AVL_TREE PhPluginsByName;
@@ -154,7 +147,7 @@ VOID PhLoadPlugins(
     );
 
 VOID PhUnloadPlugins(
-    VOID
+    _In_ BOOLEAN SessionEnding
     );
 
 struct _PH_PLUGIN *PhFindPlugin2(
@@ -489,6 +482,12 @@ VOID PhShowLiveDumpDialog(
     _In_ HWND ParentWindowHandle
     );
 
+// ksyscall
+
+PPH_STRING PhGetSystemCallNumberName(
+    _In_ USHORT SystemCallNumber
+    );
+
 // logwnd
 
 VOID PhShowLogDialog(
@@ -625,6 +624,7 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
     BOOLEAN UseLinkedToken;
     PWSTR ServiceName;
     BOOLEAN CreateSuspendedProcess;
+    HWND WindowHandle;
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhShowRunAsDialog(
@@ -697,108 +697,6 @@ PhCreateSearchControl(
     _In_ HWND WindowHandle,
     _In_opt_ PWSTR BannerText
     );
-
-FORCEINLINE
-HFONT
-PhCreateFont(
-    _In_opt_ PWSTR Name,
-    _In_ ULONG Size,
-    _In_ ULONG Weight,
-    _In_ ULONG PitchAndFamily,
-    _In_ LONG dpiValue
-    )
-{
-    return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
-        PitchAndFamily,
-        Name
-        );
-}
-
-FORCEINLINE
-HFONT
-PhCreateCommonFont(
-    _In_ LONG Size,
-    _In_ INT Weight,
-    _In_opt_ HWND hwnd,
-    _In_ LONG dpiValue
-    )
-{
-    HFONT fontHandle;
-    LOGFONT logFont;
-
-    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
-        return NULL;
-
-    fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, dpiValue, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH,
-        logFont.lfFaceName
-        );
-
-    if (!fontHandle)
-        return NULL;
-
-    if (hwnd)
-        SetWindowFont(hwnd, fontHandle, TRUE);
-
-    return fontHandle;
-}
-
-FORCEINLINE
-HFONT
-PhDuplicateFont(
-    _In_ HFONT Font
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-        return CreateFontIndirect(&logFont);
-
-    return NULL;
-}
-
-FORCEINLINE
-HFONT
-PhDuplicateFontWithNewWeight(
-    _In_ HFONT Font,
-    _In_ LONG NewWeight
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfWeight = NewWeight;
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
-
 // end_phapppub
 
 // sessmsg
@@ -868,6 +766,11 @@ PPH_STRING PhGetGroupAttributesString(
 
 PWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
+    );
+
+PH_STRINGREF PhGetElevationTypeStringRef(
+    _In_ BOOLEAN IsElevated,
+    _In_ TOKEN_ELEVATION_TYPE ElevationType
     );
 
 VOID PhShowTokenProperties(

@@ -270,9 +270,20 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
         {
             PhSipInitializeParameters();
 
-            PhDpiChangedForwardChildWindows(hwndDlg);
+            if (SectionList)
+            {
+                for (ULONG i = 0; i < SectionList->Count; i++)
+                {
+                    PPH_SYSINFO_SECTION section = SectionList->Items[i];
 
-            InvalidateRect(hwndDlg, NULL, TRUE);
+                    if (section->DialogHandle)
+                    {
+                        section->Callback(section, SysInfoDpiChanged, NULL, NULL);
+                    }
+                }
+            }
+
+            PhSipOnSize();
         }
         break;
     }
@@ -348,11 +359,8 @@ VOID PhSipOnInitDialog(
     RECT clientRect;
     PH_STRINGREF sectionName;
     PPH_SYSINFO_SECTION section;
-    LONG dpiValue;
 
     PhSetApplicationWindowIcon(PhSipWindow);
-
-    dpiValue = PhGetWindowDpi(PhSipWindow);
 
     PhSetControlTheme(PhSipWindow, L"explorer");
 
@@ -433,8 +441,8 @@ VOID PhSipOnInitDialog(
     MapDialogRect(PhSipWindow, &MinimumSize);
 
     MinimumSize.right += CurrentParameters.PanelWidth;
-    MinimumSize.right += PhGetSystemMetrics(SM_CXFRAME, dpiValue) * 2;
-    MinimumSize.bottom += PhGetSystemMetrics(SM_CYFRAME, dpiValue) * 2;
+    MinimumSize.right += PhGetSystemMetrics(SM_CXFRAME, CurrentParameters.WindowDpi) * 2;
+    MinimumSize.bottom += PhGetSystemMetrics(SM_CYFRAME, CurrentParameters.WindowDpi) * 2;
 
     if (SectionList->Count != 0)
     {
@@ -543,12 +551,15 @@ VOID PhSipOnSize(
     VOID
     )
 {
-    if (SectionList && SectionList->Count != 0)
+    if (!IsMinimized(PhSipWindow))
     {
-        if (CurrentView == SysInfoSummaryView)
-            PhSipLayoutSummaryView();
-        else if (CurrentView == SysInfoSectionView)
-            PhSipLayoutSectionView();
+        if (SectionList && SectionList->Count != 0)
+        {
+            if (CurrentView == SysInfoSummaryView)
+                PhSipLayoutSummaryView();
+            else if (CurrentView == SysInfoSectionView)
+                PhSipLayoutSectionView();
+        }
     }
 }
 
@@ -924,7 +935,7 @@ VOID PhSiSetColorsGraphDrawInfo(
 {
     static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
     static ULONG lastDpi = ULONG_MAX;
-    static HFONT iconTitleFont;
+    static HFONT iconTitleFont = NULL;
 
     // Get the appropriate fonts.
 
@@ -939,7 +950,10 @@ VOID PhSiSetColorsGraphDrawInfo(
             if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
             {
                 logFont.lfHeight += PhMultiplyDivide(1, dpiValue, 72);
+
+                HFONT fontHandle = iconTitleFont;
                 iconTitleFont = CreateFontIndirect(&logFont);
+                if (fontHandle) DeleteFont(fontHandle);
             }
 
             if (!iconTitleFont)
@@ -1066,18 +1080,16 @@ VOID PhSipInitializeParameters(
     HDC hdc;
     TEXTMETRIC textMetrics;
     HFONT originalFont;
-    LONG dpiValue;
 
     PhSipDeleteParameters();
 
     memset(&CurrentParameters, 0, sizeof(PH_SYSINFO_PARAMETERS));
 
-    dpiValue = PhGetWindowDpi(PhSipWindow);
-
+    CurrentParameters.WindowDpi = PhGetWindowDpi(PhSipWindow);
     CurrentParameters.SysInfoWindowHandle = PhSipWindow;
     CurrentParameters.ContainerWindowHandle = ContainerControl;
 
-    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
+    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, CurrentParameters.WindowDpi))
     {
         CurrentParameters.Font = CreateFontIndirect(&logFont);
     }
@@ -1089,10 +1101,10 @@ VOID PhSipInitializeParameters(
 
     hdc = GetDC(PhSipWindow);
 
-    logFont.lfHeight -= PhMultiplyDivide(3, dpiValue, 72);
+    logFont.lfHeight -= PhMultiplyDivide(3, CurrentParameters.WindowDpi, 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
-    logFont.lfHeight -= PhMultiplyDivide(3, dpiValue, 72);
+    logFont.lfHeight -= PhMultiplyDivide(3, CurrentParameters.WindowDpi, 72);
     CurrentParameters.LargeFont = CreateFontIndirect(&logFont);
 
     PhSipUpdateColorParameters();
@@ -1112,14 +1124,14 @@ VOID PhSipInitializeParameters(
     SelectFont(hdc, originalFont);
 
     // Internal padding and other values
-    CurrentParameters.PanelPadding = PhGetDpi(PH_SYSINFO_PANEL_PADDING, dpiValue);
-    CurrentParameters.WindowPadding = PhGetDpi(PH_SYSINFO_WINDOW_PADDING, dpiValue);
-    CurrentParameters.GraphPadding = PhGetDpi(PH_SYSINFO_GRAPH_PADDING, dpiValue);
-    CurrentParameters.SmallGraphWidth = PhGetDpi(PH_SYSINFO_SMALL_GRAPH_WIDTH, dpiValue);
-    CurrentParameters.SmallGraphPadding = PhGetDpi(PH_SYSINFO_SMALL_GRAPH_PADDING, dpiValue);
-    CurrentParameters.SeparatorWidth = PhGetDpi(PH_SYSINFO_SEPARATOR_WIDTH, dpiValue);
-    CurrentParameters.CpuPadding = PhGetDpi(PH_SYSINFO_CPU_PADDING, dpiValue);
-    CurrentParameters.MemoryPadding = PhGetDpi(PH_SYSINFO_MEMORY_PADDING, dpiValue);
+    CurrentParameters.PanelPadding = PhGetDpi(PH_SYSINFO_PANEL_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.WindowPadding = PhGetDpi(PH_SYSINFO_WINDOW_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.GraphPadding = PhGetDpi(PH_SYSINFO_GRAPH_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.SmallGraphWidth = PhGetDpi(PH_SYSINFO_SMALL_GRAPH_WIDTH, CurrentParameters.WindowDpi);
+    CurrentParameters.SmallGraphPadding = PhGetDpi(PH_SYSINFO_SMALL_GRAPH_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.SeparatorWidth = PhGetDpi(PH_SYSINFO_SEPARATOR_WIDTH, CurrentParameters.WindowDpi);
+    CurrentParameters.CpuPadding = PhGetDpi(PH_SYSINFO_CPU_PADDING, CurrentParameters.WindowDpi);
+    CurrentParameters.MemoryPadding = PhGetDpi(PH_SYSINFO_MEMORY_PADDING, CurrentParameters.WindowDpi);
 
     CurrentParameters.MinimumGraphHeight =
         CurrentParameters.PanelPadding +
@@ -1274,7 +1286,7 @@ PPH_SYSINFO_SECTION PhSipCreateInternalSection(
     PH_SYSINFO_SECTION section;
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
-    PhInitializeStringRef(&section.Name, Name);
+    PhInitializeStringRefLongHint(&section.Name, Name);
     section.Flags = Flags;
     section.Callback = Callback;
 

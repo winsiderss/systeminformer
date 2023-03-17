@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -16,6 +16,7 @@
 
 PPH_PLUGIN PluginInstance = NULL;
 BOOLEAN NetAdapterEnableNdis = FALSE;
+ULONG NetWindowsVersion = WINDOWS_ANCIENT;
 
 PPH_OBJECT_TYPE NetAdapterEntryType = NULL;
 PPH_LIST NetworkAdaptersList = NULL;
@@ -46,6 +47,7 @@ VOID NTAPI LoadSettings(
     )
 {
     NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
+    NetWindowsVersion = PhWindowsVersion;
 }
 
 VOID NTAPI LoadCallback(
@@ -120,7 +122,7 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     AddRemoveDeviceChangeCallback();
-    if (PhWindowsVersion >= WINDOWS_10)
+    if (NetWindowsVersion >= WINDOWS_10)
         InitializeDevicesTab();
 }
 
@@ -414,55 +416,73 @@ BOOLEAN HardwareDeviceShowProperties(
     _In_ PPH_STRING DeviceInstance
     )
 {
-    HMODULE devMgrHandle;
+    PVOID devMgrHandle;
 
     // https://msdn.microsoft.com/en-us/library/ff548181.aspx
-    VOID (WINAPI* DeviceProperties_RunDLL_I)(
-        _In_ HWND hwndStub,
-        _In_ HINSTANCE hAppInstance,
-        _In_ PWSTR lpCmdLine,
-        _In_ INT nCmdShow
+    //VOID (WINAPI* DeviceProperties_RunDLL_I)( // No resources tab (dmex)
+    //    _In_ HWND hwndStub,
+    //    _In_ HINSTANCE hAppInstance,
+    //    _In_ PWSTR lpCmdLine,
+    //    _In_ INT nCmdShow
+    //    );
+
+    INT_PTR (WINAPI* DevicePropertiesW)( // Includes resources tab (dmex)
+        _In_opt_ HWND ParentWindow,
+        _In_opt_ PCWSTR MachineName,
+        _In_opt_ PCWSTR DeviceID,
+        _In_ BOOL ShowDeviceManager
         );
 
-    //ULONG (WINAPI *DeviceAdvancedPropertiesW_I)(
-    //    _In_opt_ HWND hWndParent,
-    //    _In_opt_ PWSTR MachineName,
-    //    _In_ PWSTR DeviceID);
+    //PhShellExecuteEx(
+    //    GetParent(WindowHandle),
+    //    L"DeviceProperties.exe", // auto-elevated (dmex)
+    //    PhGetString(DeviceInstance),
+    //    NULL,
+    //    SW_SHOWDEFAULT,
+    //    0,
+    //    0,
+    //    NULL
+    //    );
 
     if (devMgrHandle = PhLoadLibrary(L"devmgr.dll"))
     {
-        if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
+        if (DevicePropertiesW = PhGetProcedureAddress(devMgrHandle, "DevicePropertiesW", 0))
         {
-            PH_FORMAT format[2];
-            WCHAR formatBuffer[512];
-
-            // /DeviceID %s
-            PhInitFormatS(&format[0], L"/DeviceID ");
-            PhInitFormatSR(&format[1], DeviceInstance->sr);
-
-            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-            {
-                // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
-                DeviceProperties_RunDLL_I(
-                    GetParent(WindowHandle),
-                    NULL,
-                    formatBuffer,
-                    0
-                    );
-            }
-            else
-            {
-                // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
-                DeviceProperties_RunDLL_I(
-                    GetParent(WindowHandle),
-                    NULL,
-                    PhaFormatString(L"/DeviceID %s", DeviceInstance->Buffer)->Buffer,
-                    0
-                    );
-            }
+            DevicePropertiesW(GetParent(WindowHandle), NULL, PhGetString(DeviceInstance), FALSE);
         }
 
-        FreeLibrary(devMgrHandle);
+        //if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
+        //{
+        //    PH_FORMAT format[2];
+        //    WCHAR formatBuffer[512];
+        //
+        //    // /DeviceID %s
+        //    PhInitFormatS(&format[0], L"/DeviceID ");
+        //    PhInitFormatSR(&format[1], DeviceInstance->sr);
+        //
+        //    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        //    {
+        //        // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
+        //        DeviceProperties_RunDLL_I(
+        //            GetParent(WindowHandle),
+        //            NULL,
+        //            formatBuffer,
+        //            0
+        //            );
+        //    }
+        //    else
+        //    {
+        //        // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
+        //        DeviceProperties_RunDLL_I(
+        //            GetParent(WindowHandle),
+        //            NULL,
+        //            PhaFormatString(L"/DeviceID %s", DeviceInstance->Buffer)->Buffer,
+        //            0
+        //            );
+        //    }
+        //}
+
+        PhFreeLibrary(devMgrHandle);
     }
 
     return FALSE;
@@ -532,7 +552,7 @@ BOOLEAN HardwareDeviceOpenKey(
         if (bestObjectName)
         {
             // HKLM\SYSTEM\ControlSet\Control\Class\ += DEVPKEY_Device_Driver
-            PhShellOpenKey(ParentWindow, bestObjectName);
+            PhShellOpenKey2(ParentWindow, bestObjectName);
             PhDereferenceObject(bestObjectName);
         }
 
@@ -640,8 +660,6 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_GRAPHICS_LIST, L"" },
                 { IntegerPairSettingType, SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, L"@96|850,490" },
-                { IntegerPairSettingType, SETTING_NAME_DEVICE_TREE_WINDOW_POSITION, L"0,0" },
-                { ScalableIntegerPairSettingType, SETTING_NAME_DEVICE_TREE_WINDOW_SIZE, L"@96|1065,627" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_TREE_AUTO_REFRESH, L"1" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED, L"0" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, L"0" },
@@ -649,11 +667,12 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_DEVICE_TREE_SORT, L"0,0" },
                 { StringSettingType, SETTING_NAME_DEVICE_TREE_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_PROBLEM_COLOR, L"283cff" },
-                { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"aaffff" },
-                { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"000000" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"6d6d6d" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"6d6d6d" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHT_COLOR, L"00aaff" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME, L"1" },
-                { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_ROOT, L"1" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_ROOT, L"0" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS, L"1" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
@@ -671,12 +690,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginLoadCallbackRegistration
                 );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
-                );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+            //    UnloadCallback,
+            //    NULL,
+            //    &PluginUnloadCallbackRegistration
+            //    );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
                 ShowOptionsCallback,

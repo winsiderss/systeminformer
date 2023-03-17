@@ -530,12 +530,12 @@ PPH_STRING PhGetMemoryRegionUseText(
     switch (type)
     {
     case UnknownRegion:
-        return PhReferenceEmptyString();
+        return NULL;
     case CustomRegion:
         PhReferenceObject(MemoryItem->u.Custom.Text);
         return MemoryItem->u.Custom.Text;
     case UnusableRegion:
-        return PhReferenceEmptyString();
+        return NULL;
     case MappedFileRegion:
         PhReferenceObject(MemoryItem->u.MappedFile.FileName);
         return MemoryItem->u.MappedFile.FileName;
@@ -581,7 +581,7 @@ PPH_STRING PhGetMemoryRegionUseText(
     case SystemDefaultActivationContextDataRegion:
         return PhFormatString(L"Default activation context data");
     default:
-        return PhReferenceEmptyString();
+        return NULL;
     }
 }
 
@@ -855,7 +855,8 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->SizeText);
                 break;
             case PHMMTLC_PROTECTION:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->ProtectionText);
+                if (node->ProtectionText[0] != UNICODE_NULL)
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->ProtectionText);
                 break;
             case PHMMTLC_USE:
                 PhpUpdateMemoryNodeUseText(node);

@@ -555,6 +555,8 @@ VOID PhpInitializeHandleObjectTree(
 
     TreeNew_SetCallback(Context->TreeNewHandle, PhpHandleObjectTreeNewCallback, Context);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+
     // Default columns
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_PROCESS, TRUE, L"Process", 100, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 1, 0);
@@ -564,6 +566,8 @@ VOID PhpInitializeHandleObjectTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_OBJECTADDRESS, FALSE, L"Object address", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_GRANTEDACCESS, FALSE, L"Granted access", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
 
@@ -761,7 +765,7 @@ VOID PhpFindObjectAddResultEntries(
 
                 PhPrintPointer(grantedAccessString, UlongToPtr(searchResult->Info.GrantedAccess));
                 PhMoveReference(&objectNode->GrantedAccessSymbolicText, PhFormatString(
-                    L"%s (0x%s)",
+                    L"%s (%s)",
                     PhGetString(objectNode->GrantedAccessSymbolicText),
                     grantedAccessString
                     ));
@@ -916,6 +920,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 {
     PSEARCH_MODULE_CONTEXT moduleContext = Context;
     PPH_HANDLE_SEARCH_CONTEXT context;
+    PPH_STRING filenameWin32;
     PPH_STRING upperFileName;
     PPH_STRING upperOriginalFileName;
 
@@ -924,7 +929,8 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
     context = moduleContext->WindowContext;
 
-    upperFileName = PhUpperString(Module->FileNameWin32);
+    filenameWin32 = PhGetFileName(Module->FileName);
+    upperFileName = PhUpperString(filenameWin32);
     upperOriginalFileName = PhUpperString(Module->FileName);
 
     if ((MatchSearchString(context, &upperFileName->sr) || MatchSearchString(context, &upperOriginalFileName->sr)) ||
@@ -951,7 +957,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
         searchResult->Handle = (HANDLE)Module->BaseAddress;
         searchResult->TypeName = PhCreateString(typeName);
-        PhSetReference(&searchResult->BestObjectName, Module->FileNameWin32);
+        PhSetReference(&searchResult->BestObjectName, filenameWin32);
         PhSetReference(&searchResult->ObjectName, Module->FileName);
 
         PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
@@ -961,6 +967,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
     PhDereferenceObject(upperOriginalFileName);
     PhDereferenceObject(upperFileName);
+    PhDereferenceObject(filenameWin32);
 
     return TRUE;
 }
@@ -1002,10 +1009,7 @@ NTSTATUS PhpFindObjectsThreadStart(
 
             if (PhBeginInitOnce(&initOnce))
             {
-                static PH_STRINGREF fileTypeName = PH_STRINGREF_INIT(L"File");
-
-                fileObjectTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
-
+                fileObjectTypeIndex = PhGetObjectTypeNumberZ(L"File");
                 PhEndInitOnce(&initOnce);
             }
         }
@@ -1244,7 +1248,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->SearchResults = PhCreateList(128);
             context->SearchResultsAddIndex = 0;
 
-            SetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, 1, 1000, NULL);
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
@@ -1256,7 +1260,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             context->SearchStop = TRUE;
 
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, 1);
 
             if (context->SearchThreadHandle)
             {

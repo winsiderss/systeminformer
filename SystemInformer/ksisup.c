@@ -6,7 +6,7 @@
  * Authors:
  *
  *     jxy-s   2022
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
@@ -17,7 +17,13 @@
 #include <json.h>
 
 #include <ksisup.h>
-#include <phsettings.h>
+
+#ifdef DEBUG
+//#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
+#endif
+
+BOOLEAN KsiEnableLoadNative = FALSE;
+BOOLEAN KsiEnableLoadFilter = FALSE;
 
 VOID PhShowKsiStatus(
     VOID
@@ -83,6 +89,7 @@ VOID PhShowKsiStatus(
 }
 
 VOID PhShowKsiError(
+    _In_opt_ HWND WindowHandle,
     _In_ PWSTR Message,
     _In_opt_ NTSTATUS Status
     )
@@ -90,7 +97,7 @@ VOID PhShowKsiError(
     if (Status == STATUS_NO_SUCH_FILE)
     {
         if (PhShowMessageOneTime(
-            NULL,
+            WindowHandle,
             TDCBF_OK_BUTTON,
             TD_ERROR_ICON,
             Message,
@@ -119,7 +126,7 @@ VOID PhShowKsiError(
                 );
 
             if (PhShowMessageOneTime(
-                NULL,
+                WindowHandle,
                 TDCBF_OK_BUTTON,
                 TD_ERROR_ICON,
                 Message,
@@ -136,7 +143,7 @@ VOID PhShowKsiError(
         else
         {
             if (PhShowMessageOneTime(
-                NULL,
+                WindowHandle,
                 TDCBF_OK_BUTTON,
                 TD_ERROR_ICON,
                 Message,
@@ -251,8 +258,8 @@ PPH_STRING PhGetKsiServiceName(
     return string;
 }
 
-VOID PhInitializeKsi(
-    VOID
+NTSTATUS KsiInitializeCallbackThread(
+    _In_opt_ PVOID CallbackContext
     )
 {
     static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
@@ -261,28 +268,15 @@ VOID PhInitializeKsi(
     PPH_STRING ksiFileName = NULL;
     PPH_STRING ksiServiceName = NULL;
 
-    if (WindowsVersion < WINDOWS_10 || WindowsVersion == WINDOWS_NEW)
-        return;
-    if (!PhGetOwnTokenAttributes().Elevated)
-        return;
-
-    if (PhDoesOldKsiExist())
-    {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-        {
-            PhShowKsiError(
-                L"Unable to load kernel driver, the last System Informer update requires a reboot.",
-                STATUS_PENDING 
-                );
-        }
-        return;
-    }
+#ifdef KSI_DEBUG_DELAY_SPLASHSCREEN
+    if (CallbackContext) PhDelayExecution(1000);
+#endif
 
     if (!(ksiServiceName = PhGetKsiServiceName()))
         goto CleanupExit;
     if (!(fileName = PhGetApplicationFileNameWin32()))
         goto CleanupExit;
-    if (!(ksiFileName = PhGetBaseNamePathWithExtension(fileName, &driverExtension)))
+    if (!(ksiFileName = PhGetBaseNameChangeExtension(&fileName->sr, &driverExtension)))
         goto CleanupExit;
 
     if (PhDoesFileExistWin32(PhGetString(ksiFileName)))
@@ -306,6 +300,8 @@ VOID PhInitializeKsi(
         config.ObjectName = &objectName->sr;
         config.PortName = &portName->sr;
         config.Altitude = &altitudeName->sr;
+        config.EnableNativeLoad = KsiEnableLoadNative;
+        config.EnableFilterLoad = KsiEnableLoadFilter;
         config.DisableImageLoadProtection = disableImageLoadProtection;
         config.Callback = KsiCommsCallback;
         status = KphConnect(&config);
@@ -335,7 +331,7 @@ VOID PhInitializeKsi(
         else
         {
             if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
-                PhShowKsiError(L"Unable to load the kernel driver service.", status);
+                PhShowKsiError(CallbackContext, L"Unable to load the kernel driver service.", status);
         }
 
         PhClearReference(&objectName);
@@ -343,7 +339,7 @@ VOID PhInitializeKsi(
     else
     {
         if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-            PhShowKsiError(L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
+            PhShowKsiError(CallbackContext, L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
     }
 
 CleanupExit:
@@ -353,23 +349,141 @@ CleanupExit:
         PhDereferenceObject(ksiFileName);
     if (fileName)
         PhDereferenceObject(fileName);
+
+    if (CallbackContext)
+    {
+        SendMessage(CallbackContext, TDM_CLICK_BUTTON, IDOK, 0);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+static HRESULT CALLBACK KsiSplashScreenDialogCallbackProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT Notification,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR Context
+    )
+{
+    switch (Notification)
+    {
+    case TDN_CREATED:
+        {
+            NTSTATUS status;
+            HANDLE threadHandle;
+
+            SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+
+            if (NT_SUCCESS(status = PhCreateThreadEx(
+                &threadHandle,
+                KsiInitializeCallbackThread,
+                WindowHandle
+                )))
+            {
+                NtClose(threadHandle);
+            }
+            else
+            {
+                PhShowStatus(WindowHandle, L"Unable to create the window.", status, 0);
+            }
+        }
+        break;
+    case TDN_BUTTON_CLICKED:
+        {
+            INT buttonId = (INT)wParam;
+
+            if (buttonId == IDCANCEL)
+            {
+                return S_FALSE;
+            }
+        }
+        break;
+    case TDN_TIMER:
+        {
+            ULONG ticks = (ULONG)wParam;
+            PPH_STRING timeSpan = PhFormatUInt64(ticks, TRUE);
+            PhMoveReference(&timeSpan, PhConcatStringRefZ(&timeSpan->sr, L" ms..."));
+            SendMessage(WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)timeSpan->Buffer);
+            PhDereferenceObject(timeSpan);
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+VOID KsiShowInitializingSplashScreen(
+    VOID
+    )
+{
+    TASKDIALOGCONFIG config;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_CALLBACK_TIMER;
+    config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pfCallback = KsiSplashScreenDialogCallbackProc;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainInstruction = L"Initializing System Informer kernel driver...";
+    config.pszContent = L"0 ms...";
+    config.cxWidth = 200;
+
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
+}
+
+VOID PhInitializeKsi(
+    VOID
+    )
+{
+    if (WindowsVersion < WINDOWS_10_20H1) // Temporary workaround for +3 month Microsoft delay (dmex)
+        return;
+    if (WindowsVersion < WINDOWS_10 || WindowsVersion == WINDOWS_NEW)
+        return;
+    if (!PhGetOwnTokenAttributes().Elevated)
+        return;
+
+    if (PhDoesOldKsiExist())
+    {
+        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
+        {
+            PhShowKsiError(
+                NULL,
+                L"Unable to load kernel driver, the last System Informer update requires a reboot.",
+                STATUS_PENDING
+                );
+        }
+        return;
+    }
+
+    KsiEnableLoadNative = !!PhGetIntegerSetting(L"KsiEnableLoadNative");
+    KsiEnableLoadFilter = !!PhGetIntegerSetting(L"KsiEnableLoadFilter");
+
+    if (PhGetIntegerSetting(L"KsiEnableSplashScreen"))
+        KsiShowInitializingSplashScreen();
+    else
+        KsiInitializeCallbackThread(NULL);
 }
 
 VOID PhDestroyKsi(
     VOID
     )
 {
+    NTSTATUS status;
     PPH_STRING ksiServiceName;
+    KPH_CONFIG_PARAMETERS config = { 0 };
 
     if (!KphCommsIsConnected())
         return;
+    if (!(ksiServiceName = PhGetKsiServiceName()))
+        return;
 
-    // KphCommsStop();
-
-    if (ksiServiceName = PhGetKsiServiceName())
-    {
-        KphServiceStop(&ksiServiceName->sr);
-    }
+    config.ServiceName = &ksiServiceName->sr;
+    config.EnableNativeLoad = KsiEnableLoadNative;
+    config.EnableFilterLoad = KsiEnableLoadFilter;
+    status = KphServiceStop(&config);
 }
 
 _Success_(return)

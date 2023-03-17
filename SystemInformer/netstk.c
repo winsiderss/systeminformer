@@ -97,18 +97,18 @@ VOID PhShowNetworkStackDialog(
         return;
     }
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_NETSTACK),
         ParentWindowHandle,
         PhpNetworkStackDlgProc,
-        (LPARAM)&networkStackContext
+        &networkStackContext
         );
 
     PhDereferenceObject(networkStackContext.SymbolProvider);
 }
 
-static INT_PTR CALLBACK PhpNetworkStackDlgProc(
+INT_PTR CALLBACK PhpNetworkStackDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

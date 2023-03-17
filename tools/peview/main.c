@@ -113,6 +113,7 @@ INT WINAPI wWinMain(
     PvInitializeSettings();
     PvPropInitialization();
     PhTreeNewInitialization();
+    PvInitializeSuperclassControls();
 
     if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
         return 1;
@@ -159,8 +160,9 @@ INT WINAPI wWinMain(
                         NULL,
                         PhGetString(applicationFileName),
                         PvFileName->Buffer,
+                        NULL,
                         SW_SHOWNORMAL,
-                        PH_SHELL_EXECUTE_NOZONECHECKS,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         0,
                         NULL
                         ))

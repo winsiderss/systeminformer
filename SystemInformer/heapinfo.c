@@ -156,12 +156,12 @@ VOID PhShowProcessHeapsDialog(
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->IsWow64 = !!ProcessItem->IsWow64;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_HEAPS),
         NULL,
         PhpProcessHeapsDlgProc,
-        (LPARAM)context
+        context
         );
 }
 
@@ -870,7 +870,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 selectedCount = ListView_GetSelectedCount(context->ListViewHandle);
                 heapInfo = PhGetSelectedListViewItemParam(context->ListViewHandle);

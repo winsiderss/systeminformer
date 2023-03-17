@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -43,12 +43,12 @@ VOID PhShowSessionProperties(
     _In_ ULONG SessionId
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_SESSION),
         PhCsForceNoParent ? NULL : ParentWindowHandle,
         PhpSessionPropertiesDlgProc,
-        (LPARAM)SessionId
+        UlongToPtr(SessionId)
         );
 }
 
@@ -461,7 +461,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 

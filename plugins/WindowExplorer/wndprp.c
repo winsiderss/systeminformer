@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -15,6 +15,7 @@
 #include <appresolver.h>
 #include <workqueue.h>
 #include <symprv.h>
+#include <mapldr.h>
 
 #include <shellapi.h>
 #include <propsys.h>
@@ -1028,7 +1029,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_MENUHANDLE, L"Menu handle", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_USERDATA, L"User data", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_UNICODE, L"Unicode", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDMSGONLY, L"Window message-only", NULL);   
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDMSGONLY, L"Window message-only", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDEXTRA, L"Window extra bytes", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDPROC, L"Window procedure", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DLGPROC, L"Dialog procedure", NULL);
@@ -1140,7 +1141,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
@@ -1372,7 +1373,7 @@ INT_PTR CALLBACK WepWindowPropertiesDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(listViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(listViewHandle, &listviewItems, &numberOfItems);
 
@@ -1567,7 +1568,7 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(listViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(listViewHandle, &listviewItems, &numberOfItems);
 

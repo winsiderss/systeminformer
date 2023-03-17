@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -136,7 +136,6 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     PVOID fileDialog;
 
                     fileDialog = PhCreateSaveFileDialog();
-
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
                     PhSetFileDialogFileName(fileDialog, L"Information.txt");
 
@@ -160,7 +159,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                             PH_STRINGREF string;
 
                             PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
-                            PhInitializeStringRef(&string, context->String);
+                            PhInitializeStringRefLongHint(&string, context->String);
                             PhWriteStringAsUtf8FileStream(fileStream, &string);
                             PhDereferenceObject(fileStream);
                         }
@@ -208,11 +207,11 @@ VOID PhShowInformationDialog(
     context.String = String;
     context.Flags = Flags;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_INFORMATION),
         ParentWindowHandle,
         PhpInformationDlgProc,
-        (LPARAM)&context
+        &context
         );
 }

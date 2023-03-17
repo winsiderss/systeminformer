@@ -166,7 +166,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleCheckingMode, // qs: ULONG; s: 0 disables, otherwise enables
     ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
-    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL
+    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL (requires SeDebugPrivilege)
     ProcessHandleTable, // q: ULONG[] // since WINBLUE
     ProcessCheckStackExtentsMode, // qs: ULONG // KPROCESS->CheckStackExtents (CFG)
     ProcessCommandLineInformation, // q: UNICODE_STRING // 60
@@ -191,7 +191,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessWin32kSyscallFilterInformation, // q: WIN32K_SYSCALL_FILTER
     ProcessDisableSystemAllowedCpuSets, // 80
     ProcessWakeInformation, // PROCESS_WAKE_INFORMATION
-    ProcessEnergyTrackingState, // PROCESS_ENERGY_TRACKING_STATE
+    ProcessEnergyTrackingState, // qs: PROCESS_ENERGY_TRACKING_STATE
     ProcessManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
     ProcessCaptureTrustletLiveDump,
     ProcessTelemetryCoverage,
@@ -209,7 +209,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessLeapSecondInformation, // PROCESS_LEAP_SECOND_INFORMATION
     ProcessFiberShadowStackAllocation, // PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION // since 19H1
     ProcessFreeFiberShadowStackAllocation, // PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
-    ProcessAltSystemCallInformation, // qs: BOOLEAN (kernel-mode only) // INT2E // since 20H1 // 100
+    ProcessAltSystemCallInformation, // since 20H1 // 100
     ProcessDynamicEHContinuationTargets, // PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION
     ProcessDynamicEnforcedCetCompatibleRanges, // PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE_INFORMATION // since 20H2
     ProcessCreateStateChange, // since WIN11
@@ -218,7 +218,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessAltPrefetchParam, // since 22H1
     ProcessAssignCpuPartitions,
     ProcessPriorityClassEx, // s: PROCESS_PRIORITY_CLASS_EX
-    ProcessMembershipInformation,
+    ProcessMembershipInformation, // PROCESS_MEMBERSHIP_INFORMATION
     ProcessEffectiveIoPriority, // q: IO_PRIORITY_HINT
     ProcessEffectivePagePriority, // q: ULONG
     MaxProcessInfoClass
@@ -257,7 +257,7 @@ typedef enum _THREADINFOCLASS
     ThreadTebInformation, // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
     ThreadCSwitchMon,
     ThreadCSwitchPmu,
-    ThreadWow64Context, // qs: WOW64_CONTEXT
+    ThreadWow64Context, // qs: WOW64_CONTEX, ARM_NT_CONTEXT since 20H1
     ThreadGroupInformation, // qs: GROUP_AFFINITY // 30
     ThreadUmsInformation, // q: THREAD_UMS_INFORMATION
     ThreadCounterProfiling, // q: BOOLEAN; s: THREAD_PROFILING_INFORMATION?
@@ -709,6 +709,8 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy;
         PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy;
         PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY RedirectionTrustPolicy;
+        PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY UserPointerAuthPolicy;
+        PROCESS_MITIGATION_SEHOP_POLICY SEHOPPolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
@@ -1020,7 +1022,20 @@ typedef struct _PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
 //    PPROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE Ranges;
 //} PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION, *PPROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION;
 
+// private
+typedef struct _PROCESS_MEMBERSHIP_INFORMATION
+{
+    ULONG ServerSiloId;
+} PROCESS_MEMBERSHIP_INFORMATION, *PPROCESS_MEMBERSHIP_INFORMATION;
+
 // end_private
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryPortInformationProcess(
+    VOID
+    );
 
 #endif
 
@@ -1204,6 +1219,89 @@ typedef enum _THREAD_WORKLOAD_CLASS
     ThreadWorkloadClassGraphics,
     MaxThreadWorkloadClass
 } THREAD_WORKLOAD_CLASS;
+
+#if defined(_ARM64_)
+
+#define CONTEXT_ARM   0x00200000L
+
+#define CONTEXT_ARM_CONTROL (CONTEXT_ARM | 0x1L)
+#define CONTEXT_ARM_INTEGER (CONTEXT_ARM | 0x2L)
+#define CONTEXT_ARM_FLOATING_POINT  (CONTEXT_ARM | 0x4L)
+#define CONTEXT_ARM_DEBUG_REGISTERS (CONTEXT_ARM | 0x8L)
+
+#define CONTEXT_ARM_FULL (CONTEXT_ARM_CONTROL | CONTEXT_ARM_INTEGER | CONTEXT_ARM_FLOATING_POINT)
+
+#define CONTEXT_ARM_ALL (CONTEXT_ARM_CONTROL | CONTEXT_ARM_INTEGER | CONTEXT_ARM_FLOATING_POINT | CONTEXT_ARM_DEBUG_REGISTERS)
+
+#define ARM_MAX_BREAKPOINTS     8
+#define ARM_MAX_WATCHPOINTS     1
+
+typedef struct _ARM_NT_NEON128 {
+    ULONGLONG Low;
+    LONGLONG High;
+} ARM_NT_NEON128, *PARM_NT_NEON128;
+
+typedef struct DECLSPEC_ALIGN(8) DECLSPEC_NOINITALL _ARM_NT_CONTEXT {
+
+    //
+    // Control flags.
+    //
+
+    DWORD ContextFlags;
+
+    //
+    // Integer registers
+    //
+
+    DWORD R0;
+    DWORD R1;
+    DWORD R2;
+    DWORD R3;
+    DWORD R4;
+    DWORD R5;
+    DWORD R6;
+    DWORD R7;
+    DWORD R8;
+    DWORD R9;
+    DWORD R10;
+    DWORD R11;
+    DWORD R12;
+
+    //
+    // Control Registers
+    //
+
+    DWORD Sp;
+    DWORD Lr;
+    DWORD Pc;
+    DWORD Cpsr;
+
+    //
+    // Floating Point/NEON Registers
+    //
+
+    DWORD Fpscr;
+    DWORD Padding;
+    union {
+        ARM_NT_NEON128 Q[16];
+        ULONGLONG D[32];
+        DWORD S[32];
+    } DUMMYUNIONNAME;
+
+    //
+    // Debug registers
+    //
+
+    DWORD Bvr[ARM_MAX_BREAKPOINTS];
+    DWORD Bcr[ARM_MAX_BREAKPOINTS];
+    DWORD Wvr[ARM_MAX_WATCHPOINTS];
+    DWORD Wcr[ARM_MAX_WATCHPOINTS];
+
+    DWORD Padding2[2];
+
+} ARM_NT_CONTEXT, *PARM_NT_CONTEXT;
+
+#endif
 
 // Processes
 
@@ -1630,13 +1728,10 @@ NtQueueApcThreadEx(
 
 #if (PHNT_VERSION >= PHNT_WIN11)
 
-#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
-typedef enum _QUEUE_USER_APC_FLAGS
-{
-    QUEUE_USER_APC_FLAGS_NONE = 0x0,
-    QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC = 0x1,
-} QUEUE_USER_APC_FLAGS;
-#endif
+// QUEUE_USER_APC_FLAGS enum (dmex)
+#define QUEUE_USER_APC_FLAGS_NONE               0x0
+#define QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC   0x1
+#define QUEUE_USER_APC_CALLBACK_DATA_CONTEXT    0x00010000 // APC_CALLBACK_DATA
 
 NTSYSCALLAPI
 NTSTATUS
@@ -2212,6 +2307,7 @@ NtCreateUserProcess(
 #endif
 
 // begin_rev
+#define THREAD_CREATE_FLAGS_NONE 0x00000000
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx
 #define THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH 0x00000002 // NtCreateThreadEx only
 #define THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER 0x00000004 // NtCreateThreadEx only

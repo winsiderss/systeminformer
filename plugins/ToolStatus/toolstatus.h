@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
@@ -18,6 +18,7 @@
 #include <phappresource.h>
 #include <settings.h>
 
+#include <malloc.h>
 #include <shobjidl.h>
 
 #include "resource.h"
@@ -30,11 +31,11 @@
 #define SETTING_NAME_TOOLBAR_GRAPH_CONFIG (PLUGIN_NAME L".ToolbarGraphConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
 #define SETTING_NAME_DELAYED_INITIALIZATION_MAX (PLUGIN_NAME L".DelayConfig")
-//#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
 #define SETTING_NAME_TASKBARDISPLAYSTYLE (PLUGIN_NAME L".TaskbarDisplayStyle")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
+#define SETTING_NAME_RESTOREROWAFTERSEARCH (PLUGIN_NAME L".RestoreSelectionAfterSearch")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
@@ -168,6 +169,10 @@ VOID ToolbarLoadSettings(
     _In_ BOOLEAN DpiChanged
     );
 
+VOID ToolbarRemoveButons(
+    VOID
+    );
+
 VOID ToolbarResetSettings(
     VOID
     );
@@ -271,6 +276,13 @@ typedef struct _PH_TOOLBAR_GRAPH
     PH_GRAPH_STATE GraphState;
 } PH_TOOLBAR_GRAPH, *PPH_TOOLBAR_GRAPH;
 
+extern ULONG CpuHistoryGraphColor1;
+extern ULONG CpuHistoryGraphColor2;
+extern ULONG PhysicalHistoryGraphColor1;
+extern ULONG CommitHistoryGraph1Color1;
+extern ULONG IoHistoryGraphColor1;
+extern ULONG IoHistoryGraphColor2;
+
 VOID ToolbarGraphLoadSettings(
     VOID
     );
@@ -280,6 +292,10 @@ VOID ToolbarGraphSaveSettings(
     );
 
 VOID ToolbarGraphsInitialize(
+    VOID
+    );
+
+VOID ToolbarGraphsInitializeDpi(
     VOID
     );
 
@@ -365,13 +381,13 @@ VOID StatusBarUpdate(
     );
 
 VOID StatusBarShowMenu(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 // customizetb.c
 
 VOID ToolBarShowCustomizeDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     );
 
 // customizesb.c
@@ -398,7 +414,7 @@ typedef enum _ID_STATUS
 } ID_STATUS;
 
 VOID StatusBarShowCustomizeDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     );
 
 // Shared by customizetb.c and customizesb.c
@@ -428,11 +444,13 @@ typedef struct _CUSTOMIZE_CONTEXT
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
     COLORREF TextColor;
+
+    LONG WindowDpi;
     INT CXWidth;
     INT ImageWidth;
     INT ImageHeight;
 
-    HWND DialogHandle;
+    HWND WindowHandle;
     HWND AvailableListHandle;
     HWND CurrentListHandle;
     HWND MoveUpButtonHandle;

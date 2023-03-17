@@ -5,7 +5,8 @@
  *
  * Authors:
  *
- *     wj32    2011
+ *     wj32    2011-2013
+ *     dmex    2015-2023
  *
  */
 
@@ -76,7 +77,8 @@ VOID EtInitializeDiskInformation(
     RtlInitializeSListHead(&EtDiskPacketListHead);
     EtFileNameHashtable = PhCreateSimpleHashtable(128);
 
-    PhQueryPerformanceCounter(&performanceCounter, &EtpPerformanceFrequency);
+    PhQueryPerformanceCounter(&performanceCounter);
+    PhQueryPerformanceFrequency(&EtpPerformanceFrequency);
 
     EtDiskEnabled = TRUE;
 
@@ -127,7 +129,7 @@ BOOLEAN NTAPI EtpDiskHashtableEqualFunction(
     PET_DISK_ITEM diskItem1 = *(PET_DISK_ITEM *)Entry1;
     PET_DISK_ITEM diskItem2 = *(PET_DISK_ITEM *)Entry2;
 
-    return diskItem1->ProcessId == diskItem2->ProcessId && PhEqualString(diskItem1->FileName, diskItem2->FileName, TRUE);
+    return diskItem1->ProcessId == diskItem2->ProcessId && diskItem1->FileObject == diskItem2->FileObject;
 }
 
 ULONG NTAPI EtpDiskHashtableHashFunction(
@@ -136,12 +138,12 @@ ULONG NTAPI EtpDiskHashtableHashFunction(
 {
     PET_DISK_ITEM diskItem = *(PET_DISK_ITEM *)Entry;
 
-    return (HandleToUlong(diskItem->ProcessId) / 4) ^ PhHashStringRefEx(&diskItem->FileName->sr, TRUE, PH_STRING_HASH_X65599);
+    return (HandleToUlong(diskItem->ProcessId) / 4) ^ PhHashIntPtr((ULONG_PTR)diskItem->FileObject);
 }
 
 PET_DISK_ITEM EtReferenceDiskItem(
     _In_ HANDLE ProcessId,
-    _In_ PPH_STRING FileName
+    _In_ PVOID FileObject
     )
 {
     ET_DISK_ITEM lookupDiskItem;
@@ -150,7 +152,7 @@ PET_DISK_ITEM EtReferenceDiskItem(
     PET_DISK_ITEM diskItem;
 
     lookupDiskItem.ProcessId = ProcessId;
-    lookupDiskItem.FileName = FileName;
+    lookupDiskItem.FileObject = FileObject;
 
     PhAcquireQueuedLockShared(&EtDiskHashtableLock);
 
@@ -183,13 +185,21 @@ VOID EtDiskProcessDiskEvent(
     )
 {
     PETP_DISK_PACKET packet;
+    PPH_STRING fileName;
 
     if (!EtDiskEnabled)
         return;
 
+    fileName = EtFileObjectToFileName(Event->FileObject);
+
+    // Ignore packets with no file name - this is useless to the user. (wj32)
+
+    if (!fileName)
+        return;
+
     packet = PhAllocateFromFreeList(&EtDiskPacketFreeList);
     memcpy(&packet->Event, Event, sizeof(ET_ETW_DISK_EVENT));
-    packet->FileName = EtFileObjectToFileName(Event->FileObject);
+    packet->FileName = fileName;
     RtlInterlockedPushEntrySList(&EtDiskPacketListHead, &packet->ListEntry);
 }
 
@@ -273,11 +283,7 @@ VOID EtpProcessDiskPacket(
     if (diskEvent->TransferSize == 0)
         return;
 
-    // Ignore packets with no file name - this is useless to the user.
-    if (!Packet->FileName)
-        return;
-
-    diskItem = EtReferenceDiskItem(diskEvent->ClientId.UniqueProcess, Packet->FileName);
+    diskItem = EtReferenceDiskItem(diskEvent->ClientId.UniqueProcess, diskEvent->FileObject);
 
     if (!diskItem)
     {
@@ -286,11 +292,15 @@ VOID EtpProcessDiskPacket(
         // Disk item not found (or the address was re-used), create it.
 
         diskItem = EtCreateDiskItem();
-
+        diskItem->FileObject = diskEvent->FileObject;
         diskItem->ProcessId = diskEvent->ClientId.UniqueProcess;
         PhPrintUInt32(diskItem->ProcessIdString, HandleToUlong(diskItem->ProcessId));
-        PhSetReference(&diskItem->FileName, Packet->FileName);
-        diskItem->FileNameWin32 = PhGetFileName(diskItem->FileName);
+
+        if (Packet->FileName)
+        {
+            PhSetReference(&diskItem->FileName, Packet->FileName);
+            diskItem->FileNameWin32 = PhGetFileName(diskItem->FileName);
+        }
 
         if (processItem = PhReferenceProcessItem(diskItem->ProcessId))
         {

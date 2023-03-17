@@ -10,6 +10,7 @@ extern PH_QUEUED_LOCK PhProcessRecordListLock;
 extern ULONG PhStatisticsSampleCount;
 extern BOOLEAN PhEnablePurgeProcessRecords;
 extern BOOLEAN PhEnableCycleCpuUsage;
+extern BOOLEAN PhEnablePackageIconSupport;
 
 typedef enum _PH_PROCESS_PROVIDER_FLAG
 {
@@ -191,13 +192,13 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsSuspended : 1;
             ULONG IsWow64 : 1;
             ULONG IsImmersive : 1;
-            ULONG IsWow64Valid : 1;
             ULONG IsPartiallySuspended : 1;
             ULONG IsProtectedHandle : 1;
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG IsPackagedProcess : 1;
+            ULONG IsUIAccessEnabled : 1;
             ULONG IsControlFlowGuardEnabled : 1;
             ULONG IsCetEnabled : 1;
             ULONG IsXfgEnabled : 1;
@@ -208,7 +209,7 @@ typedef struct _PH_PROCESS_ITEM
 
     // Misc.
 
-    ULONG JustProcessed;
+    volatile LONG JustProcessed;
     PH_EVENT Stage1Event;
 
     PPH_POINTER_LIST ServiceList;
@@ -279,8 +280,6 @@ typedef struct _PH_PROCESS_ITEM
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
 
-    USHORT Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
-
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
 
@@ -347,7 +346,7 @@ PHAPPAPI
 PPH_PROCESS_ITEM
 NTAPI
 PhReferenceProcessItem(
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     );
 
 PHAPPAPI
@@ -381,6 +380,7 @@ VOID PhFlushVerifyCache(
 
 // begin_phapppub
 PHAPPAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetStatisticsTime(
