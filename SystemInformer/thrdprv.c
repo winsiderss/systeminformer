@@ -221,13 +221,11 @@ VOID PhSetTerminatingThreadProvider(
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
 
-    if (!context)
-        return FALSE;
     if (context->ThreadProvider->Terminating)
         return FALSE;
 
@@ -252,13 +250,11 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 
 static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
 
-    if (!context)
-        return FALSE;
     if (context->ThreadProvider->Terminating)
         return FALSE;
 

@@ -134,12 +134,15 @@ VOID WeInitializeWindowTree(
         PhImageListAddIcon(Context->NodeImageList, iconSmall);
     }
 
+    TreeNew_SetRedraw(hwnd, FALSE);
+
     PhAddTreeNewColumn(hwnd, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_TEXT, TRUE, L"Text", 220, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
     PhAddTreeNewColumn(hwnd, WEWNTLC_MODULE, TRUE, L"Module", 150, PH_ALIGN_LEFT, 4, 0);
 
+    TreeNew_SetRedraw(hwnd, TRUE);
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, WEWNTLC_CLASS, NoSortOrder);
 
