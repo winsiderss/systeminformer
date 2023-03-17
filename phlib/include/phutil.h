@@ -1189,10 +1189,9 @@ PhShellExecute(
     _In_opt_ PWSTR Parameters
     );
 
+#define PH_SHELL_EXECUTE_DEFAULT 0x0
 #define PH_SHELL_EXECUTE_ADMIN 0x1
 #define PH_SHELL_EXECUTE_PUMP_MESSAGES 0x2
-#define PH_SHELL_EXECUTE_NOZONECHECKS 0x4
-#define PH_SHELL_EXECUTE_NOASYNC 0x8
 
 PHLIBAPI
 _Success_(return)

@@ -825,7 +825,7 @@ VOID PhMwpOnCommand(
                 WindowHandle,
                 L"-v -newinstance",
                 SW_SHOW,
-                PH_SHELL_EXECUTE_ADMIN | PH_SHELL_EXECUTE_NOASYNC,
+                PH_SHELL_EXECUTE_ADMIN,
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                 0,
                 NULL
@@ -1440,7 +1440,7 @@ VOID PhMwpOnCommand(
                         WindowHandle,
                         NULL,
                         SW_SHOW,
-                        PH_SHELL_EXECUTE_NOZONECHECKS | PH_SHELL_EXECUTE_NOASYNC,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                         0,
                         NULL

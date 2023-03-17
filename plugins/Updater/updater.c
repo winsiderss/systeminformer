@@ -98,7 +98,7 @@ BOOLEAN UpdateShellExecute(
         PhGetString(parameters),
         NULL,
         SW_SHOW,
-        PH_SHELL_EXECUTE_NOZONECHECKS | PH_SHELL_EXECUTE_NOASYNC | (Context->DirectoryElevationRequired ? PH_SHELL_EXECUTE_ADMIN : 0),
+        Context->DirectoryElevationRequired ? PH_SHELL_EXECUTE_ADMIN : PH_SHELL_EXECUTE_DEFAULT,
         0,
         NULL
         ))
