@@ -1253,7 +1253,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhExtractIconEx(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
