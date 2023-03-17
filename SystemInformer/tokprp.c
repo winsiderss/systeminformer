@@ -2726,7 +2726,9 @@ VOID PhpInitializeAttributeTreeContext(
     PhSetControlTheme(TreeNewHandle, L"explorer");
     TreeNew_SetCallback(TreeNewHandle, PhpAttributeTreeNewCallback, Context);
     //TreeNew_GetViewParts(TreeNewHandle, &parts); // column width = (parts.ClientRect.right - parts.VScrollWidth) // TODO: VScrollWidth not set during INITDIALOG. (dmex)
+    TreeNew_SetRedraw(TreeNewHandle, FALSE);
     PhAddTreeNewColumnEx2(TreeNewHandle, 0, TRUE, L"Attributes", 200, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 }
 
 VOID PhpDeleteAttributeTreeContext(
@@ -2897,7 +2899,9 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 
             PhSetControlTheme(tnHandle, L"explorer");
             TreeNew_SetCallback(tnHandle, PhpAttributeTreeNewCallback, &tokenPageContext->CapsTreeContext);
+            TreeNew_SetRedraw(tnHandle, FALSE);
             PhAddTreeNewColumnEx2(tnHandle, 0, TRUE, L"Capabilities", 200, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+            TreeNew_SetRedraw(tnHandle, TRUE);
 
             TreeNew_SetEmptyText(tnHandle, &PhpEmptyTokenCapabilitiesText, 0);
             TreeNew_SetRedraw(tnHandle, FALSE);
@@ -5490,8 +5494,10 @@ INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
 
             PhSetControlTheme(tnHandle, L"explorer");
             TreeNew_SetCallback(tnHandle, PhpAppPolicyTreeNewCallback, &tokenPageContext->AppPolicyTreeContext);
+            TreeNew_SetRedraw(tnHandle, FALSE);
             PhAddTreeNewColumnEx2(tnHandle, 0, TRUE, L"Policy", 220, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
             PhAddTreeNewColumnEx2(tnHandle, 1, TRUE, L"Value", 150, PH_ALIGN_LEFT, 1, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+            TreeNew_SetRedraw(tnHandle, TRUE);
             TreeNew_SetSort(tnHandle, 0, AscendingSortOrder);
 
             TreeNew_SetEmptyText(tnHandle, &PhAppPolicyLoadingText, 0);

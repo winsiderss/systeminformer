@@ -13,7 +13,6 @@
 #include <peview.h>
 #include <workqueue.h>
 #include <verify.h>
-#include <shellapi.h>
 #include <math.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)

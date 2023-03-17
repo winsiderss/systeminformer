@@ -1660,12 +1660,14 @@ VOID PhpInitializeWmiProviderTree(
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
     TreeNew_SetCallback(Context->TreeNewHandle, PhpWmiProviderTreeNewCallback, Context);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, TRUE, L"Provider", 140, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_NAMESPACE, TRUE, L"Namespace", 180, PH_ALIGN_LEFT, 1, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_FILENAME, TRUE, L"File name", 260, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_USER, TRUE, L"User", 80, PH_ALIGN_LEFT, 3, 0);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, NoSortOrder);
 

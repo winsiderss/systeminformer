@@ -2883,10 +2883,14 @@ VOID InitializeOptionsAdvancedTree(
 
     TreeNew_SetCallback(Context->TreeNewHandle, OptionsAdvancedTreeNewCallback, Context);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 1, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_VALUE, TRUE, L"Value", 200, PH_ALIGN_LEFT, 2, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT, TRUE, L"Default", 200, PH_ALIGN_LEFT, 3, 0, TRUE);
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
 

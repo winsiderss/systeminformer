@@ -889,6 +889,7 @@ VOID WtcInitializeWaitTree(
     PhSetControlTheme(hwnd, L"explorer");
 
     TreeNew_SetCallback(hwnd, WtcWaitTreeNewCallback, Context);
+    TreeNew_SetRedraw(hwnd, FALSE);
 
     PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_TYPE, TRUE, L"Type", 80, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_THREADID, TRUE, L"ThreadId", 50, PH_ALIGN_LEFT, 1, 0);
@@ -900,6 +901,7 @@ VOID WtcInitializeWaitTree(
     PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_ALERTABLE, TRUE, L"Alertable", 50, PH_ALIGN_LEFT, 7, 0);
     PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 8, 0);
 
+    TreeNew_SetRedraw(hwnd, TRUE);
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
