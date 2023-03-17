@@ -113,6 +113,7 @@ INT WINAPI wWinMain(
     PvInitializeSettings();
     PvPropInitialization();
     PhTreeNewInitialization();
+    PvInitializeSuperclassControls();
 
     if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
         return 1;

@@ -49,6 +49,10 @@ BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER* SymbolProvider
     );
 
+VOID PvInitializeSuperclassControls(
+    VOID
+    );
+
 // peprp
 
 VOID PvPeProperties(
