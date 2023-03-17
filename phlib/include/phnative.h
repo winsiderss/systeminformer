@@ -1852,7 +1852,6 @@ typedef struct _PH_MODULE_INFO
     PVOID EntryPoint;
     ULONG Flags;
     PPH_STRING Name;
-    PPH_STRING FileNameWin32;
     PPH_STRING FileName;
 
     USHORT LoadOrderIndex; // -1 if N/A

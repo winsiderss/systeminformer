@@ -336,9 +336,7 @@ VOID PhLoadSymbolsThreadProvider(
         {
             if (kernelModules->NumberOfModules > 0)
             {
-                PPH_STRING fileName;
-
-                fileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
+                PPH_STRING fileName = PhConvertUtf8ToUtf16(kernelModules->Modules[0].FullPathName);
 
                 PhLoadModuleSymbolProvider(
                     ThreadProvider->SymbolProvider,
@@ -346,6 +344,7 @@ VOID PhLoadSymbolsThreadProvider(
                     (ULONG64)kernelModules->Modules[0].ImageBase,
                     kernelModules->Modules[0].ImageSize
                     );
+
                 PhDereferenceObject(fileName);
             }
 

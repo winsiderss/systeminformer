@@ -268,7 +268,6 @@ VOID PhpModuleItemDeleteProcedure(
     PhEmCallObjectOperation(EmModuleItemType, moduleItem, EmObjectDelete);
 
     if (moduleItem->Name) PhDereferenceObject(moduleItem->Name);
-    if (moduleItem->FileNameWin32) PhDereferenceObject(moduleItem->FileNameWin32);
     if (moduleItem->FileName) PhDereferenceObject(moduleItem->FileName);
     if (moduleItem->VerifySignerName) PhDereferenceObject(moduleItem->VerifySignerName);
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
@@ -467,7 +466,6 @@ static BOOLEAN NTAPI EnumModulesCallback(
     copy = PhAllocateCopy(Module, sizeof(PH_MODULE_INFO));
 
     PhReferenceObject(copy->Name);
-    PhReferenceObject(copy->FileNameWin32);
     PhReferenceObject(copy->FileName);
 
     PhAddItemList((PPH_LIST)Context, copy);
@@ -591,7 +589,6 @@ VOID PhModuleProviderUpdate(
             FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
             PhReferenceObject(module->Name);
-            PhReferenceObject(module->FileNameWin32);
             PhReferenceObject(module->FileName);
 
             moduleItem = PhCreateModuleItem();
@@ -604,7 +601,6 @@ VOID PhModuleProviderUpdate(
             moduleItem->LoadCount = module->LoadCount;
             moduleItem->LoadTime = module->LoadTime;
             moduleItem->Name = module->Name;
-            moduleItem->FileNameWin32 = module->FileNameWin32;
             moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
 
@@ -852,7 +848,6 @@ VOID PhModuleProviderUpdate(
         PPH_MODULE_INFO module = modules->Items[i];
 
         PhDereferenceObject(module->Name);
-        PhDereferenceObject(module->FileNameWin32);
         PhDereferenceObject(module->FileName);
         PhFree(module);
     }

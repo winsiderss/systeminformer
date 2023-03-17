@@ -998,7 +998,7 @@ NTSTATUS PhSipLoadMmAddresses(
             symbolProvider = PhCreateSymbolProvider(NULL);
             PhLoadSymbolProviderOptions(symbolProvider);
 
-            kernelFileName = PH_AUTO(PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName));
+            kernelFileName = PH_AUTO(PhConvertUtf8ToUtf16(kernelModules->Modules[0].FullPathName));
 
             PhLoadModuleSymbolProvider(
                 symbolProvider,

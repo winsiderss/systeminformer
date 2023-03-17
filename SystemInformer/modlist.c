@@ -414,6 +414,7 @@ VOID PhpDestroyModuleNode(
 
     PhClearReference(&ModuleNode->TooltipText);
 
+    PhClearReference(&ModuleNode->FileNameWin32);
     PhClearReference(&ModuleNode->SizeText);
     PhClearReference(&ModuleNode->TimeStampText);
     PhClearReference(&ModuleNode->LoadTimeText);
@@ -623,7 +624,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareStringWithNull(moduleItem1->FileNameWin32, moduleItem2->FileNameWin32, TRUE);
+    sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -896,7 +897,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(moduleItem->VersionInfo.FileVersion);
                 break;
             case PHMOTLC_FILENAME:
-                getCellText->Text = PhGetStringRef(moduleItem->FileNameWin32);
+                {
+                    if (!node->FileNameWin32)
+                        node->FileNameWin32 = PhGetFileName(moduleItem->FileName);
+
+                    getCellText->Text = PhGetStringRef(node->FileNameWin32);
+                }
                 break;
             case PHMOTLC_TYPE:
                 {
@@ -1149,11 +1155,14 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_SERVICE:
                 {
-                    if (moduleItem->FileNameWin32 && context->HasServices)
+                    if (!node->FileNameWin32)
+                        node->FileNameWin32 = PhGetFileName(moduleItem->FileName);
+
+                    if (node->FileNameWin32 && context->HasServices)
                     {
                         PhMoveReference(&node->ServiceText, PhGetServiceNameForModuleReference(
                             context->ProcessId,
-                            PhGetString(moduleItem->FileNameWin32)
+                            PhGetString(node->FileNameWin32)
                             ));
                         getCellText->Text = PhGetStringRef(node->ServiceText);
                     }
@@ -1239,8 +1248,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
             if (!node->TooltipText)
             {
+                if (!node->FileNameWin32)
+                    node->FileNameWin32 = PhGetFileName(node->ModuleItem->FileName);
+
                 node->TooltipText = PhFormatImageVersionInfo(
-                    node->ModuleItem->FileNameWin32,
+                    node->FileNameWin32,
                     &node->ModuleItem->VersionInfo,
                     NULL,
                     0
@@ -1444,7 +1456,7 @@ BOOLEAN PhShouldShowModuleCoherency(
 
     if (ModuleItem->ImageCoherencyStatus == STATUS_PENDING ||
         ModuleItem->ImageCoherencyStatus == LONG_MAX ||
-        PhIsNullOrEmptyString(ModuleItem->FileNameWin32))
+        PhIsNullOrEmptyString(ModuleItem->FileName))
     {
         //
         // The image coherency status is pending, uninitialized, or we don't
