@@ -1927,7 +1927,7 @@ NTAPI
 RtlUTF8ToUnicodeN(
     _Out_writes_bytes_to_(UnicodeStringMaxByteCount, *UnicodeStringActualByteCount) PWSTR UnicodeStringDestination,
     _In_ ULONG UnicodeStringMaxByteCount,
-    _Out_ PULONG UnicodeStringActualByteCount,
+    _Out_opt_ PULONG UnicodeStringActualByteCount,
     _In_reads_bytes_(UTF8StringByteCount) PCCH UTF8StringSource,
     _In_ ULONG UTF8StringByteCount
     );
@@ -1940,7 +1940,7 @@ NTAPI
 RtlUnicodeToUTF8N(
     _Out_writes_bytes_to_(UTF8StringMaxByteCount, *UTF8StringActualByteCount) PCHAR UTF8StringDestination,
     _In_ ULONG UTF8StringMaxByteCount,
-    _Out_ PULONG UTF8StringActualByteCount,
+    _Out_opt_ PULONG UTF8StringActualByteCount,
     _In_reads_bytes_(UnicodeStringByteCount) PCWCH UnicodeStringSource,
     _In_ ULONG UnicodeStringByteCount
     );
@@ -8993,13 +8993,13 @@ RtlAppxIsFileOwnedByTrustedInstaller(
 #define BREAKAWAY_INHIBITED 0x20
 
 // PackageOrigin appmodel.h
-#define PackageOrigin_Unknown 0
-#define PackageOrigin_Unsigned 1
-#define PackageOrigin_Inbox 2
-#define PackageOrigin_Store 3
-#define PackageOrigin_DeveloperUnsigned 4
-#define PackageOrigin_DeveloperSigned 5
-#define PackageOrigin_LineOfBusiness 6
+//#define PackageOrigin_Unknown 0
+//#define PackageOrigin_Unsigned 1
+//#define PackageOrigin_Inbox 2
+//#define PackageOrigin_Store 3
+//#define PackageOrigin_DeveloperUnsigned 4
+//#define PackageOrigin_DeveloperSigned 5
+//#define PackageOrigin_LineOfBusiness 6
 
 #define PSMP_MINIMUM_SYSAPP_CLAIM_VALUES 2
 #define PSMP_MAXIMUM_SYSAPP_CLAIM_VALUES 4
