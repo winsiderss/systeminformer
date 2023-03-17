@@ -818,7 +818,7 @@ VOID LoadNetworkAdapterImages(
         {
             if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
             {
-                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+                if (PhExtractIconEx(&dllIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
                     HIMAGELIST imageList = PhImageListCreate(
                         PhGetDpi(24, dpiValue), // GetSystemMetrics(SM_CXSMICON)
