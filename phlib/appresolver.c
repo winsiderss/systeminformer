@@ -1019,13 +1019,20 @@ static BOOLEAN PhParseStartMenuAppShellItem(
         packageLongDisplayName)
     {
         PPH_APPUSERMODELID_ENUM_ENTRY entry;
+        PWSTR imagePath = NULL;
 
         entry = PhAllocateZero(sizeof(PH_APPUSERMODELID_ENUM_ENTRY));
         entry->AppUserModelId = PhCreateString(packageAppUserModelID);
         entry->DisplayName = PhCreateString(packageLongDisplayName);
         entry->PackageInstallPath = PhCreateString(packageInstallPath);
         entry->PackageFullName = PhCreateString(packageFullName);
-        entry->SmallLogoPath = PhCreateString(packageSmallLogoPath);
+
+        if (SUCCEEDED(PhAppResolverGetPackageResourceFilePath(packageFullName, packageSmallLogoPath, &imagePath)))
+        {
+            entry->SmallLogoPath = PhCreateString(imagePath);
+            CoTaskMemFree(imagePath);
+        }
+
         PhAddItemList(List, entry);
 
         return TRUE;
@@ -1116,8 +1123,8 @@ CleanupExit:
 }
 
 HRESULT PhAppResolverGetPackageResourceFilePath(
-    _In_ PPH_STRING PackageFullName,
-    _In_ PWSTR Key,
+    _In_ PCWSTR PackageFullName,
+    _In_ PCWSTR Key,
     _Out_ PWSTR* FilePath
     )
 {
@@ -1136,7 +1143,7 @@ HRESULT PhAppResolverGetPackageResourceFilePath(
     if (FAILED(status))
         goto CleanupExit;
 
-    status = IMrtResourceManager_InitializeForPackage(resourceManager, PhGetString(PackageFullName));
+    status = IMrtResourceManager_InitializeForPackage(resourceManager, PackageFullName);
 
     if (FAILED(status))
         goto CleanupExit;
@@ -1231,7 +1238,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
         goto CleanupExit;
     //if (FAILED(IPropertyStore_GetValue(propertyStore, &PKEY_Tile_Background, &propertyColorValue)))
     //    goto CleanupExit;
-    if (FAILED(PhAppResolverGetPackageResourceFilePath(PackageFullName, V_BSTR(&propertyKeyValue), &imagePath)))
+    if (FAILED(PhAppResolverGetPackageResourceFilePath(PhGetString(PackageFullName), V_BSTR(&propertyKeyValue), &imagePath)))
         goto CleanupExit;
 
     {

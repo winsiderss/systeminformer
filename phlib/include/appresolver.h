@@ -88,6 +88,12 @@ PPH_LIST PhEnumerateApplicationUserModelIds(
     VOID
     );
 
+HRESULT PhAppResolverGetPackageResourceFilePath(
+    _In_ PCWSTR PackageFullName,
+    _In_ PCWSTR Key,
+    _Out_ PWSTR* FilePath
+    );
+
 _Success_(return)
 BOOLEAN PhAppResolverGetPackageIcon(
     _In_ HANDLE ProcessId,
