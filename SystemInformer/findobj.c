@@ -920,6 +920,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 {
     PSEARCH_MODULE_CONTEXT moduleContext = Context;
     PPH_HANDLE_SEARCH_CONTEXT context;
+    PPH_STRING filenameWin32;
     PPH_STRING upperFileName;
     PPH_STRING upperOriginalFileName;
 
@@ -928,7 +929,8 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
     context = moduleContext->WindowContext;
 
-    upperFileName = PhUpperString(Module->FileNameWin32);
+    filenameWin32 = PhGetFileName(Module->FileName);
+    upperFileName = PhUpperString(filenameWin32);
     upperOriginalFileName = PhUpperString(Module->FileName);
 
     if ((MatchSearchString(context, &upperFileName->sr) || MatchSearchString(context, &upperOriginalFileName->sr)) ||
@@ -955,7 +957,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
         searchResult->Handle = (HANDLE)Module->BaseAddress;
         searchResult->TypeName = PhCreateString(typeName);
-        PhSetReference(&searchResult->BestObjectName, Module->FileNameWin32);
+        PhSetReference(&searchResult->BestObjectName, filenameWin32);
         PhSetReference(&searchResult->ObjectName, Module->FileName);
 
         PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
@@ -965,6 +967,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
     PhDereferenceObject(upperOriginalFileName);
     PhDereferenceObject(upperFileName);
+    PhDereferenceObject(filenameWin32);
 
     return TRUE;
 }
