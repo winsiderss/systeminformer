@@ -245,7 +245,7 @@ LimitedDump:
         PhGetString(fileName),
         FILE_GENERIC_WRITE | DELETE,
         FILE_ATTRIBUTE_NORMAL,
-        0,
+        FILE_SHARE_DELETE,
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         );
@@ -430,7 +430,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
 {
     PPH_PROCESS_MINIDUMP_CONTEXT context = Parameter;
     MINIDUMP_CALLBACK_INFORMATION callbackInfo;
-    HANDLE snapshotHandle = NULL;
+    HANDLE processSnapshotHandle = NULL;
     HANDLE packageTaskHandle = NULL;
 
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
@@ -477,7 +477,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
 #endif
 
-    if (context->ProcessItem->PackageFullName)
+    if (context->ProcessItem->IsPackagedProcess)
     {
         // Set the task completion notification (based on taskmgr.exe) (dmex)
         //PhAppResolverPackageStopSessionRedirection(context->ProcessItem->PackageFullName);
@@ -499,18 +499,24 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
     else
     {
-        if (NT_SUCCESS(PhCreateProcessSnapshot(
-            &snapshotHandle,
-            context->ProcessHandle,
-            context->ProcessId
-            )))
+        if (context->ProcessId != NtCurrentProcessId()) // Don't use snapshots for the current process (dmex)
         {
-            context->IsProcessSnapshot = TRUE;
+            HANDLE snapshotHandle;
+
+            if (NT_SUCCESS(PhCreateProcessSnapshot(
+                &snapshotHandle,
+                context->ProcessHandle,
+                context->ProcessId
+                )))
+            {
+                processSnapshotHandle = snapshotHandle;
+                context->IsProcessSnapshot = TRUE;
+            }
         }
     }
 
     if (PhWriteMiniDumpProcess(
-        context->IsProcessSnapshot ? snapshotHandle : context->ProcessHandle,
+        processSnapshotHandle ? processSnapshotHandle : context->ProcessHandle,
         context->ProcessId,
         context->FileHandle,
         context->DumpType,
@@ -526,9 +532,9 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         SendMessage(context->WindowHandle, WM_PH_MINIDUMP_ERROR, 0, (LPARAM)GetLastError());
     }
 
-    if (snapshotHandle)
+    if (processSnapshotHandle)
     {
-        PhFreeProcessSnapshot(snapshotHandle, context->ProcessHandle);
+        PhFreeProcessSnapshot(processSnapshotHandle, context->ProcessHandle);
     }
 
     if (packageTaskHandle)
