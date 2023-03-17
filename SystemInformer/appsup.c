@@ -847,20 +847,30 @@ VOID PhShellExecuteUserString(
     // Replace the token with the string, or use the original string if the token is not present.
     if (PhSplitStringRefAtString(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
     {
-        PPH_STRING stringTemp;
-        PPH_STRING stringMiddle;
+        // Note: See PhGetProcessImageFileNameWin32 for a description of
+        // the issue with some filenames and faulty RamDisk software (dmex)
 
-        // Note: This code is needed to solve issues with faulty RamDisk software that doesn't use the Mount Manager API
-        // and instead returns \device\ FileName strings. We also can't change the way the process provider stores
-        // the FileName string since it'll break various features and use-cases required by developers
-        // who need the raw untranslated FileName string.
-        stringTemp = PhCreateString(String);
-        stringMiddle = PhGetFileName(stringTemp);
+        if (String[0] == OBJ_NAME_PATH_SEPARATOR) // Workaround faulty software (dmex)
+        {
+            PPH_STRING stringTemp;
+            PPH_STRING stringMiddle;
 
-        PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle->sr, &stringAfter));
+            stringTemp = PhCreateString(String);
+            stringMiddle = PhGetFileName(stringTemp);
 
-        PhDereferenceObject(stringMiddle);
-        PhDereferenceObject(stringTemp);
+            PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle->sr, &stringAfter));
+
+            PhDereferenceObject(stringMiddle);
+            PhDereferenceObject(stringTemp);
+        }
+        else
+        {
+            PH_STRINGREF stringMiddle;
+
+            PhInitializeStringRefLongHint(&stringMiddle, String);
+
+            PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle, &stringAfter));
+        }
     }
 
     if (UseShellExecute)
