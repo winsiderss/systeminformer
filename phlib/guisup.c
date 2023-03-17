@@ -2126,6 +2126,31 @@ BOOLEAN PhIsImmersiveProcess(
 }
 
 _Success_(return)
+BOOLEAN PhGetProcessUIContextInformation(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_UICONTEXT_INFORMATION UIContext
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* GetProcessUIContextInformation_I)(
+        _In_ HANDLE ProcessHandle,
+        _Out_ PPROCESS_UICONTEXT_INFORMATION UIContext
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_8)
+            GetProcessUIContextInformation_I = PhGetDllProcedureAddress(L"user32.dll", "GetProcessUIContextInformation", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!GetProcessUIContextInformation_I)
+        return FALSE;
+
+    return !!GetProcessUIContextInformation_I(ProcessHandle, UIContext);
+}
+
+_Success_(return)
 BOOLEAN PhGetProcessDpiAwareness(
     _In_ HANDLE ProcessHandle,
     _Out_ PPH_PROCESS_DPI_AWARENESS ProcessDpiAwareness
