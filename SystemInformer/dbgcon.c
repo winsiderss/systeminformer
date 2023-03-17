@@ -141,7 +141,7 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
         Module->Size
         ))
     {
-        wprintf(L"Unable to load symbols: %s\n", PhGetStringOrEmpty(Module->FileNameWin32));
+        wprintf(L"Unable to load symbols: %s\n", PhGetStringOrEmpty(Module->FileName));
     }
 
     return TRUE;
