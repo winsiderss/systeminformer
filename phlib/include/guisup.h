@@ -538,12 +538,12 @@ VOID PhGetStockApplicationIcon(
     _Out_opt_ HICON *LargeIcon
     );
 
-PHLIBAPI
-HICON PhGetFileShellIcon(
-    _In_opt_ PWSTR FileName,
-    _In_opt_ PWSTR DefaultExtension,
-    _In_ BOOLEAN LargeIcon
-    );
+//PHLIBAPI
+//HICON PhGetFileShellIcon(
+//    _In_opt_ PWSTR FileName,
+//    _In_opt_ PWSTR DefaultExtension,
+//    _In_ BOOLEAN LargeIcon
+//    );
 
 PHLIBAPI
 VOID PhSetClipboardString(

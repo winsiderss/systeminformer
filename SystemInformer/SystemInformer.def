@@ -559,7 +559,6 @@ EXPORTS
     PhFindListViewItemByFlags
     PhFindListViewItemByParam
     PhGetComboBoxString
-    PhGetFileShellIcon
     PhGetListBoxString
     PhGetListViewItemImageIndex
     PhGetListViewItemParam
