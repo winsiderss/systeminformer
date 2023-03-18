@@ -187,6 +187,10 @@ VOID PhNfpIconRestoreHoverTimerProc(
     _In_ ULONG dwTime
     );
 
+VOID PhNfpIconDisablePopupHoverWin11Workaround(
+    VOID
+    );
+
 VOID PhNfpIconShowPopupHoverTimerProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
