@@ -212,21 +212,21 @@ typedef ULONG (WINAPI *_UnDecorateSymbolNameW)(
     );
 
 // undocumented
-typedef BOOLEAN (WINAPI *_SymGetDiaSource)(
+typedef BOOL (WINAPI *_SymGetDiaSource)(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG64 BaseOfDll,
     _Out_ PVOID* IDiaDataSource
     );
 
 // undocumented
-typedef BOOLEAN (WINAPI *_SymGetDiaSession)(
+typedef BOOL (WINAPI *_SymGetDiaSession)(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG64 BaseOfDll,
     _Out_ PVOID* IDiaSession
     );
 
 // undocumented
-typedef BOOLEAN (WINAPI *_SymSetDiaSession)(
+typedef BOOL (WINAPI *_SymSetDiaSession)(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG64 BaseOfDll,
     _In_ PVOID IDiaSession
