@@ -161,7 +161,7 @@ VOID PhShowKsiUnsupportedError(
     _In_ HWND ParentWindowHandle
     )
 {
-    if (WindowsVersion != WINDOWS_NEW)
+    if (WindowsVersion == WINDOWS_NEW)
     {
         PhShowWarning2(
             ParentWindowHandle,
