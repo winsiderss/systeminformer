@@ -13,8 +13,7 @@
 #include <kphmsgdyn.h>
 
 #ifndef _KERNEL_MODE
-#include <intsafe.h>
-#define RtlULongAdd ULongAdd
+#include "../tools/thirdparty/mssdk/ntintsafe.h"
 #endif
 
 #include <pshpack1.h>

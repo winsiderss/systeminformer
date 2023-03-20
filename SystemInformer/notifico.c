@@ -536,6 +536,8 @@ VOID PhNfForwardMessage(
             if (!PhGetIntegerSetting(L"IconSingleClick") && PhNfMiniInfoEnabled)
                 PhKillTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE);
 
+            PhNfpIconDisablePopupHoverWin11Workaround();
+
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             GetCursorPos(&location);
             PhShowIconContextMenu(location);
@@ -582,13 +584,7 @@ VOID PhNfForwardMessage(
         break;
     case NIN_POPUPCLOSE:
         {
-            if (WindowsVersion >= WINDOWS_11_22H1)
-            {
-                PopupIconIndex = ULONG_MAX;
-                PopupRegisteredIcon = NULL;
-
-                PhKillTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN);
-            }
+            PhNfpIconDisablePopupHoverWin11Workaround();
 
             PhPinMiniInformation(MiniInfoIconPinType, -1, 350, 0, NULL, NULL);
         }
@@ -2263,6 +2259,19 @@ VOID PhNfpIconRestoreHoverTimerProc(
 {
     IconDisableHover = FALSE;
     PhKillTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER);
+}
+
+VOID PhNfpIconDisablePopupHoverWin11Workaround(
+    VOID
+    )
+{
+    if (WindowsVersion >= WINDOWS_11_22H1)
+    {
+        PopupIconIndex = ULONG_MAX;
+        PopupRegisteredIcon = NULL;
+
+        PhKillTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN);
+    }
 }
 
 VOID PhNfpIconShowPopupHoverTimerProc(

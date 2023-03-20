@@ -722,7 +722,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                         NULL,
                         NULL,
                         SW_SHOW,
-                        PH_SHELL_EXECUTE_NOASYNC,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                         0,
                         NULL
@@ -754,7 +754,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
             NULL,
             NULL,
             SW_SHOW,
-            PH_SHELL_EXECUTE_NOASYNC,
+            PH_SHELL_EXECUTE_DEFAULT,
             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
             0,
             NULL
