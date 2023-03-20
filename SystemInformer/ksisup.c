@@ -24,12 +24,49 @@
 
 BOOLEAN KsiEnableLoadNative = FALSE;
 BOOLEAN KsiEnableLoadFilter = FALSE;
+PPH_STRING KsiKernelVersion = NULL;
+
+PPH_STRING PhpGetKernelVersionString(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_STRING fileName;
+        PH_IMAGE_VERSION_INFO versionInfo;
+
+        if (fileName = PhGetKernelFileName2())
+        {
+            if (PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
+            {
+                KsiKernelVersion = versionInfo.FileVersion;
+
+                versionInfo.FileVersion = NULL;
+                PhDeleteImageVersionInfo(&versionInfo);
+            }
+
+            PhDereferenceObject(fileName);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (KsiKernelVersion)
+        return PhReferenceObject(KsiKernelVersion);
+
+    return NULL;
+}
 
 VOID PhShowKsiStatus(
     VOID
     )
 {
     KPH_PROCESS_STATE processState;
+
+    if (!PhGetIntegerSetting(L"EnableKphWarnings") || PhStartupParameters.PhSvc)
+        return;
 
     processState = KphGetCurrentProcessState();
 
@@ -88,121 +125,121 @@ VOID PhShowKsiStatus(
     }
 }
 
-VOID PhShowKsiError(
+VOID PhpShowKsiMessage(
     _In_opt_ HWND WindowHandle,
-    _In_ PWSTR Message,
-    _In_opt_ NTSTATUS Status
+    _In_opt_ PWSTR Icon,
+    _In_opt_ NTSTATUS Status,
+    _In_ BOOLEAN Force,
+    _In_ PWSTR Title,
+    _In_ PWSTR Format,
+    _In_ va_list ArgPtr 
     )
 {
-    if (Status == STATUS_NO_SUCH_FILE)
+    PPH_STRING kernelVersion;
+    PPH_STRING errorMessage;
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING messageString;
+
+    if (!Force && !PhGetIntegerSetting(L"EnableKphWarnings") || PhStartupParameters.PhSvc)
+        return;
+
+    errorMessage = NULL;
+    kernelVersion = PhpGetKernelVersionString();
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    PhAppendFormatStringBuilder_V(&stringBuilder, Format, ArgPtr);
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
+
+    if (Status != 0)
+    {
+        if (!(errorMessage = PhGetStatusMessage(Status, 0)))
+            errorMessage = PhGetStatusMessage(0, Status);
+
+        PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(errorMessage, L"Unknown error."));
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
+    }
+
+    PhAppendStringBuilder2(&stringBuilder, L"Kernel version: ");
+    PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(kernelVersion, L"Unknown"));
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+
+    PhAppendStringBuilder2(&stringBuilder, L"State mask: ");
+    PhAppendFormatStringBuilder(&stringBuilder, L"0x%08x", KphGetCurrentProcessState());
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+
+    if (Force && !PhGetIntegerSetting(L"EnableKphWarnings"))
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Driver warnings are disabled.");
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+    }
+
+    if (PhEndsWithString2(stringBuilder.String, L"\r\n", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    messageString = PhFinalStringBuilderString(&stringBuilder);
+
+    if (Force)
+    {
+        PhShowMessage2(
+            WindowHandle,
+            TDCBF_OK_BUTTON,
+            Icon,
+            Title,
+            PhGetString(messageString)
+            );
+    }
+    else
     {
         if (PhShowMessageOneTime(
             WindowHandle,
             TDCBF_OK_BUTTON,
-            TD_ERROR_ICON,
-            Message,
-            L"%s",
-            L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
+            Icon,
+            Title,
+            PhGetString(messageString)
             ))
         {
             PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
         }
     }
-    else
-    {
-        PPH_STRING errorMessage;
-        PPH_STRING statusMessage;
 
-        if (!(errorMessage = PhGetStatusMessage(Status, 0)))
-            errorMessage = PhGetStatusMessage(0, Status);
+    if (errorMessage)
+        PhDereferenceObject(errorMessage);
 
-        if (errorMessage)
-        {
-            statusMessage = PhConcatStrings(
-                3,
-                PhGetString(errorMessage),
-                L"\r\n\r\n",
-                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-                );
-
-            if (PhShowMessageOneTime(
-                WindowHandle,
-                TDCBF_OK_BUTTON,
-                TD_ERROR_ICON,
-                Message,
-                L"%s",
-                PhGetString(statusMessage)
-                ))
-            {
-                PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
-            }
-
-            PhDereferenceObject(statusMessage);
-            PhDereferenceObject(errorMessage);
-        }
-        else
-        {
-            if (PhShowMessageOneTime(
-                WindowHandle,
-                TDCBF_OK_BUTTON,
-                TD_ERROR_ICON,
-                Message,
-                L"%s",
-                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-                ))
-            {
-                PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
-            }
-        }
-    }
+    if (kernelVersion)
+        PhDereferenceObject(kernelVersion);
 }
 
-VOID PhShowKsiUnsupportedError(
-    _In_ HWND ParentWindowHandle
+VOID PhShowKsiMessageEx(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PWSTR Icon,
+    _In_opt_ NTSTATUS Status,
+    _In_ BOOLEAN Force,
+    _In_ PWSTR Title,
+    _In_ PWSTR Format,
+    ...
     )
 {
-    if (WindowsVersion == WINDOWS_NEW)
-    {
-        PhShowWarning2(
-            ParentWindowHandle,
-            L"KSystemInformer does not support this build of Windows.",
-            L"%s",
-            L"Request support by submitting a Github issue with the Windows version."
-            );
-    }
-    else
-    {
-        if (PhGetOwnTokenAttributes().Elevated)
-        {
-            if (PhGetIntegerSetting(L"EnableKph"))
-            {
-                PhShowError2(
-                    ParentWindowHandle,
-                    L"KSystemInformer could not be loaded.",
-                    L"%s",
-                    L"An unknown error occurred."
-                    );
-            }
-            else
-            {
-                PhShowError2(
-                    ParentWindowHandle,
-                    L"KSystemInformer could not be loaded.",
-                    L"%s",
-                    L"The \"Enable kernel-mode driver\" option is disabled."
-                    );
-            }
-        }
-        else
-        {
-            PhShowError2(
-                ParentWindowHandle,
-                L"KSystemInformer could not be loaded.",
-                L"%s",
-                L"Make sure System Informer is running with administrative privileges."
-                );
-        }
-    }
+    va_list argptr;
+
+    va_start(argptr, Format);
+    PhpShowKsiMessage(WindowHandle, Icon, Status, Force, Title, Format, argptr);
+    va_end(argptr);
+}
+
+VOID PhShowKsiMessage(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PWSTR Icon,
+    _In_ PWSTR Title,
+    _In_ PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, Format);
+    PhpShowKsiMessage(WindowHandle, Icon, 0, TRUE, Title, Format, argptr);
+    va_end(argptr);
 }
 
 static VOID NTAPI KsiCommsCallback(
@@ -378,16 +415,28 @@ NTSTATUS KsiInitializeCallbackThread(
         }
         else
         {
-            if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
-                PhShowKsiError(CallbackContext, L"Unable to load the kernel driver service.", status);
+            PhShowKsiMessageEx(
+                CallbackContext, 
+                TD_ERROR_ICON,
+                status,
+                FALSE,
+                L"Unable to load kernel driver", 
+                L"Unable to load the kernel driver service."
+                );
         }
 
         PhClearReference(&objectName);
     }
     else
     {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-            PhShowKsiError(CallbackContext, L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
+        PhShowKsiMessageEx(
+            CallbackContext, 
+            TD_ERROR_ICON,
+            STATUS_NO_SUCH_FILE,
+            FALSE,
+            L"Unable to load kernel driver", 
+            L"The kernel driver was not found."
+            );
     }
 
 CleanupExit:
@@ -486,23 +535,59 @@ VOID PhInitializeKsi(
     VOID
     )
 {
-    if (WindowsVersion < WINDOWS_10_20H1) // Temporary workaround for +3 month Microsoft delay (dmex)
-        return;
-    if (WindowsVersion < WINDOWS_10 || WindowsVersion == WINDOWS_NEW)
-        return;
     if (!PhGetOwnTokenAttributes().Elevated)
         return;
 
+    if (WindowsVersion < WINDOWS_10_20H1) // Temporary workaround for +3 month Microsoft delay (dmex)
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is temporarily disabled on this Windows version."
+            );
+        return;
+    }
+    if (WindowsVersion < WINDOWS_10)
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not supported on this Windows version, the "
+            L"minimum supported version is Windows 10."
+            );
+        return;
+    }
+    if (WindowsVersion == WINDOWS_NEW)
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not supported on preview builds. If this is "
+            L"not a preview build, request support by submitting a GitHub issue "
+            L"with the Windows Kernel version."
+            );
+        return;
+    }
+
     if (PhDoesOldKsiExist())
     {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-        {
-            PhShowKsiError(
-                NULL,
-                L"Unable to load kernel driver, the last System Informer update requires a reboot.",
-                STATUS_PENDING
-                );
-        }
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            STATUS_PENDING,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The last System Informer update requires a reboot."
+            );
         return;
     }
 

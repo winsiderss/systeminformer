@@ -866,7 +866,10 @@ VOID PhShowThreadStackDialog(
     // but KSystemInformer is not loaded, show an error message.
     if (ProcessId == SYSTEM_PROCESS_ID && (KphLevel() < KphLevelMed))
     {
-        PhShowKsiUnsupportedError(ParentWindowHandle);
+        PhShowKsiNotConnected(
+            ParentWindowHandle,
+            L"Inspecting kernel stacks requires a connection to the kernel driver."
+            );
         return;
     }
 

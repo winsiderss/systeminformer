@@ -236,7 +236,6 @@ INT WINAPI wWinMain(
     }
 
     if (PhGetIntegerSetting(L"EnableKph") &&
-        PhGetIntegerSetting(L"EnableKphWarnings") &&
         !PhStartupParameters.NoKph &&
         !PhIsExecutingInWow64())
     {

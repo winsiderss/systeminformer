@@ -257,7 +257,10 @@ VOID PhShowMemoryListCommand(
 
                 if (KphLevel() < KphLevelMax)
                 {
-                    PhShowKsiUnsupportedError(ParentWindow);
+                    PhShowKsiNotConnected(
+                        ParentWindow,
+                        L"Emptying the compression store requires a connection to the kernel driver."
+                        );
                     break;
                 }
 
