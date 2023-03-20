@@ -5054,7 +5054,10 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (KphLevel() < KphLevelMax)
     {
-        PhShowKsiUnsupportedError(hWnd);
+        PhShowKsiNotConnected(
+            hWnd,
+            L"Setting handle attributes requires a connection to the kernel driver."
+            );
         return FALSE;
     }
 
