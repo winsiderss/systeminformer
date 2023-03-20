@@ -40,6 +40,7 @@ BOOLEAN IsWindowMinimized = FALSE;
 BOOLEAN IsWindowMaximized = FALSE;
 BOOLEAN IconSingleClick = FALSE;
 BOOLEAN RestoreRowAfterSearch = FALSE;
+BOOLEAN EnableChildWildcardSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
@@ -1714,6 +1715,7 @@ VOID NTAPI LoadCallback(
     SearchBoxDisplayMode = PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     TaskbarListIconType = PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE);
     RestoreRowAfterSearch = !!PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH);
+    EnableChildWildcardSearch = !!PhGetIntegerSetting(SETTING_NAME_CHILDWILDCARDSEARCH);
     EnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
     TabInfoHashtable = PhCreateSimpleHashtable(3);
@@ -1850,14 +1852,11 @@ VOID NTAPI MenuItemCallback(
 }
 
 VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
-
-    if (!optionsEntry)
-        return;
 
     optionsEntry->CreateSection(
         L"ToolStatus",
@@ -1892,6 +1891,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" },
                 { IntegerSettingType, SETTING_NAME_RESTOREROWAFTERSEARCH, L"0" },
+                { IntegerSettingType, SETTING_NAME_CHILDWILDCARDSEARCH, L"0" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
