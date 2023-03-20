@@ -306,6 +306,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PPH_STRING curDir = NULL;
             PPH_PROCESS_ITEM parentProcess;
             CLIENT_ID clientId;
+            PPH_STRING fileNameWin32;
 
             context = propPageContext->Context = PhAllocateZero(sizeof(PH_PROCGENERAL_CONTEXT));
             context->WindowHandle = hwndDlg;
@@ -328,8 +329,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhSetDialogItemText(hwndDlg, IDC_NAME, processItem->ProcessName->Buffer);
             }
 
+            fileNameWin32 = processItem->FileName ? PhGetFileName(processItem->FileName) : NULL;
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
-            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileNameWin32));
+            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(fileNameWin32));
             PhSetDialogItemText(hwndDlg, IDC_FILENAMEWIN32, PhpGetStringOrNa(processItem->FileName));
 
             {
@@ -580,30 +582,56 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_INSPECT:
+            case IDC_INSPECT2:
                 {
-                    if (processItem->FileNameWin32)
+                    if (processItem->FileName)
                     {
-                        PhShellExecuteUserString(
-                            hwndDlg,
-                            L"ProgramInspectExecutables",
-                            processItem->FileNameWin32->Buffer,
-                            FALSE,
-                            L"Make sure the PE Viewer executable file is present."
-                            );
+                        PPH_STRING fileNameWin32 = processItem->FileName ? PH_AUTO(PhGetFileName(processItem->FileName)) : NULL;
+
+                        if (
+                            !PhIsNullOrEmptyString(fileNameWin32) && 
+                            PhDoesFileExistWin32(PhGetString(fileNameWin32))
+                            )
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"ProgramInspectExecutables",
+                                PhGetString(fileNameWin32),
+                                FALSE,
+                                L"Make sure the PE Viewer executable file is present."
+                                );
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
+                        }
                     }
                 }
                 break;
             case IDC_OPENFILENAME:
+            case IDC_OPENFILENAME2:
                 {
-                    if (processItem->FileNameWin32)
+                    if (processItem->FileName)
                     {
-                        PhShellExecuteUserString(
-                            hwndDlg,
-                            L"FileBrowseExecutable",
-                            processItem->FileNameWin32->Buffer,
-                            FALSE,
-                            L"Make sure the Explorer executable file is present."
-                            );
+                        PPH_STRING fileNameWin32 = processItem->FileName ? PH_AUTO(PhGetFileName(processItem->FileName)) : NULL;
+
+                        if (
+                            !PhIsNullOrEmptyString(fileNameWin32) && 
+                            PhDoesFileExistWin32(PhGetString(fileNameWin32))
+                            )
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"FileBrowseExecutable",
+                                PhGetString(fileNameWin32),
+                                FALSE,
+                                L"Make sure the Explorer executable file is present."
+                                );
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
+                        }
                     }
                 }
                 break;
@@ -614,7 +642,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         PPH_STRING commandLineString;
                         PPH_LIST commandLineList;
 
-                        if (commandLineList = PhCommandLineToList(processItem->CommandLine->Buffer))
+                        if (commandLineList = PhCommandLineToList(PhGetString(processItem->CommandLine)))
                         {
                             PH_STRING_BUILDER sb;
 
@@ -625,7 +653,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                                 PhAppendFormatStringBuilder(&sb, L"[%d] %s\r\n\r\n", i, PhGetString(commandLineList->Items[i]));
                             }
 
-                            PhAppendFormatStringBuilder(&sb, L"[FULL] %s\r\n", processItem->CommandLine->Buffer);
+                            PhAppendFormatStringBuilder(&sb, L"[FULL] %s\r\n", PhGetString(processItem->CommandLine));
 
                             commandLineString = PhFinalStringBuilderString(&sb);
 
@@ -637,7 +665,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             commandLineString = PhReferenceObject(processItem->CommandLine);
                         }
 
-                        PhShowInformationDialog(hwndDlg, commandLineString->Buffer, 0);
+                        PhShowInformationDialog(hwndDlg, PhGetString(commandLineString), 0);
 
                         PhDereferenceObject(commandLineString);
                     }
