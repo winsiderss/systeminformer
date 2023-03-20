@@ -1,10 +1,19 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2018-2023
+ *
+ */
+
 #ifndef PH_ACTIONS_H
 #define PH_ACTIONS_H
 
-#define PH_KPH_ERROR_TITLE (L"KSystemInformer could not be loaded.")
-#define PH_KPH_ERROR_MESSAGE (L"KSystemInformer does not support your operating system " \
-    L"or could not be loaded. Make sure System Informer is running " \
-    L"with administrative privileges.")
+EXTERN_C_START
 
 typedef enum _PH_ACTION_ELEVATION_LEVEL
 {
@@ -538,5 +547,7 @@ PhUiSetAttributesHandle(
     _In_ ULONG Attributes
     );
 // end_phapppub
+
+EXTERN_C_END
 
 #endif

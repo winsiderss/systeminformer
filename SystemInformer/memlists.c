@@ -18,6 +18,7 @@
 #include <actions.h>
 #include <phsvccl.h>
 #include <kphuser.h>
+#include <ksisup.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 
@@ -256,7 +257,7 @@ VOID PhShowMemoryListCommand(
 
                 if (KphLevel() < KphLevelMax)
                 {
-                    PhShowError2(ParentWindow, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
+                    PhShowKsiUnsupportedError(ParentWindow);
                     break;
                 }
 

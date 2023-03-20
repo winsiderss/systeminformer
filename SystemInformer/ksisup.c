@@ -157,6 +157,54 @@ VOID PhShowKsiError(
     }
 }
 
+VOID PhShowKsiUnsupportedError(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    if (WindowsVersion != WINDOWS_NEW)
+    {
+        PhShowWarning2(
+            ParentWindowHandle,
+            L"KSystemInformer does not support this build of Windows.",
+            L"%s",
+            L"Request support by submitting a Github issue with the Windows version."
+            );
+    }
+    else
+    {
+        if (PhGetOwnTokenAttributes().Elevated)
+        {
+            if (PhGetIntegerSetting(L"EnableKph"))
+            {
+                PhShowError2(
+                    ParentWindowHandle,
+                    L"KSystemInformer could not be loaded.",
+                    L"%s",
+                    L"An unknown error occurred."
+                    );
+            }
+            else
+            {
+                PhShowError2(
+                    ParentWindowHandle,
+                    L"KSystemInformer could not be loaded.",
+                    L"%s",
+                    L"The \"Enable kernel-mode driver\" option is disabled."
+                    );
+            }
+        }
+        else
+        {
+            PhShowError2(
+                ParentWindowHandle,
+                L"KSystemInformer could not be loaded.",
+                L"%s",
+                L"Make sure System Informer is running with administrative privileges."
+                );
+        }
+    }
+}
+
 static VOID NTAPI KsiCommsCallback(
     _In_ ULONG_PTR ReplyToken,
     _In_ PCKPH_MESSAGE Message
