@@ -934,6 +934,16 @@ INT PhShowMessage(
     return result;
 }
 
+static const PH_FLAG_MAPPING PhShowMessageTaskDialogButtonFlagMappings[] =
+{
+    { PH_SHOW_MESSAGE_FLAG_OK_BUTTON, TDCBF_OK_BUTTON },
+    { PH_SHOW_MESSAGE_FLAG_YES_BUTTON, TDCBF_YES_BUTTON },
+    { PH_SHOW_MESSAGE_FLAG_NO_BUTTON, TDCBF_NO_BUTTON },
+    { PH_SHOW_MESSAGE_FLAG_CANCEL_BUTTON, TDCBF_CANCEL_BUTTON },
+    { PH_SHOW_MESSAGE_FLAG_RETRY_BUTTON, TDCBF_RETRY_BUTTON },
+    { PH_SHOW_MESSAGE_FLAG_CLOSE_BUTTON, TDCBF_CLOSE_BUTTON },
+};
+
 INT PhShowMessage2(
     _In_opt_ HWND hWnd,
     _In_ ULONG Buttons,
@@ -947,16 +957,25 @@ INT PhShowMessage2(
     va_list argptr;
     PPH_STRING message;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+    ULONG buttonsFlags;
 
     va_start(argptr, Format);
     message = PhFormatString_V(Format, argptr);
     va_end(argptr);
 
     if (!message)
-        return -1;
+        return INT_ERROR;
+
+    buttonsFlags = 0;
+    PhMapFlags1(
+        &buttonsFlags, 
+        Buttons, 
+        PhShowMessageTaskDialogButtonFlagMappings,
+        ARRAYSIZE(PhShowMessageTaskDialogButtonFlagMappings)
+        );
 
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd) && !IsMinimized(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
-    config.dwCommonButtons = Buttons;
+    config.dwCommonButtons = buttonsFlags;
     config.hwndParent = hWnd;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = Icon;
@@ -976,7 +995,7 @@ INT PhShowMessage2(
     else
     {
         PhDereferenceObject(message);
-        return -1;
+        return INT_ERROR;
     }
 }
 
