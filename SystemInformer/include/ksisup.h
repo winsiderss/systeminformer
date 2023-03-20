@@ -6,7 +6,7 @@
  * Authors:
  *
  *     jxy-s   2022
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
@@ -23,6 +23,10 @@ VOID PhInitializeKsi(
 
 VOID PhDestroyKsi(
     VOID
+    );
+
+VOID PhShowKsiUnsupportedError(
+    _In_ HWND ParentWindowHandle
     );
 
 #endif

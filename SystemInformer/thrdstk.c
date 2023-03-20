@@ -16,6 +16,7 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <kphuser.h>
+#include <ksisup.h>
 #include <symprv.h>
 
 #include <actions.h>
@@ -865,7 +866,7 @@ VOID PhShowThreadStackDialog(
     // but KSystemInformer is not loaded, show an error message.
     if (ProcessId == SYSTEM_PROCESS_ID && (KphLevel() < KphLevelMed))
     {
-        PhShowError2(ParentWindowHandle, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
+        PhShowKsiUnsupportedError(ParentWindowHandle);
         return;
     }
 

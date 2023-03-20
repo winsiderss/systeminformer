@@ -22,6 +22,7 @@
 #include <winsta.h>
 
 #include <kphuser.h>
+#include <ksisup.h>
 #include <secedit.h>
 #include <secwmi.h>
 #include <settings.h>
@@ -5053,7 +5054,7 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (KphLevel() < KphLevelMax)
     {
-        PhShowError2(hWnd, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
+        PhShowKsiUnsupportedError(hWnd);
         return FALSE;
     }
 
