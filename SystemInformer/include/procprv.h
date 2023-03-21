@@ -328,13 +328,6 @@ PhGetClientIdNameEx(
     _In_ PCLIENT_ID ClientId,
     _In_opt_ PPH_STRING ProcessName
     );
-
-PHAPPAPI
-PWSTR
-NTAPI
-PhGetProcessPriorityClassString(
-    _In_ ULONG PriorityClass
-    );
 // end_phapppub
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
