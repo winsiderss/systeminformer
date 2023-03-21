@@ -7498,7 +7498,7 @@ CleanupExit:
 
 NTSTATUS PhDelayExecutionEx(
     _In_ BOOLEAN Alertable,
-    _In_opt_ PLARGE_INTEGER DelayInterval
+    _In_ PLARGE_INTEGER DelayInterval
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
