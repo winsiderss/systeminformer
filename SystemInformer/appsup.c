@@ -92,6 +92,57 @@ BOOLEAN PhIsProcessBackground(
     return FALSE;
 }
 
+PPH_STRINGREF PhGetProcessPriorityClassString(
+    _In_ ULONG PriorityClass
+    )
+{
+    static PH_STRINGREF PriorityClassString[] =
+    {
+        PH_STRINGREF_INIT(L"Unknown"),
+        PH_STRINGREF_INIT(L"Idle"),
+        PH_STRINGREF_INIT(L"Normal"),
+        PH_STRINGREF_INIT(L"High"), 
+        PH_STRINGREF_INIT(L"Real time"), 
+        PH_STRINGREF_INIT(L"Below normal"),
+        PH_STRINGREF_INIT(L"Above normal")
+    };
+
+    C_ASSERT(ARRAYSIZE(PriorityClassString) == PROCESS_PRIORITY_CLASS_ABOVE_NORMAL + 1);
+
+    switch (PriorityClass)
+    {
+    case PROCESS_PRIORITY_CLASS_UNKNOWN:
+    case PROCESS_PRIORITY_CLASS_IDLE:
+    case PROCESS_PRIORITY_CLASS_NORMAL:
+    case PROCESS_PRIORITY_CLASS_HIGH:
+    case PROCESS_PRIORITY_CLASS_REALTIME:
+    case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
+    case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
+        return &PriorityClassString[PriorityClass];
+    default:
+        return &PriorityClassString[PROCESS_PRIORITY_CLASS_UNKNOWN];
+    }
+
+    //switch (PriorityClass)
+    //{
+    //case PROCESS_PRIORITY_CLASS_REALTIME:
+    //    return L"Real time";
+    //case PROCESS_PRIORITY_CLASS_HIGH:
+    //    return L"High";
+    //case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
+    //    return L"Above normal";
+    //case PROCESS_PRIORITY_CLASS_NORMAL:
+    //    return L"Normal";
+    //case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
+    //    return L"Below normal";
+    //case PROCESS_PRIORITY_CLASS_IDLE:
+    //    return L"Idle";
+    //case PROCESS_PRIORITY_CLASS_UNKNOWN:
+    //default:
+    //    return L"Unknown";
+    //}
+}
+
 /**
  * Determines the OS compatibility context of a process.
  *

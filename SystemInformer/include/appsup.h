@@ -40,6 +40,13 @@ NTAPI
 PhIsProcessBackground(
     _In_ ULONG PriorityClass
     );
+
+PHAPPAPI
+PPH_STRINGREF
+NTAPI
+PhGetProcessPriorityClassString(
+    _In_ ULONG PriorityClass
+    );
 // end_phapppub
 
 NTSTATUS PhGetProcessSwitchContext(

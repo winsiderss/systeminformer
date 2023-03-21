@@ -2741,7 +2741,13 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (processItem->PriorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
                     {
-                        PhInitializeStringRefLongHint(&getCellText->Text, PhGetProcessPriorityClassString(processItem->PriorityClass));
+                        PPH_STRINGREF string;
+
+                        if (string = PhGetProcessPriorityClassString(processItem->PriorityClass))
+                        {
+                            getCellText->Text.Length = string->Length;
+                            getCellText->Text.Buffer = string->Buffer;
+                        }
                     }
                 }
                 break;
