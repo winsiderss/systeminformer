@@ -267,19 +267,19 @@ BOOLEAN PhpHandleTreeFilterCallback(
 
     if (handleItem->HandleString[0])
     {
-        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleItem->HandleString))
+        if (PhWordMatchStringLongHintZ(handlesContext->SearchboxText, handleItem->HandleString))
             return TRUE;
     }
 
     if (handleItem->GrantedAccessString[0])
     {
-        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleItem->GrantedAccessString))
+        if (PhWordMatchStringLongHintZ(handlesContext->SearchboxText, handleItem->GrantedAccessString))
             return TRUE;
     }
 
     if (handleItem->ObjectString[0])
     {
-        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleItem->ObjectString))
+        if (PhWordMatchStringLongHintZ(handlesContext->SearchboxText, handleItem->ObjectString))
             return TRUE;
     }
 
@@ -295,7 +295,7 @@ BOOLEAN PhpHandleTreeFilterCallback(
 
     if (handleNode->FileShareAccessText[0])
     {
-        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleNode->FileShareAccessText))
+        if (PhWordMatchStringLongHintZ(handlesContext->SearchboxText, handleNode->FileShareAccessText))
             return TRUE;
     }
 

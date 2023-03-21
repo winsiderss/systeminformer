@@ -49,13 +49,13 @@ BOOLEAN WeWindowTreeFilterCallback(
 
     if (windowNode->WindowClass[0])
     {
-        if (PhWordMatchStringZ(context->SearchboxText, windowNode->WindowClass))
+        if (PhWordMatchStringLongHintZ(context->SearchboxText, windowNode->WindowClass))
             return TRUE;
     }
 
     if (windowNode->WindowHandleString[0])
     {
-        if (PhWordMatchStringZ(context->SearchboxText, windowNode->WindowHandleString))
+        if (PhWordMatchStringLongHintZ(context->SearchboxText, windowNode->WindowHandleString))
             return TRUE;
     }
 

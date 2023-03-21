@@ -98,7 +98,7 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
 
     if (processNode->ProcessItem->IntegrityString)
     {
-        if (PhWordMatchStringZ(SearchboxText, processNode->ProcessItem->IntegrityString))
+        if (PhWordMatchStringLongHintZ(SearchboxText, processNode->ProcessItem->IntegrityString))
             return FILTER_RESULT_FOUND;
     }
 
@@ -116,7 +116,7 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
 
     if (PH_IS_REAL_PROCESS_ID(processNode->ProcessItem->ProcessId) && processNode->ProcessItem->ProcessIdString[0])
     {
-        if (PhWordMatchStringZ(SearchboxText, processNode->ProcessItem->ProcessIdString))
+        if (PhWordMatchStringLongHintZ(SearchboxText, processNode->ProcessItem->ProcessIdString))
             return FILTER_RESULT_FOUND_NAME;
 
          // HACK PidHexText from PH_PROCESS_NODE is not exported (dmex)
@@ -141,13 +141,13 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
 
     //if (processNode->ProcessItem->ParentProcessIdString[0])
     //{
-    //    if (PhWordMatchStringZ(SearchboxText, processNode->ProcessItem->ParentProcessIdString))
+    //    if (PhWordMatchStringLongHintZ(SearchboxText, processNode->ProcessItem->ParentProcessIdString))
     //        return Matched;
     //}
 
     //if (processNode->ProcessItem->SessionIdString[0])
     //{
-    //    if (PhWordMatchStringZ(SearchboxText, processNode->ProcessItem->SessionIdString))
+    //    if (PhWordMatchStringLongHintZ(SearchboxText, processNode->ProcessItem->SessionIdString))
     //        return Matched;
     //}
 
@@ -157,9 +157,16 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
             return FILTER_RESULT_FOUND;
     }
 
-    if (PhWordMatchStringZ(SearchboxText, PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass)))
     {
-        return FILTER_RESULT_FOUND;
+        PPH_STRINGREF value;
+
+        if (value = PhGetProcessPriorityClassString(processNode->ProcessItem->PriorityClass))
+        {
+            if (PhWordMatchStringRef(&SearchboxText->sr, value))
+            {
+                return FILTER_RESULT_FOUND;
+            }
+        }
     }
 
     if (processNode->ProcessItem->VerifyResult != VrUnknown)
@@ -334,7 +341,7 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
 
             if (serviceItem->ProcessId)
             {
-                if (PhWordMatchStringZ(SearchboxText, serviceItem->ProcessIdString))
+                if (PhWordMatchStringLongHintZ(SearchboxText, serviceItem->ProcessIdString))
                 {
                     matched = TRUE;
                     break;
@@ -562,7 +569,7 @@ BOOLEAN ServiceTreeFilterCallback(
     {
         PPH_PROCESS_NODE processNode;
 
-        if (PhWordMatchStringZ(SearchboxText, serviceNode->ServiceItem->ProcessIdString))
+        if (PhWordMatchStringLongHintZ(SearchboxText, serviceNode->ServiceItem->ProcessIdString))
             return TRUE;
 
         // Search the process node
@@ -651,13 +658,13 @@ BOOLEAN NetworkTreeFilterCallback(
 
     if (networkNode->NetworkItem->LocalAddressString[0])
     {
-        if (PhWordMatchStringZ(SearchboxText, networkNode->NetworkItem->LocalAddressString))
+        if (PhWordMatchStringLongHintZ(SearchboxText, networkNode->NetworkItem->LocalAddressString))
             return TRUE;
     }
 
     if (networkNode->NetworkItem->LocalPortString[0])
     {
-        if (PhWordMatchStringZ(SearchboxText, networkNode->NetworkItem->LocalPortString))
+        if (PhWordMatchStringLongHintZ(SearchboxText, networkNode->NetworkItem->LocalPortString))
             return TRUE;
     }
 
@@ -669,13 +676,13 @@ BOOLEAN NetworkTreeFilterCallback(
 
     if (networkNode->NetworkItem->RemoteAddressString[0])
     {
-        if (PhWordMatchStringZ(SearchboxText, networkNode->NetworkItem->RemoteAddressString))
+        if (PhWordMatchStringLongHintZ(SearchboxText, networkNode->NetworkItem->RemoteAddressString))
             return TRUE;
     }
 
     if (networkNode->NetworkItem->RemotePortString[0])
     {
-        if (PhWordMatchStringZ(SearchboxText, networkNode->NetworkItem->RemotePortString))
+        if (PhWordMatchStringLongHintZ(SearchboxText, networkNode->NetworkItem->RemotePortString))
             return TRUE;
     }
 
