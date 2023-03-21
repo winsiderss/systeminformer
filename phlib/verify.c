@@ -1230,7 +1230,6 @@ VERIFY_RESULT PhVerifyFileCached(
 #ifdef PH_ENABLE_VERIFY_CACHE
     HANDLE fileHandle;
     LONGLONG sequenceNumber = 0;
-    PPH_VERIFY_CACHE_ENTRY entry;
 
     if (PhBeginInitOnce(&PhpVerifyInitOnce))
     {
@@ -1278,6 +1277,7 @@ VERIFY_RESULT PhVerifyFileCached(
     }
 
     {
+        PPH_VERIFY_CACHE_ENTRY entry;
         PH_VERIFY_CACHE_ENTRY lookupEntry;
 
         PhGetFileUsn(fileHandle, &sequenceNumber);
@@ -1285,20 +1285,24 @@ VERIFY_RESULT PhVerifyFileCached(
         lookupEntry.SequenceNumber = sequenceNumber;
 
         PhAcquireQueuedLockShared(&PhpVerifyCacheLock);
-        entry = PhFindEntryHashtable(PhpVerifyCacheHashTable, &lookupEntry);
+
+        if (entry = PhFindEntryHashtable(PhpVerifyCacheHashTable, &lookupEntry))
+        {
+            VERIFY_RESULT verifyResult = entry->VerifyResult;
+
+            if (SignerName)
+                PhSetReference(SignerName, entry->VerifySignerName);
+
+            PhReleaseQueuedLockShared(&PhpVerifyCacheLock);
+
+            NtClose(fileHandle);
+
+            return verifyResult;
+        }
+
         PhReleaseQueuedLockShared(&PhpVerifyCacheLock);
     }
 
-    if (entry)
-    {
-        if (SignerName)
-            PhSetReference(SignerName, entry->VerifySignerName);
-
-        NtClose(fileHandle);
-
-        return entry->VerifyResult;
-    }
-    else
     {
         VERIFY_RESULT result;
         PPH_STRING signerName;
@@ -1321,7 +1325,6 @@ VERIFY_RESULT PhVerifyFileCached(
             signerName = NULL;
         }
 
-        if (result != VrUnknown)
         {
             PH_VERIFY_CACHE_ENTRY newEntry;
 
