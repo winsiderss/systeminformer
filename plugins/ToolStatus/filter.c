@@ -491,7 +491,7 @@ BOOLEAN ProcessTreeFilterCallback(
             SearchboxText
             );
 
-        return result == FILTER_RESULT_FOUND;
+        return result != FILTER_RESULT_NOT_FOUND;
     }
 }
 
