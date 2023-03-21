@@ -27,7 +27,7 @@ typedef struct _PV_EA_CALLBACK
 
 BOOLEAN NTAPI PvpEnumFileAttributesCallback(
     _In_ PFILE_FULL_EA_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPV_EA_CALLBACK context = Context;
@@ -35,15 +35,13 @@ BOOLEAN NTAPI PvpEnumFileAttributesCallback(
     INT lvItemIndex;
     WCHAR number[PH_INT32_STR_LEN_1];
 
-    if (!context)
-        return TRUE;
     if (Information->EaNameLength == 0)
         return TRUE;
 
     PhPrintUInt32(number, ++context->Count);
     lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, number, NULL);
 
-    attributeName = PhZeroExtendToUtf16Ex(Information->EaName, Information->EaNameLength);
+    attributeName = PhConvertUtf8ToUtf16Ex(Information->EaName, Information->EaNameLength);
     PhSetListViewSubItem(
         context->ListViewHandle,
         lvItemIndex,

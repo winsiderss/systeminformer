@@ -1234,7 +1234,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
                             for (i = PH_FIRST_FILE_EA(eainfo); i; i = PH_NEXT_FILE_EA(i))
                             {
                                 PPV_LAYOUT_NODE parentAttributeNode = PvAddChildLayoutNode(Context, parentNode, L"Extended Attributes", NULL);
-                                PvAddChildLayoutNode(Context, parentAttributeNode, L"Name", PhZeroExtendToUtf16Ex(i->EaName, i->EaNameLength));
+                                PvAddChildLayoutNode(Context, parentAttributeNode, L"Name", PhConvertUtf8ToUtf16Ex(i->EaName, i->EaNameLength));
                                 PvAddChildLayoutNode(Context, parentAttributeNode, L"Size", PvLayoutFormatSize(i->EaValueLength));
                             }
                         }
