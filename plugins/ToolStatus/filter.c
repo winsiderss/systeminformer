@@ -33,7 +33,7 @@ BOOLEAN WordMatchStringRef(
 
 FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
     _In_ PPH_TREENEW_NODE Node,
-    _In_ PVOID Context,
+    _In_opt_ PVOID Context,
     _In_opt_ PPH_STRING SearchboxText
     )
 {
@@ -386,18 +386,6 @@ BOOLEAN ProcessTreeFilterCallback(
 {
     if (EnableChildWildcardSearch)
     {
-        FILTER_RESULT_TYPE result;
-
-        result = ProcessTreeFilterMatchTypeCallback(
-            Node,
-            Context,
-            SearchboxText
-            );
-
-        return result == FILTER_RESULT_FOUND;
-    }
-    else
-    {
         if (SearchboxTextCache && (PhIsNullOrEmptyString(SearchboxText) || PhCompareString(SearchboxText, SearchboxTextCache, TRUE)))
         {
             // clear cache (gmit3)
@@ -480,7 +468,7 @@ BOOLEAN ProcessTreeFilterCallback(
             {
                 PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-                for (PPH_PROCESS_NODE parentNode = processNode->Parent; result != FILTER_RESULT_NOT_FOUND && parentNode; parentNode = parentNode->Parent)
+                for (PPH_PROCESS_NODE parentNode = processNode->Parent; result == FILTER_RESULT_NOT_FOUND && parentNode; parentNode = parentNode->Parent)
                 {
                     if (ProcessTreeFilterMatchTypeCallback(&parentNode->Node, Context, SearchboxParentTextCache) == FILTER_RESULT_FOUND_NAME)
                     {
@@ -492,6 +480,18 @@ BOOLEAN ProcessTreeFilterCallback(
 
             return result != FILTER_RESULT_NOT_FOUND;
         }
+    }
+    else
+    {
+        FILTER_RESULT_TYPE result;
+
+        result = ProcessTreeFilterMatchTypeCallback(
+            Node,
+            Context,
+            SearchboxText
+            );
+
+        return result == FILTER_RESULT_FOUND;
     }
 }
 
