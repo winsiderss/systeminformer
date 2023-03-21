@@ -128,11 +128,11 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationBeep,
     WinStationEncryptionOff,
     WinStationEncryptionPerm,
-    WinStationNtSecurity,
+    WinStationNtSecurity, // s; (open secure desktop ctrl+alt+del)
     WinStationUserToken, // WINSTATIONUSERTOKEN
     WinStationUnused1,
     WinStationVideoData, // WINSTATIONVIDEODATA
-    WinStationInitialProgram,
+    WinStationInitialProgram, // s; (set current process as initial program)
     WinStationCd, // CDCONFIG
     WinStationSystemTrace,
     WinStationVirtualData,
@@ -149,9 +149,9 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationLastReconnectType, // ULONG
     WinStationDisallowAutoReconnect, // BOOLEAN
     WinStationMprNotifyInfo,
-    WinStationExecSrvSystemPipe,
-    WinStationSmartCardAutoLogon,
-    WinStationIsAdminLoggedOn,
+    WinStationExecSrvSystemPipe, // WCHAR[48]
+    WinStationSmartCardAutoLogon, // BOOLEAN
+    WinStationIsAdminLoggedOn, // BOOLEAN
     WinStationReconnectedFromId, // ULONG
     WinStationEffectsPolicy, // ULONG
     WinStationType, // ULONG
