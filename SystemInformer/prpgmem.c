@@ -249,7 +249,7 @@ BOOLEAN PhpMemoryTreeFilterCallback(
 
     if (memoryItem->BaseAddressString[0])
     {
-        if (PhWordMatchStringZ(memoryContext->SearchboxText, memoryItem->BaseAddressString))
+        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, memoryItem->BaseAddressString))
             return TRUE;
     }
 
@@ -263,14 +263,14 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     tempString = PhGetMemoryTypeString(memoryItem->Type);
     if (tempString[0])
     {
-        if (PhWordMatchStringZ(memoryContext->SearchboxText, tempString))
+        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, tempString))
             return TRUE;
     }
 
     tempString = PhGetMemoryStateString(memoryItem->State);
     if (tempString[0])
     {
-        if (PhWordMatchStringZ(memoryContext->SearchboxText, tempString))
+        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, tempString))
             return TRUE;
     }
 

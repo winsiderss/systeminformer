@@ -276,13 +276,13 @@ BOOLEAN PhpModulesTreeFilterCallback(
 
     if (moduleItem->EntryPointAddressString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->EntryPointAddressString))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, moduleItem->EntryPointAddressString))
             return TRUE;
     }
 
     if (moduleItem->ParentBaseAddressString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->ParentBaseAddressString))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, moduleItem->ParentBaseAddressString))
             return TRUE;
     }
 

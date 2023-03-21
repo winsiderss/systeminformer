@@ -340,31 +340,31 @@ BOOLEAN PhpThreadTreeFilterCallback(
 
     if (threadItem->ThreadIdString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadItem->ThreadIdString))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadItem->ThreadIdString))
             return TRUE;
     }
 
     if (threadNode->PriorityText[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->PriorityText))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->PriorityText))
             return TRUE;
     }
 
     if (threadNode->BasePriorityText[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->BasePriorityText))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->BasePriorityText))
             return TRUE;
     }
 
     if (threadNode->IdealProcessorText[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->IdealProcessorText))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->IdealProcessorText))
             return TRUE;
     }
 
     if (threadNode->ThreadIdHexText[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->ThreadIdHexText))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->ThreadIdHexText))
             return TRUE;
     }
 
