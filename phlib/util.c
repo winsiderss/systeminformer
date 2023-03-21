@@ -7152,7 +7152,7 @@ HRESULT PhGetActivationFactoryDllBase(
     HRESULT (WINAPI* DllGetActivationFactory_I)(_In_ HSTRING RuntimeClassId, _Out_ PVOID* ActivationFactory);
     HRESULT status;
     HSTRING_REFERENCE string;
-    IUnknown* activationFactory; // IActivationFactory
+    IActivationFactory* activationFactory;
 
     PhCreateWindowsRuntimeStringReference(RuntimeClass, &string);
 
@@ -7166,17 +7166,18 @@ HRESULT PhGetActivationFactoryDllBase(
 
     if (SUCCEEDED(status))
     {
-        status = IUnknown_QueryInterface(
+        status = IActivationFactory_QueryInterface(
             activationFactory,
             Riid,
             Ppv
             );
-        IUnknown_Release(activationFactory);
+        IActivationFactory_Release(activationFactory);
     }
 
     return status;
 }
 
+// rev from RoGetActivationFactory (dmex)
 HRESULT PhGetActivationFactory(
     _In_ PCWSTR DllName,
     _In_ PCWSTR RuntimeClass,
@@ -7218,6 +7219,109 @@ HRESULT PhGetActivationFactory(
     }
 
     return PhGetActivationFactoryDllBase(baseAddress, RuntimeClass, Riid, Ppv);
+#endif
+}
+
+HRESULT PhActivateInstanceDllBase(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR RuntimeClass,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
+    )
+{
+    HRESULT (WINAPI* DllGetActivationFactory_I)(_In_ HSTRING RuntimeClassId, _Out_ PVOID * ActivationFactory);
+    HRESULT status;
+    HSTRING_REFERENCE string;
+    IActivationFactory* activationFactory;
+    IInspectable* inspectableObject;
+
+    if (FAILED(status = PhCreateWindowsRuntimeStringReference(RuntimeClass, &string)))
+        return status;
+
+    if (!(DllGetActivationFactory_I = PhGetDllBaseProcedureAddress(DllBase, "DllGetActivationFactory", 0)))
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    status = DllGetActivationFactory_I(
+        HSTRING_FROM_STRING(string),
+        &activationFactory
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IActivationFactory_ActivateInstance(
+            activationFactory,
+            &inspectableObject
+            );
+
+        if (SUCCEEDED(status))
+        {
+            status = IInspectable_QueryInterface(
+                inspectableObject,
+                Riid,
+                Ppv
+                );
+
+            IInspectable_Release(inspectableObject);
+        }
+
+        IActivationFactory_Release(activationFactory);
+    }
+
+    return status;
+}
+
+// rev from RoActivateInstance (dmex)
+HRESULT PhActivateInstance(
+    _In_ PCWSTR DllName,
+    _In_ PCWSTR RuntimeClass,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
+    )
+{
+#if (PH_NATIVE_COM_CLASS_FACTORY || PH_BUILD_MSIX)
+    #include <roapi.h>
+    #include <winstring.h>
+    HRESULT status;
+    HSTRING runtimeClassStringHandle = NULL;
+    HSTRING_HEADER runtimeClassStringHeader;
+    IInspectable* inspectableObject;
+
+    status = WindowsCreateStringReference(
+        RuntimeClass,
+        (UINT32)PhCountStringZ((PWSTR)RuntimeClass),
+        &runtimeClassStringHeader,
+        &runtimeClassStringHandle
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = RoActivateInstance(
+            runtimeClassStringHandle,
+            &inspectableObject
+            );
+
+        if (SUCCEEDED(status))
+        {
+            status = IInspectable_QueryInterface(
+                inspectableObject,
+                Riid,
+                Ppv
+                );
+            IInspectable_Release(inspectableObject);
+        }
+    }
+
+    return status;
+#else
+    PVOID baseAddress;
+
+    if (!(baseAddress = PhGetLoaderEntryDllBaseZ((PWSTR)DllName)))
+    {
+        if (!(baseAddress = PhLoadLibrary(DllName)))
+            return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
+    }
+
+    return PhActivateInstanceDllBase(baseAddress, RuntimeClass, Riid, Ppv);
 #endif
 }
 
