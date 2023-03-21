@@ -1278,7 +1278,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhImageListDestroy(
-    _In_ HIMAGELIST ImageListHandle
+    _In_opt_ HIMAGELIST ImageListHandle
     );
 
 PHLIBAPI
