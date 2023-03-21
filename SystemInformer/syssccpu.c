@@ -1476,7 +1476,7 @@ PPH_STRING PhSipGetCpuBrandString(
         )))
     {
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
-        brand = PhZeroExtendToUtf16Ex(brandString, brandLength);
+        brand = PhConvertUtf8ToUtf16Ex(brandString, brandLength);
     }
     else
     {
@@ -1488,7 +1488,7 @@ PPH_STRING PhSipGetCpuBrandString(
         __cpuid(&cpubrand[8], 0x80000004);
 
         brandLength = sizeof(brandString) - sizeof(ANSI_NULL);
-        brand = PhZeroExtendToUtf16Ex((PSTR)cpubrand, brandLength);
+        brand = PhConvertUtf8ToUtf16Ex((PSTR)cpubrand, brandLength);
 #else
         static PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
         HANDLE keyHandle;
@@ -1500,7 +1500,7 @@ PPH_STRING PhSipGetCpuBrandString(
         }
 
         if (PhIsNullOrEmptyString(brand))
-            PhMoveReference(&brand, PhCreateString(L"Not Available"));
+            PhMoveReference(&brand, PhCreateString(L"N/A"));
 #endif
     }
 
