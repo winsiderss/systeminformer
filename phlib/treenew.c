@@ -6943,7 +6943,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 {
                     if (context->ThemeSupport)
                     {
-                        SetDCBrushColor(context->HeaderBufferedDc, RGB(128, 128, 128));
+                        SetDCBrushColor(context->HeaderBufferedDc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor
                         FillRect(context->HeaderBufferedDc, &headerRect, GetStockBrush(DC_BRUSH));
 
                         if (context->HeaderDragging && context->HeaderHotColumn != -1 && context->HeaderHotColumn == column->Id)
