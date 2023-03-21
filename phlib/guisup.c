@@ -2794,9 +2794,12 @@ HIMAGELIST PhImageListCreate(
 }
 
 BOOLEAN PhImageListDestroy(
-    _In_ HIMAGELIST ImageListHandle
+    _In_opt_ HIMAGELIST ImageListHandle
     )
 {
+    if (!ImageListHandle)
+        return TRUE;
+
     return SUCCEEDED(IImageList2_Release((IImageList2*)ImageListHandle));
 }
 
