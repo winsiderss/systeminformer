@@ -1714,6 +1714,16 @@ PhGetActivationFactory(
     );
 
 PHLIBAPI
+HRESULT
+NTAPI
+PhActivateInstance(
+    _In_ PCWSTR DllName,
+    _In_ PCWSTR RuntimeClass,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhDelayExecution(
