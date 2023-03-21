@@ -273,7 +273,7 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                             for (i = 0; i < numberOfEntries; i++)
                             {
-                                if (ProcessesMethod == BruteForceScanMethod)
+                                if (ProcessesMethod == BruteForceScanMethod || ProcessesMethod == ProcessHandleScanMethod)
                                 {
                                     status = PhOpenProcess(
                                         &processHandle,
@@ -649,7 +649,7 @@ PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
         processItem->ProcessName = PhCreateString(L"Unknown");
     }
 
-    if (ProcessesMethod == BruteForceScanMethod)
+    if (ProcessesMethod == BruteForceScanMethod || ProcessesMethod == ProcessHandleScanMethod)
     {
         status = PhOpenProcess(
             &processHandle,
