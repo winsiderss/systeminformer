@@ -43,7 +43,7 @@ PPH_STRING PhCreateStringFromWindowsRuntimeString(
 #else
     HSTRING_INSTANCE* string = (HSTRING_INSTANCE*)String;
 
-    if (string->Length >= sizeof(UNICODE_NULL))
+    if (string && string->Length >= sizeof(UNICODE_NULL))
     {
         return PhCreateStringEx((PWCHAR)string->Buffer, string->Length * sizeof(WCHAR));
     }

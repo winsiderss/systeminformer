@@ -177,7 +177,7 @@ PVOID PhLoadLibraryUtf8Ex(
     PPH_STRING fileName;
     PVOID baseAddress;
 
-    fileName = PhZeroExtendToUtf16((PSTR)FileName);
+    fileName = PhConvertUtf8ToUtf16((PSTR)FileName);
     baseAddress = PhLoadLibrary(PhGetString(fileName));
     PhDereferenceObject(fileName);
 
@@ -343,7 +343,11 @@ PVOID PhGetDllHandle(
     _In_ PWSTR DllName
     )
 {
-    return PhGetLoaderEntryDllBaseZ(DllName);
+    PH_STRINGREF baseDllName;
+
+    PhInitializeStringRefLongHint(&baseDllName, DllName);
+
+    return PhGetLoaderEntryDllBase(NULL, &baseDllName);
 
     //UNICODE_STRING dllName;
     //PVOID dllHandle;
