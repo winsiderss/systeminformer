@@ -864,6 +864,8 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
 
                 if (BooleanFlagOn(windowStyle, TN_STYLE_CUSTOM_HEADERDRAW))
                 {
+                    PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+
                     return CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
                 }
             }
