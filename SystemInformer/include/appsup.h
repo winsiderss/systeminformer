@@ -560,6 +560,21 @@ PhWordMatchStringZ(
 {
     PH_STRINGREF text;
 
+    PhInitializeStringRef(&text, Text);
+
+    return PhWordMatchStringRef(&SearchText->sr, &text);
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhWordMatchStringLongHintZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
     PhInitializeStringRefLongHint(&text, Text);
 
     return PhWordMatchStringRef(&SearchText->sr, &text);
