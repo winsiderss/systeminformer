@@ -104,6 +104,7 @@ PPH_STRING PhGetProcessTooltipText(
     PH_STRING_BUILDER stringBuilder;
     ULONG validForMs = 60 * 60 * 1000; // 1 hour
     PPH_STRING tempString;
+    PPH_STRING fileNameWin32;
 
     PhInitializeStringBuilder(&stringBuilder, 200);
 
@@ -123,22 +124,28 @@ PPH_STRING PhGetProcessTooltipText(
 
     // File information
 
-    tempString = PhFormatImageVersionInfo(
-        Process->FileNameWin32,
-        &Process->VersionInfo,
-        &StandardIndent,
-        0
-        );
+    fileNameWin32 = Process->FileName ? PhGetFileName(Process->FileName) : NULL;
 
-    if (!PhIsNullOrEmptyString(tempString))
+    if (fileNameWin32)
     {
-        PhAppendStringBuilder2(&stringBuilder, L"File:\n");
-        PhAppendStringBuilder(&stringBuilder, &tempString->sr);
-        PhAppendCharStringBuilder(&stringBuilder, L'\n');
-    }
+        tempString = PhFormatImageVersionInfo(
+            fileNameWin32,
+            &Process->VersionInfo,
+            &StandardIndent,
+            0
+            );
 
-    if (tempString)
-        PhDereferenceObject(tempString);
+        if (!PhIsNullOrEmptyString(tempString))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"File:\n");
+            PhAppendStringBuilder(&stringBuilder, &tempString->sr);
+            PhAppendCharStringBuilder(&stringBuilder, L'\n');
+        }
+
+        if (tempString)
+            PhDereferenceObject(tempString);
+        PhDereferenceObject(fileNameWin32);
+    }
 
     // Known command line information
 
