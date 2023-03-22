@@ -57,6 +57,7 @@
 #include <objbase.h>
 
 #include <phintrnl.h>
+#include <phnative.h>
 
 #define PH_VECTOR_LEVEL_NONE 0
 #define PH_VECTOR_LEVEL_SSE2 1
@@ -137,7 +138,7 @@ BOOLEAN PhBaseInitialization(
     else if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
         PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;*/
 
-    if (IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE))
+    if (PhIsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE))
         PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;
 
     PhStringType = PhCreateObjectType(L"String", 0, NULL);

@@ -14146,6 +14146,19 @@ NTSTATUS PhGetSystemLogicalProcessorInformation(
     return status;
 }
 
+// based on RtlIsProcessorFeaturePresent (dmex)
+BOOLEAN PhIsProcessorFeaturePresent(
+    _In_ ULONG ProcessorFeature
+    )
+{
+    if (WindowsVersion < WINDOWS_NEW && ProcessorFeature < PROCESSOR_FEATURE_MAX)
+    {
+        return USER_SHARED_DATA->ProcessorFeatures[ProcessorFeature];
+    }
+
+    return !!IsProcessorFeaturePresent(ProcessorFeature); // RtlIsProcessorFeaturePresent
+}
+
 // based on GetActiveProcessorCount (dmex)
 USHORT PhGetActiveProcessorCount(
     _In_ USHORT ProcessorGroup
