@@ -2827,6 +2827,13 @@ PhGetSystemLogicalProcessorInformation(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsProcessorFeaturePresent(
+    _In_ ULONG ProcessorFeature
+    );
+
+PHLIBAPI
 USHORT
 NTAPI
 PhGetActiveProcessorCount(
