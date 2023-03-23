@@ -19,6 +19,7 @@ VOID DiskDriveAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FS_CREATION_TIME, L"Volume creation time", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER, L"Volume serial number", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_UNIQUEID, L"Volume unique identifier", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_PARTITIONID, L"Volume partition identifier(s)", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_SYSTEM, L"Volume file system", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FS_VERSION, L"Volume version", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LFS_VERSION, L"LFS version", NULL);
