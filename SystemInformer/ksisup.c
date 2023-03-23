@@ -538,18 +538,6 @@ VOID PhInitializeKsi(
     if (!PhGetOwnTokenAttributes().Elevated)
         return;
 
-    if (WindowsVersion < WINDOWS_10_20H1) // Temporary workaround for +3 month Microsoft delay (dmex)
-    {
-        PhShowKsiMessageEx(
-            NULL,
-            TD_ERROR_ICON,
-            0,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The kernel driver is temporarily disabled on this Windows version."
-            );
-        return;
-    }
     if (WindowsVersion < WINDOWS_10)
     {
         PhShowKsiMessageEx(
@@ -560,6 +548,18 @@ VOID PhInitializeKsi(
             L"Unable to load kernel driver",
             L"The kernel driver is not supported on this Windows version, the "
             L"minimum supported version is Windows 10."
+            );
+        return;
+    }
+    if (WindowsVersion < WINDOWS_10_20H1) // Temporary workaround for +3 month Microsoft delay (dmex)
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is temporarily disabled on this Windows version."
             );
         return;
     }
