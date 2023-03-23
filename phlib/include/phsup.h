@@ -35,6 +35,7 @@
 
 #define PAGE_SIZE 0x1000
 #define PAGE_MASK 0xFFF
+#define PAGE_SHIFT 0xC
 
 #define PH_LARGE_BUFFER_SIZE (256 * 1024 * 1024)
 
