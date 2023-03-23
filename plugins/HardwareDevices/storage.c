@@ -910,6 +910,87 @@ PWSTR SmartAttributeGetText(
     return L"BUG BUG BUG";
 }
 
+NTSTATUS DiskDriveQueryUniqueId(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PPH_STRING* UniqueId,
+    _Out_ PPH_STRING* PartitionId
+    )
+{
+    NTSTATUS status;
+    ULONG bufferLength;
+    PDRIVE_LAYOUT_INFORMATION_EX buffer;
+
+    bufferLength = sizeof(DRIVE_LAYOUT_INFORMATION_EX[10]);
+    buffer = PhAllocate(bufferLength);
+    memset(buffer, 0, bufferLength);
+
+    status = PhDeviceIoControlFile(
+        DeviceHandle,
+        IOCTL_DISK_GET_DRIVE_LAYOUT_EX,
+        NULL,
+        0,
+        buffer,
+        bufferLength,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PH_STRING_BUILDER stringBuilder;
+
+        if (buffer->PartitionStyle != PARTITION_STYLE_GPT)
+            *UniqueId = PhReferenceEmptyString();
+        else
+            *UniqueId = PhFormatGuid(&buffer->Gpt.DiskId); // DISKPART> UNIQUEID DISK
+
+        PhInitializeStringBuilder(&stringBuilder, 0x100);
+
+        for (ULONG i = 0; i < buffer->PartitionCount; i++)
+        {
+            PARTITION_INFORMATION_EX entry = buffer->PartitionEntry[i];
+            PPH_STRING id;
+
+            if (entry.PartitionStyle == PARTITION_STYLE_GPT)
+            {
+                if (id = PhFormatGuid(&entry.Gpt.PartitionId))
+                {
+                    PhAppendStringBuilder(&stringBuilder, &id->sr);
+                    PhAppendFormatStringBuilder(&stringBuilder, L", ");
+                }
+            }
+        }
+
+        if (PhEndsWithStringRef2(&stringBuilder.String->sr, L", ", FALSE))
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+        *PartitionId = PhFinalStringBuilderString(&stringBuilder);
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+ 
+NTSTATUS DiskDriveQueryPartitionInfo(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PARTITION_INFORMATION_EX* PartitionInfo
+    )
+{
+    NTSTATUS status;
+
+    status = PhDeviceIoControlFile(
+        DeviceHandle,
+        IOCTL_DISK_GET_PARTITION_INFO_EX,
+        NULL,
+        0,
+        PartitionInfo,
+        sizeof(PARTITION_INFORMATION_EX),
+        NULL
+        );
+
+    return status;
+}
+
 //BOOLEAN DiskDriveQueryAdapterInformation(
 //    _In_ HANDLE DeviceHandle
 //    )

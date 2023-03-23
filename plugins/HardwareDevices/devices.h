@@ -615,6 +615,8 @@ typedef enum _DISKDRIVE_DETAILS_INDEX
 {
     DISKDRIVE_DETAILS_INDEX_FS_CREATION_TIME,
     DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER,
+    DISKDRIVE_DETAILS_INDEX_UNIQUEID,
+    DISKDRIVE_DETAILS_INDEX_PARTITIONID,
     DISKDRIVE_DETAILS_INDEX_FILE_SYSTEM,
     DISKDRIVE_DETAILS_INDEX_FS_VERSION,
     DISKDRIVE_DETAILS_INDEX_LFS_VERSION,
@@ -834,6 +836,12 @@ BOOLEAN DiskDriveQueryRefsVolumeInfo(
 NTSTATUS DiskDriveQueryVolumeInformation(
     _In_ HANDLE DosDeviceHandle,
     _Out_ PFILE_FS_VOLUME_INFORMATION* VolumeInfo
+    );
+
+NTSTATUS DiskDriveQueryUniqueId(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PPH_STRING* UniqueId,
+    _Out_ PPH_STRING* PartitionId
     );
 
 // https://en.wikipedia.org/wiki/S.M.A.R.T.#Known_ATA_S.M.A.R.T._attributes

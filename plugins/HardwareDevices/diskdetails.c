@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2020
+ *     dmex    2016-2023
  *
  */
 
@@ -18,6 +18,7 @@ VOID DiskDriveAddListViewItemGroups(
 {
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FS_CREATION_TIME, L"Volume creation time", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER, L"Volume serial number", NULL);
+    PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_UNIQUEID, L"Volume unique identifier", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FILE_SYSTEM, L"Volume file system", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_FS_VERSION, L"Volume version", NULL);
     PhAddListViewGroupItem(ListViewHandle, DiskGroupId, DISKDRIVE_DETAILS_INDEX_LFS_VERSION, L"LFS version", NULL);
@@ -201,6 +202,8 @@ VOID DiskDriveQueryFileSystem(
         INT diskGroupId = -1;
         PFILE_FS_VOLUME_INFORMATION volumeInfo;
         PDISK_HANDLE_ENTRY diskEntry;
+        PPH_STRING uniqueId;
+        PPH_STRING partitionId;
 
         diskEntry = deviceMountHandles->Items[i];
 
@@ -240,6 +243,15 @@ VOID DiskDriveQueryFileSystem(
                 );
 
             DiskDriveAddListViewItemGroups(Context->ListViewHandle, diskGroupId);
+        }
+
+        if (NT_SUCCESS(DiskDriveQueryUniqueId(diskEntry->DeviceHandle, &uniqueId, &partitionId)))
+        {
+            PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_UNIQUEID, 1, PhGetString(uniqueId));
+            PhSetListViewSubItem(Context->ListViewHandle, DISKDRIVE_DETAILS_INDEX_PARTITIONID, 1, PhGetString(partitionId));
+
+            PhClearReference(&uniqueId);
+            PhClearReference(&partitionId);
         }
 
         if (DiskDriveQueryFileSystemInfo(diskEntry->DeviceHandle, &fsInfoType, &fsInfoBuffer))
