@@ -107,7 +107,7 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
 {
     switch (WindowMessage)
     {
-    case WM_NCCREATE:
+    case WM_CREATE:
         {
             //CREATESTRUCT* createStruct = (CREATESTRUCT*)lParam;
             //IsTopLevelWindow(createStruct->hwndParent)
@@ -122,6 +122,7 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
 
                 if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
                 {
+                    // Note: DWM crashes if called from WM_NCCREATE (dmex)
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }
             }
