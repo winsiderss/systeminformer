@@ -52,13 +52,13 @@ VOID PvEnumerateDynamicRelocationEntries(
                     switch (entry->ARM64X.RecordFixup.Size)
                     {
                     case IMAGE_DVRT_ARM64X_FIXUP_SIZE_2BYTES:
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"0x0000");
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"Zero 2 bytes");
                         break;
                     case IMAGE_DVRT_ARM64X_FIXUP_SIZE_4BYTES:
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"0x00000000");
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"Zero 4 bytes");
                         break;
                     case IMAGE_DVRT_ARM64X_FIXUP_SIZE_8BYTES:
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"0x0000000000000000");
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"Zero 8 bytes");
                         break;
                     default:
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"UNKNOWN");

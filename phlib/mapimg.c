@@ -1128,7 +1128,6 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
                     if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL)
                     {
                         consumed = sizeof(IMAGE_DVRT_ARM64X_FIXUP_RECORD);
-                        consumed += (SIZE_T)(1ull << record->Size);
                     }
                     else if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE)
                     {
@@ -3961,7 +3960,6 @@ VOID PhpFillDynamicRelocations(
                 {
                     entry.ARM64X.Value8 = 0;
                     consumed = sizeof(IMAGE_DVRT_ARM64X_FIXUP_RECORD);
-                    consumed += (SIZE_T)(1ull << entry.ARM64X.RecordFixup.Size);
                 }
                 else if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE)
                 {
