@@ -17,8 +17,9 @@
 #define PHMMTLC_LOCKEDWS 9
 #define PHMMTLC_COMMITTED 10
 #define PHMMTLC_PRIVATE 11
+#define PHMMTLC_SIGNING_LEVEL 12
 
-#define PHMMTLC_MAXIMUM 12
+#define PHMMTLC_MAXIMUM 13
 
 // begin_phapppub
 typedef struct _PH_MEMORY_NODE
