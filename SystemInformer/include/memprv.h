@@ -89,6 +89,8 @@ typedef struct _PH_MEMORY_ITEM
         struct
         {
             PPH_STRING FileName;
+            BOOLEAN SigningLevelValid;
+            SE_SIGNING_LEVEL SigningLevel;
         } MappedFile;
         struct
         {
@@ -128,6 +130,10 @@ PWSTR PhGetMemoryStateString(
 
 PWSTR PhGetMemoryTypeString(
     _In_ ULONG Type
+    );
+
+PWSTR PhGetSigningLevelString(
+    _In_ SE_SIGNING_LEVEL SigningLevel
     );
 
 PPH_MEMORY_ITEM PhCreateMemoryItem(
