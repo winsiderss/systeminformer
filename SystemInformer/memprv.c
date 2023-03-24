@@ -112,6 +112,45 @@ PWSTR PhGetMemoryTypeString(
         return L"Unknown";
 }
 
+PWSTR PhGetSigningLevelString(
+    _In_ SE_SIGNING_LEVEL SigningLevel
+    )
+{
+    switch (SigningLevel)
+    {
+        case SE_SIGNING_LEVEL_UNCHECKED:
+            return L"Unchecked";
+        case SE_SIGNING_LEVEL_UNSIGNED:
+            return L"Unsigned";
+        case SE_SIGNING_LEVEL_ENTERPRISE:
+            return L"Enterprise";
+        case SE_SIGNING_LEVEL_DEVELOPER:
+            return L"Developer";
+        case SE_SIGNING_LEVEL_AUTHENTICODE:
+            return L"Authenticode";
+        case SE_SIGNING_LEVEL_STORE:
+            return L"StoreApp";
+        case SE_SIGNING_LEVEL_ANTIMALWARE:
+            return L"Antimalware";
+        case SE_SIGNING_LEVEL_MICROSOFT:
+            return L"Microsoft";
+        case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:
+            return L"CodeGen";
+        case SE_SIGNING_LEVEL_WINDOWS:
+            return L"Windows";
+        case SE_SIGNING_LEVEL_WINDOWS_TCB:
+            return L"WinTcb";
+        case SE_SIGNING_LEVEL_CUSTOM_2:
+        case SE_SIGNING_LEVEL_CUSTOM_4:
+        case SE_SIGNING_LEVEL_CUSTOM_5:
+        case SE_SIGNING_LEVEL_CUSTOM_6:
+        case SE_SIGNING_LEVEL_CUSTOM_7:
+            return L"Custom";
+        default:
+            return L"";
+    }
+}
+
 PPH_MEMORY_ITEM PhCreateMemoryItem(
     VOID
     )
@@ -748,7 +787,21 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
         if ((memoryItem->Type & (MEM_MAPPED | MEM_IMAGE)) && memoryItem->AllocationBaseItem == memoryItem)
         {
+            MEMORY_IMAGE_INFORMATION imageInfo;
             PPH_STRING fileName;
+
+            if (NT_SUCCESS(NtQueryVirtualMemory(
+                ProcessHandle,
+                memoryItem->BaseAddress,
+                MemoryImageInformation,
+                &imageInfo,
+                sizeof(MEMORY_IMAGE_INFORMATION),
+                NULL
+                )))
+            {
+                memoryItem->u.MappedFile.SigningLevelValid = TRUE;
+                memoryItem->u.MappedFile.SigningLevel = (SE_SIGNING_LEVEL)imageInfo.ImageSigningLevel;
+            }
 
             if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, memoryItem->BaseAddress, &fileName)))
             {

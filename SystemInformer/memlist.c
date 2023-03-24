@@ -78,6 +78,7 @@ VOID PhInitializeMemoryList(
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_LOCKEDWS, TRUE, L"Locked WS", 80, PH_ALIGN_RIGHT, 8, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_COMMITTED, FALSE, L"Committed", 80, PH_ALIGN_RIGHT, 9, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_PRIVATE, FALSE, L"Private", 80, PH_ALIGN_RIGHT, 10, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_SIGNING_LEVEL, FALSE, L"Signing level", 80, PH_ALIGN_LEFT, 11, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
@@ -714,6 +715,15 @@ BEGIN_SORT_FUNCTION(Private)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(SigningLevel)
+{
+    sortResult = shortcmp(
+        memoryItem1->RegionType == MappedFileRegion && memoryItem1->u.MappedFile.SigningLevelValid ? memoryItem1->u.MappedFile.SigningLevel : -1,
+        memoryItem2->RegionType == MappedFileRegion && memoryItem2->u.MappedFile.SigningLevelValid ? memoryItem2->u.MappedFile.SigningLevel : -1
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -765,7 +775,8 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                         SORT_FUNCTION(SharedWs),
                         SORT_FUNCTION(LockedWs),
                         SORT_FUNCTION(Committed),
-                        SORT_FUNCTION(Private)
+                        SORT_FUNCTION(Private),
+                        SORT_FUNCTION(SigningLevel)
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -889,6 +900,12 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             case PHMMTLC_PRIVATE:
                 PhMoveReference(&node->PrivateText, PhpFormatSizeIfNonZero(memoryItem->PrivateSize));
                 getCellText->Text = PhGetStringRef(node->PrivateText);
+                break;
+            case PHMMTLC_SIGNING_LEVEL:
+                if (memoryItem->RegionType == MappedFileRegion && memoryItem->u.MappedFile.SigningLevelValid)
+                    PhInitializeStringRef(&getCellText->Text, PhGetSigningLevelString(memoryItem->u.MappedFile.SigningLevel));
+                else
+                    PhInitializeEmptyStringRef(&getCellText->Text);
                 break;
             default:
                 return FALSE;
