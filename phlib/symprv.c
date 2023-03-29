@@ -402,10 +402,7 @@ VOID PhpSymbolProviderCompleteInitialization(
     )
 {
     static PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
-#ifdef _WIN64
-    static PH_STRINGREF windowsKitsRootKeyNameWow64 = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows Kits\\Installed Roots");
-#endif
-    static PH_STRINGREF dbgcoreFileName = PH_STRINGREF_INIT(L"dbgcore.dll"); // required by dbghelp (dmex)
+    static PH_STRINGREF dbgcoreFileName = PH_STRINGREF_INIT(L"dbgcore.dll"); // dbghelp.dll dependency required for MiniDumpWriteDump (dmex)
     static PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
     static PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
     PPH_STRING winsdkPath;
@@ -442,28 +439,6 @@ VOID PhpSymbolProviderCompleteInitialization(
 
         NtClose(keyHandle);
     }
-
-#ifdef _WIN64
-    if (PhIsNullOrEmptyString(winsdkPath))
-    {
-        if (NT_SUCCESS(PhOpenKey(
-            &keyHandle,
-            KEY_READ,
-            PH_KEY_LOCAL_MACHINE,
-            &windowsKitsRootKeyNameWow64,
-            0
-            )))
-        {
-            PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot10")); // Windows 10 SDK
-            if (PhIsNullOrEmptyString(winsdkPath))
-                PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot81")); // Windows 8.1 SDK
-            if (PhIsNullOrEmptyString(winsdkPath))
-                PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot")); // Windows 8 SDK
-
-            NtClose(keyHandle);
-        }
-    }
-#endif
 
     if (winsdkPath)
     {
@@ -1131,9 +1106,6 @@ BOOLEAN PhLoadModuleSymbolProvider(
 
     PH_LOCK_SYMBOLS();
 
-    // NOTE: Don't pass a filename or filehandle. We'll get a CBA_DEFERRED_SYMBOL_LOAD_START callback event
-    // and we'll open the file during the callback instead. This allows us to mitigate dbghelp's legacy
-    // Win32 path limitations and instead use NT path handling for improved support on newer Windows. (dmex)
     baseAddress = SymLoadModuleExW_I(
         SymbolProvider->ProcessHandle,
         NULL,
@@ -2514,16 +2486,16 @@ BOOLEAN PhGetSymbolProviderDiaSource(
     if (!SymGetDiaSource_I)
         return FALSE;
 
-    PH_LOCK_SYMBOLS();
+    //PH_LOCK_SYMBOLS();
 
-    result = SymGetDiaSource_I(
+    result = !!SymGetDiaSource_I(
         SymbolProvider->ProcessHandle,
         BaseOfDll,
         &source
         );
     //GetLastError(); // returns HRESULT
 
-    PH_UNLOCK_SYMBOLS();
+    //PH_UNLOCK_SYMBOLS();
 
     if (result)
     {
@@ -2551,16 +2523,16 @@ BOOLEAN PhGetSymbolProviderDiaSession(
     if (!SymGetDiaSession_I)
         return FALSE;
 
-    PH_LOCK_SYMBOLS();
+    //PH_LOCK_SYMBOLS();
 
-    result = SymGetDiaSession_I(
+    result = !!SymGetDiaSession_I(
         SymbolProvider->ProcessHandle,
         BaseOfDll,
         &session
         );
     //GetLastError(); // returns HRESULT
 
-    PH_UNLOCK_SYMBOLS();
+    //PH_UNLOCK_SYMBOLS();
 
     if (result)
     {
