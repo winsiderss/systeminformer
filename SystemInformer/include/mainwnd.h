@@ -276,6 +276,11 @@ VOID PhShowOptionsRestartRequired(
     _In_ HWND WindowHandle
     );
 
+BOOLEAN PhShowOptionsDefaultInstallLocation(
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR Message
+    );
+
 VOID PhShowProcessContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
