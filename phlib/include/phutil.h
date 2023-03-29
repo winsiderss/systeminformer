@@ -531,6 +531,20 @@ PhGenerateRandomNumber64(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhGenerateRandomNumber(
+    _Out_ PLARGE_INTEGER Number
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGenerateRandomSeed(
+    _Out_ PLARGE_INTEGER Seed
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhEllipsisString(

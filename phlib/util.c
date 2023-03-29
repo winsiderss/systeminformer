@@ -1493,6 +1493,50 @@ ULONG64 PhGenerateRandomNumber64(
     return (ULONG64)RtlRandomEx(&seed.LowPart) | ((ULONG64)RtlRandomEx(&seed.LowPart) << 31);
 }
 
+BOOLEAN PhGenerateRandomNumber(
+    _Out_ PLARGE_INTEGER Number
+    )
+{
+    memset(Number, 0, sizeof(LARGE_INTEGER));
+
+#ifndef _M_ARM64
+    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
+    {
+#if defined(_M_X64)
+        if (_rdrand64_step(&Number->QuadPart))
+            return TRUE;
+#endif
+        if (_rdrand32_step(&Number->LowPart))
+            return TRUE;
+    }
+#endif
+
+    Number->QuadPart = PhGenerateRandomNumber64();
+    return TRUE;
+}
+
+BOOLEAN PhGenerateRandomSeed(
+    _Out_ PLARGE_INTEGER Seed
+    )
+{
+    memset(Seed, 0, sizeof(LARGE_INTEGER));
+
+#ifndef _M_ARM64
+    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
+    {
+#if defined(_M_X64)
+        if (_rdseed64_step(&Seed->QuadPart))
+            return TRUE;
+#else
+        if (_rdseed32_step(&Seed->LowPart))
+            return TRUE;
+#endif
+    }
+#endif
+
+    return PhQueryPerformanceCounter(Seed);
+}
+
 /**
  * Modifies a string to ensure it is within the specified length.
  *
