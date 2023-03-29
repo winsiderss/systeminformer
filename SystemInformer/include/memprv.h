@@ -136,6 +136,7 @@ PWSTR PhGetSigningLevelString(
     _In_ SE_SIGNING_LEVEL SigningLevel
     );
 
+_Ret_notnull_
 PPH_MEMORY_ITEM PhCreateMemoryItem(
     VOID
     );
