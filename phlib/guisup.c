@@ -2559,6 +2559,7 @@ BOOLEAN PhGetSystemResourcesFileName(
     //
     // The below code has the same logic and semantics. (dmex)
 
+    if (!PhGetBasePath(FileName, &directoryPart, &fileNamePart))
         return FALSE;
 
     if (directoryPart.Length && fileNamePart.Length)
