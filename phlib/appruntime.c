@@ -71,7 +71,7 @@ HRESULT PhCreateWindowsRuntimeStringReference(
     HSTRING_REFERENCE* string = (HSTRING_REFERENCE*)String;
 
     string->Flags = HSTRING_REFERENCE_FLAG;
-    string->Length = (UINT32)wcslen(SourceString); // PhCountStringZ 
+    string->Length = (UINT32)PhCountStringZ((PWSTR)SourceString);
     string->Buffer = SourceString;
 
     return S_OK;

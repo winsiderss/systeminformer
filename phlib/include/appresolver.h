@@ -78,13 +78,14 @@ PPH_LIST PhGetPackageAssetsFromResourceFile(
 typedef struct _PH_APPUSERMODELID_ENUM_ENTRY
 {
     PPH_STRING AppUserModelId;
-    PPH_STRING DisplayName;
+    PPH_STRING PackageDisplayName;
+    PPH_STRING PackageName;
     PPH_STRING PackageInstallPath;
     PPH_STRING PackageFullName;
     PPH_STRING SmallLogoPath;
 } PH_APPUSERMODELID_ENUM_ENTRY, *PPH_APPUSERMODELID_ENUM_ENTRY;
 
-PPH_LIST PhEnumerateApplicationUserModelIds(
+PPH_LIST PhEnumApplicationUserModelIds(
     VOID
     );
 

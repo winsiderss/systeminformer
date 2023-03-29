@@ -1023,7 +1023,7 @@ static BOOLEAN PhParseStartMenuAppShellItem(
 
         entry = PhAllocateZero(sizeof(PH_APPUSERMODELID_ENUM_ENTRY));
         entry->AppUserModelId = PhCreateString(packageAppUserModelID);
-        entry->DisplayName = PhCreateString(packageLongDisplayName);
+        entry->PackageDisplayName = PhCreateString(packageLongDisplayName);
         entry->PackageInstallPath = PhCreateString(packageInstallPath);
         entry->PackageFullName = PhCreateString(packageFullName);
 
@@ -1051,7 +1051,7 @@ static BOOLEAN PhParseStartMenuAppShellItem(
     return FALSE;
 }
 
-PPH_LIST PhEnumerateApplicationUserModelIds(
+PPH_LIST PhEnumApplicationUserModelIds(
     VOID
     )
 {
