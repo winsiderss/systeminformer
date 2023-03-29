@@ -14164,6 +14164,20 @@ BOOLEAN PhIsProcessorFeaturePresent(
     return !!IsProcessorFeaturePresent(ProcessorFeature); // RtlIsProcessorFeaturePresent
 }
 
+VOID PhGetCurrentProcessorNumber(
+    _Out_ PPROCESSOR_NUMBER ProcessorNumber
+    )
+{
+    //if (PhIsProcessorFeaturePresent(PF_RDPID_INSTRUCTION_AVAILABLE))
+    //    _rdpid_u32();
+    //if (PhIsProcessorFeaturePresent(PF_RDTSCP_INSTRUCTION_AVAILABLE))
+    //    __rdtscp();
+
+    memset(ProcessorNumber, 0, sizeof(PROCESSOR_NUMBER));
+
+    RtlGetCurrentProcessorNumberEx(ProcessorNumber);
+}
+
 // based on GetActiveProcessorCount (dmex)
 USHORT PhGetActiveProcessorCount(
     _In_ USHORT ProcessorGroup
@@ -14267,8 +14281,7 @@ NTSTATUS PhGetProcessorSystemAffinityMask(
     {
         PROCESSOR_NUMBER processorNumber;
 
-        memset(&processorNumber, 0, sizeof(PROCESSOR_NUMBER));
-        //RtlGetCurrentProcessorNumberEx(&processorNumber);
+        PhGetCurrentProcessorNumber(&processorNumber);
 
         return PhGetProcessorGroupActiveAffinityMask(processorNumber.Group, ActiveProcessorsAffinityMask);
     }

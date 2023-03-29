@@ -2834,6 +2834,13 @@ PhIsProcessorFeaturePresent(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhGetCurrentProcessorNumber(
+    _Out_ PPROCESSOR_NUMBER ProcessorNumber
+    );
+
+PHLIBAPI
 USHORT
 NTAPI
 PhGetActiveProcessorCount(
