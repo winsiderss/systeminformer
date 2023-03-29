@@ -4144,6 +4144,23 @@ RtlWow64GetProcessMachines(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+// rev
+#define IMAGE_FILE_NATIVE_MACHINE_I386  0x1
+#define IMAGE_FILE_NATIVE_MACHINE_AMD64 0x2
+#define IMAGE_FILE_NATIVE_MACHINE_ARMNT 0x4
+#define IMAGE_FILE_NATIVE_MACHINE_ARM64 0x8
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetImageFileMachines(
+    _In_ PCWSTR FileName,
+    _Out_ PUSHORT FileMachines
+    );
+#endif
+
 #if (PHNT_VERSION >= PHNT_REDSTONE2)
 
 // private
