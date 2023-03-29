@@ -3233,7 +3233,7 @@ PPH_STRING PhGetBaseNameChangeExtension(
 }
 
 _Success_(return)
-BOOLEAN PhGetBaseNameComponents(
+BOOLEAN PhGetBasePath(
     _In_ PPH_STRINGREF FileName,
     _Out_opt_ PPH_STRINGREF BasePathName,
     _Out_opt_ PPH_STRINGREF BaseFileName
@@ -3245,19 +3245,36 @@ BOOLEAN PhGetBaseNameComponents(
     if (!PhSplitStringRefAtLastChar(FileName, OBJ_NAME_PATH_SEPARATOR, &basePathPart, &baseNamePart))
         return FALSE;
 
-    if (BasePathName)
+    if (BasePathName && BaseFileName)
+    {
+        if (basePathPart.Length && baseNamePart.Length)
+        {
+            BasePathName->Length = basePathPart.Length;
+            BasePathName->Buffer = basePathPart.Buffer;
+
+            BaseFileName->Length = baseNamePart.Length;
+            BaseFileName->Buffer = baseNamePart.Buffer;
+            return TRUE;
+        }
+
+        return FALSE;
+    }
+
+    if (BasePathName && basePathPart.Length)
     {
         BasePathName->Length = basePathPart.Length;
         BasePathName->Buffer = basePathPart.Buffer;
+        return TRUE;
     }
 
-    if (BaseFileName)
+    if (BaseFileName && baseNamePart.Length)
     {
         BaseFileName->Length = baseNamePart.Length;
         BaseFileName->Buffer = baseNamePart.Buffer;
+        return TRUE;
     }
 
-    return TRUE;
+    return FALSE;
 }
 
 /**
