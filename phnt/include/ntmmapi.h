@@ -525,6 +525,8 @@ typedef enum _SECTION_INHERIT
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+_Must_inspect_result_
+_When_(return == 0, __drv_allocatesMem(mem))
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -538,6 +540,9 @@ NtAllocateVirtualMemory(
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
+
+_Must_inspect_result_
+_When_(return == 0, __drv_allocatesMem(mem))
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -550,6 +555,7 @@ NtAllocateVirtualMemoryEx(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
+
 #endif
 
 NTSYSCALLAPI
