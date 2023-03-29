@@ -465,7 +465,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         {
             if (PhShowMessage2(
                 context->WindowHandle,
-                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_YES_BUTTON | TD_NO_BUTTON,
                 TD_WARNING_ICON,
                 L"The 32-bit version of System Informer could not be located.",
                 L"A 64-bit dump will be created instead. Do you want to continue?"

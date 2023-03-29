@@ -1720,7 +1720,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
 
     if (WindowHandle && PhGetIntegerSetting(L"EnableWarnings") && PhShowMessage2(
         WindowHandle,
-        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+        TD_YES_BUTTON | TD_NO_BUTTON,
         TD_WARNING_ICON,
         L"WARNING: This will grant Everyone access to the current window station and desktop.",
         L"Are you sure you want to continue?"

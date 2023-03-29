@@ -716,7 +716,7 @@ BOOLEAN PhUiRestartComputer(
             {
                 PhShowMessage2(
                     WindowHandle,
-                    TDCBF_OK_BUTTON,
+                    TD_OK_BUTTON,
                     TD_ERROR_ICON,
                     L"Unable to restart to firmware options.",
                     L"Make sure System Informer is running with administrative privileges."
@@ -728,7 +728,7 @@ BOOLEAN PhUiRestartComputer(
             {
                 PhShowMessage2(
                     WindowHandle,
-                    TDCBF_OK_BUTTON,
+                    TD_OK_BUTTON,
                     TD_ERROR_ICON,
                     L"Unable to restart to firmware options.",
                     L"Make sure System Informer is running with administrative privileges."
@@ -740,7 +740,7 @@ BOOLEAN PhUiRestartComputer(
             {
                 PhShowMessage2(
                     WindowHandle,
-                    TDCBF_OK_BUTTON,
+                    TD_OK_BUTTON,
                     TD_ERROR_ICON,
                     L"Unable to restart to firmware options.",
                     L"This machine does not have UEFI support."
@@ -4055,7 +4055,7 @@ BOOLEAN PhUiCloseConnections(
             {
                 if (PhShowMessage2(
                     hWnd,
-                    TDCBF_OK_BUTTON,
+                    TD_OK_BUTTON,
                     TD_ERROR_ICON,
                     L"Unable to close the TCP connection.",
                     L"Make sure System Informer is running with administrative privileges."

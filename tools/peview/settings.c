@@ -80,6 +80,9 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageDebugListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugCrtListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugPogoListViewColumns", L"");
+    PhpAddStringSetting(L"ImageDisasmTreeColumns", L"");
+    PhpAddIntegerPairSetting(L"ImageDisasmWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"ImageDisasmWindowSize", L"@96|0,0");
     PhpAddStringSetting(L"ImageEhContListViewColumns", L"");
     PhpAddStringSetting(L"ImageVolatileListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");

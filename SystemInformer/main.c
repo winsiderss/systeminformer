@@ -1168,7 +1168,7 @@ VOID PhpInitializeSettings(
             {
                 if (PhShowMessage2(
                     NULL,
-                    TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                    TD_YES_BUTTON | TD_NO_BUTTON,
                     TD_WARNING_ICON,
                     L"System Informer's settings file is corrupt. Do you want to reset it?",
                     L"If you select No, the settings system will not function properly."

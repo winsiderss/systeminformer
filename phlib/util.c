@@ -936,12 +936,12 @@ INT PhShowMessage(
 
 static const PH_FLAG_MAPPING PhShowMessageTaskDialogButtonFlagMappings[] =
 {
-    { PH_SHOW_MESSAGE_FLAG_OK_BUTTON, TDCBF_OK_BUTTON },
-    { PH_SHOW_MESSAGE_FLAG_YES_BUTTON, TDCBF_YES_BUTTON },
-    { PH_SHOW_MESSAGE_FLAG_NO_BUTTON, TDCBF_NO_BUTTON },
-    { PH_SHOW_MESSAGE_FLAG_CANCEL_BUTTON, TDCBF_CANCEL_BUTTON },
-    { PH_SHOW_MESSAGE_FLAG_RETRY_BUTTON, TDCBF_RETRY_BUTTON },
-    { PH_SHOW_MESSAGE_FLAG_CLOSE_BUTTON, TDCBF_CLOSE_BUTTON },
+    { TD_OK_BUTTON, TDCBF_OK_BUTTON },
+    { TD_YES_BUTTON, TDCBF_YES_BUTTON },
+    { TD_NO_BUTTON, TDCBF_NO_BUTTON },
+    { TD_CANCEL_BUTTON, TDCBF_CANCEL_BUTTON },
+    { TD_RETRY_BUTTON, TDCBF_RETRY_BUTTON },
+    { TD_CLOSE_BUTTON, TDCBF_CLOSE_BUTTON },
 };
 
 INT PhShowMessage2(
@@ -1147,13 +1147,13 @@ BOOLEAN PhShowContinueStatus(
     statusMessage = PhGetStatusMessage(Status, Win32Result);
 
     if (Message && statusMessage)
-        result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, Message, L"%s", statusMessage->Buffer);
+        result = PhShowMessage2(hWnd, TD_OK_BUTTON | TD_CLOSE_BUTTON, TD_ERROR_ICON, Message, L"%s", PhGetString(statusMessage));
     else if (Message)
-        result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", Message);
+        result = PhShowMessage2(hWnd, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", Message);
     else if (statusMessage)
-        result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", statusMessage->Buffer);
+        result = PhShowMessage2(hWnd, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", PhGetString(statusMessage));
     else
-        result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON, TD_ERROR_ICON, L"Unable to perform the operation.", L"%s", L"");
+        result = PhShowMessage2(hWnd, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"Unable to perform the operation.", L"%s", L"");
 
     if (statusMessage) PhDereferenceObject(statusMessage);
 

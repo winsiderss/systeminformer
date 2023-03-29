@@ -389,7 +389,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 {
                     if (PhShowMessage2(
                         hwndDlg,
-                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
                         TD_WARNING_ICON,
                         L"Do you want to reset all settings and restart System Informer?",
                         L""
@@ -425,7 +425,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 {
                     if (PhShowMessage2(
                         hwndDlg,
-                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
                         TD_INFORMATION_ICON,
                         L"Do you want to clean up unused settings?",
                         L""
@@ -1018,7 +1018,7 @@ VOID PhpSetDefaultTaskManager(
 
     if (PhShowMessage2(
         ParentWindowHandle,
-        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+        TD_YES_BUTTON | TD_NO_BUTTON,
         TD_INFORMATION_ICON,
         L"",
         message
@@ -1549,7 +1549,7 @@ static VOID PhpOptionsNotifyChangeCallback(
     {
         if (PhShowMessage2(
             PhMainWndHandle,
-            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+            TD_YES_BUTTON | TD_NO_BUTTON,
             TD_INFORMATION_ICON,
             L"One or more options you have changed requires a restart of System Informer.",
             L"Do you want to restart System Informer now?"
@@ -1576,7 +1576,7 @@ VOID PhShowOptionsRestartRequired(
 {
     if (PhShowMessage2(
         PhMainWndHandle,
-        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+        TD_YES_BUTTON | TD_NO_BUTTON,
         TD_INFORMATION_ICON,
         L"One or more options you have changed requires a restart of System Informer.",
         L"Do you want to restart System Informer now?"

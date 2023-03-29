@@ -111,7 +111,7 @@ VOID PhShowKsiStatus(
 
         if (PhShowMessageOneTime(
             NULL,
-            TDCBF_OK_BUTTON,
+            TD_OK_BUTTON,
             TD_ERROR_ICON,
             L"Access to the kernel driver is restricted.",
             L"%s",
@@ -183,7 +183,7 @@ VOID PhpShowKsiMessage(
     {
         PhShowMessage2(
             WindowHandle,
-            TDCBF_OK_BUTTON,
+            TD_OK_BUTTON,
             Icon,
             Title,
             PhGetString(messageString)
@@ -193,7 +193,7 @@ VOID PhpShowKsiMessage(
     {
         if (PhShowMessageOneTime(
             WindowHandle,
-            TDCBF_OK_BUTTON,
+            TD_OK_BUTTON,
             Icon,
             Title,
             PhGetString(messageString)
