@@ -10342,15 +10342,20 @@ NTSTATUS PhCreateDirectoryFullPathWin32(
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PH_STRINGREF directoryPart;
+    PPH_STRING directoryPath;
     PPH_STRING directory;
-    PH_STRINGREF pathPart;
-    PH_STRINGREF baseNamePart;
 
-    if (PhSplitStringRefAtLastChar(FileName, OBJ_NAME_PATH_SEPARATOR, &pathPart, &baseNamePart))
+    if (PhGetBasePath(FileName, &directoryPart, NULL))
     {
-        if (directory = PhCreateString2(&pathPart))
+        if (directory = PhCreateString2(&directoryPart))
         {
-            status = PhCreateDirectoryWin32(&directory->sr);
+            if (directoryPath = PhGetFullPath(PhGetString(directory), NULL))
+            {
+                status = PhCreateDirectoryWin32(&directoryPath->sr);
+                PhDereferenceObject(directoryPath);
+            }
+
             PhDereferenceObject(directory);
         }
     }
