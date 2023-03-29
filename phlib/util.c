@@ -6965,13 +6965,13 @@ HWND PhHungWindowFromGhostWindow(
     return HungWindowFromGhostWindow_I(WindowHandle);
 }
 
-PVOID PhGetFileText(
+NTSTATUS PhGetFileData(
     _In_ HANDLE FileHandle,
-    _In_ BOOLEAN Unicode
+    _Out_ PVOID* Buffer,
+    _Out_ PULONG BufferLength
     )
 {
-    PVOID string = NULL;
-    PSTR data;
+    PSTR data = NULL;
     ULONG allocatedLength;
     ULONG dataLength;
     ULONG returnLength;
@@ -7020,13 +7020,40 @@ PVOID PhGetFileText(
     {
         data[dataLength] = ANSI_NULL;
 
+        *Buffer = data;
+        *BufferLength = dataLength;
+
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        *Buffer = NULL;
+        *BufferLength = 0;
+
+        PhFree(data);
+
+        return STATUS_UNSUCCESSFUL;
+    }
+}
+
+PVOID PhGetFileText(
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN Unicode
+    )
+{
+    PVOID string = NULL;
+    ULONG dataLength;
+    PSTR data;
+
+    if (NT_SUCCESS(PhGetFileData(FileHandle, &data, &dataLength)))
+    {
         if (Unicode)
             string = PhConvertUtf8ToUtf16Ex(data, dataLength);
         else
             string = PhCreateBytesEx(data, dataLength);
-    }
 
-    PhFree(data);
+        PhFree(data);
+    }
 
     return string;
 }

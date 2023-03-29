@@ -491,7 +491,7 @@ BOOLEAN PhCreateProcessLxss(
     // Get the exit code after we finish reading the data from the pipe. (dmex)
     if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
     {
-        if (basicInfo.ExitStatus == 0)
+        if (basicInfo.ExitStatus == 0 && !PhIsNullOrEmptyString(lxssOutputString))
         {
             *Result = PhReferenceObject(lxssOutputString);
             result = TRUE;
