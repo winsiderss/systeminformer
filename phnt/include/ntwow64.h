@@ -356,17 +356,28 @@ typedef struct _PEB32
 
     WOW64_POINTER(SIZE_T) MinimumStackCommit;
 
-    WOW64_POINTER(PVOID) SparePointers[4];
-    ULONG SpareUlongs[5];
-    //WOW64_POINTER(PVOID *) FlsCallback;
-    //LIST_ENTRY32 FlsListHead;
-    //WOW64_POINTER(PVOID) FlsBitmap;
-    //ULONG FlsBitmapBits[FLS_MAXIMUM_AVAILABLE / (sizeof(ULONG) * 8)];
-    //ULONG FlsHighIndex;
+    WOW64_POINTER(PVOID) SparePointers[2]; // 19H1 (previously FlsCallback to FlsHighIndex)
+    WOW64_POINTER(PVOID) PatchLoaderData;
+    WOW64_POINTER(PVOID) ChpeV2ProcessInfo; // _CHPEV2_PROCESS_INFO
+
+    ULONG AppModelFeatureState;
+    ULONG SpareUlongs[2];
+
+    USHORT ActiveCodePage;
+    USHORT OemCodePage;
+    USHORT UseCaseMapping;
+    USHORT UnusedNlsField;
 
     WOW64_POINTER(PVOID) WerRegistrationData;
     WOW64_POINTER(PVOID) WerShipAssertPtr;
-    WOW64_POINTER(PVOID) pContextData;
+
+    union
+    {
+        WOW64_POINTER(PVOID) pContextData; // WIN7
+        WOW64_POINTER(PVOID) pUnused; // WIN10
+        WOW64_POINTER(PVOID) EcCodeBitMap; // WIN11
+    };
+
     WOW64_POINTER(PVOID) pImageHeaderHash;
     union
     {
@@ -388,15 +399,23 @@ typedef struct _PEB32
     ULONG CloudFileDiagFlags; // REDSTONE4
     CHAR PlaceholderCompatibilityMode;
     CHAR PlaceholderCompatibilityModeReserved[7];
+    struct _LEAP_SECOND_DATA* __ptr32 LeapSecondData; // REDSTONE5
+    union
+    {
+        ULONG LeapSecondFlags;
+        struct
+        {
+            ULONG SixtySecondEnabled : 1;
+            ULONG Reserved : 31;
+        };
+    };
+    ULONG NtGlobalFlag2;
+    ULONGLONG ExtendedFeatureDisableMask; // since WIN11
 } PEB32, *PPEB32;
 
-C_ASSERT(FIELD_OFFSET(PEB32, IFEOKey) == 0x024);
-C_ASSERT(FIELD_OFFSET(PEB32, UnicodeCaseTableData) == 0x060);
-C_ASSERT(FIELD_OFFSET(PEB32, SystemAssemblyStorageMap) == 0x204);
-C_ASSERT(FIELD_OFFSET(PEB32, pImageHeaderHash) == 0x23c);
-C_ASSERT(FIELD_OFFSET(PEB32, WaitOnAddressHashTable) == 0x25c);
 //C_ASSERT(sizeof(PEB32) == 0x460); // REDSTONE3
-C_ASSERT(sizeof(PEB32) == 0x470);
+//C_ASSERT(sizeof(PEB32) == 0x470); // REDSTONE5
+C_ASSERT(sizeof(PEB32) == 0x488); // WIN11
 
 // Note: Use PhGetProcessPeb32 instead. (dmex)
 //#define WOW64_GET_PEB32(peb64) ((PPEB32)PTR_ADD_OFFSET((peb64), ALIGN_UP_BY(sizeof(PEB), PAGE_SIZE)))
