@@ -1366,6 +1366,26 @@ VOID PhGenerateGuid(
     ((PGUID_EX)Guid)->s2.Variant |= GUID_VARIANT_STANDARD;
 }
 
+// rev from kernelbase (dmex)
+//VOID PhGenerateGuid2(
+//    _Out_ PGUID Guid
+//    )
+//{
+//    LARGE_INTEGER seed;
+//    PUSHORT buffer;
+//    ULONG count;
+//
+//    PhQuerySystemTime(&seed);
+//    buffer = (PUSHORT)Guid;
+//    count = 8;
+//
+//    do
+//    {
+//        *buffer = (USHORT)RtlRandomEx(&seed.LowPart);
+//        buffer = PTR_ADD_OFFSET(buffer, sizeof(USHORT));
+//    } while (--count);
+//}
+
 /**
  * Creates a name-based (type 3 or 5) UUID.
  *
@@ -3426,16 +3446,21 @@ PPH_STRING PhGetApplicationFileNameWin32(
     //    }
     //}
 
-    if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    //if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    //{
+    //    if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
+    //    {
+    //        PhMoveReference(&fileName, PhGetFileName(fileName));
+    //    }
+    //    else if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
+    //    {
+    //        PhMoveReference(&fileName, PhGetFileName(fileName));
+    //    }
+    //}
+
+    if (fileName = PhGetApplicationFileName())
     {
-        if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
-        {
-            PhMoveReference(&fileName, PhGetFileName(fileName));
-        }
-        else if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
-        {
-            PhMoveReference(&fileName, PhGetFileName(fileName));
-        }
+        PhMoveReference(&fileName, PhGetFileName(fileName));
     }
 
     if (!InterlockedCompareExchangePointer(
@@ -7027,12 +7052,12 @@ NTSTATUS PhGetFileData(
     }
     else
     {
-        *Buffer = NULL;
-        *BufferLength = 0;
+    *Buffer = NULL;
+    *BufferLength = 0;
 
-        PhFree(data);
+    PhFree(data);
 
-        return STATUS_UNSUCCESSFUL;
+    return STATUS_UNSUCCESSFUL;
     }
 }
 
@@ -7198,7 +7223,8 @@ HRESULT PhGetActivationFactoryDllBase(
     HSTRING_REFERENCE string;
     IActivationFactory* activationFactory;
 
-    PhCreateWindowsRuntimeStringReference(RuntimeClass, &string);
+    if (FAILED(status = PhCreateWindowsRuntimeStringReference(RuntimeClass, &string)))
+        return status;
 
     if (!(DllGetActivationFactory_I = PhGetDllBaseProcedureAddress(DllBase, "DllGetActivationFactory", 0)))
         return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
