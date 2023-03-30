@@ -2642,6 +2642,15 @@ PhGetProcessSystemDllInitBlock(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessTlsBitMapCounters(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG TlsBitMapCount,
+    _Out_ PULONG TlsExpansionBitMapCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetThreadLastStatusValue(
     _In_ HANDLE ThreadHandle,
     _In_opt_ HANDLE ProcessHandle,
