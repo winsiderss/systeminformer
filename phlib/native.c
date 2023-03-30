@@ -12687,32 +12687,77 @@ NTSTATUS PhGetProcessCodePage(
 {
     NTSTATUS status;
     USHORT codePage = 0;
-    PVOID nlsAnsiCodePage;
-    PPH_TARGET_LIBS libs;
 
-    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
-    if (!NT_SUCCESS(status))
-        return status;
+    if (WindowsVersion >= WINDOWS_11)
+    {
+        PVOID pebBaseAddress;
+#ifdef _WIN64
+        BOOLEAN isWow64 = FALSE;
 
-    status = PhGetProcedureAddressRemote(
-        ProcessHandle,
-        &libs->Ntdll,
-        "NlsAnsiCodePage",
-        0,
-        &nlsAnsiCodePage,
-        NULL
-        );
+        PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
+        if (isWow64)
+        {
+            status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress);
 
-    status = NtReadVirtualMemory(
-        ProcessHandle,
-        nlsAnsiCodePage,
-        &codePage,
-        sizeof(USHORT),
-        NULL
-        );
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            status = NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ActiveCodePage)),
+                &codePage,
+                sizeof(USHORT),
+                NULL
+                );
+        }
+        else
+#endif
+        {
+            status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
+
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
+            status = NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ActiveCodePage)),
+                &codePage,
+                sizeof(USHORT),
+                NULL
+                );
+        }
+    }
+    else
+    {
+        PPH_TARGET_LIBS libs;
+        PVOID nlsAnsiCodePage;
+
+        status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhGetProcedureAddressRemote(
+            ProcessHandle,
+            &libs->Ntdll,
+            "NlsAnsiCodePage",
+            0,
+            &nlsAnsiCodePage,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            nlsAnsiCodePage,
+            &codePage,
+            sizeof(USHORT),
+            NULL
+            );
+    }
 
     if (NT_SUCCESS(status))
     {
@@ -12721,53 +12766,6 @@ NTSTATUS PhGetProcessCodePage(
 
 CleanupExit:
     return status;
-
-    //    if (WindowsVersion >= WINDOWS_11)
-    //    {
-    //#ifdef _WIN64
-    //        if (isWow64)
-    //        {
-    //            PVOID peb32;
-    //
-    //            status = PhGetProcessPeb32(ProcessHandle, &peb32);
-    //
-    //            if (!NT_SUCCESS(status))
-    //                return status;
-    //
-    //            status = NtReadVirtualMemory(
-    //                ProcessHandle,
-    //                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB, ActiveCodePage)),
-    //                &codePage,
-    //                sizeof(USHORT),
-    //                NULL
-    //                );
-    //        }
-    //        else
-    //#endif
-    //        {
-    //            PVOID peb;
-    //
-    //            status = PhGetProcessPeb(ProcessHandle, &peb);
-    //
-    //            if (!NT_SUCCESS(status))
-    //                return status;
-    //
-    //            status = NtReadVirtualMemory(
-    //                ProcessHandle,
-    //                PTR_ADD_OFFSET(peb, UFIELD_OFFSET(PEB, ActiveCodePage)),
-    //                &codePage,
-    //                sizeof(USHORT),
-    //                NULL
-    //                );
-    //        }
-    //
-    //        if (NT_SUCCESS(status))
-    //        {
-    //            *ProcessCodePage = codePage;
-    //        }
-    //
-    //        return status;
-    //    }
 }
 
 NTSTATUS PhGetProcessConsoleCodePage(
