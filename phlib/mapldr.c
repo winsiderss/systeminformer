@@ -769,7 +769,7 @@ PPH_STRING PhLoadIndirectString(
                 PhMoveReference(&libraryString, expandedString);
         }
 
-        if (PhDetermineDosPathNameType(libraryString->Buffer) == RtlPathTypeRelative)
+        if (PhDetermineDosPathNameType(&libraryString->sr) == RtlPathTypeRelative)
         {
             PPH_STRING librarySearchPathString;
 

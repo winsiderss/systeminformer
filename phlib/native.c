@@ -10258,11 +10258,44 @@ BOOLEAN PhDoesDirectoryExist(
     return FALSE;
 }
 
+// rev from RtlDetermineDosPathNameType_U (dmex)
 RTL_PATH_TYPE PhDetermineDosPathNameType(
-    _In_ PWSTR FileName
+    _In_ PPH_STRINGREF FileName
     )
 {
+#if (PHNT_USE_NATIVE_PATHTYPE)
     return RtlDetermineDosPathNameType_U(FileName);
+#else
+    if (FileName->Buffer[0] == OBJ_NAME_PATH_SEPARATOR || FileName->Buffer[0] == OBJ_NAME_ALTPATH_SEPARATOR)
+    {
+        if (FileName->Buffer[1] == OBJ_NAME_PATH_SEPARATOR || FileName->Buffer[1] == OBJ_NAME_ALTPATH_SEPARATOR)
+        {
+            if (FileName->Buffer[2] == L'?' || FileName->Buffer[2] == L'.')
+            {
+                if (FileName->Buffer[3] == OBJ_NAME_PATH_SEPARATOR || FileName->Buffer[3] == OBJ_NAME_ALTPATH_SEPARATOR)
+                    return RtlPathTypeLocalDevice;
+
+                if (FileName->Buffer[3] != UNICODE_NULL)
+                    return RtlPathTypeUncAbsolute;
+
+                return RtlPathTypeRootLocalDevice;
+            }
+
+            return RtlPathTypeUncAbsolute;
+        }
+
+        return RtlPathTypeRooted;
+    }
+    else if (FileName->Buffer[0] != UNICODE_NULL && FileName->Buffer[1] == L':')
+    {
+        if (FileName->Buffer[2] == OBJ_NAME_PATH_SEPARATOR || FileName->Buffer[2] == OBJ_NAME_ALTPATH_SEPARATOR)
+            return RtlPathTypeDriveAbsolute;
+
+        return RtlPathTypeDriveRelative;
+    }
+
+    return RtlPathTypeRelative; 
+#endif
 }
 
 /**

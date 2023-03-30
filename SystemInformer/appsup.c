@@ -601,7 +601,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // If the DLL name isn't an absolute path, assume it's in system32.
             // TODO: Use a proper search function.
 
-            if (PhDetermineDosPathNameType(PhGetString(dllName)) == RtlPathTypeRelative)
+            if (PhDetermineDosPathNameType(&dllName->sr) == RtlPathTypeRelative)
             {
                 PPH_STRING systemDirectory;
 
@@ -862,7 +862,7 @@ VOID PhShellExecuteUserString(
         if (fileName && fileArgs)
         {
             // Make sure the string is absolute and escape the filename.
-            if (PhDetermineDosPathNameType(fileName->Buffer) == RtlPathTypeRelative)
+            if (PhDetermineDosPathNameType(&fileName->sr) == RtlPathTypeRelative)
             {
                 PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &fileName->sr));
                 PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &seperator));
@@ -880,7 +880,7 @@ VOID PhShellExecuteUserString(
         }
         else
         {
-            if (PhDetermineDosPathNameType(executeString->Buffer) == RtlPathTypeRelative)
+            if (PhDetermineDosPathNameType(&executeString->sr) == RtlPathTypeRelative)
             {
                 PhMoveReference(&executeString, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &executeString->sr));
                 PhMoveReference(&executeString, PhConcatStringRef2(&executeString->sr, &seperator));

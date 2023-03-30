@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
@@ -35,7 +35,7 @@ VOID FileLogInitialization(
     {
         PhMoveReference(&fileName, PhExpandEnvironmentStrings(&fileName->sr));
 
-        if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
+        if (PhDetermineDosPathNameType(&fileName->sr) == RtlPathTypeRelative)
         {
             PhMoveReference(&fileName, PhGetApplicationDirectoryFileName(&fileName->sr, FALSE));
         }
