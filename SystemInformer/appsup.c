@@ -119,9 +119,10 @@ PPH_STRINGREF PhGetProcessPriorityClassString(
     case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
     case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
         return &PriorityClassString[PriorityClass];
-    default:
-        return &PriorityClassString[PROCESS_PRIORITY_CLASS_UNKNOWN];
     }
+
+    assert(FALSE);
+    return NULL;
 
     //switch (PriorityClass)
     //{

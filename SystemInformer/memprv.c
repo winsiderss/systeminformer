@@ -112,43 +112,89 @@ PWSTR PhGetMemoryTypeString(
         return L"Unknown";
 }
 
-PWSTR PhGetSigningLevelString(
+PPH_STRINGREF PhGetSigningLevelString(
     _In_ SE_SIGNING_LEVEL SigningLevel
     )
 {
+    static PH_STRINGREF SigningLevelString[] =
+    {
+        PH_STRINGREF_INIT(L"Unchecked"),
+        PH_STRINGREF_INIT(L"Unsigned"),
+        PH_STRINGREF_INIT(L"Enterprise"),
+        PH_STRINGREF_INIT(L"Developer"),
+        PH_STRINGREF_INIT(L"Authenticode"),
+        PH_STRINGREF_INIT(L"Custom"),
+        PH_STRINGREF_INIT(L"StoreApp"),
+        PH_STRINGREF_INIT(L"Antimalware"),
+        PH_STRINGREF_INIT(L"Microsoft"),
+        PH_STRINGREF_INIT(L"Custom"),
+        PH_STRINGREF_INIT(L"Custom"),
+        PH_STRINGREF_INIT(L"CodeGen"),
+        PH_STRINGREF_INIT(L"Windows"),
+        PH_STRINGREF_INIT(L"Custom"),
+        PH_STRINGREF_INIT(L"WinTcb"),
+        PH_STRINGREF_INIT(L"Custom"),
+    };
+
+    C_ASSERT(ARRAYSIZE(SigningLevelString) == SE_SIGNING_LEVEL_CUSTOM_6 + 1);
+
     switch (SigningLevel)
     {
-        case SE_SIGNING_LEVEL_UNCHECKED:
-            return L"Unchecked";
-        case SE_SIGNING_LEVEL_UNSIGNED:
-            return L"Unsigned";
-        case SE_SIGNING_LEVEL_ENTERPRISE:
-            return L"Enterprise";
-        case SE_SIGNING_LEVEL_DEVELOPER:
-            return L"Developer";
-        case SE_SIGNING_LEVEL_AUTHENTICODE:
-            return L"Authenticode";
-        case SE_SIGNING_LEVEL_STORE:
-            return L"StoreApp";
-        case SE_SIGNING_LEVEL_ANTIMALWARE:
-            return L"Antimalware";
-        case SE_SIGNING_LEVEL_MICROSOFT:
-            return L"Microsoft";
-        case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:
-            return L"CodeGen";
-        case SE_SIGNING_LEVEL_WINDOWS:
-            return L"Windows";
-        case SE_SIGNING_LEVEL_WINDOWS_TCB:
-            return L"WinTcb";
-        case SE_SIGNING_LEVEL_CUSTOM_2:
-        case SE_SIGNING_LEVEL_CUSTOM_4:
-        case SE_SIGNING_LEVEL_CUSTOM_5:
-        case SE_SIGNING_LEVEL_CUSTOM_6:
-        case SE_SIGNING_LEVEL_CUSTOM_7:
-            return L"Custom";
-        default:
-            return L"";
+    case SE_SIGNING_LEVEL_UNCHECKED:
+    case SE_SIGNING_LEVEL_UNSIGNED:
+    case SE_SIGNING_LEVEL_ENTERPRISE:
+    case SE_SIGNING_LEVEL_DEVELOPER:
+    case SE_SIGNING_LEVEL_AUTHENTICODE:
+    case SE_SIGNING_LEVEL_CUSTOM_2:
+    case SE_SIGNING_LEVEL_STORE:
+    case SE_SIGNING_LEVEL_ANTIMALWARE:
+    case SE_SIGNING_LEVEL_MICROSOFT:
+    case SE_SIGNING_LEVEL_CUSTOM_4:
+    case SE_SIGNING_LEVEL_CUSTOM_5:
+    case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:
+    case SE_SIGNING_LEVEL_WINDOWS:
+    case SE_SIGNING_LEVEL_CUSTOM_7:
+    case SE_SIGNING_LEVEL_WINDOWS_TCB:
+    case SE_SIGNING_LEVEL_CUSTOM_6:
+        return &SigningLevelString[SigningLevel];
     }
+
+    assert(FALSE);
+    return NULL;
+
+    //switch (SigningLevel)
+    //{
+    //    case SE_SIGNING_LEVEL_UNCHECKED:
+    //        return L"Unchecked";
+    //    case SE_SIGNING_LEVEL_UNSIGNED:
+    //        return L"Unsigned";
+    //    case SE_SIGNING_LEVEL_ENTERPRISE:
+    //        return L"Enterprise";
+    //    case SE_SIGNING_LEVEL_DEVELOPER:
+    //        return L"Developer";
+    //    case SE_SIGNING_LEVEL_AUTHENTICODE:
+    //        return L"Authenticode";
+    //    case SE_SIGNING_LEVEL_STORE:
+    //        return L"StoreApp";
+    //    case SE_SIGNING_LEVEL_ANTIMALWARE:
+    //        return L"Antimalware";
+    //    case SE_SIGNING_LEVEL_MICROSOFT:
+    //        return L"Microsoft";
+    //    case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:
+    //        return L"CodeGen";
+    //    case SE_SIGNING_LEVEL_WINDOWS:
+    //        return L"Windows";
+    //    case SE_SIGNING_LEVEL_WINDOWS_TCB:
+    //        return L"WinTcb";
+    //    case SE_SIGNING_LEVEL_CUSTOM_2:
+    //    case SE_SIGNING_LEVEL_CUSTOM_4:
+    //    case SE_SIGNING_LEVEL_CUSTOM_5:
+    //    case SE_SIGNING_LEVEL_CUSTOM_6:
+    //    case SE_SIGNING_LEVEL_CUSTOM_7:
+    //        return L"Custom";
+    //    default:
+    //        return L"";
+    //}
 }
 
 _Ret_notnull_
