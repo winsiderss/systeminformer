@@ -8328,6 +8328,66 @@ PPH_STRING PhDosPathNameToNtPathName(
     return newName;
 }
 
+// rev from GetLongPathNameW (dmex)
+PPH_STRING PhGetLongPathName(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    PPH_STRING longPathName = NULL;
+    NTSTATUS status;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK ioStatusBlock;
+    PFILE_BOTH_DIR_INFORMATION directoryInfoBuffer;
+    ULONG directoryInfoLength;
+    PH_STRINGREF baseNamePart;
+    UNICODE_STRING baseNameUs;
+
+    status = PhOpenFileWin32(
+        &fileHandle,
+        PhGetStringRefZ(FileName),
+        FILE_READ_DATA | FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    if (!PhGetBasePath(FileName, NULL, &baseNamePart))
+        goto CleanupExit;
+    if (!PhStringRefToUnicodeString(&baseNamePart, &baseNameUs))
+        goto CleanupExit;
+
+    directoryInfoLength = PAGE_SIZE;
+    directoryInfoBuffer = PhAllocate(directoryInfoLength);
+
+    status = NtQueryDirectoryFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &ioStatusBlock,
+        directoryInfoBuffer,
+        directoryInfoLength,
+        FileBothDirectoryInformation,
+        TRUE,
+        &baseNameUs,
+        FALSE
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        longPathName = PhCreateStringEx(directoryInfoBuffer->FileName, directoryInfoBuffer->FileNameLength);
+    }
+
+    PhFree(directoryInfoBuffer);
+
+CleanupExit:
+    NtClose(fileHandle);
+
+    return longPathName;
+}
+
 typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 {
     PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
