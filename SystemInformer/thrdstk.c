@@ -1003,6 +1003,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                 control.u.Initializing.ProcessId = context->ProcessId;
                 control.u.Initializing.ThreadId = context->ThreadId;
                 control.u.Initializing.ThreadHandle = context->ThreadHandle;
+                control.u.Initializing.ProcessHandle = context->SymbolProvider->ProcessHandle;
                 control.u.Initializing.SymbolProvider = context->SymbolProvider;
                 control.u.Initializing.CustomWalk = FALSE;
                 PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
