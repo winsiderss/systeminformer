@@ -2541,7 +2541,7 @@ BOOLEAN PhGetSystemResourcesFileName(
 
     if (WindowsVersion < WINDOWS_10_19H1)
         return FALSE;
-    if (PhDetermineDosPathNameType(PhGetStringRefZ(FileName)) == RtlPathTypeUncAbsolute)
+    if (PhDetermineDosPathNameType(FileName) == RtlPathTypeUncAbsolute)
         return FALSE;
 
     // 19H1 and above relocated binary resources into the \SystemResources\ directory.
