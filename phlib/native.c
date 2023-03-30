@@ -1789,6 +1789,32 @@ NTSTATUS PhGetProcessMappedFileName(
     return status;
 }
 
+NTSTATUS PhGetProcessMappedImageInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _Out_ PMEMORY_IMAGE_INFORMATION ImageInformation
+    )
+{
+    NTSTATUS status;
+    MEMORY_IMAGE_INFORMATION imageInformation;
+
+    status = NtQueryVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        MemoryImageInformation,
+        &imageInformation,
+        sizeof(MEMORY_IMAGE_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ImageInformation = imageInformation;
+    }
+
+    return status;
+}
+
 /**
  * Gets working set information for a process.
  *
@@ -8064,6 +8090,150 @@ VOID PhUpdateDosDevicePrefixes(
     PhReleaseQueuedLockExclusive(&PhDevicePrefixesLock);
 }
 
+static NTSTATUS PhMountManagerQueryMountPoints(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PMOUNTMGR_MOUNT_POINTS *Buffer
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    MOUNTMGR_MOUNT_POINT input = { 0 };
+    PMOUNTMGR_MOUNT_POINTS buffer;
+    ULONG bufferSize;
+    ULONG attempts = 16;
+
+    bufferSize = 0x800;
+    buffer = PhAllocate(bufferSize);
+
+    do
+    {
+        status = NtDeviceIoControlFile(
+            DeviceHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            IOCTL_MOUNTMGR_QUERY_POINTS,
+            &input,
+            sizeof(MOUNTMGR_MOUNT_POINT),
+            buffer,
+            bufferSize
+            );
+
+        if (NT_SUCCESS(status))
+            break;
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            bufferSize = buffer->Size;
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            PhFree(buffer);
+            return status;
+        }
+    } while (--attempts);
+
+    *Buffer = buffer;
+
+    return status;
+}
+
+NTSTATUS PhUpdateDosDeviceMountPrefixes(
+    VOID
+    )
+{
+    NTSTATUS status;
+    HANDLE deviceHandle;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    PMOUNTMGR_MOUNT_POINTS deviceMountPoints;
+
+    RtlInitUnicodeString(&objectName, MOUNTMGR_DEVICE_NAME);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &deviceHandle,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhMountManagerQueryMountPoints(
+        deviceHandle, 
+        &deviceMountPoints
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhDevicePrefixes); i++)
+    {
+        PhDevicePrefixes[i].Length = 0;
+    }
+
+    for (ULONG i = 0; i < deviceMountPoints->NumberOfMountPoints; i++)
+    {
+        PMOUNTMGR_MOUNT_POINT entry = &deviceMountPoints->MountPoints[i];
+        UNICODE_STRING linkName =
+        {
+            entry->SymbolicLinkNameLength,
+            entry->SymbolicLinkNameLength + sizeof(UNICODE_NULL),
+            PTR_ADD_OFFSET(deviceMountPoints, entry->SymbolicLinkNameOffset)
+        };
+        UNICODE_STRING deviceName =
+        {
+            entry->DeviceNameLength,
+            entry->DeviceNameLength + sizeof(UNICODE_NULL),
+            PTR_ADD_OFFSET(deviceMountPoints, entry->DeviceNameOffset)
+        };
+
+        if (MOUNTMGR_IS_DRIVE_LETTER(&linkName))
+        {
+            USHORT index = (USHORT)(linkName.Buffer[12] - L'A');
+
+            if (index >= RTL_NUMBER_OF(PhDevicePrefixes))
+                continue;
+            if (deviceName.Length >= PhDevicePrefixes[index].MaximumLength - sizeof(UNICODE_NULL))
+                continue;
+
+            PhDevicePrefixes[index].Length = deviceName.Length;
+            memcpy_s(
+                PhDevicePrefixes[index].Buffer,
+                PhDevicePrefixes[index].MaximumLength,
+                deviceName.Buffer,
+                deviceName.Length
+                );
+        }
+    }
+
+    PhFree(deviceMountPoints);
+
+CleanupExit:
+    NtClose(deviceHandle);
+
+    return status;
+}
+
 /**
  * Resolves a NT path into a Win32 path.
  *
@@ -8084,6 +8254,8 @@ PPH_STRING PhResolveDevicePrefix(
         PhpInitializeDevicePrefixes();
         PhUpdateDosDevicePrefixes();
         PhUpdateMupDevicePrefixes();
+
+        //PhUpdateDosDeviceMountPrefixes();
 
         PhEndInitOnce(&PhDevicePrefixesInitOnce);
     }
