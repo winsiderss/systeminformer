@@ -904,9 +904,15 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 break;
             case PHMMTLC_SIGNING_LEVEL:
                 if (memoryItem->RegionType == MappedFileRegion && memoryItem->u.MappedFile.SigningLevelValid)
-                    PhInitializeStringRef(&getCellText->Text, PhGetSigningLevelString(memoryItem->u.MappedFile.SigningLevel));
-                else
-                    PhInitializeEmptyStringRef(&getCellText->Text);
+                {
+                    PPH_STRINGREF string;
+
+                    if (string = PhGetSigningLevelString(memoryItem->u.MappedFile.SigningLevel))
+                    {
+                        getCellText->Text.Length = string->Length;
+                        getCellText->Text.Buffer = string->Buffer;
+                    }
+                }
                 break;
             default:
                 return FALSE;

@@ -132,7 +132,7 @@ PWSTR PhGetMemoryTypeString(
     _In_ ULONG Type
     );
 
-PWSTR PhGetSigningLevelString(
+PPH_STRINGREF PhGetSigningLevelString(
     _In_ SE_SIGNING_LEVEL SigningLevel
     );
 
