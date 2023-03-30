@@ -7096,12 +7096,12 @@ NTSTATUS PhGetFileData(
     }
     else
     {
-    *Buffer = NULL;
-    *BufferLength = 0;
+        *Buffer = NULL;
+        *BufferLength = 0;
 
-    PhFree(data);
+        PhFree(data);
 
-    return STATUS_UNSUCCESSFUL;
+        return STATUS_UNSUCCESSFUL;
     }
 }
 
