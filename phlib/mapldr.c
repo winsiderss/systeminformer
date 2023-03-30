@@ -220,7 +220,7 @@ NTSTATUS PhLoadLibraryAsResource(
     imageBaseSize = 0;
 
 #ifdef DEBUG
-    if (WindowsVersion < WINDOWS_8)
+    if (WindowsVersion < WINDOWS_10)
         NtCurrentTeb()->SuppressDebugMsg = TRUE;
 #endif
 
@@ -238,7 +238,7 @@ NTSTATUS PhLoadLibraryAsResource(
         );
 
 #ifdef DEBUG
-    if (WindowsVersion < WINDOWS_8)
+    if (WindowsVersion < WINDOWS_10)
         NtCurrentTeb()->SuppressDebugMsg = FALSE;
 #endif
 
@@ -322,7 +322,7 @@ NTSTATUS PhFreeLibraryAsImageResource(
     NTSTATUS status;
 
 #ifdef DEBUG
-    if (WindowsVersion < WINDOWS_8)
+    if (WindowsVersion < WINDOWS_10)
         NtCurrentTeb()->SuppressDebugMsg = TRUE;
 #endif
 
@@ -332,7 +332,7 @@ NTSTATUS PhFreeLibraryAsImageResource(
         );
 
 #ifdef DEBUG
-    if (WindowsVersion < WINDOWS_8)
+    if (WindowsVersion < WINDOWS_10)
         NtCurrentTeb()->SuppressDebugMsg = FALSE;
 #endif
 
