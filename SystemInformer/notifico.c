@@ -413,7 +413,7 @@ VOID PhNfUninitialization(
         if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
             continue;
 
-        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE) == (PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
+        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
         {
             PhNfpRemoveNotifyIcon(icon);
         }
@@ -1146,7 +1146,7 @@ NTSTATUS PhNfpTrayIconUpdateThread(
         if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
             continue;
 
-        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE) == (PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
+        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
         {
             PhNfpRemoveNotifyIcon(icon);
         }
