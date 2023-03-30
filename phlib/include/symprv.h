@@ -500,10 +500,37 @@ PhGetLineFromInlineContext(
 //    _In_ PPH_LIST InlineSymbolList
 //    );
 
-PPH_STRING PhGetSymbolLanguageFromAddress(
+typedef struct _PH_DIA_SYMBOL_INFORMATION
+{
+    ULONG64 FunctionLength;
+    PPH_STRING UndecoratedName;
+    PPH_STRING SymbolInformation;
+    PPH_STRING SymbolLangugage;
+} PH_DIA_SYMBOL_INFORMATION, *PPH_DIA_SYMBOL_INFORMATION;
+
+_Success_(return)
+BOOLEAN PhGetDiaSymbolInformation(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ ULONG64 BaseOfDll,
-    _In_ ULONG64 Address
+    _In_ ULONG64 Address,
+    _Out_ PPH_DIA_SYMBOL_INFORMATION SymbolInformation
+    );
+
+// symprv_std.cpp (dmex)
+
+EXTERN_C VOID PhPrintCurrentStacktrace(
+    VOID
+    );
+
+EXTERN_C PPH_STRING PhGetStacktraceAsString(
+    VOID
+    );
+
+EXTERN_C PPH_STRING PhGetStacktraceSymbolFromAddress(
+    _In_ PVOID Address
+    );
+
+EXTERN_C PPH_STRING PhGetObjectTypeStacktraceToString(
+    _In_ PVOID Object
     );
 
 EXTERN_C_END

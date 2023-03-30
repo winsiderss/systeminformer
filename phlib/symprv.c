@@ -12,6 +12,7 @@
 
 #include <ph.h>
 
+#include <combaseapi.h>
 #include <dbghelp.h>
 
 #include <symprv.h>
@@ -21,6 +22,9 @@
 #include <verify.h>
 #include <mapimg.h>
 #include <mapldr.h>
+
+#include "../tools/thirdparty/msdiasdk/dia2.h"
+#include "../tools/thirdparty/msdiasdk/dia3.h"
 
 #if defined(_ARM64_)
 static const ULONG NativeMachine = IMAGE_FILE_MACHINE_ARM64;
@@ -3061,3 +3065,262 @@ BOOLEAN PhGetLineFromInlineContext(
 //
 //    PhDereferenceObject(InlineSymbolList);
 //}
+
+CV_CFL_LANG PhGetDiaSymbolCompilandInformation(
+    _In_ IDiaLineNumber* LineNumber
+    )
+{
+    CV_CFL_LANG compilandLanguage = ULONG_MAX;
+    ULONG count;
+    IDiaSymbol* compiland;
+    IDiaSymbol* symbol;
+    IDiaEnumSymbols* enumSymbols;
+
+    if (IDiaLineNumber_get_compiland(LineNumber, &compiland) == S_OK)
+    {
+        if (IDiaSymbol_findChildren(compiland, SymTagCompilandDetails, NULL, nsNone, &enumSymbols) == S_OK)
+        {
+            while (IDiaEnumSymbols_Next(enumSymbols, 1, &symbol, &count) == S_OK)
+            {
+                ULONG language;
+
+                if (IDiaSymbol_get_language(symbol, &language) == S_OK)
+                {
+                    compilandLanguage = language;
+                    break;
+                }
+
+                IDiaSymbol_Release(symbol);
+            }
+
+            IDiaEnumSymbols_Release(enumSymbols);
+        }
+
+        IDiaSymbol_Release(compiland);
+    }
+
+    return compilandLanguage;
+}
+
+PPH_STRING PhGetDiaSymbolLineInformation(
+    _In_ IDiaSession* Session,
+    _In_ IDiaSymbol* Symbol,
+    _In_ ULONG64 Address,
+    _In_ ULONG64 Length
+    )
+{
+    IDiaLineNumber* symbolLineNumber;
+    CV_CFL_LANG language = ULONG_MAX;
+
+    if (IDiaSymbol_getSrcLineOnTypeDefn(Symbol, &symbolLineNumber) == S_OK)
+    {
+        language = PhGetDiaSymbolCompilandInformation(symbolLineNumber);
+        IDiaLineNumber_Release(symbolLineNumber);
+    }
+    else
+    {
+        ULONG count;
+        IDiaEnumLineNumbers* enumLineNumbers;
+
+        if (IDiaSession_findLinesByVA(Session, Address, (ULONG)Length, &enumLineNumbers) == S_OK)  
+        {
+            if (IDiaEnumLineNumbers_Next(enumLineNumbers, 1, &symbolLineNumber, &count) == S_OK)
+            {
+                language = PhGetDiaSymbolCompilandInformation(symbolLineNumber);
+                IDiaLineNumber_Release(symbolLineNumber);
+            }
+
+            IDiaEnumLineNumbers_Release(enumLineNumbers);
+        }
+    }
+
+    switch (language)
+    {
+    case CV_CFL_C:
+        return PhCreateString(L"C");
+    case CV_CFL_CXX:
+        return PhCreateString(L"C++");
+    case CV_CFL_FORTRAN:
+        return PhCreateString(L"FORTRAN");
+    case CV_CFL_MASM:
+        return PhCreateString(L"MASM");
+    case CV_CFL_PASCAL:
+        return PhCreateString(L"PASCAL");
+    case CV_CFL_BASIC:
+        return PhCreateString(L"BASIC");
+    case CV_CFL_COBOL:
+        return PhCreateString(L"COBOL");
+    case CV_CFL_LINK:
+        return PhCreateString(L"LINK");
+    case CV_CFL_CVTRES:
+        return PhCreateString(L"CVTRES");
+    case CV_CFL_CVTPGD:
+        return PhCreateString(L"CVTPGD");
+    case CV_CFL_CSHARP:
+        return PhCreateString(L"C#");
+    case CV_CFL_VB:
+        return PhCreateString(L"Visual Basic");
+    case CV_CFL_ILASM:
+        return PhCreateString(L"ILASM (CLR)");
+    case CV_CFL_JAVA:
+        return PhCreateString(L"JAVA");
+    case CV_CFL_JSCRIPT:
+        return PhCreateString(L"JSCRIPT");
+    case CV_CFL_MSIL:
+        return PhCreateString(L"MSIL");
+    case CV_CFL_HLSL:
+        return PhCreateString(L"HLSL (High Level Shader Language)");
+    case CV_CFL_OBJC:
+        return PhCreateString(L"Objective-C");
+    case CV_CFL_OBJCXX:
+        return PhCreateString(L"Objective-C++");
+    case CV_CFL_SWIFT:
+        return PhCreateString(L"SWIFT");
+    case CV_CFL_ALIASOBJ:
+        return PhCreateString(L"ALIASOBJ");
+    case CV_CFL_RUST:
+        return PhCreateString(L"RUST");
+    }
+
+    return NULL;
+}
+
+// SymTagCompilandDetails : https://learn.microsoft.com/en-us/visualstudio/debugger/debug-interface-access/compilanddetails
+// SymTagFunction: https://learn.microsoft.com/en-us/visualstudio/debugger/debug-interface-access/function-debug-interface-access-sdk
+PPH_STRING PhGetDiaSymbolExtraInformation(
+    _In_ IDiaSymbol* Symbol
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    BOOL symbolBoolean = FALSE;
+    ULONG64 symbolValue = 0;
+
+    PhInitializeStringBuilder(&stringBuilder, 0x100);
+
+    if (IDiaSymbol_get_isStripped(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Stripped, ");
+    }
+
+    if (IDiaSymbol_get_isStatic(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Static, ");
+    }
+
+    if (IDiaSymbol_get_inlSpec(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Inline, ");
+    }
+
+    if (IDiaSymbol_get_isHotpatchable(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Hotpatchable, ");
+    }
+
+    if (IDiaSymbol_get_hasAlloca(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Has Alloca, ");
+    }
+
+    if (IDiaSymbol_get_hasInlAsm(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Has Inline ASM, ");
+    }
+
+    if (IDiaSymbol_get_hasSetJump(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Has SetJump, ");
+    }
+
+    if (IDiaSymbol_get_hasLongJump(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Has LongJump, ");
+    }
+
+    if (IDiaSymbol_get_hasSEH(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Has SEH, ");
+    }
+
+    if (IDiaSymbol_get_hasSecurityChecks(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Has SecurityChecks, ");
+    }
+
+    if (IDiaSymbol_get_hasControlFlowCheck(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Has CFG, ");
+    }
+
+    if (IDiaSymbol_get_isOptimizedForSpeed(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"OptimizedForSpeed, ");
+    }   
+    
+    if (IDiaSymbol_get_isPGO(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"PGO, ");
+    }
+
+    if (IDiaSymbol_get_exceptionHandlerVirtualAddress(Symbol, &symbolValue) == S_OK && symbolValue)
+    {
+        PhAppendFormatStringBuilder(&stringBuilder, L"Has exception handler (0x%p), ", (PVOID)symbolValue);
+    }
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+_Success_(return)
+BOOLEAN PhGetDiaSymbolInformation(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider, 
+    _In_ ULONG64 Address,
+    _Out_ PPH_DIA_SYMBOL_INFORMATION SymbolInformation
+    )
+{
+    PH_DIA_SYMBOL_INFORMATION symbolInfo = { 0 };
+    ULONG64 baseAddress;
+    IDiaSession* datasession;
+    IDiaSymbol* symbol;
+
+    baseAddress = PhGetModuleFromAddress(SymbolProvider, Address, NULL);
+
+    if (baseAddress == 0)
+        return FALSE;
+
+    if (!PhGetSymbolProviderDiaSession(SymbolProvider, baseAddress, &datasession))
+        return FALSE;
+
+    if (IDiaSession_findSymbolByVA(datasession, Address, SymTagFunction, &symbol) == S_OK)
+    {
+        BSTR symbolUndecoratedName = NULL;
+        ULONG64 symbolLength = 0;
+
+        if (IDiaSymbol_get_length(symbol, &symbolLength) == S_OK)
+        {
+            symbolInfo.FunctionLength = symbolLength;
+            symbolInfo.SymbolLangugage = PhGetDiaSymbolLineInformation(
+                datasession,
+                symbol,
+                Address,
+                symbolLength
+                );
+        }
+
+        if (IDiaSymbol_get_undecoratedName(symbol, &symbolUndecoratedName) == S_OK)
+        {
+            symbolInfo.UndecoratedName = PhCreateString(symbolUndecoratedName);
+            PhSymbolProviderFreeDiaString(symbolUndecoratedName);
+        }
+
+        symbolInfo.SymbolInformation = PhGetDiaSymbolExtraInformation(symbol);
+    }
+
+    IDiaSession_Release(datasession);
+
+    memcpy(SymbolInformation, &symbolInfo, sizeof(PH_DIA_SYMBOL_INFORMATION));
+
+    return TRUE;
+}
