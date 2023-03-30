@@ -12953,6 +12953,98 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     return status;
 }
 
+NTSTATUS PhGetProcessTlsBitMapCounters(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG TlsBitMapCount,
+    _Out_ PULONG TlsExpansionBitMapCount
+    )
+{
+    NTSTATUS status;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+    PVOID pebBaseAddress;
+    RTL_BITMAP tlsBitMap;
+    RTL_BITMAP tlsExpansionBitMap;
+    ULONG bitmapBits[2] = { 0 };
+    ULONG bitmapExpansionBits[32] = { 0 };
+
+    static_assert(sizeof(bitmapBits) == RTL_FIELD_SIZE(PEB, TlsBitmapBits), "Buffer must equal TlsBitmapBits");
+    static_assert(sizeof(bitmapExpansionBits) == RTL_FIELD_SIZE(PEB, TlsExpansionBitmapBits), "Buffer must equal TlsExpansionBitmapBits");
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, TlsBitmapBits)),
+            bitmapBits,
+            sizeof(bitmapBits),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, TlsExpansionBitmapBits)),
+            bitmapExpansionBits,
+            sizeof(bitmapExpansionBits),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+    else
+#endif
+    {
+        status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, TlsBitmapBits)),
+            bitmapBits,
+            sizeof(bitmapBits),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, TlsExpansionBitmapBits)),
+            bitmapExpansionBits,
+            sizeof(bitmapExpansionBits),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    RtlInitializeBitMap(&tlsBitMap, bitmapBits, TLS_MINIMUM_AVAILABLE);
+    RtlInitializeBitMap(&tlsExpansionBitMap, bitmapExpansionBits, TLS_EXPANSION_SLOTS);
+
+    *TlsBitMapCount = RtlNumberOfSetBits(&tlsBitMap);
+    *TlsExpansionBitMapCount = RtlNumberOfSetBits(&tlsExpansionBitMap);
+
+CleanupExit:
+    return status;
+}
+
 /**
  * Gets whether the process is running under the POSIX subsystem.
  *
