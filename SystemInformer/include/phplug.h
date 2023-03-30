@@ -263,6 +263,7 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
             HANDLE ProcessId;
             HANDLE ThreadId;
             HANDLE ThreadHandle;
+            HANDLE ProcessHandle;
             PPH_SYMBOL_PROVIDER SymbolProvider;
             BOOLEAN CustomWalk;
         } Initializing;

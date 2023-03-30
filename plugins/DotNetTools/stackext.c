@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -72,24 +72,14 @@ VOID ProcessThreadStackControl(
     case PluginThreadStackInitializing:
         {
             PTHREAD_STACK_CONTEXT context;
-#if _WIN64
-            HANDLE processHandle;
-#endif
 
-            context = PhAllocate(sizeof(THREAD_STACK_CONTEXT));
-            memset(context, 0, sizeof(THREAD_STACK_CONTEXT));
+            context = PhAllocateZero(sizeof(THREAD_STACK_CONTEXT));
             context->ProcessId = Control->u.Initializing.ProcessId;
             context->ThreadId = Control->u.Initializing.ThreadId;
             context->ThreadHandle = Control->u.Initializing.ThreadHandle;
-
 #if _WIN64
-            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, Control->u.Initializing.ProcessId)))
-            {
-                PhGetProcessIsWow64(processHandle, &context->IsWow64);
-                NtClose(processHandle);
-            }
+            PhGetProcessIsWow64(Control->u.Initializing.ProcessHandle, &context->IsWow64);
 #endif
-
             PhAcquireQueuedLockExclusive(&ContextHashtableLock);
             PhAddItemSimpleHashtable(ContextHashtable, Control->UniqueKey, context);
             PhReleaseQueuedLockExclusive(&ContextHashtableLock);
@@ -288,7 +278,7 @@ VOID ProcessThreadStackControl(
 }
 
 VOID PredictAddressesFromClrData(
-    _In_ PCLR_PROCESS_SUPPORT Support,
+    _In_ struct _CLR_PROCESS_SUPPORT *Support,
     _In_ HANDLE ThreadId,
     _In_ PVOID PcAddress,
     _In_ PVOID FrameAddress,
