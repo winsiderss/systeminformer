@@ -348,11 +348,6 @@ typedef struct _KSYSTEM_TIME
 #define ClearFlag(_F, _SF) ((_F) &= ~(_SF))
 #endif
 
-#ifndef STATIC_ASSERT
-#define STATIC_ASSERT(expression) \
-    static_assert(expression, #expression)
-#endif
-
 #endif
 
 #endif
