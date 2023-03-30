@@ -1036,7 +1036,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
     volumeName = PhCreateString2(&firstPart);
     PhMoveReference(&volumeName, PhConcatStrings(3, L"\\??\\", PhGetStringOrEmpty(volumeName), L":"));
 
-    if (PhDetermineDosPathNameType(PhGetString(volumeName)) != RtlPathTypeRooted)
+    if (PhDetermineDosPathNameType(&volumeName->sr) != RtlPathTypeRooted)
     {
         PhDereferenceObject(volumeName);
         return STATUS_UNSUCCESSFUL;

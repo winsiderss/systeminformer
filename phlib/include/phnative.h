@@ -2220,7 +2220,7 @@ PHLIBAPI
 RTL_PATH_TYPE
 NTAPI
 PhDetermineDosPathNameType(
-    _In_ PWSTR FileName
+    _In_ PPH_STRINGREF FileName
     );
 
 PHLIBAPI
