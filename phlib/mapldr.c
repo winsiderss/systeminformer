@@ -191,6 +191,29 @@ BOOLEAN PhFreeLibrary(
     return !!FreeLibrary(BaseAddress);
 }
 
+#ifdef DEBUG
+// rev from BasepLoadLibraryAsDataFileInternal (dmex)
+FORCEINLINE
+VOID
+NtSuppressDebugMessage(
+    _In_ BOOLEAN SuppressDebugMessage
+    )
+{
+    // Note: The Visual Studio debugger on Windows 7/8 attempts to load symbols 
+    // for non-executable resources. The kernelbase BasepLoadLibraryAsDataFileInternal
+    // function temporarily suppresses symbols while loading resources (both release and debug) 
+    // as a QOL optimization but we only suppress debug messages for debug builds. This issue 
+    // was fixed on Windows 10 with SEC_IMAGE_NO_EXECUTE and suppression is not required (dmex)
+
+    if (WindowsVersion < WINDOWS_10)
+    {
+        NtCurrentTeb()->SuppressDebugMsg = SuppressDebugMessage;
+    }
+}
+#else
+#define NtSuppressDebugMessage(SuppressDebugMessage)
+#endif
+
 // rev from LoadLibraryEx and LOAD_LIBRARY_AS_IMAGE_RESOURCE
 // with some extra changes for a read-only page/section. (dmex)
 NTSTATUS PhLoadLibraryAsResource(
@@ -219,10 +242,7 @@ NTSTATUS PhLoadLibraryAsResource(
     imageBaseAddress = NULL;
     imageBaseSize = 0;
 
-#ifdef DEBUG
-    if (WindowsVersion < WINDOWS_10)
-        NtCurrentTeb()->SuppressDebugMsg = TRUE;
-#endif
+    NtSuppressDebugMessage(TRUE);
 
     status = NtMapViewOfSection(
         sectionHandle,
@@ -237,10 +257,7 @@ NTSTATUS PhLoadLibraryAsResource(
         PAGE_READONLY
         );
 
-#ifdef DEBUG
-    if (WindowsVersion < WINDOWS_10)
-        NtCurrentTeb()->SuppressDebugMsg = FALSE;
-#endif
+    NtSuppressDebugMessage(FALSE);
 
     if (status == STATUS_IMAGE_NOT_AT_BASE)
     {
@@ -321,20 +338,14 @@ NTSTATUS PhFreeLibraryAsImageResource(
 {
     NTSTATUS status;
 
-#ifdef DEBUG
-    if (WindowsVersion < WINDOWS_10)
-        NtCurrentTeb()->SuppressDebugMsg = TRUE;
-#endif
+    NtSuppressDebugMessage(TRUE);
 
     status = NtUnmapViewOfSection(
         NtCurrentProcess(),
         LDR_IMAGEMAPPING_TO_MAPPEDVIEW(BaseAddress)
         );
 
-#ifdef DEBUG
-    if (WindowsVersion < WINDOWS_10)
-        NtCurrentTeb()->SuppressDebugMsg = FALSE;
-#endif
+    NtSuppressDebugMessage(FALSE);
 
     return status;
 }
