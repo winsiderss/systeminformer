@@ -308,6 +308,7 @@
     <ClCompile Include="secedit.c" />
     <ClCompile Include="secwmi.c" />
     <ClCompile Include="settings.c" />
+    <ClCompile Include="symprv_std.cpp" />
     <ClCompile Include="theme.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="svcsup.c" />
