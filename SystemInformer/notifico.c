@@ -1163,8 +1163,8 @@ VOID PhNfpProcessesUpdatedHandler(
 {
     static ULONG processesUpdatedCount = 0;
 
-    // Update the tray icons on a separate thread so we don't block the main GUI or
-    // the provider threads when explorer is not responding.
+    // Update the icons on a separate thread so we don't block the main window 
+    // or provider threads when explorer is not responding. (dmex)
 
     if (processesUpdatedCount != 3)
     {
