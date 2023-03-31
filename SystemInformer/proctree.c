@@ -237,6 +237,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUKERNEL, FALSE, L"CPU (kernel)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUUSER, FALSE, L"CPU (user)", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_GRANTEDACCESS, FALSE, L"Granted access (symbolic)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_TLSBITMAPDELTA, FALSE, L"Thread local storage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -668,6 +669,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->CpuKernelText);
     PhClearReference(&ProcessNode->CpuUserText);
     PhClearReference(&ProcessNode->GrantedAccessText);
+    PhClearReference(&ProcessNode->TlsBitmapDeltaText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1612,6 +1614,38 @@ static VOID PhpUpdateProcessNodeGrantedAccess(
     }
 }
 
+static VOID PhpUpdateProcessNodeTlsBitmapDelta(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_TLSBITMAPDELTA))
+    {
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
+        {
+            HANDLE processHandle;
+
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                ProcessNode->ProcessId
+                )))
+            {
+                ULONG bitmapCount;
+                ULONG bitmapExpansionCount;
+
+                if (NT_SUCCESS(PhGetProcessTlsBitMapCounters(processHandle, &bitmapCount, &bitmapExpansionCount)))
+                {
+                    ProcessNode->TlsBitmapCount = (USHORT)(bitmapCount + bitmapExpansionCount);
+                }
+
+                NtClose(processHandle);
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_CODEPAGE;
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
@@ -2376,6 +2410,15 @@ BEGIN_SORT_FUNCTION(GrantedAccess)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(TlsBitmapDelta)
+{
+    PhpUpdateProcessNodeTlsBitmapDelta(node1);
+    PhpUpdateProcessNodeTlsBitmapDelta(node2);
+
+    sortResult = ushortcmp(node1->TlsBitmapCount, node2->TlsBitmapCount);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2517,6 +2560,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(CpuKernel),
                         SORT_FUNCTION(CpuUser),
                         SORT_FUNCTION(GrantedAccess),
+                        SORT_FUNCTION(TlsBitmapDelta),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3680,6 +3724,49 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhpUpdateProcessNodeGrantedAccess(node);
                     getCellText->Text = PhGetStringRef(node->GrantedAccessText);
+                }
+                break;
+            case PHPRTLC_TLSBITMAPDELTA:
+                {
+                    PhpUpdateProcessNodeTlsBitmapDelta(node);
+
+                    if (node->TlsBitmapCount != 0)
+                    {
+                        if (node->TlsBitmapCount > TLS_MINIMUM_AVAILABLE)
+                        {
+                            PH_FORMAT format[8];
+
+                            // 64 (100%) | 1024 (100%)
+                            PhInitFormatU(&format[0], 64);
+                            PhInitFormatS(&format[1], L" (");
+                            PhInitFormatF(&format[2], 100.0, 2);
+                            PhInitFormatS(&format[3], L"%) | ");
+                            PhInitFormatU(&format[4], node->TlsBitmapCount - TLS_MINIMUM_AVAILABLE);
+                            PhInitFormatS(&format[5], L" (");
+                            PhInitFormatF(&format[6], (node->TlsBitmapCount - TLS_MINIMUM_AVAILABLE) * 100 / TLS_EXPANSION_SLOTS, 2);
+                            PhInitFormatS(&format[7], L"%)");
+
+                            PhMoveReference(&node->TlsBitmapDeltaText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        }
+                        else
+                        {
+                            PH_FORMAT format[8];
+
+                            // 64 (100%) | 0 (0%)
+                            PhInitFormatU(&format[0], node->TlsBitmapCount);
+                            PhInitFormatS(&format[1], L" (");
+                            PhInitFormatF(&format[2], node->TlsBitmapCount * 100 / TLS_MINIMUM_AVAILABLE, 2);
+                            PhInitFormatS(&format[3], L"%) | ");
+                            PhInitFormatU(&format[4], 0);
+                            PhInitFormatS(&format[5], L" (");
+                            PhInitFormatF(&format[6], 0.0, 2);
+                            PhInitFormatS(&format[7], L"%)");
+
+                            PhMoveReference(&node->TlsBitmapDeltaText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        }
+
+                        getCellText->Text = PhGetStringRef(node->TlsBitmapDeltaText);
+                    }
                 }
                 break;
             default:
