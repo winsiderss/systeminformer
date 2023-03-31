@@ -998,7 +998,6 @@ NTSTATUS PhGetProcessIsBeingDebugged(
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
-    BOOLEAN isBeingDebugged = FALSE;
     PVOID debugHandle;
 
     status = NtQueryInformationProcess(

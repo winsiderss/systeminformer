@@ -669,7 +669,6 @@ PPH_STRING PhGetServiceFileName(
     _In_ PPH_STRINGREF ServiceName
     )
 {
-    PPH_STRING fileName = NULL;
     PPH_STRING serviceDllString = NULL;
     NTSTATUS status;
     HANDLE keyHandle;

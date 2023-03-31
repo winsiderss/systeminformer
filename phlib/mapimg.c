@@ -2431,7 +2431,6 @@ NTSTATUS PhGetMappedImageResource(
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
-    ULONG resourceCount = 0;
     ULONG resourceTypeCount;
     ULONG resourceNameCount;
     ULONG resourceLanguageCount;

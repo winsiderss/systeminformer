@@ -15,13 +15,8 @@
 #include <settings.h>
 #include <colmgr.h>
 #include <phplug.h>
-#include <phsettings.h>
 
 #define WM_PH_PLUGINS_SHOWPROPERTIES (WM_APP + 401)
-
-static HANDLE PhPluginsThreadHandle = NULL;
-static HWND PhPluginsWindowHandle = NULL;
-static PH_EVENT PhPluginsInitializedEvent = PH_EVENT_INIT;
 
 typedef struct _PH_PLUGMAN_CONTEXT
 {

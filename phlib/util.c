@@ -3644,7 +3644,6 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     VOID
     )
 {
-    PPH_STRING randomAlphaFileName = NULL;
     PH_STRINGREF randomAlphaString;
     WCHAR randomAlphaStringBuffer[33] = L"";
 

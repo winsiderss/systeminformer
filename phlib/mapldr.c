@@ -1864,7 +1864,7 @@ NTSTATUS PhpLoaderEntryQuerySectionInformation(
 
     if (section.SubSystemType != IMAGE_SUBSYSTEM_WINDOWS_GUI)
         return STATUS_INVALID_IMPORT_OF_NON_DLL;
-    if (!(section.ImageCharacteristics & IMAGE_FILE_DLL | IMAGE_FILE_EXECUTABLE_IMAGE))
+    if (!(section.ImageCharacteristics & (IMAGE_FILE_DLL | IMAGE_FILE_EXECUTABLE_IMAGE)))
         return STATUS_INVALID_IMPORT_OF_NON_DLL;
 
 #ifdef _WIN64

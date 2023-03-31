@@ -589,7 +589,6 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     )
 {
     static PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
-    static PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
     HRESULT status;
     PVOID imageBaseAddress;
     PPH_STRING wbemProviderString = NULL;

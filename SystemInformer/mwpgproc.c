@@ -434,7 +434,6 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     UCHAR priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
     IO_PRIORITY_HINT ioPriority = ULONG_MAX;
     ULONG pagePriority = ULONG_MAX;
-    BOOLEAN priorityBoostDisabled = FALSE;
     ULONG id = 0;
 
     if (NT_SUCCESS(PhOpenProcess(
