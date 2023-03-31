@@ -3817,6 +3817,7 @@ NTSYSAPI UNICODE_STRING RtlNtPathSeperatorString;
 #define RtlWin32NtRoot ((UNICODE_STRING)RTL_CONSTANT_STRING(L"\\\\?"))
 #define RtlWin32NtUncRoot ((UNICODE_STRING)RTL_CONSTANT_STRING(L"\\\\?\\UNC"))
 #define RtlWin32NtUncRootSlash ((UNICODE_STRING)RTL_CONSTANT_STRING(L"\\\\?\\UNC\\"))
+#define RtlDefaultExtension ((UNICODE_STRING)RTL_CONSTANT_STRING(L".DLL"))
 #endif
 
 // Path functions
