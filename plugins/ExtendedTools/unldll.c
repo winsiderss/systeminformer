@@ -156,7 +156,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             PhDereferenceObject(string);
 
             // Time Stamp
-            RtlSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
+            PhSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
             PhLargeIntegerToLocalSystemTime(&systemTime, &time);
             string = PhFormatDateTime(&systemTime);
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, string->Buffer);
@@ -221,7 +221,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             PhDereferenceObject(string);
 
             // Time Stamp
-            RtlSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
+            PhSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
             PhLargeIntegerToLocalSystemTime(&systemTime, &time);
             string = PhFormatDateTime(&systemTime);
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, string->Buffer);

@@ -3342,7 +3342,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     LARGE_INTEGER time;
                     SYSTEMTIME systemTime;
 
-                    RtlSecondsSince1970ToTime(node->ImageTimeDateStamp, &time);
+                    PhSecondsSince1970ToTime(node->ImageTimeDateStamp, &time);
                     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
                     PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));

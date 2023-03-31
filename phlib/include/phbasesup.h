@@ -101,6 +101,41 @@ PhLocalTimeToSystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     );
 
+#define SecondsToStartOf1980 11960006400
+#define SecondsToStartOf1970 11644473600
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhTimeToSecondsSince1980(
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PULONG ElapsedSeconds
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhTimeToSecondsSince1970(
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PULONG ElapsedSeconds
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSecondsSince1980ToTime(
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSecondsSince1970ToTime(
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
+    );
+
 // Heap
 
 PHLIBAPI

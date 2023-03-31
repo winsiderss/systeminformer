@@ -1762,7 +1762,7 @@ VOID PhpUpdateSystemHistory(
 
     // Time
     PhQuerySystemTime(&systemTime);
-    RtlTimeToSecondsSince1980(&systemTime, &secondsSince1980);
+    PhTimeToSecondsSince1980(&systemTime, &secondsSince1980);
     PhAddItemCircularBuffer_ULONG(&PhTimeHistory, secondsSince1980);
 }
 
@@ -1807,7 +1807,7 @@ BOOLEAN PhGetStatisticsTime(
     }
 
     secondsSince1980 = PhGetItemCircularBuffer_ULONG(&PhTimeHistory, index);
-    RtlSecondsSince1980ToTime(secondsSince1980, &time);
+    PhSecondsSince1980ToTime(secondsSince1980, &time);
 
     *Time = time;
 

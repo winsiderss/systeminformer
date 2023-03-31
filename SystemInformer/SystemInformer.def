@@ -213,6 +213,7 @@ EXPORTS
     PhResizeArray
     PhResizeList
     PhRoundUpToPowerOfTwo
+    PhSecondsSince1970ToTime
     PhSplitStringRefAtChar
     PhSplitStringRefAtLastChar
     PhSplitStringRefAtString
@@ -221,6 +222,7 @@ EXPORTS
     PhStringToInteger64
     PhSuccessorElementAvlTree
     PhSystemTimeToLocalTime
+    PhTimeToSecondsSince1970
     PhTrimStringRef
     PhUnregisterCallback
     PhUpperBoundElementAvlTree

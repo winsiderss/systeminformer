@@ -979,7 +979,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
                     if (moduleItem->ImageTimeDateStamp != 0)
                     {
-                        RtlSecondsSince1970ToTime(moduleItem->ImageTimeDateStamp, &time);
+                        PhSecondsSince1970ToTime(moduleItem->ImageTimeDateStamp, &time);
                         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
                         PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->TimeStampText->sr;

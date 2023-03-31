@@ -476,6 +476,72 @@ VOID PhLocalTimeToSystemTime(
     SystemTime->QuadPart = LocalTime->QuadPart + timeZoneBias.QuadPart;
 }
 
+BOOLEAN PhTimeToSecondsSince1980(
+    _In_ PLARGE_INTEGER Time, 
+    _Out_ PULONG ElapsedSeconds
+    )
+{
+#if (PHNT_NATIVE_TIME)
+    return RtlTimeToSecondsSince1980(Time, ElapsedSeconds);
+#else
+    ULARGE_INTEGER time;
+
+    time.QuadPart = Time->QuadPart - (SecondsToStartOf1980 * PH_TICKS_PER_SEC);
+    time.QuadPart = time.QuadPart / PH_TICKS_PER_SEC;
+
+    if (time.HighPart)
+        return FALSE;
+
+    *ElapsedSeconds = time.LowPart;
+    return TRUE;
+#endif
+}
+
+BOOLEAN PhTimeToSecondsSince1970(
+    _In_ PLARGE_INTEGER Time, 
+    _Out_ PULONG ElapsedSeconds
+    )
+{
+#if (PHNT_NATIVE_TIME)
+    return RtlTimeToSecondsSince1970(Time, ElapsedSeconds);
+#else
+    ULARGE_INTEGER time;
+
+    time.QuadPart = Time->QuadPart - (SecondsToStartOf1970 * PH_TICKS_PER_SEC);
+    time.QuadPart = time.QuadPart / PH_TICKS_PER_SEC;
+
+    if (time.HighPart)
+        return FALSE;
+
+    *ElapsedSeconds = time.LowPart;
+    return TRUE;
+#endif
+}
+
+VOID PhSecondsSince1980ToTime(
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
+    )
+{
+#if (PHNT_NATIVE_TIME)
+    RtlSecondsSince1980ToTime(ElapsedSeconds, Time);
+#else
+    Time->QuadPart = PH_TICKS_PER_SEC * (SecondsToStartOf1980 + ElapsedSeconds);
+#endif
+}
+
+VOID PhSecondsSince1970ToTime(
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
+    )
+{
+#if (PHNT_NATIVE_TIME)
+    RtlSecondsSince1970ToTime(ElapsedSeconds, Time);
+#else
+    Time->QuadPart = PH_TICKS_PER_SEC * (SecondsToStartOf1970 + ElapsedSeconds);
+#endif
+}
+
 /**
  * Allocates a block of memory.
  *
