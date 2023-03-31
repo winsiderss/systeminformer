@@ -2294,7 +2294,7 @@ BOOLEAN PhUiRestartProcess(
 
     fileNameWin32 = Process->FileName ? PhGetFileName(Process->FileName) : NULL;
 
-    if (!(PhIsNullOrEmptyString(fileNameWin32) && PhDoesFileExistWin32(PhGetString(fileNameWin32))))
+    if (PhIsNullOrEmptyString(fileNameWin32) || !PhDoesFileExistWin32(PhGetString(fileNameWin32)))
     {
         status = STATUS_NO_SUCH_FILE;
         goto CleanupExit;
