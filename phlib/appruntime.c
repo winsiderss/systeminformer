@@ -494,6 +494,18 @@ static HRESULT PhDetoursPackageSystemIdentificationInitialize(
     return S_OK;
 }
 
+static HRESULT PhDetoursPackageSystemIdentificationDelete(
+    VOID
+    )
+{
+    if (!PhDetoursPackageSystemIdentificationContext(NULL, TRUE))
+    {
+        return E_FAIL;
+    }
+
+    return S_OK;
+}
+
 static HRESULT PhQueryProcessSystemIdentification(
     _In_ PPH_APPHWID_QUERY_CONTEXT Context,
     _Out_ PPH_STRING* SystemIdForPublisher,
@@ -579,6 +591,8 @@ CleanupExit:
         NtClose(tokenHandle);
         tokenHandle = NULL;
     }
+
+    PhDetoursPackageSystemIdentificationDelete();
 
     *SystemIdForPublisher = NULL;
     *SystemIdForUser = NULL;
