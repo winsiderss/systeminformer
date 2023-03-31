@@ -45,9 +45,7 @@ PVOID PhGetWbemProxImageBaseAddress(
         {
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
             {
-                if (!(imageBaseAddress = PhGetLoaderEntryDllBase(&systemFileName->sr, NULL)))
-                    imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
-
+                imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
                 PhDereferenceObject(systemFileName);
             }
 

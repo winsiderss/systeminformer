@@ -89,7 +89,6 @@ _May_raise_ PVOID PhCreateObject(
     _In_ PPH_OBJECT_TYPE ObjectType
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_HEADER objectHeader;
 
     // Allocate storage for the object. Note that this includes the object header followed by the
@@ -392,7 +391,6 @@ PPH_OBJECT_TYPE PhCreateObjectTypeEx(
     _In_opt_ PPH_OBJECT_TYPE_PARAMETERS Parameters
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_TYPE objectType;
 
     // Check the flags.

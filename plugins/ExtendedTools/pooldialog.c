@@ -129,7 +129,7 @@ BOOLEAN EtPoolTagTreeFilterCallback(
 
     if (poolNode->PoolItem->TagString[0] != 0)
     {
-        if (PhWordMatchStringZ(context->SearchboxText, poolNode->PoolItem->TagString))
+        if (PhWordMatchStringLongHintZ(context->SearchboxText, poolNode->PoolItem->TagString))
             return TRUE;
     }
 

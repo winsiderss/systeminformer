@@ -626,7 +626,6 @@ BOOLEAN PhParseKsiSettingsBlob(
     _Out_ PPH_STRING* ServiceName
     )
 {
-    BOOLEAN status = FALSE;
     PPH_STRING directory = NULL;
     PPH_STRING serviceName = NULL;
     PSTR string;

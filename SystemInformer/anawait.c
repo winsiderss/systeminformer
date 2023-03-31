@@ -51,7 +51,7 @@ VOID PhpAnalyzeWaitPassive(
 
 BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     );
 
 VOID PhpAnalyzeWaitFallbacks(
@@ -257,7 +257,7 @@ VOID PhpAnalyzeWaitPassive(
     NtClose(threadHandle);
 }
 
-static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
+BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_ PVOID Context
     )
