@@ -101,6 +101,7 @@ VOID PvUpdateCachedSettings(
     )
 {
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
+    PhEnableSecurityAdvancedDialog = !!PhGetIntegerSetting(L"EnableSecurityAdvancedDialog");
     PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
 }

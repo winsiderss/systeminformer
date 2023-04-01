@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -836,26 +836,19 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI PvImportTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPV_IMPORT_CONTEXT context = Context;
     PPV_IMPORT_NODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPV_IMPORT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -888,10 +881,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPV_IMPORT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -900,10 +889,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPV_IMPORT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -938,10 +923,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPV_IMPORT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -954,12 +935,32 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
         }
         return TRUE;
     case TreeNewKeyDown:
-    case TreeNewNodeExpanding:
-        return TRUE;
-    case TreeNewLeftDoubleClick:
         {
-           // SendMessage(context->ParentWindowHandle, WM_COMMAND, WM_ACTION, (LPARAM)context);
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                {
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        PPH_STRING text;
+
+                        text = PhGetTreeNewText(hwnd, 0);
+                        PhSetClipboardString(hwnd, &text->sr);
+                        PhDereferenceObject(text);
+                    }
+                }
+                break;
+            case 'A':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
+                break;
+            }
         }
+        return TRUE;
+    case TreeNewNodeExpanding:
+    case TreeNewLeftDoubleClick:
         return TRUE;
     case TreeNewContextMenu:
         {
