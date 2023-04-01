@@ -265,7 +265,7 @@ NTSTATUS PhSvcpCallExecuteRunAsCommand(
     PHSVC_API_MSG m;
     PVOID userName = NULL;
     PVOID password = NULL;
-    ULONG passwordLength;
+    ULONG passwordLength = 0;
     PVOID currentDirectory = NULL;
     PVOID commandLine = NULL;
     PVOID fileName = NULL;

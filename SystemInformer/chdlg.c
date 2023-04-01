@@ -12,7 +12,6 @@
 
 #include <phapp.h>
 #include <settings.h>
-#include <phsettings.h>
 
 typedef struct _PH_CHOICE_DIALOG_CONTEXT
 {

@@ -97,7 +97,7 @@ PPHP_PROCESS_WMI_TREENODE PhpAddWmiProviderNode(
 
 PPHP_PROCESS_WMI_TREENODE PhpFindWmiProviderNode(
     _In_ PPH_PROCESS_WMI_CONTEXT Context,
-    _In_ PWSTR KeyPath
+    _In_ PWSTR RelativePath
     );
 
 VOID PhpClearWmiProviderTree(
