@@ -18,38 +18,6 @@
 PAGED_FILE();
 
 /**
- * \brief Retrieves process protection information.
- *
- * \details This wraps a call to PsGetProcessProtection which is not exported
- * everywhere. If the function is not exported this call fails with
- * STATUS_NOT_IMPLEMENTED.
- *
- * \param[in] Process A process object to retrieve the information from.
- * \param[out] Protection On success this is populated with the process
- * protection.
- * \return Appropriate status:
- * STATUS_NOT_IMPLEMENTED - The call is not supported.
- * STATUS_SUCCESS - Retrieved the process protection level.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetProcessProtection(
-    _In_ PEPROCESS Process,
-    _Out_ PPS_PROTECTION Protection
-    )
-{
-    PAGED_CODE();
-
-    if (!KphDynPsGetProcessProtection)
-    {
-        return STATUS_NOT_IMPLEMENTED;
-    }
-
-    *Protection = KphDynPsGetProcessProtection(Process);
-    return STATUS_SUCCESS;
-}
-
-/**
  * \brief Opens a process.
  *
  * \param[out] ProcessHandle A variable which receives the process handle.

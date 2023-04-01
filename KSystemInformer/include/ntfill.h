@@ -8,7 +8,6 @@
  */
 
 #pragma once
-#include <kphosver.h>
 extern ULONG KphDynObDecodeShift;
 extern ULONG KphDynObAttributesShift;
 
@@ -53,19 +52,6 @@ typedef struct _HANDLE_TABLE_ENTRY
 
 typedef struct _HANDLE_TABLE HANDLE_TABLE, *PHANDLE_TABLE;
 
-typedef
-_Function_class_(EX_ENUM_HANDLE_CALLBACK_61)
-_Must_inspect_result_
-BOOLEAN
-NTAPI
-EX_ENUM_HANDLE_CALLBACK_61(
-    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
-    _In_ HANDLE Handle,
-    _In_opt_ PVOID Context
-    );
-typedef EX_ENUM_HANDLE_CALLBACK_61* PEX_ENUM_HANDLE_CALLBACK_61;
-
-// since WIN8
 typedef
 _Function_class_(EX_ENUM_HANDLE_CALLBACK)
 _Must_inspect_result_
@@ -114,17 +100,6 @@ ZwQuerySection(
 
 extern POBJECT_TYPE *IoDriverObjectType;
 extern POBJECT_TYPE *IoDeviceObjectType;
-
-typedef
-_Function_class_(IO_QUERY_FULL_DRIVER_PATH)
-_IRQL_always_function_max_(APC_LEVEL)
-NTSTATUS
-NTAPI
-IO_QUERY_FULL_DRIVER_PATH(
-    _In_ PDRIVER_OBJECT DriverObject,
-    _Out_ PUNICODE_STRING FullPath
-    );
-typedef IO_QUERY_FULL_DRIVER_PATH *PIO_QUERY_FULL_DRIVER_PATH;
 
 // KE
 
@@ -224,7 +199,8 @@ KeTestAlertThread (
     ((Access) & OBJ_GRANTED_ACCESS_MASK)
 
 FORCEINLINE
-VOID ObpSetGrantedAccess(
+VOID 
+ObpSetGrantedAccess(
     _Inout_ PACCESS_MASK GrantedAccess,
     _In_ ACCESS_MASK Access
     )
@@ -236,25 +212,20 @@ VOID ObpSetGrantedAccess(
 }
 
 FORCEINLINE
-PVOID ObpDecodeObject(
+_Must_inspect_result_
+PVOID 
+ObpDecodeObject(
     _In_ PVOID Object
     )
 {
 #if (defined _M_X64) || (defined _M_ARM64)
-    if (KphOsVersion >= KphWin8)
+    if (KphDynObDecodeShift != ULONG_MAX)
     {
-        if (KphDynObDecodeShift != ULONG_MAX)
-        {
-            return (PVOID)(((LONG_PTR)Object >> KphDynObDecodeShift) & ~(ULONG_PTR)0xf);
-        }
-        else
-        {
-            return NULL;
-        }
+        return (PVOID)(((LONG_PTR)Object >> KphDynObDecodeShift) & ~(ULONG_PTR)0xf);
     }
     else
     {
-        return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
+        return NULL;
     }
 #else
     return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
@@ -262,26 +233,20 @@ PVOID ObpDecodeObject(
 }
 
 FORCEINLINE
-ULONG ObpGetHandleAttributes(
+_Must_inspect_result_
+ULONG 
+ObpGetHandleAttributes(
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
 #if (defined _M_X64) || (defined _M_ARM64)
-    if (KphOsVersion >= KphWin8)
+    if (KphDynObAttributesShift != ULONG_MAX)
     {
-        if (KphDynObAttributesShift != ULONG_MAX)
-        {
-            return (ULONG)(HandleTableEntry->Value >> KphDynObAttributesShift) & 0x3;
-        }
-        else
-        {
-            return 0;
-        }
+        return (ULONG)(HandleTableEntry->Value >> KphDynObAttributesShift) & 0x3;
     }
     else
     {
-        return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) |
-            ((HandleTableEntry->GrantedAccess & ObpAccessProtectCloseBit) ? OBJ_PROTECT_CLOSE : 0);
+        return 0;
     }
 #else
     return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) |
@@ -583,16 +548,6 @@ PsResumeProcess(
     _In_ PEPROCESS Process
     );
 
-typedef
-_Function_class_(PS_GET_THREAD_EXIT_STATUS)
-_IRQL_requires_max_(APC_LEVEL)
-NTSTATUS
-NTAPI
-PS_GET_THREAD_EXIT_STATUS(
-    _In_ PETHREAD Thread
-    );
-typedef PS_GET_THREAD_EXIT_STATUS* PPS_GET_THREAD_EXIT_STATUS;
-
 typedef struct _PS_PROTECTION
 {
     union
@@ -631,14 +586,14 @@ typedef enum _PS_PROTECTED_SIGNER
 
 } PS_PROTECTED_SIGNER, *PPS_PROTECTED_SIGNER;
 
-typedef
-_Function_class_(PS_GET_PROCESS_PROTECTION)
+#if (NTDDI_VERSION >= NTDDI_WIN10)
+NTKERNELAPI
 PS_PROTECTION
 NTAPI
-PS_GET_PROCESS_PROTECTION(
+PsGetProcessProtection(
     _In_ PEPROCESS Process
     );
-typedef PS_GET_PROCESS_PROTECTION* PPS_GET_PROCESS_PROTECTION;
+#endif
 
 typedef
 _Function_class_(PS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX)
@@ -668,25 +623,6 @@ PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2(
     _In_ BOOLEAN Remove
     );
 typedef PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2* PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2;
-
-#if (NTDDI_VERSION < NTDDI_WINTHRESHOLD)
-typedef enum _PSCREATETHREADNOTIFYTYPE
-{
-    PsCreateThreadNotifyNonSystem = 0,
-    PsCreateThreadNotifySubsystems = 1
-
-} PSCREATETHREADNOTIFYTYPE;
-#endif
-
-typedef
-_Function_class_(PS_SET_CREATE_THREAD_NOTIFY_ROUTINE_EX)
-NTSTATUS
-NTAPI
-PS_SET_CREATE_THREAD_NOTIFY_ROUTINE_EX(
-    _In_ PSCREATETHREADNOTIFYTYPE NotifyType,
-    _In_ PVOID NotifyInformation
-    );
-typedef PS_SET_CREATE_THREAD_NOTIFY_ROUTINE_EX* PPS_SET_CREATE_THREAD_NOTIFY_ROUTINE_EX;
 
 #ifndef PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE
 #define PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE            0x1
@@ -749,6 +685,11 @@ ZwSetInformationProcess(
 #define ThreadPowerThrottlingState     49
 #define ThreadNameInformation          38
 
+#if (NTDDI_VERSION >= NTDDI_WIN10)
+extern PLIST_ENTRY PsLoadedModuleList;
+extern PERESOURCE PsLoadedModuleResource;
+#endif
+
 // RTL
 
 #ifndef RTL_MAX_DRIVE_LETTERS
@@ -768,6 +709,18 @@ RtlImageNtHeader(
     _In_ PVOID Base
     );
 
+#define RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK 0x00000001
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+RtlImageNtHeaderEx(
+    _In_ ULONG Flags,
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PIMAGE_NT_HEADERS* OutHeaders
+    );
+
 NTKERNELAPI
 PVOID
 NTAPI
@@ -778,38 +731,15 @@ RtlImageDirectoryEntryToData(
     _Out_ PULONG Size
     );
 
-typedef
-_Function_class_(RTL_FIND_EXPORTED_ROUTINE_BY_NAME)
+#if (NTDDI_VERSION >= NTDDI_WIN10)
+NTKERNELAPI
 PVOID
 NTAPI
-RTL_FIND_EXPORTED_ROUTINE_BY_NAME(
+RtlFindExportedRoutineByName(
     _In_ PVOID BaseAddress,
     _In_z_ PCSTR RoutineName
     );
-typedef RTL_FIND_EXPORTED_ROUTINE_BY_NAME* PRTL_FIND_EXPORTED_ROUTINE_BY_NAME;
-
-typedef
-_Function_class_(RTL_IMAGE_NT_HEADER_EX)
-NTSTATUS
-NTAPI
-RTL_IMAGE_NT_HEADER_EX(
-    _In_ ULONG Flags,
-    _In_ PVOID Base,
-    _In_ ULONG64 Size,
-    _Out_ PIMAGE_NT_HEADERS* OutHeaders
-    );
-typedef RTL_IMAGE_NT_HEADER_EX* PRTL_IMAGE_NT_HEADER_EX;
-
-typedef
-_Function_class_(KE_REMOVE_QUEUE_DPC_EX)
-_IRQL_requires_max_(HIGH_LEVEL)
-BOOLEAN
-NTAPI
-KE_REMOVE_QUEUE_DPC_EX(
-    _Inout_ PRKDPC Dpc,
-    _In_ BOOLEAN WaitIfActive
-    );
-typedef KE_REMOVE_QUEUE_DPC_EX* PKE_REMOVE_QUEUE_DPC_EX;
+#endif
 
 // MM
 
@@ -829,21 +759,6 @@ typedef MM_PROTECT_DRIVER_SECTION* PMM_PROTECT_DRIVER_SECTION;
 
 #define MM_PROTECT_DRIVER_SECTION_VALID_FLAGS \
     (MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD)
-
-typedef
-_Function_class_(MM_MAP_VIEW_IN_SYSTEM_SPACE_EX)
-_Must_inspect_result_
-_IRQL_requires_max_ (APC_LEVEL)
-NTKERNELAPI
-NTSTATUS
-MM_MAP_VIEW_IN_SYSTEM_SPACE_EX (
-    _In_ PVOID Section,
-    _Outptr_result_bytebuffer_ (*ViewSize) PVOID *MappedBase,
-    _Inout_ PSIZE_T ViewSize,
-    _Inout_ PLARGE_INTEGER SectionOffset,
-    _In_ ULONG_PTR Flags
-    );
-typedef MM_MAP_VIEW_IN_SYSTEM_SPACE_EX* PMM_MAP_VIEW_IN_SYSTEM_SPACE_EX;
 
 // SE
 
