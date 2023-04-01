@@ -25,6 +25,16 @@ typedef struct _CLIENT_ID64
 
 // EX
 
+typedef struct _EX_FAST_REF
+{
+    union
+    {
+        PVOID Object;
+        ULONG_PTR RefCnt : 4;
+        ULONG_PTR Value;
+    };
+} EX_FAST_REF, *PEX_FAST_REF;
+
 typedef struct _EX_PUSH_LOCK_WAIT_BLOCK *PEX_PUSH_LOCK_WAIT_BLOCK;
 
 NTKERNELAPI
@@ -759,6 +769,364 @@ typedef MM_PROTECT_DRIVER_SECTION* PMM_PROTECT_DRIVER_SECTION;
 
 #define MM_PROTECT_DRIVER_SECTION_VALID_FLAGS \
     (MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD)
+
+typedef struct _MMVAD_FLAGS
+{
+    ULONG Lock : 1;
+    ULONG LockContended : 1;
+    ULONG DeleteInProgress : 1;
+    ULONG NoChange : 1;
+    ULONG VadType : 3;
+    ULONG Protection : 5;
+    ULONG PreferredNode : 7;
+    ULONG PageSize : 2;
+    ULONG PrivateMemory : 1;
+} MMVAD_FLAGS, *PMMVAD_FLAGS;
+
+typedef struct _MM_PRIVATE_VAD_FLAGS
+{
+    ULONG Lock : 1;
+    ULONG LockContended : 1;
+    ULONG DeleteInProgress : 1;
+    ULONG NoChange : 1;
+    ULONG VadType : 3;
+    ULONG Protection : 5;
+    ULONG PreferredNode : 7;
+    ULONG PageSize : 2;
+    ULONG PrivateMemoryAlwaysSet : 1;
+    ULONG WriteWatch : 1;
+    ULONG FixedLargePageSize : 1;
+    ULONG ZeroFillPagesOptional : 1;
+    ULONG Graphics : 1;
+    ULONG Enclave : 1;
+    ULONG ShadowStack : 1;
+    ULONG PhysicalMemoryPfnsReferenced : 1;
+} MM_PRIVATE_VAD_FLAGS, *PMM_PRIVATE_VAD_FLAGS;
+
+typedef struct _MM_GRAPHICS_VAD_FLAGS
+{
+    ULONG Lock : 1;
+    ULONG LockContended : 1;
+    ULONG DeleteInProgress : 1;
+    ULONG NoChange : 1;
+    ULONG VadType : 3;
+    ULONG Protection : 5;
+    ULONG PreferredNode : 7;
+    ULONG PageSize : 2;
+    ULONG PrivateMemoryAlwaysSet : 1;
+    ULONG WriteWatch : 1;
+    ULONG FixedLargePageSize : 1;
+    ULONG ZeroFillPagesOptional : 1;
+    ULONG GraphicsAlwaysSet : 1;
+    ULONG GraphicsUseCoherentBus : 1;
+    ULONG GraphicsNoCache : 1;
+    ULONG GraphicsPageProtection : 3;
+} MM_GRAPHICS_VAD_FLAGS, *PMM_GRAPHICS_VAD_FLAGS;
+
+typedef struct _MM_SHARED_VAD_FLAGS
+{
+    ULONG Lock : 1;
+    ULONG LockContended : 1;
+    ULONG DeleteInProgress : 1;
+    ULONG NoChange : 1;
+    ULONG VadType : 3;
+    ULONG Protection : 5;
+    ULONG PreferredNode : 7;
+    ULONG PageSize : 2;
+    ULONG PrivateMemoryAlwaysClear : 1;
+    ULONG PrivateFixup : 1;
+    ULONG HotPatchState : 2;
+} MM_SHARED_VAD_FLAGS, *PMM_SHARED_VAD_FLAGS;
+
+typedef struct _MMVAD_FLAGS1
+{
+    ULONG CommitCharge : 31;
+    ULONG MemCommit : 1;
+}MMVAD_FLAGS1, *PMMVAD_FLAGS1;
+
+typedef struct _MMVAD_SHORT
+{
+    union
+    {
+        struct
+        {
+            struct _MMVAD_SHORT* NextVad;
+            PVOID ExtraCreateInfo;
+        };
+        RTL_BALANCED_NODE VadNode;
+    };
+    ULONG StartingVpn;
+    ULONG EndingVpn;
+#ifdef _WIN64
+    UCHAR StartingVpnHigh;
+    UCHAR EndingVpnHigh;
+    UCHAR CommitChargeHigh;
+    union
+    {
+        UCHAR SpareNT64VadUChar;
+        struct // LA57
+        {
+            UCHAR EndingVpnHigher : 4;
+            UCHAR CommitChargeHigher : 4;
+        };
+    };
+#endif
+    LONG ReferenceCount;
+    EX_PUSH_LOCK PushLock;
+    union
+    {
+        ULONG LongFlags;
+        MMVAD_FLAGS VadFlags;
+        MM_PRIVATE_VAD_FLAGS PrivateVadFlags;
+        MM_GRAPHICS_VAD_FLAGS GraphicsVadFlags;
+        MM_SHARED_VAD_FLAGS SharedVadFlags;
+        volatile ULONG VolatileVadLong;
+    } u;
+    union
+    {
+        ULONG LongFlags1;
+        MMVAD_FLAGS1 VadFlags1;
+    } u1;
+#ifdef _WIN64
+    union
+    {
+        ULONG_PTR EventListULongPtr;
+        UCHAR StartingVpnHigher : 4; // LA57
+    } u5;
+#else
+    PVOID EventList; // PMI_VAD_EVENT_BLOCK
+#endif
+} MMVAD_SHORT, *PMMVAD_SHORT;
+
+FORCEINLINE
+PVOID
+MiGetVadShortStartAddress(
+    _In_ PMMVAD_SHORT Vad
+    )
+{
+#ifdef _WIN64
+    ULONG_PTR higher = Vad->u5.StartingVpnHigher;
+    ULONG_PTR high = Vad->StartingVpnHigh;
+    ULONG_PTR low = Vad->StartingVpn;
+    return (PVOID)((low | ((high | (higher << 8)) << 32)) << PAGE_SHIFT);
+#else
+    return (PVOID)((ULONG_PTR)Vad->StartingVpn << PAGE_SHIFT);
+#endif
+}
+
+FORCEINLINE
+PVOID
+MiGetVadShortEndAddress(
+    _In_ PMMVAD_SHORT Vad
+    )
+{
+#ifdef _WIN64
+    ULONG_PTR higher = Vad->EndingVpnHigher;
+    ULONG_PTR high = Vad->EndingVpnHigh;
+    ULONG_PTR low = Vad->EndingVpn;
+    return (PVOID)(((low + 1) | ((high | (higher << 8)) << 32)) << PAGE_SHIFT);
+#else
+    return (PVOID)(((ULONG_PTR)Vad->StartingVpn + 1) << PAGE_SHIFT);
+#endif
+}
+
+typedef struct _MMVAD_FLAGS2
+{
+    ULONG FileOffset : 24;
+    ULONG Large : 1;
+    ULONG TrimBehind : 1;
+    ULONG Inherit : 1;
+    ULONG NoValidationNeeded : 1;
+    ULONG PrivateDemandZero : 1;
+    ULONG Spare : 3;
+} MMVAD_FLAGS2, *PMMVAD_FLAGS2;
+
+typedef struct _MI_VAD_SEQUENTIAL_INFO
+{
+    ULONGLONG Length : 12;
+    ULONGLONG Vpn : 52;
+} MI_VAD_SEQUENTIAL_INFO, *PMI_VAD_SEQUENTIAL_INFO;
+
+typedef struct _MMEXTEND_INFO
+{
+    ULONGLONG CommittedSize;
+    ULONG ReferenceCount;
+} MMEXTEND_INFO, *PMMEXTEND_INFO; 
+
+typedef struct _MMPTE_HIGHLOW
+{
+    ULONG LowPart;
+    ULONG HighPart;
+} MMPTE_HIGHLOW, *PMMPTE_HIGHLOW; 
+
+typedef struct _MMPTE_HARDWARE
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG Dirty1 : 1;
+    ULONGLONG Owner : 1;
+    ULONGLONG WriteThrough : 1;
+    ULONGLONG CacheDisable : 1;
+    ULONGLONG Accessed : 1;
+    ULONGLONG Dirty : 1;
+    ULONGLONG LargePage : 1;
+    ULONGLONG Global : 1;
+    ULONGLONG CopyOnWrite : 1;
+    ULONGLONG Unused : 1;
+    ULONGLONG Write : 1;
+    ULONGLONG PageFrameNumber : 40;
+    ULONGLONG ReservedForSoftware : 4;
+    ULONGLONG WsleAge : 4;
+    ULONGLONG WsleProtection : 3;
+    ULONGLONG NoExecute : 1;
+} MMPTE_HARDWARE, *PMMPTE_HARDWARE;
+
+typedef struct _MMPTE_PROTOTYPE
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG DemandFillProto : 1;
+    ULONGLONG HiberVerifyConverted : 1;
+    ULONGLONG ReadOnly : 1;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Combined : 1;
+    ULONGLONG Unused1 : 4;
+    LONGLONG ProtoAddress : 48;
+} MMPTE_PROTOTYPE, * PMMPTE_PROTOTYPE;
+
+typedef struct _MMPTE_SOFTWARE
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG PageFileReserved : 1;
+    ULONGLONG PageFileAllocated : 1;
+    ULONGLONG ColdPage : 1;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Transition : 1;
+    ULONGLONG PageFileLow : 4;
+    ULONGLONG UsedPageTableEntries : 10;
+    ULONGLONG ShadowStack : 1;
+    ULONGLONG OnStandbyLookaside : 1;
+    ULONGLONG Unused : 4;
+    ULONGLONG PageFileHigh : 32;
+} MMPTE_SOFTWARE, * PMMPTE_SOFTWARE;
+
+typedef struct _MMPTE_TIMESTAMP
+{
+    ULONGLONG MustBeZero : 1;
+    ULONGLONG Unused : 3;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Transition : 1;
+    ULONGLONG PageFileLow : 4;
+    ULONGLONG Reserved : 16;
+    ULONGLONG GlobalTimeStamp : 32;
+} MMPTE_TIMESTAMP, *PMMPTE_TIMESTAMP;
+
+typedef struct _MMPTE_TRANSITION
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG Write : 1;
+    ULONGLONG OnStandbyLookaside : 1;
+    ULONGLONG IoTracker : 1;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Transition : 1;
+    ULONGLONG PageFrameNumber : 40;
+    ULONGLONG Unused : 12;
+} MMPTE_TRANSITION, *PMMPTE_TRANSITION;
+
+typedef struct _MMPTE_SUBSECTION
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG Unused0 : 2;
+    ULONGLONG OnStandbyLookaside : 1;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG ColdPage : 1;
+    ULONGLONG Unused2 : 3;
+    ULONGLONG ExecutePrivilege : 1;
+    LONGLONG SubsectionAddress : 48;
+} MMPTE_SUBSECTION, * PMMPTE_SUBSECTION;
+
+typedef struct _MMPTE_LIST
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG OneEntry : 1;
+    ULONGLONG filler0 : 2;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Transition : 1;
+    ULONGLONG filler1 : 16;
+    ULONGLONG NextEntry : 36;
+} MMPTE_LIST, *PMMPTE_LIST;
+
+typedef struct _MMPTE
+{
+    union
+    {
+        ULONGLONG Long;
+        volatile ULONGLONG VolatileLong;
+#ifndef _WIN64
+        MMPTE_HIGHLOW HighLow;
+#endif
+        MMPTE_HARDWARE Hard;
+        MMPTE_PROTOTYPE Proto;
+        MMPTE_SOFTWARE Soft;
+        MMPTE_TIMESTAMP TimeStamp;
+        MMPTE_TRANSITION Trans;
+        MMPTE_SUBSECTION Subsect;
+        MMPTE_LIST List;
+    } u;
+} MMPTE, *PMMPTE;
+
+typedef struct _MMVAD
+{
+    struct _MMVAD_SHORT Core;
+    union
+    {
+        ULONG LongFlags2;
+        MMVAD_FLAGS2 VadFlags2;
+    } u2;
+    PVOID Subsection; // PSUBSECTION 
+    PMMPTE FirstPrototypePte;
+    PMMPTE LastContiguousPte;
+    LIST_ENTRY ViewLinks;
+    union
+    {
+        PEPROCESS VadsProcess;
+        UCHAR ViewMapType : 3; // VIEW_MAP_TYPE_*
+    };
+    union
+    {
+        MI_VAD_SEQUENTIAL_INFO SequentialVa;
+        PMMEXTEND_INFO ExtendedInfo;
+    } u4;
+    PFILE_OBJECT FileObject; // since WIN10
+} MMVAD, *PMMVAD; 
+
+FORCEINLINE
+PVOID
+MiGetVadStartAddress(
+    _In_ PMMVAD Vad
+    )
+{
+    return MiGetVadShortStartAddress(&Vad->Core);
+}
+
+FORCEINLINE
+PVOID
+MiGetVadEndAddress(
+    _In_ PMMVAD Vad
+    )
+{
+    return MiGetVadShortEndAddress(&Vad->Core);
+}
 
 // SE
 

@@ -15,6 +15,166 @@
 
 #include <trace.h>
 
+/**
+ * \brief Queries information on mappings for a given section object.
+ * 
+ * \param[in] SectionObject The section object to query the info of.
+ * \param[out] SectionInformation Populated with the information.
+ * \param[in] SectionInformationLength Length of the section information.
+ * \param[out] ReturnLength Set to the number of bytes written or the requires
+ * number of bytes if the input length is insufficient.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpQuerySectionMappings(
+    _In_ PVOID SectionObject,
+    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _In_ ULONG SectionInformationLength,
+    _Out_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    PVOID controlArea;
+    PLIST_ENTRY listHead;
+    PKPH_SECTION_MAPPINGS_INFORMATION info;
+    PEX_SPIN_LOCK lock;
+    KIRQL oldIrql;
+
+    lock = NULL;
+    oldIrql = 0;
+    returnLength = 0;
+
+    if ((KphDynMmSectionControlArea == ULONG_MAX) ||
+        (KphDynMmControlAreaListHead == ULONG_MAX) ||
+        (KphDynMmControlAreaLock == ULONG_MAX))
+    {
+        status = STATUS_NOINTERFACE;
+        goto Exit;
+    }
+
+    controlArea = *(PVOID*)Add2Ptr(SectionObject, KphDynMmSectionControlArea);
+    if ((ULONG_PTR)controlArea & 3)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, 
+                      GENERAL, 
+                      "Section remote mappings not supported.");
+
+        status = STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+
+    controlArea = (PVOID)((ULONG_PTR)controlArea & ~3);
+    if (!controlArea)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, 
+                      GENERAL, 
+                      "Section control area is null.");
+
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    lock = Add2Ptr(controlArea, KphDynMmControlAreaLock);
+    oldIrql = ExAcquireSpinLockShared(lock);
+
+    listHead = Add2Ptr(controlArea, KphDynMmControlAreaListHead);
+
+    //
+    // Links are shared in a union with AweContext pointer. Ensure that both
+    // links look valid.
+    //
+    if (!listHead->Flink || !listHead->Blink ||
+        (listHead->Flink->Blink != listHead) ||
+        (listHead->Blink->Flink != listHead))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Section unexpected control area links.");
+
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    returnLength = FIELD_OFFSET(KPH_SECTION_MAPPINGS_INFORMATION, Mappings);
+
+    for (PLIST_ENTRY link = listHead->Flink;
+         link != listHead;
+         link = link->Flink)
+    {
+        status = RtlULongAdd(returnLength,
+                             sizeof(KPH_SECTION_MAP_ENTRY),
+                             &returnLength);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "RtlULongAdd failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+    }
+
+    if (!SectionInformation || (SectionInformationLength < returnLength))
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto Exit;
+    }
+
+    info = SectionInformation;
+    __try
+    {
+        info->NumberOfMappings = 0;
+
+        for (PLIST_ENTRY link = listHead->Flink;
+             link != listHead;
+             link = link->Flink)
+        {
+            PMMVAD vad;
+            PKPH_SECTION_MAP_ENTRY entry;
+
+            vad = CONTAINING_RECORD(link, MMVAD, ViewLinks);
+            entry = &info->Mappings[info->NumberOfMappings++];
+
+            entry->ViewMapType = vad->ViewMapType;
+            entry->ProcessId = NULL;
+            if (vad->ViewMapType == VIEW_MAP_TYPE_PROCESS)
+            {
+                PEPROCESS process;
+
+                process = (PEPROCESS)((ULONG_PTR)vad->VadsProcess & ~VIEW_MAP_TYPE_PROCESS);
+                if (process)
+                {
+                    entry->ProcessId = PsGetProcessId(process);
+                }
+            }
+            entry->StartVa = MiGetVadStartAddress(vad);
+            entry->EndVa = MiGetVadEndAddress(vad);
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    *ReturnLength = returnLength;
+
+    if (lock)
+    {
+        ExReleaseSpinLockShared(lock, oldIrql);
+    }
+
+    return status;
+}
+
 PAGED_FILE();
 
 #define KPH_STACK_COPY_BYTES 0x200
@@ -343,6 +503,8 @@ NTSTATUS KphCopyVirtualMemory(
  * \param[out] NumberOfBytesRead A variable which receives the number of bytes
  * copied to the buffer.
  * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -522,6 +684,123 @@ Exit:
         {
             *NumberOfBytesRead = numberOfBytesRead;
         }
+    }
+
+    return status;
+}
+
+/**
+ * \brief Queries information about a section.
+ *
+ * \param[in] SectionHandle Handle to the query to query information of.
+ * \param[in] SectionInformationClass Classification of information to query.
+ * \param[out] SectionInformation Populated with the requested information.
+ * \param[in] SectionInformationLength Length of the information buffer.
+ * \param[out] ReturnLength Set to the number of bytes written or the requires
+ * number of bytes if the input length is insufficient.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQuerySection(
+    _In_ HANDLE SectionHandle,
+    _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _In_ ULONG SectionInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PVOID sectionObject;
+    ULONG returnLength;
+
+    PAGED_PASSIVE();
+
+    sectionObject = NULL;
+    returnLength = 0;
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            if (SectionInformation)
+            {
+                ProbeForWrite(SectionInformation, SectionInformationLength, 1);
+            }
+
+            if (ReturnLength)
+            {
+                ProbeOutputType(ReturnLength, ULONG);
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+    status = ObReferenceObjectByHandle(SectionHandle,
+                                       0,
+                                       *MmSectionObjectType,
+                                       KernelMode,
+                                       &sectionObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        sectionObject = NULL;
+        goto Exit;
+    }
+
+    switch (SectionInformationClass)
+    {
+        case KphSectionMappingsInformation:
+        {
+            status = KphpQuerySectionMappings(sectionObject,
+                                              SectionInformation,
+                                              SectionInformationLength,
+                                              &returnLength);
+            break;
+        }
+        default:
+        {
+            status = STATUS_INVALID_INFO_CLASS;
+            break;
+        }
+    }
+
+Exit:
+
+    if (ReturnLength)
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *ReturnLength = returnLength;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                NOTHING;
+            }
+        }
+        else
+        {
+            *ReturnLength = returnLength;
+        }
+    }
+
+    if (sectionObject)
+    {
+        ObDereferenceObject(sectionObject);
     }
 
     return status;
