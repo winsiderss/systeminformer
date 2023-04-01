@@ -3757,6 +3757,125 @@ NTSTATUS PhGetTokenIntegrityLevel(
     return status;
 }
 
+NTSTATUS PhGetProcessMandatoryPolicy(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PACCESS_MASK Mask
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_MANDATORY_LABEL_ACE currentAce;
+    PSECURITY_DESCRIPTOR currentSecurityDescriptor;
+    BOOLEAN currentSaclPresent;
+    BOOLEAN currentSaclDefaulted;
+    PACL currentSacl;
+
+    status = PhGetObjectSecurity(
+        ProcessHandle,
+        LABEL_SECURITY_INFORMATION, 
+        &currentSecurityDescriptor
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = RtlGetSaclSecurityDescriptor(
+        currentSecurityDescriptor,
+        &currentSaclPresent,
+        &currentSacl,
+        &currentSaclDefaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = STATUS_UNSUCCESSFUL;
+
+    if (!(currentSaclPresent && currentSacl))
+        goto CleanupExit;
+
+    for (USHORT i = 0; i < currentSacl->AceCount; i++)
+    {
+        status = RtlGetAce(currentSacl, i, &currentAce);
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        if (currentAce->Header.AceType == SYSTEM_MANDATORY_LABEL_ACE_TYPE)
+        {
+            *Mask = currentAce->Mask;
+            status = STATUS_SUCCESS;
+            break;
+        }
+    }
+
+CleanupExit:
+    PhFree(currentSecurityDescriptor);
+
+    return status;
+}
+
+NTSTATUS PhSetProcessMandatoryPolicy(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK Mask
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_MANDATORY_LABEL_ACE currentAce;
+    PSECURITY_DESCRIPTOR currentSecurityDescriptor;
+    BOOLEAN currentSaclPresent;
+    BOOLEAN currentSaclDefaulted;
+    PACL currentSacl;
+
+    status = PhGetObjectSecurity(
+        ProcessHandle,
+        LABEL_SECURITY_INFORMATION, 
+        &currentSecurityDescriptor
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = RtlGetSaclSecurityDescriptor(
+        currentSecurityDescriptor,
+        &currentSaclPresent,
+        &currentSacl,
+        &currentSaclDefaulted
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = STATUS_UNSUCCESSFUL;
+
+    if (!(currentSaclPresent && currentSacl))
+        goto CleanupExit;
+
+    for (USHORT i = 0; i < currentSacl->AceCount; i++)
+    {
+        status = RtlGetAce(currentSacl, i, &currentAce);
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        if (currentAce->Header.AceType == SYSTEM_MANDATORY_LABEL_ACE_TYPE)
+        {
+            currentAce->Mask = Mask;
+
+            status = PhSetObjectSecurity(
+                ProcessHandle, 
+                LABEL_SECURITY_INFORMATION, 
+                currentSecurityDescriptor
+                );
+            break;
+        }
+    }
+
+CleanupExit:
+    PhFree(currentSecurityDescriptor);
+
+    return status;
+}
+
 NTSTATUS PhGetTokenProcessTrustLevelRID(
     _In_ HANDLE TokenHandle,
     _Out_opt_ PULONG ProtectionType,
