@@ -47,6 +47,9 @@ uf lxcore!LxpSyscall_GETPID
 uf lxcore!LxpSyscall_GETPID
 uf lxcore!LxpSyscall_GETTID
 uf lxcore!LxpSyscall_GETTID
+dt nt!_SECTION u1.ControlArea
+dt nt!_CONTROL_AREA ListHead 
+dt nt!_CONTROL_AREA ControlAreaLock
 
 -->
 <dyn>
@@ -92,6 +95,9 @@ uf lxcore!LxpSyscall_GETTID
         <field value="0x10"   name="LxPicoProcInfoPID"/>
         <field value="0x10"   name="LxPicoThrdInfo"/>
         <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <data name="10.0.19042 - 10.0.22621">
         <field value="10"     name="MajorVersion"/>
@@ -135,6 +141,9 @@ uf lxcore!LxpSyscall_GETTID
         <field value="0x10"   name="LxPicoProcInfoPID"/>
         <field value="0x10"   name="LxPicoThrdInfo"/>
         <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <data name="10.0.19041.264 - 10.0.19042">
         <field value="10"     name="MajorVersion"/>
@@ -178,6 +187,9 @@ uf lxcore!LxpSyscall_GETTID
         <field value="0x10"   name="LxPicoProcInfoPID"/>
         <field value="0x10"   name="LxPicoThrdInfo"/>
         <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <data name="10.0.18363.693 - 10.0.19041.264">
         <field value="10"     name="MajorVersion"/>
@@ -221,6 +233,9 @@ uf lxcore!LxpSyscall_GETTID
         <field value="0x10"   name="LxPicoProcInfoPID"/>
         <field value="0x10"   name="LxPicoThrdInfo"/>
         <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <data name="10.0.14393.0 - 10.0.18363.693">
         <field value="10"     name="MajorVersion"/>
@@ -258,6 +273,9 @@ uf lxcore!LxpSyscall_GETTID
         <field value="0x5c0"  name="KtReadTransferCount"/>
         <field value="0x5c8"  name="KtWriteTransferCount"/>
         <field value="0x5d0"  name="KtOtherTransferCount"/>
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <data name="10.0.10240 - 10.0.14393.0">
         <field value="10"     name="MajorVersion"/>
@@ -295,5 +313,8 @@ uf lxcore!LxpSyscall_GETTID
         <field value="0x5b8"  name="KtReadTransferCount"/>
         <field value="0x5c0"  name="KtWriteTransferCount"/>
         <field value="0x5c8"  name="KtOtherTransferCount"/>
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
     </data>
 </dyn>

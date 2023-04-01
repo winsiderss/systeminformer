@@ -242,29 +242,6 @@ VOID PhShowKsiMessage(
     va_end(argptr);
 }
 
-static VOID NTAPI KsiCommsCallback(
-    _In_ ULONG_PTR ReplyToken,
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    PPH_FREE_LIST freelist;
-    PKPH_MESSAGE msg;
-
-    if (Message->Header.MessageId != KphMsgProcessCreate)
-    {
-        return;
-    }
-
-    freelist = KphGetMessageFreeList();
-
-    msg = PhAllocateFromFreeList(freelist);
-    KphMsgInit(msg, KphMsgProcessCreate);
-    msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
-    KphCommsReplyMessage(ReplyToken, msg);
-
-    PhFreeToFreeList(freelist, msg);
-}
-
 NTSTATUS PhRestartSelf(
     _In_ PPH_STRINGREF AdditionalCommandLine
     )
@@ -388,7 +365,7 @@ NTSTATUS KsiInitializeCallbackThread(
         config.EnableNativeLoad = KsiEnableLoadNative;
         config.EnableFilterLoad = KsiEnableLoadFilter;
         config.DisableImageLoadProtection = disableImageLoadProtection;
-        config.Callback = KsiCommsCallback;
+        config.Callback = NULL;
         status = KphConnect(&config);
 
         if (NT_SUCCESS(status))

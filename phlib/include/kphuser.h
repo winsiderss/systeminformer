@@ -56,6 +56,13 @@ typedef struct _KPH_CONFIG_PARAMETERS
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphInitialize(
+    VOID
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphConnect(
     _In_ PKPH_CONFIG_PARAMETERS Options
     );
@@ -234,6 +241,15 @@ KphQueryInformationObject(
     _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
     _In_ ULONG ObjectInformationLength,
     _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryObjectSectionMappingsInfo(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info 
     );
 
 PHLIBAPI
@@ -440,6 +456,25 @@ KphQueryInformationThread(
     _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
     _In_ ULONG ThreadInformationLength,
     _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQuerySection(
+    _In_ HANDLE SectionHandle,
+    _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _In_ ULONG SectionInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQuerySectionMappingsInfo(
+    _In_ HANDLE SectionHandle,
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info 
     );
 
 EXTERN_C_END

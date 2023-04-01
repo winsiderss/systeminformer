@@ -287,6 +287,17 @@ typedef struct _KPHM_QUERY_INFORMATION_THREAD
 
 } KPHM_QUERY_INFORMATION_THREAD, *PKPHM_QUERY_INFORMATION_THREAD;
 
+typedef struct _KPHM_QUERY_SECTION
+{
+    NTSTATUS Status;
+    HANDLE SectionHandle;
+    KPH_SECTION_INFORMATION_CLASS SectionInformationClass;
+    PVOID SectionInformation;
+    ULONG SectionInformationLength;
+    PULONG ReturnLength;
+
+} KPHM_QUERY_SECTION, *PKPHM_QUERY_SECTION;
+
 //
 // KPH -> PH
 //

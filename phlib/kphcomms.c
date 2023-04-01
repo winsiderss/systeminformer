@@ -510,6 +510,39 @@ NTSTATUS KphpFilterConnectCommunicationPort(
 }
 
 /**
+ * \brief No-operation communications callback handling only the minimum
+ *  necessary. Used when no callback is provided when connecting.
+ *
+ * \details Synchronous messages expecting a reply must always be handled, this
+ * no-operation default callback will handle them as necessary.
+ *
+ * \param[in] ReplyToken - Token used to reply, when possible.
+ * \param[in] Message - Message from KPH to handle.
+ */
+VOID KphpCommsNoop(
+    _In_ ULONG_PTR ReplyToken,
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    PPH_FREE_LIST freelist;
+    PKPH_MESSAGE msg;
+
+    if (Message->Header.MessageId != KphMsgProcessCreate)
+    {
+        return;
+    }
+
+    freelist = KphGetMessageFreeList();
+
+    msg = PhAllocateFromFreeList(freelist);
+    KphMsgInit(msg, KphMsgProcessCreate);
+    msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
+    KphCommsReplyMessage(ReplyToken, msg);
+
+    PhFreeToFreeList(freelist, msg);
+}
+
+/**
  * \brief I/O thread pool callback for filter port.
  *
  * \param[in,out] Instance Unused
@@ -558,6 +591,10 @@ VOID WINAPI KphpCommsIoCallback(
     {
         KphpCommsRegisteredCallback((ULONG_PTR)&msg->MessageHeader,
                                     &msg->Message);
+    }
+    else
+    {
+        KphpCommsNoop((ULONG_PTR)&msg->MessageHeader, &msg->Message);
     }
 
 Exit:

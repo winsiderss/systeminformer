@@ -11,7 +11,7 @@
 
 #include <kphlibbase.h>
 
-#define KPH_DYN_CONFIGURATION_VERSION 9
+#define KPH_DYN_CONFIGURATION_VERSION 10
 
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
@@ -65,6 +65,9 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoThrdInfo;               // uf lxcore!LxpSyscall_GETTID
     USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
+    USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
+    USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead 
+    USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
 
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 

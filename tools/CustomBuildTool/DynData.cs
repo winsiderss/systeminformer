@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 9;
+        private const UInt32 Version = 10;
 
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
@@ -83,6 +83,9 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoThrdInfo;               // uf lxcore!LxpSyscall_GETTID
     USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
+    USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
+    USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead 
+    USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
 
 }} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
@@ -140,6 +143,9 @@ typedef struct _KPH_DYNDATA
             public UInt16 LxPicoProcInfoPID;
             public UInt16 LxPicoThrdInfo;
             public UInt16 LxPicoThrdInfoTID;
+            public UInt16 MmSectionControlArea;
+            public UInt16 MmControlAreaListHead;
+            public UInt16 MmControlAreaLock;
 
             public DynConfig()
             {
@@ -184,6 +190,9 @@ typedef struct _KPH_DYNDATA
                 LxPicoProcInfoPID = ushort.MaxValue;
                 LxPicoThrdInfo = ushort.MaxValue;
                 LxPicoThrdInfoTID = ushort.MaxValue;
+                MmSectionControlArea = ushort.MaxValue;
+                MmControlAreaListHead = ushort.MaxValue;
+                MmControlAreaLock = ushort.MaxValue;
             }
         }
 

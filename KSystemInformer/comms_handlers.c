@@ -38,6 +38,7 @@ KPHM_DEFINE_HANDLER(KphpCommsDuplicateObject);
 KPHM_DEFINE_HANDLER(KphpCommsQueryPerformanceCounter);
 KPHM_DEFINE_HANDLER(KphpCommsCreateFile);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationThread);
+KPHM_DEFINE_HANDLER(KphpCommsQuerySection);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -81,6 +82,7 @@ KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgQueryPerformanceCounter,     KphpCommsQueryPerformanceCounter,     KphpCommsRequireLow },
 { KphMsgCreateFile,                  KphpCommsCreateFile,                  KphpCommsCreateFileRequires },
 { KphMsgQueryInformationThread,      KphpCommsQueryInformationThread,      KphpCommsRequireMedium },
+{ KphMsgQuerySection,                KphpCommsQuerySection,                KphpCommsRequireMedium },
 };
 
 ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
@@ -938,6 +940,31 @@ NTSTATUS KSIAPI KphpCommsQueryInformationThread(
                                             msg->ThreadInformationLength,
                                             msg->ReturnLength,
                                             UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsQuerySection(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_QUERY_SECTION msg;
+
+    PAGED_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQuerySection);
+
+    msg = &Message->User.QuerySection;
+
+    msg->Status = KphQuerySection(msg->SectionHandle,
+                                  msg->SectionInformationClass,
+                                  msg->SectionInformation,
+                                  msg->SectionInformationLength,
+                                  msg->ReturnLength,
+                                  UserMode);
 
     return STATUS_SUCCESS;
 }

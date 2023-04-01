@@ -575,6 +575,11 @@ HPROPSHEETPAGE PhCreateTimerPage(
     _In_opt_ PVOID Context
     );
 
+HPROPSHEETPAGE PhCreateMappingsPage(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE SectionHandle
+    );
+
 // options
 
 VOID PhShowOptionsDialog(

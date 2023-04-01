@@ -662,6 +662,18 @@ VOID PvAddTreeViewSections(
         NULL
         );
 
+    // Mappings page
+    if (KphLevel() >= KphLevelMed)
+    {
+        PvCreateTabSection(
+            L"Mappings",
+            PhInstanceHandle,
+            MAKEINTRESOURCE(IDD_PERELOCATIONS),
+            PvpMappingsDlgProc,
+            NULL
+            );
+    }
+
     if (PhGetIntegerSetting(L"MainWindowPageRestoreEnabled"))
     {
         PPH_STRING startPage;

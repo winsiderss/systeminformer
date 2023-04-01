@@ -1740,36 +1740,110 @@ NTSTATUS KphQueryInformationObject(
             break;
         }
         case KphObjectSectionBasicInformation:
+        case KphObjectSectionImageInformation:
+        case KphObjectSectionRelocationInformation:
+        case KphObjectSectionOriginalBaseInformation:
+        case KphObjectSectionInternalImageInformation:
+        case KphObjectSectionMappingsInformation:
         {
-            SECTION_BASIC_INFORMATION sectionInfo;
-
-            if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(sectionInfo)))
+            if (ObjectInformation)
             {
-                status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(sectionInfo);
-                goto Exit;
+                if (ObjectInformationLength <= ARRAYSIZE(stackBuffer))
+                {
+                    buffer = stackBuffer;
+                }
+                else
+                {
+                    buffer = KphAllocatePaged(ObjectInformationLength,
+                                              KPH_TAG_OBJECT_QUERY);
+                    if (!buffer)
+                    {
+                        status = STATUS_INSUFFICIENT_RESOURCES;
+                        goto Exit;
+                    }
+                }
+            }
+            else
+            {
+                NT_ASSERT(!buffer);
+                ObjectInformationLength = 0;
             }
 
-            KeStackAttachProcess(process, &apcState);
-            status = ZwQuerySection(Handle,
-                                    SectionBasicInformation,
-                                    &sectionInfo,
-                                    sizeof(sectionInfo),
-                                    NULL);
-            KeUnstackDetachProcess(&apcState);
-            if (NT_SUCCESS(status))
+            if (ObjectInformationClass == KphObjectSectionMappingsInformation)
             {
-                __try
+                KeStackAttachProcess(process, &apcState);
+                status = KphQuerySection(Handle,
+                                         KphSectionMappingsInformation,
+                                         buffer,
+                                         ObjectInformationLength,
+                                         &returnLength,
+                                         KernelMode);
+                KeUnstackDetachProcess(&apcState);
+                if (NT_SUCCESS(status))
                 {
-                    RtlCopyMemory(ObjectInformation,
-                                  &sectionInfo,
-                                  sizeof(sectionInfo));
-                    returnLength = sizeof(sectionInfo);
+                    __try
+                    {
+                        RtlCopyMemory(ObjectInformation, buffer, returnLength);
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
                 }
-                __except (EXCEPTION_EXECUTE_HANDLER)
+            }
+            else
+            {
+                SIZE_T length;
+                SECTION_INFORMATION_CLASS sectionInfoClass;
+
+                if (ObjectInformationClass == KphObjectSectionBasicInformation)
                 {
-                    status = GetExceptionCode();
+                    sectionInfoClass = SectionBasicInformation;
+                }
+                else if (ObjectInformationClass == KphObjectSectionImageInformation)
+                {
+                    sectionInfoClass = SectionImageInformation;
+                }
+                else if (ObjectInformationClass == KphObjectSectionRelocationInformation)
+                {
+                    sectionInfoClass = SectionRelocationInformation;
+                }
+                else if (ObjectInformationClass == KphObjectSectionOriginalBaseInformation)
+                {
+                    sectionInfoClass = SectionOriginalBaseInformation;
+                }
+                else
+                {
+                    NT_ASSERT(ObjectInformationClass == KphObjectSectionInternalImageInformation);
+                    sectionInfoClass = SectionInternalImageInformation;
+                }
+
+                length = 0;
+                KeStackAttachProcess(process, &apcState);
+                status = ZwQuerySection(Handle,
+                                        sectionInfoClass,
+                                        buffer,
+                                        ObjectInformationLength,
+                                        &length);
+                KeUnstackDetachProcess(&apcState);
+                if (NT_SUCCESS(status))
+                {
+                    if (length > ULONG_MAX)
+                    {
+                        status = STATUS_INTEGER_OVERFLOW;
+                        returnLength = 0;
+                        goto Exit;
+                    }
+
+                    __try
+                    {
+                        RtlCopyMemory(ObjectInformation, buffer, length);
+                        returnLength = (ULONG)length;
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
                 }
             }
 

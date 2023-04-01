@@ -1395,6 +1395,14 @@ BEGIN
     EDITTEXT        IDC_SEARCH,7,218,135,14,ES_AUTOHSCROLL
 END
 
+IDD_OBJMAPPINGS DIALOGEX 0, 0, 260, 260
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Mappings"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,246,246
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1971,6 +1979,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 232
     END
+
+    IDD_OBJMAPPINGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 253
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 253
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -2047,6 +2063,17 @@ IDB_SEARCH_INACTIVE_SMALL PNG                     "resources\\inactive_search_sm
 //
 
 IDR_RT_MANIFEST         RT_MANIFEST             "SystemInformer.manifest"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OBJMAPPINGS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////

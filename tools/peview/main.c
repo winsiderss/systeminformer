@@ -30,6 +30,28 @@ BOOLEAN NTAPI PvpCommandLineCallback(
     return TRUE;
 }
 
+NTSTATUS PvpConnectKph(
+    VOID
+    )
+{
+    NTSTATUS status;
+    PPH_STRING portName = NULL;
+
+    status = KphInitialize();
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // TODO: get the current configured port name from the main binary, settings aren't shared.
+    //if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KphPortName")))
+        PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
+
+    status = KphCommsStart(&portName->sr, NULL);
+
+    PhDereferenceObject(portName);
+
+    return status;
+}
+
 INT WINAPI wWinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -114,6 +136,7 @@ INT WINAPI wWinMain(
     PvPropInitialization();
     PhTreeNewInitialization();
     PvInitializeSuperclassControls();
+    PvpConnectKph();
 
     if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
         return 1;

@@ -262,6 +262,13 @@ NTSTATUS PhpShowHandlePropertiesThread(
             NULL
             );
     }
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"Section", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateMappingsPage(
+            handleContext->ProcessId,
+            handleContext->HandleItem->Handle
+            );
+    }
 
     // Security page
     pages[propSheetHeader.nPages++] = PhCreateSecurityPage(

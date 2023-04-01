@@ -1082,6 +1082,50 @@ NTSTATUS KphQueryInformationObject(
     return status;
 }
 
+NTSTATUS KphQueryObjectSectionMappingsInfo(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = MAX_PATH;
+
+    *Info = NULL;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = KphQueryInformationObject(ProcessHandle,
+                                           Handle,
+                                           KphObjectSectionMappingsInformation,
+                                           buffer,
+                                           bufferSize,
+                                           &bufferSize);
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Info = buffer;
+
+    return status;
+}
+
 NTSTATUS KphSetInformationObject(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
@@ -1635,5 +1679,78 @@ NTSTATUS KphQueryInformationThread(
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQuerySection(
+    _In_ HANDLE SectionHandle,
+    _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _In_ ULONG SectionInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQuerySection);
+    msg->User.QuerySection.SectionHandle = SectionHandle;
+    msg->User.QuerySection.SectionInformationClass = SectionInformationClass;
+    msg->User.QuerySection.SectionInformation = SectionInformation;
+    msg->User.QuerySection.SectionInformationLength = SectionInformationLength;
+    msg->User.QuerySection.ReturnLength = ReturnLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.QuerySection.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQuerySectionMappingsInfo(
+    _In_ HANDLE SectionHandle,
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = MAX_PATH;
+
+    *Info = NULL;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = KphQuerySection(SectionHandle,
+                                 KphSectionMappingsInformation,
+                                 buffer,
+                                 bufferSize,
+                                 &bufferSize);
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Info = buffer;
+
     return status;
 }
