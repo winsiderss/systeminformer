@@ -977,6 +977,22 @@ PhGetTokenIntegrityLevel(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessMandatoryPolicy(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PACCESS_MASK Mask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessMandatoryPolicy(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK Mask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetTokenProcessTrustLevelRID(
     _In_ HANDLE TokenHandle,
     _Out_opt_ PULONG ProtectionType,
