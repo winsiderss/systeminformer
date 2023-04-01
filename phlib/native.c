@@ -12959,8 +12959,8 @@ NTSTATUS PhGetProcessArchitecture(
     _Out_ PUSHORT ProcessArchitecture
     )
 {
-    USHORT architecture;
     NTSTATUS status;
+    USHORT architecture = IMAGE_FILE_MACHINE_UNKNOWN;
     SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION output[6];
     ULONG returnLength;
 
@@ -13281,7 +13281,7 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     _Out_ PPS_SYSTEM_DLL_INIT_BLOCK* SystemDllInitBlock
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
     PVOID ldrInitBlockAddress;
     PPH_TARGET_LIBS runtime;
@@ -13758,7 +13758,7 @@ NTSTATUS PhGetThreadStackSize(
 
     if (NT_SUCCESS(status))
     {
-        MEMORY_BASIC_INFORMATION basicInfo;
+        MEMORY_BASIC_INFORMATION memoryBasicInformation;
         PVOID stackBaseAddress = NULL;
         PVOID stackLimitAddress = NULL;
 
@@ -13778,22 +13778,22 @@ NTSTATUS PhGetThreadStackSize(
         stackBaseAddress = ntTib.StackBase;
         stackLimitAddress = ntTib.StackLimit;
 #endif
-        memset(&basicInfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+        memset(&memoryBasicInformation, 0, sizeof(MEMORY_BASIC_INFORMATION));
 
         status = NtQueryVirtualMemory(
             ProcessHandle,
             stackLimitAddress,
             MemoryBasicInformation,
-            &basicInfo,
+            &memoryBasicInformation,
             sizeof(MEMORY_BASIC_INFORMATION),
             NULL
             );
 
         if (NT_SUCCESS(status))
         {
-            // TEB->DeallocationStack == basicInfo.AllocationBase
+            // TEB->DeallocationStack == memoryBasicInfo.AllocationBase
             *StackUsage = (ULONG_PTR)PTR_SUB_OFFSET(stackBaseAddress, stackLimitAddress);
-            *StackLimit = (ULONG_PTR)PTR_SUB_OFFSET(stackBaseAddress, basicInfo.AllocationBase);
+            *StackLimit = (ULONG_PTR)PTR_SUB_OFFSET(stackBaseAddress, memoryBasicInformation.AllocationBase);
         }
     }
 
