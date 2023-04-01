@@ -17,15 +17,14 @@
 #include <trace.h>
 
 PDRIVER_OBJECT KphDriverObject = NULL;
-KPH_INFORMER_SETTINGS KphInformerSettings;
+KPH_INFORMER_SETTINGS KphInformerSettings = { 0 };
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static BYTE KphpProtectedSection = 0;
+RTL_OSVERSIONINFOEXW KphOsVersionInfo = { 0 };
+USHORT KphOsRevision = 0;
 BOOLEAN KphIgnoreProtectionSuppression = FALSE;
 SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo = { 0 };
-RTL_OSVERSIONINFOEXW KphOsVersionInfo = { 0 };
-USHORT KphOsRevision = 0;
-KPH_OSVERSION KphOsVersion = KphWinUnknown;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
@@ -135,8 +134,6 @@ NTSTATUS DriverEntry(
     KphDriverObject = DriverObject;
     KphDriverObject->DriverUnload = DriverUnload;
 
-    RtlZeroMemory(&KphInformerSettings, sizeof(KphInformerSettings));
-
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
 
     KphOsVersionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
@@ -148,42 +145,6 @@ NTSTATUS DriverEntry(
                       "RtlGetVersion failed: %!STATUS!",
                       status);
 
-        goto Exit;
-    }
-
-    KphOsVersion = KphWinUnknown;
-
-    if (KphOsVersionInfo.dwMajorVersion == 6)
-    {
-        if (KphOsVersionInfo.dwMinorVersion == 1)
-        {
-            KphOsVersion = KphWin7;
-        }
-        else if (KphOsVersionInfo.dwMinorVersion == 2)
-        {
-            KphOsVersion = KphWin8;
-
-        }
-        else if (KphOsVersionInfo.dwMinorVersion == 3)
-        {
-            KphOsVersion = KphWin81;
-        }
-    }
-    else if (KphOsVersionInfo.dwMajorVersion >= 10)
-    {
-        KphOsVersion = KphWin10;
-    }
-
-    if (KphOsVersion == KphWinUnknown)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Unknown OS Version %lu.%lu.%lu",
-                      KphOsVersionInfo.dwMajorVersion,
-                      KphOsVersionInfo.dwMinorVersion,
-                      KphOsVersionInfo.dwBuildNumber);
-
-        status = STATUS_NOT_SUPPORTED;
         goto Exit;
     }
 

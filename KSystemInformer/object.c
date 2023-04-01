@@ -125,6 +125,8 @@ VOID KphpUnlockHandleTableEntry(
 
     PAGED_PASSIVE();
 
+    NT_ASSERT(KphDynHtHandleContentionEvent != ULONG_MAX);
+
     //
     // Set the unlocked bit.
     //
@@ -156,35 +158,6 @@ typedef struct _KPH_ENUM_PROC_HANDLE_EX_CONTEXT
  *
  * \return Result from wrapped callback.
  */
-_Function_class_(EX_ENUM_HANDLE_CALLBACK_61)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-BOOLEAN NTAPI KphEnumerateProcessHandlesExCallback61(
-    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
-    _In_ HANDLE Handle,
-    _In_opt_ PVOID Context
-    )
-{
-    PKPH_ENUM_PROC_HANDLE_EX_CONTEXT context;
-
-    PAGED_PASSIVE();
-
-    NT_ASSERT(Context);
-
-    context = Context;
-
-    return context->Callback(HandleTableEntry, Handle, context->Parameter);
-}
-
-/**
- * \brief Pass-through callback for handle table enumeration.
- *
- * \param[in,out] HandleTableEntry Related handle table entry.
- * \param[in] Handle The handle for this entry.
- * \param[in] Context Enumeration context.
- *
- * \return Result from wrapped callback.
- */
 _Function_class_(EX_ENUM_HANDLE_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -195,13 +168,16 @@ BOOLEAN NTAPI KphEnumerateProcessHandlesExCallback(
     _In_opt_ PVOID Context
     )
 {
+    PKPH_ENUM_PROC_HANDLE_EX_CONTEXT context;
     BOOLEAN result;
 
     PAGED_PASSIVE();
 
-    result = KphEnumerateProcessHandlesExCallback61(HandleTableEntry,
-                                                    Handle,
-                                                    Context);
+    NT_ASSERT(Context);
+
+    context = Context;
+
+    result = context->Callback(HandleTableEntry, Handle, context->Parameter);
 
     KphpUnlockHandleTableEntry(HandleTable, HandleTableEntry);
 
@@ -230,8 +206,7 @@ NTSTATUS KphEnumerateProcessHandlesEx(
 
     PAGED_PASSIVE();
 
-    if ((KphOsVersion >= KphWin8) &&
-        (KphDynHtHandleContentionEvent == ULONG_MAX) ||
+    if ((KphDynHtHandleContentionEvent == ULONG_MAX) ||
         (KphDynEpObjectTable == ULONG_MAX))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -255,20 +230,10 @@ NTSTATUS KphEnumerateProcessHandlesEx(
     context.Callback = Callback;
     context.Parameter = Parameter;
 
-    if (KphOsVersion >= KphWin8)
-    {
-        ExEnumHandleTable(handleTable,
-                          KphEnumerateProcessHandlesExCallback,
-                          &context,
-                          NULL);
-    }
-    else
-    {
-        ExEnumHandleTable(handleTable,
-                          (PEX_ENUM_HANDLE_CALLBACK)KphEnumerateProcessHandlesExCallback61,
-                          &context,
-                          NULL);
-    }
+    ExEnumHandleTable(handleTable,
+                      KphEnumerateProcessHandlesExCallback,
+                      &context,
+                      NULL);
 
     KphDereferenceProcessHandleTable(Process);
 

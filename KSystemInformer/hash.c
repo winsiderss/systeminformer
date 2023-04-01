@@ -426,7 +426,6 @@ NTSTATUS KphHashFile(
     BCRYPT_HASH_HANDLE hashHandle;
     PVOID mappedBase;
     SIZE_T viewSize;
-    KAPC_STATE apcState;
     PBYTE readBuffer;
     SIZE_T readSize;
 
@@ -456,11 +455,7 @@ NTSTATUS KphHashFile(
     NT_ASSERT(algHandle);
 
     viewSize = 0;
-    status = KphMapViewInSystem(FileHandle,
-                                0,
-                                &mappedBase,
-                                &viewSize,
-                                &apcState);
+    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -584,7 +579,7 @@ Exit:
 
     if (mappedBase)
     {
-        KphUnmapViewInSystem(mappedBase, &apcState);
+        KphUnmapViewInSystem(mappedBase);
     }
 
     return status;
@@ -680,7 +675,6 @@ NTSTATUS KphGetAuthenticodeInfo(
     PVOID mappedBase;
     SIZE_T viewSize;
     PVOID mappedEnd;
-    KAPC_STATE apcState;
     BCRYPT_HASH_HANDLE sha1Handle;
     BCRYPT_HASH_HANDLE sha256Handle;
     union
@@ -715,11 +709,7 @@ NTSTATUS KphGetAuthenticodeInfo(
     NT_ASSERT(KphpHashingInfra->BCryptSha256Provider);
 
     viewSize = 0;
-    status = KphMapViewInSystem(FileHandle,
-                                0,
-                                &mappedBase,
-                                &viewSize,
-                                &apcState);
+    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -735,7 +725,7 @@ NTSTATUS KphGetAuthenticodeInfo(
 
     __try
     {
-        status = KphImageNtHeader(mappedBase, viewSize, &image.Headers);
+        status = RtlImageNtHeaderEx(0, mappedBase, viewSize, &image.Headers);
         if (!NT_SUCCESS(status))
         {
             image.Headers = NULL;
@@ -1030,7 +1020,7 @@ Exit:
 
     if (mappedBase)
     {
-        KphUnmapViewInSystem(mappedBase, &apcState);
+        KphUnmapViewInSystem(mappedBase);
     }
 
     return status;

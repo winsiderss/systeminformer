@@ -25,7 +25,6 @@
 #include <ntldr.h>
 #include <ntwow64.h>
 #include <kphapi.h>
-#include <kphosver.h>
 
 #define KSIAPI NTAPI
 
@@ -115,6 +114,8 @@ typedef struct _KPH_SIZED_BUFFER
 // main
 
 extern PDRIVER_OBJECT KphDriverObject;
+extern RTL_OSVERSIONINFOEXW KphOsVersionInfo;
+extern USHORT KphOsRevision;
 extern KPH_INFORMER_SETTINGS KphInformerSettings;
 extern BOOLEAN KphIgnoreProtectionSuppression;
 extern SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo;
@@ -283,12 +284,6 @@ VOID KphDynamicImport(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 PVOID KphGetSystemRoutineAddress(
     _In_z_ PCWSTR SystemRoutineName
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-PVOID KphFindExportedRoutineByName(
-    _In_ PVOID BaseAddress,
-    _In_z_ PCSTR RoutineName
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -477,13 +472,6 @@ NTSTATUS KphSetInformationProcess(
     _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
     _In_ ULONG ProcessInformationLength,
     _In_ KPROCESSOR_MODE AccessMode
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetProcessProtection(
-    _In_ PEPROCESS Process,
-    _Out_ PPS_PROTECTION Protection
     );
 
 // qrydrv
@@ -733,15 +721,6 @@ NTSTATUS KphQueryRegistryULong(
 
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
-NTSTATUS
-KphImageNtHeader(
-    _In_ PVOID Base,
-    _In_ ULONG64 Size,
-    _Out_ PIMAGE_NT_HEADERS* OutHeaders
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphPtrAddOffset(
     _Inout_ PVOID* Pointer,
     _In_ SIZE_T Offset
@@ -791,14 +770,12 @@ NTSTATUS KphMapViewInSystem(
     _In_ HANDLE FileHandle,
     _In_ ULONG Flags,
     _Outptr_result_bytebuffer_(*ViewSize) PVOID *MappedBase,
-    _Inout_ PSIZE_T ViewSize,
-    _Out_ PKAPC_STATE ApcState
+    _Inout_ PSIZE_T ViewSize
     );
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)
 VOID KphUnmapViewInSystem(
-    _In_ PVOID MappedBase,
-    _In_ PKAPC_STATE ApcState
+    _In_ PVOID MappedBase
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -823,11 +800,6 @@ NTSTATUS KphGetNameFileObject(
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphFreeNameFileObject(
     _In_freesMem_ PUNICODE_STRING FileName
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-NTSTATUS KphGetThreadExitStatus(
-    _In_ PETHREAD Thread
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

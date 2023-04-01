@@ -78,7 +78,9 @@ typedef struct _KPH_DYNDATA
 
 #include <poppack.h>
 
+#ifdef _WIN64
 extern BYTE KphDynData[];
 extern ULONG KphDynDataLength;
 extern BYTE KphDynDataSig[];
 extern ULONG KphDynDataSigLength;
+#endif

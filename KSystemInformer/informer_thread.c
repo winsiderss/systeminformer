@@ -183,7 +183,7 @@ VOID KphpCreateThreadNotifyInformer(
         KphMsgInit(msg, KphMsgThreadExit);
         msg->Kernel.ThreadExit.ExitingClientId.UniqueProcess = ProcessId;
         msg->Kernel.ThreadExit.ExitingClientId.UniqueThread = ThreadId;
-        msg->Kernel.ThreadExit.ExitStatus = KphGetThreadExitStatus(Thread->EThread);
+        msg->Kernel.ThreadExit.ExitStatus = PsGetThreadExitStatus(Thread->EThread);
     }
 
     if (KphInformerSettings.EnableStackTraces)
@@ -314,34 +314,19 @@ NTSTATUS KphThreadInformerStart(
 
     PAGED_PASSIVE();
 
-    if (KphDynPsSetCreateThreadNotifyRoutineEx)
+    status = PsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifySubsystems,
+                                              (PVOID)KphpCreateThreadNotifyRoutine);
+    if (!NT_SUCCESS(status))
     {
-        status = KphDynPsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifySubsystems,
-                                                        (PVOID)KphpCreateThreadNotifyRoutine);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          INFORMER,
-                          "Failed to register thread notify routine: %!STATUS!",
-                          status);
-            return status;
-        }
-
-        status = KphDynPsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifyNonSystem,
-                                                        (PVOID)KphpExecuteThreadNotifyRoutine);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          INFORMER,
-                          "Failed to register thread notify routine: %!STATUS!",
-                          status);
-            return status;
-        }
-
-        return STATUS_SUCCESS;
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      INFORMER,
+                      "Failed to register thread notify routine: %!STATUS!",
+                      status);
+        return status;
     }
 
-    status = PsSetCreateThreadNotifyRoutine(KphpCreateThreadNotifyRoutine);
+    status = PsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifyNonSystem,
+                                              (PVOID)KphpExecuteThreadNotifyRoutine);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -364,11 +349,6 @@ VOID KphThreadInformerStop(
 {
     PAGED_PASSIVE();
 
-    if (KphDynPsSetCreateThreadNotifyRoutineEx)
-    {
-        PsRemoveCreateThreadNotifyRoutine(KphpExecuteThreadNotifyRoutine);
-        // fall through
-    }
-
+    PsRemoveCreateThreadNotifyRoutine(KphpExecuteThreadNotifyRoutine);
     PsRemoveCreateThreadNotifyRoutine(KphpCreateThreadNotifyRoutine);
 }

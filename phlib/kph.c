@@ -152,6 +152,7 @@ NTSTATUS KphSetParameters(
     _In_ PKPH_CONFIG_PARAMETERS Config
     )
 {
+#ifdef _WIN64
     NTSTATUS status;
     HANDLE parametersKeyHandle = NULL;
     ULONG disposition;
@@ -264,6 +265,9 @@ CleanupExit:
     NtClose(parametersKeyHandle);
 
     return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
 }
 
 //BOOLEAN KphParametersExists(
@@ -453,6 +457,7 @@ NTSTATUS KsiLoadUnloadService(
     _In_ BOOLEAN LoadDriver
     )
 {
+#ifdef _WIN64
     static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
     static PH_STRINGREF fullServicesFileName = PH_STRINGREF_INIT(L"\\??\\");
     static PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"Parameters");
@@ -554,6 +559,9 @@ NTSTATUS KsiLoadUnloadService(
     PhDereferenceObject(fullServiceKeyName);
 
     return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
 }
 
 NTSTATUS KphServiceStop(

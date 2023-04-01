@@ -393,9 +393,10 @@ NTSTATUS KphDominationCheck(
     // we'll do a very strict check here:
     //
 
-    if (NT_SUCCESS(KphGetProcessProtection(Process, &processProtection)) &&
-        NT_SUCCESS(KphGetProcessProtection(ProcessTarget, &targetProtection)) &&
-        (targetProtection.Type != PsProtectedTypeNone) &&
+    processProtection = PsGetProcessProtection(Process);
+    targetProtection = PsGetProcessProtection(ProcessTarget);
+
+    if ((targetProtection.Type != PsProtectedTypeNone) &&
         (targetProtection.Type >= processProtection.Type))
     {
         //
@@ -408,11 +409,6 @@ NTSTATUS KphDominationCheck(
         //
         return STATUS_ACCESS_DENIED;
     }
-
-    //
-    // Either the protected process check is not exported or the verified
-    // process dominates the target. Our domination check succeeded.
-    //
 
     return STATUS_SUCCESS;
 }

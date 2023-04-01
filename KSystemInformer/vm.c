@@ -405,28 +405,24 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
             ULONG_PTR page;
             ULONG_PTR pageEnd;
 
-            if (KphDynPsLoadedModuleResource)
+            //
+            // Prevent TOCTOU between checking the system module list and
+            // copying memory.
+            //
+            KeEnterCriticalRegion();
+            if (!ExAcquireResourceSharedLite(PsLoadedModuleResource, TRUE))
             {
-                //
-                // Prevent TOCTOU between checking the system module list and
-                // copying memory.
-                //
-                KeEnterCriticalRegion();
-                if (!ExAcquireResourceSharedLite(KphDynPsLoadedModuleResource,
-                                                 TRUE))
-                {
-                    KeLeaveCriticalRegion();
+                KeLeaveCriticalRegion();
 
-                    KphTracePrint(TRACE_LEVEL_ERROR,
-                                  GENERAL,
-                                  "Failed to acquire PsLoadedModuleResource");
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "Failed to acquire PsLoadedModuleResource");
 
-                    status = STATUS_RESOURCE_NOT_OWNED;
-                    goto Exit;
-                }
-
-                releaseModuleLock = TRUE;
+                status = STATUS_RESOURCE_NOT_OWNED;
+                goto Exit;
             }
+
+            releaseModuleLock = TRUE;
 
             status = KphValidateAddressForSystemModules(BaseAddress,
                                                         BufferSize);
@@ -505,8 +501,7 @@ Exit:
 
     if (releaseModuleLock)
     {
-        NT_ASSERT(KphDynPsLoadedModuleResource);
-        ExReleaseResourceLite(KphDynPsLoadedModuleResource);
+        ExReleaseResourceLite(PsLoadedModuleResource);
         KeLeaveCriticalRegion();
     }
 

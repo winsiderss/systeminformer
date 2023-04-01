@@ -193,16 +193,10 @@ typedef struct _KPH_DYNDATA
             string headerFile = "kphlib\\include\\kphdyn.h";
             string sourceFile = "kphlib\\kphdyn.c";
 
-            LoadConfig(
-                manifestFile,
-                out string config64,
-                out string sig64,
-                out string config32,
-                out string sig32
-                );
+            LoadConfig(manifestFile, out string config, out string sig);
 
             string header = GenerateHeader();
-            string source = GenerateSource(config64, sig64, config32, sig32);
+            string source = GenerateSource(config, sig);
 
             File.WriteAllText(headerFile, header);
             File.WriteAllText(sourceFile, source);
@@ -220,19 +214,19 @@ typedef struct _KPH_DYNDATA
             sb.AppendLine();
             sb.AppendLine(DynConfigC);
             sb.AppendLine();
+            sb.AppendLine("#ifdef _WIN64");
             sb.AppendLine("extern BYTE KphDynData[];");
             sb.AppendLine("extern ULONG KphDynDataLength;");
             sb.AppendLine("extern BYTE KphDynDataSig[];");
             sb.AppendLine("extern ULONG KphDynDataSigLength;");
+            sb.AppendLine("#endif");
 
             return sb.ToString();
         }
 
         private static string GenerateSource(
-            string Config64,
-            string Sig64,
-            string Config32,
-            string Sig32
+            string Config,
+            string Sig
             )
         {
             StringBuilder sb = new StringBuilder(16348);
@@ -241,60 +235,38 @@ typedef struct _KPH_DYNDATA
             sb.AppendLine();
             sb.AppendLine(Includes);
             sb.AppendLine();
+            sb.AppendLine("#ifdef _WIN64");
             sb.AppendLine("BYTE KphDynData[] =");
             sb.AppendLine("{");
-            sb.AppendLine("#ifdef _WIN64");
-            sb.Append(Config64);
-            sb.AppendLine("#else");
-            sb.Append(Config32);
-            sb.AppendLine("#endif");
+            sb.Append(Config);
             sb.AppendLine("};");
             sb.AppendLine();
             sb.AppendLine("ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
             sb.AppendLine();
             sb.AppendLine("BYTE KphDynDataSig[] =");
             sb.AppendLine("{");
-            sb.AppendLine("#ifdef _WIN64");
-            sb.Append(Sig64);
-            sb.AppendLine("#else");
-            sb.Append(Sig32);
-            sb.AppendLine("#endif");
+            sb.Append(Sig);
             sb.AppendLine("};");
             sb.AppendLine();
             sb.AppendLine("ULONG KphDynDataSigLength = ARRAYSIZE(KphDynDataSig);");
+            sb.AppendLine("#endif");
 
             return sb.ToString();
         }
 
         private static void LoadConfig(
             string ManifestFile,
-            out string Config64,
-            out string Sig64,
-            out string Config32,
-            out string Sig32
-            )
-        {
-            var xml = new XmlDocument();
-            xml.Load(ManifestFile);
-            var arch64 = xml.SelectSingleNode("/dyn/arch[@id='64']");
-            var arch32 = xml.SelectSingleNode("/dyn/arch[@id='32']");
-
-            LoadConfigForArch(arch64, out Config64, out Sig64);
-            LoadConfigForArch(arch32, out Config32, out Sig32);
-        }
-
-        private static void LoadConfigForArch(
-            XmlNode ArchNode,
             out string ConfigData,
             out string SigData
             )
         {
+            var xml = new XmlDocument();
+            xml.Load(ManifestFile);
+            var dyn = xml.SelectSingleNode("/dyn");
             var configs = new List<DynConfig>(10);
             var configNames = new List<string>(10);
 
-            Program.PrintColorMessage($"Loading Arch: {ArchNode.Attributes.GetNamedItem("id").Value}", ConsoleColor.Green);
-
-            foreach (XmlNode data in ArchNode.SelectNodes("data"))
+            foreach (XmlNode data in dyn.SelectNodes("data"))
             {
                 var config = new DynConfig();
                 var configName = data.Attributes.GetNamedItem("name").Value;
@@ -342,23 +314,6 @@ typedef struct _KPH_DYNDATA
                 writer.Write(Version);
                 writer.Write((uint)configs.Count);
                 writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(configs)));
-
-                //foreach (var config in configs)
-                //{
-                //    byte[] buffer = new byte[Marshal.SizeOf<DynConfig>()];
-                //    Unsafe.As<byte, DynConfig>(ref buffer[0]) = config;
-                //    writer.Write(buffer);
-                //}
-                //
-                //foreach (var config in configs)
-                //{
-                //    var ptr = Marshal.AllocHGlobal(Marshal.SizeOf<DynConfig>());
-                //    Marshal.StructureToPtr(config, ptr, false);
-                //    var bytes = new byte[Marshal.SizeOf<DynConfig>()];
-                //    Marshal.Copy(ptr, bytes, 0, bytes.Length);
-                //    Marshal.FreeHGlobal(ptr);
-                //    writer.Write(bytes);
-                //}
             }
 
             if (Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile))

@@ -966,7 +966,6 @@ NTSTATUS KphObjectInformerStart(
     NTSTATUS status;
     OB_CALLBACK_REGISTRATION callbackRegistration;
     OB_OPERATION_REGISTRATION operationRegistration[3];
-    USHORT operationCount;
 
     PAGED_PASSIVE();
 
@@ -984,20 +983,13 @@ NTSTATUS KphObjectInformerStart(
     operationRegistration[1].PreOperation = KphpObPreCallback;
     operationRegistration[1].PostOperation = KphpObPostCallback;
 
-    operationCount = 2;
-
-    if (KphOsVersion >= KphWin10)
-    {
-        operationRegistration[2].ObjectType = ExDesktopObjectType;
-        operationRegistration[2].Operations = OB_OPERATION_HANDLE_CREATE | OB_OPERATION_HANDLE_DUPLICATE;
-        operationRegistration[2].PreOperation = KphpObPreCallback;
-        operationRegistration[2].PostOperation = KphpObPostCallback;
-
-        operationCount++;
-    }
+    operationRegistration[2].ObjectType = ExDesktopObjectType;
+    operationRegistration[2].Operations = OB_OPERATION_HANDLE_CREATE | OB_OPERATION_HANDLE_DUPLICATE;
+    operationRegistration[2].PreOperation = KphpObPreCallback;
+    operationRegistration[2].PostOperation = KphpObPostCallback;
 
     callbackRegistration.Version = OB_FLT_REGISTRATION_VERSION;
-    callbackRegistration.OperationRegistrationCount = operationCount;
+    callbackRegistration.OperationRegistrationCount = ARRAYSIZE(operationRegistration);
     callbackRegistration.Altitude.Buffer = KphDynAltitude->Buffer;
     callbackRegistration.Altitude.Length = KphDynAltitude->Length;
     callbackRegistration.Altitude.MaximumLength = KphDynAltitude->MaximumLength;
