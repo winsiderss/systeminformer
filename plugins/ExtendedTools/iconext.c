@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -108,15 +108,13 @@ VOID EtpNetworkTextIconUpdateCallback(
     _In_opt_ PVOID Context
     );
 
-static BOOLEAN EtTrayIconTransparencyEnabled = FALSE;
-static GUID EtpTrayIconGuids[ETP_TRAY_ICON_GUID_MAXIMUM];
+BOOLEAN EtTrayIconTransparencyEnabled = FALSE;
+GUID EtpTrayIconGuids[ETP_TRAY_ICON_GUID_MAXIMUM];
 
 VOID EtLoadTrayIconGuids(
     VOID
     )
 {
-    EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
-
     if (PhGetIntegerSetting(L"IconTrayPersistGuidEnabled"))
     {
         PPH_STRING settingsString = NULL;
@@ -141,7 +139,7 @@ VOID EtLoadTrayIconGuids(
                         &iconListBuilder,
                         L"%s|",
                         iconGuid->Buffer
-                    );
+                        );
                     PhDereferenceObject(iconGuid);
                 }
             }
@@ -857,7 +855,7 @@ VOID EtpNetworkTextIconUpdateCallback(
     PPH_PROCESS_ITEM maxNetworkProcessItem;
     PH_FORMAT format[6];
     PPH_STRING text;
-    static ULONG64 maxValue = 1024 * 1024; // minimum scaling of 1 MB.
+    static ULONG64 maxValue = UInt32x32To64(1024, 1024); // minimum scaling of 1 MB.
 
     // Icon
 

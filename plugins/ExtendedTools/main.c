@@ -845,6 +845,7 @@ VOID EtLoadSettings(
     EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     EtEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
+    EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
 }
 
 PPH_STRING PhGetSelectedListViewItemText(
@@ -853,7 +854,7 @@ PPH_STRING PhGetSelectedListViewItemText(
 {
     INT index = PhFindListViewItemByFlags(
         hWnd,
-        -1,
+        INT_ERROR,
         LVNI_SELECTED
         );
 
