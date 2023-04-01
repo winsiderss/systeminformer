@@ -382,7 +382,7 @@ LRESULT CALLBACK PhMwpWndProc(
             switch (wParam)
             {
             case DBT_DEVICEARRIVAL: // Drive letter added
-            case DBT_DEVICEREMOVECOMPLETE: // Drive letter removed
+            //case DBT_DEVICEREMOVECOMPLETE: // Drive letter removed
                 {
                     PDEV_BROADCAST_HDR deviceBroadcast = (PDEV_BROADCAST_HDR)lParam;
 
@@ -2549,7 +2549,7 @@ PPH_EMENU PhpCreateComputerMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN_UPDATE, L"Update and shut down", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, ID_COMPUTER_RESTARTFWOPTIONS, L"Restart to firmware options", NULL, NULL), ULONG_MAX);
     if (PhGetIntegerSetting(L"EnableShutdownBootMenu"))
@@ -2999,7 +2999,7 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     case ID_NOTIFICATIONS_DELETEDSERVICES:
     case ID_NOTIFICATIONS_MODIFIEDSERVICES:
         {
-            ULONG bit;
+            ULONG bit = 0;
 
             switch (Id)
             {
@@ -3116,6 +3116,8 @@ BOOLEAN PhMwpExecuteNotificationSettingsMenuCommand(
             PhNfTransparencyEnabled = !transparentTrayIconsEnabled;
 
             PhSetIntegerSetting(L"IconTransparencyEnabled", !transparentTrayIconsEnabled);
+
+            PhShowOptionsRestartRequired(WindowHandle);
         }
         return TRUE;
     case ID_NOTIFICATIONS_ENABLESINGLECLICKICONS:
@@ -3184,7 +3186,6 @@ VOID PhMwpInitializeSubMenu(
     else if (Index == PH_MENU_ITEM_LOCATION_VIEW) // View
     {
         PPH_EMENU_ITEM trayIconsMenuItem;
-        PPH_EMENU_ITEM menuItem;
         ULONG id = ULONG_MAX;
         ULONG placeholderIndex = ULONG_MAX;
 

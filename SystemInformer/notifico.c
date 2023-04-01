@@ -1963,7 +1963,7 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
     PPH_PROCESS_ITEM maxIoProcessItem;
     PH_FORMAT format[8];
     PPH_STRING text;
-    static ULONG64 maxValue = 100000 * 1024; // minimum scaling of 100 MB.
+    static ULONG64 maxValue = UInt32x32To64(100000, 1024); // minimum scaling of 100 MB.
 
     // TODO: Reset maxValue every X amount of time.
 
