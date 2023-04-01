@@ -756,6 +756,8 @@ VOID EtGpuMiniInformationInitializing(
 
 // iconext
 
+extern BOOLEAN EtTrayIconTransparencyEnabled;
+
 VOID EtLoadTrayIconGuids(
     VOID
     );
