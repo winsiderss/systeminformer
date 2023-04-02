@@ -23,6 +23,7 @@
 #include <prsht.h>
 #include <prpsh.h>
 #include <treenew.h>
+#include <secedit.h>
 #include <settings.h>
 #include <symprv.h>
 
