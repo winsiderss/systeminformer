@@ -634,10 +634,10 @@ NTSTATUS PhTerminateProcessAlternative(
             goto CleanupExit;
     }
 
-    status = RtlCreateUserThread(
+    status = PhCreateUserThread(
         ProcessHandle,
         NULL,
-        FALSE,
+        0,
         0,
         0,
         0,
@@ -2180,10 +2180,10 @@ NTSTATUS PhLoadDllProcess(
             goto CleanupExit;
     }
 
-    status = RtlCreateUserThread(
+    status = PhCreateUserThread(
         ProcessHandle,
         NULL,
-        FALSE,
+        0,
         0,
         0,
         0,
@@ -2299,10 +2299,10 @@ NTSTATUS PhUnloadDllProcess(
             return status;
     }
 
-    status = RtlCreateUserThread(
+    status = PhCreateUserThread(
         ProcessHandle,
         NULL,
-        FALSE,
+        0,
         0,
         0,
         0,
@@ -2465,10 +2465,10 @@ NTSTATUS PhSetEnvironmentVariableRemote(
             goto CleanupExit;
     }
 
-    status = RtlCreateUserThread(
+    status = PhCreateUserThread(
         ProcessHandle,
         NULL,
-        TRUE,
+        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
         0,
         0,
         0,
@@ -13189,10 +13189,10 @@ NTSTATUS PhGetProcessConsoleCodePage(
             return status;
     }
 
-    status = RtlCreateUserThread(
+    status = PhCreateUserThread(
         ProcessHandle,
         NULL,
-        FALSE,
+        0,
         0,
         0,
         0,
