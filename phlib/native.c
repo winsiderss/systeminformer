@@ -5297,6 +5297,9 @@ NTSTATUS PhpEnumProcessModules(
     if (!NT_SUCCESS(status))
         return status;
 
+    if (!ldr) // Process uninitialized (dmex)
+        return STATUS_UNSUCCESSFUL;
+
     // Read the loader data.
     status = NtReadVirtualMemory(
         ProcessHandle,
