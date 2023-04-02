@@ -44,6 +44,22 @@ extern PH_QUEUED_LOCK PhDbgThreadListLock;
 #endif
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateUserThread(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    _In_opt_ ULONG CreateFlags,
+    _In_opt_ SIZE_T ZeroBits,
+    _In_opt_ SIZE_T StackSize,
+    _In_opt_ SIZE_T MaximumStackSize,
+    _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
+    _In_opt_ PVOID Argument,
+    _Out_opt_ PHANDLE ThreadHandle,
+    _Out_opt_ PCLIENT_ID ClientId
+    );
+
+PHLIBAPI
 HANDLE
 NTAPI
 PhCreateThread(
