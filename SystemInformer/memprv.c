@@ -555,7 +555,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 &numberOfHeaps,
                 sizeof(ULONG),
                 NULL
-                )) && numberOfHeaps < MAX_HEAPS)
+                )) && numberOfHeaps > 0 && numberOfHeaps < MAX_HEAPS)
             {
                 processHeaps = PhAllocate(numberOfHeaps * sizeof(PVOID));
 
