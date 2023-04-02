@@ -1814,6 +1814,43 @@ NTSTATUS PhGetProcessMappedImageInformation(
     return status;
 }
 
+NTSTATUS PhGetProcessMappedImageBaseFromAddress(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID Address,
+    _Out_ PVOID* ImageBaseAddress,
+    _Out_opt_ PSIZE_T SizeOfImage
+    )
+{
+    NTSTATUS status;
+    MEMORY_IMAGE_INFORMATION imageInfo;
+
+    status = PhGetProcessMappedImageInformation(
+        ProcessHandle, 
+        Address, 
+        &imageInfo
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!imageInfo.ImageBase ||
+        imageInfo.ImageNotExecutable ||
+        imageInfo.ImagePartialMap ||
+        Address < imageInfo.ImageBase)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    *ImageBaseAddress = imageInfo.ImageBase;
+
+    if (SizeOfImage)
+    {
+        *SizeOfImage = imageInfo.SizeOfImage;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 /**
  * Gets working set information for a process.
  *

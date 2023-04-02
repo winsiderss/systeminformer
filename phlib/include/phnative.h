@@ -425,6 +425,16 @@ PhGetProcessMappedImageInformation(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessMappedImageBaseFromAddress(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID Address,
+    _Out_ PVOID* ImageBaseAddress,
+    _Out_opt_ PSIZE_T SizeOfImage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessWorkingSetInformation(
     _In_ HANDLE ProcessHandle,
     _Out_ PMEMORY_WORKING_SET_INFORMATION *WorkingSetInformation
