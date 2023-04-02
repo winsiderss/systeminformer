@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_MEMLIST_H
 #define PH_MEMLIST_H
 
@@ -18,8 +30,12 @@
 #define PHMMTLC_COMMITTED 10
 #define PHMMTLC_PRIVATE 11
 #define PHMMTLC_SIGNING_LEVEL 12
+#define PHMMTLC_ORIGINAL_PROTECTION 13
+#define PHMMTLC_ORIGINAL_PAGES 14
+#define PHMMTLC_REGIONTYPE 15
+#define PHMMTLC_PRIORITY 16
 
-#define PHMMTLC_MAXIMUM 13
+#define PHMMTLC_MAXIMUM 17
 
 // begin_phapppub
 typedef struct _PH_MEMORY_NODE
@@ -40,6 +56,7 @@ typedef struct _PH_MEMORY_NODE
     WCHAR TypeText[30];
     PPH_STRING SizeText;
     WCHAR ProtectionText[17];
+    WCHAR OriginalProtectionText[17];
     PPH_STRING UseText;
     PPH_STRING TotalWsText;
     PPH_STRING PrivateWsText;
@@ -48,6 +65,9 @@ typedef struct _PH_MEMORY_NODE
     PPH_STRING LockedWsText;
     PPH_STRING CommittedText;
     PPH_STRING PrivateText;
+    PPH_STRING OriginalPagesText;
+    PPH_STRING RegionTypeText;
+    PPH_STRING PriorityText;
 // begin_phapppub
 } PH_MEMORY_NODE, *PPH_MEMORY_NODE;
 // end_phapppub
