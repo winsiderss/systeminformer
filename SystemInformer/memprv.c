@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -27,7 +27,7 @@ PPH_OBJECT_TYPE PhMemoryItemType = NULL;
 
 VOID PhGetMemoryProtectionString(
     _In_ ULONG Protection,
-    _Out_writes_(17) PWSTR String
+    _Inout_z_ PWSTR String
     )
 {
     PWSTR string;
@@ -81,7 +81,7 @@ VOID PhGetMemoryProtectionString(
         string += 4;
     }
 
-    *string = 0;
+    *string = UNICODE_NULL;
 }
 
 PWSTR PhGetMemoryStateString(
@@ -195,6 +195,54 @@ PPH_STRINGREF PhGetSigningLevelString(
     //    default:
     //        return L"";
     //}
+}
+
+PPH_STRING PhGetMemoryRegionTypeExString(
+    _In_ PPH_MEMORY_ITEM MemoryItem
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+    if (!MemoryItem->RegionTypeEx)
+        return NULL;
+
+    PhInitializeStringBuilder(&stringBuilder, 0x50);
+
+    if (MemoryItem->Private)
+        PhAppendStringBuilder2(&stringBuilder, L"Private, ");
+    if (MemoryItem->MappedDataFile)
+        PhAppendStringBuilder2(&stringBuilder, L"MappedDataFile, ");
+    if (MemoryItem->MappedImage)
+        PhAppendStringBuilder2(&stringBuilder, L"MappedImage, ");
+    if (MemoryItem->MappedPageFile)
+        PhAppendStringBuilder2(&stringBuilder, L"MappedPageFile, ");
+    if (MemoryItem->MappedPhysical)
+        PhAppendStringBuilder2(&stringBuilder, L"MappedPhysical, ");
+    if (MemoryItem->DirectMapped)
+        PhAppendStringBuilder2(&stringBuilder, L"DirectMapped, ");
+    if (MemoryItem->SoftwareEnclave)
+        PhAppendStringBuilder2(&stringBuilder, L"Software enclave, ");
+    if (MemoryItem->PageSize64K)
+        PhAppendStringBuilder2(&stringBuilder, L"PageSize64K, ");
+    if (MemoryItem->PlaceholderReservation)
+        PhAppendStringBuilder2(&stringBuilder, L"Placeholder, ");
+    if (MemoryItem->MappedAwe)
+        PhAppendStringBuilder2(&stringBuilder, L"Mapped AWE, ");
+    if (MemoryItem->MappedWriteWatch)
+        PhAppendStringBuilder2(&stringBuilder, L"MappedWriteWatch, ");
+    if (MemoryItem->PageSizeLarge)
+        PhAppendStringBuilder2(&stringBuilder, L"PageSizeLarge, ");
+    if (MemoryItem->PageSizeHuge)
+        PhAppendStringBuilder2(&stringBuilder, L"PageSizeHuge, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhPrintPointer(pointer, UlongToPtr(MemoryItem->RegionTypeEx));
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 _Ret_notnull_
@@ -837,14 +885,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             MEMORY_IMAGE_INFORMATION imageInfo;
             PPH_STRING fileName;
 
-            if (NT_SUCCESS(NtQueryVirtualMemory(
-                ProcessHandle,
-                memoryItem->BaseAddress,
-                MemoryImageInformation,
-                &imageInfo,
-                sizeof(MEMORY_IMAGE_INFORMATION),
-                NULL
-                )))
+            if (NT_SUCCESS(PhGetProcessMappedImageInformation(ProcessHandle, memoryItem->BaseAddress, &imageInfo)))
             {
                 memoryItem->u.MappedFile.SigningLevelValid = TRUE;
                 memoryItem->u.MappedFile.SigningLevel = (SE_SIGNING_LEVEL)imageInfo.ImageSigningLevel;
@@ -1029,6 +1070,20 @@ NTSTATUS PhpUpdateMemoryWsCounters(
                             memoryItem->ShareableWorkingSetPages++;
                         if (block->Locked)
                             memoryItem->LockedWorkingSetPages++;
+
+                        if (memoryItem->Type & (MEM_MAPPED | MEM_IMAGE) && block->SharedOriginal)
+                            memoryItem->SharedOriginalPages++;
+                        if (block->Priority > memoryItem->Priority)
+                            memoryItem->Priority = block->Priority;
+                    }
+                    else
+                    {
+                        if (memoryItem->Type & (MEM_MAPPED | MEM_IMAGE) && block->Invalid.SharedOriginal)
+                            memoryItem->SharedOriginalPages++;
+
+                        // VMMap does this, but is it correct? (dmex)
+                        if (block->Invalid.Shared)
+                            memoryItem->ShareableWorkingSetPages++;
                     }
                 }
             }
@@ -1106,7 +1161,7 @@ NTSTATUS PhQueryMemoryItemList(
     {
         if (!NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
-            PROCESS_QUERY_INFORMATION,
+            PROCESS_QUERY_LIMITED_INFORMATION,
             ProcessId
             )))
         {
@@ -1130,7 +1185,6 @@ NTSTATUS PhQueryMemoryItemList(
         )))
     {
         PPH_MEMORY_ITEM memoryItem;
-        MEMORY_WORKING_SET_EX_INFORMATION info;
 
         if (basicInfo.State & MEM_FREE)
         {
@@ -1161,22 +1215,54 @@ NTSTATUS PhQueryMemoryItemList(
                 memoryItem->PrivateSize = memoryItem->RegionSize;
         }
 
-        // Query the region attributes (dmex)
-        info.VirtualAddress = baseAddress;
-
-        if (NT_SUCCESS(NtQueryVirtualMemory(
-            processHandle,
-            NULL,
-            MemoryWorkingSetExInformation,
-            &info,
-            sizeof(MEMORY_WORKING_SET_EX_INFORMATION),
-            NULL
-            )))
+        if (!FlagOn(basicInfo.State, MEM_FREE))
         {
-            PMEMORY_WORKING_SET_EX_BLOCK block = &info.u1.VirtualAttributes;
+            MEMORY_WORKING_SET_EX_INFORMATION pageInfo;
 
-            memoryItem->Valid = !!block->Valid;
-            memoryItem->Bad = !!block->Bad;
+            static_assert(HEAP_SEGMENT_MAX_SIZE < PAGE_SIZE, "Update query attributes for additional pages");
+
+            // Query the attributes for the first page (dmex)
+
+            memset(&pageInfo, 0, sizeof(MEMORY_WORKING_SET_EX_INFORMATION));
+            pageInfo.VirtualAddress = baseAddress;
+
+            if (NT_SUCCESS(NtQueryVirtualMemory(
+                processHandle,
+                NULL,
+                MemoryWorkingSetExInformation,
+                &pageInfo,
+                sizeof(MEMORY_WORKING_SET_EX_INFORMATION),
+                NULL
+                )))
+            {
+                PMEMORY_WORKING_SET_EX_BLOCK block = &pageInfo.u1.VirtualAttributes;
+
+                memoryItem->Valid = !!block->Valid;
+                memoryItem->Bad = !!block->Bad;
+            }
+
+            if (WindowsVersion > WINDOWS_8)
+            {
+                MEMORY_REGION_INFORMATION regionInfo;
+
+                // Query the region (dmex)
+
+                memset(&regionInfo, 0, sizeof(MEMORY_REGION_INFORMATION));
+
+                if (NT_SUCCESS(NtQueryVirtualMemory(
+                    processHandle,
+                    baseAddress,
+                    MemoryRegionInformationEx,
+                    &regionInfo,
+                    sizeof(MEMORY_REGION_INFORMATION),
+                    NULL
+                    )))
+                {
+                    memoryItem->RegionTypeEx = regionInfo.RegionType;
+                    //memoryItem->RegionSize = regionInfo.RegionSize;
+                    //memoryItem->CommittedSize = regionInfo.CommitSize;
+                }
+            }
         }
 
         PhAddElementAvlTree(&List->Set, &memoryItem->Links);
