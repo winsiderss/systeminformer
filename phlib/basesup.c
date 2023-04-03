@@ -131,13 +131,8 @@ BOOLEAN PhBaseInitialization(
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
 
-    // The following relies on the (technically undefined) value of XState being zero before Windows 7 SP1.
-    // NOTE: This is unused for now.
-    /*if (USER_SHARED_DATA->XState.EnabledFeatures & XSTATE_MASK_AVX)
-        PhpVectorLevel = PH_VECTOR_LEVEL_AVX;
-    else if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
-        PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;*/
-
+    //if (PhIsProcessorFeaturePresent(PF_AVX_INSTRUCTIONS_AVAILABLE))
+    //    PhpVectorLevel = PH_VECTOR_LEVEL_AVX;
     if (PhIsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE))
         PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;
 
