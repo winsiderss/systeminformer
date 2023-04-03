@@ -4049,11 +4049,24 @@ BOOLEAN PhUiCloseConnections(
     _In_ ULONG NumberOfConnections
     )
 {
+    ULONG (WINAPI* SetTcpEntry_I)(_In_ PMIB_TCPROW pTcpRow) = NULL;
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG result;
     ULONG i;
     MIB_TCPROW tcpRow;
+
+    SetTcpEntry_I = PhGetDllProcedureAddress(L"iphlpapi.dll", "SetTcpEntry", 0);
+
+    if (!SetTcpEntry_I)
+    {
+        PhShowError(
+            hWnd,
+            L"%s",
+            L"This feature is not supported by your operating system."
+            );
+        return FALSE;
+    }
 
     for (i = 0; i < NumberOfConnections; i++)
     {
@@ -4069,7 +4082,7 @@ BOOLEAN PhUiCloseConnections(
         tcpRow.dwRemoteAddr = Connections[i]->RemoteEndpoint.Address.Ipv4;
         tcpRow.dwRemotePort = _byteswap_ushort((USHORT)Connections[i]->RemoteEndpoint.Port);
 
-        if ((result = SetTcpEntry(&tcpRow)) != NO_ERROR)
+        if ((result = SetTcpEntry_I(&tcpRow)) != NO_ERROR)
         {
             NTSTATUS status;
             BOOLEAN connected;
