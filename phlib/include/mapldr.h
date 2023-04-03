@@ -331,6 +331,14 @@ PhLoadPluginImage(
     _Out_opt_ PVOID *BaseAddress
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFileBinaryTypeWin32(
+    _In_ PWSTR FileName,
+    _Out_ PULONG BinaryType
+    );
+
 EXTERN_C_END
 
 #endif
