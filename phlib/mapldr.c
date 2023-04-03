@@ -2320,3 +2320,139 @@ CleanupExit:
 
     return status;
 }
+
+// based on GetBinaryTypeW (dmex)
+NTSTATUS PhGetFileBinaryTypeWin32(
+    _In_ PWSTR FileName,
+    _Out_ PULONG BinaryType
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    HANDLE sectionHandle;
+    UNICODE_STRING fileName;
+    IO_STATUS_BLOCK ioStatusBlock;
+    OBJECT_ATTRIBUTES objectAttributes;
+    SECTION_IMAGE_INFORMATION section = { 0 };
+
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileHandle,
+        FILE_READ_DATA | FILE_EXECUTE | SYNCHRONIZE,
+        &objectAttributes,
+        &ioStatusBlock,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtCreateSection(
+        &sectionHandle,
+        SECTION_QUERY | SECTION_MAP_READ | SECTION_MAP_EXECUTE,
+        NULL,
+        NULL,
+        PAGE_EXECUTE,
+        SEC_IMAGE,
+        fileHandle
+        );
+
+    NtClose(fileHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtQuerySection(
+        sectionHandle,
+        SectionImageInformation,
+        &section,
+        sizeof(SECTION_IMAGE_INFORMATION),
+        NULL
+        );
+
+    NtClose(sectionHandle);
+
+CleanupExit:
+    RtlFreeUnicodeString(&fileName);
+
+    if (NT_SUCCESS(status))
+    {
+        switch (section.Machine)
+        {
+        case IMAGE_FILE_MACHINE_I386:
+            {
+                *BinaryType = SCS_32BIT_BINARY;
+            }
+            return STATUS_SUCCESS;
+        case IMAGE_FILE_MACHINE_IA64:
+        case IMAGE_FILE_MACHINE_AMD64:
+            {
+                *BinaryType = SCS_64BIT_BINARY;
+            }
+            return STATUS_SUCCESS;
+        }
+
+        return STATUS_UNSUCCESSFUL;
+    }
+    else
+    {
+        switch (status)
+        {
+        case STATUS_INVALID_IMAGE_PROTECT:
+            {
+                *BinaryType = SCS_DOS_BINARY;
+            }
+            return STATUS_SUCCESS;
+        case STATUS_INVALID_IMAGE_NOT_MZ:
+            {
+                static PH_STRINGREF extensionCOM = PH_STRINGREF_INIT(L".COM");
+                static PH_STRINGREF extensionPIF = PH_STRINGREF_INIT(L".PIF");
+                static PH_STRINGREF extensionEXE = PH_STRINGREF_INIT(L".EXE");
+                PH_STRINGREF fileNameSr;
+
+                PhInitializeStringRefLongHint(&fileNameSr, FileName);
+
+                if (
+                    PhEndsWithStringRef(&fileNameSr, &extensionCOM, TRUE) || 
+                    PhEndsWithStringRef(&fileNameSr, &extensionPIF, TRUE) || 
+                    PhEndsWithStringRef(&fileNameSr, &extensionEXE, TRUE)
+                    )
+                {
+                    *BinaryType = SCS_DOS_BINARY;
+                    return STATUS_SUCCESS;
+                }
+            }
+            break;
+        case STATUS_INVALID_IMAGE_WIN_32:
+            {
+                *BinaryType = SCS_32BIT_BINARY;
+            }
+            return STATUS_SUCCESS;
+        case STATUS_INVALID_IMAGE_WIN_64:
+            {
+                *BinaryType = SCS_64BIT_BINARY;
+            }
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return status;
+}
