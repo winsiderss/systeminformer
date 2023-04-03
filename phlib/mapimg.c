@@ -571,7 +571,7 @@ BOOLEAN PhGetMappedImageSectionName(
     SIZE_T returnCount;
 
     result = PhCopyStringZFromBytes(
-        Section->Name,
+        (PSTR)Section->Name,
         IMAGE_SIZEOF_SHORT_NAME,
         Buffer,
         Count,
@@ -729,15 +729,17 @@ NTSTATUS PhGetMappedImageLoadConfig64(
 NTSTATUS PhLoadRemoteMappedImage(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
+    _In_ SIZE_T Size,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
-    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, NtReadVirtualMemory, RemoteMappedImage);
+    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, Size, NtReadVirtualMemory, RemoteMappedImage);
 }
 
 NTSTATUS PhLoadRemoteMappedImageEx(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
+    _In_ SIZE_T Size,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
@@ -771,7 +773,7 @@ NTSTATUS PhLoadRemoteMappedImageEx(
 
     ntHeadersOffset = (ULONG)dosHeader.e_lfanew;
 
-    if (ntHeadersOffset == 0 || ntHeadersOffset >= 0x10000000)
+    if (ntHeadersOffset == 0 || ntHeadersOffset >= LONG_MAX || ntHeadersOffset >= Size)
         return STATUS_INVALID_IMAGE_FORMAT;
 
     status = ReadVirtualMemoryCallback(
