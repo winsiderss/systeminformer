@@ -21,7 +21,6 @@
 #include <extmgri.h>
 #include <mainwnd.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <procprv.h>
 
 static PPH_OBJECT_TYPE PhMemoryContextType = NULL;
@@ -36,11 +35,14 @@ NTSTATUS PhpRefreshProcessMemoryThread(
     if (memoryContext->ListContext.ZeroPadAddresses)
         flags |= PH_QUERY_MEMORY_ZERO_PAD_ADDRESSES;
 
-    memoryContext->LastRunStatus = PhQueryMemoryItemList(
-        memoryContext->ProcessId,
-        flags,
-        &memoryContext->MemoryItemList
-        );
+    if (PH_IS_REAL_PROCESS_ID(memoryContext->ProcessId))
+    {
+        memoryContext->LastRunStatus = PhQueryMemoryItemList(
+            memoryContext->ProcessId,
+            flags,
+            &memoryContext->MemoryItemList
+            );
+    }
 
     if (NT_SUCCESS(memoryContext->LastRunStatus))
     {
@@ -1037,6 +1039,11 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                 TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);
 
                 PhReplaceMemoryList(&memoryContext->ListContext, &memoryContext->MemoryItemList);
+            }
+            else if (memoryContext->LastRunStatus == ULONG_MAX)
+            {
+                TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);
+                TreeNew_NodesStructured(memoryContext->ListContext.TreeNewHandle);
             }
             else
             {

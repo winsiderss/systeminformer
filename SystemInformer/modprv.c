@@ -100,31 +100,34 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     moduleProvider->PackageFullName = NULL;
     moduleProvider->RunStatus = STATUS_SUCCESS;
 
-    // It doesn't matter if we can't get a process handle.
-
-    // Try to get a handle with query information + vm read access.
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &moduleProvider->ProcessHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessId
-        )))
+    if (PH_IS_REAL_PROCESS_ID(ProcessId))
     {
-        // Try to get a handle with query limited information + vm read access.
+        // It doesn't matter if we can't get a process handle.
+
+        // Try to get a handle with query information + vm read access.
         if (!NT_SUCCESS(status = PhOpenProcess(
             &moduleProvider->ProcessHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
             ProcessId
             )))
         {
-            // Try to get a handle with query limited information (required for WSL when KPH disabled) (dmex)
-            status = PhOpenProcess(
+            // Try to get a handle with query limited information + vm read access.
+            if (!NT_SUCCESS(status = PhOpenProcess(
                 &moduleProvider->ProcessHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
                 ProcessId
+                )))
+            {
+                // Try to get a handle with query limited information (required for WSL when KPH disabled) (dmex)
+                status = PhOpenProcess(
+                    &moduleProvider->ProcessHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    ProcessId
                 );
-        }
+            }
 
-        moduleProvider->RunStatus = status;
+            moduleProvider->RunStatus = status;
+        }
     }
 
     if (processItem = PhReferenceProcessItem(ProcessId))
