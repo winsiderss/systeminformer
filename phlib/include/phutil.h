@@ -1525,6 +1525,7 @@ PhGetProcessModuleImageCoherency(
     _In_ PPH_STRING FileName,
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ImageBaseAddress,
+    _In_ SIZE_T ImageSize,
     _In_ BOOLEAN IsKernelModule,
     _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
     _Out_ PFLOAT ImageCoherency

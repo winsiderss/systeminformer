@@ -41,6 +41,7 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
     PH_REMOTE_MAPPED_IMAGE RemoteMappedImage; /**< Remote image mapping */
 
     PVOID RemoteImageBase;                    /**< Remote image base address */
+    SIZE_T RemoteImageSize;                   /**< Remote image size */
     PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemory; /**< Read virtual memory callback */
 
 } PH_IMAGE_COHERENCY_CONTEXT, *PPH_IMAGE_COHERENCY_CONTEXT;
@@ -168,6 +169,7 @@ VOID PhpFreeImageCoherencyContext(
 * \param[in] ProcessHandle - Handle to process to inspect. Requires
 * PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ.
 * \param[in] RemoteImageBase - Remove image base address, optional.
+* \param[in] RemoteImageSize - Remove image size, optional.
 * \param[in] RemoteImageBaseStatus - If RemoteImageBase is null, this is stored
 * in the context instead of attempting to map the image.
 * \param[in] ReadVirtualMemoryCallback - Callback to use to read virtual memory.
@@ -181,6 +183,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     _In_ PPH_STRING FileName,
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID RemoteImageBase,
+    _In_opt_ SIZE_T RemoteImageSize,
     _In_ NTSTATUS RemoteImageBaseStatus,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback
     )
@@ -372,6 +375,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     }
 
     context->RemoteImageBase = RemoteImageBase;
+    context->RemoteImageSize = RemoteImageSize;
 
     //
     // Map the remote image
@@ -379,6 +383,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     context->RemoteMappedImageStatus =
         PhLoadRemoteMappedImageEx(ProcessHandle,
                                   context->RemoteImageBase,
+                                  context->RemoteImageSize,
                                   ReadVirtualMemoryCallback,
                                   &context->RemoteMappedImage);
 
@@ -1249,9 +1254,13 @@ NTSTATUS PhGetProcessImageCoherency(
     HANDLE processHandle;
     PPH_IMAGE_COHERENCY_CONTEXT context;
     PVOID remoteImageBase;
+    PVOID imageBase;
+    SIZE_T imageSize;
 
     context = NULL;
     remoteImageBase = NULL;
+    imageBase = NULL;
+    imageSize = 0;
 
     *ImageCoherency = 0.0f;
 
@@ -1268,15 +1277,28 @@ NTSTATUS PhGetProcessImageCoherency(
     // Get the remote image base
     //
     status = PhGetProcessImageBaseAddress(processHandle, &remoteImageBase);
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhGetProcessMappedImageBaseFromAddress(
+            processHandle,
+            remoteImageBase,
+            &imageBase,
+            &imageSize
+            );
+    }
+
     if (!NT_SUCCESS(status))
     {
-        remoteImageBase = NULL;
+        imageBase = NULL;
+        imageSize = 0;
     }
 
     context = PhpCreateImageCoherencyContext(Type,
                                              FileName,
                                              processHandle,
-                                             remoteImageBase,
+                                             imageBase,
+                                             imageSize,
                                              status,
                                              NtReadVirtualMemory);
 
@@ -1303,6 +1325,7 @@ CleanupExit:
 * \param[in] ProcessHandle - Handle to the process where the module is mapped
 * requires PROCESS_VM_READ.
 * \param[in] ImageBaseAddress - Base address of the image.
+* \param[in] ImageSize - Size of the image.
 * \param[in] IsKernelModule - Notes if this is a kernel module.
 * \param[in] Type - Image coherency scan type.
 * \param[out] ImageCoherency Image coherency value between 0 and 1. This
@@ -1325,6 +1348,7 @@ NTSTATUS PhGetProcessModuleImageCoherency(
     _In_ PPH_STRING FileName,
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ImageBaseAddress,
+    _In_ SIZE_T ImageSize,
     _In_ BOOLEAN IsKernelModule,
     _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
     _Out_ PFLOAT ImageCoherency
@@ -1339,6 +1363,7 @@ NTSTATUS PhGetProcessModuleImageCoherency(
                                              FileName,
                                              ProcessHandle,
                                              ImageBaseAddress,
+                                             ImageSize,
                                              STATUS_UNSUCCESSFUL,
                                              IsKernelModule ? KphReadVirtualMemoryUnsafe : NtReadVirtualMemory);
 

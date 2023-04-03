@@ -207,6 +207,7 @@ NTAPI
 PhLoadRemoteMappedImage(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
+    _In_ SIZE_T Size,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     );
 
@@ -223,6 +224,7 @@ NTAPI
 PhLoadRemoteMappedImageEx(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
+    _In_ SIZE_T Size,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     );
@@ -241,8 +243,8 @@ PhGetRemoteMappedImageDebugEntryByType(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
-    _Out_opt_ ULONG* EntryLength,
-    _Out_ PVOID* EntryBuffer
+    _Out_opt_ ULONG* DataLength,
+    _Out_ PVOID* DataBuffer
     );
 
 PHLIBAPI
@@ -254,8 +256,8 @@ PhGetRemoteMappedImageDebugEntryByTypeEx(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
-    _Out_opt_ ULONG* EntryLength,
-    _Out_ PVOID* EntryBuffer
+    _Out_opt_ ULONG* DataLength,
+    _Out_ PVOID* DataBuffer
     );
 
 PHLIBAPI

@@ -412,6 +412,7 @@ NTSTATUS PhpModuleQueryWorker(
                     data->ModuleItem->FileName,
                     data->ModuleProvider->ProcessHandle,
                     data->ModuleItem->BaseAddress,
+                    data->ModuleItem->Size,
                     data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE,
                     data->ModuleProvider->ImageCoherencyScanLevel,
                     &data->ImageCoherency
@@ -678,7 +679,13 @@ VOID PhModuleProviderUpdate(
                 // 1. It (should be) faster than opening the file and mapping it in, and
                 // 2. It contains the correct original image base relocated by ASLR, if present.
 
-                if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemoryCallback, &remoteMappedImage)))
+                if (NT_SUCCESS(PhLoadRemoteMappedImageEx(
+                    moduleProvider->ProcessHandle,
+                    moduleItem->BaseAddress,
+                    moduleItem->Size,
+                    readVirtualMemoryCallback,
+                    &remoteMappedImage
+                    )))
                 {
                     ULONG_PTR imageBase = 0;
                     ULONG entryPoint = 0;
