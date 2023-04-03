@@ -705,16 +705,9 @@ VOID PhMipCalculateWindowRectangle(
             HWND trayWindow;
             RECT taskbarRect;
 
-            //APPBARDATA appbarData = { sizeof(APPBARDATA) };
-            //
-            //if (SHAppBarMessage(ABM_GETTASKBARPOS, &appbarData))
-            //{
-            //    taskbarRect = appbarData.rc;
-            //}
-
             // The taskbar probably has auto-hide enabled. We need to adjust for that.
 
-            if ((trayWindow = GetShellWindow()) && // trayWindow = FindWindow(L"Shell_TrayWnd", NULL)
+            if ((trayWindow = FindWindow(L"Shell_TrayWnd", NULL)) &&
                 GetMonitorInfo(MonitorFromWindow(trayWindow, MONITOR_DEFAULTTOPRIMARY), &monitorInfo) && // Just in case
                 GetWindowRect(trayWindow, &taskbarRect))
             {
