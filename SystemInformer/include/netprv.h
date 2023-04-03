@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_NETPRV_H
 #define PH_NETPRV_H
 
@@ -139,13 +151,13 @@ typedef ULONG (WINAPI *_GetExtendedUdpTable)(
 //    _In_opt_ ULONG HeapFlags
 //    );
 
-DECLSPEC_IMPORT ULONG WINAPI InternalGetBoundTcpEndpointTable(
+typedef ULONG (WINAPI *_InternalGetBoundTcpEndpointTable)(
     _Out_ PVOID* BoundTcpTable, // PMIB_TCPTABLE2
     _In_ PVOID HeapHandle,
     _In_opt_ ULONG HeapFlags
     );
 
-DECLSPEC_IMPORT ULONG WINAPI InternalGetBoundTcp6EndpointTable(
+typedef ULONG (WINAPI *_InternalGetBoundTcp6EndpointTable)(
     _Out_ PVOID* BoundTcpTable, // PMIB_TCP6TABLE2
     _In_ PVOID HeapHandle,
     _In_opt_ ULONG HeapFlags

@@ -97,6 +97,9 @@ static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 static BOOLEAN NetworkImportDone = FALSE;
 static _GetExtendedTcpTable GetExtendedTcpTable_I = NULL;
 static _GetExtendedUdpTable GetExtendedUdpTable_I = NULL;
+static _InternalGetBoundTcpEndpointTable GetBoundTcpEndpointTable_I = NULL;
+static _InternalGetBoundTcp6EndpointTable GetBoundTcp6EndpointTable_I = NULL;
+
 BOOLEAN PhNetworkProviderInitialization(
     VOID
     )
@@ -690,6 +693,8 @@ VOID PhNetworkProviderUpdate(
         {
             GetExtendedTcpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
             GetExtendedUdpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
+            GetBoundTcpEndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcpEndpointTable", 0);
+            GetBoundTcp6EndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcp6EndpointTable", 0);
         }
 
         NetworkImportDone = TRUE;
@@ -1153,11 +1158,11 @@ BOOLEAN PhGetNetworkConnections(
         udp6Table = NULL;
     }
 
-    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5)
+    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5 && GetBoundTcpEndpointTable_I && GetBoundTcp6EndpointTable_I)
     {
         // Bound TCP IPv4
 
-        if (InternalGetBoundTcpEndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        if (GetBoundTcpEndpointTable_I(&table, PhHeapHandle, 0) == NO_ERROR)
         {
             boundTcpTable = table;
             count += boundTcpTable->dwNumEntries;
@@ -1169,7 +1174,7 @@ BOOLEAN PhGetNetworkConnections(
 
         // Bound TCP IPv6
 
-        if (InternalGetBoundTcp6EndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        if (GetBoundTcp6EndpointTable_I(&table, PhHeapHandle, 0) == NO_ERROR)
         {
             boundTcp6Table = table;
             count += boundTcp6Table->dwNumEntries;
