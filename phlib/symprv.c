@@ -1064,7 +1064,7 @@ PPH_SYMBOL_MODULE PhpCreateSymbolModule(
 
     if (symbolModule->Machine == IMAGE_FILE_MACHINE_ARM64)
     {
-        if (NT_SUCCESS(PhLoadRemoteMappedImage(ProcessHandle, (PVOID)BaseAddress, &remoteMappedImage)))
+        if (NT_SUCCESS(PhLoadRemoteMappedImage(ProcessHandle, (PVOID)BaseAddress, Size, &remoteMappedImage)))
         {
             if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC &&
                 remoteMappedImage.NtHeaders->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64)
