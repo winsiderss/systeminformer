@@ -100,6 +100,24 @@ PhGetTcpStateName(
 
 // iphlpapi imports
 
+typedef ULONG (WINAPI *_GetExtendedTcpTable)(
+    _Out_writes_bytes_opt_(*pdwSize) PVOID pTcpTable,
+    _Inout_ PULONG pdwSize,
+    _In_ BOOL bOrder,
+    _In_ ULONG ulAf,
+    _In_ TCP_TABLE_CLASS TableClass,
+    _In_ ULONG Reserved
+    );
+
+typedef ULONG (WINAPI *_GetExtendedUdpTable)(
+    _Out_writes_bytes_opt_(*pdwSize) PVOID pUdpTable,
+    _Inout_ PULONG pdwSize,
+    _In_ BOOL bOrder,
+    _In_ ULONG ulAf,
+    _In_ UDP_TABLE_CLASS TableClass,
+    _In_ ULONG Reserved
+    );
+
 //DECLSPEC_IMPORT ULONG WINAPI InternalGetTcpTableWithOwnerModule(
 //    _Out_ PVOID* Tcp4Table, // PMIB_TCPTABLE_OWNER_MODULE
 //    _In_ PVOID HeapHandle,
