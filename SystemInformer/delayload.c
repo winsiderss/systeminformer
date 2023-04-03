@@ -66,6 +66,14 @@ VOID PhDelayLoadImportRelease(
             PhDelayLoadOldProtection,
             &importSectionOldProtection
             );
+
+#ifdef _M_ARM64
+        NtFlushInstructionCache(
+            NtCurrentProcess(),
+            ImportDirectorySectionAddress,
+            ImportDirectorySectionSize
+            );
+#endif
     }
 
     PhReleaseQueuedLockExclusive(&PhDelayLoadImportLock);
