@@ -11,6 +11,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <procmtgn.h>
 
 typedef struct _MITIGATION_POLICY_ENTRY
@@ -196,6 +197,31 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
 
             if (context->SystemDllInitBlock && RTL_CONTAINS_FIELD(context->SystemDllInitBlock, context->SystemDllInitBlock->Size, MitigationOptionsMap))
             {
+                // TODO: Windows doesn't propagate these flags into the MitigationOptionsMap array. (dmex)
+                //if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
+                //{
+                //    PMITIGATION_POLICY_ENTRY entry;
+                //
+                //    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
+                //    entry->NonStandard = TRUE;
+                //    entry->ShortDescription = PhCreateString(L"Loader Integrity");
+                //    entry->LongDescription = PhCreateString(L"OS signing levels for dependent module loads are enabled.");
+                //
+                //    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
+                //}
+
+                //if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
+                //{
+                //    PMITIGATION_POLICY_ENTRY entry;
+                //
+                //    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
+                //    entry->NonStandard = TRUE;
+                //    entry->ShortDescription = PhCreateString(L"Module Tampering");
+                //    entry->LongDescription = PhCreateString(L"Module Tampering protection is enabled.");
+                //
+                //    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
+                //}
+
                 if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
@@ -228,30 +254,6 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                     entry->NonStandard = TRUE;
                     entry->ShortDescription = PhCreateString(L"Speculative store bypass");
                     entry->LongDescription = PhCreateString(L"Disables spectre mitigations for the process.");
-
-                    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
-                }
-
-                if (context->SystemDllInitBlock->MitigationOptionsMap.Map[1] & PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON)
-                {
-                    PMITIGATION_POLICY_ENTRY entry;
-
-                    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
-                    entry->NonStandard = TRUE;
-                    entry->ShortDescription = PhCreateString(L"Loader Integrity");
-                    entry->LongDescription = PhCreateString(L"OS signing levels for dependent module loads are enabled.");
-
-                    PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
-                }
-
-                if (!!((context->SystemDllInitBlock->MitigationOptionsMap.Map[1] >> 32) & PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON))
-                {
-                    PMITIGATION_POLICY_ENTRY entry;
-
-                    entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
-                    entry->NonStandard = TRUE;
-                    entry->ShortDescription = PhCreateString(L"Module Tampering");
-                    entry->LongDescription = PhCreateString(L"Module Tampering protection is enabled.");
 
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
