@@ -124,8 +124,9 @@
 #define PHPRTLC_CPUUSER 99
 #define PHPRTLC_GRANTEDACCESS 100
 #define PHPRTLC_TLSBITMAPDELTA 101
+#define PHPRTLC_REFERENCEDELTA 102
 
-#define PHPRTLC_MAXIMUM 102
+#define PHPRTLC_MAXIMUM 103
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -150,6 +151,7 @@
 #define PHPN_PRIORITYBOOST 0x80000
 #define PHPN_GRANTEDACCESS 0x100000
 #define PHPN_TLSBITMAPDELTA 0x200000
+#define PHPN_REFERENCEDELTA 0x200000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -219,6 +221,8 @@ typedef struct _PH_PROCESS_NODE
     BOOLEAN PriorityBoost;
     // TLS bitmap
     USHORT TlsBitmapCount;
+    // Reference count
+    ULONG ReferenceCount;
 
     PPH_STRING TooltipText;
     ULONG64 TooltipTextValidToTickCount;
@@ -284,6 +288,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING CpuUserText;
     PPH_STRING GrantedAccessText;
     PPH_STRING TlsBitmapDeltaText;
+    PPH_STRING ReferenceCountText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

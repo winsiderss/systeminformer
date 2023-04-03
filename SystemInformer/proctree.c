@@ -238,6 +238,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUUSER, FALSE, L"CPU (user)", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_GRANTEDACCESS, FALSE, L"Granted access (symbolic)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_TLSBITMAPDELTA, FALSE, L"Thread local storage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_REFERENCEDELTA, FALSE, L"References", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -670,6 +671,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->CpuUserText);
     PhClearReference(&ProcessNode->GrantedAccessText);
     PhClearReference(&ProcessNode->TlsBitmapDeltaText);
+    PhClearReference(&ProcessNode->ReferenceCountText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1642,7 +1644,30 @@ static VOID PhpUpdateProcessNodeTlsBitmapDelta(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_CODEPAGE;
+        ProcessNode->ValidMask |= PHPN_TLSBITMAPDELTA;
+    }
+}
+
+static VOID PhpUpdateProcessNodeObjectReferences(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_REFERENCEDELTA))
+    {
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
+        {
+            if (ProcessNode->ProcessItem->QueryHandle)
+            {
+                OBJECT_BASIC_INFORMATION basicInfo;
+
+                if (NT_SUCCESS(PhQueryObjectBasicInformation(ProcessNode->ProcessItem->QueryHandle, &basicInfo)))
+                {
+                    ProcessNode->ReferenceCount = basicInfo.HandleCount;
+                }
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_REFERENCEDELTA;
     }
 }
 
@@ -2414,8 +2439,15 @@ BEGIN_SORT_FUNCTION(TlsBitmapDelta)
 {
     PhpUpdateProcessNodeTlsBitmapDelta(node1);
     PhpUpdateProcessNodeTlsBitmapDelta(node2);
-
     sortResult = ushortcmp(node1->TlsBitmapCount, node2->TlsBitmapCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ReferenceDelta)
+{
+    PhpUpdateProcessNodeObjectReferences(node1);
+    PhpUpdateProcessNodeObjectReferences(node2);
+    sortResult = uintcmp(node1->ReferenceCount, node2->ReferenceCount);
 }
 END_SORT_FUNCTION
 
@@ -2561,6 +2593,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(CpuUser),
                         SORT_FUNCTION(GrantedAccess),
                         SORT_FUNCTION(TlsBitmapDelta),
+                        SORT_FUNCTION(ReferenceDelta),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3766,6 +3799,17 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         }
 
                         getCellText->Text = PhGetStringRef(node->TlsBitmapDeltaText);
+                    }
+                }
+                break;
+            case PHPRTLC_REFERENCEDELTA:
+                {
+                    PhpUpdateProcessNodeObjectReferences(node);
+
+                    if (node->ReferenceCount != 0)
+                    {
+                        PhMoveReference(&node->ReferenceCountText, PhFormatUInt64(node->ReferenceCount, FALSE));
+                        getCellText->Text = node->ReferenceCountText->sr;
                     }
                 }
                 break;
@@ -4985,10 +5029,10 @@ VOID PhpPopulateTableWithProcessNodes(
             // If this is the first column in the row, add some indentation.
             text = PhaCreateStringEx(
                 NULL,
-                getCellText.Text.Length + Level * sizeof(WCHAR) * sizeof(WCHAR)
+                getCellText.Text.Length + UInt32x32To64(Level, 2) * sizeof(WCHAR)
                 );
-            wmemset(text->Buffer, L' ', Level * sizeof(WCHAR));
-            memcpy(&text->Buffer[Level * sizeof(WCHAR)], getCellText.Text.Buffer, getCellText.Text.Length);
+            wmemset(text->Buffer, L' ', UInt32x32To64(Level, 2));
+            memcpy(&text->Buffer[UInt32x32To64(Level, 2)], getCellText.Text.Buffer, getCellText.Text.Length);
         }
 
         Table[*Index][i] = text;
