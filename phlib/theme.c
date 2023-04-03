@@ -344,6 +344,17 @@ VOID PhReInitializeWindowTheme(
     InvalidateRect(WindowHandle, NULL, FALSE);
 }
 
+#define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 19
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#ifndef DWMWA_CAPTION_COLOR
+#define DWMWA_CAPTION_COLOR 35
+#endif
+#ifndef DWMWA_SYSTEMBACKDROP_TYPE
+#define DWMWA_SYSTEMBACKDROP_TYPE 38
+#endif
+
 HRESULT PhSetWindowThemeAttribute(
     _In_ HWND WindowHandle,
     _In_ ULONG AttributeId,
@@ -381,17 +392,6 @@ VOID PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
     )
 {
-#define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 19
-#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
-#endif
-#ifndef DWMWA_CAPTION_COLOR
-#define DWMWA_CAPTION_COLOR 35
-#endif
-#ifndef DWMWA_SYSTEMBACKDROP_TYPE
-#define DWMWA_SYSTEMBACKDROP_TYPE 38
-#endif
-
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
         if (PhEnableThemeSupport)
@@ -427,6 +427,39 @@ VOID PhInitializeThemeWindowFrame(
         if (WindowsVersion >= WINDOWS_11_22H1)
         {
             PhSetWindowThemeAttribute(WindowHandle, DWMWA_SYSTEMBACKDROP_TYPE, &(ULONG){ 1 }, sizeof(ULONG));
+        }
+    }
+}
+
+VOID PhWindowThemeSetDarkMode(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableDarkMode
+    )
+{
+    if (EnableDarkMode && PhEnableThemeSupport) // ShouldAppsUseDarkMode_I()
+    {
+        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        //PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
+            {
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+            }
+        }
+    }
+    else
+    {
+        PhSetControlTheme(WindowHandle, L"Explorer");
+        //PhSetControlTheme(WindowHandle, L"ItemsView");
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+            {
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+            }
         }
     }
 }
@@ -627,10 +660,10 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //switch (PhpThemeColorMode)
             //{
             //case 0: // New colors
-            //    PhSetControlTheme(WindowHandle, L"");
+            //    PhWindowThemeSetDarkMode(WindowHandle, FALSE);
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
     }
     else if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
@@ -646,8 +679,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(tooltipWindow, L"");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-            PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+            PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
         }
 
         if (PhEnableThemeListviewBorder)
@@ -682,15 +715,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             HWND tooltipWindow = TreeView_GetToolTips(WindowHandle);
 
-            //switch (PhpThemeColorMode)
-            //{
-            //case 0: // New colors
-            //    PhSetControlTheme(WindowHandle, L"explorer");
-            //    PhSetControlTheme(tooltipWindow, L"");
-            //    break;
-            //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-            PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+            PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
         }
 
         TreeView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor);// RGB(30, 30, 30));
@@ -715,7 +741,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         //    break;
         //case 1: // Old colors
         SendMessage(WindowHandle, EM_SETBKGNDCOLOR, 0, RGB(30, 30, 30));
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         //InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
@@ -731,8 +757,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
         if (PhEnableThemeListviewBorder)
@@ -765,7 +791,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"explorer");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
         PhInitializeWindowThemeListboxControl(WindowHandle);
@@ -783,7 +809,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
 
             if (info.hwndList)
             {
-                PhSetControlTheme(info.hwndList, L"DarkMode_Explorer");
+                PhWindowThemeSetDarkMode(info.hwndList, TRUE);
             }
         }
 
@@ -802,7 +828,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"explorer");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
         PhInitializeWindowThemeACLUI(WindowHandle);
@@ -838,7 +864,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"explorer");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
         //switch (PhpThemeColorMode)
@@ -863,7 +889,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
     }
     else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
@@ -876,7 +902,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
         //    break;
         //case 1: // Old colors
         TreeNew_ThemeSupport(WindowHandle, TRUE);
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        PhWindowThemeSetDarkMode(WindowHandle, TRUE);
     }
     else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
     {
