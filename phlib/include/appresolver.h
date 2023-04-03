@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2018
+ *     dmex    2017-2023
  *
  */
 
@@ -78,10 +78,12 @@ PPH_LIST PhGetPackageAssetsFromResourceFile(
 typedef struct _PH_APPUSERMODELID_ENUM_ENTRY
 {
     PPH_STRING AppUserModelId;
-    PPH_STRING PackageDisplayName;
     PPH_STRING PackageName;
+    PPH_STRING PackageDisplayName;
+    PPH_STRING PackageFamilyName;
     PPH_STRING PackageInstallPath;
     PPH_STRING PackageFullName;
+    PPH_STRING PackageVersion;
     PPH_STRING SmallLogoPath;
 } PH_APPUSERMODELID_ENUM_ENTRY, *PPH_APPUSERMODELID_ENUM_ENTRY;
 
@@ -249,6 +251,36 @@ PhGetProcessSystemIdentification(
     _In_ HANDLE ProcessId,
     _Out_ PPH_STRING* SystemIdForPublisher,
     _Out_ PPH_STRING* SystemIdForUser
+    );
+
+PHLIBAPI
+PPH_LIST
+NTAPI
+PhEnumPackageApplicationUserModelIds(
+    VOID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDestroyEnumPackageApplicationUserModelIds(
+    _In_ PPH_LIST PackageList
+    );
+
+typedef LONG (WINAPI* _OpenPackageInfoByFullNameForUser)(
+    _In_opt_ PSID userSid,
+    _In_ PCWSTR packageFullName,
+    _Reserved_ const UINT32 reserved,
+    _Out_ PHANDLE packageInfoReference // PACKAGE_INFO_REFERENCE
+    );
+typedef LONG (WINAPI* _GetPackageApplicationIds)(
+    _In_ HANDLE packageInfoReference, // PACKAGE_INFO_REFERENCE
+    _Inout_ PUINT32 bufferLength,
+    _Out_writes_bytes_opt_(*bufferLength) PBYTE buffer,
+    _Out_opt_ PUINT32 count
+    );
+typedef LONG (WINAPI* _ClosePackageInfo)(
+    _In_ HANDLE packageInfoReference // PACKAGE_INFO_REFERENCE
     );
 
 #pragma region Activation Factory

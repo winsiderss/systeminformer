@@ -789,3 +789,436 @@ FLOAT PhGetDisplayLogicalDpi(
 }
 
 #pragma endregion
+
+#pragma region Package Manager
+
+#include <Windows.Management.Deployment.h>
+
+// 9a7d4b65-5e8f-4fc7-a2e5-7f6925cb8b53
+DEFINE_GUID(IID_IPackageManager, 0x9A7D4B65, 0x5E8F, 0x4FC7, 0xA2, 0xE5, 0x7F, 0x69, 0x25, 0xCB, 0x8B, 0x53);
+// a6612fb6-7688-4ace-95fb-359538e7aa01
+DEFINE_GUID(IID_IPackage2, 0xA6612FB6, 0x7688, 0x4ACE, 0x95, 0xFB, 0x35, 0x95, 0x38, 0xE7, 0xAA, 0x01);
+// 2c584f7b-ce2a-4be6-a093-77cfbb2a7ea1
+DEFINE_GUID(IID_IPackage8, 0x2c584f7b, 0xce2a, 0x4be6, 0xa0, 0x93, 0x77, 0xcf, 0xbb, 0x2a, 0x7e, 0xa1);
+// d0a618ad-bf35-42ac-ac06-86eeeb41d04b
+DEFINE_GUID(IID_IAppListEntry2, 0xd0a618ad, 0xbf35, 0x42ac, 0xac, 0x06, 0x86, 0xee, 0xeb, 0x41, 0xd0, 0x4b);
+// cf7f59b3-6a09-4de8-a6c0-5792d56880d1
+DEFINE_GUID(IID_IAppInfo, 0xcf7f59b3, 0x6a09, 0x4de8, 0xa6, 0xc0, 0x57, 0x92, 0xd5, 0x68, 0x80, 0xd1);
+// 4207a996-ca2f-42f7-bde8-8b10457a7f30
+DEFINE_GUID(IID_IStorageItem, 0x4207a996, 0xca2f, 0x42f7, 0xbd, 0xe8, 0x8b, 0x10, 0x45, 0x7a, 0x7f, 0x30);
+
+static _OpenPackageInfoByFullNameForUser OpenPackageInfoByFullNameForUser_I = NULL;
+static _GetPackageApplicationIds GetPackageApplicationIds_I = NULL;
+static _ClosePackageInfo ClosePackageInfo_I = NULL;
+
+static BOOLEAN PhPackageImportsInitialized(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN initialized = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetLoaderEntryDllBaseZ(L"kernelbase.dll"))
+        {
+            OpenPackageInfoByFullNameForUser_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenPackageInfoByFullNameForUser", 0);
+            GetPackageApplicationIds_I = PhGetDllBaseProcedureAddress(baseAddress, "GetPackageApplicationIds", 0);
+            ClosePackageInfo_I = PhGetDllBaseProcedureAddress(baseAddress, "ClosePackageInfo", 0);
+        }
+
+        if (
+            OpenPackageInfoByFullNameForUser_I && 
+            GetPackageApplicationIds_I && 
+            ClosePackageInfo_I
+            )
+        {
+            initialized = TRUE;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return initialized;
+}
+
+_Success_(return)
+BOOLEAN PhGetPackageApplicationIds(
+    _In_ PCWSTR PackageFullName,
+    _Out_ PWSTR** ApplicationUserModelIds,
+    _Out_ PULONG ApplicationUserModelIdsCount
+    )
+{
+    BOOLEAN success = FALSE;
+    ULONG status;
+    HANDLE packageHandle;
+    ULONG bufferCount = 0;
+    ULONG bufferLength = 0;
+    PBYTE buffer = NULL;
+
+    if (!PhPackageImportsInitialized())
+        return FALSE;
+
+    status = OpenPackageInfoByFullNameForUser_I(
+        NULL,
+        PackageFullName, 
+        0, 
+        &packageHandle
+        );
+
+    if (status != ERROR_SUCCESS)
+        return FALSE;
+
+    status = GetPackageApplicationIds_I(
+        packageHandle,
+        &bufferLength,
+        NULL,
+        NULL
+        );
+
+    if (status != ERROR_INSUFFICIENT_BUFFER)
+        goto CleanupExit;
+
+    buffer = PhAllocate(bufferLength);
+    memset(buffer, 0, bufferLength);
+
+    status = GetPackageApplicationIds_I(
+        packageHandle,
+        &bufferLength,
+        buffer,
+        &bufferCount
+        );
+
+    if (status != ERROR_SUCCESS)
+        goto CleanupExit;
+
+    success = TRUE;
+
+CleanupExit:
+
+    ClosePackageInfo_I(packageHandle);
+
+    if (success)
+    {
+        *ApplicationUserModelIds = (PWSTR*)buffer;
+        *ApplicationUserModelIdsCount = bufferCount;
+    }
+    else
+    {
+        if (buffer)
+        {
+            PhFree(buffer);
+        }
+    }
+
+    return success;
+}
+
+typedef enum _PH_QUERY_PACKAGE_INFO_TYPE
+{
+    PH_QUERY_PACKAGE_INFO_NAME = 1,
+    PH_QUERY_PACKAGE_INFO_FULLNAME = 2,
+    PH_QUERY_PACKAGE_INFO_FAMILYNAME = 4,
+    PH_QUERY_PACKAGE_INFO_DISPLAYNAME = 8,
+    PH_QUERY_PACKAGE_INFO_VERSION = 16,
+    PH_QUERY_PACKAGE_INFO_LOGO = 32,
+    PH_QUERY_PACKAGE_INFO_LOCATION = 64,
+} PH_QUERY_PACKAGE_INFO_TYPE;
+
+BOOLEAN PhQueryApplicationModelPackageInformation(
+    _In_ PPH_LIST PackageList,
+    _In_ __x_ABI_CWindows_CApplicationModel_CIPackage* AppPackage,
+    _In_ __x_ABI_CWindows_CApplicationModel_CIPackage2* AppPackage2,
+    _In_ PH_QUERY_PACKAGE_INFO_TYPE FilterType
+    )
+{
+    __x_ABI_CWindows_CStorage_CIStorageFolder* appPackageFolder;
+    __x_ABI_CWindows_CStorage_CIStorageItem* appPackageFolderItem;
+    __x_ABI_CWindows_CApplicationModel_CIPackageId* appPackageID;
+    __x_ABI_CWindows_CFoundation_CIUriRuntimeClass* appPackageLogo;
+    PPH_STRING packageInstallLocationString = NULL;
+    PPH_STRING packageNameString = NULL;
+    PPH_STRING packageFullNameString = NULL;
+    PPH_STRING packageFamilyNameString = NULL;
+    PPH_STRING packageDisplayNameString = NULL;
+    PPH_STRING packageLogoString = NULL;
+    PPH_STRING packageVersionString = NULL;
+    HSTRING stringHandle = NULL;
+
+    if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackage_get_Id(AppPackage, &appPackageID)))
+    {
+        if (FlagOn(FilterType, PH_QUERY_PACKAGE_INFO_NAME))
+        {
+            if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackageId_get_Name(appPackageID, &stringHandle)))
+            {
+                if (PhGetWindowsRuntimeStringLength(stringHandle))
+                {
+                    packageNameString = PhCreateStringFromWindowsRuntimeString(stringHandle);
+                }
+
+                PhDeleteWindowsRuntimeString(stringHandle);
+            }
+        }
+
+        if (FlagOn(FilterType, PH_QUERY_PACKAGE_INFO_FULLNAME))
+        {
+            if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackageId_get_FullName(appPackageID, &stringHandle)))
+            {
+                if (PhGetWindowsRuntimeStringLength(stringHandle))
+                {
+                    packageFullNameString = PhCreateStringFromWindowsRuntimeString(stringHandle);
+                }
+
+                PhDeleteWindowsRuntimeString(stringHandle);
+            }
+        }
+
+        if (FlagOn(FilterType, PH_QUERY_PACKAGE_INFO_FAMILYNAME))
+        {
+            if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackageId_get_FamilyName(appPackageID, &stringHandle)))
+            {
+                if (PhGetWindowsRuntimeStringLength(stringHandle))
+                {
+                    packageFamilyNameString = PhCreateStringFromWindowsRuntimeString(stringHandle);
+                }
+
+                PhDeleteWindowsRuntimeString(stringHandle);
+            }
+        }
+
+        if (FlagOn(FilterType, PH_QUERY_PACKAGE_INFO_VERSION))
+        {
+            __x_ABI_CWindows_CApplicationModel_CPackageVersion appPackageVersion = { 0 };
+
+            if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackageId_get_Version(appPackageID, &appPackageVersion)))
+            {
+                PH_FORMAT format[7];
+
+                PhInitFormatU(&format[0], appPackageVersion.Major);
+                PhInitFormatC(&format[1], L'.');
+                PhInitFormatU(&format[2], appPackageVersion.Minor);
+                PhInitFormatC(&format[3], L'.');
+                PhInitFormatU(&format[4], appPackageVersion.Revision);
+                PhInitFormatC(&format[5], L'.');
+                PhInitFormatU(&format[6], appPackageVersion.Build);
+
+                packageVersionString = PhFormat(format,RTL_NUMBER_OF(format), 0);
+            }
+        }
+
+        __x_ABI_CWindows_CApplicationModel_CIPackageId_Release(appPackageID);
+    }
+
+    if (FlagOn(FilterType, PH_QUERY_PACKAGE_INFO_DISPLAYNAME))
+    {
+        if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackage2_get_DisplayName(AppPackage2, &stringHandle)))
+        {
+            if (PhGetWindowsRuntimeStringLength(stringHandle))
+            {
+                packageDisplayNameString = PhCreateStringFromWindowsRuntimeString(stringHandle);
+            }
+
+            PhDeleteWindowsRuntimeString(stringHandle);
+        }
+    }
+
+    if (FlagOn(FilterType, PH_QUERY_PACKAGE_INFO_LOGO))
+    {
+        if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackage2_get_Logo(AppPackage2, &appPackageLogo)))
+        {
+            if (SUCCEEDED(__x_ABI_CWindows_CFoundation_CIUriRuntimeClass_get_RawUri(appPackageLogo, &stringHandle)))
+            {
+                packageLogoString = PhCreateStringFromWindowsRuntimeString(stringHandle);
+                PhDeleteWindowsRuntimeString(stringHandle);
+            }
+
+            __x_ABI_CWindows_CFoundation_CIUriRuntimeClass_Release(appPackageLogo);
+        }
+    }
+
+    if (FlagOn(FilterType, PH_QUERY_PACKAGE_INFO_LOCATION))
+    {
+        if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackage_get_InstalledLocation(AppPackage, &appPackageFolder)))
+        {
+            if (SUCCEEDED(__x_ABI_CWindows_CStorage_CIStorageFolder_QueryInterface(appPackageFolder, &IID_IStorageItem, &appPackageFolderItem)))
+            {
+                if (SUCCEEDED(__x_ABI_CWindows_CStorage_CIStorageItem_get_Path(appPackageFolderItem, &stringHandle)))
+                {
+                    if (PhGetWindowsRuntimeStringLength(stringHandle))
+                    {
+                        packageInstallLocationString = PhCreateStringFromWindowsRuntimeString(stringHandle);
+                    }
+                    PhDeleteWindowsRuntimeString(stringHandle);
+                }
+
+                __x_ABI_CWindows_CStorage_CIStorageItem_Release(appPackageFolderItem);
+            }
+
+            __x_ABI_CWindows_CStorage_CIStorageFolder_Release(appPackageFolder);
+        }
+    }
+
+    if (packageFullNameString)
+    {
+        ULONG applicationUserModelIdsCount;
+        PWSTR* applicationUserModelIdsBuffer;
+
+        if (PhGetPackageApplicationIds(
+            PhGetString(packageFullNameString),
+            &applicationUserModelIdsBuffer,
+            &applicationUserModelIdsCount
+            ))
+        {
+            for (ULONG i = 0; i < applicationUserModelIdsCount; ++i)
+            {
+                PPH_APPUSERMODELID_ENUM_ENTRY entry;
+
+                entry = PhAllocateZero(sizeof(PH_APPUSERMODELID_ENUM_ENTRY));
+                entry->AppUserModelId = PhCreateString(applicationUserModelIdsBuffer[i]);
+                PhSetReference(&entry->PackageName, packageNameString);
+                PhSetReference(&entry->PackageDisplayName, packageDisplayNameString);
+                PhSetReference(&entry->PackageFamilyName, packageFamilyNameString);
+                PhSetReference(&entry->PackageInstallPath, packageInstallLocationString);
+                PhSetReference(&entry->PackageFullName, packageFullNameString);
+                PhSetReference(&entry->PackageVersion, packageVersionString);
+                PhSetReference(&entry->SmallLogoPath, packageLogoString);
+
+                PhAddItemList(PackageList, entry);
+            }
+        }
+    }
+
+    PhClearReference(&packageLogoString);
+    PhClearReference(&packageVersionString);
+    PhClearReference(&packageFullNameString);
+    PhClearReference(&packageInstallLocationString);
+    PhClearReference(&packageFamilyNameString);
+    PhClearReference(&packageDisplayNameString);
+    PhClearReference(&packageNameString);
+
+    return TRUE;
+}
+
+PPH_LIST PhEnumPackageApplicationUserModelIds(
+    VOID
+    )
+{
+    HRESULT status;
+    PPH_LIST list = NULL;
+    __x_ABI_CWindows_CManagement_CDeployment_CIPackageManager* packageManager = NULL;
+    __FIIterable_1_Windows__CApplicationModel__CPackage* enumPackages = NULL;
+    __FIIterator_1_Windows__CApplicationModel__CPackage* enumPackage = NULL;
+    __x_ABI_CWindows_CApplicationModel_CIPackage* currentPackage = NULL;
+    __x_ABI_CWindows_CApplicationModel_CIPackage2* currentPackage2 = NULL;
+    boolean haveCurrentPackage = FALSE;
+
+    status = PhActivateInstance(
+        L"AppXDeploymentClient.dll", 
+        RuntimeClass_Windows_Management_Deployment_PackageManager, 
+        &IID_IPackageManager,
+        &packageManager
+        );
+
+    if (FAILED(status))
+        return NULL;
+
+    if (PhGetOwnTokenAttributes().Elevated)
+        status = __x_ABI_CWindows_CManagement_CDeployment_CIPackageManager_FindPackages(packageManager, &enumPackages);
+    else
+        status = __x_ABI_CWindows_CManagement_CDeployment_CIPackageManager_FindPackagesByUserSecurityId(packageManager, NULL, &enumPackages);
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = __FIIterable_1_Windows__CApplicationModel__CPackage_First(enumPackages, &enumPackage);
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = __FIIterator_1_Windows__CApplicationModel__CPackage_get_HasCurrent(enumPackage, &haveCurrentPackage);
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    list = PhCreateList(10);
+
+    while (haveCurrentPackage)
+    {
+        status = __FIIterator_1_Windows__CApplicationModel__CPackage_get_Current(enumPackage, &currentPackage);
+
+        if (SUCCEEDED(status))
+        {
+            status = __x_ABI_CWindows_CApplicationModel_CIPackage_QueryInterface(currentPackage, &IID_IPackage2, &currentPackage2);
+
+            if (SUCCEEDED(status))
+            {
+                PhQueryApplicationModelPackageInformation(
+                    list,
+                    currentPackage,
+                    currentPackage2,
+                    PH_QUERY_PACKAGE_INFO_NAME | PH_QUERY_PACKAGE_INFO_FULLNAME | PH_QUERY_PACKAGE_INFO_FAMILYNAME | 
+                    PH_QUERY_PACKAGE_INFO_DISPLAYNAME | PH_QUERY_PACKAGE_INFO_LOGO
+                    );
+
+                // Note: GetPackageApplicationIds returns all identifiers while the IAppListEntry2_get_AppUserModelId interface only returns a single entry (dmex)
+                //if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackage_QueryInterface(currentPackage, &IID_IPackage8, &currentPackage8)))
+                //if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CIPackage8_GetAppListEntries(currentPackage8, &packageAppListEntryArray)))
+                //if (SUCCEEDED(__FIVectorView_1_Windows__CApplicationModel__CCore__CAppListEntry_get_Size(packageAppListEntryArray, &packageAppListEntryCount)))
+                //for (UINT32 i = 0; i < packageAppListEntryCount; i++)
+                //if (SUCCEEDED(__FIVectorView_1_Windows__CApplicationModel__CCore__CAppListEntry_GetAt(packageAppListEntryArray, i, &packageAppListEntry)))
+                //if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CCore_CIAppListEntry_QueryInterface(packageAppListEntry, &IID_IAppListEntry2, &packageAppListEntry2)))
+                //if (SUCCEEDED(__x_ABI_CWindows_CApplicationModel_CCore_CIAppListEntry2_get_AppUserModelId(packageAppListEntry2, &packageAppUserModelIdString)))
+
+                __x_ABI_CWindows_CApplicationModel_CIPackage2_Release(currentPackage2);
+            }
+
+            __FIIterator_1_Windows__CApplicationModel__CPackage_Release(currentPackage);
+        }
+
+        if (FAILED(status))
+            break;
+
+        status = __FIIterator_1_Windows__CApplicationModel__CPackage_MoveNext(enumPackage, &haveCurrentPackage);
+
+        if (FAILED(status))
+            break;
+    }
+
+CleanupExit:
+
+    if (enumPackages)
+        __FIIterable_1_Windows__CApplicationModel__CPackage_Release(enumPackages);
+    __x_ABI_CWindows_CManagement_CDeployment_CIPackageManager_Release(packageManager);
+
+    return list;
+}
+
+VOID PhDestroyEnumPackageApplicationUserModelIds(
+    _In_ PPH_LIST PackageList
+    )
+{
+    if (!PackageList)
+        return;
+
+    for (ULONG i = 0; i < PackageList->Count; i++)
+    {
+        PPH_APPUSERMODELID_ENUM_ENTRY entry = PackageList->Items[i];
+
+        PhClearReference(&entry->AppUserModelId);
+        PhClearReference(&entry->PackageName);
+        PhClearReference(&entry->PackageDisplayName);
+        PhClearReference(&entry->PackageFamilyName);
+        PhClearReference(&entry->PackageInstallPath);
+        PhClearReference(&entry->PackageFullName);
+        PhClearReference(&entry->PackageVersion);
+        PhClearReference(&entry->SmallLogoPath);
+
+        PhFree(entry);
+    }
+
+    PhDereferenceObject(PackageList);
+}
+
+#pragma endregion
