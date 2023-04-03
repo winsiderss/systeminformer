@@ -4164,6 +4164,18 @@ RtlGetImageFileMachines(
 
 #if (PHNT_VERSION >= PHNT_REDSTONE2)
 
+#ifndef PHNT_NO_INLINE_SYSTEMROOT
+// rev
+FORCEINLINE
+PWSTR
+NTAPI
+RtlGetNtSystemRoot(
+    VOID
+    )
+{
+    return USER_SHARED_DATA->NtSystemRoot;
+}
+#else
 // private
 NTSYSAPI
 PWSTR
@@ -4171,7 +4183,20 @@ NTAPI
 RtlGetNtSystemRoot(
     VOID
     );
+#endif
 
+#ifndef PHNT_NO_INLINE_LONGPATH
+// rev
+FORCEINLINE
+BOOLEAN
+NTAPI
+RtlAreLongPathsEnabled(
+    VOID
+    )
+{
+    return NtCurrentPeb()->IsLongPathAwareProcess;
+}
+#else
 // rev
 NTSYSAPI
 BOOLEAN
@@ -4179,6 +4204,7 @@ NTAPI
 RtlAreLongPathsEnabled(
     VOID
     );
+#endif
 
 #endif
 
