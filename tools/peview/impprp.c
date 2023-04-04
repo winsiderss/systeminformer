@@ -23,6 +23,7 @@ typedef enum _PV_IMPORT_TREE_COLUMN_ITEM
     PV_IMPORT_TREE_COLUMN_ITEM_DLL,
     PV_IMPORT_TREE_COLUMN_ITEM_NAME,
     PV_IMPORT_TREE_COLUMN_ITEM_HINT,
+    PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL,
     PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM
 } PV_IMPORT_TREE_COLUMN_ITEM;
 
@@ -38,6 +39,7 @@ typedef struct _PV_IMPORT_NODE
     PPH_STRING DllString;
     PPH_STRING NameString;
     PPH_STRING HintString;
+    PPH_STRING SymbolString;
 
     PH_STRINGREF TextCache[PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM];
 } PV_IMPORT_NODE, *PPV_IMPORT_NODE;
@@ -319,10 +321,7 @@ VOID PvpProcessImports(
 
                         if (importName->Buffer[0] == L'?')
                         {
-                            PPH_STRING undecoratedName;
-
-                            if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, importName->Buffer))
-                                PhMoveReference(&importName, undecoratedName);
+                            importNode->SymbolString = PhUndecorateSymbolName(PvSymbolProvider, importName->Buffer);
                         }
 
                         importNode->NameString = importName;
@@ -641,9 +640,9 @@ VOID PhLoadSettingsImportList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"ImageImportsTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ImageImportsTreeListSort");
-    //Context->Flags = PhGetIntegerSetting(L"ImageImportsTreeListFlags");
+    settings = PhGetStringSetting(L"ImageImportTreeListColumns");
+    sortSettings = PhGetStringSetting(L"ImageImportTreeListSort");
+    //Context->Flags = PhGetIntegerSetting(L"ImageImportTreeListFlags");
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -661,8 +660,8 @@ VOID PhSaveSettingsImportList(
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
     //PhSetIntegerSetting(L"ImageImportsTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"ImageImportsTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ImageImportsTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(L"ImageImportTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"ImageImportTreeListSort", &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -913,6 +912,9 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
             case PV_IMPORT_TREE_COLUMN_ITEM_HINT:
                 getCellText->Text = PhGetStringRef(node->HintString);
                 break;
+            case PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL:
+                getCellText->Text = PhGetStringRef(node->SymbolString);
+                break;
             default:
                 return FALSE;
             }
@@ -1072,6 +1074,7 @@ VOID PvInitializeImportTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_DLL, TRUE, L"DLL", 80, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_DLL, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_NAME, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_HINT, TRUE, L"Hint", 50, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_HINT, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL, TRUE, L"Undecorated name", 150, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL, 0, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);

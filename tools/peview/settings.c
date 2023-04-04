@@ -42,10 +42,10 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageGeneralPropertiesListViewGroupStates", L"");
     PhpAddStringSetting(L"ImageDirectoryTreeListColumns", L"");
     PhpAddStringSetting(L"ImageDirectoryTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddStringSetting(L"ImageExportsTreeListColumns", L"");
-    PhpAddStringSetting(L"ImageExportsTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddStringSetting(L"ImageImportsTreeListColumns", L"");
-    PhpAddStringSetting(L"ImageImportsTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddStringSetting(L"ImageExportTreeListColumns", L"");
+    PhpAddStringSetting(L"ImageExportTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddStringSetting(L"ImageImportTreeListColumns", L"");
+    PhpAddStringSetting(L"ImageImportTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageSectionsTreeListColumns", L"");
     PhpAddStringSetting(L"ImageSectionsTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"ImageSectionsTreeListFlags", L"0");
