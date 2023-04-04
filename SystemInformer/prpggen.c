@@ -14,6 +14,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 
+#include <emenu.h>
 #include <mapimg.h>
 #include <secedit.h>
 #include <verify.h>
@@ -570,6 +571,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_MITIGATION), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWMITIGATION), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INTEGRITY), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESS), dialogItem, PH_ANCHOR_ALL);
@@ -710,6 +712,136 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         NULL,
                         processItem->ProcessId
                         );
+                }
+                break;
+            case IDC_INTEGRITY:
+                {
+                    NTSTATUS status;
+                    HANDLE processHandle = NULL;
+                    ACCESS_MASK mandatoryPolicy = 0;
+                    PPH_EMENU_ITEM selectedItem;
+                    PPH_EMENU menu;
+                    RECT rect;
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect);
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"No-Write-Up", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"No-Read-Up", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"No-Execute-Up", NULL, NULL), ULONG_MAX);
+
+                    status = PhOpenProcess(
+                        &processHandle, 
+                        READ_CONTROL | WRITE_OWNER,
+                        processItem->ProcessId
+                        );
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        status = PhOpenProcess(
+                            &processHandle,
+                            READ_CONTROL,
+                            processItem->ProcessId
+                            );
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        status = PhGetProcessMandatoryPolicy(processHandle, &mandatoryPolicy);
+
+                        if (NT_SUCCESS(status))
+                        {
+                            if (FlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP))
+                            {
+                                PhSetFlagsEMenuItem(menu, 1, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                            }
+
+                            if (FlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_READ_UP))
+                            {
+                                PhSetFlagsEMenuItem(menu, 2, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                            }
+
+                            if (FlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP))
+                            {
+                                PhSetFlagsEMenuItem(menu, 3, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                            }
+                        }
+                    }
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        for (ULONG i = 0; i < menu->Items->Count; i++)
+                        {
+                            PhSetDisabledEMenuItem(menu->Items->Items[i]);
+                        }
+                    }
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id != ULONG_MAX)
+                    {
+                        if (PhShowConfirmMessage(
+                            hwndDlg,
+                            L"update",
+                            L"the integrity label",
+                            L"Altering the integrity label for a process may produce undesirable results, instability or data corruption.",
+                            FALSE
+                            ))
+                        {
+                            switch (selectedItem->Id)
+                            {
+                            case 1:
+                                {
+                                    if (BooleanFlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP))
+                                        ClearFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP);
+                                    else
+                                        SetFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP);
+
+                                    status = PhSetProcessMandatoryPolicy(processHandle, mandatoryPolicy);
+                                }
+                                break;
+                            case 2:
+                                {
+                                    if (BooleanFlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_READ_UP))
+                                        ClearFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_READ_UP);
+                                    else
+                                        SetFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_READ_UP);
+
+                                    status = PhSetProcessMandatoryPolicy(processHandle, mandatoryPolicy);
+                                }
+                                break;
+                            case 3:
+                                {
+                                    if (BooleanFlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP))
+                                        ClearFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP);
+                                    else
+                                        SetFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP);
+
+                                    status = PhSetProcessMandatoryPolicy(processHandle, mandatoryPolicy);
+                                }
+                                break;
+                            }
+                        }
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to set the integrity label", status, 0);
+                        }
+                    }
+
+                    if (processHandle)
+                    {
+                        NtClose(processHandle);
+                    }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }
