@@ -114,7 +114,7 @@ typedef struct _PEB
     ULONG TlsBitmapBits[2];
 
     PVOID ReadOnlySharedMemoryBase;
-    PVOID SharedData; // HotpatchInformation
+    struct _SILO_USER_SHARED_DATA *SharedData; // HotpatchInformation
     PVOID *ReadOnlyStaticServerData;
 
     PVOID AnsiCodePageData; // PCPTABLEINFO
