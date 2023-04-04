@@ -429,7 +429,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
+            data.DefaultSortColumn = TREE_COLUMN_ITEM_TTL;
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 

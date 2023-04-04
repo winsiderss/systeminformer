@@ -830,8 +830,8 @@ BOOLEAN NTAPI WtcWaitTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
+            data.DefaultSortColumn = TREE_COLUMN_ITEM_TYPE;
+            data.DefaultSortOrder = NoSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
@@ -903,7 +903,7 @@ VOID WtcInitializeWaitTree(
 
     TreeNew_SetRedraw(hwnd, TRUE);
     TreeNew_SetTriState(hwnd, TRUE);
-    TreeNew_SetSort(hwnd, 0, NoSortOrder);
+    TreeNew_SetSort(hwnd, TREE_COLUMN_ITEM_TYPE, NoSortOrder);
 
     settings = PhGetStringSetting(SETTING_NAME_WCT_TREE_LIST_COLUMNS);
     PhCmLoadSettings(hwnd, &settings->sr);
