@@ -350,7 +350,14 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Module)
 {
-    sortResult = PhCompareString(node1->ModuleString, node2->ModuleString, TRUE);
+    if(!node1->ModuleString && node2->ModuleString)
+        sortResult = -1;
+    else if(node1->ModuleString && !node2->ModuleString)
+        sortResult = 1;
+    else if(!node1->ModuleString && !node2->ModuleString)
+        sortResult = 0;
+    else
+        sortResult = PhCompareString(node1->ModuleString, node2->ModuleString, TRUE);
 }
 END_SORT_FUNCTION
 
