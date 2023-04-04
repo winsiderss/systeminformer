@@ -2471,15 +2471,20 @@ typedef struct _JOBOBJECT_MEMORY_USAGE_INFORMATION_V2
 // private
 typedef struct _SILO_USER_SHARED_DATA
 {
-    ULONG64 ServiceSessionId;
+    ULONG ServiceSessionId;
     ULONG ActiveConsoleId;
     LONGLONG ConsoleSessionForegroundProcessId;
     NT_PRODUCT_TYPE NtProductType;
     ULONG SuiteMask;
-    ULONG SharedUserSessionId;
+    ULONG SharedUserSessionId; // since RS2
     BOOLEAN IsMultiSessionSku;
     WCHAR NtSystemRoot[260];
     USHORT UserModeGlobalLogger[16];
+    ULONG TimeZoneId; // since 21H2
+    LONG TimeZoneBiasStamp;
+    KSYSTEM_TIME TimeZoneBias;
+    LARGE_INTEGER TimeZoneBiasEffectiveStart;
+    LARGE_INTEGER TimeZoneBiasEffectiveEnd;
 } SILO_USER_SHARED_DATA, *PSILO_USER_SHARED_DATA;
 
 // private
