@@ -335,7 +335,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Text)
 {
-    sortResult = PhCompareString(node1->WindowText, node2->WindowText, TRUE);
+    sortResult = PhCompareStringWithNull(node1->WindowText, node2->WindowText, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -350,7 +350,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Module)
 {
-    sortResult = PhCompareString(node1->ModuleString, node2->ModuleString, TRUE);
+    sortResult = PhCompareStringWithNull(node1->ModuleString, node2->ModuleString, TRUE);
 }
 END_SORT_FUNCTION
 
