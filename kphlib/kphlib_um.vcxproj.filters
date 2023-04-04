@@ -15,16 +15,10 @@
     <ClInclude Include="include\kphmsgdyn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\kphmsgstatic.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\kphapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphlibbase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kphmsgfill.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphdyn.h">
