@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -1654,7 +1654,7 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
                 PhSetReference(&childNode->u.Assembly.DisplayName, assembly->DisplayName);
                 PhSetReference(&childNode->u.Assembly.FullyQualifiedAssemblyName, assembly->ModuleName);
                 childNode->u.Assembly.BaseAddress = assembly->BaseAddress;
-                childNode->StructureText = assembly->DisplayName->sr;
+                childNode->StructureText = PhGetStringRef(assembly->DisplayName);
                 PhSetReference(&childNode->PathText, assembly->ModuleName);
                 PhSetReference(&childNode->NativePathText, assembly->NativeFileName);
                 childNode->MvidText = PhFormatGuid(&assembly->Mvid);
