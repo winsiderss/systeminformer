@@ -284,8 +284,6 @@
     <ClInclude Include="include\kphlibbase.h" />
     <ClInclude Include="include\kphmsgdefs.h" />
     <ClInclude Include="include\kphmsgdyn.h" />
-    <ClInclude Include="include\kphmsgfill.h" />
-    <ClInclude Include="include\kphmsgstatic.h" />
     <ClInclude Include="include\kphdyn.h" />
   </ItemGroup>
   <ItemGroup>
