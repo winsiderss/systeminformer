@@ -515,7 +515,10 @@ BOOLEAN PhTimeToSecondsSince1980(
     time.QuadPart = time.QuadPart / PH_TICKS_PER_SEC;
 
     if (time.HighPart)
+    {
+        *ElapsedSeconds = 0;
         return FALSE;
+    }
 
     *ElapsedSeconds = time.LowPart;
     return TRUE;
@@ -536,7 +539,10 @@ BOOLEAN PhTimeToSecondsSince1970(
     time.QuadPart = time.QuadPart / PH_TICKS_PER_SEC;
 
     if (time.HighPart)
+    {
+        *ElapsedSeconds = 0;
         return FALSE;
+    }
 
     *ElapsedSeconds = time.LowPart;
     return TRUE;
