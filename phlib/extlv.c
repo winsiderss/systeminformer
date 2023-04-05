@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2012
- *     dmex    2017
+ *     dmex    2017-2023
  *
  */
 
@@ -534,7 +534,7 @@ VOID PhSetHeaderSortIcon(
     }
 }
 
-static INT PhpExtendedListViewCompareFunc(
+INT PhpExtendedListViewCompareFunc(
     _In_ LPARAM lParam1,
     _In_ LPARAM lParam2,
     _In_ LPARAM lParamSort
@@ -607,7 +607,7 @@ static INT PhpExtendedListViewCompareFunc(
     return 0;
 }
 
-static INT PhpExtendedListViewCompareFastFunc(
+INT PhpExtendedListViewCompareFastFunc(
     _In_ LPARAM lParam1,
     _In_ LPARAM lParam2,
     _In_ LPARAM lParamSort
@@ -664,7 +664,7 @@ static INT PhpExtendedListViewCompareFastFunc(
     return 0;
 }
 
-static FORCEINLINE INT PhpCompareListViewItems(
+FORCEINLINE INT PhpCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ INT X,
     _In_ INT Y,
@@ -674,13 +674,13 @@ static FORCEINLINE INT PhpCompareListViewItems(
     _In_ BOOLEAN EnableDefault
     )
 {
-    INT result = 0;
-
     if (
         Column < PH_MAX_COMPARE_FUNCTIONS &&
         Context->CompareFunctions[Column]
         )
     {
+        INT result;
+
         result = PhModifySort(
             Context->CompareFunctions[Column](XParam, YParam, Context->Context),
             Context->SortOrder
@@ -703,7 +703,7 @@ static FORCEINLINE INT PhpCompareListViewItems(
     }
 }
 
-static INT PhpDefaultCompareListViewItems(
+INT PhpDefaultCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ INT X,
     _In_ INT Y,
