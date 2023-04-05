@@ -9262,8 +9262,7 @@ VOID PhpInitializePredefineKeys(
 
     if (NT_SUCCESS(status = PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenUser)))
     {
-        stringSid.Buffer = stringSidBuffer;
-        stringSid.MaximumLength = sizeof(stringSidBuffer);
+        RtlInitEmptyUnicodeString(&stringSid, stringSidBuffer, sizeof(stringSidBuffer));
 
         status = RtlConvertSidToUnicodeString(
             &stringSid,
@@ -9278,7 +9277,8 @@ VOID PhpInitializePredefineKeys(
     {
         currentUserKeyName = &PhPredefineKeyNames[PH_KEY_CURRENT_USER_NUMBER];
         currentUserKeyName->Length = currentUserPrefix.Length + stringSid.Length;
-        currentUserKeyName->Buffer = PhAllocate(currentUserKeyName->Length + sizeof(UNICODE_NULL));
+        currentUserKeyName->MaximumLength = currentUserKeyName->Length + sizeof(UNICODE_NULL);
+        currentUserKeyName->Buffer = PhAllocate(currentUserKeyName->MaximumLength);
         memcpy(currentUserKeyName->Buffer, currentUserPrefix.Buffer, currentUserPrefix.Length);
         memcpy(&currentUserKeyName->Buffer[currentUserPrefix.Length / sizeof(WCHAR)], stringSid.Buffer, stringSid.Length);
     }
