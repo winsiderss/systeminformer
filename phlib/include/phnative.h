@@ -2870,6 +2870,21 @@ PhGetSystemLogicalProcessorInformation(
     _Out_ PULONG BufferLength
     );
 
+typedef struct _PH_LOGICAL_PROCESSOR_INFORMATION
+{
+    ULONG ProcessorCoreCount;
+    ULONG ProcessorNumaCount;
+    ULONG ProcessorLogicalCount;
+    ULONG ProcessorPackageCount;
+} PH_LOGICAL_PROCESSOR_INFORMATION, *PPH_LOGICAL_PROCESSOR_INFORMATION;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemLogicalProcessorRelationInformation(
+    _Out_ PPH_LOGICAL_PROCESSOR_INFORMATION LogicalProcessorInformation
+    );
+
 PHLIBAPI
 BOOLEAN
 NTAPI
