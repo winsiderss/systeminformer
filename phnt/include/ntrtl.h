@@ -8186,6 +8186,8 @@ RtlDecodeRemotePointer(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+
 // rev
 NTSYSAPI
 BOOLEAN
@@ -8193,6 +8195,8 @@ NTAPI
 RtlIsProcessorFeaturePresent(
     _In_ ULONG ProcessorFeature
     );
+
+#endif
 
 // rev
 NTSYSAPI
