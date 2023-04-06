@@ -2360,7 +2360,7 @@ NTSTATUS PhpRunFileProgram(
     _In_ PPH_STRING Command
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     PPH_STRING commandString = NULL;
     PPH_STRING fullFileName = NULL;
     PPH_STRING argumentsString = NULL;
@@ -2393,24 +2393,23 @@ NTSTATUS PhpRunFileProgram(
         argumentsString = PhCreateString2(&arguments);
     }
 
-    if (NT_SUCCESS(PhQueryAttributesFileWin32(fullFileName->Buffer, &basicInfo)))
+    if (NT_SUCCESS(PhQueryAttributesFileWin32(PhGetString(fullFileName), &basicInfo)))
     {
         isDirectory = !!(basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY);
     }
 
-    // If the file doesn't exist its probably a URL with http, https, www (dmex)
-    if (isDirectory || !PhDoesFileExistWin32(fullFileName->Buffer))
+    if (isDirectory || !PhDoesFileExistWin32(PhGetString(fullFileName)))
     {
         status = PhpRunAsShellExecute(
             Context->WindowHandle,
-            commandString->Buffer,
+            PhGetString(commandString),
             NULL,
             FALSE
             );
     }
     else if (Button_GetCheck(Context->RunAsCheckboxHandle) == BST_CHECKED ||
-        // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys
-        // and clicking the OK button, so we'll implement the same functionality. (dmex)
+        // The Windows run dialog executes programs with elevation when
+        // holding the ctrl + shift keys and selecting the OK button. (dmex)
         (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
     {
         status = PhpRunAsShellExecute(
@@ -2422,159 +2421,14 @@ NTSTATUS PhpRunFileProgram(
     }
     else
     {
-        ULONG processId = ULONG_MAX;
-        PPH_STRING parentDirectory = NULL;
-        HANDLE processHandle = NULL;
-        HANDLE newProcessHandle;
-        HANDLE tokenHandle;
-        HWND shellWindow;
-        STARTUPINFOEX startupInfo;
-        PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
-        PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
-        PVOID environment = NULL;
-        ULONG flags = 0;
-
-        memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
-        startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-        startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-        startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
-        parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
-
-        // NOTE: CreateProcess has an issue when launching processes with execution aliases
-        // where they ignore PROCESS_CREATE_PROCESS and inherit our elevated token instead
-        // of the parents non-elevated process token.
-        // So we need to make sure they're created with WdcRunTaskAsInteractiveUser otherwise
-        // we'll end up incorrectly resetting their process token and current directory. (dmex)
-        if (PhIsAppExecutionAliasTarget(fullFileName) || !(shellWindow = GetShellWindow()))
-        {
-            if (PhpRunFileAsInteractiveUser(Context, commandString))
-                status = STATUS_SUCCESS;
-
-            goto CleanupExit;
-        }
-
-        GetWindowThreadProcessId(shellWindow, &processId);
-
-        if (processId == ULONG_MAX)
-        {
-            status = STATUS_UNSUCCESSFUL;
-            goto CleanupExit;
-        }
-
-        status = PhOpenProcess(
-            &processHandle,
-            PROCESS_CREATE_PROCESS | (PhGetOwnTokenAttributes().Elevated ? PROCESS_QUERY_LIMITED_INFORMATION | READ_CONTROL : 0),
-            UlongToHandle(processId)
-            );
-
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
-
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        status = PhUpdateProcThreadAttribute(
-            startupInfo.lpAttributeList,
-            PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
-            &(HANDLE){ processHandle },
-            sizeof(HANDLE)
-            );
-
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        if (PhGetOwnTokenAttributes().Elevated)
-        {
-            PhGetObjectSecurity(
-                processHandle,
-                OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                &processSecurityDescriptor
-                );
-        }
-
-        if (NT_SUCCESS(PhOpenProcessToken(
-            processHandle,
-            TOKEN_QUERY | (PhGetOwnTokenAttributes().Elevated ? READ_CONTROL : 0),
-            &tokenHandle
-            )))
-        {
-            if (PhGetOwnTokenAttributes().Elevated)
-            {
-                PhGetObjectSecurity(
-                    tokenHandle,
-                    OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                    &tokenSecurityDescriptor
-                    );
-            }
-
-            if (CreateEnvironmentBlock_Import() && CreateEnvironmentBlock_Import()(&environment, tokenHandle, FALSE))
-            {
-                flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
-            }
-
-            NtClose(tokenHandle);
-        }
-
-        status = PhCreateProcessWin32Ex(
-            fullFileName->Buffer,
+        status = PhpRunAsShellExecute(
+            Context->WindowHandle,
+            PhGetString(fullFileName),
             PhGetString(argumentsString),
-            environment,
-            PhGetString(parentDirectory),
-            &startupInfo.StartupInfo,
-            PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | flags,
-            NULL,
-            NULL,
-            &newProcessHandle,
-            NULL
+            FALSE
             );
 
-        if (NT_SUCCESS(status))
-        {
-            PROCESS_BASIC_INFORMATION basicInfo;
-
-            if (PhGetOwnTokenAttributes().Elevated)
-            {
-                // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
-                // where the process and token security descriptors are created without an ACE for the current user,
-                // owned by the wrong user and with a High-IL when the process token is Medium-IL
-                // preventing the new process from accessing user/system resources above Low-IL. (dmex)
-
-                if (processSecurityDescriptor)
-                {
-                    PhSetObjectSecurity(
-                        newProcessHandle,
-                        OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                        processSecurityDescriptor
-                        );
-                }
-
-                if (tokenSecurityDescriptor && NT_SUCCESS(PhOpenProcessToken(
-                    newProcessHandle,
-                    WRITE_DAC | WRITE_OWNER,
-                    &tokenHandle
-                    )))
-                {
-                    PhSetObjectSecurity(
-                        tokenHandle,
-                        OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                        tokenSecurityDescriptor
-                        );
-                    NtClose(tokenHandle);
-                }
-            }
-
-            if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
-            {
-                AllowSetForegroundWindow(ASFW_ANY);// HandleToUlong(basicInfo.UniqueProcessId));
-            }
-
-            NtResumeProcess(newProcessHandle);
-
-            NtClose(newProcessHandle);
-        }
-        else if (NT_NTWIN32(status) && WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
+        if (WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
         {
             status = PhpRunAsShellExecute(
                 Context->WindowHandle,
@@ -2582,38 +2436,6 @@ NTSTATUS PhpRunFileProgram(
                 PhGetString(argumentsString),
                 TRUE
                 );
-        }
-
-    CleanupExit:
-
-        if (environment && DestroyEnvironmentBlock_Import())
-        {
-            DestroyEnvironmentBlock_Import()(environment);
-        }
-
-        if (tokenSecurityDescriptor)
-        {
-            PhFree(tokenSecurityDescriptor);
-        }
-
-        if (processSecurityDescriptor)
-        {
-            PhFree(processSecurityDescriptor);
-        }
-
-        if (startupInfo.lpAttributeList)
-        {
-            PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-        }
-
-        if (processHandle)
-        {
-            NtClose(processHandle);
-        }
-
-        if (parentDirectory)
-        {
-            PhDereferenceObject(parentDirectory);
         }
     }
 
