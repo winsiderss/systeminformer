@@ -1912,6 +1912,10 @@ HICON PhGdiplusConvertBitmapToIcon(
     _In_ COLORREF Background
     );
 
+HWND PhCreateBackgroundWindow(
+    _In_ HWND ParentWindowHandle
+    );
+
 EXTERN_C_END
 
 #endif
