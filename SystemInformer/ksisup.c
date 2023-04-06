@@ -528,18 +528,6 @@ VOID PhInitializeKsi(
             );
         return;
     }
-    if (WindowsVersion < WINDOWS_10_20H1) // Temporary workaround for +3 month Microsoft delay (dmex)
-    {
-        PhShowKsiMessageEx(
-            NULL,
-            TD_ERROR_ICON,
-            0,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The kernel driver is temporarily disabled on this Windows version."
-            );
-        return;
-    }
     if (WindowsVersion == WINDOWS_NEW)
     {
         PhShowKsiMessageEx(
