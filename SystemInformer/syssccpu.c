@@ -37,6 +37,7 @@ static PSYSTEM_INTERRUPT_INFORMATION InterruptInformation;
 static PPROCESSOR_POWER_INFORMATION PowerInformation;
 static PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION CurrentPerformanceDistribution;
 static PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION PreviousPerformanceDistribution;
+static PH_LOGICAL_PROCESSOR_INFORMATION LogicalProcessorInformation;
 static PH_UINT32_DELTA ContextSwitchesDelta;
 static PH_UINT32_DELTA InterruptsDelta;
 static PH_UINT64_DELTA DpcsDelta;
@@ -297,6 +298,7 @@ VOID PhSipInitializeCpuDialog(
     PreviousPerformanceDistribution = NULL;
 
     PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
+    PhGetSystemLogicalProcessorRelationInformation(&LogicalProcessorInformation);
 }
 
 VOID PhSipUninitializeCpuDialog(
@@ -437,7 +439,8 @@ VOID PhSipTickCpuDialog(
     PreviousPerformanceDistribution = CurrentPerformanceDistribution;
     CurrentPerformanceDistribution = NULL;
     PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
-
+    //PhGetSystemLogicalProcessorRelationInformation(&LogicalProcessorInformation);
+    
     if (CpuTicked < 2)
         CpuTicked++;
 
@@ -1118,8 +1121,6 @@ VOID PhSipUpdateCpuPanel(
     DOUBLE cpuGhz = 0;
     BOOLEAN distributionSucceeded = FALSE;
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
-    ULONG logicalInformationLength = 0;
-    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation = NULL;
     LARGE_INTEGER performanceCounterStart;
     LARGE_INTEGER performanceCounterEnd;
     LARGE_INTEGER performanceCounterTicks;
@@ -1198,7 +1199,7 @@ VOID PhSipUpdateCpuPanel(
         NULL
         )))
     {
-        LARGE_INTEGER bootTime;
+        ULARGE_INTEGER bootTime;
 
         bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
         bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
@@ -1265,62 +1266,27 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelSystemCallsDeltaLabel, L"-");
     }
 
-    if (NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationAll, &logicalInformation, &logicalInformationLength)))
     {
-        ULONG processorNumaCount = 0;
-        ULONG processorCoreCount = 0;
-        ULONG processorLogicalCount = 0;
-        ULONG processorPackageCount = 0;
-
-        for (
-            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo = logicalInformation;
-            (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, logicalInformationLength);
-            processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
-            )
-        {
-            switch (processorInfo->Relationship)
-            {
-            case RelationProcessorCore:
-                {
-                    processorCoreCount++;
-
-                    for (USHORT j = 0; j < processorInfo->Processor.GroupCount; j++)
-                    {
-                        processorLogicalCount += PhCountBitsUlongPtr(processorInfo->Processor.GroupMask[j].Mask); // RtlNumberOfSetBitsUlongPtr
-                    }
-                }
-                break;
-            case RelationNumaNode:
-                processorNumaCount++;
-                break;
-            case RelationProcessorPackage:
-                processorPackageCount++;
-                break;
-            }
-        }
-
-        PhFree(logicalInformation);
-
-        PhInitFormatI64UGroupDigits(&format[0], processorCoreCount);
+        PhInitFormatI64UGroupDigits(&format[0], LogicalProcessorInformation.ProcessorCoreCount);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
             PhSetWindowText(CpuPanelCoresLabel, formatBuffer);
         else
-            PhSetWindowText(CpuPanelCoresLabel, PhaFormatUInt64(processorCoreCount, TRUE)->Buffer);
+            PhSetWindowText(CpuPanelCoresLabel, PhaFormatUInt64(LogicalProcessorInformation.ProcessorCoreCount, TRUE)->Buffer);
 
-        PhInitFormatI64UGroupDigits(&format[0], processorPackageCount);
+        PhInitFormatI64UGroupDigits(&format[0], LogicalProcessorInformation.ProcessorPackageCount);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
             PhSetWindowText(CpuPanelSocketsLabel, formatBuffer);
         else
-            PhSetWindowText(CpuPanelSocketsLabel, PhaFormatUInt64(processorPackageCount, TRUE)->Buffer);
+            PhSetWindowText(CpuPanelSocketsLabel, PhaFormatUInt64(LogicalProcessorInformation.ProcessorPackageCount, TRUE)->Buffer);
 
-        PhInitFormatI64UGroupDigits(&format[0], processorLogicalCount);
+        PhInitFormatI64UGroupDigits(&format[0], LogicalProcessorInformation.ProcessorLogicalCount);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
             PhSetWindowText(CpuPanelLogicalLabel, formatBuffer);
         else
-            PhSetWindowText(CpuPanelLogicalLabel, PhaFormatUInt64(processorLogicalCount, TRUE)->Buffer);
+            PhSetWindowText(CpuPanelLogicalLabel, PhaFormatUInt64(LogicalProcessorInformation.ProcessorLogicalCount, TRUE)->Buffer);
     }
 
     // Do not optimize (dmex)

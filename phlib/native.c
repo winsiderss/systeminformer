@@ -14693,6 +14693,66 @@ NTSTATUS PhGetSystemLogicalProcessorInformation(
     return status;
 }
 
+NTSTATUS PhGetSystemLogicalProcessorRelationInformation(
+    _Out_ PPH_LOGICAL_PROCESSOR_INFORMATION LogicalProcessorInformation
+    )
+{
+    NTSTATUS status;
+    ULONG logicalInformationLength = 0;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation;
+
+    status = PhGetSystemLogicalProcessorInformation(
+        RelationAll, 
+        &logicalInformation, 
+        &logicalInformationLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        ULONG processorCoreCount = 0;
+        ULONG processorNumaCount = 0;
+        ULONG processorLogicalCount = 0;
+        ULONG processorPackageCount = 0;
+
+        for (
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo = logicalInformation;
+            (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, logicalInformationLength);
+            processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+            )
+        {
+            switch (processorInfo->Relationship)
+            {
+            case RelationProcessorCore:
+                {
+                    processorCoreCount++;
+
+                    for (USHORT j = 0; j < processorInfo->Processor.GroupCount; j++)
+                    {
+                        processorLogicalCount += PhCountBitsUlongPtr(processorInfo->Processor.GroupMask[j].Mask); // RtlNumberOfSetBitsUlongPtr
+                    }
+                }
+                break;
+            case RelationNumaNode:
+                processorNumaCount++;
+                break;
+            case RelationProcessorPackage:
+                processorPackageCount++;
+                break;
+            }
+        }
+
+        memset(LogicalProcessorInformation, 0, sizeof(PH_LOGICAL_PROCESSOR_INFORMATION));
+        LogicalProcessorInformation->ProcessorCoreCount = processorCoreCount;
+        LogicalProcessorInformation->ProcessorNumaCount = processorNumaCount;
+        LogicalProcessorInformation->ProcessorLogicalCount = processorLogicalCount;
+        LogicalProcessorInformation->ProcessorPackageCount = processorPackageCount;
+
+        PhFree(logicalInformation);
+    }
+
+    return status;
+}
+
 // based on RtlIsProcessorFeaturePresent (dmex)
 BOOLEAN PhIsProcessorFeaturePresent(
     _In_ ULONG ProcessorFeature
