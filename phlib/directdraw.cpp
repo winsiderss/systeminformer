@@ -14,7 +14,7 @@
 
 #define GDIPVER 0x0110
 #include <unknwn.h>
-#include <wtypes.h>
+//#include <wtypes.h>
 #include <gdiplus.h>
 
 using namespace Gdiplus;
@@ -91,6 +91,257 @@ HICON PhGdiplusConvertBitmapToIcon(
     }
 
     return nullptr;
+}
+
+#ifdef PHNT_TRANSPARENT_BITMAP
+#include <uxtheme.h>
+#pragma comment(lib, "uxtheme.lib")
+
+VOID PhUpdateTransparentBackgroundWindow(
+    _In_ HWND WindowHandle,
+    _In_ PRECT ClientRect
+    )
+{
+    HDC hdc;
+    SIZE windowSize;
+    POINT windowPoint = { 0, 0 };
+    BLENDFUNCTION blendFunction = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+    BP_PAINTPARAMS paintParams = { sizeof(paintParams) };
+    HDC bufferHdc;
+    HPAINTBUFFER paintBuffer;
+
+    hdc = GetDC(WindowHandle);
+
+    windowSize.cx = ClientRect->right - ClientRect->left;
+    windowSize.cy = ClientRect->bottom - ClientRect->top;
+
+    paintParams.dwFlags = BPPF_ERASE; // Clear rectangle to ARGB 0,0,0,0
+    paintParams.pBlendFunction = &blendFunction;
+
+    if (paintBuffer = BeginBufferedPaint(hdc, ClientRect, BPBF_TOPDOWNDIB, &paintParams, &bufferHdc))
+    {
+        BufferedPaintSetAlpha(paintBuffer, ClientRect, 128);
+
+        UpdateLayeredWindow(
+            WindowHandle,
+            nullptr,
+            &windowPoint,
+            &windowSize,
+            bufferHdc,
+            &windowPoint,
+            0,
+            &blendFunction,
+            ULW_ALPHA
+            );
+
+        EndBufferedPaint(paintBuffer, FALSE);
+    }
+    else
+    {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        static BOOLEAN initialized = FALSE;
+        HBITMAP bitmapHandle;
+        HGDIOBJ oldBitmapHandle;
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            ULONG_PTR gdiplusToken = 0;
+            GdiplusStartupInput gdiplusStartupInput{};
+
+            if (GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr) == Status::Ok)
+            {
+                initialized = TRUE;
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+
+        bufferHdc = CreateCompatibleDC(hdc);
+        bitmapHandle = CreateCompatibleBitmap(hdc, ClientRect->right, ClientRect->bottom);
+        oldBitmapHandle = SelectBitmap(bufferHdc, bitmapHandle);
+
+        if (initialized)
+        {
+            Graphics graphics(bufferHdc);
+            graphics.Clear(Color(128, 0, 0, 0));
+        }
+
+        UpdateLayeredWindow(
+            WindowHandle,
+            nullptr,
+            &windowPoint,
+            &windowSize,
+            bufferHdc,
+            &windowPoint,
+            0,
+            &blendFunction,
+            ULW_ALPHA
+            );
+        
+        SelectBitmap(bufferHdc, oldBitmapHandle);
+        DeleteBitmap(bitmapHandle);
+        DeleteDC(bufferHdc);
+    }
+
+    ReleaseDC(WindowHandle, hdc);
+}
+#endif
+
+LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (WindowMessage)
+    {
+    case WM_CREATE:
+        {
+            LPCREATESTRUCT createStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
+
+            if (createStruct->hwndParent)
+            {
+                HMENU menu = GetMenu(createStruct->hwndParent);
+
+                if (menu)
+                {
+                    PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, menu);
+                    SetMenu(createStruct->hwndParent, nullptr);
+                }
+            }
+
+#ifdef PHNT_TRANSPARENT_BITMAP
+            RECT clientRect;
+
+            clientRect.left = 0;
+            clientRect.top = 0;
+            clientRect.right = createStruct->cx;
+            clientRect.bottom = createStruct->cy;
+            
+            PhUpdateTransparentBackgroundWindow(WindowHandle, &clientRect);
+#else
+            constexpr ULONG OpacityPercent = 50;
+
+            // The opacity value is backwards - 0 means opaque, 100 means transparent.
+            SetLayeredWindowAttributes(
+                WindowHandle,
+                0,
+                static_cast<BYTE>(255 * (100 - OpacityPercent) / 100),
+                LWA_ALPHA
+                );
+#endif
+        }
+        break;
+    case WM_DESTROY:
+        {
+            HMENU menu = static_cast<HMENU>(PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT));
+
+            if (menu)
+            {
+                SetMenu(GetParent(WindowHandle), menu);
+            }
+            
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+#ifndef PHNT_TRANSPARENT_BITMAP
+    case WM_ERASEBKGND:
+        {
+            HDC hdc = reinterpret_cast<HDC>(wParam);
+            RECT clientRect;
+
+            GetClientRect(WindowHandle, &clientRect);
+            FillRect(hdc, &clientRect, GetStockBrush(BLACK_BRUSH));
+        }
+        return TRUE;
+#endif
+    }
+
+    return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
+}
+
+RTL_ATOM PhInitializeBackgroundWindowClass(
+    VOID
+    )
+{
+    WNDCLASSEX wcex;
+
+    memset(&wcex, 0, sizeof(WNDCLASSEX));
+    wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.lpfnWndProc = PhTransparentBackgroundWindowCallback;
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.lpszClassName = L"TransparentBackgroundWindowClass";
+
+    return RegisterClassEx(&wcex);
+}
+
+HWND PhCreateBackgroundWindow(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static RTL_ATOM windowAtom = 0;
+    HWND windowHandle;
+    RECT windowRect = { 0 };
+
+    if (WindowsVersion < WINDOWS_8)
+        return nullptr;
+
+    if (!GetClientRect(ParentWindowHandle, &windowRect))
+        return nullptr;
+
+    {
+        MENUBARINFO menuInfo;
+
+        memset(&menuInfo, 0, sizeof(MENUBARINFO));
+        menuInfo.cbSize = sizeof(MENUBARINFO);
+
+        if (GetMenuBarInfo(ParentWindowHandle, OBJID_MENU, 0, &menuInfo))
+        {
+            windowRect.bottom += menuInfo.rcBar.bottom;
+        }
+    }
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        windowAtom = PhInitializeBackgroundWindowClass();
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (windowAtom == INVALID_ATOM)
+        return nullptr;
+
+    windowHandle = CreateWindowEx(
+#ifdef PHNT_TRANSPARENT_BITMAP
+        WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP,
+#else
+        WS_EX_LAYERED,
+#endif
+        MAKEINTATOM(windowAtom),
+        nullptr,
+        WS_CHILD,
+        0,
+        0,
+        windowRect.right,
+        windowRect.bottom,
+        ParentWindowHandle,
+        nullptr,
+        nullptr,
+        nullptr
+        );
+
+    SetWindowPos(
+        windowHandle,
+        HWND_TOP,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOMOVE | SWP_SHOWWINDOW
+        );
+
+    return windowHandle;
 }
 
 //#pragma comment(lib, "d2d1.lib")
