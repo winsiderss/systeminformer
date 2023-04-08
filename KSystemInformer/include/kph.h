@@ -655,33 +655,9 @@ VOID KphReleaseRWLock(
 
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetSystemModules(
-    _Outptr_allocatesMem_ PRTL_PROCESS_MODULES *Modules
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphFreeSystemModules(
-    _In_freesMem_ PRTL_PROCESS_MODULES Modules
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphValidateAddressForSystemModules(
     _In_ PVOID Address,
     _In_ SIZE_T Length
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetProcessMappedFileName(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _Outptr_allocatesMem_ PUNICODE_STRING* FileName
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphFreeProcessMappedFileName(
-    _In_freesMem_ PUNICODE_STRING FileName
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -717,49 +693,6 @@ NTSTATUS KphQueryRegistryULong(
     _In_ HANDLE KeyHandle,
     _In_ PUNICODE_STRING ValueName,
     _Out_ PULONG Value
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphPtrAddOffset(
-    _Inout_ PVOID* Pointer,
-    _In_ SIZE_T Offset
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphAdvancePointer(
-    _Inout_ PVOID* Pointer,
-    _In_ PVOID EndPointer,
-    _In_ SIZE_T Offset
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphAdvanceBuffer(
-    _Inout_ PVOID* Pointer,
-    _Inout_ PSIZE_T Size,
-    _In_ SIZE_T Offset
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphMappedImageRvaToSection(
-    _In_ PIMAGE_SECTION_HEADER SectionHeaders,
-    _In_ ULONG NumberOfSections,
-    _In_ ULONG Rva,
-    _Out_ PIMAGE_SECTION_HEADER* Section
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphMappedImageRvaToVa(
-    _In_ PVOID MappedBase,
-    _In_ SIZE_T ViewSize,
-    _In_ PIMAGE_SECTION_HEADER SectionHeaders,
-    _In_ ULONG NumberOfSections,
-    _In_ ULONG Rva,
-    _Out_ PVOID* Va
     );
 
 #define KPH_MAP_IMAGE    0x00000001ul
@@ -815,19 +748,13 @@ BOOLEAN KphSinglePrivilegeCheck(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
-_IRQL_requires_max_(APC_LEVEL)
-BOOLEAN KphSuffixUnicodeString(
-    _In_ PUNICODE_STRING Suffix,
-    _In_ PUNICODE_STRING String,
-    _In_ BOOLEAN CaseInSensitive
-    );
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN KphProcessIsLsass(
     _In_ PEPROCESS Process
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphLocateKernelRevision(
     _Out_ PUSHORT Revision
     );

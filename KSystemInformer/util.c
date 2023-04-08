@@ -90,7 +90,6 @@ VOID KphReleaseRundown(
 PAGED_FILE();
 
 static UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaCommandPort");
-static UNICODE_STRING KphpKernelFileName = RTL_CONSTANT_STRING(L"\\SystemRoot\\System32\\ntoskrnl.exe");
 
 /**
  * \brief Initializes rundown object.
@@ -202,79 +201,6 @@ VOID KphReleaseRWLock(
 }
 
 /**
- * \brief Retrieves the modules loaded by the kernel.
- *
- * \param[out] Modules A variable which receives a pointer to a structure
- * containing information about the kernel modules. The structure must be
- * freed with KphFreeSystemModules.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetSystemModules(
-    _Outptr_allocatesMem_ PRTL_PROCESS_MODULES *Modules
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    ULONG bufferSize;
-    ULONG attempts;
-
-    PAGED_CODE();
-
-    *Modules = NULL;
-    bufferSize = 2048;
-    attempts = 8;
-
-    do
-    {
-        buffer = KphAllocatePaged(bufferSize, KPH_TAG_MODULES);
-
-        if (!buffer)
-        {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            break;
-        }
-
-        status = ZwQuerySystemInformation(SystemModuleInformation,
-                                          buffer,
-                                          bufferSize,
-                                          &bufferSize);
-        if (NT_SUCCESS(status))
-        {
-            *Modules = buffer;
-
-            return status;
-        }
-
-        KphFree(buffer, KPH_TAG_MODULES);
-
-        if (status != STATUS_INFO_LENGTH_MISMATCH)
-        {
-            break;
-        }
-    } while (--attempts);
-
-    return status;
-}
-
-/**
- * \brief Frees modules previously retrieved by KphEnumerateSystemModules.
- *
- * \param[in] Modules The modules to free.
- */
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphFreeSystemModules(
-    _In_freesMem_ PRTL_PROCESS_MODULES Modules
-    )
-{
-    PAGED_CODE();
-
-    KphFree(Modules, KPH_TAG_MODULES);
-}
-
-/**
  * \brief Checks if an address range lies within a kernel module.
  *
  * \param[in] Address The beginning of the address range.
@@ -341,95 +267,6 @@ NTSTATUS KphValidateAddressForSystemModules(
     KeLeaveCriticalRegion();
 
     return (valid ? STATUS_SUCCESS : STATUS_ACCESS_VIOLATION);
-}
-
-/**
- * \brief Gets the file name of a mapped section.
- *
- * \param[in] ProcessHandle A handle to a process. The handle must have
- * PROCESS_QUERY_INFORMATION access.
- * \param[in] BaseAddress The base address of the section view.
- * \param[out] Modules A variable which receives a pointer to a string
- * containing the file name of the section. The structure must be freed with
- * KphFreeProcessMappedFileName.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetProcessMappedFileName(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _Outptr_allocatesMem_ PUNICODE_STRING* FileName
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    SIZE_T bufferSize;
-    SIZE_T returnLength;
-
-    PAGED_PASSIVE();
-
-    *FileName = NULL;
-
-    bufferSize = 0x100;
-    buffer = KphAllocatePaged(bufferSize, KPH_TAG_FILE_NAME);
-
-    if (!buffer)
-    {
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    status = ZwQueryVirtualMemory(ProcessHandle,
-                                  BaseAddress,
-                                  MemoryMappedFilenameInformation,
-                                  buffer,
-                                  bufferSize,
-                                  &returnLength);
-
-    if (status == STATUS_BUFFER_OVERFLOW)
-    {
-        KphFree(buffer, KPH_TAG_FILE_NAME);
-        bufferSize = returnLength;
-        buffer = KphAllocatePaged(bufferSize, KPH_TAG_FILE_NAME);
-
-        if (!buffer)
-        {
-            return STATUS_INSUFFICIENT_RESOURCES;
-        }
-
-        status = ZwQueryVirtualMemory(ProcessHandle,
-                                      BaseAddress,
-                                      MemoryMappedFilenameInformation,
-                                      buffer,
-                                      bufferSize,
-                                      &returnLength);
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        KphFree(buffer, KPH_TAG_FILE_NAME);
-        return status;
-    }
-
-    *FileName = buffer;
-
-    return status;
-}
-
-/**
- * \brief Frees a mapped file name retrieved from KphGetProcessMappedFileName.
- *
- * \param[in] FileName File name to free.
- */
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphFreeProcessMappedFileName(
-    _In_freesMem_ PUNICODE_STRING FileName
-    )
-{
-    PAGED_CODE();
-
-    KphFree(FileName, KPH_TAG_FILE_NAME);
 }
 
 /**
@@ -728,240 +565,6 @@ NTSTATUS KphQueryRegistryULong(
     }
 
     *Value = *(PULONG)info->Data;
-
-    return STATUS_SUCCESS;
-}
-
-/**
- * \brief Adds an offset to a pointer.
- *
- * \param[in,out] Pointer Pointer to offset.
- * \param[in] Offer Offset to apply to the pointer.
- *
- * \return Successful or errant status if an overflow occurs.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphPtrAddOffset(
-    _Inout_ PVOID* Pointer,
-    _In_ SIZE_T Offset
-    )
-{
-    PVOID pointer;
-
-    PAGED_CODE();
-
-    pointer = Add2Ptr(*Pointer, Offset);
-
-    if (pointer < *Pointer)
-    {
-        return STATUS_BUFFER_OVERFLOW;
-    }
-
-    *Pointer = pointer;
-
-    return STATUS_SUCCESS;
-}
-
-/**
- * \brief Advances a pointer. If the pointer advancement would advance at or
- * beyond the end pointer the function fails.
- *
- * \param[in,out] Pointer Pointer to advance.
- * \param[in] EndPointer End of buffer.
- * \param[in] Offset Offset to advance by.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphAdvancePointer(
-    _Inout_ PVOID* Pointer,
-    _In_ PVOID EndPointer,
-    _In_ SIZE_T Offset
-    )
-{
-    NTSTATUS status;
-    PVOID pointer;
-
-    PAGED_CODE();
-
-    pointer = *Pointer;
-
-    status = KphPtrAddOffset(&pointer, Offset);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    if (pointer >= EndPointer)
-    {
-        return STATUS_BUFFER_OVERFLOW;
-    }
-
-    *Pointer = pointer;
-
-    return STATUS_SUCCESS;
-}
-
-/**
- * \brief Advances a buffer. If the advancement would advance at or passed the
- * remaining size of the buffer the function fails.
- *
- * \param[in,out] Pointer Pointer to advance.
- * \param[in,out] Size Remaining size of the buffer.
- * \param[in] Offset Offset to advance by.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphAdvanceBuffer(
-    _Inout_ PVOID* Pointer,
-    _Inout_ PSIZE_T Size,
-    _In_ SIZE_T Offset
-    )
-{
-    NTSTATUS status;
-    PVOID pointer;
-    SIZE_T size;
-
-    PAGED_CODE();
-
-    pointer = *Pointer;
-
-    status = KphAdvancePointer(&pointer, Add2Ptr(*Pointer, *Size), Offset);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = RtlULongPtrSub(*Size, Offset, &size);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    *Pointer = pointer;
-    *Size = size;
-
-    return STATUS_SUCCESS;
-}
-
-/**
- * \brief Resolves a relative virtual address to a section.
- *
- * \param[in] SectionHeaders Section headers to look for the relative virtual
- * address in.
- * \param[in] NumberOfSection Number of section headers.
- * \param[in] Rva Relative virtual address to look for.
- * \param[out] Section Set to the section the relative virtual address is in
- * on success, null on failure.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphMappedImageRvaToSection(
-    _In_ PIMAGE_SECTION_HEADER SectionHeaders,
-    _In_ ULONG NumberOfSections,
-    _In_ ULONG Rva,
-    _Out_ PIMAGE_SECTION_HEADER* Section
-    )
-{
-    NTSTATUS status;
-
-    PAGED_CODE();
-    NT_ASSERT((PVOID)SectionHeaders > MmHighestUserAddress);
-
-    *Section = NULL;
-
-    for (ULONG i = 0; i < NumberOfSections; i++)
-    {
-        ULONG end;
-
-        status = RtlULongAdd(SectionHeaders[i].VirtualAddress,
-                             SectionHeaders[i].SizeOfRawData,
-                             &end);
-        if (!NT_SUCCESS(status))
-        {
-            return status;
-        }
-
-        if ((Rva >= SectionHeaders[i].VirtualAddress) && (Rva < end))
-        {
-            *Section = &SectionHeaders[i];
-            return STATUS_SUCCESS;
-        }
-    }
-
-    return STATUS_NOT_FOUND;
-}
-
-/**
- * \brief Converts a relative virtual address to a virtual address in the mapping.
- *
- * \param[in] MappedBase Base address of the image mapping.
- * \param[in] ViewSize Size of section mapping.
- * \param[in] SectionHeaders Image section headers.
- * \param[in] NumberOfSections Number of image section headers.
- * \param[in] Rva Relative virtual address to look for.
- * \param[out] Va Virtual address in the mapping for the relative one.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphMappedImageRvaToVa(
-    _In_ PVOID MappedBase,
-    _In_ SIZE_T ViewSize,
-    _In_ PIMAGE_SECTION_HEADER SectionHeaders,
-    _In_ ULONG NumberOfSections,
-    _In_ ULONG Rva,
-    _Out_ PVOID* Va
-    )
-{
-    NTSTATUS status;
-    PIMAGE_SECTION_HEADER section;
-    PVOID va;
-    ULONG offset;
-    SIZE_T viewSize;
-
-    PAGED_CODE();
-    NT_ASSERT((PVOID)MappedBase > MmHighestUserAddress);
-
-    *Va = NULL;
-
-    status = KphMappedImageRvaToSection(SectionHeaders,
-                                        NumberOfSections,
-                                        Rva,
-                                        &section);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = RtlULongSub(Rva, section->VirtualAddress, &offset);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = RtlULongAdd(offset, section->PointerToRawData, &offset);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    viewSize = ViewSize;
-    va = MappedBase;
-    status = KphAdvanceBuffer(&va, &viewSize, offset);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    *Va = va;
 
     return STATUS_SUCCESS;
 }
@@ -1283,40 +886,6 @@ BOOLEAN KphSinglePrivilegeCheck(
 }
 
 /**
- * \brief Compares two Unicode strings to determine whether one string is a
- * suffix of the other.
- *
- * \param[in] Suffix The string which might be a suffix of the other.
- * \param[in] String The string to check.
- * \param[in] CaseInSensitive If TRUE, case should be ignored when doing the
- * comparison.
- *
- * \return TRUE if the string suffixed by the other.
- */
-_IRQL_requires_max_(APC_LEVEL)
-BOOLEAN KphSuffixUnicodeString(
-    _In_ PUNICODE_STRING Suffix,
-    _In_ PUNICODE_STRING String,
-    _In_ BOOLEAN CaseInSensitive
-    )
-{
-    UNICODE_STRING string;
-
-    PAGED_CODE();
-
-    if (String->Length < Suffix->Length)
-    {
-        return FALSE;
-    }
-
-    string.Length = Suffix->Length;
-    string.MaximumLength = Suffix->Length;
-    string.Buffer = &String->Buffer[(String->Length - Suffix->Length) / sizeof(WCHAR)];
-
-    return RtlEqualUnicodeString(&string, Suffix, CaseInSensitive);
-}
-
-/**
  * \brief Retrieves the process ID of lsass.
  *
  * \param[out] ProcessId Set to the process ID of lsass.
@@ -1431,13 +1000,72 @@ BOOLEAN KphProcessIsLsass(
 
     SeCaptureSubjectContextEx(NULL, Process, &subjectContext);
 
-    result = KphSinglePrivilegeCheckEx(SeCreateTokenPrivilege,
+    result = KphSinglePrivilegeCheckEx(SeExports->SeCreateTokenPrivilege,
                                        &subjectContext,
                                        UserMode);
 
     SeReleaseSubjectContext(&subjectContext);
 
     return result;
+}
+
+/**
+ * \brief Retrieves the kernel file name.
+ *
+ * \param[out] FileName On success set to the file name for the kernel. Must be
+ * freed using RtlFreeUnicodeString.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpGetKernelFileName(
+    _Out_ _At_(FileName->Buffer, __drv_allocatesMem(Mem)) 
+    PUNICODE_STRING FileName
+    )
+{
+    NTSTATUS status;
+    SYSTEM_SINGLE_MODULE_INFORMATION info;
+    ANSI_STRING fullPathName;
+
+    PAGED_PASSIVE();
+
+    RtlZeroMemory(FileName, sizeof(UNICODE_STRING));
+
+    RtlZeroMemory(&info, sizeof(info));
+
+    info.TargetModuleAddress = KphGetSystemRoutineAddress(L"ObCloseHandle");
+    if (!info.TargetModuleAddress)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      UTIL,
+                      L"KphGetSystemRoutineAddress failed");
+
+        return STATUS_NOT_FOUND;
+    }
+
+    status = ZwQuerySystemInformation(SystemSingleModuleInformation,
+                                      &info,
+                                      sizeof(info),
+                                      NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      UTIL,
+                      L"ZwQuerySystemInformation failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    status = RtlInitAnsiStringEx(&fullPathName,
+                                 (PCSZ)info.ExInfo.BaseInfo.FullPathName);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    return RtlAnsiStringToUnicodeString(FileName, &fullPathName, TRUE);
 }
 
 /**
@@ -1448,13 +1076,15 @@ BOOLEAN KphProcessIsLsass(
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphLocateKernelRevision(
     _Out_ PUSHORT Revision
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
+    UNICODE_STRING kernelFileName;
     OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE fileHandle;
     IO_STATUS_BLOCK ioStatusBlock;
     PVOID imageBase;
     SIZE_T imageSize;
@@ -1472,9 +1102,26 @@ NTSTATUS KphLocateKernelRevision(
     *Revision = 0;
 
     imageBase = NULL;
+    fileHandle = NULL;
+
+    status = KphpGetKernelFileName(&kernelFileName);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      UTIL,
+                      "KphGetKernelFileName failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    KphTracePrint(TRACE_LEVEL_INFORMATION,
+                  UTIL,
+                  "Kernel file name: \"%wZ\"",
+                  &kernelFileName);
 
     InitializeObjectAttributes(&objectAttributes,
-                               &KphpKernelFileName,
+                               &kernelFileName,
                                OBJ_KERNEL_HANDLE,
                                NULL,
                                NULL);
@@ -1495,7 +1142,7 @@ NTSTATUS KphLocateKernelRevision(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
-                      HASH,
+                      UTIL,
                       "KphCreateFile failed: %!STATUS!",
                       status);
 
@@ -1511,7 +1158,7 @@ NTSTATUS KphLocateKernelRevision(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
-                      HASH,
+                      UTIL,
                       "KphMapViewInSystem failed: %!STATUS!",
                       status);
 
@@ -1534,7 +1181,7 @@ NTSTATUS KphLocateKernelRevision(
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "LdrFindResource_U failed: %!STATUS!",
                           status);
 
@@ -1548,7 +1195,7 @@ NTSTATUS KphLocateKernelRevision(
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "LdrAccessResource failed: %!STATUS!",
                           status);
 
@@ -1558,7 +1205,7 @@ NTSTATUS KphLocateKernelRevision(
         if (Add2Ptr(resourceBuffer, resourceLength) >= imageEnd)
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "Resource buffer overflows mapping");
 
             status = STATUS_BUFFER_OVERFLOW;
@@ -1568,7 +1215,7 @@ NTSTATUS KphLocateKernelRevision(
         if (resourceLength < sizeof(VS_VERSION_INFO_STRUCT))
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "Resource length insufficient");
 
             status = STATUS_BUFFER_TOO_SMALL;
@@ -1580,7 +1227,7 @@ NTSTATUS KphLocateKernelRevision(
         if (Add2Ptr(resourceBuffer, versionInfo->Length) >= imageEnd)
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "Version info overflows mapping");
 
             status = STATUS_BUFFER_OVERFLOW;
@@ -1590,7 +1237,7 @@ NTSTATUS KphLocateKernelRevision(
         if (versionInfo->ValueLength < sizeof(VS_FIXEDFILEINFO))
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "Value length insufficient");
 
             status = STATUS_BUFFER_TOO_SMALL;
@@ -1601,7 +1248,7 @@ NTSTATUS KphLocateKernelRevision(
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "RtlInitUnicodeStringEx failed: %!STATUS!",
                           status);
 
@@ -1614,7 +1261,7 @@ NTSTATUS KphLocateKernelRevision(
         if (Add2Ptr(fileInfo, sizeof(VS_FIXEDFILEINFO)) >= imageEnd)
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "File version info overflows mapping");
 
             status = STATUS_BUFFER_TOO_SMALL;
@@ -1624,7 +1271,7 @@ NTSTATUS KphLocateKernelRevision(
         if (fileInfo->dwSignature != VS_FFI_SIGNATURE)
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "Invalid file version information signature (0x%08x)",
                           fileInfo->dwSignature);
 
@@ -1635,7 +1282,7 @@ NTSTATUS KphLocateKernelRevision(
         if (fileInfo->dwStrucVersion != 0x10000)
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
+                          UTIL,
                           "Unknown file version information structure (0x%08x)",
                           fileInfo->dwStrucVersion);
 
@@ -1662,6 +1309,8 @@ Exit:
     {
         ObCloseHandle(fileHandle, KernelMode);
     }
+
+    RtlFreeUnicodeString(&kernelFileName);
 
     return status;
 }

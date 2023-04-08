@@ -128,7 +128,7 @@ NTSTATUS KphpSetDynamicConfigiration(
 
     if (Configuration->LxVersion == KPH_DYN_LX_V1)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "LX V1");
+        KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "LX V1");
         KphDynLxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
     }
     else
