@@ -1128,11 +1128,6 @@ MiGetVadEndAddress(
     return MiGetVadShortEndAddress(&Vad->Core);
 }
 
-// SE
-
-#define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
-#define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)
-
 // CI
 
 #ifndef ALGIDDEF
