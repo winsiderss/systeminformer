@@ -1445,7 +1445,7 @@ NTSTATUS PhGetMappedImageExportFunction(
 
         // TODO: Probe the name.
 
-        Function->Function = NULL;
+        Function->Function = UlongToPtr(rva);
     }
     else
     {
