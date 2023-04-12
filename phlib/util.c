@@ -7297,6 +7297,19 @@ HRESULT PhGetClassObjectDllBase(
     return status;
 }
 
+/**
+ * \brief Provides a pointer to an interface on a class object associated with a specified CLSID.
+ * Most class objects implement the IClassFactory interface. You would then call CreateInstance to
+ * create an uninitialized object. It is not always necessary to go through this process however.
+ *
+ * \param DllName The file containing the object to initialize.
+ * \param Rclsid A pointer to the class identifier of the object to be created.
+ * \param Riid Reference to the identifier of the interface to communicate with the class object.
+ * \a Typically this value is IID_IClassFactory, although other values such as IID_IClassFactory2 which supports a form of licensing are allowed. 
+ * \param Ppv The address of pointer variable that contains the requested interface.
+ *
+ * \return Successful or errant status.
+ */
 HRESULT PhGetClassObject(
     _In_ PCWSTR DllName,
     _In_ REFCLSID Rclsid,
@@ -7377,7 +7390,16 @@ HRESULT PhGetActivationFactoryDllBase(
     return status;
 }
 
-// rev from RoGetActivationFactory (dmex)
+/**
+ * \brief Activates the specified Windows Runtime class.
+ *
+ * \param DllName The file containing the object to initialize.
+ * \param RuntimeClass The class identifier string that is associated with the activatable runtime class.
+ * \param Riid The reference ID of the interface.
+ * \param Ppv The activation factory.
+ *
+ * \return Successful or errant status.
+ */
 HRESULT PhGetActivationFactory(
     _In_ PCWSTR DllName,
     _In_ PCWSTR RuntimeClass,
@@ -7470,7 +7492,16 @@ HRESULT PhActivateInstanceDllBase(
     return status;
 }
 
-// rev from RoActivateInstance (dmex)
+/**
+ * \brief Activates the specified Windows Runtime class.
+ *
+ * \param DllName The file containing the object to initialize.
+ * \param RuntimeClass The class identifier string that is associated with the activatable runtime class.
+ * \param Riid The reference ID of the interface.
+ * \param Ppv A pointer to the activated instance of the runtime class.
+ *
+ * \return Successful or errant status.
+ */
 HRESULT PhActivateInstance(
     _In_ PCWSTR DllName,
     _In_ PCWSTR RuntimeClass,
