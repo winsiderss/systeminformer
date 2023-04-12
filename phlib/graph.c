@@ -987,7 +987,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             CREATESTRUCT *createStruct = (CREATESTRUCT *)lParam;
 
             context->Handle = hwnd;
-            context->ParentHandle = GetParent(hwnd);
+            context->ParentHandle = createStruct->hwndParent;
             context->Style = createStruct->style;
             context->Id = (ULONG_PTR)createStruct->hMenu;
         }
