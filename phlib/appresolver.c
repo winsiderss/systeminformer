@@ -88,13 +88,13 @@ static BOOLEAN PhpKernelAppCoreInitialized(
     {
         if (WindowsVersion >= WINDOWS_8)
         {
-            PVOID kernelBaseModuleHandle;
+            PVOID baseAddress;
 
-            if (kernelBaseModuleHandle = PhLoadLibrary(L"kernelbase.dll")) // kernel.appcore.dll
+            if (baseAddress = PhLoadLibrary(L"kernelbase.dll")) // kernel.appcore.dll
             {
-                AppContainerDeriveSidFromMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerDeriveSidFromMoniker", 0);
-                AppContainerLookupMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerLookupMoniker", 0);
-                AppContainerFreeMemory_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerFreeMemory", 0);
+                AppContainerDeriveSidFromMoniker_I = PhGetDllBaseProcedureAddress(baseAddress, "AppContainerDeriveSidFromMoniker", 0);
+                AppContainerLookupMoniker_I = PhGetDllBaseProcedureAddress(baseAddress, "AppContainerLookupMoniker", 0);
+                AppContainerFreeMemory_I = PhGetDllBaseProcedureAddress(baseAddress, "AppContainerFreeMemory", 0);
             }
 
             if (
@@ -860,12 +860,12 @@ HRESULT PhAppResolverGetEdpContextForWindow(
     {
         if (WindowsVersion >= WINDOWS_10)
         {
-            PVOID edputilModuleHandle;
+            PVOID baseAddress;
 
-            if (edputilModuleHandle = PhLoadLibrary(L"edputil.dll"))
+            if (baseAddress = PhLoadLibrary(L"edputil.dll"))
             {
-                EdpGetContextForWindow_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpGetContextForWindow", 0);
-                EdpFreeContext_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpFreeContext", 0);
+                EdpGetContextForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, "EdpGetContextForWindow", 0);
+                EdpFreeContext_I = PhGetDllBaseProcedureAddress(baseAddress, "EdpFreeContext", 0);
             }
         }
 
@@ -902,12 +902,12 @@ HRESULT PhAppResolverGetEdpContextForProcess(
     {
         if (WindowsVersion >= WINDOWS_10)
         {
-            PVOID edputilModuleHandle;
+            PVOID baseAddress;
 
-            if (edputilModuleHandle = PhLoadLibrary(L"edputil.dll"))
+            if (baseAddress = PhLoadLibrary(L"edputil.dll"))
             {
-                EdpGetContextForProcess_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpGetContextForProcess", 0);
-                EdpFreeContext_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpFreeContext", 0);
+                EdpGetContextForProcess_I = PhGetDllBaseProcedureAddress(baseAddress, "EdpGetContextForProcess", 0);
+                EdpFreeContext_I = PhGetDllBaseProcedureAddress(baseAddress, "EdpFreeContext", 0);
             }
         }
 
@@ -1326,7 +1326,7 @@ HRESULT PhCreateProcessDesktopPackage(
     if (SUCCEEDED(status))
     {
         ULONG options = DAXAO_CHECK_FOR_APPINSTALLER_UPDATES | DAXAO_CENTENNIAL_PROCESS;
-        options |= (PreventBreakaway ? DAXAO_NONPACKAGED_EXE_PROCESS_TREE : DAXAO_NONPACKAGED_EXE);
+        SetFlag(options, PreventBreakaway ? DAXAO_NONPACKAGED_EXE_PROCESS_TREE : DAXAO_NONPACKAGED_EXE);
 
         status = IDesktopAppXActivator_ActivateWithOptions(
             desktopAppXActivator,
