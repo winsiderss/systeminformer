@@ -1511,12 +1511,34 @@ BOOLEAN PhGenerateRandomNumber(
 #ifndef _M_ARM64
     if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
     {
-#if defined(_M_X64)
-        if (_rdrand64_step(&Number->QuadPart))
-            return TRUE;
+        ULONG count = 0;
+
+#ifdef _M_X64
+        while (TRUE)
+        {
+            if (_rdrand64_step(&Number->QuadPart))
+                break;
+            if (++count >= 10)
+                return FALSE;
+        }
+#else
+        ULONG low = 0;
+        ULONG high = 0;
+        
+        while (TRUE)
+        { 
+            if (_rdrand32_step(&low) && _rdrand32_step(&high))
+            {
+                Number->LowPart = low;
+                Number->HighPart = high;
+                break;
+            }
+
+            if (++count >= 10)
+                return FALSE;
+        }
 #endif
-        if (_rdrand32_step(&Number->LowPart))
-            return TRUE;
+        return TRUE;
     }
 #endif
 
@@ -1530,18 +1552,18 @@ BOOLEAN PhGenerateRandomSeed(
 {
     memset(Seed, 0, sizeof(LARGE_INTEGER));
 
-#ifndef _M_ARM64
-    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
-    {
-#if defined(_M_X64)
-        if (_rdseed64_step(&Seed->QuadPart))
-            return TRUE;
-#else
-        if (_rdseed32_step(&Seed->LowPart))
-            return TRUE;
-#endif
-    }
-#endif
+//#ifndef _M_ARM64
+//    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
+//    {
+//#ifdef _M_X64
+//        if (_rdseed64_step(&Seed->QuadPart))
+//            return TRUE;
+//#else
+//        if (_rdseed32_step(&Seed->LowPart))
+//            return TRUE;
+//#endif
+//    }
+//#endif
 
     return PhQueryPerformanceCounter(Seed);
 }
