@@ -292,3 +292,8 @@ WCHAR *PhKWaitReasonNames[MaximumWaitReason] =
     L"WrIoRing",
     L"WrMdlCache",
 };
+
+static_assert(ARRAYSIZE(PhIoPriorityHintNames) == MaxIoPriorityTypes, "PhIoPriorityHintNames must equal MaxIoPriorityTypes");
+static_assert(ARRAYSIZE(PhPagePriorityNames) == MEMORY_PRIORITY_NORMAL + 1, "PhPagePriorityNames must equal MEMORY_PRIORITY");
+static_assert(ARRAYSIZE(PhKThreadStateNames) == MaximumThreadState, "PhKThreadStateNames must equal MaximumThreadState");
+static_assert(ARRAYSIZE(PhKWaitReasonNames) == MaximumWaitReason, "PhKWaitReasonNames must equal MaximumWaitReason");
