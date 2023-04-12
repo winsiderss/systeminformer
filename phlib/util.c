@@ -5230,14 +5230,41 @@ VOID PhShellExploreFile(
     _In_ PWSTR FileName
     )
 {
-    if (SHOpenFolderAndSelectItems && SHParseDisplayName)
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI* SHOpenFolderAndSelectItems_I)(
+        _In_ PCIDLIST_ABSOLUTE pidlFolder,
+        _In_ UINT cidl,
+        _In_reads_opt_(cidl) PCUITEMID_CHILD_ARRAY* apidl,
+        _In_ DWORD dwFlags
+        ) = NULL;
+    static HRESULT (WINAPI* SHParseDisplayName_I)(
+        _In_ PCWSTR pszName,
+        _In_opt_ IBindCtx* pbc,
+        _Outptr_ PIDLIST_ABSOLUTE* ppidl,
+        _In_ SFGAOF sfgaoIn,
+        _Out_opt_ SFGAOF* psfgaoOut
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"shell32.dll"))
+        {
+            SHOpenFolderAndSelectItems_I = PhGetDllBaseProcedureAddress(baseAddress, "SHOpenFolderAndSelectItems", 0);
+            SHParseDisplayName_I = PhGetDllBaseProcedureAddress(baseAddress, "SHParseDisplayName", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (SHOpenFolderAndSelectItems_I && SHParseDisplayName_I)
     {
         LPITEMIDLIST item;
-        SFGAOF attributes;
 
-        if (SUCCEEDED(SHParseDisplayName(FileName, NULL, &item, 0, &attributes)))
+        if (SUCCEEDED(SHParseDisplayName_I(FileName, NULL, &item, 0, NULL)))
         {
-            SHOpenFolderAndSelectItems(item, 0, NULL, 0);
+            SHOpenFolderAndSelectItems_I(item, 0, NULL, 0);
             CoTaskMemFree(item);
         }
         else
@@ -6004,8 +6031,34 @@ VOID PhSetFileDialogFileName(
     _In_ PWSTR FileName
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI* SHParseDisplayName_I)(
+        _In_ PCWSTR pszName,
+        _In_opt_ IBindCtx* pbc,
+        _Out_ PIDLIST_ABSOLUTE* ppidl,
+        _In_ SFGAOF sfgaoIn,
+        _Out_opt_ SFGAOF* psfgaoOut
+        ) = NULL;
+    static HRESULT (WINAPI* SHCreateItemFromIDList_I)(
+        _In_ PCIDLIST_ABSOLUTE pidl, 
+        _In_ REFIID riid, 
+        _Outptr_ void** ppv
+        ) = NULL;
     PPHP_FILE_DIALOG fileDialog = FileDialog;
     PH_STRINGREF fileName;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"shell32.dll"))
+        {
+            SHParseDisplayName_I = PhGetDllBaseProcedureAddress(baseAddress, "SHParseDisplayName", 0);
+            SHCreateItemFromIDList_I = PhGetDllBaseProcedureAddress(baseAddress, "SHCreateItemFromIDList", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
 
     PhInitializeStringRefLongHint(&fileName, FileName);
 
@@ -6015,18 +6068,16 @@ VOID PhSetFileDialogFileName(
         PH_STRINGREF pathNamePart;
         PH_STRINGREF baseNamePart;
 
-        if (PhSplitStringRefAtLastChar(&fileName, OBJ_NAME_PATH_SEPARATOR, &pathNamePart, &baseNamePart) &&
-            SHParseDisplayName && SHCreateShellItem)
+        if (PhGetBasePath(&fileName, &pathNamePart, &baseNamePart) && SHParseDisplayName_I && SHCreateItemFromIDList_I)
         {
             LPITEMIDLIST item;
-            SFGAOF attributes;
             PPH_STRING pathName;
 
-            pathName = PhCreateString2(&pathNamePart);
+            pathName = PhCreateString2(&pathNamePart);          
 
-            if (SUCCEEDED(SHParseDisplayName(pathName->Buffer, NULL, &item, 0, &attributes)))
+            if (SUCCEEDED(SHParseDisplayName_I(pathName->Buffer, NULL, &item, 0, NULL)))
             {
-                SHCreateShellItem(NULL, NULL, item, &shellItem);
+                SHCreateItemFromIDList_I(item, &IID_IShellItem, &shellItem);
                 CoTaskMemFree(item);
             }
 
