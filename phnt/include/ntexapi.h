@@ -1287,6 +1287,27 @@ NtQueryPerformanceCounter(
     _Out_opt_ PLARGE_INTEGER PerformanceFrequency
     );
 
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryAuxiliaryCounterFrequency(
+    _Out_ PLARGE_INTEGER AuxiliaryCounterFrequency
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtConvertBetweenAuxiliaryCounterAndPerformanceCounter(
+    _In_opt_ PLARGE_INTEGER AuxiliaryCounterValue,
+    _Inout_ PLARGE_INTEGER PerformanceCounterValue,
+    _Out_ PLARGE_INTEGER PerformanceOrAuxiliaryCounterValue,
+    _Out_ PLARGE_INTEGER ConversionError
+    );
+#endif
+
 // LUIDs
 
 NTSYSCALLAPI
@@ -6585,6 +6606,8 @@ NtGetTickCount(
 
 #endif
 }
+
+#define RtlGetTickCount NtGetTickCount
 
 // Locale
 
