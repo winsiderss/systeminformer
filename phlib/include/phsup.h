@@ -150,9 +150,9 @@ FORCEINLINE LONG PhModifySort(
 }
 
 #define PH_BUILTIN_COMPARE(value1, value2) \
-    if (value1 > value2) \
+    if ((value1) > (value2)) \
         return 1; \
-    else if (value1 < value2) \
+    else if ((value1) < (value2)) \
         return -1; \
     \
     return 0
