@@ -12,7 +12,6 @@
 
 #include <ph.h>
 #include <secedit.h>
-#include <wmistr.h>
 #include <wbemcli.h>
 #include <wtsapi32.h>
 
@@ -835,7 +834,7 @@ static int __cdecl PhpAccessEntryCompare(
     PPH_ACCESS_ENTRY entry1 = (PPH_ACCESS_ENTRY)elem1;
     PPH_ACCESS_ENTRY entry2 = (PPH_ACCESS_ENTRY)elem2;
 
-    return intcmp(PhCountBits(entry2->Access), PhCountBits(entry1->Access));
+    return uintcmp(PhCountBits(entry2->Access), PhCountBits(entry1->Access));
 }
 
 /**
