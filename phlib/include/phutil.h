@@ -1246,7 +1246,7 @@ PhShellExecuteEx(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_opt_ PWSTR Directory,
-    _In_ ULONG ShowWindowType,
+    _In_ INT32 ShowWindowType,
     _In_ ULONG Flags,
     _In_opt_ ULONG Timeout,
     _Out_opt_ PHANDLE ProcessHandle
@@ -1537,6 +1537,15 @@ NTAPI
 PhCrc32(
     _In_ ULONG Crc,
     _In_reads_(Length) PCHAR Buffer,
+    _In_ SIZE_T Length
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhCrc32C(
+    _In_ ULONG Crc,
+    _In_reads_(Length) PVOID Buffer,
     _In_ SIZE_T Length
     );
 

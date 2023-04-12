@@ -5147,7 +5147,7 @@ BOOLEAN PhShellExecuteEx(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_opt_ PWSTR Directory,
-    _In_ ULONG ShowWindowType,
+    _In_ INT32 ShowWindowType,
     _In_ ULONG Flags,
     _In_opt_ ULONG Timeout,
     _Out_opt_ PHANDLE ProcessHandle
@@ -6198,6 +6198,15 @@ CleanupExit:
     return status;
 }
 
+/**
+ * \brief CRC-32 (Ethernet, ZIP - polynomial 0xedb88320 - TEST=0xEEEA93B8)
+ *
+ * \param Crc Crc
+ * \param Buffer Buffer
+ * \param Length Length
+ *
+ * \return Crc
+ */
 ULONG PhCrc32(
     _In_ ULONG Crc,
     _In_reads_(Length) PCHAR Buffer,
@@ -6208,6 +6217,53 @@ ULONG PhCrc32(
 
     while (Length--)
         Crc = (Crc >> 8) ^ PhCrc32Table[(Crc ^ *Buffer++) & 0xff];
+
+    return Crc ^ 0xffffffff;
+}
+
+/**
+ * \brief CRC-32C (iSCSI - polynomial 0x82f63b78 - TEST=0xEFF7F083)
+ *
+ * \param Crc Crc
+ * \param Buffer Buffer
+ * \param Length Length
+ *
+ * \return Crc
+ */
+ULONG PhCrc32C(
+    _In_ ULONG Crc,
+    _In_reads_(Length) PVOID Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    SIZE_T u64_blocks = Length / sizeof(ULONG64);
+    SIZE_T u64_remaining = Length % sizeof(ULONG64);   
+    SIZE_T u32_blocks = u64_remaining / sizeof(ULONG);
+    SIZE_T u32_remaining = u64_remaining % sizeof(ULONG);
+    SIZE_T u16_blocks = u32_remaining / sizeof(USHORT);
+    SIZE_T u8_blocks = u32_remaining % sizeof(UCHAR);
+
+    Crc ^= 0xffffffff;
+
+    while (u8_blocks--)
+    {
+        Crc = _mm_crc32_u8(Crc, (*(PUCHAR)Buffer)++);
+    }
+    
+    while (u16_blocks--)
+    {
+        Crc = _mm_crc32_u16(Crc, (*(PUSHORT)Buffer)++);
+    }
+    
+    while (u32_blocks--)
+    {
+        Crc = _mm_crc32_u32(Crc, (*(PULONG)Buffer)++);
+    }
+
+    while (u64_blocks--)
+    {
+        Crc = (ULONG)_mm_crc32_u64(Crc, (*(PULONG64)Buffer)++);
+    }
 
     return Crc ^ 0xffffffff;
 }
