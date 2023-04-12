@@ -6309,8 +6309,11 @@ ULONG PhCrc32C(
     _In_ SIZE_T Length
     )
 {
+#ifndef _ARM64_
+#ifdef _M_X64
     SIZE_T u64_blocks = Length / sizeof(ULONG64);
-    SIZE_T u64_remaining = Length % sizeof(ULONG64);   
+#endif
+    SIZE_T u64_remaining = Length % sizeof(ULONG64);
     SIZE_T u32_blocks = u64_remaining / sizeof(ULONG);
     SIZE_T u32_remaining = u64_remaining % sizeof(ULONG);
     SIZE_T u16_blocks = u32_remaining / sizeof(USHORT);
@@ -6322,23 +6325,28 @@ ULONG PhCrc32C(
     {
         Crc = _mm_crc32_u8(Crc, (*(PUCHAR)Buffer)++);
     }
-    
+
     while (u16_blocks--)
     {
         Crc = _mm_crc32_u16(Crc, (*(PUSHORT)Buffer)++);
     }
-    
+
     while (u32_blocks--)
     {
         Crc = _mm_crc32_u32(Crc, (*(PULONG)Buffer)++);
     }
 
+#ifdef _M_X64
     while (u64_blocks--)
     {
         Crc = (ULONG)_mm_crc32_u64(Crc, (*(PULONG64)Buffer)++);
     }
+#endif
 
     return Crc ^ 0xffffffff;
+#else
+    PhRaiseStatus(STATUS_NOT_SUPPORTED);
+#endif
 }
 
 C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(MD5_CTX));
