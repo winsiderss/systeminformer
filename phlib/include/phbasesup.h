@@ -22,6 +22,28 @@ PhBaseInitialization(
     VOID
     );
 
+extern int __isa_available;
+extern long __isa_enabled;
+
+#define ISA_AVAILABLE_X86 0
+#define ISA_AVAILABLE_SSE2 1
+#define ISA_AVAILABLE_SSE42 2
+#define ISA_AVAILABLE_AVX 3
+#define ISA_AVAILABLE_ENFSTRG 4
+#define ISA_AVAILABLE_AVX2 5
+#define ISA_AVAILABLE_AVX512 6
+
+#define PhVectorLevel_AVX \
+    (__isa_available >= ISA_AVAILABLE_AVX2)
+#define PhVectorLevel_SSE42 \
+    (__isa_available >= ISA_AVAILABLE_SSE42)
+#ifdef _M_IX86
+#define PhVectorLevel_SSE2 \
+    (__isa_available >= ISA_AVAILABLE_SSE2)
+#else
+#define PhVectorLevel_SSE2 TRUE
+#endif   
+
 // Threads
 
 #ifdef DEBUG
