@@ -192,6 +192,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
     PhpAddIntegerPairSetting(L"RunAsWindowPosition", L"0,0");
+    PhpAddIntegerPairSetting(L"RunAsPackageWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"RunAsPackageWindowSize", L"@96|500,300");
     PhpAddIntegerSetting(L"RunFileDlgState", L"0");
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");

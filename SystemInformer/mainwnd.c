@@ -817,6 +817,11 @@ VOID PhMwpOnCommand(
             PhShowRunAsDialog(WindowHandle, NULL);
         }
         break;
+    case ID_HACKER_RUNASPACKAGE:
+        {
+            PhShowRunAsPackageDialog(WindowHandle);
+        }
+        break;
     case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
         {
             ProcessHacker_PrepareForEarlyShutdown();
@@ -2583,6 +2588,7 @@ PPH_EMENU PhpCreateHackerMenu(
 {
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_RUN, L"&Run...\bCtrl+R", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_RUNAS, L"Run &as...\bCtrl+Shift+R", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_RUNASPACKAGE, L"Run as &package...\bCtrl+Shift+P", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_SHOWDETAILSFORALLPROCESSES, L"Show &details for all processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_SAVE, L"&Save...\bCtrl+S", NULL, NULL), ULONG_MAX);

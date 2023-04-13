@@ -110,6 +110,7 @@
 #define IDD_PROCVDMHOST                 257
 #define IDD_OPTSYMBOLS                  258
 #define IDI_UACSHIELD                   261
+#define IDD_RUNPACKAGE                  263
 #define IDB_SEARCH_ACTIVE_SMALL         265
 #define IDB_SEARCH_INACTIVE_SMALL       266
 #define IDC_TERMINATE                   1003
@@ -603,6 +604,7 @@
 #define ID_HACKER_RUNASADMINISTRATOR    40077
 #define ID_HACKER_RUNAS                 40078
 #define ID_HACKER_SHOWDETAILSFORALLPROCESSES 40079
+#define ID_HACKER_RUNASPACKAGE          40080
 #define ID_HACKER_FINDHANDLESORDLLS     40082
 #define ID_HACKER_OPTIONS               40083
 #define ID_PROCESS_FREEZE               40084
