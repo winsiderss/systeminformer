@@ -370,46 +370,11 @@ VOID PvpProcessImports(
                         }
                     }
 
-                    if (importDll.MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                     {
-                        ULONG rva;
-                        //PVOID va;
                         WCHAR value[PH_INT64_STR_LEN_1];
 
-                        if (DelayImports)
-                        {
-                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(IMAGE_THUNK_DATA32);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
-                        }
-                        else
-                        {
-                            rva = importDll.Descriptor->FirstThunk + j * sizeof(IMAGE_THUNK_DATA32);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
-                        }
-
-                        importNode->Address = rva;
-                        PhPrintPointer(value, (PVOID)(ULONG_PTR)rva);
-                        importNode->AddressString = PhCreateString(value);
-                    }
-                    else
-                    {
-                        ULONG rva;
-                        //PVOID va;
-                        WCHAR value[PH_INT64_STR_LEN_1];
-
-                        if (DelayImports)
-                        {
-                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(IMAGE_THUNK_DATA64);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
-                        }
-                        else
-                        {
-                            rva = importDll.Descriptor->FirstThunk + j * sizeof(IMAGE_THUNK_DATA64);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
-                        }
-
-                        importNode->Address = rva;
-                        PhPrintPointer(value, (PVOID)(ULONG_PTR)rva);
+                        importNode->Address = PhGetMappedImageImportEntryRva(&importDll, j, DelayImports);
+                        PhPrintPointer(value, (PVOID)importNode->Address);
                         importNode->AddressString = PhCreateString(value);
                     }
 

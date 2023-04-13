@@ -424,6 +424,15 @@ PhGetMappedImageImportEntry(
     );
 
 PHLIBAPI
+ULONG
+NTAPI
+PhGetMappedImageImportEntryRva(
+    _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
+    _In_ ULONG Index,
+    _In_ BOOLEAN DelayImport
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetMappedImageDelayImports(
