@@ -1316,12 +1316,24 @@ HRESULT PhCreateProcessDesktopPackage(
     HRESULT status;
     IDesktopAppXActivator* desktopAppXActivator;
 
-    status = PhGetClassObject(
-        L"twinui.appcore.dll",
-        &CLSID_IDesktopAppXActivator_I,
-        &IID_IDesktopAppXActivator2_I,
-        &desktopAppXActivator
-        );
+    if (WindowsVersion < WINDOWS_11)
+    {
+        status = PhGetClassObject(
+            L"twinui.dll",
+            &CLSID_IDesktopAppXActivator_I,
+            &IID_IDesktopAppXActivator1_I,
+            &desktopAppXActivator
+            );
+    }
+    else
+    {
+        status = PhGetClassObject(
+            L"twinui.appcore.dll",
+            &CLSID_IDesktopAppXActivator_I,
+            &IID_IDesktopAppXActivator2_I,
+            &desktopAppXActivator
+            );
+    }
 
     if (SUCCEEDED(status))
     {
