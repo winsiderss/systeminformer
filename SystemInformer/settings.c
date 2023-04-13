@@ -226,6 +226,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ThreadTreeListFlags", L"0");
     PhpAddStringSetting(L"ThreadStackTreeListColumns", L"");
     PhpAddScalableIntegerPairSetting(L"ThreadStackWindowSize", L"@96|420,400");
+    PhpAddIntegerPairSetting(L"TokenWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"TokenWindowSize", L"@96|0,0");
     PhpAddStringSetting(L"TokenGroupsListViewColumns", L"");
     PhpAddStringSetting(L"TokenGroupsListViewStates", L"");
     PhpAddStringSetting(L"TokenGroupsListViewSort", L"1,2");
