@@ -6468,7 +6468,7 @@ BOOLEAN PhPrintTimeSpanToBuffer(
  * \param Value The ULONG pattern.
  * \param Count The number of elements.
  */
-VOID PhFillMemoryUlong(
+VOID PhFillMemoryUlongOriginal(
     _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
     _In_ ULONG Value,
     _In_ SIZE_T Count
@@ -6554,6 +6554,82 @@ VOID PhFillMemoryUlong(
 #endif
 }
 
+VOID PhFillMemoryUlong(
+    _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
+    _In_ ULONG Value,
+    _In_ SIZE_T Count
+    )
+{
+#ifdef _ARM64_
+    if (Count != 0)
+    {
+        do
+        {
+            *Memory++ = Value;
+        } while (--Count != 0);
+    }
+#else
+    if (PhVectorLevel_AVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PULONG end;
+            __m256i pattern;
+
+            end = (PULONG)(ULONG_PTR)(Memory + count);
+            pattern = _mm256_set1_epi32(Value);
+
+            while (Memory != end)
+            {
+                _mm256_store_si256((__m256i*)Memory, pattern);
+                Memory += 8;
+            }
+
+            Count &= 0x1F;
+        }
+    }
+
+    if (PhVectorLevel_SSE2)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            PULONG end;
+            __m128i pattern;
+
+            end = (PULONG)(ULONG_PTR)(Memory + count);
+            pattern = _mm_set1_epi32(Value);
+
+            while (Memory != end)
+            {
+                _mm_store_si128((__m128i*)Memory, pattern);
+                Memory += 4;
+            }
+
+            Count &= 0xF;
+        }
+    }
+
+    if (Count != 0)
+    {
+        do
+        {
+            *Memory++ = Value;
+        } while (--Count != 0);
+        
+        //PULONG end = (PULONG)(ULONG_PTR)(Memory + Count);
+        //
+        //while (Memory != end)
+        //{
+        //    *Memory++ = Value;
+        //}
+    }
+#endif
+}
+
 /**
  * Divides an array of numbers by a number.
  *
@@ -6561,7 +6637,7 @@ VOID PhFillMemoryUlong(
  * \param B The number.
  * \param Count The number of elements.
  */
-VOID PhDivideSinglesBySingle(
+VOID PhDivideSinglesBySingleOriginal(
     _Inout_updates_(Count) PFLOAT A,
     _In_ FLOAT B,
     _In_ SIZE_T Count
@@ -6639,6 +6715,80 @@ VOID PhDivideSinglesBySingle(
     case 0x1:
         *A++ /= B;
         break;
+    }
+#endif
+}
+
+VOID PhDivideSinglesBySingle(
+    _Inout_updates_(Count) PFLOAT A,
+    _In_ FLOAT B,
+    _In_ SIZE_T Count
+    )
+{
+#ifdef _ARM64_
+    while (Count--)
+        *A++ /= B;
+#else
+    if (PhVectorLevel_AVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m256 a;
+            __m256 b;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            b = _mm256_broadcast_ss(&B);
+
+            while (A != end)
+            {
+                a = _mm256_load_ps(A);
+                a = _mm256_div_ps(a, b);
+                _mm256_storeu_ps(A, a);
+
+                A += 8;
+            }
+
+            Count &= 0x1F;
+        }
+    }
+    
+    if (PhVectorLevel_SSE2)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m128 a;
+            __m128 b;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            b = _mm_load_ps1(&B);
+
+            while (A != end)
+            {
+                a = _mm_load_ps(A);
+                a = _mm_div_ps(a, b);
+                _mm_store_ps(A, a);
+
+                A += 4;
+            }
+
+            Count &= 0xF;
+        }
+    }
+    
+    if (Count != 0)
+    {
+        PFLOAT end = (PFLOAT)(ULONG_PTR)(A + Count);
+
+        while (A != end)
+        {
+            *A++ /= B;
+        }
     }
 #endif
 }
