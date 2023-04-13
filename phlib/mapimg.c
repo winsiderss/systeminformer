@@ -1873,6 +1873,45 @@ NTSTATUS PhGetMappedImageImportEntry(
     return STATUS_SUCCESS;
 }
 
+ULONG PhGetMappedImageImportEntryRva(
+    _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,                                   
+    _In_ ULONG Index,
+    _In_ BOOLEAN DelayImport
+    )
+{
+    ULONG rva = 0;
+    //PVOID va;
+    
+    if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        if (DelayImport)
+        {
+            rva = ImportDll->DelayDescriptor->ImportAddressTableRVA + Index * sizeof(IMAGE_THUNK_DATA32);
+            //va = PTR_ADD_OFFSET(ImportDll->MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
+        }
+        else
+        {
+            rva = ImportDll->Descriptor->FirstThunk + Index * sizeof(IMAGE_THUNK_DATA32);
+            //va = PTR_ADD_OFFSET(ImportDll->MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
+        }
+    }
+    else if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        if (DelayImport)
+        {
+            rva = ImportDll->DelayDescriptor->ImportAddressTableRVA + Index * sizeof(IMAGE_THUNK_DATA64);
+            //va = PTR_ADD_OFFSET(ImportDll->MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
+        }
+        else
+        {
+            rva = ImportDll->Descriptor->FirstThunk + Index * sizeof(IMAGE_THUNK_DATA64);
+            //va = PTR_ADD_OFFSET(ImportDll->MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
+        }
+    }
+
+    return rva;
+}
+
 NTSTATUS PhGetMappedImageDelayImports(
     _Out_ PPH_MAPPED_IMAGE_IMPORTS Imports,
     _In_ PPH_MAPPED_IMAGE MappedImage
