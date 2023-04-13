@@ -10,7 +10,6 @@
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 
 typedef struct _LIVE_DUMP_CONFIG
 {
@@ -338,7 +337,7 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhCenterWindow(hwndDlg, NULL);
 
             if (NT_SUCCESS(NtQuerySystemInformation(
                 SystemKernelDebuggerInformation,
@@ -427,6 +426,6 @@ VOID PhShowLiveDumpDialog(
         MAKEINTRESOURCE(IDD_LIVEDUMP),
         NULL,
         PhpLiveDumpDlgProc,
-        NULL
+        ParentWindowHandle
         );
 }
