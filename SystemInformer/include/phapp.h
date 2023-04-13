@@ -632,6 +632,10 @@ VOID PhShowRunAsDialog(
     _In_opt_ HANDLE ProcessId
     );
 
+VOID PhShowRunAsPackageDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
 // begin_phapppub
 PHLIBAPI
 BOOLEAN
