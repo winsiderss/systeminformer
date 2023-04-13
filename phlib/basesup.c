@@ -6718,3 +6718,79 @@ PPH_STRING PhFormatEntropy(
         return PhFormat(&format, 1, 0);
     }
 }
+
+ULONG PhCountBits(
+    _In_ ULONG Value
+    )
+{
+#ifdef _M_ARM64
+    return (ULONG)PopulationCount64(Value);
+#elif _M_X64
+    if (PhVectorLevel_SSE42)
+    {
+        return (ULONG)_mm_popcnt_u32(Value);
+    }
+    else
+#endif
+    {
+        #undef T
+        #define T ULONG
+        ULONG count;
+
+        // Licensed under public domain: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        Value = Value - ((Value >> 1) & (T)~(T)0 / 3);
+        Value = (Value & (T)~(T)0 / 15 * 3) + ((Value >> 2) & (T)~(T)0 / 15 * 3);
+        Value = (Value + (Value >> 4)) & (T)~(T)0 / 255 * 15;
+        count = (T)(Value * ((T)~(T)0 / 255)) >> (sizeof(T) - 1) * CHAR_BIT;
+
+        return count;
+        
+        //ULONG count = 0;
+        //
+        //while (Value)
+        //{
+        //    count++;
+        //    Value &= Value - 1;
+        //}
+        //
+        //return count;
+    }
+}
+
+ULONG PhCountBitsUlongPtr(
+    _In_ ULONG_PTR Value
+    )
+{
+#ifdef _M_ARM64
+    return (ULONG)PopulationCount64(Value);
+#elif _M_X64
+    if (PhVectorLevel_SSE42)
+    {
+        return (ULONG)_mm_popcnt_u64(Value);
+    }
+    else
+#endif
+    {
+        #undef T
+        #define T ULONGLONG
+        ULONG count;
+
+        // Licensed under public domain: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        Value = Value - ((Value >> 1) & (T)~(T)0 / 3);
+        Value = (Value & (T)~(T)0 / 15 * 3) + ((Value >> 2) & (T)~(T)0 / 15 * 3);
+        Value = (Value + (Value >> 4)) & (T)~(T)0 / 255 * 15;
+        count = (T)(Value * ((T)~(T)0 / 255)) >> (sizeof(T) - 1) * CHAR_BIT;
+
+        return count;
+        
+        //ULONG count = 0;
+        //
+        //while (Value)
+        //{
+        //    count++;
+        //    Value &= Value - 1;
+        //}
+        //
+        //return count;
+    }
+}
