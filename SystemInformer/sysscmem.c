@@ -115,14 +115,11 @@ BOOLEAN PhSipMemorySectionCallback(
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(Section->GraphHandle);
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
                 drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPrivate, 0, dpiValue);
+                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPrivate, 0, Section->Parameters->WindowDpi);
                 PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCommitHistory.Count);
 
                 if (!Section->GraphState.Valid)
@@ -154,7 +151,7 @@ BOOLEAN PhSipMemorySectionCallback(
             else
             {
                 drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0, dpiValue);
+                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0, Section->Parameters->WindowDpi);
                 PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhPhysicalHistory.Count);
 
                 if (!Section->GraphState.Valid)
