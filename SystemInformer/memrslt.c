@@ -17,9 +17,8 @@
 #include <memsrch.h>
 #include <procprv.h>
 #include <settings.h>
-#include <phsettings.h>
 
-#include "..\tools\thirdparty\pcre\pcre2.h"
+#include "../tools/thirdparty/pcre/pcre2.h"
 
 #define FILTER_CONTAINS 1
 #define FILTER_CONTAINS_IGNORECASE 2

@@ -23,7 +23,7 @@ PhInitializeKsi(
     VOID
     );
 
-VOID 
+NTSTATUS
 PhDestroyKsi(
     VOID
     );

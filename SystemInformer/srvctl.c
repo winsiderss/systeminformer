@@ -6,13 +6,12 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2019
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <svcsup.h>
 #include <settings.h>
 #include <emenu.h>
@@ -90,7 +89,7 @@ HWND PhCreateServiceListControl(
     return windowHandle;
 }
 
-static VOID NTAPI ServiceModifiedHandler(
+VOID NTAPI ServiceModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )

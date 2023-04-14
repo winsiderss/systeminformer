@@ -12,7 +12,6 @@
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <emenu.h>
 #include <settings.h>
 #include <actions.h>

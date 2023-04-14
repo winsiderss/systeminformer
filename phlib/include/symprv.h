@@ -165,7 +165,7 @@ VOID
 NTAPI
 PhLoadModulesForProcessSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     );
 
 #define PH_SYMOPT_UNDNAME 0x1

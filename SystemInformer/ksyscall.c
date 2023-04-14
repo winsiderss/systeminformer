@@ -32,7 +32,7 @@ typedef struct _PH_SYSCALL_NAME_ENTRY
 } PH_SYSCALL_NAME_ENTRY, *PPH_SYSCALL_NAME_ENTRY;
 
 static int __cdecl PhpSystemCallListIndexSort(
-    _In_ const void* Context,
+    _In_ void* Context,
     _In_ const void *elem1,
     _In_ const void *elem2
     )

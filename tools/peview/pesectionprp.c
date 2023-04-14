@@ -12,8 +12,8 @@
 #include <peview.h>
 #include "colmgr.h"
 
-#include "..\thirdparty\ssdeep\fuzzy.h"
-#include "..\thirdparty\tlsh\tlsh_wrapper.h"
+#include "../thirdparty/ssdeep/fuzzy.h"
+#include "../thirdparty/tlsh/tlsh_wrapper.h"
 
 static PH_STRINGREF EmptySectionsText = PH_STRINGREF_INIT(L"There are no sections to display.");
 static PH_STRINGREF LoadingSectionsText = PH_STRINGREF_INIT(L"Loading sections from image...");

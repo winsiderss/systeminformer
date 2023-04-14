@@ -1239,7 +1239,7 @@ static BOOLEAN NTAPI PhpSymbolProviderEnumModulesCallback(
 
 VOID PhLoadModulesForProcessSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     )
 {
     PHP_LOAD_PROCESS_SYMBOLS_CONTEXT context;

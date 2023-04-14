@@ -136,7 +136,7 @@ PPH_STRINGREF PhGetSigningLevelString(
         PH_STRINGREF_INIT(L"Custom"),
     };
 
-    C_ASSERT(ARRAYSIZE(SigningLevelString) == SE_SIGNING_LEVEL_CUSTOM_6 + 1);
+    static_assert(ARRAYSIZE(SigningLevelString) == SE_SIGNING_LEVEL_CUSTOM_6 + 1, "SigningLevelString must equal SE_SIGNING_LEVEL_MAX");
 
     switch (SigningLevel)
     {

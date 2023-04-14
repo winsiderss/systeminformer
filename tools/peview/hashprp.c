@@ -11,8 +11,8 @@
 
 #include <peview.h>
 
-#include "..\thirdparty\tlsh\tlsh_wrapper.h"
-#include "..\thirdparty\ssdeep\fuzzy.h"
+#include "../thirdparty/tlsh/tlsh_wrapper.h"
+#include "../thirdparty/ssdeep/fuzzy.h"
 
 #include <bcrypt.h>
 #include <wincrypt.h>

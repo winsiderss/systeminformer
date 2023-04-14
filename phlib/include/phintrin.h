@@ -262,7 +262,7 @@ FORCEINLINE
 VOID
 PhStoreFLOAT128(
     _Out_writes_bytes_(2 * sizeof(FLOAT)) PFLOAT Target,
-    PH_FLOAT128 Value
+    _In_ PH_FLOAT128 Value
     )
 {
 #ifdef _ARM64_

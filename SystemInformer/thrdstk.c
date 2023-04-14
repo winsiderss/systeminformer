@@ -1772,7 +1772,7 @@ BOOLEAN PhpShowThreadStackWindow(
     return SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result != IDCANCEL;
 }
 
-static NTSTATUS PhpRefreshThreadStack(
+NTSTATUS PhpRefreshThreadStack(
     _In_ HWND hwnd,
     _In_ PPH_THREAD_STACK_CONTEXT Context
     )

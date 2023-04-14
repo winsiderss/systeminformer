@@ -220,8 +220,7 @@ FORCEINLINE VOID PhSetWindowExStyle(
 }
 
 FORCEINLINE PVOID PhGetWindowProcedure(
-    _In_ HWND WindowHandle,
-    _In_ PVOID SubclassProcedure
+    _In_ HWND WindowHandle
     )
 {
     return (PVOID)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
