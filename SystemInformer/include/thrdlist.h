@@ -91,13 +91,19 @@ typedef struct _PH_THREAD_NODE
     IO_PRIORITY_HINT IoPriority;
     BOOLEAN BreakOnTermination;
     BOOLEAN PendingIrp;
-    USHORT LastSystemCallNumber;
-    ULONG LastStatusCode;
-    ULONG ApartmentState;
     BOOLEAN Fiber;
     BOOLEAN PriorityBoost;
-    FLOAT StackUsage;
+    ULONG SuspendCount;
+    FLOAT StackUsageFloat;
+    ULONG_PTR StackUsage;
+    ULONG_PTR StackLimit;
     PH_THREAD_TOKEN_STATE TokenState;
+    NTSTATUS LastSystemCallStatus;
+    THREAD_LAST_SYSCALL_INFORMATION LastSystemCall;
+    NTSTATUS LastStatusValue;
+    NTSTATUS LastStatusQueryStatus;
+    OLETLSFLAGS ApartmentState;
+    
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
     WCHAR CpuUserUsageText[PH_INT32_STR_LEN_1];
     WCHAR CpuKernelUsageText[PH_INT32_STR_LEN_1];
