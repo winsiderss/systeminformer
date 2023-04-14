@@ -655,15 +655,12 @@ NTSTATUS KphpExtractNameFileObject(
 
     do
     {
-        subNameLength += relatedFileObject->FileName.Length;
-
-        //
-        // Avoid infinite loops.
-        //
-        if (relatedFileObject == relatedFileObject->RelatedFileObject)
+        if (FlagOn(relatedFileObject->Flags, FO_CLEANUP_COMPLETE))
         {
             break;
         }
+
+        subNameLength += relatedFileObject->FileName.Length;
 
         relatedFileObject = relatedFileObject->RelatedFileObject;
 
@@ -692,18 +689,15 @@ NTSTATUS KphpExtractNameFileObject(
 
     do
     {
+        if (FlagOn(relatedFileObject->Flags, FO_CLEANUP_COMPLETE))
+        {
+            break;
+        }
+
         objectName -= relatedFileObject->FileName.Length;
         RtlCopyMemory(objectName,
                       relatedFileObject->FileName.Buffer,
                       relatedFileObject->FileName.Length);
-
-        //
-        // Avoid infinite loops.
-        //
-        if (relatedFileObject == relatedFileObject->RelatedFileObject)
-        {
-            break;
-        }
 
         relatedFileObject = relatedFileObject->RelatedFileObject;
 
