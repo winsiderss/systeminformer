@@ -215,6 +215,15 @@ VOID PhModifyEMenuItem(
     _In_opt_ HBITMAP Bitmap
     );
 
+VOID PhSetHMenuStyle(
+    _In_ HMENU Menu,
+    _In_ BOOLEAN MainMenu
+    );
+
+VOID PhDeleteHMenu(
+    _In_ HMENU Menu
+    );
+
 // Convenience functions
 
 FORCEINLINE
