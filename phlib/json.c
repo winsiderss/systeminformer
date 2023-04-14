@@ -14,8 +14,8 @@
 #include <phutil.h>
 #include <json.h>
 
-#include "..\tools\thirdparty\jsonc\json.h"
-#include "..\tools\thirdparty\mxml\mxml.h"
+#include "../tools/thirdparty/jsonc/json.h"
+#include "../tools/thirdparty/mxml/mxml.h"
 
 static json_object_ptr json_get_object(
     _In_ json_object_ptr rootObj,

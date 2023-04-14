@@ -600,7 +600,7 @@ VOID PhInitializeKsi(
         KsiInitializeCallbackThread(NULL);
 }
 
-VOID PhDestroyKsi(
+NTSTATUS PhDestroyKsi(
     VOID
     )
 {
@@ -609,14 +609,16 @@ VOID PhDestroyKsi(
     KPH_CONFIG_PARAMETERS config = { 0 };
 
     if (!KphCommsIsConnected())
-        return;
+        return STATUS_SUCCESS;
     if (!(ksiServiceName = PhGetKsiServiceName()))
-        return;
+        return STATUS_UNSUCCESSFUL;
 
     config.ServiceName = &ksiServiceName->sr;
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
     status = KphServiceStop(&config);
+
+    return status;
 }
 
 _Success_(return)

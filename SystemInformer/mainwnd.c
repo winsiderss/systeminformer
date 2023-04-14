@@ -219,7 +219,7 @@ BOOLEAN PhMainWndInitialization(
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, PhMainWndHandle);
 
     // Perform a layout.
-    PhMwpSelectionChangedTabControl(ULONG_MAX);
+    PhMwpSelectionChangedTabControl(INT_ERROR);
     PhMwpOnSize(PhMainWndHandle);
 
     if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfIconsEnabled())
@@ -3371,10 +3371,10 @@ VOID PhMwpNotifyTabControl(
 #pragma warning(pop)
 
 VOID PhMwpSelectionChangedTabControl(
-    _In_ ULONG OldIndex
+    _In_ INT32 OldIndex
     )
 {
-    ULONG selectedIndex;
+    INT selectedIndex;
     HDWP deferHandle;
     ULONG i;
 
@@ -3430,7 +3430,7 @@ VOID PhMwpSelectionChangedTabControl(
 
     EndDeferWindowPos(deferHandle);
 
-    if (OldIndex != ULONG_MAX && PhGetIntegerSetting(L"MainWindowTabRestoreEnabled") && IsWindowVisible(TabControlHandle))
+    if (OldIndex != INT_ERROR && PhGetIntegerSetting(L"MainWindowTabRestoreEnabled") && IsWindowVisible(TabControlHandle))
         PhSetIntegerSetting(L"MainWindowTabRestoreIndex", selectedIndex);
 
     if (PhPluginsEnabled)

@@ -59,7 +59,7 @@ INT_PTR CALLBACK PhpTimerPageProc(
     _In_ LPARAM lParam
     );
 
-static HPROPSHEETPAGE PhpCommonCreatePage(
+HPROPSHEETPAGE PhpCommonCreatePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context,
     _In_ PWSTR Template,

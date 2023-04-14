@@ -11,7 +11,6 @@
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <cpysave.h>
 #include <emenu.h>
 #include <hndlinfo.h>
@@ -27,7 +26,7 @@
 #include <proctree.h>
 #include <settings.h>
 
-#include "..\tools\thirdparty\pcre\pcre2.h"
+#include "../tools/thirdparty/pcre/pcre2.h"
 
 #define WM_PH_SEARCH_SHOWDIALOG (WM_APP + 801)
 #define WM_PH_SEARCH_FINISHED (WM_APP + 802)
