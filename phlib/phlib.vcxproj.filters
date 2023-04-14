@@ -370,5 +370,8 @@
     <ClInclude Include="include\mapldr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\phintrin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
