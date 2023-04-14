@@ -4173,7 +4173,10 @@ RtlGetNtSystemRoot(
     VOID
     )
 {
-    return USER_SHARED_DATA->NtSystemRoot;
+    if (NtCurrentPeb()->SharedData && NtCurrentPeb()->SharedData->ServiceSessionId) // RtlGetCurrentServiceSessionId
+        return NtCurrentPeb()->SharedData->NtSystemRoot;
+    else
+        return USER_SHARED_DATA->NtSystemRoot;
 }
 #else
 // private
