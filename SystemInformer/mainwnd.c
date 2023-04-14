@@ -2111,7 +2111,6 @@ VOID PhMwpOnInitMenuPopup(
 {
     ULONG i;
     BOOLEAN found;
-    MENUINFO menuInfo;
     PPH_EMENU menu;
 
     found = FALSE;
@@ -2129,26 +2128,14 @@ VOID PhMwpOnInitMenuPopup(
         return;
 
     // Delete all items in this submenu.
-    while (DeleteMenu(Menu, 0, MF_BYPOSITION))
-        NOTHING;
+    PhDeleteHMenu(Menu);
 
     // Delete the previous EMENU for this submenu.
     if (SubMenuObjects[Index])
         PhDestroyEMenu(SubMenuObjects[Index]);
 
     // Make sure the menu style is set correctly.
-    memset(&menuInfo, 0, sizeof(MENUINFO));
-    menuInfo.cbSize = sizeof(MENUINFO);
-    menuInfo.fMask = MIM_STYLE;
-    menuInfo.dwStyle = MNS_CHECKORBMP;
-
-    if (PhEnableThemeSupport)
-    {
-        menuInfo.fMask |= MIM_BACKGROUND;
-        menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
-    }
-
-    SetMenuInfo(Menu, &menuInfo);
+    PhSetHMenuStyle(Menu, TRUE);
 
     menu = PhpCreateMainMenu(Index);
     PhMwpInitializeSubMenu(WindowHandle, menu, Index);
@@ -2708,7 +2695,7 @@ PPH_EMENU PhpCreateMainMenu(
 
     switch (SubMenuIndex)
     {
-    case PH_MENU_ITEM_LOCATION_HACKER:
+    case PH_MENU_ITEM_LOCATION_SYSTEM:
         return PhpCreateHackerMenu(menu, FALSE);
     case PH_MENU_ITEM_LOCATION_VIEW:
         return PhpCreateViewMenu(menu);
@@ -2723,7 +2710,7 @@ PPH_EMENU PhpCreateMainMenu(
             PPH_EMENU_ITEM menuItem;
             menu->Flags |= PH_EMENU_MAINMENU;
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HACKER, L"&System", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_SYSTEM, L"&System", NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
@@ -2769,7 +2756,7 @@ VOID PhMwpInitializeMainMenu(
     memset(&menuInfo, 0, sizeof(MENUINFO));
     menuInfo.cbSize = sizeof(MENUINFO);
     menuInfo.fMask = MIM_STYLE;
-    menuInfo.dwStyle = MNS_NOTIFYBYPOS; //| MNS_AUTODISMISS; Flag is unusable on Win10 - Github #547 (dmex).
+    menuInfo.dwStyle = MNS_NOTIFYBYPOS;
 
     SetMenuInfo(Menu, &menuInfo);
 
@@ -3165,9 +3152,14 @@ VOID PhMwpInitializeSubMenu(
 {
     PPH_EMENU_ITEM menuItem;
 
-    if (Index == PH_MENU_ITEM_LOCATION_HACKER) // Hacker
+    if (Index == PH_MENU_ITEM_LOCATION_SYSTEM)
     {
-        // Fix some menu items.
+        if (WindowsVersion < WINDOWS_10)
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_RUNASPACKAGE))
+                PhDestroyEMenuItem(menuItem);
+        }
+        
         if (PhGetOwnTokenAttributes().Elevated)
         {
             if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_RUNASADMINISTRATOR))
@@ -3177,19 +3169,21 @@ VOID PhMwpInitializeSubMenu(
         }
         else
         {
-            HBITMAP shieldBitmap;
-
-            if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi))
+            if (PhGetIntegerSetting(L"EnableBitmapSupport"))
             {
-                if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
-                    menuItem->Bitmap = shieldBitmap;
+                HBITMAP shieldBitmap;
+
+                if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi))
+                {
+                    if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
+                        menuItem->Bitmap = shieldBitmap;
+                }
             }
         }
-
-        // Fix up the Computer menu.
+        
         PhMwpSetupComputerMenu(Menu);
     }
-    else if (Index == PH_MENU_ITEM_LOCATION_VIEW) // View
+    else if (Index == PH_MENU_ITEM_LOCATION_VIEW)
     {
         PPH_EMENU_ITEM trayIconsMenuItem;
         ULONG id = ULONG_MAX;
@@ -3270,7 +3264,7 @@ VOID PhMwpInitializeSubMenu(
         if (PhMwpUpdateAutomatically && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_UPDATEAUTOMATICALLY)))
             menuItem->Flags |= PH_EMENU_CHECKED;
     }
-    else if (Index == PH_MENU_ITEM_LOCATION_TOOLS) // Tools
+    else if (Index == PH_MENU_ITEM_LOCATION_TOOLS)
     {
         if (WindowsVersion < WINDOWS_8_1)
         {
