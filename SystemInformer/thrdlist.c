@@ -11,6 +11,9 @@
  */
 
 #include <phapp.h>
+#include <phuisup.h>
+#include <colmgr.h>
+
 #include <thrdlist.h>
 
 #include <emenu.h>
