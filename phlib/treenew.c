@@ -48,7 +48,7 @@ BOOLEAN PhTreeNewInitialization(
 {
     WNDCLASSEX c = { sizeof(c) };
 
-    c.style = CS_DBLCLKS | CS_GLOBALCLASS;
+    c.style = CS_PARENTDC | CS_DBLCLKS | CS_GLOBALCLASS;
     c.lpfnWndProc = PhTnpWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
