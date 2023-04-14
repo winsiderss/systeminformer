@@ -58,6 +58,7 @@
 
 #include <phintrnl.h>
 #include <phnative.h>
+#include <phintrin.h>
 
 #define PH_VECTOR_LEVEL_NONE 0
 #define PH_VECTOR_LEVEL_SSE2 1
@@ -96,7 +97,6 @@ PPH_OBJECT_TYPE PhHashtableType = NULL;
 
 // Misc.
 
-static BOOLEAN PhpVectorLevel = PH_VECTOR_LEVEL_NONE;
 static PPH_STRING PhSharedEmptyString = NULL;
 
 // Threads
@@ -130,16 +130,6 @@ BOOLEAN PhBaseInitialization(
     )
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
-
-    // The following relies on the (technically undefined) value of XState being zero before Windows 7 SP1.
-    // NOTE: This is unused for now.
-    /*if (USER_SHARED_DATA->XState.EnabledFeatures & XSTATE_MASK_AVX)
-        PhpVectorLevel = PH_VECTOR_LEVEL_AVX;
-    else if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
-        PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;*/
-
-    if (PhIsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE))
-        PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;
 
     PhStringType = PhCreateObjectType(L"String", 0, NULL);
     PhBytesType = PhCreateObjectType(L"Bytes", 0, NULL);
@@ -764,25 +754,24 @@ SIZE_T PhCountStringZ(
     _In_ PWSTR String
     )
 {
-#ifndef _ARM64_
-    if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+    if (PhHasIntrinsics)
     {
         PWSTR p;
         ULONG unaligned;
-        __m128i b;
-        __m128i z;
+        PH_INT128 b;
+        PH_INT128 z;
         ULONG mask;
         ULONG index;
 
         p = (PWSTR)((ULONG_PTR)String & ~0xe); // String should be 2 byte aligned
         unaligned = PtrToUlong(String) & 0xf;
-        z = _mm_setzero_si128();
+        z = PhSetZeroINT128();
 
         if (unaligned != 0)
         {
-            b = _mm_load_si128((__m128i *)p);
-            b = _mm_cmpeq_epi16(b, z);
-            mask = _mm_movemask_epi8(b) >> unaligned;
+            b = PhLoadINT128((PLONG)p);
+            b = PhCompareEqINT128by16(b, z);
+            mask = PhMoveMaskINT128by8(b) >> unaligned;
 
             if (_BitScanForward(&index, mask))
                 return index / sizeof(WCHAR);
@@ -792,9 +781,9 @@ SIZE_T PhCountStringZ(
 
         while (TRUE)
         {
-            b = _mm_load_si128((__m128i *)p);
-            b = _mm_cmpeq_epi16(b, z);
-            mask = _mm_movemask_epi8(b);
+            b = PhLoadINT128((PLONG)p);
+            b = PhCompareEqINT128by16(b, z);
+            mask = PhMoveMaskINT128by8(b);
 
             if (_BitScanForward(&index, mask))
                 return (SIZE_T)(p - String) + index / sizeof(WCHAR);
@@ -803,7 +792,6 @@ SIZE_T PhCountStringZ(
         }
     }
     else
-#endif
     {
         return wcslen(String);
     }
@@ -1525,23 +1513,22 @@ BOOLEAN PhEqualStringRef(
     s1 = String1->Buffer;
     s2 = String2->Buffer;
 
-#ifndef _ARM64_
-    if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+    if (PhHasIntrinsics)
     {
         length = l1 / 16;
 
         if (length != 0)
         {
-            __m128i b1;
-            __m128i b2;
+            PH_INT128 b1;
+            PH_INT128 b2;
 
             do
             {
-                b1 = _mm_loadu_si128((__m128i *)s1);
-                b2 = _mm_loadu_si128((__m128i *)s2);
-                b1 = _mm_cmpeq_epi32(b1, b2);
+                b1 = PhLoadINT128((PLONG)s1);
+                b2 = PhLoadINT128((PLONG)s2);
+                b1 = PhCompareEqINT128by32(b1, b2);
 
-                if (_mm_movemask_epi8(b1) != 0xffff)
+                if (PhMoveMaskINT128by8(b1) != 0xffff)
                 {
                     if (!IgnoreCase)
                     {
@@ -1565,7 +1552,6 @@ BOOLEAN PhEqualStringRef(
         l1 = (l1 & 15) / sizeof(WCHAR);
     }
     else
-#endif
     {
         length = l1 / sizeof(ULONG_PTR);
 
@@ -1663,8 +1649,7 @@ ULONG_PTR PhFindCharInStringRef(
 
     if (!IgnoreCase)
     {
-#ifndef _ARM64_
-        if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+        if (PhHasIntrinsics)
         {
             SIZE_T length16;
 
@@ -1673,18 +1658,18 @@ ULONG_PTR PhFindCharInStringRef(
 
             if (length16 != 0)
             {
-                __m128i pattern;
-                __m128i block;
+                PH_INT128 pattern;
+                PH_INT128 block;
                 ULONG mask;
                 ULONG index;
 
-                pattern = _mm_set1_epi16(Character);
+                pattern = PhSetINT128by16(Character);
 
                 do
                 {
-                    block = _mm_loadu_si128((__m128i *)buffer);
-                    block = _mm_cmpeq_epi16(block, pattern);
-                    mask = _mm_movemask_epi8(block);
+                    block = PhLoadINT128((PLONG)buffer);
+                    block = PhCompareEqINT128by16(block, pattern);
+                    mask = PhMoveMaskINT128by8(block);
 
                     if (_BitScanForward(&index, mask))
                         return (String->Length - length16 * 16) / sizeof(WCHAR) - length + index / 2;
@@ -1694,7 +1679,6 @@ ULONG_PTR PhFindCharInStringRef(
             }
         }
         else
-#endif
         {
             if (buffer)
                 wcschr(buffer, Character);
@@ -1756,8 +1740,7 @@ ULONG_PTR PhFindLastCharInStringRef(
 
     if (!IgnoreCase)
     {
-#ifndef _ARM64_
-        if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+        if (PhHasIntrinsics)
         {
             SIZE_T length16;
 
@@ -1766,19 +1749,19 @@ ULONG_PTR PhFindLastCharInStringRef(
 
             if (length16 != 0)
             {
-                __m128i pattern;
-                __m128i block;
+                PH_INT128 pattern;
+                PH_INT128 block;
                 ULONG mask;
                 ULONG index;
 
-                pattern = _mm_set1_epi16(Character);
+                pattern = PhSetINT128by16(Character);
                 buffer -= 16 / sizeof(WCHAR);
 
                 do
                 {
-                    block = _mm_loadu_si128((__m128i *)buffer);
-                    block = _mm_cmpeq_epi16(block, pattern);
-                    mask = _mm_movemask_epi8(block);
+                    block = PhLoadINT128((PLONG)buffer);
+                    block = PhCompareEqINT128by16(block, pattern);
+                    mask = PhMoveMaskINT128by8(block);
 
                     if (_BitScanReverse(&index, mask))
                         return (length16 - 1) * 16 / sizeof(WCHAR) + length + index / 2;
@@ -1790,7 +1773,6 @@ ULONG_PTR PhFindLastCharInStringRef(
             }
         }
         else
-#endif
         {
             if (buffer)
                 wcsrchr(buffer, Character);
@@ -6479,19 +6461,10 @@ VOID PhFillMemoryUlongOriginal(
     _In_ SIZE_T Count
     )
 {
-#ifdef _ARM64_
-    if (Count != 0)
-    {
-        do
-        {
-            *Memory++ = Value;
-        } while (--Count != 0);
-    }
-#else
-    __m128i pattern;
+    PH_INT128 pattern;
     SIZE_T count;
 
-    if (PhpVectorLevel < PH_VECTOR_LEVEL_SSE2)
+    if (!PhHasIntrinsics)
     {
         if (Count != 0)
         {
@@ -6532,14 +6505,14 @@ VOID PhFillMemoryUlongOriginal(
         }
     }
 
-    pattern = _mm_set1_epi32(Value);
+    pattern = PhSetINT128by32(Value);
     count = Count / 4;
 
     if (count != 0)
     {
         do
         {
-            _mm_store_si128((__m128i *)Memory, pattern);
+            PhStoreINT128((PLONG)Memory, pattern);
             Memory += 4;
         } while (--count != 0);
     }
@@ -6556,7 +6529,6 @@ VOID PhFillMemoryUlongOriginal(
         *Memory++ = Value;
         break;
     }
-#endif
 }
 
 VOID PhFillMemoryUlong(
@@ -6565,16 +6537,8 @@ VOID PhFillMemoryUlong(
     _In_ SIZE_T Count
     )
 {
-#ifdef _ARM64_
-    if (Count != 0)
-    {
-        do
-        {
-            *Memory++ = Value;
-        } while (--Count != 0);
-    }
-#else
-    if (PhVectorLevel_AVX)
+#ifndef _ARM64_
+    if (PhHasAVX)
     {
         SIZE_T count = Count & ~0x1F;
 
@@ -6595,22 +6559,23 @@ VOID PhFillMemoryUlong(
             Count &= 0x1F;
         }
     }
+#endif
 
-    if (PhVectorLevel_SSE2)
+    if (PhHasIntrinsics)
     {
         SIZE_T count = Count & ~0xF;
 
         if (count != 0)
         {
             PULONG end;
-            __m128i pattern;
+            PH_INT128 pattern;
 
             end = (PULONG)(ULONG_PTR)(Memory + count);
-            pattern = _mm_set1_epi32(Value);
+            pattern = PhSetINT128by32(Value);
 
             while (Memory != end)
             {
-                _mm_store_si128((__m128i*)Memory, pattern);
+                PhStoreINT128((PLONG)Memory, pattern);
                 Memory += 4;
             }
 
@@ -6624,15 +6589,7 @@ VOID PhFillMemoryUlong(
         {
             *Memory++ = Value;
         } while (--Count != 0);
-        
-        //PULONG end = (PULONG)(ULONG_PTR)(Memory + Count);
-        //
-        //while (Memory != end)
-        //{
-        //    *Memory++ = Value;
-        //}
     }
-#endif
 }
 
 /**
@@ -6648,14 +6605,10 @@ VOID PhDivideSinglesBySingleOriginal(
     _In_ SIZE_T Count
     )
 {
-#ifdef _ARM64_
-    while (Count--)
-        *A++ /= B;
-#else
     PFLOAT endA;
-    __m128 b;
+    PH_FLOAT128 b;
 
-    if (PhpVectorLevel < PH_VECTOR_LEVEL_SSE2)
+    if (!PhHasIntrinsics)
     {
         while (Count--)
             *A++ /= B;
@@ -6696,15 +6649,15 @@ VOID PhDivideSinglesBySingleOriginal(
     }
 
     endA = (PFLOAT)((ULONG_PTR)(A + Count) & ~0xf);
-    b = _mm_load1_ps(&B);
+    b = PhSetFLOAT128by32(B);
 
     while (A != endA)
     {
-        __m128 a;
+        PH_FLOAT128 a;
 
-        a = _mm_load_ps(A);
-        a = _mm_div_ps(a, b);
-        _mm_store_ps(A, a);
+        a = PhLoadFLOAT128(A);
+        a = PhDivideFLOAT128(a, b);
+        PhStoreFLOAT128(A, a);
 
         A += 4;
     }
@@ -6721,7 +6674,6 @@ VOID PhDivideSinglesBySingleOriginal(
         *A++ /= B;
         break;
     }
-#endif
 }
 
 VOID PhDivideSinglesBySingle(
@@ -6730,11 +6682,8 @@ VOID PhDivideSinglesBySingle(
     _In_ SIZE_T Count
     )
 {
-#ifdef _ARM64_
-    while (Count--)
-        *A++ /= B;
-#else
-    if (PhVectorLevel_AVX)
+#ifndef _ARM64_
+    if (PhHasAVX)
     {
         SIZE_T count = Count & ~0x1F;
 
@@ -6759,25 +6708,26 @@ VOID PhDivideSinglesBySingle(
             Count &= 0x1F;
         }
     }
+#endif
     
-    if (PhVectorLevel_SSE2)
+    if (PhHasIntrinsics)
     {
         SIZE_T count = Count & ~0xF;
 
         if (count != 0)
         {
             PFLOAT end;
-            __m128 a;
-            __m128 b;
+            PH_FLOAT128 a;
+            PH_FLOAT128 b;
 
             end = (PFLOAT)(ULONG_PTR)(A + count);
-            b = _mm_load_ps1(&B);
+            b = PhSetFLOAT128by32(B);
 
             while (A != end)
             {
-                a = _mm_load_ps(A);
-                a = _mm_div_ps(a, b);
-                _mm_store_ps(A, a);
+                a = PhLoadFLOAT128(A);
+                a = PhDivideFLOAT128(a, b);
+                PhStoreFLOAT128(A, a);
 
                 A += 4;
             }
@@ -6795,7 +6745,6 @@ VOID PhDivideSinglesBySingle(
             *A++ /= B;
         }
     }
-#endif
 }
 
 BOOLEAN PhCalculateEntropy(
@@ -6878,15 +6827,11 @@ ULONG PhCountBits(
     _In_ ULONG Value
     )
 {
-#ifdef _M_ARM64
-    return (ULONG)PopulationCount64(Value);
-#elif _M_X64
-    if (PhVectorLevel_SSE42)
+    if (PhHasPopulationCount)
     {
-        return (ULONG)_mm_popcnt_u32(Value);
+        return PhPopulationCount32(Value);
     }
     else
-#endif
     {
         #undef T
         #define T ULONG
@@ -6916,18 +6861,16 @@ ULONG PhCountBitsUlongPtr(
     _In_ ULONG_PTR Value
     )
 {
-#ifdef _M_ARM64
-    return (ULONG)PopulationCount64(Value);
-#elif _M_X64
-    if (PhVectorLevel_SSE42)
+#ifdef _WIN64
+    if (PhHasPopulationCount)
     {
-        return (ULONG)_mm_popcnt_u64(Value);
+        return PhPopulationCount64(Value);
     }
     else
 #endif
     {
         #undef T
-        #define T ULONGLONG
+        #define T ULONG
         ULONG count;
 
         // Licensed under public domain: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel

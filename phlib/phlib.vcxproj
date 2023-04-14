@@ -340,6 +340,7 @@
     <ClInclude Include="include\phbasesup.h" />
     <ClInclude Include="include\phconfig.h" />
     <ClInclude Include="include\phdata.h" />
+    <ClInclude Include="include\phintrin.h" />
     <ClInclude Include="include\phintrnl.h" />
     <ClInclude Include="include\phnative.h" />
     <ClInclude Include="include\phnativeinl.h" />
