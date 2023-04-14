@@ -871,3 +871,43 @@ VOID PhModifyEMenuItem(
         Item->Flags |= OwnedFlags & PH_EMENU_BITMAP_OWNED;
     }
 }
+
+VOID PhSetHMenuStyle(
+    _In_ HMENU Menu,
+    _In_ BOOLEAN MainMenu
+    )
+{
+    MENUINFO menuInfo;
+
+    memset(&menuInfo, 0, sizeof(MENUINFO));
+    menuInfo.cbSize = sizeof(MENUINFO);
+    menuInfo.fMask = MIM_STYLE;
+    menuInfo.dwStyle = MNS_CHECKORBMP;
+
+    if (MainMenu)
+    {
+        if (PhEnableThemeSupport)
+        {
+            menuInfo.fMask |= MIM_BACKGROUND;
+            menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
+        }
+    }
+    else
+    {
+        if ((WindowsVersion < WINDOWS_10_19H2 || PhEnableThemeAcrylicSupport) && PhEnableThemeSupport)
+        {
+            menuInfo.fMask |= MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
+            menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
+        }
+    }
+
+    SetMenuInfo(Menu, &menuInfo);
+}
+
+VOID PhDeleteHMenu(
+    _In_ HMENU Menu
+    )
+{
+    while (DeleteMenu(Menu, 0, MF_BYPOSITION))
+        NOTHING;
+}
