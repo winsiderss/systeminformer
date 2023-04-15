@@ -174,6 +174,16 @@ PhSiDoubleLabelYFunction(
     );
 
 PHAPPAPI
+PPH_STRING
+NTAPI
+PhSiUInt64LabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    );
+
+PHAPPAPI
 VOID
 NTAPI
 PhShowSystemInformationDialog(
