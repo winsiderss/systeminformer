@@ -2535,7 +2535,7 @@ ULONG PhGetFileVersionInfoLangCodePage(
     if (PhGetFileVersionVarFileInfoValue(VersionInfo, &translationName, &codePage, &codePageLength))
     {
         //for (ULONG i = 0; i < (codePageLength / sizeof(LANGANDCODEPAGE)); i++)
-        return (codePage[0].Language << 16) + codePage[0].CodePage; // Combine the language ID and code page.
+        return ((ULONG)codePage[0].Language << 16) + codePage[0].CodePage; // Combine the language ID and code page.
     }
 
     return (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252;
