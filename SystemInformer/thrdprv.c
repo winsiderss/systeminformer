@@ -673,7 +673,7 @@ static NTSTATUS PhpGetThreadCycleTime(
     {
         if (HandleToUlong(ThreadItem->ThreadId) < PhSystemProcessorInformation.NumberOfProcessors)
         {
-            *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].QuadPart;
+            *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].CycleTime;
             return STATUS_SUCCESS;
         }
     }
