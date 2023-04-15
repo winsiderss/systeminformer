@@ -3437,7 +3437,7 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
 {
     PPH_MAIN_TAB_PAGE page;
     PPH_STRING name;
-    HDWP deferHandle;
+    //HDWP deferHandle;
 
     page = PhAllocateZero(sizeof(PH_MAIN_TAB_PAGE));
     page->Name = Template->Name;
@@ -3454,9 +3454,9 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
     page->Callback(page, MainTabPageCreate, NULL, NULL);
 
     // The tab control might need multiple lines, so we need to refresh the layout.
-    deferHandle = BeginDeferWindowPos(1);
-    PhMwpLayoutTabControl(&deferHandle);
-    EndDeferWindowPos(deferHandle);
+    //deferHandle = BeginDeferWindowPos(1);
+    //PhMwpLayoutTabControl(&deferHandle);
+    //EndDeferWindowPos(deferHandle);
 
     return page;
 }
