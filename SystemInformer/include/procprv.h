@@ -63,8 +63,8 @@ extern ULONG PhTotalHandles;
 extern ULONG PhTotalCpuQueueLength;
 
 extern ULONG64 PhCpuTotalCycleDelta;
-extern PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
-extern PLARGE_INTEGER PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
+extern PSYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION PhCpuIdleCycleTime; // cycle time for Idle
+extern PSYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
 extern PH_UINT64_DELTA PhCpuIdleCycleDelta;
 extern PH_UINT64_DELTA PhCpuSystemCycleDelta;
 
