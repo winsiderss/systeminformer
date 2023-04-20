@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2015-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_SYSINFO_H
 #define PH_SYSINFO_H
 
@@ -167,6 +179,16 @@ PHAPPAPI
 PPH_STRING
 NTAPI
 PhSiDoubleLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    );
+
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhSiUInt64LabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,

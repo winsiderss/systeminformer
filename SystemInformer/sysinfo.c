@@ -934,7 +934,7 @@ VOID PhSiSetColorsGraphDrawInfo(
     )
 {
     static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
-    static ULONG lastDpi = ULONG_MAX;
+    static LONG lastDpi = ULONG_MAX;
     static HFONT iconTitleFont = NULL;
 
     // Get the appropriate fonts.
@@ -1007,7 +1007,7 @@ PPH_STRING PhSiSizeLabelYFunction(
 {
     ULONG64 size;
 
-    size = (ULONG64)((DOUBLE)Value * Parameter);
+    size = (ULONG64)(Value * Parameter);
 
     if (size != 0)
     {
@@ -1035,7 +1035,7 @@ PPH_STRING PhSiDoubleLabelYFunction(
 {
     DOUBLE value;
 
-    value = (DOUBLE)((DOUBLE)Value * Parameter);
+    value = (DOUBLE)(Value * Parameter);
 
     if (value != 0)
     {
@@ -1045,6 +1045,25 @@ PPH_STRING PhSiDoubleLabelYFunction(
         PhInitFormatC(&format[1], L'%');
 
         return PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
+    else
+    {
+        return PhReferenceEmptyString();
+    }
+}
+
+PPH_STRING PhSiUInt64LabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    ULONG64 value = (ULONG64)Value * (ULONG64)Parameter;
+
+    if (value != 0)
+    {
+        return PhFormatUInt64(value, TRUE);
     }
     else
     {
