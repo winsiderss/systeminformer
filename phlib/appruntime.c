@@ -608,7 +608,7 @@ CleanupExit:
     {
         if (HRESULT_FACILITY(systemIdPublisherStatus) == FACILITY_NT_BIT >> NT_FACILITY_SHIFT)
         {
-            systemIdPublisherStatus = ClearFlag(systemIdPublisherStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
+            ClearFlag(systemIdPublisherStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
             *SystemIdForPublisher = PhGetStatusMessage(systemIdPublisherStatus, 0);
         }
 
@@ -626,7 +626,7 @@ CleanupExit:
     {
         if (HRESULT_FACILITY(systemIdForUserStatus) == FACILITY_NT_BIT >> NT_FACILITY_SHIFT)
         {
-            systemIdForUserStatus = ClearFlag(systemIdForUserStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
+            ClearFlag(systemIdForUserStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
             *SystemIdForUser = PhGetStatusMessage(systemIdForUserStatus, 0);
         }
 
