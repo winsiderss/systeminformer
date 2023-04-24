@@ -386,7 +386,7 @@ PWSTR PhGetProcessHeapClassText(
         return L"CSRSS Port Heap";
     }
 
-    return L"Unknown";
+    return L"Unknown Heap";
 }
 
 VOID PhpEnumerateProcessHeaps(

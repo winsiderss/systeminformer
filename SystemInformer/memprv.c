@@ -615,7 +615,56 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                     for (i = 0; i < numberOfHeaps; i++)
                     {
                         if (memoryItem = PhpSetMemoryRegionType(List, processHeaps[i], TRUE, HeapRegion))
+                        {
+                            PH_ANY_HEAP buffer;
+
                             memoryItem->u.Heap.Index = i;
+
+                            // Try to read heap class from the header
+                            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, processHeaps[i], &buffer, sizeof(buffer), NULL)))
+                            {
+                                if (WindowsVersion >= WINDOWS_8)
+                                {
+                                    if (buffer.Heap.Signature == HEAP_SIGNATURE)
+                                    {
+                                        memoryItem->u.Heap.ClassValid = TRUE;
+                                        memoryItem->u.Heap.Class = buffer.Heap.Flags & HEAP_CLASS_MASK;
+                                    }
+                                    else if (buffer.Heap32.Signature == HEAP_SIGNATURE)
+                                    {
+                                        memoryItem->u.Heap.ClassValid = TRUE;
+                                        memoryItem->u.Heap.Class = buffer.Heap32.Flags & HEAP_CLASS_MASK;
+                                    }
+                                    else if (WindowsVersion >= WINDOWS_8_1)
+                                    {
+                                        // Windows 8.1 and above can use segment heaps
+                                        if (buffer.SegmentHeap.Signature == SEGMENT_HEAP_SIGNATURE)
+                                        {
+                                            memoryItem->u.Heap.ClassValid = TRUE;
+                                            memoryItem->u.Heap.Class = buffer.SegmentHeap.GlobalFlags & HEAP_CLASS_MASK;
+                                        }
+                                        else if (buffer.SegmentHeap32.Signature == SEGMENT_HEAP_SIGNATURE)
+                                        {
+                                            memoryItem->u.Heap.ClassValid = TRUE;
+                                            memoryItem->u.Heap.Class = buffer.SegmentHeap32.GlobalFlags & HEAP_CLASS_MASK;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (buffer.HeapOld.Signature == HEAP_SIGNATURE)
+                                    {
+                                        memoryItem->u.Heap.ClassValid = TRUE;
+                                        memoryItem->u.Heap.Class = buffer.HeapOld.Flags & HEAP_CLASS_MASK;
+                                    }
+                                    else if (buffer.HeapOld32.Signature == HEAP_SIGNATURE)
+                                    {
+                                        memoryItem->u.Heap.ClassValid = TRUE;
+                                        memoryItem->u.Heap.Class = buffer.HeapOld32.Flags & HEAP_CLASS_MASK;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
