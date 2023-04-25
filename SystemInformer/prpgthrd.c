@@ -1121,7 +1121,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         }
                         else
                         {
-                            PhShowStatus(hwndDlg, L"Unable to open the thread", status, 0);
+                            PhShowStatus(hwndDlg, PhaFormatString(
+                                L"Unable to %s thread %lu", // string pooling optimization (dmex)
+                                L"set the boost priority of",
+                                HandleToUlong(threadItem->ThreadId)
+                                )->Buffer, status, 0);
                         }
                     }
                 }
