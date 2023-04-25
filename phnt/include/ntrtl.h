@@ -8845,15 +8845,6 @@ RtlIsValidProcessTrustLabelSid(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE3)
-NTSYSAPI
-BOOLEAN
-NTAPI
-RtlIsStateSeparationEnabled(
-    VOID
-    );
-#endif
-
 typedef enum _APPCONTAINER_SID_TYPE
 {
     NotAppContainerSidType,
@@ -8907,6 +8898,8 @@ RtlFlsSetValue(
     );
 #endif
 
+// State isolation
+
 typedef enum _STATE_LOCATION_TYPE
 {
     LocationTypeRegistry,
@@ -8915,6 +8908,14 @@ typedef enum _STATE_LOCATION_TYPE
 } STATE_LOCATION_TYPE;
 
 #if (PHNT_VERSION >= PHNT_REDSTONE3)
+// private
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsStateSeparationEnabled(
+    VOID
+    );
+
 // private
 NTSYSAPI
 NTSTATUS
@@ -8928,7 +8929,11 @@ RtlGetPersistedStateLocation(
     _In_ ULONG BufferLengthIn,
     _Out_opt_ PULONG BufferLengthOut
     );
+#endif
 
+// Cloud Filters
+
+#if (PHNT_VERSION >= PHNT_REDSTONE3)
 // msdn
 NTSYSAPI
 BOOLEAN
@@ -8988,7 +8993,6 @@ NTAPI
 RtlSetThreadPlaceholderCompatibilityMode(
     _In_ CHAR Mode
     );
-
 #endif
 
 #if (PHNT_VERSION >= PHNT_REDSTONE4)
