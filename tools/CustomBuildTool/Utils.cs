@@ -93,6 +93,13 @@ namespace CustomBuildTool
             return exitcode;
         }
 
+        public static void CreateEmptyFile(string FileName)
+        {
+            Win32.DeleteFile(FileName);
+
+            File.Create(FileName).Dispose();
+        }
+
         public static bool DeleteFile(string FileName)
         {
             try
@@ -467,7 +474,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage($"[CreateSignature - Key not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
                 return false;
             }
-            
+
             int errorcode = Win32.CreateProcess(
                 GetSignToolPath(),
                 $"sign -k {KeyFile} {SignFile} -s {sigfile}",

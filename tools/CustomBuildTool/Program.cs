@@ -98,6 +98,7 @@ namespace CustomBuildTool
                         Build.CopyEtwTraceGuidsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                         Build.BuildSdk(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                         Build.CopyKernelDriver(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyWow64Files(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                     }
                     else
                     {
@@ -105,6 +106,7 @@ namespace CustomBuildTool
                         Build.CopyEtwTraceGuidsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                         Build.BuildSdk(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                         Build.CopyKernelDriver(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.CopyWow64Files(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                     }
                 }
                 else
