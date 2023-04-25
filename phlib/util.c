@@ -2383,6 +2383,8 @@ PVOID PhGetFileVersionInfo(
             PhFreeLibrary(libraryModule);
             return versionInfo;
         }
+
+        PhFree(versionInfo);
     }
 
     PhFreeLibrary(libraryModule);
