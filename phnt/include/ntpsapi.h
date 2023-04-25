@@ -214,7 +214,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessDynamicEnforcedCetCompatibleRanges, // PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE_INFORMATION // since 20H2
     ProcessCreateStateChange, // since WIN11
     ProcessApplyStateChange,
-    ProcessEnableOptionalXStateFeatures,
+    ProcessEnableOptionalXStateFeatures, // ULONG64 // optional XState feature bitmask
     ProcessAltPrefetchParam, // since 22H1
     ProcessAssignCpuPartitions,
     ProcessPriorityClassEx, // s: PROCESS_PRIORITY_CLASS_EX
