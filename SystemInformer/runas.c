@@ -2698,6 +2698,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                 PhpRunFileSetImageList(context);
             }
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -2726,6 +2728,9 @@ INT_PTR CALLBACK PhpRunFileWndProc(
     case WM_CTLCOLORSTATIC:
         {
             HDC hdc = (HDC)wParam;
+
+            if (PhEnableThemeSupport)
+                break;
 
             SetBkMode(hdc, TRANSPARENT);
 
@@ -2818,11 +2823,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             SetBkMode(hdc, TRANSPARENT);
 
             clientRect.bottom -= PhGetDpi(60, context->WindowDpi);
-            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW));
 
             clientRect.top = clientRect.bottom;
             clientRect.bottom = clientRect.top + PhGetDpi(60, context->WindowDpi);
-            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
+            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_3DFACE));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
         }
@@ -2918,18 +2923,18 @@ typedef struct _PH_RUNAS_PACKAGE_CONTEXT
     HIMAGELIST ImageListHandle;
     LONG WindowDpi;
     PH_LAYOUT_MANAGER LayoutManager;
-    
+
     PH_TN_FILTER_SUPPORT TreeFilterSupport;
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
     PPH_STRING SearchBoxText;
-    
+
     HFONT NormalFontHandle;
     HFONT TitleFontHandle;
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
-   
+
 } PH_RUNAS_PACKAGE_CONTEXT, *PPH_RUNAS_PACKAGE_CONTEXT;
 
 typedef enum _PH_RUNASPACKAGE_TREE_COLUMN_ITEM
@@ -3432,7 +3437,7 @@ VOID PhRunAsPackageInitializeTree(
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
     Context->SearchBoxText = PhReferenceEmptyString();
     Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->TreeFilterSupport, PhRunAsPackageTreeFilterCallback, Context);
-    
+
     TreeNew_SetEmptyText(Context->TreeNewHandle, &PhRunAsPackageLoadingText, 0);
 }
 
@@ -3441,7 +3446,7 @@ VOID PhRunAsPackageDeleteTree(
     )
 {
     PhClearReference(&Context->SearchBoxText);
-    
+
     PhRemoveTreeNewFilter(&Context->TreeFilterSupport, Context->TreeFilterEntry);
     PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
 
@@ -3469,8 +3474,8 @@ static NTSTATUS PhEnumPackageThreadCallback(
 
     PPH_LIST apps = PhEnumPackageApplicationUserModelIds();
     PostMessage(context->WindowHandle, WM_PH_UPDATE_DIALOG, 0, (LPARAM)apps);
-    
-    PhDereferenceObject(context);    
+
+    PhDereferenceObject(context);
     return STATUS_SUCCESS;
 }
 
@@ -3483,7 +3488,7 @@ static VOID PhRunAsPackageSetImagelist(
         PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
         PhGetSystemMetrics(SM_CYICON, Context->WindowDpi),
         ILC_MASK | ILC_COLOR32,
-        20, 
+        20,
         10
         );
 }
@@ -3585,7 +3590,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
 
             PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDCANCEL));
-            
+
             EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), FALSE);
             PhReferenceObject(context);
             PhCreateThread2(PhEnumPackageThreadCallback, context);
@@ -3614,9 +3619,9 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
     case WM_PH_UPDATE_DIALOG:
         {
             PPH_LIST apps = (PPH_LIST)lParam;
-            
+
             EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), TRUE);
-            
+
             if (apps)
             {
                 TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
@@ -3703,10 +3708,10 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
 
                             status = PhCreateProcessDesktopPackage(
                                 PhGetString(node->AppUserModelId),
-                                PhGetString(fullFileName), 
-                                PhGetString(argumentsString), 
-                                FALSE, 
-                                NULL, 
+                                PhGetString(fullFileName),
+                                PhGetString(argumentsString),
+                                FALSE,
+                                NULL,
                                 NULL
                                 );
 
@@ -3720,7 +3725,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                             {
                                 PhShowStatus(WindowHandle, L"Unable to execute the command.", 0, status);
                             }
-                            
+
                             PhClearReference(&argumentsString);
                             PhClearReference(&fullFileName);
                             PhClearReference(&commandString);
@@ -3731,10 +3736,10 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             case IDC_REFRESH:
                 {
                     EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), FALSE);
-                    
+
                     PhRunAsPackageClearTree(context);
                     PhRunAsPackageSetImagelist(context);
-                    
+
                     PhReferenceObject(context);
                     PhCreateThread2(PhEnumPackageThreadCallback, context);
                 }
@@ -3758,7 +3763,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
                     if (!PhEqualString(context->SearchBoxText, newSearchboxText, FALSE))
                     {
                         PhSwapReference(&context->SearchBoxText, newSearchboxText);
-                        
+
                         PhApplyTreeNewFilters(&context->TreeFilterSupport);
                     }
                 }
