@@ -9264,11 +9264,14 @@ VOID PhpInitializePredefineKeys(
     {
         RtlInitEmptyUnicodeString(&stringSid, stringSidBuffer, sizeof(stringSidBuffer));
 
-        status = RtlConvertSidToUnicodeString(
-            &stringSid,
-            tokenUser.User.Sid,
-            FALSE
-            );
+        if (PhEqualSid(tokenUser.User.Sid, &PhSeLocalSystemSid))
+        {
+            status = RtlInitUnicodeStringEx(&stringSid, L".DEFAULT");
+        }
+        else
+        {
+            status = RtlConvertSidToUnicodeString(&stringSid, tokenUser.User.Sid, FALSE);
+        }
     }
 
     // Construct the current user key name.
