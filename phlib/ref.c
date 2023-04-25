@@ -298,40 +298,6 @@ _May_raise_ VOID PhDereferenceObjectEx(
 }
 
 /**
- * References an array of objects.
- *
- * \param Objects An array of objects.
- * \param NumberOfObjects The number of elements in \a Objects.
- */
-VOID PhReferenceObjects(
-    _In_reads_(NumberOfObjects) PVOID *Objects,
-    _In_ ULONG NumberOfObjects
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < NumberOfObjects; i++)
-        PhReferenceObject(Objects[i]);
-}
-
-/**
- * Dereferences an array of objects.
- *
- * \param Objects An array of objects.
- * \param NumberOfObjects The number of elements in \a Objects.
- */
-VOID PhDereferenceObjects(
-    _In_reads_(NumberOfObjects) PVOID *Objects,
-    _In_ ULONG NumberOfObjects
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < NumberOfObjects; i++)
-        PhDereferenceObject(Objects[i]);
-}
-
-/**
  * Gets an object's type.
  *
  * \param Object A pointer to an object.
