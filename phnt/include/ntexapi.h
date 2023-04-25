@@ -5346,9 +5346,23 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG MdsHardwareProtected : 1; // since 19H2
             ULONG MbClearEnabled : 1;
             ULONG MbClearReported : 1;
-            ULONG Reserved : 5;
+            ULONG ReservedTaa : 4;
+            ULONG Reserved : 1;
         };
-    };
+    } SpeculationControlFlags;
+    union
+    {
+        ULONG Flags; // Since KB4074629 (2023)
+        struct
+        {
+            ULONG Reserved1 : 5;
+            ULONG BhbEnabled : 1;
+            ULONG BhbDisabledSystemPolicy : 1;
+            ULONG BhbDisabledNoHardwareSupport : 1;
+            ULONG Reserved2 : 3;
+            ULONG Reserved : 21;
+        };
+    } SpeculationControlFlags2;
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
 
 // private
