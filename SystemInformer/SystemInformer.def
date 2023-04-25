@@ -377,7 +377,6 @@ EXPORTS
     PhCreateProcessWin32Ex
     PhCreateSaveFileDialog
     PhDeleteImageVersionInfo
-    PhDereferenceObjects
     PhEllipsisString
     PhEllipsisStringPath
     PhEscapeCommandLinePart
@@ -448,7 +447,6 @@ EXPORTS
     PhQueryRegistryString
     PhQueryRegistryUlong
     PhQueryRegistryUlong64
-    PhReferenceObjects
     PhSetFileDialogFileName
     PhSetFileDialogFilter
     PhSetFileDialogOptions
