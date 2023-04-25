@@ -1737,7 +1737,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
 
     if (context.BaseAddress)
     {
-        *baseAddress = (CLRDATA_ADDRESS)context.BaseAddress;    
+        *baseAddress = (CLRDATA_ADDRESS)context.BaseAddress;
         return S_OK;
     }
     else
