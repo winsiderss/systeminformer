@@ -2414,6 +2414,8 @@ PVOID PhGetFileVersionInfoEx(
             PhFreeLibraryAsImageResource(imageBaseAddress);
             return versionInfo;
         }
+
+        PhFree(versionInfo);
     }
 
     PhFreeLibraryAsImageResource(imageBaseAddress);
