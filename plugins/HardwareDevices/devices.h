@@ -1068,6 +1068,11 @@ typedef struct _DV_RAPL_SYSINFO_CONTEXT
     HWND DimmGraphHandle;
     HWND TotalGraphHandle;
 
+    HWND PackageGraphLabelHandle;
+    HWND CoreGraphLabelHandle;
+    HWND DimmGraphLabelHandle;
+    HWND TotalGraphLabelHandle;
+
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
