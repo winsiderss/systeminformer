@@ -200,6 +200,11 @@ namespace CustomBuildTool
                     ))
                     Environment.Exit(1);
 
+                Build.CopyWow64Files( // required after plugin build (dmex)
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
+                    BuildFlags.BuildDebug | BuildFlags.BuildRelease
+                    );
+
                 if (!Build.CopyTextFiles(true))
                     Environment.Exit(1);
 
@@ -235,6 +240,11 @@ namespace CustomBuildTool
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
+
+                Build.CopyWow64Files( // required after plugin build (dmex)
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
+                    BuildFlags.BuildDebug | BuildFlags.BuildRelease
+                    );
 
                 if (!Build.CopyTextFiles(true))
                     return;
