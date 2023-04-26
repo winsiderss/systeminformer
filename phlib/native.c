@@ -10656,7 +10656,7 @@ RTL_PATH_TYPE PhDetermineDosPathNameType(
         return RtlPathTypeDriveRelative;
     }
 
-    return RtlPathTypeRelative; 
+    return RtlPathTypeRelative;
 #endif
 }
 
@@ -10957,7 +10957,7 @@ NTSTATUS PhCopyFileWin32(
     FILE_BASIC_INFORMATION basicInfo;
     LARGE_INTEGER newFileSize;
     IO_STATUS_BLOCK isb;
-    BYTE buffer[PAGE_SIZE];
+    PBYTE buffer;
 
     status = PhCreateFileWin32(
         &fileHandle,
@@ -10997,6 +10997,8 @@ NTSTATUS PhCopyFileWin32(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    buffer = PhAllocatePage(PAGE_SIZE * 2, NULL);
+
     while (TRUE)
     {
         status = NtReadFile(
@@ -11006,7 +11008,7 @@ NTSTATUS PhCopyFileWin32(
             NULL,
             &isb,
             buffer,
-            sizeof(buffer),
+            PAGE_SIZE * 2,
             NULL,
             NULL
             );
@@ -11034,6 +11036,8 @@ NTSTATUS PhCopyFileWin32(
             break;
     }
 
+    PhFreePage(buffer);
+
     if (status == STATUS_END_OF_FILE)
     {
         status = STATUS_SUCCESS;
@@ -11048,7 +11052,7 @@ NTSTATUS PhCopyFileWin32(
     }
     else
     {
-        PhDeleteFile(newFileHandle);
+        PhSetFileDelete(newFileHandle);
     }
 
     NtClose(newFileHandle);
@@ -11403,7 +11407,7 @@ NTSTATUS PhMoveFileWin32(
     {
         HANDLE newFileHandle;
         LARGE_INTEGER newFileSize;
-        BYTE buffer[PAGE_SIZE];
+        PBYTE buffer;
 
         status = PhGetFileSize(fileHandle, &newFileSize);
 
@@ -11424,6 +11428,8 @@ NTSTATUS PhMoveFileWin32(
 
         if (NT_SUCCESS(status))
         {
+            buffer = PhAllocatePage(PAGE_SIZE * 2, NULL);
+
             while (TRUE)
             {
                 status = NtReadFile(
@@ -11433,7 +11439,7 @@ NTSTATUS PhMoveFileWin32(
                     NULL,
                     &isb,
                     buffer,
-                    sizeof(buffer),
+                    PAGE_SIZE * 2,
                     NULL,
                     NULL
                     );
@@ -11460,6 +11466,8 @@ NTSTATUS PhMoveFileWin32(
                 if (isb.Information == 0)
                     break;
             }
+
+            PhFreePage(buffer);
 
             if (status == STATUS_END_OF_FILE)
             {
@@ -11508,7 +11516,6 @@ NTSTATUS PhCreatePipeEx(
     HANDLE pipeDirectoryHandle;
     HANDLE pipeReadHandle;
     HANDLE pipeWriteHandle;
-    LARGE_INTEGER pipeTimeout;
     UNICODE_STRING pipeName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
@@ -11574,7 +11581,7 @@ NTSTATUS PhCreatePipeEx(
         1,
         PAGE_SIZE,
         PAGE_SIZE,
-        PhTimeoutFromMilliseconds(&pipeTimeout, 120000)
+        PhTimeoutFromMillisecondsEx(120000)
         );
 
     if (!NT_SUCCESS(status))
@@ -11632,7 +11639,6 @@ NTSTATUS PhCreateNamedPipe(
     PACL pipeAcl = NULL;
     HANDLE pipeHandle;
     PPH_STRING pipeName;
-    LARGE_INTEGER pipeTimeout;
     UNICODE_STRING pipeNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
@@ -11680,7 +11686,7 @@ NTSTATUS PhCreateNamedPipe(
         FILE_PIPE_UNLIMITED_INSTANCES,
         PAGE_SIZE,
         PAGE_SIZE,
-        PhTimeoutFromMilliseconds(&pipeTimeout, 1000)
+        PhTimeoutFromMillisecondsEx(1000)
         );
 
     if (NT_SUCCESS(status))
@@ -11929,9 +11935,12 @@ NTSTATUS PhCallNamedPipe(
 
     if (pipeHandle)
     {
-        //IO_STATUS_BLOCK isb;
-        //NtFlushBuffersFile(pipeHandle, &isb);
+        IO_STATUS_BLOCK ioStatusBlock;
+
+        NtFlushBuffersFile(pipeHandle, &ioStatusBlock);
+
         PhDisconnectNamedPipe(pipeHandle);
+
         NtClose(pipeHandle);
     }
 
