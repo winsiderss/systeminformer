@@ -2567,8 +2567,12 @@ BOOLEAN PhGetSystemResourcesFileName(
         if (!PhGetBasePath(&directoryPart, &directoryBasePart, NULL))
             return FALSE;
 
-        PhMoveReference(&fileName, PhConcatStringRef3(&directoryBasePart, &systemResourcesPath, &fileNamePart));
-        PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &systemResourcesExtension));
+        fileName = PhConcatStringRef4(
+            &directoryBasePart,
+            &systemResourcesPath,
+            &fileNamePart,
+            &systemResourcesExtension
+            );
 
         if (NativeFileName)
         {

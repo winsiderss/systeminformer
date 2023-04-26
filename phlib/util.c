@@ -3976,9 +3976,7 @@ PPH_STRING PhGetTemporaryDirectory(
 
         if (AppendPath)
         {
-            PPH_STRING path = PhConcatStringRef3(&systemRoot, &PhNtPathSeperatorString, &systemTemp);
-            PhMoveReference(&path, PhConcatStringRef2(&path->sr, AppendPath));
-            return path;
+            return PhConcatStringRef4(&systemRoot, &PhNtPathSeperatorString, &systemTemp, AppendPath);
         }
         else
         {
