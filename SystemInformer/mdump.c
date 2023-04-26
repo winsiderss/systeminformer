@@ -132,7 +132,7 @@ VOID PhpProcessMiniDumpContextDeleteProcedure(
         {
             if (fileSize.QuadPart == 0)
             {
-                PhDeleteFile(context->KernelFileHandle);
+                PhSetFileDelete(context->KernelFileHandle);
             }
         }
 
@@ -551,7 +551,7 @@ Completed:
     }
     else
     {
-        PhDeleteFile(context->FileHandle);
+        PhSetFileDelete(context->FileHandle);
     }
 
     PhDereferenceObject(context);

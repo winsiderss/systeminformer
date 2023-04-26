@@ -4280,7 +4280,7 @@ NTSTATUS PhGetFileIndexNumber(
         );
 }
 
-NTSTATUS PhDeleteFile( // PhDeleteFileHandle PhSetFileDelete
+NTSTATUS PhSetFileDelete(
     _In_ HANDLE FileHandle
     )
 {
@@ -10716,7 +10716,7 @@ NTSTATUS PhDeleteFileWin32(
             return status;
         }
 
-        //PhDeleteFile(fileHandle);
+        //PhSetFileDelete(fileHandle);
 
         NtClose(fileHandle);
     }
@@ -10850,7 +10850,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
         {
             PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, &fullName->sr);
 
-            PhDeleteFile(directoryHandle);
+            PhSetFileDelete(directoryHandle);
 
             NtClose(directoryHandle);
         }
@@ -10874,7 +10874,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
                     IO_STATUS_BLOCK ioStatusBlock;
                     FILE_BASIC_INFORMATION fileBasicInfo = { 0 };
 
-                    fileBasicInfo.FileAttributes = ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
+                    ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
 
                     NtSetInformationFile(
                         fileHandle,
@@ -10885,7 +10885,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
                         );
                 }
 
-                PhDeleteFile(fileHandle);
+                PhSetFileDelete(fileHandle);
 
                 NtClose(fileHandle);
             }
@@ -10933,7 +10933,7 @@ NTSTATUS PhDeleteDirectoryWin32(
         if (NT_SUCCESS(status))
         {
             // Remove the directory. (dmex)
-            status = PhDeleteFile(directoryHandle);
+            status = PhSetFileDelete(directoryHandle);
         }
 
         NtClose(directoryHandle);
@@ -11196,7 +11196,7 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
 
     if (!NT_SUCCESS(status))
     {
-        PhDeleteFile(destinationHandle);
+        PhSetFileDelete(destinationHandle);
     }
 
     NtClose(destinationHandle);
@@ -11330,7 +11330,7 @@ NTSTATUS PhCopyFileChunkWin32(
     }
     else
     {
-        PhDeleteFile(destinationHandle);
+        PhSetFileDelete(destinationHandle);
     }
 
     NtClose(destinationHandle);
@@ -11468,7 +11468,7 @@ NTSTATUS PhMoveFileWin32(
 
             if (status != STATUS_SUCCESS)
             {
-                PhDeleteFile(newFileHandle);
+                PhSetFileDelete(newFileHandle);
             }
 
             NtClose(newFileHandle);
