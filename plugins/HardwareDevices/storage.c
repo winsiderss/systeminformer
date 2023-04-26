@@ -970,7 +970,7 @@ NTSTATUS DiskDriveQueryUniqueId(
 
     return status;
 }
- 
+
 NTSTATUS DiskDriveQueryPartitionInfo(
     _In_ HANDLE DeviceHandle,
     _Out_ PARTITION_INFORMATION_EX* PartitionInfo

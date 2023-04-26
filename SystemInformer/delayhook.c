@@ -70,7 +70,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
             if (PhEnableThemeSupport)
             {
                 if (PhEnableThemeAcrylicSupport)
-                { 
+                {
                     // Note: DWM crashes if called from WM_NCCREATE (dmex)
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }
@@ -1067,7 +1067,7 @@ VOID PhRegisterRebarSuperClass(
     PhDefaultRebarWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhRebarWindowHookProcedure;
     wcex.style = wcex.style | CS_PARENTDC | CS_GLOBALCLASS;
-    
+
     UnregisterClass(REBARCLASSNAME, NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
     {

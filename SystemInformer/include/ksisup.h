@@ -18,7 +18,7 @@ PhShowKsiStatus(
     VOID
     );
 
-VOID 
+VOID
 PhInitializeKsi(
     VOID
     );

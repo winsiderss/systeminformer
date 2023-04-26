@@ -968,8 +968,8 @@ INT PhShowMessage2(
 
     buttonsFlags = 0;
     PhMapFlags1(
-        &buttonsFlags, 
-        Buttons, 
+        &buttonsFlags,
+        Buttons,
         PhShowMessageTaskDialogButtonFlagMappings,
         ARRAYSIZE(PhShowMessageTaskDialogButtonFlagMappings)
         );
@@ -1014,18 +1014,18 @@ BOOLEAN PhShowMessageOneTime(
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
     BOOL verificationFlagChecked = FALSE;
     ULONG buttonsFlags;
-    
+
     va_start(argptr, Format);
     message = PhFormatString_V(Format, argptr);
     va_end(argptr);
 
     if (!message)
         return FALSE;
-    
+
     buttonsFlags = 0;
     PhMapFlags1(
-        &buttonsFlags, 
-        Buttons, 
+        &buttonsFlags,
+        Buttons,
         PhShowMessageTaskDialogButtonFlagMappings,
         ARRAYSIZE(PhShowMessageTaskDialogButtonFlagMappings)
         );
@@ -1524,9 +1524,9 @@ BOOLEAN PhGenerateRandomNumber(
 #else
         ULONG low = 0;
         ULONG high = 0;
-        
+
         while (TRUE)
-        { 
+        {
             if (_rdrand32_step(&low) && _rdrand32_step(&high))
             {
                 Number->LowPart = low;
@@ -6044,8 +6044,8 @@ VOID PhSetFileDialogFileName(
         _Out_opt_ SFGAOF* psfgaoOut
         ) = NULL;
     static HRESULT (WINAPI* SHCreateItemFromIDList_I)(
-        _In_ PCIDLIST_ABSOLUTE pidl, 
-        _In_ REFIID riid, 
+        _In_ PCIDLIST_ABSOLUTE pidl,
+        _In_ REFIID riid,
         _Outptr_ void** ppv
         ) = NULL;
     PPHP_FILE_DIALOG fileDialog = FileDialog;
@@ -6077,7 +6077,7 @@ VOID PhSetFileDialogFileName(
             LPITEMIDLIST item;
             PPH_STRING pathName;
 
-            pathName = PhCreateString2(&pathNamePart);          
+            pathName = PhCreateString2(&pathNamePart);
 
             if (SUCCEEDED(SHParseDisplayName_I(pathName->Buffer, NULL, &item, 0, NULL)))
             {
@@ -7368,7 +7368,7 @@ HRESULT PhGetClassObjectDllBase(
  * \param DllName The file containing the object to initialize.
  * \param Rclsid A pointer to the class identifier of the object to be created.
  * \param Riid Reference to the identifier of the interface to communicate with the class object.
- * \a Typically this value is IID_IClassFactory, although other values such as IID_IClassFactory2 which supports a form of licensing are allowed. 
+ * \a Typically this value is IID_IClassFactory, although other values such as IID_IClassFactory2 which supports a form of licensing are allowed.
  * \param Ppv The address of pointer variable that contains the requested interface.
  *
  * \return Successful or errant status.
@@ -7478,8 +7478,8 @@ HRESULT PhGetActivationFactory(
     HSTRING_HEADER runtimeClassStringHeader;
 
     status = WindowsCreateStringReference(
-        RuntimeClass, 
-        (UINT32)PhCountStringZ((PWSTR)RuntimeClass), 
+        RuntimeClass,
+        (UINT32)PhCountStringZ((PWSTR)RuntimeClass),
         &runtimeClassStringHeader,
         &runtimeClassStringHandle
         );

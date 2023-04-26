@@ -979,7 +979,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 }
                 break;
             case PHMMTLC_ORIGINAL_PAGES:
-                {    
+                {
                     if (node->IsAllocationBase)
                         break;
 

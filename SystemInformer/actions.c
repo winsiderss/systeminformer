@@ -341,7 +341,6 @@ BOOLEAN PhpStartPhSvcProcess(
                 PH_STRINGREF_INIT(L"\\..\\Release32\\")
 #endif
             };
-
             ULONG i;
             PPH_STRING applicationDirectory;
             PPH_STRING applicationFileName;

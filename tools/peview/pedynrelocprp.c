@@ -126,7 +126,7 @@ VOID PvEnumerateDynamicRelocationEntries(
                 PhPrintPointer(value, PTR_ADD_OFFSET(entry->SwitchBranch.BlockRva, entry->SwitchBranch.Record.PageRelativeOffset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"BRANCH");
-                // TODO(jxy-s) map register numbers to names 
+                // TODO(jxy-s) map register numbers to names
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhFormatString(L"Register %u", entry->SwitchBranch.Record.RegisterNumber)->Buffer);
             }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
@@ -187,7 +187,7 @@ VOID PvEnumerateDynamicRelocationEntries(
             {
                 PIMAGE_SECTION_HEADER section;
                 PPH_STRING symbol;
-                
+
                 section = PhMappedImageRvaToSection(
                     &PvMappedImage,
                     PtrToUlong(PTR_SUB_OFFSET(entry->MappedImageVa, PvMappedImage.ViewBase))

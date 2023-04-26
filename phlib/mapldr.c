@@ -199,10 +199,10 @@ NtSuppressDebugMessage(
     _In_ BOOLEAN SuppressDebugMessage
     )
 {
-    // Note: The Visual Studio debugger on Windows 7/8 attempts to load symbols 
+    // Note: The Visual Studio debugger on Windows 7/8 attempts to load symbols
     // for non-executable resources. The kernelbase BasepLoadLibraryAsDataFileInternal
-    // function temporarily suppresses symbols while loading resources (both release and debug) 
-    // as a QOL optimization but we only suppress debug messages for debug builds. This issue 
+    // function temporarily suppresses symbols while loading resources (both release and debug)
+    // as a QOL optimization but we only suppress debug messages for debug builds. This issue
     // was fixed on Windows 10 with SEC_IMAGE_NO_EXECUTE and suppression is not required (dmex)
 
     if (WindowsVersion < WINDOWS_10)
@@ -485,12 +485,20 @@ NTSTATUS PhGetProcedureAddressRemote(
     ULONG exportsFlags;
 #endif
 
-    status = PhLoadMappedImageEx(FileName, NULL, &mappedImage);
+    status = PhLoadMappedImageEx(
+        FileName,
+        NULL,
+        &mappedImage
+        );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcessMappedFileName(NtCurrentProcess(), mappedImage.ViewBase, &fileName);
+    status = PhGetProcessMappedFileName(
+        NtCurrentProcess(),
+        mappedImage.ViewBase,
+        &fileName
+        );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -1482,26 +1490,26 @@ NTSTATUS PhLoaderEntryDetourImportProcedure(
                     *OriginalAddress = (PVOID)importThunk->u1.Function;
 
                 if (NT_SUCCESS(status = NtProtectVirtualMemory(
-                    NtCurrentProcess(), 
-                    &importThunkAddress, 
-                    &importThunkSize, 
-                    PAGE_READWRITE, 
+                    NtCurrentProcess(),
+                    &importThunkAddress,
+                    &importThunkSize,
+                    PAGE_READWRITE,
                     &importThunkProtect
                     )))
                 {
                     importThunk->u1.Function = (ULONG_PTR)FunctionAddress;
 
                     NtProtectVirtualMemory(
-                        NtCurrentProcess(), 
-                        &importThunkAddress, 
-                        &importThunkSize, 
-                        importThunkProtect, 
+                        NtCurrentProcess(),
+                        &importThunkAddress,
+                        &importThunkSize,
+                        importThunkProtect,
                         &importThunkProtect
                         );
 #ifdef _M_ARM64
                     NtFlushInstructionCache(
-                        NtCurrentProcess(), 
-                        importThunkAddress, 
+                        NtCurrentProcess(),
+                        importThunkAddress,
                         importThunkSize
                         );
 #endif
@@ -1693,8 +1701,8 @@ CleanupExit:
 
 #ifdef _M_ARM64
     NtFlushInstructionCache(
-        NtCurrentProcess(), 
-        importDirectorySectionAddress, 
+        NtCurrentProcess(),
+        importDirectorySectionAddress,
         importDirectorySectionSize
         );
 #endif
@@ -1862,8 +1870,8 @@ CleanupExit:
 
 #ifdef _M_ARM64
     NtFlushInstructionCache(
-        NtCurrentProcess(), 
-        importDirectorySectionAddress, 
+        NtCurrentProcess(),
+        importDirectorySectionAddress,
         importDirectorySectionSize
         );
 #endif
@@ -2465,8 +2473,8 @@ CleanupExit:
                 PhInitializeStringRefLongHint(&fileNameSr, FileName);
 
                 if (
-                    PhEndsWithStringRef(&fileNameSr, &extensionCOM, TRUE) || 
-                    PhEndsWithStringRef(&fileNameSr, &extensionPIF, TRUE) || 
+                    PhEndsWithStringRef(&fileNameSr, &extensionCOM, TRUE) ||
+                    PhEndsWithStringRef(&fileNameSr, &extensionPIF, TRUE) ||
                     PhEndsWithStringRef(&fileNameSr, &extensionEXE, TRUE)
                     )
                 {

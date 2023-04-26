@@ -1037,8 +1037,8 @@ VOID PhpFillProcessItemStage1(
 
     // Note: Queue stage 2 processing after filling stage1 process data.
     if (
-        PhEnableProcessQueryStage2 || 
-        PhEnableImageCoherencySupport || 
+        PhEnableProcessQueryStage2 ||
+        PhEnableImageCoherencySupport ||
         PhEnableLinuxSubsystemSupport
         )
     {

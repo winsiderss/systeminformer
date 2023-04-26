@@ -288,7 +288,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                                     }
 
                                     SendMessage(listviewHandle, WM_SETREDRAW, TRUE, 0);
-                                    
+
                                     SaveDb();
                                 }
                                 break;

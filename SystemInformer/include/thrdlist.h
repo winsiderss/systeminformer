@@ -112,7 +112,7 @@ typedef struct _PH_THREAD_NODE
     NTSTATUS LastStatusValue;
     NTSTATUS LastStatusQueryStatus;
     OLETLSFLAGS ApartmentState;
-    
+
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
     WCHAR CpuUserUsageText[PH_INT32_STR_LEN_1];
     WCHAR CpuKernelUsageText[PH_INT32_STR_LEN_1];

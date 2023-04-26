@@ -3580,7 +3580,7 @@ PhFormatEntropy(
     _In_opt_ DOUBLE Variance,
     _In_opt_ USHORT VariancePrecision
     );
-    
+
 PHLIBAPI
 ULONG
 NTAPI
@@ -3594,7 +3594,7 @@ NTAPI
 PhCountBitsUlongPtr(
     _In_ ULONG_PTR Value
     );
-    
+
 // Auto-dereference convenience functions
 
 FORCEINLINE
