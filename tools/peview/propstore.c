@@ -86,7 +86,7 @@ VOID PvpPeEnumerateFilePropStore(
                 {
                     INT lvItemIndex;
                     IPropertyDescription* propertyDescriptionPtr = NULL;
-                    PROPVARIANT propKeyVariant = { 0 };
+                    PROPVARIANT propKeyVariant;
                     PWSTR propKeyName;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
@@ -107,6 +107,8 @@ VOID PvpPeEnumerateFilePropStore(
                         else
                             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Unknown");
                     }
+
+                    PropVariantInit(&propKeyVariant);
 
                     if (SUCCEEDED(IPropertyStore_GetValue(propstore, &propkey, &propKeyVariant)))
                     {

@@ -250,7 +250,7 @@ HRESULT PvGetClrMetaDataInterface(
             {
                 for (ULONG i = 0; i < directoryList->Count; i++)
                 {
-                    PPH_STRING directoryName = reinterpret_cast<PPH_STRING>(directoryList->Items[i]);
+                    PPH_STRING directoryName = static_cast<PPH_STRING>(directoryList->Items[i]);
                     PPH_STRING fileName = PhConcatStringRef3(
                         &directoryPath->sr,
                         &directoryName->sr,

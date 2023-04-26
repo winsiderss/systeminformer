@@ -47,6 +47,7 @@
 #define IDD_ELFEXPORTS                  170
 #define IDD_PEVOLATILE                  171
 #define IDD_PECLRTABLES                 172
+#define IDD_PEVERSIONINFO               173
 #define IDD_CONTAINER                   205
 #define IDC_TARGETMACHINE               1003
 #define IDC_LIST                        1008

@@ -657,7 +657,7 @@ VOID PvAddTreeViewSections(
     PvCreateTabSection(
         L"VersionInfo",
         PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_PEPREVIEW),
+        MAKEINTRESOURCE(IDD_PEVERSIONINFO),
         PvpPeVersionInfoDlgProc,
         NULL
         );
