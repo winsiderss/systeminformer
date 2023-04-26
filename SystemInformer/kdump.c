@@ -173,7 +173,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                 if (context->FileHandle)
                 {
                     if (!NT_SUCCESS(context->LastStatus))
-                        PhDeleteFile(context->FileHandle);
+                        PhSetFileDelete(context->FileHandle);
 
                     NtClose(context->FileHandle);
                     context->FileHandle = NULL;

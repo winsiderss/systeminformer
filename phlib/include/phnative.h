@@ -1094,7 +1094,7 @@ PhGetFileIndexNumber(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhDeleteFile(
+PhSetFileDelete(
     _In_ HANDLE FileHandle
     );
 
