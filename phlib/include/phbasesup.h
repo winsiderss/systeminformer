@@ -1270,12 +1270,23 @@ PhConcatStringRef2(
     _In_ PPH_STRINGREF String2
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhConcatStringRef3(
     _In_ PPH_STRINGREF String1,
     _In_ PPH_STRINGREF String2,
     _In_ PPH_STRINGREF String3
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhConcatStringRef4(
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String3,
+    _In_ PPH_STRINGREF String4
     );
 
 FORCEINLINE

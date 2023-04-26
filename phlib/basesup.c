@@ -2672,6 +2672,46 @@ PPH_STRING PhConcatStringRef3(
 }
 
 /**
+ * Concatenates four strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param String3 The third string.
+ * \param String4 The forth string.
+ */
+PPH_STRING PhConcatStringRef4(
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String3,
+    _In_ PPH_STRINGREF String4
+    )
+{
+    PPH_STRING string;
+    PCHAR buffer;
+
+    assert(!(String1->Length & 1));
+    assert(!(String2->Length & 1));
+    assert(!(String3->Length & 1));
+    assert(!(String4->Length & 1));
+
+    string = PhCreateStringEx(NULL, String1->Length + String2->Length + String3->Length + String4->Length);
+
+    buffer = (PCHAR)string->Buffer;
+    memcpy(buffer, String1->Buffer, String1->Length);
+
+    buffer += String1->Length;
+    memcpy(buffer, String2->Buffer, String2->Length);
+
+    buffer += String2->Length;
+    memcpy(buffer, String3->Buffer, String3->Length);
+
+    buffer += String3->Length;
+    memcpy(buffer, String4->Buffer, String4->Length);
+
+    return string;
+}
+
+/**
  * Creates a string using format specifiers.
  *
  * \param Format The format-control string.
