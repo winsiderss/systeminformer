@@ -355,17 +355,17 @@ interface IInspectable
 
 #ifdef COBJMACROS
 #define IInspectable_QueryInterface(This,riid,ppvObject) \
-    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject)) 
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
 #define IInspectable_AddRef(This) \
-    ((This)->lpVtbl->AddRef(This)) 
+    ((This)->lpVtbl->AddRef(This))
 #define IInspectable_Release(This) \
-    ((This)->lpVtbl->Release(This)) 
+    ((This)->lpVtbl->Release(This))
 #define IInspectable_GetIids(This,iidCount,iids) \
-    ((This)->lpVtbl->GetIids(This,iidCount,iids)) 
+    ((This)->lpVtbl->GetIids(This,iidCount,iids))
 #define IInspectable_GetRuntimeClassName(This,className) \
-    ((This)->lpVtbl->GetRuntimeClassName(This,className)) 
-#define IInspectable_GetTrustLevel(This,trustLevel)	\
-    ((This)->lpVtbl->GetTrustLevel(This,trustLevel)) 
+    ((This)->lpVtbl->GetRuntimeClassName(This,className))
+#define IInspectable_GetTrustLevel(This,trustLevel) \
+    ((This)->lpVtbl->GetTrustLevel(This,trustLevel))
 #endif
 #endif
 #endif
@@ -435,19 +435,19 @@ interface IActivationFactory
 
 #ifdef COBJMACROS
 #define IActivationFactory_QueryInterface(This,riid,ppvObject) \
-    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject)) 
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
 #define IActivationFactory_AddRef(This) \
-    ((This)->lpVtbl->AddRef(This)) 
+    ((This)->lpVtbl->AddRef(This))
 #define IActivationFactory_Release(This) \
-    ((This)->lpVtbl->Release(This)) 
+    ((This)->lpVtbl->Release(This))
 #define IActivationFactory_GetIids(This,iidCount,iids) \
-    ((This)->lpVtbl->GetIids(This,iidCount,iids)) 
+    ((This)->lpVtbl->GetIids(This,iidCount,iids))
 #define IActivationFactory_GetRuntimeClassName(This,className) \
-    ((This)->lpVtbl->GetRuntimeClassName(This,className)) 
+    ((This)->lpVtbl->GetRuntimeClassName(This,className))
 #define IActivationFactory_GetTrustLevel(This,trustLevel) \
-    ((This)->lpVtbl->GetTrustLevel(This,trustLevel)) 
+    ((This)->lpVtbl->GetTrustLevel(This,trustLevel))
 #define IActivationFactory_ActivateInstance(This,instance) \
-    ((This)->lpVtbl->ActivateInstance(This,instance)) 
+    ((This)->lpVtbl->ActivateInstance(This,instance))
 #endif
 #endif
 #endif

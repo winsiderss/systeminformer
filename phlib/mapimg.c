@@ -1874,14 +1874,14 @@ NTSTATUS PhGetMappedImageImportEntry(
 }
 
 ULONG PhGetMappedImageImportEntryRva(
-    _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,                                   
+    _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
     _In_ ULONG Index,
     _In_ BOOLEAN DelayImport
     )
 {
     ULONG rva = 0;
     //PVOID va;
-    
+
     if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
         if (DelayImport)
@@ -3845,7 +3845,7 @@ VOID PhFreeMappedImageRelocations(
 
 NTSTATUS PhGetMappedImageDynamicRelocationsTable(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _Out_opt_ PIMAGE_DYNAMIC_RELOCATION_TABLE* Table 
+    _Out_opt_ PIMAGE_DYNAMIC_RELOCATION_TABLE* Table
     )
 {
     NTSTATUS status;
@@ -4050,7 +4050,7 @@ VOID PhpFillDynamicRelocations(
     else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE ||
              Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE)
     {
-        // TODO(jxy-s) not yet implemented, skip the block 
+        // TODO(jxy-s) not yet implemented, skip the block
         NOTHING;
     }
     else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
@@ -4424,7 +4424,7 @@ PVOID PhpFillDynamicRelocationsArray32v2(
 {
     PVOID next;
 
-    // TODO(jxy-s) not yet implemented, skip the block 
+    // TODO(jxy-s) not yet implemented, skip the block
 
     next = Relocs;
     if (!PhPtrAdvance(&next, RelocsEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32_V2, Flags)))
@@ -4448,7 +4448,7 @@ PVOID PhpFillDynamicRelocationsArray64v2(
 {
     PVOID next;
 
-    // TODO(jxy-s) not yet implemented, skip the block 
+    // TODO(jxy-s) not yet implemented, skip the block
 
     next = Relocs;
     if (!PhPtrAdvance(&next, RelocsEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64_V2, Flags)))
@@ -4972,8 +4972,8 @@ PPH_STRING PhGetMappedImageAuthenticodeHash(
         if (imageHashBlock[i].Length)
         {
             PhpMappedImageUpdateHashData(
-                &hashContext, 
-                PTR_ADD_OFFSET(MappedImage->ViewBase, imageHashBlock[i].Offset), 
+                &hashContext,
+                PTR_ADD_OFFSET(MappedImage->ViewBase, imageHashBlock[i].Offset),
                 imageHashBlock[i].Length
                 );
         }
@@ -5155,8 +5155,8 @@ BOOLEAN PhGetMappedImageEntropy(
     {
         status = PhCalculateEntropy(
             MappedImage->ViewBase,
-            MappedImage->Size, 
-            ImageEntropy, 
+            MappedImage->Size,
+            ImageEntropy,
             ImageVariance
             );
     }

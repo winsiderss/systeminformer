@@ -132,7 +132,7 @@ VOID PhpShowKsiMessage(
     _In_ BOOLEAN Force,
     _In_ PWSTR Title,
     _In_ PWSTR Format,
-    _In_ va_list ArgPtr 
+    _In_ va_list ArgPtr
     )
 {
     PPH_STRING kernelVersion;
@@ -416,11 +416,11 @@ NTSTATUS KsiInitializeCallbackThread(
         else
         {
             PhShowKsiMessageEx(
-                CallbackContext, 
+                CallbackContext,
                 TD_ERROR_ICON,
                 status,
                 FALSE,
-                L"Unable to load kernel driver", 
+                L"Unable to load kernel driver",
                 L"Unable to load the kernel driver service."
                 );
         }
@@ -430,11 +430,11 @@ NTSTATUS KsiInitializeCallbackThread(
     else
     {
         PhShowKsiMessageEx(
-            CallbackContext, 
+            CallbackContext,
             TD_ERROR_ICON,
             STATUS_NO_SUCH_FILE,
             FALSE,
-            L"Unable to load kernel driver", 
+            L"Unable to load kernel driver",
             L"The kernel driver was not found."
             );
     }

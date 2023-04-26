@@ -3159,7 +3159,7 @@ VOID PhMwpInitializeSubMenu(
             if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_RUNASPACKAGE))
                 PhDestroyEMenuItem(menuItem);
         }
-        
+
         if (PhGetOwnTokenAttributes().Elevated)
         {
             if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_RUNASADMINISTRATOR))
@@ -3180,7 +3180,7 @@ VOID PhMwpInitializeSubMenu(
                 }
             }
         }
-        
+
         PhMwpSetupComputerMenu(Menu);
     }
     else if (Index == PH_MENU_ITEM_LOCATION_VIEW)

@@ -460,7 +460,7 @@ BOOLEAN PhTnpOnCreate(
         if (RTL_CONTAINS_FIELD(createParamaters, createParamaters->Size, RowHeight) && createParamaters->RowHeight)
         {
             Context->CustomRowHeight = TRUE;
-            Context->RowHeight = max(createParamaters->RowHeight, 15);   
+            Context->RowHeight = max(createParamaters->RowHeight, 15);
         }
     }
     else

@@ -586,14 +586,14 @@ VOID PhpUpdateThreadNodeLastSystemCall(
 
         ThreadNode->ThreadContextHandleValid = TRUE;
     }
-    
+
     ThreadNode->LastSystemCallStatus = STATUS_SUCCESS;
     memset(&ThreadNode->LastSystemCall, 0, sizeof(THREAD_LAST_SYSCALL_INFORMATION));
 
     if (ThreadNode->ThreadContextHandle)
     {
         ThreadNode->LastSystemCallStatus = PhGetThreadLastSystemCall(ThreadNode->ThreadContextHandle, &lastSystemCall);
-        
+
         if (NT_SUCCESS(ThreadNode->LastSystemCallStatus))
         {
             ThreadNode->LastSystemCall = lastSystemCall;
@@ -727,7 +727,7 @@ VOID PhpUpdateThreadNodeFiber(
     {
         PhGetThreadIsFiber(
             ThreadNode->ThreadItem->ThreadHandle,
-            ThreadNode->ThreadReadVmHandle, 
+            ThreadNode->ThreadReadVmHandle,
             &threadIsFiber
             );
     }
@@ -891,7 +891,7 @@ BEGIN_SORT_FUNCTION(Name)
 {
     PhpUpdateThreadNodeNameText(node1);
     PhpUpdateThreadNodeNameText(node2);
-    
+
     sortResult = PhCompareStringWithNull(node1->NameText, node2->NameText, TRUE);
 }
 END_SORT_FUNCTION
@@ -936,7 +936,7 @@ BEGIN_SORT_FUNCTION(PagePriority)
 {
     PhpUpdateThreadNodePagePriority(node1);
     PhpUpdateThreadNodePagePriority(node2);
-    
+
     sortResult = uintcmp(node1->PagePriority, node2->PagePriority);
 }
 END_SORT_FUNCTION
@@ -945,7 +945,7 @@ BEGIN_SORT_FUNCTION(IoPriority)
 {
     PhpUpdateThreadNodeIoPriority(node1);
     PhpUpdateThreadNodeIoPriority(node2);
-    
+
     sortResult = uintcmp(node1->IoPriority, node2->IoPriority);
 }
 END_SORT_FUNCTION
@@ -1011,7 +1011,7 @@ BEGIN_SORT_FUNCTION(IdealProcessor)
 {
     PhpUpdateThreadNodeIdealProcessor(node1);
     PhpUpdateThreadNodeIdealProcessor(node2);
-    
+
     sortResult = int64cmp(node1->IdealProcessorMask, node2->IdealProcessorMask);
     //sortResult = PhCompareStringZ(node1->IdealProcessorText, node2->IdealProcessorText, TRUE);
 }
@@ -1021,7 +1021,7 @@ BEGIN_SORT_FUNCTION(Critical)
 {
     PhpUpdateThreadNodeBreakOnTermination(node1);
     PhpUpdateThreadNodeBreakOnTermination(node2);
-    
+
     sortResult = ucharcmp(node1->BreakOnTermination, node2->BreakOnTermination);
 }
 END_SORT_FUNCTION
@@ -1052,7 +1052,7 @@ BEGIN_SORT_FUNCTION(TokenState)
 {
     PhpUpdateThreadNodeTokenState(node1);
     PhpUpdateThreadNodeTokenState(node2);
-    
+
     sortResult = uintcmp(node1->TokenState, node2->TokenState);
 }
 END_SORT_FUNCTION
@@ -1061,7 +1061,7 @@ BEGIN_SORT_FUNCTION(PendingIrp)
 {
     PhpUpdateThreadNodeIoPending(node1);
     PhpUpdateThreadNodeIoPending(node2);
-    
+
     sortResult = ucharcmp(node1->PendingIrp, node2->PendingIrp);
 }
 END_SORT_FUNCTION
@@ -1070,7 +1070,7 @@ BEGIN_SORT_FUNCTION(LastSystemCall)
 {
     PhpUpdateThreadNodeLastSystemCall(node1);
     PhpUpdateThreadNodeLastSystemCall(node2);
-    
+
     sortResult = ushortcmp(node1->LastSystemCall.SystemCallNumber, node2->LastSystemCall.SystemCallNumber);
 }
 END_SORT_FUNCTION
@@ -1079,7 +1079,7 @@ BEGIN_SORT_FUNCTION(LastStatusCode)
 {
     PhpUpdateThreadNodeLastStatusCode(context, node1);
     PhpUpdateThreadNodeLastStatusCode(context, node2);
-    
+
     sortResult = uintcmp(node1->LastStatusValue, node2->LastStatusValue);
 }
 END_SORT_FUNCTION
@@ -1088,7 +1088,7 @@ BEGIN_SORT_FUNCTION(ApartmentState)
 {
     PhpUpdateThreadNodeApartmentState(context, node1);
     PhpUpdateThreadNodeApartmentState(context, node2);
-    
+
     sortResult = uintcmp(node1->ApartmentState, node2->ApartmentState);
 }
 END_SORT_FUNCTION
@@ -1097,7 +1097,7 @@ BEGIN_SORT_FUNCTION(Fiber)
 {
     PhpUpdateThreadNodeFiber(context, node1);
     PhpUpdateThreadNodeFiber(context, node2);
-    
+
     sortResult = ucharcmp(node1->Fiber, node2->Fiber);
 }
 END_SORT_FUNCTION
@@ -1106,7 +1106,7 @@ BEGIN_SORT_FUNCTION(PriorityBoost)
 {
     PhpUpdateThreadNodePriorityBoost(node1);
     PhpUpdateThreadNodePriorityBoost(node2);
-    
+
     sortResult = ucharcmp(node1->PriorityBoost, node2->PriorityBoost);
 }
 END_SORT_FUNCTION
@@ -1741,9 +1741,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
                     }
-                    
+
                     PhpUpdateThreadNodeApartmentState(context, node);
-                    
+
                     if (node->ApartmentState)
                     {
                         PPH_STRING apartmentStateString;

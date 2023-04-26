@@ -497,7 +497,7 @@ VOID PhLocalTimeToSystemTime(
 }
 
 BOOLEAN PhTimeToSecondsSince1980(
-    _In_ PLARGE_INTEGER Time, 
+    _In_ PLARGE_INTEGER Time,
     _Out_ PULONG ElapsedSeconds
     )
 {
@@ -521,7 +521,7 @@ BOOLEAN PhTimeToSecondsSince1980(
 }
 
 BOOLEAN PhTimeToSecondsSince1970(
-    _In_ PLARGE_INTEGER Time, 
+    _In_ PLARGE_INTEGER Time,
     _Out_ PULONG ElapsedSeconds
     )
 {
@@ -6709,7 +6709,7 @@ VOID PhDivideSinglesBySingle(
         }
     }
 #endif
-    
+
     if (PhHasIntrinsics)
     {
         SIZE_T count = Count & ~0xF;
@@ -6735,7 +6735,7 @@ VOID PhDivideSinglesBySingle(
             Count &= 0xF;
         }
     }
-    
+
     if (Count != 0)
     {
         PFLOAT end = (PFLOAT)(ULONG_PTR)(A + Count);
@@ -6844,7 +6844,7 @@ ULONG PhCountBits(
         count = (T)(Value * ((T)~(T)0 / 255)) >> (sizeof(T) - 1) * CHAR_BIT;
 
         return count;
-        
+
         //ULONG count = 0;
         //
         //while (Value)
@@ -6880,7 +6880,7 @@ ULONG PhCountBitsUlongPtr(
         count = (T)(Value * ((T)~(T)0 / 255)) >> (sizeof(T) - 1) * CHAR_BIT;
 
         return count;
-        
+
         //ULONG count = 0;
         //
         //while (Value)

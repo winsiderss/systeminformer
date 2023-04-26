@@ -2718,7 +2718,7 @@ BOOLEAN PhExtractIconEx(
     {
         NOTHING;
     }
-    
+
 CleanupExit:
 
     PhUnloadMappedImage(&mappedImage);

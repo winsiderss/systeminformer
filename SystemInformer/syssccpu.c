@@ -440,7 +440,7 @@ VOID PhSipTickCpuDialog(
     CurrentPerformanceDistribution = NULL;
     PhSipQueryProcessorPerformanceDistribution(&CurrentPerformanceDistribution);
     //PhGetSystemLogicalProcessorRelationInformation(&LogicalProcessorInformation);
-    
+
     if (CpuTicked < 2)
         CpuTicked++;
 

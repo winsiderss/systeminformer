@@ -94,7 +94,7 @@ PPH_STRING PhGetProcessItemImageTypeText(
         USHORT processArchitecture;
 
         if (
-            WindowsVersion >= WINDOWS_11 && ProcessItem->QueryHandle && 
+            WindowsVersion >= WINDOWS_11 && ProcessItem->QueryHandle &&
             NT_SUCCESS(PhGetProcessArchitecture(ProcessItem->QueryHandle, &processArchitecture))
             )
         {
@@ -591,7 +591,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         PPH_STRING fileNameWin32 = processItem->FileName ? PH_AUTO(PhGetFileName(processItem->FileName)) : NULL;
 
                         if (
-                            !PhIsNullOrEmptyString(fileNameWin32) && 
+                            !PhIsNullOrEmptyString(fileNameWin32) &&
                             PhDoesFileExistWin32(PhGetString(fileNameWin32))
                             )
                         {
@@ -618,7 +618,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         PPH_STRING fileNameWin32 = processItem->FileName ? PH_AUTO(PhGetFileName(processItem->FileName)) : NULL;
 
                         if (
-                            !PhIsNullOrEmptyString(fileNameWin32) && 
+                            !PhIsNullOrEmptyString(fileNameWin32) &&
                             PhDoesFileExistWin32(PhGetString(fileNameWin32))
                             )
                         {
@@ -731,7 +731,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"No-Execute-Up", NULL, NULL), ULONG_MAX);
 
                     status = PhOpenProcess(
-                        &processHandle, 
+                        &processHandle,
                         READ_CONTROL | WRITE_OWNER,
                         processItem->ProcessId
                         );

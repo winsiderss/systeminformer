@@ -896,7 +896,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     // WMI Provider Host
     // Note: The Winmgmt service has WMI providers but doesn't get tagged with WmiProviderHostType. (dmex)
     if (
-        (PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == WmiProviderHostType || 
+        (PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == WmiProviderHostType ||
         (PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == ServiceHostProcessType
         )
     {

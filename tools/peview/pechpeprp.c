@@ -21,8 +21,8 @@ typedef struct _PV_PE_CHPE_CONTEXT
 
 VOID PvpCHPAddValue(
     _In_ HWND lvHandle,
-    _In_ PWCHAR Name, 
-    _In_opt_ PPH_STRING Value, 
+    _In_ PWCHAR Name,
+    _In_opt_ PPH_STRING Value,
     _In_opt_ PPH_STRING Symbol
     )
 {
@@ -136,61 +136,61 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                     PvpCHPAddValue(
                         lvHandle,
                         L"Version",
-                        PhFormatString(L"%lu", chpe32->Version), 
+                        PhFormatString(L"%lu", chpe32->Version),
                         NULL
                         );
                     PvpCHPAddValue(
-                        lvHandle, 
+                        lvHandle,
                         L"Code address range offset",
                         PhFormatString(L"0x%lx", chpe32->CHPECodeAddressRangeOffset),
                         NULL
                         );
                     PvpCHPAddValue(
-                        lvHandle, 
+                        lvHandle,
                         L"Code address range count",
                         PhFormatString(L"%lu", chpe32->CHPECodeAddressRangeOffset),
                         NULL
                         );
                     PvpCHPAddValue(
-                        lvHandle, 
-                        L"Exception handler", 
-                        PhFormatString(L"0x%lx", chpe32->WowA64ExceptionHandlerFunctionPointer), 
+                        lvHandle,
+                        L"Exception handler",
+                        PhFormatString(L"0x%lx", chpe32->WowA64ExceptionHandlerFunctionPointer),
                         PvpCHPERvaToSymbol(chpe32->WowA64ExceptionHandlerFunctionPointer)
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Dispatch call", 
-                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchCallFunctionPointer), 
+                        L"Dispatch call",
+                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchCallFunctionPointer),
                         PvpCHPERvaToSymbol(chpe32->WowA64DispatchCallFunctionPointer)
                         );
                     PvpCHPAddValue(
-                        lvHandle, 
-                        L"Dispatch indirect call", 
-                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchIndirectCallFunctionPointer), 
+                        lvHandle,
+                        L"Dispatch indirect call",
+                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchIndirectCallFunctionPointer),
                         PvpCHPERvaToSymbol(chpe32->WowA64DispatchIndirectCallFunctionPointer)
                         );
                     PvpCHPAddValue(
-                        lvHandle, 
+                        lvHandle,
                         L"Dispatch indirect call guard",
-                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchIndirectCallCfgFunctionPointer), 
+                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchIndirectCallCfgFunctionPointer),
                         PvpCHPERvaToSymbol(chpe32->WowA64DispatchIndirectCallCfgFunctionPointer)
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Dispatch return", 
-                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchRetFunctionPointer), 
+                        L"Dispatch return",
+                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchRetFunctionPointer),
                         PvpCHPERvaToSymbol(chpe32->WowA64DispatchRetFunctionPointer)
                         );
                     PvpCHPAddValue(
                         lvHandle,
                         L"Dispatch return leaf",
-                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchRetLeafFunctionPointer), 
+                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchRetLeafFunctionPointer),
                         PvpCHPERvaToSymbol(chpe32->WowA64DispatchRetLeafFunctionPointer)
                         );
                     PvpCHPAddValue(
                         lvHandle,
                         L"Dispatch jump",
-                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchJumpFunctionPointer), 
+                        PhFormatString(L"0x%lx", chpe32->WowA64DispatchJumpFunctionPointer),
                         PvpCHPERvaToSymbol(chpe32->WowA64DispatchJumpFunctionPointer)
                         );
                     if (chpe32->Version >= 2)
@@ -200,9 +200,9 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                     if (chpe32->Version >= 3)
                     {
                         PvpCHPAddValue(
-                            lvHandle, 
-                            L"RDTSC", 
-                            PhFormatString(L"0x%lx", chpe32->WowA64RdtscFunctionPointer), 
+                            lvHandle,
+                            L"RDTSC",
+                            PhFormatString(L"0x%lx", chpe32->WowA64RdtscFunctionPointer),
                             PvpCHPERvaToSymbol(chpe32->WowA64RdtscFunctionPointer)
                             );
                     }
@@ -257,7 +257,7 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Code map", 
+                        L"Code map",
                         PhFormatString(L"0x%lx", chpe64->CodeMap),
                         NULL
                         );
@@ -269,7 +269,7 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Code ranges to entry points", 
+                        L"Code ranges to entry points",
                         PhFormatString(L"0x%lx", chpe64->CodeRangesToEntryPoints),
                         NULL);
                     PvpCHPAddValue(
@@ -280,13 +280,13 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Redirection metadata", 
+                        L"Redirection metadata",
                         PhFormatString(L"0x%lx", chpe64->RedirectionMetadata),
                         NULL
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Redirection metadata count", 
+                        L"Redirection metadata count",
                         PhFormatString(L"%lu", chpe64->RedirectionMetadataCount),
                         NULL
                         );
@@ -317,55 +317,55 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                     PvpCHPAddValue(
                         lvHandle,
                         L"Alternate entry point",
-                        PhFormatString(L"0x%lx", chpe64->AlternateEntryPoint), 
+                        PhFormatString(L"0x%lx", chpe64->AlternateEntryPoint),
                         PvpCHPERvaToSymbol(chpe64->AlternateEntryPoint)
                         );
                     PvpCHPAddValue(
                         lvHandle,
                         L"Get x64 information",
-                        PhFormatString(L"0x%lx", chpe64->GetX64InformationFunctionPointer), 
+                        PhFormatString(L"0x%lx", chpe64->GetX64InformationFunctionPointer),
                         PvpCHPERvaToSymbol(chpe64->GetX64InformationFunctionPointer)
                         );
                     PvpCHPAddValue(
                         lvHandle,
                         L"Set x64 information",
-                        PhFormatString(L"0x%lx", chpe64->SetX64InformationFunctionPointer), 
+                        PhFormatString(L"0x%lx", chpe64->SetX64InformationFunctionPointer),
                         PvpCHPERvaToSymbol(chpe64->SetX64InformationFunctionPointer)
                         );
                     PvpCHPAddValue(
                         lvHandle,
                         L"Dispatch call no redirect",
-                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_call_no_redirect), 
+                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_call_no_redirect),
                         PvpCHPERvaToSymbol(chpe64->tbd__os_arm64x_dispatch_call_no_redirect)
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Dispatch return", 
-                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_ret), 
+                        L"Dispatch return",
+                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_ret),
                         PvpCHPERvaToSymbol(chpe64->tbd__os_arm64x_dispatch_ret)
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Dispatch call", 
-                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_call), 
+                        L"Dispatch call",
+                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_call),
                         PvpCHPERvaToSymbol(chpe64->tbd__os_arm64x_dispatch_call)
                         );
                     PvpCHPAddValue(
                         lvHandle,
                         L"Dispatch indirect call",
-                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_icall), 
+                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_icall),
                         PvpCHPERvaToSymbol(chpe64->tbd__os_arm64x_dispatch_icall)
                         );
                     PvpCHPAddValue(
                         lvHandle,
                         L"Dispatch indirect call guard",
-                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_icall_cfg), 
+                        PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_icall_cfg),
                         PvpCHPERvaToSymbol(chpe64->tbd__os_arm64x_dispatch_icall_cfg)
                         );
                     PvpCHPAddValue(
                         lvHandle,
                         L"Dispatch function pointer",
-                        PhFormatString(L"0x%lx", chpe64->__os_arm64x_dispatch_fptr), 
+                        PhFormatString(L"0x%lx", chpe64->__os_arm64x_dispatch_fptr),
                         PvpCHPERvaToSymbol(chpe64->__os_arm64x_dispatch_fptr)
                         );
 
@@ -409,9 +409,9 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                                     lvHandle,
                                     PhFormatString(L"Code Entry Range%lu", i)->Buffer,
                                     PhFormatString(
-                                        L"[0x%lx, 0x%lx] 0x%lx", 
+                                        L"[0x%lx, 0x%lx] 0x%lx",
                                         table[i].StartRva,
-                                        table[i].EndRva, 
+                                        table[i].EndRva,
                                         table[i].EntryPoint),
                                     entry
                                     );

@@ -817,9 +817,9 @@ NTSTATUS PhGetProcessImageFileNameWin32(
         fileNameWin32 = PhCreateStringFromUnicodeString(fileName);
 
         // Note: ProcessImageFileNameWin32 returns the NT device path
-        // instead of the Win32 path in some cases were drivers haven't 
+        // instead of the Win32 path in some cases were drivers haven't
         // registered with the volume manager or have ignored the mount
-        // manager (e.g. ImDisk). We workaround these issues by calling 
+        // manager (e.g. ImDisk). We workaround these issues by calling
         // PhGetFileName and resolving the NT device prefix. (dmex)
 
         if (fileNameWin32->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
@@ -1825,8 +1825,8 @@ NTSTATUS PhGetProcessMappedImageBaseFromAddress(
     MEMORY_IMAGE_INFORMATION imageInfo;
 
     status = PhGetProcessMappedImageInformation(
-        ProcessHandle, 
-        Address, 
+        ProcessHandle,
+        Address,
         &imageInfo
         );
 
@@ -3808,7 +3808,7 @@ NTSTATUS PhGetProcessMandatoryPolicy(
 
     status = PhGetObjectSecurity(
         ProcessHandle,
-        LABEL_SECURITY_INFORMATION, 
+        LABEL_SECURITY_INFORMATION,
         &currentSecurityDescriptor
         );
 
@@ -3865,7 +3865,7 @@ NTSTATUS PhSetProcessMandatoryPolicy(
 
     status = PhGetObjectSecurity(
         ProcessHandle,
-        LABEL_SECURITY_INFORMATION, 
+        LABEL_SECURITY_INFORMATION,
         &currentSecurityDescriptor
         );
 
@@ -3899,8 +3899,8 @@ NTSTATUS PhSetProcessMandatoryPolicy(
             currentAce->Mask = Mask;
 
             status = PhSetObjectSecurity(
-                ProcessHandle, 
-                LABEL_SECURITY_INFORMATION, 
+                ProcessHandle,
+                LABEL_SECURITY_INFORMATION,
                 currentSecurityDescriptor
                 );
             break;
@@ -8366,7 +8366,7 @@ NTSTATUS PhUpdateDosDeviceMountPrefixes(
         return status;
 
     status = PhMountManagerQueryMountPoints(
-        deviceHandle, 
+        deviceHandle,
         &deviceMountPoints
         );
 
@@ -14705,8 +14705,8 @@ NTSTATUS PhGetSystemLogicalProcessorRelationInformation(
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation;
 
     status = PhGetSystemLogicalProcessorInformation(
-        RelationAll, 
-        &logicalInformation, 
+        RelationAll,
+        &logicalInformation,
         &logicalInformationLength
         );
 
@@ -15418,16 +15418,16 @@ NTSTATUS PhEnumVirtualMemoryPages(
         return status;
 
     status = PhGetProcessWorkingSetInformation(
-        processHandle, 
+        processHandle,
         &pageInfo
         );
 
     if (NT_SUCCESS(status))
     {
         Callback(
-            processHandle, 
-            pageInfo->NumberOfEntries, 
-            pageInfo->WorkingSetInfo, 
+            processHandle,
+            pageInfo->NumberOfEntries,
+            pageInfo->WorkingSetInfo,
             Context
             );
 

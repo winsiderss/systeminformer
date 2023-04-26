@@ -106,7 +106,7 @@ BOOLEAN UpdateShellExecute(
         Context->Cleanup = FALSE;
 
         ProcessHacker_Destroy();
-        
+
         return TRUE;
     }
     else

@@ -342,7 +342,7 @@ VOID PhpUpdateProcessStatistics(
                 //    PhMoveReference(&Context->PrivateCommitLimit, PhFormatSize(appMemoryInfo.PrivateCommitLimit, ULONG_MAX));
                 //if (appMemoryInfo.TotalCommitLimit)
                 //    PhMoveReference(&Context->TotalCommitLimit, PhFormatSize(appMemoryInfo.TotalCommitLimit, ULONG_MAX));
-            }          
+            }
         }
 
         if (!Context->GotCycles)
@@ -796,7 +796,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                             case PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA:
                                 {
                                     PPH_STRING value;
-                             
+
                                     value = PhFormatUInt64(statisticsContext->ProcessItem->HardFaultsDelta.Delta, TRUE);
                                     wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
                                     PhDereferenceObject(value);
@@ -971,7 +971,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     ULONG64 value = 0;
                                     WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                                    value = statisticsContext->ProcessItem->IoReadDelta.Value + 
+                                    value = statisticsContext->ProcessItem->IoReadDelta.Value +
                                         statisticsContext->ProcessItem->IoWriteDelta.Value +
                                         statisticsContext->ProcessItem->IoOtherDelta.Value;
 
@@ -990,7 +990,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     ULONG64 value = 0;
                                     WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                                    value = statisticsContext->ProcessItem->IoReadDelta.Delta + 
+                                    value = statisticsContext->ProcessItem->IoReadDelta.Delta +
                                         statisticsContext->ProcessItem->IoWriteDelta.Delta +
                                         statisticsContext->ProcessItem->IoOtherDelta.Delta;
 
