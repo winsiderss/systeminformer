@@ -1,9 +1,9 @@
-root=true
+root = true
 
-[*,!*.manifest]
-charset=utf-8
-end_of_line=crlf
-indent_style=space
-indent_size=4
-trim_trailing_whitespace=true
-insert_final_newline=true
+[*.{c,c++,cc,cpp,cppm,cxx,h,h++,hh,hpp,hxx,inl,ipp,ixx,tlh,tli}]
+charset = utf-8
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
