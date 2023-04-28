@@ -144,8 +144,8 @@
 //      offsets.
 //
 
-#pragma data_seg(".sithirdpartyd")
-#pragma const_seg(".sithirdpartyc")
+#pragma data_seg(".si3rd")
+#pragma const_seg(".si3rc")
 
 //////////////////////////////////////////////////// X86 and X64 Disassembler.
 //
