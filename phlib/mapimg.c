@@ -570,7 +570,7 @@ BOOLEAN PhGetMappedImageSectionName(
     BOOLEAN result;
     SIZE_T returnCount;
 
-    result = PhCopyStringZFromBytes(
+    result = PhCopyStringZFromUtf8(
         (PSTR)Section->Name,
         IMAGE_SIZEOF_SHORT_NAME,
         Buffer,
@@ -3681,7 +3681,7 @@ NTSTATUS PhGetMappedImagePogo(
             entry.Size = debugPogoEntry->Size;
             entry.Data = PhMappedImageRvaToVa(MappedImage, debugPogoEntry->Rva, NULL); __analysis_assume(entry.Data);
 
-            PhCopyStringZFromBytes(
+            PhCopyStringZFromUtf8(
                 debugPogoEntry->Name,
                 SIZE_MAX,
                 entry.Name,

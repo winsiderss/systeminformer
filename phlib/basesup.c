@@ -1121,7 +1121,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
 
     // Convert the string to Unicode if there is enough room.
 
-    if (OutputBuffer && OutputCount >= unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL))
+    if (OutputBuffer && OutputCount >= (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR))
     {
         status = RtlMultiByteToUnicodeN(
             OutputBuffer,
@@ -1148,7 +1148,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
     }
 
     if (ReturnCount)
-        *ReturnCount = unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL);
+        *ReturnCount = (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR);
 
     return copied;
 }
@@ -1201,7 +1201,7 @@ BOOLEAN PhCopyStringZFromUtf8(
 
     // Convert the string to Unicode if there is enough room.
 
-    if (OutputBuffer && OutputCount >= unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL))
+    if (OutputBuffer && OutputCount >= (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR))
     {
         status = RtlUTF8ToUnicodeN(
             OutputBuffer,
@@ -1213,6 +1213,8 @@ BOOLEAN PhCopyStringZFromUtf8(
 
         if (NT_SUCCESS(status))
         {
+            // RtlUTF8ToUnicodeN doesn't null terminate the string.
+            *(PWCHAR)PTR_ADD_OFFSET(OutputBuffer, unicodeBytes) = UNICODE_NULL;
             copied = TRUE;
         }
         else
@@ -1226,7 +1228,7 @@ BOOLEAN PhCopyStringZFromUtf8(
     }
 
     if (ReturnCount)
-        *ReturnCount = unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL);
+        *ReturnCount = (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR);
 
     return copied;
 }
