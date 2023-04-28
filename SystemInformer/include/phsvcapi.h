@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2015
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_PHSVCAPI_H
 #define PH_PHSVCAPI_H
 
