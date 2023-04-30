@@ -529,7 +529,6 @@ EXPORTS
     PhVerifyFileStream
     PhWriteFileStream
     PhWriteStringAsUtf8FileStream
-    PhWriteStringAsUtf8FileStream2
     PhWriteStringAsUtf8FileStreamEx
     PhWriteStringFormatAsUtf8FileStream
     PhWriteStringFormatAsUtf8FileStream_V
@@ -667,7 +666,7 @@ EXPORTS
     PhAddSetting
     PhAddSettings
     PhClearIgnoredSettings
-    PhConvertIgnoredSettings    
+    PhConvertIgnoredSettings
     PhGetIntegerStringRefSetting
     PhGetIntegerPairStringRefSetting
     PhGetScalableIntegerPairStringRefSetting
