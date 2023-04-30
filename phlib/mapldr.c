@@ -2377,7 +2377,7 @@ NTSTATUS PhGetFileBinaryTypeWin32(
     OBJECT_ATTRIBUTES objectAttributes;
     SECTION_IMAGE_INFORMATION section = { 0 };
 
-    status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = PhDosLongPathNameToNtPathNameWithStatus(
         FileName,
         &fileName,
         NULL,
