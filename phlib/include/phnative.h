@@ -1870,6 +1870,16 @@ PhDosPathNameToNtPathName(
     _In_ PPH_STRINGREF Name
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDosLongPathNameToNtPathNameWithStatus(
+    _In_ PCWSTR DosFileName,
+    _Out_ PUNICODE_STRING NtFileName,
+    _Outptr_opt_result_z_ PWSTR* FilePart,
+    _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
+    );
+
 #define PH_MODULE_TYPE_MODULE 1
 #define PH_MODULE_TYPE_MAPPED_FILE 2
 #define PH_MODULE_TYPE_WOW64_MODULE 3
