@@ -8687,6 +8687,59 @@ PPH_STRING PhDosPathNameToNtPathName(
     return newName;
 }
 
+NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
+    _In_ PCWSTR DosFileName,
+    _Out_ PUNICODE_STRING NtFileName,
+    _Outptr_opt_result_z_ PWSTR* FilePart,
+    _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS (NTAPI* RtlDosLongPathNameToNtPathName_I_WithStatus)(
+        _In_ PCWSTR DosFileName,
+        _Out_ PUNICODE_STRING NtFileName,
+        _Out_opt_ PWSTR * FilePart,
+        _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
+        ) = NULL;
+    NTSTATUS status;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS1 && NtCurrentPeb()->IsLongPathAwareProcess) // RtlAreLongPathsEnabled
+        {
+            PVOID baseAddress;
+
+            if (baseAddress = PhGetLoaderEntryDllBaseZ(L"ntdll.dll"))
+            {
+                RtlDosLongPathNameToNtPathName_I_WithStatus = PhGetDllBaseProcedureAddress(baseAddress, "RtlDosLongPathNameToNtPathName_U_WithStatus", 0);
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (RtlDosLongPathNameToNtPathName_I_WithStatus)
+    {
+        status = RtlDosLongPathNameToNtPathName_I_WithStatus(
+            DosFileName,
+            NtFileName,
+            FilePart,
+            RelativeName
+            );
+    }
+    else
+    {
+        status = RtlDosPathNameToNtPathName_U_WithStatus(
+            DosFileName,
+            NtFileName,
+            FilePart,
+            RelativeName
+            );
+    }
+
+    return status;
+}
+
 // rev from GetLongPathNameW (dmex)
 PPH_STRING PhGetLongPathName(
     _In_ PPH_STRINGREF FileName
@@ -9545,7 +9598,7 @@ NTSTATUS PhLoadAppKey(
     }
 #endif
 
-    status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = PhDosLongPathNameToNtPathNameWithStatus(
         FileName,
         &fileName,
         NULL,
@@ -10015,7 +10068,7 @@ NTSTATUS PhCreateFileWin32Ex(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
 
-    status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = PhDosLongPathNameToNtPathNameWithStatus(
         FileName,
         &fileName,
         NULL,
@@ -10080,7 +10133,7 @@ NTSTATUS PhCreateFileWin32ExAlt(
     IO_STATUS_BLOCK ioStatusBlock;
     EXTENDED_CREATE_INFORMATION extendedInfo;
 
-    status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = PhDosLongPathNameToNtPathNameWithStatus(
         FileName,
         &fileName,
         NULL,
@@ -10210,7 +10263,7 @@ NTSTATUS PhOpenFileWin32Ex(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
 
-    status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = PhDosLongPathNameToNtPathNameWithStatus(
         FileName,
         &fileName,
         NULL,
@@ -10438,7 +10491,7 @@ NTSTATUS PhQueryFullAttributesFileWin32(
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = PhDosLongPathNameToNtPathNameWithStatus(
         FileName,
         &fileName,
         NULL,
@@ -10494,7 +10547,7 @@ NTSTATUS PhQueryAttributesFileWin32(
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = PhDosLongPathNameToNtPathNameWithStatus(
         FileName,
         &fileName,
         NULL,
@@ -10673,7 +10726,7 @@ NTSTATUS PhDeleteFileWin32(
     //UNICODE_STRING fileName;
     //OBJECT_ATTRIBUTES objectAttributes;
     //
-    //status = RtlDosPathNameToNtPathName_U_WithStatus(
+    //status = PhDosLongPathNameToNtPathNameWithStatus(
     //    FileName,
     //    &fileName,
     //    NULL,
@@ -11361,7 +11414,7 @@ NTSTATUS PhMoveFileWin32(
     UNICODE_STRING newFileName;
     PFILE_RENAME_INFORMATION renameInfo;
 
-    status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = PhDosLongPathNameToNtPathNameWithStatus(
         NewFileName,
         &newFileName,
         NULL,
