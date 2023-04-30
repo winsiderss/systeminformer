@@ -6742,7 +6742,7 @@ VOID PhDivideSinglesBySingle(
             {
                 a = _mm256_load_ps(A);
                 a = _mm256_div_ps(a, b);
-                _mm256_storeu_ps(A, a);
+                _mm256_store_ps(A, a);
 
                 A += 8;
             }
