@@ -790,7 +790,7 @@ PhLengthRequiredSid(
     return UFIELD_OFFSET(SID, SubAuthority[SubAuthorityCount]);
 }
 
-// rev from RtlEqualSid (dmex)
+// based on RtlEqualSid (dmex)
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -799,7 +799,13 @@ PhEqualSid(
     _In_ PSID Sid2
     )
 {
-    return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, PhLengthSid(Sid1));
+    ULONG length1 = PhLengthSid(Sid1);
+    ULONG length2 = PhLengthSid(Sid2);
+
+    if (length1 != length2)
+        return FALSE;
+
+    return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, length1);
 }
 
 // rev from RtlValidSid (dmex)
