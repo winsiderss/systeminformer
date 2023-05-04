@@ -3525,22 +3525,22 @@ PPH_STRING PhGetApplicationFileNameWin32(
     //    }
     //}
 
-    //if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
-    //{
-    //    if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
-    //    {
-    //        PhMoveReference(&fileName, PhGetFileName(fileName));
-    //    }
-    //    else if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
-    //    {
-    //        PhMoveReference(&fileName, PhGetFileName(fileName));
-    //    }
-    //}
-
-    if (fileName = PhGetApplicationFileName())
+    if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
     {
-        PhMoveReference(&fileName, PhGetFileName(fileName));
+        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
+        {
+            PhMoveReference(&fileName, PhGetFileName(fileName));
+        }
+        else if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
+        {
+            PhMoveReference(&fileName, PhGetFileName(fileName));
+        }
     }
+
+    //if (fileName = PhGetApplicationFileName())
+    //{
+    //    PhMoveReference(&fileName, PhGetFileName(fileName));
+    //}
 
     if (!InterlockedCompareExchangePointer(
         &cachedFileName,
