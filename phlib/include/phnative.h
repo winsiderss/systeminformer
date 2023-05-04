@@ -1886,6 +1886,13 @@ PhDosLongPathNameToNtPathNameWithStatus(
     _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetNtPathDevicePrefix(
+    _In_ PPH_STRINGREF Name
+    );
+
 #define PH_MODULE_TYPE_MODULE 1
 #define PH_MODULE_TYPE_MAPPED_FILE 2
 #define PH_MODULE_TYPE_WOW64_MODULE 3
@@ -2284,6 +2291,13 @@ PhDeleteFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhDeleteFile(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCopyFileWin32(
     _In_ PWSTR OldFileName,
     _In_ PWSTR NewFileName,
@@ -2318,7 +2332,21 @@ PhCreateDirectoryWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateDirectory(
+    _In_ PPH_STRINGREF DirectoryPath
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateDirectoryFullPathWin32(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateDirectoryFullPath(
     _In_ PPH_STRINGREF FileName
     );
 
