@@ -307,7 +307,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PPH_STRING curDir = NULL;
             PPH_PROCESS_ITEM parentProcess;
             CLIENT_ID clientId;
-            PPH_STRING fileNameWin32;
+            PPH_STRING fileNameWin32 = NULL;
 
             context = propPageContext->Context = PhAllocateZero(sizeof(PH_PROCGENERAL_CONTEXT));
             context->WindowHandle = hwndDlg;
@@ -330,7 +330,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhSetDialogItemText(hwndDlg, IDC_NAME, processItem->ProcessName->Buffer);
             }
 
-            fileNameWin32 = processItem->FileName ? PhGetFileName(processItem->FileName) : NULL;
+            if (processItem->QueryHandle)
+            {
+                PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32);
+                PH_AUTO(fileNameWin32);
+            }
+
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
             PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(fileNameWin32));
             PhSetDialogItemText(hwndDlg, IDC_FILENAMEWIN32, PhpGetStringOrNa(processItem->FileName));
