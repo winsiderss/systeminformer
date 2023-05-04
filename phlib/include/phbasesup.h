@@ -3742,6 +3742,22 @@ PhaSubstring(
     return PH_AUTO_T(PH_STRING, PhSubstring(String, StartIndex, Count));
 }
 
+FORCEINLINE
+WCHAR
+NTAPI
+PhUpcaseUnicodeChar(
+    _In_ WCHAR SourceCharacter
+    )
+{
+    WCHAR c;
+
+    //c = towupper(c);
+    //c = __ascii_towupper(c);
+    c = RtlUpcaseUnicodeChar(SourceCharacter);
+
+    return c;
+}
+
 // Format
 
 typedef enum _PH_FORMAT_TYPE

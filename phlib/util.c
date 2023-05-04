@@ -1197,7 +1197,7 @@ BOOLEAN PhShowConfirmMessage(
 
     // "terminate" -> "Terminate"
     verbCaps = PhaDuplicateString(verb);
-    if (verbCaps->Length > 0) verbCaps->Buffer[0] = towupper(verbCaps->Buffer[0]);
+    if (verbCaps->Length > 0) verbCaps->Buffer[0] = PhUpcaseUnicodeChar(verbCaps->Buffer[0]);
 
     // "terminate", "the process" -> "terminate the process"
     action = PhaConcatStrings(3, verb->Buffer, L" ", Object);
@@ -1714,7 +1714,7 @@ LoopStart:
             }
             else
             {
-                if (towupper(*s) != towupper(*p))
+                if (PhUpcaseUnicodeChar(*s) != PhUpcaseUnicodeChar(*p))
                     goto StarCheck;
             }
 

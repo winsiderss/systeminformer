@@ -1379,8 +1379,8 @@ FORCEINLINE LONG PhpCompareStringZNatural(
 
         if (IgnoreCase)
         {
-            ca = towupper(ca);
-            cb = towupper(cb);
+            ca = PhUpcaseUnicodeChar(ca);
+            cb = PhUpcaseUnicodeChar(cb);
         }
 
         if (ca < cb)
@@ -1468,8 +1468,8 @@ LONG PhCompareStringRef(
 
             if (c1 != c2)
             {
-                c1 = RtlUpcaseUnicodeChar(c1);
-                c2 = RtlUpcaseUnicodeChar(c2);
+                c1 = PhUpcaseUnicodeChar(c1);
+                c2 = PhUpcaseUnicodeChar(c2);
 
                 if (c1 != c2)
                     return (LONG)c1 - (LONG)c2;
@@ -1611,8 +1611,8 @@ CompareCharacters:
 
                 if (c1 != c2)
                 {
-                    c1 = RtlUpcaseUnicodeChar(c1);
-                    c2 = RtlUpcaseUnicodeChar(c2);
+                    c1 = PhUpcaseUnicodeChar(c1);
+                    c2 = PhUpcaseUnicodeChar(c2);
 
                     if (c1 != c2)
                         return FALSE;
@@ -1703,11 +1703,11 @@ ULONG_PTR PhFindCharInStringRef(
         {
             WCHAR c;
 
-            c = RtlUpcaseUnicodeChar(Character);
+            c = PhUpcaseUnicodeChar(Character);
 
             do
             {
-                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                if (PhUpcaseUnicodeChar(*buffer) == c)
                     return String->Length / sizeof(WCHAR) - length;
 
                 buffer++;
@@ -1799,12 +1799,12 @@ ULONG_PTR PhFindLastCharInStringRef(
         {
             WCHAR c;
 
-            c = RtlUpcaseUnicodeChar(Character);
+            c = PhUpcaseUnicodeChar(Character);
             buffer--;
 
             do
             {
-                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                if (PhUpcaseUnicodeChar(*buffer) == c)
                     return length - 1;
 
                 buffer--;
@@ -1867,11 +1867,11 @@ ULONG_PTR PhFindStringInStringRef(
     }
     else
     {
-        c = RtlUpcaseUnicodeChar(*sr2.Buffer++);
+        c = PhUpcaseUnicodeChar(*sr2.Buffer++);
 
         for (i = length1 - length2 + 1; i != 0; i--)
         {
-            if (RtlUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
+            if (PhUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
             {
                 goto FoundUString;
             }
@@ -2137,7 +2137,7 @@ BOOLEAN PhSplitStringRefEx(
         c = charSet[i];
 
         if (Flags & PH_SPLIT_CASE_INSENSITIVE)
-            c = RtlUpcaseUnicodeChar(c);
+            c = PhUpcaseUnicodeChar(c);
 
         charSetTable[c & 0xff] = TRUE;
 
@@ -2166,7 +2166,7 @@ BOOLEAN PhSplitStringRefEx(
         c = *s;
 
         if (Flags & PH_SPLIT_CASE_INSENSITIVE)
-            c = RtlUpcaseUnicodeChar(c);
+            c = PhUpcaseUnicodeChar(c);
 
         if (c < 256 && charSetTableComplete)
         {
@@ -2199,7 +2199,7 @@ BOOLEAN PhSplitStringRefEx(
                     {
                         for (j = 0; j < charSetCount; j++)
                         {
-                            if (RtlUpcaseUnicodeChar(charSet[j]) == c)
+                            if (PhUpcaseUnicodeChar(charSet[j]) == c)
                                 goto CharFound;
                         }
                     }
@@ -2221,7 +2221,7 @@ BOOLEAN PhSplitStringRefEx(
                     {
                         for (j = 0; j < charSetCount; j++)
                         {
-                            if (RtlUpcaseUnicodeChar(charSet[j]) == c)
+                            if (PhUpcaseUnicodeChar(charSet[j]) == c)
                                 break;
                         }
                     }
@@ -5462,7 +5462,7 @@ ULONG PhHashStringRef(
     {
         do
         {
-            hash ^= (USHORT)RtlUpcaseUnicodeChar(*p++);
+            hash ^= (USHORT)PhUpcaseUnicodeChar(*p++);
             hash *= 0x01000193;
         } while (--count != 0);
     }
@@ -5514,7 +5514,7 @@ ULONG PhHashStringRefEx(
                 //PWCHAR p = String->Buffer;
                 //do
                 //{
-                //    hash += (USHORT)RtlUpcaseUnicodeChar(*p++); // __ascii_towupper(*p++);
+                //    hash += (USHORT)PhUpcaseUnicodeChar(*p++); // __ascii_towupper(*p++);
                 //    hash *= 0x1003F;
                 //} while (--count != 0);
             }
