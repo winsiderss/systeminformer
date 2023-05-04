@@ -504,36 +504,36 @@ NTSTATUS PhTerminateThread(
     return status;
 }
 
-typedef struct _PH_TARGET_LIBS
+typedef struct _PH_PROCESS_RUNTIME_LIBRARY
 {
-    PH_STRINGREF Ntdll;
-    PH_STRINGREF Kernel32;
-} PH_TARGET_LIBS, *PPH_TARGET_LIBS;
+    PH_STRINGREF NtdllFileName;
+    PH_STRINGREF Kernel32FileName;
+} PH_PROCESS_RUNTIME_LIBRARY, *PPH_PROCESS_RUNTIME_LIBRARY;
 
-NTSTATUS PhpGetProcessTargetLibs(
+NTSTATUS PhGetProcessRuntimeLibrary(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPH_TARGET_LIBS* Targets,
+    _Out_ PPH_PROCESS_RUNTIME_LIBRARY* RuntimeLibrary,
     _Out_opt_ PBOOLEAN IsWow64
     )
 {
-    static PH_TARGET_LIBS NativeLibs =
+    static PH_PROCESS_RUNTIME_LIBRARY NativeRuntime =
     {
         PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll"),
         PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\kernel32.dll"),
     };
 #ifdef _WIN64
-    static PH_TARGET_LIBS Wow64Libs =
+    static PH_PROCESS_RUNTIME_LIBRARY Wow64Runtime =
     {
         PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\ntdll.dll"),
         PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\kernel32.dll"),
     };
 #ifdef _M_ARM64
-    static PH_TARGET_LIBS Arm32Libs =
+    static PH_PROCESS_RUNTIME_LIBRARY Arm32Runtime =
     {
         PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\ntdll.dll"),
         PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\kernel32.dll"),
     };
-    static PH_TARGET_LIBS Chpe32Libs =
+    static PH_PROCESS_RUNTIME_LIBRARY Chpe32Runtime =
     {
         PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\ntdll.dll"),
         PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\kernel32.dll"),
@@ -541,33 +541,38 @@ NTSTATUS PhpGetProcessTargetLibs(
 #endif
 #endif
 
-    *Targets = &NativeLibs;
+    *RuntimeLibrary = &NativeRuntime;
+
     if (IsWow64)
         *IsWow64 = FALSE;
 
-#ifdef _WIN64 
+#ifdef _WIN64
     NTSTATUS status;
 #ifdef _M_ARM64
-    USHORT arch;
-    status = PhGetProcessArchitecture(ProcessHandle, &arch);
+    USHORT machine;
+
+    status = PhGetProcessArchitecture(ProcessHandle, &machine);
+
     if (!NT_SUCCESS(status))
         return status;
 
-    if (arch != IMAGE_FILE_MACHINE_TARGET_HOST)
+    if (machine != IMAGE_FILE_MACHINE_TARGET_HOST)
     {
-        switch (arch)
+        switch (machine)
         {
         case IMAGE_FILE_MACHINE_I386:
         case IMAGE_FILE_MACHINE_CHPE_X86:
             {
-                *Targets = &Chpe32Libs;
+                *RuntimeLibrary = &Chpe32Runtime;
+
                 if (IsWow64)
                     *IsWow64 = TRUE;
             }
             break;
         case IMAGE_FILE_MACHINE_ARMNT:
             {
-                *Targets = &Arm32Libs;
+                *RuntimeLibrary = &Arm32Runtime;
+
                 if (IsWow64)
                     *IsWow64 = TRUE;
             }
@@ -580,14 +585,17 @@ NTSTATUS PhpGetProcessTargetLibs(
         }
     }
 #else
-    BOOLEAN isWow64;
+    BOOLEAN isWow64 = FALSE;
+
     status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
     if (!NT_SUCCESS(status))
         return status;
 
     if (isWow64)
     {
-        *Targets = &Wow64Libs;
+        *RuntimeLibrary = &Wow64Runtime;
+
         if (IsWow64)
             *IsWow64 = TRUE;
     }
@@ -608,15 +616,20 @@ NTSTATUS PhTerminateProcessAlternative(
     PVOID rtlExitUserProcess = NULL;
     HANDLE powerRequestHandle = NULL;
     HANDLE threadHandle = NULL;
-    PPH_TARGET_LIBS libs;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
 
-    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
     if (!NT_SUCCESS(status))
         return status;
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &libs->Ntdll,
+        &runtimeLibrary->NtdllFileName,
         "RtlExitUserProcess",
         0,
         &rtlExitUserProcess,
@@ -745,7 +758,7 @@ NTSTATUS PhGetProcessImageFileName(
         return status;
 
     // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
-    if (fileName->Length == 0)
+    if (RtlIsNullOrEmptyUnicodeString(fileName))
     {
         PhFree(fileName);
         return STATUS_UNSUCCESSFUL;
@@ -808,7 +821,7 @@ NTSTATUS PhGetProcessImageFileNameWin32(
         PPH_STRING fileNameWin32;
 
         // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
-        if (fileName->Length == 0)
+        if (RtlIsNullOrEmptyUnicodeString(fileName))
         {
             PhFree(fileName);
             return STATUS_UNSUCCESSFUL;
@@ -972,7 +985,7 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
     }
 
     // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
-    if (processIdInfo.ImageName.Length == 0)
+    if (RtlIsNullOrEmptyUnicodeString(&processIdInfo.ImageName))
     {
         PhFree(buffer);
         return STATUS_UNSUCCESSFUL;
@@ -2162,20 +2175,25 @@ NTSTATUS PhLoadDllProcess(
     PVOID loadLibraryW = NULL;
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
-    PPH_TARGET_LIBS libs;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
 
     if (KphProcessLevel(ProcessHandle) > KphLevelMed)
     {
         return STATUS_ACCESS_DENIED;
     }
 
-    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
     if (!NT_SUCCESS(status))
         return status;
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &libs->Kernel32,
+        &runtimeLibrary->Kernel32FileName,
         "LoadLibraryW",
         0,
         &loadLibraryW,
@@ -2276,9 +2294,13 @@ NTSTATUS PhUnloadDllProcess(
     HANDLE powerRequestHandle = NULL;
     THREAD_BASIC_INFORMATION basicInfo;
     PVOID threadStart;
-    PPH_TARGET_LIBS libs;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
 
-    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2318,7 +2340,7 @@ NTSTATUS PhUnloadDllProcess(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &libs->Ntdll,
+        &runtimeLibrary->NtdllFileName,
         "LdrUnloadDll",
         0,
         &threadStart,
@@ -2398,7 +2420,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     PVOID setEnvironmentVariableW = NULL;
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
-    PPH_TARGET_LIBS libs;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
 #ifdef _WIN64
     BOOLEAN isWow64;
 #endif
@@ -2408,9 +2430,9 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     if (Value)
         valueAllocationSize = Value->Length + sizeof(UNICODE_NULL);
 
-    status = PhpGetProcessTargetLibs(
+    status = PhGetProcessRuntimeLibrary(
         ProcessHandle,
-        &libs,
+        &runtimeLibrary,
 #ifdef _WIN64
         &isWow64
 #else
@@ -2423,7 +2445,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &libs->Ntdll,
+        &runtimeLibrary->NtdllFileName,
         "RtlExitUserThread",
         0,
         &rtlExitUserThread,
@@ -2435,7 +2457,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &libs->Kernel32,
+        &runtimeLibrary->Kernel32FileName,
         "SetEnvironmentVariableW",
         0,
         &setEnvironmentVariableW,
@@ -13247,17 +13269,21 @@ NTSTATUS PhGetProcessCodePage(
     }
     else
     {
-        PPH_TARGET_LIBS libs;
+        PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
         PVOID nlsAnsiCodePage;
 
-        status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
+        status = PhGetProcessRuntimeLibrary(
+            ProcessHandle,
+            &runtimeLibrary,
+            NULL
+            );
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
         status = PhGetProcedureAddressRemote(
             ProcessHandle,
-            &libs->Ntdll,
+            &runtimeLibrary->NtdllFileName,
             "NlsAnsiCodePage",
             0,
             &nlsAnsiCodePage,
@@ -13296,16 +13322,20 @@ NTSTATUS PhGetProcessConsoleCodePage(
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
     PVOID getConsoleCP = NULL;
-    PPH_TARGET_LIBS libs;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
 
-    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
 
     if (!NT_SUCCESS(status))
         return status;
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &libs->Kernel32,
+        &runtimeLibrary->Kernel32FileName,
         ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
         0,
         &getConsoleCP,
@@ -13418,16 +13448,20 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     NTSTATUS status;
     PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
     PVOID ldrInitBlockAddress;
-    PPH_TARGET_LIBS runtime;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
 
-    status = PhpGetProcessTargetLibs(ProcessHandle, &runtime, NULL);
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
 
     if (!NT_SUCCESS(status))
         return status;
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &runtime->Ntdll,
+        &runtimeLibrary->NtdllFileName,
         "LdrSystemDllInitBlock",
         0,
         &ldrInitBlockAddress,
