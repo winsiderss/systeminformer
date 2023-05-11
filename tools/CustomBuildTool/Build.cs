@@ -337,6 +337,27 @@ namespace CustomBuildTool
                             Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\Debug64\\x86\\plugins\\ExtendedTools.sig");
                         }
                     }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (Directory.Exists("bin\\DebugARM64"))
+                        {
+                            //Win32.CreateDirectory("bin\\DebugARM64\\x86");
+                            Win32.CreateDirectory("bin\\DebugARM64\\x86\\plugins"); // recursive
+
+                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\DebugARM64\\x86\\SystemInformer.exe");
+                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\DebugARM64\\x86\\SystemInformer.pdb");
+                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.sig", "bin\\DebugARM64\\x86\\SystemInformer.sig");
+
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.dll");
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.pdb");
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.sig", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.sig");
+
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.dll");
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.pdb");
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.sig");
+                        }
+                    }
                 }
 
                 if (Flags.HasFlag(BuildFlags.BuildRelease))
@@ -359,6 +380,27 @@ namespace CustomBuildTool
                             Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\Release64\\x86\\plugins\\ExtendedTools.dll");
                             Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\Release64\\x86\\plugins\\ExtendedTools.pdb");
                             Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\Release64\\x86\\plugins\\ExtendedTools.sig");
+                        }
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (Directory.Exists("bin\\ReleaseARM64"))
+                        {
+                            //Win32.CreateDirectory("bin\\ReleaseARM64\\x86");
+                            Win32.CreateDirectory("bin\\ReleaseARM64\\x86\\plugins"); // recursive
+
+                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\ReleaseARM64\\x86\\SystemInformer.exe");
+                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\ReleaseARM64\\x86\\SystemInformer.pdb");
+                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.sig", "bin\\ReleaseARM64\\x86\\SystemInformer.sig");
+
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.dll");
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.pdb");
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.sig", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.sig");
+
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.dll");
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.pdb");
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.sig");
                         }
                     }
                 }
@@ -613,7 +655,7 @@ namespace CustomBuildTool
 
             return true;
         }
-        
+
         public static bool SignPlugin(string PluginName)
         {
             if (!File.Exists(PluginName))
@@ -786,16 +828,12 @@ namespace CustomBuildTool
 
             try
             {
-                Win32.DeleteFile("bin\\Release32\\SystemInformer.exe.settings.xml");
-                Win32.DeleteFile("bin\\Release64\\SystemInformer.exe.settings.xml");
-                Win32.DeleteFile("bin\\ReleaseARM64\\SystemInformer.exe.settings.xml");
-
                 if (Directory.Exists("bin\\Release32"))
-                    File.Create("bin\\Release32\\SystemInformer.exe.settings.xml").Dispose();
+                    Win32.CreateEmptyFile("bin\\Release32\\SystemInformer.exe.settings.xml");
                 if (Directory.Exists("bin\\Release64"))
-                    File.Create("bin\\Release64\\SystemInformer.exe.settings.xml").Dispose();
+                    Win32.CreateEmptyFile("bin\\Release64\\SystemInformer.exe.settings.xml");
                 if (Directory.Exists("bin\\ReleaseARM64"))
-                    File.Create("bin\\ReleaseARM64\\SystemInformer.exe.settings.xml").Dispose();
+                    Win32.CreateEmptyFile("bin\\ReleaseARM64\\SystemInformer.exe.settings.xml");
             }
             catch (Exception ex)
             {
@@ -804,16 +842,12 @@ namespace CustomBuildTool
 
             //try
             //{
-            //    Win32.DeleteFile("bin\\Release32\\usernotesdb.xml");
-            //    Win32.DeleteFile("bin\\Release64\\usernotesdb.xml");
-            //    Win32.DeleteFile("bin\\ReleaseARM64\\usernotesdb.xml");
-            //
             //    if (Directory.Exists("bin\\Release32"))
-            //        File.Create("bin\\Release32\\usernotesdb.xml").Dispose();
+            //        Win32.CreateEmptyFile("bin\\Release32\\usernotesdb.xml");
             //    if (Directory.Exists("bin\\Release64"))
-            //        File.Create("bin\\Release64\\usernotesdb.xml").Dispose();
+            //        Win32.CreateEmptyFile("bin\\Release64\\usernotesdb.xml");
             //    if (Directory.Exists("bin\\ReleaseARM64"))
-            //        File.Create("bin\\ReleaseARM64\\usernotesdb.xml").Dispose();
+            //        Win32.CreateEmptyFile("bin\\ReleaseARM64\\usernotesdb.xml");
             //}
             //catch (Exception ex)
             //{

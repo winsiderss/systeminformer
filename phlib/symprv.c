@@ -2042,7 +2042,8 @@ NTSTATUS PhWalkThreadStack(
             sizeof(stack) / sizeof(PVOID),
             stack,
             &capturedFrames,
-            NULL
+            NULL,
+            0
             )))
         {
             PH_THREAD_STACK_FRAME threadStackFrame;
@@ -3122,7 +3123,7 @@ PPH_STRING PhGetDiaSymbolLineInformation(
         ULONG count;
         IDiaEnumLineNumbers* enumLineNumbers;
 
-        if (IDiaSession_findLinesByVA(Session, Address, (ULONG)Length, &enumLineNumbers) == S_OK)  
+        if (IDiaSession_findLinesByVA(Session, Address, (ULONG)Length, &enumLineNumbers) == S_OK)
         {
             if (IDiaEnumLineNumbers_Next(enumLineNumbers, 1, &symbolLineNumber, &count) == S_OK)
             {
@@ -3255,8 +3256,8 @@ PPH_STRING PhGetDiaSymbolExtraInformation(
     if (IDiaSymbol_get_isOptimizedForSpeed(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
     {
         PhAppendStringBuilder2(&stringBuilder, L"OptimizedForSpeed, ");
-    }   
-    
+    }
+
     if (IDiaSymbol_get_isPGO(Symbol, &symbolBoolean) == S_OK && symbolBoolean)
     {
         PhAppendStringBuilder2(&stringBuilder, L"PGO, ");
@@ -3275,7 +3276,7 @@ PPH_STRING PhGetDiaSymbolExtraInformation(
 
 _Success_(return)
 BOOLEAN PhGetDiaSymbolInformation(
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider, 
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG64 Address,
     _Out_ PPH_DIA_SYMBOL_INFORMATION SymbolInformation
     )

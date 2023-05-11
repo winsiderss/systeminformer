@@ -139,6 +139,8 @@ typedef struct _PH_MEMORY_ITEM
         struct
         {
             ULONG Index;
+            BOOLEAN ClassValid;
+            ULONG Class;
         } Heap;
         struct
         {

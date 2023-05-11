@@ -410,10 +410,7 @@ VOID PhNfUninitialization(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
-            continue;
-
-        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
+        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED) == PH_NF_ICON_ENABLED)
         {
             PhNfpRemoveNotifyIcon(icon);
         }
@@ -557,10 +554,10 @@ VOID PhNfForwardMessage(
             if (WindowsVersion >= WINDOWS_11_22H1)
             {
                 // NIN_POPUPOPEN is sent when the user hovers the cursor over an icon BUT Windows 11 either blocks the notification
-                // or ignores the hover time and displays the popup instantly. We try and workaround the missing hover time by using 
-                // a timer to delay the popup for 1 second. If we get a NIN_POPUPCLOSE then cancel the timer and the popup. 
-                // Note: We only workaround the missing hover time not the blocked/missing NIN_POPUPOPEN notifications. If we want to workaround 
-                // the broken NIN_POPUPOPEN notifications on Win11 the tray icons also send WM_MOUSEMOSE and before NIN_POPUPOPEN existed 
+                // or ignores the hover time and displays the popup instantly. We try and workaround the missing hover time by using
+                // a timer to delay the popup for 1 second. If we get a NIN_POPUPCLOSE then cancel the timer and the popup.
+                // Note: We only workaround the missing hover time not the blocked/missing NIN_POPUPOPEN notifications. If we want to workaround
+                // the broken NIN_POPUPOPEN notifications on Win11 the tray icons also send WM_MOUSEMOSE and before NIN_POPUPOPEN existed
                 // XP applications would compare the cursor position in a timer callback to show or hide the popup. (dmex)
 
                 PopupIconIndex = iconIndex;
@@ -1143,10 +1140,7 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
-            continue;
-
-        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED | PH_NF_ICON_UNAVAILABLE))
+        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED) == PH_NF_ICON_ENABLED)
         {
             PhNfpRemoveNotifyIcon(icon);
         }
@@ -1163,7 +1157,7 @@ VOID PhNfpProcessesUpdatedHandler(
 {
     static ULONG processesUpdatedCount = 0;
 
-    // Update the icons on a separate thread so we don't block the main window 
+    // Update the icons on a separate thread so we don't block the main window
     // or provider threads when explorer is not responding. (dmex)
 
     if (processesUpdatedCount != 3)
@@ -2285,8 +2279,8 @@ VOID PhNfpIconShowPopupHoverTimerProc(
     POINT location;
 
     if (
-        PhNfMiniInfoEnabled && !IconDisableHover && 
-        PopupIconIndex != ULONG_MAX && PopupRegisteredIcon && 
+        PhNfMiniInfoEnabled && !IconDisableHover &&
+        PopupIconIndex != ULONG_MAX && PopupRegisteredIcon &&
         PhNfpGetShowMiniInfoSectionData(PopupIconIndex, PopupRegisteredIcon, &showMiniInfoSectionData)
         )
     {

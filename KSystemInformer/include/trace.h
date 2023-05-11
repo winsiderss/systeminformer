@@ -13,7 +13,7 @@
 
 #define WPP_CONTROL_GUIDS                                                     \
     WPP_DEFINE_CONTROL_GUID(                                                  \
-        KphCtlGuid, (f64b58a2, 8214, 4037, 8c7d, b96ce6098f3d),               \
+        KSystemInformer, (f64b58a2, 8214, 4037, 8c7d, b96ce6098f3d),          \
         WPP_DEFINE_BIT(GENERAL)     /* bit  0 = 0x00000001 */                 \
         WPP_DEFINE_BIT(UTIL)        /* bit  1 = 0x00000002 */                 \
         WPP_DEFINE_BIT(COMMS)       /* bit  2 = 0x00000004 */                 \

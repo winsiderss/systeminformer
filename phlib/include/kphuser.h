@@ -56,6 +56,13 @@ typedef struct _KPH_CONFIG_PARAMETERS
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphInitialize(
+    VOID
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphConnect(
     _In_ PKPH_CONFIG_PARAMETERS Options
     );
@@ -202,7 +209,8 @@ KphCaptureStackBackTraceThread(
     _In_ ULONG FramesToCapture,
     _Out_writes_(FramesToCapture) PVOID *BackTrace,
     _Inout_opt_ PULONG CapturedFrames,
-    _Inout_opt_ PULONG BackTraceHash
+    _Inout_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags
     );
 
 PHLIBAPI
@@ -233,6 +241,15 @@ KphQueryInformationObject(
     _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
     _In_ ULONG ObjectInformationLength,
     _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryObjectSectionMappingsInfo(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info 
     );
 
 PHLIBAPI
@@ -398,6 +415,66 @@ KphDuplicateObject(
     _In_ HANDLE SourceHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE TargetHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter,
+    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    );
+
+#define IO_OPEN_TARGET_DIRECTORY        0x0004
+#define IO_STOP_ON_SYMLINK              0x0008
+#define IO_IGNORE_SHARE_ACCESS_CHECK    0x0800  // Ignores share access checks on opens.
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
+    _In_ ULONG EaLength,
+    _In_ ULONG Options
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQuerySection(
+    _In_ HANDLE SectionHandle,
+    _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _In_ ULONG SectionInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQuerySectionMappingsInfo(
+    _In_ HANDLE SectionHandle,
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info 
     );
 
 EXTERN_C_END

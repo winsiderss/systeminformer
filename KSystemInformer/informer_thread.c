@@ -65,21 +65,6 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
 
         thread->ExitNotification = TRUE;
 
-        if (thread->ProcessContext)
-        {
-            KphAcquireRWLockExclusive(&thread->ProcessContext->ThreadListLock);
-
-            if (thread->InThreadList)
-            {
-                RemoveEntryList(&thread->ThreadListEntry);
-                thread->ProcessContext->NumberOfThreads--;
-                thread->InThreadList = FALSE;
-                KphDereferenceObject(thread);
-            }
-
-            KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
-        }
-
         return thread;
     }
 
@@ -100,27 +85,6 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
     thread->CreateNotification = TRUE;
     thread->CreatorClientId.UniqueProcess = PsGetCurrentProcessId();
     thread->CreatorClientId.UniqueThread = PsGetCurrentThreadId();
-
-    if (!thread->ProcessContext)
-    {
-        thread->ProcessContext = KphGetProcessContext(ProcessId);
-    }
-
-    if (thread->ProcessContext)
-    {
-        KphAcquireRWLockExclusive(&thread->ProcessContext->ThreadListLock);
-
-        if (!thread->InThreadList)
-        {
-            InsertTailList(&thread->ProcessContext->ThreadListHead,
-                           &thread->ThreadListEntry);
-            thread->ProcessContext->NumberOfThreads++;
-            thread->InThreadList = TRUE;
-            KphReferenceObject(thread);
-        }
-
-        KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
-    }
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   TRACKING,
@@ -219,7 +183,7 @@ VOID KphpCreateThreadNotifyInformer(
         KphMsgInit(msg, KphMsgThreadExit);
         msg->Kernel.ThreadExit.ExitingClientId.UniqueProcess = ProcessId;
         msg->Kernel.ThreadExit.ExitingClientId.UniqueThread = ThreadId;
-        msg->Kernel.ThreadExit.ExitStatus = KphGetThreadExitStatus(Thread->EThread);
+        msg->Kernel.ThreadExit.ExitStatus = PsGetThreadExitStatus(Thread->EThread);
     }
 
     if (KphInformerSettings.EnableStackTraces)
@@ -267,9 +231,9 @@ VOID KphpExecuteThreadNotifyRoutine(
         thread->ExecuteNotification = TRUE;
 
         KphpCreateThreadNotifyInformer(thread,
-                                      ProcessId,
-                                      ThreadId,
-                                      KphThreadNotifyExecute);
+                                       ProcessId,
+                                       ThreadId,
+                                       KphThreadNotifyExecute);
 
         KphDereferenceObject(thread);
     }
@@ -301,9 +265,9 @@ VOID KphpCreateThreadNotifyRoutine(
     NT_ASSERT(threadObject);
 
     thread = KphpPerformThreadTracking(ProcessId,
-                                      ThreadId,
-                                      Create,
-                                      threadObject);
+                                       ThreadId,
+                                       Create,
+                                       threadObject);
 
     if (!thread)
     {
@@ -313,16 +277,16 @@ VOID KphpCreateThreadNotifyRoutine(
     if (Create)
     {
         KphpCreateThreadNotifyInformer(thread,
-                                      ProcessId,
-                                      ThreadId,
-                                      KphThreadNotifyCreate);
+                                       ProcessId,
+                                       ThreadId,
+                                       KphThreadNotifyCreate);
     }
     else
     {
         KphpCreateThreadNotifyInformer(thread,
-                                      ProcessId,
-                                      ThreadId,
-                                      KphThreadNotifyExit);
+                                       ProcessId,
+                                       ThreadId,
+                                       KphThreadNotifyExit);
     }
 
 Exit:
@@ -350,34 +314,19 @@ NTSTATUS KphThreadInformerStart(
 
     PAGED_PASSIVE();
 
-    if (KphDynPsSetCreateThreadNotifyRoutineEx)
+    status = PsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifySubsystems,
+                                              (PVOID)KphpCreateThreadNotifyRoutine);
+    if (!NT_SUCCESS(status))
     {
-        status = KphDynPsSetCreateThreadNotifyRoutineEx(PsCreateProcessNotifySubsystems,
-                                                        (PVOID)KphpCreateThreadNotifyRoutine);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          INFORMER,
-                          "Failed to register thread notify routine: %!STATUS!",
-                          status);
-            return status;
-        }
-
-        status = KphDynPsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifyNonSystem,
-                                                        (PVOID)KphpExecuteThreadNotifyRoutine);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          INFORMER,
-                          "Failed to register thread notify routine: %!STATUS!",
-                          status);
-            return status;
-        }
-
-        return STATUS_SUCCESS;
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      INFORMER,
+                      "Failed to register thread notify routine: %!STATUS!",
+                      status);
+        return status;
     }
 
-    status = PsSetCreateThreadNotifyRoutine(KphpCreateThreadNotifyRoutine);
+    status = PsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifyNonSystem,
+                                              (PVOID)KphpExecuteThreadNotifyRoutine);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -400,11 +349,6 @@ VOID KphThreadInformerStop(
 {
     PAGED_PASSIVE();
 
-    if (KphDynPsSetCreateThreadNotifyRoutineEx)
-    {
-        PsRemoveCreateThreadNotifyRoutine(KphpExecuteThreadNotifyRoutine);
-        // fall through
-    }
-
+    PsRemoveCreateThreadNotifyRoutine(KphpExecuteThreadNotifyRoutine);
     PsRemoveCreateThreadNotifyRoutine(KphpCreateThreadNotifyRoutine);
 }

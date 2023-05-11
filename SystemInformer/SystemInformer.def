@@ -249,6 +249,7 @@ EXPORTS
     PhDetermineDosPathNameType
     PhDoesFileExistWin32
     PhDoesFileExist
+    PhDosPathNameToNtPathName
     PhDisconnectNamedPipe
     PhEnumerateKey
     PhEnumerateValueKey
@@ -377,7 +378,6 @@ EXPORTS
     PhCreateProcessWin32Ex
     PhCreateSaveFileDialog
     PhDeleteImageVersionInfo
-    PhDereferenceObjects
     PhEllipsisString
     PhEllipsisStringPath
     PhEscapeCommandLinePart
@@ -448,7 +448,6 @@ EXPORTS
     PhQueryRegistryString
     PhQueryRegistryUlong
     PhQueryRegistryUlong64
-    PhReferenceObjects
     PhSetFileDialogFileName
     PhSetFileDialogFilter
     PhSetFileDialogOptions
@@ -530,7 +529,6 @@ EXPORTS
     PhVerifyFileStream
     PhWriteFileStream
     PhWriteStringAsUtf8FileStream
-    PhWriteStringAsUtf8FileStream2
     PhWriteStringAsUtf8FileStreamEx
     PhWriteStringFormatAsUtf8FileStream
     PhWriteStringFormatAsUtf8FileStream_V
@@ -668,7 +666,7 @@ EXPORTS
     PhAddSetting
     PhAddSettings
     PhClearIgnoredSettings
-    PhConvertIgnoredSettings    
+    PhConvertIgnoredSettings
     PhGetIntegerStringRefSetting
     PhGetIntegerPairStringRefSetting
     PhGetScalableIntegerPairStringRefSetting

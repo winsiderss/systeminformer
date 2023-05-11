@@ -85,6 +85,7 @@ VOID PvAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"ImageDisasmWindowSize", L"@96|0,0");
     PhpAddStringSetting(L"ImageEhContListViewColumns", L"");
     PhpAddStringSetting(L"ImageVolatileListViewColumns", L"");
+    PhpAddStringSetting(L"ImageVersionInfoListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");
     PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");

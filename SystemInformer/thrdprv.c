@@ -23,6 +23,7 @@
 #include <svcsup.h>
 #include <symprv.h>
 #include <workqueue.h>
+#include <kphuser.h>
 
 #include <extmgri.h>
 #include <procprv.h>
@@ -389,6 +390,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
     if (threadItem->StartAddressFileName) PhDereferenceObject(threadItem->StartAddressFileName);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
+    if (threadItem->AlternateThreadIdString) PhDereferenceObject(threadItem->AlternateThreadIdString);
 }
 
 BOOLEAN PhpThreadHashtableEqualFunction(
@@ -955,6 +957,25 @@ VOID PhpThreadProviderUpdate(
                 threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
             }
 
+            if (threadItem->ThreadHandle && KphLevel() >= KphLevelMed)
+            {
+                ULONG wslThreadId;
+                if (NT_SUCCESS(KphQueryInformationThread(
+                    threadItem->ThreadHandle,
+                    KphThreadWSLThreadId,
+                    &wslThreadId,
+                    sizeof(ULONG),
+                    NULL
+                    )))
+                {
+                    threadItem->AlternateThreadIdString = PhFormatString(
+                        L"%lu (%lu)",
+                        HandleToUlong(threadItem->ThreadId),
+                        wslThreadId
+                        );
+                }
+            }
+
             PhpQueueThreadQuery(threadProvider, threadItem);
 
             // Add the thread item to the hashtable.
@@ -1161,6 +1182,18 @@ VOID PhpThreadProviderUpdate(
 
                 if (threadItem->IsGuiThread != oldIsGuiThread)
                     modified = TRUE;
+            }
+
+            if (!threadItem->ThreadHandle || KphLevel() < KphLevelMed || 
+                !NT_SUCCESS(KphQueryInformationThread(
+                    threadItem->ThreadHandle,
+                    KphThreadIoCounters,
+                    &threadItem->IoCounters,
+                    sizeof(IO_COUNTERS),
+                    NULL
+                    )))
+            {
+                RtlZeroMemory(&threadItem->IoCounters, sizeof(IO_COUNTERS));
             }
 
             threadItem->JustResolved = FALSE;

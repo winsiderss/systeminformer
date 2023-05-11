@@ -144,7 +144,7 @@ BEGIN
     LTEXT           "GPU:",IDC_GPU_L,73,0,17,8
     LTEXT           "Dedicated memory:",IDC_DEDICATED_L,73,5,63,8
     LTEXT           "Shared memory:",IDC_SHARED_L,74,11,54,8
-    LTEXT           "Power Usage:",IDC_POWER_USAGE_L,74,16,54,8
+    LTEXT           "Power usage:",IDC_POWER_USAGE_L,74,16,54,8
     LTEXT           "Temperature:",IDC_TEMPERATURE_L,74,22,54,8
     LTEXT           "Fan RPM:",IDC_FAN_RPM_L,74,27,54,8
 END

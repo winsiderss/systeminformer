@@ -132,7 +132,7 @@ VOID PhpShowKsiMessage(
     _In_ BOOLEAN Force,
     _In_ PWSTR Title,
     _In_ PWSTR Format,
-    _In_ va_list ArgPtr 
+    _In_ va_list ArgPtr
     )
 {
     PPH_STRING kernelVersion;
@@ -240,29 +240,6 @@ VOID PhShowKsiMessage(
     va_start(argptr, Format);
     PhpShowKsiMessage(WindowHandle, Icon, 0, TRUE, Title, Format, argptr);
     va_end(argptr);
-}
-
-static VOID NTAPI KsiCommsCallback(
-    _In_ ULONG_PTR ReplyToken,
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    PPH_FREE_LIST freelist;
-    PKPH_MESSAGE msg;
-
-    if (Message->Header.MessageId != KphMsgProcessCreate)
-    {
-        return;
-    }
-
-    freelist = KphGetMessageFreeList();
-
-    msg = PhAllocateFromFreeList(freelist);
-    KphMsgInit(msg, KphMsgProcessCreate);
-    msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
-    KphCommsReplyMessage(ReplyToken, msg);
-
-    PhFreeToFreeList(freelist, msg);
 }
 
 NTSTATUS PhRestartSelf(
@@ -388,7 +365,7 @@ NTSTATUS KsiInitializeCallbackThread(
         config.EnableNativeLoad = KsiEnableLoadNative;
         config.EnableFilterLoad = KsiEnableLoadFilter;
         config.DisableImageLoadProtection = disableImageLoadProtection;
-        config.Callback = KsiCommsCallback;
+        config.Callback = NULL;
         status = KphConnect(&config);
 
         if (NT_SUCCESS(status))
@@ -416,11 +393,11 @@ NTSTATUS KsiInitializeCallbackThread(
         else
         {
             PhShowKsiMessageEx(
-                CallbackContext, 
+                CallbackContext,
                 TD_ERROR_ICON,
                 status,
                 FALSE,
-                L"Unable to load kernel driver", 
+                L"Unable to load kernel driver",
                 L"Unable to load the kernel driver service."
                 );
         }
@@ -430,11 +407,11 @@ NTSTATUS KsiInitializeCallbackThread(
     else
     {
         PhShowKsiMessageEx(
-            CallbackContext, 
+            CallbackContext,
             TD_ERROR_ICON,
             STATUS_NO_SUCH_FILE,
             FALSE,
-            L"Unable to load kernel driver", 
+            L"Unable to load kernel driver",
             L"The kernel driver was not found."
             );
     }
@@ -548,18 +525,6 @@ VOID PhInitializeKsi(
             L"Unable to load kernel driver",
             L"The kernel driver is not supported on this Windows version, the "
             L"minimum supported version is Windows 10."
-            );
-        return;
-    }
-    if (WindowsVersion < WINDOWS_10_20H1) // Temporary workaround for +3 month Microsoft delay (dmex)
-    {
-        PhShowKsiMessageEx(
-            NULL,
-            TD_ERROR_ICON,
-            0,
-            FALSE,
-            L"Unable to load kernel driver",
-            L"The kernel driver is temporarily disabled on this Windows version."
             );
         return;
     }

@@ -98,6 +98,7 @@ namespace CustomBuildTool
                         Build.CopyEtwTraceGuidsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                         Build.BuildSdk(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                         Build.CopyKernelDriver(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyWow64Files(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                     }
                     else
                     {
@@ -105,6 +106,7 @@ namespace CustomBuildTool
                         Build.CopyEtwTraceGuidsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                         Build.BuildSdk(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                         Build.CopyKernelDriver(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.CopyWow64Files(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                     }
                 }
                 else
@@ -198,6 +200,11 @@ namespace CustomBuildTool
                     ))
                     Environment.Exit(1);
 
+                Build.CopyWow64Files( // required after plugin build (dmex)
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
+                    BuildFlags.BuildDebug | BuildFlags.BuildRelease
+                    );
+
                 if (!Build.CopyTextFiles(true))
                     Environment.Exit(1);
 
@@ -233,6 +240,11 @@ namespace CustomBuildTool
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
+
+                Build.CopyWow64Files( // required after plugin build (dmex)
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
+                    BuildFlags.BuildDebug | BuildFlags.BuildRelease
+                    );
 
                 if (!Build.CopyTextFiles(true))
                     return;

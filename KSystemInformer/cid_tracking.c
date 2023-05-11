@@ -5,12 +5,13 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
 #include <cid_table.h>
+#include <dyndata.h>
 
 #include <trace.h>
 
@@ -18,6 +19,15 @@ static BOOLEAN KphpCidTrackingInitialized = FALSE;
 static CID_TABLE KphpCidTable;
 static volatile LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
+
+typedef struct _KPH_CID_APC
+{
+    KSI_KAPC Apc;
+    PKPH_THREAD_CONTEXT Thread;
+
+} KPH_CID_APC, *PKPH_CID_APC;
+
+static PKPH_NPAGED_LOOKASIDE_OBJECT KphpCidApcLookaside = NULL;
 
 static UNICODE_STRING KphpProcessContextTypeName = RTL_CONSTANT_STRING(L"KphProcessContext");
 static UNICODE_STRING KphpThreadContextTypeName = RTL_CONSTANT_STRING(L"KphThreadContext");
@@ -86,6 +96,82 @@ VOID KphpCidWaitForPopulate(
 }
 
 /**
+ * \brief Allocates the CID APC.
+ *
+ * \return Pointer to CID APC, null on failure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Return_allocatesMem_
+PKPH_CID_APC KphpAllocateCidApc(
+    VOID
+    )
+{
+    PKPH_CID_APC apc;
+
+    PAGED_PASSIVE();
+
+    NT_ASSERT(KphpCidApcLookaside);
+
+    apc = KphAllocateFromNPagedLookasideObject(KphpCidApcLookaside);
+    if (apc)
+    {
+        KphReferenceObject(KphpCidApcLookaside);
+    }
+
+    return apc;
+}
+
+/**
+ * \brief Frees a previously allocated the CID APC.
+ *
+ * \param[in] Apc The CID APC to free.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphpFreeCidApc(
+    _In_freesMem_ PKPH_CID_APC Apc
+    )
+{
+    PAGED_CODE();
+
+    NT_ASSERT(KphpCidApcLookaside);
+
+    if (Apc->Thread)
+    {
+        KphDereferenceObject(Apc->Thread);
+    }
+
+    KphFreeToNPagedLookasideObject(KphpCidApcLookaside, Apc);
+    KphDereferenceObject(KphpCidApcLookaside);
+}
+
+/**
+ * \brief APC cleanup routine for APC APCs.
+ *
+ * \param[in] Apc The ACP to clean up.
+ * \param[in] Reason Unused.
+ */
+_Function_class_(KSI_KCLEANUP_ROUTINE)
+_IRQL_requires_min_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_same_
+VOID KSIAPI KphpCidApcCleanup(
+    _In_ PKSI_KAPC Apc,
+    _In_ KSI_KAPC_CLEANUP_REASON Reason
+    )
+{
+    PKPH_CID_APC apc;
+
+    PAGED_CODE();
+
+    UNREFERENCED_PARAMETER(Apc);
+    DBG_UNREFERENCED_PARAMETER(Reason);
+
+    apc = CONTAINING_RECORD(Apc, KPH_CID_APC, Apc);
+
+    KphpFreeCidApc(apc);
+}
+
+/**
  * \brief Allocates a process context object.
  *
  * \param[in] Size The size requested from the object infrastructure.
@@ -134,12 +220,75 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 {
     NTSTATUS status;
     PKPH_PROCESS_CONTEXT process;
+    PEPROCESS processObject;
+    HANDLE processHandle;
+    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
     PAGED_CODE();
 
     process = Object;
+    processObject = Parameter;
 
-    process->EProcess = Parameter;
+    status = ObOpenObjectByPointer(processObject,
+                                   OBJ_KERNEL_HANDLE,
+                                   NULL,
+                                   PROCESS_ALL_ACCESS,
+                                   *PsProcessType,
+                                   KernelMode,
+                                   &processHandle);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "ObOpenObjectByPointer failed: %!STATUS!",
+                      status);
+
+        processHandle = NULL;
+        goto Exit;
+    }
+
+    status = ZwQueryInformationProcess(processHandle,
+                                       ProcessSubsystemInformation,
+                                       &process->SubsystemType,
+                                       sizeof(SUBSYSTEM_INFORMATION_TYPE),
+                                       NULL);
+    if (status == STATUS_INVALID_INFO_CLASS)
+    {
+        process->SubsystemType = SubsystemInformationTypeWin32;
+    }
+    else if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "ProcessSubsystemInformation failed: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
+    basicInfo.Size = sizeof(PROCESS_EXTENDED_BASIC_INFORMATION);
+    status = ZwQueryInformationProcess(processHandle,
+                                       ProcessBasicInformation,
+                                       &basicInfo,
+                                       sizeof(PROCESS_EXTENDED_BASIC_INFORMATION),
+                                       NULL);
+    if (status == STATUS_INVALID_INFO_CLASS)
+    {
+        process->IsSubsystemProcess = FALSE;
+    }
+    else if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "ProcessBasicInformation failed: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+    else
+    {
+        process->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
+    }
+
+    process->EProcess = processObject;
     ObReferenceObject(process->EProcess);
 
     process->ProcessId = PsGetProcessId(process->EProcess);
@@ -209,7 +358,16 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         process->IsLsass = TRUE;
     }
 
-    return STATUS_SUCCESS;
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (processHandle)
+    {
+        ObCloseHandle(processHandle, KernelMode);
+    }
+
+    return status;
 }
 
 /**
@@ -310,6 +468,102 @@ PVOID KSIAPI KphpAllocateThreadContext(
 }
 
 /**
+ * \brief Preforms thread context initialization for a WSL thread.
+ * 
+ * \param[in] ThreadContext The thread context to initialize.
+ */
+_IRQL_requires_(APC_LEVEL)
+VOID KphpInitializeWSLThreadContext(
+    _In_ PKPH_THREAD_CONTEXT ThreadContext
+    )
+{
+    PVOID picoContext;
+    PVOID value;
+
+    PAGED_CODE();
+
+    NT_ASSERT(ThreadContext->EThread == KeGetCurrentThread());
+    NT_ASSERT(KphDynLxpThreadGetCurrent);
+    NT_ASSERT(KphDynLxPicoProc != ULONG_MAX);
+    NT_ASSERT(KphDynLxPicoProcInfo != ULONG_MAX);
+    NT_ASSERT(KphDynLxPicoProcInfoPID != ULONG_MAX);
+    NT_ASSERT(KphDynLxPicoThrdInfo != ULONG_MAX);
+    NT_ASSERT(KphDynLxPicoThrdInfoTID != ULONG_MAX);
+    NT_ASSERT(ThreadContext->SubsystemType == SubsystemInformationTypeWSL);
+
+    ThreadContext->InitApcExecuted = TRUE;
+
+    if (!KphDynLxpThreadGetCurrent(&picoContext))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "LxpThreadGetCurrent failed");
+        return;
+    }
+
+    NT_ASSERT(!ThreadContext->WSL.ValidThreadId);
+
+    value = *(PVOID*)Add2Ptr(picoContext, KphDynLxPicoThrdInfo);
+    ThreadContext->WSL.ThreadId = 
+        *(PULONG)Add2Ptr(value, KphDynLxPicoThrdInfoTID);
+    ThreadContext->WSL.ValidThreadId = TRUE;
+
+    if (!ThreadContext->ProcessContext->WSL.ValidProcessId)
+    {
+        value = *(PVOID*)Add2Ptr(picoContext, KphDynLxPicoProc);
+        value = *(PVOID*)Add2Ptr(value, KphDynLxPicoProcInfo);
+        ThreadContext->ProcessContext->WSL.ProcessId =
+            *(PULONG)Add2Ptr(value, KphDynLxPicoProcInfoPID);
+        ThreadContext->ProcessContext->WSL.ValidProcessId = TRUE;
+    }
+}
+
+/**
+ * \brief APC routine for thread tracking.
+ *
+ * \param[in] Apc The ACP executed, contained within the CID APC.
+ * \param[in] NormalRoutine Unused.
+ * \param[in] NormalContext Unused.
+ * \param[in] SystemArgument1 Unused.
+ * \param[in] SystemArgument2 Unused.
+ */
+_Function_class_(KSI_KKERNEL_ROUTINE)
+_IRQL_requires_(APC_LEVEL)
+_IRQL_requires_same_
+VOID KSIAPI KphpInitializeThreadContextSpecialApc(
+    _In_ PKSI_KAPC Apc,
+    _Inout_ _Deref_pre_maybenull_ PKNORMAL_ROUTINE* NormalRoutine,
+    _Inout_ _Deref_pre_maybenull_ PVOID* NormalContext,
+    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument1,
+    _Inout_ _Deref_pre_maybenull_ PVOID* SystemArgument2
+    )
+{
+    PKPH_CID_APC apc;
+
+    PAGED_CODE();
+
+    UNREFERENCED_PARAMETER(NormalRoutine);
+    UNREFERENCED_PARAMETER(NormalContext);
+    UNREFERENCED_PARAMETER(SystemArgument1);
+    UNREFERENCED_PARAMETER(SystemArgument2);
+
+    apc = CONTAINING_RECORD(Apc, KPH_CID_APC, Apc);
+
+    NT_ASSERT(apc->Thread->EThread == PsGetCurrentThread());
+
+    if (KphDynLxpThreadGetCurrent &&
+        (KphDynLxPicoProc != ULONG_MAX) &&
+        (KphDynLxPicoProcInfo != ULONG_MAX) &&
+        (KphDynLxPicoProcInfoPID != ULONG_MAX) &&
+        (KphDynLxPicoThrdInfo != ULONG_MAX) &&
+        (KphDynLxPicoThrdInfoTID != ULONG_MAX) &&
+        (apc->Thread->SubsystemType == SubsystemInformationTypeWSL))
+    {
+        KphpInitializeWSLThreadContext(apc->Thread);
+    }
+}
+
+/**
  * \brief Initializes a thread context.
  *
  * \param[in] Object The thread context object to initialize.
@@ -325,19 +579,151 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
     _In_opt_ PVOID Parameter
     )
 {
+    NTSTATUS status;
     PKPH_THREAD_CONTEXT thread;
+    PETHREAD threadObject;
+    HANDLE threadHandle;
+    BOOLEAN needsApc;
+    PKPH_CID_APC apc;
 
     PAGED_CODE();
 
     thread = Object;
+    threadObject = Parameter;
 
-    thread->EThread = Parameter;
+    status = ObOpenObjectByPointer(threadObject,
+                                   OBJ_KERNEL_HANDLE,
+                                   NULL,
+                                   THREAD_ALL_ACCESS,
+                                   *PsThreadType,
+                                   KernelMode,
+                                   &threadHandle);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "ObOpenObjectByPointer failed %!STATUS!",
+                      status);
+
+        threadHandle = NULL;
+        goto Exit;
+    }
+
+    status = ZwQueryInformationThread(threadHandle,
+                                      ThreadSubsystemInformation,
+                                      &thread->SubsystemType,
+                                      sizeof(SUBSYSTEM_INFORMATION_TYPE),
+                                      NULL);
+    if (status == STATUS_INVALID_INFO_CLASS)
+    {
+        thread->SubsystemType = SubsystemInformationTypeWin32;
+    }
+    else if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "ThreadSubsystemInformation failed %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
+    thread->EThread = threadObject;
     ObReferenceObject(thread->EThread);
 
     thread->ClientId.UniqueThread = PsGetThreadId(thread->EThread);
     thread->ClientId.UniqueProcess = PsGetThreadProcessId(thread->EThread);
 
-    return STATUS_SUCCESS;
+    NT_ASSERT(!thread->ProcessContext);
+    thread->ProcessContext = KphGetProcessContext(thread->ClientId.UniqueProcess);
+
+    if (thread->ProcessContext)
+    {
+        KphAcquireRWLockExclusive(&thread->ProcessContext->ThreadListLock);
+
+        if (!thread->ProcessContext->InitialThread)
+        {
+            thread->ProcessContext->InitialThread = thread;
+            KphReferenceObject(thread);
+        }
+
+        InsertTailList(&thread->ProcessContext->ThreadListHead,
+                       &thread->ThreadListEntry);
+        thread->ProcessContext->NumberOfThreads++;
+        thread->InThreadList = TRUE;
+        KphReferenceObject(thread);
+
+        KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
+    }
+
+    status = STATUS_SUCCESS;
+    needsApc = FALSE;
+
+    if (KphDynLxpThreadGetCurrent &&
+        (KphDynLxPicoProc != ULONG_MAX) &&
+        (KphDynLxPicoProcInfo != ULONG_MAX) &&
+        (KphDynLxPicoProcInfoPID != ULONG_MAX) &&
+        (KphDynLxPicoThrdInfo != ULONG_MAX) &&
+        (KphDynLxPicoThrdInfoTID != ULONG_MAX) &&
+        (thread->SubsystemType == SubsystemInformationTypeWSL))
+    {
+        //
+        // We use an APC here to reach into the thread pico context. We could
+        // reach directly into the pico context here, but reversing shows 
+        // intent for possible other pico subsystem providers in the future.
+        // So, we use some "undocumented" APIs in the APC to ask "nicely" for
+        // the correct pico context.
+        //
+        needsApc = TRUE;
+    }
+
+    if (!needsApc)
+    {
+        goto Exit;
+    }
+
+    //
+    // Thread needs a APC to finish initialization within the original thread.
+    // If this APC fails to be queued, it isn't errant for initialization.
+    //
+
+    apc = KphpAllocateCidApc();
+    if (!apc)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "KphpAllocateCidApc failed");
+        goto Exit;
+    }
+
+    apc->Thread = thread;
+    KphReferenceObject(apc->Thread);
+
+    KsiInitializeApc(&apc->Apc,
+                     KphDriverObject,
+                     thread->EThread,
+                     OriginalApcEnvironment,
+                     KphpInitializeThreadContextSpecialApc,
+                     KphpCidApcCleanup,
+                     NULL,
+                     KernelMode,
+                     NULL);
+    if (!KsiInsertQueueApc(&apc->Apc, NULL, NULL, IO_NO_INCREMENT))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "KsiInsertQueueApc failed");
+        KphpFreeCidApc(apc);
+        goto Exit;
+    }
+
+    thread->InitApcQueued = TRUE;
+
+Exit:
+
+    if (threadHandle)
+    {
+        ObCloseHandle(threadHandle, KernelMode);
+    }
+
+    return status;
 }
 
 /**
@@ -411,6 +797,20 @@ NTSTATUS KphCidInitialize(
 
     KeInitializeEvent(&KphpCidPopulatedEvent, NotificationEvent, FALSE);
 
+    status = KphCreateNPagedLookasideObject(&KphpCidApcLookaside,
+                                            sizeof(KPH_CID_APC),
+                                            KPH_TAG_CID_APC);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "KphCreateNPagedLookasideObject failed: %!STATUS!",
+                      status);
+
+        KphpCidApcLookaside = NULL;
+        goto Exit;
+    }
+
     status = KphCreatePagedLookasideObject(&KphpProcessContextLookaside,
                                            KphAddObjectHeaderSize(sizeof(KPH_PROCESS_CONTEXT)),
                                            KPH_TAG_PROCESS_CONTEXT);
@@ -477,9 +877,54 @@ Exit:
             KphDereferenceObject(KphpThreadContextLookaside);
             KphpThreadContextLookaside = NULL;
         }
+        
+        if (KphpCidApcLookaside)
+        {
+            KphDereferenceObject(KphpCidApcLookaside);
+            KphpCidApcLookaside = NULL;
+        }
     }
 
     return status;
+}
+
+/**
+ * \brief Unlinks thread contexts from a process context.
+ *
+ * \param[in] Process The process context to unlink thread contexts from.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphpUnlinkProcessContextThreadContexts(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    )
+{
+    PAGED_CODE();
+
+    KphAcquireRWLockExclusive(&Process->ThreadListLock);
+
+    while (!IsListEmpty(&Process->ThreadListHead))
+    {
+        PKPH_THREAD_CONTEXT thread;
+
+        thread = CONTAINING_RECORD(RemoveHeadList(&Process->ThreadListHead),
+                                   KPH_THREAD_CONTEXT,
+                                   ThreadListEntry);
+        NT_ASSERT(thread->InThreadList);
+
+        Process->NumberOfThreads--;
+        Process->NumberOfUnlinkedThreads++;
+
+        thread->InThreadList = FALSE;
+        KphDereferenceObject(thread);
+    }
+
+    if (Process->InitialThread)
+    {
+        KphDereferenceObject(Process->InitialThread);
+        Process->InitialThread = NULL;
+    }
+
+    KphReleaseRWLock(&Process->ThreadListLock);
 }
 
 /**
@@ -515,23 +960,7 @@ BOOLEAN CIDAPI KphpCidCleanupCallback(
 
         process = object;
 
-        KphAcquireRWLockExclusive(&process->ThreadListLock);
-
-        while (!IsListEmpty(&process->ThreadListHead))
-        {
-            PKPH_THREAD_CONTEXT thread;
-
-            thread = CONTAINING_RECORD(RemoveHeadList(&process->ThreadListHead),
-                                       KPH_THREAD_CONTEXT,
-                                       ThreadListEntry);
-            NT_ASSERT(thread->InThreadList);
-            process->NumberOfThreads--;
-            thread->InThreadList = FALSE;
-
-            KphDereferenceObject(thread);
-        }
-
-        KphReleaseRWLock(&process->ThreadListLock);
+        KphpUnlinkProcessContextThreadContexts(process);
     }
 
     KphDereferenceObject(object);
@@ -665,6 +1094,12 @@ PVOID KphpTrackContext(
     status = KphCreateObject(ObjectType, ObjectBodySize, &object, Parameter);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "KphCreateObject (%lu) failed: %!STATUS!",
+                      HandleToULong(Cid),
+                      status);
+
         object = NULL;
         goto Exit;
     }
@@ -975,11 +1410,9 @@ NTSTATUS KphCidPopulate(
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
                           TRACKING,
-                          "KphpTrackContext failed: %!STATUS!",
-                          status);
-
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto Exit;
+                          "KphpTrackContext failed (process %lu)",
+                          HandleToULong(info->UniqueProcessId));
+            continue;
         }
 
         process->CreatorClientId.UniqueProcess = NtCurrentProcess();
@@ -1029,30 +1462,14 @@ NTSTATUS KphCidPopulate(
             {
                 KphTracePrint(TRACE_LEVEL_ERROR,
                               TRACKING,
-                              "KphpTrackContext failed: %!STATUS!",
-                              status);
-
-                KphDereferenceObject(process);
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                goto Exit;
+                              "KphpTrackContext failed (thread %lu in process %lu)",
+                              HandleToULong(info->Threads[i].ClientId.UniqueThread),
+                              HandleToULong(process->ProcessId));
+                continue;
             }
 
             thread->CreatorClientId.UniqueProcess = NtCurrentProcess();
             thread->CreatorClientId.UniqueThread = NtCurrentThread();
-
-            thread->ProcessContext = process;
-            KphReferenceObject(thread->ProcessContext);
-
-            KphAcquireRWLockExclusive(&process->ThreadListLock);
-
-            NT_ASSERT(!thread->InThreadList);
-            InsertTailList(&process->ThreadListHead, &thread->ThreadListEntry);
-            process->NumberOfThreads++;
-            thread->InThreadList = TRUE;
-
-            KphReferenceObject(thread);
-
-            KphReleaseRWLock(&process->ThreadListLock);
 
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
@@ -1141,9 +1558,9 @@ PKPH_PROCESS_CONTEXT KphTrackProcessContext(
     KphpCidWaitForPopulate();
 
     return KphpTrackContext(PsGetProcessId(Process),
-                           KphProcessContextType,
-                           sizeof(KPH_PROCESS_CONTEXT),
-                           Process);
+                            KphProcessContextType,
+                            sizeof(KPH_PROCESS_CONTEXT),
+                            Process);
 }
 
 /**
@@ -1160,11 +1577,21 @@ PKPH_PROCESS_CONTEXT KphUntrackProcessContext(
     _In_ HANDLE ProcessId
     )
 {
+    PKPH_PROCESS_CONTEXT process;
+
     PAGED_PASSIVE();
 
     KphpCidWaitForPopulate();
 
-    return KphpUntrackContext(ProcessId, KphProcessContextType);
+    process = KphpUntrackContext(ProcessId, KphProcessContextType);
+    if (!process)
+    {
+        return NULL;
+    }
+
+    KphpUnlinkProcessContextThreadContexts(process);
+
+    return process;
 }
 
 /**
@@ -1187,9 +1614,9 @@ PKPH_THREAD_CONTEXT KphTrackThreadContext(
     KphpCidWaitForPopulate();
 
     return KphpTrackContext(PsGetThreadId(Thread),
-                           KphThreadContextType,
-                           sizeof(KPH_THREAD_CONTEXT),
-                           Thread);
+                            KphThreadContextType,
+                            sizeof(KPH_THREAD_CONTEXT),
+                            Thread);
 }
 
 /**
@@ -1206,11 +1633,40 @@ PKPH_THREAD_CONTEXT KphUntrackThreadContext(
     _In_ HANDLE ThreadId
     )
 {
+    PKPH_THREAD_CONTEXT thread;
+
     PAGED_PASSIVE();
 
     KphpCidWaitForPopulate();
 
-    return KphpUntrackContext(ThreadId, KphThreadContextType);
+    thread = KphpUntrackContext(ThreadId, KphThreadContextType);
+    if (!thread)
+    {
+        return NULL;
+    }
+
+    if (thread->ProcessContext)
+    {
+        KphAcquireRWLockExclusive(&thread->ProcessContext->ThreadListLock);
+
+        if (thread->InThreadList)
+        {
+            RemoveEntryList(&thread->ThreadListEntry);
+            thread->InThreadList = FALSE;
+            thread->ProcessContext->NumberOfThreads--;
+            KphDereferenceObject(thread);
+        }
+
+        if (thread->ProcessContext->InitialThread == thread)
+        {
+            thread->ProcessContext->InitialThread = NULL;
+            KphDereferenceObject(thread);
+        }
+        
+        KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
+    }
+
+    return thread;
 }
 
 typedef struct _KPH_ENUM_CONTEXT

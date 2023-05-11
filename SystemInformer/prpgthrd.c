@@ -338,7 +338,12 @@ BOOLEAN PhpThreadTreeFilterCallback(
 
     // thread properties
 
-    if (threadItem->ThreadIdString[0])
+    if (threadItem->AlternateThreadIdString)
+    {
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadItem->AlternateThreadIdString->sr))
+            return TRUE; 
+    }
+    else if (threadItem->ThreadIdString[0])
     {
         if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadItem->ThreadIdString))
             return TRUE;
@@ -1121,7 +1126,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         }
                         else
                         {
-                            PhShowStatus(hwndDlg, L"Unable to open the thread", status, 0);
+                            PhShowStatus(hwndDlg, PhaFormatString(
+                                L"Unable to %s thread %lu", // string pooling optimization (dmex)
+                                L"set the boost priority of",
+                                HandleToUlong(threadItem->ThreadId)
+                                )->Buffer, status, 0);
                         }
                     }
                 }

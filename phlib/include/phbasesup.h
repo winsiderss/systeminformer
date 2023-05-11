@@ -1270,12 +1270,23 @@ PhConcatStringRef2(
     _In_ PPH_STRINGREF String2
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhConcatStringRef3(
     _In_ PPH_STRINGREF String1,
     _In_ PPH_STRINGREF String2,
     _In_ PPH_STRINGREF String3
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhConcatStringRef4(
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String3,
+    _In_ PPH_STRINGREF String4
     );
 
 FORCEINLINE
@@ -3580,7 +3591,7 @@ PhFormatEntropy(
     _In_opt_ DOUBLE Variance,
     _In_opt_ USHORT VariancePrecision
     );
-    
+
 PHLIBAPI
 ULONG
 NTAPI
@@ -3594,7 +3605,7 @@ NTAPI
 PhCountBitsUlongPtr(
     _In_ ULONG_PTR Value
     );
-    
+
 // Auto-dereference convenience functions
 
 FORCEINLINE
@@ -3729,6 +3740,22 @@ PhaSubstring(
     )
 {
     return PH_AUTO_T(PH_STRING, PhSubstring(String, StartIndex, Count));
+}
+
+FORCEINLINE
+WCHAR
+NTAPI
+PhUpcaseUnicodeChar(
+    _In_ WCHAR SourceCharacter
+    )
+{
+    WCHAR c;
+
+    //c = towupper(c);
+    //c = __ascii_towupper(c);
+    c = RtlUpcaseUnicodeChar(SourceCharacter);
+
+    return c;
 }
 
 // Format

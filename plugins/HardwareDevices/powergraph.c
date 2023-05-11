@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
@@ -142,6 +142,11 @@ VOID RaplDeviceCreateGraphs(
         NULL
         );
     Graph_SetTooltip(Context->TotalGraphHandle, TRUE);
+
+    Context->PackageGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L);
+    Context->CoreGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_CORE_L);
+    Context->DimmGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_DIMM_L);
+    Context->TotalGraphLabelHandle = GetDlgItem(Context->WindowHandle, IDC_TOTAL_L);
 }
 
 VOID RaplDeviceUpdateGraphs(
@@ -258,7 +263,7 @@ VOID RaplDeviceLayoutGraphs(
     PhGetSizeDpiValue(&margin, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
     GetClientRect(Context->WindowHandle, &clientRect);
-    GetClientRect(GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L), &labelRect);
+    GetClientRect(Context->PackageGraphLabelHandle, &labelRect);
     graphWidth = clientRect.right - margin.left - margin.right;
     graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 4 - Context->GraphPadding * 5) / 4;
 
@@ -267,7 +272,7 @@ VOID RaplDeviceLayoutGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L),
+        Context->PackageGraphLabelHandle,
         NULL,
         margin.left,
         y,
@@ -291,7 +296,7 @@ VOID RaplDeviceLayoutGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(Context->WindowHandle, IDC_CORE_L),
+        Context->CoreGraphLabelHandle,
         NULL,
         margin.left,
         y,
@@ -315,7 +320,7 @@ VOID RaplDeviceLayoutGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(Context->WindowHandle, IDC_DIMM_L),
+        Context->DimmGraphLabelHandle,
         NULL,
         margin.left,
         y,
@@ -339,7 +344,7 @@ VOID RaplDeviceLayoutGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(Context->WindowHandle, IDC_TOTAL_L),
+        Context->TotalGraphLabelHandle,
         NULL,
         margin.left,
         y,
@@ -371,9 +376,7 @@ PPH_STRING RaplGraphSingleLabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    DOUBLE value;
-
-    value = (DOUBLE)((DOUBLE)Value * Parameter);
+    DOUBLE value = (DOUBLE)Value * (DOUBLE)Parameter;
 
     if (value != 0)
     {

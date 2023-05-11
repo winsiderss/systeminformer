@@ -101,8 +101,8 @@ PPH_STRINGREF PhGetProcessPriorityClassString(
         PH_STRINGREF_INIT(L"Unknown"),
         PH_STRINGREF_INIT(L"Idle"),
         PH_STRINGREF_INIT(L"Normal"),
-        PH_STRINGREF_INIT(L"High"), 
-        PH_STRINGREF_INIT(L"Real time"), 
+        PH_STRINGREF_INIT(L"High"),
+        PH_STRINGREF_INIT(L"Real time"),
         PH_STRINGREF_INIT(L"Below normal"),
         PH_STRINGREF_INIT(L"Above normal")
     };

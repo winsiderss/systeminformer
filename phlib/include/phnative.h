@@ -790,7 +790,7 @@ PhLengthRequiredSid(
     return UFIELD_OFFSET(SID, SubAuthority[SubAuthorityCount]);
 }
 
-// rev from RtlEqualSid (dmex)
+// based on RtlEqualSid (dmex)
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -799,7 +799,13 @@ PhEqualSid(
     _In_ PSID Sid2
     )
 {
-    return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, PhLengthSid(Sid1));
+    ULONG length1 = PhLengthSid(Sid1);
+    ULONG length2 = PhLengthSid(Sid2);
+
+    if (length1 != length2)
+        return FALSE;
+
+    return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, length1);
 }
 
 // rev from RtlValidSid (dmex)
@@ -1094,7 +1100,7 @@ PhGetFileIndexNumber(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhDeleteFile(
+PhSetFileDelete(
     _In_ HANDLE FileHandle
     );
 
@@ -1870,6 +1876,23 @@ PhDosPathNameToNtPathName(
     _In_ PPH_STRINGREF Name
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDosLongPathNameToNtPathNameWithStatus(
+    _In_ PCWSTR DosFileName,
+    _Out_ PUNICODE_STRING NtFileName,
+    _Outptr_opt_result_z_ PWSTR* FilePart,
+    _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetNtPathDevicePrefix(
+    _In_ PPH_STRINGREF Name
+    );
+
 #define PH_MODULE_TYPE_MODULE 1
 #define PH_MODULE_TYPE_MAPPED_FILE 2
 #define PH_MODULE_TYPE_WOW64_MODULE 3
@@ -2268,6 +2291,13 @@ PhDeleteFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhDeleteFile(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCopyFileWin32(
     _In_ PWSTR OldFileName,
     _In_ PWSTR NewFileName,
@@ -2302,7 +2332,21 @@ PhCreateDirectoryWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateDirectory(
+    _In_ PPH_STRINGREF DirectoryPath
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateDirectoryFullPathWin32(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateDirectoryFullPath(
     _In_ PPH_STRINGREF FileName
     );
 

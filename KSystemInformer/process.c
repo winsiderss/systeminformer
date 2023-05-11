@@ -18,38 +18,6 @@
 PAGED_FILE();
 
 /**
- * \brief Retrieves process protection information.
- *
- * \details This wraps a call to PsGetProcessProtection which is not exported
- * everywhere. If the function is not exported this call fails with
- * STATUS_NOT_IMPLEMENTED.
- *
- * \param[in] Process A process object to retrieve the information from.
- * \param[out] Protection On success this is populated with the process
- * protection.
- * \return Appropriate status:
- * STATUS_NOT_IMPLEMENTED - The call is not supported.
- * STATUS_SUCCESS - Retrieved the process protection level.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetProcessProtection(
-    _In_ PEPROCESS Process,
-    _Out_ PPS_PROTECTION Protection
-    )
-{
-    PAGED_CODE();
-
-    if (!KphDynPsGetProcessProtection)
-    {
-        return STATUS_NOT_IMPLEMENTED;
-    }
-
-    *Protection = KphDynPsGetProcessProtection(Process);
-    return STATUS_SUCCESS;
-}
-
-/**
  * \brief Opens a process.
  *
  * \param[out] ProcessHandle A variable which receives the process handle.
@@ -85,9 +53,7 @@ NTSTATUS KphOpenProcess(
         __try
         {
             ProbeOutputType(ProcessHandle, HANDLE);
-            ProbeForRead(ClientId,
-                         sizeof(CLIENT_ID),
-                         TYPE_ALIGNMENT(CLIENT_ID));
+            ProbeInputType(ClientId, CLIENT_ID);
             clientId = *ClientId;
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -646,7 +612,7 @@ NTSTATUS KphQueryInformationProcess(
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
-        process = NULL;
+        processObject = NULL;
         goto Exit;
     }
 
@@ -712,6 +678,7 @@ NTSTATUS KphQueryInformationProcess(
                         MmDoesFileHaveUserWritableReferences(process->FileObject->SectionObjectPointer);
                 }
 
+                returnLength = sizeof(KPH_PROCESS_BASIC_INFORMATION);
                 status = STATUS_SUCCESS;
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
@@ -739,6 +706,55 @@ NTSTATUS KphQueryInformationProcess(
             __try
             {
                 *state = KphGetProcessState(process);
+                returnLength = sizeof(KPH_PROCESS_STATE);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
+        case KphProcessWSLProcessId:
+        {
+            PULONG processId;
+
+            if (process->SubsystemType != SubsystemInformationTypeWSL)
+            {
+                KphTracePrint(TRACE_LEVEL_WARNING,
+                              GENERAL,
+                              "Invalid subsystem for WSL process ID query.");
+
+                status = STATUS_INVALID_HANDLE;
+                goto Exit;
+            }
+
+            if (!process->WSL.ValidProcessId)
+            {
+                KphTracePrint(TRACE_LEVEL_WARNING,
+                              GENERAL,
+                              "WSL process ID is not valid.");
+
+                status = STATUS_OBJECTID_NOT_FOUND;
+                goto Exit;
+            }
+
+            if (!ProcessInformation ||
+                (ProcessInformationLength < sizeof(ULONG)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(ULONG);
+                goto Exit;
+            }
+
+            processId = ProcessInformation;
+
+            __try
+            {
+                *processId = process->WSL.ProcessId;
+                returnLength = sizeof(ULONG);
                 status = STATUS_SUCCESS;
             }
             __except (EXCEPTION_EXECUTE_HANDLER)

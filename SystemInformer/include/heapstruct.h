@@ -10,28 +10,68 @@ typedef struct _HEAP_ENTRY
 
 #define HEAP_SEGMENT_SIGNATURE 0xffeeffee
 
-// First few fields of HEAP_SEGMENT, VISTA and above
+// Windows 7 and above
 typedef struct _HEAP_SEGMENT
 {
-    HEAP_ENTRY HeapEntry;
+    HEAP_ENTRY Entry;
     ULONG SegmentSignature;
     ULONG SegmentFlags;
     LIST_ENTRY SegmentListEntry;
     struct _HEAP *Heap;
-
-    // ...
+    PVOID BaseAddress;
+    ULONG NumberOfPages;
+    PHEAP_ENTRY FirstEntry;
+    PHEAP_ENTRY LastValidEntry;
+    ULONG NumberOfUnCommittedPages;
+    ULONG NumberOfUnCommittedRanges;
+    USHORT SegmentAllocatorBackTraceIndex;
+    USHORT Reserved;
+    LIST_ENTRY UCRSegmentList;
 } HEAP_SEGMENT, *PHEAP_SEGMENT;
 
-// First few fields of HEAP_SEGMENT, WS03 and below
-typedef struct _HEAP_SEGMENT_OLD
-{
-    HEAP_ENTRY Entry;
-    ULONG Signature;
-    ULONG Flags;
-    struct _HEAP *Heap;
+#define HEAP_SIGNATURE 0xeeffeeff
 
+// Windows 7
+typedef struct _HEAP_OLD
+{
+    HEAP_SEGMENT Segment;
+    ULONG Flags;
+    ULONG ForceFlags;
+    ULONG CompatibilityFlags;
+    ULONG EncodeFlagMask;
+    HEAP_ENTRY Encoding;
+    ULONG_PTR PointerKey; // Windows 7 only
+    ULONG Interceptor;
+    ULONG VirtualMemoryThreshold;
+    ULONG Signature;
     // ...
-} HEAP_SEGMENT_OLD, *PHEAP_SEGMENT_OLD;
+} HEAP_OLD, *PHEAP_OLD;
+
+// Windows 8 and above
+typedef struct _HEAP
+{
+    HEAP_SEGMENT Segment;
+    ULONG Flags;
+    ULONG ForceFlags;
+    ULONG CompatibilityFlags;
+    ULONG EncodeFlagMask;
+    HEAP_ENTRY Encoding;
+    ULONG Interceptor;
+    ULONG VirtualMemoryThreshold;
+    ULONG Signature;
+    // ...
+} HEAP, *PHEAP;
+
+#define SEGMENT_HEAP_SIGNATURE 0xddeeddee
+
+// Windows 8.1 and above
+typedef struct _SEGMENT_HEAP
+{
+    ULONG_PTR Padding[2];
+    ULONG Signature;
+    ULONG GlobalFlags;
+    // ...
+} SEGMENT_HEAP, PSEGMENT_HEAP;
 
 // 32-bit versions
 
@@ -47,23 +87,66 @@ typedef struct _HEAP_SEGMENT32
     ULONG SegmentSignature;
     ULONG SegmentFlags;
     LIST_ENTRY32 SegmentListEntry;
-    WOW64_POINTER(struct _HEAP *) Heap;
-
-    // ...
+    WOW64_POINTER(struct _HEAP32 *) Heap;
+    WOW64_POINTER(PVOID) BaseAddress;
+    ULONG NumberOfPages;
+    WOW64_POINTER(PHEAP_ENTRY32) FirstEntry;
+    WOW64_POINTER(PHEAP_ENTRY32) LastValidEntry;
+    ULONG NumberOfUnCommittedPages;
+    ULONG NumberOfUnCommittedRanges;
+    USHORT SegmentAllocatorBackTraceIndex;
+    USHORT Reserved;
+    LIST_ENTRY32 UCRSegmentList;
 } HEAP_SEGMENT32, *PHEAP_SEGMENT32;
 
-typedef struct _HEAP_SEGMENT_OLD32
+typedef struct _HEAP_OLD32
 {
-    HEAP_ENTRY32 Entry;
-    ULONG Signature;
+    HEAP_SEGMENT32 Segment;
     ULONG Flags;
-    WOW64_POINTER(struct _HEAP *) Heap;
-
+    ULONG ForceFlags;
+    ULONG CompatibilityFlags;
+    ULONG EncodeFlagMask;
+    HEAP_ENTRY32 Encoding;
+    WOW64_POINTER(ULONG_PTR) PointerKey;
+    ULONG Interceptor;
+    ULONG VirtualMemoryThreshold;
+    ULONG Signature;
     // ...
-} HEAP_SEGMENT_OLD32, *PHEAP_SEGMENT_OLD32;
+} HEAP_OLD32, *PHEAP_OLD32;
+
+typedef struct _HEAP32
+{
+    HEAP_SEGMENT32 Segment;
+    ULONG Flags;
+    ULONG ForceFlags;
+    ULONG CompatibilityFlags;
+    ULONG EncodeFlagMask;
+    HEAP_ENTRY32 Encoding;
+    ULONG Interceptor;
+    ULONG VirtualMemoryThreshold;
+    ULONG Signature;
+    // ...
+} HEAP32, *PHEAP32;
+
+typedef struct _SEGMENT_HEAP32
+{
+    WOW64_POINTER(ULONG_PTR) Padding[2];
+    ULONG Signature;
+    ULONG GlobalFlags;
+    // ...
+} SEGMENT_HEAP32, PSEGMENT_HEAP32;
+
+typedef union _PH_ANY_HEAP
+{
+    HEAP_OLD HeapOld;
+    HEAP_OLD32 HeapOld32;
+    HEAP Heap;
+    HEAP32 Heap32;
+    SEGMENT_HEAP SegmentHeap;
+    SEGMENT_HEAP32 SegmentHeap32;
+} PH_ANY_HEAP;
 
 #define HEAP_SEGMENT_MAX_SIZE \
-    (max(sizeof(HEAP_SEGMENT), max(sizeof(HEAP_SEGMENT_OLD), \
-        max(sizeof(HEAP_SEGMENT32), sizeof(HEAP_SEGMENT_OLD32)))))
+    (max(sizeof(HEAP_SEGMENT), sizeof(HEAP_SEGMENT32)))
 
 #endif

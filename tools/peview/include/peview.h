@@ -26,6 +26,9 @@
 #include <secedit.h>
 #include <settings.h>
 #include <symprv.h>
+#include <kphcomms.h>
+#include <kphuser.h>
+#include <hndlinfo.h>
 
 #include <shlobj.h>
 
@@ -512,6 +515,13 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     );
 
 INT_PTR CALLBACK PvpPeStreamsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpMappingsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

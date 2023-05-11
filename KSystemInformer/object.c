@@ -125,6 +125,8 @@ VOID KphpUnlockHandleTableEntry(
 
     PAGED_PASSIVE();
 
+    NT_ASSERT(KphDynHtHandleContentionEvent != ULONG_MAX);
+
     //
     // Set the unlocked bit.
     //
@@ -156,35 +158,6 @@ typedef struct _KPH_ENUM_PROC_HANDLE_EX_CONTEXT
  *
  * \return Result from wrapped callback.
  */
-_Function_class_(EX_ENUM_HANDLE_CALLBACK_61)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-BOOLEAN NTAPI KphEnumerateProcessHandlesExCallback61(
-    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
-    _In_ HANDLE Handle,
-    _In_opt_ PVOID Context
-    )
-{
-    PKPH_ENUM_PROC_HANDLE_EX_CONTEXT context;
-
-    PAGED_PASSIVE();
-
-    NT_ASSERT(Context);
-
-    context = Context;
-
-    return context->Callback(HandleTableEntry, Handle, context->Parameter);
-}
-
-/**
- * \brief Pass-through callback for handle table enumeration.
- *
- * \param[in,out] HandleTableEntry Related handle table entry.
- * \param[in] Handle The handle for this entry.
- * \param[in] Context Enumeration context.
- *
- * \return Result from wrapped callback.
- */
 _Function_class_(EX_ENUM_HANDLE_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -195,13 +168,16 @@ BOOLEAN NTAPI KphEnumerateProcessHandlesExCallback(
     _In_opt_ PVOID Context
     )
 {
+    PKPH_ENUM_PROC_HANDLE_EX_CONTEXT context;
     BOOLEAN result;
 
     PAGED_PASSIVE();
 
-    result = KphEnumerateProcessHandlesExCallback61(HandleTableEntry,
-                                                    Handle,
-                                                    Context);
+    NT_ASSERT(Context);
+
+    context = Context;
+
+    result = context->Callback(HandleTableEntry, Handle, context->Parameter);
 
     KphpUnlockHandleTableEntry(HandleTable, HandleTableEntry);
 
@@ -230,8 +206,7 @@ NTSTATUS KphEnumerateProcessHandlesEx(
 
     PAGED_PASSIVE();
 
-    if ((KphOsVersion >= KphWin8) &&
-        (KphDynHtHandleContentionEvent == ULONG_MAX) ||
+    if ((KphDynHtHandleContentionEvent == ULONG_MAX) ||
         (KphDynEpObjectTable == ULONG_MAX))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -255,20 +230,10 @@ NTSTATUS KphEnumerateProcessHandlesEx(
     context.Callback = Callback;
     context.Parameter = Parameter;
 
-    if (KphOsVersion >= KphWin8)
-    {
-        ExEnumHandleTable(handleTable,
-                          KphEnumerateProcessHandlesExCallback,
-                          &context,
-                          NULL);
-    }
-    else
-    {
-        ExEnumHandleTable(handleTable,
-                          (PEX_ENUM_HANDLE_CALLBACK)KphEnumerateProcessHandlesExCallback61,
-                          &context,
-                          NULL);
-    }
+    ExEnumHandleTable(handleTable,
+                      KphEnumerateProcessHandlesExCallback,
+                      &context,
+                      NULL);
 
     KphDereferenceProcessHandleTable(Process);
 
@@ -690,15 +655,12 @@ NTSTATUS KphpExtractNameFileObject(
 
     do
     {
-        subNameLength += relatedFileObject->FileName.Length;
-
-        //
-        // Avoid infinite loops.
-        //
-        if (relatedFileObject == relatedFileObject->RelatedFileObject)
+        if (FlagOn(relatedFileObject->Flags, FO_CLEANUP_COMPLETE))
         {
             break;
         }
+
+        subNameLength += relatedFileObject->FileName.Length;
 
         relatedFileObject = relatedFileObject->RelatedFileObject;
 
@@ -727,18 +689,15 @@ NTSTATUS KphpExtractNameFileObject(
 
     do
     {
+        if (FlagOn(relatedFileObject->Flags, FO_CLEANUP_COMPLETE))
+        {
+            break;
+        }
+
         objectName -= relatedFileObject->FileName.Length;
         RtlCopyMemory(objectName,
                       relatedFileObject->FileName.Buffer,
                       relatedFileObject->FileName.Length);
-
-        //
-        // Avoid infinite loops.
-        //
-        if (relatedFileObject == relatedFileObject->RelatedFileObject)
-        {
-            break;
-        }
 
         relatedFileObject = relatedFileObject->RelatedFileObject;
 
@@ -924,11 +883,7 @@ NTSTATUS KphQueryInformationObject(
     }
     else
     {
-        //
-        // Make sure the handle isn't a kernel handle if we're not going to
-        // attach to the System process.
-        //
-        if (IsKernelHandle(Handle))
+        if (IsKernelHandle(Handle) && !IsPseudoHandle(Handle))
         {
             status = STATUS_INVALID_HANDLE;
             goto Exit;
@@ -1779,36 +1734,110 @@ NTSTATUS KphQueryInformationObject(
             break;
         }
         case KphObjectSectionBasicInformation:
+        case KphObjectSectionImageInformation:
+        case KphObjectSectionRelocationInformation:
+        case KphObjectSectionOriginalBaseInformation:
+        case KphObjectSectionInternalImageInformation:
+        case KphObjectSectionMappingsInformation:
         {
-            SECTION_BASIC_INFORMATION sectionInfo;
-
-            if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(sectionInfo)))
+            if (ObjectInformation)
             {
-                status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(sectionInfo);
-                goto Exit;
+                if (ObjectInformationLength <= ARRAYSIZE(stackBuffer))
+                {
+                    buffer = stackBuffer;
+                }
+                else
+                {
+                    buffer = KphAllocatePaged(ObjectInformationLength,
+                                              KPH_TAG_OBJECT_QUERY);
+                    if (!buffer)
+                    {
+                        status = STATUS_INSUFFICIENT_RESOURCES;
+                        goto Exit;
+                    }
+                }
+            }
+            else
+            {
+                NT_ASSERT(!buffer);
+                ObjectInformationLength = 0;
             }
 
-            KeStackAttachProcess(process, &apcState);
-            status = ZwQuerySection(Handle,
-                                    SectionBasicInformation,
-                                    &sectionInfo,
-                                    sizeof(sectionInfo),
-                                    NULL);
-            KeUnstackDetachProcess(&apcState);
-            if (NT_SUCCESS(status))
+            if (ObjectInformationClass == KphObjectSectionMappingsInformation)
             {
-                __try
+                KeStackAttachProcess(process, &apcState);
+                status = KphQuerySection(Handle,
+                                         KphSectionMappingsInformation,
+                                         buffer,
+                                         ObjectInformationLength,
+                                         &returnLength,
+                                         KernelMode);
+                KeUnstackDetachProcess(&apcState);
+                if (NT_SUCCESS(status))
                 {
-                    RtlCopyMemory(ObjectInformation,
-                                  &sectionInfo,
-                                  sizeof(sectionInfo));
-                    returnLength = sizeof(sectionInfo);
+                    __try
+                    {
+                        RtlCopyMemory(ObjectInformation, buffer, returnLength);
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
                 }
-                __except (EXCEPTION_EXECUTE_HANDLER)
+            }
+            else
+            {
+                SIZE_T length;
+                SECTION_INFORMATION_CLASS sectionInfoClass;
+
+                if (ObjectInformationClass == KphObjectSectionBasicInformation)
                 {
-                    status = GetExceptionCode();
+                    sectionInfoClass = SectionBasicInformation;
+                }
+                else if (ObjectInformationClass == KphObjectSectionImageInformation)
+                {
+                    sectionInfoClass = SectionImageInformation;
+                }
+                else if (ObjectInformationClass == KphObjectSectionRelocationInformation)
+                {
+                    sectionInfoClass = SectionRelocationInformation;
+                }
+                else if (ObjectInformationClass == KphObjectSectionOriginalBaseInformation)
+                {
+                    sectionInfoClass = SectionOriginalBaseInformation;
+                }
+                else
+                {
+                    NT_ASSERT(ObjectInformationClass == KphObjectSectionInternalImageInformation);
+                    sectionInfoClass = SectionInternalImageInformation;
+                }
+
+                length = 0;
+                KeStackAttachProcess(process, &apcState);
+                status = ZwQuerySection(Handle,
+                                        sectionInfoClass,
+                                        buffer,
+                                        ObjectInformationLength,
+                                        &length);
+                KeUnstackDetachProcess(&apcState);
+                if (NT_SUCCESS(status))
+                {
+                    if (length > ULONG_MAX)
+                    {
+                        status = STATUS_INTEGER_OVERFLOW;
+                        returnLength = 0;
+                        goto Exit;
+                    }
+
+                    __try
+                    {
+                        RtlCopyMemory(ObjectInformation, buffer, length);
+                        returnLength = (ULONG)length;
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
                 }
             }
 

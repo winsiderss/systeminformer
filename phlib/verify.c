@@ -299,16 +299,16 @@ BOOLEAN PhIsChainedToMicrosoft(
             if (CertGetCertificateChain_I(
                 HCCE_CURRENT_USER,
                 Certificate,
-                0, 
-                cryptStoreHandle, 
+                0,
+                cryptStoreHandle,
                 &chainPara,
                 0,
-                0, 
+                0,
                 &chainContext
                 ))
             {
                 if (CertVerifyCertificateChainPolicy_I(
-                    CERT_CHAIN_POLICY_MICROSOFT_ROOT, 
+                    CERT_CHAIN_POLICY_MICROSOFT_ROOT,
                     chainContext,
                     &policyPara,
                     &policyStatus
@@ -1597,8 +1597,8 @@ BOOLEAN PhIsChainedToMicrosoftFromStateData(
         return FALSE;
 
     status = PhIsChainedToMicrosoft(
-        provSigner->pasCertChain->pCert, 
-        cryptStoreHandle, 
+        provSigner->pasCertChain->pCert,
+        cryptStoreHandle,
         IncludeMicrosoftTestRootCerts
         );
 
@@ -1639,7 +1639,7 @@ BOOLEAN PhVerifyCertificateIsMicrosoftRootChain(
     static BOOLEAN InsiderBuild = FALSE;
     CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
     CERT_CHAIN_POLICY_STATUS policyStatus = { sizeof(CERT_CHAIN_POLICY_STATUS) };
-    
+
     if (PhBeginInitOnce(&initOnce))
     {
         SYSTEM_CODEINTEGRITY_INFORMATION integrityInfo;

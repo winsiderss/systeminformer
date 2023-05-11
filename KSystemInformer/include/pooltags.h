@@ -23,11 +23,10 @@
 #define KPH_TAG_NPAGED_MESSAGE                  '2CpK'
 #define KPH_TAG_QUEUE_ITEM                      '3CpK'
 #define KPH_TAG_THREAD_POOL                     '4CpK'
-#define KPH_TAG_CONNECT_PARAMTERS               '5CpK'
 
 // dyndata
 
-#define KPH_TAG_DYNDATA                         '6DpK'
+#define KPH_TAG_DYNDATA                         '0DpK'
 
 // object
 
@@ -44,16 +43,9 @@
 
 // util
 
-#define KPH_TAG_MODULES                         '0UpK'
-#define KPH_TAG_FILE_NAME                       '1UpK'
-#define KPH_TAG_REG_STRING                      '2UpK'
-#define KPH_TAG_REG_BINARY                      '3UpK'
-#define KPH_TAG_FILE_OBJECT_NAME                '4UpK'
-#define KPH_TAG_ACL                             '5UpK'
-
-// verify
-
-#define KPH_TAG_VERIFY                          '0VpK'
+#define KPH_TAG_REG_STRING                      '0UpK'
+#define KPH_TAG_REG_BINARY                      '1UpK'
+#define KPH_TAG_FILE_OBJECT_NAME                '2UpK'
 
 // vm
 
@@ -84,6 +76,7 @@
 #define KPH_TAG_CID_POPULATE                    '1cpK'
 #define KPH_TAG_PROCESS_CONTEXT                 '2cpK'
 #define KPH_TAG_THREAD_CONTEXT                  '3cpK'
+#define KPH_TAG_CID_APC                         '4cpK'
 
 // protection
 

@@ -2567,8 +2567,12 @@ BOOLEAN PhGetSystemResourcesFileName(
         if (!PhGetBasePath(&directoryPart, &directoryBasePart, NULL))
             return FALSE;
 
-        PhMoveReference(&fileName, PhConcatStringRef3(&directoryBasePart, &systemResourcesPath, &fileNamePart));
-        PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &systemResourcesExtension));
+        fileName = PhConcatStringRef4(
+            &directoryBasePart,
+            &systemResourcesPath,
+            &fileNamePart,
+            &systemResourcesExtension
+            );
 
         if (NativeFileName)
         {
@@ -2673,43 +2677,50 @@ BOOLEAN PhExtractIconEx(
     if (!resourceDirectory)
         goto CleanupExit;
 
-    if (!PhLoadIconFromResourceDirectory(
-        &mappedImage,
-        resourceDirectory,
-        IconIndex,
-        RT_GROUP_ICON,
-        &iconDirectoryResourceLength,
-        &iconDirectoryResource
-        ))
+    __try
     {
-        goto CleanupExit;
-    }
-
-    if (iconDirectoryResource->ResourceType != RES_ICON)
-        goto CleanupExit;
-
-    if (IconLarge)
-    {
-        iconLarge = PhCreateIconFromResourceDirectory(
+        if (!PhLoadIconFromResourceDirectory(
             &mappedImage,
             resourceDirectory,
-            iconDirectoryResource,
-            PhGetSystemMetrics(SM_CXICON, SystemDpi),
-            PhGetSystemMetrics(SM_CYICON, SystemDpi),
-            LR_DEFAULTCOLOR
-            );
-    }
+            IconIndex,
+            RT_GROUP_ICON,
+            &iconDirectoryResourceLength,
+            &iconDirectoryResource
+            ))
+        {
+            goto CleanupExit;
+        }
 
-    if (IconSmall)
+        if (iconDirectoryResource->ResourceType != RES_ICON)
+            goto CleanupExit;
+
+        if (IconLarge)
+        {
+            iconLarge = PhCreateIconFromResourceDirectory(
+                &mappedImage,
+                resourceDirectory,
+                iconDirectoryResource,
+                PhGetSystemMetrics(SM_CXICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYICON, SystemDpi),
+                LR_DEFAULTCOLOR
+                );
+        }
+
+        if (IconSmall)
+        {
+            iconSmall = PhCreateIconFromResourceDirectory(
+                &mappedImage,
+                resourceDirectory,
+                iconDirectoryResource,
+                PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
+                LR_DEFAULTCOLOR
+                );
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        iconSmall = PhCreateIconFromResourceDirectory(
-            &mappedImage,
-            resourceDirectory,
-            iconDirectoryResource,
-            PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
-            PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
-            LR_DEFAULTCOLOR
-            );
+        NOTHING;
     }
 
 CleanupExit:

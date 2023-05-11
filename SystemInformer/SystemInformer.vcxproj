@@ -482,6 +482,7 @@
     <ClInclude Include="include\colsetmgr.h" />
     <ClInclude Include="include\extmgr.h" />
     <ClInclude Include="include\extmgri.h" />
+    <ClInclude Include="include\heapinfo.h" />
     <ClInclude Include="include\heapstruct.h" />
     <ClInclude Include="include\hndllist.h" />
     <ClInclude Include="include\hndlmenu.h" />

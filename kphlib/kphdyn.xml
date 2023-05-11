@@ -9,11 +9,9 @@ must be run to regenerate source files.
 
 Items are processed in order. The first matching configuration is used.
 From the perspective of this file they are processed from top to bottom.
-Major and minor are required. Service pack, builds and revisions are optional.
-Major, minor, and service pack (when specified) are explicit matches.
-Build and revision are a range from a min (inclusive) to a max (exclusive).
-Build and revision have precedence build > revision.
-If no builds are specified a revision (or range of) is valid. 
+Major, minor, build, and revision are required. Major and minor versions are
+explicit, build and revision are an inclusive rage and build takes precedence
+over revision.
 
 dt nt!_ETW_GUID_ENTRY Guid
 dt nt!_EPROCESS ObjectTable
@@ -36,520 +34,299 @@ dt nt!_ALPC_PORT_ATTRIBUTES Flags
 dt nt!_ALPC_PORT PortContext
 dt nt!_ALPC_PORT SequenceNo
 dt nt!_ALPC_PORT State
+dt nt!_ALPC_PORT PortObjectLock
+dt nt!_KTHREAD ReadOperationCount
+dt nt!_KTHREAD WriteOperationCount
+dt nt!_KTHREAD OtherOperationCount
+dt nt!_KTHREAD ReadTransferCount
+dt nt!_KTHREAD WriteTransferCount
+dt nt!_KTHREAD OtherTransferCount
+lxcore.sys exports version
+uf lxcore!LxpSyscall_GETPID
+uf lxcore!LxpSyscall_GETPID
+uf lxcore!LxpSyscall_GETPID
+uf lxcore!LxpSyscall_GETTID
+uf lxcore!LxpSyscall_GETTID
+dt nt!_SECTION u1.ControlArea
+dt nt!_CONTROL_AREA ListHead 
+dt nt!_CONTROL_AREA ControlAreaLock
 
 -->
 <dyn>
-    <arch id="64">
-        <data name="10.0.22621">
-            <field value="10"     name="MajorVersion"/>
-            <field value="0"      name="MinorVersion"/>
-            <field value="22621"  name="BuildNumberMin"/>
-            <field value="22621"  name="BuildNumberMax"/>
+    <data name="10.0.22621">
+        <field value="10"     name="MajorVersion"/>
+        <field value="0"      name="MinorVersion"/>
+        <field value="22621"  name="BuildNumberMin"/>
+        <field value="0"      name="RevisionMin"/>
+        <field value="22621"  name="BuildNumberMax"/>
+        <field value="65535"  name="RevisionMax"/>
 
-            <field value="0x28"   name="EgeGuid"/>
-            <field value="0x570"  name="EpObjectTable"/>
-            <field value="0x20"   name="EreGuidEntry"/>
-            <field value="0x30"   name="HtHandleContentionEvent"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="16"     name="ObDecodeShift"/>
-            <field value="17"     name="ObAttributesShift"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x8"    name="AlpcHandleTableLock"/>
-            <field value="0x100"  name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x190"  name="AlpcSequenceNo"/>
-            <field value="0x1a0"  name="AlpcState"/>
-        </data>
-        <data name="10.0.19042 - 10.0.22621">
-            <field value="10"     name="MajorVersion"/>
-            <field value="0"      name="MinorVersion"/>
-            <field value="19042"  name="BuildNumberMin"/>
-            <field value="22621"  name="BuildNumberMax"/>
+        <field value="0x28"   name="EgeGuid"/>
+        <field value="0x570"  name="EpObjectTable"/>
+        <field value="0x20"   name="EreGuidEntry"/>
+        <field value="0x30"   name="HtHandleContentionEvent"/>
+        <field value="0x10"   name="OtName"/>
+        <field value="0x28"   name="OtIndex"/>
+        <field value="16"     name="ObDecodeShift"/>
+        <field value="17"     name="ObAttributesShift"/>
+        <field value="2"      name="CiVersion"/>
+        <field value="0x10"   name="AlpcCommunicationInfo"/>
+        <field value="0x18"   name="AlpcOwnerProcess"/>
+        <field value="0x0"    name="AlpcConnectionPort"/>
+        <field value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field value="0x28"   name="AlpcHandleTable"/>
+        <field value="0x8"    name="AlpcHandleTableLock"/>
+        <field value="0x100"  name="AlpcAttributes"/>
+        <field value="0x0"    name="AlpcAttributesFlags"/>
+        <field value="0x38"   name="AlpcPortContext"/>
+        <field value="0x160"  name="AlpcPortObjectLock"/>
+        <field value="0x190"  name="AlpcSequenceNo"/>
+        <field value="0x1a0"  name="AlpcState"/>
+        <field value="0x380"  name="KtReadOperationCount"/>
+        <field value="0x388"  name="KtWriteOperationCount"/>
+        <field value="0x390"  name="KtOtherOperationCount"/>
+        <field value="0x398"  name="KtReadTransferCount"/>
+        <field value="0x3a0"  name="KtWriteTransferCount"/>
+        <field value="0x3a8"  name="KtOtherTransferCount"/>
+        <field value="1"      name="LxVersion"/>
+        <field value="0x80"   name="LxPicoProc"/>
+        <field value="0x10"   name="LxPicoProcInfo"/>
+        <field value="0x10"   name="LxPicoProcInfoPID"/>
+        <field value="0x10"   name="LxPicoThrdInfo"/>
+        <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <!--
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
+        -->
+    </data>
+    <data name="10.0.19042 - 10.0.22621">
+        <field value="10"     name="MajorVersion"/>
+        <field value="0"      name="MinorVersion"/>
+        <field value="19042"  name="BuildNumberMin"/>
+        <field value="0"      name="RevisionMin"/>
+        <field value="22621"  name="BuildNumberMax"/>
+        <field value="65535"  name="RevisionMax"/>
 
-            <field value="0x28"   name="EgeGuid"/>
-            <field value="0x570"  name="EpObjectTable"/>
-            <field value="0x20"   name="EreGuidEntry"/>
-            <field value="0x30"   name="HtHandleContentionEvent"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="16"     name="ObDecodeShift"/>
-            <field value="17"     name="ObAttributesShift"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0x100"  name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x190"  name="AlpcSequenceNo"/>
-            <field value="0x1a0"  name="AlpcState"/>
-        </data>
-        <data name="10.0.18363.693 - 10.0.19042">
-            <field value="10"     name="MajorVersion"/>
-            <field value="0"      name="MinorVersion"/>
-            <field value="18363"  name="BuildNumberMin"/>
-            <field value="693"    name="RevisionMin"/>
-            <field value="19042"  name="BuildNumberMax"/>
+        <field value="0x28"   name="EgeGuid"/>
+        <field value="0x570"  name="EpObjectTable"/>
+        <field value="0x20"   name="EreGuidEntry"/>
+        <field value="0x30"   name="HtHandleContentionEvent"/>
+        <field value="0x10"   name="OtName"/>
+        <field value="0x28"   name="OtIndex"/>
+        <field value="16"     name="ObDecodeShift"/>
+        <field value="17"     name="ObAttributesShift"/>
+        <field value="2"      name="CiVersion"/>
+        <field value="0x10"   name="AlpcCommunicationInfo"/>
+        <field value="0x18"   name="AlpcOwnerProcess"/>
+        <field value="0x0"    name="AlpcConnectionPort"/>
+        <field value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field value="0x28"   name="AlpcHandleTable"/>
+        <field value="0x10"   name="AlpcHandleTableLock"/>
+        <field value="0x100"  name="AlpcAttributes"/>
+        <field value="0x0"    name="AlpcAttributesFlags"/>
+        <field value="0x38"   name="AlpcPortContext"/>
+        <field value="0x160"  name="AlpcPortObjectLock"/>
+        <field value="0x190"  name="AlpcSequenceNo"/>
+        <field value="0x1a0"  name="AlpcState"/>
+        <field value="0x380"  name="KtReadOperationCount"/>
+        <field value="0x388"  name="KtWriteOperationCount"/>
+        <field value="0x390"  name="KtOtherOperationCount"/>
+        <field value="0x398"  name="KtReadTransferCount"/>
+        <field value="0x3a0"  name="KtWriteTransferCount"/>
+        <field value="0x3a8"  name="KtOtherTransferCount"/>
+        <field value="1"      name="LxVersion"/>
+        <field value="0x80"   name="LxPicoProc"/>
+        <field value="0x10"   name="LxPicoProcInfo"/>
+        <field value="0x10"   name="LxPicoProcInfoPID"/>
+        <field value="0x10"   name="LxPicoThrdInfo"/>
+        <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <!--
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
+        -->
+    </data>
+    <data name="10.0.19041.264 - 10.0.19042">
+        <field value="10"     name="MajorVersion"/>
+        <field value="0"      name="MinorVersion"/>
+        <field value="19041"  name="BuildNumberMin"/>
+        <field value="264"    name="RevisionMin"/>
+        <field value="19042"  name="BuildNumberMax"/>
+        <field value="65535"  name="RevisionMax"/>
 
-            <field value="0x28"   name="EgeGuid"/>
-            <field value="0x418"  name="EpObjectTable"/>
-            <field value="0x20"   name="EreGuidEntry"/>
-            <field value="0x30"   name="HtHandleContentionEvent"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="16"     name="ObDecodeShift"/>
-            <field value="17"     name="ObAttributesShift"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0x100"  name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x190"  name="AlpcSequenceNo"/>
-            <field value="0x1a0"  name="AlpcState"/>
-        </data>
-        <data name="10.0.10240 - 10.0.18363.693">
-            <field value="10"     name="MajorVersion"/>
-            <field value="0"      name="MinorVersion"/>
-            <field value="10240"  name="BuildNumberMin"/>
-            <field value="18363"  name="BuildNumberMax"/>
-            <field value="693"    name="RevisionMax"/>
+        <field value="0x28"   name="EgeGuid"/>
+        <field value="0x418"  name="EpObjectTable"/>
+        <field value="0x20"   name="EreGuidEntry"/>
+        <field value="0x30"   name="HtHandleContentionEvent"/>
+        <field value="0x10"   name="OtName"/>
+        <field value="0x28"   name="OtIndex"/>
+        <field value="16"     name="ObDecodeShift"/>
+        <field value="17"     name="ObAttributesShift"/>
+        <field value="2"      name="CiVersion"/>
+        <field value="0x10"   name="AlpcCommunicationInfo"/>
+        <field value="0x18"   name="AlpcOwnerProcess"/>
+        <field value="0x0"    name="AlpcConnectionPort"/>
+        <field value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field value="0x28"   name="AlpcHandleTable"/>
+        <field value="0x10"   name="AlpcHandleTableLock"/>
+        <field value="0x100"  name="AlpcAttributes"/>
+        <field value="0x0"    name="AlpcAttributesFlags"/>
+        <field value="0x38"   name="AlpcPortContext"/>
+        <field value="0x160"  name="AlpcPortObjectLock"/>
+        <field value="0x190"  name="AlpcSequenceNo"/>
+        <field value="0x1a0"  name="AlpcState"/>
+        <field value="0x380"  name="KtReadOperationCount"/>
+        <field value="0x388"  name="KtWriteOperationCount"/>
+        <field value="0x390"  name="KtOtherOperationCount"/>
+        <field value="0x398"  name="KtReadTransferCount"/>
+        <field value="0x3a0"  name="KtWriteTransferCount"/>
+        <field value="0x3a8"  name="KtOtherTransferCount"/>
+        <field value="1"      name="LxVersion"/>
+        <field value="0x80"   name="LxPicoProc"/>
+        <field value="0x10"   name="LxPicoProcInfo"/>
+        <field value="0x10"   name="LxPicoProcInfoPID"/>
+        <field value="0x10"   name="LxPicoThrdInfo"/>
+        <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <!--
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
+        -->
+    </data>
+    <data name="10.0.18363.693 - 10.0.19041.264">
+        <field value="10"     name="MajorVersion"/>
+        <field value="0"      name="MinorVersion"/>
+        <field value="18363"  name="BuildNumberMin"/>
+        <field value="693"    name="RevisionMin"/>
+        <field value="19041"  name="BuildNumberMax"/>
+        <field value="264"    name="RevisionMax"/>
 
-            <field value="0x18"   name="EgeGuid"/>
-            <field value="0x418"  name="EpObjectTable"/>
-            <field value="0x20"   name="EreGuidEntry"/>
-            <field value="0x30"   name="HtHandleContentionEvent"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="16"     name="ObDecodeShift"/>
-            <field value="17"     name="ObAttributesShift"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0x100"  name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x190"  name="AlpcSequenceNo"/>
-            <field value="0x1a0"  name="AlpcState"/>
-        </data>
-        <data name="6.3.9600.17736 - 6.3.9600.65534">
-            <field value="6"      name="MajorVersion"/>
-            <field value="3"      name="MinorVersion"/>
-            <field value="9600"   name="BuildNumberMin"/>
-            <field value="17736"  name="RevisionMin"/>
-            <field value="9600"   name="BuildNumberMax"/>
-            <field value="65534"  name="RevisionMax"/>
+        <field value="0x28"   name="EgeGuid"/>
+        <field value="0x418"  name="EpObjectTable"/>
+        <field value="0x20"   name="EreGuidEntry"/>
+        <field value="0x30"   name="HtHandleContentionEvent"/>
+        <field value="0x10"   name="OtName"/>
+        <field value="0x28"   name="OtIndex"/>
+        <field value="16"     name="ObDecodeShift"/>
+        <field value="17"     name="ObAttributesShift"/>
+        <field value="2"      name="CiVersion"/>
+        <field value="0x10"   name="AlpcCommunicationInfo"/>
+        <field value="0x18"   name="AlpcOwnerProcess"/>
+        <field value="0x0"    name="AlpcConnectionPort"/>
+        <field value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field value="0x28"   name="AlpcHandleTable"/>
+        <field value="0x10"   name="AlpcHandleTableLock"/>
+        <field value="0x100"  name="AlpcAttributes"/>
+        <field value="0x0"    name="AlpcAttributesFlags"/>
+        <field value="0x38"   name="AlpcPortContext"/>
+        <field value="0x160"  name="AlpcPortObjectLock"/>
+        <field value="0x190"  name="AlpcSequenceNo"/>
+        <field value="0x1a0"  name="AlpcState"/>
+        <field value="0x5a8"  name="KtReadOperationCount"/>
+        <field value="0x5b0"  name="KtWriteOperationCount"/>
+        <field value="0x5b8"  name="KtOtherOperationCount"/>
+        <field value="0x5c0"  name="KtReadTransferCount"/>
+        <field value="0x5c8"  name="KtWriteTransferCount"/>
+        <field value="0x5d0"  name="KtOtherTransferCount"/>
+        <field value="1"      name="LxVersion"/>
+        <field value="0x80"   name="LxPicoProc"/>
+        <field value="0x10"   name="LxPicoProcInfo"/>
+        <field value="0x10"   name="LxPicoProcInfoPID"/>
+        <field value="0x10"   name="LxPicoThrdInfo"/>
+        <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <!--
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
+        -->
+    </data>
+    <data name="10.0.14393.0 - 10.0.18363.693">
+        <field value="10"     name="MajorVersion"/>
+        <field value="0"      name="MinorVersion"/>
+        <field value="14393"  name="BuildNumberMin"/>
+        <field value="0"      name="RevisionMin"/>
+        <field value="18363"  name="BuildNumberMax"/>
+        <field value="693"    name="RevisionMax"/>
 
-            <field value="0x18"   name="EgeGuid"/>
-            <field value="0x408"  name="EpObjectTable"/>
-            <field value="0x20"   name="EreGuidEntry"/>
-            <field value="0x30"   name="HtHandleContentionEvent"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="16"     name="ObDecodeShift"/>
-            <field value="17"     name="ObAttributesShift"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0xe8"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x178"  name="AlpcSequenceNo"/>
-            <field value="0x188"  name="AlpcState"/>
-        </data>
-        <data name="6.3.9600 - 6.3.9600.17736">
-            <field value="6"      name="MajorVersion"/>
-            <field value="3"      name="MinorVersion"/>
-            <field value="9600"   name="BuildNumberMin"/>
-            <field value="9600"   name="BuildNumberMax"/>
-            <field value="17736"  name="RevisionMax"/>
+        <field value="0x18"   name="EgeGuid"/>
+        <field value="0x418"  name="EpObjectTable"/>
+        <field value="0x20"   name="EreGuidEntry"/>
+        <field value="0x30"   name="HtHandleContentionEvent"/>
+        <field value="0x10"   name="OtName"/>
+        <field value="0x28"   name="OtIndex"/>
+        <field value="16"     name="ObDecodeShift"/>
+        <field value="17"     name="ObAttributesShift"/>
+        <field value="2"      name="CiVersion"/>
+        <field value="0x10"   name="AlpcCommunicationInfo"/>
+        <field value="0x18"   name="AlpcOwnerProcess"/>
+        <field value="0x0"    name="AlpcConnectionPort"/>
+        <field value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field value="0x28"   name="AlpcHandleTable"/>
+        <field value="0x10"   name="AlpcHandleTableLock"/>
+        <field value="0x100"  name="AlpcAttributes"/>
+        <field value="0x0"    name="AlpcAttributesFlags"/>
+        <field value="0x38"   name="AlpcPortContext"/>
+        <field value="0x160"  name="AlpcPortObjectLock"/>
+        <field value="0x190"  name="AlpcSequenceNo"/>
+        <field value="0x1a0"  name="AlpcState"/>
+        <field value="0x5a8"  name="KtReadOperationCount"/>
+        <field value="0x5b0"  name="KtWriteOperationCount"/>
+        <field value="0x5b8"  name="KtOtherOperationCount"/>
+        <field value="0x5c0"  name="KtReadTransferCount"/>
+        <field value="0x5c8"  name="KtWriteTransferCount"/>
+        <field value="0x5d0"  name="KtOtherTransferCount"/>
+        <!--
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
+        -->
+    </data>
+    <data name="10.0.10240 - 10.0.14393.0">
+        <field value="10"     name="MajorVersion"/>
+        <field value="0"      name="MinorVersion"/>
+        <field value="10240"  name="BuildNumberMin"/>
+        <field value="0"      name="RevisionMin"/>
+        <field value="14393"  name="BuildNumberMax"/>
+        <field value="0"      name="RevisionMax"/>
 
-            <field value="0x18"   name="EgeGuid"/>
-            <field value="0x408"  name="EpObjectTable"/>
-            <field value="0x10"   name="EreGuidEntry"/>
-            <field value="0x30"   name="HtHandleContentionEvent"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="16"     name="ObDecodeShift"/>
-            <field value="17"     name="ObAttributesShift"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0xe8"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x178"  name="AlpcSequenceNo"/>
-            <field value="0x188"  name="AlpcState"/>
-        </data>
-        <data name="6.2.9200">
-            <field value="6"      name="MajorVersion"/>
-            <field value="2"      name="MinorVersion"/>
-            <field value="9200"   name="BuildNumberMin"/>
-            <field value="9200"   name="BuildNumberMax"/>
-
-            <field value="0x18"   name="EgeGuid"/>
-            <field value="0x408"  name="EpObjectTable"/>
-            <field value="0x10"   name="EreGuidEntry"/>
-            <field value="0x30"   name="HtHandleContentionEvent"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="16"     name="ObDecodeShift"/>
-            <field value="20"     name="ObAttributesShift"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0xe8"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x180"  name="AlpcSequenceNo"/>
-            <field value="0x184"  name="AlpcState"/>
-        </data>
-        <data name="6.1.7601.22730">
-            <field value="6"      name="MajorVersion"/>
-            <field value="1"      name="MinorVersion"/>
-            <field value="1"      name="ServicePackMajor"/>
-            <field value="18519"  name="RevisionMin"/>
-            <field value="18519"  name="RevisionMax"/>
-
-            <field value="0x14"   name="EgeGuid"/>
-            <field value="0x200"  name="EpObjectTable"/>
-            <field value="0x20"   name="EreGuidEntry"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0xd0"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x168"  name="AlpcSequenceNo"/>
-            <field value="0x16c"  name="AlpcState"/>
-        </data>
-        <data name="6.1.7601.18519">
-            <field value="6"      name="MajorVersion"/>
-            <field value="1"      name="MinorVersion"/>
-            <field value="1"      name="ServicePackMajor"/>
-            <field value="18519"  name="RevisionMin"/>
-            <field value="18519"  name="RevisionMax"/>
-
-            <field value="0x14"   name="EgeGuid"/>
-            <field value="0x200"  name="EpObjectTable"/>
-            <field value="0x10"   name="EreGuidEntry"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0xd0"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x168"  name="AlpcSequenceNo"/>
-            <field value="0x16c"  name="AlpcState"/>
-        </data>
-        <data name="6.1.7601 - 6.1.7601.18519">
-            <field value="6"      name="MajorVersion"/>
-            <field value="1"      name="MinorVersion"/>
-            <field value="1"      name="ServicePackMajor"/>
-            <field value="18519"  name="RevisionMax"/>
-
-            <field value="0x14"   name="EgeGuid"/>
-            <field value="0x200"  name="EpObjectTable"/>
-            <field value="0x10"   name="EreGuidEntry"/>
-            <field value="0x10"   name="OtName"/>
-            <field value="0x28"   name="OtIndex"/>
-            <field value="1"      name="CiVersion"/>
-            <field value="0x10"   name="AlpcCommunicationInfo"/>
-            <field value="0x18"   name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x8"    name="AlpcServerCommunicationPort"/>
-            <field value="0x10"   name="AlpcClientCommunicationPort"/>
-            <field value="0x28"   name="AlpcHandleTable"/>
-            <field value="0x10"   name="AlpcHandleTableLock"/>
-            <field value="0xd0"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x38"   name="AlpcPortContext"/>
-            <field value="0x168"  name="AlpcSequenceNo"/>
-            <field value="0x16c"  name="AlpcState"/>
-        </data>
-    </arch>
-    <arch id="32">
-        <data name="10.0.19041 - 10.0.19044">
-            <field value="10"     name="MajorVersion"/>
-            <field value="0"      name="MinorVersion"/>
-            <field value="19041"  name="BuildNumberMin"/>
-            <field value="19044"  name="BuildNumberMax"/>
-
-            <field value="0x14"   name="EgeGuid"/>
-            <field value="0x18c"  name="EpObjectTable"/>
-            <field value="0x10"   name="EreGuidEntry"/>
-            <field value="0x20"   name="HtHandleContentionEvent"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x98"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xe8"   name="AlpcSequenceNo"/>
-            <field value="0xf4"   name="AlpcState"/>
-        </data>
-        <data name="10.0.18363.693 - 10.0.19041">
-            <field value="10"     name="MajorVersion"/>
-            <field value="0"      name="MinorVersion"/>
-            <field value="18363"  name="BuildNumberMin"/>
-            <field value="693"    name="RevisionMin"/>
-            <field value="19041"  name="BuildNumberMax"/>
-
-            <field value="0x14"   name="EgeGuid"/>
-            <field value="0x15c"  name="EpObjectTable"/>
-            <field value="0x10"   name="EreGuidEntry"/>
-            <field value="0x20"   name="HtHandleContentionEvent"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x98"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xe8"   name="AlpcSequenceNo"/>
-            <field value="0xf4"   name="AlpcState"/>
-        </data>
-        <data name="10.0.15063 - 10.0.18363.693">
-            <field value="10"     name="MajorVersion"/>
-            <field value="0"      name="MinorVersion"/>
-            <field value="15063"  name="BuildNumberMin"/>
-            <field value="18363"  name="BuildNumberMax"/>
-            <field value="693"    name="RevisionMax"/>
-
-            <field value="0xc"    name="EgeGuid"/>
-            <field value="0x15c"  name="EpObjectTable"/>
-            <field value="0x10"   name="EreGuidEntry"/>
-            <field value="0x20"   name="HtHandleContentionEvent"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x98"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xe8"   name="AlpcSequenceNo"/>
-            <field value="0xf4"   name="AlpcState"/>
-        </data>
-        <data name="10.0.10240 - 10.0.15063">
-            <field value="10"     name="MajorVersion"/>
-            <field value="0"      name="MinorVersion"/>
-            <field value="10240"  name="BuildNumberMin"/>
-            <field value="15063"  name="BuildNumberMax"/>
-
-            <field value="0xc"    name="EgeGuid"/>
-            <field value="0x154"  name="EpObjectTable"/>
-            <field value="0x10"   name="EreGuidEntry"/>
-            <field value="0x20"   name="HtHandleContentionEvent"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x98"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xe8"   name="AlpcSequenceNo"/>
-            <field value="0xf4"   name="AlpcState"/>
-        </data>
-        <data name="6.3.9600">
-            <field value="6"      name="MajorVersion"/>
-            <field value="3"      name="MinorVersion"/>
-
-            <field value="0xc"    name="EgeGuid"/>
-            <field value="0x150"  name="EpObjectTable"/>
-            <field value="0x8"    name="EreGuidEntry"/>
-            <field value="0x20"   name="HtHandleContentionEvent"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x8c"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xdc"   name="AlpcSequenceNo"/>
-            <field value="0xe8"   name="AlpcState"/>
-        </data>
-        <data name="6.2.9200">
-            <field value="6"      name="MajorVersion"/>
-            <field value="2"      name="MinorVersion"/>
-
-            <field value="0xc"    name="EgeGuid"/>
-            <field value="0x150"  name="EpObjectTable"/>
-            <field value="0x8"    name="EreGuidEntry"/>
-            <field value="0x20"   name="HtHandleContentionEvent"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x8c"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xe0"   name="AlpcSequenceNo"/>
-            <field value="0xe4"   name="AlpcState"/>
-        </data>
-        <data name="6.1.7601.22730">
-            <field value="6"      name="MajorVersion"/>
-            <field value="1"      name="MinorVersion"/>
-            <field value="1"      name="ServicePackMajor"/>
-            <field value="22730"  name="RevisionMax"/>
-            <field value="22730"  name="RevisionMax"/>
-
-            <field value="0xc"    name="EgeGuid"/>
-            <field value="0xf4"   name="EpObjectTable"/>
-            <field value="0x8"    name="EreGuidEntry"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x80"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xd4"   name="AlpcSequenceNo"/>
-            <field value="0xd8"   name="AlpcState"/>
-        </data>
-        <data name="6.1.7601.18519">
-            <field value="6"      name="MajorVersion"/>
-            <field value="1"      name="MinorVersion"/>
-            <field value="1"      name="ServicePackMajor"/>
-            <field value="18519"  name="RevisionMax"/>
-            <field value="18519"  name="RevisionMax"/>
-
-            <field value="0xc"    name="EgeGuid"/>
-            <field value="0xf4"   name="EpObjectTable"/>
-            <field value="0x8"    name="EreGuidEntry"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="2"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x80"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xd4"   name="AlpcSequenceNo"/>
-            <field value="0xd8"   name="AlpcState"/>
-        </data>
-        <data name="6.1.7601 - 6.1.7601.18519">
-            <field value="6"      name="MajorVersion"/>
-            <field value="1"      name="MinorVersion"/>
-            <field value="1"      name="ServicePackMajor"/>
-            <field value="18519"  name="RevisionMax"/>
-
-            <field value="0xc"    name="EgeGuid"/>
-            <field value="0xf4"   name="EpObjectTable"/>
-            <field value="0x8"    name="EreGuidEntry"/>
-            <field value="0x8"    name="OtName"/>
-            <field value="0x14"   name="OtIndex"/>
-            <field value="1"      name="CiVersion"/>
-            <field value="0x8"    name="AlpcCommunicationInfo"/>
-            <field value="0xc"    name="AlpcOwnerProcess"/>
-            <field value="0x0"    name="AlpcConnectionPort"/>
-            <field value="0x4"    name="AlpcServerCommunicationPort"/>
-            <field value="0x8"    name="AlpcClientCommunicationPort"/>
-            <field value="0x14"   name="AlpcHandleTable"/>
-            <field value="0xc"    name="AlpcHandleTableLock"/>
-            <field value="0x80"   name="AlpcAttributes"/>
-            <field value="0x0"    name="AlpcAttributesFlags"/>
-            <field value="0x1c"   name="AlpcPortContext"/>
-            <field value="0xd4"   name="AlpcSequenceNo"/>
-            <field value="0xd8"   name="AlpcState"/>
-        </data>
-    </arch>
+        <field value="0x18"   name="EgeGuid"/>
+        <field value="0x418"  name="EpObjectTable"/>
+        <field value="0x20"   name="EreGuidEntry"/>
+        <field value="0x30"   name="HtHandleContentionEvent"/>
+        <field value="0x10"   name="OtName"/>
+        <field value="0x28"   name="OtIndex"/>
+        <field value="16"     name="ObDecodeShift"/>
+        <field value="17"     name="ObAttributesShift"/>
+        <field value="2"      name="CiVersion"/>
+        <field value="0x10"   name="AlpcCommunicationInfo"/>
+        <field value="0x18"   name="AlpcOwnerProcess"/>
+        <field value="0x0"    name="AlpcConnectionPort"/>
+        <field value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field value="0x28"   name="AlpcHandleTable"/>
+        <field value="0x10"   name="AlpcHandleTableLock"/>
+        <field value="0x100"  name="AlpcAttributes"/>
+        <field value="0x0"    name="AlpcAttributesFlags"/>
+        <field value="0x38"   name="AlpcPortContext"/>
+        <field value="0x160"  name="AlpcPortObjectLock"/>
+        <field value="0x190"  name="AlpcSequenceNo"/>
+        <field value="0x1a0"  name="AlpcState"/>
+        <field value="0x5a0"  name="KtReadOperationCount"/>
+        <field value="0x5a8"  name="KtWriteOperationCount"/>
+        <field value="0x5b0"  name="KtOtherOperationCount"/>
+        <field value="0x5b8"  name="KtReadTransferCount"/>
+        <field value="0x5c0"  name="KtWriteTransferCount"/>
+        <field value="0x5c8"  name="KtOtherTransferCount"/>
+        <!--
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
+        -->
+    </data>
 </dyn>

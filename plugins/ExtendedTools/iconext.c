@@ -25,6 +25,10 @@ typedef enum _ETP_TRAY_ICON_ID
     ETP_TRAY_ICON_ID_GPUTEXT,
     ETP_TRAY_ICON_ID_DISKTEXT,
     ETP_TRAY_ICON_ID_NETWORKTEXT,
+    ETP_TRAY_ICON_ID_GPUMEM,
+    ETP_TRAY_ICON_ID_GPUMEMTEXT,
+    ETP_TRAY_ICON_ID_GPUTEMP,
+    ETP_TRAY_ICON_ID_GPUTEMPTEXT,
     ETP_TRAY_ICON_ID_MAXIMUM
 } ETP_TRAY_ICON_ID;
 
@@ -36,6 +40,10 @@ typedef enum _ETP_TRAY_ICON_GUID
     ETP_TRAY_ICON_GUID_GPUTEXT,
     ETP_TRAY_ICON_GUID_DISKTEXT,
     ETP_TRAY_ICON_GUID_NETWORKTEXT,
+    ETP_TRAY_ICON_GUID_GPUMEM,
+    ETP_TRAY_ICON_GUID_GPUMEMTEXT,
+    ETP_TRAY_ICON_GUID_GPUTEMP,
+    ETP_TRAY_ICON_GUID_GPUTEMPTEXT,
     ETP_TRAY_ICON_GUID_MAXIMUM
 } ETP_TRAY_ICON_GUID;
 
@@ -105,6 +113,38 @@ VOID EtpNetworkTextIconUpdateCallback(
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
+VOID EtpGpuMemoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON* Icon,
+    _Out_ PVOID* NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING* NewText,
+    _In_opt_ PVOID Context
+    );
+
+VOID EtpGpuMemoryTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON* Icon,
+    _Out_ PVOID* NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING* NewText,
+    _In_opt_ PVOID Context
+    );
+
+VOID EtpGpuTemperatureIconUpdateCallback(
+    _In_ struct _PH_NF_ICON* Icon,
+    _Out_ PVOID* NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING* NewText,
+    _In_opt_ PVOID Context
+    );
+
+VOID EtpGpuTemperatureTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON* Icon,
+    _Out_ PVOID* NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING* NewText,
     _In_opt_ PVOID Context
     );
 
@@ -230,7 +270,7 @@ VOID EtRegisterNotifyIcons(
         ETP_TRAY_ICON_ID_GPUTEXT,
         EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEXT],
         NULL,
-        L"&GPU usage (Text)",
+        L"&GPU usage (text)",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
         &data
         );
@@ -242,7 +282,7 @@ VOID EtRegisterNotifyIcons(
         ETP_TRAY_ICON_ID_DISKTEXT,
         EtpTrayIconGuids[ETP_TRAY_ICON_GUID_DISKTEXT],
         NULL,
-        L"&Disk usage (Text)",
+        L"&Disk usage (text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
         &data
         );
@@ -254,10 +294,61 @@ VOID EtRegisterNotifyIcons(
         ETP_TRAY_ICON_ID_NETWORKTEXT,
         EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NETWORKTEXT],
         NULL,
-        L"&Network usage (Text)",
+        L"&Network usage (text)",
         EtEtwEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
         &data
         );
+
+    data.UpdateCallback = EtpGpuMemoryIconUpdateCallback;
+    data.MessageCallback = EtpGpuIconMessageCallback;
+    Pointers->RegisterTrayIcon(
+        PluginInstance,
+        ETP_TRAY_ICON_ID_GPUMEM,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUMEM],
+        NULL,
+        L"&GPU memory history",
+        EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        &data
+        );
+
+    data.UpdateCallback = EtpGpuMemoryTextIconUpdateCallback;
+    data.MessageCallback = EtpGpuIconMessageCallback;
+    Pointers->RegisterTrayIcon(
+        PluginInstance,
+        ETP_TRAY_ICON_ID_GPUMEMTEXT,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUMEMTEXT],
+        NULL,
+        L"&GPU memory usage (text)",
+        EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        &data
+        );
+
+    if (EtGpuSupported)
+    {
+        data.UpdateCallback = EtpGpuTemperatureIconUpdateCallback;
+            data.MessageCallback = EtpGpuIconMessageCallback;
+        Pointers->RegisterTrayIcon(
+            PluginInstance,
+            ETP_TRAY_ICON_ID_GPUTEMP,
+            EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEMP],
+            NULL,
+            L"&GPU temperature history",
+            EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+            &data
+            );
+
+        data.UpdateCallback = EtpGpuTemperatureTextIconUpdateCallback;
+            data.MessageCallback = EtpGpuIconMessageCallback;
+        Pointers->RegisterTrayIcon(
+            PluginInstance,
+            ETP_TRAY_ICON_ID_GPUTEMPTEXT,
+            EtpTrayIconGuids[ETP_TRAY_ICON_GUID_GPUTEMPTEXT],
+            NULL,
+            L"&GPU temperature (text)",
+            EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+            &data
+            );
+    }
 }
 
 VOID EtpGpuIconUpdateCallback(
@@ -906,6 +997,310 @@ VOID EtpNetworkTextIconUpdateCallback(
 
     *NewText = PhFormat(format, maxNetworkProcessItem ? 6 : 4, 128);
     if (maxNetworkProcessItem) PhDereferenceObject(maxNetworkProcessItem);
+}
+
+// GPU Memory
+
+VOID EtpGpuMemoryIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        2,
+        RGB(0x00, 0x00, 0x00),
+
+        16,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    ULONG maxDataCount;
+    ULONG lineDataCount;
+    PFLOAT lineData1;
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    PH_FORMAT format[2];
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    maxDataCount = drawInfo.Width / 2 + 1;
+    lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!lineData1)
+    {
+        SelectBitmap(hdc, oldBitmap);
+        *NewIconOrBitmap = bitmap;
+        *Flags = PH_NF_UPDATE_IS_BITMAP;
+        *NewText = PhReferenceEmptyString();
+        return;
+    }
+
+    lineDataCount = min(maxDataCount, EtGpuDedicatedHistory.Count);
+    for (ULONG i = 0; i < lineDataCount; i++)
+    {
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, i);
+    }
+    PhDivideSinglesBySingle(lineData1, (FLOAT)EtGpuDedicatedLimit, lineDataCount);
+
+    drawInfo.LineDataCount = lineDataCount;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorPrivate");
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
+
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
+    SelectBitmap(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    PhInitFormatS(&format[0], L"GPU memory usage: ");
+    PhInitFormatSize(&format[1], EtGpuDedicatedUsage);
+
+    *NewText = PhFormat(format, 2, 128);
+
+    _freea(lineData1);
+}
+
+VOID EtpGpuMemoryTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON *Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    PH_FORMAT format[2];
+    PPH_STRING text;
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    PhInitFormatF(&format[0], (EtGpuDedicatedUsage * 100.0f) / EtGpuDedicatedLimit, 0);
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
+    drawInfo.TextColor = PhGetIntegerSetting(L"ColorPrivate");
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDereferenceObject(text);
+
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
+    SelectBitmap(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    PhInitFormatS(&format[0], L"GPU memory usage: ");
+    PhInitFormatSize(&format[1], EtGpuDedicatedUsage);
+
+    *NewText = PhFormat(format, 2, 128);
+}
+
+// GPU Temperature
+
+VOID EtpGpuTemperatureIconUpdateCallback(
+    _In_ struct _PH_NF_ICON* Icon,
+    _Out_ PVOID* NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING* NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        2,
+        RGB(0x00, 0x00, 0x00),
+
+        16,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    ULONG maxDataCount;
+    ULONG lineDataCount;
+    PFLOAT lineData1;
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    PH_FORMAT format[3];
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    maxDataCount = drawInfo.Width / 2 + 1;
+    lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!lineData1)
+    {
+        SelectBitmap(hdc, oldBitmap);
+        *NewIconOrBitmap = bitmap;
+        *Flags = PH_NF_UPDATE_IS_BITMAP;
+        *NewText = PhReferenceEmptyString();
+        return;
+    }
+
+    lineDataCount = min(maxDataCount, EtGpuTemperatureHistory.Count);
+    PhCopyCircularBuffer_FLOAT(&EtGpuTemperatureHistory, lineData1, lineDataCount);
+    PhDivideSinglesBySingle(lineData1, EtGpuTemperatureLimit, lineDataCount);
+
+    drawInfo.LineDataCount = lineDataCount;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorTemperature");
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
+
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
+    SelectBitmap(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    PhInitFormatS(&format[0], L"GPU temperature: ");
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
+    {
+        PhInitFormatF(&format[1], (EtGpuTemperature * 1.8 + 32), 1);
+        PhInitFormatS(&format[2], L"\u00b0F");
+    }
+    else
+    {
+        PhInitFormatF(&format[1], EtGpuTemperature, 1);
+        PhInitFormatS(&format[2], L"\u00b0C");
+    }
+
+    *NewText = PhFormat(format, 3, 128);
+
+    _freea(lineData1);
+}
+
+VOID EtpGpuTemperatureTextIconUpdateCallback(
+    _In_ struct _PH_NF_ICON* Icon,
+    _Out_ PVOID* NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING* NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        0,
+        RGB(0x00, 0x00, 0x00),
+        0,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    PH_FORMAT format[3];
+    PPH_STRING text;
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
+    {
+        PhInitFormatF(&format[0], (EtGpuTemperature * 1.8 + 32), 0);
+    }
+    else
+    {
+        PhInitFormatF(&format[0], EtGpuTemperature, 0);
+    }
+    text = PhFormat(format, 1, 10);
+
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
+    drawInfo.TextColor = PhGetIntegerSetting(L"ColorTemperature");
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDereferenceObject(text);
+
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
+    SelectBitmap(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    PhInitFormatS(&format[0], L"GPU temperature: ");
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
+    {
+        PhInitFormatF(&format[1], (EtGpuTemperature * 1.8 + 32), 1);
+        PhInitFormatS(&format[2], L"\u00b0F");
+    }
+    else
+    {
+        PhInitFormatF(&format[1], EtGpuTemperature, 1);
+        PhInitFormatS(&format[2], L"\u00b0C");
+    }
+
+    *NewText = PhFormat(format, 3, 128);
 }
 
 // Toolbar graphs

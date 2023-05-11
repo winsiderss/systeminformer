@@ -30,6 +30,7 @@ EXTERN_C_START
 #include <mstcpip.h>
 #include <icmpapi.h>
 
+EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_any            = { 0x00 };
 EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_v4mappedprefix = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 };
 
 #define PH_IPV4_NETWORK_TYPE 0x1

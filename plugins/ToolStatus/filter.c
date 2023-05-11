@@ -114,10 +114,18 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
             return FILTER_RESULT_FOUND;
     }
 
-    if (PH_IS_REAL_PROCESS_ID(processNode->ProcessItem->ProcessId) && processNode->ProcessItem->ProcessIdString[0])
+    if (PH_IS_REAL_PROCESS_ID(processNode->ProcessItem->ProcessId))
     {
-        if (PhWordMatchStringLongHintZ(SearchboxText, processNode->ProcessItem->ProcessIdString))
-            return FILTER_RESULT_FOUND_NAME;
+        if (processNode->ProcessItem->AlternateProcessIdString)
+        {
+            if (PhWordMatchStringRef(&SearchboxText->sr, &processNode->ProcessItem->AlternateProcessIdString->sr))
+                return FILTER_RESULT_FOUND_NAME;
+        }
+        else if (processNode->ProcessItem->ProcessIdString[0])
+        {
+            if (PhWordMatchStringLongHintZ(SearchboxText, processNode->ProcessItem->ProcessIdString))
+                return FILTER_RESULT_FOUND_NAME;
+        }
 
          // HACK PidHexText from PH_PROCESS_NODE is not exported (dmex)
         {

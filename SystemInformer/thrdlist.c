@@ -122,6 +122,12 @@ VOID PhInitializeThreadList(
     //PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUHISTORY, FALSE, L"CPU history", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STACKUSAGE, FALSE, L"Stack usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_WAITTIME, FALSE, L"Wait time", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOREADS, FALSE, L"I/O reads", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOWRITES, FALSE, L"I/O writes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOOTHER, FALSE, L"I/O other", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOREADBYTES, FALSE, L"I/O read bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES, FALSE, L"I/O write bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES, FALSE, L"I/O other bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -586,14 +592,14 @@ VOID PhpUpdateThreadNodeLastSystemCall(
 
         ThreadNode->ThreadContextHandleValid = TRUE;
     }
-    
+
     ThreadNode->LastSystemCallStatus = STATUS_SUCCESS;
     memset(&ThreadNode->LastSystemCall, 0, sizeof(THREAD_LAST_SYSCALL_INFORMATION));
 
     if (ThreadNode->ThreadContextHandle)
     {
         ThreadNode->LastSystemCallStatus = PhGetThreadLastSystemCall(ThreadNode->ThreadContextHandle, &lastSystemCall);
-        
+
         if (NT_SUCCESS(ThreadNode->LastSystemCallStatus))
         {
             ThreadNode->LastSystemCall = lastSystemCall;
@@ -727,7 +733,7 @@ VOID PhpUpdateThreadNodeFiber(
     {
         PhGetThreadIsFiber(
             ThreadNode->ThreadItem->ThreadHandle,
-            ThreadNode->ThreadReadVmHandle, 
+            ThreadNode->ThreadReadVmHandle,
             &threadIsFiber
             );
     }
@@ -891,7 +897,7 @@ BEGIN_SORT_FUNCTION(Name)
 {
     PhpUpdateThreadNodeNameText(node1);
     PhpUpdateThreadNodeNameText(node2);
-    
+
     sortResult = PhCompareStringWithNull(node1->NameText, node2->NameText, TRUE);
 }
 END_SORT_FUNCTION
@@ -936,7 +942,7 @@ BEGIN_SORT_FUNCTION(PagePriority)
 {
     PhpUpdateThreadNodePagePriority(node1);
     PhpUpdateThreadNodePagePriority(node2);
-    
+
     sortResult = uintcmp(node1->PagePriority, node2->PagePriority);
 }
 END_SORT_FUNCTION
@@ -945,7 +951,7 @@ BEGIN_SORT_FUNCTION(IoPriority)
 {
     PhpUpdateThreadNodeIoPriority(node1);
     PhpUpdateThreadNodeIoPriority(node2);
-    
+
     sortResult = uintcmp(node1->IoPriority, node2->IoPriority);
 }
 END_SORT_FUNCTION
@@ -1011,7 +1017,7 @@ BEGIN_SORT_FUNCTION(IdealProcessor)
 {
     PhpUpdateThreadNodeIdealProcessor(node1);
     PhpUpdateThreadNodeIdealProcessor(node2);
-    
+
     sortResult = int64cmp(node1->IdealProcessorMask, node2->IdealProcessorMask);
     //sortResult = PhCompareStringZ(node1->IdealProcessorText, node2->IdealProcessorText, TRUE);
 }
@@ -1021,7 +1027,7 @@ BEGIN_SORT_FUNCTION(Critical)
 {
     PhpUpdateThreadNodeBreakOnTermination(node1);
     PhpUpdateThreadNodeBreakOnTermination(node2);
-    
+
     sortResult = ucharcmp(node1->BreakOnTermination, node2->BreakOnTermination);
 }
 END_SORT_FUNCTION
@@ -1052,7 +1058,7 @@ BEGIN_SORT_FUNCTION(TokenState)
 {
     PhpUpdateThreadNodeTokenState(node1);
     PhpUpdateThreadNodeTokenState(node2);
-    
+
     sortResult = uintcmp(node1->TokenState, node2->TokenState);
 }
 END_SORT_FUNCTION
@@ -1061,7 +1067,7 @@ BEGIN_SORT_FUNCTION(PendingIrp)
 {
     PhpUpdateThreadNodeIoPending(node1);
     PhpUpdateThreadNodeIoPending(node2);
-    
+
     sortResult = ucharcmp(node1->PendingIrp, node2->PendingIrp);
 }
 END_SORT_FUNCTION
@@ -1070,7 +1076,7 @@ BEGIN_SORT_FUNCTION(LastSystemCall)
 {
     PhpUpdateThreadNodeLastSystemCall(node1);
     PhpUpdateThreadNodeLastSystemCall(node2);
-    
+
     sortResult = ushortcmp(node1->LastSystemCall.SystemCallNumber, node2->LastSystemCall.SystemCallNumber);
 }
 END_SORT_FUNCTION
@@ -1079,7 +1085,7 @@ BEGIN_SORT_FUNCTION(LastStatusCode)
 {
     PhpUpdateThreadNodeLastStatusCode(context, node1);
     PhpUpdateThreadNodeLastStatusCode(context, node2);
-    
+
     sortResult = uintcmp(node1->LastStatusValue, node2->LastStatusValue);
 }
 END_SORT_FUNCTION
@@ -1088,7 +1094,7 @@ BEGIN_SORT_FUNCTION(ApartmentState)
 {
     PhpUpdateThreadNodeApartmentState(context, node1);
     PhpUpdateThreadNodeApartmentState(context, node2);
-    
+
     sortResult = uintcmp(node1->ApartmentState, node2->ApartmentState);
 }
 END_SORT_FUNCTION
@@ -1097,7 +1103,7 @@ BEGIN_SORT_FUNCTION(Fiber)
 {
     PhpUpdateThreadNodeFiber(context, node1);
     PhpUpdateThreadNodeFiber(context, node2);
-    
+
     sortResult = ucharcmp(node1->Fiber, node2->Fiber);
 }
 END_SORT_FUNCTION
@@ -1106,7 +1112,7 @@ BEGIN_SORT_FUNCTION(PriorityBoost)
 {
     PhpUpdateThreadNodePriorityBoost(node1);
     PhpUpdateThreadNodePriorityBoost(node2);
-    
+
     sortResult = ucharcmp(node1->PriorityBoost, node2->PriorityBoost);
 }
 END_SORT_FUNCTION
@@ -1135,6 +1141,42 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(WaitTime)
 {
     sortResult = uint64cmp(threadItem1->WaitTime, threadItem2->WaitTime);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoReads)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.ReadOperationCount, threadItem2->IoCounters.ReadOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWrites)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.WriteOperationCount, threadItem2->IoCounters.WriteOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOther)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.OtherOperationCount, threadItem2->IoCounters.OtherOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoReadBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.ReadTransferCount, threadItem2->IoCounters.ReadTransferCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWriteBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.WriteTransferCount, threadItem2->IoCounters.WriteTransferCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOtherBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.OtherTransferCount, threadItem2->IoCounters.OtherTransferCount);
 }
 END_SORT_FUNCTION
 
@@ -1197,6 +1239,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(CpuKernel),
                     SORT_FUNCTION(StackUsage),
                     SORT_FUNCTION(WaitTime),
+                    SORT_FUNCTION(IoReads),
+                    SORT_FUNCTION(IoWrites),
+                    SORT_FUNCTION(IoOther),
+                    SORT_FUNCTION(IoReadBytes),
+                    SORT_FUNCTION(IoWriteBytes),
+                    SORT_FUNCTION(IoOtherBytes),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1246,7 +1294,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             switch (getCellText->Id)
             {
             case PH_THREAD_TREELIST_COLUMN_TID:
-                PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
+                {
+                    if (threadItem->AlternateThreadIdString)
+                        getCellText->Text = threadItem->AlternateThreadIdString->sr;
+                    else
+                        PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
+                }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CPU:
                 {
@@ -1741,9 +1794,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
                     }
-                    
+
                     PhpUpdateThreadNodeApartmentState(context, node);
-                    
+
                     if (node->ApartmentState)
                     {
                         PPH_STRING apartmentStateString;
@@ -1902,6 +1955,61 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     PhPrintTimeSpan(node->WaitTimeText, threadItem->WaitTime, PH_TIMESPAN_HMSM);
 
                     PhInitializeStringRefLongHint(&getCellText->Text, node->WaitTimeText);
+                }
+                break;
+
+            case PH_THREAD_TREELIST_COLUMN_IOREADS:
+                {
+                    if (threadItem->IoCounters.ReadOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoReads, threadItem->IoCounters.ReadOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoReads);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOWRITES:
+                {
+                    if (threadItem->IoCounters.WriteOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoWrites, threadItem->IoCounters.WriteOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoWrites);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOOTHER:
+                {
+                    if (threadItem->IoCounters.OtherOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoOther, threadItem->IoCounters.OtherOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoOther);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOREADBYTES:
+                {
+                    if (threadItem->IoCounters.ReadTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoReadBytes, PhFormatSize(threadItem->IoCounters.ReadTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoReadBytes->sr;
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES:
+                {
+                    if (threadItem->IoCounters.WriteTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoWriteBytes, PhFormatSize(threadItem->IoCounters.WriteTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoWriteBytes->sr;
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES:
+                {
+                    if (threadItem->IoCounters.OtherTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoOtherBytes, PhFormatSize(threadItem->IoCounters.OtherTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoOtherBytes->sr;
+                    }
                 }
                 break;
             default:

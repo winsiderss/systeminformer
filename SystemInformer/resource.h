@@ -109,6 +109,7 @@
 #define IDD_HEAPS                       255
 #define IDD_PROCVDMHOST                 257
 #define IDD_OPTSYMBOLS                  258
+#define IDD_OBJMAPPINGS                 258
 #define IDI_UACSHIELD                   261
 #define IDD_RUNPACKAGE                  263
 #define IDB_SEARCH_ACTIVE_SMALL         265
@@ -794,7 +795,7 @@
 #define IDPLUGINS                       55000
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        267

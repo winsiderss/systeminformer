@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 5;
+        private const UInt32 Version = 10;
 
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
@@ -34,6 +34,9 @@ $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
 #define KPH_DYN_CI_V2      ((SHORT)2)
+    
+#define KPH_DYN_LX_INVALID ((SHORT)-1)
+#define KPH_DYN_LX_V1      ((SHORT)1)
 
 #include <pshpack1.h>
 
@@ -41,7 +44,6 @@ typedef struct _KPH_DYN_CONFIGURATION
 {{
     USHORT MajorVersion;
     USHORT MinorVersion;
-    USHORT ServicePackMajor;             // -1 to ignore
     USHORT BuildNumberMin;               // -1 to ignore
     USHORT RevisionMin;                  // -1 to ignore
     USHORT BuildNumberMax;               // -1 to ignore
@@ -66,8 +68,24 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT AlpcAttributes;               // dt nt!_ALPC_PORT PortAttributes
     USHORT AlpcAttributesFlags;          // dt nt!_ALPC_PORT_ATTRIBUTES Flags
     USHORT AlpcPortContext;              // dt nt!_ALPC_PORT PortContext
+    USHORT AlpcPortObjectLock;           // dt nt!_ALPC_PORT PortObjectLock
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
     USHORT AlpcState;                    // dt nt!_ALPC_PORT State
+    USHORT KtReadOperationCount;         // dt nt!_KTHREAD ReadOperationCount
+    USHORT KtWriteOperationCount;        // dt nt!_KTHREAD WriteOperationCount
+    USHORT KtOtherOperationCount;        // dt nt!_KTHREAD OtherOperationCount
+    USHORT KtReadTransferCount;          // dt nt!_KTHREAD ReadTransferCount
+    USHORT KtWriteTransferCount;         // dt nt!_KTHREAD WriteTransferCount
+    USHORT KtOtherTransferCount;         // dt nt!_KTHREAD OtherTransferCount
+    USHORT LxVersion;                    // lxcore.sys exports version
+    USHORT LxPicoProc;                   // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoProcInfo;               // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID
+    USHORT LxPicoThrdInfo;               // uf lxcore!LxpSyscall_GETTID
+    USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
+    USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
+    USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead 
+    USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
 
 }} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
@@ -86,10 +104,9 @@ typedef struct _KPH_DYNDATA
         {
             public UInt16 MajorVersion;
             public UInt16 MinorVersion;
-            public UInt16 ServicePackMajor;
             public UInt16 BuildNumberMin;
-            public UInt16 BuildNumberMax;
             public UInt16 RevisionMin;
+            public UInt16 BuildNumberMax;
             public UInt16 RevisionMax;
 
             public UInt16 EgeGuid;
@@ -111,14 +128,29 @@ typedef struct _KPH_DYNDATA
             public UInt16 AlpcAttributes;
             public UInt16 AlpcAttributesFlags;
             public UInt16 AlpcPortContext;
+            public UInt16 AlpcPortObjectLock;
             public UInt16 AlpcSequenceNo;
             public UInt16 AlpcState;
+            public UInt16 KtReadOperationCount;
+            public UInt16 KtWriteOperationCount;
+            public UInt16 KtOtherOperationCount;
+            public UInt16 KtReadTransferCount;
+            public UInt16 KtWriteTransferCount;
+            public UInt16 KtOtherTransferCount;
+            public UInt16 LxVersion;
+            public UInt16 LxPicoProc;
+            public UInt16 LxPicoProcInfo;
+            public UInt16 LxPicoProcInfoPID;
+            public UInt16 LxPicoThrdInfo;
+            public UInt16 LxPicoThrdInfoTID;
+            public UInt16 MmSectionControlArea;
+            public UInt16 MmControlAreaListHead;
+            public UInt16 MmControlAreaLock;
 
             public DynConfig()
             {
                 MajorVersion = ushort.MaxValue;
                 MinorVersion = ushort.MaxValue;
-                ServicePackMajor = ushort.MaxValue;
                 BuildNumberMin = ushort.MaxValue;
                 BuildNumberMax = ushort.MaxValue;
                 RevisionMin = ushort.MaxValue;
@@ -143,8 +175,24 @@ typedef struct _KPH_DYNDATA
                 AlpcAttributes = ushort.MaxValue;
                 AlpcAttributesFlags = ushort.MaxValue;
                 AlpcPortContext = ushort.MaxValue;
+                AlpcPortObjectLock = ushort.MaxValue;
                 AlpcSequenceNo = ushort.MaxValue;
                 AlpcState = ushort.MaxValue;
+                KtReadOperationCount = ushort.MaxValue;
+                KtWriteOperationCount = ushort.MaxValue;
+                KtOtherOperationCount = ushort.MaxValue;
+                KtReadTransferCount = ushort.MaxValue;
+                KtWriteTransferCount = ushort.MaxValue;
+                KtOtherTransferCount = ushort.MaxValue;
+                LxVersion = ushort.MaxValue;
+                LxPicoProc = ushort.MaxValue;
+                LxPicoProcInfo = ushort.MaxValue;
+                LxPicoProcInfoPID = ushort.MaxValue;
+                LxPicoThrdInfo = ushort.MaxValue;
+                LxPicoThrdInfoTID = ushort.MaxValue;
+                MmSectionControlArea = ushort.MaxValue;
+                MmControlAreaListHead = ushort.MaxValue;
+                MmControlAreaLock = ushort.MaxValue;
             }
         }
 
@@ -154,16 +202,10 @@ typedef struct _KPH_DYNDATA
             string headerFile = "kphlib\\include\\kphdyn.h";
             string sourceFile = "kphlib\\kphdyn.c";
 
-            LoadConfig(
-                manifestFile,
-                out string config64,
-                out string sig64,
-                out string config32,
-                out string sig32
-                );
+            LoadConfig(manifestFile, out string config, out string sig);
 
             string header = GenerateHeader();
-            string source = GenerateSource(config64, sig64, config32, sig32);
+            string source = GenerateSource(config, sig);
 
             File.WriteAllText(headerFile, header);
             File.WriteAllText(sourceFile, source);
@@ -181,19 +223,19 @@ typedef struct _KPH_DYNDATA
             sb.AppendLine();
             sb.AppendLine(DynConfigC);
             sb.AppendLine();
+            sb.AppendLine("#ifdef _WIN64");
             sb.AppendLine("extern BYTE KphDynData[];");
             sb.AppendLine("extern ULONG KphDynDataLength;");
             sb.AppendLine("extern BYTE KphDynDataSig[];");
             sb.AppendLine("extern ULONG KphDynDataSigLength;");
+            sb.AppendLine("#endif");
 
             return sb.ToString();
         }
 
         private static string GenerateSource(
-            string Config64,
-            string Sig64,
-            string Config32,
-            string Sig32
+            string Config,
+            string Sig
             )
         {
             StringBuilder sb = new StringBuilder(16348);
@@ -202,60 +244,38 @@ typedef struct _KPH_DYNDATA
             sb.AppendLine();
             sb.AppendLine(Includes);
             sb.AppendLine();
+            sb.AppendLine("#ifdef _WIN64");
             sb.AppendLine("BYTE KphDynData[] =");
             sb.AppendLine("{");
-            sb.AppendLine("#ifdef _WIN64");
-            sb.Append(Config64);
-            sb.AppendLine("#else");
-            sb.Append(Config32);
-            sb.AppendLine("#endif");
+            sb.Append(Config);
             sb.AppendLine("};");
             sb.AppendLine();
             sb.AppendLine("ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
             sb.AppendLine();
             sb.AppendLine("BYTE KphDynDataSig[] =");
             sb.AppendLine("{");
-            sb.AppendLine("#ifdef _WIN64");
-            sb.Append(Sig64);
-            sb.AppendLine("#else");
-            sb.Append(Sig32);
-            sb.AppendLine("#endif");
+            sb.Append(Sig);
             sb.AppendLine("};");
             sb.AppendLine();
             sb.AppendLine("ULONG KphDynDataSigLength = ARRAYSIZE(KphDynDataSig);");
+            sb.AppendLine("#endif");
 
             return sb.ToString();
         }
 
         private static void LoadConfig(
             string ManifestFile,
-            out string Config64,
-            out string Sig64,
-            out string Config32,
-            out string Sig32
-            )
-        {
-            var xml = new XmlDocument();
-            xml.Load(ManifestFile);
-            var arch64 = xml.SelectSingleNode("/dyn/arch[@id='64']");
-            var arch32 = xml.SelectSingleNode("/dyn/arch[@id='32']");
-
-            LoadConfigForArch(arch64, out Config64, out Sig64);
-            LoadConfigForArch(arch32, out Config32, out Sig32);
-        }
-
-        private static void LoadConfigForArch(
-            XmlNode ArchNode,
             out string ConfigData,
             out string SigData
             )
         {
+            var xml = new XmlDocument();
+            xml.Load(ManifestFile);
+            var dyn = xml.SelectSingleNode("/dyn");
             var configs = new List<DynConfig>(10);
             var configNames = new List<string>(10);
 
-            Program.PrintColorMessage($"Loading Arch: {ArchNode.Attributes.GetNamedItem("id").Value}", ConsoleColor.Green);
-
-            foreach (XmlNode data in ArchNode.SelectNodes("data"))
+            foreach (XmlNode data in dyn.SelectNodes("data"))
             {
                 var config = new DynConfig();
                 var configName = data.Attributes.GetNamedItem("name").Value;
@@ -303,23 +323,6 @@ typedef struct _KPH_DYNDATA
                 writer.Write(Version);
                 writer.Write((uint)configs.Count);
                 writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(configs)));
-
-                //foreach (var config in configs)
-                //{
-                //    byte[] buffer = new byte[Marshal.SizeOf<DynConfig>()];
-                //    Unsafe.As<byte, DynConfig>(ref buffer[0]) = config;
-                //    writer.Write(buffer);
-                //}
-                //
-                //foreach (var config in configs)
-                //{
-                //    var ptr = Marshal.AllocHGlobal(Marshal.SizeOf<DynConfig>());
-                //    Marshal.StructureToPtr(config, ptr, false);
-                //    var bytes = new byte[Marshal.SizeOf<DynConfig>()];
-                //    Marshal.Copy(ptr, bytes, 0, bytes.Length);
-                //    Marshal.FreeHGlobal(ptr);
-                //    writer.Write(bytes);
-                //}
             }
 
             if (Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile))
@@ -351,23 +354,21 @@ typedef struct _KPH_DYNDATA
                     Program.PrintColorMessage($"{configName} - MajorVersion required", ConsoleColor.Red);
                     valid = false;
                 }
+
                 if (config.MinorVersion == ushort.MaxValue)
                 {
                     Program.PrintColorMessage($"{configName} - MinorVersion required", ConsoleColor.Red);
                     valid = false;
                 }
 
-                if ((config.BuildNumberMax != ushort.MaxValue) &&
-                    (config.BuildNumberMin != ushort.MaxValue) &&
-                    (config.BuildNumberMax < config.BuildNumberMin))
+                if (config.BuildNumberMax < config.BuildNumberMin)
                 {
                     Program.PrintColorMessage($"{configName} - BuildNumber range is invalid", ConsoleColor.Red);
                     valid = false;
                 }
-
-                if ((config.RevisionMax != ushort.MaxValue) &&
-                    (config.RevisionMin != ushort.MaxValue) &&
-                    (config.RevisionMax < config.RevisionMin))
+                
+                if (config.BuildNumberMax == config.BuildNumberMin &&
+                    config.RevisionMax < config.RevisionMin)
                 {
                     Program.PrintColorMessage($"{configName} - Revision range is invalid", ConsoleColor.Red);
                     valid = false;

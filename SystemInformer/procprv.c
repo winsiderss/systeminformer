@@ -415,6 +415,8 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
 
     if (processItem->IconEntry) PhDereferenceObject(processItem->IconEntry);
+
+    if (processItem->AlternateProcessIdString) PhDereferenceObject(processItem->AlternateProcessIdString);
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessItem(
@@ -1037,8 +1039,8 @@ VOID PhpFillProcessItemStage1(
 
     // Note: Queue stage 2 processing after filling stage1 process data.
     if (
-        PhEnableProcessQueryStage2 || 
-        PhEnableImageCoherencySupport || 
+        PhEnableProcessQueryStage2 ||
+        PhEnableImageCoherencySupport ||
         PhEnableLinuxSubsystemSupport
         )
     {
@@ -1134,6 +1136,25 @@ VOID PhpFillProcessItem(
             ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
             ProcessItem->IsWow64 = basicInfo.IsWow64Process;
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
+        }
+
+        if (ProcessItem->IsSubsystemProcess && KphLevel() >= KphLevelMed)
+        {
+            ULONG wslProcessId;
+            if (NT_SUCCESS(KphQueryInformationProcess(
+                ProcessItem->QueryHandle,
+                KphProcessWSLProcessId,
+                &wslProcessId,
+                sizeof(ULONG),
+                NULL
+                )))
+            {
+                ProcessItem->AlternateProcessIdString = PhFormatString(
+                    L"%lu (%lu)", 
+                    HandleToUlong(ProcessItem->ProcessId), 
+                    wslProcessId
+                    );
+            }
         }
     }
 

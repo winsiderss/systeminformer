@@ -807,7 +807,7 @@ NTSTATUS PhHttpSocketDownloadToFile(
 
     if (status != STATUS_SUCCESS)
     {
-        PhDeleteFile(fileHandle);
+        PhSetFileDelete(fileHandle);
     }
 
     NtClose(fileHandle);

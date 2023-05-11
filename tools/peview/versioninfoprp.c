@@ -14,25 +14,27 @@
 typedef struct _PV_PE_VERSIONINFO_CONTEXT
 {
     HWND WindowHandle;
-    HWND EditWindow;
+    HWND ListViewHandle;
     HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
 } PV_PE_VERSIONINFO_CONTEXT, *PPV_PE_VERSIONINFO_CONTEXT;
 
-VOID PvpSetRichEditVersionInfoText(
-    _In_ HWND WindowHandle,
-    _In_ PWSTR Text
+VOID PvAddVersionInfoItem(
+    _In_ HWND ListViewHandle,
+    _Inout_ PULONG Count,
+    _In_ INT GroupId,
+    _In_ PWSTR Name,
+    _In_ PWSTR Value
     )
 {
-    //SetFocus(WindowHandle);
-    SendMessage(WindowHandle, WM_SETREDRAW, FALSE, 0);
-    //SendMessage(WindowHandle, EM_SETSEL, 0, -1); // -2
-    SendMessage(WindowHandle, WM_SETTEXT, FALSE, (LPARAM)Text);
-    //SendMessage(WindowHandle, WM_VSCROLL, SB_TOP, 0); // requires SetFocus()
-    SendMessage(WindowHandle, WM_SETREDRAW, TRUE, 0);
-    //PostMessage(WindowHandle, EM_SETSEL, -1, 0);
-    //InvalidateRect(WindowHandle, NULL, FALSE);
+    INT lvItemIndex;
+    WCHAR number[PH_PTR_STR_LEN_1];
+
+    PhPrintUInt32(number, ++(*Count));
+    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, GroupId, MAXINT, number, NULL);
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, Name);
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, Value);
 }
 
 PVOID PvGetFileVersionInfoValue(
@@ -46,7 +48,8 @@ PVOID PvGetFileVersionInfoValue(
 
 BOOLEAN PvDumpFileVersionInfoKey(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
-    _In_ PPH_STRING_BUILDER StringBuilder
+    _In_ HWND ListViewHandle,
+    _Inout_ PULONG Count
     )
 {
     PVOID value;
@@ -64,7 +67,13 @@ BOOLEAN PvDumpFileVersionInfoKey(
         if (child->Length == 0)
             break;
 
-        PhAppendFormatStringBuilder(StringBuilder, L"%s:\t%s\r\n", child->Key, (PWSTR)PvGetFileVersionInfoValue(child));
+        PvAddVersionInfoItem(
+            ListViewHandle,
+            Count,
+            1,
+            child->Key,
+            child->ValueLength ? PvGetFileVersionInfoValue(child) : L""
+            );
 
         child = PTR_ADD_OFFSET(child, ALIGN_UP(child->Length, ULONG));
     }
@@ -75,7 +84,8 @@ BOOLEAN PvDumpFileVersionInfoKey(
 BOOLEAN PvDumpFileVersionInfo(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
-    _In_ PPH_STRING_BUILDER StringBuilder
+    _In_ HWND ListViewHandle,
+    _Inout_ PULONG Count
     )
 {
     static PH_STRINGREF blockInfoName = PH_STRINGREF_INIT(L"StringFileInfo");
@@ -112,7 +122,7 @@ BOOLEAN PvDumpFileVersionInfo(
         return FALSE;
     }
 
-    PvDumpFileVersionInfoKey(blockLangInfo, StringBuilder);
+    PvDumpFileVersionInfoKey(blockLangInfo, ListViewHandle, Count);
 
     return TRUE;
 }
@@ -215,11 +225,10 @@ PPH_STRING PvVersionInfoFileTypeToString(
 
 // Enumerate any custom strings in the StringFileInfo (dmex)
 VOID PvEnumVersionInfo(
-    _In_ HWND WindowHandle
+    _In_ HWND ListViewHandle
     )
 {
-    PPH_STRING fileText;
-    PH_STRING_BUILDER sb;
+    ULONG count = 0;
     VS_FIXEDFILEINFO* rootBlock;
     PVOID versionInfo;
     ULONG langCodePage;
@@ -229,46 +238,39 @@ VOID PvEnumVersionInfo(
     if (!versionInfo)
         return;
 
-    PhInitializeStringBuilder(&sb, 260);
-
     if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
     {
-        PhAppendFormatStringBuilder(&sb, L"Signature:\t0x%lx\r\n", rootBlock->dwSignature);
-        PhAppendFormatStringBuilder(&sb, L"Struct version:\t%lu.%lu\r\n", HIWORD(rootBlock->dwStrucVersion), LOWORD(rootBlock->dwStrucVersion));
-        PhAppendFormatStringBuilder(&sb, L"File version:\t%lu.%lu.%lu.%lu\r\n", HIWORD(rootBlock->dwFileVersionMS), LOWORD(rootBlock->dwFileVersionMS), HIWORD(rootBlock->dwFileVersionLS), LOWORD(rootBlock->dwFileVersionLS));
-        PhAppendFormatStringBuilder(&sb, L"Product version:\t%lu.%lu.%lu.%lu\r\n", HIWORD(rootBlock->dwProductVersionMS), LOWORD(rootBlock->dwProductVersionMS), HIWORD(rootBlock->dwProductVersionLS), LOWORD(rootBlock->dwProductVersionLS));
-        PhAppendFormatStringBuilder(&sb, L"FileFlagsMask:\t0x%lx\r\n", rootBlock->dwFileFlagsMask);
-        PhAppendFormatStringBuilder(&sb, L"FileFlags:\t\t%s\r\n", PH_AUTO_T(PH_STRING, PvVersionInfoFlagsToString(rootBlock->dwFileFlags))->Buffer);
-        PhAppendFormatStringBuilder(&sb, L"FileOS:\t\t%s\r\n", PH_AUTO_T(PH_STRING, PvVersionInfoFileOSToString(rootBlock->dwFileOS))->Buffer);
-        PhAppendFormatStringBuilder(&sb, L"FileType:\t\t%s\r\n", PH_AUTO_T(PH_STRING, PvVersionInfoFileTypeToString(rootBlock->dwFileType))->Buffer);
-        PhAppendFormatStringBuilder(&sb, L"FileSubtype:\t%lu\r\n", rootBlock->dwFileSubtype); // VFT2_DRV_KEYBOARD
-        PhAppendFormatStringBuilder(&sb, L"FileDate:\t\t%lu.%lu.%lu.%lu\r\n", HIWORD(rootBlock->dwFileDateMS), LOWORD(rootBlock->dwFileDateMS), HIWORD(rootBlock->dwFileDateLS), LOWORD(rootBlock->dwFileDateLS));
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"Signature", PhaFormatString(L"0x%lx", rootBlock->dwSignature)->Buffer);
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"Struct version", PhaFormatString(L"%lu.%lu", HIWORD(rootBlock->dwStrucVersion), LOWORD(rootBlock->dwStrucVersion))->Buffer);
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"File version", PhaFormatString(L"%lu.%lu.%lu.%lu", HIWORD(rootBlock->dwFileVersionMS), LOWORD(rootBlock->dwFileVersionMS), HIWORD(rootBlock->dwFileVersionLS), LOWORD(rootBlock->dwFileVersionLS))->Buffer);
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"Product version", PhaFormatString(L"%lu.%lu.%lu.%lu", HIWORD(rootBlock->dwProductVersionMS), LOWORD(rootBlock->dwProductVersionMS), HIWORD(rootBlock->dwProductVersionLS), LOWORD(rootBlock->dwProductVersionLS))->Buffer);
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"FileFlagsMask", PhaFormatString(L"0x%lx", rootBlock->dwFileFlagsMask)->Buffer);
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"FileFlags", PH_AUTO_T(PH_STRING, PvVersionInfoFlagsToString(rootBlock->dwFileFlags))->Buffer);
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"FileOS", PH_AUTO_T(PH_STRING, PvVersionInfoFileOSToString(rootBlock->dwFileOS))->Buffer);
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"FileType", PH_AUTO_T(PH_STRING, PvVersionInfoFileTypeToString(rootBlock->dwFileType))->Buffer);
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"FileSubtype", PhaFormatString(L"%lu", rootBlock->dwFileSubtype)->Buffer); // VFT2_DRV_KEYBOARD
+        PvAddVersionInfoItem(ListViewHandle, &count, 0, L"FileDate", PhaFormatString(L"%lu.%lu.%lu.%lu", HIWORD(rootBlock->dwFileDateMS), LOWORD(rootBlock->dwFileDateMS), HIWORD(rootBlock->dwFileDateLS), LOWORD(rootBlock->dwFileDateLS))->Buffer);
     }
 
     // TODO: Enumerate the language block.
     langCodePage = PhGetFileVersionInfoLangCodePage(versionInfo);
-    PhAppendStringBuilder2(&sb, L"\r\nBLOCK \"StringFileInfo\"\r\n");
 
     // Use the default language code page.
-    if (!PvDumpFileVersionInfo(versionInfo, langCodePage, &sb))
+    if (!PvDumpFileVersionInfo(versionInfo, langCodePage, ListViewHandle, &count))
     {
         // Use the windows-1252 code page.
-        if (!PvDumpFileVersionInfo(versionInfo, (langCodePage & 0xffff0000) + 1252, &sb))
+        if (!PvDumpFileVersionInfo(versionInfo, (langCodePage & 0xffff0000) + 1252, ListViewHandle, &count))
         {
             // Use the default language (US English).
-            if (!PvDumpFileVersionInfo(versionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252, &sb))
+            if (!PvDumpFileVersionInfo(versionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252, ListViewHandle, &count))
             {
                 // Use the default language (US English).
-                PvDumpFileVersionInfo(versionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 0, &sb);
+                PvDumpFileVersionInfo(versionInfo, (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 0, ListViewHandle, &count);
             }
         }
     }
 
     PhFree(versionInfo);
-
-    fileText = PhFinalStringBuilderString(&sb);
-    PvpSetRichEditVersionInfoText(GetDlgItem(WindowHandle, IDC_PREVIEW), fileText->Buffer);
-    PhDereferenceObject(fileText);
 }
 
 INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
@@ -304,21 +306,33 @@ INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
     case WM_INITDIALOG:
         {
             context->WindowHandle = hwndDlg;
-            context->EditWindow = GetDlgItem(hwndDlg, IDC_PREVIEW);
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            SendMessage(context->EditWindow, EM_SETLIMITTEXT, ULONG_MAX, 0);
-            PvConfigTreeBorders(context->EditWindow);
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Value");
+            PhSetExtendedListView(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageVersionInfoListViewColumns", context->ListViewHandle);
+            PvConfigTreeBorders(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, context->EditWindow, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PvEnumVersionInfo(hwndDlg);
+            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+            PhAddListViewGroup(context->ListViewHandle, 0, L"FixedFileInfo");
+            PhAddListViewGroup(context->ListViewHandle, 1, L"StringFileInfo");
+
+            PvEnumVersionInfo(context->ListViewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(L"ImageVersionInfoListViewColumns", context->ListViewHandle);
+
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
@@ -341,6 +355,11 @@ INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
+    case WM_CONTEXTMENU:
+        {
+            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -348,9 +367,11 @@ INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->EditWindow);
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->ListViewHandle);
                 return TRUE;
             }
+
+            PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     case WM_CTLCOLORBTN:

@@ -657,10 +657,22 @@ VOID PvAddTreeViewSections(
     PvCreateTabSection(
         L"VersionInfo",
         PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_PEPREVIEW),
+        MAKEINTRESOURCE(IDD_PEVERSIONINFO),
         PvpPeVersionInfoDlgProc,
         NULL
         );
+
+    // Mappings page
+    //if (KphLevel() >= KphLevelMed)
+    //{
+    //    PvCreateTabSection(
+    //        L"Mappings",
+    //        PhInstanceHandle,
+    //        MAKEINTRESOURCE(IDD_PERELOCATIONS),
+    //        PvpMappingsDlgProc,
+    //        NULL
+    //        );
+    //}
 
     if (PhGetIntegerSetting(L"MainWindowPageRestoreEnabled"))
     {

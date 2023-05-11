@@ -497,7 +497,7 @@ VOID PhLocalTimeToSystemTime(
 }
 
 BOOLEAN PhTimeToSecondsSince1980(
-    _In_ PLARGE_INTEGER Time, 
+    _In_ PLARGE_INTEGER Time,
     _Out_ PULONG ElapsedSeconds
     )
 {
@@ -521,7 +521,7 @@ BOOLEAN PhTimeToSecondsSince1980(
 }
 
 BOOLEAN PhTimeToSecondsSince1970(
-    _In_ PLARGE_INTEGER Time, 
+    _In_ PLARGE_INTEGER Time,
     _Out_ PULONG ElapsedSeconds
     )
 {
@@ -1121,7 +1121,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
 
     // Convert the string to Unicode if there is enough room.
 
-    if (OutputBuffer && OutputCount >= unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL))
+    if (OutputBuffer && OutputCount >= (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR))
     {
         status = RtlMultiByteToUnicodeN(
             OutputBuffer,
@@ -1148,7 +1148,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
     }
 
     if (ReturnCount)
-        *ReturnCount = unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL);
+        *ReturnCount = (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR);
 
     return copied;
 }
@@ -1201,7 +1201,7 @@ BOOLEAN PhCopyStringZFromUtf8(
 
     // Convert the string to Unicode if there is enough room.
 
-    if (OutputBuffer && OutputCount >= unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL))
+    if (OutputBuffer && OutputCount >= (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR))
     {
         status = RtlUTF8ToUnicodeN(
             OutputBuffer,
@@ -1213,6 +1213,8 @@ BOOLEAN PhCopyStringZFromUtf8(
 
         if (NT_SUCCESS(status))
         {
+            // RtlUTF8ToUnicodeN doesn't null terminate the string.
+            *(PWCHAR)PTR_ADD_OFFSET(OutputBuffer, unicodeBytes) = UNICODE_NULL;
             copied = TRUE;
         }
         else
@@ -1226,7 +1228,7 @@ BOOLEAN PhCopyStringZFromUtf8(
     }
 
     if (ReturnCount)
-        *ReturnCount = unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL);
+        *ReturnCount = (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR);
 
     return copied;
 }
@@ -1377,8 +1379,8 @@ FORCEINLINE LONG PhpCompareStringZNatural(
 
         if (IgnoreCase)
         {
-            ca = towupper(ca);
-            cb = towupper(cb);
+            ca = PhUpcaseUnicodeChar(ca);
+            cb = PhUpcaseUnicodeChar(cb);
         }
 
         if (ca < cb)
@@ -1466,8 +1468,8 @@ LONG PhCompareStringRef(
 
             if (c1 != c2)
             {
-                c1 = RtlUpcaseUnicodeChar(c1);
-                c2 = RtlUpcaseUnicodeChar(c2);
+                c1 = PhUpcaseUnicodeChar(c1);
+                c2 = PhUpcaseUnicodeChar(c2);
 
                 if (c1 != c2)
                     return (LONG)c1 - (LONG)c2;
@@ -1609,8 +1611,8 @@ CompareCharacters:
 
                 if (c1 != c2)
                 {
-                    c1 = RtlUpcaseUnicodeChar(c1);
-                    c2 = RtlUpcaseUnicodeChar(c2);
+                    c1 = PhUpcaseUnicodeChar(c1);
+                    c2 = PhUpcaseUnicodeChar(c2);
 
                     if (c1 != c2)
                         return FALSE;
@@ -1701,11 +1703,11 @@ ULONG_PTR PhFindCharInStringRef(
         {
             WCHAR c;
 
-            c = RtlUpcaseUnicodeChar(Character);
+            c = PhUpcaseUnicodeChar(Character);
 
             do
             {
-                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                if (PhUpcaseUnicodeChar(*buffer) == c)
                     return String->Length / sizeof(WCHAR) - length;
 
                 buffer++;
@@ -1797,12 +1799,12 @@ ULONG_PTR PhFindLastCharInStringRef(
         {
             WCHAR c;
 
-            c = RtlUpcaseUnicodeChar(Character);
+            c = PhUpcaseUnicodeChar(Character);
             buffer--;
 
             do
             {
-                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                if (PhUpcaseUnicodeChar(*buffer) == c)
                     return length - 1;
 
                 buffer--;
@@ -1865,11 +1867,11 @@ ULONG_PTR PhFindStringInStringRef(
     }
     else
     {
-        c = RtlUpcaseUnicodeChar(*sr2.Buffer++);
+        c = PhUpcaseUnicodeChar(*sr2.Buffer++);
 
         for (i = length1 - length2 + 1; i != 0; i--)
         {
-            if (RtlUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
+            if (PhUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
             {
                 goto FoundUString;
             }
@@ -2135,7 +2137,7 @@ BOOLEAN PhSplitStringRefEx(
         c = charSet[i];
 
         if (Flags & PH_SPLIT_CASE_INSENSITIVE)
-            c = RtlUpcaseUnicodeChar(c);
+            c = PhUpcaseUnicodeChar(c);
 
         charSetTable[c & 0xff] = TRUE;
 
@@ -2164,7 +2166,7 @@ BOOLEAN PhSplitStringRefEx(
         c = *s;
 
         if (Flags & PH_SPLIT_CASE_INSENSITIVE)
-            c = RtlUpcaseUnicodeChar(c);
+            c = PhUpcaseUnicodeChar(c);
 
         if (c < 256 && charSetTableComplete)
         {
@@ -2197,7 +2199,7 @@ BOOLEAN PhSplitStringRefEx(
                     {
                         for (j = 0; j < charSetCount; j++)
                         {
-                            if (RtlUpcaseUnicodeChar(charSet[j]) == c)
+                            if (PhUpcaseUnicodeChar(charSet[j]) == c)
                                 goto CharFound;
                         }
                     }
@@ -2219,7 +2221,7 @@ BOOLEAN PhSplitStringRefEx(
                     {
                         for (j = 0; j < charSetCount; j++)
                         {
-                            if (RtlUpcaseUnicodeChar(charSet[j]) == c)
+                            if (PhUpcaseUnicodeChar(charSet[j]) == c)
                                 break;
                         }
                     }
@@ -2667,6 +2669,46 @@ PPH_STRING PhConcatStringRef3(
 
     buffer += String2->Length;
     memcpy(buffer, String3->Buffer, String3->Length);
+
+    return string;
+}
+
+/**
+ * Concatenates four strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param String3 The third string.
+ * \param String4 The forth string.
+ */
+PPH_STRING PhConcatStringRef4(
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String3,
+    _In_ PPH_STRINGREF String4
+    )
+{
+    PPH_STRING string;
+    PCHAR buffer;
+
+    assert(!(String1->Length & 1));
+    assert(!(String2->Length & 1));
+    assert(!(String3->Length & 1));
+    assert(!(String4->Length & 1));
+
+    string = PhCreateStringEx(NULL, String1->Length + String2->Length + String3->Length + String4->Length);
+
+    buffer = (PCHAR)string->Buffer;
+    memcpy(buffer, String1->Buffer, String1->Length);
+
+    buffer += String1->Length;
+    memcpy(buffer, String2->Buffer, String2->Length);
+
+    buffer += String2->Length;
+    memcpy(buffer, String3->Buffer, String3->Length);
+
+    buffer += String3->Length;
+    memcpy(buffer, String4->Buffer, String4->Length);
 
     return string;
 }
@@ -5420,7 +5462,7 @@ ULONG PhHashStringRef(
     {
         do
         {
-            hash ^= (USHORT)RtlUpcaseUnicodeChar(*p++);
+            hash ^= (USHORT)PhUpcaseUnicodeChar(*p++);
             hash *= 0x01000193;
         } while (--count != 0);
     }
@@ -5472,7 +5514,7 @@ ULONG PhHashStringRefEx(
                 //PWCHAR p = String->Buffer;
                 //do
                 //{
-                //    hash += (USHORT)RtlUpcaseUnicodeChar(*p++); // __ascii_towupper(*p++);
+                //    hash += (USHORT)PhUpcaseUnicodeChar(*p++); // __ascii_towupper(*p++);
                 //    hash *= 0x1003F;
                 //} while (--count != 0);
             }
@@ -6700,7 +6742,7 @@ VOID PhDivideSinglesBySingle(
             {
                 a = _mm256_load_ps(A);
                 a = _mm256_div_ps(a, b);
-                _mm256_storeu_ps(A, a);
+                _mm256_store_ps(A, a);
 
                 A += 8;
             }
@@ -6709,7 +6751,7 @@ VOID PhDivideSinglesBySingle(
         }
     }
 #endif
-    
+
     if (PhHasIntrinsics)
     {
         SIZE_T count = Count & ~0xF;
@@ -6735,7 +6777,7 @@ VOID PhDivideSinglesBySingle(
             Count &= 0xF;
         }
     }
-    
+
     if (Count != 0)
     {
         PFLOAT end = (PFLOAT)(ULONG_PTR)(A + Count);
@@ -6844,7 +6886,7 @@ ULONG PhCountBits(
         count = (T)(Value * ((T)~(T)0 / 255)) >> (sizeof(T) - 1) * CHAR_BIT;
 
         return count;
-        
+
         //ULONG count = 0;
         //
         //while (Value)
@@ -6880,7 +6922,7 @@ ULONG PhCountBitsUlongPtr(
         count = (T)(Value * ((T)~(T)0 / 255)) >> (sizeof(T) - 1) * CHAR_BIT;
 
         return count;
-        
+
         //ULONG count = 0;
         //
         //while (Value)

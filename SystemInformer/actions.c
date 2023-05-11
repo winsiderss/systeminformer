@@ -341,7 +341,6 @@ BOOLEAN PhpStartPhSvcProcess(
                 PH_STRINGREF_INIT(L"\\..\\Release32\\")
 #endif
             };
-
             ULONG i;
             PPH_STRING applicationDirectory;
             PPH_STRING applicationFileName;
@@ -4411,22 +4410,24 @@ BOOLEAN PhUiSetBoostPriorityThreads(
         NTSTATUS status;
         HANDLE threadHandle;
 
-        if (NT_SUCCESS(status = PhOpenThread(
+        status = PhOpenThread(
             &threadHandle,
             THREAD_SET_LIMITED_INFORMATION,
             Threads[i]->ThreadId
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             status = PhSetThreadPriorityBoost(threadHandle, PriorityBoost);
             NtClose(threadHandle);
+        }
 
-            if (!NT_SUCCESS(status))
-            {
-                success = FALSE;
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
 
-                if (!PhpShowErrorThread(WindowHandle, L"change boost priority of", Threads[i], status, 0))
-                    break;
-            }
+            if (!PhpShowErrorThread(WindowHandle, L"change boost priority of", Threads[i], status, 0))
+                break;
         }
     }
 
@@ -4482,22 +4483,24 @@ BOOLEAN PhUiSetPriorityThreads(
         NTSTATUS status;
         HANDLE threadHandle;
 
-        if (NT_SUCCESS(status = PhOpenThread(
+        status = PhOpenThread(
             &threadHandle,
             THREAD_SET_LIMITED_INFORMATION,
             Threads[i]->ThreadId
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             status = PhSetThreadBasePriority(threadHandle, Increment);
             NtClose(threadHandle);
+        }
 
-            if (!NT_SUCCESS(status))
-            {
-                success = FALSE;
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
 
-                if (!PhpShowErrorThread(WindowHandle, L"change priority of", Threads[i], status, 0))
-                    break;
-            }
+            if (!PhpShowErrorThread(WindowHandle, L"change priority of", Threads[i], status, 0))
+                break;
         }
     }
 

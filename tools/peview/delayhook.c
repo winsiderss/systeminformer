@@ -70,7 +70,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
             if (PhEnableThemeSupport)
             {
                 if (PhEnableThemeAcrylicSupport)
-                { 
+                {
                     // Note: DWM crashes if called from WM_NCCREATE (dmex)
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }

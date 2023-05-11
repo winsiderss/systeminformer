@@ -101,8 +101,8 @@ typedef __m128  PH_FLOAT128;
 typedef PH_INT128* PPH_INT128;
 typedef PH_FLOAT128* PPH_FLOAT128;
 
-FORCEINLINE 
-PH_INT128 
+FORCEINLINE
+PH_INT128
 PhSetZeroINT128(
     VOID
     )
@@ -115,9 +115,9 @@ PhSetZeroINT128(
 }
 
 FORCEINLINE
-PH_INT128 
+PH_INT128
 PhLoadINT128(
-    _In_reads_bytes_(2 * sizeof(LONG)) PLONG Memory 
+    _In_reads_bytes_(2 * sizeof(LONG)) PLONG Memory
     )
 {
 #ifdef _ARM64_
@@ -141,10 +141,10 @@ PhStoreINT128(
 #endif
 }
 
-FORCEINLINE 
-PH_INT128 
+FORCEINLINE
+PH_INT128
 PhCompareEqINT128by16(
-    _In_ PH_INT128 Left, 
+    _In_ PH_INT128 Left,
     _In_ PH_INT128 Right
     )
 {
@@ -155,10 +155,10 @@ PhCompareEqINT128by16(
 #endif
 }
 
-FORCEINLINE 
-PH_INT128 
+FORCEINLINE
+PH_INT128
 PhCompareEqINT128by32(
-    _In_ PH_INT128 Left, 
+    _In_ PH_INT128 Left,
     _In_ PH_INT128 Right
     )
 {
@@ -169,10 +169,10 @@ PhCompareEqINT128by32(
 #endif
 }
 
-FORCEINLINE 
+FORCEINLINE
 ULONG
 PhMoveMaskINT128by8(
-    _In_ PH_INT128 Value 
+    _In_ PH_INT128 Value
     )
 {
 #ifdef _ARM64_
@@ -217,7 +217,7 @@ PhSetINT128by32(
 FORCEINLINE
 PH_FLOAT128
 PhSetFLOAT128by32(
-    _In_ FLOAT Value 
+    _In_ FLOAT Value
     )
 {
 #ifdef _ARM64_
@@ -230,7 +230,7 @@ PhSetFLOAT128by32(
 FORCEINLINE
 PH_FLOAT128
 PhLoadFLOAT128(
-    _In_reads_bytes_(2 * sizeof(PFLOAT)) PFLOAT Memory 
+    _In_reads_bytes_(2 * sizeof(PFLOAT)) PFLOAT Memory
     )
 {
 #ifdef _ARM64_

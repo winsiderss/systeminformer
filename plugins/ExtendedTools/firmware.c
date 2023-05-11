@@ -161,7 +161,7 @@ VOID EtFirmwareDeleteEntry(
     NTSTATUS status;
 
     status = PhSetFirmwareEnvironmentVariable(
-        &Entry->Name->sr, 
+        &Entry->Name->sr,
         &Entry->GuidString->sr,
         NULL,
         0,
