@@ -99,6 +99,26 @@ PSID PhSeAnyPackageSid( // WinBuiltinAnyPackageSid (dmex)
     return anyAppPackagesSid;
 }
 
+PSID PhSeInternetExplorerSid( // S-1-15-3-4096 (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR internetExplorerSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID internetExplorerSid = (PSID)internetExplorerSidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(internetExplorerSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_APP_PACKAGE_AUTHORITY }, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+        *PhSubAuthoritySid(internetExplorerSid, 0) = SECURITY_CAPABILITY_BASE_RID;
+        *PhSubAuthoritySid(internetExplorerSid, 1) = SECURITY_CAPABILITY_INTERNET_EXPLORER;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return internetExplorerSid;
+}
+
 // Unicode
 
 PH_STRINGREF PhUnicodeByteOrderMark = PH_STRINGREF_INIT(L"\ufeff");
