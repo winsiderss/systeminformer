@@ -1055,6 +1055,7 @@ HINTERNET PhpCreateDohRequestHandle(
     _In_ HINTERNET HttpConnectionHandle
     )
 {
+    static PCWSTR httpAcceptTypes[2] = { L"application/dns-message", NULL };
     HINTERNET httpRequestHandle;
 
     if (!(httpRequestHandle = WinHttpOpenRequest(
@@ -1063,7 +1064,7 @@ HINTERNET PhpCreateDohRequestHandle(
         L"/dns-query",
         NULL,
         WINHTTP_NO_REFERER,
-        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        httpAcceptTypes,
         WINHTTP_FLAG_SECURE
         )))
     {
