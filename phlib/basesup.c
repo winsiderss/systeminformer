@@ -1526,8 +1526,8 @@ BOOLEAN PhEqualStringRef(
 
             do
             {
-                b1 = PhLoadINT128((PLONG)s1);
-                b2 = PhLoadINT128((PLONG)s2);
+                b1 = PhLoadINT128U((PLONG)s1);
+                b2 = PhLoadINT128U((PLONG)s2);
                 b1 = PhCompareEqINT128by32(b1, b2);
 
                 if (PhMoveMaskINT128by8(b1) != 0xffff)
@@ -1669,7 +1669,7 @@ ULONG_PTR PhFindCharInStringRef(
 
                 do
                 {
-                    block = PhLoadINT128((PLONG)buffer);
+                    block = PhLoadINT128U((PLONG)buffer);
                     block = PhCompareEqINT128by16(block, pattern);
                     mask = PhMoveMaskINT128by8(block);
 
@@ -1761,7 +1761,7 @@ ULONG_PTR PhFindLastCharInStringRef(
 
                 do
                 {
-                    block = PhLoadINT128((PLONG)buffer);
+                    block = PhLoadINT128U((PLONG)buffer);
                     block = PhCompareEqINT128by16(block, pattern);
                     mask = PhMoveMaskINT128by8(block);
 

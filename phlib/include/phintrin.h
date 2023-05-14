@@ -116,7 +116,7 @@ PhSetZeroINT128(
 
 FORCEINLINE
 PH_INT128
-PhLoadINT128(
+PhLoadINT128U(
     _In_reads_bytes_(2 * sizeof(LONG)) PLONG Memory
     )
 {
@@ -124,6 +124,19 @@ PhLoadINT128(
    return vld1q_s32(Memory);
 #else
     return _mm_loadu_si128((__m128i*)Memory);
+#endif
+}
+
+FORCEINLINE
+PH_INT128
+PhLoadINT128(
+    _In_reads_bytes_(2 * sizeof(LONG)) PLONG Memory
+    )
+{
+#ifdef _ARM64_
+    return vld1q_s32(Memory);
+#else
+    return _mm_load_si128((__m128i*)Memory);
 #endif
 }
 
