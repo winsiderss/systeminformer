@@ -1711,19 +1711,17 @@ NTSTATUS PhGetMappedImageImportDll(
 
     if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        PIMAGE_THUNK_DATA32 entry;
+        UNALIGNED_PIMAGE_THUNK_DATA32 entry;
 
-        entry = (PIMAGE_THUNK_DATA32)ImportDll->LookupTable;
+        entry = (UNALIGNED_PIMAGE_THUNK_DATA32)ImportDll->LookupTable;
 
         __try
         {
             while (TRUE)
             {
                 PhpMappedImageProbe(ImportDll->MappedImage, entry, sizeof(IMAGE_THUNK_DATA32));
-                IMAGE_THUNK_DATA32 entry_copy;
-                memcpy(&entry_copy, entry, sizeof(IMAGE_THUNK_DATA32));
 
-                if (entry_copy.u1.AddressOfData == 0)
+                if (entry->u1.AddressOfData == 0)
                     break;
 
                 entry++;
@@ -1737,19 +1735,17 @@ NTSTATUS PhGetMappedImageImportDll(
     }
     else if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
-        PIMAGE_THUNK_DATA64 entry;
+        UNALIGNED_PIMAGE_THUNK_DATA64 entry;
 
-        entry = (PIMAGE_THUNK_DATA64)ImportDll->LookupTable;
+        entry = (UNALIGNED_PIMAGE_THUNK_DATA64)ImportDll->LookupTable;
 
         __try
         {
             while (TRUE)
             {
                 PhpMappedImageProbe(ImportDll->MappedImage, entry, sizeof(IMAGE_THUNK_DATA64));
-                IMAGE_THUNK_DATA64 entry_copy;
-                memcpy(&entry_copy, entry, sizeof(IMAGE_THUNK_DATA64));
 
-                if (entry_copy.u1.AddressOfData == 0)
+                if (entry->u1.AddressOfData == 0)
                     break;
 
                 entry++;
