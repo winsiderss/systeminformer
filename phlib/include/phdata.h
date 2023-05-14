@@ -55,6 +55,10 @@ PSID PhSeAnyPackageSid(
     VOID
     );
 
+PSID PhSeInternetExplorerSid(
+    VOID
+    );
+
 // Unicode
 
 extern PH_STRINGREF PhUnicodeByteOrderMark;
