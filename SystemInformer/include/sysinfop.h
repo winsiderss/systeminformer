@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2016
+ *     dmex    2016-2023
+ *
+ */
+
 #ifndef PH_SYSINFOP_H
 #define PH_SYSINFOP_H
 
