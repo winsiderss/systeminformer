@@ -558,13 +558,13 @@ PPH_STRING PhGetAppContainerPackageName(
     PPH_STRING keyPath;
     PPH_STRING packageName = NULL;
 
-    sidString = PhSidToStringSid(Sid);
-
-    if (PhEqualString2(sidString, L"S-1-15-3-4096", FALSE)) // HACK
+    if (PhEqualSid(Sid, PhSeInternetExplorerSid())) // S-1-15-3-4096 (dmex)
     {
-        PhDereferenceObject(sidString);
         return PhCreateString(L"InternetExplorer");
     }
+
+    if (!(sidString = PhSidToStringSid(Sid)))
+        return NULL;
 
     keyPath = PhConcatStringRef2(&appcontainerMappings, &sidString->sr);
 
