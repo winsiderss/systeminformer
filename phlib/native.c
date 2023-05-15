@@ -2006,8 +2006,8 @@ NTSTATUS PhGetProcessUnloadedDlls(
     PVOID eventTrace;
     HANDLE processHandle = NULL;
     ULONG eventTraceSize;
-    ULONG capturedElementSize;
-    ULONG capturedElementCount;
+    ULONG capturedElementSize = 0;
+    ULONG capturedElementCount = 0;
     PVOID capturedEventTracePointer;
     PVOID capturedEventTrace = NULL;
 
@@ -6720,18 +6720,43 @@ NTSTATUS PhEnumNextProcess(
     )
 {
     NTSTATUS status;
-    HANDLE processHandle = ProcessHandle;
+    HANDLE processHandle;
+    HANDLE newProcessHandle;
 
-    while (NT_SUCCESS(status = NtGetNextProcess(
-        processHandle,
+    status = NtGetNextProcess(
+        ProcessHandle,
         DesiredAccess,
         0,
         0,
         &processHandle
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    while (TRUE)
     {
         if (!Callback(processHandle, Context))
             break;
+
+        status = NtGetNextProcess(
+            processHandle,
+            DesiredAccess,
+            0,
+            0,
+            &newProcessHandle
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            NtClose(processHandle);
+            processHandle = newProcessHandle;
+        }
+        else
+        {
+            NtClose(processHandle);
+            break;
+        }
     }
 
     if (status == STATUS_NO_MORE_ENTRIES)
@@ -6749,19 +6774,45 @@ NTSTATUS PhEnumNextThread(
     )
 {
     NTSTATUS status;
-    HANDLE threadHandle = ThreadHandle;
+    HANDLE threadHandle;
+    HANDLE newThreadHandle;
 
-    while (NT_SUCCESS(status = NtGetNextThread(
+    status = NtGetNextThread(
         ProcessHandle,
-        threadHandle,
+        ThreadHandle,
         DesiredAccess,
         0,
         0,
         &threadHandle
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    while (TRUE)
     {
         if (!Callback(threadHandle, Context))
             break;
+
+        status = NtGetNextThread(
+            ProcessHandle,
+            threadHandle,
+            DesiredAccess,
+            0,
+            0,
+            &newThreadHandle
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            NtClose(threadHandle);
+            threadHandle = newThreadHandle;
+        }
+        else
+        {
+            NtClose(threadHandle);
+            break;
+        }
     }
 
     if (status == STATUS_NO_MORE_ENTRIES)
