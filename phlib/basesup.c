@@ -5538,11 +5538,11 @@ ULONG PhHashBytes(
 
     // FNV-1a algorithm: http://www.isthe.com/chongo/src/fnv/hash_32a.c
 
-    do
+    while (Length-- != 0)
     {
         hash ^= *Bytes++;
         hash *= 0x01000193;
-    } while (--Length != 0);
+    }
 
     return hash;
 }
@@ -5568,17 +5568,17 @@ ULONG PhHashStringRef(
     count = String->Length / sizeof(WCHAR);
     p = String->Buffer;
 
-    if (!IgnoreCase)
+    if (IgnoreCase)
     {
-        return PhHashBytes((PUCHAR)String->Buffer, String->Length);
-    }
-    else
-    {
-        do
+        while (count-- != 0)
         {
             hash ^= (USHORT)PhUpcaseUnicodeChar(*p++);
             hash *= 0x01000193;
-        } while (--count != 0);
+        }
+    }
+    else
+    {
+        return PhHashBytes((PUCHAR)String->Buffer, String->Length);
     }
 
     return hash;
@@ -6739,12 +6739,9 @@ VOID PhFillMemoryUlong(
         }
     }
 
-    if (Count != 0)
+    while (Count-- != 0)
     {
-        do
-        {
-            *Memory++ = Value;
-        } while (--Count != 0);
+        *Memory++ = Value;
     }
 }
 
