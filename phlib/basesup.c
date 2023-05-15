@@ -436,6 +436,33 @@ NTSTATUS PhCreateThread2(
 }
 
 /**
+ * Gets the current interrupt-time count.
+ */
+VOID PhQueryInterruptTime(
+    _Out_ PULARGE_INTEGER InterruptTime
+    )
+{
+#ifdef _WIN64
+
+    InterruptTime->QuadPart = *(volatile ULONG64*)&USER_SHARED_DATA->InterruptTime;
+
+#else
+
+    while (TRUE)
+    {
+        InterruptTime->HighPart = (ULONG)USER_SHARED_DATA->InterruptTime.High1Time;
+        InterruptTime->LowPart = USER_SHARED_DATA->InterruptTime.LowPart;
+
+        if (InterruptTime->HighPart == (ULONG)USER_SHARED_DATA->InterruptTime.High2Time)
+            break;
+
+        YieldProcessor();
+    }
+
+#endif
+}
+
+/**
  * Gets the current system time (UTC).
  *
  * \remarks Use this function instead of NtQuerySystemTime() because no system calls are involved.
@@ -444,25 +471,89 @@ VOID PhQuerySystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     )
 {
+#ifndef PHNT_NATIVE_TIME
+#ifdef _WIN64
+
+    SystemTime->QuadPart = *(volatile ULONG64*)&USER_SHARED_DATA->SystemTime;
+
+#else
+
+    while (TRUE)
+    {
+        SystemTime->HighPart = (ULONG)USER_SHARED_DATA->SystemTime.High1Time;
+        SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
+
+        if (SystemTime->HighPart == (ULONG)USER_SHARED_DATA->SystemTime.High2Time)
+            break;
+
+        YieldProcessor();
+    }
+
+#endif
+#else
+
     do
     {
         SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
         SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
     } while (SystemTime->HighPart != USER_SHARED_DATA->SystemTime.High2Time);
+
+#endif
 }
 
 /**
  * Gets the offset of the current time zone from UTC.
+ *
+ * \remarks Use this function instead of GetTimeZoneInformation() because no system calls are involved.
  */
 VOID PhQueryTimeZoneBias(
     _Out_ PLARGE_INTEGER TimeZoneBias
     )
 {
+#ifndef PHNT_NATIVE_TIME
+#ifdef _WIN64
+
+    TimeZoneBias->QuadPart = *(volatile ULONG64*)&USER_SHARED_DATA->TimeZoneBias;
+
+#else
+
+    while (TRUE)
+    {
+        TimeZoneBias->HighPart = (ULONG)USER_SHARED_DATA->TimeZoneBias.High1Time;
+        TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
+
+        if (TimeZoneBias->HighPart == (ULONG)USER_SHARED_DATA->TimeZoneBias.High2Time)
+            break;
+
+        YieldProcessor();
+    }
+
+#endif
+#else
+
+#if (PHNT_NATIVE_TIME)
+    SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+
+    if (NT_SUCCESS(NtQuerySystemInformation(
+        SystemTimeOfDayInformation,
+        &timeOfDayInfo,
+        sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+        NULL
+        )))
+    {
+        TimeZoneBias->QuadPart = timeOfDayInfo.TimeZoneBias.QuadPart;
+    }
+#else
+
     do
     {
         TimeZoneBias->HighPart = USER_SHARED_DATA->TimeZoneBias.High1Time;
         TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
     } while (TimeZoneBias->HighPart != USER_SHARED_DATA->TimeZoneBias.High2Time);
+
+#endif
+
+#endif
 }
 
 /**
@@ -480,10 +571,16 @@ VOID PhSystemTimeToLocalTime(
     _Out_ PLARGE_INTEGER LocalTime
     )
 {
+#if (PHNT_NATIVE_TIME)
+    RtlSystemTimeToLocalTime(SystemTime, LocalTime);
+#else
+
     LARGE_INTEGER timeZoneBias;
 
     PhQueryTimeZoneBias(&timeZoneBias);
     LocalTime->QuadPart = SystemTime->QuadPart - timeZoneBias.QuadPart;
+
+#endif
 }
 
 /**
@@ -501,10 +598,16 @@ VOID PhLocalTimeToSystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     )
 {
+#if (PHNT_NATIVE_TIME)
+    RtlLocalTimeToSystemTime(LocalTime, SystemTime);
+#else
+
     LARGE_INTEGER timeZoneBias;
 
     PhQueryTimeZoneBias(&timeZoneBias);
     SystemTime->QuadPart = LocalTime->QuadPart + timeZoneBias.QuadPart;
+
+#endif
 }
 
 BOOLEAN PhTimeToSecondsSince1980(
