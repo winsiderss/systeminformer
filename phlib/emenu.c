@@ -904,6 +904,20 @@ VOID PhSetHMenuStyle(
     SetMenuInfo(Menu, &menuInfo);
 }
 
+VOID PhSetHMenuNotify(
+    _In_ HMENU MenuHandle
+    )
+{
+    MENUINFO menuInfo;
+
+    memset(&menuInfo, 0, sizeof(MENUINFO));
+    menuInfo.cbSize = sizeof(MENUINFO);
+    menuInfo.fMask = MIM_STYLE;
+    menuInfo.dwStyle = MNS_NOTIFYBYPOS;
+
+    SetMenuInfo(MenuHandle, &menuInfo);
+}
+
 VOID PhDeleteHMenu(
     _In_ HMENU Menu
     )
