@@ -1973,7 +1973,7 @@ VOID PhSipEnterSectionViewInner(
     )
 {
     Section->HasFocus = FALSE;
-    Section->Callback(Section, SysInfoViewChanging, (PVOID)CurrentView, CurrentSection);
+    Section->Callback(Section, SysInfoViewChanging, UlongToPtr(CurrentView), CurrentSection);
 
     if (FromSummaryView)
     {
@@ -2010,7 +2010,7 @@ VOID PhSipRestoreSummaryView(
     {
         section = SectionList->Items[i];
 
-        section->Callback(section, SysInfoViewChanging, (PVOID)CurrentView, NULL);
+        section->Callback(section, SysInfoViewChanging, UlongToPtr(CurrentView), NULL);
 
         PhSetWindowStyle(section->GraphHandle, GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL, GC_STYLE_FADEOUT | GC_STYLE_DRAW_PANEL);
         ShowWindow(section->PanelHandle, SW_HIDE);
