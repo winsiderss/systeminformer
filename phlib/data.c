@@ -56,6 +56,8 @@ PSID PhSeAdministratorsSid( // WinBuiltinAdministratorsSid (dmex)
         PhEndInitOnce(&initOnce);
     }
 
+    assert(PhLengthSid(administratorsSid) == sizeof(administratorsSidBuffer));
+
     return administratorsSid;
 }
 
@@ -75,6 +77,8 @@ PSID PhSeUsersSid( // WinBuiltinUsersSid (dmex)
 
         PhEndInitOnce(&initOnce);
     }
+
+    assert(PhLengthSid(usersSid) == sizeof(usersSidBuffer));
 
     return usersSid;
 }
@@ -96,6 +100,8 @@ PSID PhSeAnyPackageSid( // WinBuiltinAnyPackageSid (dmex)
         PhEndInitOnce(&initOnce);
     }
 
+    assert(PhLengthSid(anyAppPackagesSid) == sizeof(anyAppPackagesSidBuffer));
+
     return anyAppPackagesSid;
 }
 
@@ -115,6 +121,8 @@ PSID PhSeInternetExplorerSid( // S-1-15-3-4096 (dmex)
 
         PhEndInitOnce(&initOnce);
     }
+
+    assert(PhLengthSid(internetExplorerSid) == sizeof(internetExplorerSidBuffer));
 
     return internetExplorerSid;
 }
