@@ -8350,20 +8350,30 @@ VOID PhUpdateDosDevicePrefixes(
     PhReleaseQueuedLockExclusive(&PhDevicePrefixesLock);
 }
 
-static NTSTATUS PhMountManagerQueryMountPoints(
+// rev from FindFirstVolumeW (dmex)
+/**
+ * \brief Retrieves the mount points of volumes.
+ *
+ * \param DeviceHandle A handle to the MountPointManager.
+ * \param MountPoints An array of mounts.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetVolumeMountPoints(
     _In_ HANDLE DeviceHandle,
-    _Out_ PMOUNTMGR_MOUNT_POINTS *Buffer
+    _Out_ PMOUNTMGR_MOUNT_POINTS* MountPoints
     )
 {
     NTSTATUS status;
     IO_STATUS_BLOCK isb;
-    MOUNTMGR_MOUNT_POINT input = { 0 };
-    PMOUNTMGR_MOUNT_POINTS buffer;
-    ULONG bufferSize;
+    MOUNTMGR_MOUNT_POINT inputBuffer = { 0 };
+    PMOUNTMGR_MOUNT_POINTS outputBuffer;
+    ULONG inputBufferLength = sizeof(inputBuffer);
+    ULONG outputBufferLength;
     ULONG attempts = 16;
 
-    bufferSize = 0x800;
-    buffer = PhAllocate(bufferSize);
+    outputBufferLength = 0x800;
+    outputBuffer = PhAllocate(outputBufferLength);
 
     do
     {
@@ -8374,10 +8384,10 @@ static NTSTATUS PhMountManagerQueryMountPoints(
             NULL,
             &isb,
             IOCTL_MOUNTMGR_QUERY_POINTS,
-            &input,
-            sizeof(MOUNTMGR_MOUNT_POINT),
-            buffer,
-            bufferSize
+            &inputBuffer,
+            inputBufferLength,
+            outputBuffer,
+            outputBufferLength
             );
 
         if (NT_SUCCESS(status))
@@ -8385,18 +8395,104 @@ static NTSTATUS PhMountManagerQueryMountPoints(
 
         if (status == STATUS_BUFFER_OVERFLOW)
         {
-            bufferSize = buffer->Size;
-            PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            outputBufferLength = outputBuffer->Size;
+            PhFree(outputBuffer);
+            outputBuffer = PhAllocate(outputBufferLength);
         }
         else
         {
-            PhFree(buffer);
+            PhFree(outputBuffer);
             return status;
         }
     } while (--attempts);
 
-    *Buffer = buffer;
+    if (NT_SUCCESS(status))
+    {
+        *MountPoints = outputBuffer;
+    }
+    else
+    {
+        PhFree(outputBuffer);
+    }
+
+    return status;
+}
+
+// rev from GetVolumePathNamesForVolumeNameW (dmex)
+/**
+ * \brief Retrieves a list of drive letters and mounted folder paths for the specified volume.
+ *
+ * \param DeviceHandle A handle to the MountPointManager.
+ * \param VolumeName A volume GUID path for the volume.
+ * \param VolumePathNames A pointer to a buffer that receives the list of drive letters and mounted folder paths.
+ * \a The list is an array of null-terminated strings terminated by an additional NULL character.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetVolumePathNamesForVolumeName(
+    _In_ HANDLE DeviceHandle,
+    _In_ PPH_STRINGREF VolumeName,
+    _Out_ PMOUNTMGR_VOLUME_PATHS* VolumePathNames
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    PMOUNTMGR_TARGET_NAME inputBuffer;
+    PMOUNTMGR_VOLUME_PATHS outputBuffer;
+    ULONG inputBufferLength;
+    ULONG outputBufferLength;
+    ULONG attempts = 16;
+
+    inputBufferLength = UFIELD_OFFSET(MOUNTMGR_TARGET_NAME, DeviceName[VolumeName->Length]) + sizeof(UNICODE_NULL);
+    inputBuffer = PhAllocate(inputBufferLength); // Volume{guid}, CM_Get_Device_Interface_List, SymbolicLinks, [??]
+    inputBuffer->DeviceNameLength = (USHORT)VolumeName->Length;
+    RtlCopyMemory(inputBuffer->DeviceName, VolumeName->Buffer, VolumeName->Length);
+
+    outputBufferLength = UFIELD_OFFSET(MOUNTMGR_VOLUME_PATHS, MultiSz[DOS_MAX_PATH_LENGTH]) + sizeof(UNICODE_NULL);
+    outputBuffer = PhAllocate(outputBufferLength);
+
+    do
+    {
+        status = NtDeviceIoControlFile(
+            DeviceHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATHS,
+            inputBuffer,
+            inputBufferLength,
+            outputBuffer,
+            outputBufferLength
+            );
+
+        if (NT_SUCCESS(status))
+            break;
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            outputBufferLength = (outputBuffer->MultiSzLength * sizeof(WCHAR)) + sizeof(UNICODE_NULL);
+            PhFree(outputBuffer);
+            outputBuffer = PhAllocate(outputBufferLength);
+        }
+        else
+        {
+            PhFree(inputBuffer);
+            PhFree(outputBuffer);
+            return status;
+        }
+    } while (--attempts);
+
+    if (NT_SUCCESS(status))
+    {
+        *VolumePathNames = outputBuffer;
+    }
+    else
+    {
+        PhFree(outputBuffer);
+    }
+
+    PhFree(inputBuffer);
 
     return status;
 }
@@ -8438,7 +8534,7 @@ NTSTATUS PhUpdateDosDeviceMountPrefixes(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhMountManagerQueryMountPoints(
+    status = PhGetVolumeMountPoints(
         deviceHandle,
         &deviceMountPoints
         );
@@ -8467,7 +8563,7 @@ NTSTATUS PhUpdateDosDeviceMountPrefixes(
             PTR_ADD_OFFSET(deviceMountPoints, entry->DeviceNameOffset)
         };
 
-        if (MOUNTMGR_IS_DRIVE_LETTER(&linkName))
+        if (MOUNTMGR_IS_DRIVE_LETTER(&linkName)) // \\DosDevices\\C:
         {
             USHORT index = (USHORT)(linkName.Buffer[12] - L'A');
 
@@ -8484,6 +8580,22 @@ NTSTATUS PhUpdateDosDeviceMountPrefixes(
                 deviceName.Length
                 );
         }
+
+        //if (MOUNTMGR_IS_VOLUME_NAME(&linkName)) // \\??\\Volume{1111-2222}
+        //{
+        //    PH_STRINGREF volumeLinkName;
+        //    PMOUNTMGR_VOLUME_PATHS volumePaths;
+        //
+        //    PhUnicodeStringToStringRef(&linkName, &volumeLinkName);
+        //
+        //    if (NT_SUCCESS(PhGetVolumePathNamesForVolumeName(deviceHandle, &volumeLinkName, &volumePaths)))
+        //    {
+        //        for (PWSTR path = volumePaths->MultiSz; *path; path += PhCountStringZ(path) + 1)
+        //        {
+        //            dprintf("%S\n", path); // C:\\Mounted\\Folders
+        //        }
+        //    }
+        //}
     }
 
     PhFree(deviceMountPoints);
@@ -8727,53 +8839,64 @@ PPH_STRING PhDosPathNameToNtPathName(
         PhEndInitOnce(&PhDevicePrefixesInitOnce);
     }
 
-    // "\SystemRoot" --> "C:\Windows" --> "\Device\HarddiskVolumeX\Windows\" (dmex)
-    if (PhStartsWithStringRef2(Name, L"\\SystemRoot", TRUE))
+    if (PATH_IS_WIN32_DRIVE_PREFIX(Name))
     {
-        PH_STRINGREF systemRoot;
-        PPH_STRING newFileName;
+        index = (ULONG)(Name->Buffer[0] - L'A');
 
-        PhGetSystemRoot(&systemRoot);
-        newFileName = PhCreateStringEx(NULL, systemRoot.Length + Name->Length - 11 * sizeof(WCHAR));
-        memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length), &Name->Buffer[11], Name->Length - 11 * sizeof(WCHAR));
-
-        PhMoveReference(&newFileName, PhDosPathNameToNtPathName(&newFileName->sr)); // recursive
-
-        return newFileName;
-    }
-    else
-    {
-        if (!PATH_IS_WIN32_DRIVE_PREFIX(Name))
+        if (index >= RTL_NUMBER_OF(PhDevicePrefixes))
             return NULL;
+
+        PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
+        PhUnicodeStringToStringRef(&PhDevicePrefixes[index], &prefix);
+
+        if (prefix.Length != 0)
+        {
+            // C:\\Name -> \\Device\\HardDiskVolumeX\\Name
+            newName = PhCreateStringEx(NULL, prefix.Length + Name->Length - sizeof(WCHAR[2]));
+            memcpy(
+                newName->Buffer,
+                prefix.Buffer,
+                prefix.Length
+                );
+            memcpy(
+                PTR_ADD_OFFSET(newName->Buffer, prefix.Length),
+                PTR_ADD_OFFSET(Name->Buffer, sizeof(WCHAR[2])),
+                Name->Length - sizeof(WCHAR[2])
+                );
+        }
+
+        PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
     }
-
-    index = (ULONG)(Name->Buffer[0] - L'A');
-
-    if (index >= RTL_NUMBER_OF(PhDevicePrefixes))
-        return NULL;
-
-    PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
-
-    PhUnicodeStringToStringRef(&PhDevicePrefixes[index], &prefix);
-
-    if (prefix.Length != 0)
+    else if (PhStartsWithStringRef2(Name, L"\\SystemRoot", TRUE))
     {
-        // \Device\HardDiskVolumeX\Name
-        newName = PhCreateStringEx(NULL, prefix.Length + Name->Length - sizeof(WCHAR[2]));
-        memcpy(
-            newName->Buffer,
-            prefix.Buffer,
-            prefix.Length
-            );
-        memcpy(
-            PTR_ADD_OFFSET(newName->Buffer, prefix.Length),
-            PTR_ADD_OFFSET(Name->Buffer, sizeof(WCHAR[2])),
-            Name->Length - sizeof(WCHAR[2])
-            );
-    }
+        PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
+        PhUnicodeStringToStringRef(&PhDevicePrefixes[(ULONG)'C'-'A'], &prefix);
 
-    PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
+        if (prefix.Length != 0)
+        {
+            static PH_STRINGREF systemRoot = PH_STRINGREF_INIT(L"\\Windows");
+
+            // \\SystemRoot\\Name -> \\Device\\HardDiskVolumeX\\Windows\\Name
+            newName = PhCreateStringEx(NULL, prefix.Length + Name->Length + systemRoot.Length - sizeof(L"SystemRoot"));
+            memcpy(
+                newName->Buffer,
+                prefix.Buffer,
+                prefix.Length
+                );
+            memcpy(
+                PTR_ADD_OFFSET(newName->Buffer, prefix.Length),
+                systemRoot.Buffer,
+                systemRoot.Length
+                );
+            memcpy(
+                PTR_ADD_OFFSET(newName->Buffer, prefix.Length + systemRoot.Length),
+                PTR_ADD_OFFSET(Name->Buffer, sizeof(L"SystemRoot")),
+                Name->Length - sizeof(L"SystemRoot")
+                );
+        }
+
+        PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
+    }
 
     return newName;
 }
