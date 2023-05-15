@@ -703,6 +703,22 @@ BOOLEAN PhPropPageDlgProcHeader(
     return TRUE;
 }
 
+#ifdef DEBUG
+static VOID ASSERT_DIALOGRECT(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ SHORT Width,
+    _In_ USHORT Height
+    )
+{
+    PDLGTEMPLATEEX dialogTemplate = NULL;
+
+    PhLoadResource(DllBase, Name, RT_DIALOG, NULL, &dialogTemplate);
+
+    assert(dialogTemplate && dialogTemplate->cx == Width && dialogTemplate->cy == Height);
+}
+#endif
+
 PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
     _In_ HWND hwnd,
     _In_ HWND Handle,
@@ -739,6 +755,9 @@ PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
         RECT dialogSize;
         RECT margin;
 
+#ifdef DEBUG
+        ASSERT_DIALOGRECT(PhInstanceHandle, MAKEINTRESOURCE(IDD_PROCGENERAL), 260, 260);
+#endif
         // MAKE SURE THESE NUMBERS ARE CORRECT.
         dialogSize.right = 260;
         dialogSize.bottom = 260;
