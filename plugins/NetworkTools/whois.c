@@ -872,8 +872,6 @@ INT_PTR CALLBACK WhoisDlgProc(
 
             context->WindowHandle = NULL;
             PhDereferenceObject(context);
-
-            PostQuitMessage(0);
         }
     }
 
@@ -913,6 +911,11 @@ INT_PTR CALLBACK WhoisDlgProc(
 
             PhReferenceObject(context);
             PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PostQuitMessage(0);
         }
         break;
     case WM_COMMAND:
