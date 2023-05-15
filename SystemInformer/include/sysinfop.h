@@ -429,7 +429,17 @@ VOID PhSipCreateIoGraph(
     VOID
     );
 
-VOID PhSipNotifyIoGraph(
+VOID PhSipLayoutIoGraphs(
+    _In_ HWND WindowHandle
+    );
+
+VOID PhSipNotifyIoReadGraph(
+    _In_ NMHDR *Header
+    );
+VOID PhSipNotifyIoWriteGraph(
+    _In_ NMHDR *Header
+    );
+VOID PhSipNotifyIoOtherGraph(
     _In_ NMHDR *Header
     );
 
