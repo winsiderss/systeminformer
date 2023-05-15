@@ -19,7 +19,6 @@
 #include <memprv.h>
 #include <settings.h>
 #include <phsettings.h>
-#include <heapinfo.h>
 
 VOID PhpClearMemoryList(
     _Inout_ PPH_MEMORY_LIST_CONTEXT Context
@@ -535,6 +534,10 @@ VOID PhExpandAllMemoryNodes(
     if (needsRestructure)
         TreeNew_NodesStructured(Context->TreeNewHandle);
 }
+
+extern PWSTR PhGetProcessHeapClassText(
+    _In_ ULONG HeapClass
+    );
 
 PPH_STRING PhGetMemoryRegionUseText(
     _In_ PPH_MEMORY_ITEM MemoryItem
