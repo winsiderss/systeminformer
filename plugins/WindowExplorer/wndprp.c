@@ -96,6 +96,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_DPICONTEXT,
 
     WINDOW_PROPERTIES_INDEX_CLASS_NAME,
+    WINDOW_PROPERTIES_INDEX_CLASS_BASENAME,
     WINDOW_PROPERTIES_INDEX_CLASS_ATOM,
     WINDOW_PROPERTIES_INDEX_CLASS_STYLES,
     WINDOW_PROPERTIES_INDEX_CLASS_INSTANCE,
@@ -847,16 +848,20 @@ VOID WepRefreshWindowClassInfo(
     )
 {
     WCHAR className[256];
+    WCHAR classBaseName[256];
     ULONG classExtra;
 
     if (!GetClassName(Context->WindowHandle, className, RTL_NUMBER_OF(className)))
         className[0] = UNICODE_NULL;
+    if (!RealGetWindowClassW(Context->WindowHandle, classBaseName, RTL_NUMBER_OF(classBaseName)))
+        classBaseName[0] = UNICODE_NULL;
 
     Context->ClassInfo.cbSize = sizeof(WNDCLASSEX);
     GetClassInfoEx(NULL, className, &Context->ClassInfo);
     classExtra = (ULONG)GetClassLongPtr(Context->WindowHandle, GCL_CBCLSEXTRA);
 
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_NAME, 1, className);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_BASENAME, 1, classBaseName);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_ATOM, 1, PhaFormatString(L"0x%Ix", GetClassLongPtr(Context->WindowHandle, GCW_ATOM))->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_LARGEICON, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.hIcon)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_SMALLICON, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.hIconSm)->Buffer);
@@ -1041,6 +1046,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DPICONTEXT, L"DPI Context", NULL);
 
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_NAME, L"Name", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_BASENAME, L"Base name", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_ATOM, L"Atom", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_STYLES, L"Styles", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_INSTANCE, L"Instance handle", NULL);
