@@ -136,18 +136,6 @@ VOID DiskDrivesUpdate(
                 PhClearReference(&entry->DiskIndexName);
             }
 
-            if (runCount > 1)
-            {
-                // Delay the first query for the disk name, index and type.
-                //   1) This information is not needed until the user opens the sysinfo window.
-                //   2) Try not to query this information while opening the sysinfo window (e.g. delay).
-                //   3) Try not to query this information during startup (e.g. delay).
-                //
-                // Note: If the user opens the Sysinfo window before we query the disk info,
-                // we have a second check in diskgraph.c that queries the information on demand.
-                DiskDriveUpdateDeviceInfo(deviceHandle, entry);
-            }
-
             NtClose(deviceHandle);
         }
         else
