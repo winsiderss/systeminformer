@@ -2260,7 +2260,7 @@ BOOLEAN PhUiRestartProcess(
     PPH_STRING fileNameWin32 = NULL;
     PPH_STRING commandLine = NULL;
     PPH_STRING currentDirectory = NULL;
-    STARTUPINFOEX startupInfo = { 0 };
+    STARTUPINFOEX startupInfo;
     PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
     PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
     PVOID environment = NULL;

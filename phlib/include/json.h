@@ -259,7 +259,7 @@ NTSTATUS
 NTAPI
 PhLoadXmlObjectFromFile(
     _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PVOID* XmlRootNode
+    _Out_opt_ PVOID* XmlRootObject
     );
 
 PHLIBAPI

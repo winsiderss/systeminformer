@@ -397,7 +397,7 @@ BOOLEAN PhCreateProcessLxss(
     HANDLE processHandle;
     HANDLE outputReadHandle = NULL, outputWriteHandle = NULL;
     HANDLE inputReadHandle = NULL, inputWriteHandle = NULL;
-    STARTUPINFOEX startupInfo = { 0 };
+    STARTUPINFOEX startupInfo;
     PROCESS_BASIC_INFORMATION basicInfo;
     PH_FORMAT format[4];
 

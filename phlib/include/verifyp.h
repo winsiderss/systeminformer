@@ -33,7 +33,7 @@ ULONG PhpVerifyCacheHashtableHashFunction(
 typedef struct _CATALOG_INFO
 {
     ULONG cbStruct;
-    WCHAR wszCatalogFile[MAX_PATH];
+    _Field_z_ WCHAR wszCatalogFile[MAX_PATH];
 } CATALOG_INFO, *PCATALOG_INFO;
 
 typedef struct tagCRYPTUI_VIEWSIGNERINFO_STRUCT
