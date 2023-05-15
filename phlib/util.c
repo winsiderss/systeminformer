@@ -5142,7 +5142,7 @@ VOID PhShellExecute(
 
     info.lpFile = FileName;
     info.lpParameters = Parameters;
-    info.fMask = SEE_MASK_FLAG_NO_UI;
+    info.fMask = SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
     info.nShow = SW_SHOW;
     info.hwnd = hWnd;
 

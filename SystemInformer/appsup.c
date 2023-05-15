@@ -2126,7 +2126,7 @@ VOID PhShellOpenKey(
     PPH_STRING regeditFileName;
     PH_STRINGREF systemRootString;
 
-    if (!NT_SUCCESS(PhCreateKey(
+    status = PhCreateKey(
         &regeditKeyHandle,
         KEY_WRITE,
         PH_KEY_CURRENT_USER,
@@ -2134,8 +2134,13 @@ VOID PhShellOpenKey(
         0,
         0,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(WindowHandle, L"Unable to execute the program.", status, 0);
         return;
+    }
 
     lastKey = PhExpandKeyName(KeyName, FALSE);
     PhSetValueKeyZ(regeditKeyHandle, L"LastKey", REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
@@ -2150,11 +2155,17 @@ VOID PhShellOpenKey(
 
     if (PhGetOwnTokenAttributes().Elevated)
     {
-        PhShellExecute(WindowHandle, regeditFileName->Buffer, NULL);
+        if (!PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, NULL, SW_SHOW, 0, 0, NULL))
+        {
+            PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
+        }
     }
     else
     {
-        PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, NULL, SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
+        if (!PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, NULL, SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+        {
+            PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
+        }
     }
 
     PhDereferenceObject(regeditFileName);
