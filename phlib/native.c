@@ -11364,9 +11364,10 @@ static BOOLEAN PhpDeleteDirectoryCallback(
                 if (WindowsVersion < WINDOWS_10_RS5)
                 {
                     IO_STATUS_BLOCK ioStatusBlock;
-                    FILE_BASIC_INFORMATION fileBasicInfo = { 0 };
+                    FILE_BASIC_INFORMATION fileBasicInfo;
 
-                    ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
+                    memset(&fileBasicInfo, 0, sizeof(FILE_BASIC_INFORMATION));
+                    fileBasicInfo.FileAttributes = ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
 
                     NtSetInformationFile(
                         fileHandle,
@@ -11490,6 +11491,12 @@ NTSTATUS PhCopyFileWin32(
         goto CleanupExit;
 
     buffer = PhAllocatePage(PAGE_SIZE * 2, NULL);
+
+    if (!buffer)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
 
     while (TRUE)
     {
@@ -11921,6 +11928,12 @@ NTSTATUS PhMoveFileWin32(
         if (NT_SUCCESS(status))
         {
             buffer = PhAllocatePage(PAGE_SIZE * 2, NULL);
+
+            if (!buffer)
+            {
+                status = STATUS_NO_MEMORY;
+                goto CleanupExit;
+            }
 
             while (TRUE)
             {
@@ -15363,8 +15376,8 @@ NTSTATUS PhGetProcessorNumberFromIndex(
             if (processorIndex++ == ProcessorIndex)
             {
                 memset(ProcessorNumber, 0, sizeof(PH_PROCESSOR_NUMBER));
-                (*ProcessorNumber).Group = processorGroup;
-                (*ProcessorNumber).Number = processorNumber;
+                ProcessorNumber->Group = processorGroup;
+                ProcessorNumber->Number = processorNumber;
                 return STATUS_SUCCESS;
             }
         }
