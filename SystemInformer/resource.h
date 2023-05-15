@@ -516,6 +516,9 @@
 #define IDC_SECTION                     1375
 #define IDC_REGEX                       1377
 #define IDC_DESCRIPTIONLABEL            1378
+#define IDC_IOREAD_L                    1378
+#define IDC_IOWRITE_L                   1379
+#define IDC_IOOTHER_L                   1380
 #define IDC_VIEWCOMMANDLINE             1381
 #define IDC_DELETE                      1382
 #define IDC_EDIT                        1383
