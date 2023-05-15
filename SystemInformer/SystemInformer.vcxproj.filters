@@ -473,9 +473,6 @@
     <ClInclude Include="include\ksisup.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="include\heapinfo.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="SystemInformer.ico">
