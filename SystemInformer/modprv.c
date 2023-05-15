@@ -123,7 +123,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
                     &moduleProvider->ProcessHandle,
                     PROCESS_QUERY_LIMITED_INFORMATION,
                     ProcessId
-                );
+                    );
             }
 
             moduleProvider->RunStatus = status;

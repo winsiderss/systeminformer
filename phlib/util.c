@@ -430,7 +430,9 @@ LONG PhGetSystemMetrics(
     }
 
     if (GetSystemMetricsForDpi_I && DpiValue)
+    {
         return GetSystemMetricsForDpi_I(Index, DpiValue);
+    }
 
     return GetSystemMetrics(Index);
 }
@@ -469,10 +471,12 @@ BOOL PhGetSystemParametersInfo(
         PhEndInitOnce(&initOnce);
     }
 
-    if (!DpiValue || !SystemParametersInfoForDpi_I)
-        return SystemParametersInfo(Action, Param1, Param2, 0);
+    if (SystemParametersInfoForDpi_I && DpiValue)
+    {
+        return SystemParametersInfoForDpi_I(Action, Param1, Param2, 0, DpiValue);
+    }
 
-    return SystemParametersInfoForDpi_I(Action, Param1, Param2, 0, DpiValue);
+    return SystemParametersInfo(Action, Param1, Param2, 0);
 }
 
 VOID PhGetSizeDpiValue(
@@ -1202,12 +1206,13 @@ BOOLEAN PhShowConfirmMessage(
     // "terminate", "the process" -> "terminate the process"
     action = PhaConcatStrings(3, verb->Buffer, L" ", Object);
 
-    if (TaskDialogIndirect)
     {
-        TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-        TASKDIALOG_BUTTON buttons[2];
         INT button;
+        TASKDIALOGCONFIG config;
+        TASKDIALOG_BUTTON buttons[2];
 
+        memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+        config.cbSize = sizeof(TASKDIALOGCONFIG);
         config.hwndParent = hWnd;
         config.hInstance = PhInstanceHandle;
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd) && !IsMinimized(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
@@ -1235,20 +1240,14 @@ BOOLEAN PhShowConfirmMessage(
         {
             return button == IDYES;
         }
-        else
-        {
-            return FALSE;
-        }
     }
-    else
-    {
-        return PhShowMessage(
-            hWnd,
-            MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
-            L"Are you sure you want to %s?",
-            action->Buffer
-            ) == IDYES;
-    }
+
+    return PhShowMessage(
+        hWnd,
+        MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
+        L"Are you sure you want to %s?",
+        action->Buffer
+        ) == IDYES;
 }
 
 /**
@@ -1904,7 +1903,7 @@ PPH_STRING PhFormatDate(
     )
 {
     PPH_STRING string;
-    ULONG bufferSize;
+    INT bufferSize;
 
     bufferSize = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, Date, Format, NULL, 0, NULL);
     string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
@@ -1933,7 +1932,7 @@ PPH_STRING PhFormatTime(
     )
 {
     PPH_STRING string;
-    ULONG bufferSize;
+    INT bufferSize;
 
     bufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, Time, Format, NULL, 0);
     string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
@@ -1961,8 +1960,8 @@ PPH_STRING PhFormatDateTime(
     )
 {
     PPH_STRING string;
-    ULONG timeBufferSize;
-    ULONG dateBufferSize;
+    INT timeBufferSize;
+    INT dateBufferSize;
     ULONG count;
 
     timeBufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
@@ -3111,6 +3110,10 @@ PPH_STRING PhGetFullPath(
     ULONG bufferSize;
     ULONG returnLength;
     PWSTR filePart;
+
+#ifdef DEBUG
+    assert(RtlEqualMemory(FileName, RtlNtPathSeperatorString.Buffer, RtlNtPathSeperatorString.Length) == FALSE);
+#endif
 
     bufferSize = 0x80;
     fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
@@ -8162,9 +8165,9 @@ NTSTATUS PhCreateProcessRedirection(
     _Out_opt_ PPH_STRING *CommandOutput
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     PPH_STRING output = NULL;
-    STARTUPINFOEX startupInfo = { 0 };
+    STARTUPINFOEX startupInfo;
     HANDLE processHandle = NULL;
     HANDLE outputReadHandle = NULL;
     HANDLE outputWriteHandle = NULL;

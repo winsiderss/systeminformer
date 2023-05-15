@@ -1405,7 +1405,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             {
                                 HANDLE processHandle = NULL;
                                 HANDLE newProcessHandle;
-                                STARTUPINFOEX startupInfo = { 0 };
+                                STARTUPINFOEX startupInfo;
                                 PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
                                 PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
                                 PVOID environment = NULL;
