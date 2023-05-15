@@ -107,7 +107,8 @@
 #define UpdateBlackBoxRecorder 94
 #define SessionAllowExternalDmaDevices 95
 #define SendSuspendResumeNotification 96 // since WIN11
-#define PowerInformationLevelMaximum 97
+#define BlackBoxRecorderDirectAccessBuffer 97
+#define PowerInformationLevelMaximum 98
 #endif
 
 typedef struct _PROCESSOR_POWER_INFORMATION
