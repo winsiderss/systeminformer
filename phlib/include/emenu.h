@@ -220,6 +220,10 @@ VOID PhSetHMenuStyle(
     _In_ BOOLEAN MainMenu
     );
 
+VOID PhSetHMenuNotify(
+    _In_ HMENU MenuHandle
+    );
+
 VOID PhDeleteHMenu(
     _In_ HMENU Menu
     );
