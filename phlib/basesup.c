@@ -65,6 +65,7 @@
 #define PH_VECTOR_LEVEL_AVX 2
 
 #define PH_NATIVE_STRING_CONVERSION 1
+#define PH_NATIVE_THREAD_CREATE 1
 
 typedef struct _PHP_BASE_THREAD_CONTEXT
 {
@@ -237,13 +238,13 @@ NTSTATUS PhCreateUserThread(
     _Out_opt_ PCLIENT_ID ClientId
     )
 {
+#if (PH_NATIVE_THREAD_CREATE)
     NTSTATUS status;
     HANDLE threadHandle;
     OBJECT_ATTRIBUTES objectAttributes;
     UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[1])] = { 0 };
     PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
     CLIENT_ID clientId = { 0 };
-    //PTEB teb = NULL;
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -259,10 +260,6 @@ NTSTATUS PhCreateUserThread(
     attributeList->Attributes[0].Size = sizeof(CLIENT_ID);
     attributeList->Attributes[0].ValuePtr = &clientId;
     attributeList->Attributes[0].ReturnLength = NULL;
-    //attributeList->Attributes[1].Attribute = PS_ATTRIBUTE_TEB_ADDRESS;
-    //attributeList->Attributes[1].Size = sizeof(PTEB);
-    //attributeList->Attributes[1].ValuePtr = &teb;
-    //attributeList->Attributes[1].ReturnLength = NULL;
 
     status = NtCreateThreadEx(
         &threadHandle,
@@ -296,6 +293,20 @@ NTSTATUS PhCreateUserThread(
     }
 
     return status;
+#else
+    return RtlCreateUserThread(
+        ProcessHandle,
+        ThreadSecurityDescriptor,
+        BooleanFlagOn(CreateFlags, THREAD_CREATE_FLAGS_CREATE_SUSPENDED),
+        (ULONG)ZeroBits,
+        MaximumStackSize,
+        StackSize,
+        StartRoutine,
+        Argument,
+        ThreadHandle,
+        ClientId
+        );
+#endif
 }
 
 /**
