@@ -210,6 +210,80 @@ DECLARE_INTERFACE_IID(IDiaDataSource10, IUnknown)
 };
 
 #undef INTERFACE
+#define INTERFACE IDiaXfgTypeHash
+DECLARE_INTERFACE_IID(IDiaXfgTypeHash, IUnknown)
+{
+    BEGIN_INTERFACE
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    // IDiaXfgTypeHash
+    STDMETHOD(get_TypeHash)(THIS, __RPC__out PULONG64 TypeHash) PURE;
+    STDMETHOD(get_TypeSignature)(THIS, __RPC__out IDiaSymbol** TypeSymbol) PURE;
+    STDMETHOD(get_HasVirtualInformation)(THIS, __RPC__out PBOOL Virtual) PURE;
+    STDMETHOD(get_BaseClassName)(THIS, __RPC__out PWSTR *BaseClassName) PURE;
+    STDMETHOD(get_MethodName)(THIS, __RPC__out PWSTR *MethodName) PURE;
+
+    END_INTERFACE
+};
+
+#ifdef COBJMACROS
+#define IDiaXfgTypeHash_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IDiaXfgTypeHash_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IDiaXfgTypeHash_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IDiaXfgTypeHash_get_TypeHash(This, Hash) \
+    ((This)->lpVtbl->get_TypeHash(This, Hash))
+#define IDiaXfgTypeHash_get_TypeSignature(This, Symbol) \
+    ((This)->lpVtbl->get_TypeSignature(This, Symbol))
+#define IDiaXfgTypeHash_get_HasVirtualInformation(This, Virtual) \
+    ((This)->lpVtbl->get_HasVirtualInformation(This, Virtual))
+#define IDiaXfgTypeHash_get_BaseClassName(This, BaseClassName) \
+    ((This)->lpVtbl->get_BaseClassName(This, BaseClassName))
+#define IDiaXfgTypeHash_get_MethodName(This, MethodName) \
+    ((This)->lpVtbl->get_MethodName(This, MethodName))
+#endif
+
+#undef INTERFACE
+#define INTERFACE IDiaEnumXfgTypeHashes
+DECLARE_INTERFACE_IID(IDiaEnumXfgTypeHashes, IUnknown)
+{
+    BEGIN_INTERFACE
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    // IDiaEnumXfgTypeHashes
+    STDMETHOD(get_Count)(THIS, __RPC__out PULONG Count) PURE;
+    STDMETHOD(Next)(THIS, __RPC__in ULONG celt, __RPC__out_ecount_part(celt, *pceltFetched) IDiaXfgTypeHash **TypeHashes, __RPC__out PULONG pceltFetched) PURE;
+    STDMETHOD(Reset)(THIS) PURE;
+
+    END_INTERFACE
+};
+
+#ifdef COBJMACROS
+#define IDiaEnumXfgTypeHashes_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IDiaEnumXfgTypeHashes_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IDiaEnumXfgTypeHashes_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IDiaEnumXfgTypeHashes_get_Count(This, Count) \
+    ((This)->lpVtbl->get_Count(This, Count))
+#define IDiaEnumXfgTypeHashes_Next(This, celt, hashes, count) \
+    ((This)->lpVtbl->Next(This, celt, hashes, count))
+#define IDiaEnumXfgTypeHashes_Reset(This) \
+    ((This)->lpVtbl->Reset(This))
+#endif
+
+#undef INTERFACE
 #define INTERFACE IDiaSession13
 DECLARE_INTERFACE_IID(IDiaSession13, IUnknown)
 {
@@ -571,8 +645,39 @@ DECLARE_INTERFACE_IID(IDiaSession13, IUnknown)
     // CDiaSession::getInlineeMDTokenMap(ulong,ulong*,uchar*)
     // CDiaSession::isPortablePDB(int*)
     // CDiaSession::getSourceLinkInfo(IDiaSymbol*,IDiaEnumSourceLink**)
+
+    STDMETHOD(addPublicSymbol)(THIS);
+    STDMETHOD(addStaticSymbol)(THIS);
+    STDMETHOD(findSectionAddressByCrc)(THIS);
+    STDMETHOD(findThunkSymbol)(THIS);
+    STDMETHOD(makeThunkSymbol)(THIS);
+    STDMETHOD(mergeObjPDB)(THIS);
+    STDMETHOD(commitObjPDBMerge)(THIS);
+    STDMETHOD(cancelObjPDBMerge)(THIS);
+    STDMETHOD(getLinkInfo)(THIS);
+    STDMETHOD(isMiniPDB)(THIS);
+    STDMETHOD(prepareEnCRebuild)(THIS);
+    STDMETHOD(dispose)(THIS);
+    STDMETHOD(getRawSymbolsFromMiniPDB)(THIS);
+    STDMETHOD(getRawTypesFromMiniPDB)(THIS);
+    STDMETHOD(getPdbMappingsForMiniPDB)(THIS);
+    STDMETHOD(disposeObjForMiniPDB)(THIS);
+    STDMETHOD(EnablePrefetching)(THIS);
+    STDMETHOD(isPCTModuleFromMiniPDB)(THIS);
+    STDMETHOD(EnableMemoryMappedFileIO)(THIS);
+    STDMETHOD(VSDebuggerPreloadPDBDone)(THIS);
+    STDMETHOD(isLinkerGeneratedModuleInMiniPDB)(THIS);
+    STDMETHOD(getInlineeMDTokenMapSize)(THIS);
+    STDMETHOD(getInlineeMDTokenMap)(THIS);
+    STDMETHOD(isPortablePDB)(THIS);
+    STDMETHOD(getSourceLinkInfo)(THIS);
+
     // CDiaSession::getEnumXfgTypeHashes(IDiaEnumXfgTypeHashes**)
     // CDiaSession::getXfgTypeHash(unsigned __int64,IDiaEnumXfgTypeHashes**)
+
+    STDMETHOD(getEnumXfgTypeHashes)(THIS, IDiaEnumXfgTypeHashes**);
+    STDMETHOD(getXfgTypeHash)(THIS, ULONG64, IDiaEnumXfgTypeHashes**);
+
     // CDiaSession::findChildrenHelper(IDiaSymbol *,SymTagEnum,ushort const *,ulong,ulong,bool,bool,IDiaEnumSymbols * *)
     // CDiaSession::findLinesByLinenumHelper(bool,IDiaSymbol *,IDiaSourceFile *,ulong,ulong,IDiaEnumLineNumbers * *)
     // CDiaSession::findSymbolsForAcceleratorPointerTagHelper(IDiaSymbol *,ulong,ulong,bool,IDiaEnumSymbols * *)
@@ -580,6 +685,13 @@ DECLARE_INTERFACE_IID(IDiaSession13, IUnknown)
     // CDiaSession::getMDTokenMapHelper2(ulong,CDiaSession::MDTokenMapKind,ulong,ulong *,uchar *)
     // CDiaSession::getMDTokenRemapHelper(CDiaSession::MDTokenMapKind,ulong,ulong *,uchar *)
     // CDiaSession::getFunctionFragmentsHelper(ulong,ulong,ulong,ulong *,ulong *,ulong *)
+    STDMETHOD(findChildrenHelper)(THIS);
+    STDMETHOD(findLinesByLinenumHelper)(THIS);
+    STDMETHOD(findSymbolsForAcceleratorPointerTagHelper)(THIS);
+    STDMETHOD(getMDTokenMapHelper)(THIS);
+    STDMETHOD(getMDTokenMapHelper2)(THIS);
+    STDMETHOD(getMDTokenRemapHelper)(THIS);
+    STDMETHOD(getFunctionFragmentsHelper)(THIS);
 
     END_INTERFACE
 };
