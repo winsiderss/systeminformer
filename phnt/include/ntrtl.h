@@ -3898,6 +3898,34 @@ RtlGetLongestNtPathLength(
     VOID
     );
 
+// rev
+typedef struct _RTL_BUFFER
+{
+    PUCHAR Buffer;
+    PUCHAR StaticBuffer;
+    SIZE_T Size;
+    SIZE_T StaticSize;
+} RTL_BUFFER, *PRTL_BUFFER;
+
+// rev
+typedef struct _RTL_UNICODE_STRING_BUFFER
+{
+    UNICODE_STRING String;
+    RTL_BUFFER ByteBuffer;
+    UCHAR MinimumStaticBufferForTerminalNul[2];
+} RTL_UNICODE_STRING_BUFFER, *PRTL_UNICODE_STRING_BUFFER;
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlNtPathNameToDosPathName(
+    _Reserved_ ULONG Flags,
+    _Inout_ PRTL_UNICODE_STRING_BUFFER Path,
+    _Out_opt_ PULONG Disposition, // RtlDetermineDosPathNameType_U
+    _Out_opt_ PWSTR* FilePart
+    );
+
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -9132,6 +9160,16 @@ RtlSetProtectedPolicy(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsEnclaveFeaturePresent(
+    _In_ ULONG FeatureMask
+    );
+#endif
+
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 // private
 NTSYSAPI
@@ -9576,20 +9614,56 @@ RtlRunOnceComplete(
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 
-typedef NTSTATUS (NTAPI *PWNF_USER_CALLBACK)(
+#define WNF_STATE_KEY 0x41C64E6DA3BC0074
+
+_Must_inspect_result_
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlEqualWnfChangeStamps(
+    _In_ WNF_CHANGE_STAMP ChangeStamp1,
+    _In_ WNF_CHANGE_STAMP ChangeStamp2
+    );
+
+_Always_(_Post_satisfies_(return == STATUS_NO_MEMORY || return == STATUS_RETRY || return == STATUS_SUCCESS))
+typedef _Function_class_(WNF_USER_CALLBACK)
+NTSTATUS NTAPI WNF_USER_CALLBACK(
     _In_ WNF_STATE_NAME StateName,
     _In_ WNF_CHANGE_STAMP ChangeStamp,
-    _In_ PWNF_TYPE_ID TypeId,
+    _In_opt_ PWNF_TYPE_ID TypeId,
     _In_opt_ PVOID CallbackContext,
-    _In_ PVOID Buffer,
-    _In_ ULONG BufferSize
+    _In_reads_bytes_opt_(Length) const VOID* Buffer,
+    _In_ ULONG Length
+    );
+typedef WNF_USER_CALLBACK *PWNF_USER_CALLBACK;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryWnfStateData(
+    _Out_ PWNF_CHANGE_STAMP ChangeStamp,
+    _In_ WNF_STATE_NAME StateName,
+    _In_ PWNF_USER_CALLBACK Callback,
+    _In_opt_ PVOID CallbackContext,
+    _In_opt_ PWNF_TYPE_ID TypeId
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlPublishWnfStateData(
+    _In_ WNF_STATE_NAME StateName,
+    _In_opt_ PCWNF_TYPE_ID TypeId,
+    _In_reads_bytes_opt_(Length) const VOID* Buffer,
+    _In_opt_ ULONG Length,
+    _In_opt_ const VOID* ExplicitScope
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSubscribeWnfStateChangeNotification(
-    _Outptr_ PVOID* SubscriptionHandle,
+    _Outptr_ PVOID* SubscriptionHandle, // PWNF_USER_SUBSCRIPTION
     _In_ WNF_STATE_NAME StateName,
     _In_ WNF_CHANGE_STAMP ChangeStamp,
     _In_ PWNF_USER_CALLBACK Callback,
