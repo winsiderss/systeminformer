@@ -143,16 +143,12 @@ BOOLEAN KphSuppressProtections(
     }
 
     if (!FlagOn(KphCodeIntegrityInfo.CodeIntegrityOptions,
-                CODEINTEGRITY_OPTION_ENABLED) &&
-        FlagOn(KphCodeIntegrityInfo.CodeIntegrityOptions,
-               CODEINTEGRITY_OPTION_TESTSIGN) &&
-        FlagOn(KphCodeIntegrityInfo.CodeIntegrityOptions,
-               CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED))
+                CODEINTEGRITY_OPTION_TESTSIGN))
     {
-        return TRUE;
+        return FALSE;
     }
 
-    return FALSE;
+    return TRUE;
 }
 
 // alloc
