@@ -1122,6 +1122,9 @@ BEGIN
     LTEXT           "I/O",IDC_TITLE,0,0,110,21
     LTEXT           "Panel layout",IDC_LAYOUT,0,109,315,78,NOT WS_VISIBLE
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,84,NOT WS_VISIBLE
+    LTEXT           "Read bytes:",IDC_IOREAD_L,111,1,52,8
+    LTEXT           "Write bytes:",IDC_IOWRITE_L,111,7,56,8
+    LTEXT           "Other bytes:",IDC_IOOTHER_L,111,14,60,8
 END
 
 IDD_SYSINFO_IOPANEL DIALOGEX 0, 0, 276, 75
