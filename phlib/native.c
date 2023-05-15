@@ -15142,7 +15142,9 @@ BOOLEAN PhInitializeKnownDllsTable(
 
         PhInitializeKnownDlls(L"\\KnownDlls");
         PhInitializeKnownDlls(L"\\KnownDlls32");
-
+#ifdef _ARM64_
+        PhInitializeKnownDlls(L"\\KnownDllsArm32");
+#endif
         PhEndInitOnce(&PhKnownDllsInitOnce);
     }
 
