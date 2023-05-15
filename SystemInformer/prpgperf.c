@@ -56,6 +56,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             performanceContext = propPageContext->Context = PhAllocateZero(sizeof(PH_PERFORMANCE_CONTEXT));
             performanceContext->WindowHandle = hwndDlg;
             performanceContext->Enabled = TRUE;
+            performanceContext->WindowDpi = PhGetWindowDpi(hwndDlg);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -151,14 +152,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-                    LONG dpiValue;
-
-                    dpiValue = PhGetWindowDpi (header->hwndFrom);
 
                     if (header->hwndFrom == performanceContext->CpuGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, performanceContext->WindowDpi);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->CpuGraphState,
@@ -239,7 +237,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     else if (header->hwndFrom == performanceContext->PrivateGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0, dpiValue);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0, performanceContext->WindowDpi);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->PrivateGraphState,
@@ -293,7 +291,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     else if (header->hwndFrom == performanceContext->IoGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, dpiValue);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, performanceContext->WindowDpi);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->IoGraphState,
@@ -469,16 +467,13 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             LONG between;
             LONG width;
             LONG height;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(hwndDlg);
+            margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, performanceContext->WindowDpi);
 
-            margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, dpiValue);
+            innerMargin.top = PhGetDpi(20, performanceContext->WindowDpi);
+            innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, performanceContext->WindowDpi);
 
-            innerMargin.top = PhGetDpi(20, dpiValue);
-            innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, dpiValue);
-
-            between = PhGetDpi(3, dpiValue);
+            between = PhGetDpi(3, performanceContext->WindowDpi);
 
             performanceContext->CpuGraphState.Valid = FALSE;
             performanceContext->CpuGraphState.TooltipIndex = ULONG_MAX;
@@ -557,6 +552,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 Graph_UpdateTooltip(performanceContext->IoGraphHandle);
                 InvalidateRect(performanceContext->IoGraphHandle, NULL, FALSE);
             }
+        }
+        break;
+    case WM_DPICHANGED_BEFOREPARENT:
+        {
+            performanceContext->WindowDpi = PhGetWindowDpi(hwndDlg);
         }
         break;
     }

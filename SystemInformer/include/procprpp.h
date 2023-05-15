@@ -382,6 +382,7 @@ typedef struct _PH_PERFORMANCE_CONTEXT
 
     HWND WindowHandle;
     BOOLEAN Enabled;
+    LONG WindowDpi;
 
     PH_GRAPH_STATE CpuGraphState;
     PH_GRAPH_STATE PrivateGraphState;
