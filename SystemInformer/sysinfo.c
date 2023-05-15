@@ -500,6 +500,8 @@ VOID PhSipOnDestroy(
 
     PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", PhSipWindow);
     PhSipSaveWindowState();
+
+    PostQuitMessage(0);
 }
 
 VOID PhSipOnNcDestroy(
@@ -524,8 +526,6 @@ VOID PhSipOnNcDestroy(
         PhCloseThemeData(ThemeData);
         ThemeData = NULL;
     }
-
-    PostQuitMessage(0);
 }
 
 BOOLEAN PhSipOnSysCommand(
