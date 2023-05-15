@@ -205,6 +205,9 @@ INT WINAPI wWinMain(
     if (PhIsNullOrEmptyString(PvFileName))
         return 1;
 
+    // Note: Resolve the filename when we're passed a native device prefix (dmex)
+    PhMoveReference(&PvFileName, PhGetFileName(PvFileName));
+
 #ifdef DEBUG
     if (!PhDoesFileExistWin32(PhGetString(PvFileName)))
     {
