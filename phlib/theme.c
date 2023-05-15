@@ -441,26 +441,26 @@ VOID PhWindowThemeSetDarkMode(
         PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
         //PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
 
-        if (WindowsVersion >= WINDOWS_11)
-        {
-            if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
-            {
-                PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
-            }
-        }
+        //if (WindowsVersion >= WINDOWS_11)
+        //{
+        //    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
+        //    {
+        //        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+        //    }
+        //}
     }
     else
     {
         PhSetControlTheme(WindowHandle, L"Explorer");
         //PhSetControlTheme(WindowHandle, L"ItemsView");
 
-        if (WindowsVersion >= WINDOWS_11)
-        {
-            if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
-            {
-                PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
-            }
-        }
+        //if (WindowsVersion >= WINDOWS_11)
+        //{
+        //    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+        //    {
+        //        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+        //    }
+        //}
     }
 }
 
@@ -561,6 +561,9 @@ VOID PhInitializeWindowThemeMainMenu(
     )
 {
     MENUINFO menuInfo;
+
+    if (!PhEnableThemeSupport)
+        return;
 
     memset(&menuInfo, 0, sizeof(MENUINFO));
     menuInfo.cbSize = sizeof(MENUINFO);
@@ -1083,9 +1086,9 @@ BOOLEAN PhThemeWindowDrawItem(
             }
             else
             {
-                PH_STRINGREF part;
-                PH_STRINGREF firstPart;
-                PH_STRINGREF secondPart;
+                PH_STRINGREF part = { 0 };
+                PH_STRINGREF firstPart = { 0 };
+                PH_STRINGREF secondPart = { 0 };
 
                 PhInitializeStringRefLongHint(&part, menuItemInfo->Text);
                 PhSplitStringRefAtLastChar(&part, L'\b', &firstPart, &secondPart);
@@ -1128,33 +1131,41 @@ BOOLEAN PhThemeWindowDrawItem(
 
                 if ((menuItemInfo->Flags & PH_EMENU_MAINMENU) == PH_EMENU_MAINMENU)
                 {
-                    DrawText(
-                        DrawInfo->hDC,
-                        firstPart.Buffer,
-                        (UINT)firstPart.Length / sizeof(WCHAR),
-                        &DrawInfo->rcItem,
-                        DT_LEFT | DT_SINGLELINE | DT_CENTER | DT_VCENTER | drawTextFlags
-                        );
+                    if (firstPart.Length)
+                    {
+                        DrawText(
+                            DrawInfo->hDC,
+                            firstPart.Buffer,
+                            (UINT)firstPart.Length / sizeof(WCHAR),
+                            &DrawInfo->rcItem,
+                            DT_LEFT | DT_SINGLELINE | DT_CENTER | DT_VCENTER | drawTextFlags
+                            );
+                    }
                 }
                 else
                 {
-                    DrawText(
-                        DrawInfo->hDC,
-                        firstPart.Buffer,
-                        (UINT)firstPart.Length / sizeof(WCHAR),
-                        &DrawInfo->rcItem,
-                        DT_LEFT | DT_VCENTER | drawTextFlags
-                        );
+                    if (firstPart.Length)
+                    {
+                        DrawText(
+                            DrawInfo->hDC,
+                            firstPart.Buffer,
+                            (UINT)firstPart.Length / sizeof(WCHAR),
+                            &DrawInfo->rcItem,
+                            DT_LEFT | DT_VCENTER | drawTextFlags
+                            );
+                    }
                 }
 
-
-                DrawText(
-                    DrawInfo->hDC,
-                    secondPart.Buffer,
-                    (UINT)secondPart.Length / sizeof(WCHAR),
-                    &DrawInfo->rcItem,
-                    DT_RIGHT | DT_VCENTER | drawTextFlags
-                    );
+                if (secondPart.Length)
+                {
+                    DrawText(
+                        DrawInfo->hDC,
+                        secondPart.Buffer,
+                        (UINT)secondPart.Length / sizeof(WCHAR),
+                        &DrawInfo->rcItem,
+                        DT_RIGHT | DT_VCENTER | drawTextFlags
+                        );
+                }
             }
 
             //if (oldFont)
@@ -1164,23 +1175,26 @@ BOOLEAN PhThemeWindowDrawItem(
 
             if (menuItemInfo->Items && menuItemInfo->Items->Count && (menuItemInfo->Flags & PH_EMENU_MAINMENU) != PH_EMENU_MAINMENU)
             {
-                HTHEME themeHandle = PhOpenThemeData(DrawInfo->hwndItem, VSCLASS_MENU, dpiValue);
+                HTHEME themeHandle;
 
-                //if (IsThemeBackgroundPartiallyTransparent(themeHandle, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL))
-                //    DrawThemeParentBackground(DrawInfo->hwndItem, DrawInfo->hDC, NULL);
+                if (themeHandle = PhOpenThemeData(DrawInfo->hwndItem, VSCLASS_MENU, dpiValue))
+                {
+                    //if (IsThemeBackgroundPartiallyTransparent(themeHandle, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL))
+                    //    DrawThemeParentBackground(DrawInfo->hwndItem, DrawInfo->hDC, NULL);
 
-                rect.left = rect.right - PhGetDpi(25, dpiValue);
+                    rect.left = rect.right - PhGetDpi(25, dpiValue);
 
-                PhDrawThemeBackground(
-                    themeHandle,
-                    DrawInfo->hDC,
-                    MENU_POPUPSUBMENU,
-                    isDisabled ? MSM_DISABLED : MSM_NORMAL,
-                    &rect,
-                    NULL
-                    );
+                    PhDrawThemeBackground(
+                        themeHandle,
+                        DrawInfo->hDC,
+                        MENU_POPUPSUBMENU,
+                        isDisabled ? MSM_DISABLED : MSM_NORMAL,
+                        &rect,
+                        NULL
+                        );
 
-                PhCloseThemeData(themeHandle);
+                    PhCloseThemeData(themeHandle);
+                }
             }
 
             ExcludeClipRect(DrawInfo->hDC, rect.left, rect.top, rect.right, rect.bottom); // exclude last
