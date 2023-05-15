@@ -2112,7 +2112,7 @@ BOOLEAN PhpSelectFavoriteInRegedit(
 /**
  * Opens a key in the Registry Editor.
  *
- * \param hWnd A handle to the parent window.
+ * \param WindowHandle A handle to the parent window.
  * \param KeyName The key name to open.
  */
 VOID PhShellOpenKey(
@@ -2121,6 +2121,7 @@ VOID PhShellOpenKey(
     )
 {
     static PH_STRINGREF regeditKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
+    NTSTATUS status;
     HANDLE regeditKeyHandle;
     PPH_STRING lastKey;
     PPH_STRING regeditFileName;
