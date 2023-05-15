@@ -58,7 +58,7 @@ PPH_STRING VirusTotalStringToTime(
 
     if (count == 6)
     {
-        if (SystemTimeToTzSpecificLocalTime(NULL, &time, &localTime))
+        if (SystemTimeToTzSpecificLocalTimeEx(NULL, &time, &localTime))
         {
             result = PhFormatDateTime(&localTime);
         }
