@@ -365,7 +365,7 @@ PPH_STRING PhpUpdaterCommitStringToTime(
 
     if (count == 6)
     {
-        if (SystemTimeToTzSpecificLocalTime(NULL, &time, &localTime))
+        if (SystemTimeToTzSpecificLocalTimeEx(NULL, &time, &localTime))
         {
             //result = PhFormatDateTime(&localTime);
             result = PhFormatDate(&localTime, NULL);
