@@ -26,7 +26,7 @@ BOOLEAN PhHexEditInitialization(
     memset(&c, 0, sizeof(WNDCLASSEX));
     c.cbSize = sizeof(WNDCLASSEX);
     c.lpszClassName = PH_HEXEDIT_CLASSNAME;
-    c.style = CS_PARENTDC | CS_GLOBALCLASS;
+    c.style = CS_GLOBALCLASS;
     c.cbWndExtra = sizeof(PVOID);
     c.hInstance = PhInstanceHandle;
     c.lpfnWndProc = PhpHexEditWndProc;
