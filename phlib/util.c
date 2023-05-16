@@ -3970,7 +3970,10 @@ PPH_STRING PhGetTemporaryDirectory(
     UNICODE_STRING variableValue;
     WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
-    if (PhEqualSid(PhGetOwnTokenAttributes().TokenSid, &PhSeLocalSystemSid))
+    if (
+        PhGetOwnTokenAttributes().Elevated ||
+        PhEqualSid(PhGetOwnTokenAttributes().TokenSid, &PhSeLocalSystemSid)
+        )
     {
         static PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");
         PH_STRINGREF systemRoot;
@@ -4376,9 +4379,11 @@ NTSTATUS PhCreateProcessWin32Ex(
         {
             static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
             static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+            PPH_STRING escaped;
 
-            PhMoveReference(&commandLine, PhConcatStringRef3(&seperator, &commandLineFileName, &seperator));
-            PhMoveReference(&commandLine, PhConcatStringRef3(&commandLine->sr, &space, &commandLineArguments));
+            escaped = PhConcatStringRef3(&seperator, &commandLineFileName, &seperator);
+            PhMoveReference(&escaped, PhConcatStringRef3(&commandLine->sr, &space, &commandLineArguments));
+            PhMoveReference(&commandLine, escaped); // Note: Only update 'commandLine' after escape or arguments capture the old string (dmex)
         }
 
         //INT cmdlineArgCount;
