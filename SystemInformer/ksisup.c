@@ -246,9 +246,24 @@ NTSTATUS PhRestartSelf(
     _In_ PPH_STRINGREF AdditionalCommandLine
     )
 {
+#ifndef DEBUG
+#define DEFAULT_MITIGATION_POLICY_FLAGS \
+    (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON)
+#define DEFAULT_MITIGATION_POLICY_FLAGS2 \
+    (PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_STRICT_CONTROL_FLOW_GUARD_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_BLOCK_NON_CET_BINARIES_ALWAYS_ON)
+#endif
     NTSTATUS status;
     PH_STRINGREF commandlineSr;
     PPH_STRING commandline;
+    STARTUPINFOEX startupInfo;
 
     status = PhGetProcessCommandLineStringRef(&commandlineSr);
 
@@ -260,16 +275,53 @@ NTSTATUS PhRestartSelf(
         AdditionalCommandLine
         );
 
-    status = PhCreateProcessWin32(
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+
+#ifndef DEBUG
+    status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (WindowsVersion >= WINDOWS_10_22H2)
+    {
+        status = PhUpdateProcThreadAttribute(
+            startupInfo.lpAttributeList,
+            PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+            &(ULONG64[2]){ DEFAULT_MITIGATION_POLICY_FLAGS, DEFAULT_MITIGATION_POLICY_FLAGS2 },
+            sizeof(ULONG64[2])
+            );
+    }
+    else
+    {
+        status = PhUpdateProcThreadAttribute(
+            startupInfo.lpAttributeList,
+            PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+            &(ULONG64[1]) { DEFAULT_MITIGATION_POLICY_FLAGS },
+            sizeof(ULONG64[1])
+            );
+    }
+#endif
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhCreateProcessWin32Ex(
         NULL,
         PhGetString(commandline),
         NULL,
         NULL,
-        0,
+        &startupInfo.StartupInfo,
+        PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+        NULL,
         NULL,
         NULL,
         NULL
         );
+
+    if (startupInfo.lpAttributeList)
+        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
 
     PhDereferenceObject(commandline);
 
@@ -378,7 +430,7 @@ NTSTATUS KsiInitializeCallbackThread(
                     !PhStartupParameters.KphStartupMax)
                 {
                     PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
-                    PhRestartSelf(&commandline);
+                    status = PhRestartSelf(&commandline);
                 }
 
                 if ((level < KphLevelHigh) &&
@@ -386,7 +438,19 @@ NTSTATUS KsiInitializeCallbackThread(
                     !PhStartupParameters.KphStartupHigh)
                 {
                     PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
-                    PhRestartSelf(&commandline);
+                    status = PhRestartSelf(&commandline);
+                }
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowKsiMessageEx(
+                        CallbackContext,
+                        TD_ERROR_ICON,
+                        status,
+                        FALSE,
+                        L"Unable to load kernel driver",
+                        L"Unable to restart."
+                        );
                 }
             }
         }
