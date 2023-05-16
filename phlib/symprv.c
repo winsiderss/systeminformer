@@ -1237,7 +1237,7 @@ static BOOLEAN NTAPI PhpSymbolProviderEnumModulesCallback(
     return TRUE;
 }
 
-VOID PhLoadModulesForProcessSymbolProvider(
+VOID PhLoadModulesForVirtualSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_opt_ HANDLE ProcessId
     )
@@ -1247,17 +1247,36 @@ VOID PhLoadModulesForProcessSymbolProvider(
     memset(&context, 0, sizeof(PHP_LOAD_PROCESS_SYMBOLS_CONTEXT));
     context.SymbolProvider = SymbolProvider;
 
-    if (SymbolProvider->IsRealHandle)
+    if (ProcessId)
     {
-        // Load symbols for the process.
-        context.LoadingSymbolsForProcessId = ProcessId;
-        PhEnumGenericModules(
-            ProcessId,
-            SymbolProvider->ProcessHandle,
-            0,
-            PhpSymbolProviderEnumModulesCallback,
-            &context
-            );
+        HANDLE processHandle = NULL;
+
+        if (SymbolProvider->IsRealHandle)
+        {
+            processHandle = SymbolProvider->ProcessHandle;
+        }
+        else
+        {
+            PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId);
+        }
+
+        if (processHandle)
+        {
+            // Load symbols for the process.
+            context.LoadingSymbolsForProcessId = ProcessId;
+            PhEnumGenericModules(
+                ProcessId,
+                processHandle,
+                PH_ENUM_GENERIC_MAPPED_IMAGES,
+                PhpSymbolProviderEnumModulesCallback,
+                &context
+                );
+        }
+
+        if (!SymbolProvider->IsRealHandle && processHandle)
+        {
+            NtClose(processHandle);
+        }
     }
 
     // Load symbols for kernel modules.

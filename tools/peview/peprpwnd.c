@@ -784,7 +784,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                     PhDereferenceObject(fileName);
                 }
 
-                PhLoadModulesForProcessSymbolProvider(PvSymbolProvider, NtCurrentProcessId());
+                PhLoadModulesForVirtualSymbolProvider(PvSymbolProvider, NtCurrentProcessId());
             }
 
             PvAddTreeViewSections();
