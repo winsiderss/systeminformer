@@ -137,7 +137,7 @@ VOID PvPeProperties(
             PhDereferenceObject(fileName);
         }
 
-        PhLoadModulesForProcessSymbolProvider(PvSymbolProvider, NtCurrentProcessId());
+        PhLoadModulesForVirtualSymbolProvider(PvSymbolProvider, NtCurrentProcessId());
     }
 
     if (propContext = PvCreatePropContext(PvFileName))

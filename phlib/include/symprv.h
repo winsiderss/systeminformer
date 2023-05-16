@@ -163,7 +163,7 @@ PhLoadFileNameSymbolProvider(
 PHLIBAPI
 VOID
 NTAPI
-PhLoadModulesForProcessSymbolProvider(
+PhLoadModulesForVirtualSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_opt_ HANDLE ProcessId
     );
