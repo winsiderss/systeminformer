@@ -354,7 +354,7 @@ NTSTATUS WepResolveSymbolFunction(
 
     if (PhBeginInitOnce(&context->Context->SymbolProviderInitOnce))
     {
-        PhEnumGenericModules(context->Context->ClientId.UniqueProcess, NULL, 0, EnumGenericModulesCallback, context->Context);
+        PhLoadModulesForVirtualSymbolProvider(context->Context->SymbolProvider, context->Context->ClientId.UniqueProcess);
         PhEndInitOnce(&context->Context->SymbolProviderInitOnce);
     }
 
@@ -397,7 +397,7 @@ VOID WepQueueResolveSymbol(
 
     if (!Context->SymbolProvider)
     {
-        Context->SymbolProvider = PhCreateSymbolProvider(Context->ClientId.UniqueProcess);
+        Context->SymbolProvider = PhCreateSymbolProvider(NULL);
         PhLoadSymbolProviderOptions(Context->SymbolProvider);
     }
 
