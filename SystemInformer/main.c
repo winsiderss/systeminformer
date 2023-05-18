@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -163,6 +163,7 @@ INT WINAPI wWinMain(
 
     if (PhGetIntegerSetting(L"EnableKph") &&
         !PhStartupParameters.NoKph &&
+        !PhStartupParameters.ShowOptions &&
         !PhIsExecutingInWow64())
     {
         PhInitializeKsi();
