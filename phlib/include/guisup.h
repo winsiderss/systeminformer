@@ -239,19 +239,19 @@ FORCEINLINE VOID PhSetWindowExStyle(
     SetWindowLongPtr(Handle, GWL_EXSTYLE, style);
 }
 
-FORCEINLINE PVOID PhGetWindowProcedure(
+FORCEINLINE WNDPROC PhGetWindowProcedure(
     _In_ HWND WindowHandle
     )
 {
-    return (PVOID)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+    return (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
 }
 
-FORCEINLINE PVOID PhSetWindowProcedure(
+FORCEINLINE WNDPROC PhSetWindowProcedure(
     _In_ HWND WindowHandle,
     _In_ PVOID SubclassProcedure
     )
 {
-    return (PVOID)SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)SubclassProcedure);
+    return (WNDPROC)SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)SubclassProcedure);
 }
 
 FORCEINLINE UINT_PTR PhSetTimer(
