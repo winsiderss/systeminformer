@@ -179,6 +179,26 @@ PhDrawThemeBackground(
     _In_opt_ LPCRECT ClipRect
     );
 
+FORCEINLINE LONG_PTR PhGetClassStyle(
+    _In_ HWND WindowHandle
+    )
+{
+    return GetClassLongPtr(WindowHandle, GCL_STYLE);
+}
+
+FORCEINLINE VOID PhSetClassStyle(
+    _In_ HWND Handle,
+    _In_ LONG_PTR Mask,
+    _In_ LONG_PTR Value
+    )
+{
+    LONG_PTR style;
+
+    style = GetClassLongPtr(Handle, GCL_STYLE);
+    style = (style & ~Mask) | (Value & Mask);
+    SetClassLongPtr(Handle, GCL_STYLE, style);
+}
+
 FORCEINLINE LONG_PTR PhGetWindowStyle(
     _In_ HWND WindowHandle
     )
