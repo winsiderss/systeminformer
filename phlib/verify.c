@@ -1325,6 +1325,7 @@ VERIFY_RESULT PhVerifyFileCached(
             signerName = NULL;
         }
 
+        if (!CachedOnly) // if (result != VrUnknown)
         {
             PH_VERIFY_CACHE_ENTRY newEntry;
 
