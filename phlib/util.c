@@ -8172,7 +8172,7 @@ NTSTATUS PhCreateProcessRedirection(
 {
     NTSTATUS status;
     PPH_STRING output = NULL;
-    STARTUPINFOEX startupInfo;
+    STARTUPINFOEX startupInfo = { 0 };
     HANDLE processHandle = NULL;
     HANDLE outputReadHandle = NULL;
     HANDLE outputWriteHandle = NULL;
