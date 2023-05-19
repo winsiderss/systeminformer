@@ -136,7 +136,7 @@ PhLoadINT128(
 #ifdef _ARM64_
     return vld1q_s32(Memory);
 #else
-    return _mm_load_si128((__m128i*)Memory);
+    return _mm_load_si128((__m128i const*)Memory);
 #endif
 }
 
@@ -202,6 +202,19 @@ PhMoveMaskINT128by8(
 }
 
 FORCEINLINE
+PH_FLOAT128
+PhSetFLOAT128bySingle(
+    _In_ FLOAT Value
+    )
+{
+#ifdef _ARM64_
+    return vdupq_n_f32(Value);
+#else
+    return _mm_set1_ps(Value);
+#endif
+}
+
+FORCEINLINE
 PH_INT128
 PhSetINT128by16(
     _In_ SHORT Value
@@ -217,7 +230,7 @@ PhSetINT128by16(
 FORCEINLINE
 PH_INT128
 PhSetINT128by32(
-    _In_ LONG Value
+    _In_ INT32 Value
     )
 {
 #ifdef _ARM64_
@@ -255,6 +268,20 @@ PhLoadFLOAT128(
 
 FORCEINLINE
 PH_FLOAT128
+PhAddFLOAT128(
+    _In_ PH_FLOAT128 A,
+    _In_ PH_FLOAT128 B
+    )
+{
+#ifdef _ARM64_
+    return vaddq_f32(A, B);
+#else
+    return _mm_add_ps(A, B);
+#endif
+}
+
+FORCEINLINE
+PH_FLOAT128
 PhDivideFLOAT128(
     _In_ PH_FLOAT128 Divisor,
     _In_ PH_FLOAT128 Dividend
@@ -272,6 +299,41 @@ PhDivideFLOAT128(
 }
 
 FORCEINLINE
+PH_FLOAT128
+PhMaxFLOAT128(
+    _In_ PH_FLOAT128 A,
+    _In_ PH_FLOAT128 B
+    )
+{
+#ifdef _ARM64_
+    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
+#if SSE2NEON_PRECISE_MINMAX
+    float32x4_t _a = A;
+    float32x4_t _b = B;
+    return vbslq_f32(vcgtq_f32(_a, _b), _a, _b);
+#else
+    return vmaxq_f32(A, B);
+#endif
+#else
+    return _mm_max_ps(A, B);
+#endif
+}
+
+FORCEINLINE
+PH_FLOAT128
+PhMultiplyFLOAT128(
+    _In_ PH_FLOAT128 A,
+    _In_ PH_FLOAT128 B
+    )
+{
+#ifdef _ARM64_
+    return vmulq_f32(A, B);
+#else
+    return _mm_mul_ps(A, B);
+#endif
+}
+
+FORCEINLINE
 VOID
 PhStoreFLOAT128(
     _Out_writes_bytes_(2 * sizeof(FLOAT)) PFLOAT Target,
@@ -283,6 +345,142 @@ PhStoreFLOAT128(
 #else
     _mm_store_ps(Target, Value);
 #endif
+}
+
+FORCEINLINE
+VOID
+PhStoreFLOAT128LowSingle(
+    _Out_writes_bytes_(2 * sizeof(FLOAT)) PFLOAT Target,
+    _In_ PH_FLOAT128 Value
+    )
+{
+#ifdef _ARM64_
+    vst1q_lane_f32(Target, Value, 0);
+#else
+    _mm_store_ss(Target, Value);
+#endif
+}
+
+FORCEINLINE
+PH_FLOAT128
+PhZeroFLOAT128(
+    VOID
+    )
+{
+#ifdef _ARM64_
+    return vdupq_n_f32(0);
+#else
+    return _mm_setzero_ps();
+#endif
+}
+
+#ifndef _MM_SHUFFLE
+#define _MM_SHUFFLE(fp3,fp2,fp1,fp0) (((fp3) << 6) | ((fp2) << 4) | ((fp1) << 2) | ((fp0)))
+#endif
+
+FORCEINLINE
+PH_FLOAT128
+PhShuffleFLOAT128_2103(
+    _In_ PH_FLOAT128 A,
+    _In_ PH_FLOAT128 B
+    )
+{
+#ifdef _ARM64_
+    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
+    float32x2_t a03 = vget_low_f32(vextq_f32(A, A, 3));
+    float32x2_t b21 = vget_high_f32(vextq_f32(B, B, 3));
+    return vcombine_f32(a03, b21);
+#else
+    return _mm_shuffle_ps(A, B, _MM_SHUFFLE(2, 1, 0, 3)); // C2057 expected constant expression??
+#endif
+}
+
+FORCEINLINE
+PH_INT128
+PhShiftRightINT128(
+    _In_ PH_INT128 A,
+    _In_ _In_range_(0, 255) INT32 Count
+    )
+{
+#ifdef _ARM64_
+    return vshlq_u32(A, vdupq_n_s32(-Count));
+#else
+    return _mm_srli_epi32(A, Count);
+#endif
+}
+
+FORCEINLINE
+PH_INT128
+PhAndINT128(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    return vandq_s32(A, B);
+#else
+    return _mm_and_si128(A, B);
+#endif
+}
+
+FORCEINLINE
+PH_INT128
+PhConvertFLOAT128ToUINT128(
+    _In_ PH_FLOAT128 A
+    )
+{
+#ifdef _ARM64_
+    return vcvtq_u32_f32(A);
+#else
+    return _mm_cvtps_epu32(A); // _mm_cvtps_epi32
+#endif
+}
+
+FORCEINLINE
+PH_FLOAT128
+PhConvertINT128ToFLOAT128(
+    _In_ PH_INT128 A
+    )
+{
+#ifdef _ARM64_
+    return vcvtq_f32_s32(A);
+#else
+    return _mm_cvtepi32_ps(A);
+#endif
+}
+
+#ifndef _ARM64_
+FORCEINLINE __m256 _mm256_cvtf_epu32(
+    _In_ __m256i Value
+    )
+{
+    const __m256 mul = _mm256_set1_ps(0x1.0p16f);
+
+    const __m256i hi = _mm256_srli_epi32(Value, 16);
+    const __m256i lo = _mm256_srli_epi32(_mm256_slli_epi32(Value, 16), 16);
+    const __m256 fHi = _mm256_mul_ps(_mm256_cvtepi32_ps(hi), mul);
+    const __m256 fLo = _mm256_cvtepi32_ps(lo);
+
+    return _mm256_add_ps(fHi, fLo);
+}
+#endif
+
+FORCEINLINE PH_FLOAT128 PhConvertUINT128ToFLOAT128(
+    _In_ PH_INT128 Value
+    )
+{
+    // https://stackoverflow.com/questions/9151711/most-efficient-way-to-convert-vector-of-uint32-to-vector-of-float
+
+    const PH_FLOAT128 mul = PhSetFLOAT128bySingle(0x1.0p16f); // 65536
+
+    // Avoid double rounding by doing two exact conversions of high and low 16-bit segments.
+
+    const PH_INT128 hi = PhShiftRightINT128(Value, 16);
+    const PH_INT128 lo = PhAndINT128(Value, PhSetINT128by32(0x0000FFFF)); // PhShiftRightINT128(_mm_slli_epi32(Value, 16), 16);
+    const PH_FLOAT128 fHi = PhMultiplyFLOAT128(PhConvertINT128ToFLOAT128(hi), mul);
+    const PH_FLOAT128 fLo = PhConvertINT128ToFLOAT128(lo);
+
+    return PhAddFLOAT128(fHi, fLo);
 }
 
 #endif
