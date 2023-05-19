@@ -59,6 +59,7 @@
 #include <phintrnl.h>
 #include <phnative.h>
 #include <phintrin.h>
+#include <circbuf.h>
 
 #define PH_VECTOR_LEVEL_NONE 0
 #define PH_VECTOR_LEVEL_SSE2 1
@@ -6604,6 +6605,82 @@ BOOLEAN PhPrintTimeSpanToBuffer(
     return FALSE;
 }
 
+BOOLEAN PhCalculateEntropy(
+    _In_ PBYTE Buffer,
+    _In_ ULONG64 BufferLength,
+    _Out_opt_ DOUBLE* Entropy,
+    _Out_opt_ DOUBLE* Variance
+    )
+{
+    DOUBLE bufferEntropy = 0.0;
+    DOUBLE bufferMeanValue = 0.0;
+    ULONG64 bufferOffset = 0;
+    ULONG64 bufferSumValue = 0;
+    ULONG64 counts[UCHAR_MAX + 1];
+
+    memset(counts, 0, sizeof(counts));
+
+    while (bufferOffset < BufferLength)
+    {
+        BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, bufferOffset++);
+
+        bufferSumValue += value;
+        counts[value]++;
+    }
+
+    for (ULONG i = 0; i < ARRAYSIZE(counts); i++)
+    {
+        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)BufferLength;
+
+        if (value > 0.0)
+            bufferEntropy -= value * log2(value);
+    }
+
+    bufferMeanValue = (DOUBLE)bufferSumValue / (DOUBLE)BufferLength;
+
+    if (Entropy)
+        *Entropy = bufferEntropy;
+    if (Variance)
+        *Variance = bufferMeanValue;
+
+    return TRUE;
+}
+
+PPH_STRING PhFormatEntropy(
+    _In_ DOUBLE Entropy,
+    _In_ USHORT EntropyPrecision,
+    _In_opt_ DOUBLE Variance,
+    _In_opt_ USHORT VariancePrecision
+    )
+{
+    if (Entropy && Variance)
+    {
+        PH_FORMAT format[4];
+
+        // %s S (%s X)
+        format[0].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[0].u.Double = Entropy;
+        format[0].Precision = EntropyPrecision;
+        PhInitFormatS(&format[1], L" S (");
+        format[2].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[2].u.Double = Variance;
+        format[2].Precision = VariancePrecision;
+        PhInitFormatS(&format[3], L" X)");
+
+        return PhFormat(format, ARRAYSIZE(format), 0);
+    }
+    else
+    {
+        PH_FORMAT format;
+
+        format.Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format.u.Double = Entropy;
+        format.Precision = EntropyPrecision;
+
+        return PhFormat(&format, 1, 0);
+    }
+}
+
 /**
  * Fills a memory block with a ULONG pattern.
  *
@@ -6900,79 +6977,428 @@ VOID PhDivideSinglesBySingle(
     }
 }
 
-BOOLEAN PhCalculateEntropy(
-    _In_ PBYTE Buffer,
-    _In_ ULONG64 BufferLength,
-    _Out_opt_ DOUBLE* Entropy,
-    _Out_opt_ DOUBLE* Variance
+/**
+ * Adds one array of integers to another.
+ *
+ * \param A The destination array to which the source
+ * array is added. The array must be 16 byte aligned.
+ * \param B The source array. The array must be 16
+ * byte aligned.
+ * \param Count The number of elements.
+ */
+VOID PhAddMemoryUlongOriginal(
+    _Inout_ _Needs_align_(16) PULONG A,
+    _In_ _Needs_align_(16) PULONG B,
+    _In_ ULONG Count
     )
 {
-    DOUBLE bufferEntropy = 0.0;
-    DOUBLE bufferMeanValue = 0.0;
-    ULONG64 bufferOffset = 0;
-    ULONG64 bufferSumValue = 0;
-    ULONG64 counts[UCHAR_MAX + 1];
-
-    memset(counts, 0, sizeof(counts));
-
-    while (bufferOffset < BufferLength)
+#ifndef _ARM64_
+    if (PhHasIntrinsics)
     {
-        BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, bufferOffset++);
+        while (Count >= 4)
+        {
+            __m128i a;
+            __m128i b;
 
-        bufferSumValue += value;
-        counts[value]++;
+            a = _mm_load_si128((__m128i*)A);
+            b = _mm_load_si128((__m128i*)B);
+            a = _mm_add_epi32(a, b);
+            _mm_store_si128((__m128i*)A, a);
+
+            A += 4;
+            B += 4;
+            Count -= 4;
+        }
+
+        switch (Count & 0x3)
+        {
+        case 0x3:
+            *A++ += *B++;
+            __fallthrough;
+        case 0x2:
+            *A++ += *B++;
+            __fallthrough;
+        case 0x1:
+            *A++ += *B++;
+            break;
+        }
     }
-
-    for (ULONG i = 0; i < ARRAYSIZE(counts); i++)
+    else
+#endif
     {
-        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)BufferLength;
-
-        if (value > 0.0)
-            bufferEntropy -= value * log2(value);
+        while (Count--)
+            *A++ += *B++;
     }
-
-    bufferMeanValue = (DOUBLE)bufferSumValue / (DOUBLE)BufferLength;
-
-    if (Entropy)
-        *Entropy = bufferEntropy;
-    if (Variance)
-        *Variance = bufferMeanValue;
-
-    return TRUE;
 }
 
-PPH_STRING PhFormatEntropy(
-    _In_ DOUBLE Entropy,
-    _In_ USHORT EntropyPrecision,
-    _In_opt_ DOUBLE Variance,
-    _In_opt_ USHORT VariancePrecision
+/**
+ * \brief Returns the maximum value of an array of floats.
+ *
+ * \param A The array.
+ * \param Count The total number of array elements.
+ *
+ * \return The maximum of any single element.
+ */
+FLOAT PhMaxMemorySingles(
+    _In_ PFLOAT A,
+    _In_ SIZE_T Count
     )
 {
-    if (Entropy && Variance)
+    FLOAT maximum = 0.0f;
+
+#ifndef _ARM64_
+    if (PhHasAVX)
     {
-        PH_FORMAT format[4];
+        SIZE_T count = Count & ~0x1F;
 
-        // %s S (%s X)
-        format[0].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
-        format[0].u.Double = Entropy;
-        format[0].Precision = EntropyPrecision;
-        PhInitFormatS(&format[1], L" S (");
-        format[2].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
-        format[2].u.Double = Variance;
-        format[2].Precision = VariancePrecision;
-        PhInitFormatS(&format[3], L" X)");
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m256 a;
+            __m256 c;
 
-        return PhFormat(format, ARRAYSIZE(format), 0);
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            c = _mm256_setzero_ps();
+
+            while (A != end)
+            {
+                a = _mm256_load_ps(A);
+                c = _mm256_max_ps(c, a);
+
+                A += 8;
+            }
+
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_permute2f128_ps(c, c, 1));
+            maximum = _mm256_cvtss_f32(c);
+
+            Count &= 0x1F;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            FLOAT value;
+            PFLOAT end;
+            PH_FLOAT128 a;
+            PH_FLOAT128 c;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            c = PhZeroFLOAT128();
+
+            while (A != end)
+            {
+                a = PhLoadFLOAT128(A);
+                c = PhMaxFLOAT128(c, a);
+
+                A += 4;
+            }
+
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            PhStoreFLOAT128LowSingle(&value, c);
+
+            if (maximum < value)
+                maximum = value;
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count--)
+    {
+        FLOAT value = *A++;
+
+        if (maximum < value)
+            maximum = value;
+    }
+
+    return maximum;
+}
+
+/**
+ * \brief Adds one array of floats to another and returns the maximum.
+ *
+ * \param A The first array.
+ * \param B The second array.
+ * \param Count The total number of array elements.
+ *
+ * \return The maximum of any single element.
+ */
+FLOAT PhAddPlusMaxMemorySingles(
+    _Inout_updates_(Count) PFLOAT A,
+    _Inout_updates_(Count) PFLOAT B,
+    _In_ SIZE_T Count
+    )
+{
+    FLOAT maximum = 0.0f;
+
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m256 a;
+            __m256 b;
+            __m256 c;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            c = _mm256_setzero_ps();
+
+            while (A != end)
+            {
+                a = _mm256_load_ps(A);
+                b = _mm256_load_ps(B);
+                a = _mm256_add_ps(b, a);
+                c = _mm256_max_ps(c, a);
+
+                A += 8;
+                B += 8;
+            }
+
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_permute2f128_ps(c, c, 1));
+            maximum = _mm256_cvtss_f32(c);
+
+            Count &= 0x1F;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            FLOAT value;
+            PFLOAT end;
+            PH_FLOAT128 a;
+            PH_FLOAT128 b;
+            PH_FLOAT128 c;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            c = PhZeroFLOAT128();
+
+            while (A != end)
+            {
+                a = PhLoadFLOAT128(A);
+                b = PhLoadFLOAT128(B);
+                a = PhAddFLOAT128(b, a);
+                c = PhMaxFLOAT128(c, a);
+
+                A += 4;
+                B += 4;
+            }
+
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            PhStoreFLOAT128LowSingle(&value, c);
+
+            if (maximum < value)
+                maximum = value;
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count--)
+    {
+        FLOAT value = *A++ + *B++;
+
+        if (maximum < value)
+            maximum = value;
+    }
+
+    return maximum;
+}
+
+/**
+ * \brief Converts an array of integers to floats.
+ *
+ * \param From The source integers.
+ * \param To The destination floats.
+ * \param Count The number of elements.
+ */
+VOID PhConvertCopyMemoryUlong(
+    _Inout_updates_(Count) PULONG From,
+    _Inout_updates_(Count) PFLOAT To,
+    _In_ SIZE_T Count
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PULONG end;
+            __m256i a;
+            __m256 b;
+
+            end = (PULONG)(ULONG_PTR)(From + count);
+
+            while (From != end)
+            {
+                a = _mm256_load_si256((__m256i const*)From);
+                b = _mm256_cvtf_epu32(a); // _mm256_cvtepi32_ps
+                _mm256_store_ps(To, b);
+
+                From += 8;
+                To += 8;
+            }
+
+            Count &= 0x1F;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            PULONG end;
+            PH_INT128 a;
+            PH_FLOAT128 b;
+
+            end = (PULONG)(ULONG_PTR)(From + count);
+
+            while (From != end)
+            {
+                a = PhLoadINT128(From); // _mm_loadl_epi64
+                b = PhConvertUINT128ToFLOAT128(a); // _mm_cvtepi32_ps // _mm_cvtepu32_ps
+                PhStoreFLOAT128(To, b);
+
+                From += 4;
+                To += 4;
+            }
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count--)
+    {
+        *To++ = (FLOAT)*From++;
+    }
+}
+
+/**
+ * \brief Converts an array of floats to integers.
+ *
+ * \param From The source floats.
+ * \param To The destination integers.
+ * \param Count The number of elements.
+ */
+VOID PhConvertCopyMemorySingles(
+    _Inout_updates_(Count) PFLOAT From,
+    _Inout_updates_(Count) PULONG To,
+    _In_ SIZE_T Count
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m256 a;
+            __m256i b;
+
+            end = (PFLOAT)(ULONG_PTR)(From + count);
+
+            while (From != end)
+            {
+                a = _mm256_load_ps(From);
+                b = _mm256_cvtps_epi32(a); // _mm256_cvtps_epu32
+                _mm256_store_si256((__m256i*)To, b);
+
+                From += 8;
+                To += 8;
+            }
+
+            Count &= 0x1F;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            PH_FLOAT128 a;
+            PH_INT128 b;
+
+            end = (PFLOAT)(ULONG_PTR)(From + count);
+
+            while (From != end)
+            {
+                a = PhLoadFLOAT128(From);
+                b = PhConvertFLOAT128ToUINT128(a);
+                PhStoreINT128(To, b);
+
+                From += 4;
+                To += 4;
+            }
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count--)
+    {
+        *To++ = (ULONG)*From++;
+    }
+}
+
+// based on PhCopyCircularBuffer (FLOAT) (\phlib\circbuf_i.h) (dmex)
+VOID PhCopyConvertCircularBufferULONG(
+    _Inout_ struct _PH_CIRCULAR_BUFFER_ULONG* Buffer,
+    _Out_writes_(Count) FLOAT* Destination,
+    _In_ ULONG Count
+    )
+{
+    ULONG tailSize;
+    ULONG headSize;
+
+    tailSize = (ULONG)(Buffer->Size - Buffer->Index);
+    headSize = Buffer->Count - tailSize;
+
+    if (Count > Buffer->Count)
+        Count = Buffer->Count;
+
+    if (tailSize >= Count)
+    {
+        // Convert and copy only a part of the tail.
+        PhConvertCopyMemoryUlong(&Buffer->Data[Buffer->Index], Destination, Count);
     }
     else
     {
-        PH_FORMAT format;
-
-        format.Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
-        format.u.Double = Entropy;
-        format.Precision = EntropyPrecision;
-
-        return PhFormat(&format, 1, 0);
+        // Convert and copy the tail, then only part of the head.
+        PhConvertCopyMemoryUlong(&Buffer->Data[Buffer->Index], Destination, tailSize);
+        PhConvertCopyMemoryUlong(Buffer->Data, &Destination[tailSize], (Count - tailSize));
     }
 }
 
@@ -6990,7 +7416,7 @@ ULONG PhCountBits(
         #define T ULONG
         ULONG count;
 
-        // Licensed under public domain: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
         Value = Value - ((Value >> 1) & (T)~(T)0 / 3);
         Value = (Value & (T)~(T)0 / 15 * 3) + ((Value >> 2) & (T)~(T)0 / 15 * 3);
         Value = (Value + (Value >> 4)) & (T)~(T)0 / 255 * 15;
@@ -7026,7 +7452,7 @@ ULONG PhCountBitsUlongPtr(
         #define T ULONG
         ULONG count;
 
-        // Licensed under public domain: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
         Value = Value - ((Value >> 1) & (T)~(T)0 / 3);
         Value = (Value & (T)~(T)0 / 15 * 3) + ((Value >> 2) & (T)~(T)0 / 15 * 3);
         Value = (Value + (Value >> 4)) & (T)~(T)0 / 255 * 15;
