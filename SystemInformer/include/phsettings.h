@@ -44,6 +44,7 @@ EXT BOOLEAN PhEnableTooltipSupport;
 EXT BOOLEAN PhEnableLinuxSubsystemSupport;
 EXT BOOLEAN PhEnableNetworkResolveDoHSupport;
 EXT BOOLEAN PhEnableVersionShortText;
+EXT BOOLEAN PhEnableDeferredLayout;
 
 EXT ULONG PhCsForceNoParent;
 EXT ULONG PhCsHighlightingDuration;

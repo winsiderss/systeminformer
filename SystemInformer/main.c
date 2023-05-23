@@ -1102,6 +1102,7 @@ VOID PhpInitializeSettings(
     PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
+    PhEnableDeferredLayout = !!PhGetIntegerSetting(L"EnableDeferredLayout");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {
