@@ -31,16 +31,11 @@
  */
 
 #include <ph.h>
-#include <treenew.h>
-
-#include <vssym32.h>
-
 #include <apiimport.h>
 #include <guisup.h>
+#include <treenew.h>
 #include <treenewp.h>
-#include <mapldr.h>
-
-static PVOID ComCtl32Handle;
+#include <vssym32.h>
 
 BOOLEAN PhTreeNewInitialization(
     VOID
@@ -54,7 +49,7 @@ BOOLEAN PhTreeNewInitialization(
     c.cbWndExtra = sizeof(PVOID);
     c.hInstance = PhInstanceHandle;
     c.hIcon = NULL;
-    c.hCursor = LoadCursor(NULL, IDC_ARROW);
+    c.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     c.hbrBackground = NULL;
     c.lpszMenuName = NULL;
     c.lpszClassName = PH_TREENEW_CLASSNAME;
@@ -62,8 +57,6 @@ BOOLEAN PhTreeNewInitialization(
 
     if (!RegisterClassEx(&c))
         return FALSE;
-
-    ComCtl32Handle = PhGetLoaderEntryDllBaseZ(L"comctl32.dll");
 
     return TRUE;
 }
@@ -658,7 +651,7 @@ ULONG PhTnpOnGetDlgCode(
     _In_opt_ PMSG Message
     )
 {
-    ULONG code;
+    ULONG code = 0;
 
     if (Context->Callback(hwnd, TreeNewGetDialogCode, UlongToPtr(VirtualKey), &code, Context->CallbackContext))
     {
@@ -797,16 +790,13 @@ BOOLEAN PhTnpOnSetCursor(
 
     if (TNP_HIT_TEST_FIXED_DIVIDER(point.x, Context))
     {
-        if (!Context->DividerCursor)
-            Context->DividerCursor = LoadCursor(ComCtl32Handle, MAKEINTRESOURCE(106)); // HACK (the divider icon resource has been 106 for quite a while...)
-
-        SetCursor(Context->DividerCursor);
+        PhSetCursor(PhLoadDividerCursor());
         return TRUE;
     }
 
     if (Context->Cursor)
     {
-        SetCursor(Context->Cursor);
+        PhSetCursor(Context->Cursor);
         return TRUE;
     }
 
@@ -3369,6 +3359,7 @@ BOOLEAN PhTnpIsNodeLeaf(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhTnpGetCellText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_NODE Node,
@@ -4890,9 +4881,6 @@ VOID PhTnpUpdateScrollBars(
         height -= Context->HScrollHeight;
     }
 
-    deltaRows = 0;
-    deltaX = 0;
-
     // Vertical scroll bar
 
     scrollInfo.cbSize = sizeof(SCROLLINFO);
@@ -5661,7 +5649,7 @@ VOID PhTnpDrawCell(
     )
 {
     HFONT font; // font to use
-    HFONT oldFont;
+    HFONT oldFont = NULL;
     PH_STRINGREF text; // text to draw
     RECT textRect; // working rectangle, modified as needed
     ULONG textFlags; // DT_* flags
@@ -5877,7 +5865,7 @@ VOID PhTnpDrawCell(
             textFlags
             );
 
-        if (font)
+        if (oldFont)
             SelectFont(hdc, oldFont);
     }
 }
@@ -6181,19 +6169,17 @@ VOID PhTnpInitializeTooltips(
     toolInfo.lParam = TNP_TOOLTIPS_HEADER;
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
-    // Hook the header control window procedures so we can forward mouse messages to the tooltip control.
-    Context->HeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC);
-    Context->FixedHeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
-
-    PhSetWindowContext(Context->HeaderHandle, 0xF, Context);
-    PhSetWindowContext(Context->FixedHeaderHandle, 0xF, Context);
-
     if (Context->HeaderCustomDraw)
     {
         Context->HeaderHotColumn = -1;
         Context->HeaderThemeHandle = PhOpenThemeData(Context->HeaderHandle, VSCLASS_HEADER, Context->WindowDpi);
     }
 
+    // Hook the header control window procedures so we can forward mouse messages to the tooltip control.
+    Context->HeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC);
+    Context->FixedHeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
+    PhSetWindowContext(Context->HeaderHandle, MAXCHAR, Context);
+    PhSetWindowContext(Context->FixedHeaderHandle, MAXCHAR, Context);
     SetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
     SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
 
@@ -6205,7 +6191,7 @@ VOID PhTnpInitializeTooltips(
 VOID PhTnpGetTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Outptr_ PWSTR *Text
     )
 {
     PH_TREENEW_HIT_TEST hitTest;
@@ -6433,7 +6419,7 @@ VOID PhTnpGetHeaderTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ BOOLEAN Fixed,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Outptr_ PWSTR *Text
     )
 {
     LOGICAL result;
@@ -6581,7 +6567,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     PPH_TREENEW_CONTEXT context;
     WNDPROC oldWndProc;
 
-    context = PhGetWindowContext(hwnd, 0xF);
+    context = PhGetWindowContext(hwnd, MAXCHAR);
 
     if (hwnd == context->FixedHeaderHandle)
         oldWndProc = context->FixedHeaderWindowProc;
@@ -6595,7 +6581,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             PhTnpHeaderDestroyBufferedContext(context);
 
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(hwnd, 0xF);
+            PhRemoveWindowContext(hwnd, MAXCHAR);
         }
         break;
     case WM_MOUSEMOVE:
