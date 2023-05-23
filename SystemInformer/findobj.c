@@ -1323,7 +1323,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             if (context->SearchThreadHandle)
             {
-                SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
+                PhSetCursor(PhLoadCursor(NULL, IDC_APPSTARTING));
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
                 return TRUE;
             }
@@ -1414,7 +1414,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                         PhSetDialogItemText(hwndDlg, IDOK, L"Cancel");
 
-                        SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
+                        PhSetCursor(PhLoadCursor(NULL, IDC_APPSTARTING));
                     }
                     else
                     {
@@ -1721,7 +1721,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhSetDialogItemText(hwndDlg, IDOK, L"Find");
             EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
 
-            SetCursor(LoadCursor(NULL, IDC_ARROW));
+            PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
             if ((NTSTATUS)wParam == STATUS_INSUFFICIENT_RESOURCES)
             {

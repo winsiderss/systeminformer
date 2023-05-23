@@ -270,7 +270,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         {
             if (context->Cursor)
             {
-                SetCursor(context->Cursor);
+                PhSetCursor(context->Cursor);
                 return TRUE;
             }
         }

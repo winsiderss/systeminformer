@@ -1169,7 +1169,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                             SetCapture(hWnd);
 
                             // Set the cursor.
-                            SetCursor(LoadCursor(NULL, IDC_CROSS));
+                            PhSetCursor(PhLoadCursor(NULL, IDC_CROSS));
 
                             // Send the window to the bottom.
                             SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1278,7 +1278,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 TargetingCompleted = TRUE;
 
                 // Reset the original cursor.
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 // Bring the window back to the top, and preserve the Always on Top setting.
                 SetWindowPos(hWnd, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,

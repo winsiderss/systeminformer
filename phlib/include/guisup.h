@@ -274,6 +274,40 @@ FORCEINLINE BOOL PhKillTimer(
     return KillTimer(WindowHandle, TimerID);
 }
 
+#define IDC_DIVIDER MAKEINTRESOURCE(106) // comctl32.dll
+
+FORCEINLINE
+HCURSOR
+NTAPI
+PhLoadCursor(
+    _In_opt_ PVOID BaseAddress,
+    _In_ PCWSTR CursorName
+    )
+{
+    return (HCURSOR)LoadImage((HINSTANCE)BaseAddress, CursorName, IMAGE_CURSOR, 0, 0, LR_SHARED);
+    //return LoadCursor((HINSTANCE)BaseAddress, CursorName);
+}
+
+FORCEINLINE
+HCURSOR
+NTAPI
+PhGetCursor(
+    VOID
+    )
+{
+    return GetCursor();
+}
+
+FORCEINLINE
+HCURSOR
+NTAPI
+PhSetCursor(
+    _In_opt_ HCURSOR CursorHandle
+    )
+{
+    return SetCursor(CursorHandle);
+}
+
 #ifndef WM_REFLECT
 #define WM_REFLECT 0x2000
 #endif
@@ -1683,6 +1717,20 @@ NTAPI
 PhSetWindowAcrylicCompositionColor(
     _In_ HWND WindowHandle,
     _In_ ULONG GradientColor
+    );
+
+PHLIBAPI
+HCURSOR
+NTAPI
+PhLoadArrowCursor(
+    VOID
+    );
+
+PHLIBAPI
+HCURSOR
+NTAPI
+PhLoadDividerCursor(
+    VOID
     );
 
 #ifndef DBT_DEVICEARRIVAL

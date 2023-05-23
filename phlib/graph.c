@@ -78,7 +78,7 @@ BOOLEAN PhGraphControlInitialization(
     c.cbWndExtra = sizeof(PVOID);
     c.hInstance = PhInstanceHandle;
     c.hIcon = NULL;
-    c.hCursor = LoadCursor(NULL, IDC_ARROW);
+    c.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     c.hbrBackground = NULL;
     c.lpszMenuName = NULL;
     c.lpszClassName = PH_GRAPH_CLASSNAME;
@@ -1158,7 +1158,7 @@ LRESULT CALLBACK PhpGraphWndProc(
         {
             if (context->Options.DefaultCursor)
             {
-                SetCursor(context->Options.DefaultCursor);
+                PhSetCursor(context->Options.DefaultCursor);
                 return TRUE;
             }
         }

@@ -70,7 +70,6 @@ typedef struct _PH_TREENEW_CONTEXT
 
     HFONT Font;
     HCURSOR Cursor;
-    HCURSOR DividerCursor;
 
     RECT ClientRect;
     LONG HeaderHeight;

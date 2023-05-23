@@ -1233,7 +1233,7 @@ PPH_SYSINFO_SECTION PhSipCreateSection(
     Graph_GetOptions(section->GraphHandle, &options);
     options.FadeOutBackColor = CurrentParameters.GraphBackColor;
     options.FadeOutWidth = CurrentParameters.PanelWidth + PH_SYSINFO_FADE_ADD;
-    options.DefaultCursor = LoadCursor(NULL, IDC_HAND);
+    options.DefaultCursor = PhLoadCursor(NULL, IDC_HAND);
     Graph_SetOptions(section->GraphHandle, &options);
     if (PhEnableTooltipSupport) Graph_SetTooltip(section->GraphHandle, TRUE);
 
@@ -2263,7 +2263,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
         break;
     case WM_SETCURSOR:
         {
-            SetCursor(LoadCursor(NULL, IDC_HAND));
+            PhSetCursor(PhLoadCursor(NULL, IDC_HAND));
         }
         return TRUE;
     case WM_GETDLGCODE:

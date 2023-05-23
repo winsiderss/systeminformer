@@ -3711,3 +3711,43 @@ BOOLEAN PhSetWindowAcrylicCompositionColor(
 
     return PhSetWindowCompositionAttribute(WindowHandle, &attribute);
 }
+
+HCURSOR PhLoadArrowCursor(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HCURSOR arrowCursorHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        arrowCursorHandle = PhLoadCursor(NULL, IDC_ARROW);
+        PhEndInitOnce(&initOnce);
+    }
+
+    return arrowCursorHandle;
+}
+
+HCURSOR PhLoadDividerCursor(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HCURSOR dividerCursorHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        //dividerCursorHandle = PhLoadCursor(NULL, IDC_SIZEWE);
+
+        if (baseAddress = PhGetLoaderEntryDllBaseZ(L"comctl32.dll"))
+        {
+            dividerCursorHandle = PhLoadCursor(baseAddress, IDC_DIVIDER);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return dividerCursorHandle;
+}

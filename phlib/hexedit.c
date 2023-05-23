@@ -30,7 +30,7 @@ BOOLEAN PhHexEditInitialization(
     c.cbWndExtra = sizeof(PVOID);
     c.hInstance = PhInstanceHandle;
     c.lpfnWndProc = PhpHexEditWndProc;
-    c.hCursor = LoadCursor(NULL, IDC_ARROW);
+    c.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 
     if (!RegisterClassEx(&c))
         return FALSE;

@@ -177,7 +177,7 @@ VOID PhUpdateTransparentBackgroundWindow(
             &blendFunction,
             ULW_ALPHA
             );
-        
+
         SelectBitmap(bufferHdc, oldBitmapHandle);
         DeleteBitmap(bitmapHandle);
         DeleteDC(bufferHdc);
@@ -218,7 +218,7 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
             clientRect.top = 0;
             clientRect.right = createStruct->cx;
             clientRect.bottom = createStruct->cy;
-            
+
             PhUpdateTransparentBackgroundWindow(WindowHandle, &clientRect);
 #else
             constexpr ULONG OpacityPercent = 50;
@@ -241,7 +241,7 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
             {
                 SetMenu(GetParent(WindowHandle), menu);
             }
-            
+
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
@@ -270,7 +270,7 @@ RTL_ATOM PhInitializeBackgroundWindowClass(
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.lpfnWndProc = PhTransparentBackgroundWindowCallback;
-    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hCursor = PhLoadCursor(nullptr, IDC_ARROW);
     wcex.lpszClassName = L"TransparentBackgroundWindowClass";
 
     return RegisterClassEx(&wcex);

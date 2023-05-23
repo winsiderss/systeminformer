@@ -1191,7 +1191,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             SetCapture(hwndDlg);
 
             // Set the cursor.
-            SetCursor(LoadCursor(NULL, IDC_CROSS));
+            PhSetCursor(PhLoadCursor(NULL, IDC_CROSS));
 
             // Send the window to the bottom.
             SetWindowPos(hwndDlg, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1255,7 +1255,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 context->TargetingCompleted = TRUE;
 
                 // Reset the original cursor.
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 // Bring the window back to the top, and preserve the Always on Top setting.
                 SetWindowPos(hwndDlg, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1843,7 +1843,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             SetCapture(hwndDlg);
 
             // Set the cursor.
-            SetCursor(LoadCursor(NULL, IDC_CROSS));
+            PhSetCursor(PhLoadCursor(NULL, IDC_CROSS));
 
             // Send the window to the bottom.
             SetWindowPos(GetParent(hwndDlg), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1907,7 +1907,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 context->TargetingCompleted = TRUE;
 
                 // Reset the original cursor.
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 // Bring the window back to the top, and preserve the Always on Top setting.
                 SetWindowPos(GetParent(hwndDlg), HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);

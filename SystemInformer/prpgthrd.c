@@ -82,7 +82,7 @@ static VOID NTAPI ThreadsLoadingStateChangedHandler(
     //    TNM_SETCURSOR,
     //    0,
     //    // Parameter contains TRUE if loading symbols
-    //    (LPARAM)(Parameter ? LoadCursor(NULL, IDC_APPSTARTING) : NULL)
+    //    (LPARAM)(Parameter ? PhLoadCursor(NULL, IDC_APPSTARTING) : NULL)
     //    );
 }
 
@@ -341,7 +341,7 @@ BOOLEAN PhpThreadTreeFilterCallback(
     if (threadItem->AlternateThreadIdString)
     {
         if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadItem->AlternateThreadIdString->sr))
-            return TRUE; 
+            return TRUE;
     }
     else if (threadItem->ThreadIdString[0])
     {

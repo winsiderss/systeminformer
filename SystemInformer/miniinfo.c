@@ -1196,7 +1196,7 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
         break;
     case WM_SETCURSOR:
         {
-            SetCursor(LoadCursor(NULL, IDC_HAND));
+            PhSetCursor(PhLoadCursor(NULL, IDC_HAND));
         }
         return TRUE;
     }

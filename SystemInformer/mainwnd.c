@@ -419,7 +419,7 @@ RTL_ATOM PhMwpInitializeWindowClass(
     wcex.hInstance = PhInstanceHandle;
     className = PhaGetStringSetting(L"MainWindowClassName");
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 
     if (PhEnableWindowText)
     {
