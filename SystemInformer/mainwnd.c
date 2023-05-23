@@ -13,6 +13,7 @@
 #include <phapp.h>
 #include <mainwnd.h>
 
+#include <cpysave.h>
 #include <emenu.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
