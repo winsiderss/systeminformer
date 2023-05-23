@@ -1642,6 +1642,20 @@ PhSetWindowAcrylicCompositionColor(
     _In_ ULONG GradientColor
     );
 
+#ifndef DBT_DEVICEARRIVAL
+#define DBT_DEVICEARRIVAL        0x8000  // system detected a new device
+#define DBT_DEVICEREMOVECOMPLETE 0x8004  // device is gone
+
+#define DBT_DEVTYP_VOLUME        0x00000002  // logical volume
+
+typedef struct _DEV_BROADCAST_HDR
+{
+    ULONG dbch_size;
+    ULONG dbch_devicetype;
+    ULONG dbch_reserved;
+} DEV_BROADCAST_HDR, *PDEV_BROADCAST_HDR;
+#endif
+
 // theme support (theme.c)
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
