@@ -3423,39 +3423,41 @@ VOID PhpImageListItemDeleteProcedure(
 }
 
 VOID PhProcessImageListInitialization(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     )
 {
     HICON iconSmall;
     HICON iconLarge;
+    PPH_LIST fileNames = NULL;
+
+    PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
 
     if (!PhImageListItemType)
         PhImageListItemType = PhCreateObjectType(L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
 
-    PhProcessImageListWindowDpi = PhGetWindowDpi(hwnd);
+    PhProcessImageListWindowDpi = WindowDpi;
 
-    PH_HASHTABLE_ENUM_CONTEXT enumContext;
-    PPH_IMAGELIST_ITEM* entry;
-    PPH_LIST fileNames = NULL;
-
-    if (PhImageListCacheHashtable)
     {
-        fileNames = PhCreateList(PhImageListCacheHashtable->Count);
+        PH_HASHTABLE_ENUM_CONTEXT enumContext;
+        PPH_IMAGELIST_ITEM* entry;
 
-        PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
-        PhBeginEnumHashtable(PhImageListCacheHashtable, &enumContext);
-
-        while (entry = PhNextEnumHashtable(&enumContext))
+        if (PhImageListCacheHashtable)
         {
-            PPH_IMAGELIST_ITEM item = *entry;
-            PhAddItemList(fileNames, PhReferenceObject(item->FileName));
-            PhDereferenceObject(item);
+            fileNames = PhCreateList(PhImageListCacheHashtable->Count);
+
+            PhBeginEnumHashtable(PhImageListCacheHashtable, &enumContext);
+
+            while (entry = PhNextEnumHashtable(&enumContext))
+            {
+                PPH_IMAGELIST_ITEM item = *entry;
+                PhAddItemList(fileNames, PhReferenceObject(item->FileName));
+                PhDereferenceObject(item);
+            }
+
+            PhDereferenceObject(PhImageListCacheHashtable);
+            PhImageListCacheHashtable = NULL;
         }
-
-        PhDereferenceObject(PhImageListCacheHashtable);
-        PhImageListCacheHashtable = NULL;
-
-        PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
     }
 
     if (PhProcessLargeImageList) PhImageListDestroy(PhProcessLargeImageList);
@@ -3525,6 +3527,8 @@ VOID PhProcessImageListInitialization(
         PhDereferenceObjects(fileNames->Items, fileNames->Count);
         PhDereferenceObject(fileNames);
     }
+
+    PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
 }
 
 BOOLEAN PhImageListCacheHashtableEqualFunction(
