@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017
+ *     dmex    2017-2023
  *
  */
 
@@ -97,12 +97,12 @@ LRESULT CALLBACK PhpHexEditWndProc(
 {
     PPHP_HEXEDIT_CONTEXT context;
 
-    context = PhGetWindowContext(hwnd, MAXCHAR);
+    context = PhGetWindowContextEx(hwnd);
 
     if (uMsg == WM_CREATE)
     {
         PhpCreateHexEditContext(&context);
-        PhSetWindowContext(hwnd, MAXCHAR, context);
+        PhSetWindowContextEx(hwnd, context);
     }
 
     if (!context)
@@ -136,7 +136,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwnd, MAXCHAR);
+            PhRemoveWindowContextEx(hwnd);
             PhpFreeHexEditContext(context);
         }
         break;
