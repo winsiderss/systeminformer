@@ -126,6 +126,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
@@ -151,6 +152,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
@@ -173,6 +175,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
@@ -201,6 +204,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
@@ -229,6 +233,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
@@ -254,6 +259,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>

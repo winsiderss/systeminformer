@@ -118,6 +118,7 @@
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardEHContMetadata>true</GuardEHContMetadata>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -149,6 +150,7 @@
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardSignedReturns>true</GuardSignedReturns>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -179,6 +181,7 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -210,6 +213,7 @@
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardSignedReturns>true</GuardSignedReturns>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>

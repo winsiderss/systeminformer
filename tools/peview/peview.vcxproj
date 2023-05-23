@@ -130,6 +130,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -170,6 +171,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -209,6 +211,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -251,6 +254,7 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -298,6 +302,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -343,6 +348,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
       <GuardSignedReturns>true</GuardSignedReturns>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
       <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
