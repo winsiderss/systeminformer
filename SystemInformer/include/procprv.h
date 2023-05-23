@@ -479,7 +479,8 @@ PHAPPAPI
 VOID
 NTAPI
 PhProcessImageListInitialization(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     );
 
 PHAPPAPI

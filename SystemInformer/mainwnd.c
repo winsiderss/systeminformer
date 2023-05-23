@@ -280,11 +280,6 @@ LRESULT CALLBACK PhMwpWndProc(
 {
     switch (uMsg)
     {
-    case WM_CREATE:
-        {
-            PhProcessImageListInitialization(hWnd);
-        }
-        break;
     case WM_DESTROY:
         {
             PhMwpOnDestroy(hWnd);
@@ -478,6 +473,8 @@ VOID PhMwpInitializeMetrics(
 {
     LayoutWindowDpi = PhGetWindowDpi(WindowHandle);
     LayoutBorderSize = PhGetSystemMetrics(SM_CXBORDER, LayoutWindowDpi);
+
+    PhProcessImageListInitialization(WindowHandle, LayoutWindowDpi);
 }
 
 VOID PhMwpInitializeControls(
