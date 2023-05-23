@@ -30,11 +30,12 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
+    PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
     PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
-    PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
+    PhpAddIntegerSetting(L"EnableDeferredLayout", L"1");
     PhpAddIntegerSetting(L"EnableImageCoherencySupport", L"0");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableHeapReflection", L"0");
@@ -416,5 +417,4 @@ VOID PhUpdateCachedSettings(
     PhCsEnableGraphMaxText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
     PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");
-    PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
 }

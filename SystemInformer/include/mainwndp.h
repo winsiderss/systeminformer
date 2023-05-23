@@ -50,8 +50,16 @@ RTL_ATOM PhMwpInitializeWindowClass(
     VOID
     );
 
+PPH_STRING PhMwpInitializeWindowTitle(
+    VOID
+    );
+
 VOID PhMwpInitializeProviders(
     VOID
+    );
+
+VOID PhMwpShowWindow(
+    _In_ INT ShowCommand
     );
 
 VOID PhMwpApplyUpdateInterval(
@@ -129,7 +137,9 @@ VOID PhMwpOnInitMenuPopup(
     );
 
 VOID PhMwpOnSize(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG Width,
+    _In_ LONG Height
     );
 
 VOID PhMwpOnSizing(
@@ -138,7 +148,7 @@ VOID PhMwpOnSizing(
     );
 
 VOID PhMwpOnSetFocus(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 _Success_(return)
@@ -147,7 +157,17 @@ BOOLEAN PhMwpOnNotify(
     _Out_ LRESULT *Result
     );
 
-ULONG_PTR PhMwpOnUserMessage(
+VOID PhMwpOnDeviceChanged(
+    _In_ HWND WindowHandle,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PhMwpOnDpiChanged(
+    _In_ HWND WindowHandle
+    );
+
+LRESULT PhMwpOnUserMessage(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
     _In_ ULONG_PTR WParam,
@@ -204,7 +224,7 @@ PPH_EMENU PhpCreateMainMenu(
     );
 
 VOID PhMwpInitializeMainMenu(
-    _In_ HMENU Menu
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpDispatchMenuCommand(
