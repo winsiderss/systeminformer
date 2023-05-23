@@ -3555,6 +3555,26 @@ PhPrintTimeSpanToBuffer(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhCalculateEntropy(
+    _In_ PBYTE Buffer,
+    _In_ ULONG64 BufferLength,
+    _Out_opt_ DOUBLE *Entropy,
+    _Out_opt_ DOUBLE *Variance
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatEntropy(
+    _In_ DOUBLE Entropy,
+    _In_ USHORT EntropyPrecision,
+    _In_opt_ DOUBLE Variance,
+    _In_opt_ USHORT VariancePrecision
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhFillMemoryUlong(
@@ -3573,23 +3593,44 @@ PhDivideSinglesBySingle(
     );
 
 PHLIBAPI
-BOOLEAN
+FLOAT
 NTAPI
-PhCalculateEntropy(
-    _In_ PBYTE Buffer,
-    _In_ ULONG64 BufferLength,
-    _Out_opt_ DOUBLE *Entropy,
-    _Out_opt_ DOUBLE *Variance
+PhMaxMemorySingles(
+    _In_ PFLOAT A,
+    _In_ SIZE_T Count
     );
 
 PHLIBAPI
-PPH_STRING
+FLOAT
 NTAPI
-PhFormatEntropy(
-    _In_ DOUBLE Entropy,
-    _In_ USHORT EntropyPrecision,
-    _In_opt_ DOUBLE Variance,
-    _In_opt_ USHORT VariancePrecision
+PhAddPlusMaxMemorySingles(
+    _Inout_updates_(Count) PFLOAT A,
+    _Inout_updates_(Count) PFLOAT B,
+    _In_ SIZE_T Count
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhConvertCopyMemoryUlong(
+    _Inout_updates_(Count) PULONG From,
+    _Inout_updates_(Count) PFLOAT To,
+    _In_ SIZE_T Count
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhConvertCopyMemorySingles(
+    _Inout_updates_(Count) PFLOAT From,
+    _Inout_updates_(Count) PULONG To,
+    _In_ SIZE_T Count
+    );
+
+VOID PhCopyConvertCircularBufferULONG(
+    _Inout_ struct _PH_CIRCULAR_BUFFER_ULONG* Buffer,
+    _Out_writes_(Count) FLOAT* Destination,
+    _In_ ULONG Count
     );
 
 PHLIBAPI

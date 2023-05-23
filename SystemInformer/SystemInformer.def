@@ -50,6 +50,7 @@ EXPORTS
     PhAddItemsArray
     PhAddItemSimpleHashtable
     PhAddItemsList
+    PhAddPlusMaxMemorySingles
     PhAllocate
     PhAllocateExSafe
     PhAllocateFromFreeList
@@ -89,6 +90,7 @@ EXPORTS
     PhConvertUtf8ToUtf16Buffer
     PhConvertUtf8ToUtf16Ex
     PhConvertUtf8ToUtf16Size
+    PhCopyConvertCircularBufferULONG
     PhCopyBytesZ
     PhCopyStringZ
     PhCopyStringZFromBytes
@@ -185,6 +187,7 @@ EXPORTS
     PhLocalTimeToSystemTime
     PhLowerBoundElementAvlTree
     PhLowerDualBoundElementAvlTree
+    PhMaxMemorySingles
     PhMaximumElementAvlTree
     PhMinimumElementAvlTree
     PhNtStatusFileNotFound
