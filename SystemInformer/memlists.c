@@ -226,13 +226,13 @@ VOID PhShowMemoryListCommand(
                 NTSTATUS status;
                 MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
 
-                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                 status = NtSetSystemInformation(
                     SystemCombinePhysicalMemoryInformation,
                     &combineInfo,
                     sizeof(MEMORY_COMBINE_INFORMATION_EX)
                     );
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 if (NT_SUCCESS(status))
                 {
@@ -263,13 +263,13 @@ VOID PhShowMemoryListCommand(
                     break;
                 }
 
-                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                 status = KphSystemControl(
                     KphSystemControlEmptyCompressionStore,
                     NULL,
                     0
                     );
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 if (!NT_SUCCESS(status))
                 {
@@ -281,9 +281,9 @@ VOID PhShowMemoryListCommand(
             {
                 NTSTATUS status;
 
-                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                 status = NtSetSystemInformation(SystemRegistryReconciliationInformation, NULL, 0);
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 if (NT_SUCCESS(status))
                 {
@@ -304,13 +304,13 @@ VOID PhShowMemoryListCommand(
 
                 PhGetSystemFileCacheSize(&cacheInfo);
 
-                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                 status = PhSetSystemFileCacheSize(
                     MAXSIZE_T,
                     MAXSIZE_T,
                     0
                     );
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 if (NT_SUCCESS(status))
                 {
@@ -335,13 +335,13 @@ VOID PhShowMemoryListCommand(
     {
         NTSTATUS status;
 
-        SetCursor(LoadCursor(NULL, IDC_WAIT));
+        PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
         status = NtSetSystemInformation(
             SystemMemoryListInformation,
             &command,
             sizeof(SYSTEM_MEMORY_LIST_COMMAND)
             );
-        SetCursor(LoadCursor(NULL, IDC_ARROW));
+        PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
         if (status == STATUS_PRIVILEGE_NOT_HELD)
         {
@@ -349,9 +349,9 @@ VOID PhShowMemoryListCommand(
             {
                 if (PhUiConnectToPhSvc(ParentWindow, FALSE))
                 {
-                    SetCursor(LoadCursor(NULL, IDC_WAIT));
+                    PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                     status = PhSvcCallIssueMemoryListCommand(command);
-                    SetCursor(LoadCursor(NULL, IDC_ARROW));
+                    PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
                     PhUiDisconnectFromPhSvc();
                 }
                 else

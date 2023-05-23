@@ -887,20 +887,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                 {
                     if (header->hwndFrom == context->TreeViewHandle)
                     {
-                        HCURSOR cursor = (HCURSOR)LoadImage(
-                            NULL,
-                            IDC_ARROW,
-                            IMAGE_CURSOR,
-                            0,
-                            0,
-                            LR_SHARED
-                            );
-
-                        if (cursor != GetCursor())
-                        {
-                            SetCursor(cursor);
-                        }
-
+                        PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
                         return TRUE;
                     }
