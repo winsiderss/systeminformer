@@ -945,12 +945,12 @@ LRESULT CALLBACK PhpGraphWndProc(
 {
     PPHP_GRAPH_CONTEXT context;
 
-    context = PhGetWindowContext(hwnd, MAXCHAR);
+    context = PhGetWindowContextEx(hwnd);
 
     if (uMsg == WM_CREATE)
     {
         PhpCreateGraphContext(&context);
-        PhSetWindowContext(hwnd, MAXCHAR, context);
+        PhSetWindowContextEx(hwnd, context);
     }
 
     if (!context)
@@ -994,7 +994,7 @@ LRESULT CALLBACK PhpGraphWndProc(
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwnd, MAXCHAR);
+            PhRemoveWindowContextEx(hwnd);
 
             if (context->TooltipHandle)
                 DestroyWindow(context->TooltipHandle);

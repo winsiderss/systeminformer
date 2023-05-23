@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -142,12 +142,12 @@ LRESULT CALLBACK PhpColorBoxWndProc(
 {
     PPHP_COLORBOX_CONTEXT context;
 
-    context = PhGetWindowContext(hwnd, MAXCHAR);
+    context = PhGetWindowContextEx(hwnd);
 
     if (uMsg == WM_CREATE)
     {
         PhpCreateColorBoxContext(&context);
-        PhSetWindowContext(hwnd, MAXCHAR, context);
+        PhSetWindowContextEx(hwnd, context);
     }
 
     if (!context)
@@ -162,7 +162,7 @@ LRESULT CALLBACK PhpColorBoxWndProc(
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwnd, MAXCHAR);
+            PhRemoveWindowContextEx(hwnd);
             PhpFreeColorBoxContext(context);
         }
         break;

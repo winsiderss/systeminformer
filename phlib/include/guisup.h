@@ -754,6 +754,49 @@ PhRemoveWindowContext(
     _In_ ULONG PropertyHash
     );
 
+FORCEINLINE
+PVOID
+PhGetWindowContextEx(
+    _In_ HWND WindowHandle
+    )
+{
+#if (PHNT_WINDOW_CLASS_CONTEXT)
+    return PhGetWindowContext(WindowHandle, MAXCHAR);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    return (PVOID)GetWindowLongPtr(WindowHandle, 0);
+#endif
+}
+
+FORCEINLINE
+VOID
+PhSetWindowContextEx(
+    _In_ HWND WindowHandle,
+    _In_ PVOID Context
+    )
+{
+#if (PHNT_WINDOW_CLASS_CONTEXT)
+    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)Context);
+#endif
+}
+
+FORCEINLINE
+VOID
+PhRemoveWindowContextEx(
+    _In_ HWND WindowHandle
+    )
+{
+#if (PHNT_WINDOW_CLASS_CONTEXT)
+    PhRemoveWindowContext(WindowHandle, MAXCHAR);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)NULL);
+#endif
+}
+
 typedef BOOL (CALLBACK* PH_ENUM_CALLBACK)(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context

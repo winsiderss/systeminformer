@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -77,12 +77,12 @@ LRESULT CALLBACK PhTnpWndProc(
 {
     PPH_TREENEW_CONTEXT context;
 
-    context = PhGetWindowContext(hwnd, MAXCHAR);
+    context = PhGetWindowContextEx(hwnd);
 
     if (uMsg == WM_CREATE)
     {
         PhTnpCreateTreeNewContext(&context);
-        PhSetWindowContext(hwnd, MAXCHAR, context);
+        PhSetWindowContextEx(hwnd, context);
     }
 
     if (!context)
@@ -104,11 +104,11 @@ LRESULT CALLBACK PhTnpWndProc(
                 return -1;
         }
         return 0;
-    case WM_NCDESTROY:
+    case WM_DESTROY:
         {
             context->Callback(hwnd, TreeNewDestroying, NULL, NULL, context->CallbackContext);
             PhTnpDestroyTreeNewContext(context);
-            PhRemoveWindowContext(hwnd, MAXCHAR);
+            PhRemoveWindowContextEx(hwnd);
         }
         return 0;
     case WM_SIZE:
