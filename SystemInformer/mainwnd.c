@@ -295,7 +295,7 @@ LRESULT CALLBACK PhMwpWndProc(
                 PhSetApplicationWindowIcon(PhMainWndHandle);
             }
 
-            PhProcessImageListInitialization(hWnd);
+            PhProcessImageListInitialization(hWnd, PhGetWindowDpi(hWnd));
             TreeNew_SetImageList(PhMwpProcessTreeNewHandle, PhProcessSmallImageList);
             TreeNew_SetImageList(PhMwpServiceTreeNewHandle, PhProcessSmallImageList);
             TreeNew_SetImageList(PhMwpNetworkTreeNewHandle, PhProcessSmallImageList);
