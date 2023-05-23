@@ -10,7 +10,6 @@
  */
 
 #include "devices.h"
-#include <dbt.h>
 
 BOOLEAN MainWndDeviceChangeRegistrationEnabled = FALSE;
 PH_CALLBACK_REGISTRATION MainWndDeviceChangeEventRegistration;

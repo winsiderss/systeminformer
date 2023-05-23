@@ -38,7 +38,6 @@
 #include <srvprv.h>
 
 #include <mainwndp.h>
-#include <dbt.h>
 
 PHAPPAPI HWND PhMainWndHandle = NULL;
 BOOLEAN PhMainWndExiting = FALSE;
