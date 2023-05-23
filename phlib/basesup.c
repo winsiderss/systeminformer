@@ -839,6 +839,51 @@ PVOID PhAllocatePage(
     }
 }
 
+NTSTATUS PhAllocatePageAligned(
+    _In_ SIZE_T Size,
+    _In_ SIZE_T Alignment,
+    _Out_opt_ PSIZE_T NewSize,
+    _Out_ PVOID* BaseAddress
+    )
+{
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
+    NTSTATUS status;
+    PVOID baseAddress = NULL;
+    MEM_EXTENDED_PARAMETER extended[1];
+    MEM_ADDRESS_REQUIREMENTS requirements;
+
+    memset(&requirements, 0, sizeof(MEM_ADDRESS_REQUIREMENTS));
+    //requirements.HighestEndingAddress = (PVOID)(ULONG_PTR)0x7fffffff; // Below 2GB
+    requirements.Alignment = Alignment;
+
+    memset(extended, 0, sizeof(extended));
+    extended[0].Type = MemExtendedParameterAddressRequirements;
+    extended[0].Pointer = &requirements;
+
+    status = NtAllocateVirtualMemoryEx(
+        NtCurrentProcess(),
+        &baseAddress,
+        &Size,
+        MEM_RESERVE | MEM_COMMIT,
+        PAGE_READWRITE,
+        extended,
+        RTL_NUMBER_OF(extended)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (NewSize)
+            *NewSize = Size;
+        if (BaseAddress)
+            *BaseAddress = baseAddress;
+    }
+
+    return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
+}
+
 /**
  * Frees pages of memory allocated with PhAllocatePage().
  *
