@@ -38,18 +38,12 @@ PVOID PhGetWbemProxImageBaseAddress(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PPH_STRING systemDirectory;
         PPH_STRING systemFileName;
 
-        if (systemDirectory = PhGetSystemDirectory())
+        if (systemFileName = PhGetSystemDirectoryWin32Z(L"\\wbem\\wbemprox.dll"))
         {
-            if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
-            {
-                imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
-                PhDereferenceObject(systemFileName);
-            }
-
-            PhDereferenceObject(systemDirectory);
+            imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
+            PhDereferenceObject(systemFileName);
         }
 
         PhEndInitOnce(&initOnce);

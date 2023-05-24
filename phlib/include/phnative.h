@@ -23,6 +23,7 @@ EXTERN_C_START
 #define SYSTEM_IDLE_PROCESS_NAME ((UNICODE_STRING)RTL_CONSTANT_STRING(L"System Idle Process"))
 
 #define PhNtPathSeperatorString ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\")) // OBJ_NAME_PATH_SEPARATOR // RtlNtPathSeperatorString
+#define PhNtDosDevicesPrefix ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\??\\")) // RtlDosDevicesPrefix
 
 // General object-related function types
 
@@ -1904,6 +1905,20 @@ PhGetNtPathDevicePrefix(
     _In_ PPH_STRINGREF Name
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetExistingPathPrefix(
+    _In_ PPH_STRINGREF Name
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetExistingPathPrefixWin32(
+    _In_ PWSTR Name
+    );
+
 #define PH_MODULE_TYPE_MODULE 1
 #define PH_MODULE_TYPE_MAPPED_FILE 2
 #define PH_MODULE_TYPE_WOW64_MODULE 3
@@ -2283,6 +2298,13 @@ BOOLEAN
 NTAPI
 PhDoesDirectoryExistWin32(
     _In_ PWSTR FileName
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDoesDirectoryExist(
+    _In_ PPH_STRINGREF FileName
     );
 
 PHLIBAPI

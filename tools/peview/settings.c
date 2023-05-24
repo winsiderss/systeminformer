@@ -124,11 +124,11 @@ VOID PvInitializeSettings(
 
     // 1. File in program directory
 
-    if (appFileName = PhGetApplicationFileNameWin32())
+    if (appFileName = PhGetApplicationFileName())
     {
         tempFileName = PhConcatStringRefZ(&appFileName->sr, L".settings.xml");
 
-        if (PhDoesFileExistWin32(PhGetString(tempFileName)))
+        if (PhDoesFileExist(&tempFileName->sr))
         {
             PvSettingsFileName = tempFileName;
         }
@@ -143,7 +143,7 @@ VOID PvInitializeSettings(
     // 2. Default location
     if (PhIsNullOrEmptyString(PvSettingsFileName))
     {
-        PvSettingsFileName = PhGetRoamingAppDataDirectoryZ(L"peview.xml");
+        PvSettingsFileName = PhGetRoamingAppDataDirectoryZ(L"peview.xml", TRUE);
     }
 
     if (!PhIsNullOrEmptyString(PvSettingsFileName))
@@ -169,9 +169,9 @@ VOID PvInitializeSettings(
 
                 // This used to delete the file. But it's better to keep the file there
                 // and overwrite it with some valid XML, especially with case (2) above.
-                if (NT_SUCCESS(PhCreateFileWin32(
+                if (NT_SUCCESS(PhCreateFile(
                     &fileHandle,
-                    PhGetString(PvSettingsFileName),
+                    &PvSettingsFileName->sr,
                     FILE_GENERIC_WRITE,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_DELETE,

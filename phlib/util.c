@@ -3431,6 +3431,23 @@ PPH_STRING PhGetSystemDirectory(
     return systemDirectory;
 }
 
+PPH_STRING PhGetSystemDirectoryWin32(
+    _In_opt_ PPH_STRINGREF AppendPath
+    )
+{
+    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32");
+    PH_STRINGREF systemRootString;
+
+    PhGetSystemRoot(&systemRootString);
+
+    if (AppendPath)
+    {
+        return PhConcatStringRef3(&systemRootString, &system32String, AppendPath);
+    }
+
+    return PhConcatStringRef2(&systemRootString, &system32String);
+}
+
 /**
  * Retrieves the Windows directory path.
  */
@@ -3694,13 +3711,14 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 }
 
 PPH_STRING PhGetRoamingAppDataDirectory(
-    _In_ PPH_STRINGREF FileName
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
     )
 {
     PPH_STRING roamingAppDataFileName = NULL;
     PPH_STRING roamingAppDataDirectory;
 
-    if (roamingAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\"))
+    if (roamingAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\", NativeFileName))
     {
         roamingAppDataFileName = PhConcatStringRef2(&roamingAppDataDirectory->sr, FileName);
         PhReferenceObject(roamingAppDataDirectory);
@@ -3714,7 +3732,6 @@ PPH_STRING PhGetApplicationDataFileName(
     _In_ BOOLEAN NativeFileName
     )
 {
-    PPH_STRING applicationDataFileName = NULL;
 
     // Check the current directory. (dmex)
 
@@ -3734,18 +3751,9 @@ PPH_STRING PhGetApplicationDataFileName(
         PhClearReference(&applicationDataFileName);
     }
 
-    // Check the appdata directory. (dmex)
+    // Return the appdata directory. (dmex)
 
-    if (NativeFileName)
-    {
-        static PH_STRINGREF path = PH_STRINGREF_INIT(L"\\??\\");
-        applicationDataFileName = PhGetRoamingAppDataDirectory(FileName);
-        PhMoveReference(&applicationDataFileName, PhConcatStringRef2(&path, &applicationDataFileName->sr));
-    }
-    else
-    {
-        applicationDataFileName = PhGetRoamingAppDataDirectory(FileName);
-    }
+    applicationDataFileName = PhGetRoamingAppDataDirectory(FileName, NativeFileName);
 
     return applicationDataFileName;
 }
@@ -3800,7 +3808,8 @@ PPH_STRING PhGetApplicationDataFileName(
 
 PPH_STRING PhGetKnownLocation(
     _In_ ULONG Folder,
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PPH_STRINGREF AppendPath,
+    _In_ BOOLEAN NativeFileName
     )
 {
 #if !defined(PH_BUILD_MSIX)
@@ -3820,17 +3829,34 @@ PPH_STRING PhGetKnownLocation(
                 &variableValue
                 )))
             {
+                PH_STRINGREF string;
+
+                PhUnicodeStringToStringRef(&variableValue, &string);
+
                 if (AppendPath)
                 {
-                    PH_STRINGREF string;
+                    if (NativeFileName)
+                    {
+                        PPH_STRING fileName;
 
-                    PhUnicodeStringToStringRef(&variableValue, &string);
+                        if (fileName = PhDosPathNameToNtPathName(&string))
+                        {
+                            PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, AppendPath));
+                        }
+
+                        return fileName;
+                    }
 
                     return PhConcatStringRef2(&string, AppendPath);
                 }
                 else
                 {
-                    return PhCreateStringFromUnicodeString(&variableValue);
+                    if (NativeFileName)
+                    {
+                        return PhDosPathNameToNtPathName(&string);
+                    }
+
+                    return PhCreateString2(&string);
                 }
             }
         }
@@ -3849,17 +3875,34 @@ PPH_STRING PhGetKnownLocation(
                 &variableValue
                 )))
             {
+                PH_STRINGREF string;
+
+                PhUnicodeStringToStringRef(&variableValue, &string);
+
                 if (AppendPath)
                 {
-                    PH_STRINGREF string;
+                    if (NativeFileName)
+                    {
+                        PPH_STRING fileName;
 
-                    PhUnicodeStringToStringRef(&variableValue, &string);
+                        if (fileName = PhDosPathNameToNtPathName(&string))
+                        {
+                            PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, AppendPath));
+                        }
+
+                        return fileName;
+                    }
 
                     return PhConcatStringRef2(&string, AppendPath);
                 }
                 else
                 {
-                    return PhCreateStringFromUnicodeString(&variableValue);
+                    if (NativeFileName)
+                    {
+                        return PhDosPathNameToNtPathName(&string);
+                    }
+
+                    return PhCreateString2(&string);
                 }
             }
         }
