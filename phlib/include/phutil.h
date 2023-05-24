@@ -1680,6 +1680,13 @@ PhDeleteCacheFile(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhClearCacheDirectory(
+    VOID
+    );
+
+PHLIBAPI
 HANDLE
 NTAPI
 PhGetNamespaceHandle(

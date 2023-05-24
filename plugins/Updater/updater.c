@@ -533,6 +533,8 @@ NTSTATUS UpdateCheckSilentThread(
 
     PhDelayExecution(5 * 1000);
 
+    PhClearCacheDirectory();
+
     // Query latest update information from the server.
     if (!QueryUpdateDataWithFailover(context))
         goto CleanupExit;
