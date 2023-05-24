@@ -8979,6 +8979,77 @@ PPH_STRING PhGetNtPathDevicePrefix(
     return pathDevicePrefix;
 }
 
+PPH_STRING PhGetExistingPathPrefix(
+    _In_ PPH_STRINGREF Name
+    )
+{
+    PPH_STRING existingPathPrefix = NULL;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF directoryPart;
+    PH_STRINGREF baseNamePart;
+
+    if (PhDoesDirectoryExist(Name))
+    {
+        return PhCreateString2(Name);
+    }
+
+    remainingPart = *Name;
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtLastChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &baseNamePart);
+
+        if (directoryPart.Length != 0)
+        {
+            if (PhDoesDirectoryExist(&directoryPart))
+            {
+                existingPathPrefix = PhCreateString2(&directoryPart);
+                break;
+            }
+        }
+
+        remainingPart = directoryPart;
+    }
+
+    return existingPathPrefix;
+}
+
+PPH_STRING PhGetExistingPathPrefixWin32(
+    _In_ PWSTR Name
+    )
+{
+    PPH_STRING existingPathPrefix = NULL;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF directoryPart;
+    PH_STRINGREF baseNamePart;
+
+    if (PhDoesDirectoryExistWin32(Name))
+    {
+        return PhCreateString(Name);
+    }
+
+    PhInitializeStringRefLongHint(&remainingPart, Name);
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtLastChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &baseNamePart);
+
+        if (directoryPart.Length != 0)
+        {
+            existingPathPrefix = PhCreateString2(&directoryPart);
+
+            if (PhDoesDirectoryExistWin32(PhGetString(existingPathPrefix)))
+                break;
+
+            PhClearReference(&existingPathPrefix);
+        }
+
+        remainingPart = directoryPart;
+    }
+
+    return existingPathPrefix;
+}
+
 // rev from GetLongPathNameW (dmex)
 PPH_STRING PhGetLongPathName(
     _In_ PPH_STRINGREF FileName
@@ -11149,7 +11220,7 @@ NTSTATUS PhCreateDirectoryWin32(
     _In_ PPH_STRINGREF DirectoryPath
     )
 {
-    PPH_STRING directoryPath = NULL;
+    PPH_STRING directoryPath;
     PPH_STRING directoryName;
     PH_STRINGREF directoryPart;
     PH_STRINGREF remainingPart;
@@ -11157,7 +11228,16 @@ NTSTATUS PhCreateDirectoryWin32(
     if (PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_SUCCESS;
 
-    remainingPart = *DirectoryPath;
+    if (directoryPath = PhGetExistingPathPrefixWin32(PhGetStringRefZ(DirectoryPath)))
+    {
+        remainingPart.Length = DirectoryPath->Length - directoryPath->Length - sizeof(OBJ_NAME_PATH_SEPARATOR);
+        remainingPart.Buffer = PTR_ADD_OFFSET(DirectoryPath->Buffer, directoryPath->Length + sizeof(OBJ_NAME_PATH_SEPARATOR));
+    }
+    else
+    {
+        remainingPart.Length = DirectoryPath->Length;
+        remainingPart.Buffer = DirectoryPath->Buffer;
+    }
 
     while (remainingPart.Length != 0)
     {
@@ -11220,7 +11300,8 @@ NTSTATUS PhCreateDirectory(
     if (PhDoesDirectoryExist(DirectoryPath))
         return STATUS_SUCCESS;
 
-    directoryPath = PhGetNtPathDevicePrefix(DirectoryPath);
+    //directoryPath = PhGetNtPathDevicePrefix(DirectoryPath);
+    directoryPath = PhGetExistingPathPrefix(DirectoryPath);
 
     if (PhIsNullOrEmptyString(directoryPath))
         return STATUS_UNSUCCESSFUL;

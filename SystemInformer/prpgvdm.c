@@ -60,20 +60,14 @@ PVOID PhpGetVdmDbgDllBase(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PPH_STRING systemDirectory;
         PPH_STRING systemFileName;
 
-        if (systemDirectory = PhGetSystemDirectory())
+        if (systemFileName = PhGetSystemDirectoryWin32Z(L"\\vdmdbg.dll"))
         {
-            if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\vdmdbg.dll"))
-            {
-                if (!(imageBaseAddress = PhGetLoaderEntryDllBase(&systemFileName->sr, NULL)))
-                    imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
+            if (!(imageBaseAddress = PhGetLoaderEntryDllBase(&systemFileName->sr, NULL)))
+                imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
 
-                PhDereferenceObject(systemFileName);
-            }
-
-            PhDereferenceObject(systemDirectory);
+            PhDereferenceObject(systemFileName);
         }
 
         PhEndInitOnce(&initOnce);

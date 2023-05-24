@@ -247,14 +247,14 @@ VOID InitializeDbPath(
     {
         PPH_STRING fileName;
 
-        fileName = PhGetApplicationDirectoryFileNameZ(L"usernotesdb.xml", FALSE);
+        fileName = PhGetApplicationDirectoryFileNameZ(L"usernotesdb.xml", TRUE);
         SetDbPath(fileName);
     }
     else
     {
         PPH_STRING fileName;
 
-        fileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml");
+        fileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml", TRUE);
         SetDbPath(fileName);
     }
 }

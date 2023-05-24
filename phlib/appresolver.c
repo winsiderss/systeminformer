@@ -646,7 +646,7 @@ PPH_STRING PhGetPackageAppDataPath(
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     HANDLE tokenHandle;
 
-    localAppDataPath = PhGetKnownLocationZ(PH_FOLDERID_LocalAppData, L"\\Packages\\");
+    localAppDataPath = PhGetKnownLocationZ(PH_FOLDERID_LocalAppData, L"\\Packages\\", FALSE);
 
     if (PhIsNullOrEmptyString(localAppDataPath))
         return NULL;

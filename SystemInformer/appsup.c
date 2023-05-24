@@ -604,18 +604,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             if (PhDetermineDosPathNameType(&dllName->sr) == RtlPathTypeRelative)
             {
-                PPH_STRING systemDirectory;
-
-                if (systemDirectory = PhGetSystemDirectory())
-                {
-                    dllName = PhConcatStringRef3(
-                        &systemDirectory->sr,
-                        &PhNtPathSeperatorString,
-                        &dllName->sr
-                        );
-
-                    PhDereferenceObject(systemDirectory);
-                }
+                dllName = PhGetSystemDirectoryWin32(&dllName->sr);
             }
 
             KnownCommandLine->RunDllAsApp.FileName = dllName;

@@ -1018,11 +1018,11 @@ VOID PhpInitializeSettings(
         {
             PPH_STRING applicationFileName;
 
-            if (applicationFileName = PhGetApplicationFileNameWin32())
+            if (applicationFileName = PhGetApplicationFileName())
             {
                 settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
 
-                if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
+                if (PhDoesFileExist(&settingsFileName->sr))
                 {
                     PhSettingsFileName = settingsFileName;
                     PhPortableEnabled = TRUE;
@@ -1039,7 +1039,7 @@ VOID PhpInitializeSettings(
         // 3. Default location
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
-            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
+            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml", TRUE);
         }
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
@@ -1067,9 +1067,9 @@ VOID PhpInitializeSettings(
 
                     // This used to delete the file. But it's better to keep the file there
                     // and overwrite it with some valid XML, especially with case (2) above.
-                    if (NT_SUCCESS(PhCreateFileWin32(
+                    if (NT_SUCCESS(PhCreateFile(
                         &fileHandle,
-                        PhGetString(PhSettingsFileName),
+                        &PhSettingsFileName->sr,
                         FILE_GENERIC_WRITE,
                         FILE_ATTRIBUTE_NORMAL,
                         FILE_SHARE_READ | FILE_SHARE_DELETE,

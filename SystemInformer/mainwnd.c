@@ -1123,11 +1123,9 @@ VOID PhMwpOnCommand(
         break;
     case ID_TOOLS_STARTRESOURCEMONITOR:
         {
-            PPH_STRING systemDirectory;
             PPH_STRING perfmonFileName;
 
-            systemDirectory = PH_AUTO(PhGetSystemDirectory());
-            perfmonFileName = PH_AUTO(PhConcatStringRefZ(&systemDirectory->sr, L"\\perfmon.exe"));
+            perfmonFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\perfmon.exe"));
 
             if (PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {

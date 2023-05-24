@@ -899,6 +899,26 @@ PhGetSystemDirectory(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetSystemDirectoryWin32(
+    _In_opt_ PPH_STRINGREF AppendPath
+    );
+
+FORCEINLINE
+PPH_STRING
+PhGetSystemDirectoryWin32Z(
+    _In_ PWSTR AppendPath
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, AppendPath);
+
+    return PhGetSystemDirectoryWin32(&string);
+}
+
+PHLIBAPI
 VOID
 NTAPI
 PhGetSystemRoot(
@@ -966,20 +986,22 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetRoamingAppDataDirectory(
-    _In_ PPH_STRINGREF FileName
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
     );
 
 FORCEINLINE
 PPH_STRING
 PhGetRoamingAppDataDirectoryZ(
-    _In_ PWSTR String
+    _In_ PWSTR String,
+    _In_ BOOLEAN NativeFileName
     )
 {
     PH_STRINGREF string;
 
     PhInitializeStringRef(&string, String);
 
-    return PhGetRoamingAppDataDirectory(&string);
+    return PhGetRoamingAppDataDirectory(&string, NativeFileName);
 }
 
 PHLIBAPI
@@ -999,21 +1021,23 @@ PPH_STRING
 NTAPI
 PhGetKnownLocation(
     _In_ ULONG Folder,
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PPH_STRINGREF AppendPath,
+    _In_ BOOLEAN NativeFileName
     );
 
 FORCEINLINE
 PPH_STRING
 PhGetKnownLocationZ(
     _In_ ULONG Folder,
-    _In_ PWSTR AppendPath
+    _In_ PWSTR AppendPath,
+    _In_ BOOLEAN NativeFileName
     )
 {
     PH_STRINGREF string;
 
     PhInitializeStringRef(&string, AppendPath);
 
-    return PhGetKnownLocation(Folder, &string);
+    return PhGetKnownLocation(Folder, &string, NativeFileName);
 }
 
 DECLSPEC_SELECTANY GUID FOLDERID_LocalAppData = { 0xF1B32785, 0x6FBA, 0x4FCF, 0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91 };

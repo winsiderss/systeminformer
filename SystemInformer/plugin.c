@@ -199,7 +199,7 @@ PPH_STRING PhpGetPluginDirectoryPath(
     PH_FORMAT format[2];
     WCHAR pluginsDirectoryBuffer[MAX_PATH];
 
-    applicationDirectory = PhGetApplicationDirectoryWin32();
+    applicationDirectory = PhGetApplicationDirectory();
     PhInitFormatSR(&format[0], applicationDirectory->sr);
     PhInitFormatS(&format[1], L"plugins\\");
 
@@ -481,9 +481,9 @@ VOID PhLoadPlugins(
     {
         HANDLE pluginsDirectoryHandle;
 
-        if (NT_SUCCESS(PhCreateFileWin32(
+        if (NT_SUCCESS(PhCreateFile(
             &pluginsDirectoryHandle,
-            PhGetString(pluginsDirectory),
+            &pluginsDirectory->sr,
             FILE_LIST_DIRECTORY | SYNCHRONIZE,
             FILE_ATTRIBUTE_DIRECTORY,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -491,7 +491,7 @@ VOID PhLoadPlugins(
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            UNICODE_STRING pluginsSearchPattern = RTL_CONSTANT_STRING(L"*.dll");
+            static UNICODE_STRING pluginsSearchPattern = RTL_CONSTANT_STRING(L"*.dll");
 
             if (!NT_SUCCESS(PhEnumDirectoryFileEx(
                 pluginsDirectoryHandle,
@@ -502,9 +502,6 @@ VOID PhLoadPlugins(
                 pluginLoadErrors
                 )))
             {
-                // Note: The MUP devices for Virtualbox and VMware improperly truncate
-                // data returned by NtQueryDirectoryFile when ReturnSingleEntry=FALSE and also have
-                // various other bugs and issues for information classes other than FileNamesInformation. (dmex)
                 PhEnumDirectoryFileEx(
                     pluginsDirectoryHandle,
                     FileNamesInformation,
@@ -574,18 +571,21 @@ NTSTATUS PhLoadPlugin(
 {
     if (PhPluginsLoadNative)
     {
-        if (WindowsVersion >= WINDOWS_8)
+        PPH_STRING fileName;
+        PVOID baseAddress;
+
+        if (fileName = PhResolveDevicePrefix(FileName))
         {
-            if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, LOAD_LIBRARY_SEARCH_APPLICATION_DIR))
+            baseAddress = LoadLibraryEx(PhGetString(fileName), NULL, 0);
+            PhDereferenceObject(fileName);
+
+            if (baseAddress)
                 return STATUS_SUCCESS;
-        }
-        else
-        {
-            if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, 0))
-                return STATUS_SUCCESS;
+            else
+                return PhGetLastWin32ErrorAsNtStatus();
         }
 
-        return PhGetLastWin32ErrorAsNtStatus();
+        return STATUS_UNSUCCESSFUL;
     }
 
     return PhLoadPluginImage(FileName, NULL);
