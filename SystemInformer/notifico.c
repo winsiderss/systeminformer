@@ -737,20 +737,34 @@ BOOLEAN PhNfIconsEnabled(
     VOID
     )
 {
-    BOOLEAN enabled = FALSE;
+    // Note: We can't check the list because delayed initialization (dmex)
+    //BOOLEAN enabled = FALSE;
+    //
+    //for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    //{
+    //    PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+    //
+    //    if (BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
+    //    {
+    //        enabled = TRUE;
+    //        break;
+    //    }
+    //}
+    //
+    //return enabled;
 
-    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    PPH_STRING settingsString;
+
+    settingsString = PhGetStringSetting(L"IconSettings");
+
+    if (PhIsNullOrEmptyString(settingsString))
     {
-        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
-
-        if (BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
-        {
-            enabled = TRUE;
-            break;
-        }
+        PhClearReference(&settingsString);
+        return FALSE;
     }
 
-    return enabled;
+    PhClearReference(&settingsString);
+    return TRUE;
 }
 
 VOID PhNfNotifyMiniInfoPinned(
