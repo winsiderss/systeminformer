@@ -248,6 +248,7 @@ EXPORTS
     PhDeviceIoControlFile
     PhDeleteDirectoryWin32
     PhDeleteFileWin32
+    PhDeleteFile
     PhDeleteValueKey
     PhDetermineDosPathNameType
     PhDoesFileExistWin32
@@ -801,6 +802,7 @@ EXPORTS
 ; cache
     PhCreateCacheFile
     PhDeleteCacheFile
+    PhClearCacheDirectory
 
 ; appresolver
     PhGetProcessPackageFullName
