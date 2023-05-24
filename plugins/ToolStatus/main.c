@@ -533,6 +533,96 @@ BOOLEAN CheckRebarLastRedrawMessage(
     return FALSE;
 }
 
+VOID UpdateDpiMetrics(
+    VOID
+    )
+{
+    // Update fonts/sizes for new DPI.
+    ToolbarWindowFont = ProcessHacker_GetFont();
+
+    if (ToolBarHandle)
+    {
+        SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
+    }
+
+    if (StatusBarHandle)
+    {
+        SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
+    }
+
+    ToolbarLoadSettings(TRUE);
+
+    // Update fonts/sizes for new DPI.
+    if (ToolBarHandle)
+    {
+        LONG toolbarButtonHeight;
+
+        USHORT toolbarButtonSize = HIWORD((ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0));
+        toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
+        toolbarButtonHeight = __max(toolbarButtonSize, toolbarButtonHeight);
+
+        if (toolbarButtonHeight < 22)
+            toolbarButtonHeight = 22; // 22/default toolbar button height
+
+        SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+        RebarAdjustBandHeightLayout(toolbarButtonHeight);
+        SendMessage(RebarHandle, WM_SIZE, 0, 0);
+    }
+
+    if (StatusBarHandle)
+    {
+        LONG statusbarButtonHeight;
+
+        statusbarButtonHeight = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
+        statusbarButtonHeight = __max(23, statusbarButtonHeight); // 23/default statusbar height
+
+        SendMessage(StatusBarHandle, SB_SETMINHEIGHT, statusbarButtonHeight, 0);
+        //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
+        StatusBarUpdate(TRUE);
+    }
+
+    ToolbarGraphsInitializeDpi();
+}
+
+VOID UpdateLayoutMetrics(
+    VOID
+    )
+{
+    ToolbarWindowFont = ProcessHacker_GetFont();
+
+    if (ToolBarHandle)
+    {
+        SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
+    }
+
+    if (StatusBarHandle)
+    {
+        SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
+    }
+
+    if (ToolBarHandle)
+    {
+        //ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+        LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
+        toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
+
+        RebarAdjustBandHeightLayout(toolbarButtonHeight);
+        SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+    }
+
+    if (StatusBarHandle)
+    {
+        LONG statusbarButtonHeight = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
+        statusbarButtonHeight = __max(23, statusbarButtonHeight); // 23/default statusbar height
+
+        SendMessage(StatusBarHandle, SB_SETMINHEIGHT, statusbarButtonHeight, 0);
+        //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
+        StatusBarUpdate(TRUE);
+    }
+
+    ToolbarLoadSettings(FALSE);
+}
+
 BOOLEAN NTAPI MessageLoopFilter(
     _In_ PMSG Message,
     _In_ PVOID Context
@@ -632,51 +722,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             // Let System Informer perform the default processing.
             LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
-            // Update fonts/sizes for new DPI.
-            ToolbarWindowFont = ProcessHacker_GetFont();
-
-            if (ToolBarHandle)
-            {
-                SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
-            }
-
-            if (StatusBarHandle)
-            {
-                SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
-            }
-
-            ToolbarLoadSettings(TRUE);
-
-            // Update fonts/sizes for new DPI.
-            if (ToolBarHandle)
-            {
-                LONG toolbarButtonHeight;
-
-                USHORT toolbarButtonSize = HIWORD((ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0));
-                toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
-                toolbarButtonHeight = __max(toolbarButtonSize, toolbarButtonHeight);
-
-                if (toolbarButtonHeight < 22)
-                    toolbarButtonHeight = 22; // 22/default toolbar button height
-
-                SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
-                RebarAdjustBandHeightLayout(toolbarButtonHeight);
-                SendMessage(RebarHandle, WM_SIZE, 0, 0);
-            }
-
-            if (StatusBarHandle)
-            {
-                LONG statusbarButtonHeight;
-
-                statusbarButtonHeight = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
-                statusbarButtonHeight = __max(23, statusbarButtonHeight); // 23/default statusbar height
-
-                SendMessage(StatusBarHandle, SB_SETMINHEIGHT, statusbarButtonHeight, 0);
-                //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
-                StatusBarUpdate(TRUE);
-            }
-
-            ToolbarGraphsInitializeDpi();
+            UpdateDpiMetrics();
 
             return result;
         }
@@ -1521,29 +1567,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             // Let System Informer perform the default processing.
             LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
-            ToolbarWindowFont = ProcessHacker_GetFont();
-            SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
-            SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
-
-            {
-                //ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
-                LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
-                toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
-
-                RebarAdjustBandHeightLayout(toolbarButtonHeight);
-                SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
-            }
-
-            {
-                LONG statusbarButtonHeight = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
-                statusbarButtonHeight = __max(23, statusbarButtonHeight); // 23/default statusbar height
-
-                SendMessage(StatusBarHandle, SB_SETMINHEIGHT, statusbarButtonHeight, 0);
-                //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
-                StatusBarUpdate(TRUE);
-            }
-
-            ToolbarLoadSettings(FALSE);
+            UpdateLayoutMetrics();
 
             return result;
         }
