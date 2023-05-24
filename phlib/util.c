@@ -3732,6 +3732,7 @@ PPH_STRING PhGetApplicationDataFileName(
     _In_ BOOLEAN NativeFileName
     )
 {
+    PPH_STRING applicationDataFileName;
 
     // Check the current directory. (dmex)
 
