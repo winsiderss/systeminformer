@@ -265,11 +265,12 @@ EXPORTS
     PhEnumHandlesEx
     PhEnumHandlesEx2
     PhEnumKernelModules
+    PhEnumNextProcess
+    PhEnumNextThread
     PhEnumPagefiles
     PhEnumProcessEnvironmentVariables
     PhEnumProcesses
     PhEnumProcessesEx
-    PhEnumProcessesForSession
     PhEnumProcessModules
     PhEnumProcessModules32
     PhEnumProcessModules32Ex
