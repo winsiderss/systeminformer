@@ -3496,7 +3496,11 @@ VOID PhProcessImageListInitialization(
             PPH_STRING filename = fileNames->Items[i];
             PPH_IMAGELIST_ITEM iconEntry;
 
+            PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
+
             iconEntry = PhImageListExtractIcon(filename, TRUE, 0, NULL, PhProcessImageListWindowDpi);
+
+            PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
 
             if (iconEntry)
             {
