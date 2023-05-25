@@ -53,6 +53,14 @@ PPH_STRING PhCreateStringFromWindowsRuntimeString(
 }
 
 // rev from WindowsCreateStringReference (dmex)
+/**
+ * \brief Creates a new string reference based on the specified string.
+ *
+ * \param SourceString A null-terminated string to use as the source for the new string.
+ * \param String A pointer to the newly created string.
+ *
+ * \return Successful or errant status.
+ */
 HRESULT PhCreateWindowsRuntimeStringReference(
     _In_ PCWSTR SourceString,
     _Out_ PVOID String
@@ -79,6 +87,14 @@ HRESULT PhCreateWindowsRuntimeStringReference(
 }
 
 // rev from WindowsCreateString (dmex)
+/**
+ * \brief Creates a new string based on the specified string.
+ *
+ * \param SourceString A null-terminated string to use as the source for the new string.
+ * \param String A pointer to the newly created string.
+ *
+ * \return Successful or errant status.
+ */
 HRESULT PhCreateWindowsRuntimeString(
     _In_ PCWSTR SourceString,
     _Out_ HSTRING* String
@@ -121,6 +137,11 @@ HRESULT PhCreateWindowsRuntimeString(
 }
 
 // rev from WindowsDeleteString (dmex)
+/**
+ * \brief Decrements the reference count of a string.
+ *
+ * \param String The string to be deleted.
+ */
 VOID PhDeleteWindowsRuntimeString(
     _In_opt_ HSTRING String
     )
@@ -146,6 +167,13 @@ VOID PhDeleteWindowsRuntimeString(
 }
 
 // rev from WindowsGetStringLen (dmex)
+/**
+ * \brief Gets the length, in Unicode characters, of the specified string.
+ *
+ * \param String The string to be counted.
+ *
+ * \return Successful or errant status.
+ */
 UINT32 PhGetWindowsRuntimeStringLength(
     _In_opt_ HSTRING String
     )
@@ -165,6 +193,14 @@ UINT32 PhGetWindowsRuntimeStringLength(
 }
 
 // rev from WindowsGetStringRawBuffer (dmex)
+/**
+ * \brief Retrieves the backing buffer for the specified string.
+ *
+ * \param String An optional string for which the backing buffer is to be retrieved. Can be NULL.
+ * \param Length The number of Unicode characters in the backing buffer for String (including embedded null characters, but excluding the terminating null).
+ *
+ * \return A pointer to the buffer that provides the backing store for string, or the empty string if string is NULL or the empty string.
+ */
 PCWSTR PhGetWindowsRuntimeStringBuffer(
     _In_opt_ HSTRING String,
     _Out_opt_ PUINT32 Length
