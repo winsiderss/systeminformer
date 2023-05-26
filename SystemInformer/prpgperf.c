@@ -175,13 +175,24 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             {
                                 FLOAT max = 0;
 
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                if (PhCsEnableAvxSupport && drawInfo->LineDataCount > 128)
                                 {
-                                    FLOAT data = performanceContext->CpuGraphState.Data1[i] +
-                                        performanceContext->CpuGraphState.Data2[i]; // HACK
+                                    max = PhAddPlusMaxMemorySingles(
+                                        performanceContext->CpuGraphState.Data1,
+                                        performanceContext->CpuGraphState.Data2,
+                                        drawInfo->LineDataCount
+                                        );
+                                }
+                                else
+                                {
+                                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                    {
+                                        FLOAT data = performanceContext->CpuGraphState.Data1[i] +
+                                            performanceContext->CpuGraphState.Data2[i];
 
-                                    if (max < data)
-                                        max = data;
+                                        if (max < data)
+                                            max = data;
+                                    }
                                 }
 
                                 if (max != 0)

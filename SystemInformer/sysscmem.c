@@ -124,6 +124,24 @@ BOOLEAN PhSipMemorySectionCallback(
 
                 if (!Section->GraphState.Valid)
                 {
+                    if (PhCsEnableAvxSupport)
+                    {
+                        PhCopyConvertCircularBufferULONG(&PhCommitHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
+#ifdef DEBUG
+                        for (i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            assert(Section->GraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i));
+                        }
+#endif
+                    }
+                    else
+                    {
+                        for (i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+                        }
+                    }
+
                     for (i = 0; i < drawInfo->LineDataCount; i++)
                     {
                         Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
@@ -142,7 +160,7 @@ BOOLEAN PhSipMemorySectionCallback(
                     if (PhCsEnableGraphMaxText)
                     {
                         drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                        drawInfo->LabelYFunctionParameter = (FLOAT)PhPerfInformation.CommitLimit * PAGE_SIZE;
+                        drawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE);
                     }
 
                     Section->GraphState.Valid = TRUE;
@@ -156,9 +174,22 @@ BOOLEAN PhSipMemorySectionCallback(
 
                 if (!Section->GraphState.Valid)
                 {
-                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    if (PhCsEnableAvxSupport)
                     {
-                        Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                        PhCopyConvertCircularBufferULONG(&PhPhysicalHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
+#ifdef DEBUG
+                        for (i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            assert(Section->GraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i));
+                        }
+#endif
+                    }
+                    else
+                    {
+                        for (i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                        }
                     }
 
                     if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
@@ -174,7 +205,7 @@ BOOLEAN PhSipMemorySectionCallback(
                     if (PhCsEnableGraphMaxText)
                     {
                         drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                        drawInfo->LabelYFunctionParameter = (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages * PAGE_SIZE;
+                        drawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
                     }
 
                     Section->GraphState.Valid = TRUE;
@@ -605,9 +636,22 @@ VOID PhSipNotifyCommitGraph(
 
             if (!CommitGraphState.Valid)
             {
-                for (i = 0; i < drawInfo->LineDataCount; i++)
+                if (PhCsEnableAvxSupport)
                 {
-                    CommitGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+                    PhCopyConvertCircularBufferULONG(&PhCommitHistory, CommitGraphState.Data1, drawInfo->LineDataCount);
+#ifdef DEBUG
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        assert(CommitGraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i));
+                    }
+#endif
+                }
+                else
+                {
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        CommitGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+                    }
                 }
 
                 if (PhPerfInformation.CommitLimit != 0)
@@ -623,7 +667,7 @@ VOID PhSipNotifyCommitGraph(
                 if (PhCsEnableGraphMaxText)
                 {
                     drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = (FLOAT)PhPerfInformation.CommitLimit * PAGE_SIZE;
+                    drawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE);
                 }
 
                 CommitGraphState.Valid = TRUE;
@@ -682,9 +726,22 @@ VOID PhSipNotifyPhysicalGraph(
 
             if (!PhysicalGraphState.Valid)
             {
-                for (i = 0; i < drawInfo->LineDataCount; i++)
+                if (PhCsEnableAvxSupport)
                 {
-                    PhysicalGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                    PhCopyConvertCircularBufferULONG(&PhPhysicalHistory, PhysicalGraphState.Data1, drawInfo->LineDataCount);
+#ifdef DEBUG
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        assert(PhysicalGraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i));
+                    }
+#endif
+                }
+                else
+                {
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        PhysicalGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                    }
                 }
 
                 if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
@@ -700,7 +757,7 @@ VOID PhSipNotifyPhysicalGraph(
                 if (PhCsEnableGraphMaxText)
                 {
                     drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages * PAGE_SIZE;
+                    drawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
                 }
 
                 PhysicalGraphState.Valid = TRUE;

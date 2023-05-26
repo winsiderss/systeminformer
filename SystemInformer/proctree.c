@@ -3999,22 +3999,30 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     if (!node->CpuGraphBuffers.Valid)
                     {
-                        PhCopyCircularBuffer_FLOAT(&processItem->CpuKernelHistory,
-                            node->CpuGraphBuffers.Data1, drawInfo.LineDataCount);
-                        PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory,
-                            node->CpuGraphBuffers.Data2, drawInfo.LineDataCount);
+                        PhCopyCircularBuffer_FLOAT(&processItem->CpuKernelHistory, node->CpuGraphBuffers.Data1, drawInfo.LineDataCount);
+                        PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory, node->CpuGraphBuffers.Data2, drawInfo.LineDataCount);
 
                         if (PhCsEnableGraphMaxScale)
                         {
                             FLOAT max = 0;
 
-                            for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
+                            if (PhCsEnableAvxSupport && drawInfo.LineDataCount > 128)
                             {
-                                FLOAT data = node->CpuGraphBuffers.Data1[i] +
-                                    node->CpuGraphBuffers.Data2[i]; // HACK
+                                max = PhAddPlusMaxMemorySingles(
+                                    node->CpuGraphBuffers.Data1,
+                                    node->CpuGraphBuffers.Data2,
+                                    drawInfo.LineDataCount
+                                    );
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
+                                {
+                                    FLOAT data = node->CpuGraphBuffers.Data1[i] + node->CpuGraphBuffers.Data2[i];
 
-                                if (max < data)
-                                    max = data;
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)
@@ -4050,11 +4058,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     if (!node->PrivateGraphBuffers.Valid)
                     {
-                        ULONG i;
                         FLOAT total;
                         FLOAT max;
 
-                        for (i = 0; i < drawInfo.LineDataCount; i++)
+                        for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
                         {
                             node->PrivateGraphBuffers.Data1[i] =
                                 (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i);
@@ -4098,11 +4105,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     if (!node->IoGraphBuffers.Valid)
                     {
-                        ULONG i;
                         FLOAT total;
                         FLOAT max = 0;
 
-                        for (i = 0; i < drawInfo.LineDataCount; i++)
+                        for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
                         {
                             FLOAT data1;
                             FLOAT data2;

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *     jxy-s   2021
  *
  */
@@ -31,6 +31,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
     PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
+    PhpAddIntegerSetting(L"EnableAvxSupport", L"0");
     PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");

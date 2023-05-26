@@ -145,12 +145,23 @@ BOOLEAN PhSipCpuSectionCallback(
                 {
                     FLOAT max = 0;
 
-                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    if (PhCsEnableAvxSupport && drawInfo->LineDataCount > 128)
                     {
-                        FLOAT data = Section->GraphState.Data1[i] + Section->GraphState.Data2[i]; // HACK
+                        max = PhAddPlusMaxMemorySingles(
+                            Section->GraphState.Data1,
+                            Section->GraphState.Data2,
+                            drawInfo->LineDataCount
+                            );
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = Section->GraphState.Data1[i] + Section->GraphState.Data2[i];
 
-                        if (max < data)
-                            max = data;
+                            if (max < data)
+                                max = data;
+                        }
                     }
 
                     if (max != 0)
@@ -179,9 +190,6 @@ BOOLEAN PhSipCpuSectionCallback(
             FLOAT cpuUser;
             PH_FORMAT format[9];
 
-            if (!getTooltipText)
-                break;
-
             cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
             cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
 
@@ -204,9 +212,6 @@ BOOLEAN PhSipCpuSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
             PH_FORMAT format[2];
-
-            if (!drawPanel)
-                break;
 
             // %.2f%%
             PhInitFormatF(&format[0], ((DOUBLE)PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
@@ -843,12 +848,23 @@ VOID PhSipNotifyCpuGraph(
                     {
                         FLOAT max = 0;
 
-                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        if (PhCsEnableAvxSupport && drawInfo->LineDataCount > 128)
                         {
-                            FLOAT data = CpuGraphState.Data1[i] + CpuGraphState.Data2[i]; // HACK
+                            max = PhAddPlusMaxMemorySingles(
+                                CpuGraphState.Data1,
+                                CpuGraphState.Data2,
+                                drawInfo->LineDataCount
+                                );
+                        }
+                        else
+                        {
+                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            {
+                                FLOAT data = CpuGraphState.Data1[i] + CpuGraphState.Data2[i];
 
-                            if (max < data)
-                                max = data;
+                                if (max < data)
+                                    max = data;
+                            }
                         }
 
                         if (max != 0)
@@ -886,12 +902,23 @@ VOID PhSipNotifyCpuGraph(
                     {
                         FLOAT max = 0;
 
-                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        if (PhCsEnableAvxSupport && drawInfo->LineDataCount > 128)
                         {
-                            FLOAT data = CpusGraphState[Index].Data1[i] + CpusGraphState[Index].Data2[i]; // HACK
+                            max = PhAddPlusMaxMemorySingles(
+                                CpusGraphState[Index].Data1,
+                                CpusGraphState[Index].Data2,
+                                drawInfo->LineDataCount
+                                );
+                        }
+                        else
+                        {
+                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            {
+                                FLOAT data = CpusGraphState[Index].Data1[i] + CpusGraphState[Index].Data2[i];
 
-                            if (max < data)
-                                max = data;
+                                if (max < data)
+                                    max = data;
+                            }
                         }
 
                         if (max != 0)
@@ -1291,6 +1318,7 @@ VOID PhSipUpdateCpuPanel(
 
     // Do not optimize (dmex)
     PhQueryPerformanceCounter(&performanceCounterStart);
+    MemoryBarrier();
     timeStampCounterStart = PhReadTimeStampCounter();
     MemoryBarrier();
 #ifdef _ARM64_
