@@ -18,7 +18,6 @@
 #include <mainwnd.h>
 #include <notifico.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <procprv.h>
 #include <proctree.h>
 

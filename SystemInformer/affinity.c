@@ -17,7 +17,6 @@
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <procprv.h>
 #include <thrdprv.h>
 

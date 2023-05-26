@@ -12,8 +12,6 @@
 #ifndef _PH_KPHCOMMS_H
 #define _PH_KPHCOMMS_H
 
-#include <ph.h>
-#include <mapldr.h>
 #include <kphmsg.h>
 
 NTSTATUS KphFilterLoadUnload(

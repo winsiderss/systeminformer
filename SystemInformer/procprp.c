@@ -14,6 +14,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 
+#include <mapldr.h>
 #include <kphuser.h>
 #include <settings.h>
 

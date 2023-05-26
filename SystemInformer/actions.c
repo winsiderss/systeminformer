@@ -23,6 +23,7 @@
 
 #include <kphuser.h>
 #include <ksisup.h>
+#include <mapldr.h>
 #include <secedit.h>
 #include <secwmi.h>
 #include <settings.h>

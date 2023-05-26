@@ -10,8 +10,11 @@
  *
  */
 
+#include <ph.h>
 #include <kphcomms.h>
 #include <kphuser.h>
+#include <mapldr.h>
+
 #include <fltuser.h>
 
 typedef struct _KPH_UMESSAGE
@@ -229,8 +232,9 @@ NTSTATUS KphpFilterDeviceIoControl(
     return status;
 }
 
+// rev from FilterLoad/FilterUnload (fltlib) (dmex)
 /**
- * Rev from FilterLoad/FilterUnload (dmex)
+ * \brief An application with minifilter support can dynamically load and unload the minifilter.
  *
  * \param[in] ServiceName The service name from HKLM\\System\\CurrentControlSet\\Services\\<ServiceName>.
  * \param[in] LoadDriver TRUE to load the kernel driver, FALSE to unload the kernel driver.
