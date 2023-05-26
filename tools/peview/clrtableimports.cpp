@@ -161,12 +161,12 @@ PPH_STRING PvClrImportFlagsToString(
 
 static int __cdecl PvClrCoreNameCompare(
     _In_ void* Context,
-    _In_ void const*elem1,
-    _In_ void const*elem2
+    _In_ void const* elem1,
+    _In_ void const* elem2
     )
 {
-    PPH_STRING item1 = *(PPH_STRING*)elem1;
-    PPH_STRING item2 = *(PPH_STRING*)elem2;
+    PPH_STRING item1 = *static_cast<PPH_STRING const*>(elem1);
+    PPH_STRING item2 = *static_cast<PPH_STRING const*>(elem2);
 
     return PhCompareStringWithNull(item1, item2, TRUE);
 }
@@ -177,18 +177,15 @@ static BOOLEAN PvClrCoreDirectoryCallback(
     _In_ PVOID Context
     )
 {
-    PFILE_DIRECTORY_INFORMATION directoryInfo = reinterpret_cast<PFILE_DIRECTORY_INFORMATION>(Information);
-    PH_STRINGREF baseName;
+    PFILE_DIRECTORY_INFORMATION directoryInfo = static_cast<PFILE_DIRECTORY_INFORMATION>(Information);
+    PH_STRINGREF baseName = { directoryInfo->FileNameLength, directoryInfo->FileName };
 
-    baseName.Buffer = directoryInfo->FileName;
-    baseName.Length = directoryInfo->FileNameLength;
-
-    if (PhEqualStringRef2(&baseName, const_cast<wchar_t*>(L"."), TRUE) || PhEqualStringRef2(&baseName, const_cast<wchar_t*>(L".."), TRUE))
-        return TRUE;
-
-    if (directoryInfo->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    if (FlagOn(directoryInfo->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
     {
-        PhAddItemList(reinterpret_cast<PPH_LIST>(Context), PhCreateString2(&baseName));
+        if (PATH_IS_WIN32_RELATIVE_PREFIX(&baseName))
+            return TRUE;
+
+        PhAddItemList(static_cast<PPH_LIST>(Context), PhCreateString2(&baseName));
     }
 
     return TRUE;
@@ -231,7 +228,7 @@ HRESULT PvGetClrMetaDataInterface(
             qsort_s(directoryList->Items, directoryList->Count, sizeof(PVOID), PvClrCoreNameCompare, nullptr);
 
             {
-                PPH_STRING directoryName = reinterpret_cast<PPH_STRING>(directoryList->Items[directoryList->Count - 1]);
+                PPH_STRING directoryName = static_cast<PPH_STRING>(directoryList->Items[directoryList->Count - 1]);
                 PPH_STRING fileName = PhConcatStringRef3(
                     &directoryPath->sr,
                     &directoryName->sr,
@@ -499,16 +496,16 @@ HRESULT PvSafeParseAttributeString(
     if (BufferLength < sizeof(USHORT) + sizeof(ULONG)) // prolog + length (1-4 compressed)
         return META_E_CA_INVALID_BLOB;
 
-    USHORT prolog = *(PUSHORT)Buffer;
+    USHORT prolog = *static_cast<USHORT const*>(Buffer);
     if (prolog != 0x0001)
         return META_E_CA_INVALID_BLOB;
 
     offset += sizeof(USHORT);
-    data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(Buffer, offset));
     if (offset > BufferLength)
         return COR_E_OVERFLOW;
 
-    BYTE null = *(PBYTE)data;
+    BYTE null = *const_cast<PBYTE>(data);
     if (null == 0xFF) // 0xFF indicates NULL string
         return COR_E_OVERFLOW;
 
@@ -518,11 +515,11 @@ HRESULT PvSafeParseAttributeString(
         return COR_E_OVERFLOW;
 
     offset += skipLength;
-    data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(Buffer, offset));
     if (offset > BufferLength)
         return COR_E_OVERFLOW;
 
-    *VersionString = PhConvertUtf8ToUtf16Ex((PCHAR)data, stringLength);
+    *VersionString = PhConvertUtf8ToUtf16Ex(reinterpret_cast<char*>(const_cast<unsigned char*>(data)), stringLength);
 
     //offset += stringLength;
     //data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
@@ -697,8 +694,8 @@ EXTERN_C HRESULT PvGetClrImageImports(
             ULONG importFlagsValue = 0;
             ULONG importNameValue = 0;
             ULONG moduleTokenValue = 0;
-            PVOID importRowValue = 0;
-            PVOID importOffsetValue = 0;
+            PVOID importRowValue = nullptr;
+            PVOID importOffsetValue = nullptr;
             const char* importName = nullptr;
 
             metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_MappingFlags, i, &importFlagsValue);
@@ -718,9 +715,9 @@ EXTERN_C HRESULT PvGetClrImageImports(
                 importOffsetValue = PTR_SUB_OFFSET(importRowValue, PvMappedImage.ViewBase);
             }
 
-            for (ULONG i = 0; i < clrImportsList->Count; i++)
+            for (ULONG j = 0; j < clrImportsList->Count; j++)
             {
-                PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[i]);
+                PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[j]);
 
                 if (importDll->ImportToken == moduleTokenValue)
                 {
@@ -803,20 +800,20 @@ EXTERN_C HRESULT PvClrImageEnumTables(
     for (ULONG i = 0; i < count; i++)
     {
         ULONG size;
-        ULONG count;
+        ULONG tablecount;
         ULONG columns;
         ULONG key;
         const char* name;
 
-        if (SUCCEEDED(metaDataTables->GetTableInfo(i, &size, &count, &columns, &key, &name)))
+        if (SUCCEEDED(metaDataTables->GetTableInfo(i, &size, &tablecount, &columns, &key, &name)))
         {
             PPH_STRING tableName;
             PVOID offset = nullptr;
 
-            tableName = PhConvertUtf8ToUtf16((PSTR)name);
+            tableName = PhConvertUtf8ToUtf16(const_cast<PSTR>(name));
             metaDataTables->GetRow(i, 1, &offset);
 
-            if (!Callback(i, size, count, tableName, offset, Context))
+            if (!Callback(i, size, tablecount, tableName, offset, Context))
             {
                 PhDereferenceObject(tableName);
                 break;
