@@ -1121,18 +1121,18 @@ NTSTATUS PhGetProcessPebString(
 
     if (!(Offset & PhpoWow64))
     {
-        PROCESS_BASIC_INFORMATION basicInfo;
+        PVOID pebBaseAddress;
         PVOID processParameters;
         UNICODE_STRING unicodeString;
 
         // Get the PEB address.
-        if (!NT_SUCCESS(status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+        if (!NT_SUCCESS(status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress)))
             return status;
 
         // Read the address of the process parameters.
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+            PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
             sizeof(PVOID),
             NULL
@@ -1172,16 +1172,16 @@ NTSTATUS PhGetProcessPebString(
     }
     else
     {
-        PVOID peb32;
+        PVOID pebBaseAddress32;
         ULONG processParameters32;
         UNICODE_STRING32 unicodeString32;
 
-        if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &peb32)))
+        if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress32)))
             return status;
 
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessParameters)),
+            PTR_ADD_OFFSET(pebBaseAddress32, FIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
             sizeof(ULONG),
             NULL
@@ -1361,17 +1361,17 @@ NTSTATUS PhGetProcessWindowTitle(
     if (!isWow64)
 #endif
     {
-        PROCESS_BASIC_INFORMATION basicInfo;
+        PVOID pebBaseAddress;
         PVOID processParameters;
 
         // Get the PEB address.
-        if (!NT_SUCCESS(status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+        if (!NT_SUCCESS(status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress)))
             return status;
 
         // Read the address of the process parameters.
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+            PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
             sizeof(PVOID),
             NULL
@@ -1391,15 +1391,15 @@ NTSTATUS PhGetProcessWindowTitle(
 #ifdef _WIN64
     else
     {
-        PVOID peb32;
+        PVOID pebBaseAddress32;
         ULONG processParameters32;
 
-        if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &peb32)))
+        if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress32)))
             return status;
 
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessParameters)),
+            PTR_ADD_OFFSET(pebBaseAddress32, FIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
             sizeof(ULONG),
             NULL
@@ -1487,17 +1487,17 @@ NTSTATUS PhGetProcessEnvironment(
 
     if (!(Flags & PH_GET_PROCESS_ENVIRONMENT_WOW64))
     {
-        PROCESS_BASIC_INFORMATION basicInfo;
+        PVOID pebBaseAddress;
         PVOID processParameters;
 
-        status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+        status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
 
         if (!NT_SUCCESS(status))
             return status;
 
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
+            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
             sizeof(PVOID),
             NULL
@@ -1515,18 +1515,18 @@ NTSTATUS PhGetProcessEnvironment(
     }
     else
     {
-        PVOID peb32;
+        PVOID pebBaseAddress32;
         ULONG processParameters32;
         ULONG environmentRemote32;
 
-        status = PhGetProcessPeb32(ProcessHandle, &peb32);
+        status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress32);
 
         if (!NT_SUCCESS(status))
             return status;
 
         if (!NT_SUCCESS(status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ProcessParameters)),
+            PTR_ADD_OFFSET(pebBaseAddress32, UFIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
             sizeof(ULONG),
             NULL
@@ -5329,7 +5329,7 @@ NTSTATUS PhpEnumProcessModules(
     )
 {
     NTSTATUS status;
-    PROCESS_BASIC_INFORMATION basicInfo;
+    PPEB peb;
     PPEB_LDR_DATA ldr;
     PEB_LDR_DATA pebLdrData;
     PLIST_ENTRY startLink;
@@ -5339,7 +5339,7 @@ NTSTATUS PhpEnumProcessModules(
     ULONG i;
 
     // Get the PEB address.
-    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+    status = PhGetProcessPeb(ProcessHandle, &peb);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -5347,7 +5347,7 @@ NTSTATUS PhpEnumProcessModules(
     // Read the address of the loader data.
     status = NtReadVirtualMemory(
         ProcessHandle,
-        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, Ldr)),
+        PTR_ADD_OFFSET(peb, FIELD_OFFSET(PEB, Ldr)),
         &ldr,
         sizeof(PVOID),
         NULL
@@ -5356,7 +5356,8 @@ NTSTATUS PhpEnumProcessModules(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (!ldr) // Process uninitialized (dmex)
+    // Check the process has initialized (dmex)
+    if (!ldr)
         return STATUS_UNSUCCESSFUL;
 
     // Read the loader data.
@@ -5716,6 +5717,10 @@ NTSTATUS PhpEnumProcessModules32(
 
     if (!NT_SUCCESS(status))
         return status;
+
+    // Check the process has initialized (dmex)
+    if (!ldr)
+        return STATUS_UNSUCCESSFUL;
 
     // Read the loader data.
     status = NtReadVirtualMemory(
@@ -13679,7 +13684,7 @@ NTSTATUS PhGetProcessImageBaseAddress(
     )
 {
     NTSTATUS status;
-    PVOID pebBaseAddress;
+    PVOID pebAddress;
     PVOID baseAddress;
 #ifdef _WIN64
     BOOLEAN isWow64;
@@ -13690,14 +13695,14 @@ NTSTATUS PhGetProcessImageBaseAddress(
     {
         ULONG imageBaseAddress32;
 
-        status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress);
+        status = PhGetProcessPeb32(ProcessHandle, &pebAddress);
 
         if (!NT_SUCCESS(status))
             return status;
 
         status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ImageBaseAddress)),
+            PTR_ADD_OFFSET(pebAddress, UFIELD_OFFSET(PEB32, ImageBaseAddress)),
             &imageBaseAddress32,
             sizeof(ULONG),
             NULL
@@ -13713,14 +13718,14 @@ NTSTATUS PhGetProcessImageBaseAddress(
     {
         PVOID imageBaseAddress;
 
-        status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress);
+        status = PhGetProcessPeb(ProcessHandle, &pebAddress);
 
         if (!NT_SUCCESS(status))
             return status;
 
         status = NtReadVirtualMemory(
             ProcessHandle,
-            PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ImageBaseAddress)),
+            PTR_ADD_OFFSET(pebAddress, UFIELD_OFFSET(PEB, ImageBaseAddress)),
             &imageBaseAddress,
             sizeof(PVOID),
             NULL
