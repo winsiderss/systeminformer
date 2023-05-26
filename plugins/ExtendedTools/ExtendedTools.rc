@@ -582,8 +582,8 @@ IDR_TXT_POOLTAGS        TXT                     "resources\\pooltag.txt"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,0,0,0
- PRODUCTVERSION 3,0,0,0
+ FILEVERSION 3,7,0,0
+ PRODUCTVERSION 3,7,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -598,14 +598,14 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "CompanyName", "System Informer"
-            VALUE "FileDescription", "System Informer"
-            VALUE "FileVersion", "3.0.0.0"
+            VALUE "CompanyName", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileDescription", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileVersion", "3.7.0.0"
             VALUE "InternalName", "ExtendedTools.dll"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "ExtendedTools.dll"
-            VALUE "ProductName", "System Informer"
-            VALUE "ProductVersion", "3.0.0.0"
+            VALUE "ProductName", "⟆Ⴘ⟆𝜏∈ⲙ ᓰﬡ⨍ᗝᖇⲙ∈ᖇ"
+            VALUE "ProductVersion", "3.7.0.0"
         END
     END
     BLOCK "VarFileInfo"
