@@ -11520,6 +11520,8 @@ NTSTATUS PhCreateDirectoryFullPath(
     return STATUS_UNSUCCESSFUL;
 }
 
+// NOTE: This callback handles both Native and Win32 filenames
+// since they're both relative to the parent RootDirectory. (dmex)
 static BOOLEAN PhDeleteDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
@@ -11638,81 +11640,6 @@ NTSTATUS PhDeleteDirectory(
     return status;
 }
 
-static BOOLEAN PhDeleteDirectoryWin32Callback(
-    _In_ HANDLE RootDirectory,
-    _In_ PFILE_DIRECTORY_INFORMATION Information,
-    _In_ PPH_STRINGREF ParentDirectory
-    )
-{
-    PH_STRINGREF fileName;
-    HANDLE fileHandle;
-
-    Information->FileName[Information->FileNameLength] = UNICODE_NULL;
-    fileName.Buffer = Information->FileName;
-    fileName.Length = Information->FileNameLength;
-
-    if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
-    {
-        if (PATH_IS_WIN32_RELATIVE_PREFIX(&fileName))
-            return TRUE;
-    }
-
-    if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
-    {
-        if (NT_SUCCESS(PhCreateFileWin32Ex(
-            &fileHandle,
-            PhGetStringRefZ(&fileName),
-            FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
-            RootDirectory,
-            NULL,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT, // | FILE_OPEN_REPARSE_POINT
-            NULL
-            )))
-        {
-            PhEnumDirectoryFile(fileHandle, NULL, PhDeleteDirectoryWin32Callback, NULL);
-
-            PhSetFileDelete(fileHandle);
-
-            NtClose(fileHandle);
-        }
-    }
-    else
-    {
-        if (NT_SUCCESS(PhCreateFileWin32Ex(
-            &fileHandle,
-            PhGetStringRefZ(&fileName),
-            FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
-            RootDirectory,
-            NULL,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, // | FILE_OPEN_REPARSE_POINT
-            NULL
-            )))
-        {
-            if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_READONLY) && WindowsVersion < WINDOWS_10_RS5)
-            {
-                FILE_BASIC_INFORMATION fileBasicInfo;
-
-                memset(&fileBasicInfo, 0, sizeof(FILE_BASIC_INFORMATION));
-                fileBasicInfo.FileAttributes = ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
-
-                PhSetFileBasicInformation(fileHandle, &fileBasicInfo);
-            }
-
-            PhSetFileDelete(fileHandle);
-
-            NtClose(fileHandle);
-        }
-    }
-
-    return TRUE;
-}
-
 /**
 * Deletes a directory path recursively.
 *
@@ -11741,7 +11668,7 @@ NTSTATUS PhDeleteDirectoryWin32(
         status = PhEnumDirectoryFile(
             directoryHandle,
             NULL,
-            PhDeleteDirectoryWin32Callback,
+            PhDeleteDirectoryCallback,
             DirectoryPath
             );
 
