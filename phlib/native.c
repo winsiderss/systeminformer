@@ -5215,7 +5215,7 @@ NTSTATUS PhpUnloadDriver(
     {
         if (disposition == REG_CREATED_NEW_KEY)
         {
-            static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
+            static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\drivers\\ntfs.sys");
             PH_STRINGREF valueName;
             ULONG dword;
 
@@ -5791,7 +5791,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     _In_opt_ PVOID Context2
     )
 {
-    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\system32\\");
+    static PH_STRINGREF system32String = PH_STRINGREF_INIT(L"\\System32\\");
     PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters = Context1;
     BOOLEAN cont;
     LDR_DATA_TABLE_ENTRY nativeEntry;
