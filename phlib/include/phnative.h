@@ -1723,6 +1723,38 @@ PhEnumDirectoryFileEx(
     _In_opt_ PVOID Context
     );
 
+typedef NTSTATUS (NTAPI* PPH_ENUM_REPARSE_POINT)(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_ SIZE_T InformationLength,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumReparsePointInformation(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_REPARSE_POINT Callback,
+    _In_opt_ PVOID Context
+    );
+
+typedef NTSTATUS (NTAPI* PPH_ENUM_OBJECT_ID)(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_ SIZE_T InformationLength,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumObjectIdInformation(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_OBJECT_ID Callback,
+    _In_opt_ PVOID Context
+    );
+
 #define PH_FIRST_FILE_EA(Information) \
     ((PFILE_FULL_EA_INFORMATION)(Information))
 #define PH_NEXT_FILE_EA(Information) \
