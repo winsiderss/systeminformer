@@ -1205,11 +1205,11 @@ static BOOLEAN DnpMscordaccoreDirectoryCallback(
     baseName.Buffer = Information->FileName;
     baseName.Length = Information->FileNameLength;
 
-    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
-        return TRUE;
-
-    if (Information->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
     {
+        if (PATH_IS_WIN32_RELATIVE_PREFIX(&baseName))
+            return TRUE;
+
         PhAddItemList(DirectoryList, PhCreateString2(&baseName));
     }
 
@@ -1415,6 +1415,7 @@ TryAppLocal:
                     &fileHandle,
                     PhGetString(fileName),
                     FILE_GENERIC_WRITE,
+                    NULL,
                     &fileSize,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,

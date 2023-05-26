@@ -1731,7 +1731,8 @@ PhEnumDirectoryFileEx(
     NULL \
     )
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_FILE_EA)(
+typedef NTSTATUS (NTAPI *PPH_ENUM_FILE_EA)(
+    _In_ HANDLE RootDirectory,
     _In_ PFILE_FULL_EA_INFORMATION Information,
     _In_opt_ PVOID Context
     );
@@ -1770,20 +1771,6 @@ PhEnumFileStreams(
     _Out_ PVOID *Streams
     );
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_FILE_STREAMS)(
-    _In_ PFILE_STREAM_INFORMATION Information,
-    _In_opt_ PVOID Context
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhEnumFileStreamsEx(
-    _In_ HANDLE FileHandle,
-    _In_ PPH_ENUM_FILE_STREAMS Callback,
-    _In_opt_ PVOID Context
-    );
-
 #define PH_FIRST_LINK(Links) ((PFILE_LINK_ENTRY_INFORMATION)(Links))
 #define PH_NEXT_LINK(Links) ( \
     ((PFILE_LINK_ENTRY_INFORMATION)(Links))->NextEntryOffset ? \
@@ -1803,15 +1790,6 @@ NTAPI
 PhEnumFileHardLinks(
     _In_ HANDLE FileHandle,
     _Out_ PVOID *HardLinks
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhEnumFileHardLinksEx(
-    _In_ HANDLE FileHandle,
-    _In_ PPH_ENUM_FILE_HARDLINKS Callback,
-    _In_opt_ PVOID Context
     );
 
 PHLIBAPI
@@ -1881,6 +1859,11 @@ PhGetFileName(
     (s)->Buffer[2] == '?' || (s)->Buffer[2] == '.'&& \
     (s)->Buffer[3] == '\\')
 
+// "." or ".."
+#define PATH_IS_WIN32_RELATIVE_PREFIX(s) ( \
+    (s)->Length == 2 && (s)->Buffer[0] == L'.' || \
+    (s)->Length == 4 && (s)->Buffer[0] == L'.' && (s)->Buffer[1] == L'.')
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1901,7 +1884,7 @@ PhDosLongPathNameToNtPathNameWithStatus(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetNtPathDevicePrefix(
+PhGetNtPathRootPrefix(
     _In_ PPH_STRINGREF Name
     );
 
@@ -1916,7 +1899,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetExistingPathPrefixWin32(
-    _In_ PWSTR Name
+    _In_ PPH_STRINGREF Name
     );
 
 #define PH_MODULE_TYPE_MODULE 1
@@ -2148,6 +2131,7 @@ PhCreateFileWin32Ex(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
     _In_opt_ PLARGE_INTEGER AllocationSize,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -2183,6 +2167,22 @@ PhCreateFile(
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateFileEx(
+    _Out_ PHANDLE FileHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _Out_opt_ PULONG CreateStatus
     );
 
 PHLIBAPI
@@ -2381,6 +2381,13 @@ NTSTATUS
 NTAPI
 PhCreateDirectoryFullPath(
     _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDeleteDirectory(
+    _In_ PPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI

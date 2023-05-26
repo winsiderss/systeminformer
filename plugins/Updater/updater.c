@@ -744,6 +744,7 @@ NTSTATUS UpdateDownloadThread(
             &tempFileHandle,
             PhGetString(context->SetupFilePath),
             FILE_GENERIC_WRITE,
+            NULL,
             &allocationSize,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ,

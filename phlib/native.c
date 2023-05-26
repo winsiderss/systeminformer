@@ -14,7 +14,6 @@
 #include <apiimport.h>
 #include <kphuser.h>
 #include <lsasup.h>
-#include <mapimg.h>
 #include <mapldr.h>
 
 #define PH_DEVICE_PREFIX_LENGTH 64
@@ -747,12 +746,34 @@ NTSTATUS PhGetProcessImageFileName(
 {
     NTSTATUS status;
     PUNICODE_STRING fileName;
+    ULONG bufferLength;
+    ULONG returnLength = 0;
 
-    status = PhpQueryProcessVariableSize(
+    bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
+    fileName = PhAllocate(bufferLength);
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessImageFileName,
-        &fileName
+        fileName,
+        bufferLength,
+        &returnLength
         );
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(fileName);
+        bufferLength = returnLength;
+        fileName = PhAllocate(bufferLength);
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessImageFileName,
+            fileName,
+            bufferLength,
+            &returnLength
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1339,12 +1360,34 @@ NTSTATUS PhGetProcessWindowTitle(
 #endif
     ULONG windowFlags;
     PPROCESS_WINDOW_INFORMATION windowInfo;
+    ULONG bufferLength;
+    ULONG returnLength = 0;
 
-    status = PhpQueryProcessVariableSize(
+    bufferLength = UFIELD_OFFSET(PROCESS_WINDOW_INFORMATION, WindowTitle[DOS_MAX_PATH_LENGTH]) + sizeof(UNICODE_NULL);
+    windowInfo = PhAllocate(bufferLength);
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessWindowInformation,
-        &windowInfo
+        windowInfo,
+        bufferLength,
+        &returnLength
         );
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(windowInfo);
+        bufferLength = returnLength;
+        windowInfo = PhAllocate(bufferLength);
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessWindowInformation,
+            windowInfo,
+            bufferLength,
+            &returnLength
+            );
+    }
 
     if (NT_SUCCESS(status))
     {
@@ -7840,10 +7883,7 @@ NTSTATUS PhEnumDirectoryFileEx(
 
         while (TRUE)
         {
-            PFILE_NAMES_INFORMATION information;
-
-            // HACK: Use the wrong structure for the NextEntryOffset. (dmex)
-            information = PTR_ADD_OFFSET(buffer, i);
+            PFILE_DIRECTORY_NEXT_INFORMATION information = PTR_ADD_OFFSET(buffer, i);
 
             if (!Callback(FileHandle, information, Context))
             {
@@ -7876,11 +7916,9 @@ NTSTATUS PhEnumFileExtendedAttributes(
 {
     NTSTATUS status;
     BOOLEAN firstTime = TRUE;
-    BOOLEAN success = FALSE;
     IO_STATUS_BLOCK isb;
     ULONG bufferSize;
     PVOID buffer;
-    PFILE_FULL_EA_INFORMATION i;
 
     bufferSize = 0x400;
     buffer = PhAllocate(bufferSize);
@@ -7930,18 +7968,15 @@ NTSTATUS PhEnumFileExtendedAttributes(
         if (!NT_SUCCESS(status))
             break;
 
-        success = TRUE;
+        status = Callback(FileHandle, buffer, Context);
 
-        for (i = PH_FIRST_FILE_EA(buffer); i; i = PH_NEXT_FILE_EA(i))
+        if (status == STATUS_NO_MORE_FILES)
         {
-            if (!Callback(i, Context))
-            {
-                success = FALSE;
-                break;
-            }
+            status = STATUS_SUCCESS;
+            break;
         }
 
-        if (!success)
+        if (!NT_SUCCESS(status))
             break;
 
         firstTime = FALSE;
@@ -8008,36 +8043,6 @@ NTSTATUS PhEnumFileStreams(
         );
 }
 
-NTSTATUS PhEnumFileStreamsEx(
-    _In_ HANDLE FileHandle,
-    _In_ PPH_ENUM_FILE_STREAMS Callback,
-    _In_opt_ PVOID Context
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    PFILE_STREAM_INFORMATION i;
-
-    status = PhpQueryFileVariableSize(
-        FileHandle,
-        FileStreamInformation,
-        &buffer
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        for (i = PH_FIRST_STREAM(buffer); i; i = PH_NEXT_STREAM(i))
-        {
-            if (!Callback(i, Context))
-                break;
-        }
-
-        PhFree(buffer);
-    }
-
-    return status;
-}
-
 NTSTATUS PhEnumFileHardLinks(
     _In_ HANDLE FileHandle,
     _Out_ PVOID *HardLinks
@@ -8048,36 +8053,6 @@ NTSTATUS PhEnumFileHardLinks(
         FileHardLinkInformation,
         HardLinks
         );
-}
-
-NTSTATUS PhEnumFileHardLinksEx(
-    _In_ HANDLE FileHandle,
-    _In_ PPH_ENUM_FILE_HARDLINKS Callback,
-    _In_opt_ PVOID Context
-    )
-{
-    NTSTATUS status;
-    PFILE_LINKS_INFORMATION buffer;
-    PFILE_LINK_ENTRY_INFORMATION i;
-
-    status = PhpQueryFileVariableSize(
-        FileHandle,
-        FileHardLinkInformation,
-        &buffer
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        for (i = PH_FIRST_LINK(&buffer->Entry); i; i = PH_NEXT_LINK(i))
-        {
-            if (!Callback(i, Context))
-                break;
-        }
-
-        PhFree(buffer);
-    }
-
-    return status;
 }
 
 NTSTATUS PhCreateSymbolicLinkObject(
@@ -8959,7 +8934,7 @@ NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
     return status;
 }
 
-PPH_STRING PhGetNtPathDevicePrefix(
+PPH_STRING PhGetNtPathRootPrefix(
     _In_ PPH_STRINGREF Name
     )
 {
@@ -8993,6 +8968,12 @@ PPH_STRING PhGetExistingPathPrefix(
     PH_STRINGREF directoryPart;
     PH_STRINGREF baseNamePart;
 
+    if (PATH_IS_WIN32_DRIVE_PREFIX(Name))
+    {
+        assert(FALSE);
+        return NULL;
+    }
+
     if (PhDoesDirectoryExist(Name))
     {
         return PhCreateString2(Name);
@@ -9016,11 +8997,14 @@ PPH_STRING PhGetExistingPathPrefix(
         remainingPart = directoryPart;
     }
 
+    //if (PhEqualStringRef(&existingPathPrefix, PhGetNtPathRootPrefix(Name), FALSE))
+    //    return NULL;
+
     return existingPathPrefix;
 }
 
 PPH_STRING PhGetExistingPathPrefixWin32(
-    _In_ PWSTR Name
+    _In_ PPH_STRINGREF Name
     )
 {
     PPH_STRING existingPathPrefix = NULL;
@@ -9028,12 +9012,18 @@ PPH_STRING PhGetExistingPathPrefixWin32(
     PH_STRINGREF directoryPart;
     PH_STRINGREF baseNamePart;
 
-    if (PhDoesDirectoryExistWin32(Name))
+    if (!PATH_IS_WIN32_DRIVE_PREFIX(Name))
     {
-        return PhCreateString(Name);
+        assert(FALSE);
+        return NULL;
     }
 
-    PhInitializeStringRefLongHint(&remainingPart, Name);
+    if (PhDoesDirectoryExistWin32(PhGetStringRefZ(Name)))
+    {
+        return PhCreateString2(Name);
+    }
+
+    remainingPart = *Name;
 
     while (remainingPart.Length != 0)
     {
@@ -10183,7 +10173,7 @@ NTSTATUS PhEnumerateKey(
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
 
-    do
+    while (TRUE)
     {
         status = NtEnumerateKey(
             KeyHandle,
@@ -10222,7 +10212,7 @@ NTSTATUS PhEnumerateKey(
             break;
 
         index++;
-    } while (TRUE);
+    }
 
     PhFree(buffer);
 
@@ -10244,7 +10234,7 @@ NTSTATUS PhEnumerateValueKey(
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
 
-    do
+    while (TRUE)
     {
         status = NtEnumerateValueKey(
             KeyHandle,
@@ -10283,7 +10273,7 @@ NTSTATUS PhEnumerateValueKey(
             break;
 
         index++;
-    } while (TRUE);
+    }
 
     PhFree(buffer);
 
@@ -10325,6 +10315,7 @@ NTSTATUS PhCreateFileWin32(
         FileName,
         DesiredAccess,
         NULL,
+        NULL,
         FileAttributes,
         ShareAccess,
         CreateDisposition,
@@ -10339,6 +10330,7 @@ NTSTATUS PhCreateFileWin32(
  * \param FileHandle A variable that receives the file handle.
  * \param FileName The Win32 file name.
  * \param DesiredAccess The desired access to the file.
+ * \param RootDirectory The root object directory for the file.
  * \param AllocationSize The initial allocation size if the file is being created, overwritten, or superseded.
  * \param FileAttributes File attributes applied if the file is created or overwritten.
  * \param ShareAccess The file access granted to other threads.
@@ -10371,6 +10363,7 @@ NTSTATUS PhCreateFileWin32Ex(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
     _In_opt_ PLARGE_INTEGER AllocationSize,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -10540,6 +10533,27 @@ NTSTATUS PhCreateFileWin32ExAlt(
     return status;
 }
 
+/**
+ * Creates or opens a file.
+ *
+ * \param FileHandle A variable that receives the file handle.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the file.
+ * \param FileAttributes File attributes applied if the file is created or overwritten.
+ * \param ShareAccess The file access granted to other threads.
+ * \li \c FILE_SHARE_READ Allows other threads to read from the file.
+ * \li \c FILE_SHARE_WRITE Allows other threads to write to the file.
+ * \li \c FILE_SHARE_DELETE Allows other threads to delete the file.
+ * \param CreateDisposition The action to perform if the file does or does not exist.
+ * \li \c FILE_SUPERSEDE If the file exists, replace it. Otherwise, create the file.
+ * \li \c FILE_CREATE If the file exists, fail. Otherwise, create the file.
+ * \li \c FILE_OPEN If the file exists, open it. Otherwise, fail.
+ * \li \c FILE_OPEN_IF If the file exists, open it. Otherwise, create the file.
+ * \li \c FILE_OVERWRITE If the file exists, open and overwrite it. Otherwise, fail.
+ * \li \c FILE_OVERWRITE_IF If the file exists, open and overwrite it. Otherwise, create the file.
+ * \param CreateOptions The options to apply when the file is opened or created.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhCreateFile(
     _Out_ PHANDLE FileHandle,
     _In_ PPH_STRINGREF FileName,
@@ -10563,7 +10577,7 @@ NTSTATUS PhCreateFile(
         &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
-        NULL,
+        RootDirectory,
         NULL
         );
 
@@ -10606,6 +10620,118 @@ NTSTATUS PhCreateFile(
     {
         *FileHandle = fileHandle;
     }
+
+    return status;
+}
+
+/**
+ * Creates or opens a file.
+ *
+ * \param FileHandle A variable that receives the file handle.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the file.
+ * \param RootDirectory The root object directory for the file.
+ * \param AllocationSize The initial allocation size if the file is being created, overwritten, or superseded.
+ * \param FileAttributes File attributes applied if the file is created or overwritten.
+ * \param ShareAccess The file access granted to other threads.
+ * \li \c FILE_SHARE_READ Allows other threads to read from the file.
+ * \li \c FILE_SHARE_WRITE Allows other threads to write to the file.
+ * \li \c FILE_SHARE_DELETE Allows other threads to delete the file.
+ * \param CreateDisposition The action to perform if the file does or does not exist.
+ * \li \c FILE_SUPERSEDE If the file exists, replace it. Otherwise, create the file.
+ * \li \c FILE_CREATE If the file exists, fail. Otherwise, create the file.
+ * \li \c FILE_OPEN If the file exists, open it. Otherwise, fail.
+ * \li \c FILE_OPEN_IF If the file exists, open it. Otherwise, create the file.
+ * \li \c FILE_OVERWRITE If the file exists, open and overwrite it. Otherwise, fail.
+ * \li \c FILE_OVERWRITE_IF If the file exists, open and overwrite it. Otherwise, create the file.
+ * \param CreateOptions The options to apply when the file is opened or created.
+ * \param CreateStatus A variable that receives creation information.
+ * \li \c FILE_SUPERSEDED The file was replaced because \c FILE_SUPERSEDE was specified in
+ * \a CreateDisposition.
+ * \li \c FILE_OPENED The file was opened because \c FILE_OPEN or \c FILE_OPEN_IF was specified in
+ * \a CreateDisposition.
+ * \li \c FILE_CREATED The file was created because \c FILE_CREATE or \c FILE_OPEN_IF was specified
+ * in \a CreateDisposition.
+ * \li \c FILE_OVERWRITTEN The file was overwritten because \c FILE_OVERWRITE or
+ * \c FILE_OVERWRITE_IF was specified in \a CreateDisposition.
+ * \li \c FILE_EXISTS The file was not opened because it already existed and \c FILE_CREATE was
+ * specified in \a CreateDisposition.
+ * \li \c FILE_DOES_NOT_EXIST The file was not opened because it did not exist and \c FILE_OPEN or
+ * \c FILE_OVERWRITE was specified in \a CreateDisposition.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhCreateFileEx(
+    _Out_ PHANDLE FileHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _Out_opt_ PULONG CreateStatus
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &ioStatusBlock,
+        AllocationSize,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions,
+        NULL,
+        0
+        );
+
+    if (status == STATUS_SHARING_VIOLATION &&
+        KphLevel() >= KphLevelMed &&
+        (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
+        CreateDisposition == KPH_FILE_READ_DISPOSITION)
+    {
+        status = KphCreateFile(
+            &fileHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &ioStatusBlock,
+            AllocationSize,
+            FileAttributes,
+            ShareAccess,
+            CreateDisposition,
+            CreateOptions,
+            NULL,
+            0,
+            IO_IGNORE_SHARE_ACCESS_CHECK
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    if (CreateStatus)
+        *CreateStatus = (ULONG)ioStatusBlock.Information;
 
     return status;
 }
@@ -11219,80 +11345,8 @@ NTSTATUS PhDeleteFile(
 /**
 * Creates a directory path recursively.
 *
-* \param DirectoryPath The Win32 directory path.
+* \param DirectoryPath The directory path.
 */
-NTSTATUS PhCreateDirectoryWin32(
-    _In_ PPH_STRINGREF DirectoryPath
-    )
-{
-    PPH_STRING directoryPath;
-    PPH_STRING directoryName;
-    PH_STRINGREF directoryPart;
-    PH_STRINGREF remainingPart;
-
-    if (PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
-        return STATUS_SUCCESS;
-
-    if (directoryPath = PhGetExistingPathPrefixWin32(PhGetStringRefZ(DirectoryPath)))
-    {
-        remainingPart.Length = DirectoryPath->Length - directoryPath->Length - sizeof(OBJ_NAME_PATH_SEPARATOR);
-        remainingPart.Buffer = PTR_ADD_OFFSET(DirectoryPath->Buffer, directoryPath->Length + sizeof(OBJ_NAME_PATH_SEPARATOR));
-    }
-    else
-    {
-        remainingPart.Length = DirectoryPath->Length;
-        remainingPart.Buffer = DirectoryPath->Buffer;
-    }
-
-    while (remainingPart.Length != 0)
-    {
-        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &remainingPart);
-
-        if (directoryPart.Length != 0)
-        {
-            if (PhIsNullOrEmptyString(directoryPath))
-            {
-                PhMoveReference(&directoryPath, PhCreateString2(&directoryPart));
-            }
-            else
-            {
-                directoryName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeperatorString, &directoryPart);
-
-                // Check if the directory already exists. (dmex)
-
-                if (!PhDoesDirectoryExistWin32(PhGetString(directoryName)))
-                {
-                    HANDLE directoryHandle;
-
-                    // Create the directory. (dmex)
-
-                    if (NT_SUCCESS(PhCreateFileWin32(
-                        &directoryHandle,
-                        PhGetString(directoryName),
-                        FILE_LIST_DIRECTORY | SYNCHRONIZE,
-                        FILE_ATTRIBUTE_NORMAL,
-                        FILE_SHARE_READ | FILE_SHARE_WRITE,
-                        FILE_CREATE,
-                        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT //| FILE_OPEN_REPARSE_POINT
-                        )))
-                    {
-                        NtClose(directoryHandle);
-                    }
-                }
-
-                PhMoveReference(&directoryPath, directoryName);
-            }
-        }
-    }
-
-    PhClearReference(&directoryPath);
-
-    if (!PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
-        return STATUS_NOT_FOUND;
-
-    return STATUS_SUCCESS;
-}
-
 NTSTATUS PhCreateDirectory(
     _In_ PPH_STRINGREF DirectoryPath
     )
@@ -11305,7 +11359,6 @@ NTSTATUS PhCreateDirectory(
     if (PhDoesDirectoryExist(DirectoryPath))
         return STATUS_SUCCESS;
 
-    //directoryPath = PhGetNtPathDevicePrefix(DirectoryPath);
     directoryPath = PhGetExistingPathPrefix(DirectoryPath);
 
     if (PhIsNullOrEmptyString(directoryPath))
@@ -11356,6 +11409,80 @@ NTSTATUS PhCreateDirectory(
     return STATUS_SUCCESS;
 }
 
+/**
+* Creates a directory path recursively.
+*
+* \param DirectoryPath The Win32 directory path.
+*/
+NTSTATUS PhCreateDirectoryWin32(
+    _In_ PPH_STRINGREF DirectoryPath
+    )
+{
+    PPH_STRING directoryPath;
+    PPH_STRING directoryName;
+    PH_STRINGREF directoryPart;
+    PH_STRINGREF remainingPart;
+
+    if (PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
+        return STATUS_SUCCESS;
+
+    directoryPath = PhGetExistingPathPrefixWin32(DirectoryPath);
+
+    if (PhIsNullOrEmptyString(directoryPath))
+        return STATUS_UNSUCCESSFUL;
+
+    remainingPart.Length = DirectoryPath->Length - directoryPath->Length - sizeof(OBJ_NAME_PATH_SEPARATOR);
+    remainingPart.Buffer = PTR_ADD_OFFSET(DirectoryPath->Buffer, directoryPath->Length + sizeof(OBJ_NAME_PATH_SEPARATOR));
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &remainingPart);
+
+        if (directoryPart.Length != 0)
+        {
+            if (PhIsNullOrEmptyString(directoryPath))
+            {
+                PhMoveReference(&directoryPath, PhCreateString2(&directoryPart));
+            }
+            else
+            {
+                directoryName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeperatorString, &directoryPart);
+
+                // Check if the directory already exists. (dmex)
+
+                if (!PhDoesDirectoryExistWin32(PhGetString(directoryName)))
+                {
+                    HANDLE directoryHandle;
+
+                    // Create the directory. (dmex)
+
+                    if (NT_SUCCESS(PhCreateFileWin32(
+                        &directoryHandle,
+                        PhGetString(directoryName),
+                        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+                        FILE_ATTRIBUTE_NORMAL,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        FILE_CREATE,
+                        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT //| FILE_OPEN_REPARSE_POINT
+                        )))
+                    {
+                        NtClose(directoryHandle);
+                    }
+                }
+
+                PhMoveReference(&directoryPath, directoryName);
+            }
+        }
+    }
+
+    PhClearReference(&directoryPath);
+
+    if (!PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
+        return STATUS_NOT_FOUND;
+
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS PhCreateDirectoryFullPathWin32(
     _In_ PPH_STRINGREF FileName
     )
@@ -11396,86 +11523,196 @@ NTSTATUS PhCreateDirectoryFullPath(
     return STATUS_UNSUCCESSFUL;
 }
 
-static BOOLEAN PhpDeleteDirectoryCallback(
+static BOOLEAN PhDeleteDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
     )
 {
-    PPH_STRINGREF parentDirectory = Context;
-    PPH_STRING fullName;
-    PH_STRINGREF baseName;
+    PH_STRINGREF fileName;
+    HANDLE fileHandle;
 
-    baseName.Buffer = Information->FileName;
-    baseName.Length = Information->FileNameLength;
+    fileName.Buffer = Information->FileName;
+    fileName.Length = Information->FileNameLength;
 
-    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
-        return TRUE;
-
-    fullName = PhConcatStringRef3(parentDirectory, &PhNtPathSeperatorString, &baseName);
-
-    if (Information->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
     {
-        HANDLE directoryHandle;
+        if (PATH_IS_WIN32_RELATIVE_PREFIX(&fileName))
+            return TRUE;
 
-        if (NT_SUCCESS(PhOpenFileWin32(
-            &directoryHandle,
-            PhGetString(fullName),
+        if (NT_SUCCESS(PhCreateFileEx(
+            &fileHandle,
+            &fileName,
             FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+            RootDirectory,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT //| FILE_OPEN_REPARSE_POINT
+            FILE_OPEN,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT, // | FILE_OPEN_REPARSE_POINT
+            NULL
             )))
         {
-            PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, &fullName->sr);
+            PhEnumDirectoryFile(fileHandle, NULL, PhDeleteDirectoryCallback, NULL);
 
-            PhSetFileDelete(directoryHandle);
+            PhSetFileDelete(fileHandle);
 
-            NtClose(directoryHandle);
+            NtClose(fileHandle);
         }
     }
     else
     {
-        if (Information->FileAttributes & FILE_ATTRIBUTE_READONLY)
+        if (NT_SUCCESS(PhCreateFileEx(
+            &fileHandle,
+            &fileName,
+            FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
+            RootDirectory,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, // | FILE_OPEN_REPARSE_POINT
+            NULL
+            )))
         {
-            HANDLE fileHandle;
-
-            if (NT_SUCCESS(PhOpenFileWin32(
-                &fileHandle,
-                PhGetString(fullName),
-                FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT //| FILE_OPEN_REPARSE_POINT
-                )))
+            if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_READONLY) && WindowsVersion < WINDOWS_10_RS5)
             {
-                if (WindowsVersion < WINDOWS_10_RS5)
-                {
-                    IO_STATUS_BLOCK ioStatusBlock;
-                    FILE_BASIC_INFORMATION fileBasicInfo;
+                FILE_BASIC_INFORMATION fileBasicInfo;
 
-                    memset(&fileBasicInfo, 0, sizeof(FILE_BASIC_INFORMATION));
-                    fileBasicInfo.FileAttributes = ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
+                memset(&fileBasicInfo, 0, sizeof(FILE_BASIC_INFORMATION));
+                fileBasicInfo.FileAttributes = ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
 
-                    NtSetInformationFile(
-                        fileHandle,
-                        &ioStatusBlock,
-                        &fileBasicInfo,
-                        sizeof(FILE_BASIC_INFORMATION),
-                        FileBasicInformation
-                        );
-                }
-
-                PhSetFileDelete(fileHandle);
-
-                NtClose(fileHandle);
+                PhSetFileBasicInformation(fileHandle, &fileBasicInfo);
             }
-        }
-        else
-        {
-            PhDeleteFileWin32(PhGetString(fullName));
+
+            PhSetFileDelete(fileHandle);
+
+            NtClose(fileHandle);
         }
     }
 
-    PhDereferenceObject(fullName);
+    return TRUE;
+}
+
+/**
+* Deletes a directory path recursively.
+*
+* \param DirectoryPath The directory path.
+*/
+NTSTATUS PhDeleteDirectory(
+    _In_ PPH_STRINGREF DirectoryPath
+    )
+{
+    NTSTATUS status;
+    HANDLE directoryHandle;
+
+    status = PhCreateFile(
+        &directoryHandle,
+        DirectoryPath,
+        FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT | FILE_OPEN_REPARSE_POINT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        // Remove any files or folders inside the directory. (dmex)
+        status = PhEnumDirectoryFile(
+            directoryHandle,
+            NULL,
+            PhDeleteDirectoryCallback,
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            // Remove the directory. (dmex)
+            status = PhSetFileDelete(directoryHandle);
+        }
+
+        NtClose(directoryHandle);
+    }
+
+    if (!PhDoesDirectoryExist(DirectoryPath))
+        return STATUS_SUCCESS;
+
+    return status;
+}
+
+static BOOLEAN PhDeleteDirectoryWin32Callback(
+    _In_ HANDLE RootDirectory,
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PPH_STRINGREF ParentDirectory
+    )
+{
+    PH_STRINGREF fileName;
+    HANDLE fileHandle;
+
+    Information->FileName[Information->FileNameLength] = UNICODE_NULL;
+    fileName.Buffer = Information->FileName;
+    fileName.Length = Information->FileNameLength;
+
+    if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
+    {
+        if (PATH_IS_WIN32_RELATIVE_PREFIX(&fileName))
+            return TRUE;
+    }
+
+    if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
+    {
+        if (NT_SUCCESS(PhCreateFileWin32Ex(
+            &fileHandle,
+            PhGetStringRefZ(&fileName),
+            FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+            RootDirectory,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT, // | FILE_OPEN_REPARSE_POINT
+            NULL
+            )))
+        {
+            PhEnumDirectoryFile(fileHandle, NULL, PhDeleteDirectoryWin32Callback, NULL);
+
+            PhSetFileDelete(fileHandle);
+
+            NtClose(fileHandle);
+        }
+    }
+    else
+    {
+        if (NT_SUCCESS(PhCreateFileWin32Ex(
+            &fileHandle,
+            PhGetStringRefZ(&fileName),
+            FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
+            RootDirectory,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, // | FILE_OPEN_REPARSE_POINT
+            NULL
+            )))
+        {
+            if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_READONLY) && WindowsVersion < WINDOWS_10_RS5)
+            {
+                FILE_BASIC_INFORMATION fileBasicInfo;
+
+                memset(&fileBasicInfo, 0, sizeof(FILE_BASIC_INFORMATION));
+                fileBasicInfo.FileAttributes = ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
+
+                PhSetFileBasicInformation(fileHandle, &fileBasicInfo);
+            }
+
+            PhSetFileDelete(fileHandle);
+
+            NtClose(fileHandle);
+        }
+    }
+
     return TRUE;
 }
 
@@ -11491,11 +11728,13 @@ NTSTATUS PhDeleteDirectoryWin32(
     NTSTATUS status;
     HANDLE directoryHandle;
 
-    status = PhOpenFileWin32(
+    status = PhCreateFileWin32(
         &directoryHandle,
         PhGetStringRefZ(DirectoryPath),
         FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
         FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT | FILE_OPEN_REPARSE_POINT
         );
 
@@ -11505,7 +11744,7 @@ NTSTATUS PhDeleteDirectoryWin32(
         status = PhEnumDirectoryFile(
             directoryHandle,
             NULL,
-            PhpDeleteDirectoryCallback,
+            PhDeleteDirectoryWin32Callback,
             DirectoryPath
             );
 
@@ -11518,7 +11757,7 @@ NTSTATUS PhDeleteDirectoryWin32(
         NtClose(directoryHandle);
     }
 
-    if (!PhDoesFileExistWin32(PhGetStringRefZ(DirectoryPath)))
+    if (!PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_SUCCESS;
 
     return status;
@@ -11565,6 +11804,7 @@ NTSTATUS PhCopyFileWin32(
         &newFileHandle,
         NewFileName,
         FILE_GENERIC_WRITE,
+        NULL,
         &newFileSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
@@ -12003,6 +12243,7 @@ NTSTATUS PhMoveFileWin32(
             &newFileHandle,
             NewFileName,
             FILE_GENERIC_WRITE,
+            NULL,
             &newFileSize,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ,

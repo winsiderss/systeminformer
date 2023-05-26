@@ -295,6 +295,7 @@ BOOLEAN DownloadUpdateToFile(
         &tempFileHandle,
         PhGetString(httpHeaderFileName),
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        NULL,
         &(LARGE_INTEGER){ .QuadPart = httpContentLength },
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,

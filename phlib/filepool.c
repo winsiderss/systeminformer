@@ -263,6 +263,7 @@ NTSTATUS PhCreateFilePool2(
         FileName,
         !ReadOnly ? (FILE_GENERIC_READ | FILE_GENERIC_WRITE | DELETE) : FILE_GENERIC_READ,
         NULL,
+        NULL,
         FILE_ATTRIBUTE_NORMAL,
         ShareAccess,
         CreateDisposition,
