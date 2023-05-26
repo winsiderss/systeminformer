@@ -154,7 +154,7 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessPeb32(
     _In_ HANDLE ProcessHandle,
-    _Out_ PVOID *Peb32
+    _Out_ PVOID* Peb32
     )
 {
     NTSTATUS status;
@@ -170,7 +170,7 @@ PhGetProcessPeb32(
 
     if (NT_SUCCESS(status))
     {
-        // No PEB for System and minimal/pico processes. (dmex)
+        // No PEB for System, Minimal or Pico processes. (dmex)
         if (!wow64)
             return STATUS_UNSUCCESSFUL;
 
@@ -197,7 +197,7 @@ PhGetProcessPeb(
 
     if (NT_SUCCESS(status))
     {
-        // No PEB for System and minimal/pico processes. (dmex)
+        // No PEB for System, Minimal or Pico processes. (dmex)
         if (!basicInfo.PebBaseAddress)
             return STATUS_UNSUCCESSFUL;
 
