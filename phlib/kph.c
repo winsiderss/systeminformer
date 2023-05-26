@@ -1306,7 +1306,6 @@ KPH_LEVEL KphProcessLevel(
         return KphLevelMin;
 
     return KphLevelNone;
-
 }
 
 KPH_LEVEL KphLevel(
