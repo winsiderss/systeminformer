@@ -7908,6 +7908,158 @@ NTSTATUS PhEnumDirectoryFileEx(
     return status;
 }
 
+/**
+ * \brief Enumerates the volume Reparse Points using the \\$Extend\\$Reparse:$R:$INDEX_ALLOCATION directory.
+ *
+ * \param FileHandle A handle to the volume.
+ * \param Callback A pointer to a callback function.
+ * \param Context A user-defined value to pass to the callback function.
+ *
+ * \return Successful or errant status
+ */
+NTSTATUS PhEnumReparsePointInformation(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_REPARSE_POINT Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    BOOLEAN firstTime = TRUE;
+    ULONG bufferSize;
+    PVOID buffer;
+
+    bufferSize = sizeof(FILE_REPARSE_POINT_INFORMATION[512]);
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtQueryDirectoryFile(
+            FileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            buffer,
+            bufferSize,
+            FileReparsePointInformation,
+            FALSE,
+            NULL,
+            firstTime
+            );
+
+        if (status == STATUS_PENDING)
+        {
+            status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+
+            if (NT_SUCCESS(status))
+                status = isb.Status;
+        }
+
+        if (status == STATUS_NO_MORE_FILES)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        status = Callback(FileHandle, buffer, isb.Information, Context);
+
+        if (status == STATUS_NO_MORE_FILES)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        firstTime = FALSE;
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
+/**
+ * \brief Enumerates the volume ObjectIDs using the \\$Extend\\$ObjId:$O:$INDEX_ALLOCATION directory.
+ *
+ * \param FileHandle A handle to the volume.
+ * \param Callback A pointer to a callback function.
+ * \param Context A user-defined value to pass to the callback function.
+ *
+ * \return Successful or errant status
+ */
+NTSTATUS PhEnumObjectIdInformation(
+    _In_ HANDLE FileHandle,
+    _In_ PPH_ENUM_OBJECT_ID Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    BOOLEAN firstTime = TRUE;
+    ULONG bufferSize;
+    PVOID buffer;
+
+    bufferSize = sizeof(FILE_OBJECTID_INFORMATION[128]);
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtQueryDirectoryFile(
+            FileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            buffer,
+            bufferSize,
+            FileObjectIdInformation,
+            FALSE,
+            NULL,
+            firstTime
+            );
+
+        if (status == STATUS_PENDING)
+        {
+            status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+
+            if (NT_SUCCESS(status))
+                status = isb.Status;
+        }
+
+        if (status == STATUS_NO_MORE_FILES)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        status = Callback(FileHandle, buffer, isb.Information, Context);
+
+        if (status == STATUS_NO_MORE_FILES)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        firstTime = FALSE;
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
 NTSTATUS PhEnumFileExtendedAttributes(
     _In_ HANDLE FileHandle,
     _In_ PPH_ENUM_FILE_EA Callback,

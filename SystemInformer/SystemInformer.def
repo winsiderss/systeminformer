@@ -268,6 +268,7 @@ EXPORTS
     PhEnumKernelModules
     PhEnumNextProcess
     PhEnumNextThread
+    PhEnumObjectIdInformation
     PhEnumPagefiles
     PhEnumProcessEnvironmentVariables
     PhEnumProcesses
@@ -276,6 +277,7 @@ EXPORTS
     PhEnumProcessModules32
     PhEnumProcessModules32Ex
     PhEnumProcessModulesEx
+    PhEnumReparsePointInformation
     PhFindProcessInformation
     PhFindProcessInformationByImageName
     PhGetActiveProcessorCount
