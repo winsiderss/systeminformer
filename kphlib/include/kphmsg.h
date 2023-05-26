@@ -78,6 +78,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgDesktopHandlePostCreate,
     KphMsgDesktopHandlePreDuplicate,
     KphMsgDesktopHandlePostDuplicate,
+    KphMsgRequiredStateFailure,
 
     MaxKphMsg
 
@@ -201,6 +202,7 @@ typedef struct _KPH_MESSAGE
             KPHM_DESKTOP_HANDLE_POST_CREATE DesktopHandlePostCreate;
             KPHM_DESKTOP_HANDLE_PRE_DUPLICATE DesktopHandlePreDuplicate;
             KPHM_DESKTOP_HANDLE_POST_DUPLICATE DesktopHandlePostDuplicate;
+            KPHM_REQUIRED_STATE_FAILURE RequiredStateFailure;
 
         } Kernel;
 

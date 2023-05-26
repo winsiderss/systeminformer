@@ -515,7 +515,8 @@ NTSTATUS KphpFilterConnectCommunicationPort(
 
 /**
  * \brief No-operation communications callback handling only the minimum
- *  necessary. Used when no callback is provided when connecting.
+ *  necessary. Used when no callback is provided when connecting. Or when the
+ *  callback does not handle the message.
  *
  * \details Synchronous messages expecting a reply must always be handled, this
  * no-operation default callback will handle them as necessary.
@@ -523,7 +524,7 @@ NTSTATUS KphpFilterConnectCommunicationPort(
  * \param[in] ReplyToken - Token used to reply, when possible.
  * \param[in] Message - Message from KPH to handle.
  */
-VOID KphpCommsNoop(
+VOID KphpCommsCallbackUnhandled(
     _In_ ULONG_PTR ReplyToken,
     _In_ PCKPH_MESSAGE Message
     )
@@ -565,6 +566,7 @@ VOID WINAPI KphpCommsIoCallback(
 {
     NTSTATUS status;
     PKPH_UMESSAGE msg;
+    BOOLEAN handled;
 
     if (!PhAcquireRundownProtection(&KphpCommsRundown))
     {
@@ -593,12 +595,18 @@ VOID WINAPI KphpCommsIoCallback(
 
     if (KphpCommsRegisteredCallback)
     {
-        KphpCommsRegisteredCallback((ULONG_PTR)&msg->MessageHeader,
-                                    &msg->Message);
+        handled = KphpCommsRegisteredCallback((ULONG_PTR)&msg->MessageHeader,
+                                              &msg->Message);
     }
     else
     {
-        KphpCommsNoop((ULONG_PTR)&msg->MessageHeader, &msg->Message);
+        handled = FALSE;
+    }
+
+    if (!handled)
+    {
+        KphpCommsCallbackUnhandled((ULONG_PTR)&msg->MessageHeader,
+                                   &msg->Message);
     }
 
 Exit:
