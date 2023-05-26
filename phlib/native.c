@@ -10392,7 +10392,7 @@ NTSTATUS PhCreateFileWin32Ex(
         &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
-        NULL,
+        RootDirectory,
         NULL
         );
 
@@ -10577,7 +10577,7 @@ NTSTATUS PhCreateFile(
         &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
-        RootDirectory,
+        NULL,
         NULL
         );
 
