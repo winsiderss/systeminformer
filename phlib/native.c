@@ -10315,7 +10315,6 @@ NTSTATUS PhCreateFileWin32(
         FileName,
         DesiredAccess,
         NULL,
-        NULL,
         FileAttributes,
         ShareAccess,
         CreateDisposition,
@@ -10363,7 +10362,6 @@ NTSTATUS PhCreateFileWin32Ex(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ HANDLE RootDirectory,
     _In_opt_ PLARGE_INTEGER AllocationSize,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -10630,7 +10628,6 @@ NTSTATUS PhCreateFile(
  * \param FileHandle A variable that receives the file handle.
  * \param FileName The Win32 file name.
  * \param DesiredAccess The desired access to the file.
- * \param RootDirectory The root object directory for the file.
  * \param AllocationSize The initial allocation size if the file is being created, overwritten, or superseded.
  * \param FileAttributes File attributes applied if the file is created or overwritten.
  * \param ShareAccess The file access granted to other threads.
@@ -10686,7 +10683,7 @@ NTSTATUS PhCreateFileEx(
         &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
-        RootDirectory,
+        NULL,
         NULL
         );
 
@@ -11804,7 +11801,6 @@ NTSTATUS PhCopyFileWin32(
         &newFileHandle,
         NewFileName,
         FILE_GENERIC_WRITE,
-        NULL,
         &newFileSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
@@ -12243,7 +12239,6 @@ NTSTATUS PhMoveFileWin32(
             &newFileHandle,
             NewFileName,
             FILE_GENERIC_WRITE,
-            NULL,
             &newFileSize,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ,

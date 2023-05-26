@@ -1415,7 +1415,6 @@ TryAppLocal:
                     &fileHandle,
                     PhGetString(fileName),
                     FILE_GENERIC_WRITE,
-                    NULL,
                     &fileSize,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
