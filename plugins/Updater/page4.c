@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2020
+ *     dmex    2016-2023
  *
  */
 
@@ -27,7 +27,15 @@ HRESULT CALLBACK ShowProgressCallbackProc(
         {
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            context->ProgressMarquee = TRUE;
 
+#ifndef FORCE_NO_STATUS_TIMER
+            if (!context->ProgressTimer)
+            {
+                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                context->ProgressTimer = TRUE;
+            }
+#endif
             PhReferenceObject(context);
             PhCreateThread2(UpdateDownloadThread, context);
         }
