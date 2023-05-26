@@ -3185,6 +3185,31 @@ VOID PhCustomDrawTreeTimeLine(
 
 // Windows Imaging Component (WIC) bitmap support
 
+HBITMAP PhCreateBitmapHandle(
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
+    )
+{
+    HBITMAP bitmapHandle;
+    BITMAPINFO bitmapInfo;
+    HDC screenHdc;
+
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth = Width;
+    bitmapInfo.bmiHeader.biHeight = -Height;
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    screenHdc = GetDC(NULL);
+    bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
+    ReleaseDC(NULL, screenHdc);
+
+    return bitmapHandle;
+}
+
 static PVOID PhpGetWicImagingFactoryInterface(
     VOID
     )
@@ -3194,7 +3219,7 @@ static PVOID PhpGetWicImagingFactoryInterface(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (WindowsVersion > WINDOWS_8)
+        if (WindowsVersion >= WINDOWS_8)
             PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory2, &IID_IWICImagingFactory, &wicImagingFactory);
         else
             PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory);
@@ -3297,22 +3322,138 @@ HBITMAP PhLoadImageFormatFromResource(
         IWICFormatConverter_Release(wicFormatConverter);
     }
 
+    if (!(bitmapHandle = PhCreateBitmapHandle(Width, Height, &bitmapBuffer)))
+        goto CleanupExit;
+
+    if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
-        BITMAPINFO bitmapInfo;
-        HDC screenHdc;
-
-        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
-        bitmapInfo.bmiHeader.biWidth = Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
-        bitmapInfo.bmiHeader.biBitCount = 32;
-
-        screenHdc = GetDC(NULL);
-        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
+        if (SUCCEEDED(IWICBitmapSource_CopyPixels(
+            wicBitmapSource,
+            NULL,
+            Width * sizeof(RGBQUAD),
+            Width * Height * sizeof(RGBQUAD),
+            bitmapBuffer
+            )))
+        {
+            success = TRUE;
+        }
     }
+    else
+    {
+        IWICBitmapScaler* wicBitmapScaler = NULL;
+
+        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImageFactory, &wicBitmapScaler)))
+        {
+            if (SUCCEEDED(IWICBitmapScaler_Initialize(
+                wicBitmapScaler,
+                wicBitmapSource,
+                Width,
+                Height,
+                WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
+                )))
+            {
+                if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
+                    wicBitmapScaler,
+                    NULL,
+                    Width * sizeof(RGBQUAD),
+                    Width * Height * sizeof(RGBQUAD),
+                    bitmapBuffer
+                    )))
+                {
+                    success = TRUE;
+                }
+            }
+
+            IWICBitmapScaler_Release(wicBitmapScaler);
+        }
+    }
+
+CleanupExit:
+
+    if (wicBitmapSource)
+        IWICBitmapSource_Release(wicBitmapSource);
+    if (wicBitmapDecoder)
+        IWICBitmapDecoder_Release(wicBitmapDecoder);
+    if (wicBitmapFrame)
+        IWICBitmapFrameDecode_Release(wicBitmapFrame);
+    if (wicBitmapStream)
+        IWICStream_Release(wicBitmapStream);
+
+    if (!success)
+    {
+        if (bitmapHandle) DeleteBitmap(bitmapHandle);
+        return NULL;
+    }
+
+    return bitmapHandle;
+}
+
+HBITMAP PhLoadImageFromAddress(
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_ UINT Width,
+    _In_ UINT Height
+    )
+{
+    BOOLEAN success = FALSE;
+    HBITMAP bitmapHandle = NULL;
+    PVOID bitmapBuffer = NULL;
+    IWICImagingFactory* wicImageFactory;
+    IWICStream* wicBitmapStream = NULL;
+    IWICBitmapSource* wicBitmapSource = NULL;
+    IWICBitmapDecoder* wicBitmapDecoder = NULL;
+    IWICBitmapFrameDecode* wicBitmapFrame = NULL;
+    WICPixelFormatGUID pixelFormat;
+    UINT sourceWidth = 0;
+    UINT sourceHeight = 0;
+
+    if (!(wicImageFactory = PhpGetWicImagingFactoryInterface()))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateStream(wicImageFactory, &wicBitmapStream)))
+        goto CleanupExit;
+    if (FAILED(IWICStream_InitializeFromMemory(wicBitmapStream, Buffer, BufferLength)))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateDecoderFromStream(wicImageFactory, (IStream*)wicBitmapStream, &GUID_VendorMicrosoft, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicBitmapFrame, &pixelFormat)))
+        goto CleanupExit;
+
+    if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+    {
+        if (FAILED(IWICBitmapFrameDecode_QueryInterface(wicBitmapFrame, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+    }
+    else
+    {
+        IWICFormatConverter* wicFormatConverter = NULL;
+
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImageFactory, &wicFormatConverter)))
+            goto CleanupExit;
+
+        if (FAILED(IWICFormatConverter_Initialize(
+            wicFormatConverter,
+            (IWICBitmapSource*)wicBitmapFrame,
+            &GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone,
+            NULL,
+            0.0f,
+            WICBitmapPaletteTypeCustom
+            )))
+        {
+            IWICFormatConverter_Release(wicFormatConverter);
+            goto CleanupExit;
+        }
+
+        if (FAILED(IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+
+        IWICFormatConverter_Release(wicFormatConverter);
+    }
+
+    if (!(bitmapHandle = PhCreateBitmapHandle(Width, Height, &bitmapBuffer)))
+        goto CleanupExit;
 
     if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
@@ -3386,146 +3527,13 @@ HBITMAP PhLoadImageFromResource(
     _In_ UINT Height
     )
 {
-    BOOLEAN success = FALSE;
-    HBITMAP bitmapHandle = NULL;
     ULONG resourceLength = 0;
     WICInProcPointer resourceBuffer = NULL;
-    PVOID bitmapBuffer = NULL;
-    IWICImagingFactory* wicImageFactory = NULL;
-    IWICStream* wicBitmapStream = NULL;
-    IWICBitmapSource* wicBitmapSource = NULL;
-    IWICBitmapDecoder* wicBitmapDecoder = NULL;
-    IWICBitmapFrameDecode* wicBitmapFrame = NULL;
-    WICPixelFormatGUID pixelFormat;
-    UINT sourceWidth = 0;
-    UINT sourceHeight = 0;
 
     if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
-        goto CleanupExit;
-
-    if (!(wicImageFactory = PhpGetWicImagingFactoryInterface()))
-        goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateStream(wicImageFactory, &wicBitmapStream)))
-        goto CleanupExit;
-    if (FAILED(IWICStream_InitializeFromMemory(wicBitmapStream, resourceBuffer, resourceLength)))
-        goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateDecoderFromStream(wicImageFactory, (IStream*)wicBitmapStream, &GUID_VendorMicrosoft, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
-        goto CleanupExit;
-    if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
-        goto CleanupExit;
-    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicBitmapFrame, &pixelFormat)))
-        goto CleanupExit;
-
-    if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
-    {
-        if (FAILED(IWICBitmapFrameDecode_QueryInterface(wicBitmapFrame, &IID_IWICBitmapSource, &wicBitmapSource)))
-            goto CleanupExit;
-    }
-    else
-    {
-        IWICFormatConverter* wicFormatConverter = NULL;
-
-        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImageFactory, &wicFormatConverter)))
-            goto CleanupExit;
-
-        if (FAILED(IWICFormatConverter_Initialize(
-            wicFormatConverter,
-            (IWICBitmapSource*)wicBitmapFrame,
-            &GUID_WICPixelFormat32bppBGRA,
-            WICBitmapDitherTypeNone,
-            NULL,
-            0.0f,
-            WICBitmapPaletteTypeCustom
-            )))
-        {
-            IWICFormatConverter_Release(wicFormatConverter);
-            goto CleanupExit;
-        }
-
-        if (FAILED(IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource)))
-            goto CleanupExit;
-
-        IWICFormatConverter_Release(wicFormatConverter);
-    }
-
-    {
-        BITMAPINFO bitmapInfo;
-        HDC screenHdc;
-
-        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
-        bitmapInfo.bmiHeader.biWidth = Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
-        bitmapInfo.bmiHeader.biBitCount = 32;
-
-        screenHdc = GetDC(NULL);
-        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
-    }
-
-    if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
-    {
-        if (SUCCEEDED(IWICBitmapSource_CopyPixels(
-            wicBitmapSource,
-            NULL,
-            Width * sizeof(RGBQUAD),
-            Width * Height * sizeof(RGBQUAD),
-            bitmapBuffer
-            )))
-        {
-            success = TRUE;
-        }
-    }
-    else
-    {
-        IWICBitmapScaler* wicBitmapScaler = NULL;
-
-        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImageFactory, &wicBitmapScaler)))
-        {
-            if (SUCCEEDED(IWICBitmapScaler_Initialize(
-                wicBitmapScaler,
-                wicBitmapSource,
-                Width,
-                Height,
-                WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
-                )))
-            {
-                if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
-                    wicBitmapScaler,
-                    NULL,
-                    Width * sizeof(RGBQUAD),
-                    Width * Height * sizeof(RGBQUAD),
-                    bitmapBuffer
-                    )))
-                {
-                    success = TRUE;
-                }
-            }
-
-            IWICBitmapScaler_Release(wicBitmapScaler);
-        }
-    }
-
-CleanupExit:
-
-    if (wicBitmapSource)
-        IWICBitmapSource_Release(wicBitmapSource);
-    if (wicBitmapDecoder)
-        IWICBitmapDecoder_Release(wicBitmapDecoder);
-    if (wicBitmapFrame)
-        IWICBitmapFrameDecode_Release(wicBitmapFrame);
-    if (wicBitmapStream)
-        IWICStream_Release(wicBitmapStream);
-
-    if (!success)
-    {
-        if (bitmapHandle) DeleteBitmap(bitmapHandle);
         return NULL;
-    }
 
-    return bitmapHandle;
+    return PhLoadImageFromAddress(resourceBuffer, resourceLength, Width, Height);
 }
 
 // Load image and auto-detect the format (dmex)
@@ -3587,22 +3595,8 @@ HBITMAP PhLoadImageFromFile(
         IWICFormatConverter_Release(wicFormatConverter);
     }
 
-    {
-        BITMAPINFO bitmapInfo;
-        HDC screenHdc;
-
-        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
-        bitmapInfo.bmiHeader.biWidth = Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
-        bitmapInfo.bmiHeader.biBitCount = 32;
-
-        screenHdc = GetDC(NULL);
-        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
-    }
+    if (!(bitmapHandle = PhCreateBitmapHandle(Width, Height, &bitmapBuffer)))
+        goto CleanupExit;
 
     if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
