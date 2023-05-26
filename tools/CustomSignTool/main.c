@@ -114,7 +114,7 @@ static VOID CstExportKey(
     if (!NT_SUCCESS(status = BCryptExportKey(KeyHandle, NULL, BlobType, blob, blobSize, &blobSize, 0)))
         CstFailWithStatus(PhFormatString(L"Unable to export %s: Unable to get blob data", Description)->Buffer, status, 0);
 
-    if (!NT_SUCCESS(status = PhCreateFileWin32Ex(&fileHandle, FileName, FILE_GENERIC_WRITE, &(LARGE_INTEGER){.QuadPart = blobSize}, FILE_ATTRIBUTE_NORMAL, 0, FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL)))
+    if (!NT_SUCCESS(status = PhCreateFileWin32Ex(&fileHandle, FileName, FILE_GENERIC_WRITE, NULL, &(LARGE_INTEGER){.QuadPart = blobSize}, FILE_ATTRIBUTE_NORMAL, 0, FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL)))
         CstFailWithStatus(PhFormatString(L"Unable to create '%s'", FileName)->Buffer, status, 0);
     if (!NT_SUCCESS(status = NtWriteFile(fileHandle, NULL, NULL, NULL, &iosb, blob, blobSize, NULL, NULL)))
         CstFailWithStatus(PhFormatString(L"Unable to write blob to '%s'", FileName)->Buffer, status, 0);
@@ -335,7 +335,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         {
             // Write the signature to the output file.
 
-            if (!NT_SUCCESS(status = PhCreateFileWin32Ex(&fileHandle, CstSigFileName->Buffer, FILE_GENERIC_WRITE, &(LARGE_INTEGER){.QuadPart = signatureSize}, FILE_ATTRIBUTE_NORMAL, 0, FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL)))
+            if (!NT_SUCCESS(status = PhCreateFileWin32Ex(&fileHandle, CstSigFileName->Buffer, FILE_GENERIC_WRITE, NULL, &(LARGE_INTEGER){.QuadPart = signatureSize}, FILE_ATTRIBUTE_NORMAL, 0, FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL)))
                 CstFailWithStatus(PhFormatString(L"Unable to create '%s'", CstSigFileName->Buffer)->Buffer, status, 0);
             if (!NT_SUCCESS(status = NtWriteFile(fileHandle, NULL, NULL, NULL, &iosb, signature, signatureSize, NULL, NULL)))
                 CstFailWithStatus(PhFormatString(L"Unable to write signature to '%s'", CstSigFileName->Buffer)->Buffer, status, 0);
