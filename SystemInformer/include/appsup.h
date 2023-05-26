@@ -469,7 +469,7 @@ PPH_STRING PhPcre2GetErrorMessage(
     );
 
 HBITMAP PhGetShieldBitmap(
-    _In_ LONG dpiValue
+    _In_ LONG WindowDpi
     );
 
 // begin_phapppub

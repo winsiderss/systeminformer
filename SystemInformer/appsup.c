@@ -14,7 +14,6 @@
 
 #include <cpysave.h>
 #include <emenu.h>
-#include <svcsup.h>
 #include <symprv.h>
 #include <settings.h>
 
@@ -2263,10 +2262,22 @@ PPH_STRING PhPcre2GetErrorMessage(
 }
 
 HBITMAP PhGetShieldBitmap(
-    _In_ LONG dpiValue
+    _In_ LONG WindowDpi
     )
 {
     static HBITMAP shieldBitmap = NULL;
+    static LONG systemDpi = 0;
+
+    if (systemDpi != PhSystemDpi)
+    {
+        if (shieldBitmap)
+        {
+            DeleteBitmap(shieldBitmap);
+            shieldBitmap = NULL;
+        }
+
+        systemDpi = PhSystemDpi;
+    }
 
     if (!shieldBitmap)
     {
@@ -2278,7 +2289,7 @@ HBITMAP PhGetShieldBitmap(
             PH_LOAD_ICON_SIZE_SMALL,
             0,
             0,
-            dpiValue
+            WindowDpi
             );
 
         if (!shieldIcon)
@@ -2289,13 +2300,17 @@ HBITMAP PhGetShieldBitmap(
                 PH_LOAD_ICON_SIZE_SMALL,
                 0,
                 0,
-                dpiValue
+                WindowDpi
                 );
         }
 
         if (shieldIcon)
         {
-            shieldBitmap = PhIconToBitmap(shieldIcon, PhGetSystemMetrics(SM_CXSMICON, dpiValue), PhGetSystemMetrics(SM_CYSMICON, dpiValue));
+            shieldBitmap = PhIconToBitmap(
+                shieldIcon,
+                PhGetSystemMetrics(SM_CXSMICON, WindowDpi),
+                PhGetSystemMetrics(SM_CYSMICON, WindowDpi)
+                );
             DestroyIcon(shieldIcon);
         }
     }
