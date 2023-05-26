@@ -373,6 +373,25 @@ PPH_STRING PhGetKsiServiceName(
     return string;
 }
 
+BOOLEAN KsiCommsCallback(
+    _In_ ULONG_PTR ReplyToken,
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    if (Message->Header.MessageId != KphMsgRequiredStateFailure)
+    {
+        return FALSE;
+    }
+
+    if (Message->Kernel.RequiredStateFailure.ClientId.UniqueProcess == NtCurrentProcessId())
+    {
+        // force the cached value to be updated
+        KphLevelEx(FALSE);
+    }
+
+    return TRUE;
+}
+
 NTSTATUS KsiInitializeCallbackThread(
     _In_opt_ PVOID CallbackContext
     )
@@ -418,12 +437,12 @@ NTSTATUS KsiInitializeCallbackThread(
         config.EnableNativeLoad = KsiEnableLoadNative;
         config.EnableFilterLoad = KsiEnableLoadFilter;
         config.DisableImageLoadProtection = disableImageLoadProtection;
-        config.Callback = NULL;
+        config.Callback = KsiCommsCallback;
         status = KphConnect(&config);
 
         if (NT_SUCCESS(status))
         {
-            KPH_LEVEL level = KphLevel();
+            KPH_LEVEL level = KphLevelEx(FALSE);
 
             if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
             {

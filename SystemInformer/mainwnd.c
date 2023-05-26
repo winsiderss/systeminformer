@@ -291,7 +291,7 @@ PPH_STRING PhMwpInitializeWindowTitle(
         PhDereferenceObject(currentUserName);
     }
 
-    switch (KphLevel())
+    switch (KphLevelEx(FALSE))
     {
     case KphLevelMax:
         PhAppendStringBuilder2(&stringBuilder, L"++");

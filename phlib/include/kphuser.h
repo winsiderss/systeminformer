@@ -329,6 +329,13 @@ KphProcessLevel(
 PHLIBAPI
 KPH_LEVEL
 NTAPI
+KphLevelEx(
+    BOOLEAN Cached 
+    );
+
+PHLIBAPI
+KPH_LEVEL
+NTAPI
 KphLevel(
     VOID
     );

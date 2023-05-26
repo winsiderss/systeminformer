@@ -1308,11 +1308,23 @@ KPH_LEVEL KphProcessLevel(
     return KphLevelNone;
 }
 
+KPH_LEVEL KphLevelEx(
+    BOOLEAN Cached
+    )
+{
+    static KPH_LEVEL level = KphLevelNone;
+
+    if (!Cached)
+        level = KphProcessLevel(NtCurrentProcess());
+
+    return level;
+}
+
 KPH_LEVEL KphLevel(
     VOID
     )
 {
-    return KphProcessLevel(NtCurrentProcess());
+    return KphLevelEx(TRUE);
 }
 
 NTSTATUS KphSetInformationProcess(
