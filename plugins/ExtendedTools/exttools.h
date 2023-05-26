@@ -1177,22 +1177,14 @@ VOID EtProcessFramesPropertiesInitializing(
 
 // wct
 
-PVOID EtWaitChainContextCreate(
-    VOID
-    );
-
-VOID EtShowWaitChainDialog(
+VOID EtShowWaitChainProcessDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PVOID Context
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
-VOID NTAPI WctProcessMenuInitializingCallback(
-    _In_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-VOID NTAPI WctThreadMenuInitializingCallback(
-    _In_ PVOID Parameter,
-    _In_opt_ PVOID Context
+VOID EtShowWaitChainThreadDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_THREAD_ITEM ThreadItem
     );
 
 // reparse
