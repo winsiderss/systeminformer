@@ -151,9 +151,14 @@ VOID NTAPI MenuItemCallback(
             EtShowReparseDialog(menuItem->OwnerWindow, UlongToPtr(menuItem->Id));
         }
         break;
-    case ID_WCT_MENUITEM:
+    case ID_PROCESS_WAITCHAIN:
         {
-            EtShowWaitChainDialog(menuItem->OwnerWindow, menuItem->Context);
+            EtShowWaitChainProcessDialog(menuItem->OwnerWindow, menuItem->Context);
+        }
+        break;
+    case ID_THREAD_WAITCHAIN:
+        {
+            EtShowWaitChainThreadDialog(menuItem->OwnerWindow, menuItem->Context);
         }
         break;
     case ID_PIPE_ENUM:
@@ -295,8 +300,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     PPH_PROCESS_ITEM processItem;
     ULONG flags;
     PPH_EMENU_ITEM miscMenu;
-
-    WctProcessMenuInitializingCallback(Parameter, Context);
+    PPH_EMENU_ITEM menuItem;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
         processItem = menuInfo->u.Process.Processes[0];
@@ -324,6 +328,14 @@ VOID NTAPI ProcessMenuInitializingCallback(
     {
         PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_UNLOADEDMODULES, L"&Unloaded modules", processItem), ULONG_MAX);
         PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WSWATCH, L"&WS watch", processItem), ULONG_MAX);
+        menuItem = PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WAITCHAIN, L"Wait Chain Tra&versal", processItem);
+        PhInsertEMenuItem(miscMenu, menuItem, ULONG_MAX);
+
+        if (!processItem || !processItem->QueryHandle || processItem->ProcessId == NtCurrentProcessId())
+            menuItem->Flags |= PH_EMENU_DISABLED;
+
+        if (!PhGetOwnTokenAttributes().Elevated)
+            menuItem->Flags |= PH_EMENU_DISABLED;
     }
 }
 
@@ -336,8 +348,6 @@ VOID NTAPI ThreadMenuInitializingCallback(
     PPH_THREAD_ITEM threadItem;
     ULONG insertIndex;
     PPH_EMENU_ITEM menuItem;
-
-    WctThreadMenuInitializingCallback(Parameter, Context);
 
     if (menuInfo->u.Thread.NumberOfThreads == 1)
         threadItem = menuInfo->u.Thread.Threads[0];
@@ -355,6 +365,19 @@ VOID NTAPI ThreadMenuInitializingCallback(
     if (!threadItem)
         PhSetDisabledEMenuItem(menuItem);
     if (menuInfo->u.Thread.ProcessId == SYSTEM_IDLE_PROCESS_ID)
+        PhSetDisabledEMenuItem(menuItem);
+
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_ANALYZE_WAIT))
+        insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
+    else
+        insertIndex = ULONG_MAX;
+
+    menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_WAITCHAIN, L"Wait Chain Tra&versal", threadItem);
+    PhInsertEMenuItem(menuInfo->Menu, menuItem, insertIndex);
+
+    if (!threadItem)
+        PhSetDisabledEMenuItem(menuItem);
+    if (menuInfo->u.Thread.ProcessId == SYSTEM_IDLE_PROCESS_ID || menuInfo->u.Thread.ProcessId == NtCurrentProcessId())
         PhSetDisabledEMenuItem(menuItem);
 }
 
