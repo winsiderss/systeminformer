@@ -1459,7 +1459,7 @@ RESOLVED_PORT ResolvedPortsTable[] =
     { L"visitview", 1631 }, { L"vista-4gl", 24249 }, { L"vistium-share", 1545 }, { L"vitalanalysis", 2474 },
     { L"viziblebrowser", 1868 }, { L"vlsi-lm", 1500 }, { L"vmnet", 175 }, { L"vmodem", 3141 },
     { L"vmpwscs", 214 }, { L"vmrdp", 2179 }, { L"vmsvc", 7024 }, { L"vmsvc-2", 7025 },
-    { L"vmware-fdm", 8182 }, { L"vnas", 577 }, { L"vnetd", 13724 }, { L"vns-tp", 7802 },
+    { L"vSphere-fdm", 8182 }, { L"vnas", 577 }, { L"vnetd", 13724 }, { L"vns-tp", 7802 },
     { L"vnsstr", 3321 }, { L"vnwk-prapi", 2538 }, { L"vnyx", 8699 }, { L"vocaltec-admin", 1796 },
     { L"vocaltec-gold", 6670 }, { L"vocaltec-hos", 25793 }, { L"vocaltec-phone", 22555 }, { L"vocaltec-wconf", 22555 },
     { L"vofr-gateway", 21590 }, { L"voispeed-port", 3541 }, { L"volley", 3625 }, { L"vop", 4433 },
