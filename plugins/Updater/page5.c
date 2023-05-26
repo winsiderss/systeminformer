@@ -25,6 +25,13 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     {
     case TDN_NAVIGATED:
         {
+#ifndef FORCE_NO_STATUS_TIMER
+            if (context->ProgressTimer)
+            {
+                PhKillTimer(hwndDlg, 9000);
+                context->ProgressTimer = FALSE;
+            }
+#endif
             context->DirectoryElevationRequired = !!UpdateCheckDirectoryElevationRequired();
 
 #ifdef FORCE_ELEVATION_CHECK
