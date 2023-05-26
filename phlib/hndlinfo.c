@@ -14,7 +14,9 @@
 #include <hndlinfo.h>
 #include <json.h>
 #include <kphuser.h>
+#include <mapldr.h>
 #include <lsasup.h>
+
 #include <devquery.h>
 #include <devpkey.h>
 
