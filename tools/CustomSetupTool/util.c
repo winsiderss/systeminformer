@@ -204,8 +204,8 @@ VOID SetupDeleteUninstallFile(
         PPH_STRING tempFileName = PhGetTemporaryDirectoryRandomAlphaFileName();
 
         PhMoveFileWin32(
-            PhGetString(uninstallFilePath), 
-            PhGetString(tempFileName), 
+            PhGetString(uninstallFilePath),
+            PhGetString(tempFileName),
             FALSE
             );
 
@@ -720,7 +720,6 @@ VOID ExtractResourceToFile(
         &fileHandle,
         FileName,
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        NULL,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -1092,7 +1091,6 @@ BOOLEAN SetupOverwriteFile(
         &fileHandle,
         PhGetString(FileName),
         FILE_GENERIC_WRITE,
-        NULL,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
