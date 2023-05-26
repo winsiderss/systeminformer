@@ -83,7 +83,7 @@ VOID EtEtwStatisticsInitialization(
     PhInitializeCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, sampleCount);
 #endif
 
-    if (EtWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64)
+    if (EtWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
     {
         EtDiskCountersEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_DISKPERFCOUNTERS);
     }
