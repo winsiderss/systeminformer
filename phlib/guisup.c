@@ -530,6 +530,7 @@ ULONG PhGetWindowTextEx(
         {
             WCHAR buffer[32];
             length = InternalGetWindowText(hwnd, buffer, sizeof(buffer) / sizeof(WCHAR));
+            if (Text) *Text = NULL;
         }
         else
         {
@@ -911,15 +912,11 @@ HICON PhLoadIcon(
             height = PhGetSystemMetrics(SM_CYICON, SystemDpi);
         }
 
-        if (LoadIconWithScaleDown)
-            LoadIconWithScaleDown(ImageBaseAddress, Name, width, height, &icon);
-        //if (LoadIconMetric)
-        //    LoadIconMetric(ImageBaseAddress, Name, (Flags & PH_LOAD_ICON_SIZE_SMALL) ? LIM_SMALL : LIM_LARGE, &icon);
+        LoadIconWithScaleDown(ImageBaseAddress, Name, width, height, &icon);
     }
     else
     {
-        if (LoadIconWithScaleDown)
-            LoadIconWithScaleDown(ImageBaseAddress, Name, Width, Height, &icon);
+        LoadIconWithScaleDown(ImageBaseAddress, Name, Width, Height, &icon);
     }
 
     if (!icon && !(Flags & PH_LOAD_ICON_STRICT))
