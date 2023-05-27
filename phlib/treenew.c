@@ -97,7 +97,7 @@ LRESULT CALLBACK PhTnpWndProc(
                 return -1;
         }
         return 0;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             context->Callback(hwnd, TreeNewDestroying, NULL, NULL, context->CallbackContext);
             PhTnpDestroyTreeNewContext(context);
