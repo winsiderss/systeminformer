@@ -87,12 +87,7 @@ KSystemInformer/bin/Release32/
 KSystemInformer/bin/Release64/
 KSystemInformer/bin/*
 
-!tools/CustomBuildTool/bin/
-tools/CustomBuildTool/bin/Debug*/
-tools/CustomBuildTool/bin/Release*/*
-!tools/CustomBuildTool/bin/Release/*.exe
-!tools/CustomBuildTool/bin/Release/*.dll
-!tools/CustomBuildTool/bin/Release/*.pdb
+tools/CustomBuildTool/bin/
 
 !tools/CustomSignTool/bin/
 tools/CustomSignTool/bin/Debug*/
