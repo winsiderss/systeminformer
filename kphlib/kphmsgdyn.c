@@ -13,7 +13,7 @@
 #include <kphmsgdyn.h>
 
 #ifndef _KERNEL_MODE
-#include "../tools/thirdparty/mssdk/ntintsafe.h"
+#include "../tools/thirdparty/winsdk/ntintsafe.h"
 #endif
 
 #include <pshpack1.h>
