@@ -110,4 +110,10 @@ typedef GUID *PGUID;
 #define HR_SUCCESS(hr) (((HRESULT)(hr)) == S_OK)
 #define HR_FAILED(hr) (((HRESULT)(hr)) != S_OK)
 
+// Note: The CONTAINING_RECORD macro doesn't support UBSan and generates false positives,
+// we redefine the macro with FIELD_OFFSET as a workaround until the WinSDK is fixed (dmex)
+#undef CONTAINING_RECORD
+#define CONTAINING_RECORD(address, type, field) \
+    (((type)*)((ULONG_PTR)(address) - UFIELD_OFFSET((type), (field))))
+
 #endif
