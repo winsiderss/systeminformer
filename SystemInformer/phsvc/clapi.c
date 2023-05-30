@@ -36,7 +36,7 @@ NTSTATUS PhSvcConnectToServer(
         return STATUS_ADDRESS_ALREADY_EXISTS;
 
     if (PortSectionSize == 0)
-        PortSectionSize = 512 * 1024;
+        PortSectionSize = UInt32x32To64(2, 1024 * 1024); // 2 MB
 
     // Create the port section and connect to the port.
 
