@@ -23,8 +23,8 @@
 #include <mapimg.h>
 #include <mapldr.h>
 
-#include "../tools/thirdparty/msdiasdk/dia2.h"
-#include "../tools/thirdparty/msdiasdk/dia3.h"
+#include "../tools/thirdparty/winsdk/dia2.h"
+#include "../tools/thirdparty/winsdk/dia3.h"
 
 #if defined(_ARM64_)
 static const ULONG NativeMachine = IMAGE_FILE_MACHINE_ARM64;
