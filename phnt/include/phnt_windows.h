@@ -114,6 +114,6 @@ typedef GUID *PGUID;
 // we redefine the macro with FIELD_OFFSET as a workaround until the WinSDK is fixed (dmex)
 #undef CONTAINING_RECORD
 #define CONTAINING_RECORD(address, type, field) \
-    (((type)*)((ULONG_PTR)(address) - UFIELD_OFFSET((type), (field))))
+    ((type *)((ULONG_PTR)(address) - UFIELD_OFFSET(type, field)))
 
 #endif
