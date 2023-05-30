@@ -468,11 +468,16 @@ PPH_STRING PhPcre2GetErrorMessage(
     _In_ INT ErrorCode
     );
 
-HBITMAP PhGetShieldBitmap(
-    _In_ LONG WindowDpi
+// begin_phapppub
+PHAPPAPI
+HBITMAP
+NTAPI
+PhGetShieldBitmap(
+    _In_ LONG WindowDpi,
+    _In_opt_ LONG Width,
+    _In_opt_ LONG Height
     );
 
-// begin_phapppub
 PHAPPAPI
 HICON
 NTAPI
