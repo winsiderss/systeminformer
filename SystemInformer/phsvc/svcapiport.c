@@ -6,6 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
+ *     dmex    2017-2023
  *
  */
 
@@ -211,7 +212,7 @@ VOID PhSvcHandleConnectionRequest(
 
         clientId = message->h.ClientId;
 
-        // Make sure that the remote process is Process Hacker itself and not some other program.
+        // Make sure that the remote process is System Informer and not some other program.
 
         referenceFileName = NULL;
         PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &referenceFileName);
@@ -221,7 +222,7 @@ VOID PhSvcHandleConnectionRequest(
         PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
         PH_AUTO(remoteFileName);
 
-        if (!referenceFileName || !remoteFileName || !PhEqualString(referenceFileName, remoteFileName, TRUE))
+        if (!referenceFileName || !remoteFileName || !PhEqualString(referenceFileName, remoteFileName, FALSE))
         {
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
@@ -287,7 +288,7 @@ VOID PhSvcHandleConnectionRequest(
         client->ClientViewLimit = PTR_ADD_OFFSET(clientView.ViewBase, clientView.ViewSize);
     }
 
-    NtCompleteConnectPort(portHandle);
+    //NtCompleteConnectPort(portHandle); // (dmex)
     PhSetEvent(&client->ReadyEvent);
 
     if (_InterlockedIncrement(&PhSvcApiNumberOfClients) == 1)
