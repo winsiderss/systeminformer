@@ -1417,7 +1417,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     _Inout_ PPHSVC_API_PAYLOAD Payload
     )
 {
-    MINIDUMP_CALLBACK_INFORMATION callbackInfo = { 0 };
+    MINIDUMP_CALLBACK_INFORMATION callbackInfo;
     HANDLE processHandle = UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle);
     ULONG processDumpType = Payload->u.WriteMiniDumpProcess.i.DumpType;
     HANDLE snapshotHandle = NULL;
@@ -1434,6 +1434,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
             MiniDumpWithIptTrace;
     }
 
+    memset(&callbackInfo, 0, sizeof(callbackInfo));
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
     callbackInfo.CallbackParam = snapshotHandle;
 

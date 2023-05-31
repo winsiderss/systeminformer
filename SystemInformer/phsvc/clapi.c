@@ -287,26 +287,26 @@ NTSTATUS PhSvcpCallExecuteRunAsCommand(
 
     status = STATUS_NO_MEMORY;
 
-    if (Parameters->UserName && !(userName = PhSvcpCreateString(Parameters->UserName, -1, &m.p.u.ExecuteRunAsCommand.i.UserName)))
+    if (Parameters->UserName && !(userName = PhSvcpCreateString(Parameters->UserName, SIZE_MAX, &m.p.u.ExecuteRunAsCommand.i.UserName)))
         goto CleanupExit;
 
     if (Parameters->Password)
     {
-        if (!(password = PhSvcpCreateString(Parameters->Password, -1, &m.p.u.ExecuteRunAsCommand.i.Password)))
+        if (!(password = PhSvcpCreateString(Parameters->Password, SIZE_MAX, &m.p.u.ExecuteRunAsCommand.i.Password)))
             goto CleanupExit;
 
         passwordLength = m.p.u.ExecuteRunAsCommand.i.Password.Length;
     }
 
-    if (Parameters->CurrentDirectory && !(currentDirectory = PhSvcpCreateString(Parameters->CurrentDirectory, -1, &m.p.u.ExecuteRunAsCommand.i.CurrentDirectory)))
+    if (Parameters->CurrentDirectory && !(currentDirectory = PhSvcpCreateString(Parameters->CurrentDirectory, SIZE_MAX, &m.p.u.ExecuteRunAsCommand.i.CurrentDirectory)))
         goto CleanupExit;
-    if (Parameters->CommandLine && !(commandLine = PhSvcpCreateString(Parameters->CommandLine, -1, &m.p.u.ExecuteRunAsCommand.i.CommandLine)))
+    if (Parameters->CommandLine && !(commandLine = PhSvcpCreateString(Parameters->CommandLine, SIZE_MAX, &m.p.u.ExecuteRunAsCommand.i.CommandLine)))
         goto CleanupExit;
-    if (Parameters->FileName && !(fileName = PhSvcpCreateString(Parameters->FileName, -1, &m.p.u.ExecuteRunAsCommand.i.FileName)))
+    if (Parameters->FileName && !(fileName = PhSvcpCreateString(Parameters->FileName, SIZE_MAX, &m.p.u.ExecuteRunAsCommand.i.FileName)))
         goto CleanupExit;
-    if (Parameters->DesktopName && !(desktopName = PhSvcpCreateString(Parameters->DesktopName, -1, &m.p.u.ExecuteRunAsCommand.i.DesktopName)))
+    if (Parameters->DesktopName && !(desktopName = PhSvcpCreateString(Parameters->DesktopName, SIZE_MAX, &m.p.u.ExecuteRunAsCommand.i.DesktopName)))
         goto CleanupExit;
-    if (Parameters->ServiceName && !(serviceName = PhSvcpCreateString(Parameters->ServiceName, -1, &m.p.u.ExecuteRunAsCommand.i.ServiceName)))
+    if (Parameters->ServiceName && !(serviceName = PhSvcpCreateString(Parameters->ServiceName, SIZE_MAX, &m.p.u.ExecuteRunAsCommand.i.ServiceName)))
         goto CleanupExit;
 
     status = PhSvcpCallServer(&m);
@@ -356,7 +356,7 @@ NTSTATUS PhSvcCallUnloadDriver(
 
     if (Name)
     {
-        name = PhSvcpCreateString(Name, -1, &m.p.u.UnloadDriver.i.Name);
+        name = PhSvcpCreateString(Name, SIZE_MAX, &m.p.u.UnloadDriver.i.Name);
 
         if (!name)
             return STATUS_NO_MEMORY;
@@ -403,7 +403,7 @@ NTSTATUS PhSvcCallControlService(
 
     m.p.ApiNumber = PhSvcControlServiceApiNumber;
 
-    serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.ControlService.i.ServiceName);
+    serviceName = PhSvcpCreateString(ServiceName, SIZE_MAX, &m.p.u.ControlService.i.ServiceName);
     m.p.u.ControlService.i.Command = Command;
 
     if (serviceName)
@@ -444,7 +444,7 @@ NTSTATUS PhSvcCallCreateService(
     PVOID dependencies = NULL;
     PVOID serviceStartName = NULL;
     PVOID password = NULL;
-    ULONG passwordLength;
+    ULONG passwordLength = 0;
 
     memset(&m, 0, sizeof(PHSVC_API_MSG));
 
@@ -460,13 +460,13 @@ NTSTATUS PhSvcCallCreateService(
 
     status = STATUS_NO_MEMORY;
 
-    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.CreateService.i.ServiceName)))
+    if (!(serviceName = PhSvcpCreateString(ServiceName, SIZE_MAX, &m.p.u.CreateService.i.ServiceName)))
         goto CleanupExit;
-    if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, -1, &m.p.u.CreateService.i.DisplayName)))
+    if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, SIZE_MAX, &m.p.u.CreateService.i.DisplayName)))
         goto CleanupExit;
-    if (BinaryPathName && !(binaryPathName = PhSvcpCreateString(BinaryPathName, -1, &m.p.u.CreateService.i.BinaryPathName)))
+    if (BinaryPathName && !(binaryPathName = PhSvcpCreateString(BinaryPathName, SIZE_MAX, &m.p.u.CreateService.i.BinaryPathName)))
         goto CleanupExit;
-    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateString(LoadOrderGroup, -1, &m.p.u.CreateService.i.LoadOrderGroup)))
+    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateString(LoadOrderGroup, SIZE_MAX, &m.p.u.CreateService.i.LoadOrderGroup)))
         goto CleanupExit;
 
     if (Dependencies)
@@ -489,12 +489,12 @@ NTSTATUS PhSvcCallCreateService(
             goto CleanupExit;
     }
 
-    if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, -1, &m.p.u.CreateService.i.ServiceStartName)))
+    if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, SIZE_MAX, &m.p.u.CreateService.i.ServiceStartName)))
         goto CleanupExit;
 
     if (Password)
     {
-        if (!(password = PhSvcpCreateString(Password, -1, &m.p.u.CreateService.i.Password)))
+        if (!(password = PhSvcpCreateString(Password, SIZE_MAX, &m.p.u.CreateService.i.Password)))
             goto CleanupExit;
 
         passwordLength = m.p.u.CreateService.i.Password.Length;
@@ -547,7 +547,7 @@ NTSTATUS PhSvcCallChangeServiceConfig(
     PVOID dependencies = NULL;
     PVOID serviceStartName = NULL;
     PVOID password = NULL;
-    ULONG passwordLength;
+    ULONG passwordLength = 0;
     PVOID displayName = NULL;
 
     memset(&m, 0, sizeof(PHSVC_API_MSG));
@@ -564,11 +564,11 @@ NTSTATUS PhSvcCallChangeServiceConfig(
 
     status = STATUS_NO_MEMORY;
 
-    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.ChangeServiceConfig.i.ServiceName)))
+    if (!(serviceName = PhSvcpCreateString(ServiceName, SIZE_MAX, &m.p.u.ChangeServiceConfig.i.ServiceName)))
         goto CleanupExit;
-    if (BinaryPathName && !(binaryPathName = PhSvcpCreateString(BinaryPathName, -1, &m.p.u.ChangeServiceConfig.i.BinaryPathName)))
+    if (BinaryPathName && !(binaryPathName = PhSvcpCreateString(BinaryPathName, SIZE_MAX, &m.p.u.ChangeServiceConfig.i.BinaryPathName)))
         goto CleanupExit;
-    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateString(LoadOrderGroup, -1, &m.p.u.ChangeServiceConfig.i.LoadOrderGroup)))
+    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateString(LoadOrderGroup, SIZE_MAX, &m.p.u.ChangeServiceConfig.i.LoadOrderGroup)))
         goto CleanupExit;
 
     if (Dependencies)
@@ -591,18 +591,18 @@ NTSTATUS PhSvcCallChangeServiceConfig(
             goto CleanupExit;
     }
 
-    if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, -1, &m.p.u.ChangeServiceConfig.i.ServiceStartName)))
+    if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, SIZE_MAX, &m.p.u.ChangeServiceConfig.i.ServiceStartName)))
         goto CleanupExit;
 
     if (Password)
     {
-        if (!(password = PhSvcpCreateString(Password, -1, &m.p.u.ChangeServiceConfig.i.Password)))
+        if (!(password = PhSvcpCreateString(Password, SIZE_MAX, &m.p.u.ChangeServiceConfig.i.Password)))
             goto CleanupExit;
 
         passwordLength = m.p.u.ChangeServiceConfig.i.Password.Length;
     }
 
-    if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, -1, &m.p.u.ChangeServiceConfig.i.DisplayName)))
+    if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, SIZE_MAX, &m.p.u.ChangeServiceConfig.i.DisplayName)))
         goto CleanupExit;
 
     status = PhSvcpCallServer(&m);
@@ -750,7 +750,7 @@ NTSTATUS PhSvcCallChangeServiceConfig2(
 
     m.p.u.ChangeServiceConfig2.i.InfoLevel = InfoLevel;
 
-    if (serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.ChangeServiceConfig2.i.ServiceName))
+    if (serviceName = PhSvcpCreateString(ServiceName, SIZE_MAX, &m.p.u.ChangeServiceConfig2.i.ServiceName))
     {
         switch (InfoLevel)
         {
@@ -1047,14 +1047,14 @@ NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
         return STATUS_PORT_DISCONNECTED;
 
     m.p.ApiNumber = PhSvcCreateProcessIgnoreIfeoDebuggerApiNumber;
-    fileName = PhSvcpCreateString(FileName, -1, &m.p.u.CreateProcessIgnoreIfeoDebugger.i.FileName);
+    fileName = PhSvcpCreateString(FileName, SIZE_MAX, &m.p.u.CreateProcessIgnoreIfeoDebugger.i.FileName);
 
     if (!fileName)
         return STATUS_NO_MEMORY;
 
     if (CommandLine)
     {
-        commandLine = PhSvcpCreateString(CommandLine, -1, &m.p.u.CreateProcessIgnoreIfeoDebugger.i.CommandLine);
+        commandLine = PhSvcpCreateString(CommandLine, SIZE_MAX, &m.p.u.CreateProcessIgnoreIfeoDebugger.i.CommandLine);
 
         if (!commandLine)
             return STATUS_NO_MEMORY;
@@ -1127,7 +1127,7 @@ NTSTATUS PhSvcCallSetServiceSecurity(
     m.p.u.SetServiceSecurity.i.SecurityInformation = SecurityInformation;
     status = STATUS_NO_MEMORY;
 
-    if (!(serviceName = PhSvcpCreateString(ServiceName, -1, &m.p.u.SetServiceSecurity.i.ServiceName)))
+    if (!(serviceName = PhSvcpCreateString(ServiceName, SIZE_MAX, &m.p.u.SetServiceSecurity.i.ServiceName)))
         goto CleanupExit;
     if (!(copiedSelfRelativeSecurityDescriptor = PhSvcpCreateString(selfRelativeSecurityDescriptor, bufferSize, &m.p.u.SetServiceSecurity.i.SecurityDescriptor)))
         goto CleanupExit;
