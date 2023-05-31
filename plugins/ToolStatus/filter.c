@@ -116,12 +116,7 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
 
     if (PH_IS_REAL_PROCESS_ID(processNode->ProcessItem->ProcessId))
     {
-        if (processNode->ProcessItem->AlternateProcessIdString)
-        {
-            if (PhWordMatchStringRef(&SearchText->sr, &processNode->ProcessItem->AlternateProcessIdString->sr))
-                return FILTER_RESULT_FOUND_NAME;
-        }
-        else if (processNode->ProcessItem->ProcessIdString[0])
+        if (processNode->ProcessItem->ProcessIdString[0])
         {
             if (PhWordMatchStringLongHintZ(SearchText, processNode->ProcessItem->ProcessIdString))
                 return FILTER_RESULT_FOUND_NAME;

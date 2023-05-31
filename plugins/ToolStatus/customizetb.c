@@ -58,11 +58,10 @@ VOID CustomizeInsertToolbarButton(
     TBBUTTON button;
 
     memset(&button, 0, sizeof(TBBUTTON));
-
     button.idCommand = ItemContext->IdCommand;
     button.iBitmap = I_IMAGECALLBACK;
     button.fsState = TBSTATE_ENABLED;
-    button.iString = (INT_PTR)ToolbarGetText(ItemContext->IdCommand);
+    button.iString = (INT_PTR)(PVOID)ToolbarGetText(ItemContext->IdCommand);
 
     if (ItemContext->IsSeparator)
     {
@@ -878,7 +877,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 BOOLEAN isSelected = (drawInfo->itemState & ODS_SELECTED) == ODS_SELECTED;
                 BOOLEAN isFocused = (drawInfo->itemState & ODS_FOCUS) == ODS_FOCUS;
 
-                if (drawInfo->itemID == LB_ERR)
+                if (drawInfo->itemID == UINT_MAX)
                     break;
 
                 if (!(itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(drawInfo->hwndItem, drawInfo->itemID)))
@@ -920,10 +919,13 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
                 if (itemContext->IdCommand != 0)
                 {
+                    PWSTR stringBuffer = ToolbarGetText(itemContext->IdCommand);
+                    SIZE_T stringLength = PhCountStringZ(stringBuffer);
+
                     DrawText(
                         bufferDc,
-                        ToolbarGetText(itemContext->IdCommand),
-                        -1,
+                        stringBuffer,
+                        (INT)stringLength,
                         &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                         );
@@ -933,7 +935,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                     DrawText(
                         bufferDc,
                         L"Separator",
-                        -1,
+                        sizeof(L"Separator") / sizeof(WCHAR),
                         &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                         );

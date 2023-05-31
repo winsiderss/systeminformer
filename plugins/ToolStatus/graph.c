@@ -53,8 +53,8 @@ VOID ToolbarGraphLoadSettings(
         PH_STRINGREF idPart;
         PH_STRINGREF flagsPart;
         PH_STRINGREF pluginNamePart;
-        ULONG64 idInteger;
-        ULONG64 flagsInteger;
+        LONG64 idInteger;
+        LONG64 flagsInteger;
 
         PhSplitStringRefAtChar(&remaining, L'|', &idPart, &remaining);
         PhSplitStringRefAtChar(&remaining, L'|', &flagsPart, &remaining);
@@ -72,12 +72,16 @@ VOID ToolbarGraphLoadSettings(
             if (pluginNamePart.Length)
             {
                 if (graph = ToolbarGraphFindByName(&pluginNamePart, (ULONG)idInteger))
-                    graph->Flags |= TOOLSTATUS_GRAPH_ENABLED;
+                {
+                    SetFlag(graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
+                }
             }
             else
             {
                 if (graph = ToolbarGraphFindById((ULONG)idInteger))
-                    graph->Flags |= TOOLSTATUS_GRAPH_ENABLED;
+                {
+                    SetFlag(graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
+                }
             }
         }
     }
@@ -99,7 +103,7 @@ VOID ToolbarGraphSaveSettings(
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
         PPH_STRING pluginName;
 
-        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+        if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
             continue;
 
         pluginName = graph->Plugin ? PhGetPluginName(graph->Plugin) : NULL;
@@ -108,7 +112,7 @@ VOID ToolbarGraphSaveSettings(
             &graphListBuilder,
             L"%lu|%lu|%s|",
             graph->GraphId,
-            graph->Flags & TOOLSTATUS_GRAPH_ENABLED ? 1 : 0,
+            FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED) ? 1 : 0,
             PhGetStringOrEmpty(pluginName)
             );
 
@@ -276,7 +280,7 @@ VOID ToolbarCreateGraphs(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+        if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
             continue;
 
         ToolbarAddGraph(graph);
@@ -291,7 +295,7 @@ VOID ToolbarUpdateGraphs(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+        if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
             continue;
 
         if (!graph->GraphHandle)
@@ -317,7 +321,7 @@ VOID ToolbarUpdateGraphVisualStates(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+        if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
             continue;
 
         if (!graph->GraphHandle)
@@ -362,12 +366,12 @@ VOID ToolbarSetVisibleGraph(
 {
     if (Visible)
     {
-        Graph->Flags |= TOOLSTATUS_GRAPH_ENABLED;
+        SetFlag(Graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
         ToolbarAddGraph(Graph);
     }
     else
     {
-        Graph->Flags &= ~TOOLSTATUS_GRAPH_ENABLED;
+        ClearFlag(Graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
         ToolbarRemoveGraph(Graph);
     }
 }
@@ -382,7 +386,7 @@ BOOLEAN ToolbarGraphsEnabled(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_ENABLED)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
         {
             enabled = TRUE;
             break;
@@ -449,12 +453,12 @@ VOID ToolbarGraphCreateMenu(
         graph = PhpToolbarGraphList->Items[i];
         menuItem = PhCreateEMenuItem(0, MenuId, graph->Text, NULL, graph);
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_ENABLED)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
         {
-            menuItem->Flags |= PH_EMENU_CHECKED;
+            SetFlag(menuItem->Flags, PH_EMENU_CHECKED);
         }
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_UNAVAILABLE)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_UNAVAILABLE))
         {
             PPH_STRING newText;
 
@@ -480,12 +484,12 @@ VOID ToolbarGraphCreatePluginMenu(
         graph = PhpToolbarGraphList->Items[i];
         menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, MenuId, graph->Text, graph);
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_ENABLED)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
         {
-            menuItem->Flags |= PH_EMENU_CHECKED;
+            SetFlag(menuItem->Flags, PH_EMENU_CHECKED);
         }
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_UNAVAILABLE)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_UNAVAILABLE))
         {
             PPH_STRING newText;
 
