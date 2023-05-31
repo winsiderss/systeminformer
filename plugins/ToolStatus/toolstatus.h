@@ -184,7 +184,7 @@ PWSTR ToolbarGetText(
     );
 
 HBITMAP ToolbarGetImage(
-    _In_ INT CommandID,
+    _In_ UINT CommandID,
     _In_ LONG DpiValue
     );
 

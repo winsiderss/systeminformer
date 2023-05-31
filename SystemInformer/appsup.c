@@ -2262,13 +2262,17 @@ PPH_STRING PhPcre2GetErrorMessage(
 }
 
 HBITMAP PhGetShieldBitmap(
-    _In_ LONG WindowDpi
+    _In_ LONG WindowDpi,
+    _In_opt_ LONG Width,
+    _In_opt_ LONG Height
     )
 {
     static HBITMAP shieldBitmap = NULL;
     static LONG systemDpi = 0;
+    static LONG width = 0;
+    static LONG height = 0;
 
-    if (systemDpi != PhSystemDpi)
+    if (systemDpi != WindowDpi || width != Width || height != Height)
     {
         if (shieldBitmap)
         {
@@ -2276,7 +2280,9 @@ HBITMAP PhGetShieldBitmap(
             shieldBitmap = NULL;
         }
 
-        systemDpi = PhSystemDpi;
+        systemDpi = WindowDpi;
+        width = Width ? Width : PhGetSystemMetrics(SM_CXSMICON, systemDpi);
+        height = Height ? Height : PhGetSystemMetrics(SM_CYSMICON, systemDpi);
     }
 
     if (!shieldBitmap)
@@ -2289,7 +2295,7 @@ HBITMAP PhGetShieldBitmap(
             PH_LOAD_ICON_SIZE_SMALL,
             0,
             0,
-            WindowDpi
+            systemDpi
             );
 
         if (!shieldIcon)
@@ -2300,7 +2306,7 @@ HBITMAP PhGetShieldBitmap(
                 PH_LOAD_ICON_SIZE_SMALL,
                 0,
                 0,
-                WindowDpi
+                systemDpi
                 );
         }
 
@@ -2308,8 +2314,8 @@ HBITMAP PhGetShieldBitmap(
         {
             shieldBitmap = PhIconToBitmap(
                 shieldIcon,
-                PhGetSystemMetrics(SM_CXSMICON, WindowDpi),
-                PhGetSystemMetrics(SM_CYSMICON, WindowDpi)
+                width,
+                height
                 );
             DestroyIcon(shieldIcon);
         }
