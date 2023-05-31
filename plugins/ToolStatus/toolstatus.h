@@ -40,6 +40,7 @@
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
+#define MAX_DEFAULT_IMAGELIST_ITEMS 1
 #define MAX_TOOLBAR_ITEMS 13
 #define MAX_STATUSBAR_ITEMS 16
 
@@ -180,7 +181,7 @@ VOID ToolbarResetSettings(
     );
 
 PWSTR ToolbarGetText(
-    _In_ INT CommandID
+    _In_ UINT CommandID
     );
 
 HBITMAP ToolbarGetImage(
@@ -219,12 +220,29 @@ LONG ToolStatusGetWindowFontSize(
 
 // main.c
 
+PPH_STRING GetSearchboxText(
+    VOID
+    );
+
+VOID RegisterTabSearch(
+    _In_ INT TabIndex,
+    _In_ PWSTR BannerText
+    );
+
+PTOOLSTATUS_TAB_INFO RegisterTabInfo(
+    _In_ INT TabIndex
+    );
+
 HWND GetCurrentTreeNewHandle(
     VOID
     );
 
 VOID ShowCustomizeMenu(
     _In_ HWND WindowHandle
+    );
+
+VOID InvalidateMainWindowLayout(
+    VOID
     );
 
 // options.c

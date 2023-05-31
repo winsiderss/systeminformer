@@ -55,7 +55,7 @@ VOID RebarBandInsert(
 
     if (ToolStatusConfig.ToolBarLocked)
     {
-        rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
+        SetFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
     }
 
     if ((index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_SEARCHBOX, 0)) != UINT_MAX)
@@ -113,13 +113,20 @@ VOID RebarCreateOrUpdateWindow(
                 ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, windowDpi);
             }
 
-            if (ToolBarImageList) PhImageListDestroy(ToolBarImageList);
-            ToolBarImageList = PhImageListCreate(
-                ToolBarImageSize.cx,
-                ToolBarImageSize.cy,
-                ILC_MASK | ILC_COLOR32,
-                0, 0
-                );
+            if (ToolBarImageList)
+            {
+                PhImageListSetIconSize(ToolBarImageList, ToolBarImageSize.cx, ToolBarImageSize.cy);
+            }
+            else
+            {
+                ToolBarImageList = PhImageListCreate(
+                    ToolBarImageSize.cx,
+                    ToolBarImageSize.cy,
+                    ILC_MASK | ILC_COLOR32,
+                    MAX_DEFAULT_TOOLBAR_ITEMS,
+                    MAX_DEFAULT_IMAGELIST_ITEMS
+                    );
+            }
         }
 
         if (DpiChanged)
@@ -322,8 +329,8 @@ VOID ToolbarLoadSettings(
 
     if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle)
     {
-        INT index = 0;
-        INT buttonCount = 0;
+        INT index;
+        INT buttonCount;
 
         buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
@@ -379,7 +386,7 @@ VOID ToolbarLoadSettings(
                 {
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
-                        buttonInfo.fsState &= ~TBSTATE_ENABLED;
+                        ClearFlag(buttonInfo.fsState, TBSTATE_ENABLED);
                     }
                 }
                 break;
@@ -388,13 +395,13 @@ VOID ToolbarLoadSettings(
                     // Set the pressed state
                     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
                     {
-                        buttonInfo.fsState |= TBSTATE_PRESSED;
+                        SetFlag(buttonInfo.fsState, TBSTATE_PRESSED);
                     }
                 }
                 break;
             case TIDC_POWERMENUDROPDOWN:
                 {
-                    buttonInfo.fsStyle |= BTNS_WHOLEDROPDOWN;
+                    SetFlag(buttonInfo.fsStyle, BTNS_WHOLEDROPDOWN);
                 }
                 break;
             }
@@ -435,7 +442,7 @@ VOID ToolbarLoadSettings(
     }
 
     // Invoke the LayoutPaddingCallback.
-    SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
+    InvalidateMainWindowLayout();
 }
 
 VOID ToolbarRemoveButons(
@@ -460,7 +467,7 @@ VOID ToolbarResetSettings(
 }
 
 PWSTR ToolbarGetText(
-    _In_ INT CommandID
+    _In_ UINT CommandID
     )
 {
     switch (CommandID)
@@ -673,12 +680,13 @@ VOID ToolbarLoadDefaultButtonSettings(
 {
     LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
-    // Pre-cache the images in the Toolbar array
-    for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+    // Pre-cache the images in the Toolbar array.
+
+    for (UINT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
     {
         HBITMAP bitmap;
 
-        if (ToolbarButtons[i].fsStyle & BTNS_SEP)
+        if (FlagOn(ToolbarButtons[i].fsStyle, BTNS_SEP))
             continue;
 
         if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand, dpiValue))
@@ -695,7 +703,7 @@ VOID ToolbarLoadDefaultButtonSettings(
 
         // Note: We have to set the string here because TBIF_TEXT doesn't update
         // the button text length when the button is disabled. (dmex)
-        ToolbarButtons[i].iString = (INT_PTR)ToolbarGetText(i);
+        ToolbarButtons[i].iString = (INT_PTR)(PVOID)ToolbarGetText(i);
     }
 
     // Load default settings
@@ -707,7 +715,7 @@ VOID ToolbarLoadButtonSettings(
     )
 {
     INT count;
-    ULONG64 countInteger;
+    LONG64 countInteger;
     PPH_STRING settingsString;
     PTBBUTTON buttonArray;
     PH_STRINGREF remaining;
@@ -747,7 +755,7 @@ VOID ToolbarLoadButtonSettings(
 
     for (INT index = 0; index < count; index++)
     {
-        ULONG64 commandInteger;
+        LONG64 commandInteger;
         PH_STRINGREF commandIdPart;
 
         if (remaining.Length == 0)
@@ -765,7 +773,7 @@ VOID ToolbarLoadButtonSettings(
             buttonArray[index].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
             // Note: We have to set the string here because TBIF_TEXT doesn't update
             // the button text length when the button is disabled. (dmex)
-            buttonArray[index].iString = (INT_PTR)ToolbarGetText((INT)commandInteger);
+            buttonArray[index].iString = (INT_PTR)(PVOID)ToolbarGetText((UINT)commandInteger);
         }
         else
         {
@@ -773,13 +781,13 @@ VOID ToolbarLoadButtonSettings(
         }
 
         // Pre-cache the image in the Toolbar array on startup.
-        for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+        for (UINT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
         {
             if (ToolbarButtons[i].idCommand == buttonArray[index].idCommand)
             {
                 HBITMAP bitmap;
 
-                if (buttonArray[index].fsStyle & BTNS_SEP)
+                if (FlagOn(buttonArray[index].fsStyle, BTNS_SEP))
                     continue;
 
                 if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand, dpiValue))
@@ -812,8 +820,8 @@ VOID ToolbarSaveButtonSettings(
     VOID
     )
 {
-    INT index = 0;
-    INT count = 0;
+    INT index;
+    INT count;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
@@ -857,8 +865,8 @@ VOID ReBarLoadLayoutSettings(
     VOID
     )
 {
-    UINT index = 0;
-    UINT count = 0;
+    UINT index;
+    UINT count;
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
@@ -875,9 +883,9 @@ VOID ReBarLoadLayoutSettings(
         PH_STRINGREF idPart;
         PH_STRINGREF cxPart;
         PH_STRINGREF stylePart;
-        ULONG64 idInteger;
-        ULONG64 cxInteger;
-        ULONG64 styleInteger;
+        LONG64 idInteger;
+        LONG64 cxInteger;
+        LONG64 styleInteger;
         UINT oldBandIndex;
         REBARBANDINFO rebarBandInfo =
         {
@@ -918,8 +926,8 @@ VOID ReBarSaveLayoutSettings(
     VOID
     )
 {
-    UINT index = 0;
-    UINT count = 0;
+    UINT index;
+    UINT count;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
@@ -937,19 +945,19 @@ VOID ReBarSaveLayoutSettings(
 
         SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo);
 
-        if (rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS)
+        if (FlagOn(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS))
         {
-            rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
+            ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
         }
 
-        if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
+        if (FlagOn(rebarBandInfo.fStyle, RBBS_NOGRIPPER))
         {
-            rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
+            ClearFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
         }
 
-        if (rebarBandInfo.fStyle & RBBS_FIXEDSIZE)
+        if (FlagOn(rebarBandInfo.fStyle, RBBS_FIXEDSIZE))
         {
-            rebarBandInfo.fStyle &= ~RBBS_FIXEDSIZE;
+            ClearFlag(rebarBandInfo.fStyle, RBBS_FIXEDSIZE);
         }
 
         PhAppendFormatStringBuilder(

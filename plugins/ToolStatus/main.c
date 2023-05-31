@@ -12,19 +12,6 @@
 
 #include "toolstatus.h"
 
-PPH_STRING GetSearchboxText(
-    VOID
-    );
-
-VOID RegisterTabSearch(
-    _In_ INT TabIndex,
-    _In_ PWSTR BannerText
-    );
-
-PTOOLSTATUS_TAB_INFO RegisterTabInfo(
-    _In_ INT TabIndex
-    );
-
 TOOLSTATUS_CONFIG ToolStatusConfig = { 0 };
 HWND ProcessTreeNewHandle = NULL;
 HWND ServiceTreeNewHandle = NULL;
@@ -274,8 +261,9 @@ VOID ShowCustomizeMenu(
 
                 if (ToolStatusConfig.SearchBoxEnabled) // && !ToolStatusConfig.SearchAutoFocus)
                 {
-                    // Adding the Searchbox makes it focused,
-                    // reset the focus back to the main window.
+                    // The window focus was reset by Windows while creating child
+                    // windows in ToolbarLoadSettings, so make sure we reset the focus
+                    // otherwise you can't navigate with the keyboard. (dmex)
                     SetFocus(WindowHandle);
                 }
             }
@@ -302,20 +290,20 @@ VOID ShowCustomizeMenu(
                         // Removing the RBBS_NOGRIPPER style doesn't remove the gripper padding,
                         // So we toggle the RBBS_GRIPPERALWAYS style to make the Toolbar remove the padding.
 
-                        rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;
+                        SetFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
 
                         SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
-
-                        rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
+                        
+                        ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
                     }
 
                     if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
                     {
-                        rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
+                        ClearFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
                     }
                     else
                     {
-                        rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
+                        SetFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
                     }
 
                     SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
@@ -533,6 +521,17 @@ BOOLEAN CheckRebarLastRedrawMessage(
     return FALSE;
 }
 
+VOID InvalidateMainWindowLayout(
+    VOID
+    )
+{
+    // Invalidate plugin window layout.
+    ProcessHacker_InvalidateLayoutPadding();
+
+    // Invalidate the main window layout.
+    CallWindowProc(MainWindowHookProc, PhMainWndHandle, WM_SIZE, 0, 0);
+}
+
 VOID UpdateDpiMetrics(
     VOID
     )
@@ -630,7 +629,7 @@ BOOLEAN NTAPI MessageLoopFilter(
 {
     if (
         Message->hwnd == PhMainWndHandle ||
-        IsChild(PhMainWndHandle, Message->hwnd)
+        Message->hwnd && IsChild(PhMainWndHandle, Message->hwnd)
         )
     {
         if (TranslateAccelerator(PhMainWndHandle, AcceleratorTable, Message))
@@ -927,8 +926,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 {
                 case RBN_HEIGHTCHANGE:
                     {
-                        // Invoke the LayoutPaddingCallback.
-                        SendMessage(hWnd, WM_SIZE, 0, 0);
+                        InvalidateMainWindowLayout();
                     }
                     break;
                 case RBN_CHEVRONPUSHED:
@@ -993,7 +991,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                                 case TIDC_FINDWINDOWKILL:
                                     {
                                         // Note: These buttons are incompatible with the context menu window messages.
-                                        menuItem->Flags |= PH_EMENU_DISABLED;
+                                        PhSetDisabledEMenuItem(menuItem);
                                     }
                                     break;
                                 case PHAPP_ID_VIEW_ALWAYSONTOP:
@@ -1008,7 +1006,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                                         if (PhGetOwnTokenAttributes().Elevated)
                                         {
                                             // Disable the 'Show Details for All Processes' button when we're elevated.
-                                            menuItem->Flags |= PH_EMENU_DISABLED;
+                                            PhSetDisabledEMenuItem(menuItem);
                                         }
                                     }
                                     break;
@@ -1091,18 +1089,18 @@ LRESULT CALLBACK MainWndSubclassProc(
                     {
                         LPNMTBDISPINFO toolbarDisplayInfo = (LPNMTBDISPINFO)lParam;
 
-                        if (toolbarDisplayInfo->dwMask & TBNF_IMAGE)
+                        if (FlagOn(toolbarDisplayInfo->dwMask, TBNF_IMAGE))
                         {
                             // Try to find the cached bitmap index.
                             // NOTE: The TBNF_DI_SETITEM flag below will cache the index so we only get called once.
                             //       However, when adding buttons from the customize dialog we get called a second time,
                             //       so we cache the index in our ToolbarButtons array to prevent ToolBarImageList from growing.
-                            for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+                            for (UINT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
                             {
                                 if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                 {
                                     // Cache the bitmap index.
-                                    toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
+                                    SetFlag(toolbarDisplayInfo->dwMask, TBNF_DI_SETITEM);
                                     // Set the bitmap index.
                                     toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap;
                                     break;
@@ -1111,13 +1109,11 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                             if (toolbarDisplayInfo->iImage == I_IMAGECALLBACK)
                             {
-                                LONG dpiValue;
-
-                                dpiValue = PhGetWindowDpi(hWnd);
+                                LONG dpiValue = PhGetWindowDpi(hWnd);
 
                                 // We didn't find a cached bitmap index...
                                 // Load the button bitmap and cache the index.
-                                for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+                                for (UINT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
                                 {
                                     if (ToolbarButtons[i].idCommand == toolbarDisplayInfo->idCommand)
                                     {
@@ -1126,7 +1122,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                                         if (buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand, dpiValue))
                                         {
                                             // Cache the bitmap index.
-                                            toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
+                                            SetFlag(toolbarDisplayInfo->dwMask, TBNF_DI_SETITEM);
 
                                             // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
                                             toolbarDisplayInfo->iImage = ToolbarButtons[i].iBitmap = PhImageListAddBitmap(
@@ -1436,8 +1432,10 @@ LRESULT CALLBACK MainWndSubclassProc(
         }
         break;
     case WM_SIZE:
-        // Resize PH main window client-area.
-        ProcessHacker_InvalidateLayoutPadding();
+        {
+            // Invalidate plugin window layouts.
+            ProcessHacker_InvalidateLayoutPadding();
+        }
         break;
     case WM_SETTINGCHANGE:
         {
@@ -1541,7 +1539,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     //    ToolbarUpdateGraphVisualStates();
                     //
                     //    // NOTE: Maximizing and restoring the window when updating is paused will cause the graphs to leave
-                    //    // artiacts on the window because the rebar control doesn't redraw... so we'll force the rebar to redraw.
+                    //    // artifacts on the window because the rebar control doesn't redraw... so we'll force the rebar to redraw.
                     //    // TODO: Figure out the exact SetWindowPos flags required. (dmex)
                     //    SetWindowPos(RebarHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
                     //    //RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
@@ -1560,16 +1558,6 @@ LRESULT CALLBACK MainWndSubclassProc(
             {
                 SetMenu(hWnd, NULL);
             }
-        }
-        break;
-    case WM_PH_UPDATE_FONT:
-        {
-            // Let System Informer perform the default processing.
-            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
-
-            UpdateLayoutMetrics();
-
-            return result;
         }
         break;
     case WM_PH_NOTIFY_ICON_MESSAGE:
@@ -1829,20 +1817,20 @@ VOID NTAPI MenuItemCallback(
                         // Removing the RBBS_NOGRIPPER style doesn't remove the gripper padding,
                         // So we toggle the RBBS_GRIPPERALWAYS style to make the Toolbar remove the padding.
 
-                        rebarBandInfo.fStyle |= RBBS_GRIPPERALWAYS;
+                        SetFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
 
                         SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
 
-                        rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
+                        ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
                     }
 
                     if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
                     {
-                        rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
+                        ClearFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
                     }
                     else
                     {
-                        rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
+                        SetFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
                     }
 
                     SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
