@@ -483,7 +483,7 @@ NTAPI
 ZwAlpcImpersonateClientOfPort(
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE Message,
-    _In_ PVOID Flags
+    _In_ ULONG Flags
     );
 
 NTSYSCALLAPI
@@ -1747,7 +1747,7 @@ ZwFlushKey(
     );
 
 NTSYSCALLAPI
-VOID
+NTSTATUS
 NTAPI
 ZwFlushProcessWriteBuffers(
     VOID
