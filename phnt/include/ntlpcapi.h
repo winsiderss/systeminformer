@@ -881,7 +881,7 @@ NTAPI
 NtAlpcImpersonateClientOfPort(
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE Message,
-    _In_ ULONG Flags
+    _In_ PVOID Flags
     );
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
