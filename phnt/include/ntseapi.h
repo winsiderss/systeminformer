@@ -522,7 +522,7 @@ NtAccessCheckByTypeResultList(
 
 // Signing
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WIN8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -546,6 +546,10 @@ NtGetCachedSigningLevel(
     _Inout_opt_ PULONG ThumbprintSize,
     _Out_opt_ PULONG ThumbprintAlgorithm
     );
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
 
 // rev
 NTSYSCALLAPI
