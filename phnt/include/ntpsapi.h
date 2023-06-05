@@ -2631,6 +2631,31 @@ PssNtCaptureSnapshot(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_20H1)
+// rev
+#define MEMORY_BULK_INFORMATION_FLAG_BASIC 0x00000001
+
+// rev
+typedef struct _NTPSS_MEMORY_BULK_INFORMATION
+{
+    ULONG QueryFlags;
+    ULONG NumberOfEntries;
+    PVOID NextValidAddress;
+} NTPSS_MEMORY_BULK_INFORMATION, *PNTPSS_MEMORY_BULK_INFORMATION;
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtPssCaptureVaSpaceBulk(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ PNTPSS_MEMORY_BULK_INFORMATION BulkInformation,
+    _In_ SIZE_T BulkInformationLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
+#endif
+
 #endif
 
 #endif
