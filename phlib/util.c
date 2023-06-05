@@ -1932,7 +1932,7 @@ LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
                 break;
             }
 
-            if (towupper(t) != towupper(*B))
+            if (PhUpcaseUnicodeChar(t) != PhUpcaseUnicodeChar(*B))
                 break;
 
             A++;
