@@ -1723,12 +1723,14 @@ PhEnumDirectoryFileEx(
     _In_opt_ PVOID Context
     );
 
-typedef NTSTATUS (NTAPI* PPH_ENUM_REPARSE_POINT)(
+_Function_class_(PH_ENUM_REPARSE_POINT)
+typedef NTSTATUS (NTAPI PH_ENUM_REPARSE_POINT)(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_ SIZE_T InformationLength,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_REPARSE_POINT *PPH_ENUM_REPARSE_POINT;
 
 PHLIBAPI
 NTSTATUS
@@ -1739,12 +1741,14 @@ PhEnumReparsePointInformation(
     _In_opt_ PVOID Context
     );
 
-typedef NTSTATUS (NTAPI* PPH_ENUM_OBJECT_ID)(
+_Function_class_(PH_ENUM_OBJECT_ID)
+typedef NTSTATUS (NTAPI PH_ENUM_OBJECT_ID)(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
     _In_ SIZE_T InformationLength,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_OBJECT_ID *PPH_ENUM_OBJECT_ID;
 
 PHLIBAPI
 NTSTATUS
@@ -3118,20 +3122,31 @@ PhDeviceIoControlFile(
     _Out_opt_ PULONG ReturnLength
     );
 
-typedef BOOLEAN (NTAPI* PPH_ENUM_MEMORY_CALLBACK)(
+_Function_class_(PH_ENUM_MEMORY_CALLBACK)
+typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PMEMORY_BASIC_INFORMATION BasicInformation,
     _In_opt_ PVOID Context
     );
 
-typedef BOOLEAN (NTAPI* PPH_ENUM_MEMORY_PAGE_CALLBACK)(
+_Function_class_(PH_ENUM_MEMORY_BULK_CALLBACK)
+typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_BULK_CALLBACK)(
+    _In_ HANDLE ProcessHandle,
+    _In_ PMEMORY_BASIC_INFORMATION BasicInfo,
+    _In_ SIZE_T Count,
+    _In_opt_ PVOID Context
+    );
+
+_Function_class_(PH_ENUM_MEMORY_PAGE_CALLBACK)
+typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_PAGE_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG_PTR NumberOfEntries,
     _In_ PMEMORY_WORKING_SET_BLOCK Blocks,
     _In_opt_ PVOID Context
     );
 
-typedef BOOLEAN (NTAPI* PPH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)(
+_Function_class_(PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)
+typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _In_ SIZE_T SizeOfImage,
@@ -3139,6 +3154,11 @@ typedef BOOLEAN (NTAPI* PPH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)(
     _In_ PMEMORY_WORKING_SET_EX_INFORMATION Blocks,
     _In_opt_ PVOID Context
     );
+
+typedef PH_ENUM_MEMORY_CALLBACK* PPH_ENUM_MEMORY_CALLBACK;
+typedef PH_ENUM_MEMORY_BULK_CALLBACK* PPH_ENUM_MEMORY_BULK_CALLBACK;
+typedef PH_ENUM_MEMORY_PAGE_CALLBACK* PPH_ENUM_MEMORY_PAGE_CALLBACK;
+typedef PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK* PPH_ENUM_MEMORY_ATTRIBUTE_CALLBACK;
 
 PHLIBAPI
 NTSTATUS

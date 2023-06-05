@@ -16317,7 +16317,9 @@ NTSTATUS PhEnumVirtualMemory(
             basicInfo.AllocationProtect = basicInfo.Protect;
         }
 
-        if (!Callback(processHandle, &basicInfo, Context))
+        status = Callback(processHandle, &basicInfo, Context);
+
+        if (!NT_SUCCESS(status))
             break;
 
         baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
@@ -16373,7 +16375,7 @@ NTSTATUS PhEnumVirtualMemoryPages(
 
     if (NT_SUCCESS(status))
     {
-        Callback(
+        status = Callback(
             processHandle,
             pageInfo->NumberOfEntries,
             pageInfo->WorkingSetInfo,
@@ -16457,7 +16459,7 @@ NTSTATUS PhEnumVirtualMemoryAttributes(
 
     if (NT_SUCCESS(status))
     {
-        Callback(
+        status = Callback(
             processHandle,
             BaseAddress,
             Size,

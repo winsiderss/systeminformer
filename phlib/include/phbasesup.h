@@ -3627,11 +3627,13 @@ PhConvertCopyMemorySingles(
     _In_ SIZE_T Count
     );
 
+typedef struct _PH_CIRCULAR_BUFFER_ULONG* PPH_CIRCULAR_BUFFER_ULONG;
+
 PHLIBAPI
 VOID
 NTAPI
 PhCopyConvertCircularBufferULONG(
-    _Inout_ struct _PH_CIRCULAR_BUFFER_ULONG* Buffer,
+    _Inout_ PPH_CIRCULAR_BUFFER_ULONG Buffer,
     _Out_writes_(Count) FLOAT* Destination,
     _In_ ULONG Count
     );
