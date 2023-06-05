@@ -1354,7 +1354,7 @@ PhExtractIconEx(
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall,
-    _In_ LONG SystemDpi
+    _In_ LONG WindowDpi
     );
 
 // Imagelist support

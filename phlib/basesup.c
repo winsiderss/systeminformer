@@ -7420,7 +7420,7 @@ VOID PhConvertCopyMemorySingles(
 
 // based on PhCopyCircularBuffer (FLOAT) (\phlib\circbuf_i.h) (dmex)
 VOID PhCopyConvertCircularBufferULONG(
-    _Inout_ struct _PH_CIRCULAR_BUFFER_ULONG* Buffer,
+    _Inout_ PPH_CIRCULAR_BUFFER_ULONG Buffer,
     _Out_writes_(Count) FLOAT* Destination,
     _In_ ULONG Count
     )
