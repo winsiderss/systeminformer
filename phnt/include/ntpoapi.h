@@ -507,7 +507,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalUserAbsencePredictionCapability, // POWER_USER_ABSENCE_PREDICTION_CAPABILITY
     PowerInternalPoProcessorLatencyHint, // POWER_PROCESSOR_LATENCY_HINT
     PowerInternalStandbyNetworkRequest, // POWER_STANDBY_NETWORK_REQUEST (requires PopNetBIServiceSid)
-    PowerInternalDirtyTransitionInformation,
+    PowerInternalDirtyTransitionInformation, // out: BOOLEAN
     PowerInternalSetBackgroundTaskState, // POWER_SET_BACKGROUND_TASK_STATE
     PowerInternalTtmOpenTerminal,
     PowerInternalTtmCreateTerminal, // 10
@@ -586,7 +586,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalOverrideSystemInitiatedRebootState,
     PowerInternalFanImpactStats,
     PowerInternalFanRpmBuckets,
-    PowerInternalPowerBootAppDiagInfo,
+    PowerInternalPowerBootAppDiagInfo, // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
     PowerInternalUnregisterShutdownNotification, // since 22H1
     PowerInternalManageTransitionStateRecord,
     PowerInternalGetAcpiTimeAndAlarmCapabilities, // since 22H2
@@ -699,18 +699,27 @@ typedef struct _POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
 } POWER_INTERNAL_HOST_ENERGY_SAVER_STATE, *PPOWER_INTERNAL_HOST_ENERGY_SAVER_STATE;
 
 // rev
-typedef struct POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT
+typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
     PROCESSOR_NUMBER ProcessorNumber; // ULONG_MAX
 } POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT, *PPOWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT;
 
 // rev
-typedef struct POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT
+typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT
 {
     ULONG Version;
     ULONG NominalFrequency; // if (Domain) Prcb->PowerState.CheckContext.Domain.NominalFrequency else Prcb->MHz
 } POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT, *PPOWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
+{
+    ULONG BootAppErrorDiagCode; // bcdedit last status
+    ULONG BootAppFailureStatus; // bcdedit last status
+} POWER_INTERNAL_BOOTAPP_DIAGNOSTIC, *PPOWER_INTERNAL_BOOTAPP_DIAGNOSTIC;
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -722,6 +731,8 @@ NtPowerInformation(
     _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
     _In_ ULONG OutputBufferLength
     );
+
+#endif
 
 NTSYSCALLAPI
 NTSTATUS

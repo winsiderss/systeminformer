@@ -245,6 +245,8 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS32
     ULONG DefaultThreadpoolThreadMaximum;
 } RTL_USER_PROCESS_PARAMETERS32, *PRTL_USER_PROCESS_PARAMETERS32;
 
+typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
+
 typedef struct _PEB32
 {
     BOOLEAN InheritedAddressSpace;
@@ -399,7 +401,7 @@ typedef struct _PEB32
     ULONG CloudFileDiagFlags; // REDSTONE4
     CHAR PlaceholderCompatibilityMode;
     CHAR PlaceholderCompatibilityModeReserved[7];
-    struct _LEAP_SECOND_DATA* __ptr32 LeapSecondData; // REDSTONE5
+    WOW64_POINTER(PLEAP_SECOND_DATA) LeapSecondData; // REDSTONE5
     union
     {
         ULONG LeapSecondFlags;
@@ -617,5 +619,43 @@ FORCEINLINE VOID UStrToUStr32(
     Destination->MaximumLength = Source->MaximumLength;
     Destination->Buffer = PtrToUlong(Source->Buffer);
 }
+
+// The Wow64Info structure follows the PEB32/TEB32 structures and is shared between 32-bit and 64-bit modules inside a Wow64 process.
+
+typedef union _WOW64_EXECUTE_OPTIONS
+{
+    ULONG Flags;
+    struct
+    {
+        ULONG StackReserveSize : 8;
+        ULONG StackCommitSize : 4;
+        ULONG Deprecated0 : 1;
+        ULONG DisableWowAssert : 1;
+        ULONG DisableTurboDispatch : 1;
+        ULONG Unused : 13;
+        ULONG Reserved0 : 1;
+        ULONG Reserved1 : 1;
+        ULONG Reserved2 : 1;
+        ULONG Reserved3 : 1;
+    };
+} WOW64_EXECUTE_OPTIONS, *PWOW64_EXECUTE_OPTIONS;
+
+#define WOW64_CPUFLAGS_MSFT64           0x00000001
+#define WOW64_CPUFLAGS_SOFTWARE         0x00000002
+#define WOW64_CPUFLAGS_IA64             0x00000004
+
+typedef struct _WOW64INFO
+{
+    ULONG NativeSystemPageSize;
+    ULONG CpuFlags;
+    WOW64_EXECUTE_OPTIONS Wow64ExecuteFlags;
+    ULONG InstrumentationCallback;
+} WOW64INFO, *PWOW64INFO;
+
+typedef struct _PEB32_WITH_WOW64INFO
+{
+    PEB32 Peb32;
+    WOW64INFO Wow64Info;
+} PEB32_WITH_WOW64INFO, *PPEB32_WITH_WOW64INFO;
 
 #endif
