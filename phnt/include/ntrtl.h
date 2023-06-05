@@ -4700,10 +4700,12 @@ RtlGetProcessHeaps(
     _Out_ PVOID *ProcessHeaps
     );
 
-typedef NTSTATUS (NTAPI *PRTL_ENUM_HEAPS_ROUTINE)(
+_Function_class_(RTL_ENUM_HEAPS_ROUTINE)
+typedef NTSTATUS (NTAPI RTL_ENUM_HEAPS_ROUTINE)(
     _In_ PVOID HeapHandle,
     _In_ PVOID Parameter
     );
+typedef RTL_ENUM_HEAPS_ROUTINE *PRTL_ENUM_HEAPS_ROUTINE;
 
 NTSYSAPI
 NTSTATUS
@@ -4912,10 +4914,22 @@ typedef struct _HEAP_INFORMATION_ITEM
     };
 } HEAP_INFORMATION_ITEM, *PHEAP_INFORMATION_ITEM;
 
-typedef NTSTATUS (NTAPI *PRTL_HEAP_EXTENDED_ENUMERATION_ROUTINE)(
+typedef
+_Function_class_(RTL_HEAP_COMMIT_ROUTINE)
+NTSTATUS
+NTAPI
+RTL_HEAP_COMMIT_ROUTINE(
+    _In_ PVOID Base,
+    _Inout_ PVOID* CommitAddress,
+    _Inout_ PSIZE_T CommitSize
+    );
+
+_Function_class_(RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE)
+typedef NTSTATUS (NTAPI RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE)(
     _In_ PHEAP_INFORMATION_ITEM Information,
     _In_opt_ PVOID Context
     );
+typedef RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE *PRTL_HEAP_EXTENDED_ENUMERATION_ROUTINE;
 
 // HEAP_EXTENDED_INFORMATION Level
 #define HeapExtendedProcessHeapInformationLevel 0x1
@@ -5351,6 +5365,11 @@ RtlUlonglongByteSwap(
 // Debugging
 
 // private
+typedef struct _RTL_PROCESS_MODULES *PRTL_PROCESS_MODULES;
+typedef struct _RTL_PROCESS_MODULE_INFORMATION_EX *PRTL_PROCESS_MODULE_INFORMATION_EX;
+typedef struct _RTL_PROCESS_BACKTRACES *PRTL_PROCESS_BACKTRACES;
+typedef struct _RTL_PROCESS_LOCKS *PRTL_PROCESS_LOCKS;
+
 typedef struct _RTL_PROCESS_VERIFIER_OPTIONS
 {
     ULONG SizeStruct;
@@ -5375,12 +5394,12 @@ typedef struct _RTL_DEBUG_INFORMATION
     SIZE_T ViewSize;
     union
     {
-        struct _RTL_PROCESS_MODULES *Modules;
-        struct _RTL_PROCESS_MODULE_INFORMATION_EX *ModulesEx;
+        PRTL_PROCESS_MODULES Modules;
+        PRTL_PROCESS_MODULE_INFORMATION_EX ModulesEx;
     };
-    struct _RTL_PROCESS_BACKTRACES *BackTraces;
+    PRTL_PROCESS_BACKTRACES BackTraces;
     PVOID Heaps;
-    struct _RTL_PROCESS_LOCKS *Locks;
+    PRTL_PROCESS_LOCKS Locks;
     PVOID SpecificHeap;
     HANDLE TargetProcessHandle;
     PRTL_PROCESS_VERIFIER_OPTIONS VerifierOptions;
@@ -7839,15 +7858,19 @@ RtlSetIoCompletionCallback(
     _In_ ULONG Flags
     );
 
-typedef NTSTATUS (NTAPI *PRTL_START_POOL_THREAD)(
+_Function_class_(RTL_START_POOL_THREAD)
+typedef NTSTATUS (NTAPI RTL_START_POOL_THREAD)(
     _In_ PTHREAD_START_ROUTINE Function,
     _In_ PVOID Parameter,
     _Out_ PHANDLE ThreadHandle
     );
+typedef RTL_START_POOL_THREAD *PRTL_START_POOL_THREAD;
 
-typedef NTSTATUS (NTAPI *PRTL_EXIT_POOL_THREAD)(
+_Function_class_(RTL_EXIT_POOL_THREAD)
+typedef NTSTATUS (NTAPI RTL_EXIT_POOL_THREAD)(
     _In_ NTSTATUS ExitStatus
     );
+typedef RTL_EXIT_POOL_THREAD *PRTL_EXIT_POOL_THREAD;
 
 NTSYSAPI
 NTSTATUS
@@ -7984,7 +8007,8 @@ RtlCheckRegistryKey(
     _In_ PWSTR Path
     );
 
-typedef NTSTATUS (NTAPI *PRTL_QUERY_REGISTRY_ROUTINE)(
+_Function_class_(RTL_QUERY_REGISTRY_ROUTINE)
+typedef NTSTATUS (NTAPI RTL_QUERY_REGISTRY_ROUTINE)(
     _In_ PWSTR ValueName,
     _In_ ULONG ValueType,
     _In_ PVOID ValueData,
@@ -7992,6 +8016,7 @@ typedef NTSTATUS (NTAPI *PRTL_QUERY_REGISTRY_ROUTINE)(
     _In_opt_ PVOID Context,
     _In_opt_ PVOID EntryContext
     );
+typedef RTL_QUERY_REGISTRY_ROUTINE *PRTL_QUERY_REGISTRY_ROUTINE;
 
 typedef struct _RTL_QUERY_REGISTRY_TABLE
 {
@@ -9393,10 +9418,12 @@ RtlFindClosestEncodableLength(
 
 // Memory cache
 
-typedef NTSTATUS (NTAPI *PRTL_SECURE_MEMORY_CACHE_CALLBACK)(
+_Function_class_(RTL_SECURE_MEMORY_CACHE_CALLBACK)
+typedef NTSTATUS (NTAPI RTL_SECURE_MEMORY_CACHE_CALLBACK)(
     _In_ PVOID Address,
     _In_ SIZE_T Length
     );
+typedef RTL_SECURE_MEMORY_CACHE_CALLBACK *PRTL_SECURE_MEMORY_CACHE_CALLBACK;
 
 // ros
 NTSYSAPI

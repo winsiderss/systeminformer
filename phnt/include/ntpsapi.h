@@ -877,11 +877,13 @@ typedef struct _WIN32K_SYSCALL_FILTER
     ULONG FilterSet;
 } WIN32K_SYSCALL_FILTER, *PWIN32K_SYSCALL_FILTER;
 
+typedef struct _JOBOBJECT_WAKE_FILTER *PJOBOBJECT_WAKE_FILTER; // from ntpsapi.h
+
 typedef struct _PROCESS_WAKE_INFORMATION
 {
     ULONGLONG NotificationChannel;
     ULONG WakeCounters[7];
-    struct _JOBOBJECT_WAKE_FILTER* WakeFilter;
+    PJOBOBJECT_WAKE_FILTER WakeFilter;
 } PROCESS_WAKE_INFORMATION, *PPROCESS_WAKE_INFORMATION;
 
 typedef struct _PROCESS_ENERGY_TRACKING_STATE
@@ -2317,6 +2319,11 @@ NtCreateUserProcess(
 // end_rev
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+
+typedef NTSTATUS (NTAPI *PUSER_THREAD_START_ROUTINE)(
+    _In_ PVOID ThreadParameter
+    );
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2325,7 +2332,7 @@ NtCreateThreadEx(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID StartRoutine, // PUSER_THREAD_START_ROUTINE
+    _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
     _In_opt_ PVOID Argument,
     _In_ ULONG CreateFlags, // THREAD_CREATE_FLAGS_*
     _In_ SIZE_T ZeroBits,
@@ -2333,6 +2340,7 @@ NtCreateThreadEx(
     _In_ SIZE_T MaximumStackSize,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
+
 #endif
 
 #endif

@@ -110,6 +110,8 @@ SamRidToSid(
 #define SAM_SERVER_EXECUTE (STANDARD_RIGHTS_EXECUTE | \
     SAM_SERVER_CONNECT | \
     SAM_SERVER_LOOKUP_DOMAIN)
+    
+typedef struct _RPC_AUTH_IDENTITY_HANDLE *PRPC_AUTH_IDENTITY_HANDLE;
 
 // Functions
 
@@ -131,7 +133,7 @@ SamConnectWithCreds(
     _Out_ PSAM_HANDLE ServerHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ struct _RPC_AUTH_IDENTITY_HANDLE* Creds,
+    _In_ PRPC_AUTH_IDENTITY_HANDLE Creds,
     _In_ PWCHAR Spn,
     _Out_ BOOL* pfDstIsW2K
     );
