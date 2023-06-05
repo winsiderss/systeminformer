@@ -324,10 +324,7 @@ LONG PhGetDpiValue(
         {
             PVOID baseAddress;
 
-            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"shcore.dll")))
-                baseAddress = PhLoadLibrary(L"shcore.dll");
-
-            if (baseAddress)
+            if (baseAddress = PhLoadLibrary(L"shcore.dll"))
             {
                 GetDpiForMonitor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForMonitor", 0);
             }
@@ -337,10 +334,7 @@ LONG PhGetDpiValue(
         {
             PVOID baseAddress;
 
-            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll")))
-                baseAddress = PhLoadLibrary(L"user32.dll");
-
-            if (baseAddress)
+            if (baseAddress = PhLoadLibrary(L"user32.dll"))
             {
                 GetDpiForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForWindow", 0);
                 GetDpiForSystem_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForSystem", 0);
@@ -417,10 +411,7 @@ LONG PhGetSystemMetrics(
         {
             PVOID baseAddress;
 
-            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll")))
-                baseAddress = PhLoadLibrary(L"user32.dll");
-
-            if (baseAddress)
+            if (baseAddress = PhLoadLibrary(L"user32.dll"))
             {
                 GetSystemMetricsForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "GetSystemMetricsForDpi", 0);
             }
@@ -459,10 +450,7 @@ BOOL PhGetSystemParametersInfo(
         {
             PVOID baseAddress;
 
-            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll")))
-                baseAddress = PhLoadLibrary(L"user32.dll");
-
-            if (baseAddress)
+            if (baseAddress = PhLoadLibrary(L"user32.dll"))
             {
                 SystemParametersInfoForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "SystemParametersInfoForDpi", 0);
             }
