@@ -516,6 +516,9 @@ LCID PhGetSystemDefaultLCID(
     VOID
     )
 {
+#if (PHNT_NATIVE_LOCALE)
+    return GetSystemDefaultLCID();
+#else
     if (NtQueryDefaultLocale_Import())
     {
         LCID localeId = LOCALE_SYSTEM_DEFAULT;
@@ -525,6 +528,7 @@ LCID PhGetSystemDefaultLCID(
     }
 
     return LOCALE_SYSTEM_DEFAULT; // MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+#endif
 }
 
 // rev from GetUserDefaultLCID
@@ -532,6 +536,9 @@ LCID PhGetUserDefaultLCID(
     VOID
     )
 {
+#if (PHNT_NATIVE_LOCALE)
+    return GetUserDefaultLCID();
+#else
     if (NtQueryDefaultLocale_Import())
     {
         LCID localeId = LOCALE_USER_DEFAULT;
@@ -541,6 +548,7 @@ LCID PhGetUserDefaultLCID(
     }
 
     return LOCALE_USER_DEFAULT; // MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), SORT_DEFAULT);
+#endif
 }
 
 // rev from GetThreadLocale
@@ -548,6 +556,9 @@ LCID PhGetCurrentThreadLCID(
     VOID
     )
 {
+#if (PHNT_NATIVE_LOCALE)
+    return GetThreadLocale();
+#else
     PTEB currentTeb;
 
     currentTeb = NtCurrentTeb();
@@ -556,6 +567,7 @@ LCID PhGetCurrentThreadLCID(
         currentTeb->CurrentLocale = PhGetUserDefaultLCID();
 
     return currentTeb->CurrentLocale;
+#endif
 }
 
 // rev from GetSystemDefaultLangID
@@ -563,7 +575,11 @@ LANGID PhGetSystemDefaultLangID(
     VOID
     )
 {
+#if (PHNT_NATIVE_LOCALE)
+    return GetSystemDefaultLangID();
+#else
     return LANGIDFROMLCID(PhGetSystemDefaultLCID());
+#endif
 }
 
 // rev from GetUserDefaultLangID
@@ -571,7 +587,11 @@ LANGID PhGetUserDefaultLangID(
     VOID
     )
 {
+#if (PHNT_NATIVE_LOCALE)
+    return GetUserDefaultLangID();
+#else
     return LANGIDFROMLCID(PhGetUserDefaultLCID());
+#endif
 }
 
 // rev from GetUserDefaultUILanguage
@@ -579,6 +599,9 @@ LANGID PhGetUserDefaultUILanguage(
     VOID
     )
 {
+#if (PHNT_NATIVE_LOCALE)
+    return GetUserDefaultUILanguage();
+#else
     if (NtQueryDefaultUILanguage_Import())
     {
         LANGID languageId = MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
@@ -588,6 +611,7 @@ LANGID PhGetUserDefaultUILanguage(
     }
 
     return MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
+#endif
 }
 
 // rev from GetUserDefaultLocaleName
@@ -595,6 +619,17 @@ PPH_STRING PhGetUserDefaultLocaleName(
     VOID
     )
 {
+#if (PHNT_NATIVE_LOCALE)
+    ULONG localNameLength;
+    WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
+
+    localNameLength = GetUserDefaultLocaleName(localeName, RTL_NUMBER_OF(localeName));
+
+    if (localNameLength > sizeof(UNICODE_NULL))
+    {
+        return PhCreateStringEx(localeName, localNameLength - sizeof(UNICODE_NULL));
+    }
+#else
     UNICODE_STRING localeNameUs;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -604,6 +639,7 @@ PPH_STRING PhGetUserDefaultLocaleName(
     {
         return PhCreateStringFromUnicodeString(&localeNameUs);
     }
+#endif
 
     return NULL;
 }
@@ -613,6 +649,17 @@ PPH_STRING PhLCIDToLocaleName(
     _In_ LCID lcid
     )
 {
+#if (PHNT_NATIVE_LOCALE)
+    ULONG localNameLength;
+    WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
+
+    localNameLength = LCIDToLocaleName(lcid, localeName, RTL_NUMBER_OF(localeName), 0);
+
+    if (localNameLength > sizeof(UNICODE_NULL))
+    {
+        return PhCreateStringEx(localeName, localNameLength - sizeof(UNICODE_NULL));
+    }
+#else
     UNICODE_STRING localeNameUs;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -632,6 +679,7 @@ PPH_STRING PhLCIDToLocaleName(
             return PhCreateStringFromUnicodeString(&localeNameUs);
         }
     }
+#endif
 
     return NULL;
 }
@@ -641,6 +689,13 @@ VOID PhLargeIntegerToSystemTime(
     _In_ PLARGE_INTEGER LargeInteger
     )
 {
+#if (PHNT_NATIVE_TIME)
+    FILETIME fileTime;
+
+    fileTime.dwLowDateTime = LargeInteger->LowPart;
+    fileTime.dwHighDateTime = LargeInteger->HighPart;
+    FileTimeToSystemTime(&fileTime, SystemTime);
+#else
     TIME_FIELDS timeFields;
 
     RtlTimeToTimeFields(LargeInteger, &timeFields);
@@ -652,12 +707,7 @@ VOID PhLargeIntegerToSystemTime(
     SystemTime->wSecond = timeFields.Second;
     SystemTime->wMilliseconds = timeFields.Milliseconds;
     SystemTime->wDayOfWeek = timeFields.Weekday;
-
-    //FILETIME fileTime;
-    //
-    //fileTime.dwLowDateTime = LargeInteger->LowPart;
-    //fileTime.dwHighDateTime = LargeInteger->HighPart;
-    //FileTimeToSystemTime(&fileTime, SystemTime);
+#endif
 }
 
 BOOLEAN PhSystemTimeToLargeInteger(
@@ -665,6 +715,16 @@ BOOLEAN PhSystemTimeToLargeInteger(
     _In_ PSYSTEMTIME SystemTime
     )
 {
+#if (PHNT_NATIVE_TIME)
+    FILETIME fileTime;
+
+    if (!SystemTimeToFileTime(SystemTime, &fileTime))
+        return FALSE;
+
+    LargeInteger->LowPart = fileTime.dwLowDateTime;
+    LargeInteger->HighPart = fileTime.dwHighDateTime;
+    return TRUE;
+#else
     TIME_FIELDS timeFields;
 
     timeFields.Year = SystemTime->wYear;
@@ -677,6 +737,7 @@ BOOLEAN PhSystemTimeToLargeInteger(
     timeFields.Weekday = SystemTime->wDayOfWeek;
 
     return RtlTimeFieldsToTime(&timeFields, LargeInteger);
+#endif
 }
 
 VOID PhLargeIntegerToLocalSystemTime(
@@ -684,6 +745,16 @@ VOID PhLargeIntegerToLocalSystemTime(
     _In_ PLARGE_INTEGER LargeInteger
     )
 {
+#if (PHNT_NATIVE_TIME)
+    FILETIME fileTime;
+    FILETIME newFileTime;
+
+    fileTime.dwLowDateTime = LargeInteger->LowPart;
+    fileTime.dwHighDateTime = LargeInteger->HighPart;
+
+    FileTimeToLocalFileTime(&fileTime, &newFileTime);
+    FileTimeToSystemTime(&newFileTime, SystemTime);
+#else
     LARGE_INTEGER timeZoneBias;
     LARGE_INTEGER fileTime;
 
@@ -693,13 +764,7 @@ VOID PhLargeIntegerToLocalSystemTime(
     fileTime.HighPart = LargeInteger->HighPart;
     fileTime.QuadPart -= timeZoneBias.QuadPart;
     PhLargeIntegerToSystemTime(SystemTime, &fileTime);
-
-    //FILETIME fileTime;
-    //FILETIME newFileTime;
-    //fileTime.dwLowDateTime = LargeInteger->LowPart;
-    //fileTime.dwHighDateTime = LargeInteger->HighPart;
-    //FileTimeToLocalFileTime(&fileTime, &newFileTime);
-    //FileTimeToSystemTime(&newFileTime, SystemTime);
+#endif
 }
 
 /**
