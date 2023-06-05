@@ -182,8 +182,10 @@ typedef enum _PH_MAIN_TAB_PAGE_MESSAGE
     MaxMainTabPageMessage
 } PH_MAIN_TAB_PAGE_MESSAGE;
 
+typedef struct _PH_MAIN_TAB_PAGE *PPH_MAIN_TAB_PAGE;
+
 typedef BOOLEAN (NTAPI *PPH_MAIN_TAB_PAGE_CALLBACK)(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
@@ -197,7 +199,7 @@ typedef struct _PH_MAIN_TAB_PAGE_EXPORT_CONTENT
 
 typedef struct _PH_MAIN_TAB_PAGE_MENU_INFORMATION
 {
-    struct _PH_EMENU_ITEM *Menu;
+    PPH_EMENU_ITEM Menu;
     ULONG StartIndex;
 } PH_MAIN_TAB_PAGE_MENU_INFORMATION, *PPH_MAIN_TAB_PAGE_MENU_INFORMATION;
 
@@ -249,12 +251,12 @@ BOOLEAN PhMainWndInitialization(
     );
 
 VOID PhAddMiniProcessMenuItems(
-    _Inout_ struct _PH_EMENU_ITEM *Menu,
+    _Inout_ PPH_EMENU_ITEM Menu,
     _In_ HANDLE ProcessId
     );
 
 BOOLEAN PhHandleMiniProcessMenuItem(
-    _Inout_ struct _PH_EMENU_ITEM *MenuItem
+    _Inout_ PPH_EMENU_ITEM MenuItem
     );
 
 VOID PhShowIconContextMenu(

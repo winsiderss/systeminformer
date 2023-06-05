@@ -604,7 +604,7 @@ PPH_STRING PhpGetPluginBaseName(
     }
 }
 
-BOOLEAN NTAPI PhpEnumeratePluginCallback(
+NTSTATUS NTAPI PhpEnumeratePluginCallback(
     _In_ PPH_PLUGIN Information,
     _In_opt_ PVOID Context
     )
@@ -619,7 +619,7 @@ BOOLEAN NTAPI PhpEnumeratePluginCallback(
     }
 
     PhDereferenceObject(pluginBaseName);
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 INT_PTR CALLBACK PhPluginsDlgProc(

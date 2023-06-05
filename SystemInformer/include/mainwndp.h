@@ -310,16 +310,19 @@ BOOLEAN PhMwpPluginNotifyEvent(
     _In_ PVOID Parameter
     );
 
+typedef struct _PH_MAIN_TAB_PAGE *PPH_MAIN_TAB_PAGE;
+typedef struct _PH_PROVIDER_EVENT_QUEUE PH_PROVIDER_EVENT_QUEUE, *PPH_PROVIDER_EVENT_QUEUE;
+
 // Processes
 
 extern PPH_MAIN_TAB_PAGE PhMwpProcessesPage;
 extern HWND PhMwpProcessTreeNewHandle;
 extern HWND PhMwpSelectedProcessWindowHandle;
 extern BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
-extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
+extern PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
 
 BOOLEAN PhMwpProcessesPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
@@ -410,10 +413,10 @@ VOID PhMwpOnProcessesUpdated(
 
 extern PPH_MAIN_TAB_PAGE PhMwpServicesPage;
 extern HWND PhMwpServiceTreeNewHandle;
-extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpServiceEventQueue;
+extern PH_PROVIDER_EVENT_QUEUE PhMwpServiceEventQueue;
 
 BOOLEAN PhMwpServicesPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2
@@ -475,10 +478,10 @@ VOID PhMwpOnServicesUpdated(
 
 extern PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
 extern HWND PhMwpNetworkTreeNewHandle;
-extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpNetworkEventQueue;
+extern PH_PROVIDER_EVENT_QUEUE PhMwpNetworkEventQueue;
 
 BOOLEAN PhMwpNetworkPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2

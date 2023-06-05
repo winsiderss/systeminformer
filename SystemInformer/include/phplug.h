@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2015
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_PHPLUG_H
 #define PH_PHPLUG_H
 
@@ -359,6 +371,9 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
 // end_phapppub
 
 // begin_phapppub
+typedef struct _PH_NF_ICON_REGISTRATION_DATA *PPH_NF_ICON_REGISTRATION_DATA;
+typedef struct _PH_PLUGIN *PPH_PLUGIN;
+
 /**
  * Creates a notification icon.
  *
@@ -373,14 +388,14 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
  * \param RegistrationData A \ref PH_NF_ICON_REGISTRATION_DATA structure that
  * contains registration information.
  */
-typedef struct _PH_NF_ICON * (NTAPI *PPH_REGISTER_TRAY_ICON)(
-    _In_ struct _PH_PLUGIN * Plugin,
+typedef PPH_PLUGIN (NTAPI *PPH_REGISTER_TRAY_ICON)(
+    _In_ PPH_PLUGIN Plugin,
     _In_ ULONG SubId,
     _In_ GUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
-    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
+    _In_ PPH_NF_ICON_REGISTRATION_DATA RegistrationData
     );
 
 typedef struct _PH_TRAY_ICON_POINTERS
@@ -443,32 +458,41 @@ typedef struct _PH_PLUGIN_TREENEW_MESSAGE
     PVOID Context;
 } PH_PLUGIN_TREENEW_MESSAGE, *PPH_PLUGIN_TREENEW_MESSAGE;
 
-typedef LONG (NTAPI *PPH_PLUGIN_TREENEW_SORT_FUNCTION)(
+_Function_class_(PH_PLUGIN_TREENEW_SORT_FUNCTION)
+typedef LONG (NTAPI PH_PLUGIN_TREENEW_SORT_FUNCTION)(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
     _In_ ULONG SubId,
     _In_ PH_SORT_ORDER SortOrder,
     _In_ PVOID Context
     );
+typedef PH_PLUGIN_TREENEW_SORT_FUNCTION *PPH_PLUGIN_TREENEW_SORT_FUNCTION;
 
-typedef NTSTATUS (NTAPI *PPHSVC_SERVER_PROBE_BUFFER)(
+_Function_class_(PHSVC_SERVER_PROBE_BUFFER)
+typedef NTSTATUS (NTAPI PHSVC_SERVER_PROBE_BUFFER)(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ ULONG Alignment,
     _In_ BOOLEAN AllowNull,
     _Out_ PVOID *Pointer
     );
 
-typedef NTSTATUS (NTAPI *PPHSVC_SERVER_CAPTURE_BUFFER)(
+_Function_class_(PHSVC_SERVER_CAPTURE_BUFFER)
+typedef NTSTATUS (NTAPI PHSVC_SERVER_CAPTURE_BUFFER)(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ BOOLEAN AllowNull,
     _Out_ PVOID *CapturedBuffer
     );
 
-typedef NTSTATUS (NTAPI *PPHSVC_SERVER_CAPTURE_STRING)(
+_Function_class_(PHSVC_SERVER_CAPTURE_STRING)
+typedef NTSTATUS (NTAPI PHSVC_SERVER_CAPTURE_STRING)(
     _In_ PPH_RELATIVE_STRINGREF String,
     _In_ BOOLEAN AllowNull,
     _Out_ PPH_STRING *CapturedString
     );
+
+typedef PHSVC_SERVER_PROBE_BUFFER *PPHSVC_SERVER_PROBE_BUFFER;
+typedef PHSVC_SERVER_CAPTURE_BUFFER *PPHSVC_SERVER_CAPTURE_BUFFER;
+typedef PHSVC_SERVER_CAPTURE_STRING *PPHSVC_SERVER_CAPTURE_STRING;
 
 typedef struct _PH_PLUGIN_PHSVC_REQUEST
 {
@@ -484,15 +508,20 @@ typedef struct _PH_PLUGIN_PHSVC_REQUEST
     PPHSVC_SERVER_CAPTURE_STRING CaptureString;
 } PH_PLUGIN_PHSVC_REQUEST, *PPH_PLUGIN_PHSVC_REQUEST;
 
-typedef VOID (NTAPI *PPHSVC_CLIENT_FREE_HEAP)(
+_Function_class_(PHSVC_CLIENT_FREE_HEAP)
+typedef VOID (NTAPI PHSVC_CLIENT_FREE_HEAP)(
     _In_ PVOID Memory
     );
 
-typedef PVOID (NTAPI *PPHSVC_CLIENT_CREATE_STRING)(
+_Function_class_(PHSVC_CLIENT_CREATE_STRING)
+typedef PVOID (NTAPI PHSVC_CLIENT_CREATE_STRING)(
     _In_opt_ PVOID String,
     _In_ SIZE_T Length,
     _Out_ PPH_RELATIVE_STRINGREF StringRef
     );
+
+typedef PHSVC_CLIENT_FREE_HEAP *PPHSVC_CLIENT_FREE_HEAP;
+typedef PHSVC_CLIENT_CREATE_STRING *PPHSVC_CLIENT_CREATE_STRING;
 
 typedef struct _PH_PLUGIN_PHSVC_CLIENT
 {
@@ -524,15 +553,13 @@ typedef struct _PH_PLUGIN
 
     PH_AVL_LINKS Links;
 
-    PVOID Reserved;
     PVOID DllBase;
 // end_phapppub
 
     // Private
 
-    //PPH_STRING FileName;
-    ULONG Flags;
     PH_STRINGREF Name;
+    ULONG Flags;
     PH_PLUGIN_INFORMATION Information;
 
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
@@ -589,9 +616,13 @@ PhPluginReserveIds(
     _In_ ULONG Count
     );
 
-typedef VOID (NTAPI *PPH_PLUGIN_MENU_ITEM_DELETE_FUNCTION)(
-    _In_ struct _PH_PLUGIN_MENU_ITEM *MenuItem
+typedef struct _PH_PLUGIN_MENU_ITEM *PPH_PLUGIN_MENU_ITEM;
+
+_Function_class_(PH_PLUGIN_MENU_ITEM_DELETE_FUNCTION)
+typedef VOID (NTAPI PH_PLUGIN_MENU_ITEM_DELETE_FUNCTION)(
+    _In_ PPH_PLUGIN_MENU_ITEM MenuItem
     );
+typedef PH_PLUGIN_MENU_ITEM_DELETE_FUNCTION *PPH_PLUGIN_MENU_ITEM_DELETE_FUNCTION;
 
 typedef struct _PH_PLUGIN_MENU_ITEM
 {
@@ -769,10 +800,12 @@ PhGetPluginFileName(
     _In_ PPH_PLUGIN Plugin
     );
 
-typedef BOOLEAN (NTAPI* PPH_PLUGIN_ENUMERATE)(
+_Function_class_(PH_PLUGIN_ENUMERATE)
+typedef NTSTATUS (NTAPI PH_PLUGIN_ENUMERATE)(
     _In_ PPH_PLUGIN Information,
     _In_opt_ PVOID Context
     );
+typedef PH_PLUGIN_ENUMERATE *PPH_PLUGIN_ENUMERATE;
 
 PHAPPAPI
 VOID

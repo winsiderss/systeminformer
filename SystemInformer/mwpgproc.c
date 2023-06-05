@@ -46,7 +46,7 @@ static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY MicrosoftSignedFilterEntry = NULL;
 
 BOOLEAN PhMwpProcessesPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2

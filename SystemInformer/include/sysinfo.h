@@ -74,8 +74,10 @@ typedef enum _PH_SYSINFO_SECTION_MESSAGE
     MaxSysInfoMessage
 } PH_SYSINFO_SECTION_MESSAGE;
 
+typedef struct _PH_SYSINFO_SECTION *PPH_SYSINFO_SECTION;
+
 typedef BOOLEAN (NTAPI *PPH_SYSINFO_SECTION_CALLBACK)(
-    _In_ struct _PH_SYSINFO_SECTION *Section,
+    _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2

@@ -1217,7 +1217,7 @@ VOID PhEnumeratePlugins(
     {
         PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
 
-        if (!Callback(plugin, Context))
+        if (!NT_SUCCESS(Callback(plugin, Context)))
             break;
     }
 }
