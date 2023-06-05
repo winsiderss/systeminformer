@@ -283,6 +283,8 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     );
 
 // begin_phapppub
+typedef struct _PH_EMENU_ITEM* PPH_EMENU_ITEM;
+
 typedef struct _PH_TN_COLUMN_MENU_DATA
 {
     HWND TreeNewHandle;
@@ -290,8 +292,8 @@ typedef struct _PH_TN_COLUMN_MENU_DATA
     ULONG DefaultSortColumn;
     PH_SORT_ORDER DefaultSortOrder;
 
-    struct _PH_EMENU_ITEM *Menu;
-    struct _PH_EMENU_ITEM *Selection;
+    PPH_EMENU_ITEM Menu;
+    PPH_EMENU_ITEM Selection;
     ULONG ProcessedId;
 } PH_TN_COLUMN_MENU_DATA, *PPH_TN_COLUMN_MENU_DATA;
 
@@ -340,10 +342,12 @@ typedef struct _PH_TN_FILTER_SUPPORT
     PPH_LIST NodeList;
 } PH_TN_FILTER_SUPPORT, *PPH_TN_FILTER_SUPPORT;
 
-typedef BOOLEAN (NTAPI *PPH_TN_FILTER_FUNCTION)(
+_Function_class_(PH_TN_FILTER_FUNCTION)
+typedef BOOLEAN (NTAPI PH_TN_FILTER_FUNCTION)(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
+typedef PH_TN_FILTER_FUNCTION *PPH_TN_FILTER_FUNCTION;
 
 typedef struct _PH_TN_FILTER_ENTRY
 {
@@ -410,7 +414,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhInsertCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND TreeNewHandle,
     _In_ PPH_TREENEW_COLUMN Column
@@ -420,7 +424,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhHandleCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     );
 
 typedef struct _PH_COPY_ITEM_CONTEXT
@@ -435,7 +439,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhInsertCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND ListViewHandle
     );
@@ -444,7 +448,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhHandleCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     );
 
 PHAPPAPI

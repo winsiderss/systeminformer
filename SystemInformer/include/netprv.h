@@ -152,13 +152,13 @@ typedef ULONG (WINAPI *_GetExtendedUdpTable)(
 //    );
 
 typedef ULONG (WINAPI *_InternalGetBoundTcpEndpointTable)(
-    _Out_ PVOID* BoundTcpTable, // PMIB_TCPTABLE2
+    _Out_ _When_(return!=0, _Notnull_) PVOID* BoundTcpTable, // PMIB_TCPTABLE2
     _In_ PVOID HeapHandle,
     _In_opt_ ULONG HeapFlags
     );
 
 typedef ULONG (WINAPI *_InternalGetBoundTcp6EndpointTable)(
-    _Out_ PVOID* BoundTcpTable, // PMIB_TCP6TABLE2
+    _Out_ _When_(return!=0, _Notnull_) PVOID* BoundTcpTable, // PMIB_TCP6TABLE2
     _In_ PVOID HeapHandle,
     _In_opt_ ULONG HeapFlags
     );
