@@ -354,6 +354,7 @@ NTSTATUS WepResolveSymbolFunction(
 
     if (PhBeginInitOnce(&context->Context->SymbolProviderInitOnce))
     {
+        PhLoadSymbolProviderOptions(context->Context->SymbolProvider);
         PhLoadModulesForVirtualSymbolProvider(context->Context->SymbolProvider, context->Context->ClientId.UniqueProcess);
         PhEndInitOnce(&context->Context->SymbolProviderInitOnce);
     }
@@ -398,7 +399,6 @@ VOID WepQueueResolveSymbol(
     if (!Context->SymbolProvider)
     {
         Context->SymbolProvider = PhCreateSymbolProvider(NULL);
-        PhLoadSymbolProviderOptions(Context->SymbolProvider);
     }
 
     PhReferenceObject(Context);
