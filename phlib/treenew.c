@@ -43,7 +43,7 @@ BOOLEAN PhTreeNewInitialization(
 {
     WNDCLASSEX c = { sizeof(c) };
 
-    c.style = CS_DBLCLKS | CS_GLOBALCLASS;
+    c.style = CS_DBLCLKS | CS_GLOBALCLASS | CS_PARENTDC;
     c.lpfnWndProc = PhTnpWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
@@ -554,8 +554,8 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
-    PhTnpSetFont(Context, NULL, FALSE); // use default font
     PhTnpUpdateSystemMetrics(Context);
+    PhTnpSetFont(Context, NULL, FALSE); // use default font
     PhTnpInitializeTooltips(Context);
 
     return TRUE;
