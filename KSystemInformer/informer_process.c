@@ -196,7 +196,6 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
  * \brief Informs any clients of process notify routine invocations.
  *
  * \param[in,out] Process The process being created.
- * \param[in] ProcessId ProcessID of the process being created.
  * \param[in,out] CreateInfo Information on the process being created, if the
  * process is being destroyed this is NULL.
  *
@@ -205,7 +204,6 @@ _Function_class_(PCREATE_PROCESS_NOTIFY_ROUTINE_EX)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpCreateProcessNotifyInformer(
     _In_ PKPH_PROCESS_CONTEXT Process,
-    _In_ HANDLE ProcessId,
     _Inout_opt_ PPS_CREATE_NOTIFY_INFO CreateInfo
     )
 {
@@ -247,7 +245,7 @@ VOID KphpCreateProcessNotifyInformer(
         msg->Kernel.ProcessCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
         msg->Kernel.ProcessCreate.CreatingClientId.UniqueThread = PsGetCurrentProcessId();
         msg->Kernel.ProcessCreate.ParentProcessId = CreateInfo->ParentProcessId;
-        msg->Kernel.ProcessCreate.TargetProcessId = ProcessId;
+        msg->Kernel.ProcessCreate.TargetProcessId = Process->ProcessId;
         msg->Kernel.ProcessCreate.IsSubsystemProcess = (CreateInfo->IsSubsystemProcess ? TRUE : FALSE);
 
         if (Process->ImageFileName)
@@ -424,13 +422,13 @@ VOID KSIAPI KphpProcessCreateKernelRoutine(
  * creating a process. This will be cleared when the kernel routine fires
  * before returning from the system.
  *
- * \param[in] ProcessId ProcessID of the process being created.
+ * \param[in] Process The process context of the process being created.
  * \param[in,out] CreateInfo Information on the process being created, if the
  * process is being destroyed this is NULL.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpPerformProcessCreationTracking(
-    _In_ HANDLE ProcessId,
+    _In_ PKPH_PROCESS_CONTEXT Process,
     _Inout_opt_ PPS_CREATE_NOTIFY_INFO CreateInfo
     )
 {
@@ -446,6 +444,11 @@ VOID KphpPerformProcessCreationTracking(
 
     NT_ASSERT(PsGetCurrentProcessId() == CreateInfo->CreatingThreadId.UniqueProcess);
     NT_ASSERT(PsGetCurrentThreadId() == CreateInfo->CreatingThreadId.UniqueThread);
+
+    if (!KphIsProtectedProcess(Process))
+    {
+        return;
+    }
 
     apc = NULL;
 
@@ -484,7 +487,7 @@ VOID KphpPerformProcessCreationTracking(
     actor = NULL;
 
     apc->Actor->IsCreatingProcess = TRUE;
-    apc->Actor->IsCreatingProcessId = ProcessId;
+    apc->Actor->IsCreatingProcessId = Process->ProcessId;
 
     KsiInitializeApc(&apc->Apc,
                      KphDriverObject,
@@ -548,12 +551,11 @@ VOID KphpCreateProcessNotifyRoutine(
 
     PAGED_PASSIVE();
 
-    KphpPerformProcessCreationTracking(ProcessId, CreateInfo);
-
     process = KphpPerformProcessTracking(Process, ProcessId, CreateInfo);
     if (process)
     {
-        KphpCreateProcessNotifyInformer(process, ProcessId, CreateInfo);
+        KphpPerformProcessCreationTracking(process, CreateInfo);
+        KphpCreateProcessNotifyInformer(process, CreateInfo);
         KphDereferenceObject(process);
     }
 }

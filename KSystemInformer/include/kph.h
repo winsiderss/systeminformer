@@ -1292,6 +1292,11 @@ VOID KphStopProtectingProcess(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphIsProtectedProcess(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphApplyObProtections(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     );
