@@ -414,6 +414,29 @@ VOID KphStopProtectingProcess(
 }
 
 /**
+ * \brief Determines if a process is protected.
+ *
+ * \param[in] Process The process to check.
+ *
+ * \return TRUE if the process is protected, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphIsProtectedProcess(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    )
+{
+    BOOLEAN isProtectedProcess;
+
+    PAGED_PASSIVE();
+
+    KphAcquireRWLockShared(&Process->ProtectionLock);
+    isProtectedProcess = Process->Protected ? TRUE : FALSE;
+    KphReleaseRWLock(&Process->ProtectionLock);
+
+    return isProtectedProcess;
+}
+
+/**
  * \brief Starts protecting a process.
  *
  * \param[in] Process The process to start protecting.
