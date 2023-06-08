@@ -103,7 +103,7 @@ BOOLEAN PhMainWndInitialization(
     PhMainWndHandle = CreateWindow(
         MAKEINTATOM(windowAtom),
         NULL,
-        WS_OVERLAPPEDWINDOW | (PhEnableDeferredLayout ? WS_CLIPSIBLINGS : WS_CLIPCHILDREN),
+        WS_OVERLAPPEDWINDOW | (PhEnableDeferredLayout ? 0 : WS_CLIPCHILDREN),
         windowRectangle.Left,
         windowRectangle.Top,
         windowRectangle.Width,
@@ -2201,27 +2201,35 @@ VOID PhMwpOnDpiChanged(
     _In_ HWND WindowHandle
     )
 {
-    PhMwpInitializeMetrics(WindowHandle);
-
     PhGuiSupportUpdateSystemMetrics(WindowHandle);
+
+    PhMwpInitializeMetrics(WindowHandle);
 
     if (PhEnableWindowText)
     {
-        PhSetApplicationWindowIcon(WindowHandle);
+        //PhSetApplicationWindowIcon(WindowHandle);
+        PhSetApplicationWindowIconEx(WindowHandle, LayoutWindowDpi);
     }
-
-    TreeNew_SetImageList(PhMwpProcessTreeNewHandle, PhProcessSmallImageList);
-    TreeNew_SetImageList(PhMwpServiceTreeNewHandle, PhProcessSmallImageList);
-    TreeNew_SetImageList(PhMwpNetworkTreeNewHandle, PhProcessSmallImageList);
 
     PhMwpOnSettingChange(WindowHandle, 0, NULL);
 
     PhMwpInvokeUpdateWindowFont(NULL);
     if (PhGetIntegerSetting(L"EnableMonospaceFont"))
         PhMwpInvokeUpdateWindowFontMonospace(WindowHandle, NULL);
-    InvalidateRect(WindowHandle, NULL, TRUE);
 
     PhMwpNotifyAllPages(MainTabPageDpiChanged, NULL, NULL);
+
+    InvalidateRect(WindowHandle, NULL, TRUE);
+
+    {
+        MSG message;
+
+        memset(&message, 0, sizeof(MSG));
+        message.hwnd = WindowHandle;
+        message.message = WM_DPICHANGED;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &message);
+    }
 }
 
 LRESULT PhMwpOnUserMessage(
@@ -3595,7 +3603,7 @@ static int __cdecl IconProcessesNameCompare(
 }
 
 VOID PhAddMiniProcessMenuItems(
-    _Inout_ struct _PH_EMENU_ITEM *Menu,
+    _Inout_ PPH_EMENU_ITEM Menu,
     _In_ HANDLE ProcessId
     )
 {
@@ -3654,7 +3662,7 @@ VOID PhAddMiniProcessMenuItems(
 }
 
 BOOLEAN PhHandleMiniProcessMenuItem(
-    _Inout_ struct _PH_EMENU_ITEM *MenuItem
+    _Inout_ PPH_EMENU_ITEM MenuItem
     )
 {
     switch (MenuItem->Id)
@@ -4046,6 +4054,8 @@ VOID PhMwpInvokeUpdateWindowFont(
         PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
         )
     {
+        font.lfHeight = PhGetDpi(font.lfHeight, LayoutWindowDpi);
+
         if (!(newFont = CreateFontIndirect(&font)))
             return;
     }
@@ -4081,6 +4091,8 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
         PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
         )
     {
+        font.lfHeight = PhGetDpi(font.lfHeight, LayoutWindowDpi);
+
         if (!(newFont = CreateFontIndirect(&font)))
             return;
     }
