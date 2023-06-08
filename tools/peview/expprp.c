@@ -192,6 +192,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 if (exportFunction.ForwardedName)
                 {
                     PPH_STRING forwardName;
+                    PPH_STRING importDllName;
 
                     forwardName = PhConvertUtf8ToUtf16(exportFunction.ForwardedName);
 
@@ -201,6 +202,16 @@ NTSTATUS PvpPeExportsEnumerateThread(
 
                         if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, forwardName->Buffer))
                             PhMoveReference(&forwardName, undecoratedName);
+                    }
+
+                    if (importDllName = PhApiSetResolveToHost(&forwardName->sr))
+                    {
+                        PhMoveReference(&forwardName, PhFormatString(
+                            L"%s (%s)",
+                            PhGetString(forwardName),
+                            PhGetString(importDllName))
+                            );
+                        PhDereferenceObject(importDllName);
                     }
 
                     exportNode->ForwardString = forwardName;
