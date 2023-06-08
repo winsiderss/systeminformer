@@ -58,6 +58,11 @@ VOID PhAdjustRectangleToBounds(
         Rectangle->Left = Bounds->Left;
     if (Rectangle->Top < Bounds->Top)
         Rectangle->Top = Bounds->Top;
+
+    if (Rectangle->Width > Bounds->Width)
+        Rectangle->Width = Bounds->Width;
+    if (Rectangle->Height > Bounds->Height)
+        Rectangle->Height = Bounds->Height;
 }
 
 /**
