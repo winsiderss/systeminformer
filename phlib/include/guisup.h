@@ -179,6 +179,77 @@ PhDrawThemeBackground(
     _In_opt_ LPCRECT ClipRect
     );
 
+PHLIBAPI
+LONG
+NTAPI
+PhGetDpi(
+    _In_ LONG Number,
+    _In_ LONG DpiValue
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetMonitorDpi(
+    _In_ LPCRECT rect
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetSystemDpi(
+    VOID
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetTaskbarDpi(
+    VOID
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetWindowDpi(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetDpiValue(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ LPCRECT Rect
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetSystemMetrics(
+    _In_ INT Index,
+    _In_opt_ LONG DpiValue
+    );
+
+PHLIBAPI
+BOOL
+NTAPI
+PhGetSystemParametersInfo(
+    _In_ INT Action,
+    _In_ UINT Param1,
+    _Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_opt_ LONG DpiValue
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhGetSizeDpiValue(
+    _Inout_ PRECT rect,
+    _In_ LONG DpiValue,
+    _In_ BOOLEAN isUnpack
+    );
+
 FORCEINLINE LONG_PTR PhGetClassStyle(
     _In_ HWND WindowHandle
     )
