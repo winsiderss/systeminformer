@@ -1775,7 +1775,7 @@ VOID PhApplyTreeNewFilters(
 }
 
 VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
-    _In_ struct _PH_EMENU_ITEM *Item
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     PPH_COPY_CELL_CONTEXT context;
@@ -1786,7 +1786,7 @@ VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
 }
 
 BOOLEAN PhInsertCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND TreeNewHandle,
     _In_ PPH_TREENEW_COLUMN Column
@@ -1834,7 +1834,7 @@ BOOLEAN PhInsertCopyCellEMenuItem(
 }
 
 BOOLEAN PhHandleCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     )
 {
     PPH_COPY_CELL_CONTEXT context;
@@ -1885,7 +1885,7 @@ BOOLEAN PhHandleCopyCellEMenuItem(
 }
 
 VOID NTAPI PhpCopyListViewEMenuItemDeleteFunction(
-    _In_ struct _PH_EMENU_ITEM *Item
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     PPH_COPY_ITEM_CONTEXT context;
@@ -1896,7 +1896,7 @@ VOID NTAPI PhpCopyListViewEMenuItemDeleteFunction(
 }
 
 BOOLEAN PhInsertCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND ListViewHandle
     )
@@ -1967,7 +1967,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
 }
 
 BOOLEAN PhHandleCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     )
 {
     PPH_COPY_ITEM_CONTEXT context;
