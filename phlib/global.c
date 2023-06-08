@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -248,7 +248,6 @@ BOOLEAN PhHeapInitialization(
     VOID
     )
 {
-#ifndef _DEBUG
     if (WindowsVersion >= WINDOWS_8)
     {
         PhHeapHandle = RtlCreateHeap(
@@ -260,7 +259,6 @@ BOOLEAN PhHeapInitialization(
             NULL
             );
     }
-#endif
 
     if (!PhHeapHandle)
     {
