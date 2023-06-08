@@ -756,6 +756,9 @@ PhInitializeSid(
     _In_ UCHAR SubAuthorityCount
     )
 {
+#if (PHNT_NATIVE_SID)
+    return NT_SUCCESS(RtlInitializeSid(Sid, IdentifierAuthority, SubAuthorityCount));
+#else
     ((PISID)Sid)->Revision = SID_REVISION;
     ((PISID)Sid)->IdentifierAuthority = *IdentifierAuthority;
     ((PISID)Sid)->SubAuthorityCount = SubAuthorityCount;
@@ -766,6 +769,7 @@ PhInitializeSid(
     }
 
     return TRUE;
+#endif
 }
 
 // rev from RtlLengthSid (dmex)
@@ -776,8 +780,12 @@ PhLengthSid(
     _In_ PSID Sid
     )
 {
+#if (PHNT_NATIVE_SID)
+    return RtlLengthSid(Sid);
+#else
     //return UFIELD_OFFSET(SID, SubAuthority) + (((PISID)Sid)->SubAuthorityCount * sizeof(ULONG));
     return UFIELD_OFFSET(SID, SubAuthority[((PISID)Sid)->SubAuthorityCount]);
+#endif
 }
 
 // rev from RtlLengthRequiredSid (dmex)
@@ -788,7 +796,11 @@ PhLengthRequiredSid(
     _In_ ULONG SubAuthorityCount
     )
 {
+#if (PHNT_NATIVE_SID)
+    return RtlLengthRequiredSid(SubAuthorityCount);
+#else
     return UFIELD_OFFSET(SID, SubAuthority[SubAuthorityCount]);
+#endif
 }
 
 // rev from RtlEqualSid (dmex)
@@ -800,6 +812,9 @@ PhEqualSid(
     _In_ PSID Sid2
     )
 {
+#if (PHNT_NATIVE_SID)
+    return RtlEqualSid(Sid1, Sid2);
+#else
     if (!(Sid1 && Sid2))
         return FALSE;
 
@@ -818,6 +833,7 @@ PhEqualSid(
         return FALSE;
 
     return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, length1);
+#endif
 }
 
 // rev from RtlValidSid (dmex)
@@ -828,6 +844,9 @@ PhValidSid(
     _In_ PSID Sid
     )
 {
+#if (PHNT_NATIVE_SID)
+    return RtlValidSid(Sid);
+#else
     if (
         ((PISID)Sid) &&
         ((PISID)Sid)->Revision == SID_REVISION &&
@@ -838,6 +857,7 @@ PhValidSid(
     }
 
     return FALSE;
+#endif
 }
 
 // rev from RtlSubAuthoritySid (dmex)
@@ -849,7 +869,11 @@ PhSubAuthoritySid(
     _In_ ULONG SubAuthority
     )
 {
+#if (PHNT_NATIVE_SID)
+    return RtlSubAuthoritySid(Sid, SubAuthority);
+#else
     return &((PISID)Sid)->SubAuthority[SubAuthority];
+#endif
 }
 
 // rev from RtlSubAuthorityCountSid (dmex)
@@ -860,7 +884,11 @@ PhSubAuthorityCountSid(
     _In_ PSID Sid
     )
 {
+#if (PHNT_NATIVE_SID)
+    return RtlSubAuthorityCountSid(Sid);
+#else
     return &((PISID)Sid)->SubAuthorityCount;
+#endif
 }
 
 // rev from RtlIdentifierAuthoritySid (dmex)
@@ -871,7 +899,11 @@ PhIdentifierAuthoritySid(
     _In_ PSID Sid
     )
 {
+#if (PHNT_NATIVE_SID)
+    return RtlIdentifierAuthoritySid(Sid);
+#else
     return &((PISID)Sid)->IdentifierAuthority;
+#endif
 }
 
 FORCEINLINE
@@ -882,7 +914,11 @@ PhEqualIdentifierAuthoritySid(
     _In_ PSID_IDENTIFIER_AUTHORITY IdentifierAuthoritySid2
     )
 {
+#if (PHNT_NATIVE_SID)
+    return RtlEqualMemory(RtlIdentifierAuthoritySid(IdentifierAuthoritySid1), RtlIdentifierAuthoritySid(IdentifierAuthoritySid2), sizeof(SID_IDENTIFIER_AUTHORITY));
+#else
     return (BOOLEAN)RtlEqualMemory(IdentifierAuthoritySid1, IdentifierAuthoritySid2, sizeof(SID_IDENTIFIER_AUTHORITY));
+#endif
 }
 
 // rev from RtlFreeSid (dmex)
@@ -893,7 +929,11 @@ PhFreeSid(
     _In_ _Post_invalid_ PSID Sid
     )
 {
+#if (PHNT_NATIVE_SID)
+    return !RtlFreeSid(Sid);
+#else
     return !!RtlFreeHeap(RtlProcessHeap(), 0, Sid);
+#endif
 }
 
 // rev from RtlFreeUnicodeString (dmex)

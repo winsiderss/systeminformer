@@ -1989,6 +1989,25 @@ PhDuplicateFontWithNewHeight(
 }
 
 FORCEINLINE
+BOOLEAN
+PhRectEmpty(
+    _In_ PRECT Rect
+    )
+{
+#if (PHNT_NATIVE_RECT)
+    return !!IsRectEmpty(Rect);
+#else
+    if (!Rect)
+        return TRUE;
+
+    if (Rect->left >= Rect->right || Rect->top >= Rect->bottom)
+        return TRUE;
+
+    return FALSE;
+#endif
+}
+
+FORCEINLINE
 VOID
 PhInflateRect(
     _In_ PRECT Rect,
@@ -1996,10 +2015,14 @@ PhInflateRect(
     _In_ INT dy
     )
 {
+#if (PHNT_NATIVE_RECT)
+    InflateRect(Rect, dx, dy);
+#else
     Rect->left -= dx;
     Rect->top -= dy;
     Rect->right += dx;
     Rect->bottom += dy;
+#endif
 }
 
 FORCEINLINE
@@ -2010,10 +2033,14 @@ PhOffsetRect(
     _In_ INT dy
     )
 {
+#if (PHNT_NATIVE_RECT)
+    OffsetRect(Rect, dx, dy);
+#else
     Rect->left += dx;
     Rect->top += dy;
     Rect->right += dx;
     Rect->bottom += dy;
+#endif
 }
 
 FORCEINLINE
@@ -2023,8 +2050,12 @@ PhPtInRect(
     _In_ POINT Point
     )
 {
+#if (PHNT_NATIVE_RECT)
+    return !!PtInRect(Rect, Point);
+#else
     return Point.x >= Rect->left && Point.x < Rect->right &&
         Point.y >= Rect->top && Point.y < Rect->bottom;
+#endif
 }
 
 // directdraw.cpp
