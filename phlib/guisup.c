@@ -71,12 +71,19 @@ static _GetThemeClass GetThemeClass_I = NULL;
 static _GetThemeInt GetThemeInt_I = NULL;
 static _GetThemePartSize GetThemePartSize_I = NULL;
 static _DrawThemeBackground DrawThemeBackground_I = NULL;
+static _DrawThemeTextEx DrawThemeTextEx_I = NULL;
+static _GetDpiForMonitor GetDpiForMonitor_I = NULL; // win81+
+static _GetDpiForWindow GetDpiForWindow_I = NULL; // win10rs1+
+static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
+//static _GetDpiForSession GetDpiForSession_I = NULL; // ordinal 2713
+static _GetSystemMetricsForDpi GetSystemMetricsForDpi_I = NULL;
+static _SystemParametersInfoForDpi SystemParametersInfoForDpi_I = NULL;
 
 VOID PhGuiSupportInitialization(
     VOID
     )
 {
-    PVOID uxthemeHandle;
+    PVOID baseAddress;
 
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
@@ -91,21 +98,40 @@ VOID PhGuiSupportInitialization(
         10
         );
 
-    if (uxthemeHandle = PhLoadLibrary(L"uxtheme.dll"))
+    if (baseAddress = PhLoadLibrary(L"uxtheme.dll"))
     {
-        OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "OpenThemeDataForDpi", 0);
-        OpenThemeData_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "OpenThemeData", 0);
-        CloseThemeData_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "CloseThemeData", 0);
-        SetWindowTheme_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "SetWindowTheme", 0);
-        IsThemeActive_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemeActive", 0);
-        IsThemePartDefined_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemePartDefined", 0);
-        GetThemeInt_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeInt", 0);
-        GetThemePartSize_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemePartSize", 0);
-        DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
+        OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0);
+        OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeData", 0);
+        CloseThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "CloseThemeData", 0);
+        SetWindowTheme_I = PhGetDllBaseProcedureAddress(baseAddress, "SetWindowTheme", 0);
+        IsThemeActive_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeActive", 0);
+        IsThemePartDefined_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemePartDefined", 0);
+        GetThemeInt_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeInt", 0);
+        GetThemePartSize_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemePartSize", 0);
+        DrawThemeBackground_I = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackground", 0);
 
         if (WindowsVersion >= WINDOWS_11)
         {
-            GetThemeClass_I = PhGetDllBaseProcedureAddress(uxthemeHandle, NULL, 74);
+            GetThemeClass_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 74);
+        }
+    }
+
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        if (baseAddress = PhLoadLibrary(L"shcore.dll"))
+        {
+            GetDpiForMonitor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForMonitor", 0);
+        }
+    }
+
+    if (WindowsVersion >= WINDOWS_10_RS1)
+    {
+        if (baseAddress = PhLoadLibrary(L"user32.dll"))
+        {
+            GetDpiForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForWindow", 0);
+            GetDpiForSystem_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForSystem", 0);
+            GetSystemMetricsForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "GetSystemMetricsForDpi", 0);
+            SystemParametersInfoForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "SystemParametersInfoForDpi", 0);
         }
     }
 
@@ -280,6 +306,357 @@ BOOLEAN PhDrawThemeBackground(
         return FALSE;
 
     return SUCCEEDED(DrawThemeBackground_I(ThemeHandle, hdc, PartId, StateId, Rect, ClipRect));
+}
+
+BOOLEAN PhDrawThemeTextEx(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_reads_(cchText) LPCWSTR Text,
+    _In_ INT cchText,
+    _In_ ULONG TextFlags,
+    _Inout_ LPRECT Rect,
+    _In_opt_ const PVOID Options // DTTOPTS*
+    )
+{
+    if (!DrawThemeTextEx_I)
+        DrawThemeTextEx_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeTextEx");
+
+    if (!DrawThemeTextEx_I)
+        return FALSE;
+
+    return SUCCEEDED(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
+}
+
+// rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)
+//LONG PhGetUserOrMachineDpi(
+//    VOID
+//    )
+//{
+//    static PH_STRINGREF machineKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Hardware Profiles\\Current\\Software\\Fonts");
+//    static PH_STRINGREF userKeyName = PH_STRINGREF_INIT(L"Control Panel\\Desktop");
+//    HANDLE keyHandle;
+//    LONG dpi = 0;
+//
+//    if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_USERS, &userKeyName, 0)))
+//    {
+//        dpi = PhQueryRegistryUlongZ(keyHandle, L"LogPixels");
+//        NtClose(keyHandle);
+//    }
+//
+//    if (dpi == 0)
+//    {
+//        if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_LOCAL_MACHINE, &machineKeyName, 0)))
+//        {
+//            dpi = PhQueryRegistryUlongZ(keyHandle, L"LogPixels");
+//            NtClose(keyHandle);
+//        }
+//    }
+//
+//    return dpi;
+//}
+
+BOOLEAN PhGetWindowRect(
+    _In_ HWND WindowHandle,
+    _Out_ LPRECT WindowRect
+    )
+{
+    // Note: GetWindowRect can return success with either invalid (0,0) or empty rects (40,40) and in some cases
+    // this results in unwanted clipping, performance issues with the CreateCompatibleBitmap double buffering and
+    // issues with MonitorFromRect layout and DPI queries, so ignore the return status and check the rect (dmex)
+
+    GetWindowRect(WindowHandle, WindowRect);
+
+    if (PhRectEmpty(WindowRect))
+        return FALSE;
+
+    return TRUE;
+}
+
+LONG PhGetDpi(
+    _In_ LONG Number,
+    _In_ LONG DpiValue
+    )
+{
+    return PhMultiplyDivideSigned(Number, DpiValue, USER_DEFAULT_SCREEN_DPI);
+}
+
+LONG PhGetMonitorDpi(
+    _In_ LPCRECT rect
+    )
+{
+    return PhGetDpiValue(NULL, rect);
+}
+
+LONG PhGetSystemDpi(
+    VOID
+    )
+{
+    LONG dpi;
+
+    dpi = PhGetTaskbarDpi();
+
+    if (dpi == 0)
+    {
+        dpi = PhGetDpiValue(NULL, NULL);
+    }
+
+    if (dpi == 0)
+    {
+        dpi = USER_DEFAULT_SCREEN_DPI;
+    }
+
+    return dpi;
+}
+
+// rev from GetDpiForShellUIComponent (dmex)
+//LONG PhGetShellDpi(
+//    VOID
+//    )
+//{
+//    static HWND trayWindow = NULL;
+//    HWND windowHandle;
+//    LONG dpi = 0;
+//
+//    if (IsWindow(trayWindow))
+//    {
+//        windowHandle = trayWindow;
+//    }
+//    else
+//    {
+//        windowHandle = trayWindow = FindWindow(L"Shell_TrayWnd", NULL);
+//    }
+//
+//    if (windowHandle)
+//    {
+//        dpi = HandleToLong(GetProp(windowHandle, L"TaskbarDPI_NotificationArea"));
+//    }
+//
+//    //if (dpi == 0)
+//    //{
+//    //    dpi = GetDpiForShellUIComponent(SHELL_UI_COMPONENT_NOTIFICATIONAREA);
+//    //}
+//
+//    if (dpi == 0)
+//    {
+//        dpi = USER_DEFAULT_SCREEN_DPI;
+//    }
+//
+//    return dpi;
+//}
+
+LONG PhGetTaskbarDpi(
+    VOID
+    )
+{
+    LONG dpi = 0;
+    HWND windowHandle;
+    RECT windowRect = { 0 };
+
+    if (windowHandle = GetShellWindow())
+    {
+        GetWindowRect(windowHandle, &windowRect);
+    }
+
+    if (PhRectEmpty(&windowRect))
+    {
+        if (windowHandle = GetDesktopWindow())
+        {
+            GetWindowRect(windowHandle, &windowRect);
+        }
+    }
+
+    //if (PhRectEmpty(&windowRect))
+    //{
+    //    APPBARDATA appbarData = { sizeof(APPBARDATA) };
+    //
+    //    if (SHAppBarMessage(ABM_GETTASKBARPOS, &appbarData))
+    //    {
+    //        windowRect = appbarData.rc;
+    //    }
+    //}
+
+    if (!PhRectEmpty(&windowRect))
+    {
+        dpi = PhGetMonitorDpi(&windowRect);
+    }
+
+    if (dpi == 0)
+    {
+        dpi = PhGetDpiValue(NULL, NULL);
+    }
+
+    //if (dpi == 0)
+    //{
+    //    dpi = PhGetShellDpi();
+    //}
+
+    if (dpi == 0)
+    {
+        dpi = USER_DEFAULT_SCREEN_DPI;
+    }
+
+    return dpi;
+}
+
+LONG PhGetWindowDpi(
+    _In_ HWND WindowHandle
+    )
+{
+    LONG dpi = 0;
+    RECT windowRect;
+
+    if (PhGetWindowRect(WindowHandle, &windowRect))
+    {
+        dpi = PhGetDpiValue(NULL, &windowRect);
+    }
+
+    if (dpi == 0)
+    {
+        dpi = PhGetDpiValue(WindowHandle, NULL);
+    }
+
+    if (dpi == 0)
+    {
+        dpi = USER_DEFAULT_SCREEN_DPI;
+    }
+
+    return dpi;
+}
+
+LONG PhGetDpiValue(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ LPCRECT Rect
+    )
+{
+    if (Rect || WindowHandle)
+    {
+        // Windows 10 (RS1)
+
+        if (GetDpiForWindow_I && WindowHandle)
+        {
+            LONG dpi;
+
+            if (dpi = GetDpiForWindow_I(WindowHandle))
+            {
+                return dpi;
+            }
+        }
+
+        // Windows 8.1
+
+        if (GetDpiForMonitor_I)
+        {
+            HMONITOR monitor;
+            LONG dpi_x;
+            LONG dpi_y;
+
+            if (Rect)
+                monitor = MonitorFromRect(Rect, MONITOR_DEFAULTTONEAREST);
+            else
+                monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
+
+            if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
+            {
+                return dpi_x;
+            }
+        }
+    }
+
+    // Windows 10 (RS1)
+
+    if (GetDpiForSystem_I)
+    {
+        return GetDpiForSystem_I();
+    }
+
+    // Windows 7 and Windows 8
+    {
+        HDC screenHdc;
+        LONG dpi_x;
+
+        if (screenHdc = GetDC(NULL))
+        {
+            dpi_x = GetDeviceCaps(screenHdc, LOGPIXELSX);
+            ReleaseDC(NULL, screenHdc);
+            return dpi_x;
+        }
+    }
+
+    return USER_DEFAULT_SCREEN_DPI;
+}
+
+LONG PhGetSystemMetrics(
+    _In_ INT Index,
+    _In_opt_ LONG DpiValue
+    )
+{
+    if (GetSystemMetricsForDpi_I && DpiValue)
+    {
+        return GetSystemMetricsForDpi_I(Index, DpiValue);
+    }
+
+    return GetSystemMetrics(Index);
+}
+
+BOOL PhGetSystemParametersInfo(
+    _In_ INT Action,
+    _In_ UINT Param1,
+    _Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_opt_ LONG DpiValue
+    )
+{
+    if (SystemParametersInfoForDpi_I && DpiValue)
+    {
+        return SystemParametersInfoForDpi_I(Action, Param1, Param2, 0, DpiValue);
+    }
+
+    return SystemParametersInfo(Action, Param1, Param2, 0);
+}
+
+VOID PhGetSizeDpiValue(
+    _Inout_ PRECT rect,
+    _In_ LONG DpiValue,
+    _In_ BOOLEAN isUnpack
+    )
+{
+    PH_RECTANGLE rectangle;
+    LONG numerator;
+    LONG denominator;
+
+    if (DpiValue == USER_DEFAULT_SCREEN_DPI)
+        return;
+
+    if (isUnpack)
+    {
+        numerator = DpiValue;
+        denominator = USER_DEFAULT_SCREEN_DPI;
+    }
+    else
+    {
+        numerator = USER_DEFAULT_SCREEN_DPI;
+        denominator = DpiValue;
+    }
+
+    rectangle.Left = rect->left;
+    rectangle.Top = rect->top;
+    rectangle.Width = rect->right - rect->left;
+    rectangle.Height = rect->bottom - rect->top;
+
+    if (rectangle.Left)
+        rectangle.Left = PhMultiplyDivideSigned(rectangle.Left, numerator, denominator);
+    if (rectangle.Top)
+        rectangle.Top = PhMultiplyDivideSigned(rectangle.Top, numerator, denominator);
+    if (rectangle.Width)
+        rectangle.Width = PhMultiplyDivideSigned(rectangle.Width, numerator, denominator);
+    if (rectangle.Height)
+        rectangle.Height = PhMultiplyDivideSigned(rectangle.Height, numerator, denominator);
+
+    rect->left = rectangle.Left;
+    rect->top = rectangle.Top;
+    rect->right = rectangle.Left + rectangle.Width;
+    rect->bottom = rectangle.Top + rectangle.Height;
 }
 
 INT PhAddListViewColumn(
