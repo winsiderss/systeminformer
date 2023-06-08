@@ -11,7 +11,6 @@
  */
 
 #include "wndexp.h"
-#include "resource.h"
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -213,7 +212,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_ALTERNATE, L"0" },
-                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS, L"0" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS, L"1" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS_INTERNAL, L"0" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_PREVIEW, L"0" },
             };
 

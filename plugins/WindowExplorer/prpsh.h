@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017
+ *     dmex    2017-2023
  *
  */
 
@@ -22,6 +22,9 @@ typedef struct _PV_PROPSHEETCONTEXT
     WNDPROC DefaultWindowProc;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;
+
+    HWND RefreshButtonWindowHandle;
+    WNDPROC OldRefreshButtonWndProc;
 } PV_PROPSHEETCONTEXT, *PPV_PROPSHEETCONTEXT;
 
 typedef struct _PV_PROPCONTEXT
