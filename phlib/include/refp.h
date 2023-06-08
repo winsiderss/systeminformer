@@ -92,7 +92,7 @@ C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x8);
  *
  * \return A pointer to the object header of the object.
  */
-#define PhObjectToObjectHeader(Object) ((PPH_OBJECT_HEADER)CONTAINING_RECORD((PCHAR)(Object), PH_OBJECT_HEADER, Body))
+#define PhObjectToObjectHeader(Object) ((PPH_OBJECT_HEADER)CONTAINING_RECORD((Object), PH_OBJECT_HEADER, Body))
 
 /**
  * Gets a pointer to an object from an object header.
