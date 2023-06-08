@@ -12,7 +12,6 @@
 
 #include <phapp.h>
 #include <settings.h>
-#include <phsettings.h>
 
 typedef struct _COLUMNS_DIALOG_CONTEXT
 {
@@ -30,6 +29,10 @@ typedef struct _COLUMNS_DIALOG_CONTEXT
     HWND ActiveWindowHandle;
     HWND SearchInactiveHandle;
     HWND SearchActiveHandle;
+    HWND HideWindowHandle;
+    HWND ShowWindowHandle;
+    HWND MoveUpHandle;
+    HWND MoveDownHandle;
     PPH_LIST InactiveListArray;
     PPH_LIST ActiveListArray;
     PPH_STRING InactiveSearchboxText;
@@ -193,9 +196,13 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             context->ActiveWindowHandle = GetDlgItem(hwndDlg, IDC_ACTIVE);
             context->SearchInactiveHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
             context->SearchActiveHandle = GetDlgItem(hwndDlg, IDC_FILTER);
+            context->HideWindowHandle = GetDlgItem(hwndDlg, IDC_HIDE);
+            context->ShowWindowHandle = GetDlgItem(hwndDlg, IDC_SHOW);
+            context->MoveUpHandle = GetDlgItem(hwndDlg, IDC_MOVEUP);
+            context->MoveDownHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->InactiveListArray = PhCreateList(1);
             context->ActiveListArray = PhCreateList(1);
-            context->ControlFont = PhCreateMessageFont(dpiValue);
+            context->ControlFont = PhCreateMessageFont(dpiValue); // PhDuplicateFont(PhTreeWindowFont)
             context->InactiveSearchboxText = PhReferenceEmptyString();
             context->ActiveSearchboxText = PhReferenceEmptyString();
 
@@ -205,10 +212,10 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, dpiValue));
             ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, dpiValue));
 
-            Button_Enable(GetDlgItem(hwndDlg, IDC_HIDE), FALSE);
-            Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW), FALSE);
-            Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEUP), FALSE);
-            Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEDOWN), FALSE);
+            Button_Enable(context->HideWindowHandle, FALSE);
+            Button_Enable(context->ShowWindowHandle, FALSE);
+            Button_Enable(context->MoveUpHandle, FALSE);
+            Button_Enable(context->MoveDownHandle, FALSE);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -380,7 +387,9 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     ULONG i;
                     INT orderArray[ORDER_LIMIT];
                     INT maxOrder;
-
+#ifdef DEBUG
+                    assert(TreeNew_GetColumnCount(context->ControlHandle) < ORDER_LIMIT); // bump ORDER_LIMIT macro (dmex)
+#endif
                     memset(orderArray, 0, sizeof(orderArray));
                     maxOrder = 0;
 
@@ -433,7 +442,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         {
                             INT sel = ListBox_GetCurSel(context->InactiveWindowHandle);
 
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_SHOW), sel != LB_ERR);
+                            EnableWindow(context->ShowWindowHandle, sel != LB_ERR);
                         }
                         break;
                     }
@@ -455,9 +464,9 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                             if (sel != LB_ERR)
                             {
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_HIDE), sel != 0);
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
+                                EnableWindow(context->HideWindowHandle, sel != 0);
+                                EnableWindow(context->MoveUpHandle, sel != 0);
+                                EnableWindow(context->MoveDownHandle, sel != count - 1);
                             }
                         }
                         break;
@@ -592,8 +601,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 ListBox_InsertString(context->ActiveWindowHandle, sel, item);
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
 
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
+                                EnableWindow(context->MoveUpHandle, sel != 0);
+                                EnableWindow(context->MoveDownHandle, sel != count - 1);
                             }
                         }
 
@@ -629,8 +638,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 ListBox_InsertString(context->ActiveWindowHandle, sel, item);
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
 
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
+                                EnableWindow(context->MoveUpHandle, sel != 0);
+                                EnableWindow(context->MoveDownHandle, sel != count - 1);
                             }
                         }
 
@@ -653,7 +662,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  HDC bufferDc;
                  HBITMAP bufferBitmap;
                  HBITMAP oldBufferBitmap;
-                 HFONT oldFontHandle;
                  PPH_STRING string;
                  RECT bufferRect =
                  {
@@ -677,9 +685,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                  bufferDc = CreateCompatibleDC(drawInfo->hDC);
                  bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
-                 oldFontHandle = SelectFont(bufferDc, PhTreeWindowFont);
-
                  oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+
                  SelectFont(bufferDc, context->ControlFont);
                  SetBkMode(bufferDc, TRANSPARENT);
 
@@ -718,7 +725,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                      SRCCOPY
                      );
 
-                 SelectFont(bufferDc, oldFontHandle);
                  SelectBitmap(bufferDc, oldBufferBitmap);
                  DeleteBitmap(bufferBitmap);
                  DeleteDC(bufferDc);
