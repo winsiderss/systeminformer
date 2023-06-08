@@ -414,6 +414,7 @@ VOID PhUpdateCachedSettings(
 
     PH_UPDATE_SETTING(ImageCoherencyScanLevel);
 
+    PhCsEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     PhCsEnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     PhCsEnableGraphMaxText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
