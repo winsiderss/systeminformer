@@ -137,6 +137,12 @@ VOID ProcessThreadStackControl(
                     Control->u.ResolveSymbol.StackFrame->FrameAddress = predictedEbp;
                     Control->u.ResolveSymbol.StackFrame->StackAddress = predictedEsp;
                 }
+                else if (Control->u.ResolveSymbol.StackFrame->ReturnAddress == 0 && predictedEip)
+                {
+                    Control->u.ResolveSymbol.StackFrame->PcAddress = predictedEip;
+                    Control->u.ResolveSymbol.StackFrame->FrameAddress = predictedEbp;
+                    Control->u.ResolveSymbol.StackFrame->StackAddress = predictedEsp;
+                }
 #endif
 
                 managedSymbol = GetRuntimeNameByAddressClrProcess(
