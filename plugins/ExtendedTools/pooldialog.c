@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "exttools.h"
 #include "poolmon.h"
-#include "commonutil.h"
 
 static HWND EtPoolTagDialogHandle = NULL;
 static HANDLE EtPoolTagDialogThreadHandle = NULL;
@@ -130,7 +129,7 @@ BOOLEAN EtPoolTagTreeFilterCallback(
 
     if (poolNode->PoolItem->TagString[0] != 0)
     {
-        if (PhWordMatchStringZ(context->SearchboxText, poolNode->PoolItem->TagString))
+        if (PhWordMatchStringLongHintZ(context->SearchboxText, poolNode->PoolItem->TagString))
             return TRUE;
     }
 
@@ -394,12 +393,12 @@ NTSTATUS EtShowPoolMonDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtPoolTagDialogHandle = CreateDialogParam(
+    EtPoolTagDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_POOL),
         NULL,
         EtPoolMonDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     PhSetEvent(&EtPoolTagDialogInitializedEvent);

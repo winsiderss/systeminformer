@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -51,8 +51,8 @@ static ULONGLONG ReservedMemory;
 BOOLEAN PhSipMemorySectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -81,7 +81,7 @@ BOOLEAN PhSipMemorySectionCallback(
         return TRUE;
     case SysInfoViewChanging:
         {
-            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)PtrToUlong(Parameter1);
             PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
 
             if (view == SysInfoSummaryView || section != Section)
@@ -106,9 +106,6 @@ BOOLEAN PhSipMemorySectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
-            if (!createDialog)
-                break;
-
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_MEM);
             createDialog->DialogProc = PhSipMemoryDialogProc;
@@ -118,21 +115,33 @@ BOOLEAN PhSipMemorySectionCallback(
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
-            LONG dpiValue;
-
-            if (!drawInfo)
-                break;
-
-            dpiValue = PhGetWindowDpi(Section->GraphHandle);
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
                 drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPrivate, 0, dpiValue);
+                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPrivate, 0, Section->Parameters->WindowDpi);
                 PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCommitHistory.Count);
 
                 if (!Section->GraphState.Valid)
                 {
+                    if (PhCsEnableAvxSupport)
+                    {
+                        PhCopyConvertCircularBufferULONG(&PhCommitHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
+#ifdef DEBUG
+                        for (i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            assert(Section->GraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i));
+                        }
+#endif
+                    }
+                    else
+                    {
+                        for (i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+                        }
+                    }
+
                     for (i = 0; i < drawInfo->LineDataCount; i++)
                     {
                         Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
@@ -151,7 +160,7 @@ BOOLEAN PhSipMemorySectionCallback(
                     if (PhCsEnableGraphMaxText)
                     {
                         drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                        drawInfo->LabelYFunctionParameter = (FLOAT)PhPerfInformation.CommitLimit * PAGE_SIZE;
+                        drawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE);
                     }
 
                     Section->GraphState.Valid = TRUE;
@@ -160,14 +169,27 @@ BOOLEAN PhSipMemorySectionCallback(
             else
             {
                 drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0, dpiValue);
+                Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0, Section->Parameters->WindowDpi);
                 PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhPhysicalHistory.Count);
 
                 if (!Section->GraphState.Valid)
                 {
-                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    if (PhCsEnableAvxSupport)
                     {
-                        Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                        PhCopyConvertCircularBufferULONG(&PhPhysicalHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
+#ifdef DEBUG
+                        for (i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            assert(Section->GraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i));
+                        }
+#endif
+                    }
+                    else
+                    {
+                        for (i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                        }
                     }
 
                     if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
@@ -183,7 +205,7 @@ BOOLEAN PhSipMemorySectionCallback(
                     if (PhCsEnableGraphMaxText)
                     {
                         drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                        drawInfo->LabelYFunctionParameter = (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages * PAGE_SIZE;
+                        drawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
                     }
 
                     Section->GraphState.Valid = TRUE;
@@ -196,9 +218,6 @@ BOOLEAN PhSipMemorySectionCallback(
             PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT getTooltipText = Parameter1;
             ULONG usedPages;
             PH_FORMAT format[3];
-
-            if (!getTooltipText)
-                break;
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
@@ -232,9 +251,6 @@ BOOLEAN PhSipMemorySectionCallback(
             ULONG totalPages;
             ULONG usedPages;
             PH_FORMAT format[5];
-
-            if (!drawPanel)
-                break;
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
@@ -347,11 +363,8 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             PPH_LAYOUT_ITEM panelItem;
             RECT margin;
             HWND totalPhysicalLabel;
-            LONG dpiValue;
 
             PhSipInitializeMemoryDialog();
-
-            dpiValue = PhGetWindowDpi(hwndDlg);
 
             MemoryDialog = hwndDlg;
             totalPhysicalLabel = GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL);
@@ -380,8 +393,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             ShowWindow(MemoryPanel, SW_SHOW);
 
             margin = panelItem->Margin;
-            PhGetSizeDpiValue(&margin, dpiValue, TRUE);
-
+            PhGetSizeDpiValue(&margin, MemorySection->Parameters->WindowDpi, TRUE);
             PhAddLayoutItemEx(&MemoryLayoutManager, MemoryPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
 
             PhSipCreateMemoryGraphs();
@@ -394,13 +406,32 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             PhDeleteLayoutManager(&MemoryLayoutManager);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            if (MemorySection->Parameters->LargeFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
+            }
+
+            if (MemorySection->Parameters->MediumFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), MemorySection->Parameters->MediumFont, FALSE);
+            }
+
+            CommitGraphState.Valid = FALSE;
+            CommitGraphState.TooltipIndex = ULONG_MAX;
+            PhysicalGraphState.Valid = FALSE;
+            PhysicalGraphState.TooltipIndex = ULONG_MAX;
+            PhLayoutManagerLayout(&MemoryLayoutManager);
+            PhSipLayoutMemoryGraphs(hwndDlg);
+        }
+        break;
     case WM_SIZE:
         {
             CommitGraphState.Valid = FALSE;
             CommitGraphState.TooltipIndex = ULONG_MAX;
             PhysicalGraphState.Valid = FALSE;
             PhysicalGraphState.TooltipIndex = ULONG_MAX;
-
             PhLayoutManagerLayout(&MemoryLayoutManager);
             PhSipLayoutMemoryGraphs(hwndDlg);
         }
@@ -515,32 +546,28 @@ VOID PhSipLayoutMemoryGraphs(
 {
     RECT clientRect;
     RECT labelRect;
-    RECT rect;
+    RECT marginRect;
     ULONG graphWidth;
     ULONG graphHeight;
     HDWP deferHandle;
     ULONG y;
-    LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(hwnd);
-
-    rect =  MemoryGraphMargin;
-
-    PhGetSizeDpiValue(&rect, dpiValue, TRUE);
+    marginRect = MemoryGraphMargin;
+    PhGetSizeDpiValue(&marginRect, MemorySection->Parameters->WindowDpi, TRUE);
 
     GetClientRect(MemoryDialog, &clientRect);
     GetClientRect(GetDlgItem(MemoryDialog, IDC_COMMIT_L), &labelRect);
-    graphWidth = clientRect.right - rect.left - rect.right;
-    graphHeight = (clientRect.bottom - rect.top - rect.bottom - labelRect.bottom * 2 - MemorySection->Parameters->MemoryPadding * 3) / 2;
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - MemorySection->Parameters->MemoryPadding * 3) / 2;
 
     deferHandle = BeginDeferWindowPos(4);
-    y = rect.top;
+    y = marginRect.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(MemoryDialog, IDC_COMMIT_L),
         NULL,
-        rect.left,
+        marginRect.left,
         y,
         0,
         0,
@@ -552,7 +579,7 @@ VOID PhSipLayoutMemoryGraphs(
         deferHandle,
         CommitGraphHandle,
         NULL,
-        rect.left,
+        marginRect.left,
         y,
         graphWidth,
         graphHeight,
@@ -564,7 +591,7 @@ VOID PhSipLayoutMemoryGraphs(
         deferHandle,
         GetDlgItem(MemoryDialog, IDC_PHYSICAL_L),
         NULL,
-        rect.left,
+        marginRect.left,
         y,
         0,
         0,
@@ -576,10 +603,10 @@ VOID PhSipLayoutMemoryGraphs(
         deferHandle,
         PhysicalGraphHandle,
         NULL,
-        rect.left,
+        marginRect.left,
         y,
         graphWidth,
-        clientRect.bottom - rect.bottom - y,
+        clientRect.bottom - marginRect.bottom - y,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -597,12 +624,9 @@ VOID PhSipNotifyCommitGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0, MemorySection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &CommitGraphState,
@@ -612,9 +636,22 @@ VOID PhSipNotifyCommitGraph(
 
             if (!CommitGraphState.Valid)
             {
-                for (i = 0; i < drawInfo->LineDataCount; i++)
+                if (PhCsEnableAvxSupport)
                 {
-                    CommitGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+                    PhCopyConvertCircularBufferULONG(&PhCommitHistory, CommitGraphState.Data1, drawInfo->LineDataCount);
+#ifdef DEBUG
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        assert(CommitGraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i));
+                    }
+#endif
+                }
+                else
+                {
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        CommitGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+                    }
                 }
 
                 if (PhPerfInformation.CommitLimit != 0)
@@ -630,7 +667,7 @@ VOID PhSipNotifyCommitGraph(
                 if (PhCsEnableGraphMaxText)
                 {
                     drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = (FLOAT)PhPerfInformation.CommitLimit * PAGE_SIZE;
+                    drawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE);
                 }
 
                 CommitGraphState.Valid = TRUE;
@@ -677,12 +714,9 @@ VOID PhSipNotifyPhysicalGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi (Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPhysical, 0, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPhysical, 0, MemorySection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &PhysicalGraphState,
@@ -692,9 +726,22 @@ VOID PhSipNotifyPhysicalGraph(
 
             if (!PhysicalGraphState.Valid)
             {
-                for (i = 0; i < drawInfo->LineDataCount; i++)
+                if (PhCsEnableAvxSupport)
                 {
-                    PhysicalGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                    PhCopyConvertCircularBufferULONG(&PhPhysicalHistory, PhysicalGraphState.Data1, drawInfo->LineDataCount);
+#ifdef DEBUG
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        assert(PhysicalGraphState.Data1[i] == (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i));
+                    }
+#endif
+                }
+                else
+                {
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        PhysicalGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+                    }
                 }
 
                 if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
@@ -710,7 +757,7 @@ VOID PhSipNotifyPhysicalGraph(
                 if (PhCsEnableGraphMaxText)
                 {
                     drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages * PAGE_SIZE;
+                    drawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
                 }
 
                 PhysicalGraphState.Valid = TRUE;
@@ -1005,7 +1052,7 @@ NTSTATUS PhSipLoadMmAddresses(
             symbolProvider = PhCreateSymbolProvider(NULL);
             PhLoadSymbolProviderOptions(symbolProvider);
 
-            kernelFileName = PH_AUTO(PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName));
+            kernelFileName = PH_AUTO(PhConvertUtf8ToUtf16(kernelModules->Modules[0].FullPathName));
 
             PhLoadModuleSymbolProvider(
                 symbolProvider,

@@ -25,41 +25,42 @@ typedef struct _PV_EA_CALLBACK
     ULONG Count;
 } PV_EA_CALLBACK, *PPV_EA_CALLBACK;
 
-BOOLEAN NTAPI PvpEnumFileAttributesCallback(
+NTSTATUS NTAPI PvpEnumFileAttributesCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PFILE_FULL_EA_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_opt_ PPV_EA_CALLBACK Context
     )
 {
-    PPV_EA_CALLBACK context = Context;
-    PPH_STRING attributeName;
-    INT lvItemIndex;
-    WCHAR number[PH_INT32_STR_LEN_1];
+    for (PFILE_FULL_EA_INFORMATION i = PH_FIRST_FILE_EA(Information); i; i = PH_NEXT_FILE_EA(i))
+    {
+        PPH_STRING attributeName;
+        INT lvItemIndex;
+        WCHAR number[PH_INT32_STR_LEN_1];
 
-    if (!context)
-        return TRUE;
-    if (Information->EaNameLength == 0)
-        return TRUE;
+        PhPrintUInt32(number, ++Context->Count);
+        lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, number, NULL);
 
-    PhPrintUInt32(number, ++context->Count);
-    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, number, NULL);
+        if (i->EaNameLength)
+        {
+            attributeName = PhConvertUtf8ToUtf16Ex(i->EaName, i->EaNameLength);
+            PhSetListViewSubItem(
+                Context->ListViewHandle,
+                lvItemIndex,
+                1,
+                attributeName->Buffer
+                );
+            PhDereferenceObject(attributeName);
+        }
 
-    attributeName = PhZeroExtendToUtf16Ex(Information->EaName, Information->EaNameLength);
-    PhSetListViewSubItem(
-        context->ListViewHandle,
-        lvItemIndex,
-        1,
-        attributeName->Buffer
-        );
-    PhDereferenceObject(attributeName);
+        PhSetListViewSubItem(
+            Context->ListViewHandle,
+            lvItemIndex,
+            2,
+            PhaFormatSize(i->EaValueLength, ULONG_MAX)->Buffer
+            );
+    }
 
-    PhSetListViewSubItem(
-        context->ListViewHandle,
-        lvItemIndex,
-        2,
-        PhaFormatSize(Information->EaValueLength, ULONG_MAX)->Buffer
-        );
-
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 VOID PvEnumerateFileExtendedAttributes(
@@ -144,7 +145,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
 
             PvEnumerateFileExtendedAttributes(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

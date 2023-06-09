@@ -100,31 +100,34 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     moduleProvider->PackageFullName = NULL;
     moduleProvider->RunStatus = STATUS_SUCCESS;
 
-    // It doesn't matter if we can't get a process handle.
-
-    // Try to get a handle with query information + vm read access.
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &moduleProvider->ProcessHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessId
-        )))
+    if (PH_IS_REAL_PROCESS_ID(ProcessId))
     {
-        // Try to get a handle with query limited information + vm read access.
+        // It doesn't matter if we can't get a process handle.
+
+        // Try to get a handle with query information + vm read access.
         if (!NT_SUCCESS(status = PhOpenProcess(
             &moduleProvider->ProcessHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
             ProcessId
             )))
         {
-            // Try to get a handle with query limited information (required for WSL when KPH disabled) (dmex)
-            status = PhOpenProcess(
+            // Try to get a handle with query limited information + vm read access.
+            if (!NT_SUCCESS(status = PhOpenProcess(
                 &moduleProvider->ProcessHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
                 ProcessId
-                );
-        }
+                )))
+            {
+                // Try to get a handle with query limited information (required for WSL when KPH disabled) (dmex)
+                status = PhOpenProcess(
+                    &moduleProvider->ProcessHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    ProcessId
+                    );
+            }
 
-        moduleProvider->RunStatus = status;
+            moduleProvider->RunStatus = status;
+        }
     }
 
     if (processItem = PhReferenceProcessItem(ProcessId))
@@ -268,7 +271,6 @@ VOID PhpModuleItemDeleteProcedure(
     PhEmCallObjectOperation(EmModuleItemType, moduleItem, EmObjectDelete);
 
     if (moduleItem->Name) PhDereferenceObject(moduleItem->Name);
-    if (moduleItem->FileNameWin32) PhDereferenceObject(moduleItem->FileNameWin32);
     if (moduleItem->FileName) PhDereferenceObject(moduleItem->FileName);
     if (moduleItem->VerifySignerName) PhDereferenceObject(moduleItem->VerifySignerName);
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
@@ -372,38 +374,18 @@ NTSTATUS PhpModuleQueryWorker(
     }
 
     {
-        // Note: .NET Core and Mono don't set the LDRP_COR_IMAGE flag in the loader required for
-        // highlighting .NET images so check images for a CLR section and set the flag. (dmex)
         if (NT_SUCCESS(PhLoadMappedImageEx(&data->ModuleItem->FileName->sr, NULL, &mappedImage)))
         {
+            PIMAGE_DATA_DIRECTORY dataDirectory;
             PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
 
-            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC && mappedImage.NtHeaders32)
+            // Note: .NET Core and Mono don't set the LDRP_COR_IMAGE flag in the loader required for
+            // highlighting .NET images so check images for a CLR section and set the flag. (dmex)
+            if (NT_SUCCESS(PhGetMappedImageDataEntry(&mappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &dataDirectory)))
             {
-                PIMAGE_OPTIONAL_HEADER32 optionalHeader = &mappedImage.NtHeaders32->OptionalHeader;
-
-                if (optionalHeader->NumberOfRvaAndSizes >= IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
-                {
-                    if (optionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress)
-                    {
-                        data->ImageFlags |= LDRP_COR_IMAGE;
-                    }
-                }
+                SetFlag(data->ImageFlags, LDRP_COR_IMAGE);
             }
-#ifdef _WIN64
-            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC && mappedImage.NtHeaders)
-            {
-                PIMAGE_OPTIONAL_HEADER64 optionalHeader = &mappedImage.NtHeaders->OptionalHeader;
 
-                if (optionalHeader->NumberOfRvaAndSizes >= IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
-                {
-                    if (optionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress)
-                    {
-                        data->ImageFlags |= LDRP_COR_IMAGE;
-                    }
-                }
-            }
-#endif
             if (NT_SUCCESS(PhGetMappedImageCfg(&cfgConfig, &mappedImage)))
             {
                 data->GuardFlags = cfgConfig.GuardFlags;
@@ -433,6 +415,7 @@ NTSTATUS PhpModuleQueryWorker(
                     data->ModuleItem->FileName,
                     data->ModuleProvider->ProcessHandle,
                     data->ModuleItem->BaseAddress,
+                    data->ModuleItem->Size,
                     data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE,
                     data->ModuleProvider->ImageCoherencyScanLevel,
                     &data->ImageCoherency
@@ -479,7 +462,7 @@ VOID PhpQueueModuleQuery(
 
 static BOOLEAN NTAPI EnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_MODULE_INFO copy;
@@ -487,7 +470,6 @@ static BOOLEAN NTAPI EnumModulesCallback(
     copy = PhAllocateCopy(Module, sizeof(PH_MODULE_INFO));
 
     PhReferenceObject(copy->Name);
-    PhReferenceObject(copy->FileNameWin32);
     PhReferenceObject(copy->FileName);
 
     PhAddItemList((PPH_LIST)Context, copy);
@@ -611,7 +593,6 @@ VOID PhModuleProviderUpdate(
             FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
             PhReferenceObject(module->Name);
-            PhReferenceObject(module->FileNameWin32);
             PhReferenceObject(module->FileName);
 
             moduleItem = PhCreateModuleItem();
@@ -624,7 +605,6 @@ VOID PhModuleProviderUpdate(
             moduleItem->LoadCount = module->LoadCount;
             moduleItem->LoadTime = module->LoadTime;
             moduleItem->Name = module->Name;
-            moduleItem->FileNameWin32 = module->FileNameWin32;
             moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
 
@@ -702,7 +682,13 @@ VOID PhModuleProviderUpdate(
                 // 1. It (should be) faster than opening the file and mapping it in, and
                 // 2. It contains the correct original image base relocated by ASLR, if present.
 
-                if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemoryCallback, &remoteMappedImage)))
+                if (NT_SUCCESS(PhLoadRemoteMappedImageEx(
+                    moduleProvider->ProcessHandle,
+                    moduleItem->BaseAddress,
+                    moduleItem->Size,
+                    readVirtualMemoryCallback,
+                    &remoteMappedImage
+                    )))
                 {
                     ULONG_PTR imageBase = 0;
                     ULONG entryPoint = 0;
@@ -772,15 +758,15 @@ VOID PhModuleProviderUpdate(
 
             // remove CF Guard flag if CFG mitigation is not enabled for the process
             if (!moduleProvider->ControlFlowGuardEnabled)
-                moduleItem->ImageDllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
+                ClearFlag(moduleItem->ImageDllCharacteristics, IMAGE_DLLCHARACTERISTICS_GUARD_CF);
 
             // if process has strict mode enabled add CET flag to module
             if (moduleProvider->CetStrictModeEnabled)
-                moduleItem->ImageDllCharacteristicsEx |= IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
+                SetFlag(moduleItem->ImageDllCharacteristicsEx, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT);
 
             // remove CET flag if CET is not enabled for the process
             if (!moduleProvider->CetEnabled)
-                moduleItem->ImageDllCharacteristicsEx &= ~IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
+                ClearFlag(moduleItem->ImageDllCharacteristicsEx, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT);
 
             if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
             {
@@ -789,7 +775,8 @@ VOID PhModuleProviderUpdate(
             }
             else
             {
-                moduleItem->FileEndOfFile.QuadPart = -1;
+                moduleItem->FileLastWriteTime.QuadPart = 0;
+                moduleItem->FileEndOfFile.QuadPart = MAXLONGLONG;
             }
 
             if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
@@ -812,6 +799,7 @@ VOID PhModuleProviderUpdate(
         else
         {
             BOOLEAN modified = FALSE;
+            FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
             if (moduleItem->JustProcessed)
                 modified = TRUE;
@@ -822,6 +810,35 @@ VOID PhModuleProviderUpdate(
             {
                 moduleItem->LoadCount = module->LoadCount;
                 modified = TRUE;
+            }
+
+            if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
+            {
+                if (moduleItem->FileLastWriteTime.QuadPart != networkOpenInfo.LastWriteTime.QuadPart)
+                {
+                    moduleItem->FileLastWriteTime.QuadPart = networkOpenInfo.LastWriteTime.QuadPart;
+                    modified = TRUE;
+                }
+
+                if (moduleItem->FileEndOfFile.QuadPart != networkOpenInfo.EndOfFile.QuadPart)
+                {
+                    moduleItem->FileEndOfFile.QuadPart = networkOpenInfo.EndOfFile.QuadPart;
+                    modified = TRUE;
+                }
+            }
+            else
+            {
+                if (moduleItem->FileLastWriteTime.QuadPart != 0)
+                {
+                    moduleItem->FileLastWriteTime.QuadPart = 0;
+                    modified = TRUE;
+                }
+
+                if (moduleItem->FileEndOfFile.QuadPart != MAXLONGLONG)
+                {
+                    moduleItem->FileEndOfFile.QuadPart = MAXLONGLONG;
+                    modified = TRUE;
+                }
             }
 
             if (modified)
@@ -841,7 +858,6 @@ VOID PhModuleProviderUpdate(
         PPH_MODULE_INFO module = modules->Items[i];
 
         PhDereferenceObject(module->Name);
-        PhDereferenceObject(module->FileNameWin32);
         PhDereferenceObject(module->FileName);
         PhFree(module);
     }

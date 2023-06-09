@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *     jx-s    2023
+ *
+ */
+
 #ifndef _PH_MAPIMG_H
 #define _PH_MAPIMG_H
 
@@ -68,6 +81,15 @@ PhLoadMappedImageEx(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhLoadMappedImageHeaderPageSize(
+    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ HANDLE FileHandle,
+    _Out_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhUnloadMappedImage(
     _Inout_ PPH_MAPPED_IMAGE MappedImage
     );
@@ -120,7 +142,7 @@ PVOID
 NTAPI
 PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ ULONG Va,
+    _In_ ULONGLONG Va,
     _Out_opt_ PIMAGE_SECTION_HEADER* Section
     );
 
@@ -185,6 +207,7 @@ NTAPI
 PhLoadRemoteMappedImage(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
+    _In_ SIZE_T Size,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     );
 
@@ -201,6 +224,7 @@ NTAPI
 PhLoadRemoteMappedImageEx(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
+    _In_ SIZE_T Size,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     );
@@ -219,8 +243,8 @@ PhGetRemoteMappedImageDebugEntryByType(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
-    _Out_opt_ ULONG* EntryLength,
-    _Out_ PVOID* EntryBuffer
+    _Out_opt_ ULONG* DataLength,
+    _Out_ PVOID* DataBuffer
     );
 
 PHLIBAPI
@@ -232,8 +256,8 @@ PhGetRemoteMappedImageDebugEntryByTypeEx(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
-    _Out_opt_ ULONG* EntryLength,
-    _Out_ PVOID* EntryBuffer
+    _Out_opt_ ULONG* DataLength,
+    _Out_ PVOID* DataBuffer
     );
 
 PHLIBAPI
@@ -263,6 +287,7 @@ typedef struct _PH_MAPPED_IMAGE_EXPORTS
     ULONG NumberOfEntries;
 
     PIMAGE_DATA_DIRECTORY DataDirectory;
+    IMAGE_DATA_DIRECTORY DataDirectoryARM64EC;
     PIMAGE_EXPORT_DIRECTORY ExportDirectory;
     PULONG AddressTable;
     PULONG NamePointerTable;
@@ -281,6 +306,17 @@ typedef struct _PH_MAPPED_IMAGE_EXPORT_FUNCTION
     PVOID Function;
     PSTR ForwardedName;
 } PH_MAPPED_IMAGE_EXPORT_FUNCTION, *PPH_MAPPED_IMAGE_EXPORT_FUNCTION;
+
+#define PH_GET_IMAGE_EXPORTS_ARM64EC 0x00000001ul
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageExportsEx(
+    _Out_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Flags
+    );
 
 PHLIBAPI
 NTSTATUS
@@ -385,6 +421,15 @@ PhGetMappedImageImportEntry(
     _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
     _In_ ULONG Index,
     _Out_ PPH_MAPPED_IMAGE_IMPORT_ENTRY Entry
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhGetMappedImageImportEntryRva(
+    _In_ PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
+    _In_ ULONG Index,
+    _In_ BOOLEAN DelayImport
     );
 
 PHLIBAPI
@@ -608,6 +653,18 @@ typedef struct _PH_MAPPED_IMAGE_DEBUG
 #define IMAGE_DEBUG_TYPE_PDBCHECKSUM 19
 #endif
 
+#ifndef IMAGE_DEBUG_TYPE_PERFMAP
+#define IMAGE_DEBUG_TYPE_PERFMAP 21
+#endif
+
+typedef struct _IMAGE_DEBUG_TYPE_PERFMAPV1
+{
+    ULONG Magic; // 0x4D523252
+    BYTE Signature[16];
+    ULONG Version;
+    // BYTE Data[1];
+} IMAGE_DEBUG_TYPE_PERFMAPV1, *PIMAGE_DEBUG_TYPE_PERFMAPV1;
+
 #define CODEVIEW_SIGNATURE_NB10 '01BN'
 #define CODEVIEW_SIGNATURE_RSDS 'SDSR'
 
@@ -774,21 +831,6 @@ PhGetMappedImageEhCont(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
-typedef struct _IMAGE_DEBUG_POGO_ENTRY
-{
-    ULONG Rva;
-    ULONG Size;
-    CHAR Name[1];
-} IMAGE_DEBUG_POGO_ENTRY, *PIMAGE_DEBUG_POGO_ENTRY;
-
-typedef struct _IMAGE_DEBUG_POGO_SIGNATURE
-{
-    ULONG Signature;
-} IMAGE_DEBUG_POGO_SIGNATURE, *PIMAGE_DEBUG_POGO_SIGNATURE;
-
-#define IMAGE_DEBUG_POGO_SIGNATURE_LTCG 'LTCG' // coffgrp LTCG (0x4C544347)
-#define IMAGE_DEBUG_POGO_SIGNATURE_PGU 'PGU\0' // coffgrp PGU (0x50475500)
-
 typedef struct _PH_IMAGE_DEBUG_POGO_ENTRY
 {
     ULONG Rva;
@@ -814,18 +856,11 @@ PhGetMappedImagePogo(
     _Out_ PPH_MAPPED_IMAGE_DEBUG_POGO PogoDebug
     );
 
-typedef struct _IMAGE_BASE_RELOCATION_ENTRY
-{
-    USHORT Offset : 12;
-    USHORT Type : 4;
-} IMAGE_BASE_RELOCATION_ENTRY, *PIMAGE_BASE_RELOCATION_ENTRY;
-
 typedef struct _PH_IMAGE_RELOC_ENTRY
 {
     ULONG BlockIndex;
     ULONG BlockRva;
-    ULONG Type;
-    ULONG Offset;
+    IMAGE_RELOCATION_RECORD Record;
     PVOID ImageBaseVa;
     PVOID MappedImageVa;
 } PH_IMAGE_RELOC_ENTRY, *PPH_IMAGE_RELOC_ENTRY;
@@ -847,11 +882,120 @@ PhGetMappedImageRelocations(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_RELOC Relocations
     );
+
 PHLIBAPI
 VOID
 NTAPI
 PhFreeMappedImageRelocations(
-    _In_ PPH_MAPPED_IMAGE_RELOC Relocations
+    _In_opt_ PPH_MAPPED_IMAGE_RELOC Relocations
+    );
+
+typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
+{
+    ULONGLONG Symbol;
+
+    union
+    {
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION Record;
+        } ImportControl;
+
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_INDIR_CONTROL_TRANSFER_DYNAMIC_RELOCATION Record;
+        } IndirControl;
+
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION Record;
+        } SwitchBranch;
+
+        // IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_RELOCATION_RECORD Record;
+            PIMAGE_BDD_DYNAMIC_RELOCATION BDDNodes;
+            ULONG BDDNodesCount;
+            ULONG OriginalRva;
+            ULONG BDDOffset;
+            PULONG Rvas;
+            ULONG RvasCount;
+        } FuncOverride;
+
+        // IMAGE_DYNAMIC_RELOCATION_ARM64X
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            union
+            {
+                LONG64 Delta;
+                ULONG64 Value8;
+                ULONG Value4;
+                USHORT Value2;
+            };
+            union
+            {
+                IMAGE_DVRT_ARM64X_FIXUP_RECORD RecordFixup;
+                IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD RecordDelta;
+            };
+        } ARM64X;
+
+        // IMAGE_DYNAMIC_RELOCATION_KI_USER_SHARED_DATA64 or similar
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_RELOCATION_RECORD Record;
+        } Other;
+    };
+
+    PVOID ImageBaseVa;
+    PVOID MappedImageVa;
+} PH_IMAGE_DYNAMIC_RELOC_ENTRY, *PPH_IMAGE_DYNAMIC_RELOC_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_DYNAMIC_RELOC
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_DYNAMIC_RELOCATION_TABLE RelocationTable;
+
+    ULONG NumberOfEntries;
+    PPH_IMAGE_DYNAMIC_RELOC_ENTRY RelocationEntries;
+} PH_MAPPED_IMAGE_DYNAMIC_RELOC, *PPH_MAPPED_IMAGE_DYNAMIC_RELOC;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageDynamicRelocationsTable(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_opt_ PIMAGE_DYNAMIC_RELOCATION_TABLE* Table
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageDynamicRelocations(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreeMappedImageDynamicRelocations(
+    _In_opt_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
     );
 
 typedef struct _PH_MAPPED_IMAGE_EXCEPTIONS
@@ -925,6 +1069,31 @@ NTAPI
 PhGetMappedImageVolatileMetadata(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_VOLATILE_METADATA VolatileMetadata
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetMappedImageAuthenticodeHash(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PH_HASH_ALGORITHM Algorithm
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetMappedImageWdacHash(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PH_HASH_ALGORITHM Algorithm
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetMappedImageEntropy(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ DOUBLE* ImageEntropy,
+    _Out_ DOUBLE* ImageVariance
     );
 
 // ELF binary support

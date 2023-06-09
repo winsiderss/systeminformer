@@ -261,12 +261,6 @@ NTSTATUS KphQueryInformationDriver(
         {
             UNICODE_STRING fullDriverPath;
 
-            if (!KphDynIoQueryFullDriverPath)
-            {
-                status = STATUS_NOINTERFACE;
-                goto Exit;
-            }
-
             if ((KphOsVersionInfo.dwMajorVersion < 10) ||
                 (KphOsVersionInfo.dwMajorVersion == 10) &&
                 (KphOsVersionInfo.dwBuildNumber < 16299))
@@ -281,7 +275,7 @@ NTSTATUS KphQueryInformationDriver(
 
             RtlZeroMemory(&fullDriverPath, sizeof(fullDriverPath));
 
-            status = KphDynIoQueryFullDriverPath(driverObject, &fullDriverPath);
+            status = IoQueryFullDriverPath(driverObject, &fullDriverPath);
             if (!NT_SUCCESS(status))
             {
                 goto Exit;

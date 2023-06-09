@@ -17,6 +17,7 @@
 #include <prsht.h>
 #include <svcsup.h>
 #include <json.h>
+#include <mapldr.h>
 #include <phnet.h>
 
 #include <aclapi.h>
@@ -24,7 +25,6 @@
 #include <netlistmgr.h>
 #include <propvarutil.h>
 #include <propkey.h>
-#include <shellapi.h>
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <sddl.h>
@@ -198,22 +198,23 @@ NTSTATUS SetupDeleteUninstallKey(
     VOID
     );
 
-VOID SetupSetWindowsOptions(
+VOID SetupCreateWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
-
 VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-VOID SetupChangeNotifyShortcuts(
+VOID SetupCreateShortcuts(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+VOID SetupDeleteShortcuts(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
 BOOLEAN SetupCreateUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
-
 VOID SetupDeleteUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
@@ -278,6 +279,7 @@ BOOLEAN SetupOverwriteFile(
     _In_ ULONG BufferLength
     );
 
+_Success_(return)
 BOOLEAN SetupHashFile(
     _In_ PPH_STRING FileName,
     _Out_writes_all_(256 / 8) PBYTE Buffer

@@ -14,9 +14,10 @@ namespace CustomBuildTool
     public static class Build
     {
         private static DateTime TimeStart;
-        private static bool BuildNightly = false;
-        private static bool HaveArm64BuildTools = true;
+        public static bool BuildNightly = false;
+        public static bool HaveArm64BuildTools = true;
         public static string BuildOutputFolder = string.Empty;
+        public static string BuildWorkingFolder = string.Empty;
         public static string BuildBranch = string.Empty;
         public static string BuildCommit = string.Empty;
         public static string BuildVersion = "1.0.0";
@@ -57,6 +58,7 @@ namespace CustomBuildTool
             }
 
             Build.TimeStart = DateTime.Now;
+            Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildNightly = !string.IsNullOrWhiteSpace(Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%"));
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
 
@@ -84,91 +86,103 @@ namespace CustomBuildTool
         {
             try
             {
-                if (Directory.Exists(BuildOutputFolder)) // output
+                string currentGitDir = Utils.GetGitWorkPath();
+                string currentGitPath = Utils.GetGitFilePath();
+
+                if (!string.IsNullOrWhiteSpace(currentGitDir) && !string.IsNullOrWhiteSpace(currentGitPath))
                 {
-                    Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
-                    Directory.Delete(BuildOutputFolder, true);
+                    string output = Win32.ShellExecute(currentGitPath, $"{currentGitDir} clean -x -d -f", false);
+
+                    Program.PrintColorMessage(output, ConsoleColor.DarkGray);
                 }
 
-                if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
                 {
-                    Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
-                    Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
-                }
-
-                //foreach (BuildFile file in BuildConfig.Build_Release_Files)
-                //{
-                //    string sourceFile = BuildOutputFolder + file.FileName;
-                //
-                //    Win32.DeleteFile(sourceFile);
-                //}
-                //
-                //foreach (string folder in BuildConfig.Build_Sdk_Directories)
-                //{
-                //    if (Directory.Exists(folder))
-                //        Directory.Delete(folder, true);
-                //}
-
-                var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
-                {
-                    AttributesToSkip = FileAttributes.Offline,
-                    RecurseSubdirectories = true,
-                    ReturnSpecialDirectories = false
-                });
-
-                foreach (string folder in project_folders)
-                {
-                    string path = Path.GetFullPath(folder);
-                    string name = Path.GetFileName(path);
-
-                    if (
-                        string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
-                        )
+                    if (Directory.Exists(BuildOutputFolder)) // output
                     {
-                        if (Directory.Exists(path))
-                        {
-                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+                        Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
+                        Directory.Delete(BuildOutputFolder, true);
+                    }
 
-                            try
+                    if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
+                    {
+                        Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
+                        Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
+                    }
+
+                    //foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                    //{
+                    //    string sourceFile = BuildOutputFolder + file.FileName;
+                    //
+                    //    Win32.DeleteFile(sourceFile);
+                    //}
+                    //
+                    //foreach (string folder in BuildConfig.Build_Sdk_Directories)
+                    //{
+                    //    if (Directory.Exists(folder))
+                    //        Directory.Delete(folder, true);
+                    //}
+
+                    var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
+                    {
+                        AttributesToSkip = FileAttributes.Offline,
+                        RecurseSubdirectories = true,
+                        ReturnSpecialDirectories = false
+                    });
+
+                    foreach (string folder in project_folders)
+                    {
+                        string path = Path.GetFullPath(folder);
+                        string name = Path.GetFileName(path);
+
+                        if (
+                            string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
+                            )
+                        {
+                            if (Directory.Exists(path))
                             {
-                                Directory.Delete(path, true);
-                            }
-                            catch (Exception ex)
-                            {
-                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                                try
+                                {
+                                    Directory.Delete(path, true);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                }
                             }
                         }
                     }
-                }
 
-                // Delete files with abs
+                    // Delete files with abs
 
-                var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
-                {
-                    AttributesToSkip = FileAttributes.Offline,
-                    RecurseSubdirectories = true,
-                    ReturnSpecialDirectories = false
-                });
-
-                foreach (string file in res_files)
-                {
-                    string path = Path.GetFullPath(file);
-                    string name = Path.GetFileName(path);
-
-                    if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                    var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
                     {
-                        if (File.Exists(path))
-                        {
-                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+                        AttributesToSkip = FileAttributes.Offline,
+                        RecurseSubdirectories = true,
+                        ReturnSpecialDirectories = false
+                    });
 
-                            try
+                    foreach (string file in res_files)
+                    {
+                        string path = Path.GetFullPath(file);
+                        string name = Path.GetFileName(path);
+
+                        if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (File.Exists(path))
                             {
-                                File.Delete(path);
-                            }
-                            catch (Exception ex)
-                            {
-                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                                try
+                                {
+                                    File.Delete(path);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                }
                             }
                         }
                     }
@@ -307,8 +321,8 @@ namespace CustomBuildTool
                     {
                         if (Directory.Exists("bin\\Debug64"))
                         {
-                            Win32.CreateDirectory("bin\\Debug64\\x86");
-                            Win32.CreateDirectory("bin\\Debug64\\x86\\plugins");
+                            //Win32.CreateDirectory("bin\\Debug64\\x86");
+                            Win32.CreateDirectory("bin\\Debug64\\x86\\plugins"); // recursive
 
                             Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\Debug64\\x86\\SystemInformer.exe");
                             Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\Debug64\\x86\\SystemInformer.pdb");
@@ -323,6 +337,27 @@ namespace CustomBuildTool
                             Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\Debug64\\x86\\plugins\\ExtendedTools.sig");
                         }
                     }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (Directory.Exists("bin\\DebugARM64"))
+                        {
+                            //Win32.CreateDirectory("bin\\DebugARM64\\x86");
+                            Win32.CreateDirectory("bin\\DebugARM64\\x86\\plugins"); // recursive
+
+                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\DebugARM64\\x86\\SystemInformer.exe");
+                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\DebugARM64\\x86\\SystemInformer.pdb");
+                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.sig", "bin\\DebugARM64\\x86\\SystemInformer.sig");
+
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.dll");
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.pdb");
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.sig", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.sig");
+
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.dll");
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.pdb");
+                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.sig");
+                        }
+                    }
                 }
 
                 if (Flags.HasFlag(BuildFlags.BuildRelease))
@@ -331,8 +366,8 @@ namespace CustomBuildTool
                     {
                         if (Directory.Exists("bin\\Release64"))
                         {
-                            Win32.CreateDirectory("bin\\Release64\\x86");
-                            Win32.CreateDirectory("bin\\Release64\\x86\\plugins");
+                            //Win32.CreateDirectory("bin\\Release64\\x86");
+                            Win32.CreateDirectory("bin\\Release64\\x86\\plugins"); // recursive
 
                             Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\Release64\\x86\\SystemInformer.exe");
                             Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\Release64\\x86\\SystemInformer.pdb");
@@ -345,6 +380,27 @@ namespace CustomBuildTool
                             Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\Release64\\x86\\plugins\\ExtendedTools.dll");
                             Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\Release64\\x86\\plugins\\ExtendedTools.pdb");
                             Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\Release64\\x86\\plugins\\ExtendedTools.sig");
+                        }
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (Directory.Exists("bin\\ReleaseARM64"))
+                        {
+                            //Win32.CreateDirectory("bin\\ReleaseARM64\\x86");
+                            Win32.CreateDirectory("bin\\ReleaseARM64\\x86\\plugins"); // recursive
+
+                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\ReleaseARM64\\x86\\SystemInformer.exe");
+                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\ReleaseARM64\\x86\\SystemInformer.pdb");
+                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.sig", "bin\\ReleaseARM64\\x86\\SystemInformer.sig");
+
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.dll");
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.pdb");
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.sig", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.sig");
+
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.dll");
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.pdb");
+                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.sig");
                         }
                     }
                 }
@@ -464,7 +520,7 @@ namespace CustomBuildTool
 
         public static bool CopyKernelDriver(BuildFlags Flags)
         {
-            string CustomSignToolPath = Verify.GetCustomSignToolFilePath();
+            var files = new List<string>();
 
             try
             {
@@ -533,6 +589,42 @@ namespace CustomBuildTool
                 Program.PrintColorMessage($"[ERROR] (CopyKernelDriver) {ex}", ConsoleColor.Red);
             }
 
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
+            {
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                {
+                    files.Add("bin\\Debug32\\SystemInformer.exe");
+                }
+
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    files.Add("bin\\Debug64\\SystemInformer.exe");
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    files.Add("bin\\DebugARM64\\SystemInformer.exe");
+                }
+            }
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            {
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                {
+                    files.Add("bin\\Release32\\SystemInformer.exe");
+                }
+
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    files.Add("bin\\Release64\\SystemInformer.exe");
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    files.Add("bin\\ReleaseARM64\\SystemInformer.exe");
+                }
+            }
+
             if (BuildNightly && !File.Exists(Verify.GetPath("kph.key")))
             {
                 string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
@@ -549,85 +641,21 @@ namespace CustomBuildTool
                 }
             }
 
-            if (File.Exists(CustomSignToolPath))
+            if (File.Exists(Verify.GetPath("kph.key")))
             {
-                var files = new List<string>();
-
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        files.Add("bin\\Debug32\\SystemInformer.exe");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        files.Add("bin\\Debug64\\SystemInformer.exe");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        files.Add("bin\\DebugARM64\\SystemInformer.exe");
-                    }
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        files.Add("bin\\Release32\\SystemInformer.exe");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        files.Add("bin\\Release64\\SystemInformer.exe");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        files.Add("bin\\ReleaseARM64\\SystemInformer.exe");
-                    }
-                }
-
                 foreach (string file in files)
                 {
                     if (File.Exists(file))
                     {
-                        string sigfile = Path.ChangeExtension(file, ".sig");
-                        File.WriteAllText(sigfile, string.Empty);
-
-                        if (File.Exists(Verify.GetPath("kph.key")))
-                        {
-                            int errorcode = Win32.CreateProcess(
-                                CustomSignToolPath,
-                                $"sign -k {Verify.GetPath("kph.key")} {file} -s {sigfile}",
-                                out string errorstring
-                                );
-
-                            if (errorcode != 0)
-                            {
-                                Program.PrintColorMessage($"[CopyKernelDriver] ({errorcode}) {errorstring}", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-
-                                if (BuildNightly)
-                                {
-                                    Win32.DeleteFile(Verify.GetPath("kph.key"));
-                                }
-
-                                return false;
-                            }
-                        }
+                        if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), $"{BuildWorkingFolder}\\{file}", BuildNightly))
+                            return false;
                     }
                 }
             }
 
-            if (BuildNightly)
-            {
-                Win32.DeleteFile(Verify.GetPath("kph.key"));
-            }
-
             return true;
         }
-        
+
         public static bool SignPlugin(string PluginName)
         {
             if (!File.Exists(PluginName))
@@ -636,14 +664,6 @@ namespace CustomBuildTool
                 return true;
             }
 
-            string CustomSignToolPath = Verify.GetCustomSignToolFilePath();
-
-            if (!File.Exists(CustomSignToolPath))
-            {
-                Program.PrintColorMessage($"[SKIPPED] CustomSignTool not found: {PluginName}", ConsoleColor.Yellow);
-                return true;
-            }
-
             if (BuildNightly && !File.Exists(Verify.GetPath("kph.key")))
             {
                 string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
@@ -660,66 +680,10 @@ namespace CustomBuildTool
                 }
             }
 
-            {
-                string sigfile = Path.ChangeExtension(PluginName, ".sig");
-                File.WriteAllText(sigfile, string.Empty);
-
-                if (File.Exists(Verify.GetPath("kph.key")))
-                {
-                    int errorcode = Win32.CreateProcess(
-                        CustomSignToolPath,
-                        $"sign -k {Verify.GetPath("kph.key")} {PluginName} -s {sigfile}",
-                        out string errorstring
-                        );
-
-                    if (BuildNightly)
-                    {
-                        Win32.DeleteFile(Verify.GetPath("kph.key"));
-                    }
-
-                    if (errorcode != 0)
-                    {
-                        Program.PrintColorMessage($"[SignPlugin] ({errorcode}) {errorstring}", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                        return false;
-                    }
-                }
-            }
-
-            if (BuildNightly)
-            {
-                Win32.DeleteFile(Verify.GetPath("kph.key"));
-            }
-
+            if (File.Exists(Verify.GetPath("kph.key")))
+                return Verify.CreateSignatureFile(Verify.GetPath("kph.key"), PluginName, false);
             return true;
         }
-
-        //public static bool BuildWebSetupExe()
-        //{
-        //    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
-        //    Program.PrintColorMessage("Building build-websetup.exe...", ConsoleColor.Cyan);
-        //
-        //    if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit))
-        //        return false;
-        //
-        //    try
-        //    {
-        //        Win32.DeleteFile(
-        //            $"{BuildOutputFolder}\\systeminformer-build-websetup.exe"
-        //            );
-        //
-        //        File.Move(
-        //            "tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
-        //            $"{BuildOutputFolder}\\systeminformer-build-websetup.exe"
-        //            );
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-        //        return false;
-        //    }
-        //
-        //    return true;
-        //}
 
         public static bool BuildSdk(BuildFlags Flags)
         {
@@ -739,15 +703,15 @@ namespace CustomBuildTool
                 // Copy readme
                 Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt");
                 // Copy symbols
-                Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "sdk\\dbg\\i386\\SystemInformer.pdb");
-                Win32.CopyIfNewer("bin\\Release64\\SystemInformer.pdb", "sdk\\dbg\\amd64\\SystemInformer.pdb");
-                Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.pdb", "sdk\\dbg\\arm64\\SystemInformer.pdb");
-                Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\systeminformer.pdb", "sdk\\dbg\\i386\\ksysteminformer.pdb");
-                Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\systeminformer.pdb", "sdk\\dbg\\amd64\\ksysteminformer.pdb");
-                Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\systeminformer.pdb", "sdk\\dbg\\arm64\\ksysteminformer.pdb");
-                Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\ksi.pdb", "sdk\\dbg\\i386\\ksi.pdb");
-                Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\ksi.pdb", "sdk\\dbg\\amd64\\ksi.pdb");
-                Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\ksi.pdb", "sdk\\dbg\\arm64\\ksi.pdb");
+                //Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "sdk\\dbg\\i386\\SystemInformer.pdb");
+                //Win32.CopyIfNewer("bin\\Release64\\SystemInformer.pdb", "sdk\\dbg\\amd64\\SystemInformer.pdb");
+                //Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.pdb", "sdk\\dbg\\arm64\\SystemInformer.pdb");
+                //Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\systeminformer.pdb", "sdk\\dbg\\i386\\ksysteminformer.pdb");
+                //Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\systeminformer.pdb", "sdk\\dbg\\amd64\\ksysteminformer.pdb");
+                //Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\systeminformer.pdb", "sdk\\dbg\\arm64\\ksysteminformer.pdb");
+                //Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\ksi.pdb", "sdk\\dbg\\i386\\ksi.pdb");
+                //Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\ksi.pdb", "sdk\\dbg\\amd64\\ksi.pdb");
+                //Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\ksi.pdb", "sdk\\dbg\\arm64\\ksi.pdb");
 
                 // Copy libs
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
@@ -864,39 +828,31 @@ namespace CustomBuildTool
 
             try
             {
-                Win32.DeleteFile("bin\\Release32\\SystemInformer.exe.settings.xml");
-                Win32.DeleteFile("bin\\Release64\\SystemInformer.exe.settings.xml");
-                Win32.DeleteFile("bin\\ReleaseARM64\\SystemInformer.exe.settings.xml");
-
                 if (Directory.Exists("bin\\Release32"))
-                    File.Create("bin\\Release32\\SystemInformer.exe.settings.xml").Dispose();
+                    Win32.CreateEmptyFile("bin\\Release32\\SystemInformer.exe.settings.xml");
                 if (Directory.Exists("bin\\Release64"))
-                    File.Create("bin\\Release64\\SystemInformer.exe.settings.xml").Dispose();
+                    Win32.CreateEmptyFile("bin\\Release64\\SystemInformer.exe.settings.xml");
                 if (Directory.Exists("bin\\ReleaseARM64"))
-                    File.Create("bin\\ReleaseARM64\\SystemInformer.exe.settings.xml").Dispose();
+                    Win32.CreateEmptyFile("bin\\ReleaseARM64\\SystemInformer.exe.settings.xml");
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
             }
 
-            try
-            {
-                Win32.DeleteFile("bin\\Release32\\usernotesdb.xml");
-                Win32.DeleteFile("bin\\Release64\\usernotesdb.xml");
-                Win32.DeleteFile("bin\\ReleaseARM64\\usernotesdb.xml");
-
-                if (Directory.Exists("bin\\Release32"))
-                    File.Create("bin\\Release32\\usernotesdb.xml").Dispose();
-                if (Directory.Exists("bin\\Release64"))
-                    File.Create("bin\\Release64\\usernotesdb.xml").Dispose();
-                if (Directory.Exists("bin\\ReleaseARM64"))
-                    File.Create("bin\\ReleaseARM64\\usernotesdb.xml").Dispose();
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
-            }
+            //try
+            //{
+            //    if (Directory.Exists("bin\\Release32"))
+            //        Win32.CreateEmptyFile("bin\\Release32\\usernotesdb.xml");
+            //    if (Directory.Exists("bin\\Release64"))
+            //        Win32.CreateEmptyFile("bin\\Release64\\usernotesdb.xml");
+            //    if (Directory.Exists("bin\\ReleaseARM64"))
+            //        Win32.CreateEmptyFile("bin\\ReleaseARM64\\usernotesdb.xml");
+            //}
+            //catch (Exception ex)
+            //{
+            //    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
+            //}
 
             try
             {
@@ -1235,44 +1191,26 @@ namespace CustomBuildTool
 
             Program.PrintColorMessage($"{Environment.NewLine}Uploading build artifacts... {BuildVersion}", ConsoleColor.Cyan);
 
-            if (BuildNightly)
+            if (BuildNightly && !File.Exists(Verify.GetPath("nightly.key")))
             {
-                if (!File.Exists(Verify.GetPath("nightly.key")))
+                string buildKey = Win32.GetEnvironmentVariable("%NIGHTLY_BUILD_KEY%");
+
+                if (!string.IsNullOrWhiteSpace(buildKey))
                 {
-                    string buildKey = Win32.GetEnvironmentVariable("%NIGHTLY_BUILD_KEY%");
-
-                    if (!string.IsNullOrWhiteSpace(buildKey))
-                    {
-                        //Verify.Decrypt(Verify.GetPath("nightly.s"), Verify.GetPath("nightly.key"), buildKey);
-                        Verify.DecryptLegacy(Verify.GetPath("nightly-legacy.s"), Verify.GetPath("nightly.key"), buildKey);
-                    }
-
-                    if (!File.Exists(Verify.GetPath("nightly.key")))
-                    {
-                        Program.PrintColorMessage("[SKIPPED] nightly.key not found.", ConsoleColor.Yellow);
-                        return true;
-                    }
+                    //Verify.Decrypt(Verify.GetPath("nightly.s"), Verify.GetPath("nightly.key"), buildKey);
+                    Verify.DecryptLegacy(Verify.GetPath("nightly-legacy.s"), Verify.GetPath("nightly.key"), buildKey);
                 }
             }
 
-            string customSignToolPath = Verify.GetCustomSignToolFilePath();
+            BuildBinSig = Verify.CreateSignatureString(
+                Verify.GetPath("nightly.key"),
+                $"{BuildOutputFolder}\\systeminformer-build-bin.zip"
+                );
 
-            if (File.Exists(customSignToolPath))
-            {
-                BuildBinSig = Win32.ShellExecute(
-                    customSignToolPath,
-                    $"sign -k {Verify.GetPath("nightly.key")} {BuildOutputFolder}\\systeminformer-build-bin.zip -h"
-                    );
-                BuildSetupSig = Win32.ShellExecute(
-                    customSignToolPath,
-                    $"sign -k {Verify.GetPath("nightly.key")} {BuildOutputFolder}\\systeminformer-build-setup.exe -h"
-                    );
-            }
-            else
-            {
-                Program.PrintColorMessage("[SKIPPED] CustomSignTool not found.", ConsoleColor.Yellow);
-                return true;
-            }
+            BuildSetupSig = Verify.CreateSignatureString(
+                Verify.GetPath("nightly.key"),
+                $"{BuildOutputFolder}\\systeminformer-build-setup.exe"
+                );
 
             if (BuildNightly)
             {
@@ -1395,118 +1333,118 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildDeployUploadArtifacts()
-        {
-            string buildPostUrl;
-            string buildPostKey;
-            string buildPostName;
-
-            if (!BuildNightly)
-                return true;
-
-            buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_URL%");
-            buildPostKey = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_KEY%");
-            buildPostName = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_NAME%");
-
-            if (string.IsNullOrWhiteSpace(buildPostUrl))
-                return false;
-            if (string.IsNullOrWhiteSpace(buildPostKey))
-                return false;
-            if (string.IsNullOrWhiteSpace(buildPostName))
-                return false;
-
-            Program.PrintColorMessage(string.Empty, ConsoleColor.Black);
-
-            try
-            {
-                foreach (BuildFile file in BuildConfig.Build_Release_Files)
-                {
-                    string sourceFile = BuildOutputFolder + file.FileName;
-
-                    if (File.Exists(sourceFile))
-                    {
-                        string filename;
-                        FtpWebRequest request;
-
-                        filename = Path.GetFileName(sourceFile);
-                        //filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
-
-                        #pragma warning disable SYSLIB0014 // Type or member is obsolete
-                        request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
-                        #pragma warning restore SYSLIB0014 // Type or member is obsolete
-                        request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
-                        request.Method = WebRequestMethods.Ftp.UploadFile;
-                        request.Timeout = System.Threading.Timeout.Infinite;
-                        request.EnableSsl = true;
-                        request.UsePassive = true;
-                        request.UseBinary = true;
-
-                        Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
-
-                        using (FileStream fileStream = File.OpenRead(sourceFile))
-                        using (BufferedStream localStream = new BufferedStream(fileStream))
-                        using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
-                        {
-                            localStream.CopyTo(remoteStream);
-                        }
-
-                        using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-                        {
-                            if (response.StatusCode != FtpStatusCode.CommandOK && response.StatusCode != FtpStatusCode.ClosingData)
-                            {
-                                Program.PrintColorMessage($"[HttpWebResponse] {response.StatusDescription}", ConsoleColor.Red);
-                                return false;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[UploadBuildWebServiceAsync-Exception] {ex.Message}", ConsoleColor.Red);
-                return false;
-            }
-
-            //try
-            //{
-            //    foreach (BuildFile file in BuildConfig.Build_Release_Files)
-            //    {
-            //        if (!file.UploadNightly)
-            //            continue;
-            //
-            //        string sourceFile = BuildOutputFolder + file.FileName;
-            //
-            //        if (File.Exists(sourceFile))
-            //        {
-            //            bool uploaded;
-            //            string fileName;
-            //
-            //            fileName = sourceFile.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
-            //
-            //            File.Move(sourceFile, fileName, true);
-            //            uploaded = AppVeyor.UploadFile(fileName);
-            //            File.Move(fileName, sourceFile, true);
-            //
-            //            if (!uploaded)
-            //            {
-            //                Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
-            //                return false;
-            //            }
-            //        }
-            //        else
-            //        {
-            //            Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
-            //        }
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
-            //    return false;
-            //}
-
-            return true;
-        }
+        //public static bool BuildDeployUploadArtifacts()
+        //{
+        //    string buildPostUrl;
+        //    string buildPostKey;
+        //    string buildPostName;
+        //
+        //    if (!BuildNightly)
+        //        return true;
+        //
+        //    buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_URL%");
+        //    buildPostKey = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_KEY%");
+        //    buildPostName = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_NAME%");
+        //
+        //    if (string.IsNullOrWhiteSpace(buildPostUrl))
+        //        return false;
+        //    if (string.IsNullOrWhiteSpace(buildPostKey))
+        //        return false;
+        //    if (string.IsNullOrWhiteSpace(buildPostName))
+        //        return false;
+        //
+        //    Program.PrintColorMessage(string.Empty, ConsoleColor.Black);
+        //
+        //    try
+        //    {
+        //        foreach (BuildFile file in BuildConfig.Build_Release_Files)
+        //        {
+        //            string sourceFile = BuildOutputFolder + file.FileName;
+        //
+        //            if (File.Exists(sourceFile))
+        //            {
+        //                string filename;
+        //                FtpWebRequest request;
+        //
+        //                filename = Path.GetFileName(sourceFile);
+        //                //filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
+        //
+        //                #pragma warning disable SYSLIB0014 // Type or member is obsolete
+        //                request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
+        //                #pragma warning restore SYSLIB0014 // Type or member is obsolete
+        //                request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
+        //                request.Method = WebRequestMethods.Ftp.UploadFile;
+        //                request.Timeout = System.Threading.Timeout.Infinite;
+        //                request.EnableSsl = true;
+        //                request.UsePassive = true;
+        //                request.UseBinary = true;
+        //
+        //                Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
+        //
+        //                using (FileStream fileStream = File.OpenRead(sourceFile))
+        //                using (BufferedStream localStream = new BufferedStream(fileStream))
+        //                using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
+        //                {
+        //                    localStream.CopyTo(remoteStream);
+        //                }
+        //
+        //                using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
+        //                {
+        //                    if (response.StatusCode != FtpStatusCode.CommandOK && response.StatusCode != FtpStatusCode.ClosingData)
+        //                    {
+        //                        Program.PrintColorMessage($"[HttpWebResponse] {response.StatusDescription}", ConsoleColor.Red);
+        //                        return false;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Program.PrintColorMessage($"[UploadBuildWebServiceAsync-Exception] {ex.Message}", ConsoleColor.Red);
+        //        return false;
+        //    }
+        //
+        //    //try
+        //    //{
+        //    //    foreach (BuildFile file in BuildConfig.Build_Release_Files)
+        //    //    {
+        //    //        if (!file.UploadNightly)
+        //    //            continue;
+        //    //
+        //    //        string sourceFile = BuildOutputFolder + file.FileName;
+        //    //
+        //    //        if (File.Exists(sourceFile))
+        //    //        {
+        //    //            bool uploaded;
+        //    //            string fileName;
+        //    //
+        //    //            fileName = sourceFile.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
+        //    //
+        //    //            File.Move(sourceFile, fileName, true);
+        //    //            uploaded = AppVeyor.UploadFile(fileName);
+        //    //            File.Move(fileName, sourceFile, true);
+        //    //
+        //    //            if (!uploaded)
+        //    //            {
+        //    //                Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
+        //    //                return false;
+        //    //            }
+        //    //        }
+        //    //        else
+        //    //        {
+        //    //            Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
+        //    //        }
+        //    //    }
+        //    //}
+        //    //catch (Exception ex)
+        //    //{
+        //    //    Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
+        //    //    return false;
+        //    //}
+        //
+        //    return true;
+        //}
 
         public static GithubRelease BuildDeployUploadGithubConfig()
         {

@@ -104,6 +104,7 @@ PPH_STRING PhGetProcessTooltipText(
     PH_STRING_BUILDER stringBuilder;
     ULONG validForMs = 60 * 60 * 1000; // 1 hour
     PPH_STRING tempString;
+    PPH_STRING fileNameWin32;
 
     PhInitializeStringBuilder(&stringBuilder, 200);
 
@@ -123,22 +124,28 @@ PPH_STRING PhGetProcessTooltipText(
 
     // File information
 
-    tempString = PhFormatImageVersionInfo(
-        Process->FileNameWin32,
-        &Process->VersionInfo,
-        &StandardIndent,
-        0
-        );
+    fileNameWin32 = Process->FileName ? PhGetFileName(Process->FileName) : NULL;
 
-    if (!PhIsNullOrEmptyString(tempString))
+    if (fileNameWin32)
     {
-        PhAppendStringBuilder2(&stringBuilder, L"File:\n");
-        PhAppendStringBuilder(&stringBuilder, &tempString->sr);
-        PhAppendCharStringBuilder(&stringBuilder, L'\n');
-    }
+        tempString = PhFormatImageVersionInfo(
+            fileNameWin32,
+            &Process->VersionInfo,
+            &StandardIndent,
+            0
+            );
 
-    if (tempString)
-        PhDereferenceObject(tempString);
+        if (!PhIsNullOrEmptyString(tempString))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"File:\n");
+            PhAppendStringBuilder(&stringBuilder, &tempString->sr);
+            PhAppendCharStringBuilder(&stringBuilder, L'\n');
+        }
+
+        if (tempString)
+            PhDereferenceObject(tempString);
+        PhDereferenceObject(fileNameWin32);
+    }
 
     // Known command line information
 
@@ -385,7 +392,7 @@ PPH_STRING PhGetProcessTooltipText(
 
         PhInitializeStringBuilder(&notes, 40);
 
-        if (Process->FileNameWin32)
+        if (Process->FileName)
         {
             if (Process->VerifyResult == VrTrusted)
             {
@@ -449,11 +456,17 @@ PPH_STRING PhGetProcessTooltipText(
             PhAppendStringBuilder2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)
         {
-            if (Process->ElevationType == TokenElevationTypeFull)
+            if (Process->ElevationType == TokenElevationTypeDefault)
+                PhAppendStringBuilder2(&notes, L"    Process is default elevated.\n");
+            else if (Process->ElevationType == TokenElevationTypeFull)
                 PhAppendStringBuilder2(&notes, L"    Process is full elevated.\n");
             else if (Process->ElevationType == TokenElevationTypeLimited)
                 PhAppendStringBuilder2(&notes, L"    Process is limited elevated.\n");
+            else
+                PhAppendStringBuilder2(&notes, L"    Process is elevated.\n");
         }
+        if (Process->IsUIAccessEnabled)
+            PhAppendStringBuilder2(&notes, L"    Process is UIAccess.\n");
         if (Process->IsImmersive)
             PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");
         if (Process->IsInJob)
@@ -550,7 +563,7 @@ VOID PhpFillUmdfDrivers(
                         PH_STRINGREF deviceName;
                         PPH_STRING hardwareId;
 
-                        if (deviceDesc = PhQueryRegistryString(driverKeyHandle, L"DeviceDesc"))
+                        if (deviceDesc = PhQueryRegistryStringZ(driverKeyHandle, L"DeviceDesc"))
                         {
                             PH_STRINGREF firstPart;
                             PH_STRINGREF secondPart;
@@ -565,7 +578,7 @@ VOID PhpFillUmdfDrivers(
                             PhInitializeStringRef(&deviceName, L"Unknown Device");
                         }
 
-                        hardwareId = PhQueryRegistryString(driverKeyHandle, L"HardwareID");
+                        hardwareId = PhQueryRegistryStringZ(driverKeyHandle, L"HardwareID");
 
                         PhAppendStringBuilder(Drivers, &StandardIndent);
                         PhAppendStringBuilder(Drivers, &deviceName);
@@ -772,7 +785,7 @@ PPH_STRING PhGetServiceTooltipText(
 
         // File information
 
-        if (fileName = PhGetServiceRelevantFileName(&Service->Name->sr, serviceHandle))
+        if (fileName = PhGetServiceHandleFileName(serviceHandle, &Service->Name->sr))
         {
             PH_IMAGE_VERSION_INFO versionInfo;
             PPH_STRING versionInfoText;

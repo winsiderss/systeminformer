@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2013
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -35,22 +35,28 @@ typedef struct _WE_WINDOW_NODE
             ULONG HasChildren : 1;
             ULONG WindowVisible : 1;
             ULONG WindowMessageOnly : 1;
-            ULONG Spare : 29;
+            ULONG Spare : 28;
+            ULONG ProcessIconValid : 1;
         };
     };
-
-    PH_STRINGREF TextCache[WEWNTLC_MAXIMUM];
 
     HWND WindowHandle;
     WCHAR WindowClass[64];
     PPH_STRING WindowText;
     CLIENT_ID ClientId;
-    ULONG_PTR WindowIconIndex;
 
-    WCHAR WindowHandleString[PH_PTR_STR_LEN_1];
+    PPH_PROCESS_ITEM ProcessItem;
+    union
+    {
+        ULONG_PTR ProcessIconIndex;
+        ULONG_PTR WindowIconIndex;
+    };
+
     PPH_STRING ThreadString;
     PPH_STRING ModuleString;
     PPH_STRING FileNameWin32;
+    WCHAR WindowHandleString[PH_PTR_STR_LEN_1];
+    PH_STRINGREF TextCache[WEWNTLC_MAXIMUM];
 } WE_WINDOW_NODE, *PWE_WINDOW_NODE;
 
 typedef struct _WE_WINDOW_TREE_CONTEXT
@@ -59,6 +65,19 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
     HWND TreeNewHandle;
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
+
+    enum _WE_WINDOW_SELECTOR_TYPE SelectorType;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG EnableIcons : 1;
+            ULONG EnableIconsInternal : 1;
+            ULONG Spare : 30;
+        };
+    };
 
     PPH_STRING SearchboxText;
     PH_TN_FILTER_SUPPORT FilterSupport;
@@ -78,6 +97,13 @@ VOID WeInitializeWindowTree(
 
 VOID WeDeleteWindowTree(
     _In_ PWE_WINDOW_TREE_CONTEXT Context
+    );
+
+typedef struct _WE_WINDOW_SELECTOR WE_WINDOW_SELECTOR, *PWE_WINDOW_SELECTOR;
+
+VOID WeInitializeWindowTreeImageList(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ PWE_WINDOW_SELECTOR Selector
     );
 
 PWE_WINDOW_NODE WeAddWindowNode(

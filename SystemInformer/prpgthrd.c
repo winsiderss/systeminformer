@@ -29,16 +29,11 @@
 static PH_STRINGREF EmptyThreadsText = PH_STRINGREF_INIT(L"There are no threads to display.");
 
 static VOID NTAPI ThreadAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
-    if (!Parameter)
-        return;
 
     // Parameter contains a pointer to the added thread item.
     PhReferenceObject(Parameter);
@@ -46,60 +41,48 @@ static VOID NTAPI ThreadAddedHandler(
 }
 
 static VOID NTAPI ThreadModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderModifiedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderRemovedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadsUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, (ULONG)threadsContext->Provider->RunId, threadsContext->Provider->RunId == 1);
 }
 
 static VOID NTAPI ThreadsLoadingStateChangedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     //PostMessage(
     //    threadsContext->ListContext.TreeNewHandle,
     //    TNM_SETCURSOR,
     //    0,
     //    // Parameter contains TRUE if loading symbols
-    //    (LPARAM)(Parameter ? LoadCursor(NULL, IDC_APPSTARTING) : NULL)
+    //    (LPARAM)(Parameter ? PhLoadCursor(NULL, IDC_APPSTARTING) : NULL)
     //    );
 }
 
@@ -183,7 +166,7 @@ VOID PhpInitializeThreadMenu(
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         IO_PRIORITY_HINT ioPriority = ULONG_MAX;
         ULONG pagePriority = ULONG_MAX;
-        BOOLEAN threadPriorityBoost = FALSE;
+        BOOLEAN threadPriorityBoostDisabled = FALSE;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
@@ -197,9 +180,9 @@ VOID PhpInitializeThreadMenu(
             PhGetThreadBasePriority(threadHandle, &threadPriority);
             PhGetThreadIoPriority(threadHandle, &ioPriority);
             PhGetThreadPagePriority(threadHandle, &pagePriority);
-            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
+            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
 
-            if (NT_SUCCESS(NtOpenThreadToken(
+            if (NT_SUCCESS(PhOpenThreadToken(
                 threadHandle,
                 TOKEN_QUERY,
                 TRUE,
@@ -306,10 +289,9 @@ VOID PhpInitializeThreadMenu(
             }
         }
 
-        if (threadPriorityBoost)
+        if (!threadPriorityBoostDisabled)
         {
-            PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST,
-                PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+            PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
     }
 }
@@ -333,7 +315,7 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     )
 {
     if (Context)
-        return NtOpenThreadToken((HANDLE)Context, DesiredAccess, TRUE, Handle);
+        return PhOpenThreadToken((HANDLE)Context, DesiredAccess, TRUE, Handle);
 
     return STATUS_UNSUCCESSFUL;
 }
@@ -356,33 +338,38 @@ BOOLEAN PhpThreadTreeFilterCallback(
 
     // thread properties
 
-    if (threadNode->ThreadIdText[0])
+    if (threadItem->AlternateThreadIdString)
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->ThreadIdText))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadItem->AlternateThreadIdString->sr))
+            return TRUE;
+    }
+    else if (threadItem->ThreadIdString[0])
+    {
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadItem->ThreadIdString))
             return TRUE;
     }
 
     if (threadNode->PriorityText[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->PriorityText))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->PriorityText))
             return TRUE;
     }
 
     if (threadNode->BasePriorityText[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->BasePriorityText))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->BasePriorityText))
             return TRUE;
     }
 
     if (threadNode->IdealProcessorText[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->IdealProcessorText))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->IdealProcessorText))
             return TRUE;
     }
 
     if (threadNode->ThreadIdHexText[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->ThreadIdHexText))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->ThreadIdHexText))
             return TRUE;
     }
 
@@ -594,10 +581,10 @@ VOID PhpPopulateTableWithProcessThreadNodes(
             // If this is the first column in the row, add some indentation.
             text = PhaCreateStringEx(
                 NULL,
-                getCellText.Text.Length + Level * sizeof(WCHAR) * sizeof(WCHAR)
+                getCellText.Text.Length + UInt32x32To64(Level, 2) * sizeof(WCHAR)
                 );
-            wmemset(text->Buffer, L' ', Level * sizeof(WCHAR));
-            memcpy(&text->Buffer[Level * sizeof(WCHAR)], getCellText.Text.Buffer, getCellText.Text.Length);
+            wmemset(text->Buffer, L' ', UInt32x32To64(Level, 2));
+            memcpy(&text->Buffer[UInt32x32To64(Level, 2)], getCellText.Text.Buffer, getCellText.Text.Length);
         }
 
         Table[*Index][i] = text;
@@ -754,16 +741,13 @@ VOID PhpProcessThreadsSave(
 }
 
 VOID PhpSymbolProviderEventCallbackThreadStatus(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_SYMBOL_EVENT_DATA event = Parameter;
     PPH_THREADS_CONTEXT context = Context;
     PPH_STRING statusMessage = NULL;
-
-    if (!event) return;
-    if (!context) return;
 
     switch (event->EventType)
     {
@@ -1126,15 +1110,15 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             threadItem->ThreadId
                             )))
                         {
-                            BOOLEAN threadPriorityBoost = FALSE;
+                            BOOLEAN threadPriorityBoostDisabled = FALSE;
                             ULONG numberOfThreads;
                             PPH_THREAD_ITEM* threads;
 
-                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
+                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
 
                             PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
                             PhReferenceObjects(threads, numberOfThreads);
-                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoost);
+                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoostDisabled);
                             PhDereferenceObjects(threads, numberOfThreads);
                             PhFree(threads);
 
@@ -1142,7 +1126,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         }
                         else
                         {
-                            PhShowStatus(hwndDlg, L"Unable to open the thread", status, 0);
+                            PhShowStatus(hwndDlg, PhaFormatString(
+                                L"Unable to %s thread %lu", // string pooling optimization (dmex)
+                                L"set the boost priority of",
+                                HandleToUlong(threadItem->ThreadId)
+                                )->Buffer, status, 0);
                         }
                     }
                 }

@@ -52,7 +52,7 @@ BOOLEAN NTAPI ObjectDbEqualFunction(
     PDB_OBJECT object1 = *(PDB_OBJECT *)Entry1;
     PDB_OBJECT object2 = *(PDB_OBJECT *)Entry2;
 
-    return object1->Tag == object2->Tag && PhEqualStringRef(&object1->Key, &object2->Key, TRUE);
+    return object1->Tag == object2->Tag && PhEqualStringRef(&object1->Key, &object2->Key, FALSE);
 }
 
 ULONG NTAPI ObjectDbHashFunction(
@@ -61,7 +61,7 @@ ULONG NTAPI ObjectDbHashFunction(
 {
     PDB_OBJECT object = *(PDB_OBJECT *)Entry;
 
-    return object->Tag + PhHashStringRefEx(&object->Key, TRUE, PH_STRING_HASH_X65599);
+    return object->Tag + PhHashStringRefEx(&object->Key, FALSE, PH_STRING_HASH_X65599);
 }
 
 ULONG GetNumberOfDbObjects(
@@ -165,7 +165,7 @@ VOID SetDbPath(
     _In_ PPH_STRING Path
     )
 {
-    PhSwapReference(&ObjectDbPath, Path);
+    PhSetReference(&ObjectDbPath, Path);
 }
 
 NTSTATUS LoadDb(
@@ -184,7 +184,7 @@ NTSTATUS LoadDb(
     if (!topNode)
     {
         // Delete the corrupted file. (dmex)
-        PhDeleteFileWin32(PhGetString(ObjectDbPath));
+        PhDeleteFile(&ObjectDbPath->sr);
         return STATUS_FILE_CORRUPT_ERROR;
     }
 
@@ -324,7 +324,7 @@ NTSTATUS LoadDb(
     if (GetNumberOfDbObjects() == 0)
     {
         // Delete the empty DB to improve performance (dmex)
-        PhDeleteFileWin32(PhGetString(ObjectDbPath));
+        PhDeleteFile(&ObjectDbPath->sr);
     }
 
     return STATUS_SUCCESS;
@@ -378,9 +378,9 @@ NTSTATUS SaveDb(
     if (GetNumberOfDbObjects() == 0)
     {
         // Delete the empty DB to improve performance (dmex)
-        if (PhDoesFileExistWin32(PhGetString(ObjectDbPath)))
+        if (PhDoesFileExist(&ObjectDbPath->sr))
         {
-            PhDeleteFileWin32(PhGetString(ObjectDbPath));
+            PhDeleteFile(&ObjectDbPath->sr);
         }
         return STATUS_SUCCESS;
     }
@@ -454,6 +454,27 @@ NTSTATUS SaveDb(
     return status;
 }
 
+VOID EnumDb(
+    _In_ PDB_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PDB_OBJECT* object;
+
+    LockDb();
+
+    PhBeginEnumHashtable(ObjectDb, &enumContext);
+
+    while (object = PhNextEnumHashtable(&enumContext))
+    {
+        if (!Callback(*object, Context))
+            break;
+    }
+
+    UnlockDb();
+}
+
 _Success_(return)
 BOOLEAN FindIfeoObject(
     _In_ PPH_STRINGREF Name,
@@ -483,7 +504,7 @@ BOOLEAN FindIfeoObject(
     {
         if (CpuPriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
             {
                 *CpuPriorityClass = value;
             }
@@ -495,7 +516,7 @@ BOOLEAN FindIfeoObject(
 
         if (IoPriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
             {
                 *IoPriorityClass = value;
             }
@@ -507,7 +528,7 @@ BOOLEAN FindIfeoObject(
 
         if (PagePriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
             {
                 *PagePriorityClass = value;
             }
@@ -682,15 +703,13 @@ NTSTATUS DeleteIfeoObject(
             status = PhDeleteValueKey(keyHandle, &IfeoPagePriorityClassKeyName);
         }
 
-        priorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoCpuPriorityClassKeyName);
-        ioPriorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoIoPriorityClassKeyName);
-        pagePriorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName);
+        priorityClass = PhQueryRegistryUlong(keyHandle, &IfeoCpuPriorityClassKeyName);
+        ioPriorityClass = PhQueryRegistryUlong(keyHandle, &IfeoIoPriorityClassKeyName);
+        pagePriorityClass = PhQueryRegistryUlong(keyHandle, &IfeoPagePriorityClassKeyName);
 
-        if (
-            priorityClass == ULONG_MAX &&
+        if (priorityClass == ULONG_MAX &&
             ioPriorityClass == ULONG_MAX &&
-            pagePriorityClass == ULONG_MAX
-            )
+            pagePriorityClass == ULONG_MAX)
         {
             NtDeleteKey(keyHandle);
         }
@@ -698,11 +717,9 @@ NTSTATUS DeleteIfeoObject(
         NtClose(keyHandle);
     }
 
-    if (
-        priorityClass == ULONG_MAX &&
+    if (priorityClass == ULONG_MAX &&
         ioPriorityClass == ULONG_MAX &&
-        pagePriorityClass == ULONG_MAX
-        )
+        pagePriorityClass == ULONG_MAX)
     {
         NtDeleteKey(keyRootHandle);
     }

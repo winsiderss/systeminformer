@@ -63,6 +63,7 @@
 #undef WIN32_NO_STATUS
 #include <ntstatus.h>
 #include <winioctl.h>
+#include <wmistr.h>
 
 typedef double DOUBLE;
 typedef GUID *PGUID;
@@ -103,5 +104,16 @@ typedef GUID *PGUID;
     (WMIGUID_EXECUTE | TRACELOG_GUID_ENABLE | TRACELOG_LOG_EVENT | \
     TRACELOG_ACCESS_REALTIME | TRACELOG_REGISTER_GUIDS | \
     STANDARD_RIGHTS_EXECUTE)
+
+// Note: Some parts of the Windows Runtime, COM or third party hooks are returning
+// S_FALSE and null pointers on errors when S_FALSE is a success code. (dmex)
+#define HR_SUCCESS(hr) (((HRESULT)(hr)) == S_OK)
+#define HR_FAILED(hr) (((HRESULT)(hr)) != S_OK)
+
+// Note: The CONTAINING_RECORD macro doesn't support UBSan and generates false positives,
+// we redefine the macro with FIELD_OFFSET as a workaround until the WinSDK is fixed (dmex)
+#undef CONTAINING_RECORD
+#define CONTAINING_RECORD(address, type, field) \
+    ((type *)((ULONG_PTR)(address) - UFIELD_OFFSET(type, field)))
 
 #endif

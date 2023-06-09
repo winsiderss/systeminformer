@@ -1,11 +1,23 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_HNDLINFO_H
 #define _PH_HNDLINFO_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define MAX_OBJECT_TYPE_NUMBER 257
+
+extern BOOLEAN PhEnableProcessHandlePnPDeviceNameSupport;
 
 typedef PPH_STRING (NTAPI *PPH_GET_CLIENT_ID_NAME)(
     _In_ PCLIENT_ID ClientId
@@ -24,6 +36,14 @@ NTAPI
 PhQueryObjectName(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryObjectBasicInformation(
+    _In_ HANDLE Handle,
+    _Out_ POBJECT_BASIC_INFORMATION BasicInformation
     );
 
 PHLIBAPI
@@ -113,6 +133,20 @@ PhGetObjectTypeNumber(
     _In_ PPH_STRINGREF TypeName
     );
 
+FORCEINLINE
+ULONG
+NTAPI
+PhGetObjectTypeNumberZ(
+    _In_ PWSTR TypeName
+    )
+{
+    PH_STRINGREF typeName;
+
+    PhInitializeStringRef(&typeName, TypeName);
+
+    return PhGetObjectTypeNumber(&typeName);
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -182,9 +216,6 @@ PhCallKphQueryFileInformationWithTimeout(
     _In_ ULONG FileInformationLength
     );
 
-
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

@@ -12,8 +12,8 @@
 #include <peview.h>
 #include "colmgr.h"
 
-#include "..\thirdparty\ssdeep\fuzzy.h"
-#include "..\thirdparty\tlsh\tlsh_wrapper.h"
+#include "../thirdparty/ssdeep/fuzzy.h"
+#include "../thirdparty/tlsh/tlsh_wrapper.h"
 
 static PH_STRINGREF EmptyDirectoriesText = PH_STRINGREF_INIT(L"There are no directories to display.");
 static PH_STRINGREF LoadingDirectoriesText = PH_STRINGREF_INIT(L"Loading directories from image...");
@@ -256,37 +256,22 @@ VOID PvpPeEnumerateImageDataDirectory(
 
     if (imageDirectoryData && directorySize)
     {
-        __try
-        {
-            PH_HASH_CONTEXT hashContext;
-            UCHAR hash[32];
-
-            PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-            PhUpdateHash(&hashContext, imageDirectoryData, directorySize);
-
-            if (PhFinalHash(&hashContext, hash, 16, NULL))
-            {
-                directoryNode->HashString = PhBufferToHexString(hash, 16);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            //directoryNode->HashString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
-        }
+        directoryNode->HashString = PvHashBuffer(imageDirectoryData, directorySize);
 
         __try
         {
             DOUBLE imageDirectoryEntropy;
 
-            imageDirectoryEntropy = PvCalculateEntropyBuffer(
+            if (PhCalculateEntropy(
                 imageDirectoryData,
                 directorySize,
+                &imageDirectoryEntropy,
                 NULL
-                );
-
-            directoryNode->DirectoryEntropy = imageDirectoryEntropy;
-            directoryNode->EntropyString = PvFormatDoubleCropZero(imageDirectoryEntropy, 2);
+                ))
+            {
+                directoryNode->DirectoryEntropy = imageDirectoryEntropy;
+                directoryNode->EntropyString = PhFormatEntropy(imageDirectoryEntropy, 2, 0, 0);
+            }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -424,7 +409,7 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
 
             PhCreateThread2(PvpPeDirectoryEnumerateThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

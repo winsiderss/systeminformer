@@ -94,6 +94,7 @@ extern "C" {
 #include <ntpoapi.h>
 #include <ntregapi.h>
 #include <ntrtl.h>
+#include <ntimage.h>
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)

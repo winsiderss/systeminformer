@@ -15,6 +15,7 @@
 #include <phplug.h>
 #include <phsettings.h>
 #include <extmgri.h>
+#include <mapldr.h>
 #include <netprv.h>
 #include <procprv.h>
 #include <svcsup.h>
@@ -90,9 +91,14 @@ SLIST_HEADER PhNetworkItemQueryListHead;
 
 BOOLEAN PhEnableNetworkProviderResolve = TRUE;
 BOOLEAN PhEnableNetworkBoundConnections = TRUE;
-static BOOLEAN NetworkImportDone = FALSE;
 static PPH_HASHTABLE PhpResolveCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
+
+static BOOLEAN NetworkImportDone = FALSE;
+static _GetExtendedTcpTable GetExtendedTcpTable_I = NULL;
+static _GetExtendedUdpTable GetExtendedUdpTable_I = NULL;
+static _InternalGetBoundTcpEndpointTable GetBoundTcpEndpointTable_I = NULL;
+static _InternalGetBoundTcp6EndpointTable GetBoundTcp6EndpointTable_I = NULL;
 
 BOOLEAN PhNetworkProviderInitialization(
     VOID
@@ -681,10 +687,16 @@ VOID PhNetworkProviderUpdate(
 
     if (!NetworkImportDone)
     {
-        WSADATA wsaData;
-        // Make sure WSA is initialized. (wj32)
-        WSAStartup(WINSOCK_VERSION, &wsaData);
-        PhLoaderEntryLoadAllImportsForDll(PhInstanceHandle, "iphlpapi.dll");
+        PVOID iphlpapi;
+
+        if (iphlpapi = PhLoadLibrary(L"iphlpapi.dll"))
+        {
+            GetExtendedTcpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
+            GetExtendedUdpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
+            GetBoundTcpEndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcpEndpointTable", 0);
+            GetBoundTcp6EndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcp6EndpointTable", 0);
+        }
+
         NetworkImportDone = TRUE;
     }
 
@@ -1081,10 +1093,10 @@ BOOLEAN PhGetNetworkConnections(
     // TCP IPv4
 
     tableSize = 0;
-    GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
+    GetExtendedTcpTable_I(NULL, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
+    if (GetExtendedTcpTable_I(table, &tableSize, FALSE, AF_INET, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
     {
         tcp4Table = table;
         count += tcp4Table->dwNumEntries;
@@ -1098,10 +1110,10 @@ BOOLEAN PhGetNetworkConnections(
     // TCP IPv6
 
     tableSize = 0;
-    GetExtendedTcpTable(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
+    GetExtendedTcpTable_I(NULL, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedTcpTable(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
+    if (GetExtendedTcpTable_I(table, &tableSize, FALSE, AF_INET6, TCP_TABLE_OWNER_MODULE_ALL, 0) == NO_ERROR)
     {
         tcp6Table = table;
         count += tcp6Table->dwNumEntries;
@@ -1115,10 +1127,10 @@ BOOLEAN PhGetNetworkConnections(
     // UDP IPv4
 
     tableSize = 0;
-    GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
+    GetExtendedUdpTable_I(NULL, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
+    if (GetExtendedUdpTable_I(table, &tableSize, FALSE, AF_INET, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
     {
         udp4Table = table;
         count += udp4Table->dwNumEntries;
@@ -1132,10 +1144,10 @@ BOOLEAN PhGetNetworkConnections(
     // UDP IPv6
 
     tableSize = 0;
-    GetExtendedUdpTable(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
+    GetExtendedUdpTable_I(NULL, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0);
     table = PhAllocate(tableSize);
 
-    if (GetExtendedUdpTable(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
+    if (GetExtendedUdpTable_I(table, &tableSize, FALSE, AF_INET6, UDP_TABLE_OWNER_MODULE, 0) == NO_ERROR)
     {
         udp6Table = table;
         count += udp6Table->dwNumEntries;
@@ -1146,11 +1158,11 @@ BOOLEAN PhGetNetworkConnections(
         udp6Table = NULL;
     }
 
-    if (PhEnableNetworkBoundConnections)
+    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5 && GetBoundTcpEndpointTable_I && GetBoundTcp6EndpointTable_I)
     {
         // Bound TCP IPv4
 
-        if (InternalGetBoundTcpEndpointTable && InternalGetBoundTcpEndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        if (GetBoundTcpEndpointTable_I(&table, PhHeapHandle, 0) == NO_ERROR)
         {
             boundTcpTable = table;
             count += boundTcpTable->dwNumEntries;
@@ -1162,7 +1174,7 @@ BOOLEAN PhGetNetworkConnections(
 
         // Bound TCP IPv6
 
-        if (InternalGetBoundTcp6EndpointTable && InternalGetBoundTcp6EndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        if (GetBoundTcp6EndpointTable_I(&table, PhHeapHandle, 0) == NO_ERROR)
         {
             boundTcp6Table = table;
             count += boundTcp6Table->dwNumEntries;
@@ -1299,7 +1311,7 @@ BOOLEAN PhGetNetworkConnections(
         PhFree(udp6Table);
     }
 
-    if (PhEnableNetworkBoundConnections)
+    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5)
     {
         if (boundTcpTable)
         {

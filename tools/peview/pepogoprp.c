@@ -11,8 +11,8 @@
 
 #include <peview.h>
 
-#include "..\thirdparty\ssdeep\fuzzy.h"
-#include "..\thirdparty\tlsh\tlsh_wrapper.h"
+#include "../thirdparty/ssdeep/fuzzy.h"
+#include "../thirdparty/tlsh/tlsh_wrapper.h"
 
 typedef struct _PVP_PE_POGO_CONTEXT
 {
@@ -49,6 +49,8 @@ VOID PvEnumerateImagePogoSections(
         {
             PPH_IMAGE_DEBUG_POGO_ENTRY entry = PTR_ADD_OFFSET(pogo.PogoEntries, i * sizeof(PH_IMAGE_DEBUG_POGO_ENTRY));
             PIMAGE_SECTION_HEADER section;
+            PVOID imageSectionData;
+            PPH_STRING hashString;
             INT lvItemIndex;
             WCHAR value[PH_INT64_STR_LEN_1];
 
@@ -71,39 +73,18 @@ VOID PvEnumerateImagePogoSections(
                 }
             }
 
-            __try
+            if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
             {
-                PVOID imageSectionData;
-                PH_HASH_CONTEXT hashContext;
-                PPH_STRING hashString;
-                UCHAR hash[32];
-
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+                if (hashString = PvHashBuffer(imageSectionData, entry->Size))
                 {
-                    PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                    PhUpdateHash(&hashContext, imageSectionData, entry->Size);
-
-                    if (PhFinalHash(&hashContext, hash, 16, NULL))
-                    {
-                        hashString = PhBufferToHexString(hash, 16);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, hashString->Buffer);
-                        PhDereferenceObject(hashString);
-                    }
-                }
-                else
-                {
-                    // TODO: POGO-PGU can have an RVA outside image sections. For example:
-                    // C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\VC\vcpackages\vcpkgsrv.exe
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetString(hashString));
+                    PhDereferenceObject(hashString);
                 }
             }
-            __except (EXCEPTION_EXECUTE_HANDLER)
+            else
             {
-                PPH_STRING message;
-
-                //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
+                // TODO: POGO-PGU can have an RVA outside image sections. For example:
+                // C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\VC\vcpackages\vcpkgsrv.exe
             }
 
             __try
@@ -114,10 +95,12 @@ VOID PvEnumerateImagePogoSections(
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
                 {
-                    imageSectionEntropy = PvCalculateEntropyBuffer(imageSectionData, entry->Size, NULL);
-                    entropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, entropyString->Buffer);
-                    PhDereferenceObject(entropyString);
+                    if (PhCalculateEntropy(imageSectionData, entry->Size, &imageSectionEntropy, NULL))
+                    {
+                        entropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, entropyString->Buffer);
+                        PhDereferenceObject(entropyString);
+                    }
                 }
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
@@ -249,7 +232,7 @@ INT_PTR CALLBACK PvpPeDebugPogoDlgProc(
 
             PvEnumerateImagePogoSections(hwndDlg, context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -412,12 +395,12 @@ VOID PvEnumerateCrtInitializers(
 
         PhPrintUInt64(value, ++index);
         lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
-        PhPrintPointer(value, PTR_ADD_OFFSET(array, UInt32Mul32To64(i, size)));
+        PhPrintPointer(value, PTR_ADD_OFFSET(array, UInt32x32To64(i, size)));
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
 
         initSymbol = PhGetSymbolFromAddress(
             PvSymbolProvider,
-            (ULONG64)PTR_ADD_OFFSET(baseAddress, PTR_ADD_OFFSET(array, UInt32Mul32To64(i, size))),
+            (ULONG64)PTR_ADD_OFFSET(baseAddress, PTR_ADD_OFFSET(array, UInt32x32To64(i, size))),
             &symbolResolveLevel,
             NULL,
             &initSymbolName,
@@ -514,7 +497,7 @@ INT_PTR CALLBACK PvpPeDebugCrtDlgProc(
 
             PvEnumerateCrtInitializers(hwndDlg, context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

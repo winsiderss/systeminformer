@@ -10,7 +10,6 @@
  */
 
 #include "toolstatus.h"
-#include "commonutil.h"
 
 BOOLEAN CustomizeStatusBarItemExists(
     _In_ PCUSTOMIZE_CONTEXT Context,
@@ -287,7 +286,9 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
-            context->FontHandle = PhDuplicateFont(GetWindowFont(StatusBarHandle));
+
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
+            context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -304,7 +305,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
             }
 
-            context->WindowDpi = PhGetWindowDpi(hwndDlg);
+
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
 
@@ -334,17 +335,22 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 DeleteFont(context->FontHandle);
         }
         break;
-    case WM_DPICHANGED:
-        {
-            context->WindowDpi = LOWORD(wParam); // PhGetWindowDpi(hwndDlg);
-            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
-        }
-        break;
     case WM_NCDESTROY:
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            context->WindowDpi = LOWORD(wParam); // PhGetWindowDpi(hwndDlg);
+            if (context->FontHandle) DeleteFont(context->FontHandle);
+            context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
+
+            InvalidateRect(context->AvailableListHandle, NULL, TRUE);
+            InvalidateRect(context->CurrentListHandle, NULL, TRUE);
         }
         break;
     case WM_COMMAND:

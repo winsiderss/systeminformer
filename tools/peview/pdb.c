@@ -14,8 +14,8 @@
 
 #include <dbghelp.h>
 #define COM_NO_WINDOWS_H 1
-#include "dia2.h"
-#include "dia3.h"
+#include "../thirdparty/winsdk/dia2.h"
+#include "../thirdparty/winsdk/dia3.h"
 
 ULONG SearchResultsAddIndex = 0;
 PPH_LIST SearchResults = NULL;
@@ -211,7 +211,7 @@ VOID PrintLocation(
 
     if (IDiaSymbol_get_locationType(IDiaSymbol, &dwLocType) != S_OK)
     {
-        PhAppendFormatStringBuilder(StringBuilder, L"symbol in optmized code");
+        PhAppendFormatStringBuilder(StringBuilder, L"symbol in optimized code");
         return;
     }
 

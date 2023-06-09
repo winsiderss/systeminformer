@@ -363,7 +363,7 @@ VOID FindGraphicsDevices(
                     entry->DevicePresent = TRUE;
                     GraphicsCloseAdapterHandle(adapterHandle);
                 }
-     
+
                 if (entry->DevicePresent)
                 {
                     ULONG adapterIndex;
@@ -618,7 +618,7 @@ VOID LoadGraphicsDeviceImages(
 
     dpiValue = PhGetWindowDpi(Context->ListViewHandle);
 
-    if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+    if (PhExtractIconEx(&deviceIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
     {
         HIMAGELIST imageList = PhImageListCreate(
             PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)

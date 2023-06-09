@@ -107,6 +107,7 @@ typedef struct _KPHM_CAPTURE_STACK_BACKTRACE_THREAD
     PVOID* BackTrace;
     PULONG CapturedFrames;
     PULONG BackTraceHash;
+    ULONG Flags;
     PLARGE_INTEGER Timeout;
 
 } KPHM_CAPTURE_STACK_BACKTRACE_THREAD, *PKPHM_CAPTURE_STACK_BACKTRACE_THREAD;
@@ -249,6 +250,53 @@ typedef struct _KPHM_DUPLICATE_OBJECT
     PHANDLE TargetHandle;
 
 } KPHM_DUPLICATE_OBJECT, *PKPHM_DUPLICATE_OBJECT;
+
+typedef struct _KPHM_QUERY_PERFORMANCE_COUNTER
+{
+    LARGE_INTEGER PerformanceCounter;
+    LARGE_INTEGER PerformanceFrequency;
+
+} KPHM_QUERY_PERFORMANCE_COUNTER, *PKPHM_QUERY_PERFORMANCE_COUNTER;
+
+typedef struct _KPHM_CREATE_FILE
+{
+    NTSTATUS Status;
+    PHANDLE FileHandle;
+    ACCESS_MASK DesiredAccess;
+    POBJECT_ATTRIBUTES ObjectAttributes;
+    PIO_STATUS_BLOCK IoStatusBlock;
+    PLARGE_INTEGER AllocationSize;
+    ULONG FileAttributes;
+    ULONG ShareAccess;
+    ULONG CreateDisposition;
+    ULONG CreateOptions;
+    PVOID EaBuffer;
+    ULONG EaLength;
+    ULONG Options;
+
+} KPHM_CREATE_FILE, *PKPHM_CREATE_FILE;
+
+typedef struct _KPHM_QUERY_INFORMATION_THREAD
+{
+    NTSTATUS Status;
+    HANDLE ThreadHandle;
+    KPH_THREAD_INFORMATION_CLASS ThreadInformationClass;
+    PVOID ThreadInformation;
+    ULONG ThreadInformationLength;
+    PULONG ReturnLength;
+
+} KPHM_QUERY_INFORMATION_THREAD, *PKPHM_QUERY_INFORMATION_THREAD;
+
+typedef struct _KPHM_QUERY_SECTION
+{
+    NTSTATUS Status;
+    HANDLE SectionHandle;
+    KPH_SECTION_INFORMATION_CLASS SectionInformationClass;
+    PVOID SectionInformation;
+    ULONG SectionInformationLength;
+    PULONG ReturnLength;
+
+} KPHM_QUERY_SECTION, *PKPHM_QUERY_SECTION;
 
 //
 // KPH -> PH
@@ -628,5 +676,14 @@ typedef struct _KPHM_DESKTOP_HANDLE_POST_DUPLICATE
     //
 
 } KPHM_DESKTOP_HANDLE_POST_DUPLICATE, *PKPHM_DESKTOP_HANDLE_POST_DUPLICATE;
+
+typedef struct _KPHM_REQUIRED_STATE_FAILURE
+{
+    CLIENT_ID ClientId;
+    enum _KPH_MESSAGE_ID MessageId;
+    KPH_PROCESS_STATE ClientState;
+    KPH_PROCESS_STATE RequiredState;
+
+} KPHM_REQUIRED_STATE_FAILURE, *PKPHM_REQUIRED_STATE_FAILURE;
 
 #pragma warning(pop)

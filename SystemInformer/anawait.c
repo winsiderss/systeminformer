@@ -51,7 +51,7 @@ VOID PhpAnalyzeWaitPassive(
 
 BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     );
 
 VOID PhpAnalyzeWaitFallbacks(
@@ -150,7 +150,7 @@ VOID PhUiAnalyzeWaitThread(
         processHandle,
         &clientId,
         SymbolProvider,
-        PH_WALK_I386_STACK,
+        PH_WALK_USER_WOW64_STACK,
         PhpWalkThreadStackAnalyzeCallback,
         &context
         );
@@ -257,16 +257,13 @@ VOID PhpAnalyzeWaitPassive(
     NtClose(threadHandle);
 }
 
-static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
+BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PANALYZE_WAIT_CONTEXT context = (PANALYZE_WAIT_CONTEXT)Context;
     PPH_STRING name;
-
-    if (!context)
-        return TRUE;
 
     name = PhGetSymbolFromAddress(
         context->SymbolProvider,
@@ -595,7 +592,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     return !context->Found;
 }
 
-static VOID PhpAnalyzeWaitFallbacks(
+VOID PhpAnalyzeWaitFallbacks(
     _In_ PANALYZE_WAIT_CONTEXT Context
     )
 {
@@ -743,7 +740,7 @@ static NTSTATUS PhpRfThreadStart(
     return STATUS_SUCCESS;
 }
 
-static VOID PhpInitializeServiceNumbers(
+VOID PhpInitializeServiceNumbers(
     VOID
     )
 {
@@ -829,7 +826,7 @@ static VOID PhpInitializeServiceNumbers(
     }
 }
 
-static PPH_STRING PhpaGetHandleString(
+PPH_STRING PhpaGetHandleString(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle
     )
@@ -873,7 +870,7 @@ static PPH_STRING PhpaGetHandleString(
     return result;
 }
 
-static VOID PhpGetWfmoInformation(
+VOID PhpGetWfmoInformation(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN IsWow64,
     _In_ ULONG NumberOfHandles,
@@ -954,7 +951,7 @@ static VOID PhpGetWfmoInformation(
     }
 }
 
-static PPH_STRING PhpaGetSendMessageReceiver(
+PPH_STRING PhpaGetSendMessageReceiver(
     _In_ HANDLE ThreadId
     )
 {

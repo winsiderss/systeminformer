@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2022
+ *
+ */
+
 #ifndef _PH_GRAPH_H
 #define _PH_GRAPH_H
 
@@ -17,12 +29,16 @@ extern RECT PhNormalGraphTextPadding;
 #define PH_GRAPH_OVERLAY_LINE_2 0x20
 #define PH_GRAPH_LABEL_MAX_Y 0x1000
 
-typedef PPH_STRING (NTAPI *PPH_GRAPH_LABEL_Y_FUNCTION)(
-    _In_ struct _PH_GRAPH_DRAW_INFO *DrawInfo,
+typedef struct _PH_GRAPH_DRAW_INFO *PPH_GRAPH_DRAW_INFO;
+
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
+typedef PPH_STRING (NTAPI PH_GRAPH_LABEL_Y_FUNCTION)(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
     _In_ FLOAT Parameter
     );
+typedef PH_GRAPH_LABEL_Y_FUNCTION *PPH_GRAPH_LABEL_Y_FUNCTION;
 
 typedef struct _PH_GRAPH_DRAW_INFO
 {

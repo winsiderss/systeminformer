@@ -107,9 +107,6 @@
     <ClCompile Include="gpudetails.c">
       <Filter>Source Files\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="ndiswlan.c">
-      <Filter>Source Files\Network</Filter>
-    </ClCompile>
     <ClCompile Include="devicetree.c">
       <Filter>Source Files\Devices</Filter>
     </ClCompile>

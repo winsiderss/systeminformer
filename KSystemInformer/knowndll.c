@@ -181,7 +181,7 @@ NTSTATUS KphInitializeKnownDll(
 
             NT_ASSERT(export->Storage);
 
-            exportAddress = KphFindExportedRoutineByName(baseAddress,
+            exportAddress = RtlFindExportedRoutineByName(baseAddress,
                                                          export->Name);
             if (!exportAddress)
             {

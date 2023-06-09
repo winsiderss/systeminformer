@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -152,6 +152,7 @@ NTSTATUS KphSetParameters(
     _In_ PKPH_CONFIG_PARAMETERS Config
     )
 {
+#ifdef _WIN64
     NTSTATUS status;
     HANDLE parametersKeyHandle = NULL;
     ULONG disposition;
@@ -264,6 +265,9 @@ CleanupExit:
     NtClose(parametersKeyHandle);
 
     return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
 }
 
 //BOOLEAN KphParametersExists(
@@ -379,27 +383,20 @@ VOID KphSetServiceSecurity(
     _In_ SC_HANDLE ServiceHandle
     )
 {
-    static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+    PSID administratorsSid = PhSeAdministratorsSid();
     UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
     PSECURITY_DESCRIPTOR securityDescriptor;
     ULONG sdAllocationLength;
-    UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-    PSID administratorsSid;
     PACL dacl;
-
-    administratorsSid = (PSID)administratorsSidBuffer;
-    RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-    *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-    *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
 
     sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeServiceSid) +
+        PhLengthSid(&PhSeServiceSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(administratorsSid) +
+        PhLengthSid(administratorsSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeInteractiveSid);
+        PhLengthSid(&PhSeInteractiveSid);
 
     securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
@@ -460,6 +457,7 @@ NTSTATUS KsiLoadUnloadService(
     _In_ BOOLEAN LoadDriver
     )
 {
+#ifdef _WIN64
     static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
     static PH_STRINGREF fullServicesFileName = PH_STRINGREF_INIT(L"\\??\\");
     static PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"Parameters");
@@ -541,10 +539,10 @@ NTSTATUS KsiLoadUnloadService(
             )))
         {
             if (NT_SUCCESS(PhOpenKey(
-                &parametersKeyHandle, 
-                DELETE, 
-                serviceKeyHandle, 
-                &parametersKeyName, 
+                &parametersKeyHandle,
+                DELETE,
+                serviceKeyHandle,
+                &parametersKeyName,
                 0
                 )))
             {
@@ -561,6 +559,9 @@ NTSTATUS KsiLoadUnloadService(
     PhDereferenceObject(fullServiceKeyName);
 
     return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
 }
 
 NTSTATUS KphServiceStop(
@@ -946,7 +947,8 @@ NTSTATUS KphCaptureStackBackTraceThread(
     _In_ ULONG FramesToCapture,
     _Out_writes_(FramesToCapture) PVOID *BackTrace,
     _Inout_opt_ PULONG CapturedFrames,
-    _Inout_opt_ PULONG BackTraceHash
+    _Inout_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags
     )
 {
     NTSTATUS status;
@@ -964,6 +966,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
     msg->User.CaptureStackBackTraceThread.CapturedFrames = CapturedFrames;
     msg->User.CaptureStackBackTraceThread.BackTraceHash = BackTraceHash;
     msg->User.CaptureStackBackTraceThread.Timeout = PhTimeoutFromMilliseconds(&timeout, 30);
+    msg->User.CaptureStackBackTraceThread.Flags = Flags;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
@@ -1076,6 +1079,50 @@ NTSTATUS KphQueryInformationObject(
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQueryObjectSectionMappingsInfo(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = MAX_PATH;
+
+    *Info = NULL;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = KphQueryInformationObject(ProcessHandle,
+                                           Handle,
+                                           KphObjectSectionMappingsInformation,
+                                           buffer,
+                                           bufferSize,
+                                           &bufferSize);
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Info = buffer;
+
     return status;
 }
 
@@ -1259,14 +1306,25 @@ KPH_LEVEL KphProcessLevel(
         return KphLevelMin;
 
     return KphLevelNone;
+}
 
+KPH_LEVEL KphLevelEx(
+    BOOLEAN Cached
+    )
+{
+    static KPH_LEVEL level = KphLevelNone;
+
+    if (!Cached)
+        level = KphProcessLevel(NtCurrentProcess());
+
+    return level;
 }
 
 KPH_LEVEL KphLevel(
     VOID
     )
 {
-    return KphProcessLevel(NtCurrentProcess());
+    return KphLevelEx(TRUE);
 }
 
 NTSTATUS KphSetInformationProcess(
@@ -1521,5 +1579,189 @@ NTSTATUS KphDuplicateObject(
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter,
+    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQueryPerformanceCounter);
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        *PerformanceCounter = msg->User.QueryPerformanceCounter.PerformanceCounter;
+        if (PerformanceFrequency)
+        {
+            *PerformanceFrequency = msg->User.QueryPerformanceCounter.PerformanceFrequency;
+        }
+    }
+    else
+    {
+        PerformanceCounter->QuadPart = 0;
+        if (PerformanceFrequency)
+        {
+            PerformanceFrequency->QuadPart = 0;
+        }
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
+    _In_ ULONG EaLength,
+    _In_ ULONG Options
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgCreateFile);
+    msg->User.CreateFile.FileHandle = FileHandle;
+    msg->User.CreateFile.DesiredAccess = DesiredAccess;
+    msg->User.CreateFile.ObjectAttributes = ObjectAttributes;
+    msg->User.CreateFile.IoStatusBlock = IoStatusBlock;
+    msg->User.CreateFile.AllocationSize = AllocationSize;
+    msg->User.CreateFile.FileAttributes = FileAttributes;
+    msg->User.CreateFile.ShareAccess = ShareAccess;
+    msg->User.CreateFile.CreateDisposition = CreateDisposition;
+    msg->User.CreateFile.CreateOptions = CreateOptions;
+    msg->User.CreateFile.EaBuffer = EaBuffer;
+    msg->User.CreateFile.EaLength = EaLength;
+    msg->User.CreateFile.Options = Options;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.CreateFile.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQueryInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQueryInformationThread);
+    msg->User.QueryInformationThread.ThreadHandle = ThreadHandle;
+    msg->User.QueryInformationThread.ThreadInformationClass = ThreadInformationClass;
+    msg->User.QueryInformationThread.ThreadInformation = ThreadInformation;
+    msg->User.QueryInformationThread.ThreadInformationLength = ThreadInformationLength;
+    msg->User.QueryInformationThread.ReturnLength = ReturnLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.QueryInformationThread.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQuerySection(
+    _In_ HANDLE SectionHandle,
+    _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _In_ ULONG SectionInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQuerySection);
+    msg->User.QuerySection.SectionHandle = SectionHandle;
+    msg->User.QuerySection.SectionInformationClass = SectionInformationClass;
+    msg->User.QuerySection.SectionInformation = SectionInformation;
+    msg->User.QuerySection.SectionInformationLength = SectionInformationLength;
+    msg->User.QuerySection.ReturnLength = ReturnLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.QuerySection.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQuerySectionMappingsInfo(
+    _In_ HANDLE SectionHandle,
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = MAX_PATH;
+
+    *Info = NULL;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = KphQuerySection(SectionHandle,
+                                 KphSectionMappingsInformation,
+                                 buffer,
+                                 bufferSize,
+                                 &bufferSize);
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Info = buffer;
+
     return status;
 }

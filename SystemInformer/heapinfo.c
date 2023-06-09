@@ -386,7 +386,7 @@ PWSTR PhGetProcessHeapClassText(
         return L"CSRSS Port Heap";
     }
 
-    return L"Unknown";
+    return L"Unknown Heap";
 }
 
 VOID PhpEnumerateProcessHeaps(
@@ -870,7 +870,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 selectedCount = ListView_GetSelectedCount(context->ListViewHandle);
                 heapInfo = PhGetSelectedListViewItemParam(context->ListViewHandle);

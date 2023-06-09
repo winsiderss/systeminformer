@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2016-2023
+ *
+ */
+
 #ifndef PH_PROCPRV_H
 #define PH_PROCPRV_H
 
@@ -10,6 +22,8 @@ extern PH_QUEUED_LOCK PhProcessRecordListLock;
 extern ULONG PhStatisticsSampleCount;
 extern BOOLEAN PhEnablePurgeProcessRecords;
 extern BOOLEAN PhEnableCycleCpuUsage;
+extern BOOLEAN PhEnableInterruptCpuUsage;
+extern BOOLEAN PhEnablePackageIconSupport;
 
 typedef enum _PH_PROCESS_PROVIDER_FLAG
 {
@@ -50,8 +64,8 @@ extern ULONG PhTotalHandles;
 extern ULONG PhTotalCpuQueueLength;
 
 extern ULONG64 PhCpuTotalCycleDelta;
-extern PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
-extern PLARGE_INTEGER PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
+extern PSYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION PhCpuIdleCycleTime; // cycle time for Idle
+extern PSYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
 extern PH_UINT64_DELTA PhCpuIdleCycleDelta;
 extern PH_UINT64_DELTA PhCpuSystemCycleDelta;
 
@@ -191,13 +205,13 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsSuspended : 1;
             ULONG IsWow64 : 1;
             ULONG IsImmersive : 1;
-            ULONG IsWow64Valid : 1;
             ULONG IsPartiallySuspended : 1;
             ULONG IsProtectedHandle : 1;
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG IsPackagedProcess : 1;
+            ULONG IsUIAccessEnabled : 1;
             ULONG IsControlFlowGuardEnabled : 1;
             ULONG IsCetEnabled : 1;
             ULONG IsXfgEnabled : 1;
@@ -217,6 +231,7 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR SessionIdString[PH_INT32_STR_LEN_1];
+    PPH_STRING AlternateProcessIdString;
 
     // Dynamic
 
@@ -279,8 +294,6 @@ typedef struct _PH_PROCESS_ITEM
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
 
-    USHORT Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
-
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
 
@@ -329,13 +342,6 @@ PhGetClientIdNameEx(
     _In_ PCLIENT_ID ClientId,
     _In_opt_ PPH_STRING ProcessName
     );
-
-PHAPPAPI
-PWSTR
-NTAPI
-PhGetProcessPriorityClassString(
-    _In_ ULONG PriorityClass
-    );
 // end_phapppub
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
@@ -347,7 +353,7 @@ PHAPPAPI
 PPH_PROCESS_ITEM
 NTAPI
 PhReferenceProcessItem(
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     );
 
 PHAPPAPI
@@ -381,6 +387,7 @@ VOID PhFlushVerifyCache(
 
 // begin_phapppub
 PHAPPAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetStatisticsTime(
@@ -473,7 +480,8 @@ PHAPPAPI
 VOID
 NTAPI
 PhProcessImageListInitialization(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     );
 
 PHAPPAPI

@@ -14,8 +14,8 @@
 #include <phutil.h>
 #include <json.h>
 
-#include "..\tools\thirdparty\jsonc\json.h"
-#include "..\tools\thirdparty\mxml\mxml.h"
+#include "../tools/thirdparty/jsonc/json.h"
+#include "../tools/thirdparty/mxml/mxml.h"
 
 static json_object_ptr json_get_object(
     _In_ json_object_ptr rootObj,
@@ -133,6 +133,24 @@ PPH_STRING PhGetJsonValueAsString(
     }
 
     return NULL;
+}
+
+PPH_STRING PhGetJsonObjectString(
+    _In_ PVOID Object
+    )
+{
+    PCSTR value;
+    size_t length;
+
+    if (
+        (length = json_object_get_string_len(Object)) &&
+        (value = json_object_get_string(Object))
+        )
+    {
+        return PhConvertUtf8ToUtf16Ex((PSTR)value, length);
+    }
+
+    return PhReferenceEmptyString();
 }
 
 LONGLONG PhGetJsonValueAsInt64(
@@ -357,12 +375,24 @@ PVOID PhLoadJsonObjectFromFile(
     return json_object_from_file(FileName->Buffer);
 }
 
-VOID PhSaveJsonObjectToFile(
+NTSTATUS PhSaveJsonObjectToFile(
     _In_ PPH_STRINGREF FileName,
     _In_ PVOID Object
     )
 {
-    json_object_to_file(FileName->Buffer, Object);
+#ifdef _DEBUG
+    if (json_object_to_file_ext(FileName->Buffer, Object, JSON_C_TO_STRING_PRETTY) == -1)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+#else
+    if (json_object_to_file_ext(FileName->Buffer, Object, 0) == -1)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+#endif
+
+    return STATUS_SUCCESS;
 }
 
 // XML support
@@ -400,9 +430,9 @@ NTSTATUS PhLoadXmlObjectFromFile(
     LARGE_INTEGER fileSize;
     mxml_node_t* currentNode;
 
-    status = PhCreateFileWin32(
+    status = PhCreateFile(
         &fileHandle,
-        PhGetStringRefZ(FileName),
+        FileName,
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -455,14 +485,14 @@ NTSTATUS PhSaveXmlObjectToFile(
 
     // Create the directory if it does not exist.
 
-    status = PhCreateDirectoryFullPathWin32(FileName);
+    status = PhCreateDirectoryFullPath(FileName);
 
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhCreateFileWin32(
+    status = PhCreateFile(
         &fileHandle,
-        PhGetStringRefZ(FileName),
+        FileName,
         FILE_GENERIC_WRITE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,

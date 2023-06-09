@@ -521,7 +521,7 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
     interfaceRow.InterfaceLuid = Id->InterfaceLuid;
     interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
-    if (PhWindowsVersion >= WINDOWS_10_RS2 && GetIfEntry2Ex)
+    if (NetWindowsVersion >= WINDOWS_10_RS2)
     {
         if (NETIO_SUCCESS(GetIfEntry2Ex(Level, &interfaceRow)))
         {
@@ -595,6 +595,42 @@ PWSTR MediumTypeToString(
     }
 
     return L"N/A";
+}
+
+PPH_STRING NetAdapterFormatBitratePrefix(
+    _In_ ULONG64 Value
+    )
+{
+    static PH_STRINGREF SiPrefixUnitNamesCounted[7] =
+    {
+        PH_STRINGREF_INIT(L" Bps"),
+        PH_STRINGREF_INIT(L" Kbps"),
+        PH_STRINGREF_INIT(L" Mbps"),
+        PH_STRINGREF_INIT(L" Gbps"),
+        PH_STRINGREF_INIT(L" Tbps"),
+        PH_STRINGREF_INIT(L" Pbps"),
+        PH_STRINGREF_INIT(L" Ebps")
+    };
+    DOUBLE number = (DOUBLE)Value;
+    ULONG i = 0;
+    PH_FORMAT format[2];
+
+    while (
+        number >= 1000 &&
+        i < RTL_NUMBER_OF(SiPrefixUnitNamesCounted) &&
+        i < ULONG_MAX // PhMaxSizeUnit
+        )
+    {
+        number /= 1000;
+        i++;
+    }
+
+    format[0].Type = DoubleFormatType | FormatUsePrecision;
+    format[0].Precision = 1;
+    format[0].u.Double = number;
+    PhInitFormatSR(&format[1], SiPrefixUnitNamesCounted[i]);
+
+    return PhFormat(format, 2, 0);
 }
 
 //BOOLEAN NetworkAdapterQueryInternet(

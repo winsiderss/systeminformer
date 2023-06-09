@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -14,12 +14,12 @@
 #include <apiimport.h>
 #include <guisup.h>
 #include <mapimg.h>
+#include <mapldr.h>
 #include <settings.h>
 #include <guisupp.h>
 
 #include <math.h>
 #include <commoncontrols.h>
-#include <shellapi.h>
 #include <shellscalingapi.h>
 #include <wincodec.h>
 
@@ -71,12 +71,19 @@ static _GetThemeClass GetThemeClass_I = NULL;
 static _GetThemeInt GetThemeInt_I = NULL;
 static _GetThemePartSize GetThemePartSize_I = NULL;
 static _DrawThemeBackground DrawThemeBackground_I = NULL;
+static _DrawThemeTextEx DrawThemeTextEx_I = NULL;
+static _GetDpiForMonitor GetDpiForMonitor_I = NULL; // win81+
+static _GetDpiForWindow GetDpiForWindow_I = NULL; // win10rs1+
+static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
+//static _GetDpiForSession GetDpiForSession_I = NULL; // ordinal 2713
+static _GetSystemMetricsForDpi GetSystemMetricsForDpi_I = NULL;
+static _SystemParametersInfoForDpi SystemParametersInfoForDpi_I = NULL;
 
 VOID PhGuiSupportInitialization(
     VOID
     )
 {
-    PVOID uxthemeHandle;
+    PVOID baseAddress;
 
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
@@ -91,21 +98,40 @@ VOID PhGuiSupportInitialization(
         10
         );
 
-    if (uxthemeHandle = PhLoadLibrary(L"uxtheme.dll"))
+    if (baseAddress = PhLoadLibrary(L"uxtheme.dll"))
     {
-        OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "OpenThemeDataForDpi", 0);
-        OpenThemeData_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "OpenThemeData", 0);
-        CloseThemeData_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "CloseThemeData", 0);
-        SetWindowTheme_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "SetWindowTheme", 0);
-        IsThemeActive_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemeActive", 0);
-        IsThemePartDefined_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemePartDefined", 0);
-        GetThemeInt_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeInt", 0);
-        GetThemePartSize_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemePartSize", 0);
-        DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
+        OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0);
+        OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeData", 0);
+        CloseThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "CloseThemeData", 0);
+        SetWindowTheme_I = PhGetDllBaseProcedureAddress(baseAddress, "SetWindowTheme", 0);
+        IsThemeActive_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeActive", 0);
+        IsThemePartDefined_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemePartDefined", 0);
+        GetThemeInt_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeInt", 0);
+        GetThemePartSize_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemePartSize", 0);
+        DrawThemeBackground_I = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackground", 0);
 
         if (WindowsVersion >= WINDOWS_11)
         {
-            GetThemeClass_I = PhGetDllBaseProcedureAddress(uxthemeHandle, NULL, 74);
+            GetThemeClass_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 74);
+        }
+    }
+
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        if (baseAddress = PhLoadLibrary(L"shcore.dll"))
+        {
+            GetDpiForMonitor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForMonitor", 0);
+        }
+    }
+
+    if (WindowsVersion >= WINDOWS_10_RS1)
+    {
+        if (baseAddress = PhLoadLibrary(L"user32.dll"))
+        {
+            GetDpiForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForWindow", 0);
+            GetDpiForSystem_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForSystem", 0);
+            GetSystemMetricsForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "GetSystemMetricsForDpi", 0);
+            SystemParametersInfoForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "SystemParametersInfoForDpi", 0);
         }
     }
 
@@ -280,6 +306,357 @@ BOOLEAN PhDrawThemeBackground(
         return FALSE;
 
     return SUCCEEDED(DrawThemeBackground_I(ThemeHandle, hdc, PartId, StateId, Rect, ClipRect));
+}
+
+BOOLEAN PhDrawThemeTextEx(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_reads_(cchText) LPCWSTR Text,
+    _In_ INT cchText,
+    _In_ ULONG TextFlags,
+    _Inout_ LPRECT Rect,
+    _In_opt_ const PVOID Options // DTTOPTS*
+    )
+{
+    if (!DrawThemeTextEx_I)
+        DrawThemeTextEx_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeTextEx");
+
+    if (!DrawThemeTextEx_I)
+        return FALSE;
+
+    return SUCCEEDED(DrawThemeTextEx_I(ThemeHandle, hdc, PartId, StateId, Text, cchText, TextFlags, Rect, Options));
+}
+
+// rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)
+//LONG PhGetUserOrMachineDpi(
+//    VOID
+//    )
+//{
+//    static PH_STRINGREF machineKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Hardware Profiles\\Current\\Software\\Fonts");
+//    static PH_STRINGREF userKeyName = PH_STRINGREF_INIT(L"Control Panel\\Desktop");
+//    HANDLE keyHandle;
+//    LONG dpi = 0;
+//
+//    if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_USERS, &userKeyName, 0)))
+//    {
+//        dpi = PhQueryRegistryUlongZ(keyHandle, L"LogPixels");
+//        NtClose(keyHandle);
+//    }
+//
+//    if (dpi == 0)
+//    {
+//        if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_LOCAL_MACHINE, &machineKeyName, 0)))
+//        {
+//            dpi = PhQueryRegistryUlongZ(keyHandle, L"LogPixels");
+//            NtClose(keyHandle);
+//        }
+//    }
+//
+//    return dpi;
+//}
+
+BOOLEAN PhGetWindowRect(
+    _In_ HWND WindowHandle,
+    _Out_ LPRECT WindowRect
+    )
+{
+    // Note: GetWindowRect can return success with either invalid (0,0) or empty rects (40,40) and in some cases
+    // this results in unwanted clipping, performance issues with the CreateCompatibleBitmap double buffering and
+    // issues with MonitorFromRect layout and DPI queries, so ignore the return status and check the rect (dmex)
+
+    GetWindowRect(WindowHandle, WindowRect);
+
+    if (PhRectEmpty(WindowRect))
+        return FALSE;
+
+    return TRUE;
+}
+
+LONG PhGetDpi(
+    _In_ LONG Number,
+    _In_ LONG DpiValue
+    )
+{
+    return PhMultiplyDivideSigned(Number, DpiValue, USER_DEFAULT_SCREEN_DPI);
+}
+
+LONG PhGetMonitorDpi(
+    _In_ LPCRECT rect
+    )
+{
+    return PhGetDpiValue(NULL, rect);
+}
+
+LONG PhGetSystemDpi(
+    VOID
+    )
+{
+    LONG dpi;
+
+    dpi = PhGetTaskbarDpi();
+
+    if (dpi == 0)
+    {
+        dpi = PhGetDpiValue(NULL, NULL);
+    }
+
+    if (dpi == 0)
+    {
+        dpi = USER_DEFAULT_SCREEN_DPI;
+    }
+
+    return dpi;
+}
+
+// rev from GetDpiForShellUIComponent (dmex)
+//LONG PhGetShellDpi(
+//    VOID
+//    )
+//{
+//    static HWND trayWindow = NULL;
+//    HWND windowHandle;
+//    LONG dpi = 0;
+//
+//    if (IsWindow(trayWindow))
+//    {
+//        windowHandle = trayWindow;
+//    }
+//    else
+//    {
+//        windowHandle = trayWindow = FindWindow(L"Shell_TrayWnd", NULL);
+//    }
+//
+//    if (windowHandle)
+//    {
+//        dpi = HandleToLong(GetProp(windowHandle, L"TaskbarDPI_NotificationArea"));
+//    }
+//
+//    //if (dpi == 0)
+//    //{
+//    //    dpi = GetDpiForShellUIComponent(SHELL_UI_COMPONENT_NOTIFICATIONAREA);
+//    //}
+//
+//    if (dpi == 0)
+//    {
+//        dpi = USER_DEFAULT_SCREEN_DPI;
+//    }
+//
+//    return dpi;
+//}
+
+LONG PhGetTaskbarDpi(
+    VOID
+    )
+{
+    LONG dpi = 0;
+    HWND windowHandle;
+    RECT windowRect = { 0 };
+
+    if (windowHandle = GetShellWindow())
+    {
+        GetWindowRect(windowHandle, &windowRect);
+    }
+
+    if (PhRectEmpty(&windowRect))
+    {
+        if (windowHandle = GetDesktopWindow())
+        {
+            GetWindowRect(windowHandle, &windowRect);
+        }
+    }
+
+    //if (PhRectEmpty(&windowRect))
+    //{
+    //    APPBARDATA appbarData = { sizeof(APPBARDATA) };
+    //
+    //    if (SHAppBarMessage(ABM_GETTASKBARPOS, &appbarData))
+    //    {
+    //        windowRect = appbarData.rc;
+    //    }
+    //}
+
+    if (!PhRectEmpty(&windowRect))
+    {
+        dpi = PhGetMonitorDpi(&windowRect);
+    }
+
+    if (dpi == 0)
+    {
+        dpi = PhGetDpiValue(NULL, NULL);
+    }
+
+    //if (dpi == 0)
+    //{
+    //    dpi = PhGetShellDpi();
+    //}
+
+    if (dpi == 0)
+    {
+        dpi = USER_DEFAULT_SCREEN_DPI;
+    }
+
+    return dpi;
+}
+
+LONG PhGetWindowDpi(
+    _In_ HWND WindowHandle
+    )
+{
+    LONG dpi = 0;
+    RECT windowRect;
+
+    if (PhGetWindowRect(WindowHandle, &windowRect))
+    {
+        dpi = PhGetDpiValue(NULL, &windowRect);
+    }
+
+    if (dpi == 0)
+    {
+        dpi = PhGetDpiValue(WindowHandle, NULL);
+    }
+
+    if (dpi == 0)
+    {
+        dpi = USER_DEFAULT_SCREEN_DPI;
+    }
+
+    return dpi;
+}
+
+LONG PhGetDpiValue(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ LPCRECT Rect
+    )
+{
+    if (Rect || WindowHandle)
+    {
+        // Windows 10 (RS1)
+
+        if (GetDpiForWindow_I && WindowHandle)
+        {
+            LONG dpi;
+
+            if (dpi = GetDpiForWindow_I(WindowHandle))
+            {
+                return dpi;
+            }
+        }
+
+        // Windows 8.1
+
+        if (GetDpiForMonitor_I)
+        {
+            HMONITOR monitor;
+            LONG dpi_x;
+            LONG dpi_y;
+
+            if (Rect)
+                monitor = MonitorFromRect(Rect, MONITOR_DEFAULTTONEAREST);
+            else
+                monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
+
+            if (HR_SUCCESS(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
+            {
+                return dpi_x;
+            }
+        }
+    }
+
+    // Windows 10 (RS1)
+
+    if (GetDpiForSystem_I)
+    {
+        return GetDpiForSystem_I();
+    }
+
+    // Windows 7 and Windows 8
+    {
+        HDC screenHdc;
+        LONG dpi_x;
+
+        if (screenHdc = GetDC(NULL))
+        {
+            dpi_x = GetDeviceCaps(screenHdc, LOGPIXELSX);
+            ReleaseDC(NULL, screenHdc);
+            return dpi_x;
+        }
+    }
+
+    return USER_DEFAULT_SCREEN_DPI;
+}
+
+LONG PhGetSystemMetrics(
+    _In_ INT Index,
+    _In_opt_ LONG DpiValue
+    )
+{
+    if (GetSystemMetricsForDpi_I && DpiValue)
+    {
+        return GetSystemMetricsForDpi_I(Index, DpiValue);
+    }
+
+    return GetSystemMetrics(Index);
+}
+
+BOOL PhGetSystemParametersInfo(
+    _In_ INT Action,
+    _In_ UINT Param1,
+    _Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_opt_ LONG DpiValue
+    )
+{
+    if (SystemParametersInfoForDpi_I && DpiValue)
+    {
+        return SystemParametersInfoForDpi_I(Action, Param1, Param2, 0, DpiValue);
+    }
+
+    return SystemParametersInfo(Action, Param1, Param2, 0);
+}
+
+VOID PhGetSizeDpiValue(
+    _Inout_ PRECT rect,
+    _In_ LONG DpiValue,
+    _In_ BOOLEAN isUnpack
+    )
+{
+    PH_RECTANGLE rectangle;
+    LONG numerator;
+    LONG denominator;
+
+    if (DpiValue == USER_DEFAULT_SCREEN_DPI)
+        return;
+
+    if (isUnpack)
+    {
+        numerator = DpiValue;
+        denominator = USER_DEFAULT_SCREEN_DPI;
+    }
+    else
+    {
+        numerator = USER_DEFAULT_SCREEN_DPI;
+        denominator = DpiValue;
+    }
+
+    rectangle.Left = rect->left;
+    rectangle.Top = rect->top;
+    rectangle.Width = rect->right - rect->left;
+    rectangle.Height = rect->bottom - rect->top;
+
+    if (rectangle.Left)
+        rectangle.Left = PhMultiplyDivideSigned(rectangle.Left, numerator, denominator);
+    if (rectangle.Top)
+        rectangle.Top = PhMultiplyDivideSigned(rectangle.Top, numerator, denominator);
+    if (rectangle.Width)
+        rectangle.Width = PhMultiplyDivideSigned(rectangle.Width, numerator, denominator);
+    if (rectangle.Height)
+        rectangle.Height = PhMultiplyDivideSigned(rectangle.Height, numerator, denominator);
+
+    rect->left = rectangle.Left;
+    rect->top = rectangle.Top;
+    rect->right = rectangle.Left + rectangle.Width;
+    rect->bottom = rectangle.Top + rectangle.Height;
 }
 
 INT PhAddListViewColumn(
@@ -530,6 +907,7 @@ ULONG PhGetWindowTextEx(
         {
             WCHAR buffer[32];
             length = InternalGetWindowText(hwnd, buffer, sizeof(buffer) / sizeof(WCHAR));
+            if (Text) *Text = NULL;
         }
         else
         {
@@ -584,7 +962,7 @@ ULONG PhGetWindowTextEx(
 ULONG PhGetWindowTextToBuffer(
     _In_ HWND hwnd,
     _In_ ULONG Flags,
-    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _In_opt_ ULONG BufferLength,
     _Out_opt_ PULONG ReturnLength
     )
@@ -911,15 +1289,11 @@ HICON PhLoadIcon(
             height = PhGetSystemMetrics(SM_CYICON, SystemDpi);
         }
 
-        if (LoadIconWithScaleDown)
-            LoadIconWithScaleDown(ImageBaseAddress, Name, width, height, &icon);
-        //if (LoadIconMetric)
-        //    LoadIconMetric(ImageBaseAddress, Name, (Flags & PH_LOAD_ICON_SIZE_SMALL) ? LIM_SMALL : LIM_LARGE, &icon);
+        LoadIconWithScaleDown(ImageBaseAddress, Name, width, height, &icon);
     }
     else
     {
-        if (LoadIconWithScaleDown)
-            LoadIconWithScaleDown(ImageBaseAddress, Name, Width, Height, &icon);
+        LoadIconWithScaleDown(ImageBaseAddress, Name, Width, Height, &icon);
     }
 
     if (!icon && !(Flags & PH_LOAD_ICON_STRICT))
@@ -967,9 +1341,25 @@ VOID PhGetStockApplicationIcon(
     _Out_opt_ HICON *LargeIcon
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static HICON smallIcon = NULL;
     static HICON largeIcon = NULL;
+    static LONG systemDpi = 0;
+
+    if (systemDpi != PhSystemDpi)
+    {
+        if (smallIcon)
+        {
+            DestroyIcon(smallIcon);
+            smallIcon = NULL;
+        }
+        if (largeIcon)
+        {
+            DestroyIcon(largeIcon);
+            largeIcon = NULL;
+        }
+
+        systemDpi = PhSystemDpi;
+    }
 
     // This no longer uses SHGetFileInfo because it is *very* slow and causes many other DLLs to be
     // loaded, increasing memory usage. The worst thing about it, however, is that it is horribly
@@ -978,7 +1368,7 @@ VOID PhGetStockApplicationIcon(
     // the function at the same time, instead of waiting for initialization to finish it simply
     // fails the other threads.
 
-    if (PhBeginInitOnce(&initOnce))
+    if (!smallIcon || !largeIcon)
     {
         if (WindowsVersion < WINDOWS_10)
         {
@@ -1002,15 +1392,12 @@ VOID PhGetStockApplicationIcon(
                 PhDereferenceObject(systemDirectory);
             }
         }
-
-        // Fallback icons
-        if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, PhSystemDpi);
-        if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, PhSystemDpi);
-
-        PhEndInitOnce(&initOnce);
     }
+
+    if (!smallIcon)
+        smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
+    if (!largeIcon)
+        largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
 
     if (SmallIcon)
         *SmallIcon = smallIcon;
@@ -1018,76 +1405,76 @@ VOID PhGetStockApplicationIcon(
         *LargeIcon = largeIcon;
 }
 
-HICON PhGetFileShellIcon(
-    _In_opt_ PWSTR FileName,
-    _In_opt_ PWSTR DefaultExtension,
-    _In_ BOOLEAN LargeIcon
-    )
-{
-    SHFILEINFO fileInfo;
-    ULONG iconFlag;
-    HICON icon;
-
-    if (DefaultExtension && PhEqualStringZ(DefaultExtension, L".exe", TRUE))
-    {
-        // Special case for executable files (see above for reasoning).
-
-        icon = NULL;
-
-        if (FileName)
-        {
-            PhExtractIcon(
-                FileName,
-                LargeIcon ? &icon : NULL,
-                !LargeIcon ? &icon : NULL
-                );
-        }
-
-        if (!icon)
-        {
-            PhGetStockApplicationIcon(
-                !LargeIcon ? &icon : NULL,
-                LargeIcon ? &icon : NULL
-                );
-
-            if (icon)
-                icon = CopyIcon(icon);
-        }
-
-        return icon;
-    }
-
-    iconFlag = LargeIcon ? SHGFI_LARGEICON : SHGFI_SMALLICON;
-    icon = NULL;
-    memset(&fileInfo, 0, sizeof(SHFILEINFO));
-
-    if (FileName && SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
-        FileName,
-        0,
-        &fileInfo,
-        sizeof(SHFILEINFO),
-        SHGFI_ICON | iconFlag
-        ))
-    {
-        icon = fileInfo.hIcon;
-    }
-
-    if (!icon && DefaultExtension)
-    {
-        memset(&fileInfo, 0, sizeof(SHFILEINFO));
-
-        if (SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
-            DefaultExtension,
-            FILE_ATTRIBUTE_NORMAL,
-            &fileInfo,
-            sizeof(SHFILEINFO),
-            SHGFI_ICON | iconFlag | SHGFI_USEFILEATTRIBUTES
-            ))
-            icon = fileInfo.hIcon;
-    }
-
-    return icon;
-}
+//HICON PhGetFileShellIcon(
+//    _In_opt_ PWSTR FileName,
+//    _In_opt_ PWSTR DefaultExtension,
+//    _In_ BOOLEAN LargeIcon
+//    )
+//{
+//    SHFILEINFO fileInfo;
+//    ULONG iconFlag;
+//    HICON icon;
+//
+//    if (DefaultExtension && PhEqualStringZ(DefaultExtension, L".exe", TRUE))
+//    {
+//        // Special case for executable files (see above for reasoning).
+//
+//        icon = NULL;
+//
+//        if (FileName)
+//        {
+//            PhExtractIcon(
+//                FileName,
+//                LargeIcon ? &icon : NULL,
+//                !LargeIcon ? &icon : NULL
+//                );
+//        }
+//
+//        if (!icon)
+//        {
+//            PhGetStockApplicationIcon(
+//                !LargeIcon ? &icon : NULL,
+//                LargeIcon ? &icon : NULL
+//                );
+//
+//            if (icon)
+//                icon = CopyIcon(icon);
+//        }
+//
+//        return icon;
+//    }
+//
+//    iconFlag = LargeIcon ? SHGFI_LARGEICON : SHGFI_SMALLICON;
+//    icon = NULL;
+//    memset(&fileInfo, 0, sizeof(SHFILEINFO));
+//
+//    if (FileName && SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
+//        FileName,
+//        0,
+//        &fileInfo,
+//        sizeof(SHFILEINFO),
+//        SHGFI_ICON | iconFlag
+//        ))
+//    {
+//        icon = fileInfo.hIcon;
+//    }
+//
+//    if (!icon && DefaultExtension)
+//    {
+//        memset(&fileInfo, 0, sizeof(SHFILEINFO));
+//
+//        if (SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
+//            DefaultExtension,
+//            FILE_ATTRIBUTE_NORMAL,
+//            &fileInfo,
+//            sizeof(SHFILEINFO),
+//            SHGFI_ICON | iconFlag | SHGFI_USEFILEATTRIBUTES
+//            ))
+//            icon = fileInfo.hIcon;
+//    }
+//
+//    return icon;
+//}
 
 VOID PhpSetClipboardData(
     _In_ HWND hWnd,
@@ -1247,6 +1634,29 @@ INT_PTR PhDialogBox(
         );
 
     return dialogResult;
+}
+
+// rev from LoadMenuW
+HMENU PhLoadMenu(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR MenuName
+    )
+{
+    HMENU menuHandle = NULL;
+    LPMENUTEMPLATE templateBuffer;
+
+    if (PhLoadResource(
+        DllBase,
+        MenuName,
+        RT_MENU,
+        NULL,
+        &templateBuffer
+        ))
+    {
+        menuHandle = LoadMenuIndirect(templateBuffer);
+    }
+
+    return menuHandle;
 }
 
 BOOLEAN PhModalPropertySheet(
@@ -1740,15 +2150,13 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
 
 BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)Context;
     ULONG processId;
     WINDOWINFO windowInfo;
 
-    if (!context)
-        return TRUE;
     if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
         return TRUE;
 
@@ -1782,7 +2190,7 @@ BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
 }
 
 HWND PhGetProcessMainWindow(
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle
     )
 {
@@ -1790,7 +2198,7 @@ HWND PhGetProcessMainWindow(
 }
 
 HWND PhGetProcessMainWindowEx(
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle,
     _In_ BOOLEAN SkipInvisible
     )
@@ -1989,6 +2397,54 @@ VOID PhWindowNotifyTopMostEvent(
     PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
 }
 
+_Success_(return)
+BOOLEAN PhRegenerateUserEnvironment(
+    _Out_opt_ PVOID* NewEnvironment,
+    _In_ BOOLEAN UpdateCurrentEnvironment
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *RegenerateUserEnvironment_I)(
+        _Out_ PVOID* NewEnvironment,
+        _In_ BOOL UpdateCurrentEnvironment
+        ) = NULL;
+    PVOID environment;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID shell32Handle;
+
+        if (shell32Handle = PhLoadLibrary(L"shell32.dll"))
+        {
+            RegenerateUserEnvironment_I = PhGetDllBaseProcedureAddress(shell32Handle, "RegenerateUserEnvironment", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!RegenerateUserEnvironment_I)
+        return FALSE;
+
+    if (RegenerateUserEnvironment_I(&environment, UpdateCurrentEnvironment))
+    {
+        if (NewEnvironment)
+        {
+            *NewEnvironment = environment;
+        }
+        else
+        {
+            if (DestroyEnvironmentBlock_Import() && !UpdateCurrentEnvironment)
+            {
+                DestroyEnvironmentBlock_Import()(environment);
+            }
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 HICON PhGetInternalWindowIcon(
     _In_ HWND WindowHandle,
     _In_ UINT Type
@@ -2041,6 +2497,31 @@ BOOLEAN PhIsImmersiveProcess(
 }
 
 _Success_(return)
+BOOLEAN PhGetProcessUIContextInformation(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_UICONTEXT_INFORMATION UIContext
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* GetProcessUIContextInformation_I)(
+        _In_ HANDLE ProcessHandle,
+        _Out_ PPROCESS_UICONTEXT_INFORMATION UIContext
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_8)
+            GetProcessUIContextInformation_I = PhGetDllProcedureAddress(L"user32.dll", "GetProcessUIContextInformation", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!GetProcessUIContextInformation_I)
+        return FALSE;
+
+    return !!GetProcessUIContextInformation_I(ProcessHandle, UIContext);
+}
+
+_Success_(return)
 BOOLEAN PhGetProcessDpiAwareness(
     _In_ HANDLE ProcessHandle,
     _Out_ PPH_PROCESS_DPI_AWARENESS ProcessDpiAwareness
@@ -2060,7 +2541,7 @@ BOOLEAN PhGetProcessDpiAwareness(
     {
         PVOID baseAddress;
 
-        if (baseAddress = PhGetLoaderEntryDllBase(L"user32.dll"))
+        if (baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll"))
         {
             if (WindowsVersion >= WINDOWS_10_RS1)
             {
@@ -2418,28 +2899,24 @@ HICON PhCreateIconFromResourceDirectory(
         );
 }
 
-PPH_STRING PhpGetImageMunResourcePath(
-    _In_ PPH_STRING FileName,
-    _In_ BOOLEAN NativeFileName
+_Success_(return)
+BOOLEAN PhGetSystemResourcesFileName(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName,
+    _Out_ PPH_STRING* ResourceFileName
     )
 {
-    static PH_STRINGREF systemResourcePathSr = PH_STRINGREF_INIT(L"\\SystemResources\\");
-    static PH_STRINGREF systemResourceExtensionSr = PH_STRINGREF_INIT(L".mun");
-    PPH_STRING filePath = NULL;
-    PPH_STRING directory;
-    PPH_STRING fileName;
+    static PH_STRINGREF systemResourcesPath = PH_STRINGREF_INIT(L"\\SystemResources\\");
+    static PH_STRINGREF systemResourcesExtension = PH_STRINGREF_INIT(L".mun");
+    PPH_STRING fileName = NULL;
+    PH_STRINGREF directoryPart;
+    PH_STRINGREF fileNamePart;
+    PH_STRINGREF directoryBasePart;
 
     if (WindowsVersion < WINDOWS_10_19H1)
-    {
-        PhReferenceObject(FileName);
-        return FileName;
-    }
-
-    if (PhDetermineDosPathNameType(PhGetString(FileName)) == RtlPathTypeUncAbsolute)
-    {
-        PhReferenceObject(FileName);
-        return FileName;
-    }
+        return FALSE;
+    if (PhDetermineDosPathNameType(FileName) == RtlPathTypeUncAbsolute)
+        return FALSE;
 
     // 19H1 and above relocated binary resources into the \SystemResources\ directory.
     // This is implemented as a hook inside EnumResourceNamesExW:
@@ -2456,50 +2933,48 @@ PPH_STRING PhpGetImageMunResourcePath(
     //
     // The below code has the same logic and semantics. (dmex)
 
-    directory = PhGetBaseDirectory(FileName);
-    fileName = PhGetBaseName(FileName);
+    if (!PhGetBasePath(FileName, &directoryPart, &fileNamePart))
+        return FALSE;
 
-    if (directory)
+    if (directoryPart.Length && fileNamePart.Length)
     {
-        PhMoveReference(&directory, PhGetBaseDirectory(directory));
-    }
+        if (!PhGetBasePath(&directoryPart, &directoryBasePart, NULL))
+            return FALSE;
 
-    if (directory && fileName)
-    {
-        PhMoveReference(&fileName, PhConcatStringRef3(&directory->sr, &systemResourcePathSr, &fileName->sr));
-        PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &systemResourceExtensionSr));
+        fileName = PhConcatStringRef4(
+            &directoryBasePart,
+            &systemResourcesPath,
+            &fileNamePart,
+            &systemResourcesExtension
+            );
 
         if (NativeFileName)
         {
             if (PhDoesFileExist(&fileName->sr))
-                PhMoveReference(&filePath, fileName);
-            else
-                PhDereferenceObject(fileName);
+            {
+                *ResourceFileName = fileName;
+                return TRUE;
+            }
         }
         else
         {
             if (PhDoesFileExistWin32(PhGetString(fileName)))
-                PhMoveReference(&filePath, fileName);
-            else
-                PhDereferenceObject(fileName);
+            {
+                *ResourceFileName = fileName;
+                return TRUE;
+            }
         }
     }
 
-    if (PhIsNullOrEmptyString(filePath))
-    {
-        PhSetReference(&filePath, FileName);
-    }
-
-    PhClearReference(&directory);
-
-    return filePath;
+    PhClearReference(&fileName);
+    return FALSE;
 }
 
 // rev from PrivateExtractIconExW with changes
 // for using SEC_COMMIT instead of SEC_IMAGE. (dmex)
 _Success_(return)
 BOOLEAN PhExtractIconEx(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
@@ -2510,25 +2985,35 @@ BOOLEAN PhExtractIconEx(
     NTSTATUS status;
     HICON iconLarge = NULL;
     HICON iconSmall = NULL;
-    PPH_STRING fileName;
+    PPH_STRING resourceFileName = NULL;
+    PH_STRINGREF fileName;
     PH_MAPPED_IMAGE mappedImage;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_RESOURCE_DIRECTORY resourceDirectory;
     ULONG iconDirectoryResourceLength;
     PNEWHEADER iconDirectoryResource;
 
-    if (!(fileName = PhpGetImageMunResourcePath(
-        FileName,
-        NativeFileName
-        )))
+    if (PhGetSystemResourcesFileName(FileName, NativeFileName, &resourceFileName))
     {
+        fileName.Buffer = resourceFileName->Buffer;
+        fileName.Length = resourceFileName->Length;
+    }
+    else
+    {
+        fileName.Buffer = FileName->Buffer;
+        fileName.Length = FileName->Length;
+    }
+
+    if (PhIsNullOrEmptyString(&fileName))
+    {
+        PhClearReference(&resourceFileName);
         return FALSE;
     }
 
     if (NativeFileName)
     {
         status = PhLoadMappedImageEx(
-            &fileName->sr,
+            &fileName,
             NULL,
             &mappedImage
             );
@@ -2536,7 +3021,7 @@ BOOLEAN PhExtractIconEx(
     else
     {
         status = PhLoadMappedImage(
-            PhGetString(fileName),
+            PhGetStringRefZ(&fileName),
             NULL,
             &mappedImage
             );
@@ -2544,7 +3029,7 @@ BOOLEAN PhExtractIconEx(
 
     if (!NT_SUCCESS(status))
     {
-        PhDereferenceObject(fileName);
+        PhClearReference(&resourceFileName);
         return FALSE;
     }
 
@@ -2615,7 +3100,7 @@ BOOLEAN PhExtractIconEx(
 CleanupExit:
 
     PhUnloadMappedImage(&mappedImage);
-    PhDereferenceObject(fileName);
+    PhClearReference(&resourceFileName);
 
     if (IconLarge && IconSmall)
     {
@@ -2693,9 +3178,12 @@ HIMAGELIST PhImageListCreate(
 }
 
 BOOLEAN PhImageListDestroy(
-    _In_ HIMAGELIST ImageListHandle
+    _In_opt_ HIMAGELIST ImageListHandle
     )
 {
+    if (!ImageListHandle)
+        return TRUE;
+
     return SUCCEEDED(IImageList2_Release((IImageList2*)ImageListHandle));
 }
 
@@ -3069,7 +3557,32 @@ VOID PhCustomDrawTreeTimeLine(
     FrameRect(Hdc, &borderRect, GetStockBrush(GRAY_BRUSH));
 }
 
-// Windows Imaging Component (WIC) bitmap support 
+// Windows Imaging Component (WIC) bitmap support
+
+HBITMAP PhCreateBitmapHandle(
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
+    )
+{
+    HBITMAP bitmapHandle;
+    BITMAPINFO bitmapInfo;
+    HDC screenHdc;
+
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth = Width;
+    bitmapInfo.bmiHeader.biHeight = -Height;
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    screenHdc = GetDC(NULL);
+    bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
+    ReleaseDC(NULL, screenHdc);
+
+    return bitmapHandle;
+}
 
 static PVOID PhpGetWicImagingFactoryInterface(
     VOID
@@ -3080,7 +3593,7 @@ static PVOID PhpGetWicImagingFactoryInterface(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (WindowsVersion > WINDOWS_8)
+        if (WindowsVersion >= WINDOWS_8)
             PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory2, &IID_IWICImagingFactory, &wicImagingFactory);
         else
             PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory);
@@ -3183,22 +3696,138 @@ HBITMAP PhLoadImageFormatFromResource(
         IWICFormatConverter_Release(wicFormatConverter);
     }
 
+    if (!(bitmapHandle = PhCreateBitmapHandle(Width, Height, &bitmapBuffer)))
+        goto CleanupExit;
+
+    if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
-        BITMAPINFO bitmapInfo;
-        HDC screenHdc;
-
-        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
-        bitmapInfo.bmiHeader.biWidth = Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
-        bitmapInfo.bmiHeader.biBitCount = 32;
-
-        screenHdc = GetDC(NULL);
-        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
+        if (SUCCEEDED(IWICBitmapSource_CopyPixels(
+            wicBitmapSource,
+            NULL,
+            Width * sizeof(RGBQUAD),
+            Width * Height * sizeof(RGBQUAD),
+            bitmapBuffer
+            )))
+        {
+            success = TRUE;
+        }
     }
+    else
+    {
+        IWICBitmapScaler* wicBitmapScaler = NULL;
+
+        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImageFactory, &wicBitmapScaler)))
+        {
+            if (SUCCEEDED(IWICBitmapScaler_Initialize(
+                wicBitmapScaler,
+                wicBitmapSource,
+                Width,
+                Height,
+                WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
+                )))
+            {
+                if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
+                    wicBitmapScaler,
+                    NULL,
+                    Width * sizeof(RGBQUAD),
+                    Width * Height * sizeof(RGBQUAD),
+                    bitmapBuffer
+                    )))
+                {
+                    success = TRUE;
+                }
+            }
+
+            IWICBitmapScaler_Release(wicBitmapScaler);
+        }
+    }
+
+CleanupExit:
+
+    if (wicBitmapSource)
+        IWICBitmapSource_Release(wicBitmapSource);
+    if (wicBitmapDecoder)
+        IWICBitmapDecoder_Release(wicBitmapDecoder);
+    if (wicBitmapFrame)
+        IWICBitmapFrameDecode_Release(wicBitmapFrame);
+    if (wicBitmapStream)
+        IWICStream_Release(wicBitmapStream);
+
+    if (!success)
+    {
+        if (bitmapHandle) DeleteBitmap(bitmapHandle);
+        return NULL;
+    }
+
+    return bitmapHandle;
+}
+
+HBITMAP PhLoadImageFromAddress(
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_ UINT Width,
+    _In_ UINT Height
+    )
+{
+    BOOLEAN success = FALSE;
+    HBITMAP bitmapHandle = NULL;
+    PVOID bitmapBuffer = NULL;
+    IWICImagingFactory* wicImageFactory;
+    IWICStream* wicBitmapStream = NULL;
+    IWICBitmapSource* wicBitmapSource = NULL;
+    IWICBitmapDecoder* wicBitmapDecoder = NULL;
+    IWICBitmapFrameDecode* wicBitmapFrame = NULL;
+    WICPixelFormatGUID pixelFormat;
+    UINT sourceWidth = 0;
+    UINT sourceHeight = 0;
+
+    if (!(wicImageFactory = PhpGetWicImagingFactoryInterface()))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateStream(wicImageFactory, &wicBitmapStream)))
+        goto CleanupExit;
+    if (FAILED(IWICStream_InitializeFromMemory(wicBitmapStream, Buffer, BufferLength)))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateDecoderFromStream(wicImageFactory, (IStream*)wicBitmapStream, &GUID_VendorMicrosoft, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicBitmapFrame, &pixelFormat)))
+        goto CleanupExit;
+
+    if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+    {
+        if (FAILED(IWICBitmapFrameDecode_QueryInterface(wicBitmapFrame, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+    }
+    else
+    {
+        IWICFormatConverter* wicFormatConverter = NULL;
+
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImageFactory, &wicFormatConverter)))
+            goto CleanupExit;
+
+        if (FAILED(IWICFormatConverter_Initialize(
+            wicFormatConverter,
+            (IWICBitmapSource*)wicBitmapFrame,
+            &GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone,
+            NULL,
+            0.0f,
+            WICBitmapPaletteTypeCustom
+            )))
+        {
+            IWICFormatConverter_Release(wicFormatConverter);
+            goto CleanupExit;
+        }
+
+        if (FAILED(IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+
+        IWICFormatConverter_Release(wicFormatConverter);
+    }
+
+    if (!(bitmapHandle = PhCreateBitmapHandle(Width, Height, &bitmapBuffer)))
+        goto CleanupExit;
 
     if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
@@ -3272,146 +3901,13 @@ HBITMAP PhLoadImageFromResource(
     _In_ UINT Height
     )
 {
-    BOOLEAN success = FALSE;
-    HBITMAP bitmapHandle = NULL;
     ULONG resourceLength = 0;
     WICInProcPointer resourceBuffer = NULL;
-    PVOID bitmapBuffer = NULL;
-    IWICImagingFactory* wicImageFactory = NULL;
-    IWICStream* wicBitmapStream = NULL;
-    IWICBitmapSource* wicBitmapSource = NULL;
-    IWICBitmapDecoder* wicBitmapDecoder = NULL;
-    IWICBitmapFrameDecode* wicBitmapFrame = NULL;
-    WICPixelFormatGUID pixelFormat;
-    UINT sourceWidth = 0;
-    UINT sourceHeight = 0;
 
     if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
-        goto CleanupExit;
-
-    if (!(wicImageFactory = PhpGetWicImagingFactoryInterface()))
-        goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateStream(wicImageFactory, &wicBitmapStream)))
-        goto CleanupExit;
-    if (FAILED(IWICStream_InitializeFromMemory(wicBitmapStream, resourceBuffer, resourceLength)))
-        goto CleanupExit;
-    if (FAILED(IWICImagingFactory_CreateDecoderFromStream(wicImageFactory, (IStream*)wicBitmapStream, &GUID_VendorMicrosoft, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
-        goto CleanupExit;
-    if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
-        goto CleanupExit;
-    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicBitmapFrame, &pixelFormat)))
-        goto CleanupExit;
-
-    if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
-    {
-        if (FAILED(IWICBitmapFrameDecode_QueryInterface(wicBitmapFrame, &IID_IWICBitmapSource, &wicBitmapSource)))
-            goto CleanupExit;
-    }
-    else
-    {
-        IWICFormatConverter* wicFormatConverter = NULL;
-
-        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImageFactory, &wicFormatConverter)))
-            goto CleanupExit;
-
-        if (FAILED(IWICFormatConverter_Initialize(
-            wicFormatConverter,
-            (IWICBitmapSource*)wicBitmapFrame,
-            &GUID_WICPixelFormat32bppBGRA,
-            WICBitmapDitherTypeNone,
-            NULL,
-            0.0f,
-            WICBitmapPaletteTypeCustom
-            )))
-        {
-            IWICFormatConverter_Release(wicFormatConverter);
-            goto CleanupExit;
-        }
-
-        if (FAILED(IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource)))
-            goto CleanupExit;
-
-        IWICFormatConverter_Release(wicFormatConverter);
-    }
-
-    {
-        BITMAPINFO bitmapInfo;
-        HDC screenHdc;
-
-        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
-        bitmapInfo.bmiHeader.biWidth = Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
-        bitmapInfo.bmiHeader.biBitCount = 32;
-
-        screenHdc = GetDC(NULL);
-        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
-    }
-
-    if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
-    {
-        if (SUCCEEDED(IWICBitmapSource_CopyPixels(
-            wicBitmapSource, 
-            NULL, 
-            Width * sizeof(RGBQUAD), 
-            Width * Height * sizeof(RGBQUAD),
-            bitmapBuffer
-            )))
-        {
-            success = TRUE;
-        }
-    }
-    else
-    {
-        IWICBitmapScaler* wicBitmapScaler = NULL;
-
-        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImageFactory, &wicBitmapScaler)))
-        {
-            if (SUCCEEDED(IWICBitmapScaler_Initialize(
-                wicBitmapScaler,
-                wicBitmapSource,
-                Width, 
-                Height, 
-                WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
-                )))
-            {
-                if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
-                    wicBitmapScaler, 
-                    NULL, 
-                    Width * sizeof(RGBQUAD), 
-                    Width * Height * sizeof(RGBQUAD),
-                    bitmapBuffer
-                    )))
-                {
-                    success = TRUE;
-                }
-            }
-
-            IWICBitmapScaler_Release(wicBitmapScaler);
-        }
-    }
-
-CleanupExit:
-
-    if (wicBitmapSource)
-        IWICBitmapSource_Release(wicBitmapSource);
-    if (wicBitmapDecoder)
-        IWICBitmapDecoder_Release(wicBitmapDecoder);
-    if (wicBitmapFrame)
-        IWICBitmapFrameDecode_Release(wicBitmapFrame);
-    if (wicBitmapStream)
-        IWICStream_Release(wicBitmapStream);
-
-    if (!success)
-    {
-        if (bitmapHandle) DeleteBitmap(bitmapHandle);
         return NULL;
-    }
 
-    return bitmapHandle;
+    return PhLoadImageFromAddress(resourceBuffer, resourceLength, Width, Height);
 }
 
 // Load image and auto-detect the format (dmex)
@@ -3473,22 +3969,8 @@ HBITMAP PhLoadImageFromFile(
         IWICFormatConverter_Release(wicFormatConverter);
     }
 
-    {
-        BITMAPINFO bitmapInfo;
-        HDC screenHdc;
-
-        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
-        bitmapInfo.bmiHeader.biWidth = Width;
-        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
-        bitmapInfo.bmiHeader.biBitCount = 32;
-
-        screenHdc = GetDC(NULL);
-        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
-        ReleaseDC(NULL, screenHdc);
-    }
+    if (!(bitmapHandle = PhCreateBitmapHandle(Width, Height, &bitmapBuffer)))
+        goto CleanupExit;
 
     if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
@@ -3551,36 +4033,6 @@ CleanupExit:
     return bitmapHandle;
 }
 
-typedef enum _ACCENT_STATE
-{
-    ACCENT_DISABLED,
-    ACCENT_ENABLE_GRADIENT = 1,
-    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
-    ACCENT_ENABLE_BLURBEHIND = 3,
-    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
-    ACCENT_ENABLE_HOSTBACKDROP = 5,
-    ACCENT_INVALID_STATE
-} ACCENT_STATE;
-
-typedef enum _ACCENT_FLAG
-{
-    ACCENT_NONE,
-    ACCENT_WINDOWS11_LUMINOSITY = 0x2,
-    ACCENT_BORDER_LEFT = 0x20,
-    ACCENT_BORDER_TOP = 0x40,
-    ACCENT_BORDER_RIGHT = 0x80,
-    ACCENT_BORDER_BOTTOM = 0x100,
-    ACCENT_BORDER_ALL = (ACCENT_BORDER_LEFT | ACCENT_BORDER_TOP | ACCENT_BORDER_RIGHT | ACCENT_BORDER_BOTTOM)
-} ACCENT_FLAG;
-
-typedef struct _ACCENT_POLICY
-{
-    ACCENT_STATE AccentState;
-    ULONG AccentFlags;
-    ULONG GradientColor;
-    ULONG AnimationId;
-} ACCENT_POLICY;
-
 BOOLEAN PhSetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
     _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
@@ -3607,11 +4059,11 @@ BOOLEAN PhSetWindowCompositionAttribute(
 }
 
 BOOLEAN PhSetWindowAcrylicCompositionColor(
-    _In_ HWND WindowHandle, 
+    _In_ HWND WindowHandle,
     _In_ ULONG GradientColor
     )
 {
-    ACCENT_POLICY policy = 
+    ACCENT_POLICY policy =
     {
         ACCENT_ENABLE_ACRYLICBLURBEHIND,
         ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL,
@@ -3626,4 +4078,44 @@ BOOLEAN PhSetWindowAcrylicCompositionColor(
     };
 
     return PhSetWindowCompositionAttribute(WindowHandle, &attribute);
+}
+
+HCURSOR PhLoadArrowCursor(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HCURSOR arrowCursorHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        arrowCursorHandle = PhLoadCursor(NULL, IDC_ARROW);
+        PhEndInitOnce(&initOnce);
+    }
+
+    return arrowCursorHandle;
+}
+
+HCURSOR PhLoadDividerCursor(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HCURSOR dividerCursorHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        //dividerCursorHandle = PhLoadCursor(NULL, IDC_SIZEWE);
+
+        if (baseAddress = PhGetLoaderEntryDllBaseZ(L"comctl32.dll"))
+        {
+            dividerCursorHandle = PhLoadCursor(baseAddress, IDC_DIVIDER);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return dividerCursorHandle;
 }

@@ -6,18 +6,18 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <emenu.h>
 #include <settings.h>
 #include <actions.h>
 #include <phsvccl.h>
 #include <kphuser.h>
+#include <ksisup.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 
@@ -168,6 +168,7 @@ VOID PhShowMemoryListCommand(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMBINEMEMORYLISTS, L"&Combine memory pages", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMPRESSIONSTORE, L"Empty &compression cache", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_SYSTEMFILECACHE, L"Empty system &file cache", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYREGISTRYCACHE, L"Empty &registry cache", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYWORKINGSETS, L"Empty &working sets", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYMODIFIEDPAGELIST, L"Empty &modified page list", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYSTANDBYLIST, L"Empty &standby list", NULL, NULL), ULONG_MAX);
@@ -225,13 +226,13 @@ VOID PhShowMemoryListCommand(
                 NTSTATUS status;
                 MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
 
-                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                 status = NtSetSystemInformation(
                     SystemCombinePhysicalMemoryInformation,
                     &combineInfo,
                     sizeof(MEMORY_COMBINE_INFORMATION_EX)
                     );
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 if (NT_SUCCESS(status))
                 {
@@ -255,21 +256,42 @@ VOID PhShowMemoryListCommand(
 
                 if (KphLevel() < KphLevelMax)
                 {
-                    PhShowError2(ParentWindow, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
+                    PhShowKsiNotConnected(
+                        ParentWindow,
+                        L"Emptying the compression store requires a connection to the kernel driver."
+                        );
                     break;
                 }
 
-                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                 status = KphSystemControl(
                     KphSystemControlEmptyCompressionStore,
                     NULL,
                     0
                     );
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 if (!NT_SUCCESS(status))
                 {
                     PhShowStatus(ParentWindow, L"Unable to empty compression stores", status, 0);
+                }
+            }
+            break;
+        case ID_EMPTY_EMPTYREGISTRYCACHE:
+            {
+                NTSTATUS status;
+
+                PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
+                status = NtSetSystemInformation(SystemRegistryReconciliationInformation, NULL, 0);
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
+
+                if (NT_SUCCESS(status))
+                {
+                    PhShowInformation2(ParentWindow, L"Registry cache flushed", L"", L"");
+                }
+                else
+                {
+                    PhShowStatus(ParentWindow, L"Unable to flush registry cache.", status, 0);
                 }
             }
             break;
@@ -282,13 +304,13 @@ VOID PhShowMemoryListCommand(
 
                 PhGetSystemFileCacheSize(&cacheInfo);
 
-                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                 status = PhSetSystemFileCacheSize(
                     MAXSIZE_T,
                     MAXSIZE_T,
                     0
                     );
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 if (NT_SUCCESS(status))
                 {
@@ -313,13 +335,13 @@ VOID PhShowMemoryListCommand(
     {
         NTSTATUS status;
 
-        SetCursor(LoadCursor(NULL, IDC_WAIT));
+        PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
         status = NtSetSystemInformation(
             SystemMemoryListInformation,
             &command,
             sizeof(SYSTEM_MEMORY_LIST_COMMAND)
             );
-        SetCursor(LoadCursor(NULL, IDC_ARROW));
+        PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
         if (status == STATUS_PRIVILEGE_NOT_HELD)
         {
@@ -327,9 +349,9 @@ VOID PhShowMemoryListCommand(
             {
                 if (PhUiConnectToPhSvc(ParentWindow, FALSE))
                 {
-                    SetCursor(LoadCursor(NULL, IDC_WAIT));
+                    PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
                     status = PhSvcCallIssueMemoryListCommand(command);
-                    SetCursor(LoadCursor(NULL, IDC_ARROW));
+                    PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
                     PhUiDisconnectFromPhSvc();
                 }
                 else

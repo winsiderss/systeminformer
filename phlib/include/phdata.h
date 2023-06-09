@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2023
+ *
+ */
+
 #ifndef _PH_PHDATA_H
 #define _PH_PHDATA_H
 
@@ -30,6 +42,22 @@ extern SID PhSeRemoteInteractiveLogonSid;
 extern SID PhSeLocalSystemSid;
 extern SID PhSeLocalServiceSid;
 extern SID PhSeNetworkServiceSid;
+
+PSID PhSeAdministratorsSid(
+    VOID
+    );
+
+PSID PhSeUsersSid(
+    VOID
+    );
+
+PSID PhSeAnyPackageSid(
+    VOID
+    );
+
+PSID PhSeInternetExplorerSid(
+    VOID
+    );
 
 // Unicode
 

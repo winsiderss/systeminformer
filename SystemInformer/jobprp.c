@@ -314,8 +314,12 @@ INT_PTR CALLBACK PhpJobPageProc(
 
                     if (flags & JOB_OBJECT_LIMIT_PRIORITY_CLASS)
                     {
-                        PhpAddLimit(limitsLv, L"Priority class",
-                            PhGetProcessPriorityClassString(extendedLimits.BasicLimitInformation.PriorityClass));
+                        PPH_STRINGREF value;
+
+                        if (value = PhGetProcessPriorityClassString(extendedLimits.BasicLimitInformation.PriorityClass))
+                        {
+                            PhpAddLimit(limitsLv, L"Priority class", value->Buffer);
+                        }
                     }
 
                     if (flags & JOB_OBJECT_LIMIT_PROCESS_MEMORY)
@@ -519,7 +523,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(listViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(listViewHandle, &listviewItems, &numberOfItems);
 

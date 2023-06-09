@@ -6,12 +6,11 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
 #include "wndexp.h"
-#include "resource.h"
 
 BOOLEAN WepWindowNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -29,12 +28,10 @@ VOID WepDestroyWindowNode(
 BOOLEAN NTAPI WepWindowTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
-
-BOOLEAN WepEnableWindowIcons = FALSE;
 
 BOOLEAN WeWindowTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
@@ -49,13 +46,13 @@ BOOLEAN WeWindowTreeFilterCallback(
 
     if (windowNode->WindowClass[0])
     {
-        if (PhWordMatchStringZ(context->SearchboxText, windowNode->WindowClass))
+        if (PhWordMatchStringLongHintZ(context->SearchboxText, windowNode->WindowClass))
             return TRUE;
     }
 
     if (windowNode->WindowHandleString[0])
     {
-        if (PhWordMatchStringZ(context->SearchboxText, windowNode->WindowHandleString))
+        if (PhWordMatchStringLongHintZ(context->SearchboxText, windowNode->WindowHandleString))
             return TRUE;
     }
 
@@ -86,15 +83,7 @@ VOID WeInitializeWindowTree(
     _Out_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    HWND hwnd;
     PPH_STRING settings;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        WepEnableWindowIcons = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_ENABLE_ICONS);
-        PhEndInitOnce(&initOnce);
-    }
 
     memset(Context, 0, sizeof(WE_WINDOW_TREE_CONTEXT));
 
@@ -109,42 +98,24 @@ VOID WeInitializeWindowTree(
 
     Context->ParentWindowHandle = ParentWindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
-    hwnd = TreeNewHandle;
-    PhSetControlTheme(hwnd, L"explorer");
+    PhSetControlTheme(TreeNewHandle, L"explorer");
 
-    TreeNew_SetCallback(hwnd, WepWindowTreeNewCallback, Context);
+    TreeNew_SetCallback(TreeNewHandle, WepWindowTreeNewCallback, Context);
 
-    if (WepEnableWindowIcons)
-    {
-        HICON iconSmall;
-        LONG dpiValue;
+    TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
-        dpiValue = PhGetWindowDpi(ParentWindowHandle);
-        Context->NodeImageList = PhImageListCreate(
-            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-            ILC_MASK | ILC_COLOR32,
-            200,
-            200
-            );
-        PhImageListSetBkColor(Context->NodeImageList, CLR_NONE);
-        TreeNew_SetImageList(hwnd, Context->NodeImageList);
+    PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_TEXT, TRUE, L"Text", 220, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(TreeNewHandle, WEWNTLC_MODULE, TRUE, L"Module", 150, PH_ALIGN_LEFT, 4, 0);
 
-        PhGetStockApplicationIcon(&iconSmall, NULL);
-        PhImageListAddIcon(Context->NodeImageList, iconSmall);
-    }
-
-    PhAddTreeNewColumn(hwnd, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeNewColumn(hwnd, WEWNTLC_TEXT, TRUE, L"Text", 220, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeNewColumn(hwnd, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeNewColumn(hwnd, WEWNTLC_MODULE, TRUE, L"Module", 150, PH_ALIGN_LEFT, 4, 0);
-
-    TreeNew_SetTriState(hwnd, TRUE);
-    TreeNew_SetSort(hwnd, WEWNTLC_CLASS, NoSortOrder);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
+    TreeNew_SetTriState(TreeNewHandle, TRUE);
+    TreeNew_SetSort(TreeNewHandle, WEWNTLC_CLASS, NoSortOrder);
 
     settings = PhGetStringSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS);
-    PhCmLoadSettings(hwnd, &settings->sr);
+    PhCmLoadSettings(TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 
     Context->SearchboxText = PhReferenceEmptyString();
@@ -189,6 +160,43 @@ VOID WeDeleteWindowTree(
     PhDereferenceObject(Context->NodeRootList);
 }
 
+VOID WeInitializeWindowTreeImageList(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context,
+    _In_ PWE_WINDOW_SELECTOR Selector
+    )
+{
+    Context->EnableIcons = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_ENABLE_ICONS);
+    Context->EnableIconsInternal = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_ENABLE_ICONS_INTERNAL);
+    Context->SelectorType = Selector->Type;
+
+    if (Context->EnableIcons && Context->SelectorType == WeWindowSelectorAll)
+    {
+        if (Context->EnableIconsInternal)
+        {
+            HICON iconSmall;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Context->ParentWindowHandle);
+            Context->NodeImageList = PhImageListCreate(
+                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+                ILC_MASK | ILC_COLOR32,
+                200,
+                200
+                );
+            PhImageListSetBkColor(Context->NodeImageList, CLR_NONE);
+            TreeNew_SetImageList(Context->TreeNewHandle, Context->NodeImageList);
+
+            PhGetStockApplicationIcon(&iconSmall, NULL);
+            PhImageListAddIcon(Context->NodeImageList, iconSmall);
+        }
+        else
+        {
+            TreeNew_SetImageList(Context->TreeNewHandle, PhGetProcessSmallImageList());
+        }
+    }
+}
+
 BOOLEAN WepWindowNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -221,18 +229,38 @@ PWE_WINDOW_NODE WeAddWindowNode(
     memset(windowNode->TextCache, 0, sizeof(PH_STRINGREF) * WEWNTLC_MAXIMUM);
     windowNode->Node.TextCache = windowNode->TextCache;
     windowNode->Node.TextCacheSize = WEWNTLC_MAXIMUM;
-
     windowNode->WindowHandle = WindowHandle;
     windowNode->Children = PhCreateList(1);
 
-    if (WepEnableWindowIcons)
+    if (Context->EnableIcons && Context->SelectorType == WeWindowSelectorAll)
     {
-        HICON windowIcon;
-
-        if (windowIcon = WepGetInternalWindowIcon(WindowHandle, ICON_SMALL))
+        if (Context->EnableIconsInternal)
         {
-            windowNode->WindowIconIndex = PhImageListAddIcon(Context->NodeImageList, windowIcon);
-            DestroyIcon(windowIcon);
+            HICON windowIcon;
+
+            if (windowIcon = WepGetInternalWindowIcon(WindowHandle, ICON_SMALL))
+            {
+                windowNode->WindowIconIndex = PhImageListAddIcon(Context->NodeImageList, windowIcon);
+                DestroyIcon(windowIcon);
+            }
+        }
+        else
+        {
+            ULONG processId = 0;
+            PPH_PROCESS_ITEM processItem;
+
+            GetWindowThreadProcessId(WindowHandle, &processId);
+
+            if (processId && (processItem = PhReferenceProcessItem(UlongToHandle(processId))))
+            {
+                windowNode->ProcessItem = processItem;
+
+                if (PhTestEvent(&processItem->Stage1Event))
+                {
+                    windowNode->WindowIconIndex = processItem->SmallIconIndex;
+                    windowNode->ProcessIconValid = TRUE;
+                }
+            }
         }
     }
 
@@ -299,11 +327,12 @@ VOID WepDestroyWindowNode(
     if (WindowNode->ModuleString) PhDereferenceObject(WindowNode->ModuleString);
     if (WindowNode->FileNameWin32) PhDereferenceObject(WindowNode->FileNameWin32);
 
+    if (WindowNode->ProcessItem) PhDereferenceObject(WindowNode->ProcessItem);
+
     PhFree(WindowNode);
 }
 
 #define SORT_FUNCTION(Column) WepWindowTreeNewCompare##Column
-
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl WepWindowTreeNewCompare##Column( \
     _In_ void *_context, \
     _In_ const void *_elem1, \
@@ -332,7 +361,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Text)
 {
-    sortResult = PhCompareString(node1->WindowText, node2->WindowText, TRUE);
+    sortResult = PhCompareStringWithNull(node1->WindowText, node2->WindowText, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -347,7 +376,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Module)
 {
-    sortResult = PhCompareString(node1->ModuleString, node2->ModuleString, TRUE);
+    sortResult = PhCompareStringWithNull(node1->ModuleString, node2->ModuleString, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -472,12 +501,12 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
-            if (!WepEnableWindowIcons)
+            if (!(context->EnableIcons || context->EnableIconsInternal))
                 break;
 
             node = (PWE_WINDOW_NODE)getNodeIcon->Node;
             getNodeIcon->Icon = (HICON)node->WindowIconIndex;
-            getNodeIcon->Flags = TN_CACHE;
+            //getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewSortChanged:
@@ -491,14 +520,15 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
 
-            if (!keyEvent)
-                break;
-
             switch (keyEvent->VirtualKey)
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
                     SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_COPY, 0);
+                break;
+            case 'A':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
                 break;
             }
         }

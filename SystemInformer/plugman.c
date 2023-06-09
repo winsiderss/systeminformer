@@ -15,13 +15,8 @@
 #include <settings.h>
 #include <colmgr.h>
 #include <phplug.h>
-#include <phsettings.h>
 
 #define WM_PH_PLUGINS_SHOWPROPERTIES (WM_APP + 401)
-
-static HANDLE PhPluginsThreadHandle = NULL;
-static HWND PhPluginsWindowHandle = NULL;
-static PH_EVENT PhPluginsInitializedEvent = PH_EVENT_INIT;
 
 typedef struct _PH_PLUGMAN_CONTEXT
 {
@@ -545,9 +540,13 @@ VOID InitializePluginsTree(
     TreeNew_SetCallback(Context->TreeNewHandle, PluginsTreeNewCallback, Context);
     TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, dpiValue));
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TRUE, L"Plugin", 80, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
     //PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_AUTHOR, TRUE, L"Author", 80, PH_ALIGN_LEFT, 1, 0, 0);
     //PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_VERSION, TRUE, L"Version", 80, PH_ALIGN_CENTER, 2, DT_CENTER, 0);
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
 
@@ -605,7 +604,7 @@ PPH_STRING PhpGetPluginBaseName(
     }
 }
 
-BOOLEAN NTAPI PhpEnumeratePluginCallback(
+NTSTATUS NTAPI PhpEnumeratePluginCallback(
     _In_ PPH_PLUGIN Information,
     _In_opt_ PVOID Context
     )
@@ -620,7 +619,7 @@ BOOLEAN NTAPI PhpEnumeratePluginCallback(
     }
 
     PhDereferenceObject(pluginBaseName);
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 INT_PTR CALLBACK PhPluginsDlgProc(

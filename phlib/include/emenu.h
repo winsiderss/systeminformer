@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_EMENU_H
 #define _PH_EMENU_H
 
@@ -19,11 +31,13 @@ EXTERN_C_START
 #define PH_EMENU_TEXT_OWNED 0x80000000
 #define PH_EMENU_BITMAP_OWNED 0x40000000
 
-struct _PH_EMENU_ITEM;
+typedef struct _PH_EMENU_ITEM *PPH_EMENU_ITEM;
 
-typedef VOID (NTAPI *PPH_EMENU_ITEM_DELETE_FUNCTION)(
-    _In_ struct _PH_EMENU_ITEM *Item
+_Function_class_(PH_EMENU_ITEM_DELETE_FUNCTION)
+typedef VOID (NTAPI PH_EMENU_ITEM_DELETE_FUNCTION)(
+    _In_ PPH_EMENU_ITEM Item
     );
+typedef PH_EMENU_ITEM_DELETE_FUNCTION *PPH_EMENU_ITEM_DELETE_FUNCTION;
 
 typedef struct _PH_EMENU_ITEM
 {
@@ -70,7 +84,10 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     );
 
 PHLIBAPI
-PPH_EMENU_ITEM PhFindEMenuItemEx(
+_Success_(return != NULL)
+PPH_EMENU_ITEM
+NTAPI
+PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
     _In_opt_ PWSTR Text,
@@ -198,6 +215,19 @@ VOID PhModifyEMenuItem(
     _In_ ULONG OwnedFlags,
     _In_opt_ PWSTR Text,
     _In_opt_ HBITMAP Bitmap
+    );
+
+VOID PhSetHMenuStyle(
+    _In_ HMENU Menu,
+    _In_ BOOLEAN MainMenu
+    );
+
+VOID PhSetHMenuNotify(
+    _In_ HMENU MenuHandle
+    );
+
+VOID PhDeleteHMenu(
+    _In_ HMENU Menu
     );
 
 // Convenience functions

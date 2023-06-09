@@ -12,8 +12,8 @@
 #include <peview.h>
 #include "colmgr.h"
 
-#include "..\thirdparty\ssdeep\fuzzy.h"
-#include "..\thirdparty\tlsh\tlsh_wrapper.h"
+#include "../thirdparty/ssdeep/fuzzy.h"
+#include "../thirdparty/tlsh/tlsh_wrapper.h"
 
 static PH_STRINGREF EmptySectionsText = PH_STRINGREF_INIT(L"There are no sections to display.");
 static PH_STRINGREF LoadingSectionsText = PH_STRINGREF_INIT(L"Loading sections from image...");
@@ -273,7 +273,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
     {
         PPV_SECTION_NODE sectionNode;
         ULONG sectionNameLength = 0;
-        WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+        WCHAR sectionName[PH_INT64_STR_LEN_1];
         WCHAR value[PH_INT64_STR_LEN_1];
 
         sectionNode = PhAllocateZero(sizeof(PV_SECTION_NODE));
@@ -288,7 +288,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             &sectionNameLength
             ))
         {
-            sectionNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR));
+            sectionNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR) - sizeof(UNICODE_NULL));
         }
 
         // RAW
@@ -315,27 +315,11 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
         if (PvMappedImage.Sections[i].VirtualAddress && PvMappedImage.Sections[i].SizeOfRawData)
         {
-            __try
-            {
-                PVOID imageSectionData;
-                PH_HASH_CONTEXT hashContext;
-                UCHAR hash[32];
+            PVOID imageSectionData;
 
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
-                {
-                    PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                    PhUpdateHash(&hashContext, imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
-
-                    if (PhFinalHash(&hashContext, hash, 16, NULL))
-                    {
-                        sectionNode->HashString = PhBufferToHexString(hash, 16);
-                    }
-                }
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
+            if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
             {
-                //sectionNode->HashString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->HashString = PvHashBuffer(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
             }
 
             __try
@@ -345,14 +329,16 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
                 {
-                    imageSectionEntropy = PvCalculateEntropyBuffer(
+                    if (PhCalculateEntropy(
                         imageSectionData,
                         PvMappedImage.Sections[i].SizeOfRawData,
+                        &imageSectionEntropy,
                         NULL
-                        );
-
-                    sectionNode->SectionEntropy = imageSectionEntropy;
-                    sectionNode->EntropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
+                        ))
+                    {
+                        sectionNode->SectionEntropy = imageSectionEntropy;
+                        sectionNode->EntropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0);
+                    }
                 }
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
@@ -478,7 +464,7 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
 
             PhCreateThread2(PvpPeSectionsEnumerateThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -59,7 +59,7 @@ VOID EtGpuMonitorInitialization(
 {
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
     {
-        EtGpuSupported = PhWindowsVersion >= WINDOWS_10_RS4;
+        EtGpuSupported = EtWindowsVersion >= WINDOWS_10_RS4;
         EtD3DEnabled = EtGpuSupported && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPUPERFCOUNTERS);
 
         EtpGpuAdapterList = PhCreateList(4);
@@ -424,10 +424,10 @@ ULONG64 EtpQueryGpuInstalledMemory(
         CM_REGISTRY_SOFTWARE
         ) == CR_SUCCESS)
     {
-        installedMemory = PhQueryRegistryUlong64(keyHandle, L"HardwareInformation.qwMemorySize");
+        installedMemory = PhQueryRegistryUlong64Z(keyHandle, L"HardwareInformation.qwMemorySize");
 
         if (installedMemory == ULLONG_MAX)
-            installedMemory = PhQueryRegistryUlong(keyHandle, L"HardwareInformation.MemorySize");
+            installedMemory = PhQueryRegistryUlongZ(keyHandle, L"HardwareInformation.MemorySize");
 
         if (installedMemory == ULONG_MAX) // HACK
             installedMemory = ULLONG_MAX;
@@ -435,10 +435,8 @@ ULONG64 EtpQueryGpuInstalledMemory(
         // Intel GPU devices incorrectly create the key with type REG_BINARY.
         if (installedMemory == ULLONG_MAX)
         {
-            PH_STRINGREF valueName;
+            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"HardwareInformation.MemorySize");
             PKEY_VALUE_PARTIAL_INFORMATION buffer;
-
-            PhInitializeStringRef(&valueName, L"HardwareInformation.MemorySize");
 
             if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
             {
@@ -781,7 +779,7 @@ BOOLEAN EtpInitializeD3DStatistics(
                     ULONG64 commitLimit;
                     ULONG aperture;
 
-                    if (PhWindowsVersion >= WINDOWS_8)
+                    if (EtWindowsVersion >= WINDOWS_8)
                     {
                         commitLimit = queryStatistics.QueryResult.SegmentInformation.CommitLimit;
                         aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
@@ -885,7 +883,7 @@ VOID EtpUpdateProcessSegmentInformation(
             {
                 ULONG64 bytesCommitted;
 
-                if (PhWindowsVersion >= WINDOWS_8)
+                if (EtWindowsVersion >= WINDOWS_8)
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 else
                     bytesCommitted = (ULONG)queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
@@ -943,7 +941,7 @@ VOID EtpUpdateSystemSegmentInformation(
                 ULONG64 bytesResident;
                 ULONG aperture;
 
-                if (PhWindowsVersion >= WINDOWS_8)
+                if (EtWindowsVersion >= WINDOWS_8)
                 {
                     bytesResident = queryStatistics.QueryResult.SegmentInformation.BytesResident;
                     aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
@@ -1043,7 +1041,7 @@ VOID EtpUpdateSystemNodeInformation(
         }
     }
 
-    PhQueryPerformanceCounter(&performanceCounter, &EtClockTotalRunningTimeFrequency);
+    PhQueryPerformanceCounter(&performanceCounter);
     PhUpdateDelta(&EtClockTotalRunningTimeDelta, performanceCounter.QuadPart);
 }
 
@@ -1449,7 +1447,7 @@ VOID EtQueryProcessGpuStatistics(
             {
                 ULONG64 bytesCommitted;
 
-                if (PhWindowsVersion >= WINDOWS_8)
+                if (EtWindowsVersion >= WINDOWS_8)
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 else
                     bytesCommitted = (ULONG)queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;

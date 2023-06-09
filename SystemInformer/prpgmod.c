@@ -29,16 +29,11 @@
 static PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
 
 static VOID NTAPI ModuleAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    if (!modulesContext)
-        return;
-    if (!Parameter)
-        return;
 
     // Parameter contains a pointer to the added module item.
     PhReferenceObject(Parameter);
@@ -46,40 +41,31 @@ static VOID NTAPI ModuleAddedHandler(
 }
 
 static VOID NTAPI ModuleModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    if (!modulesContext)
-        return;
 
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
 static VOID NTAPI ModuleRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    if (!modulesContext)
-        return;
 
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
 static VOID NTAPI ModulesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    if (!modulesContext)
-        return;
 
     PostMessage(modulesContext->WindowHandle, WM_PH_MODULES_UPDATED, PhGetRunIdProvider(&modulesContext->ProviderRegistration), 0);
 }
@@ -252,12 +238,6 @@ BOOLEAN PhpModulesTreeFilterCallback(
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(moduleItem->FileNameWin32))
-    {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->FileNameWin32->sr))
-            return TRUE;
-    }
-
     if (!PhIsNullOrEmptyString(moduleItem->VerifySignerName))
     {
         if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VerifySignerName->sr))
@@ -296,13 +276,13 @@ BOOLEAN PhpModulesTreeFilterCallback(
 
     if (moduleItem->EntryPointAddressString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->EntryPointAddressString))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, moduleItem->EntryPointAddressString))
             return TRUE;
     }
 
     if (moduleItem->ParentBaseAddressString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->ParentBaseAddressString))
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, moduleItem->ParentBaseAddressString))
             return TRUE;
     }
 
@@ -407,10 +387,10 @@ VOID PhpPopulateTableWithProcessModuleNodes(
             // If this is the first column in the row, add some indentation.
             text = PhaCreateStringEx(
                 NULL,
-                getCellText.Text.Length + Level * sizeof(WCHAR) * sizeof(WCHAR)
+                getCellText.Text.Length + UInt32x32To64(Level, 2) * sizeof(WCHAR)
                 );
-            wmemset(text->Buffer, L' ', Level * sizeof(WCHAR));
-            memcpy(&text->Buffer[Level * 2], getCellText.Text.Buffer, getCellText.Text.Length);
+            wmemset(text->Buffer, L' ', UInt32x32To64(Level, 2));
+            memcpy(&text->Buffer[UInt32x32To64(Level, 2)], getCellText.Text.Buffer, getCellText.Text.Length);
         }
 
         Table[*Index][i] = text;
@@ -795,10 +775,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (moduleItem)
                     {
+                        PPH_STRING fileNameWin32 = PH_AUTO(PhGetFileName(moduleItem->FileName));
+
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"FileBrowseExecutable",
-                            moduleItem->FileNameWin32->Buffer,
+                            PhGetString(fileNameWin32),
                             FALSE,
                             L"Make sure the Explorer executable file is present."
                             );
@@ -811,10 +793,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (moduleItem)
                     {
+                        PPH_STRING fileNameWin32 = PH_AUTO(PhGetFileName(moduleItem->FileName));
+
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"ProgramInspectExecutables",
-                            moduleItem->FileNameWin32->Buffer,
+                            PhGetString(fileNameWin32),
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
                             );

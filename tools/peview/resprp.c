@@ -416,24 +416,7 @@ VOID PvpPeEnumMappedImageResources(
 
             if (entry.Data && entry.Size)
             {
-                __try
-                {
-                    PH_HASH_CONTEXT hashContext;
-                    UCHAR hash[32];
-
-                    PhInitializeHash(&hashContext, Md5HashAlgorithm);
-                    PhUpdateHash(&hashContext, entry.Data, entry.Size);
-
-                    if (PhFinalHash(&hashContext, hash, 16, NULL))
-                    {
-                        resourceNode->HashString = PhBufferToHexString(hash, 16);
-                    }
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
-                {
-                    //resourceNode->HashString = PhGetNtMessage(GetExceptionCode());
-                    resourceNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
-                }
+                resourceNode->HashString = PvHashBuffer(entry.Data, entry.Size);
             }
 
             if (entry.Data && entry.Size)
@@ -442,14 +425,16 @@ VOID PvpPeEnumMappedImageResources(
                 {
                     DOUBLE imageResourceEntropy;
 
-                    imageResourceEntropy = PvCalculateEntropyBuffer(
+                    if (PhCalculateEntropy(
                         entry.Data,
                         entry.Size,
+                        &imageResourceEntropy,
                         NULL
-                        );
-
-                    resourceNode->ResourcesEntropy = imageResourceEntropy;
-                    resourceNode->EntropyString = PvFormatDoubleCropZero(imageResourceEntropy, 2);
+                        ))
+                    {
+                        resourceNode->ResourcesEntropy = imageResourceEntropy;
+                        resourceNode->EntropyString = PhFormatEntropy(imageResourceEntropy, 2, 0, 0);
+                    }
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
@@ -576,7 +561,7 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
 
             PhCreateThread2(PvpPeResourcesEnumerateThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

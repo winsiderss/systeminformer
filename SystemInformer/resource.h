@@ -109,7 +109,9 @@
 #define IDD_HEAPS                       255
 #define IDD_PROCVDMHOST                 257
 #define IDD_OPTSYMBOLS                  258
+#define IDD_OBJMAPPINGS                 258
 #define IDI_UACSHIELD                   261
+#define IDD_RUNPACKAGE                  263
 #define IDB_SEARCH_ACTIVE_SMALL         265
 #define IDB_SEARCH_INACTIVE_SMALL       266
 #define IDC_TERMINATE                   1003
@@ -514,6 +516,9 @@
 #define IDC_SECTION                     1375
 #define IDC_REGEX                       1377
 #define IDC_DESCRIPTIONLABEL            1378
+#define IDC_IOREAD_L                    1378
+#define IDC_IOWRITE_L                   1379
+#define IDC_IOOTHER_L                   1380
 #define IDC_VIEWCOMMANDLINE             1381
 #define IDC_DELETE                      1382
 #define IDC_EDIT                        1383
@@ -579,7 +584,6 @@
 #define ID_PROCESS_MISCELLANEOUS        40041
 #define ID_PROCESS_WINDOW               40042
 #define ID_PROCESS_PAGEPRIORITY         40043
-#define ID_PROCESS_BOOST                40044
 #define ID_PRIORITY_REALTIME            40048
 #define ID_PRIORITY_HIGH                40049
 #define ID_MISCELLANEOUS_ECOMODE        40050
@@ -604,6 +608,7 @@
 #define ID_HACKER_RUNASADMINISTRATOR    40077
 #define ID_HACKER_RUNAS                 40078
 #define ID_HACKER_SHOWDETAILSFORALLPROCESSES 40079
+#define ID_HACKER_RUNASPACKAGE          40080
 #define ID_HACKER_FINDHANDLESORDLLS     40082
 #define ID_HACKER_OPTIONS               40083
 #define ID_PROCESS_FREEZE               40084
@@ -717,6 +722,7 @@
 #define ID_VIEW_UPDATEAUTOMATICALLY     40235
 #define ID_HACKER_RUNASLIMITEDUSER      40236
 #define ID_USER_REMOTECONTROL           40237
+#define ID_VIEW_HIDEMICROSOFTPROCESSES  40238
 #define ID_PAGEPRIORITY_NORMAL          40239
 #define ID_PAGEPRIORITY_BELOWNORMAL     40240
 #define ID_PAGEPRIORITY_MEDIUM          40241
@@ -730,6 +736,7 @@
 #define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40251
 #define ID_EMPTY_EMPTYSTANDBYLIST       40252
 #define ID_EMPTY_EMPTYPRIORITY0STANDBYLIST 40253
+#define ID_EMPTY_EMPTYREGISTRYCACHE     40254
 #define IDC_BACK                        40255
 #define ID_VIEW_ORGANIZECOLUMNSETS      40256
 #define ID_VIEW_SAVECOLUMNSET           40257
@@ -778,18 +785,25 @@
 #define ID_TOOLS_RDP_PERMISSIONS        40301
 #define ID_TOOLS_PWR_PERMISSIONS        40302
 #define ID_TOOLS_WMI_PERMISSIONS        40303
-#define ID_UIACCESS_REMOVE              40304
-#define ID_TOOLS_LIVEDUMP               40305
+#define ID_TOOLS_DESKTOP_PERMISSIONS    40304
+#define ID_TOOLS_STATION_PERMISSIONS    40305
+#define ID_UIACCESS_REMOVE              40306
+#define ID_TOOLS_LIVEDUMP               40307
+#define ID_NOTIFICATIONS_ENABLEDELAYSTART 40308
+#define ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT 40309
+#define ID_NOTIFICATIONS_RESETPERSISTLAYOUT 40310
+#define ID_NOTIFICATIONS_ENABLETRANSPARENTICONS 40311
+#define ID_NOTIFICATIONS_ENABLESINGLECLICKICONS 40312
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        267
 #define _APS_NEXT_COMMAND_VALUE         40298
-#define _APS_NEXT_CONTROL_VALUE         1415
+#define _APS_NEXT_CONTROL_VALUE         1416
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif

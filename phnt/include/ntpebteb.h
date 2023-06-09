@@ -9,6 +9,8 @@
 
 typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
 typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
+typedef struct _SILO_USER_SHARED_DATA *PSILO_USER_SHARED_DATA;
+typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
 
 #include <ntsxs.h>
 
@@ -114,7 +116,7 @@ typedef struct _PEB
     ULONG TlsBitmapBits[2];
 
     PVOID ReadOnlySharedMemoryBase;
-    PVOID SharedData; // HotpatchInformation
+    PSILO_USER_SHARED_DATA SharedData; // HotpatchInformation
     PVOID *ReadOnlyStaticServerData;
 
     PVOID AnsiCodePageData; // PCPTABLEINFO
@@ -134,7 +136,7 @@ typedef struct _PEB
     ULONG MaximumNumberOfHeaps;
     PVOID *ProcessHeaps; // PHEAP
 
-    PVOID GdiSharedHandleTable;
+    PVOID GdiSharedHandleTable; // PGDI_SHARED_MEMORY
     PVOID ProcessStarterHelper;
     ULONG GdiDCAttributeList;
 
@@ -214,7 +216,7 @@ typedef struct _PEB
     ULONG CloudFileDiagFlags; // REDSTONE4
     CHAR PlaceholderCompatibilityMode;
     CHAR PlaceholderCompatibilityModeReserved[7];
-    struct _LEAP_SECOND_DATA *LeapSecondData; // REDSTONE5
+    PLEAP_SECOND_DATA LeapSecondData; // REDSTONE5
     union
     {
         ULONG LeapSecondFlags;
@@ -373,7 +375,7 @@ typedef struct _TEB
 
     ULONG GuaranteedStackBytes;
     PVOID ReservedForPerf;
-    PVOID ReservedForOle;
+    PVOID ReservedForOle; // tagSOleTlsData
     ULONG WaitingOnLoaderLock;
     PVOID SavedPriorityState;
     ULONG_PTR ReservedForCodeCoverage;

@@ -12,8 +12,8 @@
 #include <ph.h>
 #include <guisup.h>
 #include <emenu.h>
-#include <settings.h>
 #include <treenew.h>
+#include <mapldr.h>
 
 #include <dwmapi.h>
 #include <vsstyle.h>
@@ -25,14 +25,6 @@ typedef struct _PHP_THEME_WINDOW_TAB_CONTEXT
     BOOLEAN MouseActive;
     POINT CursorPos;
 } PHP_THEME_WINDOW_TAB_CONTEXT, *PPHP_THEME_WINDOW_TAB_CONTEXT;
-
-typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
-{
-    WNDPROC DefaultWindowProc;
-    HTHEME ThemeHandle;
-    BOOLEAN MouseActive;
-    POINT CursorPos;
-} PHP_THEME_WINDOW_HEADER_CONTEXT, *PPHP_THEME_WINDOW_HEADER_CONTEXT;
 
 typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
 {
@@ -59,11 +51,6 @@ typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
     HBITMAP BufferedBitmap;
     RECT BufferedContextRect;
 } PHP_THEME_WINDOW_STATUSBAR_CONTEXT, *PPHP_THEME_WINDOW_STATUSBAR_CONTEXT;
-
-typedef struct _PHP_THEME_WINDOW_STATIC_CONTEXT
-{
-    WNDPROC DefaultWindowProc;
-} PHP_THEME_WINDOW_STATIC_CONTEXT, *PPHP_THEME_WINDOW_STATIC_CONTEXT;
 
 typedef struct _PHP_THEME_WINDOW_COMBO_CONTEXT
 {
@@ -93,38 +80,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
-LRESULT CALLBACK PhpThemeWindowEditSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
 LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-LRESULT CALLBACK PhpThemeWindowRebarToolbarSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-LRESULT CALLBACK PhpThemeWindowStaticControlSubclassProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -210,10 +166,9 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
 #define DEBUG_BEGINPAINT_RECT(RcPaint)
 #endif
 
-ULONG PhpThemeColorMode = 0;
-BOOLEAN PhpThemeEnable = FALSE;
-BOOLEAN PhpThemeBorderEnable = TRUE;
-//ULONG PhTaskDialogThemeHookIndex = 0;
+BOOLEAN PhEnableThemeSupport = FALSE;
+BOOLEAN PhEnableThemeAcrylicSupport = FALSE;
+BOOLEAN PhEnableThemeListviewBorder = FALSE;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
 COLORREF PhThemeWindowBackgroundColor = RGB(43, 43, 43);
@@ -227,12 +182,6 @@ VOID PhInitializeWindowTheme(
     _In_ BOOLEAN EnableThemeSupport
     )
 {
-    PhpThemeColorMode = 1;// PhGetIntegerSetting(L"GraphColorMode");
-    PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
-    PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
-    //if (PhTaskDialogThemeHookIndex == 0)
-    //    PhTaskDialogThemeHookIndex = TlsAlloc();
-
     if (EnableThemeSupport && WindowsVersion >= WINDOWS_10_RS5)
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -243,7 +192,7 @@ VOID PhInitializeWindowTheme(
             {
                 PVOID baseAddress;
 
-                if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
+                if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"uxtheme.dll")))
                     baseAddress = PhLoadLibrary(L"uxtheme.dll");
 
                 if (baseAddress)
@@ -324,7 +273,7 @@ VOID PhInitializeWindowThemeEx(
         0
         )))
     {
-        enableThemeSupport = !PhQueryRegistryUlong(keyHandle, L"AppsUseLightTheme");
+        enableThemeSupport = !PhQueryRegistryUlongZ(keyHandle, L"AppsUseLightTheme");
         NtClose(keyHandle);
     }
 
@@ -337,13 +286,9 @@ VOID PhReInitializeWindowTheme(
 {
     HWND currentWindow = NULL;
 
-    PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
-    PhpThemeColorMode = 1;// PhGetIntegerSetting(L"GraphColorMode");
-    PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
-
     PhInitializeThemeWindowFrame(WindowHandle);
 
-    if (!PhpThemeEnable)
+    if (!PhEnableThemeSupport)
         return;
 
     if (!PhThemeWindowBackgroundBrush)
@@ -399,28 +344,16 @@ VOID PhReInitializeWindowTheme(
     InvalidateRect(WindowHandle, NULL, FALSE);
 }
 
-VOID PhInitializeTaskDialogTheme(
-    _In_ HWND WindowHandle,
-    _In_ BOOLEAN EnableThemeSupport
-    )
-{
-    if (EnableThemeSupport)
-    {
-        PhInitializeWindowTheme(WindowHandle, EnableThemeSupport);
-    }
-
-    //if (PhTaskDialogThemeHookIndex)
-    //{
-    //    if (EnableThemeSupport)
-    //    {
-    //        TlsSetValue(PhTaskDialogThemeHookIndex, UlongToPtr(1));
-    //    }
-    //    else
-    //    {
-    //        TlsSetValue(PhTaskDialogThemeHookIndex, UlongToPtr(0));
-    //    }
-    //}
-}
+#define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 19
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#ifndef DWMWA_CAPTION_COLOR
+#define DWMWA_CAPTION_COLOR 35
+#endif
+#ifndef DWMWA_SYSTEMBACKDROP_TYPE
+#define DWMWA_SYSTEMBACKDROP_TYPE 38
+#endif
 
 HRESULT PhSetWindowThemeAttribute(
     _In_ HWND WindowHandle,
@@ -459,49 +392,35 @@ VOID PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
     )
 {
-#define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 19
-#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
-#endif
-#ifndef DWMWA_CAPTION_COLOR
-#define DWMWA_CAPTION_COLOR 35
-#endif
-#ifndef DWMWA_SYSTEMBACKDROP_TYPE
-#define DWMWA_SYSTEMBACKDROP_TYPE 38
-#endif
-
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
-        if (PhpThemeEnable)
+        if (PhEnableThemeSupport)
         {
-            switch (PhpThemeColorMode)
+            //switch (PhpThemeColorMode)
+            //{
+            //case 0: // New colors
+            //    {
+            //        if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+            //        {
+            //            PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+            //        }
+            //
+            //        //if (WindowsVersion > WINDOWS_11)
+            //        //{
+            //        //    PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
+            //        //}
+            //    }
+            //    break;
+            //case 1: // Old colors
+
+            if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
             {
-            case 0: // New colors
-                {
-                    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
-                    {
-                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
-                    }
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+            }
 
-                    //if (WindowsVersion > WINDOWS_11)
-                    //{
-                    //    PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
-                    //}
-                }
-                break;
-            case 1: // Old colors
-                {
-                    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
-                    {
-                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
-                    }
-
-                    if (WindowsVersion >= WINDOWS_11)
-                    {
-                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
-                    }
-                }
-                break;
+            if (WindowsVersion >= WINDOWS_11)
+            {
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
             }
         }
 
@@ -509,6 +428,39 @@ VOID PhInitializeThemeWindowFrame(
         {
             PhSetWindowThemeAttribute(WindowHandle, DWMWA_SYSTEMBACKDROP_TYPE, &(ULONG){ 1 }, sizeof(ULONG));
         }
+    }
+}
+
+VOID PhWindowThemeSetDarkMode(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableDarkMode
+    )
+{
+    if (EnableDarkMode && PhEnableThemeSupport) // ShouldAppsUseDarkMode_I()
+    {
+        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        //PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+
+        //if (WindowsVersion >= WINDOWS_11)
+        //{
+        //    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
+        //    {
+        //        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+        //    }
+        //}
+    }
+    else
+    {
+        PhSetControlTheme(WindowHandle, L"Explorer");
+        //PhSetControlTheme(WindowHandle, L"ItemsView");
+
+        //if (WindowsVersion >= WINDOWS_11)
+        //{
+        //    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+        //    {
+        //        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+        //    }
+        //}
     }
 }
 
@@ -525,7 +477,7 @@ HBRUSH PhWindowThemeControlColor(
     {
     case CTLCOLOR_EDIT:
         {
-            if (PhpThemeEnable)
+            if (PhEnableThemeSupport)
             {
                 SetTextColor(Hdc, PhThemeWindowTextColor);
                 SetDCBrushColor(Hdc, RGB(60, 60, 60));
@@ -540,7 +492,7 @@ HBRUSH PhWindowThemeControlColor(
         break;
     case CTLCOLOR_SCROLLBAR:
         {
-            if (PhpThemeEnable)
+            if (PhEnableThemeSupport)
             {
                 SetDCBrushColor(Hdc, RGB(23, 23, 23));
                 return GetStockBrush(DC_BRUSH);
@@ -557,7 +509,7 @@ HBRUSH PhWindowThemeControlColor(
     case CTLCOLOR_DLG:
     case CTLCOLOR_STATIC:
         {
-            if (PhpThemeEnable)
+            if (PhEnableThemeSupport)
             {
                 SetTextColor(Hdc, PhThemeWindowTextColor);
                 return PhThemeWindowBackgroundBrush;
@@ -572,41 +524,6 @@ HBRUSH PhWindowThemeControlColor(
     }
 
     return NULL;
-}
-
-VOID PhInitializeThemeWindowHeader(
-    _In_ HWND HeaderWindow
-    )
-{
-    PPHP_THEME_WINDOW_HEADER_CONTEXT context;
-
-    //if (PhGetWindowContext(HeaderWindow, LONG_MAX))
-    //    return;
-
-    if (PhGetWindowContext(HeaderWindow, 0xF))
-    {
-        HANDLE parentWindow;
-        LONG_PTR windowStyle;
-
-        if (parentWindow = GetParent(HeaderWindow))
-        {
-            windowStyle = PhGetWindowStyle(parentWindow);
-
-            if (windowStyle & TN_STYLE_CUSTOM_HEADERDRAW)
-                return;
-        }
-    }
-
-    context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(HeaderWindow, GWLP_WNDPROC);
-    context->ThemeHandle = PhOpenThemeData(HeaderWindow, VSCLASS_HEADER, PhGetWindowDpi(HeaderWindow));
-    context->CursorPos.x = LONG_MIN;
-    context->CursorPos.y = LONG_MIN;
-
-    PhSetWindowContext(HeaderWindow, LONG_MAX, context);
-    SetWindowLongPtr(HeaderWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowHeaderSubclassProc);
-
-    InvalidateRect(HeaderWindow, NULL, FALSE);
 }
 
 VOID PhInitializeThemeWindowTabControl(
@@ -626,24 +543,6 @@ VOID PhInitializeThemeWindowTabControl(
     InvalidateRect(TabControlWindow, NULL, FALSE);
 }
 
-VOID PhInitializeWindowThemeStatusBar(
-    _In_ HWND StatusBarHandle
-    )
-{
-    PPHP_THEME_WINDOW_STATUSBAR_CONTEXT context;
-
-    context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_STATUSBAR_CONTEXT));
-    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(StatusBarHandle, GWLP_WNDPROC);
-    context->ThemeHandle = PhOpenThemeData(StatusBarHandle, VSCLASS_STATUS, PhGetWindowDpi(StatusBarHandle));
-    context->CursorPos.x = LONG_MIN;
-    context->CursorPos.y = LONG_MIN;
-
-    PhSetWindowContext(StatusBarHandle, LONG_MAX, context);
-    SetWindowLongPtr(StatusBarHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowStatusbarWndSubclassProc);
-
-    InvalidateRect(StatusBarHandle, NULL, FALSE);
-}
-
 VOID PhInitializeThemeWindowGroupBox(
     _In_ HWND GroupBoxHandle
     )
@@ -657,47 +556,14 @@ VOID PhInitializeThemeWindowGroupBox(
     InvalidateRect(GroupBoxHandle, NULL, FALSE);
 }
 
-VOID PhInitializeThemeWindowEditControl(
-    _In_ HWND EditControlHandle
-    )
-{
-    WNDPROC editControlWindowProc;
-
-    // HACK: The searchbox control does its own themed drawing and it uses the
-    // same window context value so we know when to ignore theming.
-    if (PhGetWindowContext(EditControlHandle, SHRT_MAX))
-        return;
-
-    editControlWindowProc = (WNDPROC)GetWindowLongPtr(EditControlHandle, GWLP_WNDPROC);
-    PhSetWindowContext(EditControlHandle, LONG_MAX, editControlWindowProc);
-    SetWindowLongPtr(EditControlHandle, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowEditSubclassProc);
-
-    InvalidateRect(EditControlHandle, NULL, FALSE);
-    //SetWindowPos(EditControlHandle, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_DRAWFRAME);
-}
-
-VOID PhInitializeWindowThemeRebar(
-    _In_ HWND RebarWindow
-    )
-{
-    PPHP_THEME_WINDOW_HEADER_CONTEXT context;
-
-    context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(RebarWindow, GWLP_WNDPROC);
-    context->CursorPos.x = LONG_MIN;
-    context->CursorPos.y = LONG_MIN;
-
-    PhSetWindowContext(RebarWindow, LONG_MAX, context);
-    SetWindowLongPtr(RebarWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowRebarToolbarSubclassProc);
-
-    InvalidateRect(RebarWindow, NULL, FALSE);
-}
-
 VOID PhInitializeWindowThemeMainMenu(
     _In_ HMENU MenuHandle
     )
 {
     MENUINFO menuInfo;
+
+    if (!PhEnableThemeSupport)
+        return;
 
     memset(&menuInfo, 0, sizeof(MENUINFO));
     menuInfo.cbSize = sizeof(MENUINFO);
@@ -705,21 +571,6 @@ VOID PhInitializeWindowThemeMainMenu(
     menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
 
     SetMenuInfo(MenuHandle, &menuInfo);
-}
-
-VOID PhInitializeWindowThemeStaticControl(
-    _In_ HWND StaticControl
-    )
-{
-    PPHP_THEME_WINDOW_STATIC_CONTEXT context;
-
-    context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_STATIC_CONTEXT));
-    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(StaticControl, GWLP_WNDPROC);
-
-    PhSetWindowContext(StaticControl, LONG_MAX, context);
-    SetWindowLongPtr(StaticControl, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowStaticControlSubclassProc);
-
-    InvalidateRect(StaticControl, NULL, FALSE);
 }
 
 VOID PhInitializeWindowThemeListboxControl(
@@ -800,44 +651,23 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
         }
-
-        //if (PhTaskDialogThemeHookIndex && TlsGetValue(PhTaskDialogThemeHookIndex))
-        //{
-        //    PhInitializeThemeWindowButton(WindowHandle);
-        //}
     }
     else if (PhEqualStringZ(windowClassName, WC_TABCONTROL, FALSE))
     {
         PhInitializeThemeWindowTabControl(WindowHandle);
     }
-    else if (PhEqualStringZ(windowClassName, STATUSCLASSNAME, FALSE))
-    {
-        PhInitializeWindowThemeStatusBar(WindowHandle);
-    }
-    else if (PhEqualStringZ(windowClassName, WC_EDIT, TRUE))
-    {
-        PhInitializeThemeWindowEditControl(WindowHandle);
-    }
     else if (PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
     {
         if (WindowsVersion >= WINDOWS_10_RS5)
         {
-            switch (PhpThemeColorMode)
-            {
-            case 0: // New colors
-                PhSetControlTheme(WindowHandle, L"");
-                break;
-            case 1: // Old colors
-                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-                break;
-            }
+            //switch (PhpThemeColorMode)
+            //{
+            //case 0: // New colors
+            //    PhWindowThemeSetDarkMode(WindowHandle, FALSE);
+            //    break;
+            //case 1: // Old colors
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
-    }
-    else if (PhEqualStringZ(windowClassName, WC_HEADER, TRUE))
-    {
-        PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
-
-        PhInitializeThemeWindowHeader(WindowHandle);
     }
     else if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
     {
@@ -851,12 +681,12 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"explorer");
             //    PhSetControlTheme(tooltipWindow, L"");
             //    break;
-            //case 1: // Old colors            
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-            PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
+            //case 1: // Old colors
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+            PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
         }
 
-        if (PhpThemeBorderEnable)
+        if (PhEnableThemeListviewBorder)
         {
             PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
             PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
@@ -888,15 +718,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             HWND tooltipWindow = TreeView_GetToolTips(WindowHandle);
 
-            //switch (PhpThemeColorMode)
-            //{
-            //case 0: // New colors
-            //    PhSetControlTheme(WindowHandle, L"explorer");
-            //    PhSetControlTheme(tooltipWindow, L"");
-            //    break;
-            //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-            PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+            PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
         }
 
         TreeView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor);// RGB(30, 30, 30));
@@ -906,7 +729,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"RICHEDIT50W", FALSE))
     {
-        if (PhpThemeBorderEnable)
+        if (PhEnableThemeListviewBorder)
             PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
         else
             PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
@@ -921,7 +744,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         //    break;
         //case 1: // Old colors
         SendMessage(WindowHandle, EM_SETBKGNDCOLOR, 0, RGB(30, 30, 30));
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         //InvalidateRect(WindowHandle, NULL, FALSE);
     }
     else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
@@ -937,11 +760,11 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(tooltipWindow, TRUE);
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
-        if (PhpThemeBorderEnable)
+        if (PhEnableThemeListviewBorder)
             PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
         else
             PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);
@@ -953,7 +776,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         //case 0: // New colors
         //    TreeNew_ThemeSupport(WindowHandle, FALSE);
         //    break;
-        //case 1: // Old colors        
+        //case 1: // Old colors
         TreeNew_ThemeSupport(WindowHandle, TRUE);
 
         //InvalidateRect(WindowHandle, NULL, TRUE);
@@ -971,7 +794,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"explorer");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
         PhInitializeWindowThemeListboxControl(WindowHandle);
@@ -989,7 +812,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
 
             if (info.hwndList)
             {
-                PhSetControlTheme(info.hwndList, L"DarkMode_Explorer");
+                PhWindowThemeSetDarkMode(info.hwndList, TRUE);
             }
         }
 
@@ -1008,7 +831,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"explorer");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
         PhInitializeWindowThemeACLUI(WindowHandle);
@@ -1044,7 +867,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"explorer");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
         //switch (PhpThemeColorMode)
@@ -1069,7 +892,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"");
             //    break;
             //case 1: // Old colors
-            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
     }
     else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
@@ -1082,7 +905,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
         //    break;
         //case 1: // Old colors
         TreeNew_ThemeSupport(WindowHandle, TRUE);
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        PhWindowThemeSetDarkMode(WindowHandle, TRUE);
     }
     else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
     {
@@ -1223,7 +1046,7 @@ BOOLEAN PhThemeWindowDrawItem(
                 //    SetDCBrushColor(DrawInfo->hDC, RGB(0xff, 0xff, 0xff));
                 //    FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));
                 //    break;
-                //case 1: // Old colors      
+                //case 1: // Old colors
                 //SetDCBrushColor(DrawInfo->hDC, PhThemeWindowBackgroundColor); // PhThemeWindowForegroundColor
                 FillRect(DrawInfo->hDC, &DrawInfo->rcItem, PhThemeWindowBackgroundBrush);
 
@@ -1263,9 +1086,9 @@ BOOLEAN PhThemeWindowDrawItem(
             }
             else
             {
-                PH_STRINGREF part;
-                PH_STRINGREF firstPart;
-                PH_STRINGREF secondPart;
+                PH_STRINGREF part = { 0 };
+                PH_STRINGREF firstPart = { 0 };
+                PH_STRINGREF secondPart = { 0 };
 
                 PhInitializeStringRefLongHint(&part, menuItemInfo->Text);
                 PhSplitStringRefAtLastChar(&part, L'\b', &firstPart, &secondPart);
@@ -1308,33 +1131,41 @@ BOOLEAN PhThemeWindowDrawItem(
 
                 if ((menuItemInfo->Flags & PH_EMENU_MAINMENU) == PH_EMENU_MAINMENU)
                 {
-                    DrawText(
-                        DrawInfo->hDC,
-                        firstPart.Buffer,
-                        (UINT)firstPart.Length / sizeof(WCHAR),
-                        &DrawInfo->rcItem,
-                        DT_LEFT | DT_SINGLELINE | DT_CENTER | DT_VCENTER | drawTextFlags
-                        );
+                    if (firstPart.Length)
+                    {
+                        DrawText(
+                            DrawInfo->hDC,
+                            firstPart.Buffer,
+                            (UINT)firstPart.Length / sizeof(WCHAR),
+                            &DrawInfo->rcItem,
+                            DT_LEFT | DT_SINGLELINE | DT_CENTER | DT_VCENTER | drawTextFlags
+                            );
+                    }
                 }
                 else
                 {
-                    DrawText(
-                        DrawInfo->hDC,
-                        firstPart.Buffer,
-                        (UINT)firstPart.Length / sizeof(WCHAR),
-                        &DrawInfo->rcItem,
-                        DT_LEFT | DT_VCENTER | drawTextFlags
-                        );
+                    if (firstPart.Length)
+                    {
+                        DrawText(
+                            DrawInfo->hDC,
+                            firstPart.Buffer,
+                            (UINT)firstPart.Length / sizeof(WCHAR),
+                            &DrawInfo->rcItem,
+                            DT_LEFT | DT_VCENTER | drawTextFlags
+                            );
+                    }
                 }
 
-
-                DrawText(
-                    DrawInfo->hDC,
-                    secondPart.Buffer,
-                    (UINT)secondPart.Length / sizeof(WCHAR),
-                    &DrawInfo->rcItem,
-                    DT_RIGHT | DT_VCENTER | drawTextFlags
-                    );
+                if (secondPart.Length)
+                {
+                    DrawText(
+                        DrawInfo->hDC,
+                        secondPart.Buffer,
+                        (UINT)secondPart.Length / sizeof(WCHAR),
+                        &DrawInfo->rcItem,
+                        DT_RIGHT | DT_VCENTER | drawTextFlags
+                        );
+                }
             }
 
             //if (oldFont)
@@ -1344,23 +1175,26 @@ BOOLEAN PhThemeWindowDrawItem(
 
             if (menuItemInfo->Items && menuItemInfo->Items->Count && (menuItemInfo->Flags & PH_EMENU_MAINMENU) != PH_EMENU_MAINMENU)
             {
-                HTHEME themeHandle = PhOpenThemeData(DrawInfo->hwndItem, VSCLASS_MENU, dpiValue);
+                HTHEME themeHandle;
 
-                //if (IsThemeBackgroundPartiallyTransparent(themeHandle, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL))
-                //    DrawThemeParentBackground(DrawInfo->hwndItem, DrawInfo->hDC, NULL);
+                if (themeHandle = PhOpenThemeData(DrawInfo->hwndItem, VSCLASS_MENU, dpiValue))
+                {
+                    //if (IsThemeBackgroundPartiallyTransparent(themeHandle, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL))
+                    //    DrawThemeParentBackground(DrawInfo->hwndItem, DrawInfo->hDC, NULL);
 
-                rect.left = rect.right - PhGetDpi(25, dpiValue);
+                    rect.left = rect.right - PhGetDpi(25, dpiValue);
 
-                PhDrawThemeBackground(
-                    themeHandle,
-                    DrawInfo->hDC, 
-                    MENU_POPUPSUBMENU, 
-                    isDisabled ? MSM_DISABLED : MSM_NORMAL, 
-                    &rect,
-                    NULL
-                    );
+                    PhDrawThemeBackground(
+                        themeHandle,
+                        DrawInfo->hDC,
+                        MENU_POPUPSUBMENU,
+                        isDisabled ? MSM_DISABLED : MSM_NORMAL,
+                        &rect,
+                        NULL
+                        );
 
-                PhCloseThemeData(themeHandle);
+                    PhCloseThemeData(themeHandle);
+                }
             }
 
             ExcludeClipRect(DrawInfo->hDC, rect.left, rect.top, rect.right, rect.bottom); // exclude last
@@ -1595,6 +1429,80 @@ BOOLEAN PhThemeWindowMeasureItem(
 //    ImageList_Destroy(TreeView_SetImageList(g_hwndChild, himl, TVSIL_STATE));
 //}
 
+VOID PhThemeDrawButtonIcon(
+    _In_ LPNMCUSTOMDRAW DrawInfo,
+    _In_ HICON ButtonIcon,
+    _In_ PRECT ButtonRect,
+    _In_ LONG WindowDpi
+    )
+{
+    BOOL result;
+    ICONINFO iconInfo;
+    BITMAP bmp;
+    LONG width = PhGetSystemMetrics(SM_CXSMICON, WindowDpi);
+    LONG height = PhGetSystemMetrics(SM_CYSMICON, WindowDpi);
+
+    memset(&iconInfo, 0, sizeof(ICONINFO));
+    memset(&bmp, 0, sizeof(BITMAP));
+
+    result = GetIconInfo(ButtonIcon, &iconInfo);
+
+    if (iconInfo.hbmColor)
+    {
+        if (GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmp))
+        {
+            width = bmp.bmWidth;
+            height = bmp.bmHeight;
+        }
+
+        DeleteBitmap(iconInfo.hbmColor);
+    }
+    else if (iconInfo.hbmMask)
+    {
+        if (GetObject(iconInfo.hbmMask, sizeof(BITMAP), &bmp))
+        {
+            width = bmp.bmWidth;
+            height = bmp.bmHeight / 2;
+        }
+
+        DeleteBitmap(iconInfo.hbmMask);
+    }
+
+    DrawIconEx(
+        DrawInfo->hdc,
+        ButtonRect->left + ((ButtonRect->right - ButtonRect->left) - width) / 2,
+        ButtonRect->top + ((ButtonRect->bottom - ButtonRect->top) - height) / 2,
+        ButtonIcon,
+        width,
+        height,
+        0,
+        NULL,
+        DI_NORMAL
+        );
+
+    if (!result) // HACK
+    {
+        BUTTON_IMAGELIST imageList = { 0 };
+
+        if (Button_GetImageList(DrawInfo->hdr.hwndFrom, &imageList) && imageList.himl)
+        {
+            ButtonRect->left += PhGetDpi(1, WindowDpi);
+
+            PhImageListDrawIcon(
+                imageList.himl,
+                0,
+                DrawInfo->hdc,
+                ButtonRect->left, // + ((ButtonRect->right - ButtonRect->left) - width) / 2,
+                ButtonRect->top + ((ButtonRect->bottom - ButtonRect->top) - height) / 2,
+                ILD_NORMAL,
+                FALSE
+                );
+
+            ButtonRect->left += PhGetDpi(5, WindowDpi);
+        }
+    }
+}
+
 LRESULT CALLBACK PhpThemeWindowDrawButton(
     _In_ LPNMCUSTOMDRAW DrawInfo
     )
@@ -1618,11 +1526,15 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
         {
             PPH_STRING buttonText;
             LONG_PTR buttonStyle;
+            HICON buttonIcon;
             LONG dpiValue;
 
             dpiValue = PhGetWindowDpi(DrawInfo->hdr.hwndFrom);
             buttonText = PhGetWindowText(DrawInfo->hdr.hwndFrom);
             buttonStyle = PhGetWindowStyle(DrawInfo->hdr.hwndFrom);
+
+            if (!(buttonIcon = Static_GetIcon(DrawInfo->hdr.hwndFrom, 0)))
+                buttonIcon = (HICON)SendMessage(DrawInfo->hdr.hwndFrom, BM_GETIMAGE, IMAGE_ICON, 0);
 
             if ((buttonStyle & BS_CHECKBOX) == BS_CHECKBOX)
             {
@@ -1641,116 +1553,157 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                         state = isChecked ? CBS_CHECKEDNORMAL : CBS_UNCHECKEDNORMAL;
                 }
 
-                if (themeHandle = PhOpenThemeData(DrawInfo->hdr.hwndFrom, VSCLASS_BUTTON, dpiValue))
+                if (buttonIcon)
                 {
-                    SIZE checkBoxSize = { 0 };
-
-                    PhGetThemePartSize(
-                        themeHandle,
-                        DrawInfo->hdc,
-                        BP_CHECKBOX,
-                        state,
-                        &bufferRect,
-                        TS_TRUE,
-                        &checkBoxSize
-                        );
-
-                    bufferRect.left = 0;
-                    bufferRect.right = checkBoxSize.cx;
-
-                    //if (IsThemeBackgroundPartiallyTransparent(themeHandle, BP_CHECKBOX, state))
-                    //    DrawThemeParentBackground(DrawInfo->hdr.hwndFrom, DrawInfo->hdc, NULL);
-
-                    PhDrawThemeBackground(
-                        themeHandle,
-                        DrawInfo->hdc,
-                        BP_CHECKBOX,
-                        state,
-                        &bufferRect,
-                        NULL
-                        );
-
-                    //DTTOPTS opts = { 0 };
-                    //opts.dwSize = sizeof(DTTOPTS);
-                    //opts.crText = RGB(255, 255, 255);
-                    //opts.dwFlags |= DTT_TEXTCOLOR;
-                    //
-                    //DrawThemeTextEx(
-                    //    themeHandle,
-                    //    DrawInfo->hdc,
-                    //    BP_CHECKBOX,
-                    //    state,
-                    //    buttonText->Buffer,
-                    //    (UINT)buttonText->Length / sizeof(WCHAR),
-                    //    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX,
-                    //    &bufferRect,
-                    //    &opts
-                    //    );
-
-                    bufferRect.left = checkBoxSize.cx + 5; // TNP_ICON_RIGHT_PADDING
-                    bufferRect.right = DrawInfo->rc.right;
-
-                    DrawText(
-                        DrawInfo->hdc,
-                        buttonText->Buffer,
-                        (UINT)buttonText->Length / sizeof(WCHAR),
-                        &bufferRect,
-                        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
-                        );
-
-                    PhCloseThemeData(themeHandle);
-                }
-                else
-                {
-                    if (isChecked)
+                    if (isSelected || isChecked)
                     {
-                        HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 16, dpiValue);
-                        HFONT oldFont;
-
-                        oldFont = SelectFont(DrawInfo->hdc, newFont);
-                        DrawText(
-                            DrawInfo->hdc,
-                            L"\u2611",
-                            1,
-                            &DrawInfo->rc,
-                            DT_LEFT | DT_SINGLELINE | DT_VCENTER
-                            );
-                        SelectFont(DrawInfo->hdc, oldFont);
-                        DeleteFont(newFont);
+                        //switch (PhpThemeColorMode)
+                        //{
+                        //case 0: // New colors
+                        //    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
+                        //    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
+                        //    break;
+                        //case 1: // Old colors
+                        SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                        SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
+                        FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
+                    }
+                    else if (isHighlighted)
+                    {
+                        //switch (PhpThemeColorMode)
+                        //{
+                        //case 0: // New colors
+                        //    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
+                        //    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
+                        //    break;
+                        //case 1: // Old colors
+                        SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                        SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackground2Color);
+                        FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
                     }
                     else
                     {
-                        HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22, dpiValue);
-                        HFONT oldFont;
-
-                        oldFont = SelectFont(DrawInfo->hdc, newFont);
-                        DrawText(
-                            DrawInfo->hdc,
-                            L"\u2610",
-                            1,
-                            &DrawInfo->rc,
-                            DT_LEFT | DT_SINGLELINE | DT_VCENTER
-                            );
-                        SelectFont(DrawInfo->hdc, oldFont);
-                        DeleteFont(newFont);
+                        SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);
+                        //SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackgroundColor); // WindowForegroundColor
+                        FillRect(DrawInfo->hdc, &DrawInfo->rc, PhThemeWindowBackgroundBrush);
                     }
 
-                    //bufferRect.left = checkBoxSize.cx + 5; // TNP_ICON_RIGHT_PADDING
-                    bufferRect.right = DrawInfo->rc.right;
+                    SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackground2Color);
+                    FrameRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
 
-                    DrawText(
-                        DrawInfo->hdc,
-                        buttonText->Buffer,
-                        (UINT)buttonText->Length / sizeof(WCHAR),
-                        &bufferRect,
-                        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
-                        );
+                    PhThemeDrawButtonIcon(DrawInfo, buttonIcon, &bufferRect, dpiValue);
+                }
+                else
+                {
+                    if (themeHandle = PhOpenThemeData(DrawInfo->hdr.hwndFrom, VSCLASS_BUTTON, dpiValue))
+                    {
+                        SIZE checkBoxSize = { 0 };
+
+                        PhGetThemePartSize(
+                            themeHandle,
+                            DrawInfo->hdc,
+                            BP_CHECKBOX,
+                            state,
+                            &bufferRect,
+                            TS_TRUE,
+                            &checkBoxSize
+                            );
+
+                        bufferRect.left = 0;
+                        bufferRect.right = checkBoxSize.cx;
+
+                        //if (IsThemeBackgroundPartiallyTransparent(themeHandle, BP_CHECKBOX, state))
+                        //    DrawThemeParentBackground(DrawInfo->hdr.hwndFrom, DrawInfo->hdc, NULL);
+
+                        PhDrawThemeBackground(
+                            themeHandle,
+                            DrawInfo->hdc,
+                            BP_CHECKBOX,
+                            state,
+                            &bufferRect,
+                            NULL
+                            );
+
+                        //DTTOPTS opts = { 0 };
+                        //opts.dwSize = sizeof(DTTOPTS);
+                        //opts.crText = RGB(255, 255, 255);
+                        //opts.dwFlags |= DTT_TEXTCOLOR;
+                        //
+                        //DrawThemeTextEx(
+                        //    themeHandle,
+                        //    DrawInfo->hdc,
+                        //    BP_CHECKBOX,
+                        //    state,
+                        //    buttonText->Buffer,
+                        //    (UINT)buttonText->Length / sizeof(WCHAR),
+                        //    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX,
+                        //    &bufferRect,
+                        //    &opts
+                        //    );
+
+                        bufferRect.left = checkBoxSize.cx + 5; // TNP_ICON_RIGHT_PADDING
+                        bufferRect.right = DrawInfo->rc.right;
+
+                        DrawText(
+                            DrawInfo->hdc,
+                            buttonText->Buffer,
+                            (UINT)buttonText->Length / sizeof(WCHAR),
+                            &bufferRect,
+                            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+                            );
+
+                        PhCloseThemeData(themeHandle);
+                    }
+                    else
+                    {
+                        if (isChecked)
+                        {
+                            HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 16, dpiValue);
+                            HFONT oldFont;
+
+                            oldFont = SelectFont(DrawInfo->hdc, newFont);
+                            DrawText(
+                                DrawInfo->hdc,
+                                L"\u2611",
+                                1,
+                                &DrawInfo->rc,
+                                DT_LEFT | DT_SINGLELINE | DT_VCENTER
+                                );
+                            SelectFont(DrawInfo->hdc, oldFont);
+                            DeleteFont(newFont);
+                        }
+                        else
+                        {
+                            HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22, dpiValue);
+                            HFONT oldFont;
+
+                            oldFont = SelectFont(DrawInfo->hdc, newFont);
+                            DrawText(
+                                DrawInfo->hdc,
+                                L"\u2610",
+                                1,
+                                &DrawInfo->rc,
+                                DT_LEFT | DT_SINGLELINE | DT_VCENTER
+                                );
+                            SelectFont(DrawInfo->hdc, oldFont);
+                            DeleteFont(newFont);
+                        }
+
+                        //bufferRect.left = checkBoxSize.cx + 5; // TNP_ICON_RIGHT_PADDING
+                        bufferRect.right = DrawInfo->rc.right;
+
+                        DrawText(
+                            DrawInfo->hdc,
+                            buttonText->Buffer,
+                            (UINT)buttonText->Length / sizeof(WCHAR),
+                            &bufferRect,
+                            DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+                            );
+                    }
                 }
             }
             else
             {
-                HICON buttonIcon;
-
                 if (isSelected)
                 {
                     //switch (PhpThemeColorMode)
@@ -1759,8 +1712,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     //    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
                     //    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
                     //    break;
-                    //case 1: // Old colors               
-                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));                  
+                    //case 1: // Old colors
+                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                     SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
                 }
@@ -1772,14 +1725,14 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     //    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
                     //    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
                     //    break;
-                    //case 1: // Old colors                       
-                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));                    
-                    SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackground2Color);   
+                    //case 1: // Old colors
+                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackground2Color);
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
                 }
                 else
                 {
-                    SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);                 
+                    SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);
                     //SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackgroundColor); // WindowForegroundColor
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, PhThemeWindowBackgroundBrush);
                 }
@@ -1787,77 +1740,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackground2Color);
                 FrameRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
 
-                if (!(buttonIcon = Static_GetIcon(DrawInfo->hdr.hwndFrom, 0)))
-                    buttonIcon = (HICON)SendMessage(DrawInfo->hdr.hwndFrom, BM_GETIMAGE, IMAGE_ICON, 0);
-
-                if (buttonIcon) // (buttonStyle & BS_ICON | BS_BITMAP) == BS_ICON |BS_BITMAP)
-                {
-                    BOOL result;
-                    ICONINFO iconInfo;
-                    BITMAP bmp;
-                    LONG width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-                    LONG height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
-
-                    memset(&iconInfo, 0, sizeof(ICONINFO));
-                    memset(&bmp, 0, sizeof(BITMAP));
-
-                    result = GetIconInfo(buttonIcon, &iconInfo);
-
-                    if (iconInfo.hbmColor)
-                    {
-                        if (GetObject(iconInfo.hbmColor, sizeof(BITMAP), &bmp))
-                        {
-                            width = bmp.bmWidth;
-                            height = bmp.bmHeight;
-                        }
-
-                        DeleteBitmap(iconInfo.hbmColor);
-                    }
-                    else if (iconInfo.hbmMask)
-                    {
-                        if (GetObject(iconInfo.hbmMask, sizeof(BITMAP), &bmp))
-                        {
-                            width = bmp.bmWidth;
-                            height = bmp.bmHeight / 2;
-                        }
-
-                        DeleteBitmap(iconInfo.hbmMask);
-                    }
-
-                    DrawIconEx(
-                        DrawInfo->hdc,
-                        bufferRect.left + ((bufferRect.right - bufferRect.left) - width) / 2,
-                        bufferRect.top + ((bufferRect.bottom - bufferRect.top) - height) / 2,
-                        buttonIcon,
-                        width,
-                        height,
-                        0,
-                        NULL,
-                        DI_NORMAL
-                        );
-
-                    if (!result) // HACK
-                    {
-                        BUTTON_IMAGELIST imageList = { 0 };
-
-                        if (Button_GetImageList(DrawInfo->hdr.hwndFrom, &imageList) && imageList.himl)
-                        {
-                            bufferRect.left += PhGetDpi(1, dpiValue);
-
-                            PhImageListDrawIcon(
-                                imageList.himl,
-                                0,
-                                DrawInfo->hdc,
-                                bufferRect.left, // + ((bufferRect.right - bufferRect.left) - width) / 2,
-                                bufferRect.top + ((bufferRect.bottom - bufferRect.top) - height) / 2,
-                                ILD_NORMAL,
-                                FALSE
-                                );
-
-                            bufferRect.left += PhGetDpi(5, dpiValue);
-                        }
-                    }
-                }
+                PhThemeDrawButtonIcon(DrawInfo, buttonIcon, &bufferRect, dpiValue);
 
                 if ((buttonStyle & BS_ICON) != BS_ICON)
                 {
@@ -2040,7 +1923,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
 
             SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
 
-            if (buttonInfo.iImage != INT_ERROR)
+            if (buttonInfo.iImage != I_IMAGECALLBACK)
             {
                 HIMAGELIST toolbarImageList;
 
@@ -2078,6 +1961,10 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                         !isEnabled
                         );
                 }
+            }
+            else
+            {
+                return CDRF_DODEFAULT; // Required for I_IMAGECALLBACK (dmex)
             }
 
             if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
@@ -2385,7 +2272,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            
+
             if (!BeginPaint(WindowHandle, &ps))
                 break;
 
@@ -2400,69 +2287,6 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
 
 DefaultWndProc:
     return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
-}
-
-LRESULT CALLBACK PhpThemeWindowEditSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    WNDPROC oldWndProc;
-
-    if (!(oldWndProc = PhGetWindowContext(WindowHandle, LONG_MAX)))
-        return FALSE;
-
-    switch (uMsg)
-    {
-    case WM_NCDESTROY:
-        {
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(WindowHandle, LONG_MAX);
-        }
-        break;
-    case WM_NCPAINT:
-        {
-            HDC hdc;
-            ULONG flags;
-            RECT windowRect;
-            HRGN updateRegion;
-
-            updateRegion = (HRGN)wParam;
-
-            if (updateRegion == HRGN_FULL)
-                updateRegion = NULL;
-
-            flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | DCX_USESTYLE;
-
-            if (updateRegion)
-                flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
-
-            if (hdc = GetDCEx(WindowHandle, updateRegion, flags))
-            {
-                GetWindowRect(WindowHandle, &windowRect);
-                PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
-
-                if (GetFocus() == WindowHandle)
-                {
-                    SetDCBrushColor(hdc, GetSysColor(COLOR_HOTLIGHT)); // PhThemeWindowHighlightColor
-                    FrameRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
-                }
-                else
-                {
-                    SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-                    FrameRect(hdc, &windowRect, GetStockBrush(DC_BRUSH));
-                }
-
-                ReleaseDC(WindowHandle, hdc);
-                return 0;
-            }
-        }
-        break;
-    }
-
-    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 }
 
 VOID ThemeWindowRenderTabControl(
@@ -2787,712 +2611,6 @@ DefaultWndProc:
     return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
 }
 
-VOID ThemeWindowRenderHeaderControl(
-    _In_ PPHP_THEME_WINDOW_HEADER_CONTEXT Context,
-    _In_ HWND WindowHandle,
-    _In_ HDC bufferDc,
-    _In_ PRECT clientRect,
-    _In_ WNDPROC WindowProcedure
-    )
-{
-    SetBkMode(bufferDc, TRANSPARENT);
-    SelectFont(bufferDc, GetWindowFont(WindowHandle));
-
-    FillRect(bufferDc, clientRect, PhThemeWindowBackgroundBrush);
-
-    INT headerItemCount = Header_GetItemCount(WindowHandle);
-
-    for (INT i = 0; i < headerItemCount; i++)
-    {
-        RECT headerRect;
-
-        Header_GetItemRect(WindowHandle, i, &headerRect);
-
-        if (PhPtInRect(&headerRect, Context->CursorPos))
-        {
-            SetTextColor(bufferDc, PhThemeWindowTextColor);
-            SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor);
-            FillRect(bufferDc, &headerRect, GetStockBrush(DC_BRUSH));
-            //FrameRect(bufferDc, &headerRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-        }
-        else
-        {
-            SetTextColor(bufferDc, PhThemeWindowTextColor);
-            FillRect(bufferDc, &headerRect, PhThemeWindowBackgroundBrush);
-
-            //FrameRect(hdc, &headerRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-            //SetDCPenColor(hdc, RGB(0, 255, 0));
-            //SetDCBrushColor(hdc, RGB(0, 255, 0));
-            //DrawEdge(hdc, &headerRect, BDR_RAISEDOUTER | BF_FLAT, BF_RIGHT);
-
-            //RECT frameRect;
-            //frameRect.bottom = headerRect.bottom - 2;
-            //frameRect.left = headerRect.right - 1;
-            //frameRect.right = headerRect.right;
-            //frameRect.top = headerRect.top;
-            //SetDCBrushColor(hdc, RGB(68, 68, 68)); // RGB(0x77, 0x77, 0x77));
-            //FrameRect(hdc, &headerRect, GetStockBrush(DC_BRUSH));
-
-            //PatBlt(DrawInfo->hDC, DrawInfo->rcItem.right - 1, DrawInfo->rcItem.top, 1, DrawInfo->rcItem.bottom - DrawInfo->rcItem.top, PATCOPY);
-            //PatBlt(DrawInfo->hDC, DrawInfo->rcItem.left, DrawInfo->rcItem.bottom - 1, DrawInfo->rcItem.right - DrawInfo->rcItem.left, 1, PATCOPY);
-            DrawEdge(bufferDc, &headerRect, BDR_RAISEDOUTER, BF_RIGHT);
-        }
-
-        INT drawTextFlags = DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS;
-        WCHAR headerText[0x80] = { 0 };
-        HDITEM headerItem;
-
-        ZeroMemory(&headerItem, sizeof(HDITEM));
-        headerItem.mask = HDI_TEXT | HDI_FORMAT;
-        headerItem.cchTextMax = MAX_PATH;
-        headerItem.pszText = headerText;
-
-        if (!Header_GetItem(WindowHandle, i, &headerItem))
-            continue;
-
-        if (headerItem.fmt & HDF_SORTUP)
-        {
-            if (Context->ThemeHandle)
-            {
-                RECT sortArrowRect = headerRect;
-                SIZE sortArrowSize;
-
-                if (PhGetThemePartSize(
-                    Context->ThemeHandle,
-                    bufferDc,
-                    HP_HEADERSORTARROW,
-                    HSAS_SORTEDUP,
-                    NULL,
-                    TS_TRUE,
-                    &sortArrowSize
-                    ) == S_OK)
-                {
-                    sortArrowRect.bottom = sortArrowSize.cy;
-                }
-
-                PhDrawThemeBackground(
-                    Context->ThemeHandle,
-                    bufferDc,
-                    HP_HEADERSORTARROW,
-                    HSAS_SORTEDUP,
-                    &sortArrowRect,
-                    NULL
-                    );
-            }
-        }
-        else if (headerItem.fmt & HDF_SORTDOWN)
-        {
-            if (Context->ThemeHandle)
-            {
-                RECT sortArrowRect = headerRect;
-                SIZE sortArrowSize;
-
-                if (PhGetThemePartSize(
-                    Context->ThemeHandle,
-                    bufferDc,
-                    HP_HEADERSORTARROW,
-                    HSAS_SORTEDDOWN,
-                    NULL,
-                    TS_TRUE,
-                    &sortArrowSize
-                    ) == S_OK)
-                {
-                    sortArrowRect.bottom = sortArrowSize.cy;
-                }
-
-                PhDrawThemeBackground(
-                    Context->ThemeHandle,
-                    bufferDc,
-                    HP_HEADERSORTARROW,
-                    HSAS_SORTEDDOWN,
-                    &sortArrowRect,
-                    NULL
-                    );
-            }
-        }
-
-        if (headerItem.fmt & HDF_RIGHT)
-            drawTextFlags |= DT_VCENTER | DT_RIGHT;
-        else
-            drawTextFlags |= DT_VCENTER | DT_LEFT;
-
-        headerRect.left += 4;
-        headerRect.right -= 8;
-        DrawText(
-            bufferDc,
-            headerText,
-            (UINT)PhCountStringZ(headerText),
-            &headerRect,
-            drawTextFlags
-            );
-    }
-}
-
-LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    PPHP_THEME_WINDOW_HEADER_CONTEXT context;
-    WNDPROC oldWndProc;
-
-    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
-        return FALSE;
-
-    oldWndProc = context->DefaultWindowProc;
-
-    switch (uMsg)
-    {
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(WindowHandle, LONG_MAX);
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-
-            if (context->ThemeHandle)
-            {
-                PhCloseThemeData(context->ThemeHandle);
-            }
-
-            PhFree(context);
-        }
-        break;
-    case WM_THEMECHANGED:
-        {
-            if (context->ThemeHandle)
-            {
-                PhCloseThemeData(context->ThemeHandle);
-                context->ThemeHandle = NULL;
-            }
-
-            context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
-        }
-        break;
-    case WM_ERASEBKGND:
-        return TRUE;
-    case WM_MOUSEMOVE:
-        {
-            if (GetCapture() == WindowHandle)
-                break;
-
-            if (!context->MouseActive)
-            {
-                TRACKMOUSEEVENT trackEvent =
-                {
-                    sizeof(TRACKMOUSEEVENT),
-                    TME_LEAVE,
-                    WindowHandle,
-                    0
-                };
-
-                TrackMouseEvent(&trackEvent);
-                context->MouseActive = TRUE;
-            }
-
-            context->CursorPos.x = GET_X_LPARAM(lParam);
-            context->CursorPos.y = GET_Y_LPARAM(lParam);
-
-            InvalidateRect(WindowHandle, NULL, FALSE);
-        }
-        break;
-    case WM_CONTEXTMENU:
-        {
-            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
-
-            InvalidateRect(WindowHandle, NULL, TRUE);
-
-            return result;
-        }
-        break;
-    case WM_MOUSELEAVE:
-        {
-            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
-
-            context->MouseActive = FALSE;
-            context->CursorPos.x = LONG_MIN;
-            context->CursorPos.y = LONG_MIN;
-
-            InvalidateRect(WindowHandle, NULL, TRUE);
-
-            return result;
-        }
-        break;
-    case WM_PAINT:
-        {
-            //PAINTSTRUCT ps;
-            //HDC BufferedHDC;
-            //HPAINTBUFFER BufferedPaint;
-            //
-            //if (!BeginPaint(WindowHandle, &ps))
-            //    break;
-            //
-            //DEBUG_BEGINPAINT_RECT(WindowHandle, ps.rcPaint);
-            //
-            //if (BufferedPaint = BeginBufferedPaint(ps.hdc, &ps.rcPaint, BPBF_COMPATIBLEBITMAP, NULL, &BufferedHDC))
-            //{
-            //    ThemeWindowRenderHeaderControl(context, WindowHandle, BufferedHDC, &ps.rcPaint, oldWndProc);
-            //    EndBufferedPaint(BufferedPaint, TRUE);
-            //}
-            //else
-            {
-                RECT clientRect;
-                HDC hdc;
-                HDC bufferDc;
-                HBITMAP bufferBitmap;
-                HBITMAP oldBufferBitmap;
-
-                GetClientRect(WindowHandle, &clientRect);
-
-                hdc = GetDC(WindowHandle);
-                bufferDc = CreateCompatibleDC(hdc);
-                bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
-                oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
-
-                ThemeWindowRenderHeaderControl(context, WindowHandle, bufferDc, &clientRect, oldWndProc);
-
-                BitBlt(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom, bufferDc, 0, 0, SRCCOPY);
-                SelectBitmap(bufferDc, oldBufferBitmap);
-                DeleteBitmap(bufferBitmap);
-                DeleteDC(bufferDc);
-                ReleaseDC(WindowHandle, hdc);
-            }
-
-            //EndPaint(WindowHandle, &ps);
-        }
-        goto DefaultWndProc;
-    }
-
-    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
-
-DefaultWndProc:
-    return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
-}
-
-
-VOID ThemeWindowStatusBarCreateBufferedContext(
-    _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
-    _In_ HDC Hdc,
-    _In_ RECT BufferRect
-    )
-{
-    Context->BufferedDc = CreateCompatibleDC(Hdc);
-
-    if (!Context->BufferedDc)
-        return;
-
-    Context->BufferedContextRect = BufferRect;
-    Context->BufferedBitmap = CreateCompatibleBitmap(
-        Hdc,
-        Context->BufferedContextRect.right,
-        Context->BufferedContextRect.bottom
-        );
-
-    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedDc, Context->BufferedBitmap);
-}
-
-VOID ThemeWindowStatusBarDestroyBufferedContext(
-    _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context
-    )
-{
-    if (Context->BufferedDc && Context->BufferedOldBitmap)
-    {
-        SelectBitmap(Context->BufferedDc, Context->BufferedOldBitmap);
-    }
-
-    if (Context->BufferedBitmap)
-    {
-        DeleteBitmap(Context->BufferedBitmap);
-        Context->BufferedBitmap = NULL;
-    }
-
-    if (Context->BufferedDc)
-    {
-        DeleteDC(Context->BufferedDc);
-        Context->BufferedDc = NULL;
-    }
-}
-
-INT ThemeWindowStatusBarUpdateRectToIndex(
-    _In_ HWND WindowHandle,
-    _In_ WNDPROC WindowProcedure,
-    _In_ PRECT UpdateRect,
-    _In_ INT Count
-    )
-{
-    for (INT i = 0; i < Count; i++)
-    {
-        RECT blockRect = { 0 };
-
-        if (!CallWindowProc(WindowProcedure, WindowHandle, SB_GETRECT, (WPARAM)i, (WPARAM)&blockRect))
-            continue;
-
-        if (
-            UpdateRect->bottom == blockRect.bottom &&
-            //UpdateRect->left == blockRect.left &&
-            UpdateRect->right == blockRect.right
-            //UpdateRect->top == blockRect.top
-            )
-        {
-            return i;
-        }
-    }
-
-    return INT_ERROR;
-}
-
-VOID ThemeWindowStatusBarDrawPart(
-    _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
-    _In_ HWND WindowHandle,
-    _In_ HDC bufferDc,
-    _In_ PRECT clientRect,
-    _In_ WNDPROC WindowProcedure,
-    _In_ INT Index
-    )
-{
-    RECT blockRect = { 0 };
-    WCHAR text[0x80] = { 0 };
-
-    if (!CallWindowProc(WindowProcedure, WindowHandle, SB_GETRECT, (WPARAM)Index, (WPARAM)&blockRect))
-        return;
-    if (!RectVisible(bufferDc, &blockRect))
-        return;
-    if (CallWindowProc(WindowProcedure, WindowHandle, SB_GETTEXTLENGTH, (WPARAM)Index, 0) >= RTL_NUMBER_OF(text))
-        return;
-    if (!CallWindowProc(WindowProcedure, WindowHandle, SB_GETTEXT, (WPARAM)Index, (LPARAM)text))
-        return;
-
-    if (PhPtInRect(&blockRect, Context->CursorPos))
-    {
-        SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
-        SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
-        FillRect(bufferDc, &blockRect, GetStockBrush(DC_BRUSH));
-        //FrameRect(bufferDc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-    }
-    else
-    {
-        SetTextColor(bufferDc, PhThemeWindowTextColor);
-        FillRect(bufferDc, &blockRect, PhThemeWindowBackgroundBrush);
-        //FrameRect(bufferDc, &blockRect, GetSysColorBrush(COLOR_HIGHLIGHT));
-    }
-
-    blockRect.left += 2;
-    DrawText(
-        bufferDc,
-        text,
-        (UINT)PhCountStringZ(text),
-        &blockRect,
-        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
-        );
-    blockRect.left -= 2;
-}
-
-VOID ThemeWindowRenderStatusBar(
-    _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
-    _In_ HWND WindowHandle, 
-    _In_ HDC bufferDc, 
-    _In_ PRECT clientRect, 
-    _In_ WNDPROC WindowProcedure
-    )
-{
-    SetBkMode(bufferDc, TRANSPARENT);
-    SelectFont(bufferDc, GetWindowFont(WindowHandle));
-
-    FillRect(bufferDc, clientRect, PhThemeWindowBackgroundBrush);
-
-    INT blockCount = (INT)CallWindowProc(
-        WindowProcedure, 
-        WindowHandle,
-        SB_GETPARTS,
-        0, 0
-        );
-
-    //INT index = ThemeWindowStatusBarUpdateRectToIndex( // used with BeginBufferedPaint (dmex)
-    //    WindowHandle, 
-    //    WindowProcedure, 
-    //    clientRect,
-    //    blockCount
-    //    );
-    //
-    //if (index == UINT_MAX)
-    {
-        RECT sizeGripRect;
-        LONG dpi;
-
-        dpi = PhGetWindowDpi(WindowHandle);
-        sizeGripRect.left = clientRect->right - PhGetSystemMetrics(SM_CXHSCROLL, dpi);
-        sizeGripRect.top = clientRect->bottom - PhGetSystemMetrics(SM_CYVSCROLL, dpi);
-        sizeGripRect.right = clientRect->right;
-        sizeGripRect.bottom = clientRect->bottom;
-
-        if (Context->ThemeHandle)
-        {
-            //if (IsThemeBackgroundPartiallyTransparent(Context->ThemeHandle, SP_GRIPPER, 0))
-            //    DrawThemeParentBackground(WindowHandle, bufferDc, NULL);
-
-            PhDrawThemeBackground(Context->ThemeHandle, bufferDc, SP_GRIPPER, 0, &sizeGripRect, &sizeGripRect);
-        }
-        else
-        {
-            DrawFrameControl(bufferDc, &sizeGripRect, DFC_SCROLL, DFCS_SCROLLSIZEGRIP);
-        }
-
-        for (INT i = 0; i < blockCount; i++)
-        {
-            ThemeWindowStatusBarDrawPart(Context, WindowHandle, bufferDc, clientRect, WindowProcedure, i);
-        }
-    }
-    //else
-    //{
-    //    ThemeWindowStatusBarDrawPart(Context, WindowHandle, bufferDc, clientRect, WindowProcedure, index);
-    //}
-}
-
-LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    PPHP_THEME_WINDOW_STATUSBAR_CONTEXT context;
-    WNDPROC oldWndProc;
-
-    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
-        return FALSE;
-
-    oldWndProc = context->DefaultWindowProc;
-
-    switch (uMsg)
-    {
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(WindowHandle, LONG_MAX);
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-
-            ThemeWindowStatusBarDestroyBufferedContext(context);
-
-            if (context->ThemeHandle)
-            {
-                PhCloseThemeData(context->ThemeHandle);
-            }
-
-            PhFree(context);
-        }
-        break;
-    case WM_THEMECHANGED:
-        {
-            if (context->ThemeHandle)
-            {
-                PhCloseThemeData(context->ThemeHandle);
-                context->ThemeHandle = NULL;
-            }
-
-            context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, PhGetWindowDpi(WindowHandle));
-        }
-        break;
-    case WM_ERASEBKGND:
-        return TRUE;
-    case WM_MOUSEMOVE:
-        {
-            if (!context->MouseActive)
-            {
-                TRACKMOUSEEVENT trackEvent =
-                {
-                    sizeof(TRACKMOUSEEVENT),
-                    TME_LEAVE,
-                    WindowHandle,
-                    0
-                };
-
-                TrackMouseEvent(&trackEvent);
-                context->MouseActive = TRUE;
-            }
-
-            context->CursorPos.x = GET_X_LPARAM(lParam);
-            context->CursorPos.y = GET_Y_LPARAM(lParam);
-
-            InvalidateRect(WindowHandle, NULL, FALSE);
-        }
-        break;
-    case WM_MOUSELEAVE:
-        {
-            context->MouseActive = FALSE;
-            context->CursorPos.x = LONG_MIN;
-            context->CursorPos.y = LONG_MIN;
-
-            InvalidateRect(WindowHandle, NULL, FALSE);
-        }
-        break;
-    case WM_PAINT:
-        {
-            //PAINTSTRUCT ps;
-            //HDC BufferedHDC;
-            //HPAINTBUFFER BufferedPaint;
-            //
-            //if (!BeginPaint(WindowHandle, &ps))
-            //    break;
-            //
-            //if (BufferedPaint = BeginBufferedPaint(ps.hdc, &ps.rcPaint, BPBF_COMPATIBLEBITMAP, NULL, &BufferedHDC))
-            //{
-            //    ThemeWindowRenderStatusBar(context, WindowHandle, BufferedHDC, &ps.rcPaint, oldWndProc);
-            //    EndBufferedPaint(BufferedPaint, TRUE);
-            //}
-            //else
-            {
-                 RECT clientRect;
-                 RECT bufferRect;
-                 HDC hdc;
-
-                 GetClientRect(WindowHandle, &clientRect);
-                 bufferRect.left = 0;
-                 bufferRect.top = 0;
-                 bufferRect.right = clientRect.right - clientRect.left;
-                 bufferRect.bottom = clientRect.bottom - clientRect.top;
-
-                 hdc = GetDC(WindowHandle);
-
-                 if (context->BufferedDc && (
-                     context->BufferedContextRect.right < bufferRect.right ||
-                     context->BufferedContextRect.bottom < bufferRect.bottom))
-                 {
-                     ThemeWindowStatusBarDestroyBufferedContext(context);
-                 }
-
-                 if (!context->BufferedDc)
-                 {
-                     ThemeWindowStatusBarCreateBufferedContext(context, hdc, bufferRect);
-                 }
-
-                 if (context->BufferedDc)
-                 {
-                     ThemeWindowRenderStatusBar(
-                         context, 
-                         WindowHandle,
-                         context->BufferedDc, 
-                         &clientRect, 
-                         oldWndProc
-                         );
-
-                     BitBlt(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom, context->BufferedDc, 0, 0, SRCCOPY);
-                 }
-
-                 ReleaseDC(WindowHandle, hdc);
-            }
-
-            //EndPaint(WindowHandle, &ps);
-        }
-        goto DefaultWndProc;
-    }
-
-    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
-
-DefaultWndProc:
-    return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
-}
-
-LRESULT CALLBACK PhpThemeWindowRebarToolbarSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    PPHP_THEME_WINDOW_HEADER_CONTEXT context;
-    WNDPROC oldWndProc;
-
-    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
-        return FALSE;
-
-    oldWndProc = context->DefaultWindowProc;
-
-    switch (uMsg)
-    {
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(WindowHandle, LONG_MAX);
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-
-            PhFree(context);
-        }
-        break;
-    case WM_CTLCOLOREDIT:
-        {
-            HDC hdc = (HDC)wParam;
-
-            SetBkMode(hdc, TRANSPARENT);
-            SetTextColor(hdc, PhThemeWindowTextColor);
-            SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-            return (INT_PTR)GetStockBrush(DC_BRUSH);
-        }
-        break;
-    }
-
-    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
-}
-
-LRESULT CALLBACK PhpThemeWindowStaticControlSubclassProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    PPHP_THEME_WINDOW_STATIC_CONTEXT context;
-    WNDPROC oldWndProc;
-
-    if (!(context = PhGetWindowContext(WindowHandle, LONG_MAX)))
-        return FALSE;
-
-    oldWndProc = context->DefaultWindowProc;
-
-    switch (uMsg)
-    {
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(WindowHandle, LONG_MAX);
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-
-            PhFree(context);
-        }
-        break;
-    case WM_ERASEBKGND:
-        return TRUE;
-    case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc;
-
-            if (hdc = BeginPaint(WindowHandle, &ps))
-            {
-                HICON iconHandle = Static_GetIcon(WindowHandle, 0);
-
-                FillRect(hdc, &ps.rcPaint, PhThemeWindowBackgroundBrush);
-
-                DrawIconEx(
-                    hdc,
-                    ps.rcPaint.left,
-                    ps.rcPaint.top,
-                    iconHandle,
-                    ps.rcPaint.right - ps.rcPaint.left,
-                    ps.rcPaint.bottom - ps.rcPaint.top,
-                    0,
-                    NULL,
-                    DI_NORMAL
-                    );
-
-                EndPaint(WindowHandle, &ps);
-            }
-        }
-        goto DefaultWndProc;
-    }
-
-    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
-
-DefaultWndProc:
-    return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
-}
-
 LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
@@ -3525,7 +2643,7 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
     //        GetCursorPos(&windowPoint);
     //        GetWindowRect(WindowHandle, &windowRect);
     //        context->Hot = PhPtInRect(&windowRect, windowPoint);
-    //  
+    //
     //        if (!context->HotTrack)
     //        {
     //            TRACKMOUSEEVENT trackMouseEvent;
@@ -3712,10 +2830,10 @@ VOID ThemeWindowRenderComboBox(
 
         PhDrawThemeBackground(
             Context->ThemeHandle,
-            bufferDc, 
+            bufferDc,
             CP_DROPDOWNBUTTONRIGHT,
-            CBXSR_DISABLED, 
-            &bufferRect, 
+            CBXSR_DISABLED,
+            &bufferRect,
             NULL
             );
 
@@ -3760,7 +2878,7 @@ VOID ThemeWindowRenderComboBox(
 
 VOID ThemeWindowComboBoxExcludeRect(
     _In_ PPHP_THEME_WINDOW_COMBO_CONTEXT Context,
-    _In_ HWND WindowHandle, 
+    _In_ HWND WindowHandle,
     _In_ HDC Hdc,
     _In_ PRECT clientRect,
     _In_ WNDPROC WindowProcedure

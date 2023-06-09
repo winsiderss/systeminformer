@@ -1,8 +1,20 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2015
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_PHSVCAPI_H
 #define PH_PHSVCAPI_H
 
-#define PHSVC_PORT_NAME (L"\\BaseNamedObjects\\PhSvcApiPort")
-#define PHSVC_WOW64_PORT_NAME (L"\\BaseNamedObjects\\PhSvcWow64ApiPort")
+#define PHSVC_PORT_NAME (L"\\BaseNamedObjects\\SiSvcApiPort")
+#define PHSVC_WOW64_PORT_NAME (L"\\BaseNamedObjects\\SiSvcWow64ApiPort")
 
 typedef enum _PHSVC_API_NUMBER
 {

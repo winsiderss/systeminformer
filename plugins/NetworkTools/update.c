@@ -18,7 +18,7 @@ PPH_OBJECT_TYPE UpdateContextType = NULL;
 PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
 
 // Note: We're using the built-in tar.exe on Windows 10/11 for extracting the database
-// updates since SI doesn't currently ship with a tar library. (dmex) 
+// updates since SI doesn't currently ship with a tar library. (dmex)
 BOOLEAN GeoLiteCheckUpdatePlatformSupported(
     VOID
     )
@@ -584,7 +584,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
 
     switch (uMsg)
     {
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
@@ -713,7 +713,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //                Parameter,
     //                NULL,
     //                SW_SHOWNORMAL,
-    //                0,
+    //                PH_SHELL_EXECUTE_NOASYNC,
     //                PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
     //                0,
     //                NULL

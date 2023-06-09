@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -15,6 +15,7 @@
 
 #define PLUGIN_NAME L"ProcessHacker.UserNotes"
 #define SETTING_NAME_CUSTOM_COLOR_LIST (PLUGIN_NAME L".ColorCustomList")
+#define SETTING_NAME_OPTIONS_DB_COLUMNS (PLUGIN_NAME L".DbListColumns")
 
 #define FILE_TAG 1
 #define SERVICE_TAG 2
@@ -79,6 +80,16 @@ NTSTATUS LoadDb(
 
 NTSTATUS SaveDb(
     VOID
+    );
+
+typedef BOOLEAN (NTAPI* PDB_ENUM_CALLBACK)(
+    _In_ PDB_OBJECT Object,
+    _In_ PVOID Context
+    );
+
+VOID EnumDb(
+    _In_ PDB_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
     );
 
 _Success_(return)

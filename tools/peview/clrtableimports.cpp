@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2022-2023
  *
  */
 
@@ -36,9 +36,56 @@
 #endif
 
 // metamodelpub.h
-#define TBL_Method 6UL
-#define TBL_ModuleRef 26UL
-#define TBL_ImplMap 28UL
+enum
+{
+    TBL_Module = 0,
+    TBL_TypeRef = 1,
+    TBL_TypeDef = 2,
+    TBL_FieldPtr = 3,
+    TBL_Field = 4,
+    TBL_MethodPtr = 5,
+    TBL_Method = 6,
+    TBL_ParamPtr = 7,
+    TBL_Param = 8,
+    TBL_InterfaceImpl = 9,
+    TBL_MemberRef = 10,
+    TBL_Constant = 11,
+    TBL_CustomAttribute = 12,
+    TBL_FieldMarshal = 13,
+    TBL_DeclSecurity = 14,
+    TBL_ClassLayout = 15,
+    TBL_FieldLayout = 16,
+    TBL_StandAloneSig = 17,
+    TBL_EventMap = 18,
+    TBL_EventPtr = 19,
+    TBL_Event = 20,
+    TBL_PropertyMap = 21,
+    TBL_PropertyPtr = 22,
+    TBL_Property = 23,
+    TBL_MethodSemantics = 24,
+    TBL_MethodImpl = 25,
+    TBL_ModuleRef = 26,
+    TBL_TypeSpec = 27,
+    TBL_ImplMap = 28,
+    TBL_FieldRVA = 29,
+    TBL_ENCLog = 30,
+    TBL_ENCMap = 31,
+    TBL_Assembly = 32,
+    TBL_AssemblyProcessor = 33,
+    TBL_AssemblyOS = 34,
+    TBL_AssemblyRef = 35,
+    TBL_AssemblyRefProcessor = 36,
+    TBL_AssemblyRefOS = 37,
+    TBL_File = 38,
+    TBL_ExportedType = 39,
+    TBL_ManifestResource = 40,
+    TBL_NestedClass = 41,
+    TBL_GenericParam = 42,
+    TBL_MethodSpec = 43,
+    TBL_GenericParamConstraint = 44,
+    // Portable PDB
+};
+
 // ModuleRefRec
 #define ModuleRefRec_COL_Name 0UL
 // ImplMapRec
@@ -46,6 +93,19 @@
 #define ImplMapRec_COL_MemberForwarded 1UL // mdField or mdMethod
 #define ImplMapRec_COL_ImportName 2UL
 #define ImplMapRec_COL_ImportScope 3UL // mdModuleRef
+// AssemblyRefRec
+enum
+{
+    AssemblyRefRec_COL_MajorVersion,
+    AssemblyRefRec_COL_MinorVersion,
+    AssemblyRefRec_COL_BuildNumber,
+    AssemblyRefRec_COL_RevisionNumber,
+    AssemblyRefRec_COL_Flags,
+    AssemblyRefRec_COL_PublicKeyOrToken,
+    AssemblyRefRec_COL_Name,
+    AssemblyRefRec_COL_Locale,
+    AssemblyRefRec_COL_HashValue
+};
 
 EXTERN_C
 PPH_STRING PvClrImportFlagsToString(
@@ -99,22 +159,214 @@ PPH_STRING PvClrImportFlagsToString(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-// TODO: Add support for dynamic imports by enumerating the types. (dmex)
-EXTERN_C HRESULT PvGetClrImageImports(
-    _In_ PVOID ClrMetaDataDispenser,
-    _In_ PWSTR FileName,
-    _Out_ PPH_LIST* ClrImportsList
+static int __cdecl PvClrCoreNameCompare(
+    _In_ void* Context,
+    _In_ void const* elem1,
+    _In_ void const* elem2
     )
 {
-    IMetaDataDispenser* metaDataDispenser = static_cast<IMetaDataDispenser*>(ClrMetaDataDispenser);
+    PPH_STRING item1 = *static_cast<PPH_STRING const*>(elem1);
+    PPH_STRING item2 = *static_cast<PPH_STRING const*>(elem2);
+
+    return PhCompareStringWithNull(item1, item2, TRUE);
+}
+
+static BOOLEAN PvClrCoreDirectoryCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_ PVOID Context
+    )
+{
+    PFILE_DIRECTORY_INFORMATION directoryInfo = static_cast<PFILE_DIRECTORY_INFORMATION>(Information);
+    PH_STRINGREF baseName = { directoryInfo->FileNameLength, directoryInfo->FileName };
+
+    if (FlagOn(directoryInfo->FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
+    {
+        if (PATH_IS_WIN32_RELATIVE_PREFIX(&baseName))
+            return TRUE;
+
+        PhAddItemList(static_cast<PPH_LIST>(Context), PhCreateString2(&baseName));
+    }
+
+    return TRUE;
+}
+
+HRESULT PvGetClrMetaDataInterface(
+    _In_ PWSTR FileName,
+    _Out_ PVOID* ClrCoreBaseAddress,
+    _Out_ IMetaDataDispenser** ClrMetaDataInterface
+    )
+{
+    static PH_STRINGREF dotNetCorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
+    static PH_STRINGREF dotNetCoreName = PH_STRINGREF_INIT(L"\\coreclr.dll");
+    HRESULT (WINAPI* MetaDataGetDispenser_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _COM_Outptr_ PVOID* ppv) = nullptr;
+    HRESULT status = E_FAIL;
+    PVOID clrCoreBaseAddress = nullptr;
+    IMetaDataDispenser* clrMetadataInterface = nullptr;
+    PPH_STRING directoryPath;
+    HANDLE directoryHandle;
+
+    if (directoryPath = PhExpandEnvironmentStrings(&dotNetCorePath))
+    {
+        if (PhDoesDirectoryExistWin32(PhGetString(directoryPath)))
+        {
+            PPH_LIST directoryList = PhCreateList(2);
+
+            if (NT_SUCCESS(PhOpenFileWin32(
+                &directoryHandle,
+                PhGetString(directoryPath),
+                FILE_LIST_DIRECTORY | SYNCHRONIZE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                )))
+            {
+                PhEnumDirectoryFile(directoryHandle, nullptr, PvClrCoreDirectoryCallback, directoryList);
+                NtClose(directoryHandle);
+            }
+
+            // Sort by version?
+            qsort_s(directoryList->Items, directoryList->Count, sizeof(PVOID), PvClrCoreNameCompare, nullptr);
+
+            {
+                PPH_STRING directoryName = static_cast<PPH_STRING>(directoryList->Items[directoryList->Count - 1]);
+                PPH_STRING fileName = PhConcatStringRef3(
+                    &directoryPath->sr,
+                    &directoryName->sr,
+                    &dotNetCoreName
+                    );
+
+                if (PhDoesFileExistWin32(PhGetString(fileName)))
+                {
+                    clrCoreBaseAddress = PhLoadLibrary(PhGetString(fileName));
+                }
+
+                PhDereferenceObject(fileName);
+            }
+
+            if (!clrCoreBaseAddress)
+            {
+                for (ULONG i = 0; i < directoryList->Count; i++)
+                {
+                    PPH_STRING directoryName = static_cast<PPH_STRING>(directoryList->Items[i]);
+                    PPH_STRING fileName = PhConcatStringRef3(
+                        &directoryPath->sr,
+                        &directoryName->sr,
+                        &dotNetCoreName
+                        );
+
+                    if (PhDoesFileExistWin32(PhGetString(fileName)))
+                    {
+                        clrCoreBaseAddress = PhLoadLibrary(PhGetString(fileName));
+                    }
+
+                    PhDereferenceObject(fileName);
+
+                    if (clrCoreBaseAddress)
+                        break;
+                }
+            }
+
+            PhDereferenceObjects(directoryList->Items, directoryList->Count);
+            PhDereferenceObject(directoryList);
+        }
+
+        PhDereferenceObject(directoryPath);
+    }
+
+    if (!clrCoreBaseAddress)
+        clrCoreBaseAddress = PhLoadLibrary(L"mscoree.dll");
+    if (!clrCoreBaseAddress)
+        return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
+
+    if (MetaDataGetDispenser_I = reinterpret_cast<decltype(MetaDataGetDispenser_I)>(PhGetDllBaseProcedureAddress(clrCoreBaseAddress, const_cast<PSTR>("MetaDataGetDispenser"), 0)))
+    {
+        MetaDataGetDispenser_I(CLSID_CorMetaDataDispenser, IID_IMetaDataDispenser, reinterpret_cast<PVOID*>(&clrMetadataInterface));
+    }
+
+    if (!clrMetadataInterface)
+    {
+        PhGetClassObjectDllBase(clrCoreBaseAddress, CLSID_CorMetaDataDispenser, IID_IMetaDataDispenser, reinterpret_cast<PVOID*>(&clrMetadataInterface));
+    }
+
+    if (!clrMetadataInterface)
+    {
+        CLRCreateInstanceFnPtr CLRCreateInstance_I = nullptr;
+        ICLRMetaHost* clrMetaHost = nullptr;
+        ICLRRuntimeInfo* clrRuntimeInfo = nullptr;
+
+        if (CLRCreateInstance_I = reinterpret_cast<decltype(CLRCreateInstance_I)>(PhGetDllBaseProcedureAddress(clrCoreBaseAddress, const_cast<PSTR>("CLRCreateInstance"), 0)))
+        {
+            status = CLRCreateInstance_I(
+                CLSID_CLRMetaHost,
+                IID_ICLRMetaHost,
+                reinterpret_cast<PVOID*>(&clrMetaHost)
+                );
+
+            if (SUCCEEDED(status))
+            {
+                ULONG size = MAX_PATH;
+                WCHAR version[MAX_PATH] = L"";
+
+                status = clrMetaHost->GetVersionFromFile(FileName, version, &size);
+
+                if (SUCCEEDED(status))
+                {
+                    status = clrMetaHost->GetRuntime(
+                        version,
+                        IID_ICLRRuntimeInfo,
+                        reinterpret_cast<PVOID*>(&clrRuntimeInfo)
+                        );
+
+                    if (SUCCEEDED(status))
+                    {
+                        status = clrRuntimeInfo->GetInterface(
+                            CLSID_CorMetaDataDispenser,
+                            IID_IMetaDataDispenser,
+                            reinterpret_cast<PVOID*>(&clrMetadataInterface)
+                            );
+                        clrRuntimeInfo->Release();
+                    }
+                }
+
+                clrMetaHost->Release();
+            }
+        }
+    }
+
+    if (clrMetadataInterface)
+    {
+        *ClrCoreBaseAddress = clrCoreBaseAddress;
+        *ClrMetaDataInterface = clrMetadataInterface;
+        return S_OK;
+    }
+
+    if (clrCoreBaseAddress)
+    {
+        PhFreeLibrary(clrCoreBaseAddress);
+    }
+
+    return status;
+}
+
+HRESULT PvGetClrImageMetaDataTables(
+    _Out_ IMetaDataImport** ClrMetaDataImport,
+    _Out_ IMetaDataTables** ClrMetaDataTables
+    )
+{
+    HRESULT status;
+    PVOID clrCoreBaseAddress = nullptr;
+    IMetaDataDispenser* metaDataDispenser;
     IMetaDataImport* metaDataImport = nullptr;
     IMetaDataTables* metaDataTables = nullptr;
-    PPH_LIST clrImportsList;
-    HRESULT status;
-    ULONG rowModuleCount = 0;
-    ULONG rowModuleColumns = 0;
-    ULONG rowImportCount = 0;
-    ULONG rowImportColumns = 0;
+
+    status = PvGetClrMetaDataInterface(
+        PvFileName->Buffer,
+        &clrCoreBaseAddress,
+        &metaDataDispenser
+        );
+
+    if (!SUCCEEDED(status))
+        return status;
 
     status = metaDataDispenser->OpenScopeOnMemory(
         PvMappedImage.ViewBase,
@@ -127,7 +379,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
     if (!SUCCEEDED(status))
     {
         status = metaDataDispenser->OpenScope(
-            FileName,
+            PvFileName->Buffer,
             ofReadOnly,
             IID_IMetaDataImport,
             reinterpret_cast<IUnknown**>(&metaDataImport)
@@ -152,6 +404,252 @@ EXTERN_C HRESULT PvGetClrImageImports(
         return status;
     }
 
+    metaDataDispenser->Release();
+
+    *ClrMetaDataImport = metaDataImport;
+    *ClrMetaDataTables = metaDataTables;
+    return S_OK;
+}
+
+//HRESULT PvParseSerializedFrameworkDisplayName(
+//    _In_ const void* Buffer,
+//    _In_ ULONG BufferLength)
+//{
+//    ULONG offset = 0;
+//    PCCOR_SIGNATURE data = (PCCOR_SIGNATURE)Buffer;
+//    ULONG maybeCountOfArguments;
+//    ULONG unknown;
+//    ULONG serializedType;
+//    ULONG valueType;
+//    ULONG stringLengthDisplayName;
+//    ULONG stringLengthDisplayNameValue;
+//
+//    offset += CorSigUncompressData(data, &maybeCountOfArguments);
+//    data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+//    if (offset > BufferLength)
+//        return COR_E_OVERFLOW;
+//
+//    offset += CorSigUncompressData(data, &unknown);
+//    data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+//    if (offset > BufferLength)
+//        return COR_E_OVERFLOW;
+//
+//    offset += CorSigUncompressData(data, &serializedType);
+//    data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+//    if (offset > BufferLength)
+//        return COR_E_OVERFLOW;
+//
+//    if (serializedType != SERIALIZATION_TYPE_PROPERTY)
+//        return META_E_CA_INVALID_BLOB;
+//
+//    offset += CorSigUncompressData(data, &valueType);
+//    data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+//    if (offset > BufferLength)
+//        return COR_E_OVERFLOW;
+//
+//    if (valueType != ELEMENT_TYPE_STRING)
+//        return META_E_CA_INVALID_BLOB;
+//
+//    offset += CorSigUncompressData(data, &stringLengthDisplayName);
+//    data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+//    if (offset > BufferLength)
+//        return COR_E_OVERFLOW;
+//
+//    PPH_STRING fieldName = PhConvertUtf8ToUtf16Ex((PCHAR)data, stringLengthDisplayName);
+//
+//    if (PhEqualString2(fieldName, const_cast<PWSTR>(L"FrameworkDisplayName"), TRUE))
+//    {
+//        offset += stringLengthDisplayName;
+//        data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+//        if (offset > BufferLength)
+//            return COR_E_OVERFLOW;
+//
+//        offset += CorSigUncompressData(data, &stringLengthDisplayNameValue);
+//        data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+//        if (offset > BufferLength)
+//            return COR_E_OVERFLOW;
+//
+//        PPH_STRING displayname = PhConvertUtf8ToUtf16Ex((PCHAR)data, stringLengthDisplayNameValue);
+//
+//        offset += stringLengthDisplayNameValue;
+//        data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+//        if (offset > BufferLength)
+//            return COR_E_OVERFLOW;
+//
+//        assert(offset == BufferLength);
+//    }
+//
+//    return E_UNEXPECTED;
+//}
+
+HRESULT PvSafeParseAttributeString(
+    _In_ const void* Buffer,
+    _In_ ULONG BufferLength,
+    _Out_ PPH_STRING* VersionString
+    )
+{
+    ULONG stringLength = 0;
+    ULONG skipLength = 0;
+    ULONG offset = 0;
+    PCCOR_SIGNATURE data;
+
+    if (BufferLength < sizeof(USHORT) + sizeof(ULONG)) // prolog + length (1-4 compressed)
+        return META_E_CA_INVALID_BLOB;
+
+    USHORT prolog = *static_cast<USHORT const*>(Buffer);
+    if (prolog != 0x0001)
+        return META_E_CA_INVALID_BLOB;
+
+    offset += sizeof(USHORT);
+    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(Buffer, offset));
+    if (offset > BufferLength)
+        return COR_E_OVERFLOW;
+
+    BYTE null = *const_cast<PBYTE>(data);
+    if (null == 0xFF) // 0xFF indicates NULL string
+        return COR_E_OVERFLOW;
+
+    if (FAILED(CorSigUncompressData(data, sizeof(ULONG), &stringLength, &skipLength)))
+        return COR_E_OVERFLOW;
+    if (stringLength >= BufferLength)
+        return COR_E_OVERFLOW;
+
+    offset += skipLength;
+    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(Buffer, offset));
+    if (offset > BufferLength)
+        return COR_E_OVERFLOW;
+
+    *VersionString = PhConvertUtf8ToUtf16Ex(reinterpret_cast<char*>(const_cast<unsigned char*>(data)), stringLength);
+
+    //offset += stringLength;
+    //data = (PCCOR_SIGNATURE)PTR_ADD_OFFSET(Buffer, offset);
+    //if (offset > BufferLength)
+    //    return COR_E_OVERFLOW;
+    //
+    //PvParseSerializedFrameworkDisplayName(data, BufferLength - offset);
+
+    return S_OK;
+}
+
+EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
+    VOID
+    )
+{
+    IMetaDataImport* metaDataImport = nullptr;
+    IMetaDataTables* metaDataTables = nullptr;
+    HRESULT status;
+    PPH_STRING version = nullptr;
+    const void* attributeBuffer;
+    ULONG attributeLength;
+    ULONG count;
+    ULONG columns;
+
+    status = PvGetClrImageMetaDataTables(&metaDataImport, &metaDataTables);
+
+    if (status != S_OK)
+        return nullptr;
+
+    // 1) Query the version using the TargetFrameworkAttribute (dmex)
+
+    if (metaDataImport->GetCustomAttributeByName(
+        TokenFromRid(1, mdtAssembly),
+        TARGET_FRAMEWORK_TYPE_W,
+        &attributeBuffer,
+        &attributeLength
+        ) == S_OK)
+    {
+        if (PvSafeParseAttributeString(attributeBuffer, attributeLength, &version) == S_OK)
+        {
+            metaDataTables->Release();
+            metaDataImport->Release();
+
+            return version;
+        }
+    }
+
+    // 2) Query the version using the assembly reference for System.Runtime or mscorlib (dmex)
+
+    if (metaDataTables->GetTableInfo(TBL_AssemblyRef, nullptr, &count, &columns, nullptr, nullptr) == S_OK)
+    {
+        for (ULONG i = 1; i <= count; i++)
+        {
+            BOOLEAN runtime = FALSE;
+            BOOLEAN framework = FALSE;
+            ULONG index = 0;
+            const char* name = nullptr;
+            ULONG majorVersion = 0;
+            ULONG minorVersion = 0;
+            ULONG buildVersion = 0;
+            ULONG revisionVersion = 0;
+
+            if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_Name, i, &index) == S_OK)
+            {
+                if (metaDataTables->GetString(index, &name) == S_OK)
+                {
+                    if (PhEqualBytesZ(const_cast<PSTR>(name), const_cast<PSTR>("System.Runtime"), TRUE))
+                    {
+                        // .NET Core
+                        runtime = TRUE;
+                    }
+                    else if (PhEqualBytesZ(const_cast<PSTR>(name), const_cast<PSTR>("mscorlib"), TRUE))
+                    {
+                        // .NET Framework
+                        framework = TRUE;
+                    }
+                }
+            }
+
+            if (runtime || framework)
+            {
+                if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_MajorVersion, i, &majorVersion) != S_OK)
+                    break;
+                if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_MinorVersion, i, &minorVersion) != S_OK)
+                    break;
+                if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_BuildNumber, i, &buildVersion) != S_OK)
+                    break;
+                if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_RevisionNumber, i, &revisionVersion) != S_OK)
+                    break;
+
+                if (runtime)
+                {
+                    version = PhFormatString(const_cast<PWSTR>(L".NET Core %hu.%hu.%hu.%hu"),
+                        majorVersion, minorVersion, buildVersion, revisionVersion);
+                    break;
+                }
+                else if (framework)
+                {
+                    version = PhFormatString(const_cast<PWSTR>(L".NET Framework %hu.%hu.%hu.%hu"),
+                        majorVersion, minorVersion, buildVersion, revisionVersion);
+                    break;
+                }
+            }
+        }
+    }
+
+    metaDataTables->Release();
+    metaDataImport->Release();
+
+    return version;
+}
+
+// TODO: Add support for dynamic imports by enumerating the types. (dmex)
+EXTERN_C HRESULT PvGetClrImageImports(
+    _Out_ PPH_LIST* ClrImportsList
+    )
+{
+    IMetaDataImport* metaDataImport = nullptr;
+    IMetaDataTables* metaDataTables = nullptr;
+    PPH_LIST clrImportsList;
+    HRESULT status;
+    ULONG rowModuleCount;
+    ULONG rowImportCount;
+    ULONG rowImportColumns;
+
+    status = PvGetClrImageMetaDataTables(&metaDataImport, &metaDataTables);
+
+    if (!SUCCEEDED(status))
+        return status;
+
     clrImportsList = PhCreateList(64);
 
     // dummy unknown entry at index 0
@@ -165,7 +663,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
         PhAddItemList(clrImportsList, importDll);
     }
 
-    if (SUCCEEDED(metaDataTables->GetTableInfo(TBL_ModuleRef, nullptr, &rowModuleCount, &rowModuleColumns, nullptr, nullptr)))
+    if (SUCCEEDED(metaDataTables->GetTableInfo(TBL_ModuleRef, nullptr, &rowModuleCount, nullptr, nullptr, nullptr)))
     {
         for (ULONG i = 1; i <= rowModuleCount; i++)
         {
@@ -196,8 +694,8 @@ EXTERN_C HRESULT PvGetClrImageImports(
             ULONG importFlagsValue = 0;
             ULONG importNameValue = 0;
             ULONG moduleTokenValue = 0;
-            PVOID importRowValue = 0;
-            PVOID importOffsetValue = 0;
+            PVOID importRowValue = nullptr;
+            PVOID importOffsetValue = nullptr;
             const char* importName = nullptr;
 
             metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_MappingFlags, i, &importFlagsValue);
@@ -217,9 +715,9 @@ EXTERN_C HRESULT PvGetClrImageImports(
                 importOffsetValue = PTR_SUB_OFFSET(importRowValue, PvMappedImage.ViewBase);
             }
 
-            for (ULONG i = 0; i < clrImportsList->Count; i++)
+            for (ULONG j = 0; j < clrImportsList->Count; j++)
             {
-                PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[i]);
+                PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[j]);
 
                 if (importDll->ImportToken == moduleTokenValue)
                 {
@@ -271,8 +769,62 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
     metaDataTables->Release();
     metaDataImport->Release();
-    metaDataDispenser->Release();
 
     *ClrImportsList = clrImportsList;
+    return S_OK;
+}
+
+EXTERN_C HRESULT PvClrImageEnumTables(
+    _In_ PPV_CLRTABLE_FUNCTION Callback,
+    _In_ PVOID Context
+    )
+{
+    IMetaDataImport* metaDataImport = nullptr;
+    IMetaDataTables* metaDataTables = nullptr;
+    HRESULT status;
+    ULONG count;
+
+    status = PvGetClrImageMetaDataTables(&metaDataImport, &metaDataTables);
+
+    if (!SUCCEEDED(status))
+        return status;
+
+    status = metaDataTables->GetNumTables(&count);
+
+    if (!SUCCEEDED(status))
+    {
+        metaDataTables->Release();
+        return status;
+    }
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        ULONG size;
+        ULONG tablecount;
+        ULONG columns;
+        ULONG key;
+        const char* name;
+
+        if (SUCCEEDED(metaDataTables->GetTableInfo(i, &size, &tablecount, &columns, &key, &name)))
+        {
+            PPH_STRING tableName;
+            PVOID offset = nullptr;
+
+            tableName = PhConvertUtf8ToUtf16(const_cast<PSTR>(name));
+            metaDataTables->GetRow(i, 1, &offset);
+
+            if (!Callback(i, size, tablecount, tableName, offset, Context))
+            {
+                PhDereferenceObject(tableName);
+                break;
+            }
+
+            PhDereferenceObject(tableName);
+        }
+    }
+
+    metaDataTables->Release();
+    metaDataImport->Release();
+
     return S_OK;
 }

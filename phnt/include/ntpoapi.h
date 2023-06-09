@@ -43,12 +43,12 @@
 #define TraceApplicationPowerMessage 30 // (kernel-mode only)
 #define TraceApplicationPowerMessageEnd 31 // (kernel-mode only)
 #define ProcessorPerfStates 32 // (kernel-mode only)
-#define ProcessorIdleStates 33 // (kernel-mode only)
-#define ProcessorCap 34 // (kernel-mode only)
-#define SystemWakeSource 35
-#define SystemHiberFileInformation 36 // q: SYSTEM_HIBERFILE_INFORMATION
+#define ProcessorIdleStates 33 // PROCESSOR_IDLE_STATES // (kernel-mode only)
+#define ProcessorCap 34 // PROCESSOR_CAP // (kernel-mode only)
+#define SystemWakeSource 35 // out: POWER_WAKE_SOURCE_INFO
+#define SystemHiberFileInformation 36 // out: SYSTEM_HIBERFILE_INFORMATION
 #define TraceServicePowerMessage 37
-#define ProcessorLoad 38
+#define ProcessorLoad 38 // in: PROCESSOR_LOAD (sets), in: PPROCESSOR_NUMBER (clears)
 #define PowerShutdownNotification 39 // (kernel-mode only)
 #define MonitorCapabilities 40 // (kernel-mode only)
 #define SessionPowerInit 41 // (kernel-mode only)
@@ -60,11 +60,11 @@
 #define NotifyUserModeLegacyPowerEvent 47 // (kernel-mode only)
 #define GroupPark 48 // (debug-mode boot only)
 #define ProcessorIdleDomains 49 // (kernel-mode only)
-#define WakeTimerList 50 // powercfg.exe /waketimers
+#define WakeTimerList 50 // out: WAKE_TIMER_INFO[]
 #define SystemHiberFileSize 51 // ULONG
 #define ProcessorIdleStatesHv 52 // (kernel-mode only)
 #define ProcessorPerfStatesHv 53 // (kernel-mode only)
-#define ProcessorPerfCapHv 54 // (kernel-mode only)
+#define ProcessorPerfCapHv 54 // PROCESSOR_PERF_CAP_HV // (kernel-mode only)
 #define ProcessorSetIdle 55 // (debug-mode boot only)
 #define LogicalProcessorIdling 56 // (kernel-mode only)
 #define UserPresence 57 // POWER_USER_PRESENCE // not implemented
@@ -107,7 +107,8 @@
 #define UpdateBlackBoxRecorder 94
 #define SessionAllowExternalDmaDevices 95
 #define SendSuspendResumeNotification 96 // since WIN11
-#define PowerInformationLevelMaximum 97
+#define BlackBoxRecorderDirectAccessBuffer 97
+#define PowerInformationLevelMaximum 98
 #endif
 
 typedef struct _PROCESSOR_POWER_INFORMATION
@@ -221,13 +222,13 @@ typedef struct _COUNTED_REASON_CONTEXT_RELATIVE
     {
         struct
         {
-            ULONG_PTR ResourceFileNameOffset;
+            SIZE_T ResourceFileNameOffset;
             USHORT ResourceReasonId;
             ULONG StringCount;
-            ULONG_PTR SubstitutionStringsOffset;
-        };
-        ULONG_PTR SimpleStringOffset;
-    };
+            SIZE_T SubstitutionStringsOffset;
+        } DUMMYSTRUCTNAME;
+        SIZE_T SimpleStringOffset;
+    } DUMMYUNIONNAME;
 } COUNTED_REASON_CONTEXT_RELATIVE, *PCOUNTED_REASON_CONTEXT_RELATIVE;
 
 typedef struct _DIAGNOSTIC_BUFFER
@@ -238,18 +239,163 @@ typedef struct _DIAGNOSTIC_BUFFER
     {
         struct
         {
-            ULONG_PTR ProcessImageNameOffset; // PWSTR
+            SIZE_T ProcessImageNameOffset; // PWSTR
             ULONG ProcessId;
             ULONG ServiceTag;
-        };
+        } DUMMYSTRUCTNAME;
         struct
         {
-            ULONG_PTR DeviceDescriptionOffset; // PWSTR
-            ULONG_PTR DevicePathOffset; // PWSTR
-        };
-    };
-    ULONG_PTR ReasonOffset; // PCOUNTED_REASON_CONTEXT_RELATIVE
+            SIZE_T DeviceDescriptionOffset; // PWSTR
+            SIZE_T DevicePathOffset; // PWSTR
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+    SIZE_T ReasonOffset; // PCOUNTED_REASON_CONTEXT_RELATIVE
 } DIAGNOSTIC_BUFFER, *PDIAGNOSTIC_BUFFER;
+
+typedef struct _WAKE_TIMER_INFO
+{
+    SIZE_T OffsetToNext;
+    ULARGE_INTEGER DueTime;
+    ULONG Period;
+    DIAGNOSTIC_BUFFER ReasonContext;
+} WAKE_TIMER_INFO, * PWAKE_TIMER_INFO;
+
+// rev
+typedef struct _PROCESSOR_PERF_CAP_HV
+{
+    ULONG Version;
+    ULONG InitialApicId;
+    ULONG Ppc;
+    ULONG Tpc;
+    ULONG ThermalCap;
+} PROCESSOR_PERF_CAP_HV, *PPROCESSOR_PERF_CAP_HV;
+
+typedef struct PROCESSOR_IDLE_TIMES
+{
+    ULONG64 StartTime;
+    ULONG64 EndTime;
+    ULONG Reserved[4];
+} PROCESSOR_IDLE_TIMES, *PPROCESSOR_IDLE_TIMES;
+
+_Function_class_(PROCESSOR_IDLE_HANDLER)
+typedef NTSTATUS (FASTCALL PROCESSOR_IDLE_HANDLER)(
+    _In_ ULONG_PTR Context,
+    _Inout_ PPROCESSOR_IDLE_TIMES IdleTimes
+    );
+
+typedef PROCESSOR_IDLE_HANDLER *PPROCESSOR_IDLE_HANDLER;
+
+#define PROCESSOR_STATE_TYPE_PERFORMANCE    0x1
+#define PROCESSOR_STATE_TYPE_THROTTLE       0x2
+
+#define IDLE_STATE_FLAGS_C1_HLT     0x01        // describes C1 only
+#define IDLE_STATE_FLAGS_C1_IO_HLT  0x02        // describes C1 only
+#define IDLE_STATE_FLAGS_IO         0x04        // describes C2 and C3 only
+#define IDLE_STATE_FLAGS_MWAIT      0x08        // describes C1, C2, C3, C4, ...
+
+typedef struct _PROCESSOR_IDLE_STATE
+{
+    UCHAR StateType;
+    ULONG StateFlags;
+    ULONG HardwareLatency;
+    ULONG Power;
+    ULONG_PTR Context;
+    PPROCESSOR_IDLE_HANDLER Handler;
+} PROCESSOR_IDLE_STATE, *PPROCESSOR_IDLE_STATE;
+
+typedef struct _PROCESSOR_IDLE_STATES
+{
+    ULONG Size;
+    ULONG Revision;
+    ULONG Count;
+    ULONG Type;
+    KAFFINITY TargetProcessors;
+    PROCESSOR_IDLE_STATE State[ANYSIZE_ARRAY];
+} PROCESSOR_IDLE_STATES, *PPROCESSOR_IDLE_STATES;
+
+// rev
+typedef struct _PROCESSOR_LOAD
+{
+    PROCESSOR_NUMBER ProcessorNumber;
+    UCHAR BusyPercentage;
+    UCHAR FrequencyPercentage;
+    USHORT Padding;
+} PROCESSOR_LOAD, *PPROCESSOR_LOAD;
+
+// rev
+typedef struct _PROCESSOR_CAP
+{
+    ULONG Version;
+    PROCESSOR_NUMBER ProcessorNumber;
+    ULONG PlatformCap;
+    ULONG ThermalCap;
+    ULONG LimitReasons;
+} PROCESSOR_CAP, *PPROCESSOR_CAP;
+
+typedef struct _PO_WAKE_SOURCE_INFO
+{
+    ULONG Count;
+    ULONG Offsets[ANYSIZE_ARRAY]; // POWER_WAKE_SOURCE_HEADER, POWER_WAKE_SOURCE_INTERNAL, POWER_WAKE_SOURCE_TIMER, POWER_WAKE_SOURCE_FIXED
+} PO_WAKE_SOURCE_INFO, *PPO_WAKE_SOURCE_INFO;
+
+typedef struct _PO_WAKE_SOURCE_HISTORY
+{
+    ULONG Count;
+    ULONG Offsets[ANYSIZE_ARRAY]; // POWER_WAKE_SOURCE_HEADER, POWER_WAKE_SOURCE_INTERNAL, POWER_WAKE_SOURCE_TIMER, POWER_WAKE_SOURCE_FIXED
+} PO_WAKE_SOURCE_HISTORY, *PPO_WAKE_SOURCE_HISTORY;
+
+typedef enum _PO_WAKE_SOURCE_TYPE
+{
+    DeviceWakeSourceType = 0,
+    FixedWakeSourceType = 1,
+    TimerWakeSourceType = 2,
+    TimerPresumedWakeSourceType = 3,
+    InternalWakeSourceType = 4
+} PO_WAKE_SOURCE_TYPE, *PPO_WAKE_SOURCE_TYPE;
+
+typedef enum _PO_INTERNAL_WAKE_SOURCE_TYPE
+{
+    InternalWakeSourceDozeToHibernate = 0,
+    InternalWakeSourcePredictedUserPresence = 1
+} PO_INTERNAL_WAKE_SOURCE_TYPE;
+
+typedef enum _PO_FIXED_WAKE_SOURCE_TYPE
+{
+    FixedWakeSourcePowerButton = 0,
+    FixedWakeSourceSleepButton = 1,
+    FixedWakeSourceRtc = 2,
+    FixedWakeSourceDozeToHibernate = 3
+} PO_FIXED_WAKE_SOURCE_TYPE, *PPO_FIXED_WAKE_SOURCE_TYPE;
+
+typedef struct _PO_WAKE_SOURCE_HEADER
+{
+    PO_WAKE_SOURCE_TYPE Type;
+    ULONG Size;
+} PO_WAKE_SOURCE_HEADER, *PPO_WAKE_SOURCE_HEADER;
+
+typedef struct _PO_WAKE_SOURCE_DEVICE
+{
+    PO_WAKE_SOURCE_HEADER Header;
+    WCHAR InstancePath[ANYSIZE_ARRAY];
+} PO_WAKE_SOURCE_DEVICE, *PPO_WAKE_SOURCE_DEVICE;
+
+typedef struct _PO_WAKE_SOURCE_FIXED
+{
+    PO_WAKE_SOURCE_HEADER Header;
+    PO_FIXED_WAKE_SOURCE_TYPE FixedWakeSourceType;
+} PO_WAKE_SOURCE_FIXED, *PPO_WAKE_SOURCE_FIXED;
+
+typedef struct _PO_WAKE_SOURCE_INTERNAL
+{
+    PO_WAKE_SOURCE_HEADER Header;
+    PO_INTERNAL_WAKE_SOURCE_TYPE InternalWakeSourceType;
+} PO_WAKE_SOURCE_INTERNAL, *PPO_WAKE_SOURCE_INTERNAL;
+
+typedef struct _PO_WAKE_SOURCE_TIMER
+{
+    PO_WAKE_SOURCE_HEADER Header;
+    DIAGNOSTIC_BUFFER Reason;
+} PO_WAKE_SOURCE_TIMER, *PPO_WAKE_SOURCE_TIMER;
 
 // The number of supported request types per version
 #define POWER_REQUEST_SUPPORTED_TYPES_V1 3 // Windows 7
@@ -360,8 +506,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalUserAbsencePrediction, // POWER_USER_ABSENCE_PREDICTION
     PowerInternalUserAbsencePredictionCapability, // POWER_USER_ABSENCE_PREDICTION_CAPABILITY
     PowerInternalPoProcessorLatencyHint, // POWER_PROCESSOR_LATENCY_HINT
-    PowerInternalStandbyNetworkRequest, // POWER_STANDBY_NETWORK_REQUEST
-    PowerInternalDirtyTransitionInformation,
+    PowerInternalStandbyNetworkRequest, // POWER_STANDBY_NETWORK_REQUEST (requires PopNetBIServiceSid)
+    PowerInternalDirtyTransitionInformation, // out: BOOLEAN
     PowerInternalSetBackgroundTaskState, // POWER_SET_BACKGROUND_TASK_STATE
     PowerInternalTtmOpenTerminal,
     PowerInternalTtmCreateTerminal, // 10
@@ -372,8 +518,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalTtmAssignDevice,
     PowerInternalTtmSetDisplayState,
     PowerInternalTtmSetDisplayTimeouts,
-    PowerInternalBootSessionStandbyActivationInformation,
-    PowerInternalSessionPowerState,
+    PowerInternalBootSessionStandbyActivationInformation, // out: POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
+    PowerInternalSessionPowerState, // in: POWER_SESSION_POWER_STATE
     PowerInternalSessionTerminalInput, // 20
     PowerInternalSetWatchdog,
     PowerInternalPhysicalPowerButtonPressInfoAtBoot,
@@ -384,14 +530,14 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalTransitionCheckpoint,
     PowerInternalInputControllerState,
     PowerInternalFirmwareResetReason,
-    PowerInternalPpmSchedulerQosSupport, // 30
+    PowerInternalPpmSchedulerQosSupport, // out: POWER_INTERNAL_PROCESSOR_QOS_SUPPORT // 30
     PowerInternalBootStatGet,
     PowerInternalBootStatSet,
     PowerInternalCallHasNotReturnedWatchdog,
     PowerInternalBootStatCheckIntegrity,
     PowerInternalBootStatRestoreDefaults, // in: void
-    PowerInternalHostEsStateUpdate,
-    PowerInternalGetPowerActionState,
+    PowerInternalHostEsStateUpdate, // in: POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
+    PowerInternalGetPowerActionState, // out: ULONG
     PowerInternalBootStatUnlock,
     PowerInternalWakeOnVoiceState,
     PowerInternalDeepSleepBlock, // 40
@@ -440,7 +586,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalOverrideSystemInitiatedRebootState,
     PowerInternalFanImpactStats,
     PowerInternalFanRpmBuckets,
-    PowerInternalPowerBootAppDiagInfo,
+    PowerInternalPowerBootAppDiagInfo, // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
     PowerInternalUnregisterShutdownNotification, // since 22H1
     PowerInternalManageTransitionStateRecord,
     PowerInternalGetAcpiTimeAndAlarmCapabilities, // since 22H2
@@ -497,35 +643,83 @@ typedef struct _POWER_USER_ABSENCE_PREDICTION_CAPABILITY
     BOOLEAN AbsencePredictionCapability;
 } POWER_USER_ABSENCE_PREDICTION_CAPABILITY, *PPOWER_USER_ABSENCE_PREDICTION_CAPABILITY;
 
+// rev
 typedef struct _POWER_PROCESSOR_LATENCY_HINT
 {
     POWER_INFORMATION_INTERNAL_HEADER PowerInformationInternalHeader;
     ULONG Type;
 } POWER_PROCESSOR_LATENCY_HINT, *PPO_PROCESSOR_LATENCY_HINT;
 
+// rev
 typedef struct _POWER_STANDBY_NETWORK_REQUEST
 {
     POWER_INFORMATION_INTERNAL_HEADER PowerInformationInternalHeader;
     BOOLEAN Active;
 } POWER_STANDBY_NETWORK_REQUEST, *PPOWER_STANDBY_NETWORK_REQUEST;
 
+// rev
 typedef struct _POWER_SET_BACKGROUND_TASK_STATE
 {
     POWER_INFORMATION_INTERNAL_HEADER PowerInformationInternalHeader;
     BOOLEAN Engaged;
 } POWER_SET_BACKGROUND_TASK_STATE, *PPOWER_SET_BACKGROUND_TASK_STATE;
 
-typedef struct POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT
+// rev
+typedef struct _POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO
+{
+    ULONG StandbyTotalTime;
+    ULONG DripsTotalTime;
+    ULONG ActivatorClientTotalActiveTime;
+    ULONG PerActivatorClientTotalActiveTime[98];
+} POWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO, *PPOWER_BOOT_SESSION_STANDBY_ACTIVATION_INFO;
+
+// rev
+typedef struct _POWER_SESSION_POWER_STATE
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    ULONG SessionId;
+    BOOLEAN On;
+    BOOLEAN IsConsole;
+    POWER_MONITOR_REQUEST_REASON RequestReason;
+} POWER_SESSION_POWER_STATE, *PPOWER_SESSION_POWER_STATE;
+
+// rev
+typedef struct _POWER_INTERNAL_PROCESSOR_QOS_SUPPORT
+{
+    BOOLEAN QosSupportedAndConfigured;
+    BOOLEAN SchedulerDirectedPerfStatesSupported;
+    BOOLEAN QosGroupPolicyDisable;
+} POWER_INTERNAL_PROCESSOR_QOS_SUPPORT, *PPOWER_INTERNAL_PROCESSOR_QOS_SUPPORT;
+
+// rev
+typedef struct _POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
+{
+    POWER_INFORMATION_INTERNAL_HEADER Header;
+    BOOLEAN EsEnabledOnHost;
+} POWER_INTERNAL_HOST_ENERGY_SAVER_STATE, *PPOWER_INTERNAL_HOST_ENERGY_SAVER_STATE;
+
+// rev
+typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
     PROCESSOR_NUMBER ProcessorNumber; // ULONG_MAX
 } POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT, *PPOWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_INPUT;
 
-typedef struct POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT
+// rev
+typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT
 {
     ULONG Version;
     ULONG NominalFrequency; // if (Domain) Prcb->PowerState.CheckContext.Domain.NominalFrequency else Prcb->MHz
 } POWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT, *PPOWER_INTERNAL_PROCESSOR_BRANDED_FREQENCY_OUTPUT;
+
+// rev
+typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
+{
+    ULONG BootAppErrorDiagCode; // bcdedit last status
+    ULONG BootAppFailureStatus; // bcdedit last status
+} POWER_INTERNAL_BOOTAPP_DIAGNOSTIC, *PPOWER_INTERNAL_BOOTAPP_DIAGNOSTIC;
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -537,6 +731,8 @@ NtPowerInformation(
     _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
     _In_ ULONG OutputBufferLength
     );
+
+#endif
 
 NTSYSCALLAPI
 NTSTATUS

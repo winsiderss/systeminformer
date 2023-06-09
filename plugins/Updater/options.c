@@ -365,7 +365,7 @@ PPH_STRING PhpUpdaterCommitStringToTime(
 
     if (count == 6)
     {
-        if (SystemTimeToTzSpecificLocalTime(NULL, &time, &localTime))
+        if (SystemTimeToTzSpecificLocalTimeEx(NULL, &time, &localTime))
         {
             //result = PhFormatDateTime(&localTime);
             result = PhFormatDate(&localTime, NULL);
@@ -700,7 +700,7 @@ INT_PTR CALLBACK TextDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 

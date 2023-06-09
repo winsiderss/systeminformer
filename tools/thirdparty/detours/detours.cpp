@@ -19,17 +19,6 @@
 #define NOTHROW
 
 
-void* __cdecl operator new(size_t _Size)
-{
-    return PhAllocateZero(_Size);
-}
-
-void __cdecl operator delete(void* _Block) noexcept
-{
-    PhFree(_Block);
-}
-
-
 //////////////////////////////////////////////////////////////////////////////
 //
 struct _DETOUR_ALIGN
@@ -1168,7 +1157,7 @@ struct DETOUR_REGION
 };
 typedef DETOUR_REGION * PDETOUR_REGION;
 
-static constexpr ULONG DETOUR_REGION_SIGNATURE = 'Rrtd';
+static constexpr ULONG DETOUR_REGION_SIGNATURE = 'R3IS';
 static constexpr ULONG DETOUR_REGION_SIZE = 0x10000;
 static constexpr ULONG DETOUR_TRAMPOLINES_PER_REGION = (DETOUR_REGION_SIZE / sizeof(DETOUR_TRAMPOLINE)) - 1;
 static PDETOUR_REGION s_pRegions = nullptr;            // List of all regions.

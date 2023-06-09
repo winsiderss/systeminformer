@@ -51,6 +51,13 @@ PhGetJsonValueAsString(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetJsonObjectString(
+    _In_ PVOID Object
+    );
+
+PHLIBAPI
 LONGLONG
 NTAPI
 PhGetJsonValueAsInt64(
@@ -231,7 +238,7 @@ PhLoadJsonObjectFromFile(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhSaveJsonObjectToFile(
     _In_ PPH_STRINGREF FileName,
@@ -252,7 +259,7 @@ NTSTATUS
 NTAPI
 PhLoadXmlObjectFromFile(
     _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PVOID* XmlRootNode
+    _Out_opt_ PVOID* XmlRootObject
     );
 
 PHLIBAPI

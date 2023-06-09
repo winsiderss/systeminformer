@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -15,8 +15,10 @@
 
 #include <phdk.h>
 #include <phappresource.h>
-#include <workqueue.h>
 #include <settings.h>
+#include <mapldr.h>
+#include <workqueue.h>
+
 #include <math.h>
 
 #include "resource.h"
@@ -44,11 +46,14 @@ __has_include (<d3dkmthk.h>)
 
 #define PH_RECORD_MAX_USAGE 1
 
-extern PPH_PLUGIN PluginInstance;
+EXTERN_C PPH_PLUGIN PluginInstance;
 extern LIST_ENTRY EtProcessBlockListHead;
 extern LIST_ENTRY EtNetworkBlockListHead;
 extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
+
+EXTERN_C ULONG EtWindowsVersion;
+EXTERN_C BOOLEAN EtIsExecutingInWow64;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
 extern USHORT EtMaxPrecisionUnit;
@@ -155,6 +160,7 @@ typedef struct _ET_DISK_ITEM
     ULONG FreshTime;
 
     HANDLE ProcessId;
+    PVOID FileObject;
     PPH_STRING FileName;
     PPH_STRING FileNameWin32;
     PPH_STRING ProcessName;
@@ -550,7 +556,7 @@ PET_DISK_ITEM EtCreateDiskItem(
 
 PET_DISK_ITEM EtReferenceDiskItem(
     _In_ HANDLE ProcessId,
-    _In_ PPH_STRING FileName
+    _In_ PVOID FileObject
     );
 
 PPH_STRING EtFileObjectToFileName(
@@ -749,6 +755,8 @@ VOID EtGpuMiniInformationInitializing(
     );
 
 // iconext
+
+extern BOOLEAN EtTrayIconTransparencyEnabled;
 
 VOID EtLoadTrayIconGuids(
     VOID
@@ -989,12 +997,16 @@ VOID EtInitializeFirewallTab(
     VOID
     );
 
+VOID InitializeFwTreeListDpi(
+    _In_ HWND TreeNewHandle
+    );
+
 VOID LoadSettingsFwTreeList(
     _In_ HWND TreeNewHandle
     );
 
 VOID SaveSettingsFwTreeList(
-    _In_ HWND TreeNewHandle
+    VOID
     );
 
 _Success_(return)
@@ -1047,7 +1059,6 @@ typedef ULONG (WINAPI* _FwpmNetEventSubscribe)(
 #define FWP_DIRECTION_MAP_OUTBOUND 0x3901
 #define FWP_DIRECTION_MAP_FORWARD 0x3902
 #define FWP_DIRECTION_MAP_BIDIRECTIONAL 0x3903
-EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_v4mappedprefix = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 };
 
 VOID InitializeFwTreeList(
     _In_ HWND hwnd
@@ -1117,8 +1128,8 @@ VOID ShowFwContextMenu(
     );
 
 VOID NTAPI FwItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI FwItemModifiedHandler(
@@ -1166,22 +1177,14 @@ VOID EtProcessFramesPropertiesInitializing(
 
 // wct
 
-PVOID EtWaitChainContextCreate(
-    VOID
-    );
-
-VOID EtShowWaitChainDialog(
+VOID EtShowWaitChainProcessDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PVOID Context
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
-VOID NTAPI WctProcessMenuInitializingCallback(
-    _In_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-VOID NTAPI WctThreadMenuInitializingCallback(
-    _In_ PVOID Parameter,
-    _In_opt_ PVOID Context
+VOID EtShowWaitChainThreadDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_THREAD_ITEM ThreadItem
     );
 
 // reparse
@@ -1201,6 +1204,7 @@ VOID EtShowPipeEnumDialog(
 
 typedef struct _UEFI_WINDOW_CONTEXT
 {
+    HWND WindowHandle;
     HWND ListViewHandle;
     HWND ParentWindowHandle;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -1208,6 +1212,7 @@ typedef struct _UEFI_WINDOW_CONTEXT
 
 typedef struct _EFI_ENTRY
 {
+    ULONG Attributes;
     ULONG Length;
     PPH_STRING Name;
     PPH_STRING GuidString;

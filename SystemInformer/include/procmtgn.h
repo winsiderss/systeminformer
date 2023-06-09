@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_PROCMITIGATION_H
 #define PH_PROCMITIGATION_H
 
@@ -20,6 +32,9 @@ typedef struct _PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION
     PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy; // ProcessChildProcessPolicy
     PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy; // ProcessSideChannelIsolationPolicy
     PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy; // ProcessUserShadowStackPolicy
+    PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY RedirectionTrustPolicy; // ProcessRedirectionTrustPolicy
+    PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY UserPointerAuthPolicy; // ProcessUserPointerAuthPolicy
+    PROCESS_MITIGATION_SEHOP_POLICY SEHOPPolicy; // ProcessSEHOPPolicy
 } PH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION, *PPH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION;
 
 NTSTATUS PhGetProcessMitigationPolicy(
@@ -27,6 +42,7 @@ NTSTATUS PhGetProcessMitigationPolicy(
     _Out_ PPH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION Information
     );
 
+_Success_(return)
 BOOLEAN PhDescribeProcessMitigationPolicy(
     _In_ PROCESS_MITIGATION_POLICY Policy,
     _In_ PVOID Data,

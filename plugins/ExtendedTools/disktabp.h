@@ -52,9 +52,9 @@ VOID EtUpdateDiskNode(
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 PPH_STRING EtpGetDiskItemProcessName(
@@ -105,8 +105,8 @@ VOID EtShowDiskContextMenu(
     );
 
 VOID NTAPI EtpDiskItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI EtpDiskItemModifiedHandler(

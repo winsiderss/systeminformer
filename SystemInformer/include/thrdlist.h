@@ -1,8 +1,17 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_THRDLIST_H
 #define PH_THRDLIST_H
-
-#include <phuisup.h>
-#include <colmgr.h>
 
 // Columns
 
@@ -44,7 +53,13 @@ typedef enum _PH_THREAD_TREELIST_COLUMN
     //PH_THREAD_TREELIST_COLUMN_CPUHISTORY,
     PH_THREAD_TREELIST_COLUMN_STACKUSAGE,
     PH_THREAD_TREELIST_COLUMN_WAITTIME,
-    PH_THREAD_TREELIST_COLUMN_MAXIMUM
+    PH_THREAD_TREELIST_COLUMN_IOREADS,
+    PH_THREAD_TREELIST_COLUMN_IOWRITES,
+    PH_THREAD_TREELIST_COLUMN_IOOTHER,
+    PH_THREAD_TREELIST_COLUMN_IOREADBYTES,
+    PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES,
+    PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES,
+    PH_THREAD_TREELIST_COLUMN_MAXIMUM,
 } PH_THREAD_TREELIST_COLUMN;
 
 typedef enum _PH_THREAD_TREELIST_MENUITEM
@@ -91,14 +106,19 @@ typedef struct _PH_THREAD_NODE
     IO_PRIORITY_HINT IoPriority;
     BOOLEAN BreakOnTermination;
     BOOLEAN PendingIrp;
-    USHORT LastSystemCallNumber;
-    ULONG LastStatusCode;
-    ULONG ApartmentState;
     BOOLEAN Fiber;
     BOOLEAN PriorityBoost;
-    FLOAT StackUsage;
+    ULONG SuspendCount;
+    FLOAT StackUsageFloat;
+    ULONG_PTR StackUsage;
+    ULONG_PTR StackLimit;
     PH_THREAD_TOKEN_STATE TokenState;
-    WCHAR ThreadIdText[PH_INT32_STR_LEN_1];
+    NTSTATUS LastSystemCallStatus;
+    THREAD_LAST_SYSCALL_INFORMATION LastSystemCall;
+    NTSTATUS LastStatusValue;
+    NTSTATUS LastStatusQueryStatus;
+    OLETLSFLAGS ApartmentState;
+
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
     WCHAR CpuUserUsageText[PH_INT32_STR_LEN_1];
     WCHAR CpuKernelUsageText[PH_INT32_STR_LEN_1];
@@ -123,6 +143,12 @@ typedef struct _PH_THREAD_NODE
     WCHAR ThreadIdHexText[PH_INT32_STR_LEN_1];
     WCHAR CpuCoreUsageText[PH_INT32_STR_LEN_1];
     WCHAR WaitTimeText[PH_TIMESPAN_STR_LEN_1];
+    WCHAR IoReads[PH_INT64_STR_LEN_1];
+    WCHAR IoWrites[PH_INT64_STR_LEN_1];
+    WCHAR IoOther[PH_INT64_STR_LEN_1];
+    PPH_STRING IoReadBytes;
+    PPH_STRING IoWriteBytes;
+    PPH_STRING IoOtherBytes;
 // begin_phapppub
 } PH_THREAD_NODE, *PPH_THREAD_NODE;
 // end_phapppub

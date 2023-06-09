@@ -58,7 +58,7 @@ PPH_STRING VirusTotalStringToTime(
 
     if (count == 6)
     {
-        if (SystemTimeToTzSpecificLocalTime(NULL, &time, &localTime))
+        if (SystemTimeToTzSpecificLocalTimeEx(NULL, &time, &localTime))
         {
             result = PhFormatDateTime(&localTime);
         }
@@ -931,9 +931,9 @@ NTSTATUS QueryServiceFileName(
     {
         PPH_STRING serviceImagePath;
 
-        serviceType = PhQueryRegistryUlong(keyHandle, L"Type");
+        serviceType = PhQueryRegistryUlongZ(keyHandle, L"Type");
 
-        if (serviceImagePath = PhQueryRegistryString(keyHandle, L"ImagePath"))
+        if (serviceImagePath = PhQueryRegistryStringZ(keyHandle, L"ImagePath"))
         {
             PPH_STRING expandedString;
 

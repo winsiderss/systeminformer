@@ -414,6 +414,7 @@ VOID PhpDestroyModuleNode(
 
     PhClearReference(&ModuleNode->TooltipText);
 
+    PhClearReference(&ModuleNode->FileNameWin32);
     PhClearReference(&ModuleNode->SizeText);
     PhClearReference(&ModuleNode->TimeStampText);
     PhClearReference(&ModuleNode->LoadTimeText);
@@ -623,7 +624,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareStringWithNull(moduleItem1->FileNameWin32, moduleItem2->FileNameWin32, TRUE);
+    sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -896,7 +897,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(moduleItem->VersionInfo.FileVersion);
                 break;
             case PHMOTLC_FILENAME:
-                getCellText->Text = PhGetStringRef(moduleItem->FileNameWin32);
+                {
+                    if (!node->FileNameWin32)
+                        node->FileNameWin32 = PhGetFileName(moduleItem->FileName);
+
+                    getCellText->Text = PhGetStringRef(node->FileNameWin32);
+                }
                 break;
             case PHMOTLC_TYPE:
                 {
@@ -934,7 +940,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->LoadCount != USHRT_MAX)
                     {
-                        PhPrintInt32(node->LoadCountText, moduleItem->LoadCount);
+                        PhPrintUInt32(node->LoadCountText, moduleItem->LoadCount);
                         PhInitializeStringRefLongHint(&getCellText->Text, node->LoadCountText);
                     }
                     else
@@ -951,8 +957,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
                     {
-                        PhInitializeStringRef(&getCellText->Text,
-                            moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
+                        getCellText->Text = PhVerifyResultToStringRef(moduleItem->VerifyResult);
                     }
                     else
                     {
@@ -974,7 +979,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
                     if (moduleItem->ImageTimeDateStamp != 0)
                     {
-                        RtlSecondsSince1970ToTime(moduleItem->ImageTimeDateStamp, &time);
+                        PhSecondsSince1970ToTime(moduleItem->ImageTimeDateStamp, &time);
                         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
                         PhMoveReference(&node->TimeStampText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->TimeStampText->sr;
@@ -1012,14 +1017,14 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_LOADREASON:
                 {
-                    PWSTR string = L"";
-
                     if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
                     {
-                        string = L"Dynamic";
+                        PhInitializeStringRefLongHint(&getCellText->Text, L"Dynamic");
                     }
                     else if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                     {
+                        PWSTR string = L"N/A";
+
                         switch (moduleItem->LoadReason)
                         {
                         case LoadReasonStaticDependency:
@@ -1052,13 +1057,15 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         default:
                             if (WindowsVersion >= WINDOWS_8)
                                 string = L"Unknown";
-                            else
-                                string = L"N/A";
                             break;
                         }
-                    }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, string);
+                        PhInitializeStringRefLongHint(&getCellText->Text, string);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PHMOTLC_FILEMODIFIEDTIME:
@@ -1148,11 +1155,14 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_SERVICE:
                 {
-                    if (moduleItem->FileNameWin32 && context->HasServices)
+                    if (!node->FileNameWin32)
+                        node->FileNameWin32 = PhGetFileName(moduleItem->FileName);
+
+                    if (node->FileNameWin32 && context->HasServices)
                     {
                         PhMoveReference(&node->ServiceText, PhGetServiceNameForModuleReference(
                             context->ProcessId,
-                            PhGetString(moduleItem->FileNameWin32)
+                            PhGetString(node->FileNameWin32)
                             ));
                         getCellText->Text = PhGetStringRef(node->ServiceText);
                     }
@@ -1181,7 +1191,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 ; // Dummy
             else if (PhEnableProcessQueryStage2 &&
                 context->HighlightUntrustedModules &&
-                moduleItem->VerifyResult != VrTrusted &&
+                PH_VERIFY_UNTRUSTED(moduleItem->VerifyResult) &&
                 (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
@@ -1238,8 +1248,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 
             if (!node->TooltipText)
             {
+                if (!node->FileNameWin32)
+                    node->FileNameWin32 = PhGetFileName(node->ModuleItem->FileName);
+
                 node->TooltipText = PhFormatImageVersionInfo(
-                    node->ModuleItem->FileNameWin32,
+                    node->FileNameWin32,
                     &node->ModuleItem->VersionInfo,
                     NULL,
                     0
@@ -1443,7 +1456,7 @@ BOOLEAN PhShouldShowModuleCoherency(
 
     if (ModuleItem->ImageCoherencyStatus == STATUS_PENDING ||
         ModuleItem->ImageCoherencyStatus == LONG_MAX ||
-        PhIsNullOrEmptyString(ModuleItem->FileNameWin32))
+        PhIsNullOrEmptyString(ModuleItem->FileName))
     {
         //
         // The image coherency status is pending, uninitialized, or we don't

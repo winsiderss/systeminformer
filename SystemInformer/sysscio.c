@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -21,8 +21,12 @@ static PPH_SYSINFO_SECTION IoSection;
 static HWND IoDialog;
 static PH_LAYOUT_MANAGER IoLayoutManager;
 static RECT IoGraphMargin;
-static HWND IoGraphHandle;
-static PH_GRAPH_STATE IoGraphState;
+static HWND IoReadGraphHandle;
+static HWND IoWriteGraphHandle;
+static HWND IoOtherGraphHandle;
+static PH_GRAPH_STATE IoReadGraphState;
+static PH_GRAPH_STATE IoWriteGraphState;
+static PH_GRAPH_STATE IoOtherGraphState;
 static HWND IoPanel;
 static ULONG IoTicked;
 static PH_UINT64_DELTA IoReadDelta;
@@ -44,8 +48,8 @@ static HWND IoPanelOtherBytesLabel;
 BOOLEAN PhSipIoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -74,26 +78,37 @@ BOOLEAN PhSipIoSectionCallback(
         break;
     case SysInfoViewChanging:
         {
-            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)PtrToUlong(Parameter1);
             PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
 
             if (view == SysInfoSummaryView || section != Section)
                 return TRUE;
 
-            if (IoGraphHandle)
+            if (IoReadGraphHandle)
             {
-                IoGraphState.Valid = FALSE;
-                IoGraphState.TooltipIndex = ULONG_MAX;
-                Graph_Draw(IoGraphHandle);
+                IoReadGraphState.Valid = FALSE;
+                IoReadGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(IoReadGraphHandle);
+            }
+
+            if (IoWriteGraphHandle)
+            {
+                IoWriteGraphState.Valid = FALSE;
+                IoWriteGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(IoWriteGraphHandle);
+            }
+
+            if (IoOtherGraphHandle)
+            {
+                IoOtherGraphState.Valid = FALSE;
+                IoOtherGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(IoOtherGraphHandle);
             }
         }
         return TRUE;
     case SysInfoCreateDialog:
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
-
-            if (!createDialog)
-                break;
 
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_IO);
@@ -105,15 +120,9 @@ BOOLEAN PhSipIoSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
             FLOAT max;
-            LONG dpiValue;
 
-            if (!drawInfo)
-                break;
-
-            dpiValue = PhGetWindowDpi(Section->GraphHandle);
-
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, dpiValue);
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, 0, Section->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhIoReadHistory.Count);
 
             if (!Section->GraphState.Valid)
@@ -122,17 +131,15 @@ BOOLEAN PhSipIoSectionCallback(
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    FLOAT data1;
-                    FLOAT data2;
+                    FLOAT data;
 
-                    Section->GraphState.Data1[i] = data1 =
+                    Section->GraphState.Data1[i] = data =
                         (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i) +
-                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
-                    Section->GraphState.Data2[i] = data2 =
+                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i) +
                         (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
 
-                    if (max < data1 + data2)
-                        max = data1 + data2;
+                    if (max < data)
+                        max = data;
                 }
 
                 if (max != 0)
@@ -141,11 +148,6 @@ BOOLEAN PhSipIoSectionCallback(
 
                     PhDivideSinglesBySingle(
                         Section->GraphState.Data1,
-                        max,
-                        drawInfo->LineDataCount
-                        );
-                    PhDivideSinglesBySingle(
-                        Section->GraphState.Data2,
                         max,
                         drawInfo->LineDataCount
                         );
@@ -165,9 +167,6 @@ BOOLEAN PhSipIoSectionCallback(
             ULONG64 ioWrite;
             ULONG64 ioOther;
             PH_FORMAT format[9];
-
-            if (!getTooltipText)
-                break;
 
             ioRead = PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, getTooltipText->Index);
             ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
@@ -193,9 +192,6 @@ BOOLEAN PhSipIoSectionCallback(
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
             PH_FORMAT format[4];
 
-            if (!drawPanel)
-                break;
-
             drawPanel->Title = PhCreateString(L"I/O");
 
             // R+O: %s\nW: %s
@@ -220,7 +216,9 @@ VOID PhSipInitializeIoDialog(
     PhInitializeDelta(&IoWriteDelta);
     PhInitializeDelta(&IoOtherDelta);
 
-    PhInitializeGraphState(&IoGraphState);
+    PhInitializeGraphState(&IoReadGraphState);
+    PhInitializeGraphState(&IoWriteGraphState);
+    PhInitializeGraphState(&IoOtherGraphState);
 
     IoTicked = 0;
 }
@@ -229,10 +227,14 @@ VOID PhSipUninitializeIoDialog(
     VOID
     )
 {
-    PhDeleteGraphState(&IoGraphState);
+    PhDeleteGraphState(&IoReadGraphState);
+    PhDeleteGraphState(&IoWriteGraphState);
+    PhDeleteGraphState(&IoOtherGraphState);
 
     // Note: Required for SysInfoViewChanging (dmex)
-    IoGraphHandle = NULL;
+    IoReadGraphHandle = NULL;
+    IoWriteGraphHandle = NULL;
+    IoOtherGraphHandle = NULL;
 }
 
 VOID PhSipTickIoDialog(
@@ -264,11 +266,8 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
             RECT margin;
-            LONG dpiValue;
 
             PhSipInitializeIoDialog();
-
-            dpiValue = PhGetWindowDpi(hwndDlg);
 
             IoDialog = hwndDlg;
             PhInitializeLayoutManager(&IoLayoutManager, hwndDlg);
@@ -276,23 +275,14 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             panelItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             IoGraphMargin = graphItem->Margin;
 
-            PhGetSizeDpiValue(&IoGraphMargin, dpiValue, TRUE);
-
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), IoSection->Parameters->LargeFont, FALSE);
 
             IoPanel = PhCreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_IOPANEL), hwndDlg, PhSipIoPanelDialogProc, NULL);
             ShowWindow(IoPanel, SW_SHOW);
 
             margin = panelItem->Margin;
-            PhGetSizeDpiValue(&margin, dpiValue, TRUE);
-
-            PhAddLayoutItemEx(
-                &IoLayoutManager,
-                IoPanel,
-                NULL,
-                PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM,
-                margin
-                );
+            PhGetSizeDpiValue(&margin, IoSection->Parameters->WindowDpi, TRUE);
+            PhAddLayoutItemEx(&IoLayoutManager, IoPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
 
             PhSipCreateIoGraph();
             PhSipUpdateIoGraph();
@@ -304,21 +294,56 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             PhDeleteLayoutManager(&IoLayoutManager);
         }
         break;
-    case WM_SIZE:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            IoGraphState.Valid = FALSE;
-            IoGraphState.TooltipIndex = ULONG_MAX;
+            if (IoSection->Parameters->LargeFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), IoSection->Parameters->LargeFont, FALSE);
+            }
+
+            IoReadGraphState.Valid = FALSE;
+            IoReadGraphState.TooltipIndex = ULONG_MAX;
+
+            IoWriteGraphState.Valid = FALSE;
+            IoWriteGraphState.TooltipIndex = ULONG_MAX;
+
+            IoOtherGraphState.Valid = FALSE;
+            IoOtherGraphState.TooltipIndex = ULONG_MAX;
 
             PhLayoutManagerLayout(&IoLayoutManager);
+            PhSipLayoutIoGraphs(hwndDlg);
+        }
+        break;
+    case WM_SIZE:
+        {
+            IoReadGraphState.Valid = FALSE;
+            IoReadGraphState.TooltipIndex = ULONG_MAX;
+
+            IoWriteGraphState.Valid = FALSE;
+            IoWriteGraphState.TooltipIndex = ULONG_MAX;
+
+            IoOtherGraphState.Valid = FALSE;
+            IoOtherGraphState.TooltipIndex = ULONG_MAX;
+
+            PhLayoutManagerLayout(&IoLayoutManager);
+            PhSipLayoutIoGraphs(hwndDlg);
         }
         break;
     case WM_NOTIFY:
         {
             NMHDR *header = (NMHDR *)lParam;
 
-            if (header->hwndFrom == IoGraphHandle)
+            if (header->hwndFrom == IoReadGraphHandle)
             {
-                PhSipNotifyIoGraph(header);
+                PhSipNotifyIoReadGraph(header);
+            }
+            else if (header->hwndFrom == IoWriteGraphHandle)
+            {
+                PhSipNotifyIoWriteGraph(header);
+            }
+            else if (header->hwndFrom == IoOtherGraphHandle)
+            {
+                PhSipNotifyIoOtherGraph(header);
             }
         }
         break;
@@ -373,7 +398,7 @@ VOID PhSipCreateIoGraph(
     VOID
     )
 {
-    IoGraphHandle = CreateWindow(
+    IoReadGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -386,12 +411,137 @@ VOID PhSipCreateIoGraph(
         PhInstanceHandle,
         NULL
         );
-    Graph_SetTooltip(IoGraphHandle, TRUE);
+    Graph_SetTooltip(IoReadGraphHandle, TRUE);
 
-    PhAddLayoutItemEx(&IoLayoutManager, IoGraphHandle, NULL, PH_ANCHOR_ALL, IoGraphMargin);
+    IoWriteGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        IoDialog,
+        NULL,
+        PhInstanceHandle,
+        NULL
+        );
+    Graph_SetTooltip(IoWriteGraphHandle, TRUE);
+
+    IoOtherGraphHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        IoDialog,
+        NULL,
+        PhInstanceHandle,
+        NULL
+        );
+    Graph_SetTooltip(IoOtherGraphHandle, TRUE);
 }
 
-VOID PhSipNotifyIoGraph(
+VOID PhSipLayoutIoGraphs(
+    _In_ HWND WindowHandle
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT marginRect;
+    LONG graphWidth;
+    LONG graphHeight;
+    HDWP deferHandle;
+    LONG y;
+
+    marginRect = IoGraphMargin;
+    PhGetSizeDpiValue(&marginRect, IoSection->Parameters->WindowDpi, TRUE);
+
+    GetClientRect(IoDialog, &clientRect);
+    GetClientRect(GetDlgItem(IoDialog, IDC_IOREAD_L), &labelRect);
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 3 - IoSection->Parameters->MemoryPadding * 4) / 3;
+
+    deferHandle = BeginDeferWindowPos(6);
+    y = marginRect.top;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(IoDialog, IDC_IOREAD_L),
+        NULL,
+        marginRect.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + IoSection->Parameters->MemoryPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        IoReadGraphHandle,
+        NULL,
+        marginRect.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + IoSection->Parameters->MemoryPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(IoDialog, IDC_IOWRITE_L),
+        NULL,
+        marginRect.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + IoSection->Parameters->MemoryPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        IoWriteGraphHandle,
+        NULL,
+        marginRect.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + IoSection->Parameters->MemoryPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(IoDialog, IDC_IOOTHER_L),
+        NULL,
+        marginRect.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + IoSection->Parameters->MemoryPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        IoOtherGraphHandle,
+        NULL,
+        marginRect.left,
+        y,
+        graphWidth,
+        clientRect.bottom - marginRect.bottom - y,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+
+    EndDeferWindowPos(deferHandle);
+}
+
+VOID PhSipNotifyIoReadGraph(
     _In_ NMHDR *Header
     )
 {
@@ -401,37 +551,28 @@ VOID PhSipNotifyIoGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            ULONG i;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
-
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, dpiValue);
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, 0, IoSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
-                &IoGraphState,
+                &IoReadGraphState,
                 getDrawInfo,
                 PhIoReadHistory.Count
                 );
 
-            if (!IoGraphState.Valid)
+            if (!IoReadGraphState.Valid)
             {
                 FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
-                for (i = 0; i < drawInfo->LineDataCount; i++)
+                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    FLOAT data1;
-                    FLOAT data2;
+                    FLOAT value;
 
-                    IoGraphState.Data1[i] = data1 =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i) +
-                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
-                    IoGraphState.Data2[i] = data2 =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
+                    IoReadGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i);
 
-                    if (max < data1 + data2)
-                        max = data1 + data2;
+                    if (max < value)
+                        max = value;
                 }
 
                 if (max != 0)
@@ -439,12 +580,7 @@ VOID PhSipNotifyIoGraph(
                     // Scale the data.
 
                     PhDivideSinglesBySingle(
-                        IoGraphState.Data1,
-                        max,
-                        drawInfo->LineDataCount
-                        );
-                    PhDivideSinglesBySingle(
-                        IoGraphState.Data2,
+                        IoReadGraphState.Data1,
                         max,
                         drawInfo->LineDataCount
                         );
@@ -453,7 +589,7 @@ VOID PhSipNotifyIoGraph(
                 drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
                 drawInfo->LabelYFunctionParameter = max;
 
-                IoGraphState.Valid = TRUE;
+                IoReadGraphState.Valid = TRUE;
             }
         }
         break;
@@ -463,32 +599,224 @@ VOID PhSipNotifyIoGraph(
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
-                if (IoGraphState.TooltipIndex != getTooltipText->Index)
+                if (IoReadGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     ULONG64 ioRead;
-                    ULONG64 ioWrite;
-                    ULONG64 ioOther;
-                    PH_FORMAT format[9];
+                    PH_FORMAT format[5];
 
                     ioRead = PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, getTooltipText->Index);
-                    ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
-                    ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
 
                     // R: %s\nW: %s\nO: %s%s\n%s
                     PhInitFormatS(&format[0], L"R: ");
                     PhInitFormatSize(&format[1], ioRead);
-                    PhInitFormatS(&format[2], L"\nW: ");
-                    PhInitFormatSize(&format[3], ioWrite);
-                    PhInitFormatS(&format[4], L"\nO: ");
-                    PhInitFormatSize(&format[5], ioOther);
-                    PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhSipGetMaxIoString(getTooltipText->Index))->sr);
-                    PhInitFormatC(&format[7], L'\n');
-                    PhInitFormatSR(&format[8], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhSipGetMaxIoString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[3], L'\n');
+                    PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
-                    PhMoveReference(&IoGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
+                    PhMoveReference(&IoReadGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
                 }
 
-                getTooltipText->Text = IoGraphState.TooltipText->sr;
+                getTooltipText->Text = IoReadGraphState.TooltipText->sr;
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_PROCESS_RECORD record;
+
+            record = NULL;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            {
+                record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
+            }
+
+            if (record)
+            {
+                PhShowProcessRecordDialog(IoDialog, record);
+                PhDereferenceProcessRecord(record);
+            }
+        }
+        break;
+    }
+}
+
+VOID PhSipNotifyIoWriteGraph(
+    _In_ NMHDR *Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoWrite, 0, IoSection->Parameters->WindowDpi);
+
+            PhGraphStateGetDrawInfo(
+                &IoWriteGraphState,
+                getDrawInfo,
+                PhIoWriteHistory.Count
+                );
+
+            if (!IoWriteGraphState.Valid)
+            {
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
+
+                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FLOAT value;
+
+                    IoWriteGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
+
+                    if (max < value)
+                        max = value;
+                }
+
+                if (max != 0)
+                {
+                    // Scale the data.
+
+                    PhDivideSinglesBySingle(
+                        IoWriteGraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                drawInfo->LabelYFunctionParameter = max;
+
+                IoWriteGraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (IoWriteGraphState.TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG64 ioWrite;
+                    PH_FORMAT format[5];
+
+                    ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
+
+                    // W: %s\n%s
+                    PhInitFormatS(&format[0], L"W: ");
+                    PhInitFormatSize(&format[1], ioWrite);
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhSipGetMaxIoString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[3], L'\n');
+                    PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&IoWriteGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
+                }
+
+                getTooltipText->Text = IoWriteGraphState.TooltipText->sr;
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_PROCESS_RECORD record;
+
+            record = NULL;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            {
+                record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
+            }
+
+            if (record)
+            {
+                PhShowProcessRecordDialog(IoDialog, record);
+                PhDereferenceProcessRecord(record);
+            }
+        }
+        break;
+    }
+}
+
+VOID PhSipNotifyIoOtherGraph(
+    _In_ NMHDR *Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoWrite, 0, IoSection->Parameters->WindowDpi);
+
+            PhGraphStateGetDrawInfo(
+                &IoOtherGraphState,
+                getDrawInfo,
+                PhIoOtherHistory.Count
+                );
+
+            if (!IoOtherGraphState.Valid)
+            {
+                FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
+
+                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FLOAT value;
+
+                    IoOtherGraphState.Data1[i] = value = (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
+
+                    if (max < value)
+                        max = value;
+                }
+
+                if (max != 0)
+                {
+                    PhDivideSinglesBySingle(
+                        IoOtherGraphState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                drawInfo->LabelYFunctionParameter = max;
+
+                IoOtherGraphState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (IoOtherGraphState.TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG64 ioOther;
+                    PH_FORMAT format[5];
+
+                    ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
+
+                    // O: %s\n%s
+                    PhInitFormatS(&format[0], L"O: ");
+                    PhInitFormatSize(&format[1], ioOther);
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhSipGetMaxIoString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[3], L'\n');
+                    PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&IoOtherGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
+                }
+
+                getTooltipText->Text = IoOtherGraphState.TooltipText->sr;
             }
         }
         break;
@@ -518,12 +846,26 @@ VOID PhSipUpdateIoGraph(
     VOID
     )
 {
-    IoGraphState.Valid = FALSE;
-    IoGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(IoGraphHandle, 1);
-    Graph_Draw(IoGraphHandle);
-    Graph_UpdateTooltip(IoGraphHandle);
-    InvalidateRect(IoGraphHandle, NULL, FALSE);
+    IoReadGraphState.Valid = FALSE;
+    IoReadGraphState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(IoReadGraphHandle, 1);
+    Graph_Draw(IoReadGraphHandle);
+    Graph_UpdateTooltip(IoReadGraphHandle);
+    InvalidateRect(IoReadGraphHandle, NULL, FALSE);
+
+    IoWriteGraphState.Valid = FALSE;
+    IoWriteGraphState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(IoWriteGraphHandle, 1);
+    Graph_Draw(IoWriteGraphHandle);
+    Graph_UpdateTooltip(IoWriteGraphHandle);
+    InvalidateRect(IoWriteGraphHandle, NULL, FALSE);
+
+    IoOtherGraphState.Valid = FALSE;
+    IoOtherGraphState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(IoOtherGraphHandle, 1);
+    Graph_Draw(IoOtherGraphHandle);
+    Graph_UpdateTooltip(IoOtherGraphHandle);
+    InvalidateRect(IoOtherGraphHandle, NULL, FALSE);
 }
 
 VOID PhSipUpdateIoPanel(

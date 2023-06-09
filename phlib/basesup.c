@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2019-2021
+ *     dmex    2019-2023
  *
  */
 
@@ -57,12 +57,16 @@
 #include <objbase.h>
 
 #include <phintrnl.h>
+#include <phnative.h>
+#include <phintrin.h>
+#include <circbuf.h>
 
 #define PH_VECTOR_LEVEL_NONE 0
 #define PH_VECTOR_LEVEL_SSE2 1
 #define PH_VECTOR_LEVEL_AVX 2
 
 #define PH_NATIVE_STRING_CONVERSION 1
+#define PH_NATIVE_THREAD_CREATE 1
 
 typedef struct _PHP_BASE_THREAD_CONTEXT
 {
@@ -95,7 +99,6 @@ PPH_OBJECT_TYPE PhHashtableType = NULL;
 
 // Misc.
 
-static BOOLEAN PhpVectorLevel = PH_VECTOR_LEVEL_NONE;
 static PPH_STRING PhSharedEmptyString = NULL;
 
 // Threads
@@ -129,16 +132,6 @@ BOOLEAN PhBaseInitialization(
     )
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
-
-    // The following relies on the (technically undefined) value of XState being zero before Windows 7 SP1.
-    // NOTE: This is unused for now.
-    /*if (USER_SHARED_DATA->XState.EnabledFeatures & XSTATE_MASK_AVX)
-        PhpVectorLevel = PH_VECTOR_LEVEL_AVX;
-    else if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
-        PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;*/
-
-    if (IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE))
-        PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;
 
     PhStringType = PhCreateObjectType(L"String", 0, NULL);
     PhBytesType = PhCreateObjectType(L"Bytes", 0, NULL);
@@ -213,45 +206,73 @@ NTSTATUS PhpBaseThreadStart(
     return status;
 }
 
-// rev from RtlCreateUserThread (dmex)
+/**
+ * \brief Creates a thread.
+ *
+ * \param ProcessHandle A handle to the process in which the thread is to be created.
+ * \param ThreadSecurityDescriptor A pointer to a security descriptor for the new thread and
+ * \a determines whether child processes can inherit the thread handle.
+ * \param CreateFlags The flags that control the creation of the thread.
+ * \param ZeroBits The number of high-order address bits that must be zero.
+ * \a If this parameter is zero, the new thread uses the default for the executable.
+ * \param StackSize The initial size of the stack, in bytes. The system rounds this value to the nearest page.
+ * \a If this parameter is zero, the new thread uses the default size for the executable.
+ * \param MaximumStackSize The maximum size of the stack, in bytes. The system rounds this value to the nearest page.
+ * \a If this parameter is zero, the new thread uses the default maximum for the executable.
+ * \param StartRoutine A pointer to the starting address of the thread.
+ * \param Argument A pointer to a variable to be passed to the StartRoutine.
+ * \param ThreadHandle A pointer to a variable that receives a handle to the new thread.
+ * \param ClientId A pointer to a variable that receives the thread identifier.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhCreateUserThread(
-    _Out_opt_ PHANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG CreateFlags,
-    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
-    _In_opt_ PVOID Parameter
+    _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    _In_opt_ ULONG CreateFlags,
+    _In_opt_ SIZE_T ZeroBits,
+    _In_opt_ SIZE_T StackSize,
+    _In_opt_ SIZE_T MaximumStackSize,
+    _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
+    _In_opt_ PVOID Argument,
+    _Out_opt_ PHANDLE ThreadHandle,
+    _Out_opt_ PCLIENT_ID ClientId
     )
 {
+#if (PH_NATIVE_THREAD_CREATE)
     NTSTATUS status;
     HANDLE threadHandle;
     OBJECT_ATTRIBUTES objectAttributes;
-    UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[2])] = { 0 };
+    UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[1])] = { 0 };
     PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
     CLIENT_ID clientId = { 0 };
-    PTEB teb = NULL;
 
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
+    objectAttributes.SecurityDescriptor = ThreadSecurityDescriptor;
+
     attributeList->TotalLength = sizeof(buffer);
     attributeList->Attributes[0].Attribute = PS_ATTRIBUTE_CLIENT_ID;
     attributeList->Attributes[0].Size = sizeof(CLIENT_ID);
     attributeList->Attributes[0].ValuePtr = &clientId;
     attributeList->Attributes[0].ReturnLength = NULL;
-    attributeList->Attributes[1].Attribute = PS_ATTRIBUTE_TEB_ADDRESS;
-    attributeList->Attributes[1].Size = sizeof(PTEB);
-    attributeList->Attributes[1].ValuePtr = &teb;
-    attributeList->Attributes[1].ReturnLength = NULL;
 
     status = NtCreateThreadEx(
         &threadHandle,
         THREAD_ALL_ACCESS,
         &objectAttributes,
         ProcessHandle,
-        StartAddress,
-        Parameter,
+        StartRoutine,
+        Argument,
         CreateFlags,
-        0,
-        0,
-        0,
+        ZeroBits,
+        StackSize,
+        MaximumStackSize,
         attributeList
         );
 
@@ -265,9 +286,28 @@ NTSTATUS PhCreateUserThread(
         {
             NtClose(threadHandle);
         }
+
+        if (ClientId)
+        {
+            *ClientId = clientId;
+        }
     }
 
     return status;
+#else
+    return RtlCreateUserThread(
+        ProcessHandle,
+        ThreadSecurityDescriptor,
+        BooleanFlagOn(CreateFlags, THREAD_CREATE_FLAGS_CREATE_SUSPENDED),
+        (ULONG)ZeroBits,
+        MaximumStackSize,
+        StackSize,
+        StartRoutine,
+        Argument,
+        ThreadHandle,
+        ClientId
+        );
+#endif
 }
 
 /**
@@ -291,10 +331,10 @@ HANDLE PhCreateThread(
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
-    status = RtlCreateUserThread(
+    status = PhCreateUserThread(
         NtCurrentProcess(),
         NULL,
-        FALSE,
+        0,
         0,
         0,
         StackSize,
@@ -331,10 +371,10 @@ NTSTATUS PhCreateThreadEx(
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
-    status = RtlCreateUserThread(
+    status = PhCreateUserThread(
         NtCurrentProcess(),
         NULL,
-        FALSE,
+        0,
         0,
         0,
         0,
@@ -370,10 +410,10 @@ NTSTATUS PhCreateThread2(
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
-    status = RtlCreateUserThread(
+    status = PhCreateUserThread(
         NtCurrentProcess(),
         NULL,
-        FALSE,
+        0,
         0,
         0,
         0,
@@ -397,6 +437,33 @@ NTSTATUS PhCreateThread2(
 }
 
 /**
+ * Gets the current interrupt-time count.
+ */
+VOID PhQueryInterruptTime(
+    _Out_ PULARGE_INTEGER InterruptTime
+    )
+{
+#ifdef _WIN64
+
+    InterruptTime->QuadPart = *(volatile ULONG64*)&USER_SHARED_DATA->InterruptTime;
+
+#else
+
+    while (TRUE)
+    {
+        InterruptTime->HighPart = (ULONG)USER_SHARED_DATA->InterruptTime.High1Time;
+        InterruptTime->LowPart = USER_SHARED_DATA->InterruptTime.LowPart;
+
+        if (InterruptTime->HighPart == (ULONG)USER_SHARED_DATA->InterruptTime.High2Time)
+            break;
+
+        YieldProcessor();
+    }
+
+#endif
+}
+
+/**
  * Gets the current system time (UTC).
  *
  * \remarks Use this function instead of NtQuerySystemTime() because no system calls are involved.
@@ -405,25 +472,89 @@ VOID PhQuerySystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     )
 {
+#ifndef PHNT_NATIVE_TIME
+#ifdef _WIN64
+
+    SystemTime->QuadPart = *(volatile ULONG64*)&USER_SHARED_DATA->SystemTime;
+
+#else
+
+    while (TRUE)
+    {
+        SystemTime->HighPart = (ULONG)USER_SHARED_DATA->SystemTime.High1Time;
+        SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
+
+        if (SystemTime->HighPart == (ULONG)USER_SHARED_DATA->SystemTime.High2Time)
+            break;
+
+        YieldProcessor();
+    }
+
+#endif
+#else
+
     do
     {
         SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
         SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
     } while (SystemTime->HighPart != USER_SHARED_DATA->SystemTime.High2Time);
+
+#endif
 }
 
 /**
  * Gets the offset of the current time zone from UTC.
+ *
+ * \remarks Use this function instead of GetTimeZoneInformation() because no system calls are involved.
  */
 VOID PhQueryTimeZoneBias(
     _Out_ PLARGE_INTEGER TimeZoneBias
     )
 {
+#ifndef PHNT_NATIVE_TIME
+#ifdef _WIN64
+
+    TimeZoneBias->QuadPart = *(volatile ULONG64*)&USER_SHARED_DATA->TimeZoneBias;
+
+#else
+
+    while (TRUE)
+    {
+        TimeZoneBias->HighPart = (ULONG)USER_SHARED_DATA->TimeZoneBias.High1Time;
+        TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
+
+        if (TimeZoneBias->HighPart == (ULONG)USER_SHARED_DATA->TimeZoneBias.High2Time)
+            break;
+
+        YieldProcessor();
+    }
+
+#endif
+#else
+
+#if (PHNT_NATIVE_TIME)
+    SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+
+    if (NT_SUCCESS(NtQuerySystemInformation(
+        SystemTimeOfDayInformation,
+        &timeOfDayInfo,
+        sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+        NULL
+        )))
+    {
+        TimeZoneBias->QuadPart = timeOfDayInfo.TimeZoneBias.QuadPart;
+    }
+#else
+
     do
     {
         TimeZoneBias->HighPart = USER_SHARED_DATA->TimeZoneBias.High1Time;
         TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
     } while (TimeZoneBias->HighPart != USER_SHARED_DATA->TimeZoneBias.High2Time);
+
+#endif
+
+#endif
 }
 
 /**
@@ -441,10 +572,16 @@ VOID PhSystemTimeToLocalTime(
     _Out_ PLARGE_INTEGER LocalTime
     )
 {
+#if (PHNT_NATIVE_TIME)
+    RtlSystemTimeToLocalTime(SystemTime, LocalTime);
+#else
+
     LARGE_INTEGER timeZoneBias;
 
     PhQueryTimeZoneBias(&timeZoneBias);
     LocalTime->QuadPart = SystemTime->QuadPart - timeZoneBias.QuadPart;
+
+#endif
 }
 
 /**
@@ -462,10 +599,88 @@ VOID PhLocalTimeToSystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     )
 {
+#if (PHNT_NATIVE_TIME)
+    RtlLocalTimeToSystemTime(LocalTime, SystemTime);
+#else
+
     LARGE_INTEGER timeZoneBias;
 
     PhQueryTimeZoneBias(&timeZoneBias);
     SystemTime->QuadPart = LocalTime->QuadPart + timeZoneBias.QuadPart;
+
+#endif
+}
+
+BOOLEAN PhTimeToSecondsSince1980(
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PULONG ElapsedSeconds
+    )
+{
+#if (PHNT_NATIVE_TIME)
+    return RtlTimeToSecondsSince1980(Time, ElapsedSeconds);
+#else
+    ULARGE_INTEGER time;
+
+    time.QuadPart = Time->QuadPart - (SecondsToStartOf1980 * PH_TICKS_PER_SEC);
+    time.QuadPart = time.QuadPart / PH_TICKS_PER_SEC;
+
+    if (time.HighPart)
+    {
+        *ElapsedSeconds = 0;
+        return FALSE;
+    }
+
+    *ElapsedSeconds = time.LowPart;
+    return TRUE;
+#endif
+}
+
+BOOLEAN PhTimeToSecondsSince1970(
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PULONG ElapsedSeconds
+    )
+{
+#if (PHNT_NATIVE_TIME)
+    return RtlTimeToSecondsSince1970(Time, ElapsedSeconds);
+#else
+    ULARGE_INTEGER time;
+
+    time.QuadPart = Time->QuadPart - (SecondsToStartOf1970 * PH_TICKS_PER_SEC);
+    time.QuadPart = time.QuadPart / PH_TICKS_PER_SEC;
+
+    if (time.HighPart)
+    {
+        *ElapsedSeconds = 0;
+        return FALSE;
+    }
+
+    *ElapsedSeconds = time.LowPart;
+    return TRUE;
+#endif
+}
+
+VOID PhSecondsSince1980ToTime(
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
+    )
+{
+#if (PHNT_NATIVE_TIME)
+    RtlSecondsSince1980ToTime(ElapsedSeconds, Time);
+#else
+    Time->QuadPart = PH_TICKS_PER_SEC * (SecondsToStartOf1980 + ElapsedSeconds);
+#endif
+}
+
+VOID PhSecondsSince1970ToTime(
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
+    )
+{
+#if (PHNT_NATIVE_TIME)
+    RtlSecondsSince1970ToTime(ElapsedSeconds, Time);
+#else
+    Time->QuadPart = PH_TICKS_PER_SEC * (SecondsToStartOf1970 + ElapsedSeconds);
+#endif
 }
 
 /**
@@ -624,6 +839,51 @@ PVOID PhAllocatePage(
     }
 }
 
+NTSTATUS PhAllocatePageAligned(
+    _In_ SIZE_T Size,
+    _In_ SIZE_T Alignment,
+    _Out_opt_ PSIZE_T NewSize,
+    _Out_ PVOID* BaseAddress
+    )
+{
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
+    NTSTATUS status;
+    PVOID baseAddress = NULL;
+    MEM_EXTENDED_PARAMETER extended[1];
+    MEM_ADDRESS_REQUIREMENTS requirements;
+
+    memset(&requirements, 0, sizeof(MEM_ADDRESS_REQUIREMENTS));
+    //requirements.HighestEndingAddress = (PVOID)(ULONG_PTR)0x7fffffff; // Below 2GB
+    requirements.Alignment = Alignment;
+
+    memset(extended, 0, sizeof(extended));
+    extended[0].Type = MemExtendedParameterAddressRequirements;
+    extended[0].Pointer = &requirements;
+
+    status = NtAllocateVirtualMemoryEx(
+        NtCurrentProcess(),
+        &baseAddress,
+        &Size,
+        MEM_RESERVE | MEM_COMMIT,
+        PAGE_READWRITE,
+        extended,
+        RTL_NUMBER_OF(extended)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (NewSize)
+            *NewSize = Size;
+        if (BaseAddress)
+            *BaseAddress = baseAddress;
+    }
+
+    return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
+}
+
 /**
  * Frees pages of memory allocated with PhAllocatePage().
  *
@@ -654,25 +914,24 @@ SIZE_T PhCountStringZ(
     _In_ PWSTR String
     )
 {
-#ifndef _ARM64_
-    if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+    if (PhHasIntrinsics)
     {
         PWSTR p;
         ULONG unaligned;
-        __m128i b;
-        __m128i z;
+        PH_INT128 b;
+        PH_INT128 z;
         ULONG mask;
         ULONG index;
 
         p = (PWSTR)((ULONG_PTR)String & ~0xe); // String should be 2 byte aligned
         unaligned = PtrToUlong(String) & 0xf;
-        z = _mm_setzero_si128();
+        z = PhSetZeroINT128();
 
         if (unaligned != 0)
         {
-            b = _mm_load_si128((__m128i *)p);
-            b = _mm_cmpeq_epi16(b, z);
-            mask = _mm_movemask_epi8(b) >> unaligned;
+            b = PhLoadINT128((PLONG)p);
+            b = PhCompareEqINT128by16(b, z);
+            mask = PhMoveMaskINT128by8(b) >> unaligned;
 
             if (_BitScanForward(&index, mask))
                 return index / sizeof(WCHAR);
@@ -682,9 +941,9 @@ SIZE_T PhCountStringZ(
 
         while (TRUE)
         {
-            b = _mm_load_si128((__m128i *)p);
-            b = _mm_cmpeq_epi16(b, z);
-            mask = _mm_movemask_epi8(b);
+            b = PhLoadINT128((PLONG)p);
+            b = PhCompareEqINT128by16(b, z);
+            mask = PhMoveMaskINT128by8(b);
 
             if (_BitScanForward(&index, mask))
                 return (SIZE_T)(p - String) + index / sizeof(WCHAR);
@@ -693,7 +952,6 @@ SIZE_T PhCountStringZ(
         }
     }
     else
-#endif
     {
         return wcslen(String);
     }
@@ -1023,7 +1281,7 @@ BOOLEAN PhCopyStringZFromMultiByte(
 
     // Convert the string to Unicode if there is enough room.
 
-    if (OutputBuffer && OutputCount >= unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL))
+    if (OutputBuffer && OutputCount >= (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR))
     {
         status = RtlMultiByteToUnicodeN(
             OutputBuffer,
@@ -1050,7 +1308,87 @@ BOOLEAN PhCopyStringZFromMultiByte(
     }
 
     if (ReturnCount)
-        *ReturnCount = unicodeBytes / sizeof(WCHAR) + sizeof(UNICODE_NULL);
+        *ReturnCount = (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR);
+
+    return copied;
+}
+
+_Success_(return)
+BOOLEAN PhCopyStringZFromUtf8(
+    _In_ PSTR InputBuffer,
+    _In_ SIZE_T InputCount,
+    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
+    )
+{
+    NTSTATUS status;
+    SIZE_T i;
+    ULONG unicodeBytes;
+    BOOLEAN copied;
+
+    // Determine the length of the input string.
+
+    if (InputCount != SIZE_MAX)
+    {
+        i = 0;
+
+        while (i < InputCount && InputBuffer[i])
+            i++;
+    }
+    else
+    {
+        i = strlen(InputBuffer);
+    }
+
+    // Determine the length of the output string.
+
+    status = RtlUTF8ToUnicodeN(
+        NULL,
+        0,
+        &unicodeBytes,
+        InputBuffer,
+        (ULONG)i
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        if (ReturnCount)
+            *ReturnCount = SIZE_MAX;
+
+        return FALSE;
+    }
+
+    // Convert the string to Unicode if there is enough room.
+
+    if (OutputBuffer && OutputCount >= (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR))
+    {
+        status = RtlUTF8ToUnicodeN(
+            OutputBuffer,
+            unicodeBytes,
+            NULL,
+            InputBuffer,
+            (ULONG)i
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            // RtlUTF8ToUnicodeN doesn't null terminate the string.
+            *(PWCHAR)PTR_ADD_OFFSET(OutputBuffer, unicodeBytes) = UNICODE_NULL;
+            copied = TRUE;
+        }
+        else
+        {
+            copied = FALSE;
+        }
+    }
+    else
+    {
+        copied = FALSE;
+    }
+
+    if (ReturnCount)
+        *ReturnCount = (unicodeBytes + sizeof(UNICODE_NULL)) / sizeof(WCHAR);
 
     return copied;
 }
@@ -1201,8 +1539,8 @@ FORCEINLINE LONG PhpCompareStringZNatural(
 
         if (IgnoreCase)
         {
-            ca = towupper(ca);
-            cb = towupper(cb);
+            ca = PhUpcaseUnicodeChar(ca);
+            cb = PhUpcaseUnicodeChar(cb);
         }
 
         if (ca < cb)
@@ -1290,8 +1628,8 @@ LONG PhCompareStringRef(
 
             if (c1 != c2)
             {
-                c1 = RtlUpcaseUnicodeChar(c1);
-                c2 = RtlUpcaseUnicodeChar(c2);
+                c1 = PhUpcaseUnicodeChar(c1);
+                c2 = PhUpcaseUnicodeChar(c2);
 
                 if (c1 != c2)
                     return (LONG)c1 - (LONG)c2;
@@ -1337,23 +1675,22 @@ BOOLEAN PhEqualStringRef(
     s1 = String1->Buffer;
     s2 = String2->Buffer;
 
-#ifndef _ARM64_
-    if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+    if (PhHasIntrinsics)
     {
         length = l1 / 16;
 
         if (length != 0)
         {
-            __m128i b1;
-            __m128i b2;
+            PH_INT128 b1;
+            PH_INT128 b2;
 
             do
             {
-                b1 = _mm_loadu_si128((__m128i *)s1);
-                b2 = _mm_loadu_si128((__m128i *)s2);
-                b1 = _mm_cmpeq_epi32(b1, b2);
+                b1 = PhLoadINT128U((PLONG)s1);
+                b2 = PhLoadINT128U((PLONG)s2);
+                b1 = PhCompareEqINT128by32(b1, b2);
 
-                if (_mm_movemask_epi8(b1) != 0xffff)
+                if (PhMoveMaskINT128by8(b1) != 0xffff)
                 {
                     if (!IgnoreCase)
                     {
@@ -1377,7 +1714,6 @@ BOOLEAN PhEqualStringRef(
         l1 = (l1 & 15) / sizeof(WCHAR);
     }
     else
-#endif
     {
         length = l1 / sizeof(ULONG_PTR);
 
@@ -1435,8 +1771,8 @@ CompareCharacters:
 
                 if (c1 != c2)
                 {
-                    c1 = RtlUpcaseUnicodeChar(c1);
-                    c2 = RtlUpcaseUnicodeChar(c2);
+                    c1 = PhUpcaseUnicodeChar(c1);
+                    c2 = PhUpcaseUnicodeChar(c2);
 
                     if (c1 != c2)
                         return FALSE;
@@ -1475,8 +1811,7 @@ ULONG_PTR PhFindCharInStringRef(
 
     if (!IgnoreCase)
     {
-#ifndef _ARM64_
-        if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+        if (PhHasIntrinsics)
         {
             SIZE_T length16;
 
@@ -1485,18 +1820,18 @@ ULONG_PTR PhFindCharInStringRef(
 
             if (length16 != 0)
             {
-                __m128i pattern;
-                __m128i block;
+                PH_INT128 pattern;
+                PH_INT128 block;
                 ULONG mask;
                 ULONG index;
 
-                pattern = _mm_set1_epi16(Character);
+                pattern = PhSetINT128by16(Character);
 
                 do
                 {
-                    block = _mm_loadu_si128((__m128i *)buffer);
-                    block = _mm_cmpeq_epi16(block, pattern);
-                    mask = _mm_movemask_epi8(block);
+                    block = PhLoadINT128U((PLONG)buffer);
+                    block = PhCompareEqINT128by16(block, pattern);
+                    mask = PhMoveMaskINT128by8(block);
 
                     if (_BitScanForward(&index, mask))
                         return (String->Length - length16 * 16) / sizeof(WCHAR) - length + index / 2;
@@ -1506,7 +1841,6 @@ ULONG_PTR PhFindCharInStringRef(
             }
         }
         else
-#endif
         {
             if (buffer)
                 wcschr(buffer, Character);
@@ -1529,11 +1863,11 @@ ULONG_PTR PhFindCharInStringRef(
         {
             WCHAR c;
 
-            c = RtlUpcaseUnicodeChar(Character);
+            c = PhUpcaseUnicodeChar(Character);
 
             do
             {
-                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                if (PhUpcaseUnicodeChar(*buffer) == c)
                     return String->Length / sizeof(WCHAR) - length;
 
                 buffer++;
@@ -1568,8 +1902,7 @@ ULONG_PTR PhFindLastCharInStringRef(
 
     if (!IgnoreCase)
     {
-#ifndef _ARM64_
-        if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
+        if (PhHasIntrinsics)
         {
             SIZE_T length16;
 
@@ -1578,19 +1911,19 @@ ULONG_PTR PhFindLastCharInStringRef(
 
             if (length16 != 0)
             {
-                __m128i pattern;
-                __m128i block;
+                PH_INT128 pattern;
+                PH_INT128 block;
                 ULONG mask;
                 ULONG index;
 
-                pattern = _mm_set1_epi16(Character);
+                pattern = PhSetINT128by16(Character);
                 buffer -= 16 / sizeof(WCHAR);
 
                 do
                 {
-                    block = _mm_loadu_si128((__m128i *)buffer);
-                    block = _mm_cmpeq_epi16(block, pattern);
-                    mask = _mm_movemask_epi8(block);
+                    block = PhLoadINT128U((PLONG)buffer);
+                    block = PhCompareEqINT128by16(block, pattern);
+                    mask = PhMoveMaskINT128by8(block);
 
                     if (_BitScanReverse(&index, mask))
                         return (length16 - 1) * 16 / sizeof(WCHAR) + length + index / 2;
@@ -1602,7 +1935,6 @@ ULONG_PTR PhFindLastCharInStringRef(
             }
         }
         else
-#endif
         {
             if (buffer)
                 wcsrchr(buffer, Character);
@@ -1627,12 +1959,12 @@ ULONG_PTR PhFindLastCharInStringRef(
         {
             WCHAR c;
 
-            c = RtlUpcaseUnicodeChar(Character);
+            c = PhUpcaseUnicodeChar(Character);
             buffer--;
 
             do
             {
-                if (RtlUpcaseUnicodeChar(*buffer) == c)
+                if (PhUpcaseUnicodeChar(*buffer) == c)
                     return length - 1;
 
                 buffer--;
@@ -1695,11 +2027,11 @@ ULONG_PTR PhFindStringInStringRef(
     }
     else
     {
-        c = RtlUpcaseUnicodeChar(*sr2.Buffer++);
+        c = PhUpcaseUnicodeChar(*sr2.Buffer++);
 
         for (i = length1 - length2 + 1; i != 0; i--)
         {
-            if (RtlUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
+            if (PhUpcaseUnicodeChar(*sr1.Buffer++) == c && PhEqualStringRef(&sr1, &sr2, TRUE))
             {
                 goto FoundUString;
             }
@@ -1719,7 +2051,7 @@ FoundUString:
  * \param FirstPart A variable which receives the part of \a Input before the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input after the separator. This may be
+ * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
@@ -1766,7 +2098,7 @@ BOOLEAN PhSplitStringRefAtChar(
  * \param FirstPart A variable which receives the part of \a Input before the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input after the separator. This may be
+ * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
@@ -1814,7 +2146,7 @@ BOOLEAN PhSplitStringRefAtLastChar(
  * \param FirstPart A variable which receives the part of \a Input before the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input after the separator. This may be
+ * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
@@ -1876,7 +2208,7 @@ BOOLEAN PhSplitStringRefAtString(
  * \param FirstPart A variable which receives the part of \a Input before the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input after the separator. This may be
+ * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
  * \param SeparatorPart A variable which receives the part of \a Input that is the separator. If the
@@ -1965,7 +2297,7 @@ BOOLEAN PhSplitStringRefEx(
         c = charSet[i];
 
         if (Flags & PH_SPLIT_CASE_INSENSITIVE)
-            c = RtlUpcaseUnicodeChar(c);
+            c = PhUpcaseUnicodeChar(c);
 
         charSetTable[c & 0xff] = TRUE;
 
@@ -1994,7 +2326,7 @@ BOOLEAN PhSplitStringRefEx(
         c = *s;
 
         if (Flags & PH_SPLIT_CASE_INSENSITIVE)
-            c = RtlUpcaseUnicodeChar(c);
+            c = PhUpcaseUnicodeChar(c);
 
         if (c < 256 && charSetTableComplete)
         {
@@ -2027,7 +2359,7 @@ BOOLEAN PhSplitStringRefEx(
                     {
                         for (j = 0; j < charSetCount; j++)
                         {
-                            if (RtlUpcaseUnicodeChar(charSet[j]) == c)
+                            if (PhUpcaseUnicodeChar(charSet[j]) == c)
                                 goto CharFound;
                         }
                     }
@@ -2049,7 +2381,7 @@ BOOLEAN PhSplitStringRefEx(
                     {
                         for (j = 0; j < charSetCount; j++)
                         {
-                            if (RtlUpcaseUnicodeChar(charSet[j]) == c)
+                            if (PhUpcaseUnicodeChar(charSet[j]) == c)
                                 break;
                         }
                     }
@@ -2497,6 +2829,46 @@ PPH_STRING PhConcatStringRef3(
 
     buffer += String2->Length;
     memcpy(buffer, String3->Buffer, String3->Length);
+
+    return string;
+}
+
+/**
+ * Concatenates four strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param String3 The third string.
+ * \param String4 The forth string.
+ */
+PPH_STRING PhConcatStringRef4(
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String3,
+    _In_ PPH_STRINGREF String4
+    )
+{
+    PPH_STRING string;
+    PCHAR buffer;
+
+    assert(!(String1->Length & 1));
+    assert(!(String2->Length & 1));
+    assert(!(String3->Length & 1));
+    assert(!(String4->Length & 1));
+
+    string = PhCreateStringEx(NULL, String1->Length + String2->Length + String3->Length + String4->Length);
+
+    buffer = (PCHAR)string->Buffer;
+    memcpy(buffer, String1->Buffer, String1->Length);
+
+    buffer += String1->Length;
+    memcpy(buffer, String2->Buffer, String2->Length);
+
+    buffer += String2->Length;
+    memcpy(buffer, String3->Buffer, String3->Length);
+
+    buffer += String3->Length;
+    memcpy(buffer, String4->Buffer, String4->Length);
 
     return string;
 }
@@ -5212,11 +5584,11 @@ ULONG PhHashBytes(
 
     // FNV-1a algorithm: http://www.isthe.com/chongo/src/fnv/hash_32a.c
 
-    do
+    while (Length-- != 0)
     {
         hash ^= *Bytes++;
         hash *= 0x01000193;
-    } while (--Length != 0);
+    }
 
     return hash;
 }
@@ -5242,17 +5614,17 @@ ULONG PhHashStringRef(
     count = String->Length / sizeof(WCHAR);
     p = String->Buffer;
 
-    if (!IgnoreCase)
+    if (IgnoreCase)
     {
-        return PhHashBytes((PUCHAR)String->Buffer, String->Length);
+        while (count-- != 0)
+        {
+            hash ^= (USHORT)PhUpcaseUnicodeChar(*p++);
+            hash *= 0x01000193;
+        }
     }
     else
     {
-        do
-        {
-            hash ^= (USHORT)RtlUpcaseUnicodeChar(*p++);
-            hash *= 0x01000193;
-        } while (--count != 0);
+        return PhHashBytes((PUCHAR)String->Buffer, String->Length);
     }
 
     return hash;
@@ -5302,7 +5674,7 @@ ULONG PhHashStringRefEx(
                 //PWCHAR p = String->Buffer;
                 //do
                 //{
-                //    hash += (USHORT)RtlUpcaseUnicodeChar(*p++); // __ascii_towupper(*p++);
+                //    hash += (USHORT)PhUpcaseUnicodeChar(*p++); // __ascii_towupper(*p++);
                 //    hash *= 0x1003F;
                 //} while (--count != 0);
             }
@@ -5879,6 +6251,41 @@ PPH_STRING PhBufferToHexStringEx(
     return string;
 }
 
+_Success_(return)
+BOOLEAN PhBufferToHexStringBuffer(
+    _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ BOOLEAN UpperCase,
+    _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    PCHAR table;
+    ULONG i;
+
+    if (OutputLength < InputLength * sizeof(WCHAR) * 2)
+        return FALSE;
+
+    if (UpperCase)
+        table = PhIntegerToCharUpper;
+    else
+        table = PhIntegerToChar;
+
+    for (i = 0; i < InputLength; i++)
+    {
+        OutputBuffer[i * sizeof(WCHAR)] = table[InputBuffer[i] >> 4];
+        OutputBuffer[i * sizeof(WCHAR) + 1] = table[InputBuffer[i] & 0xf];
+    }
+
+    OutputBuffer[i * sizeof(WCHAR)] = UNICODE_NULL;
+
+    if (ReturnLength)
+        *ReturnLength = i * sizeof(WCHAR) * 2;
+
+    return TRUE;
+}
+
 /**
  * Converts a string to an integer.
  *
@@ -6243,6 +6650,82 @@ BOOLEAN PhPrintTimeSpanToBuffer(
     return FALSE;
 }
 
+BOOLEAN PhCalculateEntropy(
+    _In_ PBYTE Buffer,
+    _In_ ULONG64 BufferLength,
+    _Out_opt_ DOUBLE* Entropy,
+    _Out_opt_ DOUBLE* Variance
+    )
+{
+    DOUBLE bufferEntropy = 0.0;
+    DOUBLE bufferMeanValue = 0.0;
+    ULONG64 bufferOffset = 0;
+    ULONG64 bufferSumValue = 0;
+    ULONG64 counts[UCHAR_MAX + 1];
+
+    memset(counts, 0, sizeof(counts));
+
+    while (bufferOffset < BufferLength)
+    {
+        BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, bufferOffset++);
+
+        bufferSumValue += value;
+        counts[value]++;
+    }
+
+    for (ULONG i = 0; i < ARRAYSIZE(counts); i++)
+    {
+        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)BufferLength;
+
+        if (value > 0.0)
+            bufferEntropy -= value * log2(value);
+    }
+
+    bufferMeanValue = (DOUBLE)bufferSumValue / (DOUBLE)BufferLength;
+
+    if (Entropy)
+        *Entropy = bufferEntropy;
+    if (Variance)
+        *Variance = bufferMeanValue;
+
+    return TRUE;
+}
+
+PPH_STRING PhFormatEntropy(
+    _In_ DOUBLE Entropy,
+    _In_ USHORT EntropyPrecision,
+    _In_opt_ DOUBLE Variance,
+    _In_opt_ USHORT VariancePrecision
+    )
+{
+    if (Entropy && Variance)
+    {
+        PH_FORMAT format[4];
+
+        // %s S (%s X)
+        format[0].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[0].u.Double = Entropy;
+        format[0].Precision = EntropyPrecision;
+        PhInitFormatS(&format[1], L" S (");
+        format[2].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[2].u.Double = Variance;
+        format[2].Precision = VariancePrecision;
+        PhInitFormatS(&format[3], L" X)");
+
+        return PhFormat(format, ARRAYSIZE(format), 0);
+    }
+    else
+    {
+        PH_FORMAT format;
+
+        format.Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format.u.Double = Entropy;
+        format.Precision = EntropyPrecision;
+
+        return PhFormat(&format, 1, 0);
+    }
+}
+
 /**
  * Fills a memory block with a ULONG pattern.
  *
@@ -6250,25 +6733,16 @@ BOOLEAN PhPrintTimeSpanToBuffer(
  * \param Value The ULONG pattern.
  * \param Count The number of elements.
  */
-VOID PhFillMemoryUlong(
+VOID PhFillMemoryUlongOriginal(
     _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
     _In_ ULONG Value,
     _In_ SIZE_T Count
     )
 {
-#ifdef _ARM64_
-    if (Count != 0)
-    {
-        do
-        {
-            *Memory++ = Value;
-        } while (--Count != 0);
-    }
-#else
-    __m128i pattern;
+    PH_INT128 pattern;
     SIZE_T count;
 
-    if (PhpVectorLevel < PH_VECTOR_LEVEL_SSE2)
+    if (!PhHasIntrinsics)
     {
         if (Count != 0)
         {
@@ -6309,14 +6783,14 @@ VOID PhFillMemoryUlong(
         }
     }
 
-    pattern = _mm_set1_epi32(Value);
+    pattern = PhSetINT128by32(Value);
     count = Count / 4;
 
     if (count != 0)
     {
         do
         {
-            _mm_store_si128((__m128i *)Memory, pattern);
+            PhStoreINT128((PLONG)Memory, pattern);
             Memory += 4;
         } while (--count != 0);
     }
@@ -6333,7 +6807,64 @@ VOID PhFillMemoryUlong(
         *Memory++ = Value;
         break;
     }
+}
+
+VOID PhFillMemoryUlong(
+    _Inout_updates_(Count) _Needs_align_(4) PULONG Memory,
+    _In_ ULONG Value,
+    _In_ SIZE_T Count
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PULONG end;
+            __m256i pattern;
+
+            end = (PULONG)(ULONG_PTR)(Memory + count);
+            pattern = _mm256_set1_epi32(Value);
+
+            while (Memory != end)
+            {
+                _mm256_store_si256((__m256i*)Memory, pattern);
+                Memory += 8;
+            }
+
+            Count &= 0x1F;
+        }
+    }
 #endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            PULONG end;
+            PH_INT128 pattern;
+
+            end = (PULONG)(ULONG_PTR)(Memory + count);
+            pattern = PhSetINT128by32(Value);
+
+            while (Memory != end)
+            {
+                PhStoreINT128((PLONG)Memory, pattern);
+                Memory += 4;
+            }
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count-- != 0)
+    {
+        *Memory++ = Value;
+    }
 }
 
 /**
@@ -6343,20 +6874,16 @@ VOID PhFillMemoryUlong(
  * \param B The number.
  * \param Count The number of elements.
  */
-VOID PhDivideSinglesBySingle(
+VOID PhDivideSinglesBySingleOriginal(
     _Inout_updates_(Count) PFLOAT A,
     _In_ FLOAT B,
     _In_ SIZE_T Count
     )
 {
-#ifdef _ARM64_
-    while (Count--)
-        *A++ /= B;
-#else
     PFLOAT endA;
-    __m128 b;
+    PH_FLOAT128 b;
 
-    if (PhpVectorLevel < PH_VECTOR_LEVEL_SSE2)
+    if (!PhHasIntrinsics)
     {
         while (Count--)
             *A++ /= B;
@@ -6397,15 +6924,15 @@ VOID PhDivideSinglesBySingle(
     }
 
     endA = (PFLOAT)((ULONG_PTR)(A + Count) & ~0xf);
-    b = _mm_load1_ps(&B);
+    b = PhSetFLOAT128by32(B);
 
     while (A != endA)
     {
-        __m128 a;
+        PH_FLOAT128 a;
 
-        a = _mm_load_ps(A);
-        a = _mm_div_ps(a, b);
-        _mm_store_ps(A, a);
+        a = PhLoadFLOAT128(A);
+        a = PhDivideFLOAT128(a, b);
+        PhStoreFLOAT128(A, a);
 
         A += 4;
     }
@@ -6422,5 +6949,570 @@ VOID PhDivideSinglesBySingle(
         *A++ /= B;
         break;
     }
+}
+
+VOID PhDivideSinglesBySingle(
+    _Inout_updates_(Count) PFLOAT A,
+    _In_ FLOAT B,
+    _In_ SIZE_T Count
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m256 a;
+            __m256 b;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            b = _mm256_broadcast_ss(&B);
+
+            while (A != end)
+            {
+                a = _mm256_load_ps(A);
+                a = _mm256_div_ps(a, b);
+                _mm256_store_ps(A, a);
+
+                A += 8;
+            }
+
+            Count &= 0x1F;
+        }
+    }
 #endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            PH_FLOAT128 a;
+            PH_FLOAT128 b;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            b = PhSetFLOAT128by32(B);
+
+            while (A != end)
+            {
+                a = PhLoadFLOAT128(A);
+                a = PhDivideFLOAT128(a, b);
+                PhStoreFLOAT128(A, a);
+
+                A += 4;
+            }
+
+            Count &= 0xF;
+        }
+    }
+
+    if (Count != 0)
+    {
+        PFLOAT end = (PFLOAT)(ULONG_PTR)(A + Count);
+
+        while (A != end)
+        {
+            *A++ /= B;
+        }
+    }
+}
+
+/**
+ * Adds one array of integers to another.
+ *
+ * \param A The destination array to which the source
+ * array is added. The array must be 16 byte aligned.
+ * \param B The source array. The array must be 16
+ * byte aligned.
+ * \param Count The number of elements.
+ */
+VOID PhAddMemoryUlongOriginal(
+    _Inout_ _Needs_align_(16) PULONG A,
+    _In_ _Needs_align_(16) PULONG B,
+    _In_ ULONG Count
+    )
+{
+#ifndef _ARM64_
+    if (PhHasIntrinsics)
+    {
+        while (Count >= 4)
+        {
+            __m128i a;
+            __m128i b;
+
+            a = _mm_load_si128((__m128i*)A);
+            b = _mm_load_si128((__m128i*)B);
+            a = _mm_add_epi32(a, b);
+            _mm_store_si128((__m128i*)A, a);
+
+            A += 4;
+            B += 4;
+            Count -= 4;
+        }
+
+        switch (Count & 0x3)
+        {
+        case 0x3:
+            *A++ += *B++;
+            __fallthrough;
+        case 0x2:
+            *A++ += *B++;
+            __fallthrough;
+        case 0x1:
+            *A++ += *B++;
+            break;
+        }
+    }
+    else
+#endif
+    {
+        while (Count--)
+            *A++ += *B++;
+    }
+}
+
+/**
+ * \brief Returns the maximum value of an array of floats.
+ *
+ * \param A The array.
+ * \param Count The total number of array elements.
+ *
+ * \return The maximum of any single element.
+ */
+FLOAT PhMaxMemorySingles(
+    _In_ PFLOAT A,
+    _In_ SIZE_T Count
+    )
+{
+    FLOAT maximum = 0.0f;
+
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m256 a;
+            __m256 c;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            c = _mm256_setzero_ps();
+
+            while (A != end)
+            {
+                a = _mm256_load_ps(A);
+                c = _mm256_max_ps(c, a);
+
+                A += 8;
+            }
+
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_permute2f128_ps(c, c, 1));
+            maximum = _mm256_cvtss_f32(c);
+
+            Count &= 0x1F;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            FLOAT value;
+            PFLOAT end;
+            PH_FLOAT128 a;
+            PH_FLOAT128 c;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            c = PhZeroFLOAT128();
+
+            while (A != end)
+            {
+                a = PhLoadFLOAT128(A);
+                c = PhMaxFLOAT128(c, a);
+
+                A += 4;
+            }
+
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            PhStoreFLOAT128LowSingle(&value, c);
+
+            if (maximum < value)
+                maximum = value;
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count--)
+    {
+        FLOAT value = *A++;
+
+        if (maximum < value)
+            maximum = value;
+    }
+
+    return maximum;
+}
+
+/**
+ * \brief Adds one array of floats to another and returns the maximum.
+ *
+ * \param A The first array.
+ * \param B The second array.
+ * \param Count The total number of array elements.
+ *
+ * \return The maximum of any single element.
+ */
+FLOAT PhAddPlusMaxMemorySingles(
+    _Inout_updates_(Count) PFLOAT A,
+    _Inout_updates_(Count) PFLOAT B,
+    _In_ SIZE_T Count
+    )
+{
+    FLOAT maximum = 0.0f;
+
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m256 a;
+            __m256 b;
+            __m256 c;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            c = _mm256_setzero_ps();
+
+            while (A != end)
+            {
+                a = _mm256_load_ps(A);
+                b = _mm256_load_ps(B);
+                a = _mm256_add_ps(b, a);
+                c = _mm256_max_ps(c, a);
+
+                A += 8;
+                B += 8;
+            }
+
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_shuffle_ps(c, c, _MM_SHUFFLE(2, 1, 0, 3)));
+            c = _mm256_max_ps(c, _mm256_permute2f128_ps(c, c, 1));
+            maximum = _mm256_cvtss_f32(c);
+
+            Count &= 0x1F;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            FLOAT value;
+            PFLOAT end;
+            PH_FLOAT128 a;
+            PH_FLOAT128 b;
+            PH_FLOAT128 c;
+
+            end = (PFLOAT)(ULONG_PTR)(A + count);
+            c = PhZeroFLOAT128();
+
+            while (A != end)
+            {
+                a = PhLoadFLOAT128(A);
+                b = PhLoadFLOAT128(B);
+                a = PhAddFLOAT128(b, a);
+                c = PhMaxFLOAT128(c, a);
+
+                A += 4;
+                B += 4;
+            }
+
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            c = PhMaxFLOAT128(c, PhShuffleFLOAT128_2103(c, c));
+            PhStoreFLOAT128LowSingle(&value, c);
+
+            if (maximum < value)
+                maximum = value;
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count--)
+    {
+        FLOAT value = *A++ + *B++;
+
+        if (maximum < value)
+            maximum = value;
+    }
+
+    return maximum;
+}
+
+/**
+ * \brief Converts an array of integers to floats.
+ *
+ * \param From The source integers.
+ * \param To The destination floats.
+ * \param Count The number of elements.
+ */
+VOID PhConvertCopyMemoryUlong(
+    _Inout_updates_(Count) PULONG From,
+    _Inout_updates_(Count) PFLOAT To,
+    _In_ SIZE_T Count
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PULONG end;
+            __m256i a;
+            __m256 b;
+
+            end = (PULONG)(ULONG_PTR)(From + count);
+
+            while (From != end)
+            {
+                a = _mm256_load_si256((__m256i const*)From);
+                b = _mm256_cvtf_epu32(a); // _mm256_cvtepi32_ps
+                _mm256_store_ps(To, b);
+
+                From += 8;
+                To += 8;
+            }
+
+            Count &= 0x1F;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            PULONG end;
+            PH_INT128 a;
+            PH_FLOAT128 b;
+
+            end = (PULONG)(ULONG_PTR)(From + count);
+
+            while (From != end)
+            {
+                a = PhLoadINT128(From); // _mm_loadl_epi64
+                b = PhConvertUINT128ToFLOAT128(a); // _mm_cvtepi32_ps // _mm_cvtepu32_ps
+                PhStoreFLOAT128(To, b);
+
+                From += 4;
+                To += 4;
+            }
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count--)
+    {
+        *To++ = (FLOAT)*From++;
+    }
+}
+
+/**
+ * \brief Converts an array of floats to integers.
+ *
+ * \param From The source floats.
+ * \param To The destination integers.
+ * \param Count The number of elements.
+ */
+VOID PhConvertCopyMemorySingles(
+    _Inout_updates_(Count) PFLOAT From,
+    _Inout_updates_(Count) PULONG To,
+    _In_ SIZE_T Count
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX)
+    {
+        SIZE_T count = Count & ~0x1F;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            __m256 a;
+            __m256i b;
+
+            end = (PFLOAT)(ULONG_PTR)(From + count);
+
+            while (From != end)
+            {
+                a = _mm256_load_ps(From);
+                b = _mm256_cvtps_epi32(a); // _mm256_cvtps_epu32
+                _mm256_store_si256((__m256i*)To, b);
+
+                From += 8;
+                To += 8;
+            }
+
+            Count &= 0x1F;
+        }
+    }
+#endif
+
+    if (PhHasIntrinsics)
+    {
+        SIZE_T count = Count & ~0xF;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+            PH_FLOAT128 a;
+            PH_INT128 b;
+
+            end = (PFLOAT)(ULONG_PTR)(From + count);
+
+            while (From != end)
+            {
+                a = PhLoadFLOAT128(From);
+                b = PhConvertFLOAT128ToUINT128(a);
+                PhStoreINT128(To, b);
+
+                From += 4;
+                To += 4;
+            }
+
+            Count &= 0xF;
+        }
+    }
+
+    while (Count--)
+    {
+        *To++ = (ULONG)*From++;
+    }
+}
+
+// based on PhCopyCircularBuffer (FLOAT) (\phlib\circbuf_i.h) (dmex)
+VOID PhCopyConvertCircularBufferULONG(
+    _Inout_ PPH_CIRCULAR_BUFFER_ULONG Buffer,
+    _Out_writes_(Count) FLOAT* Destination,
+    _In_ ULONG Count
+    )
+{
+    ULONG tailSize;
+    ULONG headSize;
+
+    tailSize = (ULONG)(Buffer->Size - Buffer->Index);
+    headSize = Buffer->Count - tailSize;
+
+    if (Count > Buffer->Count)
+        Count = Buffer->Count;
+
+    if (tailSize >= Count)
+    {
+        // Convert and copy only a part of the tail.
+        PhConvertCopyMemoryUlong(&Buffer->Data[Buffer->Index], Destination, Count);
+    }
+    else
+    {
+        // Convert and copy the tail, then only part of the head.
+        PhConvertCopyMemoryUlong(&Buffer->Data[Buffer->Index], Destination, tailSize);
+        PhConvertCopyMemoryUlong(Buffer->Data, &Destination[tailSize], (Count - tailSize));
+    }
+}
+
+ULONG PhCountBits(
+    _In_ ULONG Value
+    )
+{
+    if (PhHasPopulationCount)
+    {
+        return PhPopulationCount32(Value);
+    }
+    else
+    {
+        #undef T
+        #define T ULONG
+        ULONG count;
+
+        // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        Value = Value - ((Value >> 1) & (T)~(T)0 / 3);
+        Value = (Value & (T)~(T)0 / 15 * 3) + ((Value >> 2) & (T)~(T)0 / 15 * 3);
+        Value = (Value + (Value >> 4)) & (T)~(T)0 / 255 * 15;
+        count = (T)(Value * ((T)~(T)0 / 255)) >> (sizeof(T) - 1) * CHAR_BIT;
+
+        return count;
+
+        //ULONG count = 0;
+        //
+        //while (Value)
+        //{
+        //    count++;
+        //    Value &= Value - 1;
+        //}
+        //
+        //return count;
+    }
+}
+
+ULONG PhCountBitsUlongPtr(
+    _In_ ULONG_PTR Value
+    )
+{
+#ifdef _WIN64
+    if (PhHasPopulationCount)
+    {
+        return PhPopulationCount64(Value);
+    }
+    else
+#endif
+    {
+        #undef T
+        #define T ULONG
+        ULONG count;
+
+        // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        Value = Value - ((Value >> 1) & (T)~(T)0 / 3);
+        Value = (Value & (T)~(T)0 / 15 * 3) + ((Value >> 2) & (T)~(T)0 / 15 * 3);
+        Value = (Value + (Value >> 4)) & (T)~(T)0 / 255 * 15;
+        count = (T)(Value * ((T)~(T)0 / 255)) >> (sizeof(T) - 1) * CHAR_BIT;
+
+        return count;
+
+        //ULONG count = 0;
+        //
+        //while (Value)
+        //{
+        //    count++;
+        //    Value &= Value - 1;
+        //}
+        //
+        //return count;
+    }
 }

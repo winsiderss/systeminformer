@@ -21,12 +21,6 @@
     <ClInclude Include="include\kphmsgbase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\kphmsgfill.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kphmsgstatic.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kphmsgdyn.c">

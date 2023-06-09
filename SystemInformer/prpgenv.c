@@ -158,7 +158,7 @@ VOID PhpClearEnvironmentItems(
 
 VOID PhpSetEnvironmentListStatusMessage(
     _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
-    _In_ ULONG Status
+    _In_ NTSTATUS Status
     )
 {
     if (Context->ProcessItem->State & PH_PROCESS_ITEM_REMOVED || Status == STATUS_PARTIAL_COPY)
@@ -205,11 +205,20 @@ VOID PhpRefreshEnvironmentList(
     userRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_USER, PhaCreateString(L"User"), NULL);
     systemRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM, PhaCreateString(L"System"), NULL);
 
-    status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessItem->ProcessId
-        );
+    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            ProcessItem->ProcessId
+            );
+    }
+    else
+    {
+        PhpSetEnvironmentListStatusMessage(Context, STATUS_PARTIAL_COPY);
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+        return;
+    }
 
     if (!NT_SUCCESS(status))
     {
@@ -1266,10 +1275,12 @@ VOID PhpInitializeEnvironmentTree(
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
     TreeNew_SetCallback(Context->TreeNewHandle, PhpEnvironmentTreeNewCallback, Context);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_VALUE, TRUE, L"Value", 250, PH_ALIGN_LEFT, 1, 0);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, NoSortOrder);
 

@@ -38,7 +38,7 @@ PPH_STRING EspGetServiceAppUserModelId(
         0
         )))
     {
-        serviceAppUserModelId = PhQueryRegistryString(keyHandle, L"AppUserModelId");
+        serviceAppUserModelId = PhQueryRegistryStringZ(keyHandle, L"AppUserModelId");
         NtClose(keyHandle);
     }
 
@@ -66,7 +66,7 @@ PPH_STRING EspGetServicePackageFullName(
         0
         )))
     {
-        servicePackageName = PhQueryRegistryString(keyHandle, L"PackageFullName");
+        servicePackageName = PhQueryRegistryStringZ(keyHandle, L"PackageFullName");
         NtClose(keyHandle);
     }
 

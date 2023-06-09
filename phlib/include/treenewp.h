@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_TREENEWP_H
 #define _PH_TREENEWP_H
 
@@ -70,7 +82,6 @@ typedef struct _PH_TREENEW_CONTEXT
 
     HFONT Font;
     HCURSOR Cursor;
-    HCURSOR DividerCursor;
 
     RECT ClientRect;
     LONG HeaderHeight;
@@ -546,6 +557,7 @@ BOOLEAN PhTnpIsNodeLeaf(
     _In_ PPH_TREENEW_NODE Node
     );
 
+_Success_(return)
 BOOLEAN PhTnpGetCellText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_NODE Node,
@@ -740,7 +752,7 @@ VOID PhTnpInitializeTooltips(
 VOID PhTnpGetTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Outptr_ PWSTR *Text
     );
 
 BOOLEAN PhTnpPrepareTooltipShow(
@@ -766,7 +778,7 @@ VOID PhTnpGetHeaderTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ BOOLEAN Fixed,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Outptr_ PWSTR *Text
     );
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(

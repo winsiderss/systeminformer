@@ -58,7 +58,7 @@ VOID PvpPeEnumerateProcessIds(
                 processId = (HANDLE)processIds->ProcessIdList[i];
 
                 if (processId == SYSTEM_PROCESS_ID)
-                    fileName = PhGetKernelFileName();
+                    fileName = PhGetKernelFileName2();
                 else
                     PhGetProcessImageFileNameByProcessId(processId, &fileName);
 
@@ -135,7 +135,7 @@ INT_PTR CALLBACK PvpPeProcessesDlgProc(
             PvpPeEnumerateProcessIds(context->ListViewHandle);
             //ExtendedListView_SortItems(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

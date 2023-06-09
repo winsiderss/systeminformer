@@ -120,7 +120,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 static NTSTATUS PhpDuplicateHandleFromProcess(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PHANDLE_PROPERTIES_CONTEXT context = Context;
@@ -128,9 +128,6 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     HANDLE processHandle;
 
     *Handle = NULL;
-
-    if (!context)
-        return STATUS_UNSUCCESSFUL;
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
@@ -263,6 +260,13 @@ NTSTATUS PhpShowHandlePropertiesThread(
             context.ProcessId,
             &context,
             NULL
+            );
+    }
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"Section", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateMappingsPage(
+            handleContext->ProcessId,
+            handleContext->HandleItem->Handle
             );
     }
 
@@ -453,7 +457,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
                 );
         }
     }
-    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE) || PhEqualString2(Context->HandleItem->TypeName, L"EtwConsumer", TRUE))
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
         PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_ETW, L"Event trace information");
         Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME] = PhAddListViewGroupItem(
@@ -1102,7 +1106,7 @@ VOID PhpUpdateHandleGeneral(
             }
         }
     }
-    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE) || PhEqualString2(Context->HandleItem->TypeName, L"EtwConsumer", TRUE))
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
         PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME], 1, PhGetString(Context->HandleItem->ObjectName));
     }
@@ -1611,7 +1615,7 @@ VOID PhpUpdateHandleGeneral(
             {
                 PPH_STRING newFileName;
 
-                if (newFileName = PhResolveDevicePrefix(fileName))
+                if (newFileName = PhResolveDevicePrefix(&fileName->sr))
                 {
                     PhDereferenceObject(fileName);
                     fileName = newFileName;
@@ -2131,7 +2135,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 

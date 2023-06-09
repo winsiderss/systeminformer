@@ -1747,7 +1747,7 @@ ZwFlushKey(
     );
 
 NTSYSCALLAPI
-VOID
+NTSTATUS
 NTAPI
 ZwFlushProcessWriteBuffers(
     VOID

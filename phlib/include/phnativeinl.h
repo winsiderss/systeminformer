@@ -154,7 +154,7 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessPeb32(
     _In_ HANDLE ProcessHandle,
-    _Out_ PVOID *Peb32
+    _Out_ PVOID* Peb32
     )
 {
     NTSTATUS status;
@@ -170,6 +170,7 @@ PhGetProcessPeb32(
 
     if (NT_SUCCESS(status))
     {
+        // No PEB for System, Minimal or Pico processes. (dmex)
         if (!wow64)
             return STATUS_UNSUCCESSFUL;
 
@@ -196,7 +197,7 @@ PhGetProcessPeb(
 
     if (NT_SUCCESS(status))
     {
-        // No PEB for System and minimal/pico processes. (dmex)
+        // No PEB for System, Minimal or Pico processes. (dmex)
         if (!basicInfo.PebBaseAddress)
             return STATUS_UNSUCCESSFUL;
 
@@ -346,23 +347,23 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessPriorityBoost(
     _In_ HANDLE ProcessHandle,
-    _Out_ PBOOLEAN PriorityBoost
+    _Out_ PBOOLEAN PriorityBoostDisabled
     )
 {
     NTSTATUS status;
-    ULONG priorityBoost;
+    ULONG priorityBoostDisabled;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessPriorityBoost,
-        &priorityBoost,
+        &priorityBoostDisabled,
         sizeof(ULONG),
         NULL
         );
 
     if (NT_SUCCESS(status))
     {
-        *PriorityBoost = !!priorityBoost;
+        *PriorityBoostDisabled = !!priorityBoostDisabled;
     }
 
     return status;
@@ -881,7 +882,7 @@ FORCEINLINE
 NTSTATUS
 PhGetThreadPriorityBoost(
     _In_ HANDLE ThreadHandle,
-    _Out_ PBOOLEAN PriorityBoost
+    _Out_ PBOOLEAN PriorityBoostDisabled
     )
 {
     NTSTATUS status;
@@ -897,7 +898,7 @@ PhGetThreadPriorityBoost(
 
     if (NT_SUCCESS(status))
     {
-        *PriorityBoost = !!priorityBoost;
+        *PriorityBoostDisabled = !!priorityBoost;
     }
 
     return status;
@@ -983,6 +984,24 @@ PhGetThreadWow64Context(
         NULL
         );
 }
+
+#if defined(_ARM64_)
+FORCEINLINE
+NTSTATUS
+PhGetThreadArm32Context(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PARM_NT_CONTEXT Context
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadWow64Context,
+        Context,
+        sizeof(ARM_NT_CONTEXT),
+        NULL
+        );
+}
+#endif
 
 FORCEINLINE
 NTSTATUS
@@ -1145,6 +1164,24 @@ PhGetThreadGroupAffinity(
         GroupAffinity,
         sizeof(GROUP_AFFINITY),
         NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetTokenType(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_TYPE Type
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenType,
+        Type,
+        sizeof(TOKEN_TYPE),
+        &returnLength
         );
 }
 

@@ -587,7 +587,7 @@ VOID StatusBarUpdate(
                 SIZE_T value = 0;
                 PH_FORMAT format[2];
 
-                PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+                PhGetSelectedAndPropagateProcessItems(&processes, &numberOfProcesses);
                 PhReferenceObjects(processes, numberOfProcesses);
 
                 for (ULONG j = 0; j < numberOfProcesses; j++)
@@ -618,7 +618,7 @@ VOID StatusBarUpdate(
                 SIZE_T value = 0;
                 PH_FORMAT format[2];
 
-                PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+                PhGetSelectedAndPropagateProcessItems(&processes, &numberOfProcesses);
                 PhReferenceObjects(processes, numberOfProcesses);
 
                 for (ULONG j = 0; j < numberOfProcesses; j++)

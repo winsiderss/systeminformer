@@ -13,13 +13,13 @@ namespace CustomBuildTool
 {
     public static class BuildConfig
     {
-        public static readonly List<BuildFile> Build_Release_Files = new List<BuildFile>
+        public static readonly BuildFile[] Build_Release_Files =
         {
             new BuildFile("\\systeminformer-build-setup.exe", true), // nightly
             new BuildFile("\\systeminformer-build-bin.zip", true), // nightly
             new BuildFile("\\systeminformer-build-src.zip", false),
             new BuildFile("\\systeminformer-build-sdk.zip", false),
-            new BuildFile("\\systeminformer-build-pdb.zip", false),
+            new BuildFile("\\systeminformer-build-pdb.zip", true), // nightly
             //new BuildFile("\\systeminformer-build-checksums.txt", false),
         };
 
@@ -44,6 +44,7 @@ namespace CustomBuildTool
             "ntdbg.h",
             "ntexapi.h",
             "ntgdi.h",
+            "ntimage.h",
             "ntioapi.h",
             "ntkeapi.h",
             "ntldr.h",
@@ -96,6 +97,7 @@ namespace CustomBuildTool
             "kphuser.h",
             "lsasup.h",
             "mapimg.h",
+            "mapldr.h",
             "ph.h",
             "phbase.h",
             "phbasesup.h",
@@ -120,10 +122,10 @@ namespace CustomBuildTool
         };
     }
 
-    public struct BuildFile
+    public readonly struct BuildFile
     {
-        public string FileName;
-        public bool UploadNightly;
+        public readonly string FileName;
+        public readonly bool UploadNightly;
 
         public BuildFile(string Filename, bool UploadNightly)
         {

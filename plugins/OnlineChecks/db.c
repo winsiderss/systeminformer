@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016
+ *     dmex    2016-2023
  *
  */
 
@@ -25,7 +25,7 @@ BOOLEAN NTAPI ProcessObjectDbEqualFunction(
     PPROCESS_DB_OBJECT object1 = *(PPROCESS_DB_OBJECT *)Entry1;
     PPROCESS_DB_OBJECT object2 = *(PPROCESS_DB_OBJECT *)Entry2;
 
-    return PhEqualStringRef(&object1->FileName, &object2->FileName, TRUE);
+    return PhEqualStringRef(&object1->FileName, &object2->FileName, FALSE);
 }
 
 ULONG NTAPI ProcessObjectDbHashFunction(
@@ -34,7 +34,7 @@ ULONG NTAPI ProcessObjectDbHashFunction(
 {
     PPROCESS_DB_OBJECT object = *(PPROCESS_DB_OBJECT *)Entry;
 
-    return PhHashStringRefEx(&object->FileName, TRUE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&object->FileName, FALSE, PH_STRING_HASH_X65599);
 }
 
 VOID InitializeProcessDb(

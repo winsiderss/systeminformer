@@ -50,14 +50,16 @@
 
 #include <phapp.h>
 
-#include <shellapi.h>
 #include <shlwapi.h>
 #include <winsta.h>
+#include <workqueue.h>
 #include <lm.h>
 
 #include <apiimport.h>
+#include <appresolver.h>
 #include <actions.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <phsvc.h>
 #include <phsvccl.h>
 #include <phsettings.h>
@@ -151,8 +153,15 @@ INT_PTR CALLBACK PhpRunFileWndProc(
     _In_ LPARAM lParam
     );
 
-VOID PhSetDesktopWinStaAccess(
-    VOID
+INT_PTR CALLBACK PhRunAsPackageWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+NTSTATUS PhSetDesktopWinStaAccess(
+    _In_ HWND WindowHandle
     );
 
 VOID PhpSplitUserName(
@@ -235,8 +244,21 @@ BOOLEAN PhShowRunFileDialog(
     //            );
     //    }
     //
-    //    FreeLibrary(shell32Handle);
+    //    PhFreeLibrary(shell32Handle);
     //}
+}
+
+VOID PhShowRunAsPackageDialog(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_RUNPACKAGE),
+        NULL,
+        PhRunAsPackageWndProc,
+        ParentWindowHandle
+        );
 }
 
 BOOLEAN IsServiceAccount(
@@ -369,6 +391,12 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     return desktopInfo;
 }
 
+typedef struct _AppExecLinkReparseBuffer
+{
+    ULONG StringCount;
+    WCHAR StringList[1];
+} AppExecLinkReparseBuffer, *PAppExecLinkReparseBuffer;
+
 BOOLEAN PhIsAppExecutionAliasTarget(
     _In_ PPH_STRING FileName
     )
@@ -416,12 +444,6 @@ BOOLEAN PhIsAppExecutionAliasTarget(
             reparseBuffer->ReparseTag == IO_REPARSE_TAG_APPEXECLINK
             )
         {
-            typedef struct _AppExecLinkReparseBuffer
-            {
-                ULONG StringCount;
-                WCHAR StringList[1];
-            } AppExecLinkReparseBuffer, *PAppExecLinkReparseBuffer;
-
             PAppExecLinkReparseBuffer appexeclink;
             PWSTR string;
 
@@ -472,7 +494,7 @@ BOOLEAN PhpInitializeNetApi(VOID)
 
             if (!(NetUserEnum_I && NetApiBufferFree_I))
             {
-                FreeLibrary(netapiModuleHandle);
+                PhFreeLibrary(netapiModuleHandle);
                 netapiModuleHandle = NULL;
             }
         }
@@ -502,7 +524,7 @@ BOOLEAN PhpInitializeMRUList(VOID)
 
             if (!(CreateMRUList_I && AddMRUString_I && EnumMRUList_I && FreeMRUList_I))
             {
-                FreeLibrary(comctl32ModuleHandle);
+                PhFreeLibrary(comctl32ModuleHandle);
                 comctl32ModuleHandle = NULL;
             }
         }
@@ -1360,7 +1382,10 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             if (!PhIsNullOrEmptyString(desktopName) && !PhEqualString2(desktopName, L"WinSta0\\Default", TRUE))
                                 createInfo.DesktopName = PhGetString(desktopName);
 
-                            PhSetDesktopWinStaAccess();
+                            status = PhSetDesktopWinStaAccess(hwndDlg);
+
+                            if (!NT_SUCCESS(status))
+                                goto CleanupAsUserExit;
 
                             status = PhCreateProcessAsUser(
                                 &createInfo,
@@ -1370,6 +1395,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 NULL
                                 );
 
+                           CleanupAsUserExit:
                             if (domainPart) PhDereferenceObject(domainPart);
                             if (userPart) PhDereferenceObject(userPart);
                         }
@@ -1486,6 +1512,11 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                     NtClose(tokenHandle);
                                 }
+
+                                status = PhSetDesktopWinStaAccess(hwndDlg);
+
+                                if (!NT_SUCCESS(status))
+                                    goto CleanupExit;
 
                                 status = PhCreateProcessWin32Ex(
                                     NULL,
@@ -1697,36 +1728,41 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
  * Sets the access control lists of the current window station
  * and desktop to allow all access.
  */
-VOID PhSetDesktopWinStaAccess(
-    VOID
+NTSTATUS PhSetDesktopWinStaAccess(
+    _In_ HWND WindowHandle
     )
 {
-    static SID_IDENTIFIER_AUTHORITY appPackageAuthority = SECURITY_APP_PACKAGE_AUTHORITY;
-
     HWINSTA wsHandle;
     HDESK desktopHandle;
     ULONG allocationLength;
+    PSID allAppPackagesSid = PhSeAnyPackageSid();
+    UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x50];
     PSECURITY_DESCRIPTOR securityDescriptor;
     PACL dacl;
-    CHAR allAppPackagesSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-    PSID allAppPackagesSid;
+
+    if (WindowHandle && PhGetIntegerSetting(L"EnableWarnings") && PhShowMessage2(
+        WindowHandle,
+        TD_YES_BUTTON | TD_NO_BUTTON,
+        TD_WARNING_ICON,
+        L"WARNING: This will grant Everyone access to the current window station and desktop.",
+        L"Are you sure you want to continue?"
+        ) == IDNO)
+    {
+        return STATUS_ACCESS_DENIED;
+    }
 
     // TODO: Set security on the correct window station and desktop.
-
-    allAppPackagesSid = (PSID)allAppPackagesSidBuffer;
-    RtlInitializeSid(allAppPackagesSid, &appPackageAuthority, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
-    *RtlSubAuthoritySid(allAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
-    *RtlSubAuthoritySid(allAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
 
     // We create a DACL that allows everyone to access everything.
 
     allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeEveryoneSid) +
+        PhLengthSid(&PhSeEveryoneSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(allAppPackagesSid);
-    securityDescriptor = PhAllocate(allocationLength);
+        PhLengthSid(allAppPackagesSid);
+
+    securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
@@ -1749,6 +1785,10 @@ VOID PhSetDesktopWinStaAccess(
         PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
         CloseWindowStation(wsHandle);
     }
+    else
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
 
     if (desktopHandle = OpenDesktop(
         L"Default",
@@ -1760,8 +1800,17 @@ VOID PhSetDesktopWinStaAccess(
         PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
         CloseDesktop(desktopHandle);
     }
+    else
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
 
-    PhFree(securityDescriptor);
+#ifdef DEBUG
+    assert(allocationLength < sizeof(securityDescriptorBuffer));
+    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+#endif
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -1784,6 +1833,11 @@ NTSTATUS PhExecuteRunAsCommand(
     PPH_STRING portName;
     UNICODE_STRING portNameUs;
     ULONG attempts;
+
+    status = PhSetDesktopWinStaAccess(Parameters->WindowHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
         return PhGetLastWin32ErrorAsNtStatus();
@@ -1819,8 +1873,6 @@ NTSTATUS PhExecuteRunAsCommand(
     {
         return NTSTATUS_FROM_WIN32(win32Result);
     }
-
-    PhSetDesktopWinStaAccess();
 
     StartService(serviceHandle, 0, NULL);
     DeleteService(serviceHandle);
@@ -1928,6 +1980,7 @@ NTSTATUS PhExecuteRunAsCommand3(
     parameters.DesktopName = DesktopName;
     parameters.UseLinkedToken = UseLinkedToken;
     parameters.CreateSuspendedProcess = CreateSuspendedProcess;
+    parameters.WindowHandle = hWnd;
 
     // Try to use an existing instance of the service if possible.
     if (RunAsOldServiceName[0] != UNICODE_NULL)
@@ -1984,7 +2037,7 @@ NTSTATUS PhExecuteRunAsCommand3(
     return status;
 }
 
-static VOID PhpSplitUserName(
+VOID PhpSplitUserName(
     _In_ PWSTR UserName,
     _Out_opt_ PPH_STRING *DomainPart,
     _Out_opt_ PPH_STRING *UserPart
@@ -2167,6 +2220,7 @@ typedef struct _PHP_RUNFILEDLG
     HWND RunAsInstallerCheckboxHandle;
     HIMAGELIST ImageListHandle;
     BOOLEAN RunAsInstallerCheckboxDisabled;
+    LONG WindowDpi;
 } PHP_RUNFILEDLG, *PPHP_RUNFILEDLG;
 
 PPH_STRING PhpQueryRunFileParentDirectory(
@@ -2215,28 +2269,21 @@ NTSTATUS PhpRunAsShellExecute(
     )
 {
     NTSTATUS status;
-    PPH_STRING parentDirectory = NULL;
-    SHELLEXECUTEINFO info;
+    PPH_STRING parentDirectory;
 
     parentDirectory = PhpQueryRunFileParentDirectory(Elevated);
 
-    memset(&info, 0, sizeof(SHELLEXECUTEINFO));
-    info.cbSize = sizeof(SHELLEXECUTEINFO);
-    info.lpFile = FileName;
-    info.lpParameters = Parameters;
-    info.lpDirectory = PhGetString(parentDirectory);
-    info.fMask = SEE_MASK_FLAG_NO_UI;
-    info.nShow = SW_SHOWNORMAL;
-    info.hwnd = hWnd;
-
-    if (Elevated)
-        info.lpVerb = L"runas";
-
-    if (ShellExecuteEx(&info))
+    if (PhShellExecuteEx(
+        hWnd,
+        FileName,
+        Parameters,
+        PhGetString(parentDirectory),
+        SW_SHOW,
+        Elevated ? PH_SHELL_EXECUTE_ADMIN : PH_SHELL_EXECUTE_DEFAULT,
+        0,
+        NULL
+        ))
     {
-        if (info.hProcess)
-            NtClose(info.hProcess);
-
         status = STATUS_SUCCESS;
     }
     else
@@ -2244,8 +2291,7 @@ NTSTATUS PhpRunAsShellExecute(
         status = PhGetLastWin32ErrorAsNtStatus();
     }
 
-    if (parentDirectory)
-        PhDereferenceObject(parentDirectory);
+    PhClearReference(&parentDirectory);
 
     return status;
 }
@@ -2255,77 +2301,67 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     _In_ PPH_STRING Command
     )
 {
-    ULONG (WINAPI *WdcRunTaskAsInteractiveUser_I)(
-        _In_ PWSTR CommandLine,
-        _In_ PWSTR CurrentDirectory,
-        _In_ ULONG Reserved
-        ) = NULL;
     BOOLEAN success = FALSE;
-    PVOID wdcLibraryHandle;
     PPH_STRING executeString = NULL;
-    INT cmdlineArgCount;
-    PWSTR* cmdlineArgList;
-
-    if (!(wdcLibraryHandle = PhLoadLibrary(L"wdc.dll")))
-        return FALSE;
-
-    if (!(WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(wdcLibraryHandle, "WdcRunTaskAsInteractiveUser", 0)))
-    {
-        FreeLibrary(wdcLibraryHandle);
-        return FALSE;
-    }
+    PPH_STRING fileName = NULL;
+    PPH_STRING fileArgs = NULL;
+    PPH_LIST cmdlineArgList;
 
     // Extract the filename.
-    if (cmdlineArgList = CommandLineToArgvW(Command->Buffer, &cmdlineArgCount))
+    if (cmdlineArgList = PhCommandLineToList(Command->Buffer))
     {
-        PPH_STRING fileName = PhCreateString(cmdlineArgList[0]);
+        fileName = PhReferenceObject(cmdlineArgList->Items[0]);
 
-        if (fileName && !PhDoesFileExistWin32(fileName->Buffer))
+        if (cmdlineArgList->Count == 2)
         {
-            PPH_STRING filePathString;
-
-            // The user typed a name without a path so attempt to locate the executable.
-            if (filePathString = PhSearchFilePath(fileName->Buffer, L".exe"))
-                PhMoveReference(&fileName, filePathString);
-            else
-                PhClearReference(&fileName);
+            fileArgs = PhReferenceObject(cmdlineArgList->Items[1]);
         }
 
-        if (fileName)
+        PhDereferenceObjects(cmdlineArgList->Items, cmdlineArgList->Count);
+        PhDereferenceObject(cmdlineArgList);
+    }
+
+    if (fileName && !PhDoesFileExistWin32(PhGetString(fileName)))
+    {
+        PPH_STRING filePathString;
+
+        // The user typed a name without a path so attempt to locate the executable.
+        if (filePathString = PhSearchFilePath(PhGetString(fileName), L".exe"))
+            PhMoveReference(&fileName, filePathString);
+        else
+            PhClearReference(&fileName);
+    }
+
+    if (fileName)
+    {
+        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+
+        // Escape the filename.
+        PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+
+        if (fileArgs)
         {
-            // Escape the filename.
-            PhMoveReference(&fileName, PhConcatStrings(3, L"\"", fileName->Buffer, L"\""));
+            // Escape the parameters.
+            PhMoveReference(&fileArgs, PhConcatStringRef3(&seperator, &fileArgs->sr, &seperator));
 
-            if (cmdlineArgCount == 2)
-            {
-                PPH_STRING fileArgs = PhCreateString(cmdlineArgList[1]);
+            // Create the escaped execute string.
+            executeString = PhConcatStringRef3(&fileName->sr, &space, &fileArgs->sr);
 
-                // Escape the parameters.
-                PhMoveReference(&fileArgs, PhConcatStrings(3, L"\"", fileArgs->Buffer, L"\""));
-
-                // Create the escaped execute string.
-                PhMoveReference(&executeString, PhConcatStrings(3, fileName->Buffer, L" ", fileArgs->Buffer));
-
-                // Cleanup.
-                PhDereferenceObject(fileArgs);
-            }
-            else
-            {
-                // Create the escaped execute string.
-                executeString = PhReferenceObject(fileName);
-            }
-
-            PhDereferenceObject(fileName);
+            // Cleanup.
+            PhClearReference(&fileArgs);
         }
-
-        LocalFree(cmdlineArgList);
+        else
+        {
+            executeString = fileName;
+        }
     }
 
     if (!PhIsNullOrEmptyString(executeString))
     {
         PPH_STRING parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
 
-        if (WdcRunTaskAsInteractiveUser_I(PhGetString(executeString), PhGetString(parentDirectory), 0) == 0)
+        if (PhCreateProcessAsInteractiveUser(PhGetString(executeString), PhGetString(parentDirectory)) == S_OK)
         {
             success = TRUE;
         }
@@ -2336,8 +2372,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
         }
     }
 
-    if (executeString) PhDereferenceObject(executeString);
-    FreeLibrary(wdcLibraryHandle);
+    PhClearReference(&executeString);
 
     return success;
 }
@@ -2347,7 +2382,7 @@ NTSTATUS PhpRunFileProgram(
     _In_ PPH_STRING Command
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     PPH_STRING commandString = NULL;
     PPH_STRING fullFileName = NULL;
     PPH_STRING argumentsString = NULL;
@@ -2380,24 +2415,23 @@ NTSTATUS PhpRunFileProgram(
         argumentsString = PhCreateString2(&arguments);
     }
 
-    if (NT_SUCCESS(PhQueryAttributesFileWin32(fullFileName->Buffer, &basicInfo)))
+    if (NT_SUCCESS(PhQueryAttributesFileWin32(PhGetString(fullFileName), &basicInfo)))
     {
         isDirectory = !!(basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY);
     }
 
-    // If the file doesn't exist its probably a URL with http, https, www (dmex)
-    if (isDirectory || !PhDoesFileExistWin32(fullFileName->Buffer))
+    if (isDirectory || !PhDoesFileExistWin32(PhGetString(fullFileName)))
     {
         status = PhpRunAsShellExecute(
             Context->WindowHandle,
-            commandString->Buffer,
+            PhGetString(commandString),
             NULL,
             FALSE
             );
     }
     else if (Button_GetCheck(Context->RunAsCheckboxHandle) == BST_CHECKED ||
-        // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys
-        // and clicking the OK button, so we'll implement the same functionality. (dmex)
+        // The Windows run dialog executes programs with elevation when
+        // holding the ctrl + shift keys and selecting the OK button. (dmex)
         (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
     {
         status = PhpRunAsShellExecute(
@@ -2409,159 +2443,14 @@ NTSTATUS PhpRunFileProgram(
     }
     else
     {
-        ULONG processId = ULONG_MAX;
-        PPH_STRING parentDirectory = NULL;
-        HANDLE processHandle = NULL;
-        HANDLE newProcessHandle;
-        HANDLE tokenHandle;
-        HWND shellWindow;
-        STARTUPINFOEX startupInfo;
-        PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
-        PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
-        PVOID environment = NULL;
-        ULONG flags = 0;
-
-        memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
-        startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
-        startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-        startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
-        parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
-
-        // NOTE: CreateProcess has an issue when launching processes with execution aliases
-        // where they ignore PROCESS_CREATE_PROCESS and inherit our elevated token instead
-        // of the parents non-elevated process token.
-        // So we need to make sure they're created with WdcRunTaskAsInteractiveUser otherwise
-        // we'll end up incorrectly resetting their process token and current directory. (dmex)
-        if (PhIsAppExecutionAliasTarget(fullFileName) || !(shellWindow = GetShellWindow()))
-        {
-            if (PhpRunFileAsInteractiveUser(Context, commandString))
-                status = STATUS_SUCCESS;
-
-            goto CleanupExit;
-        }
-
-        GetWindowThreadProcessId(shellWindow, &processId);
-
-        if (processId == ULONG_MAX)
-        {
-            status = STATUS_UNSUCCESSFUL;
-            goto CleanupExit;
-        }
-
-        status = PhOpenProcess(
-            &processHandle,
-            PROCESS_CREATE_PROCESS | (PhGetOwnTokenAttributes().Elevated ? PROCESS_QUERY_LIMITED_INFORMATION | READ_CONTROL : 0),
-            UlongToHandle(processId)
-            );
-
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
-
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        status = PhUpdateProcThreadAttribute(
-            startupInfo.lpAttributeList,
-            PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
-            &(HANDLE){ processHandle },
-            sizeof(HANDLE)
-            );
-
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        if (PhGetOwnTokenAttributes().Elevated)
-        {
-            PhGetObjectSecurity(
-                processHandle,
-                OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                &processSecurityDescriptor
-                );
-        }
-
-        if (NT_SUCCESS(PhOpenProcessToken(
-            processHandle,
-            TOKEN_QUERY | (PhGetOwnTokenAttributes().Elevated ? READ_CONTROL : 0),
-            &tokenHandle
-            )))
-        {
-            if (PhGetOwnTokenAttributes().Elevated)
-            {
-                PhGetObjectSecurity(
-                    tokenHandle,
-                    OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                    &tokenSecurityDescriptor
-                    );
-            }
-
-            if (CreateEnvironmentBlock_Import() && CreateEnvironmentBlock_Import()(&environment, tokenHandle, FALSE))
-            {
-                flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
-            }
-
-            NtClose(tokenHandle);
-        }
-
-        status = PhCreateProcessWin32Ex(
-            fullFileName->Buffer,
+        status = PhpRunAsShellExecute(
+            Context->WindowHandle,
+            PhGetString(fullFileName),
             PhGetString(argumentsString),
-            environment,
-            PhGetString(parentDirectory),
-            &startupInfo.StartupInfo,
-            PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | flags,
-            NULL,
-            NULL,
-            &newProcessHandle,
-            NULL
+            FALSE
             );
 
-        if (NT_SUCCESS(status))
-        {
-            PROCESS_BASIC_INFORMATION basicInfo;
-
-            if (PhGetOwnTokenAttributes().Elevated)
-            {
-                // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
-                // where the process and token security descriptors are created without an ACE for the current user,
-                // owned by the wrong user and with a High-IL when the process token is Medium-IL
-                // preventing the new process from accessing user/system resources above Low-IL. (dmex)
-
-                if (processSecurityDescriptor)
-                {
-                    PhSetObjectSecurity(
-                        newProcessHandle,
-                        OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                        processSecurityDescriptor
-                        );
-                }
-
-                if (tokenSecurityDescriptor && NT_SUCCESS(PhOpenProcessToken(
-                    newProcessHandle,
-                    WRITE_DAC | WRITE_OWNER,
-                    &tokenHandle
-                    )))
-                {
-                    PhSetObjectSecurity(
-                        tokenHandle,
-                        OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION,
-                        tokenSecurityDescriptor
-                        );
-                    NtClose(tokenHandle);
-                }
-            }
-
-            if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
-            {
-                AllowSetForegroundWindow(ASFW_ANY);// HandleToUlong(basicInfo.UniqueProcessId));
-            }
-
-            NtResumeProcess(newProcessHandle);
-
-            NtClose(newProcessHandle);
-        }
-        else if (NT_NTWIN32(status) && WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
+        if (WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
         {
             status = PhpRunAsShellExecute(
                 Context->WindowHandle,
@@ -2569,38 +2458,6 @@ NTSTATUS PhpRunFileProgram(
                 PhGetString(argumentsString),
                 TRUE
                 );
-        }
-
-    CleanupExit:
-
-        if (environment && DestroyEnvironmentBlock_Import())
-        {
-            DestroyEnvironmentBlock_Import()(environment);
-        }
-
-        if (tokenSecurityDescriptor)
-        {
-            PhFree(tokenSecurityDescriptor);
-        }
-
-        if (processSecurityDescriptor)
-        {
-            PhFree(processSecurityDescriptor);
-        }
-
-        if (startupInfo.lpAttributeList)
-        {
-            PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-        }
-
-        if (processHandle)
-        {
-            NtClose(processHandle);
-        }
-
-        if (parentDirectory)
-        {
-            PhDereferenceObject(parentDirectory);
         }
     }
 
@@ -2753,9 +2610,6 @@ static VOID PhpRunFileSetImageList(
     )
 {
     HICON shieldIcon;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
     if (shieldIcon = PhLoadIcon(
         NULL,
@@ -2763,13 +2617,13 @@ static VOID PhpRunFileSetImageList(
         PH_LOAD_ICON_SIZE_SMALL,
         0,
         0,
-        dpiValue
+        Context->WindowDpi
         ))
     {
         if (Context->ImageListHandle) PhImageListDestroy(Context->ImageListHandle);
         Context->ImageListHandle = PhImageListCreate(
-            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+            PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
+            PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
             ILC_MASK | ILC_COLOR32,
             1,
             1
@@ -2816,8 +2670,10 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             context->ComboBoxHandle = GetDlgItem(hwndDlg, IDC_PROGRAMCOMBO);
             context->RunAsCheckboxHandle = GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION);
             context->RunAsInstallerCheckboxHandle = GetDlgItem(hwndDlg, IDC_TRUSTEDINSTALLER);
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIconEx(hwndDlg, context->WindowDpi);
+            PhSetStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON), context->WindowDpi);
 
             PhpAddProgramsToComboBox(context->ComboBoxHandle);
             ComboBox_SetCurSel(context->ComboBoxHandle, 0);
@@ -2842,6 +2698,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                 PhpRunFileSetImageList(context);
             }
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -2851,17 +2709,28 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             if (context->ImageListHandle)
                 PhImageListDestroy(context->ImageListHandle);
 
+            PhDeleteApplicationWindowIcon(hwndDlg);
+            PhDeleteStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON));
+
             PhFree(context);
         }
         break;
     case WM_DPICHANGED:
         {
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
+
+            PhSetApplicationWindowIconEx(hwndDlg, context->WindowDpi);
+            PhSetStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON), context->WindowDpi);
+
             PhpRunFileSetImageList(context);
         }
         break;
     case WM_CTLCOLORSTATIC:
         {
             HDC hdc = (HDC)wParam;
+
+            if (PhEnableThemeSupport)
+                break;
 
             SetBkMode(hdc, TRANSPARENT);
 
@@ -2947,21 +2816,18 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         {
             HDC hdc = (HDC)wParam;
             RECT clientRect;
-            LONG dpiValue;
 
             if (!GetClientRect(hwndDlg, &clientRect))
                 break;
 
-            dpiValue = PhGetWindowDpi(hwndDlg);
-
             SetBkMode(hdc, TRANSPARENT);
 
-            clientRect.bottom -= PhGetDpi(60, dpiValue);
-            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+            clientRect.bottom -= PhGetDpi(60, context->WindowDpi);
+            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW));
 
             clientRect.top = clientRect.bottom;
-            clientRect.bottom = clientRect.top + PhGetDpi(60, dpiValue);
-            FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
+            clientRect.bottom = clientRect.top + PhGetDpi(60, context->WindowDpi);
+            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_3DFACE));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
         }
@@ -2994,7 +2860,6 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                             case CDDS_PREPAINT:
                                 {
                                     PPH_STRING buttonText;
-                                    LONG dpiValue;
                                     LONG width;
 
                                     SetTextColor(customDraw->hdc, RGB(0, 0, 0));
@@ -3003,9 +2868,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                                     if (buttonText = PhGetWindowText(customDraw->hdr.hwndFrom))
                                     {
-                                        dpiValue = PhGetWindowDpi (hwndDlg);
-
-                                        width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+                                        width = PhGetSystemMetrics(SM_CXSMICON, context->WindowDpi);
 
                                         customDraw->rc.left += width;
                                         DrawText(
@@ -3045,6 +2908,875 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             }
         }
         break;
+    }
+
+    return FALSE;
+}
+
+typedef struct _PH_RUNAS_PACKAGE_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ParentWindowHandle;
+    HWND ComboBoxHandle;
+    HWND SearchBoxHandle;
+    HWND TreeNewHandle;
+    HIMAGELIST ImageListHandle;
+    LONG WindowDpi;
+    PH_LAYOUT_MANAGER LayoutManager;
+
+    PH_TN_FILTER_SUPPORT TreeFilterSupport;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
+    PPH_STRING SearchBoxText;
+
+    HFONT NormalFontHandle;
+    HFONT TitleFontHandle;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeList;
+
+} PH_RUNAS_PACKAGE_CONTEXT, *PPH_RUNAS_PACKAGE_CONTEXT;
+
+typedef enum _PH_RUNASPACKAGE_TREE_COLUMN_ITEM
+{
+    PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME,
+    PH_RUNASPACKAGE_TREE_COLUMN_ITEM_APPID,
+    PH_RUNASPACKAGE_TREE_COLUMN_ITEM_MAXIMUM
+} PH_RUNASPACKAGE_TREE_COLUMN_ITEM;
+
+typedef struct _PH_RUNASPACKAGE_TREE_ROOT_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PPH_STRING AppUserModelId;
+    PPH_STRING DisplayName;
+    PPH_STRING PackageInstallPath;
+    PPH_STRING PackageFullName;
+    PPH_STRING SmallLogoPath;
+
+    INT IconIndex;
+
+    PH_STRINGREF TextCache[PH_RUNASPACKAGE_TREE_COLUMN_ITEM_MAXIMUM];
+} PH_RUNASPACKAGE_TREE_ROOT_NODE, *PPH_RUNASPACKAGE_TREE_ROOT_NODE;
+
+#pragma region RunAsPackage TreeList
+
+#define SORT_FUNCTION(Column) PhRunAsPackageTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhRunAsPackageTreeNewCompare##Column( \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
+    ) \
+{ \
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE node1 = *(PPH_RUNASPACKAGE_TREE_ROOT_NODE*)_elem1; \
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE node2 = *(PPH_RUNASPACKAGE_TREE_ROOT_NODE*)_elem2; \
+    int sortResult = 0;
+
+#define END_SORT_FUNCTION \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
+    \
+    return PhModifySort(sortResult, ((PPH_RUNAS_PACKAGE_CONTEXT)_context)->TreeNewSortOrder); \
+}
+
+BEGIN_SORT_FUNCTION(Name)
+{
+    sortResult = PhCompareStringWithNull(node1->DisplayName, node2->DisplayName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Version)
+{
+    sortResult = PhCompareStringWithNull(node1->AppUserModelId, node2->AppUserModelId, TRUE);
+}
+END_SORT_FUNCTION
+
+BOOLEAN PhRunAsPackageNodeHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE node1 = *(PPH_RUNASPACKAGE_TREE_ROOT_NODE*)Entry1;
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE node2 = *(PPH_RUNASPACKAGE_TREE_ROOT_NODE*)Entry2;
+
+    return PhEqualString(node1->AppUserModelId, node2->AppUserModelId, TRUE);
+}
+
+ULONG PhRunAsPackageNodeHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return PhHashStringRef(&(*(PPH_RUNASPACKAGE_TREE_ROOT_NODE*)Entry)->AppUserModelId->sr, TRUE);
+}
+
+VOID PhRunAsPackageDestroyNode(
+    _In_ PPH_RUNASPACKAGE_TREE_ROOT_NODE Node
+    )
+{
+    PhClearReference(&Node->AppUserModelId);
+    PhClearReference(&Node->DisplayName);
+    PhClearReference(&Node->PackageInstallPath);
+    PhClearReference(&Node->PackageFullName);
+    PhClearReference(&Node->SmallLogoPath);
+
+    PhFree(Node);
+}
+
+PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageAddNode(
+    _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context,
+    _In_ PPH_APPUSERMODELID_ENUM_ENTRY Package
+    )
+{
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE node;
+
+    node = PhAllocate(sizeof(PH_RUNASPACKAGE_TREE_ROOT_NODE));
+    memset(node, 0, sizeof(PH_RUNASPACKAGE_TREE_ROOT_NODE));
+
+    PhInitializeTreeNewNode(&node->Node);
+
+    memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PH_RUNASPACKAGE_TREE_COLUMN_ITEM_MAXIMUM);
+    node->Node.TextCache = node->TextCache;
+    node->Node.TextCacheSize = PH_RUNASPACKAGE_TREE_COLUMN_ITEM_MAXIMUM;
+
+    PhSetReference(&node->AppUserModelId, Package->AppUserModelId);
+    PhSetReference(&node->DisplayName, Package->PackageDisplayName);
+    PhSetReference(&node->PackageInstallPath, Package->PackageInstallPath);
+    PhSetReference(&node->PackageFullName, Package->PackageFullName);
+    PhSetReference(&node->SmallLogoPath, Package->SmallLogoPath);
+
+    if (Package->SmallLogoPath && PhDoesFileExistWin32(Package->SmallLogoPath->Buffer))
+    {
+        HICON iconHandle = NULL;
+        HBITMAP bitmap;
+        LONG width;
+        LONG height;
+
+        width = PhGetSystemMetrics(SM_CXICON, Context->WindowDpi);
+        height = PhGetSystemMetrics(SM_CYICON, Context->WindowDpi);
+
+        if (bitmap = PhLoadImageFromFile(Package->SmallLogoPath->Buffer, width, height))
+        {
+            iconHandle = PhGdiplusConvertBitmapToIcon(bitmap, width, height, RGB(0, 0, 0));
+            DeleteBitmap(bitmap);
+        }
+
+        if (iconHandle)
+        {
+            node->IconIndex = PhImageListAddIcon(Context->ImageListHandle, iconHandle);
+            DestroyIcon(iconHandle);
+        }
+    }
+
+    PhAddEntryHashtable(Context->NodeHashtable, &node);
+    PhAddItemList(Context->NodeList, node);
+
+    if (Context->TreeFilterSupport.FilterList)
+        node->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->TreeFilterSupport, &node->Node);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    return node;
+}
+
+PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageFindNode(
+    _In_ PPH_RUNAS_PACKAGE_CONTEXT Context,
+    _In_ PPH_STRING AppUserModelId
+    )
+{
+    PH_RUNASPACKAGE_TREE_ROOT_NODE lookupNode;
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE lookupNodePtr = &lookupNode;
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE *node;
+
+    lookupNode.AppUserModelId = AppUserModelId;
+
+    node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE*)PhFindEntryHashtable(
+        Context->NodeHashtable,
+        &lookupNodePtr
+        );
+
+    if (node)
+        return *node;
+    else
+        return NULL;
+}
+
+VOID PhRunAsPackageRemoveNode(
+    _In_ PPH_RUNAS_PACKAGE_CONTEXT Context,
+    _In_ PPH_RUNASPACKAGE_TREE_ROOT_NODE Node
+    )
+{
+    ULONG index = 0;
+
+    PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
+
+    if ((index = PhFindItemList(Context->NodeList, Node)) != ULONG_MAX)
+    {
+        PhRemoveItemList(Context->NodeList, index);
+    }
+
+    PhRunAsPackageDestroyNode(Node);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID PhRunAsPackageUpdateNode(
+    _In_ PPH_RUNAS_PACKAGE_CONTEXT Context,
+    _In_ PPH_RUNASPACKAGE_TREE_ROOT_NODE Node
+    )
+{
+    memset(Node->TextCache, 0, sizeof(PH_STRINGREF) * PH_RUNASPACKAGE_TREE_COLUMN_ITEM_MAXIMUM);
+
+    PhInvalidateTreeNewNode(&Node->Node, TN_CACHE_COLOR);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+BOOLEAN NTAPI PhRunAsPackageTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    PPH_RUNAS_PACKAGE_CONTEXT context = Context;
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE node;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+            node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE)getChildren->Node;
+
+            if (!getChildren->Node)
+            {
+                static PVOID sortFunctions[] =
+                {
+                    SORT_FUNCTION(Name),
+                    SORT_FUNCTION(Version)
+                };
+                int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                if (context->TreeNewSortColumn < PH_RUNASPACKAGE_TREE_COLUMN_ITEM_MAXIMUM)
+                    sortFunction = sortFunctions[context->TreeNewSortColumn];
+                else
+                    sortFunction = NULL;
+
+                if (sortFunction)
+                {
+                    qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
+                }
+
+                getChildren->Children = (PPH_TREENEW_NODE *)context->NodeList->Items;
+                getChildren->NumberOfChildren = context->NodeList->Count;
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
+            node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE)isLeaf->Node;
+
+            isLeaf->IsLeaf = TRUE;
+        }
+        return TRUE;
+    case TreeNewGetCellText:
+        {
+            PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
+            node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE)getCellText->Node;
+
+            switch (getCellText->Id)
+            {
+            case PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME:
+                getCellText->Text = PhGetStringRef(node->DisplayName);
+                break;
+            case PH_RUNASPACKAGE_TREE_COLUMN_ITEM_APPID:
+                getCellText->Text = PhGetStringRef(node->AppUserModelId);
+                break;
+            default:
+                return FALSE;
+            }
+
+            getCellText->Flags = TN_CACHE;
+        }
+        return TRUE;
+    case TreeNewGetNodeColor:
+        {
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
+            node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE)getNodeColor->Node;
+
+            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+        }
+        return TRUE;
+    case TreeNewSortChanged:
+        {
+            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            // Force a rebuild to sort the items.
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    SendMessage(context->WindowHandle, WM_COMMAND, ID_OBJECT_COPY, 0);
+                break;
+            case 'A':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
+                break;
+            case VK_DELETE:
+                SendMessage(context->WindowHandle, WM_COMMAND, ID_OBJECT_CLOSE, 0);
+                break;
+            }
+        }
+        return TRUE;
+    case TreeNewCustomDraw:
+        {
+            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
+            RECT rect;
+
+            rect = customDraw->CellRect;
+            node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE)customDraw->Node;
+
+            switch (customDraw->Column->Id)
+            {
+            case PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME:
+                {
+                    PH_STRINGREF text;
+                    SIZE nameSize;
+                    SIZE textSize;
+                    LONG dpiValue;
+
+                    dpiValue = PhGetWindowDpi(hwnd);
+
+                    rect.left += PhGetDpi(15, dpiValue);
+                    rect.top += PhGetDpi(5, dpiValue);
+                    rect.right -= PhGetDpi(5, dpiValue);
+                    rect.bottom -= PhGetDpi(8, dpiValue);
+
+                    rect.left += 32;
+
+                    // top
+                    if (PhEnableThemeSupport)
+                        SetTextColor(customDraw->Dc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    else
+                        SetTextColor(customDraw->Dc, RGB(0x0, 0x0, 0x0));
+
+                    SelectFont(customDraw->Dc, context->TitleFontHandle);
+                    text = PhIsNullOrEmptyString(node->DisplayName) ? PhGetStringRef(node->AppUserModelId) : PhGetStringRef(node->DisplayName);
+                    GetTextExtentPoint32(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &nameSize);
+                    DrawText(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &rect, DT_TOP | DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE);
+
+                    // bottom
+                    if (PhEnableThemeSupport)
+                        SetTextColor(customDraw->Dc, RGB(0x90, 0x90, 0x90));
+                    else
+                        SetTextColor(customDraw->Dc, RGB(0x64, 0x64, 0x64));
+
+                    SelectFont(customDraw->Dc, context->NormalFontHandle);
+                    text = PhGetStringRef(node->AppUserModelId);
+                    GetTextExtentPoint32(customDraw->Dc, text.Buffer, (ULONG)text.Length / sizeof(WCHAR), &textSize);
+                    DrawText(
+                        customDraw->Dc,
+                        text.Buffer,
+                        (ULONG)text.Length / sizeof(WCHAR),
+                        &rect,
+                        DT_BOTTOM | DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE
+                        );
+
+                    if (context->ImageListHandle)
+                    {
+                        PhImageListDrawEx(
+                            context->ImageListHandle,
+                            (ULONG)(ULONG_PTR)node->IconIndex,
+                            customDraw->Dc,
+                            customDraw->CellRect.left + 5,
+                            customDraw->CellRect.top + ((customDraw->CellRect.bottom - customDraw->CellRect.top) - 32) / 2,
+                            32,
+                            32,
+                            CLR_DEFAULT,
+                            CLR_NONE,
+                            ILD_TRANSPARENT,
+                            ILS_NORMAL
+                            );
+                    }
+
+                }
+                break;
+            }
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PhRunAsPackageClearTree(
+    _In_ PPH_RUNAS_PACKAGE_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        PhRunAsPackageDestroyNode(Context->NodeList->Items[i]);
+
+    PhClearHashtable(Context->NodeHashtable);
+    PhClearList(Context->NodeList);
+
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageGetSelectedNode(
+    _In_ PPH_RUNAS_PACKAGE_CONTEXT Context
+    )
+{
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE node = NULL;
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        node = Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+            return node;
+    }
+
+    return NULL;
+}
+
+_Success_(return)
+BOOLEAN PhRunAsPackageGetSelectedNodes(
+    _In_ PPH_RUNAS_PACKAGE_CONTEXT Context,
+    _Out_ PPH_RUNASPACKAGE_TREE_ROOT_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
+    )
+{
+    PPH_LIST list = PhCreateList(2);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_RUNASPACKAGE_TREE_ROOT_NODE node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE)Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            PhAddItemList(list, node);
+        }
+    }
+
+    if (list->Count)
+    {
+        *Nodes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+        *NumberOfNodes = list->Count;
+
+        PhDereferenceObject(list);
+        return TRUE;
+    }
+
+    PhDereferenceObject(list);
+    return FALSE;
+}
+
+BOOLEAN PhRunAsPackageTreeFilterCallback(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_ PVOID Context
+    )
+{
+    PPH_RUNASPACKAGE_TREE_ROOT_NODE node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE)Node;
+    PPH_RUNAS_PACKAGE_CONTEXT context = Context;
+
+    if (PhIsNullOrEmptyString(context->SearchBoxText))
+        return TRUE;
+
+    if (node->AppUserModelId && PhWordMatchStringRef(&context->SearchBoxText->sr, &node->AppUserModelId->sr))
+        return TRUE;
+    if (node->DisplayName && PhWordMatchStringRef(&context->SearchBoxText->sr, &node->DisplayName->sr))
+        return TRUE;
+    if (node->PackageInstallPath && PhWordMatchStringRef(&context->SearchBoxText->sr, &node->PackageInstallPath->sr))
+        return TRUE;
+    if (node->PackageFullName && PhWordMatchStringRef(&context->SearchBoxText->sr, &node->PackageFullName->sr))
+        return TRUE;
+
+    return FALSE;
+}
+
+VOID PhRunAsPackageInitializeTree(
+    _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
+    )
+{
+    static PH_STRINGREF PhRunAsPackageLoadingText = PH_STRINGREF_INIT(L"Loading package information...");
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+    Context->NodeList = PhCreateList(20);
+    Context->NodeHashtable = PhCreateHashtable(
+        sizeof(PPH_RUNASPACKAGE_TREE_ROOT_NODE),
+        PhRunAsPackageNodeHashtableEqualFunction,
+        PhRunAsPackageNodeHashtableHashFunction,
+        20
+        );
+
+    Context->NormalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL, dpiValue);
+    Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, dpiValue);
+
+    PhSetControlTheme(Context->TreeNewHandle, L"explorer");
+
+    TreeNew_SetCallback(Context->TreeNewHandle, PhRunAsPackageTreeNewCallback, Context);
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, dpiValue));
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+
+    PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TRUE, L"Package", 80, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+    //PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_VERSION, TRUE, L"Version", 80, PH_ALIGN_CENTER, 1, DT_CENTER, 0);
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+    TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
+
+    //PhRunAsPackageLoadSettingsTreeList(Context);
+
+    PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
+    Context->SearchBoxText = PhReferenceEmptyString();
+    Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->TreeFilterSupport, PhRunAsPackageTreeFilterCallback, Context);
+
+    TreeNew_SetEmptyText(Context->TreeNewHandle, &PhRunAsPackageLoadingText, 0);
+}
+
+VOID PhRunAsPackageDeleteTree(
+    _In_ PPH_RUNAS_PACKAGE_CONTEXT Context
+    )
+{
+    PhClearReference(&Context->SearchBoxText);
+
+    PhRemoveTreeNewFilter(&Context->TreeFilterSupport, Context->TreeFilterEntry);
+    PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
+
+    if (Context->TitleFontHandle)
+        DeleteFont(Context->TitleFontHandle);
+    if (Context->NormalFontHandle)
+        DeleteFont(Context->NormalFontHandle);
+
+    //PhRunAsPackageSaveSettingsTreeList(Context);
+
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        PhRunAsPackageDestroyNode(Context->NodeList->Items[i]);
+
+    PhDereferenceObject(Context->NodeHashtable);
+    PhDereferenceObject(Context->NodeList);
+}
+
+#pragma endregion
+
+static NTSTATUS PhEnumPackageThreadCallback(
+    _In_ PVOID Context
+    )
+{
+    PPH_RUNAS_PACKAGE_CONTEXT context = Context;
+
+    PPH_LIST apps = PhEnumPackageApplicationUserModelIds();
+    PostMessage(context->WindowHandle, WM_PH_UPDATE_DIALOG, 0, (LPARAM)apps);
+
+    PhDereferenceObject(context);
+    return STATUS_SUCCESS;
+}
+
+static VOID PhRunAsPackageSetImagelist(
+    _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
+    )
+{
+    PhImageListDestroy(Context->ImageListHandle);
+    Context->ImageListHandle = PhImageListCreate(
+        PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
+        PhGetSystemMetrics(SM_CYICON, Context->WindowDpi),
+        ILC_MASK | ILC_COLOR32,
+        20,
+        10
+        );
+}
+
+VOID NTAPI PhPackageWindowContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    //PPH_RUNAS_PACKAGE_CONTEXT context = (PPH_RUNAS_PACKAGE_CONTEXT)Object;
+    NOTHING;
+}
+
+PPH_RUNAS_PACKAGE_CONTEXT PhCreatePackageWindowContext(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_OBJECT_TYPE PhPackageWindowContextObjectType;
+    PPH_RUNAS_PACKAGE_CONTEXT context;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhPackageWindowContextObjectType = PhCreateObjectType(L"RunAsPackageWindowContext", 0, PhPackageWindowContextDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
+    context = PhCreateObject(sizeof(PH_RUNAS_PACKAGE_CONTEXT), PhPackageWindowContextObjectType);
+    memset(context, 0, sizeof(PH_RUNAS_PACKAGE_CONTEXT));
+
+    return context;
+}
+
+INT_PTR CALLBACK PhRunAsPackageWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPH_RUNAS_PACKAGE_CONTEXT context = NULL;
+
+    if (WindowMessage == WM_INITDIALOG)
+    {
+        context = PhCreatePackageWindowContext();
+
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
+        if (WindowMessage == WM_DESTROY)
+        {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (WindowMessage)
+    {
+    case WM_INITDIALOG:
+        {
+            context->WindowHandle = WindowHandle;
+            context->ParentWindowHandle = (HWND)lParam;
+            context->ComboBoxHandle = GetDlgItem(WindowHandle, IDC_PROGRAMCOMBO);
+            context->SearchBoxHandle = GetDlgItem(WindowHandle, IDC_SEARCH);
+            context->TreeNewHandle = GetDlgItem(WindowHandle, IDC_LIST);
+            context->WindowDpi = PhGetWindowDpi(WindowHandle);
+
+            PhSetApplicationWindowIconEx(WindowHandle, context->WindowDpi);
+
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
+            PhAddLayoutItem(&context->LayoutManager, context->ComboBoxHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, context->SearchBoxHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            if (PhGetIntegerPairSetting(L"RunAsPackageWindowPosition").X)
+                PhLoadWindowPlacementFromSetting(L"RunAsPackageWindowPosition", L"RunAsPackageWindowSize", WindowHandle);
+            else
+                PhCenterWindow(WindowHandle, PhMainWndHandle);
+
+            TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
+
+            PhpAddProgramsToComboBox(context->ComboBoxHandle);
+            ComboBox_SetCurSel(context->ComboBoxHandle, 0);
+
+            PhRunAsPackageSetImagelist(context);
+            PhRunAsPackageInitializeTree(context);
+
+            PhCreateSearchControl(WindowHandle, context->SearchBoxHandle, L"Search Packages");
+
+            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+
+            PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDCANCEL));
+
+            EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), FALSE);
+            PhReferenceObject(context);
+            PhCreateThread2(PhEnumPackageThreadCallback, context);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveWindowPlacementToSetting(L"RunAsPackageWindowPosition", L"RunAsPackageWindowSize", WindowHandle);
+
+            PhRunAsPackageDeleteTree(context);
+
+            PhImageListDestroy(context->ImageListHandle);
+
+            PhDeleteApplicationWindowIcon(WindowHandle);
+
+            PhDereferenceObject(context);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+
+            TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
+        }
+        break;
+    case WM_PH_UPDATE_DIALOG:
+        {
+            PPH_LIST apps = (PPH_LIST)lParam;
+
+            EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), TRUE);
+
+            if (apps)
+            {
+                TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
+
+                for (ULONG i = 0; i < apps->Count; i++)
+                {
+                    PhRunAsPackageAddNode(context, apps->Items[i]);
+                }
+
+                TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
+                TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
+
+                PhDestroyEnumPackageApplicationUserModelIds(apps);
+            }
+            else
+            {
+                // Error
+            }
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(WindowHandle, IDCANCEL);
+                break;
+            case IDC_BROWSE:
+                {
+                    PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Executable files (*.exe;*.pif;*.com;*.bat;*.cmd)", L"*.exe;*.pif;*.com;*.bat;*.cmd" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog = PhCreateOpenFileDialog();
+
+                    PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
+
+                    if (PhShowFileDialog(WindowHandle, fileDialog))
+                    {
+                        PPH_STRING fileName;
+
+                        if (fileName = PhGetFileDialogFileName(fileDialog))
+                        {
+                            ComboBox_SetText(context->ComboBoxHandle, PhGetString(fileName));
+                            PhDereferenceObject(fileName);
+                        }
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
+                break;
+            case IDOK:
+                {
+                    PPH_RUNASPACKAGE_TREE_ROOT_NODE node;
+                    HRESULT status;
+                    PPH_STRING windowText;
+
+                    if (node = PhRunAsPackageGetSelectedNode(context))
+                    {
+                        if (windowText = PhGetWindowText(context->ComboBoxHandle))
+                        {
+                            PPH_STRING argumentsString = NULL;
+                            PPH_STRING commandString = NULL;
+                            PPH_STRING fullFileName = NULL;
+                            PH_STRINGREF fileName;
+                            PH_STRINGREF arguments;
+
+                            if (PhIsNullOrEmptyString(windowText))
+                                break;
+
+                            if (!(commandString = PhExpandEnvironmentStrings(&windowText->sr)))
+                                commandString = PhCreateString2(&windowText->sr);
+
+                            PhParseCommandLineFuzzy(&commandString->sr, &fileName, &arguments, &fullFileName);
+
+                            if (PhIsNullOrEmptyString(fullFileName))
+                                PhMoveReference(&fullFileName, PhCreateString2(&fileName));
+
+                            if (arguments.Length)
+                            {
+                                argumentsString = PhCreateString2(&arguments);
+                            }
+
+                            status = PhCreateProcessDesktopPackage(
+                                PhGetString(node->AppUserModelId),
+                                PhGetString(fullFileName),
+                                PhGetString(argumentsString),
+                                FALSE,
+                                NULL,
+                                NULL
+                                );
+
+                            if (HR_SUCCESS(status))
+                            {
+                                PhpAddRunMRUListEntry(commandString);
+
+                                EndDialog(WindowHandle, IDOK);
+                            }
+                            else
+                            {
+                                PhShowStatus(WindowHandle, L"Unable to execute the command.", 0, status);
+                            }
+
+                            PhClearReference(&argumentsString);
+                            PhClearReference(&fullFileName);
+                            PhClearReference(&commandString);
+                        }
+                    }
+                }
+                break;
+            case IDC_REFRESH:
+                {
+                    EnableWindow(GetDlgItem(WindowHandle, IDC_REFRESH), FALSE);
+
+                    PhRunAsPackageClearTree(context);
+                    PhRunAsPackageSetImagelist(context);
+
+                    PhReferenceObject(context);
+                    PhCreateThread2(PhEnumPackageThreadCallback, context);
+                }
+                break;
+            }
+
+            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            {
+            case EN_CHANGE:
+                {
+                    PPH_STRING newSearchboxText;
+
+                    if (!context->SearchBoxHandle)
+                        break;
+
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
+                        break;
+
+                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
+
+                    if (!PhEqualString(context->SearchBoxText, newSearchboxText, FALSE))
+                    {
+                        PhSwapReference(&context->SearchBoxText, newSearchboxText);
+
+                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

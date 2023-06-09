@@ -14,9 +14,11 @@
 #include <toolstatusintf.h>
 
 #include <cfgmgr32.h>
+#include <devguid.h>
+#include <wdmguid.h>
 #include <SetupAPI.h>
 
-#undef DEFINE_GUID 
+#undef DEFINE_GUID
 #include <devpropdef.h>
 #include <pciprop.h>
 #include <ntddstor.h>
@@ -252,6 +254,11 @@ typedef enum _DEVNODE_PROP_TYPE
 } DEVNODE_PROP_TYPE, PDEVNODE_PROP_TYPE;
 C_ASSERT(MaxDevType <= MAXSHORT);
 
+#if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
+// Note: This propkey is required for building with 22H1 and older Windows SDK (dmex)
+DEFINE_DEVPROPKEY(DEVPKEY_Device_FirmwareVendor, 0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 26);   // DEVPROP_TYPE_STRING
+#endif
+
 typedef struct _DEVNODE_PROP
 {
     union
@@ -294,7 +301,7 @@ typedef struct _DEVICE_NODE
 
     HDEVINFO DeviceInfoHandle;
     SP_DEVINFO_DATA DeviceInfoData;
-    HICON Icon;
+    ULONG_PTR IconIndex;
 
     PPH_STRING InstanceId;
     PPH_STRING ParentInstanceId;
@@ -359,17 +366,21 @@ static PH_STRINGREF RootInstanceId = PH_STRINGREF_INIT(L"HTREE\\ROOT\\0");
 static PPH_OBJECT_TYPE DeviceNodeType = NULL;
 static PPH_OBJECT_TYPE DeviceTreeType = NULL;
 
-static ULONG AutoRefreshDeviceTree = 1;
-static ULONG ShowDisconnected = 1;
-static ULONG HighlightUpperFiltered = 1;
-static ULONG HighlightLowerFiltered = 1;
+static BOOLEAN AutoRefreshDeviceTree = TRUE;
+static BOOLEAN ShowDisconnected = TRUE;
+static BOOLEAN ShowSoftwareComponents = TRUE;
+static BOOLEAN HighlightUpperFiltered = TRUE;
+static BOOLEAN HighlightLowerFiltered = TRUE;
 static ULONG DeviceProblemColor = 0;
 static ULONG DeviceDisabledColor = 0;
 static ULONG DeviceDisconnectedColor = 0;
 static ULONG DeviceHighlightColor = 0;
 
+static BOOLEAN DeviceTreeCreated = FALSE;
 static HWND DeviceTreeHandle = NULL;
 static PDEVICE_TREE DeviceTree = NULL;
+static HIMAGELIST DeviceImageList = NULL;
+static PH_INTEGER_PAIR DeviceIconSize = { 16, 16 };
 static PH_LIST DeviceFilterList = { 0 };
 static PPH_MAIN_TAB_PAGE DevicesAddedTabPage = NULL;
 static PTOOLSTATUS_INTERFACE ToolStatusInterface = NULL;
@@ -447,7 +458,7 @@ BOOLEAN GetDevicePropertyUInt64(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PULONG64 Value 
+    _Out_ PULONG64 Value
     )
 {
     BOOL result;
@@ -478,7 +489,7 @@ BOOLEAN GetClassPropertyUInt64(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PULONG64 Value 
+    _Out_ PULONG64 Value
     )
 {
     BOOL result;
@@ -508,7 +519,7 @@ BOOLEAN GetDevicePropertyUInt32(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PULONG Value 
+    _Out_ PULONG Value
     )
 {
     BOOL result;
@@ -539,7 +550,7 @@ BOOLEAN GetClassPropertyUInt32(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PULONG Value 
+    _Out_ PULONG Value
     )
 {
     BOOL result;
@@ -569,7 +580,7 @@ BOOLEAN GetDevicePropertyInt32(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PLONG Value 
+    _Out_ PLONG Value
     )
 {
     BOOL result;
@@ -600,7 +611,7 @@ BOOLEAN GetClassPropertyInt32(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PLONG Value 
+    _Out_ PLONG Value
     )
 {
     BOOL result;
@@ -630,7 +641,7 @@ BOOLEAN GetDevicePropertyNTSTATUS(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PNTSTATUS Status 
+    _Out_ PNTSTATUS Status
     )
 {
     BOOL result;
@@ -661,7 +672,7 @@ BOOLEAN GetClassPropertyNTSTATUS(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PNTSTATUS Status 
+    _Out_ PNTSTATUS Status
     )
 {
     BOOL result;
@@ -691,7 +702,7 @@ BOOLEAN GetDevicePropertyBoolean(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PBOOLEAN Boolean 
+    _Out_ PBOOLEAN Boolean
     )
 {
     BOOL result;
@@ -725,7 +736,7 @@ BOOLEAN GetClassPropertyBoolean(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PBOOLEAN Boolean 
+    _Out_ PBOOLEAN Boolean
     )
 {
     BOOL result;
@@ -848,7 +859,7 @@ BOOLEAN GetDevicePropertyString(
         0
         );
     if (result ||
-        (requiredLength == 0) || 
+        (requiredLength == 0) ||
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
         ((devicePropertyType != DEVPROP_TYPE_STRING) &&
          (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
@@ -907,7 +918,7 @@ BOOLEAN GetClassPropertyString(
         Flags
         );
     if (result ||
-        (requiredLength == 0) || 
+        (requiredLength == 0) ||
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
         ((devicePropertyType != DEVPROP_TYPE_STRING) &&
          (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
@@ -967,7 +978,7 @@ BOOLEAN GetDevicePropertyStringList(
         0
         );
     if (result ||
-        (requiredLength == 0) || 
+        (requiredLength == 0) ||
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
         (devicePropertyType != DEVPROP_TYPE_STRING_LIST))
     {
@@ -1044,7 +1055,7 @@ BOOLEAN GetClassPropertyStringList(
         Flags
         );
     if (result ||
-        (requiredLength == 0) || 
+        (requiredLength == 0) ||
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
         (devicePropertyType != DEVPROP_TYPE_STRING_LIST))
     {
@@ -1494,6 +1505,233 @@ VOID NTAPI DevPropFillGuid(
     }
 }
 
+PPH_STRING DevPropBusTypeGuidToString(
+    _In_ PGUID BusTypeGuid
+    )
+{
+    if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_INTERNAL))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_INTERNAL");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_PCMCIA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_PCMCIA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_PCI))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_PCI");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_ISAPNP))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_ISAPNP");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_EISA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_EISA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_MCA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_MCA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SERENUM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SERENUM");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_USB))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_USB");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_LPTENUM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_LPTENUM");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_USBPRINT))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_USBPRINT");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_DOT4PRT))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_DOT4PRT");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_1394))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_1394");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_HID))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_HID");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_AVC))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_AVC");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_IRDA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_IRDA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SD))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SD");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_ACPI))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_ACPI");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SW_DEVICE))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SW_DEVICE");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SCM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SCM");
+        return PhCreateString2(&string);
+    }
+
+    return NULL;
+}
+
+_Function_class_(DEVPROP_FILL_CALLBACK)
+VOID NTAPI DevPropFillBusTypeGuid(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PDEVNODE_PROP Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = DevPropTypeGUID;
+
+    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    {
+        Property->Valid = GetDevicePropertyGuid(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            &Property->Guid
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    {
+        Property->Valid = GetClassPropertyGuid(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INTERFACE,
+            &Property->Guid
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
+    {
+        Property->Valid = GetClassPropertyGuid(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INSTALLER,
+            &Property->Guid
+            );
+    }
+
+    if (Property->Valid)
+    {
+        Property->AsString = DevPropBusTypeGuidToString(&Property->Guid);
+
+        if (!Property->AsString)
+        {
+            Property->AsString = PhFormatGuid(&Property->Guid);
+        }
+    }
+}
+
+PPH_STRING DevPropPciDeviceInterruptSupportToString(
+    _In_ ULONG Flags
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_InterruptType_LineBased))
+        PhAppendStringBuilder2(&stringBuilder, L"Line based, ");
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_InterruptType_Msi))
+        PhAppendStringBuilder2(&stringBuilder, L"Msi, ");
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_InterruptType_MsiX))
+        PhAppendStringBuilder2(&stringBuilder, L"MsiX, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhPrintPointer(pointer, UlongToPtr(Flags));
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+_Function_class_(DEVPROP_FILL_CALLBACK)
+VOID NTAPI DevPropFillPciDeviceInterruptSupport(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PDEVNODE_PROP Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = DevPropTypeUInt32;
+
+    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    {
+        Property->Valid = GetDevicePropertyUInt32(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            &Property->UInt32
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    {
+        Property->Valid = GetClassPropertyUInt32(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INTERFACE,
+            &Property->UInt32
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
+    {
+        Property->Valid = GetClassPropertyUInt32(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INSTALLER,
+            &Property->UInt32
+            );
+    }
+
+    if (Property->Valid)
+    {
+        Property->AsString = DevPropPciDeviceInterruptSupportToString(Property->UInt32);
+    }
+}
+
 _Function_class_(DEVPROP_FILL_CALLBACK)
 VOID NTAPI DevPropFillBoolean(
     _In_ HDEVINFO DeviceInfoSet,
@@ -1732,7 +1970,7 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
     { L"Compatible IDs", FALSE, 80, 0, DevKeyCompatibleIds, &DEVPKEY_Device_CompatibleIds, DevPropFillStringList, 0 },
     { L"Configuration Flags", FALSE, 80, 0, DevKeyConfigFlags, &DEVPKEY_Device_ConfigFlags, DevPropFillUInt32Hex, 0 },
     { L"Number", FALSE, 80, 0, DevKeyUINumber, &DEVPKEY_Device_UINumber, DevPropFillUInt32, 0 },
-    { L"Bus Type GUID", FALSE, 80, 0, DevKeyBusTypeGuid, &DEVPKEY_Device_BusTypeGuid, DevPropFillGuid, 0 },
+    { L"Bus Type GUID", FALSE, 80, 0, DevKeyBusTypeGuid, &DEVPKEY_Device_BusTypeGuid, DevPropFillBusTypeGuid, 0 },
     { L"Legacy Bus Type", FALSE, 80, 0, DevKeyLegacyBusType, &DEVPKEY_Device_LegacyBusType, DevPropFillUInt32, 0 },
     { L"Bus Number", FALSE, 80, 0, DevKeyBusNumber, &DEVPKEY_Device_BusNumber, DevPropFillUInt32, 0 },
     //{ L"", FALSE, 80, 0, DevKey, &DEVPKEY_Device_Security, NULL, 0 },               // DEVPROP_TYPE_SECURITY_DESCRIPTOR
@@ -1900,7 +2138,7 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
 
     { L"Object Type", FALSE, 80, 0, DevKeyObjectType, &DEVPKEY_DevQuery_ObjectType, DevPropFillUInt32, 0 },
 
-    { L"PCI Interrupt Support", FALSE, 80, 0, DevKeyPciInterruptSupport, &DEVPKEY_PciDevice_InterruptSupport, DevPropFillUInt32Hex, 0 },
+    { L"PCI Interrupt Support", FALSE, 80, 0, DevKeyPciInterruptSupport, &DEVPKEY_PciDevice_InterruptSupport, DevPropFillPciDeviceInterruptSupport, 0 },
     { L"PCI Express Capability Control", FALSE, 80, 0, DevKeyPciExpressCapabilityControl, &DEVPKEY_PciRootBus_PCIExpressCapabilityControl, DevPropFillBoolean, 0 },
     { L"PCI Native Express Control", FALSE, 80, 0, DevKeyPciNativeExpressControl, &DEVPKEY_PciRootBus_NativePciExpressControl, DevPropFillBoolean, 0 },
     { L"PCI System MSI Support", FALSE, 80, 0, DevKeyPciSystemMsiSupport, &DEVPKEY_PciRootBus_SystemMsiSupport, DevPropFillBoolean, 0 },
@@ -1912,7 +2150,7 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
     { L"Storage Disk Partition Number", FALSE, 80, 0, DevKeyStoragePartitionNumber, &DEVPKEY_Storage_Partition_Number, DevPropFillUInt32, 0 },
 };
 
-#if DEBUG 
+#if DEBUG
 static BOOLEAN BreakOnDeviceProperty = FALSE;
 static DEVNODE_PROP_KEY BreakOnDevPropKey = 0;
 #endif
@@ -1968,10 +2206,11 @@ PDEVICE_NODE NTAPI AddDeviceNode(
     node->Node.TextCacheSize = ARRAYSIZE(node->TextCache);
 
     node->Children = PhCreateList(1);
+    node->IconIndex = ULONG_MAX;
 
     //
     // Only get the minimum here, the rest will be retrieved later if necessary.
-    // For convenience later, other frequently referenced items are gotten here too. 
+    // For convenience later, other frequently referenced items are gotten here too.
     //
 
     node->InstanceId = GetDeviceNodeProperty(node, DevKeyInstanceId)->AsString;
@@ -1995,8 +2234,7 @@ PDEVICE_NODE NTAPI AddDeviceNode(
             }
 
             prop->Initialized = TRUE;
-
-            node->Icon = PhGetApplicationIcon(FALSE);
+            node->IconIndex = 0; // application icon
         }
 
         PhReferenceObject(node->InstanceId);
@@ -2044,18 +2282,25 @@ PDEVICE_NODE NTAPI AddDeviceNode(
         node->HasLowerFilters = TRUE;
     }
 
-    if (node->Icon == NULL)
+    if (node->IconIndex == ULONG_MAX)
     {
-        if (!SetupDiLoadDeviceIcon(
+        HICON iconHandle;
+
+        if (SetupDiLoadDeviceIcon(
             node->DeviceInfoHandle,
             DeviceInfoData,
-            SM_CXICON,
-            SM_CXICON,
+            DeviceIconSize.X,
+            DeviceIconSize.X,
             0,
-            &node->Icon
+            &iconHandle
             ))
         {
-            node->Icon = NULL;
+            node->IconIndex = PhImageListAddIcon(DeviceImageList, iconHandle);
+            DestroyIcon(iconHandle);
+        }
+        else
+        {
+            node->IconIndex = 0; // Must be set to zero (dmex)
         }
     }
 
@@ -2110,9 +2355,6 @@ VOID DeviceNodeDeleteProcedure(
 
     if (node->ParentInstanceId)
         PhDereferenceObject(node->ParentInstanceId);
-
-    if (node->Icon)
-        DestroyIcon(node->Icon);
 }
 
 VOID DeviceTreeDeleteProcedure(
@@ -2174,7 +2416,7 @@ PDEVICE_TREE CreateDeviceTree(
     tree->DeviceInfoHandle = SetupDiGetClassDevsW(
         NULL,
         NULL,
-        NULL, 
+        NULL,
         DIGCF_ALLCLASSES
         );
     if (tree->DeviceInfoHandle == INVALID_HANDLE_VALUE)
@@ -2186,10 +2428,16 @@ PDEVICE_TREE CreateDeviceTree(
     {
         SP_DEVINFO_DATA deviceInfoData;
 
+        memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
         deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
         if (!SetupDiEnumDeviceInfo(tree->DeviceInfoHandle, i, &deviceInfoData))
-        {
             break;
+
+        if (!ShowSoftwareComponents)
+        {
+            if (IsEqualGUID(&deviceInfoData.ClassGuid, &GUID_DEVCLASS_SOFTWARECOMPONENT))
+                continue;
         }
 
         AddDeviceNode(tree, &deviceInfoData);
@@ -2415,7 +2663,7 @@ VOID NTAPI DeviceTreeSearchChangedHandler(
 
 static int __cdecl DeviceTreeSortFunction(
     const void* Left,
-    const void* Right 
+    const void* Right
     )
 {
     int sortResult;
@@ -2504,9 +2752,9 @@ static int __cdecl DeviceTreeSortFunction(
 BOOLEAN NTAPI DeviceTreeCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PDEVICE_NODE node;
@@ -2516,8 +2764,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            assert(getChildren);
 
             if (!DeviceTree)
             {
@@ -2540,7 +2786,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         else if (DeviceTree->DeviceRootList->Count)
                         {
                             PDEVICE_NODE root;
-                            
+
                             root = DeviceTree->DeviceRootList->Items[0];
 
                             getChildren->Children = (PPH_TREENEW_NODE*)root->Children->Items;
@@ -2577,9 +2823,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            assert(isLeaf);
-
             node = (PDEVICE_NODE)isLeaf->Node;
 
             if (DeviceTreeSortOrder == NoSortOrder)
@@ -2591,47 +2834,46 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-            PPH_STRING text;
-
-            assert(getCellText);
-
             node = (PDEVICE_NODE)getCellText->Node;
 
-            getCellText->Flags = TN_CACHE;
-
-            text = GetDeviceNodeProperty(node, getCellText->Id)->AsString;
+            PPH_STRING text = GetDeviceNodeProperty(node, getCellText->Id)->AsString;
 
             getCellText->Text = PhGetStringRef(text);
+            getCellText->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-
-            assert(getNodeColor);
-
             node = (PDEVICE_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
 
             if (node->DevNodeStatus & DN_HAS_PROBLEM && (node->ProblemCode != CM_PROB_DISABLED))
+            {
                 getNodeColor->BackColor = DeviceProblemColor;
-            if ((node->Capabilities & CM_DEVCAP_HARDWAREDISABLED) || (node->ProblemCode == CM_PROB_DISABLED))
+            }
+            else if ((node->Capabilities & CM_DEVCAP_HARDWAREDISABLED) || (node->ProblemCode == CM_PROB_DISABLED))
+            {
                 getNodeColor->BackColor = DeviceDisabledColor;
+            }
             else if (node->ProblemCode == CM_PROB_PHANTOM)
-                getNodeColor->BackColor = DeviceDisconnectedColor;
+            {
+                getNodeColor->ForeColor = DeviceDisconnectedColor;
+                ClearFlag(getNodeColor->Flags, TN_AUTO_FORECOLOR);
+            }
             else if ((HighlightUpperFiltered && node->HasUpperFilters) || (HighlightLowerFiltered && node->HasLowerFilters))
+            {
                 getNodeColor->BackColor = DeviceHighlightColor;
+            }
         }
         return TRUE;
     case TreeNewGetNodeIcon:
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
-            assert(getNodeIcon);
-
             node = (PDEVICE_NODE)getNodeIcon->Node;
-            getNodeIcon->Icon = node->Icon;
+            getNodeIcon->Icon = (HICON)(ULONG_PTR)node->IconIndex;
         }
         return TRUE;
     case TreeNewSortChanged:
@@ -2650,28 +2892,30 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_EMENU_ITEM selectedItem;
             PPH_EMENU_ITEM autoRefresh;
             PPH_EMENU_ITEM showDisconnectedDevices;
+            PPH_EMENU_ITEM showSoftwareDevices;
             PPH_EMENU_ITEM highlightUpperFiltered;
             PPH_EMENU_ITEM highlightLowerFiltered;
+            PPH_EMENU_ITEM gotoServiceItem;
             PPH_EMENU_ITEM enable;
             PPH_EMENU_ITEM disable;
             PPH_EMENU_ITEM restart;
             PPH_EMENU_ITEM uninstall;
+            PPH_EMENU_ITEM properties;
             BOOLEAN republish;
             BOOLEAN invalidate;
-
-            if (!contextMenuEvent)
-                break;
 
             node = (PDEVICE_NODE)contextMenuEvent->Node;
 
             menu = PhCreateEMenu();
-
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 100, L"Refresh", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, autoRefresh = PhCreateEMenuItem(0, 101, L"Refresh automatically", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, showDisconnectedDevices = PhCreateEMenuItem(0, 102, L"Show disconnected devices", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightUpperFiltered = PhCreateEMenuItem(0, 103, L"Highlight upper filtered", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightLowerFiltered = PhCreateEMenuItem(0, 104, L"Highlight lower filtered", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, showSoftwareDevices = PhCreateEMenuItem(0, 103, L"Show software components", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightUpperFiltered = PhCreateEMenuItem(0, 104, L"Highlight upper filtered", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightLowerFiltered = PhCreateEMenuItem(0, 105, L"Highlight lower filtered", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(menu, gotoServiceItem = PhCreateEMenuItem(0, 106, L"Go to service...", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, enable = PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, disable = PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
@@ -2685,7 +2929,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, HW_KEY_INDEX_CONFIG, L"Config", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, subMenu, ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 10, L"Properties", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, properties = PhCreateEMenuItem(0, 10, L"Properties", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 11, L"Copy", NULL, NULL), ULONG_MAX);
             PhInsertCopyCellEMenuItem(menu, 11, DeviceTreeHandle, contextMenuEvent->Column);
@@ -2695,10 +2939,29 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 autoRefresh->Flags |= PH_EMENU_CHECKED;
             if (ShowDisconnected)
                 showDisconnectedDevices->Flags |= PH_EMENU_CHECKED;
+            if (ShowSoftwareComponents)
+                showSoftwareDevices->Flags |= PH_EMENU_CHECKED;
             if (HighlightUpperFiltered)
                 highlightUpperFiltered->Flags |= PH_EMENU_CHECKED;
             if (HighlightLowerFiltered)
                 highlightLowerFiltered->Flags |= PH_EMENU_CHECKED;
+
+            if (!node)
+            {
+                PhSetDisabledEMenuItem(gotoServiceItem);
+                PhSetDisabledEMenuItem(subMenu);
+                PhSetDisabledEMenuItem(properties);
+            }
+
+            if (gotoServiceItem && node)
+            {
+                PPH_STRING serviceName = GetDeviceNodeProperty(node, DevKeyService)->AsString;
+
+                if (PhIsNullOrEmptyString(serviceName))
+                {
+                    PhSetDisabledEMenuItem(gotoServiceItem);
+                }
+            }
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
@@ -2772,14 +3035,35 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         invalidate = TRUE;
                         break;
                     case 103:
+                        ShowSoftwareComponents = !ShowSoftwareComponents;
+                        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS, ShowSoftwareComponents);
+                        republish = TRUE;
+                        break;
+                    case 104:
                         HighlightUpperFiltered = !HighlightUpperFiltered;
                         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, HighlightUpperFiltered);
                         invalidate = TRUE;
                         break;
-                    case 104:
+                    case 105:
                         HighlightLowerFiltered = !HighlightLowerFiltered;
                         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED, HighlightLowerFiltered);
                         invalidate = TRUE;
+                        break;
+                    case 106:
+                        {
+                            PPH_STRING serviceName = GetDeviceNodeProperty(node, DevKeyService)->AsString;
+                            PPH_SERVICE_ITEM serviceItem;
+
+                            if (!PhIsNullOrEmptyString(serviceName))
+                            {
+                                if (serviceItem = PhReferenceServiceItem(PhGetString(serviceName)))
+                                {
+                                    ProcessHacker_SelectTabPage(1);
+                                    ProcessHacker_SelectServiceItem(serviceItem);
+                                    PhDereferenceObject(serviceItem);
+                                }
+                            }
+                        }
                         break;
                     }
                 }
@@ -2802,10 +3086,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewLeftDoubleClick:
         {
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
-
-            if (!mouseEvent)
-                break;
-
             node = (PDEVICE_NODE)mouseEvent->Node;
 
             if (node->InstanceId)
@@ -2854,7 +3134,7 @@ VOID DevicesTreeLoadSettings(
 }
 
 VOID DevicesTreeSaveSettings(
-    _In_ HWND TreeNewHandle
+    VOID
     )
 {
     PPH_STRING settings;
@@ -2862,14 +3142,40 @@ VOID DevicesTreeSaveSettings(
     ULONG sortColumn;
     ULONG sortOrder;
 
-    PhSaveWindowPlacementToSetting(SETTING_NAME_DEVICE_TREE_WINDOW_POSITION, SETTING_NAME_DEVICE_TREE_WINDOW_SIZE, TreeNewHandle);
-    settings = PhCmSaveSettings(TreeNewHandle);
-    TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder);
+    if (!DeviceTreeCreated)
+        return;
+
+    settings = PhCmSaveSettings(DeviceTreeHandle);
+    TreeNew_GetSort(DeviceTreeHandle, &sortColumn, &sortOrder);
     sortSettings.X = sortColumn;
     sortSettings.Y = sortOrder;
     PhSetStringSetting2(SETTING_NAME_DEVICE_TREE_COLUMNS, &settings->sr);
     PhSetIntegerPairSetting(SETTING_NAME_DEVICE_TREE_SORT, sortSettings);
     PhDereferenceObject(settings);
+}
+
+VOID DevicesTreeImageListInitialize(
+    _In_ HWND TreeNewHandle
+    )
+{
+    LONG dpi;
+
+    dpi = PhGetWindowDpi(TreeNewHandle);
+    DeviceIconSize.X = PhGetSystemMetrics(SM_CXSMICON, dpi);
+    DeviceIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, dpi);
+
+    if (DeviceImageList) PhImageListDestroy(DeviceImageList);
+    DeviceImageList = PhImageListCreate(
+        DeviceIconSize.X,
+        DeviceIconSize.Y,
+        ILC_MASK | ILC_COLOR32,
+        200,
+        100
+        );
+
+    PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE));
+
+    TreeNew_SetImageList(DeviceTreeHandle, DeviceImageList);
 }
 
 VOID DevicesTreeInitialize(
@@ -2884,6 +3190,8 @@ VOID DevicesTreeInitialize(
     TreeNew_SetCallback(DeviceTreeHandle, DeviceTreeCallback, NULL);
     TreeNew_SetExtendedFlags(DeviceTreeHandle, TN_FLAG_ITEM_DRAG_SELECT, TN_FLAG_ITEM_DRAG_SELECT);
     SendMessage(TreeNew_GetTooltips(DeviceTreeHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
+
+    DevicesTreeImageListInitialize(DeviceTreeHandle);
 
     TreeNew_SetRedraw(DeviceTreeHandle, FALSE);
 
@@ -2939,9 +3247,9 @@ VOID DevicesTreeInitialize(
     if (ToolStatusInterface)
     {
         PhRegisterCallback(
-            ToolStatusInterface->SearchChangedEvent, 
-            DeviceTreeSearchChangedHandler, 
-            NULL, 
+            ToolStatusInterface->SearchChangedEvent,
+            DeviceTreeSearchChangedHandler,
+            NULL,
             &SearchChangedRegistration);
         PhAddTreeNewFilter(&DeviceTreeFilterSupport, DeviceTreeFilterCallback, NULL);
     }
@@ -3051,6 +3359,8 @@ BOOLEAN DevicesTabPageCallback(
             if (!hwnd)
                 return FALSE;
 
+            DeviceTreeCreated = TRUE;
+
             DevicesTreeInitialize(hwnd);
 
             if (Parameter1)
@@ -3066,13 +3376,7 @@ BOOLEAN DevicesTabPageCallback(
         return TRUE;
     case MainTabPageSaveSettings:
         {
-            if (DeviceTreeHandle)
-                DevicesTreeSaveSettings(DeviceTreeHandle);
-        }
-        return TRUE;
-    case MainTabPageDestroy:
-        {
-            DevicesTreeDestroy();
+            DevicesTreeSaveSettings();
         }
         return TRUE;
     case MainTabPageSelected:
@@ -3088,6 +3392,40 @@ BOOLEAN DevicesTabPageCallback(
 
             if (DeviceTreeHandle)
                 SendMessage(DeviceTreeHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
+        }
+        break;
+    case MainTabPageDpiChanged:
+        {
+            if (DeviceImageList)
+            {
+                DevicesTreeImageListInitialize(DeviceTreeHandle);
+
+                if (DeviceTree && DeviceTree->DeviceList)
+                {
+                    for (ULONG i = 0; i < DeviceTree->DeviceList->Count; i++)
+                    {
+                        PDEVICE_NODE node = DeviceTree->DeviceList->Items[i];
+                        HICON iconHandle;
+
+                        if (SetupDiLoadDeviceIcon(
+                            node->DeviceInfoHandle,
+                            &node->DeviceInfoData,
+                            DeviceIconSize.X,
+                            DeviceIconSize.X,
+                            0,
+                            &iconHandle
+                            ))
+                        {
+                            node->IconIndex = PhImageListAddIcon(DeviceImageList, iconHandle);
+                            DestroyIcon(iconHandle);
+                        }
+                        else
+                        {
+                            node->IconIndex = 0; // Must be reset (dmex)
+                        }
+                    }
+                }
+            }
         }
         break;
     }
@@ -3140,6 +3478,7 @@ VOID InitializeDevicesTab(
     DeviceTreeType = PhCreateObjectType(L"DeviceTree", 0, DeviceTreeDeleteProcedure);
     AutoRefreshDeviceTree = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_AUTO_REFRESH);
     ShowDisconnected = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED);
+    ShowSoftwareComponents = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS);
     HighlightUpperFiltered = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED);
     HighlightLowerFiltered = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED);
     DeviceProblemColor = PhGetIntegerSetting(SETTING_NAME_DEVICE_PROBLEM_COLOR);

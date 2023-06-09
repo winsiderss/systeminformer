@@ -30,8 +30,6 @@
 #define SETTING_NAME_GRAPHICS_LIST (PLUGIN_NAME L".GraphicsList")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION (PLUGIN_NAME L".GraphicsNodesWindowPosition")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE (PLUGIN_NAME L".GraphicsNodesWindowSize")
-#define SETTING_NAME_DEVICE_TREE_WINDOW_POSITION (PLUGIN_NAME L".DeviceTreeWindowPosition")
-#define SETTING_NAME_DEVICE_TREE_WINDOW_SIZE (PLUGIN_NAME L".DeviceTreeWindowSize")
 #define SETTING_NAME_DEVICE_TREE_AUTO_REFRESH (PLUGIN_NAME L".DeviceTreeAutoRefresh")
 #define SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED (PLUGIN_NAME L".DeviceTreeShowDisconnected")
 #define SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED (PLUGIN_NAME L".DeviceTreeHighlightUpperFiltered")
@@ -44,18 +42,18 @@
 #define SETTING_NAME_DEVICE_HIGHLIGHT_COLOR (PLUGIN_NAME L".ColorDeviceHighlight")
 #define SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME (PLUGIN_NAME L".SortDeviceChildrenByName")
 #define SETTING_NAME_DEVICE_SHOW_ROOT (PLUGIN_NAME L".ShowRootDevice")
-
-#define UM_NDIS687
-#define UM_NDIS60
+#define SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS (PLUGIN_NAME L".ShowSoftwareComponents")
 
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
-#include <math.h>
+#include <workqueue.h>
+#include <mapldr.h>
 
+#include <math.h>
 #include <cfgmgr32.h>
-#include <nldef.h>
-#include <netioapi.h>
+
+#include <phnet.h>
 
 // d3dkmddi requires the WDK (dmex)
 #if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
@@ -81,6 +79,7 @@ __has_include (<d3dkmthk.h>)
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN NetAdapterEnableNdis;
+extern ULONG NetWindowsVersion;
 
 extern PPH_OBJECT_TYPE NetAdapterEntryType;
 extern PPH_LIST NetworkAdaptersList;
@@ -97,6 +96,10 @@ extern PH_QUEUED_LOCK RaplDevicesListLock;
 extern PPH_OBJECT_TYPE GraphicsDeviceEntryType;
 extern PPH_LIST GraphicsDevicesList;
 extern PH_QUEUED_LOCK GraphicsDevicesListLock;
+
+#ifdef _DEBUG
+//#define FORCE_DELAY_LABEL_WORKQUEUE
+#endif
 
 // main.c
 
@@ -174,7 +177,8 @@ typedef struct _DV_NETADAPTER_ENTRY
             BOOLEAN CheckedDeviceSupport : 1;
             BOOLEAN DeviceSupported : 1;
             BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN PendingQuery : 1;
+            BOOLEAN Spare : 2;
         };
     };
 
@@ -188,12 +192,13 @@ typedef struct _DV_NETADAPTER_ENTRY
 
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
+
+    volatile LONG JustProcessed;
 } DV_NETADAPTER_ENTRY, *PDV_NETADAPTER_ENTRY;
 
 typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
     PDV_NETADAPTER_ENTRY AdapterEntry;
-    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
@@ -453,9 +458,8 @@ PWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     );
 
-_Success_(return)
-BOOLEAN NetworkAdapterQueryWlanConfig(
-    _In_ PGUID InterfaceGuid
+PPH_STRING NetAdapterFormatBitratePrefix(
+    _In_ ULONG64 Value
     );
 
 // netoptions.c
@@ -499,7 +503,8 @@ typedef struct _DV_DISK_ENTRY
             BOOLEAN UserReference : 1;
             BOOLEAN HaveFirstSample : 1;
             BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN PendingQuery : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
@@ -519,12 +524,13 @@ typedef struct _DV_DISK_ENTRY
     FLOAT ActiveTime;
     ULONG QueueDepth;
     ULONG SplitCount;
+
+    volatile LONG JustProcessed;
 } DV_DISK_ENTRY, *PDV_DISK_ENTRY;
 
 typedef struct _DV_DISK_SYSINFO_CONTEXT
 {
     PDV_DISK_ENTRY DiskEntry;
-    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
@@ -609,6 +615,8 @@ typedef enum _DISKDRIVE_DETAILS_INDEX
 {
     DISKDRIVE_DETAILS_INDEX_FS_CREATION_TIME,
     DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER,
+    DISKDRIVE_DETAILS_INDEX_UNIQUEID,
+    DISKDRIVE_DETAILS_INDEX_PARTITIONID,
     DISKDRIVE_DETAILS_INDEX_FILE_SYSTEM,
     DISKDRIVE_DETAILS_INDEX_FS_VERSION,
     DISKDRIVE_DETAILS_INDEX_LFS_VERSION,
@@ -830,6 +838,12 @@ NTSTATUS DiskDriveQueryVolumeInformation(
     _Out_ PFILE_FS_VOLUME_INFORMATION* VolumeInfo
     );
 
+NTSTATUS DiskDriveQueryUniqueId(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PPH_STRING* UniqueId,
+    _Out_ PPH_STRING* PartitionId
+    );
+
 // https://en.wikipedia.org/wiki/S.M.A.R.T.#Known_ATA_S.M.A.R.T._attributes
 typedef enum _SMART_ATTRIBUTE_ID
 {
@@ -968,6 +982,10 @@ PWSTR SmartAttributeGetText(
 
 // diskgraph.c
 
+VOID DiskDriveQueueNameUpdate(
+    _In_ PDV_DISK_ENTRY DiskEntry
+    );
+
 VOID DiskDriveSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_DISK_ENTRY DiskEntry
@@ -1050,9 +1068,15 @@ typedef struct _DV_RAPL_SYSINFO_CONTEXT
     HWND DimmGraphHandle;
     HWND TotalGraphHandle;
 
+    HWND PackageGraphLabelHandle;
+    HWND CoreGraphLabelHandle;
+    HWND DimmGraphLabelHandle;
+    HWND TotalGraphLabelHandle;
+
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    LONG GraphPadding;
 
     PH_GRAPH_STATE ProcessorGraphState;
     PH_GRAPH_STATE CoreGraphState;
@@ -1219,6 +1243,7 @@ typedef struct _DV_GPU_SYSINFO_CONTEXT
     RECT GraphMargin;
 
     PPH_STRING Description;
+    LONG SysInfoGraphPadding;
 
     HWND NodeWindowHandle;
     HANDLE NodeWindowThreadHandle;

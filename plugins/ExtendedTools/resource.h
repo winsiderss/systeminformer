@@ -134,7 +134,8 @@
 #define ID_REPARSE_SDDL                 7002
 #define IDD_REPARSEDIALOG               7003
 #define IDC_REPARSE_LIST                7004
-#define ID_WCT_MENUITEM                 8000
+#define ID_PROCESS_WAITCHAIN            8000
+#define ID_THREAD_WAITCHAIN             8001
 #define ID_WCT_SHOWCONTEXTMENU          8001
 #define IDD_WCT_DIALOG                  8002
 #define IDC_WCT_TREE                    8004

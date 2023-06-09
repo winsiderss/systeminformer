@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_NETPRV_H
 #define PH_NETPRV_H
 
@@ -100,6 +112,24 @@ PhGetTcpStateName(
 
 // iphlpapi imports
 
+typedef ULONG (WINAPI *_GetExtendedTcpTable)(
+    _Out_writes_bytes_opt_(*pdwSize) PVOID pTcpTable,
+    _Inout_ PULONG pdwSize,
+    _In_ BOOL bOrder,
+    _In_ ULONG ulAf,
+    _In_ TCP_TABLE_CLASS TableClass,
+    _In_ ULONG Reserved
+    );
+
+typedef ULONG (WINAPI *_GetExtendedUdpTable)(
+    _Out_writes_bytes_opt_(*pdwSize) PVOID pUdpTable,
+    _Inout_ PULONG pdwSize,
+    _In_ BOOL bOrder,
+    _In_ ULONG ulAf,
+    _In_ UDP_TABLE_CLASS TableClass,
+    _In_ ULONG Reserved
+    );
+
 //DECLSPEC_IMPORT ULONG WINAPI InternalGetTcpTableWithOwnerModule(
 //    _Out_ PVOID* Tcp4Table, // PMIB_TCPTABLE_OWNER_MODULE
 //    _In_ PVOID HeapHandle,
@@ -121,14 +151,14 @@ PhGetTcpStateName(
 //    _In_opt_ ULONG HeapFlags
 //    );
 
-DECLSPEC_IMPORT ULONG WINAPI InternalGetBoundTcpEndpointTable(
-    _Out_ PVOID* BoundTcpTable, // PMIB_TCPTABLE2
+typedef ULONG (WINAPI *_InternalGetBoundTcpEndpointTable)(
+    _Out_ _When_(return!=0, _Notnull_) PVOID* BoundTcpTable, // PMIB_TCPTABLE2
     _In_ PVOID HeapHandle,
     _In_opt_ ULONG HeapFlags
     );
 
-DECLSPEC_IMPORT ULONG WINAPI InternalGetBoundTcp6EndpointTable(
-    _Out_ PVOID* BoundTcpTable, // PMIB_TCP6TABLE2
+typedef ULONG (WINAPI *_InternalGetBoundTcp6EndpointTable)(
+    _Out_ _When_(return!=0, _Notnull_) PVOID* BoundTcpTable, // PMIB_TCP6TABLE2
     _In_ PVOID HeapHandle,
     _In_opt_ ULONG HeapFlags
     );

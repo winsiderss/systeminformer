@@ -754,18 +754,6 @@ NTSTATUS PhWriteStringAsUtf8FileStream(
     return PhWriteStringAsUtf8FileStreamEx(FileStream, String->Buffer, String->Length);
 }
 
-NTSTATUS PhWriteStringAsUtf8FileStream2(
-    _Inout_ PPH_FILE_STREAM FileStream,
-    _In_ PWSTR String
-    )
-{
-    PH_STRINGREF string;
-
-    PhInitializeStringRef(&string, String);
-
-    return PhWriteStringAsUtf8FileStream(FileStream, &string);
-}
-
 NTSTATUS PhWriteStringAsUtf8FileStreamEx(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PWSTR Buffer,

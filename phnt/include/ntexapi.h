@@ -18,7 +18,7 @@ NTSTATUS
 NTAPI
 NtDelayExecution(
     _In_ BOOLEAN Alertable,
-    _In_opt_ PLARGE_INTEGER DelayInterval
+    _In_ PLARGE_INTEGER DelayInterval
     );
 
 // Environment values
@@ -637,14 +637,14 @@ typedef enum _TIMER_SET_INFORMATION_CLASS
 } TIMER_SET_INFORMATION_CLASS;
 
 #if (PHNT_VERSION >= PHNT_WIN7)
-struct _COUNTED_REASON_CONTEXT;
+typedef struct _COUNTED_REASON_CONTEXT *PCOUNTED_REASON_CONTEXT;
 
 typedef struct _TIMER_SET_COALESCABLE_TIMER_INFO
 {
     _In_ LARGE_INTEGER DueTime;
     _In_opt_ PTIMER_APC_ROUTINE TimerApcRoutine;
     _In_opt_ PVOID TimerContext;
-    _In_opt_ struct _COUNTED_REASON_CONTEXT *WakeContext;
+    _In_opt_ PCOUNTED_REASON_CONTEXT WakeContext;
     _In_opt_ ULONG Period;
     _In_ ULONG TolerableDelay;
     _Out_opt_ PBOOLEAN PreviousState;
@@ -987,10 +987,10 @@ NTSTATUS
 NTAPI
 NtUpdateWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
-    _In_reads_bytes_opt_(Length) const VOID *Buffer,
+    _In_reads_bytes_opt_(Length) const VOID* Buffer,
     _In_opt_ ULONG Length,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ const VOID *ExplicitScope,
+    _In_opt_ const VOID* ExplicitScope,
     _In_ WNF_CHANGE_STAMP MatchingChangeStamp,
     _In_ LOGICAL CheckStamp
     );
@@ -1000,7 +1000,7 @@ NTSTATUS
 NTAPI
 NtDeleteWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
-    _In_opt_ const VOID *ExplicitScope
+    _In_opt_ const VOID* ExplicitScope
     );
 
 NTSYSCALLAPI
@@ -1009,9 +1009,9 @@ NTAPI
 NtQueryWnfStateData(
     _In_ PCWNF_STATE_NAME StateName,
     _In_opt_ PCWNF_TYPE_ID TypeId,
-    _In_opt_ const VOID *ExplicitScope,
+    _In_opt_ const VOID* ExplicitScope,
     _Out_ PWNF_CHANGE_STAMP ChangeStamp,
-    _Out_writes_bytes_to_opt_(*BufferSize, *BufferSize) PVOID Buffer,
+    _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer,
     _Inout_ PULONG BufferSize
     );
 
@@ -1021,7 +1021,7 @@ NTAPI
 NtQueryWnfStateNameInformation(
     _In_ PCWNF_STATE_NAME StateName,
     _In_ WNF_STATE_NAME_INFORMATION NameInfoClass,
-    _In_opt_ const VOID *ExplicitScope,
+    _In_opt_ const VOID* ExplicitScope,
     _Out_writes_bytes_(InfoBufferSize) PVOID InfoBuffer,
     _In_ ULONG InfoBufferSize
     );
@@ -1205,13 +1205,14 @@ NtWorkerFactoryWorkerReady(
     _In_ HANDLE WorkerFactoryHandle
     );
 
-struct _FILE_IO_COMPLETION_INFORMATION;
-
 #if (PHNT_VERSION >= PHNT_WIN8)
+
+typedef struct _FILE_IO_COMPLETION_INFORMATION *PFILE_IO_COMPLETION_INFORMATION;
+typedef struct _PORT_MESSAGE *PPORT_MESSAGE;
 
 typedef struct _WORKER_FACTORY_DEFERRED_WORK
 {
-    struct _PORT_MESSAGE *AlpcSendMessage;
+    PPORT_MESSAGE AlpcSendMessage;
     PVOID AlpcSendMessagePort;
     ULONG AlpcSendMessageFlags;
     ULONG Flags;
@@ -1222,10 +1223,10 @@ NTSTATUS
 NTAPI
 NtWaitForWorkViaWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
-    _Out_writes_to_(Count, *PacketsReturned) struct _FILE_IO_COMPLETION_INFORMATION *MiniPackets,
+    _Out_writes_to_(Count, *PacketsReturned) PFILE_IO_COMPLETION_INFORMATION MiniPackets,
     _In_ ULONG Count,
     _Out_ PULONG PacketsReturned,
-    _In_ struct _WORKER_FACTORY_DEFERRED_WORK* DeferredWork
+    _In_ PWORKER_FACTORY_DEFERRED_WORK DeferredWork
     );
 
 #else
@@ -1235,7 +1236,7 @@ NTSTATUS
 NTAPI
 NtWaitForWorkViaWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
-    _Out_ struct _FILE_IO_COMPLETION_INFORMATION *MiniPacket
+    _Out_ PFILE_IO_COMPLETION_INFORMATION MiniPacket
     );
 
 #endif
@@ -1286,6 +1287,27 @@ NtQueryPerformanceCounter(
     _Out_ PLARGE_INTEGER PerformanceCounter,
     _Out_opt_ PLARGE_INTEGER PerformanceFrequency
     );
+
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryAuxiliaryCounterFrequency(
+    _Out_ PLARGE_INTEGER AuxiliaryCounterFrequency
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtConvertBetweenAuxiliaryCounterAndPerformanceCounter(
+    _In_opt_ PLARGE_INTEGER AuxiliaryCounterValue,
+    _Inout_ PLARGE_INTEGER PerformanceCounterValue,
+    _Out_ PLARGE_INTEGER PerformanceOrAuxiliaryCounterValue,
+    _Out_ PLARGE_INTEGER ConversionError
+    );
+#endif
 
 // LUIDs
 
@@ -1503,7 +1525,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemWin32WerStartCallout,
     SystemSecureKernelProfileInformation, // q: SYSTEM_SECURE_KERNEL_HYPERGUARD_PROFILE_INFORMATION
     SystemCodeIntegrityPlatformManifestInformation, // q: SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION // since REDSTONE
-    SystemInterruptSteeringInformation, // SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT // 180
+    SystemInterruptSteeringInformation, // q: in: SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT, out: SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT // NtQuerySystemInformationEx // 180
     SystemSupportedProcessorArchitectures, // p: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
     SystemCodeIntegrityCertificateInformation, // q: SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
@@ -1561,7 +1583,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemHypervisorBootPagesInformation, // SYSTEM_HYPERVISOR_BOOT_PAGES_INFORMATION
     SystemPointerAuthInformation, // SYSTEM_POINTER_AUTH_INFORMATION
     SystemSecureKernelDebuggerInformation,
-    SystemOriginalImageFeatureInformation,
+    SystemOriginalImageFeatureInformation, // q: in: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, out: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT // NtQuerySystemInformationEx
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -2057,12 +2079,6 @@ typedef enum _EVENT_TRACE_INFORMATION_CLASS
     EventTraceUnifiedStackCachingInformation, // sicne 21H1
     MaxEventTraceInfoClass
 } EVENT_TRACE_INFORMATION_CLASS;
-
-typedef struct _EVENT_TRACE_VERSION_INFORMATION
-{
-    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
-    ULONG EventTraceKernelVersion;
-} EVENT_TRACE_VERSION_INFORMATION, *PEVENT_TRACE_VERSION_INFORMATION;
 
 typedef struct _TRACE_ENABLE_FLAG_EXTENSION
 {
@@ -3091,6 +3107,12 @@ typedef struct _PERFINFO_GROUPMASK
     ULONG Masks[PERF_NUM_MASKS];
 } PERFINFO_GROUPMASK, *PPERFINFO_GROUPMASK;
 
+typedef struct _EVENT_TRACE_VERSION_INFORMATION
+{
+    EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
+    ULONG EventTraceKernelVersion;
+} EVENT_TRACE_VERSION_INFORMATION, *PEVENT_TRACE_VERSION_INFORMATION;
+
 typedef struct _EVENT_TRACE_GROUPMASK_INFORMATION
 {
     EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
@@ -3172,11 +3194,13 @@ typedef struct _EVENT_TRACE_PROFILE_COUNTER_INFORMATION
 //    WCHAR Description[1];
 //} PROFILE_SOURCE_INFO, *PPROFILE_SOURCE_INFO;
 
+typedef struct _PROFILE_SOURCE_INFO *PPROFILE_SOURCE_INFO;
+
 typedef struct _EVENT_TRACE_PROFILE_LIST_INFORMATION
 {
     EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
     ULONG Spare;
-    struct _PROFILE_SOURCE_INFO* Profile[1];
+    PPROFILE_SOURCE_INFO Profile[1];
 } EVENT_TRACE_PROFILE_LIST_INFORMATION, *PEVENT_TRACE_PROFILE_LIST_INFORMATION;
 
 typedef struct _EVENT_TRACE_STACK_CACHING_INFORMATION
@@ -3220,7 +3244,7 @@ typedef struct _EVENT_TRACE_PROFILE_REMOVE_INFORMATION
 typedef struct _EVENT_TRACE_COVERAGE_SAMPLER_INFORMATION
 {
     EVENT_TRACE_INFORMATION_CLASS EventTraceInformationClass;
-    BOOLEAN CoverageSamplerInformationClass;
+    UCHAR CoverageSamplerInformationClass;
     UCHAR MajorVersion;
     UCHAR MinorVersion;
     UCHAR Reserved;
@@ -3396,6 +3420,9 @@ typedef struct _SYSTEM_SESSION_PROCESS_INFORMATION
 } SYSTEM_SESSION_PROCESS_INFORMATION, *PSYSTEM_SESSION_PROCESS_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+
+typedef struct _IMAGE_EXPORT_DIRECTORY *PIMAGE_EXPORT_DIRECTORY; // from ntrtl.h
+
 // private
 typedef struct _SYSTEM_GDI_DRIVER_INFORMATION
 {
@@ -3403,7 +3430,7 @@ typedef struct _SYSTEM_GDI_DRIVER_INFORMATION
     PVOID ImageAddress;
     PVOID SectionPointer;
     PVOID EntryPoint;
-    struct _IMAGE_EXPORT_DIRECTORY* ExportSectionPointer;
+    PIMAGE_EXPORT_DIRECTORY ExportSectionPointer;
     ULONG ImageLength;
 } SYSTEM_GDI_DRIVER_INFORMATION, *PSYSTEM_GDI_DRIVER_INFORMATION;
 #endif
@@ -4086,14 +4113,19 @@ typedef struct _SMKM_REGION_EXTENT
     SIZE_T ByteOffset;
 } SMKM_REGION_EXTENT, *PSMKM_REGION_EXTENT;
 
+typedef struct _FILE_OBJECT *PFILE_OBJECT;
+typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
+typedef struct _IRP *PIRP;
+typedef struct _RTL_BITMAP *PRTL_BITMAP;
+
 typedef struct _SMKM_FILE_INFO
 {
     HANDLE FileHandle;
-    struct _FILE_OBJECT *FileObject;
-    struct _FILE_OBJECT *VolumeFileObject;
-    struct _DEVICE_OBJECT *VolumeDeviceObject;
+    PFILE_OBJECT FileObject;
+    PFILE_OBJECT VolumeFileObject;
+    PDEVICE_OBJECT VolumeDeviceObject;
     HANDLE VolumePnpHandle;
-    struct _IRP *UsageNotificationIrp;
+    PIRP UsageNotificationIrp;
     PSMKM_REGION_EXTENT Extents;
     ULONG ExtentCount;
 } SMKM_FILE_INFO, *PSMKM_FILE_INFO;
@@ -4105,7 +4137,7 @@ typedef struct _SM_STORE_CACHE_BACKED_PARAMS
     ULONG EncryptionKeySize;
     PSMKM_FILE_INFO FileInfo;
     PVOID EtaContext;
-    struct _RTL_BITMAP *StoreRegionBitmap;
+    PRTL_BITMAP StoreRegionBitmap;
 } SM_STORE_CACHE_BACKED_PARAMS, *PSM_STORE_CACHE_BACKED_PARAMS;
 
 typedef struct _SM_STORE_PARAMETERS
@@ -4268,6 +4300,8 @@ typedef struct _SM_REGISTRATION_REQUEST
     SM_REGISTRATION_INFO RegInfo;
 } SM_REGISTRATION_REQUEST, *PSM_REGISTRATION_REQUEST;
 
+typedef struct _RTL_BITMAP *PRTL_BITMAP;
+
 #define SYSTEM_STORE_RESIZE_INFORMATION_VERSION 6
 
 typedef struct _SM_STORE_RESIZE_REQUEST
@@ -4277,7 +4311,7 @@ typedef struct _SM_STORE_RESIZE_REQUEST
     ULONG Spare : 23;
     ULONG StoreId;
     ULONG NumberOfRegions;
-    struct _RTL_BITMAP *RegionBitmap;
+    PRTL_BITMAP RegionBitmap;
 } SM_STORE_RESIZE_REQUEST, *PSM_STORE_RESIZE_REQUEST;
 
 #define SYSTEM_CACHE_STORE_RESIZE_INFORMATION_VERSION 1
@@ -5126,6 +5160,7 @@ typedef struct _SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT
     GROUP_AFFINITY TargetAffinity;
 } SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT, *PSYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT;
 
+// private
 typedef union _SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT
 {
     ULONG AsULONG;
@@ -5136,7 +5171,7 @@ typedef union _SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT
     };
 } SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT, *PSYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT;
 
-#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+#if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
 // private
 typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
 {
@@ -5147,7 +5182,7 @@ typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
     ULONG Process : 1;
     ULONG WoW64Container : 1;
     ULONG ReservedZero0 : 11;
-} SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION;
+} SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION, *PSYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION;
 #endif
 
 // private
@@ -5324,9 +5359,23 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG MdsHardwareProtected : 1; // since 19H2
             ULONG MbClearEnabled : 1;
             ULONG MbClearReported : 1;
-            ULONG Reserved : 5;
+            ULONG ReservedTaa : 4;
+            ULONG Reserved : 1;
         };
-    };
+    } SpeculationControlFlags;
+    union
+    {
+        ULONG Flags; // Since KB4074629 (2023)
+        struct
+        {
+            ULONG Reserved1 : 5;
+            ULONG BhbEnabled : 1;
+            ULONG BhbDisabledSystemPolicy : 1;
+            ULONG BhbDisabledNoHardwareSupport : 1;
+            ULONG Reserved2 : 3;
+            ULONG Reserved : 21;
+        };
+    } SpeculationControlFlags2;
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
 
 // private
@@ -5363,11 +5412,13 @@ typedef struct _SYSTEM_SECURITY_MODEL_INFORMATION
     };
 } SYSTEM_SECURITY_MODEL_INFORMATION, *PSYSTEM_SECURITY_MODEL_INFORMATION;
 
+typedef struct _RTL_FEATURE_CONFIGURATION *PRTL_FEATURE_CONFIGURATION; // from ntrtl.h
+
 // private
 typedef struct _SYSTEM_FEATURE_CONFIGURATION_INFORMATION
 {
     ULONGLONG ChangeStamp;
-    struct _RTL_FEATURE_CONFIGURATION* Configuration; // see ntrtl.h for types
+    PRTL_FEATURE_CONFIGURATION Configuration;
 } SYSTEM_FEATURE_CONFIGURATION_INFORMATION, *PSYSTEM_FEATURE_CONFIGURATION_INFORMATION;
 
 // private
@@ -5514,6 +5565,15 @@ typedef struct _HV_MINROOT_NUMA_LPS
 } HV_MINROOT_NUMA_LPS, *PHV_MINROOT_NUMA_LPS;
 
 // private
+typedef struct _SYSTEM_XFG_FAILURE_INFORMATION
+{
+    PVOID ReturnAddress;
+    PVOID TargetAddress;
+    ULONG DispatchMode;
+    ULONGLONG XfgValue;
+} SYSTEM_XFG_FAILURE_INFORMATION, *PSYSTEM_XFG_FAILURE_INFORMATION;
+
+// private
 typedef enum _SYSTEM_IOMMU_STATE
 {
     IommuStateBlock,
@@ -5575,6 +5635,21 @@ typedef struct _SYSTEM_POINTER_AUTH_INFORMATION
         };
     };
 } SYSTEM_POINTER_AUTH_INFORMATION, *PSYSTEM_POINTER_AUTH_INFORMATION;
+
+// private
+typedef struct _SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT
+{
+    ULONG Version;
+    PWSTR FeatureName;
+    ULONG BornOnVersion;
+} SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, *PSYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT;
+
+// private
+typedef struct _SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT
+{
+    ULONG Version;
+    BOOLEAN FeatureIsEnabled;
+} SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT, *PSYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -6499,8 +6574,6 @@ C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x738);
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 
-#if (PHNT_VERSION >= PHNT_WS03)
-
 FORCEINLINE
 ULONGLONG
 NtGetTickCount64(
@@ -6563,27 +6636,7 @@ NtGetTickCount(
 #endif
 }
 
-#else
-
-FORCEINLINE
-ULONGLONG
-NtGetTickCount64(
-    VOID
-    )
-{
-    return GetTickCount(); // pre PHNT_WS03 support (dmex)
-}
-
-FORCEINLINE
-ULONG
-NtGetTickCount(
-    VOID
-    )
-{
-    return GetTickCount();
-}
-
-#endif
+#define RtlGetTickCount NtGetTickCount
 
 // Locale
 

@@ -97,6 +97,9 @@ KphCreateObject(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    header->PointerCount = 1;
+    header->TypeIndex = ObjectType->Index;
+
     object = KphObjectHeaderToObject(header);
 
     if (ObjectType->TypeInfo.Initialize)
@@ -108,9 +111,6 @@ KphCreateObject(
             return status;
         }
     }
-
-    header->PointerCount = 1;
-    header->TypeIndex = ObjectType->Index;
 
     total = InterlockedIncrementSizeT(&ObjectType->TotalNumberOfObjects);
 

@@ -12,7 +12,6 @@
 #ifndef _PH_KPHCOMMS_H
 #define _PH_KPHCOMMS_H
 
-#include <ph.h>
 #include <kphmsg.h>
 
 NTSTATUS KphFilterLoadUnload(
@@ -21,7 +20,7 @@ NTSTATUS KphFilterLoadUnload(
     );
 
 typedef
-VOID (NTAPI *PKPH_COMMS_CALLBACK)(
+BOOLEAN (NTAPI *PKPH_COMMS_CALLBACK)(
     _In_ ULONG_PTR ReplyToken,
     _In_ PCKPH_MESSAGE Message
     );

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2013
- *     dmex    2015-2021
+ *     dmex    2015-2023
  *
  */
 
@@ -17,8 +17,7 @@
 #include <phapppub.h>
 #include <phappresource.h>
 #include <settings.h>
-
-#include <commonutil.h>
+#include <mapldr.h>
 
 #include "resource.h"
 #include "wndtree.h"
@@ -29,7 +28,8 @@ extern PPH_PLUGIN PluginInstance;
 #define PLUGIN_NAME L"ProcessHacker.WindowExplorer"
 #define SETTING_NAME_SHOW_DESKTOP_WINDOWS (PLUGIN_NAME L".ShowDesktopWindows")
 #define SETTING_NAME_WINDOW_ENUM_ALTERNATE (PLUGIN_NAME L".EnableAlternateEnumWindow")
-#define SETTING_NAME_WINDOW_ENABLE_ICONS (PLUGIN_NAME L".EnableWindowIcons")
+#define SETTING_NAME_WINDOW_ENABLE_ICONS (PLUGIN_NAME L".EnableIcons")
+#define SETTING_NAME_WINDOW_ENABLE_ICONS_INTERNAL (PLUGIN_NAME L".EnableIconsInternal")
 #define SETTING_NAME_WINDOW_ENABLE_PREVIEW (PLUGIN_NAME L".EnableWindowPreview")
 #define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (PLUGIN_NAME L".WindowTreeListColumns")
 #define SETTING_NAME_WINDOWS_WINDOW_POSITION (PLUGIN_NAME L".WindowsWindowPosition")

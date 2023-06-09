@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_PHUTIL_H
 #define _PH_PHUTIL_H
 
@@ -141,77 +153,6 @@ PhCenterWindow(
     _In_opt_ HWND ParentWindowHandle
     );
 
-PHLIBAPI
-LONG
-NTAPI
-PhGetDpi(
-    _In_ LONG Number,
-    _In_ LONG DpiValue
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhGetMonitorDpi(
-    _In_ LPCRECT rect
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhGetSystemDpi(
-    VOID
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhGetTaskbarDpi(
-    VOID
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhGetWindowDpi(
-    _In_ HWND WindowHandle
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhGetDpiValue(
-    _In_opt_ HWND WindowHandle,
-    _In_opt_ LPCRECT Rect
-    );
-
-PHLIBAPI
-LONG
-NTAPI
-PhGetSystemMetrics(
-    _In_ INT Index,
-    _In_opt_ LONG DpiValue
-    );
-
-PHLIBAPI
-BOOL
-NTAPI
-PhGetSystemParametersInfo(
-    _In_ INT Action,
-    _In_ UINT Param1,
-    _Pre_maybenull_ _Post_valid_ PVOID Param2,
-    _In_opt_ LONG DpiValue
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhGetSizeDpiValue(
-    _Inout_ PRECT rect,
-    _In_ LONG DpiValue,
-    _In_ BOOLEAN isUnpack
-    );
-
 // NLS
 
 PHLIBAPI
@@ -288,6 +229,13 @@ PhGetWin32Message(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetWin32FormatMessage(
+    _In_ ULONG Result
+    );
+
+PHLIBAPI
 INT
 NTAPI
 PhShowMessage(
@@ -297,9 +245,9 @@ PhShowMessage(
     ...
     );
 
-#define PhShowError(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONERROR, Format, __VA_ARGS__)
-#define PhShowWarning(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONWARNING, Format, __VA_ARGS__)
-#define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
+#define PhShowError(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONERROR, Format, ##__VA_ARGS__)
+#define PhShowWarning(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONWARNING, Format, ##__VA_ARGS__)
+#define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, ##__VA_ARGS__)
 
 PHLIBAPI
 INT
@@ -313,9 +261,29 @@ PhShowMessage2(
     ...
     );
 
-#define PhShowError2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, Title, Format, __VA_ARGS__)
-#define PhShowWarning2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_WARNING_ICON, Title, Format, __VA_ARGS__)
-#define PhShowInformation2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, Title, Format, __VA_ARGS__)
+#define TD_OK_BUTTON      0x0001
+#define TD_YES_BUTTON     0x0002
+#define TD_NO_BUTTON      0x0004
+#define TD_CANCEL_BUTTON  0x0008
+#define TD_RETRY_BUTTON   0x0010
+#define TD_CLOSE_BUTTON   0x0020
+
+#ifndef TD_WARNING_ICON
+#define TD_WARNING_ICON         MAKEINTRESOURCEW(-1)
+#endif
+#ifndef TD_ERROR_ICON
+#define TD_ERROR_ICON           MAKEINTRESOURCEW(-2)
+#endif
+#ifndef TD_INFORMATION_ICON
+#define TD_INFORMATION_ICON     MAKEINTRESOURCEW(-3)
+#endif
+#ifndef TD_SHIELD_ICON
+#define TD_SHIELD_ICON          MAKEINTRESOURCEW(-4)
+#endif
+
+#define PhShowError2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TD_CLOSE_BUTTON, TD_ERROR_ICON, Title, Format, ##__VA_ARGS__)
+#define PhShowWarning2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TD_CLOSE_BUTTON, TD_WARNING_ICON, Title, Format, ##__VA_ARGS__)
+#define PhShowInformation2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TD_CLOSE_BUTTON, TD_INFORMATION_ICON, Title, Format, ##__VA_ARGS__)
 
 PHLIBAPI
 BOOLEAN
@@ -492,11 +460,25 @@ PhGenerateRandomNumber64(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhGenerateRandomNumber(
+    _Out_ PLARGE_INTEGER Number
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGenerateRandomSeed(
+    _Out_ PLARGE_INTEGER Seed
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhEllipsisString(
     _In_ PPH_STRING String,
-    _In_ ULONG DesiredCount
+    _In_ SIZE_T DesiredCount
     );
 
 PHLIBAPI
@@ -504,7 +486,7 @@ PPH_STRING
 NTAPI
 PhEllipsisStringPath(
     _In_ PPH_STRING String,
-    _In_ ULONG DesiredCount
+    _In_ SIZE_T DesiredCount
     );
 
 PHLIBAPI
@@ -658,6 +640,17 @@ PhGetFileVersionInfoEx(
     _In_ PPH_STRINGREF FileName
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetFileVersionInfoKey(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
+    _In_ SIZE_T KeyLength,
+    _In_ PWSTR Key,
+    _Out_opt_ PVOID* Buffer
+    );
+
 PHLIBAPI
 VS_FIXEDFILEINFO*
 NTAPI
@@ -805,9 +798,19 @@ PhGetBaseName(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetBaseNamePathWithExtension(
-    _In_ PPH_STRING FileName,
+PhGetBaseNameChangeExtension(
+    _In_ PPH_STRINGREF FileName,
     _In_ PPH_STRINGREF FileExtension
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetBasePath(
+    _In_ PPH_STRINGREF FileName,
+    _Out_opt_ PPH_STRINGREF BasePathName,
+    _Out_opt_ PPH_STRINGREF BaseFileName
     );
 
 PHLIBAPI
@@ -823,6 +826,26 @@ NTAPI
 PhGetSystemDirectory(
     VOID
     );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetSystemDirectoryWin32(
+    _In_opt_ PPH_STRINGREF AppendPath
+    );
+
+FORCEINLINE
+PPH_STRING
+PhGetSystemDirectoryWin32Z(
+    _In_ PWSTR AppendPath
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, AppendPath);
+
+    return PhGetSystemDirectoryWin32(&string);
+}
 
 PHLIBAPI
 VOID
@@ -867,6 +890,20 @@ PhGetApplicationDirectoryFileName(
     _In_ BOOLEAN NativeFileName
     );
 
+FORCEINLINE
+PPH_STRING
+PhGetApplicationDirectoryFileNameZ(
+    _In_ PWSTR FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, FileName);
+
+    return PhGetApplicationDirectoryFileName(&string, NativeFileName);
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -878,20 +915,22 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetRoamingAppDataDirectory(
-    _In_ PPH_STRINGREF FileName
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
     );
 
 FORCEINLINE
 PPH_STRING
 PhGetRoamingAppDataDirectoryZ(
-    _In_ PWSTR String
+    _In_ PWSTR String,
+    _In_ BOOLEAN NativeFileName
     )
 {
     PH_STRINGREF string;
 
     PhInitializeStringRef(&string, String);
 
-    return PhGetRoamingAppDataDirectory(&string);
+    return PhGetRoamingAppDataDirectory(&string, NativeFileName);
 }
 
 PHLIBAPI
@@ -905,27 +944,29 @@ PhGetApplicationDataFileName(
 #define PH_FOLDERID_LocalAppData 1
 #define PH_FOLDERID_RoamingAppData 2
 #define PH_FOLDERID_ProgramFiles 3
- 
+
 PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetKnownLocation(
     _In_ ULONG Folder,
-    _In_opt_ PPH_STRINGREF AppendPath
+    _In_opt_ PPH_STRINGREF AppendPath,
+    _In_ BOOLEAN NativeFileName
     );
 
 FORCEINLINE
 PPH_STRING
 PhGetKnownLocationZ(
     _In_ ULONG Folder,
-    _In_ PWSTR AppendPath
+    _In_ PWSTR AppendPath,
+    _In_ BOOLEAN NativeFileName
     )
 {
     PH_STRINGREF string;
 
     PhInitializeStringRef(&string, AppendPath);
 
-    return PhGetKnownLocation(Folder, &string);
+    return PhGetKnownLocation(Folder, &string, NativeFileName);
 }
 
 DECLSPEC_SELECTANY GUID FOLDERID_LocalAppData = { 0xF1B32785, 0x6FBA, 0x4FCF, 0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91 };
@@ -982,6 +1023,13 @@ PhGetKnownFolderPathExZ(
 
     return PhGetKnownFolderPathEx(Folder, Flags, TokenHandle, &string);
 }
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetTemporaryDirectory(
+    _In_opt_ PPH_STRINGREF AppendPath
+    );
 
 PHLIBAPI
 NTSTATUS
@@ -1138,10 +1186,9 @@ PhShellExecute(
     _In_opt_ PWSTR Parameters
     );
 
+#define PH_SHELL_EXECUTE_DEFAULT 0x0
 #define PH_SHELL_EXECUTE_ADMIN 0x1
 #define PH_SHELL_EXECUTE_PUMP_MESSAGES 0x2
-#define PH_SHELL_EXECUTE_NOZONECHECKS 0x4
-#define PH_SHELL_EXECUTE_NOASYNC 0x8
 
 PHLIBAPI
 _Success_(return)
@@ -1151,7 +1198,8 @@ PhShellExecuteEx(
     _In_opt_ HWND hWnd,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
-    _In_ ULONG ShowWindowType,
+    _In_opt_ PWSTR Directory,
+    _In_ INT32 ShowWindowType,
     _In_ ULONG Flags,
     _In_opt_ ULONG Timeout,
     _Out_opt_ PHANDLE ProcessHandle
@@ -1182,89 +1230,72 @@ PhExpandKeyName(
     );
 
 PHLIBAPI
-VOID
-NTAPI
-PhShellOpenKey(
-    _In_ HWND hWnd,
-    _In_ PPH_STRING KeyName
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhQueryRegistryStringRef(
-    _In_ HANDLE KeyHandle,
-    _In_ PPH_STRINGREF ValueName
-    );
-
-PHLIBAPI
-ULONG
-NTAPI
-PhQueryRegistryUlongStringRef(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
-    );
-
-PHLIBAPI
-ULONG64
-NTAPI
-PhQueryRegistryUlong64StringRef(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
-    );
-
-FORCEINLINE
 PPH_STRING
 NTAPI
 PhQueryRegistryString(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
+FORCEINLINE
+PPH_STRING
+NTAPI
+PhQueryRegistryStringZ(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
+    PhInitializeStringRef(&valueName, ValueName);
 
-    return PhQueryRegistryStringRef(KeyHandle, &valueName);
+    return PhQueryRegistryString(KeyHandle, &valueName);
 }
 
-FORCEINLINE
+PHLIBAPI
 ULONG
 NTAPI
 PhQueryRegistryUlong(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
+FORCEINLINE
+ULONG
+NTAPI
+PhQueryRegistryUlongZ(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
+    PhInitializeStringRef(&valueName, ValueName);
 
-    return PhQueryRegistryUlongStringRef(KeyHandle, &valueName);
+    return PhQueryRegistryUlong(KeyHandle, &valueName);
 }
 
-FORCEINLINE
+PHLIBAPI
 ULONG64
 NTAPI
 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
+FORCEINLINE
+ULONG64
+NTAPI
+PhQueryRegistryUlong64Z(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
+    PhInitializeStringRef(&valueName, ValueName);
 
-    return PhQueryRegistryUlong64StringRef(KeyHandle, &valueName);
+    return PhQueryRegistryUlong64(KeyHandle, &valueName);
 }
 
 typedef struct _PH_FLAG_MAPPING
@@ -1447,6 +1478,7 @@ PhGetProcessModuleImageCoherency(
     _In_ PPH_STRING FileName,
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ImageBaseAddress,
+    _In_ SIZE_T ImageSize,
     _In_ BOOLEAN IsKernelModule,
     _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
     _Out_ PFLOAT ImageCoherency
@@ -1458,6 +1490,15 @@ NTAPI
 PhCrc32(
     _In_ ULONG Crc,
     _In_reads_(Length) PCHAR Buffer,
+    _In_ SIZE_T Length
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhCrc32C(
+    _In_ ULONG Crc,
+    _In_reads_(Length) PVOID Buffer,
     _In_ SIZE_T Length
     );
 
@@ -1563,6 +1604,13 @@ PhParseCommandLineFuzzy(
     );
 
 PHLIBAPI
+PPH_LIST
+NTAPI
+PhCommandLineToList(
+    _In_ PCWSTR CommandLine
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhSearchFilePath(
@@ -1580,15 +1628,15 @@ PhCreateCacheFile(
 PHLIBAPI
 VOID
 NTAPI
-PhClearCacheDirectory(
-    VOID
+PhDeleteCacheFile(
+    _In_ PPH_STRING FileName
     );
 
 PHLIBAPI
 VOID
 NTAPI
-PhDeleteCacheFile(
-    _In_ PPH_STRING FileName
+PhClearCacheDirectory(
+    VOID
     );
 
 PHLIBAPI
@@ -1598,218 +1646,11 @@ PhGetNamespaceHandle(
     VOID
     );
 
-_Success_(return)
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhLoadResource(
-    _In_ PVOID DllBase,
-    _In_ PCWSTR Name,
-    _In_ PCWSTR Type,
-    _Out_opt_ ULONG *ResourceLength,
-    _Out_opt_ PVOID *ResourceBuffer
-    );
-
-_Success_(return)
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhLoadResourceCopy(
-    _In_ PVOID DllBase,
-    _In_ PCWSTR Name,
-    _In_ PCWSTR Type,
-    _Out_opt_ ULONG *ResourceLength,
-    _Out_opt_ PVOID *ResourceBuffer
-    );
-
-PHLIBAPI
-HMENU
-NTAPI
-PhLoadMenu(
-    _In_ PVOID DllBase,
-    _In_ PWSTR MenuName
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhLoadIndirectString(
-    _In_ PPH_STRINGREF SourceString
-    );
-
 PHLIBAPI
 HWND
 NTAPI
 PhHungWindowFromGhostWindow(
     _In_ HWND WindowHandle
-    );
-
-PHLIBAPI
-PLDR_DATA_TABLE_ENTRY
-NTAPI
-PhFindLoaderEntry(
-    _In_opt_ PVOID DllBase,
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
-    );
-
-PHLIBAPI
-_Success_(return != NULL)
-PPH_STRING
-NTAPI
-PhGetDllFileName(
-    _In_ PVOID DllBase,
-    _Out_opt_ PULONG IndexOfFileName
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetLoaderEntryStringRefDllBase(
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
-    );
-
-FORCEINLINE
-PVOID
-NTAPI
-PhGetLoaderEntryDllBase(
-    _In_ PWSTR DllName
-    )
-{
-    PH_STRINGREF baseDllName;
-
-    PhInitializeStringRef(&baseDllName, DllName);
-
-    return PhGetLoaderEntryStringRefDllBase(NULL, &baseDllName);
-}
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetDllBaseProcedureAddress(
-    _In_ PVOID DllBase,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetDllBaseProcedureAddressWithHint(
-    _In_ PVOID BaseAddress,
-    _In_ PSTR ProcedureName,
-    _In_ USHORT ProcedureHint
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetDllProcedureAddress(
-    _In_ PWSTR DllName,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetLoaderEntryImageNtHeaders(
-    _In_ PVOID BaseAddress,
-    _Out_ PIMAGE_NT_HEADERS *ImageNtHeaders
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetLoaderEntryImageDirectory(
-    _In_ PVOID BaseAddress,
-    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ ULONG ImageDirectoryIndex,
-    _Out_ PIMAGE_DATA_DIRECTORY *ImageDataDirectoryEntry,
-    _Out_ PVOID *ImageDirectoryEntry,
-    _Out_opt_ SIZE_T *ImageDirectoryLength
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetLoaderEntryImageVaToSection(
-    _In_ PVOID BaseAddress,
-    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ PVOID ImageDirectoryAddress,
-    _Out_ PVOID *ImageSectionAddress,
-    _Out_ SIZE_T *ImageSectionLength
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoaderEntryImageRvaToSection(
-    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
-    _In_ ULONG Rva,
-    _Out_ PIMAGE_SECTION_HEADER *ImageSection,
-    _Out_ SIZE_T *ImageSectionLength
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoaderEntryImageRvaToVa(
-    _In_ PVOID BaseAddress,
-    _In_ ULONG Rva,
-    _Out_ PVOID *Va
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetLoaderEntryImageExportFunction(
-    _In_ PVOID BaseAddress,
-    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
-    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
-    _In_opt_ PSTR ExportName,
-    _In_opt_ USHORT ExportOrdinal
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoadPluginImage(
-    _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PVOID *BaseAddress
-    );
-
-PHLIBAPI
-PPH_STRING
-NTAPI
-PhGetExportNameFromOrdinal(
-    _In_ PVOID DllBase,
-    _In_opt_ USHORT ProcedureNumber
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoaderEntryLoadDll(
-    _In_ PPH_STRINGREF FileName,
-    _Out_ PVOID* BaseAddress
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoaderEntryLoadAllImportsForDll(
-    _In_ PVOID BaseAddress,
-    _In_ PSTR ImportDllName
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoadAllImportsForDll(
-    _In_ PWSTR TargetDllName,
-    _In_ PSTR ImportDllName
     );
 
 PHLIBAPI
@@ -1836,7 +1677,6 @@ PhFileReadAllTextWin32(
     _In_ BOOLEAN Unicode
     );
 
-_Success_(return == S_OK)
 PHLIBAPI
 HRESULT
 NTAPI
@@ -1847,45 +1687,34 @@ PhGetClassObjectDllBase(
     _Out_ PVOID * Ppv
     );
 
-_Success_(return == S_OK)
 PHLIBAPI
 HRESULT
 NTAPI
 PhGetClassObject(
-    _In_ PWSTR DllName,
+    _In_ PCWSTR DllName,
     _In_ REFCLSID Rclsid,
     _In_ REFIID Riid,
     _Out_ PVOID* Ppv
     );
 
 PHLIBAPI
-PVOID
+HRESULT
 NTAPI
-PhLoadLibrary(
-    _In_ PCWSTR LibFileName
+PhGetActivationFactory(
+    _In_ PCWSTR DllName,
+    _In_ PCWSTR RuntimeClass,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
     );
 
 PHLIBAPI
-NTSTATUS
+HRESULT
 NTAPI
-PhLoadLibraryAsImageResource(
-    _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PVOID *BaseAddress
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoadLibraryAsImageResourceWin32(
-    _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PVOID *BaseAddress
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhFreeLibraryAsImageResource(
-    _In_ PVOID BaseAddress
+PhActivateInstance(
+    _In_ PCWSTR DllName,
+    _In_ PCWSTR RuntimeClass,
+    _In_ REFIID Riid,
+    _Out_ PVOID* Ppv
     );
 
 PHLIBAPI
@@ -1903,15 +1732,14 @@ PhReadTimeStampCounter(
     );
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhQueryPerformanceCounter(
-    _Out_ PLARGE_INTEGER PerformanceCounter,
-    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    _Out_ PLARGE_INTEGER PerformanceCounter
     );
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
@@ -1922,6 +1750,14 @@ PPH_STRING
 NTAPI
 PhApiSetResolveToHost(
     _In_ PPH_STRINGREF ApiSetName
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhCreateProcessAsInteractiveUser(
+    _In_ PWSTR CommandLine,
+    _In_ PWSTR CurrentDirectory
     );
 
 PHLIBAPI
@@ -1990,6 +1826,44 @@ PhUpdateProcThreadAttribute(
     _In_ PVOID Buffer,
     _In_ SIZE_T BufferLength
     );
+
+FORCEINLINE
+BOOLEAN
+PhPtrAddOffset(
+    _Inout_ PVOID* Pointer,
+    _In_ SIZE_T Offset
+    )
+{
+    PVOID pointer;
+
+    pointer = PTR_ADD_OFFSET(*Pointer, Offset);
+    if (pointer < *Pointer)
+        return FALSE;
+
+    *Pointer = pointer;
+    return TRUE;
+}
+
+FORCEINLINE
+BOOLEAN
+PhPtrAdvance(
+    _Inout_ PVOID* Pointer,
+    _In_ PVOID EndPointer,
+    _In_ SIZE_T Offset
+    )
+{
+    PVOID pointer;
+
+    pointer = *Pointer;
+    if (!PhPtrAddOffset(&pointer, Offset))
+        return FALSE;
+
+    if (pointer >= EndPointer)
+        return FALSE;
+
+    *Pointer = pointer;
+    return TRUE;
+}
 
 EXTERN_C_END
 

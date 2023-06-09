@@ -23,8 +23,11 @@ NTSTATUS SetupUninstallBuild(
     if (!SetupUninstallDriver(Context))
         goto CleanupExit;
 
-    // Remove autorun and shortcuts.
+    // Remove autorun.
     SetupDeleteWindowsOptions(Context);
+
+    // Remove shortcuts.
+    SetupDeleteShortcuts(Context);
 
     // Remove the uninstaller.
     SetupDeleteUninstallFile(Context);
@@ -33,7 +36,7 @@ NTSTATUS SetupUninstallBuild(
     SetupDeleteUninstallKey();
 
     // Remove the previous installation.
-    if (!NT_SUCCESS(PhDeleteDirectoryWin32(Context->SetupInstallPath)))
+    if (!NT_SUCCESS(PhDeleteDirectoryWin32(&Context->SetupInstallPath->sr)))
     {
         static PH_STRINGREF ksiFileName = PH_STRINGREF_INIT(L"ksi.dll");
         static PH_STRINGREF ksiOldFileName = PH_STRINGREF_INIT(L"ksi.dll-old");

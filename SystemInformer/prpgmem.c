@@ -21,7 +21,6 @@
 #include <extmgri.h>
 #include <mainwnd.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <procprv.h>
 
 static PPH_OBJECT_TYPE PhMemoryContextType = NULL;
@@ -36,11 +35,14 @@ NTSTATUS PhpRefreshProcessMemoryThread(
     if (memoryContext->ListContext.ZeroPadAddresses)
         flags |= PH_QUERY_MEMORY_ZERO_PAD_ADDRESSES;
 
-    memoryContext->LastRunStatus = PhQueryMemoryItemList(
-        memoryContext->ProcessId,
-        flags,
-        &memoryContext->MemoryItemList
-        );
+    if (PH_IS_REAL_PROCESS_ID(memoryContext->ProcessId))
+    {
+        memoryContext->LastRunStatus = PhQueryMemoryItemList(
+            memoryContext->ProcessId,
+            flags,
+            &memoryContext->MemoryItemList
+            );
+    }
 
     if (NT_SUCCESS(memoryContext->LastRunStatus))
     {
@@ -249,7 +251,7 @@ BOOLEAN PhpMemoryTreeFilterCallback(
 
     if (memoryItem->BaseAddressString[0])
     {
-        if (PhWordMatchStringZ(memoryContext->SearchboxText, memoryItem->BaseAddressString))
+        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, memoryItem->BaseAddressString))
             return TRUE;
     }
 
@@ -263,14 +265,14 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     tempString = PhGetMemoryTypeString(memoryItem->Type);
     if (tempString[0])
     {
-        if (PhWordMatchStringZ(memoryContext->SearchboxText, tempString))
+        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, tempString))
             return TRUE;
     }
 
     tempString = PhGetMemoryStateString(memoryItem->State);
     if (tempString[0])
     {
-        if (PhWordMatchStringZ(memoryContext->SearchboxText, tempString))
+        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, tempString))
             return TRUE;
     }
 
@@ -309,10 +311,10 @@ VOID PhpPopulateTableWithProcessMemoryNodes(
             // If this is the first column in the row, add some indentation.
             text = PhaCreateStringEx(
                 NULL,
-                getCellText.Text.Length + Level * sizeof(WCHAR) * sizeof(WCHAR)
+                getCellText.Text.Length + UInt32x32To64(Level, 2) * sizeof(WCHAR)
                 );
-            wmemset(text->Buffer, L' ', Level * sizeof(WCHAR));
-            memcpy(&text->Buffer[Level * 2], getCellText.Text.Buffer, getCellText.Text.Length);
+            wmemset(text->Buffer, L' ', UInt32x32To64(Level, 2));
+            memcpy(&text->Buffer[UInt32x32To64(Level, 2)], getCellText.Text.Buffer, getCellText.Text.Length);
         }
 
         Table[*Index][i] = text;
@@ -1037,6 +1039,11 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                 TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);
 
                 PhReplaceMemoryList(&memoryContext->ListContext, &memoryContext->MemoryItemList);
+            }
+            else if (memoryContext->LastRunStatus == ULONG_MAX)
+            {
+                TreeNew_SetEmptyText(memoryContext->ListContext.TreeNewHandle, &EmptyMemoryText, 0);
+                TreeNew_NodesStructured(memoryContext->ListContext.TreeNewHandle);
             }
             else
             {

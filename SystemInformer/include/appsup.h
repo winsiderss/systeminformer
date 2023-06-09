@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016-2017
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_APPSUP_H
 #define PH_APPSUP_H
 
@@ -26,6 +38,13 @@ PhIsProcessSuspended(
 BOOLEAN
 NTAPI
 PhIsProcessBackground(
+    _In_ ULONG PriorityClass
+    );
+
+PHAPPAPI
+PPH_STRINGREF
+NTAPI
+PhGetProcessPriorityClassString(
     _In_ ULONG PriorityClass
     );
 // end_phapppub
@@ -107,11 +126,6 @@ PhaGetProcessKnownCommandLine(
     _Out_ PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
     );
 // end_phapppub
-
-PPH_STRING PhGetServiceRelevantFileName(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ SC_HANDLE ServiceHandle
-    );
 
 PPH_STRING PhEscapeStringForDelimiter(
     _In_ PPH_STRING String,
@@ -269,6 +283,8 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     );
 
 // begin_phapppub
+typedef struct _PH_EMENU_ITEM* PPH_EMENU_ITEM;
+
 typedef struct _PH_TN_COLUMN_MENU_DATA
 {
     HWND TreeNewHandle;
@@ -276,8 +292,8 @@ typedef struct _PH_TN_COLUMN_MENU_DATA
     ULONG DefaultSortColumn;
     PH_SORT_ORDER DefaultSortOrder;
 
-    struct _PH_EMENU_ITEM *Menu;
-    struct _PH_EMENU_ITEM *Selection;
+    PPH_EMENU_ITEM Menu;
+    PPH_EMENU_ITEM Selection;
     ULONG ProcessedId;
 } PH_TN_COLUMN_MENU_DATA, *PPH_TN_COLUMN_MENU_DATA;
 
@@ -326,10 +342,12 @@ typedef struct _PH_TN_FILTER_SUPPORT
     PPH_LIST NodeList;
 } PH_TN_FILTER_SUPPORT, *PPH_TN_FILTER_SUPPORT;
 
-typedef BOOLEAN (NTAPI *PPH_TN_FILTER_FUNCTION)(
+_Function_class_(PH_TN_FILTER_FUNCTION)
+typedef BOOLEAN (NTAPI PH_TN_FILTER_FUNCTION)(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
+typedef PH_TN_FILTER_FUNCTION *PPH_TN_FILTER_FUNCTION;
 
 typedef struct _PH_TN_FILTER_ENTRY
 {
@@ -396,7 +414,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhInsertCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND TreeNewHandle,
     _In_ PPH_TREENEW_COLUMN Column
@@ -406,7 +424,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhHandleCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     );
 
 typedef struct _PH_COPY_ITEM_CONTEXT
@@ -421,7 +439,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhInsertCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND ListViewHandle
     );
@@ -430,24 +448,40 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhHandleCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     );
-// end_phapppub
 
-BOOLEAN PhShellOpenKey2(
+PHAPPAPI
+VOID
+NTAPI
+PhShellOpenKey(
     _In_ HWND WindowHandle,
     _In_ PPH_STRING KeyName
     );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhShellOpenKey2(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING KeyName
+    );
+// end_phapppub
 
 PPH_STRING PhPcre2GetErrorMessage(
     _In_ INT ErrorCode
     );
 
-HBITMAP PhGetShieldBitmap(
-    _In_ LONG dpiValue
+// begin_phapppub
+PHAPPAPI
+HBITMAP
+NTAPI
+PhGetShieldBitmap(
+    _In_ LONG WindowDpi,
+    _In_opt_ LONG Width,
+    _In_opt_ LONG Height
     );
 
-// begin_phapppub
 PHAPPAPI
 HICON
 NTAPI
@@ -456,9 +490,47 @@ PhGetApplicationIcon(
     );
 
 PHAPPAPI
+HICON
+NTAPI
+PhGetApplicationIconEx(
+    _In_ BOOLEAN SmallIcon,
+    _In_opt_ LONG WindowDpi
+    );
+
+PHAPPAPI
 VOID
 NTAPI
 PhSetApplicationWindowIcon(
+    _In_ HWND WindowHandle
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhSetApplicationWindowIconEx(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDeleteApplicationWindowIcon(
+    _In_ HWND WindowHandle
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhSetStaticWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDeleteStaticWindowIcon(
     _In_ HWND WindowHandle
     );
 // end_phapppub
@@ -487,13 +559,35 @@ PhWordMatchStringRef(
     _In_ PPH_STRINGREF Text
     );
 
-PHAPPAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhWordMatchStringZ(
     _In_ PPH_STRING SearchText,
     _In_ PWSTR Text
-    );
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+
+    return PhWordMatchStringRef(&SearchText->sr, &text);
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhWordMatchStringLongHintZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRefLongHint(&text, Text);
+
+    return PhWordMatchStringRef(&SearchText->sr, &text);
+}
 
 PHAPPAPI
 PVOID
@@ -526,7 +620,7 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
             PhSetWindowContext(hwndDlg, ContextHash, context);
         }
         break;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             context = PhGetWindowContext(hwndDlg, ContextHash);
             PhRemoveWindowContext(hwndDlg, ContextHash);

@@ -50,6 +50,7 @@ EXPORTS
     PhAddItemsArray
     PhAddItemSimpleHashtable
     PhAddItemsList
+    PhAddPlusMaxMemorySingles
     PhAllocate
     PhAllocateExSafe
     PhAllocateFromFreeList
@@ -89,6 +90,7 @@ EXPORTS
     PhConvertUtf8ToUtf16Buffer
     PhConvertUtf8ToUtf16Ex
     PhConvertUtf8ToUtf16Size
+    PhCopyConvertCircularBufferULONG
     PhCopyBytesZ
     PhCopyStringZ
     PhCopyStringZFromBytes
@@ -185,6 +187,7 @@ EXPORTS
     PhLocalTimeToSystemTime
     PhLowerBoundElementAvlTree
     PhLowerDualBoundElementAvlTree
+    PhMaxMemorySingles
     PhMaximumElementAvlTree
     PhMinimumElementAvlTree
     PhNtStatusFileNotFound
@@ -213,6 +216,7 @@ EXPORTS
     PhResizeArray
     PhResizeList
     PhRoundUpToPowerOfTwo
+    PhSecondsSince1970ToTime
     PhSplitStringRefAtChar
     PhSplitStringRefAtLastChar
     PhSplitStringRefAtString
@@ -221,6 +225,7 @@ EXPORTS
     PhStringToInteger64
     PhSuccessorElementAvlTree
     PhSystemTimeToLocalTime
+    PhTimeToSecondsSince1970
     PhTrimStringRef
     PhUnregisterCallback
     PhUpperBoundElementAvlTree
@@ -243,10 +248,12 @@ EXPORTS
     PhDeviceIoControlFile
     PhDeleteDirectoryWin32
     PhDeleteFileWin32
+    PhDeleteFile
     PhDeleteValueKey
     PhDetermineDosPathNameType
     PhDoesFileExistWin32
     PhDoesFileExist
+    PhDosPathNameToNtPathName
     PhDisconnectNamedPipe
     PhEnumerateKey
     PhEnumerateValueKey
@@ -259,15 +266,18 @@ EXPORTS
     PhEnumHandlesEx
     PhEnumHandlesEx2
     PhEnumKernelModules
+    PhEnumNextProcess
+    PhEnumNextThread
+    PhEnumObjectIdInformation
     PhEnumPagefiles
     PhEnumProcessEnvironmentVariables
     PhEnumProcesses
     PhEnumProcessesEx
-    PhEnumProcessesForSession
     PhEnumProcessModules
     PhEnumProcessModules32
     PhEnumProcessModules32Ex
     PhEnumProcessModulesEx
+    PhEnumReparsePointInformation
     PhFindProcessInformation
     PhFindProcessInformationByImageName
     PhGetActiveProcessorCount
@@ -277,6 +287,7 @@ EXPORTS
     PhGetFirmwareEnvironmentVariable
     PhGetJobProcessIdList
     PhGetKernelFileName
+    PhGetKernelFileName2
     PhGetObjectSecurity
     PhGetOwnTokenAttributes
     PhGetDllHandle
@@ -297,6 +308,7 @@ EXPORTS
     PhGetProcessIsDotNetEx
     PhGetProcessMappedFileName
     PhGetProcessPebString
+    PhGetProcessPriority
     PhGetProcessUnloadedDlls
     PhGetProcessWindowTitle
     PhGetProcessWorkingSetInformation
@@ -331,6 +343,7 @@ EXPORTS
     PhSetFileAllocationSize
     PhSetFilePosition
     PhSetFileSize
+    PhSetFirmwareEnvironmentVariable
     PhSetObjectSecurity
     PhSetThreadName
     PhSetTokenIsVirtualizationEnabled
@@ -372,7 +385,6 @@ EXPORTS
     PhCreateProcessWin32Ex
     PhCreateSaveFileDialog
     PhDeleteImageVersionInfo
-    PhDereferenceObjects
     PhEllipsisString
     PhEllipsisStringPath
     PhEscapeCommandLinePart
@@ -393,6 +405,7 @@ EXPORTS
     PhFormatTimeSpanRelative
     PhFormatUInt64
     PhFreeFileDialog
+    PhFreeLibrary
     PhFreeLibraryAsImageResource
     PhGenerateGuid
     PhGenerateGuidFromName
@@ -411,12 +424,14 @@ EXPORTS
     PhGetFileDialogFilterIndex
     PhGetFileDialogOptions
     PhGetFileVersionInfo
+    PhGetFileVersionInfoEx
     PhGetFileVersionFixedInfo
     PhGetFileVersionInfoLangCodePage
     PhGetFileVersionInfoString
     PhGetFileVersionInfoString2
     PhGetFullPath
     PhGetKnownFolderPath
+    PhGetKnownLocation
     PhGetMessage
     PhGetNtMessage
     PhGetStatusMessage
@@ -426,6 +441,7 @@ EXPORTS
     PhGetTemporaryDirectoryRandomAlphaFileName
     PhInitializeHash
     PhInitializeImageVersionInfo
+    PhInitializeImageVersionInfoEx
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
     PhLoadLibrary
@@ -436,17 +452,15 @@ EXPORTS
     PhParseCommandLine
     PhParseCommandLineFuzzy
     PhParseCommandLinePart
-    PhQueryRegistryStringRef
-    PhQueryRegistryUlongStringRef
-    PhQueryRegistryUlong64StringRef
-    PhReferenceObjects
+    PhQueryRegistryString
+    PhQueryRegistryUlong
+    PhQueryRegistryUlong64
     PhSetFileDialogFileName
     PhSetFileDialogFilter
     PhSetFileDialogOptions
     PhShellExecute
     PhShellExecuteEx
     PhShellExploreFile
-    PhShellOpenKey
     PhShellProperties
     PhShowConfirmMessage
     PhShowContinueStatus
@@ -522,7 +536,6 @@ EXPORTS
     PhVerifyFileStream
     PhWriteFileStream
     PhWriteStringAsUtf8FileStream
-    PhWriteStringAsUtf8FileStream2
     PhWriteStringAsUtf8FileStreamEx
     PhWriteStringFormatAsUtf8FileStream
     PhWriteStringFormatAsUtf8FileStream_V
@@ -553,7 +566,6 @@ EXPORTS
     PhFindListViewItemByFlags
     PhFindListViewItemByParam
     PhGetComboBoxString
-    PhGetFileShellIcon
     PhGetListBoxString
     PhGetListViewItemImageIndex
     PhGetListViewItemParam
@@ -597,11 +609,9 @@ EXPORTS
     PhUnregisterWindowCallback
     PhInitializeWindowTheme
     PhReInitializeWindowTheme
-    PhInitializeWindowThemeStatusBar
-    PhInitializeWindowThemeRebar
-    PhInitializeThemeWindowHeader
     PhImageListCreate
     PhImageListDestroy
+    PhImageListSetIconSize
     PhImageListSetImageCount
     PhImageListSetBkColor
     PhImageListRemoveIcon
@@ -621,6 +631,7 @@ EXPORTS
     PhGetEtwPublisherName
     PhGetHandleInformation
     PhGetHandleInformationEx
+    PhGetObjectTypeName
     PhQueryObjectName
     PhStdGetClientIdName
 
@@ -663,7 +674,7 @@ EXPORTS
     PhAddSetting
     PhAddSettings
     PhClearIgnoredSettings
-    PhConvertIgnoredSettings    
+    PhConvertIgnoredSettings
     PhGetIntegerStringRefSetting
     PhGetIntegerPairStringRefSetting
     PhGetScalableIntegerPairStringRefSetting
@@ -727,7 +738,7 @@ EXPORTS
     PhGetSymbolFromAddress
     PhGetSymbolFromName
     PhLoadModuleSymbolProvider
-    PhLoadModulesForProcessSymbolProvider
+    PhLoadModulesForVirtualSymbolProvider
     PhSetOptionsSymbolProvider
     PhSetSearchPathSymbolProvider
     PhStackWalk
@@ -736,6 +747,7 @@ EXPORTS
 
 ; verify
     PhVerifyFile
+    PhVerifyFileIsChainedToMicrosoft
 
 ; workqueue
     PhDeleteWorkQueue
@@ -792,8 +804,8 @@ EXPORTS
 
 ; cache
     PhCreateCacheFile
-    PhClearCacheDirectory
     PhDeleteCacheFile
+    PhClearCacheDirectory
 
 ; appresolver
     PhGetProcessPackageFullName

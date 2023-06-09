@@ -11,6 +11,9 @@
  */
 
 #include <phapp.h>
+#include <phuisup.h>
+#include <colmgr.h>
+
 #include <thrdlist.h>
 
 #include <emenu.h>
@@ -112,13 +115,19 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE, FALSE, L"Last status code", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE, FALSE, L"COM apartment", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_FIBER, FALSE, L"Fiber", 50, PH_ALIGN_RIGHT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_FIBER, FALSE, L"Fiber", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PRIORITYBOOST, FALSE, L"Priority boost", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUUSER, FALSE, L"CPU (user)", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUKERNEL, FALSE, L"CPU (kernel)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     //PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUHISTORY, FALSE, L"CPU history", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STACKUSAGE, FALSE, L"Stack usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_WAITTIME, FALSE, L"Wait time", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOREADS, FALSE, L"I/O reads", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOWRITES, FALSE, L"I/O writes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOOTHER, FALSE, L"I/O other", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOREADBYTES, FALSE, L"I/O read bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES, FALSE, L"I/O write bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES, FALSE, L"I/O other bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -260,7 +269,6 @@ PPH_THREAD_NODE PhAddThreadNode(
     threadNode->ThreadItem = ThreadItem;
     threadNode->PagePriority = MEMORY_PRIORITY_NORMAL + 1;
     threadNode->IoPriority = MaxIoPriorityTypes;
-    threadNode->LastSystemCallNumber = USHRT_MAX;
 
     memset(threadNode->TextCache, 0, sizeof(PH_STRINGREF) * PH_THREAD_TREELIST_COLUMN_MAXIMUM);
     threadNode->Node.TextCache = threadNode->TextCache;
@@ -400,8 +408,411 @@ VOID PhTickThreadNodes(
     PH_TICK_SH_STATE_TN(PH_THREAD_NODE, ShState, Context->NodeStateList, PhpRemoveThreadNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
 }
 
-#define SORT_FUNCTION(Column) PhpThreadTreeNewCompare##Column
+VOID PhpUpdateThreadNodeNameText(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    PhClearReference(&ThreadNode->NameText);
 
+    if (WindowsVersion >= WINDOWS_10_RS1 && ThreadNode->ThreadItem->ThreadHandle)
+    {
+        PPH_STRING threadName;
+
+        if (NT_SUCCESS(PhGetThreadName(ThreadNode->ThreadItem->ThreadHandle, &threadName)))
+        {
+            PhMoveReference(&ThreadNode->NameText, threadName);
+        }
+    }
+}
+
+VOID PhpUpdateThreadNodeStartedText(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    SYSTEMTIME time;
+
+    PhLargeIntegerToLocalSystemTime(&time, &ThreadNode->ThreadItem->CreateTime);
+    PhMoveReference(&ThreadNode->CreatedText, PhFormatDateTime(&time));
+}
+
+VOID PhpUpdateThreadNodePagePriority(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    ULONG pagePriorityInteger = MEMORY_PRIORITY_NORMAL + 1;
+
+    ThreadNode->PagePriority = 0;
+
+    if (ThreadNode->ThreadItem->ThreadHandle)
+    {
+        if (NT_SUCCESS(PhGetThreadPagePriority(ThreadNode->ThreadItem->ThreadHandle, &pagePriorityInteger)) && pagePriorityInteger <= MEMORY_PRIORITY_NORMAL)
+        {
+            ThreadNode->PagePriority = pagePriorityInteger;
+        }
+    }
+}
+
+VOID PhpUpdateThreadNodeIoPriority(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    IO_PRIORITY_HINT ioPriorityInteger = MaxIoPriorityTypes;
+
+    ThreadNode->IoPriority = 0;
+
+    if (ThreadNode->ThreadItem->ThreadHandle)
+    {
+        if (NT_SUCCESS(PhGetThreadIoPriority(ThreadNode->ThreadItem->ThreadHandle, &ioPriorityInteger)) && ioPriorityInteger <= MaxIoPriorityTypes)
+        {
+            ThreadNode->IoPriority = ioPriorityInteger;
+        }
+    }
+}
+
+VOID PhpUpdateThreadNodeSuspendCount(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    ULONG suspendCount = 0;
+
+    if (ThreadNode->ThreadItem->ThreadHandle)
+    {
+        if (ThreadNode->ThreadItem->WaitReason == Suspended)
+        {
+            PhGetThreadSuspendCount(ThreadNode->ThreadItem->ThreadHandle, &suspendCount);
+        }
+    }
+
+    ThreadNode->SuspendCount = suspendCount;
+}
+
+VOID PhpUpdateThreadNodeIdealProcessor(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    PROCESSOR_NUMBER idealProcessorNumber;
+
+    ThreadNode->IdealProcessorMask = 0;
+
+    if (ThreadNode->ThreadItem->ThreadHandle)
+    {
+        if (NT_SUCCESS(PhGetThreadIdealProcessor(ThreadNode->ThreadItem->ThreadHandle, &idealProcessorNumber)))
+        {
+            ThreadNode->IdealProcessorMask = MAKELONG(idealProcessorNumber.Number, idealProcessorNumber.Group);
+        }
+    }
+}
+
+VOID PhpUpdateThreadNodeBreakOnTermination(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    BOOLEAN breakOnTermination = FALSE;
+
+    if (ThreadNode->ThreadItem->ThreadHandle)
+    {
+        PhGetThreadBreakOnTermination(ThreadNode->ThreadItem->ThreadHandle, &breakOnTermination);
+    }
+
+    ThreadNode->BreakOnTermination = breakOnTermination;
+}
+
+VOID PhpUpdateThreadNodeTokenState(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    PH_THREAD_TOKEN_STATE tokenState = PH_THREAD_TOKEN_STATE_UNKNOWN;
+
+    if (ThreadNode->ThreadItem->ThreadHandle)
+    {
+        NTSTATUS status;
+        HANDLE tokenHandle;
+
+        // Since the system must verify that the thread is impersonating before it can perform
+        // an access check on the target token, we can reliably determine the token's presence
+        // even if we fail the subsequent access check. (diversenok)
+
+        status = PhOpenThreadToken(ThreadNode->ThreadItem->ThreadHandle, 0, TRUE, &tokenHandle);
+
+        if (status == STATUS_NO_TOKEN)
+        {
+            tokenState = PH_THREAD_TOKEN_STATE_NOT_PRESENT;
+        }
+        else if (status == STATUS_CANT_OPEN_ANONYMOUS)
+        {
+            tokenState = PH_THREAD_TOKEN_STATE_ANONYMOUS;
+        }
+        else
+        {
+            tokenState = PH_THREAD_TOKEN_STATE_PRESENT;
+        }
+
+        if (NT_SUCCESS(status))
+            NtClose(tokenHandle);
+    }
+
+    ThreadNode->TokenState = tokenState;
+}
+
+VOID PhpUpdateThreadNodeIoPending(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    BOOLEAN pendingIrp = FALSE;
+
+    if (ThreadNode->ThreadItem->ThreadHandle)
+    {
+        PhGetThreadIsIoPending(ThreadNode->ThreadItem->ThreadHandle, &pendingIrp);
+    }
+
+    ThreadNode->PendingIrp = pendingIrp;
+}
+
+VOID PhpUpdateThreadNodeLastSystemCall(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
+
+    if (!ThreadNode->ThreadContextHandleValid)
+    {
+        if (!ThreadNode->ThreadContextHandle)
+        {
+            HANDLE threadHandle;
+
+            if (NT_SUCCESS(PhOpenThread(
+                &threadHandle,
+                THREAD_GET_CONTEXT,
+                ThreadNode->ThreadItem->ThreadId
+                )))
+            {
+                ThreadNode->ThreadContextHandle = threadHandle;
+            }
+        }
+
+        ThreadNode->ThreadContextHandleValid = TRUE;
+    }
+
+    ThreadNode->LastSystemCallStatus = STATUS_SUCCESS;
+    memset(&ThreadNode->LastSystemCall, 0, sizeof(THREAD_LAST_SYSCALL_INFORMATION));
+
+    if (ThreadNode->ThreadContextHandle)
+    {
+        ThreadNode->LastSystemCallStatus = PhGetThreadLastSystemCall(ThreadNode->ThreadContextHandle, &lastSystemCall);
+
+        if (NT_SUCCESS(ThreadNode->LastSystemCallStatus))
+        {
+            ThreadNode->LastSystemCall = lastSystemCall;
+        }
+    }
+}
+
+VOID PhpUpdateThreadNodeLastStatusCode(
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    NTSTATUS lastStatusValue = STATUS_SUCCESS;
+
+    if (!ThreadNode->ThreadReadVmHandleValid)
+    {
+        if (!ThreadNode->ThreadReadVmHandle)
+        {
+            if (ThreadNode->ThreadItem->ThreadHandle)
+            {
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
+                    Context->ProcessId
+                    )))
+                {
+                    ThreadNode->ThreadReadVmHandle = processHandle;
+                }
+            }
+        }
+
+        ThreadNode->ThreadReadVmHandleValid = TRUE;
+    }
+
+    if (ThreadNode->ThreadItem->ThreadHandle && ThreadNode->ThreadReadVmHandle)
+    {
+        ThreadNode->LastStatusQueryStatus = PhGetThreadLastStatusValue(
+            ThreadNode->ThreadItem->ThreadHandle,
+            ThreadNode->ThreadReadVmHandle,
+            &lastStatusValue
+            );
+
+        if (NT_SUCCESS(ThreadNode->LastStatusQueryStatus))
+        {
+            ThreadNode->LastStatusValue = lastStatusValue;
+        }
+    }
+}
+
+VOID PhpUpdateThreadNodeApartmentState(
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    OLETLSFLAGS apartmentState = 0;
+
+    if (!ThreadNode->ThreadReadVmHandleValid)
+    {
+        if (!ThreadNode->ThreadReadVmHandle)
+        {
+            if (ThreadNode->ThreadItem->ThreadHandle)
+            {
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
+                    Context->ProcessId
+                    )))
+                {
+                    ThreadNode->ThreadReadVmHandle = processHandle;
+                }
+            }
+        }
+
+        ThreadNode->ThreadReadVmHandleValid = TRUE;
+    }
+
+    if (ThreadNode->ThreadItem->ThreadHandle && ThreadNode->ThreadReadVmHandle)
+    {
+        status = PhGetThreadApartmentState(
+            ThreadNode->ThreadItem->ThreadHandle,
+            ThreadNode->ThreadReadVmHandle,
+            &apartmentState
+            );
+    }
+
+    if (NT_SUCCESS(status) && apartmentState)
+    {
+        ThreadNode->ApartmentState = apartmentState;
+    }
+    else
+    {
+        ThreadNode->ApartmentState = 0;
+    }
+}
+
+VOID PhpUpdateThreadNodeFiber(
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    BOOLEAN threadIsFiber = FALSE;
+
+    if (!ThreadNode->ThreadReadVmHandleValid)
+    {
+        if (!ThreadNode->ThreadReadVmHandle)
+        {
+            if (ThreadNode->ThreadItem->ThreadHandle)
+            {
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
+                    Context->ProcessId
+                    )))
+                {
+                    ThreadNode->ThreadReadVmHandle = processHandle;
+                }
+            }
+        }
+
+        ThreadNode->ThreadReadVmHandleValid = TRUE;
+    }
+
+    if (ThreadNode->ThreadItem->ThreadHandle && ThreadNode->ThreadReadVmHandle)
+    {
+        PhGetThreadIsFiber(
+            ThreadNode->ThreadItem->ThreadHandle,
+            ThreadNode->ThreadReadVmHandle,
+            &threadIsFiber
+            );
+    }
+
+    ThreadNode->Fiber = threadIsFiber;
+}
+
+VOID PhpUpdateThreadNodePriorityBoost(
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    BOOLEAN priorityBoost = FALSE;
+
+    if (ThreadNode->ThreadItem->ThreadHandle)
+    {
+        PhGetThreadPriorityBoost(ThreadNode->ThreadItem->ThreadHandle, &priorityBoost);
+    }
+
+    ThreadNode->PriorityBoost = priorityBoost;
+}
+
+VOID PhpUpdateThreadNodeStackUsage(
+    _In_ PPH_THREAD_LIST_CONTEXT Context,
+    _In_ PPH_THREAD_NODE ThreadNode
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    ULONG_PTR stackUsage = 0;
+    ULONG_PTR stackLimit = 0;
+
+    if (!ThreadNode->ThreadReadVmHandleValid)
+    {
+        if (!ThreadNode->ThreadReadVmHandle)
+        {
+            if (ThreadNode->ThreadItem->ThreadHandle)
+            {
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
+                    Context->ProcessId
+                    )))
+                {
+                    ThreadNode->ThreadReadVmHandle = processHandle;
+                }
+            }
+        }
+
+        ThreadNode->ThreadReadVmHandleValid = TRUE;
+    }
+
+    if (ThreadNode->ThreadItem->ThreadHandle && ThreadNode->ThreadReadVmHandle)
+    {
+        status = PhGetThreadStackSize(
+            ThreadNode->ThreadItem->ThreadHandle,
+            ThreadNode->ThreadReadVmHandle,
+            &stackUsage,
+            &stackLimit
+            );
+    }
+
+    if (NT_SUCCESS(status) && stackUsage && stackLimit)
+    {
+        FLOAT percent = (FLOAT)stackUsage / stackLimit * 100;
+
+        ThreadNode->StackUsageFloat = percent;
+        ThreadNode->StackUsage = stackUsage;
+        ThreadNode->StackLimit = stackLimit;
+    }
+    else
+    {
+        ThreadNode->StackUsageFloat = 0;
+        ThreadNode->StackUsage = 0;
+        ThreadNode->StackLimit = 0;
+    }
+}
+
+#define SORT_FUNCTION(Column) PhpThreadTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpThreadTreeNewCompare##Column( \
     _In_ void *_context, \
     _In_ const void *_elem1, \
@@ -484,6 +895,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Name)
 {
+    PhpUpdateThreadNodeNameText(node1);
+    PhpUpdateThreadNodeNameText(node2);
+
     sortResult = PhCompareStringWithNull(node1->NameText, node2->NameText, TRUE);
 }
 END_SORT_FUNCTION
@@ -526,12 +940,18 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PagePriority)
 {
+    PhpUpdateThreadNodePagePriority(node1);
+    PhpUpdateThreadNodePagePriority(node2);
+
     sortResult = uintcmp(node1->PagePriority, node2->PagePriority);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IoPriority)
 {
+    PhpUpdateThreadNodeIoPriority(node1);
+    PhpUpdateThreadNodeIoPriority(node2);
+
     sortResult = uintcmp(node1->IoPriority, node2->IoPriority);
 }
 END_SORT_FUNCTION
@@ -595,6 +1015,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IdealProcessor)
 {
+    PhpUpdateThreadNodeIdealProcessor(node1);
+    PhpUpdateThreadNodeIdealProcessor(node2);
+
     sortResult = int64cmp(node1->IdealProcessorMask, node2->IdealProcessorMask);
     //sortResult = PhCompareStringZ(node1->IdealProcessorText, node2->IdealProcessorText, TRUE);
 }
@@ -602,6 +1025,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Critical)
 {
+    PhpUpdateThreadNodeBreakOnTermination(node1);
+    PhpUpdateThreadNodeBreakOnTermination(node2);
+
     sortResult = ucharcmp(node1->BreakOnTermination, node2->BreakOnTermination);
 }
 END_SORT_FUNCTION
@@ -630,42 +1056,63 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(TokenState)
 {
+    PhpUpdateThreadNodeTokenState(node1);
+    PhpUpdateThreadNodeTokenState(node2);
+
     sortResult = uintcmp(node1->TokenState, node2->TokenState);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PendingIrp)
 {
+    PhpUpdateThreadNodeIoPending(node1);
+    PhpUpdateThreadNodeIoPending(node2);
+
     sortResult = ucharcmp(node1->PendingIrp, node2->PendingIrp);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LastSystemCall)
 {
-    sortResult = ushortcmp(node1->LastSystemCallNumber, node2->LastSystemCallNumber);
+    PhpUpdateThreadNodeLastSystemCall(node1);
+    PhpUpdateThreadNodeLastSystemCall(node2);
+
+    sortResult = ushortcmp(node1->LastSystemCall.SystemCallNumber, node2->LastSystemCall.SystemCallNumber);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LastStatusCode)
 {
-    sortResult = uintcmp(node1->LastStatusCode, node2->LastStatusCode);
+    PhpUpdateThreadNodeLastStatusCode(context, node1);
+    PhpUpdateThreadNodeLastStatusCode(context, node2);
+
+    sortResult = uintcmp(node1->LastStatusValue, node2->LastStatusValue);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ApartmentState)
 {
+    PhpUpdateThreadNodeApartmentState(context, node1);
+    PhpUpdateThreadNodeApartmentState(context, node2);
+
     sortResult = uintcmp(node1->ApartmentState, node2->ApartmentState);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Fiber)
 {
+    PhpUpdateThreadNodeFiber(context, node1);
+    PhpUpdateThreadNodeFiber(context, node2);
+
     sortResult = ucharcmp(node1->Fiber, node2->Fiber);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PriorityBoost)
 {
+    PhpUpdateThreadNodePriorityBoost(node1);
+    PhpUpdateThreadNodePriorityBoost(node2);
+
     sortResult = ucharcmp(node1->PriorityBoost, node2->PriorityBoost);
 }
 END_SORT_FUNCTION
@@ -684,13 +1131,52 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(StackUsage)
 {
-    sortResult = singlecmp(node1->StackUsage, node2->StackUsage);
+    PhpUpdateThreadNodeStackUsage(context, node1);
+    PhpUpdateThreadNodeStackUsage(context, node2);
+
+    sortResult = singlecmp(node1->StackUsageFloat, node2->StackUsageFloat);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(WaitTime)
 {
     sortResult = uint64cmp(threadItem1->WaitTime, threadItem2->WaitTime);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoReads)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.ReadOperationCount, threadItem2->IoCounters.ReadOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWrites)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.WriteOperationCount, threadItem2->IoCounters.WriteOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOther)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.OtherOperationCount, threadItem2->IoCounters.OtherOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoReadBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.ReadTransferCount, threadItem2->IoCounters.ReadTransferCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWriteBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.WriteTransferCount, threadItem2->IoCounters.WriteTransferCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOtherBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.OtherTransferCount, threadItem2->IoCounters.OtherTransferCount);
 }
 END_SORT_FUNCTION
 
@@ -753,6 +1239,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(CpuKernel),
                     SORT_FUNCTION(StackUsage),
                     SORT_FUNCTION(WaitTime),
+                    SORT_FUNCTION(IoReads),
+                    SORT_FUNCTION(IoWrites),
+                    SORT_FUNCTION(IoOther),
+                    SORT_FUNCTION(IoReadBytes),
+                    SORT_FUNCTION(IoWriteBytes),
+                    SORT_FUNCTION(IoOtherBytes),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -803,16 +1295,10 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             {
             case PH_THREAD_TREELIST_COLUMN_TID:
                 {
-                    PH_FORMAT format;
-                    SIZE_T returnLength;
-
-                    PhInitFormatIU(&format, HandleToUlong(threadItem->ThreadId));
-
-                    if (PhFormatToBuffer(&format, 1, node->ThreadIdText, sizeof(node->ThreadIdText), &returnLength))
-                    {
-                        getCellText->Text.Buffer = node->ThreadIdText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                    }
+                    if (threadItem->AlternateThreadIdString)
+                        getCellText->Text = threadItem->AlternateThreadIdString->sr;
+                    else
+                        PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CPU:
@@ -883,26 +1369,13 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_NAME:
                 {
-                    if (threadItem->ThreadHandle && WindowsVersion >= WINDOWS_10_RS1)
-                    {
-                        PPH_STRING threadName;
-
-                        if (NT_SUCCESS(PhGetThreadName(threadItem->ThreadHandle, &threadName)))
-                        {
-                            PhMoveReference(&node->NameText, threadName);
-                        }
-                    }
-
+                    PhpUpdateThreadNodeNameText(node);
                     getCellText->Text = PhGetStringRef(node->NameText);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_STARTED:
                 {
-                    SYSTEMTIME time;
-
-                    PhLargeIntegerToLocalSystemTime(&time, &threadItem->CreateTime);
-                    PhMoveReference(&node->CreatedText, PhFormatDateTime(&time));
-
+                    PhpUpdateThreadNodeStartedText(node);
                     getCellText->Text = PhGetStringRef(node->CreatedText);
                 }
                 break;
@@ -967,16 +1440,13 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_PAGEPRIORITY:
                 {
-                    ULONG pagePriorityInteger = MEMORY_PRIORITY_NORMAL + 1;
                     PWSTR pagePriority = L"N/A";
 
-                    if (threadItem->ThreadHandle)
+                    PhpUpdateThreadNodePagePriority(node);
+
+                    if (node->PagePriority)
                     {
-                        if (NT_SUCCESS(PhGetThreadPagePriority(threadItem->ThreadHandle, &pagePriorityInteger)) && pagePriorityInteger <= MEMORY_PRIORITY_NORMAL)
-                        {
-                            node->PagePriority = pagePriorityInteger;
-                            pagePriority = PhPagePriorityNames[pagePriorityInteger];
-                        }
+                        pagePriority = PhPagePriorityNames[node->PagePriority];
                     }
 
                     PhInitializeStringRefLongHint(&getCellText->Text, pagePriority);
@@ -984,16 +1454,13 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_IOPRIORITY:
                 {
-                    IO_PRIORITY_HINT ioPriorityInteger = MaxIoPriorityTypes;
                     PWSTR ioPriority = L"N/A";
 
-                    if (threadItem->ThreadHandle)
+                    PhpUpdateThreadNodeIoPriority(node);
+
+                    if (node->IoPriority)
                     {
-                        if (NT_SUCCESS(PhGetThreadIoPriority(threadItem->ThreadHandle, &ioPriorityInteger)) && ioPriorityInteger < MaxIoPriorityTypes)
-                        {
-                            node->IoPriority = ioPriorityInteger;
-                            ioPriority = PhIoPriorityHintNames[ioPriorityInteger];
-                        }
+                        ioPriority = PhIoPriorityHintNames[node->IoPriority];
                     }
 
                     PhInitializeStringRefLongHint(&getCellText->Text, ioPriority);
@@ -1018,8 +1485,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_STATE:
                 {
-                    ULONG suspendCount;
-
                     if (threadItem->State != Waiting)
                     {
                         if ((ULONG)threadItem->State < MaximumThreadState)
@@ -1035,19 +1500,18 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             PhMoveReference(&node->StateText, PhCreateString(L"Waiting"));
                     }
 
-                    if (threadItem->ThreadHandle)
+                    if (threadItem->ThreadHandle && threadItem->WaitReason == Suspended)
                     {
-                        if (threadItem->WaitReason == Suspended && NT_SUCCESS(PhGetThreadSuspendCount(threadItem->ThreadHandle, &suspendCount)))
-                        {
-                            PH_FORMAT format[4];
+                        PH_FORMAT format[4];
 
-                            PhInitFormatSR(&format[0], node->StateText->sr);
-                            PhInitFormatS(&format[1], L" (");
-                            PhInitFormatU(&format[2], suspendCount);
-                            PhInitFormatS(&format[3], L")");
+                        PhpUpdateThreadNodeSuspendCount(node);
 
-                            PhMoveReference(&node->StateText, PhFormat(format, 4, 30));
-                        }
+                        PhInitFormatSR(&format[0], node->StateText->sr);
+                        PhInitFormatS(&format[1], L" (");
+                        PhInitFormatU(&format[2], node->SuspendCount);
+                        PhInitFormatS(&format[3], L")");
+
+                        PhMoveReference(&node->StateText, PhFormat(format, 4, 30));
                     }
 
                     getCellText->Text = PhGetStringRef(node->StateText);
@@ -1073,40 +1537,31 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SIZE_T returnLength;
                     PH_FORMAT format[3];
 
-                    if (threadItem->ThreadHandle)
+                    PhpUpdateThreadNodeIdealProcessor(node);
+
+                    memset(&idealProcessorNumber, 0, sizeof(idealProcessorNumber));
+                    idealProcessorNumber.Group = HIWORD(node->IdealProcessorMask);
+                    idealProcessorNumber.Number = (BYTE)LOWORD(node->IdealProcessorMask);
+
+                    PhInitFormatU(&format[0], idealProcessorNumber.Group);
+                    PhInitFormatC(&format[1], L':');
+                    PhInitFormatU(&format[2], idealProcessorNumber.Number);
+
+                    if (PhFormatToBuffer(format, 3, node->IdealProcessorText, sizeof(node->IdealProcessorText), &returnLength))
                     {
-                        if (NT_SUCCESS(PhGetThreadIdealProcessor(threadItem->ThreadHandle, &idealProcessorNumber)))
-                        {
-                            node->IdealProcessorMask = MAKELONG(idealProcessorNumber.Number, idealProcessorNumber.Group);
-
-                            PhInitFormatU(&format[0], idealProcessorNumber.Group);
-                            PhInitFormatC(&format[1], L':');
-                            PhInitFormatU(&format[2], idealProcessorNumber.Number);
-
-                            if (PhFormatToBuffer(format, 3, node->IdealProcessorText, sizeof(node->IdealProcessorText), &returnLength))
-                            {
-                                getCellText->Text.Buffer = node->IdealProcessorText;
-                                getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                            }
-                        }
+                        getCellText->Text.Buffer = node->IdealProcessorText;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CRITICAL:
                 {
-                    BOOLEAN breakOnTermination = FALSE;
+                    PhpUpdateThreadNodeBreakOnTermination(node);
 
-                    if (threadItem->ThreadHandle)
-                    {
-                        PhGetThreadBreakOnTermination(threadItem->ThreadHandle, &breakOnTermination);
-                    }
-
-                    if (breakOnTermination)
+                    if (node->BreakOnTermination)
                         PhInitializeStringRef(&getCellText->Text, L"Critical");
                     else
                         PhInitializeEmptyStringRef(&getCellText->Text);
-
-                    node->BreakOnTermination = breakOnTermination;
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_TIDHEX:
@@ -1161,104 +1616,52 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_TOKEN_STATE:
                 {
-                    if (threadItem->ThreadHandle)
+                    PhpUpdateThreadNodeTokenState(node);
+
+                    if (node->TokenState == PH_THREAD_TOKEN_STATE_NOT_PRESENT)
                     {
-                        NTSTATUS status;
-                        HANDLE tokenHandle;
-
-                        // Since the system must verify that the thread is impersonating before it can perform
-                        // an access check on the target token, we can reliably determine the token's presence
-                        // even if we fail the subsequent access check. (diversenok)
-
-                        status = NtOpenThreadToken(threadItem->ThreadHandle, 0, TRUE, &tokenHandle);
-
-                        if (status == STATUS_NO_TOKEN)
-                        {
-                            node->TokenState = PH_THREAD_TOKEN_STATE_NOT_PRESENT;
-                            PhInitializeEmptyStringRef(&getCellText->Text);
-                        }
-                        else if (status == STATUS_CANT_OPEN_ANONYMOUS)
-                        {
-                            node->TokenState = PH_THREAD_TOKEN_STATE_ANONYMOUS;
-                            PhInitializeStringRef(&getCellText->Text, L"Anonymous");
-                        }
-                        else
-                        {
-                            node->TokenState = PH_THREAD_TOKEN_STATE_PRESENT;
-                            PhInitializeStringRef(&getCellText->Text, L"Yes");
-                        }
-
-                        if (NT_SUCCESS(status))
-                            NtClose(tokenHandle);
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                    else if (node->TokenState == PH_THREAD_TOKEN_STATE_ANONYMOUS)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Anonymous");
+                    }
+                    else if (node->TokenState == PH_THREAD_TOKEN_STATE_PRESENT)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Yes");
                     }
                     else
                     {
-                        node->TokenState = PH_THREAD_TOKEN_STATE_UNKNOWN;
                         PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_PENDINGIRP:
                 {
-                    BOOLEAN pendingIrp = FALSE;
+                    PhpUpdateThreadNodeIoPending(node);
 
-                    if (threadItem->ThreadHandle)
-                    {
-                        PhGetThreadIsIoPending(threadItem->ThreadHandle, &pendingIrp);
-                    }
-
-                    if (pendingIrp)
+                    if (node->PendingIrp)
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                     else
                         PhInitializeEmptyStringRef(&getCellText->Text);
-
-                    node->PendingIrp = pendingIrp;
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL:
                 {
-                    NTSTATUS status = STATUS_UNSUCCESSFUL;
-                    THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
-
                     if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
                     {
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
                     }
 
-                    if (!node->ThreadContextHandleValid)
-                    {
-                        if (!node->ThreadContextHandle)
-                        {
-                            HANDLE threadHandle;
+                    PhpUpdateThreadNodeLastSystemCall(node);
 
-                            if (NT_SUCCESS(PhOpenThread(
-                                &threadHandle,
-                                THREAD_GET_CONTEXT,
-                                threadItem->ThreadId
-                                )))
-                            {
-                                node->ThreadContextHandle = threadHandle;
-                            }
-                        }
-
-                        node->ThreadContextHandleValid = TRUE;
-                    }
-
-                    if (node->ThreadContextHandle)
-                    {
-                        status = PhGetThreadLastSystemCall(
-                            node->ThreadContextHandle,
-                            &lastSystemCall
-                            );
-                    }
-
-                    if (NT_SUCCESS(status))
+                    if (NT_SUCCESS(node->LastSystemCallStatus))
                     {
                         PPH_STRING systemCallName;
                         PH_FORMAT format[8];
 
-                        if (lastSystemCall.SystemCallNumber == 0 && !lastSystemCall.FirstArgument)
+                        if (node->LastSystemCall.SystemCallNumber == 0 && !node->LastSystemCall.FirstArgument)
                         {
                             // If the thread was created in a frozen/suspended process and hasn't executed, the
                             // ThreadLastSystemCall returns status_success but the values are invalid. (dmex)
@@ -1266,13 +1669,13 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         }
                         else
                         {
-                            if (systemCallName = PhGetSystemCallNumberName(lastSystemCall.SystemCallNumber))
+                            if (systemCallName = PhGetSystemCallNumberName(node->LastSystemCall.SystemCallNumber))
                             {
                                 PhInitFormatSR(&format[0], systemCallName->sr);
                                 PhInitFormatS(&format[1], L" (0x");
-                                PhInitFormatX(&format[2], lastSystemCall.SystemCallNumber);
+                                PhInitFormatX(&format[2], node->LastSystemCall.SystemCallNumber);
                                 PhInitFormatS(&format[3], L") (Arg0: 0x");
-                                PhInitFormatI64X(&format[4], (ULONG64)lastSystemCall.FirstArgument);
+                                PhInitFormatI64X(&format[4], (ULONG64)node->LastSystemCall.FirstArgument);
 
                                 if (WindowsVersion < WINDOWS_8)
                                 {
@@ -1283,7 +1686,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                                 {
                                     PPH_STRING waitTime;
 
-                                    waitTime = PhFormatTimeSpanRelative(lastSystemCall.WaitTime);
+                                    waitTime = PhFormatTimeSpanRelative(node->LastSystemCall.WaitTime);
                                     PhInitFormatS(&format[5], L") [");
                                     PhInitFormatSR(&format[6], waitTime->sr);
                                     PhInitFormatC(&format[7], L']');
@@ -1296,9 +1699,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             else
                             {
                                 PhInitFormatS(&format[0], L"0x");
-                                PhInitFormatX(&format[1], lastSystemCall.SystemCallNumber);
+                                PhInitFormatX(&format[1], node->LastSystemCall.SystemCallNumber);
                                 PhInitFormatS(&format[2], L" (Arg0: 0x");
-                                PhInitFormatI64X(&format[3], (ULONG64)lastSystemCall.FirstArgument);
+                                PhInitFormatI64X(&format[3], (ULONG64)node->LastSystemCall.FirstArgument);
 
                                 if (WindowsVersion < WINDOWS_8)
                                 {
@@ -1309,7 +1712,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                                 {
                                     PPH_STRING waitTime;
 
-                                    waitTime = PhFormatTimeSpanRelative(lastSystemCall.WaitTime);
+                                    waitTime = PhFormatTimeSpanRelative(node->LastSystemCall.WaitTime);
                                     PhInitFormatS(&format[4], L") [");
                                     PhInitFormatSR(&format[5], waitTime->sr);
                                     PhInitFormatC(&format[6], L']');
@@ -1317,17 +1720,14 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                                 }
                             }
                         }
-
-                        node->LastSystemCallNumber = lastSystemCall.SystemCallNumber;
                     }
                     else
                     {
                         PH_FORMAT format[2];
 
                         PhInitFormatS(&format[0], L"0x");
-                        PhInitFormatX(&format[1], status);
+                        PhInitFormatX(&format[1], node->LastSystemCallStatus);
 
-                        node->LastSystemCallNumber = USHRT_MAX;
                         PhMoveReference(&node->LastSystemCallText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
 
@@ -1336,8 +1736,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE:
                 {
-                    NTSTATUS status = STATUS_UNSUCCESSFUL;
-                    NTSTATUS lastStatusValue = STATUS_SUCCESS;
                     PPH_STRING errorMessage;
 
                     if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
@@ -1346,42 +1744,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         break;
                     }
 
-                    if (!node->ThreadReadVmHandleValid)
+                    PhpUpdateThreadNodeLastStatusCode(context, node);
+
+                    if (NT_SUCCESS(node->LastStatusQueryStatus))
                     {
-                        if (!node->ThreadReadVmHandle)
+                        if (node->LastStatusValue == STATUS_SUCCESS)
                         {
-                            if (threadItem->ThreadHandle)
-                            {
-                                HANDLE processHandle;
-
-                                if (NT_SUCCESS(PhOpenProcess(
-                                    &processHandle,
-                                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-                                    context->ProcessId
-                                    )))
-                                {
-                                    node->ThreadReadVmHandle = processHandle;
-                                }
-                            }
-                        }
-
-                        node->ThreadReadVmHandleValid = TRUE;
-                    }
-
-                    if (threadItem->ThreadHandle && node->ThreadReadVmHandle)
-                    {
-                        status = PhGetThreadLastStatusValue(
-                            threadItem->ThreadHandle,
-                            node->ThreadReadVmHandle,
-                            &lastStatusValue
-                            );
-                    }
-
-                    if (NT_SUCCESS(status))
-                    {
-                        if (lastStatusValue == STATUS_SUCCESS)
-                        {
-                            node->LastStatusCode = 0;
                             PhClearReference(&node->LastErrorCodeText);
                         }
                         else
@@ -1389,9 +1757,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             PH_FORMAT format[5];
 
                             PhInitFormatS(&format[0], L"0x");
-                            PhInitFormatX(&format[1], lastStatusValue);
+                            PhInitFormatX(&format[1], node->LastStatusValue);
 
-                            if (errorMessage = PhGetStatusMessage(lastStatusValue, 0))
+                            if (errorMessage = PhGetStatusMessage(node->LastStatusValue, 0))
                             {
                                 PhInitFormatS(&format[2], L" (");
                                 PhInitFormatSR(&format[3], errorMessage->sr);
@@ -1404,8 +1772,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             {
                                 PhMoveReference(&node->LastErrorCodeText, PhFormat(format, 2, 0x40));
                             }
-
-                            node->LastStatusCode = lastStatusValue;
                         }
                     }
                     else
@@ -1413,9 +1779,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PH_FORMAT format[2];
 
                         PhInitFormatS(&format[0], L"0x");
-                        PhInitFormatX(&format[1], status);
+                        PhInitFormatX(&format[1], node->LastStatusQueryStatus);
 
-                        node->LastStatusCode = 0;
                         PhMoveReference(&node->LastErrorCodeText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
 
@@ -1424,51 +1789,19 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE:
                 {
-                    NTSTATUS status = STATUS_UNSUCCESSFUL;
-                    OLETLSFLAGS apartmentState = 0;
-
                     if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
                     {
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
                     }
 
-                    if (!node->ThreadReadVmHandleValid)
-                    {
-                        if (!node->ThreadReadVmHandle)
-                        {
-                            if (threadItem->ThreadHandle)
-                            {
-                                HANDLE processHandle;
+                    PhpUpdateThreadNodeApartmentState(context, node);
 
-                                if (NT_SUCCESS(PhOpenProcess(
-                                    &processHandle,
-                                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-                                    context->ProcessId
-                                    )))
-                                {
-                                    node->ThreadReadVmHandle = processHandle;
-                                }
-                            }
-                        }
-
-                        node->ThreadReadVmHandleValid = TRUE;
-                    }
-
-                    if (threadItem->ThreadHandle && node->ThreadReadVmHandle)
-                    {
-                        status = PhGetThreadApartmentState(
-                            threadItem->ThreadHandle,
-                            node->ThreadReadVmHandle,
-                            &apartmentState
-                            );
-                    }
-
-                    if (NT_SUCCESS(status) && apartmentState)
+                    if (node->ApartmentState)
                     {
                         PPH_STRING apartmentStateString;
 
-                        if (apartmentStateString = PhGetApartmentStateString(apartmentState))
+                        if (apartmentStateString = PhGetApartmentStateString(node->ApartmentState))
                         {
                             PhMoveReference(&node->ApartmentStateText, apartmentStateString);
                         }
@@ -1476,12 +1809,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         {
                             PhClearReference(&node->ApartmentStateText);
                         }
-
-                        node->ApartmentState = apartmentState;
                     }
                     else
                     {
-                        node->ApartmentState = 0;
                         PhClearReference(&node->ApartmentStateText);
                     }
 
@@ -1490,49 +1820,15 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_FIBER:
                 {
-                    NTSTATUS status = STATUS_UNSUCCESSFUL;
-                    BOOLEAN threadIsFiber = FALSE;
-
                     if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
                     {
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
                     }
 
-                    if (!node->ThreadReadVmHandleValid)
-                    {
-                        if (!node->ThreadReadVmHandle)
-                        {
-                            if (threadItem->ThreadHandle)
-                            {
-                                HANDLE processHandle;
+                    PhpUpdateThreadNodeFiber(context, node);
 
-                                if (NT_SUCCESS(PhOpenProcess(
-                                    &processHandle,
-                                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-                                    context->ProcessId
-                                    )))
-                                {
-                                    node->ThreadReadVmHandle = processHandle;
-                                }
-                            }
-                        }
-
-                        node->ThreadReadVmHandleValid = TRUE;
-                    }
-
-                    if (threadItem->ThreadHandle && node->ThreadReadVmHandle)
-                    {
-                        status = PhGetThreadIsFiber(
-                            threadItem->ThreadHandle,
-                            node->ThreadReadVmHandle,
-                            &threadIsFiber
-                            );
-                    }
-
-                    node->Fiber = threadIsFiber;
-
-                    if (NT_SUCCESS(status) && threadIsFiber)
+                    if (node->Fiber)
                     {
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                     }
@@ -1544,16 +1840,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_PRIORITYBOOST:
                 {
-                    BOOLEAN priorityBoost = FALSE;
+                    PhpUpdateThreadNodePriorityBoost(node);
 
-                    if (threadItem->ThreadHandle)
-                    {
-                        PhGetThreadPriorityBoost(threadItem->ThreadHandle, &priorityBoost);
-                    }
-
-                    node->PriorityBoost = priorityBoost;
-
-                    if (priorityBoost)
+                    if (node->PriorityBoost)
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                     else
                         PhInitializeEmptyStringRef(&getCellText->Text);
@@ -1631,68 +1920,31 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_STACKUSAGE:
                 {
-                    NTSTATUS status = STATUS_UNSUCCESSFUL;
-                    ULONG_PTR stackUsage = 0;
-                    ULONG_PTR stackLimit = 0;
-
                     if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
                     {
                         PhInitializeEmptyStringRef(&getCellText->Text);
                         break;
                     }
 
-                    if (!node->ThreadReadVmHandleValid)
+                    PhpUpdateThreadNodeStackUsage(context, node);
+
+                    if (node->StackUsage && node->StackLimit)
                     {
-                        if (!node->ThreadReadVmHandle)
-                        {
-                            if (threadItem->ThreadHandle)
-                            {
-                                HANDLE processHandle;
-
-                                if (NT_SUCCESS(PhOpenProcess(
-                                    &processHandle,
-                                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
-                                    context->ProcessId
-                                    )))
-                                {
-                                    node->ThreadReadVmHandle = processHandle;
-                                }
-                            }
-                        }
-
-                        node->ThreadReadVmHandleValid = TRUE;
-                    }
-
-                    if (threadItem->ThreadHandle && node->ThreadReadVmHandle)
-                    {
-                        status = PhGetThreadStackSize(
-                            threadItem->ThreadHandle,
-                            node->ThreadReadVmHandle,
-                            &stackUsage,
-                            &stackLimit
-                            );
-                    }
-
-                    if (NT_SUCCESS(status) && stackUsage && stackLimit)
-                    {
-                        FLOAT percent = (FLOAT)stackUsage / stackLimit * 100;
                         PH_FORMAT format[6];
 
                         // %s / %s (%.0f%%)
-                        PhInitFormatSize(&format[0], stackUsage);
+                        PhInitFormatSize(&format[0], node->StackUsage);
                         PhInitFormatS(&format[1], L" | ");
-                        PhInitFormatSize(&format[2], stackLimit);
+                        PhInitFormatSize(&format[2], node->StackLimit);
                         PhInitFormatS(&format[3], L" (");
-                        PhInitFormatF(&format[4], percent, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[4], node->StackUsageFloat, PhMaxPrecisionUnit);
                         PhInitFormatS(&format[5], L"%)");
 
                         PhMoveReference(&node->StackUsageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                        node->StackUsage = percent;
                     }
                     else
                     {
                         PhClearReference(&node->StackUsageText);
-                        node->StackUsage = 0;
                     }
 
                     getCellText->Text = PhGetStringRef(node->StackUsageText);
@@ -1703,6 +1955,61 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     PhPrintTimeSpan(node->WaitTimeText, threadItem->WaitTime, PH_TIMESPAN_HMSM);
 
                     PhInitializeStringRefLongHint(&getCellText->Text, node->WaitTimeText);
+                }
+                break;
+
+            case PH_THREAD_TREELIST_COLUMN_IOREADS:
+                {
+                    if (threadItem->IoCounters.ReadOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoReads, threadItem->IoCounters.ReadOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoReads);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOWRITES:
+                {
+                    if (threadItem->IoCounters.WriteOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoWrites, threadItem->IoCounters.WriteOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoWrites);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOOTHER:
+                {
+                    if (threadItem->IoCounters.OtherOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoOther, threadItem->IoCounters.OtherOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoOther);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOREADBYTES:
+                {
+                    if (threadItem->IoCounters.ReadTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoReadBytes, PhFormatSize(threadItem->IoCounters.ReadTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoReadBytes->sr;
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES:
+                {
+                    if (threadItem->IoCounters.WriteTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoWriteBytes, PhFormatSize(threadItem->IoCounters.WriteTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoWriteBytes->sr;
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES:
+                {
+                    if (threadItem->IoCounters.OtherTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoOtherBytes, PhFormatSize(threadItem->IoCounters.OtherTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoOtherBytes->sr;
+                    }
                 }
                 break;
             default:

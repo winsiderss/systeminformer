@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2018-2023
+ *
+ */
+
 #ifndef PH_MEMPRV_H
 #define PH_MEMPRV_H
 
@@ -63,6 +75,27 @@ typedef struct _PH_MEMORY_ITEM
             BOOLEAN Spare : 6;
         };
     };
+    union
+    {
+        ULONG RegionTypeEx;
+        struct
+        {
+            ULONG Private : 1;
+            ULONG MappedDataFile : 1;
+            ULONG MappedImage : 1;
+            ULONG MappedPageFile : 1;
+            ULONG MappedPhysical : 1;
+            ULONG DirectMapped : 1;
+            ULONG SoftwareEnclave : 1; // REDSTONE3
+            ULONG PageSize64K : 1;
+            ULONG PlaceholderReservation : 1; // REDSTONE4
+            ULONG MappedAwe : 1; // 21H1
+            ULONG MappedWriteWatch : 1;
+            ULONG PageSizeLarge : 1;
+            ULONG PageSizeHuge : 1;
+            ULONG Reserved : 19; // Sync with MemoryRegionInformationEx (dmex)
+        };
+    };
 
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
 
@@ -77,6 +110,9 @@ typedef struct _PH_MEMORY_ITEM
     SIZE_T ShareableWorkingSetPages;
     SIZE_T LockedWorkingSetPages;
 
+    SIZE_T SharedOriginalPages;
+    SIZE_T Priority;
+
     PH_MEMORY_REGION_TYPE RegionType;
 
     union
@@ -89,6 +125,8 @@ typedef struct _PH_MEMORY_ITEM
         struct
         {
             PPH_STRING FileName;
+            BOOLEAN SigningLevelValid;
+            SE_SIGNING_LEVEL SigningLevel;
         } MappedFile;
         struct
         {
@@ -101,6 +139,8 @@ typedef struct _PH_MEMORY_ITEM
         struct
         {
             ULONG Index;
+            BOOLEAN ClassValid;
+            ULONG Class;
         } Heap;
         struct
         {
@@ -119,7 +159,7 @@ typedef struct _PH_MEMORY_ITEM_LIST
 
 VOID PhGetMemoryProtectionString(
     _In_ ULONG Protection,
-    _Out_writes_(17) PWSTR String
+    _Inout_z_ PWSTR String
     );
 
 PWSTR PhGetMemoryStateString(
@@ -130,6 +170,15 @@ PWSTR PhGetMemoryTypeString(
     _In_ ULONG Type
     );
 
+PPH_STRINGREF PhGetSigningLevelString(
+    _In_ SE_SIGNING_LEVEL SigningLevel
+    );
+
+PPH_STRING PhGetMemoryRegionTypeExString(
+    _In_ PPH_MEMORY_ITEM MemoryItem
+    );
+
+_Ret_notnull_
 PPH_MEMORY_ITEM PhCreateMemoryItem(
     VOID
     );

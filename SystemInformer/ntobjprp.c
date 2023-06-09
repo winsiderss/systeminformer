@@ -11,6 +11,12 @@
 
 #include <phapp.h>
 #include <phsettings.h>
+#include <kphuser.h>
+#include <ksisup.h>
+#include <hndlinfo.h>
+#include <emenu.h>
+#include <mainwnd.h>
+#include <procprv.h>
 
 typedef struct _COMMON_PAGE_CONTEXT
 {
@@ -59,7 +65,7 @@ INT_PTR CALLBACK PhpTimerPageProc(
     _In_ LPARAM lParam
     );
 
-static HPROPSHEETPAGE PhpCommonCreatePage(
+HPROPSHEETPAGE PhpCommonCreatePage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context,
     _In_ PWSTR Template,
@@ -533,4 +539,277 @@ INT_PTR CALLBACK PhpTimerPageProc(
     }
 
     return FALSE;
+}
+
+typedef struct _MAPPINGS_PAGE_CONTEXT
+{
+    HANDLE ProcessId;
+    HANDLE SectionHandle;
+    DLGPROC HookProc;
+    HWND WindowHandle;
+    HWND ListViewHandle;
+    PKPH_SECTION_MAPPINGS_INFORMATION SectionInfo;
+
+} MAPPINGS_PAGE_CONTEXT, *PMAPPINGS_PAGE_CONTEXT;
+
+VOID PhpEnumerateMappingsEntries(
+    _In_ PMAPPINGS_PAGE_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    CLIENT_ID clientId;
+
+    if (KphLevel() < KphLevelMed)
+    {
+        PhShowKsiNotConnected(
+            Context->WindowHandle,
+            L"Viewing active mappings requires a connection to the kernel driver."
+            );
+        return;
+    }
+
+    clientId.UniqueProcess = Context->ProcessId;
+    clientId.UniqueThread = 0;
+    status = KphOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, &clientId);
+    if (!NT_SUCCESS(status))
+        return;
+
+    status = KphQueryObjectSectionMappingsInfo(
+        processHandle,
+        Context->SectionHandle,
+        &Context->SectionInfo
+        );
+
+    NtClose(processHandle);
+
+    if (!NT_SUCCESS(status))
+        return;
+
+    for (ULONG i = 0; i < Context->SectionInfo->NumberOfMappings; i++)
+    {
+        PKPH_SECTION_MAP_ENTRY info = &Context->SectionInfo->Mappings[i];
+        INT lvItemIndex;
+        WCHAR value[PH_INT64_STR_LEN_1];
+
+        if (info->ViewMapType == VIEW_MAP_TYPE_PROCESS)
+        {
+            CLIENT_ID clientId;
+            PPH_STRING string = NULL;
+
+            clientId.UniqueProcess = info->ProcessId;
+            clientId.UniqueThread = 0;
+
+            string = PhStdGetClientIdName(&clientId);
+            lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, string->Buffer, info);
+            PhDereferenceObject(string);
+        }
+        else if (info->ViewMapType == VIEW_MAP_TYPE_SESSION)
+        {
+            lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Session", info);
+        }
+        else if (info->ViewMapType == VIEW_MAP_TYPE_SYSTEM_CACHE)
+        {
+            lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"System", info);
+        }
+        else
+        {
+            lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, L"Unknown", info);
+        }
+
+        PhPrintPointer(value, info->StartVa);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, value);
+
+        PhPrintPointer(value, info->EndVa);
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, value);
+    }
+}
+
+VOID PhpShowProcessForMapping(
+    _In_ HWND hwndDlg,
+    _In_ PKPH_SECTION_MAP_ENTRY Entry
+)
+{
+    PPH_PROCESS_ITEM processItem;
+
+    assert(Entry->ViewMapType == VIEW_MAP_TYPE_PROCESS);
+    if (processItem = PhReferenceProcessItem(Entry->ProcessId))
+    {
+        //
+        // TODO would like this to show the process properties
+        // memory tab and select the info->StartVa
+        //
+        ProcessHacker_ShowProcessProperties(processItem);
+        PhDereferenceObject(processItem);
+    }
+    else
+    {
+        PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+    }
+}
+
+INT_PTR CALLBACK PhpMappingsPageProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PMAPPINGS_PAGE_CONTEXT context;
+
+    context = PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            context->WindowHandle = hwndDlg;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"View");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Start");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"End");
+            PhSetExtendedListView(context->ListViewHandle);
+
+            PhpEnumerateMappingsEntries(context);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            if (context->SectionInfo)
+                PhFree(context->SectionInfo);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            PKPH_SECTION_MAP_ENTRY info = NULL;
+
+            if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
+                info = PhGetSelectedListViewItemParam(context->ListViewHandle);
+
+            POINT point;
+            PPH_EMENU menu;
+            PPH_EMENU item;
+
+            point.x = GET_X_LPARAM(lParam);
+            point.y = GET_Y_LPARAM(lParam);
+
+            if (point.x == -1 && point.y == -1)
+                PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+
+            menu = PhCreateEMenu();
+
+            if (info && info->ViewMapType == VIEW_MAP_TYPE_PROCESS)
+            {
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Go to process", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            }
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+            PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+
+            item = PhShowEMenu(
+                menu,
+                hwndDlg,
+                PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                point.x,
+                point.y
+                );
+
+            if (item && item->Id != ULONG_MAX && !PhHandleCopyListViewEMenuItem(item))
+            {
+                switch (item->Id)
+                {
+                case IDC_COPY:
+                    {
+                        PhCopyListView(context->ListViewHandle);
+                    }
+                    break;
+                case 1:
+                    {
+                        assert(info);
+                        PhpShowProcessForMapping(hwndDlg, info);
+                    }
+                    break;
+                }
+
+                PhDestroyEMenu(menu);
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT CALLBACK PhpMappingsPropPageProc(
+    _In_ HWND hwnd,
+    _In_ UINT uMsg,
+    _In_ LPPROPSHEETPAGE ppsp
+    )
+{
+    PMAPPINGS_PAGE_CONTEXT tokenPageContext;
+
+    tokenPageContext = (PMAPPINGS_PAGE_CONTEXT)ppsp->lParam;
+
+    if (uMsg == PSPCB_ADDREF)
+    {
+        PhReferenceObject(tokenPageContext);
+    }
+    else if (uMsg == PSPCB_RELEASE)
+    {
+        PhDereferenceObject(tokenPageContext);
+    }
+
+    return 1;
+}
+
+HPROPSHEETPAGE PhCreateMappingsPage(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE SectionHandle
+    )
+{
+    HPROPSHEETPAGE propSheetPageHandle;
+    PROPSHEETPAGE propSheetPage;
+    PMAPPINGS_PAGE_CONTEXT mappingsPageContext;
+
+    mappingsPageContext = PhCreateAlloc(sizeof(MAPPINGS_PAGE_CONTEXT));
+    memset(mappingsPageContext, 0, sizeof(MAPPINGS_PAGE_CONTEXT));
+    mappingsPageContext->ProcessId = ProcessId;
+    mappingsPageContext->SectionHandle = SectionHandle;
+    mappingsPageContext->SectionInfo = NULL;
+
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.dwFlags = PSP_USECALLBACK;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OBJMAPPINGS);
+    propSheetPage.hInstance = PhInstanceHandle;
+    propSheetPage.pfnDlgProc = PhpMappingsPageProc;
+    propSheetPage.lParam = (LPARAM)mappingsPageContext;
+    propSheetPage.pfnCallback = PhpMappingsPropPageProc;
+
+    propSheetPageHandle = CreatePropertySheetPage(&propSheetPage);
+    // CreatePropertySheetPage would have sent PSPCB_ADDREF (below),
+    // which would have added a reference.
+    PhDereferenceObject(mappingsPageContext);
+
+    return propSheetPageHandle;
 }

@@ -102,6 +102,9 @@ typedef enum _LDR_HOT_PATCH_STATE
     LdrHotPatchStateMax,
 } LDR_HOT_PATCH_STATE, *PLDR_HOT_PATCH_STATE;
 
+typedef struct _ACTIVATION_CONTEXT *PACTIVATION_CONTEXT;
+typedef struct _LDRP_LOAD_CONTEXT *PLDRP_LOAD_CONTEXT;
+
 // LDR_DATA_TABLE_ENTRY->Flags
 #define LDRP_PACKAGED_BINARY 0x00000001
 #define LDRP_MARKED_FOR_REMOVAL 0x00000002
@@ -191,11 +194,11 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     USHORT TlsIndex;
     LIST_ENTRY HashLinks;
     ULONG TimeDateStamp;
-    struct _ACTIVATION_CONTEXT *EntryPointActivationContext;
+    PACTIVATION_CONTEXT EntryPointActivationContext;
     PVOID Lock; // RtlAcquireSRWLockExclusive
     PLDR_DDAG_NODE DdagNode;
     LIST_ENTRY NodeModuleLink;
-    struct _LDRP_LOAD_CONTEXT *LoadContext;
+    PLDRP_LOAD_CONTEXT LoadContext;
     PVOID ParentDllBase;
     PVOID SwitchBackContext;
     RTL_BALANCED_NODE BaseAddressIndexNode;
@@ -212,8 +215,6 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     PVOID ActivePatchImageBase;
     LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
-
-//STATIC_ASSERT(sizeof(LDR_DATA_TABLE_ENTRY) == 0x138);
 
 #define LDR_IS_DATAFILE(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)1)
 #define LDR_IS_IMAGEMAPPING(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)2)
@@ -662,6 +663,8 @@ NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
+typedef struct _ACTIVATION_CONTEXT *PACTIVATION_CONTEXT;
+
 // private
 NTSYSAPI
 NTSTATUS
@@ -671,7 +674,7 @@ LdrAddLoadAsDataTable(
     _In_ PWSTR FilePath,
     _In_ SIZE_T Size,
     _In_ HANDLE Handle,
-    _In_opt_ struct _ACTIVATION_CONTEXT *ActCtx
+    _In_opt_ PACTIVATION_CONTEXT ActCtx
     );
 
 // private

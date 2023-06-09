@@ -278,18 +278,7 @@ VOID KphDebugInformerStop(
 
     for (ULONG i = 0; i < KphpDbgPrintSlotCount; i++)
     {
-        if (KphDynKeRemoveQueueDpcEx)
-        {
-            KphDynKeRemoveQueueDpcEx(&KphpDbgPrintSlots[i].Dpc, TRUE);
-        }
-        else
-        {
-            //
-            // This produces a small chance that we haven't completely returned
-            // from the DPC routine.
-            //
-            KeRemoveQueueDpc(&KphpDbgPrintSlots[i].Dpc);
-        }
+        KeRemoveQueueDpcEx(&KphpDbgPrintSlots[i].Dpc, TRUE);
     }
 
     KeAcquireSpinLock(&KphpDbgPrintLock, &oldIrql);

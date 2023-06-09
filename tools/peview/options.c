@@ -112,8 +112,9 @@ BOOLEAN PvShellExecuteRestart(
         WindowHandle,
         PhGetString(filename),
         PhGetString(parameters),
+        NULL,
         SW_SHOW,
-        0,
+        PH_SHELL_EXECUTE_DEFAULT,
         0,
         NULL
         );
@@ -184,7 +185,7 @@ VOID PvGeneralPageSave(
     {
         if (PhShowMessage2(
             Context->WindowHandle,
-            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+            TD_YES_BUTTON | TD_NO_BUTTON,
             TD_INFORMATION_ICON,
             L"One or more options you have changed requires a restart of PE Viewer.",
             L"Do you want to restart PE Viewer now?"
@@ -260,7 +261,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
             PvLoadGeneralPage(context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -292,7 +293,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
                 {
                     if (PhShowMessage2(
                         hwndDlg,
-                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
                         TD_WARNING_ICON,
                         L"Do you want to reset all settings and restart PE Viewer?",
                         L""
@@ -313,7 +314,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
                 {
                     if (PhShowMessage2(
                         hwndDlg,
-                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
                         TD_INFORMATION_ICON,
                         L"Do you want to clean up unused settings?",
                         L""

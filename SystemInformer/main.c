@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -79,15 +79,16 @@ BOOLEAN PhInitializeMitigationPolicy(
     VOID
     );
 
-BOOLEAN PhInitializeMitigationSignaturePolicy(
-    VOID
-    );
-
 BOOLEAN PhInitializeComPolicy(
     VOID
     );
 
+BOOLEAN PhInitializeTimerPolicy(
+    VOID
+    );
+
 BOOLEAN PhPluginsEnabled = FALSE;
+BOOLEAN PhPortableEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_STARTUP_PARAMETERS PhStartupParameters = { 0 };
 
@@ -118,8 +119,6 @@ INT WINAPI wWinMain(
     if (!PhInitializeExceptionPolicy())
         return 1;
     if (!PhInitializeNamespacePolicy())
-        return 1;
-    if (!PhInitializeMitigationPolicy())
         return 1;
     if (!PhInitializeComPolicy())
         return 1;
@@ -164,6 +163,7 @@ INT WINAPI wWinMain(
 
     if (PhGetIntegerSetting(L"EnableKph") &&
         !PhStartupParameters.NoKph &&
+        !PhStartupParameters.ShowOptions &&
         !PhIsExecutingInWow64())
     {
         PhInitializeKsi();
@@ -201,6 +201,8 @@ INT WINAPI wWinMain(
         PhLoadPlugins();
     }
 
+    PhInitializeMitigationPolicy();
+
     if (PhStartupParameters.PhSvc)
     {
         MSG message;
@@ -237,7 +239,6 @@ INT WINAPI wWinMain(
     }
 
     if (PhGetIntegerSetting(L"EnableKph") &&
-        PhGetIntegerSetting(L"EnableKphWarnings") &&
         !PhStartupParameters.NoKph &&
         !PhIsExecutingInWow64())
     {
@@ -408,14 +409,11 @@ typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
 
 static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
     _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT context = (PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT)Context;
     ULONG processId = ULONG_MAX;
-
-    if (!context)
-        return TRUE;
 
     GetWindowThreadProcessId(WindowHandle, &processId);
 
@@ -476,7 +474,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     {
         HANDLE processHandle = NULL;
         HANDLE tokenHandle = NULL;
-        PTOKEN_USER tokenUser = NULL;
+        PH_TOKEN_USER tokenUser;
         ULONG attempts = 50;
 
         if (objectInfo.ClientId.UniqueProcess == NtCurrentProcessId())
@@ -487,7 +485,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
             goto CleanupExit;
         if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             goto CleanupExit;
-        if (!RtlEqualSid(tokenUser->User.Sid, PhGetOwnTokenAttributes().TokenSid))
+        if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
@@ -522,7 +520,6 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         } while (--attempts != 0);
 
     CleanupExit:
-        if (tokenUser) PhFree(tokenUser);
         if (tokenHandle) NtClose(tokenHandle);
         if (processHandle) NtClose(processHandle);
     }
@@ -603,13 +600,12 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     _In_ BOOLEAN MoreInfoDump
     )
 {
-    static PH_STRINGREF dumpFilePath = PH_STRINGREF_INIT(L"%USERPROFILE%\\Desktop\\");
     HANDLE fileHandle;
     PPH_STRING dumpDirectory;
     PPH_STRING dumpFileName;
     WCHAR alphastring[16] = L"";
 
-    dumpDirectory = PhExpandEnvironmentStrings(&dumpFilePath);
+    dumpDirectory = PhExpandEnvironmentStringsZ(L"%USERPROFILE%\\Desktop\\");
     PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
 
     dumpFileName = PhConcatStrings(
@@ -622,10 +618,10 @@ VOID PhpCreateUnhandledExceptionCrashDump(
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
-        dumpFileName->Buffer,
+        PhGetString(dumpFileName),
         FILE_GENERIC_WRITE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_SHARE_WRITE,
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
@@ -634,7 +630,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
 
         exceptionInfo.ThreadId = HandleToUlong(NtCurrentThreadId());
         exceptionInfo.ExceptionPointers = ExceptionInfo;
-        exceptionInfo.ClientPointers = FALSE;
+        exceptionInfo.ClientPointers = TRUE;
 
         if (MoreInfoDump)
         {
@@ -655,7 +651,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
                 NtCurrentProcess(),
                 NtCurrentProcessId(),
                 fileHandle,
-                MiniDumpNormal,
+                MiniDumpNormal | MiniDumpWithDataSegs,
                 &exceptionInfo,
                 NULL,
                 NULL
@@ -728,7 +724,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                         NULL,
                         NULL,
                         SW_SHOW,
-                        0,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                         0,
                         NULL
@@ -760,7 +756,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
             NULL,
             NULL,
             SW_SHOW,
-            0,
+            PH_SHELL_EXECUTE_DEFAULT,
             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
             0,
             NULL
@@ -768,9 +764,6 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
     }
 
     PhExitApplication(ExceptionInfo->ExceptionRecord->ExceptionCode);
-
-    PhDereferenceObject(message);
-    PhDereferenceObject(errorMessage);
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -781,13 +774,14 @@ BOOLEAN PhInitializeExceptionPolicy(
     )
 {
 #ifndef DEBUG
-    ULONG errorMode;
-
-    if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
-    {
-        ClearFlag(errorMode, SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-        PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
-    }
+    //ULONG errorMode;
+    //
+    //if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
+    //{
+    //    ClearFlag(errorMode, SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+    //    PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
+    //}
+    PhSetProcessErrorMode(NtCurrentProcess(), 0);
 
     RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
 #endif
@@ -848,224 +842,63 @@ BOOLEAN PhInitializeMitigationPolicy(
     VOID
     )
 {
-    // The kernel driver preforms the mitigiations and these policies are deprecated. (dmex)
-    extern NTSTATUS PhpSetExploitProtectionEnabled(_In_ BOOLEAN Enabled);
-    PROCESS_MITIGATION_POLICY_INFORMATION policy = { 0 };
-    NTSTATUS status;
-
-    policy.Policy = ProcessDynamicCodePolicy;
-
-    status = NtQueryInformationProcess(
-        NtCurrentProcess(),
-        ProcessMitigationPolicy,
-        &policy,
-        sizeof(policy),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
+    if (WindowsVersion >= WINDOWS_10)
     {
-        if (policy.DynamicCodePolicy.ProhibitDynamicCode)
-        {
-            status = PhpSetExploitProtectionEnabled(FALSE);
+        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
 
-            if (NT_SUCCESS(status))
-            {
-                PhShellProcessHacker(
-                    NULL,
-                    NULL,
-                    SW_SHOW,
-                    0,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS,
-                    0,
-                    NULL
-                    );
+        policyInfo.Policy = ProcessSignaturePolicy;
+        policyInfo.SignaturePolicy.Flags = 0;
+        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
+        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
 
-                PhExitApplication(STATUS_SUCCESS);
-            }
-        }
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhShowStatus(NULL, L"Unable to deprecate mitigation policy", status, 0);
+        policyInfo.Policy = ProcessRedirectionTrustPolicy;
+        policyInfo.RedirectionTrustPolicy.Flags = 0;
+        policyInfo.RedirectionTrustPolicy.EnforceRedirectionTrust = TRUE;
+        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
     }
 
     return TRUE;
-
-//#ifndef DEBUG
-//    BOOLEAN PhpIsExploitProtectionEnabled(VOID);
-//#define DEFAULT_MITIGATION_POLICY_FLAGS \
-//    (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
-//    static PH_STRINGREF nompCommandlinePart = PH_STRINGREF_INIT(L" -nomp");
-//    static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
-//    BOOLEAN success = TRUE;
-//    PH_STRINGREF commandlineSr;
-//    PPH_STRING commandline = NULL;
-//    ULONG64 options[2] = { 0 };
-//    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
-//    STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
-//
-//    if (WindowsVersion < WINDOWS_10_RS3)
-//        return TRUE;
-//    if (!PhpIsExploitProtectionEnabled())
-//        return TRUE;
-//
-//    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandlineSr)))
-//        goto CleanupExit;
-//    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != SIZE_MAX)
-//        goto CleanupExit;
-//    if (PhEndsWithStringRef(&commandlineSr, &nompCommandlinePart, FALSE))
-//        goto CleanupExit;
-//
-//    commandline = PhConcatStringRef2(&commandlineSr, &nompCommandlinePart);
-//
-//    if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(NtCurrentProcess(), &LdrSystemDllInitBlock_I)))
-//    {
-//        if (RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
-//        {
-//            if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
-//                goto CleanupExit;
-//        }
-//    }
-//
-//    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 2)))
-//        goto CleanupExit;
-//
-//    if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
-//        startupInfo.lpAttributeList,
-//        PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
-//        &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS },
-//        sizeof(ULONG64)
-//        )))
-//    {
-//        goto CleanupExit;
-//    }
-//
-//    {
-//        PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoAttribute;
-//
-//        bnoAttribute.IsolationEnabled = TRUE;
-//        wcsncpy_s(bnoAttribute.IsolationPrefix, RTL_NUMBER_OF(bnoAttribute.IsolationPrefix), L"SystemInformer", _TRUNCATE);
-//
-//        if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
-//            startupInfo.lpAttributeList,
-//            PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
-//            &bnoAttribute,
-//            sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE)
-//            )))
-//        {
-//            goto CleanupExit;
-//        }
-//    }
-//
-//    if (NT_SUCCESS(PhCreateProcessWin32Ex(
-//        NULL,
-//        PhGetString(commandline),
-//        NULL,
-//        NULL,
-//        &startupInfo.StartupInfo,
-//        PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB,
-//        NULL,
-//        NULL,
-//        NULL,
-//        NULL
-//        )))
-//    {
-//        success = FALSE;
-//    }
-//
-//CleanupExit:
-//
-//    if (commandline)
-//        PhDereferenceObject(commandline);
-//
-//    if (startupInfo.lpAttributeList)
-//        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-//
-//    return success;
-//#else
-//    return TRUE;
-//#endif
 }
-
-//BOOLEAN PhInitializeMitigationSignaturePolicy(
-//    VOID
-//    )
-//{
-//#ifndef DEBUG
-//    BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
-//    // Starting with Win10 20H1 processes with uiAccess=true override the ProcessExtensionPointDisablePolicy
-//    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled
-//    // the MicrosoftSignedOnly policy causing an infinite loop of APC messages and hook DLL loading/unloading
-//    // inside user32!_ClientLoadLibrary while calling the GetMessageW API for the window message loop.
-//    // ...
-//    // 1) GetMessageW processes the APC message for loading the window hook DLL with user32!_ClientLoadLibrary.
-//    // 2) user32!_ClientLoadLibrary calls LoadLibraryEx with the DLL path.
-//    // 3) LoadLibraryEx returns an error loading the window hook DLL because we enabled MicrosoftSignedOnly.
-//    // 4) SetWindowsHookEx ignores the result and re-queues the APC message from step 1.
-//    // ...
-//    // Mouse/keyboard/window messages passing through GetMessageW generate large volumes of calls to LoadLibraryEx
-//    // making the application unresponsive as each message processes the APC message and loads/unloads the hook DLL...
-//    // So don't use MicrosoftSignedOnly on versions of Windows where Process Hacker becomes unresponsive
-//    // because a third party application called SetWindowsHookEx on the machine. (dmex)
-//    if (
-//        WindowsVersion >= WINDOWS_10 &&
-//        PhpIsExploitProtectionEnabled()
-//        //WindowsVersion != WINDOWS_10_20H1 &&
-//        //WindowsVersion != WINDOWS_10_20H2
-//        )
-//    {
-//        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
-//
-//        policyInfo.Policy = ProcessSignaturePolicy;
-//        policyInfo.SignaturePolicy.Flags = 0;
-//        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
-//
-//        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
-//    }
-//#endif
-//
-//    return TRUE;
-//}
 
 BOOLEAN PhInitializeComPolicy(
     VOID
     )
 {
 #ifdef PH_COM_SVC
-    static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+    #include <cguid.h>
+    IGlobalOptions* globalOptions;
+    UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x300];
+    PSECURITY_DESCRIPTOR securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
+    PSID administratorsSid = PhSeAdministratorsSid();
     ULONG securityDescriptorAllocationLength;
-    PSECURITY_DESCRIPTOR securityDescriptor;
-    UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-    PSID administratorsSid;
     PACL dacl;
 
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return TRUE; // Continue without COM support. (dmex)
 
-    administratorsSid = (PSID)administratorsSidBuffer;
-    RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-    *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-    *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+    if (SUCCEEDED(PhGetClassObject(L"combase.dll", &CLSID_GlobalOptions, &IID_IGlobalOptions, &globalOptions)))
+    {
+        #define COMGLB_PROPERTIES_EXPLICIT_WINSTA_DESKTOP COMGLB_PROPERTIES_RESERVED1
+        #define COMGLB_PROCESS_MITIGATION_POLICY_BLOB COMGLB_PROPERTIES_RESERVED2
+        #define COMGLB_ENABLE_AGILE_OOP_PROXIES COMGLB_RESERVED1
+        #define COMGLB_ENABLE_WAKE_ON_RPC_SUPPRESSION COMGLB_RESERVED2
+        #define COMGLB_ADD_RESTRICTEDCODE_SID_TO_COM_CALLPERMISSIONS COMGLB_RESERVED3
+        #define HKLM_ONLY_CLASSIC_COM_CATALOG COMGLB_RESERVED5
+
+        IGlobalOptions_Set(globalOptions, COMGLB_EXCEPTION_HANDLING, COMGLB_EXCEPTION_DONOT_HANDLE_ANY);
+        IGlobalOptions_Set(globalOptions, COMGLB_RO_SETTINGS, COMGLB_FAST_RUNDOWN | COMGLB_ENABLE_AGILE_OOP_PROXIES | HKLM_ONLY_CLASSIC_COM_CATALOG);
+        IGlobalOptions_Release(globalOptions);
+    }
 
     securityDescriptorAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeAuthenticatedUserSid) +
+        PhLengthSid(&PhSeAuthenticatedUserSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeLocalSystemSid) +
+        PhLengthSid(&PhSeLocalSystemSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&administratorsSid);
+        PhLengthSid(&administratorsSid);
 
-    securityDescriptor = PhAllocate(securityDescriptorAllocationLength);
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     RtlCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
@@ -1091,7 +924,11 @@ BOOLEAN PhInitializeComPolicy(
         NOTHING;
     }
 
-    PhFree(securityDescriptor);
+#ifdef DEBUG
+    assert(securityDescriptorAllocationLength < sizeof(securityDescriptorBuffer));
+    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+#endif
+
     return TRUE;
 #else
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
@@ -1126,6 +963,15 @@ VOID PhEnableTerminationPolicy(
     }
 }
 
+BOOLEAN PhInitializeTimerPolicy(
+    VOID
+    )
+{
+    SetUserObjectInformation(NtCurrentProcess(), UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &(BOOL){ FALSE }, sizeof(BOOL));
+
+    return TRUE;
+}
+
 BOOLEAN PhInitializeAppSystem(
     VOID
     )
@@ -1148,7 +994,6 @@ VOID PhpInitializeSettings(
 {
     PhSettingsInitialization();
     PhAddDefaultSettings();
-    PhUpdateCachedSettings();
 
     if (!PhStartupParameters.NoSettings)
     {
@@ -1173,13 +1018,14 @@ VOID PhpInitializeSettings(
         {
             PPH_STRING applicationFileName;
 
-            if (applicationFileName = PhGetApplicationFileNameWin32())
+            if (applicationFileName = PhGetApplicationFileName())
             {
                 settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
 
-                if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
+                if (PhDoesFileExist(&settingsFileName->sr))
                 {
                     PhSettingsFileName = settingsFileName;
+                    PhPortableEnabled = TRUE;
                 }
                 else
                 {
@@ -1193,12 +1039,7 @@ VOID PhpInitializeSettings(
         // 3. Default location
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
-#if !defined(PH_BUILD_MSIX)
-            static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
-            PhSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
-#else
-            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
-#endif
+            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml", TRUE);
         }
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
@@ -1206,7 +1047,6 @@ VOID PhpInitializeSettings(
             NTSTATUS status;
 
             status = PhLoadSettings(&PhSettingsFileName->sr);
-            PhUpdateCachedSettings();
 
             // If we didn't find the file, it will be created. Otherwise,
             // there was probably a parsing error and we don't want to
@@ -1215,7 +1055,7 @@ VOID PhpInitializeSettings(
             {
                 if (PhShowMessage2(
                     NULL,
-                    TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                    TD_YES_BUTTON | TD_NO_BUTTON,
                     TD_WARNING_ICON,
                     L"System Informer's settings file is corrupt. Do you want to reset it?",
                     L"If you select No, the settings system will not function properly."
@@ -1227,9 +1067,9 @@ VOID PhpInitializeSettings(
 
                     // This used to delete the file. But it's better to keep the file there
                     // and overwrite it with some valid XML, especially with case (2) above.
-                    if (NT_SUCCESS(PhCreateFileWin32(
+                    if (NT_SUCCESS(PhCreateFile(
                         &fileHandle,
-                        PhGetString(PhSettingsFileName),
+                        &PhSettingsFileName->sr,
                         FILE_GENERIC_WRITE,
                         FILE_ATTRIBUTE_NORMAL,
                         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -1252,10 +1092,17 @@ VOID PhpInitializeSettings(
         }
     }
 
+    PhUpdateCachedSettings();
+
     // Apply basic global settings.
     PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     PhMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit");
+    PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
+    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
+    PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
+    PhEnableDeferredLayout = !!PhGetIntegerSetting(L"EnableDeferredLayout");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {

@@ -44,10 +44,10 @@ VOID PvEnumerateRelocationEntries(
             //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
             //PhPrintPointer(value, UlongToPtr(entry->Offset));
             //PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
-            PhPrintPointer(value, PTR_ADD_OFFSET(entry->BlockRva, entry->Offset));
+            PhPrintPointer(value, PTR_ADD_OFFSET(entry->BlockRva, entry->Record.Offset));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
 
-            switch (entry->Type)
+            switch (entry->Record.Type)
             {
             case IMAGE_REL_BASED_ABSOLUTE:
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ABS");
@@ -64,6 +64,12 @@ VOID PvEnumerateRelocationEntries(
             case IMAGE_REL_BASED_DIR64:
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"DIR64");
                 break;
+            case IMAGE_REL_BASED_ARM_MOV32:
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"MOV32");
+                break;
+            case IMAGE_REL_BASED_THUMB_MOV32:
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"MOV32(T)");
+                break;
             }
 
             if (entry->BlockRva)
@@ -72,7 +78,7 @@ VOID PvEnumerateRelocationEntries(
 
                 directorySection = PhMappedImageRvaToSection(
                     &PvMappedImage,
-                    PtrToUlong(PTR_ADD_OFFSET(entry->BlockRva, entry->Offset))
+                    PtrToUlong(PTR_ADD_OFFSET(entry->BlockRva, entry->Record.Offset))
                     );
 
                 if (directorySection)
@@ -203,7 +209,7 @@ INT_PTR CALLBACK PvpPeRelocationDlgProc(
 
             PvEnumerateRelocationEntries(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_SHOWWINDOW:

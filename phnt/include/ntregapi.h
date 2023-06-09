@@ -271,7 +271,7 @@ typedef struct _REG_NOTIFY_INFORMATION
     ULONG NextEntryOffset;
     REG_ACTION Action;
     ULONG KeyLength;
-    WCHAR Key[1];
+    _Field_size_bytes_(KeyLength) WCHAR Key[1];
 } REG_NOTIFY_INFORMATION, *PREG_NOTIFY_INFORMATION;
 
 typedef struct _KEY_PID_ARRAY

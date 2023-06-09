@@ -13,8 +13,7 @@
 #include <kphmsgdyn.h>
 
 #ifndef _KERNEL_MODE
-#include <intsafe.h>
-#define RtlULongAdd ULongAdd
+#include "../tools/thirdparty/winsdk/ntintsafe.h"
 #endif
 
 #include <pshpack1.h>
@@ -386,7 +385,7 @@ NTSTATUS KphMsgDynGetAnsiString(
 }
 
 /**
- * \brief Adds a stack trace to the dynamic data buffer. 
+ * \brief Adds a stack trace to the dynamic data buffer.
  *
  * \param[in,out] Message Message to add the stack trace to.
  * \param[in] FieldId Field identifier for the stack trace.
@@ -398,7 +397,7 @@ _Must_inspect_result_
 NTSTATUS KphMsgDynAddStackTrace(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _In_ PKPH_STACK_TRACE StackTrace 
+    _In_ PKPH_STACK_TRACE StackTrace
     )
 {
     NTSTATUS status;
@@ -445,7 +444,7 @@ _Must_inspect_result_
 NTSTATUS KphMsgDynGetStackTrace(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _Out_ PKPH_STACK_TRACE StackTrace 
+    _Out_ PKPH_STACK_TRACE StackTrace
     )
 {
     NTSTATUS status;

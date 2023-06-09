@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -22,13 +22,13 @@ VOID NTAPI LoadCallback(
     );
 
 VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI NotifyEventCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 INT_PTR CALLBACK ProcessesDlgProc(
@@ -364,8 +364,8 @@ BOOLEAN MatchFilterList(
 }
 
 VOID NTAPI NotifyEventCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_NOTIFY_EVENT notifyEvent = Parameter;
@@ -373,9 +373,6 @@ VOID NTAPI NotifyEventCallback(
     PPH_SERVICE_ITEM serviceItem;
     FILTER_TYPE filterType = FilterExclude;
     BOOLEAN found = FALSE;
-
-    if (!notifyEvent)
-        return;
 
     switch (notifyEvent->Type)
     {
@@ -446,7 +443,7 @@ LRESULT CALLBACK TextBoxSubclassProc(
 
     switch (uMsg)
     {
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hWnd, UCHAR_MAX);

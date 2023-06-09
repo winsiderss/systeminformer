@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_PHBASESUP_H
 #define _PH_PHBASESUP_H
 
@@ -30,6 +42,22 @@ extern ULONG PhDbgThreadDbgTlsIndex;
 extern LIST_ENTRY PhDbgThreadListHead;
 extern PH_QUEUED_LOCK PhDbgThreadListLock;
 #endif
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateUserThread(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    _In_opt_ ULONG CreateFlags,
+    _In_opt_ SIZE_T ZeroBits,
+    _In_opt_ SIZE_T StackSize,
+    _In_opt_ SIZE_T MaximumStackSize,
+    _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
+    _In_opt_ PVOID Argument,
+    _Out_opt_ PHANDLE ThreadHandle,
+    _Out_opt_ PCLIENT_ID ClientId
+    );
 
 PHLIBAPI
 HANDLE
@@ -87,6 +115,41 @@ NTAPI
 PhLocalTimeToSystemTime(
     _In_ PLARGE_INTEGER LocalTime,
     _Out_ PLARGE_INTEGER SystemTime
+    );
+
+#define SecondsToStartOf1980 11960006400
+#define SecondsToStartOf1970 11644473600
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhTimeToSecondsSince1980(
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PULONG ElapsedSeconds
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhTimeToSecondsSince1970(
+    _In_ PLARGE_INTEGER Time,
+    _Out_ PULONG ElapsedSeconds
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSecondsSince1980ToTime(
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSecondsSince1970ToTime(
+    _In_ ULONG ElapsedSeconds,
+    _Out_ PLARGE_INTEGER Time
     );
 
 // Heap
@@ -627,6 +690,18 @@ PhCopyStringZFromMultiByte(
     );
 
 PHLIBAPI
+_Success_(return)
+BOOLEAN
+NTAPI
+PhCopyStringZFromUtf8(
+    _In_ PSTR InputBuffer,
+    _In_ SIZE_T InputCount,
+    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputCount,
+    _Out_opt_ PSIZE_T ReturnCount
+    );
+
+PHLIBAPI
 LONG
 NTAPI
 PhCompareStringZNatural(
@@ -751,8 +826,13 @@ typedef struct _PH_RELATIVE_BYTESREF
     ULONG Offset;
 } PH_RELATIVE_BYTESREF, *PPH_RELATIVE_BYTESREF, PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
 
+#ifdef __cplusplus
+#define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), const_cast<PWCH>(String) }
+#define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), const_cast<PCH>(String) }
+#else
 #define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), (String) }
 #define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), (String) }
+#endif
 
 FORCEINLINE
 VOID
@@ -866,6 +946,21 @@ PhFindStringInStringRef(
     _In_ PPH_STRINGREF SubString,
     _In_ BOOLEAN IgnoreCase
     );
+
+FORCEINLINE
+ULONG_PTR
+PhFindStringInStringRefZ(
+    _In_ PPH_STRINGREF String,
+    _In_ PWSTR SubString,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF sr2;
+
+    PhInitializeStringRef(&sr2, SubString);
+
+    return PhFindStringInStringRef(String, &sr2, IgnoreCase);
+}
 
 PHLIBAPI
 BOOLEAN
@@ -1175,12 +1270,23 @@ PhConcatStringRef2(
     _In_ PPH_STRINGREF String2
     );
 
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhConcatStringRef3(
     _In_ PPH_STRINGREF String1,
     _In_ PPH_STRINGREF String2,
     _In_ PPH_STRINGREF String3
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhConcatStringRef4(
+    _In_ PPH_STRINGREF String1,
+    _In_ PPH_STRINGREF String2,
+    _In_ PPH_STRINGREF String3,
+    _In_ PPH_STRINGREF String4
     );
 
 FORCEINLINE
@@ -2924,7 +3030,7 @@ typedef struct _PH_HASHTABLE
 } PH_HASHTABLE, *PPH_HASHTABLE;
 
 #define PH_HASHTABLE_ENTRY_SIZE(InnerSize) (UInt32Add32To64(UFIELD_OFFSET(PH_HASHTABLE_ENTRY, Body), (InnerSize)))
-#define PH_HASHTABLE_GET_ENTRY(Hashtable, Index) ((PPH_HASHTABLE_ENTRY)PTR_ADD_OFFSET((Hashtable)->Entries, UInt32Mul32To64(PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize), (Index))))
+#define PH_HASHTABLE_GET_ENTRY(Hashtable, Index) ((PPH_HASHTABLE_ENTRY)PTR_ADD_OFFSET((Hashtable)->Entries, UInt32x32To64(PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize), (Index))))
 #define PH_HASHTABLE_GET_ENTRY_INDEX(Hashtable, Entry) ((ULONG)(PTR_ADD_OFFSET(Entry, -(Hashtable)->Entries) / PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize)))
 
 PHLIBAPI
@@ -3379,6 +3485,19 @@ PhBufferToHexStringEx(
     _In_ BOOLEAN UpperCase
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBufferToHexStringBuffer(
+    _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ BOOLEAN UpperCase,
+    _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
+
 PHLIBAPI
 _Success_(return)
 BOOLEAN
@@ -3436,6 +3555,26 @@ PhPrintTimeSpanToBuffer(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhCalculateEntropy(
+    _In_ PBYTE Buffer,
+    _In_ ULONG64 BufferLength,
+    _Out_opt_ DOUBLE *Entropy,
+    _Out_opt_ DOUBLE *Variance
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatEntropy(
+    _In_ DOUBLE Entropy,
+    _In_ USHORT EntropyPrecision,
+    _In_opt_ DOUBLE Variance,
+    _In_opt_ USHORT VariancePrecision
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhFillMemoryUlong(
@@ -3451,6 +3590,66 @@ PhDivideSinglesBySingle(
     _Inout_updates_(Count) PFLOAT A,
     _In_ FLOAT B,
     _In_ SIZE_T Count
+    );
+
+PHLIBAPI
+FLOAT
+NTAPI
+PhMaxMemorySingles(
+    _In_ PFLOAT A,
+    _In_ SIZE_T Count
+    );
+
+PHLIBAPI
+FLOAT
+NTAPI
+PhAddPlusMaxMemorySingles(
+    _Inout_updates_(Count) PFLOAT A,
+    _Inout_updates_(Count) PFLOAT B,
+    _In_ SIZE_T Count
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhConvertCopyMemoryUlong(
+    _Inout_updates_(Count) PULONG From,
+    _Inout_updates_(Count) PFLOAT To,
+    _In_ SIZE_T Count
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhConvertCopyMemorySingles(
+    _Inout_updates_(Count) PFLOAT From,
+    _Inout_updates_(Count) PULONG To,
+    _In_ SIZE_T Count
+    );
+
+typedef struct _PH_CIRCULAR_BUFFER_ULONG* PPH_CIRCULAR_BUFFER_ULONG;
+
+PHLIBAPI
+VOID
+NTAPI
+PhCopyConvertCircularBufferULONG(
+    _Inout_ PPH_CIRCULAR_BUFFER_ULONG Buffer,
+    _Out_writes_(Count) FLOAT* Destination,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhCountBits(
+    _In_ ULONG Value
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhCountBitsUlongPtr(
+    _In_ ULONG_PTR Value
     );
 
 // Auto-dereference convenience functions
@@ -3587,6 +3786,22 @@ PhaSubstring(
     )
 {
     return PH_AUTO_T(PH_STRING, PhSubstring(String, StartIndex, Count));
+}
+
+FORCEINLINE
+WCHAR
+NTAPI
+PhUpcaseUnicodeChar(
+    _In_ WCHAR SourceCharacter
+    )
+{
+    WCHAR c;
+
+    //c = towupper(c);
+    //c = __ascii_towupper(c);
+    c = RtlUpcaseUnicodeChar(SourceCharacter);
+
+    return c;
 }
 
 // Format

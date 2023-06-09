@@ -243,7 +243,7 @@ VOID GraphicsDevicesUpdate(
                         PhUpdateDelta(&entry->TotalRunningTimeNodesDelta[n], runningTime);
                     }
 
-                    PhQueryPerformanceCounter(&performanceCounter, NULL);
+                    PhQueryPerformanceCounter(&performanceCounter);
                     PhUpdateDelta(&entry->TotalRunningTimeDelta, performanceCounter.QuadPart);
 
                     DOUBLE elapsedTime = (DOUBLE)entry->TotalRunningTimeDelta.Delta * 10000000 / GraphicsTotalRunningTimeFrequency.QuadPart;

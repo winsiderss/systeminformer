@@ -146,7 +146,7 @@ VOID KphpResetSigningInfo(
         SigningTime->QuadPart = 0;
     }
 
-    if (CatalogName && CatalogName->Buffer)
+    if (CatalogName)
     {
         RtlFreeUnicodeString(CatalogName);
         RtlZeroMemory(CatalogName, sizeof(*CatalogName));
@@ -560,10 +560,7 @@ VOID KphFreeSigningInfo(
 {
     PAGED_PASSIVE();
 
-    if (Info->CatalogName.Buffer)
-    {
-        RtlFreeUnicodeString(&Info->CatalogName);
-    }
+    RtlFreeUnicodeString(&Info->CatalogName);
 
     if (KphDynCiFreePolicyInfo)
     {

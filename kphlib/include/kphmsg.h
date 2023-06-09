@@ -47,6 +47,10 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgQueryInformationFile,
     KphMsgQueryVolumeInformationFile,
     KphMsgDuplicateObject,
+    KphMsgQueryPerformanceCounter,
+    KphMsgCreateFile,
+    KphMsgQueryInformationThread,
+    KphMsgQuerySection,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -74,6 +78,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgDesktopHandlePostCreate,
     KphMsgDesktopHandlePreDuplicate,
     KphMsgDesktopHandlePostDuplicate,
+    KphMsgRequiredStateFailure,
 
     MaxKphMsg
 
@@ -166,6 +171,10 @@ typedef struct _KPH_MESSAGE
             KPHM_QUERY_INFORMATION_FILE QueryInformationFile;
             KPHM_QUERY_VOLUME_INFORMATION_FILE QueryVolumeInformationFile;
             KPHM_DUPLICATE_OBJECT DuplicateObject;
+            KPHM_QUERY_PERFORMANCE_COUNTER QueryPerformanceCounter;
+            KPHM_CREATE_FILE CreateFile;
+            KPHM_QUERY_INFORMATION_THREAD QueryInformationThread;
+            KPHM_QUERY_SECTION QuerySection;
 
         } User;
 
@@ -193,6 +202,7 @@ typedef struct _KPH_MESSAGE
             KPHM_DESKTOP_HANDLE_POST_CREATE DesktopHandlePostCreate;
             KPHM_DESKTOP_HANDLE_PRE_DUPLICATE DesktopHandlePreDuplicate;
             KPHM_DESKTOP_HANDLE_POST_DUPLICATE DesktopHandlePostDuplicate;
+            KPHM_REQUIRED_STATE_FAILURE RequiredStateFailure;
 
         } Kernel;
 
@@ -219,6 +229,19 @@ typedef struct _KPH_MESSAGE
 } KPH_MESSAGE, *PKPH_MESSAGE;
 
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
+
+//
+// ABI breaking asserts. KPH_MESSAGE_VESRSION must be updated.
+// const int size = sizeof(KPH_MESSAGE);
+// const int offset = FIELD_OFFSET(KPH_MESSAGE, _Dyn);
+//
+#ifdef _WIN64
+C_ASSERT(sizeof(KPH_MESSAGE) == 3312);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 104);
+#else
+C_ASSERT(sizeof(KPH_MESSAGE) == 3288);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 80);
+#endif
 
 #define KPH_MESSAGE_MIN_SIZE RTL_SIZEOF_THROUGH_FIELD(KPH_MESSAGE, _Dyn.Entries)
 

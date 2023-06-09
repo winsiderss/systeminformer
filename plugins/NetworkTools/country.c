@@ -47,7 +47,7 @@ BOOLEAN NetToolsGeoLiteInitialized(
                 // Query the current time
                 PhQuerySystemTime(&systemTime);
                 // Convert to unix epoch time
-                RtlTimeToSecondsSince1970(&systemTime, &secondsSince1970);
+                PhTimeToSecondsSince1970(&systemTime, &secondsSince1970);
 
                 // Check if the Geoip database is older than 6 months (182 days = approx. 6 months).
                 if ((secondsSince1970 - GeoDbCountry.metadata.build_epoch) > (182 * 24 * 60 * 60))

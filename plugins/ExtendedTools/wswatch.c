@@ -270,22 +270,25 @@ static VOID EtpProcessSymbolLookupResults(
 
         lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, result->Address);
 
-        PhSetListViewSubItem(
-            Context->ListViewHandle,
-            lvItemIndex,
-            0,
-            PhGetString(result->Symbol)
-            );
+        if (lvItemIndex != INT_ERROR)
+        {
+            PhSetListViewSubItem(
+                Context->ListViewHandle,
+                lvItemIndex,
+                0,
+                PhGetString(result->Symbol)
+                );
 
-        if (result->FileName)
-            PhMoveReference(&result->FileName, PhGetFileName(result->FileName));
+            if (result->FileName)
+                PhMoveReference(&result->FileName, PhGetFileName(result->FileName));
 
-        PhSetListViewSubItem(
-            Context->ListViewHandle,
-            lvItemIndex,
-            1,
-            PhGetString(result->FileName)
-            );
+            PhSetListViewSubItem(
+                Context->ListViewHandle,
+                lvItemIndex,
+                1,
+                PhGetString(result->FileName)
+                );
+        }
 
         PhDereferenceObject(result->Symbol);
         PhFree(result);
@@ -683,7 +686,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             point.y = GET_Y_LPARAM(lParam);
 
             if (point.x == -1 && point.y == -1)
-                PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
             if (!(listviewItem = PhGetSelectedListViewItemParam(context->ListViewHandle)))
                 break;

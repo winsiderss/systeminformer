@@ -58,11 +58,10 @@ VOID CustomizeInsertToolbarButton(
     TBBUTTON button;
 
     memset(&button, 0, sizeof(TBBUTTON));
-
     button.idCommand = ItemContext->IdCommand;
     button.iBitmap = I_IMAGECALLBACK;
     button.fsState = TBSTATE_ENABLED;
-    button.iString = (INT_PTR)ToolbarGetText(ItemContext->IdCommand);
+    button.iString = (INT_PTR)(PVOID)ToolbarGetText(ItemContext->IdCommand);
 
     if (ItemContext->IsSeparator)
     {
@@ -510,9 +509,9 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
-            context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
 
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
+            context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
             context->CXWidth = PhGetDpi(16, context->WindowDpi);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
@@ -560,27 +559,30 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 DeleteFont(context->FontHandle);
         }
         break;
-    case WM_DPICHANGED:
-        {
-            context->WindowDpi = LOWORD(wParam); //PhGetWindowDpi(hwndDlg);
-            context->CXWidth = PhGetDpi(16, context->WindowDpi);
-
-            ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
-
-            {
-                LONG dpi = PhGetWindowDpi(PhMainWndHandle);
-                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpi);
-                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpi);
-            }
-
-            CustomizeResetImages(context);
-        }
-        break;
     case WM_NCDESTROY:
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            context->WindowDpi = LOWORD(wParam);
+            if (context->FontHandle) DeleteFont(context->FontHandle);
+            context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
+            context->CXWidth = PhGetDpi(16, context->WindowDpi);
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
+
+            {
+                // TODO: The icon DPI must equal the main window toolbar but the DPI
+                // for the main window doesn't get updated until after we return. (dmex)
+                //LONG dpi = PhGetWindowDpi(PhMainWndHandle);
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, context->WindowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, context->WindowDpi);
+            }
+
+            CustomizeResetImages(context);
         }
         break;
     case WM_COMMAND:
@@ -875,7 +877,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 BOOLEAN isSelected = (drawInfo->itemState & ODS_SELECTED) == ODS_SELECTED;
                 BOOLEAN isFocused = (drawInfo->itemState & ODS_FOCUS) == ODS_FOCUS;
 
-                if (drawInfo->itemID == LB_ERR)
+                if (drawInfo->itemID == UINT_MAX)
                     break;
 
                 if (!(itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(drawInfo->hwndItem, drawInfo->itemID)))
@@ -917,10 +919,13 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
                 if (itemContext->IdCommand != 0)
                 {
+                    PWSTR stringBuffer = ToolbarGetText(itemContext->IdCommand);
+                    SIZE_T stringLength = PhCountStringZ(stringBuffer);
+
                     DrawText(
                         bufferDc,
-                        ToolbarGetText(itemContext->IdCommand),
-                        -1,
+                        stringBuffer,
+                        (INT)stringLength,
                         &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                         );
@@ -930,7 +935,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                     DrawText(
                         bufferDc,
                         L"Separator",
-                        -1,
+                        sizeof(L"Separator") / sizeof(WCHAR),
                         &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                         );

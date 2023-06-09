@@ -259,21 +259,19 @@ NTSTATUS KphVerifyFile(
                                NULL,
                                NULL);
 
-    status = IoCreateFileEx(&signatureFileHandle,
-                            FILE_READ_ACCESS,
-                            &objectAttributes,
-                            &ioStatusBlock,
-                            NULL,
-                            FILE_ATTRIBUTE_NORMAL,
-                            FILE_SHARE_READ,
-                            FILE_OPEN,
-                            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-                            NULL,
-                            0,
-                            CreateFileTypeNone,
-                            NULL,
-                            IO_IGNORE_SHARE_ACCESS_CHECK,
-                            NULL);
+    status = KphCreateFile(&signatureFileHandle,
+                           FILE_READ_ACCESS | SYNCHRONIZE,
+                           &objectAttributes,
+                           &ioStatusBlock,
+                           NULL,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ,
+                           FILE_OPEN,
+                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           NULL,
+                           0,
+                           IO_IGNORE_SHARE_ACCESS_CHECK,
+                           KernelMode);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -395,9 +393,10 @@ NTSTATUS KphDominationCheck(
     // we'll do a very strict check here:
     //
 
-    if (NT_SUCCESS(KphGetProcessProtection(Process, &processProtection)) &&
-        NT_SUCCESS(KphGetProcessProtection(ProcessTarget, &targetProtection)) &&
-        (targetProtection.Type != PsProtectedTypeNone) &&
+    processProtection = PsGetProcessProtection(Process);
+    targetProtection = PsGetProcessProtection(ProcessTarget);
+
+    if ((targetProtection.Type != PsProtectedTypeNone) &&
         (targetProtection.Type >= processProtection.Type))
     {
         //
@@ -410,11 +409,6 @@ NTSTATUS KphDominationCheck(
         //
         return STATUS_ACCESS_DENIED;
     }
-
-    //
-    // Either the protected process check is not exported or the verified
-    // process dominates the target. Our domination check succeeded.
-    //
 
     return STATUS_SUCCESS;
 }
@@ -435,12 +429,12 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     PAGED_CODE();
 
-    if (KphKdPresent())
+    if (KphSuppressProtections())
     {
         //
-        // There is an active kernel debugger. This ultimately permits low
-        // state callers into the driver. But still check for verification. 
-        // We still want to exercise the code below, regardless.
+        // This ultimately permits low state callers into the driver. But still
+        // check for verification. We still want to exercise the code below,
+        // regardless.
         //
         processState = ~KPH_PROCESS_VERIFIED_PROCESS;
     }

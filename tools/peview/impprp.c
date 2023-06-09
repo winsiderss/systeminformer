@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -23,6 +23,7 @@ typedef enum _PV_IMPORT_TREE_COLUMN_ITEM
     PV_IMPORT_TREE_COLUMN_ITEM_DLL,
     PV_IMPORT_TREE_COLUMN_ITEM_NAME,
     PV_IMPORT_TREE_COLUMN_ITEM_HINT,
+    PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL,
     PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM
 } PV_IMPORT_TREE_COLUMN_ITEM;
 
@@ -38,6 +39,7 @@ typedef struct _PV_IMPORT_NODE
     PPH_STRING DllString;
     PPH_STRING NameString;
     PPH_STRING HintString;
+    PPH_STRING SymbolString;
 
     PH_STRINGREF TextCache[PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM];
 } PV_IMPORT_NODE, *PPV_IMPORT_NODE;
@@ -319,10 +321,7 @@ VOID PvpProcessImports(
 
                         if (importName->Buffer[0] == L'?')
                         {
-                            PPH_STRING undecoratedName;
-
-                            if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, importName->Buffer))
-                                PhMoveReference(&importName, undecoratedName);
+                            importNode->SymbolString = PhUndecorateSymbolName(PvSymbolProvider, importName->Buffer);
                         }
 
                         importNode->NameString = importName;
@@ -371,46 +370,11 @@ VOID PvpProcessImports(
                         }
                     }
 
-                    if (importDll.MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                     {
-                        ULONG rva;
-                        //PVOID va;
                         WCHAR value[PH_INT64_STR_LEN_1];
 
-                        if (DelayImports)
-                        {
-                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(IMAGE_THUNK_DATA32);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
-                        }
-                        else
-                        {
-                            rva = importDll.Descriptor->FirstThunk + j * sizeof(IMAGE_THUNK_DATA32);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
-                        }
-
-                        importNode->Address = rva;
-                        PhPrintPointer(value, (PVOID)(ULONG_PTR)rva);
-                        importNode->AddressString = PhCreateString(value);
-                    }
-                    else
-                    {
-                        ULONG rva;
-                        //PVOID va;
-                        WCHAR value[PH_INT64_STR_LEN_1];
-
-                        if (DelayImports)
-                        {
-                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(IMAGE_THUNK_DATA64);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
-                        }
-                        else
-                        {
-                            rva = importDll.Descriptor->FirstThunk + j * sizeof(IMAGE_THUNK_DATA64);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
-                        }
-
-                        importNode->Address = rva;
-                        PhPrintPointer(value, (PVOID)(ULONG_PTR)rva);
+                        importNode->Address = PhGetMappedImageImportEntryRva(&importDll, j, DelayImports);
+                        PhPrintPointer(value, (PVOID)importNode->Address);
                         importNode->AddressString = PhCreateString(value);
                     }
 
@@ -497,7 +461,7 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
 
             PhCreateThread2(PvpPeImportsEnumerateThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -641,9 +605,9 @@ VOID PhLoadSettingsImportList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"ImageImportsTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ImageImportsTreeListSort");
-    //Context->Flags = PhGetIntegerSetting(L"ImageImportsTreeListFlags");
+    settings = PhGetStringSetting(L"ImageImportTreeListColumns");
+    sortSettings = PhGetStringSetting(L"ImageImportTreeListSort");
+    //Context->Flags = PhGetIntegerSetting(L"ImageImportTreeListFlags");
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -661,8 +625,8 @@ VOID PhSaveSettingsImportList(
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
     //PhSetIntegerSetting(L"ImageImportsTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"ImageImportsTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ImageImportsTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(L"ImageImportTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"ImageImportTreeListSort", &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -836,26 +800,19 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI PvImportTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPV_IMPORT_CONTEXT context = Context;
     PPV_IMPORT_NODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPV_IMPORT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -888,10 +845,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPV_IMPORT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -900,10 +853,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPV_IMPORT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -928,6 +877,9 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
             case PV_IMPORT_TREE_COLUMN_ITEM_HINT:
                 getCellText->Text = PhGetStringRef(node->HintString);
                 break;
+            case PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL:
+                getCellText->Text = PhGetStringRef(node->SymbolString);
+                break;
             default:
                 return FALSE;
             }
@@ -938,10 +890,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPV_IMPORT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -954,12 +902,32 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
         }
         return TRUE;
     case TreeNewKeyDown:
-    case TreeNewNodeExpanding:
-        return TRUE;
-    case TreeNewLeftDoubleClick:
         {
-           // SendMessage(context->ParentWindowHandle, WM_COMMAND, WM_ACTION, (LPARAM)context);
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                {
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        PPH_STRING text;
+
+                        text = PhGetTreeNewText(hwnd, 0);
+                        PhSetClipboardString(hwnd, &text->sr);
+                        PhDereferenceObject(text);
+                    }
+                }
+                break;
+            case 'A':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
+                break;
+            }
         }
+        return TRUE;
+    case TreeNewNodeExpanding:
+    case TreeNewLeftDoubleClick:
         return TRUE;
     case TreeNewContextMenu:
         {
@@ -1071,6 +1039,7 @@ VOID PvInitializeImportTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_DLL, TRUE, L"DLL", 80, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_DLL, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_NAME, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_HINT, TRUE, L"Hint", 50, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_HINT, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL, TRUE, L"Undecorated name", 150, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL, 0, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);

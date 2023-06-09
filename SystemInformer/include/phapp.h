@@ -75,6 +75,7 @@ typedef struct _PH_STARTUP_PARAMETERS
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;
+extern BOOLEAN PhPortableEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 
@@ -146,7 +147,7 @@ VOID PhLoadPlugins(
     );
 
 VOID PhUnloadPlugins(
-    VOID
+    _In_ BOOLEAN SessionEnding
     );
 
 struct _PH_PLUGIN *PhFindPlugin2(
@@ -574,6 +575,11 @@ HPROPSHEETPAGE PhCreateTimerPage(
     _In_opt_ PVOID Context
     );
 
+HPROPSHEETPAGE PhCreateMappingsPage(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE SectionHandle
+    );
+
 // options
 
 VOID PhShowOptionsDialog(
@@ -623,11 +629,16 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
     BOOLEAN UseLinkedToken;
     PWSTR ServiceName;
     BOOLEAN CreateSuspendedProcess;
+    HWND WindowHandle;
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhShowRunAsDialog(
     _In_ HWND ParentWindowHandle,
     _In_opt_ HANDLE ProcessId
+    );
+
+VOID PhShowRunAsPackageDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 // begin_phapppub
@@ -764,6 +775,11 @@ PPH_STRING PhGetGroupAttributesString(
 
 PWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
+    );
+
+PH_STRINGREF PhGetElevationTypeStringRef(
+    _In_ BOOLEAN IsElevated,
+    _In_ TOKEN_ELEVATION_TYPE ElevationType
     );
 
 VOID PhShowTokenProperties(

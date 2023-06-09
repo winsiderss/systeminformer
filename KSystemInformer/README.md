@@ -40,7 +40,9 @@ generate a `.sig` file next to the output binaries. And the developer built
 driver will use the specified key when doing verification checks. Any plugins
 not built through the regular build process must also have their own `.sig`.
 
-Developers may suppress protections and state requirements by changing 
-`KPH_PROTECTION_SUPPRESSED` to `1` in [kphapi.h](../kphlib/include/kphapi.h). 
-This is necessary if you intend to use a user mode debugger as the protections 
-and state requirements will break the debugger. 
+Developers may suppress protections and state requirements by disabling secure 
+boot (if applicable) then enabling debug and test signing mode.
+```
+bcdedit /debug on
+bcdedit /set testsigning on
+```

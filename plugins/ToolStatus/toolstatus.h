@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
@@ -18,6 +18,7 @@
 #include <phappresource.h>
 #include <settings.h>
 
+#include <malloc.h>
 #include <shobjidl.h>
 
 #include "resource.h"
@@ -30,14 +31,16 @@
 #define SETTING_NAME_TOOLBAR_GRAPH_CONFIG (PLUGIN_NAME L".ToolbarGraphConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
 #define SETTING_NAME_DELAYED_INITIALIZATION_MAX (PLUGIN_NAME L".DelayConfig")
-//#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
 #define SETTING_NAME_TASKBARDISPLAYSTYLE (PLUGIN_NAME L".TaskbarDisplayStyle")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
+#define SETTING_NAME_RESTOREROWAFTERSEARCH (PLUGIN_NAME L".RestoreSelectionAfterSearch")
+#define SETTING_NAME_CHILDWILDCARDSEARCH (PLUGIN_NAME L".EnableChildWildcardSearch")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
+#define MAX_DEFAULT_IMAGELIST_ITEMS 1
 #define MAX_TOOLBAR_ITEMS 13
 #define MAX_STATUSBAR_ITEMS 16
 
@@ -120,6 +123,7 @@ extern HWND NetworkTreeNewHandle;
 extern INT SelectedTabIndex;
 extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN UpdateGraphs;
+extern BOOLEAN EnableChildWildcardSearch;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
@@ -168,16 +172,20 @@ VOID ToolbarLoadSettings(
     _In_ BOOLEAN DpiChanged
     );
 
+VOID ToolbarRemoveButons(
+    VOID
+    );
+
 VOID ToolbarResetSettings(
     VOID
     );
 
 PWSTR ToolbarGetText(
-    _In_ INT CommandID
+    _In_ UINT CommandID
     );
 
 HBITMAP ToolbarGetImage(
-    _In_ INT CommandID,
+    _In_ UINT CommandID,
     _In_ LONG DpiValue
     );
 
@@ -212,12 +220,29 @@ LONG ToolStatusGetWindowFontSize(
 
 // main.c
 
+PPH_STRING GetSearchboxText(
+    VOID
+    );
+
+VOID RegisterTabSearch(
+    _In_ INT TabIndex,
+    _In_ PWSTR BannerText
+    );
+
+PTOOLSTATUS_TAB_INFO RegisterTabInfo(
+    _In_ INT TabIndex
+    );
+
 HWND GetCurrentTreeNewHandle(
     VOID
     );
 
 VOID ShowCustomizeMenu(
     _In_ HWND WindowHandle
+    );
+
+VOID InvalidateMainWindowLayout(
+    VOID
     );
 
 // options.c
@@ -271,6 +296,13 @@ typedef struct _PH_TOOLBAR_GRAPH
     PH_GRAPH_STATE GraphState;
 } PH_TOOLBAR_GRAPH, *PPH_TOOLBAR_GRAPH;
 
+extern ULONG CpuHistoryGraphColor1;
+extern ULONG CpuHistoryGraphColor2;
+extern ULONG PhysicalHistoryGraphColor1;
+extern ULONG CommitHistoryGraph1Color1;
+extern ULONG IoHistoryGraphColor1;
+extern ULONG IoHistoryGraphColor2;
+
 VOID ToolbarGraphLoadSettings(
     VOID
     );
@@ -280,6 +312,10 @@ VOID ToolbarGraphSaveSettings(
     );
 
 VOID ToolbarGraphsInitialize(
+    VOID
+    );
+
+VOID ToolbarGraphsInitializeDpi(
     VOID
     );
 

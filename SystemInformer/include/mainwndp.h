@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_MAINWNDP_H
 #define PH_MAINWNDP_H
 
@@ -8,6 +20,7 @@
 #define TIMER_FLUSH_PROCESS_QUERY_DATA 1
 #define TIMER_ICON_CLICK_ACTIVATE 2
 #define TIMER_ICON_RESTORE_HOVER 3
+#define TIMER_ICON_POPUPOPEN 3
 
 typedef union _PH_MWP_NOTIFICATION_DETAILS
 {
@@ -37,12 +50,24 @@ RTL_ATOM PhMwpInitializeWindowClass(
     VOID
     );
 
+PPH_STRING PhMwpInitializeWindowTitle(
+    VOID
+    );
+
 VOID PhMwpInitializeProviders(
     VOID
     );
 
+VOID PhMwpShowWindow(
+    _In_ INT ShowCommand
+    );
+
 VOID PhMwpApplyUpdateInterval(
     _In_ ULONG Interval
+    );
+
+VOID PhMwpInitializeMetrics(
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpInitializeControls(
@@ -69,11 +94,15 @@ VOID PhMwpOnDestroy(
     );
 
 VOID PhMwpOnEndSession(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN SessionEnding,
+    _In_ ULONG Reason
     );
 
 VOID PhMwpOnSettingChange(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle,
+    _In_opt_ ULONG Action,
+    _In_opt_ PWSTR Metric
     );
 
 VOID PhMwpOnCommand(
@@ -108,7 +137,9 @@ VOID PhMwpOnInitMenuPopup(
     );
 
 VOID PhMwpOnSize(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ LONG Width,
+    _In_ LONG Height
     );
 
 VOID PhMwpOnSizing(
@@ -117,7 +148,7 @@ VOID PhMwpOnSizing(
     );
 
 VOID PhMwpOnSetFocus(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 _Success_(return)
@@ -126,7 +157,17 @@ BOOLEAN PhMwpOnNotify(
     _Out_ LRESULT *Result
     );
 
-ULONG_PTR PhMwpOnUserMessage(
+VOID PhMwpOnDeviceChanged(
+    _In_ HWND WindowHandle,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PhMwpOnDpiChanged(
+    _In_ HWND WindowHandle
+    );
+
+LRESULT PhMwpOnUserMessage(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
     _In_ ULONG_PTR WParam,
@@ -183,7 +224,7 @@ PPH_EMENU PhpCreateMainMenu(
     );
 
 VOID PhMwpInitializeMainMenu(
-    _In_ HMENU Menu
+    _In_ HWND WindowHandle
     );
 
 VOID PhMwpDispatchMenuCommand(
@@ -210,6 +251,11 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     _In_ ULONG Id
     );
 
+BOOLEAN PhMwpExecuteNotificationSettingsMenuCommand(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id
+    );
+
 // Tab control
 
 VOID PhMwpLayoutTabControl(
@@ -221,7 +267,7 @@ VOID PhMwpNotifyTabControl(
     );
 
 VOID PhMwpSelectionChangedTabControl(
-    _In_ ULONG OldIndex
+    _In_ INT32 OldIndex
     );
 
 PPH_MAIN_TAB_PAGE PhMwpCreatePage(
@@ -264,16 +310,19 @@ BOOLEAN PhMwpPluginNotifyEvent(
     _In_ PVOID Parameter
     );
 
+typedef struct _PH_MAIN_TAB_PAGE *PPH_MAIN_TAB_PAGE;
+typedef struct _PH_PROVIDER_EVENT_QUEUE PH_PROVIDER_EVENT_QUEUE, *PPH_PROVIDER_EVENT_QUEUE;
+
 // Processes
 
 extern PPH_MAIN_TAB_PAGE PhMwpProcessesPage;
 extern HWND PhMwpProcessTreeNewHandle;
 extern HWND PhMwpSelectedProcessWindowHandle;
 extern BOOLEAN PhMwpSelectedProcessVirtualizationEnabled;
-extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
+extern PH_PROVIDER_EVENT_QUEUE PhMwpProcessEventQueue;
 
 BOOLEAN PhMwpProcessesPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
@@ -296,7 +345,16 @@ VOID PhMwpToggleSignedProcessTreeFilter(
     VOID
     );
 
+VOID PhMwpToggleMicrosoftProcessTreeFilter(
+    VOID
+    );
+
 BOOLEAN PhMwpSignedProcessTreeFilter(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    );
+
+BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
@@ -315,11 +373,10 @@ BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
 
 VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ PPH_EMENU Menu,
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_ BOOLEAN SetPriority,
     _In_ BOOLEAN SetIoPriority,
-    _In_ BOOLEAN SetPagePriority,
-    _In_ BOOLEAN SetPriorityBoost
+    _In_ BOOLEAN SetPagePriority
     );
 
 VOID PhMwpInitializeProcessMenu(
@@ -329,23 +386,23 @@ VOID PhMwpInitializeProcessMenu(
     );
 
 VOID NTAPI PhMwpProcessAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI PhMwpProcessModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI PhMwpProcessRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI PhMwpProcessesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID PhMwpOnProcessesUpdated(
@@ -356,13 +413,13 @@ VOID PhMwpOnProcessesUpdated(
 
 extern PPH_MAIN_TAB_PAGE PhMwpServicesPage;
 extern HWND PhMwpServiceTreeNewHandle;
-extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpServiceEventQueue;
+extern PH_PROVIDER_EVENT_QUEUE PhMwpServiceEventQueue;
 
 BOOLEAN PhMwpServicesPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     );
 
 VOID PhMwpNeedServiceTreeList(
@@ -394,23 +451,23 @@ VOID PhMwpInitializeServiceMenu(
     );
 
 VOID NTAPI PhMwpServiceAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI PhMwpServiceModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI PhMwpServiceRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI PhMwpServicesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID PhMwpOnServicesUpdated(
@@ -421,13 +478,13 @@ VOID PhMwpOnServicesUpdated(
 
 extern PPH_MAIN_TAB_PAGE PhMwpNetworkPage;
 extern HWND PhMwpNetworkTreeNewHandle;
-extern struct _PH_PROVIDER_EVENT_QUEUE PhMwpNetworkEventQueue;
+extern PH_PROVIDER_EVENT_QUEUE PhMwpNetworkEventQueue;
 
 BOOLEAN PhMwpNetworkPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     );
 
 VOID PhMwpNeedNetworkTreeList(
@@ -450,23 +507,23 @@ VOID PhMwpInitializeNetworkMenu(
     );
 
 VOID PhMwpNetworkItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID PhMwpNetworkItemModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID PhMwpNetworkItemRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID PhMwpNetworkItemsUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID PhMwpOnNetworkItemsUpdated(

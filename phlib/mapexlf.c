@@ -304,9 +304,9 @@ BOOLEAN PhGetMappedWslImageSections(
         if (sectionHeader[i].sh_name)
         {
             // Get the section name from the ELF string table and convert to unicode.
-            PhCopyStringZFromBytes(
+            PhCopyStringZFromUtf8(
                 PTR_ADD_OFFSET(stringTableAddress, sectionHeader[i].sh_name),
-                -1,
+                SIZE_MAX,
                 sections[i].Name,
                 sizeof(sections[i].Name),
                 NULL
@@ -454,7 +454,7 @@ BOOLEAN PhGetMappedWslImageSymbols(
                 // function name
                 PhCopyStringZFromBytes(
                     PTR_ADD_OFFSET(stringTable, entry[ii].st_name),
-                    -1,
+                    SIZE_MAX,
                     import->Name,
                     sizeof(import->Name),
                     NULL
@@ -467,9 +467,9 @@ BOOLEAN PhGetMappedWslImageSymbols(
 
                     if (moduleName = PhpFindWslImageVersionRecordName(versionRecords, versionTable[ii].vs_vers))
                     {
-                        PhCopyStringZFromBytes(
+                        PhCopyStringZFromUtf8(
                             moduleName,
-                            -1,
+                            SIZE_MAX,
                             import->Module,
                             sizeof(import->Module),
                             NULL
@@ -495,9 +495,9 @@ BOOLEAN PhGetMappedWslImageSymbols(
                 export->SectionIndex = entry[ii].st_shndx;
 
                 // function name
-                PhCopyStringZFromBytes(
+                PhCopyStringZFromUtf8(
                     PTR_ADD_OFFSET(stringTable, entry[ii].st_name),
-                    -1,
+                    SIZE_MAX,
                     export->Name,
                     sizeof(export->Name),
                     NULL
@@ -518,9 +518,9 @@ BOOLEAN PhGetMappedWslImageSymbols(
                 export->SectionIndex = entry[ii].st_shndx;
 
                 // function name
-                PhCopyStringZFromBytes(
+                PhCopyStringZFromUtf8(
                     PTR_ADD_OFFSET(stringTable, entry[ii].st_name),
-                    -1,
+                    SIZE_MAX,
                     export->Name,
                     sizeof(export->Name),
                     NULL

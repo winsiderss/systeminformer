@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
@@ -17,6 +17,7 @@
 #include <procprv.h>
 #include <settings.h>
 #include <emenu.h>
+#include <mapldr.h>
 
 #include <vdmdbg.h>
 
@@ -59,20 +60,14 @@ PVOID PhpGetVdmDbgDllBase(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PPH_STRING systemDirectory;
         PPH_STRING systemFileName;
 
-        if (systemDirectory = PhGetSystemDirectory())
+        if (systemFileName = PhGetSystemDirectoryWin32Z(L"\\vdmdbg.dll"))
         {
-            if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\vdmdbg.dll"))
-            {
-                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
-                    imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
+            if (!(imageBaseAddress = PhGetLoaderEntryDllBase(&systemFileName->sr, NULL)))
+                imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
 
-                PhDereferenceObject(systemFileName);
-            }
-
-            PhDereferenceObject(systemDirectory);
+            PhDereferenceObject(systemFileName);
         }
 
         PhEndInitOnce(&initOnce);
@@ -348,7 +343,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 if (index = PhGetSelectedListViewItemParam(context->ListViewHandle))
                 {

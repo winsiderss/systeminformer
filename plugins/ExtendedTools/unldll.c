@@ -156,7 +156,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             PhDereferenceObject(string);
 
             // Time Stamp
-            RtlSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
+            PhSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
             PhLargeIntegerToLocalSystemTime(&systemTime, &time);
             string = PhFormatDateTime(&systemTime);
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, string->Buffer);
@@ -221,7 +221,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             PhDereferenceObject(string);
 
             // Time Stamp
-            RtlSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
+            PhSecondsSince1970ToTime(rtlEvent->TimeDateStamp, &time);
             PhLargeIntegerToLocalSystemTime(&systemTime, &time);
             string = PhFormatDateTime(&systemTime);
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, string->Buffer);
@@ -416,7 +416,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"No.");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Name");
@@ -492,6 +492,59 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID* listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, context->ListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PhHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case PHAPP_IDC_COPY:
+                                PhCopyListView(context->ListViewHandle);
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     case WM_CTLCOLORBTN:

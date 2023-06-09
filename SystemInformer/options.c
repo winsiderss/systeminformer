@@ -389,7 +389,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 {
                     if (PhShowMessage2(
                         hwndDlg,
-                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
                         TD_WARNING_ICON,
                         L"Do you want to reset all settings and restart System Informer?",
                         L""
@@ -406,7 +406,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                             PhMainWndHandle,
                             L"-v -newinstance",
                             SW_SHOW,
-                            0,
+                            PH_SHELL_EXECUTE_DEFAULT,
                             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                             0,
                             NULL
@@ -425,7 +425,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 {
                     if (PhShowMessage2(
                         hwndDlg,
-                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
                         TD_INFORMATION_ICON,
                         L"Do you want to clean up unused settings?",
                         L""
@@ -500,19 +500,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 {
                     if (header->hwndFrom == OptionsTreeControl)
                     {
-                        HCURSOR cursor = (HCURSOR)LoadImage(
-                            NULL,
-                            IDC_ARROW,
-                            IMAGE_CURSOR,
-                            0,
-                            0,
-                            LR_SHARED
-                            );
-
-                        if (cursor != GetCursor())
-                        {
-                            SetCursor(cursor);
-                        }
+                        PhSetCursor(PhLoadArrowCursor());
 
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
                         return TRUE;
@@ -955,7 +943,7 @@ BOOLEAN PhpIsDefaultTaskManager(
     {
         PhClearReference(&OldTaskMgrDebugger);
 
-        if (OldTaskMgrDebugger = PhQueryRegistryString(taskmgrKeyHandle, L"Debugger"))
+        if (OldTaskMgrDebugger = PhQueryRegistryStringZ(taskmgrKeyHandle, L"Debugger"))
         {
             alreadyReplaced = PathMatchesPh(OldTaskMgrDebugger);
         }
@@ -973,13 +961,23 @@ VOID PhpSetDefaultTaskManager(
     PWSTR message;
 
     if (PhpIsDefaultTaskManager())
+    {
         message = L"Do you want to restore the default Windows Task Manager?";
+    }
     else
+    {
         message = L"Do you want to make System Informer the default Windows Task Manager?";
+
+        // Warn the user when we're not installed into secure location. (dmex)
+        if (!PhShowOptionsDefaultInstallLocation(ParentWindowHandle, L"Changing the default Task Manager"))
+        {
+            return;
+        }
+    }
 
     if (PhShowMessage2(
         ParentWindowHandle,
-        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+        TD_YES_BUTTON | TD_NO_BUTTON,
         TD_INFORMATION_ICON,
         L"",
         message
@@ -1088,112 +1086,112 @@ VOID PhpSetDefaultTaskManager(
 //
 //    return enabled;
 //}
-
-NTSTATUS PhpSetExploitProtectionEnabled(
-    _In_ BOOLEAN Enabled)
-{
-    static PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"Software\\");
-    static PH_STRINGREF wow6432Token = PH_STRINGREF_INIT(L"Software\\WOW6432Node\\");
-    static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
-    HANDLE keyHandle;
-    PPH_STRING directory;
-    PPH_STRING fileName;
-    PPH_STRING keyName;
-
-    directory = PhCreateString2(&TaskMgrImageOptionsKeyName);
-    PhMoveReference(&directory, PhGetBaseDirectory(directory));
-    fileName = PhGetApplicationFileNameWin32();
-    PhMoveReference(&fileName, PhGetBaseName(fileName));
-    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
-
-    //if (Enabled)
-    //{
-    //    status = PhCreateKey(
-    //        &keyHandle,
-    //        KEY_WRITE,
-    //        PH_KEY_LOCAL_MACHINE,
-    //        &keyName->sr,
-    //        OBJ_OPENIF,
-    //        0,
-    //        NULL
-    //        );
-    //
-    //    if (NT_SUCCESS(status))
-    //    {
-    //        status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
-    //        {
-    //            PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
-    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
-    //        }, sizeof(ULONG64));
-    //
-    //        NtClose(keyHandle);
-    //    }
-    //}
-    //else
-    {
-        status = PhOpenKey(
-            &keyHandle,
-            KEY_WRITE,
-            PH_KEY_LOCAL_MACHINE,
-            &keyName->sr,
-            OBJ_OPENIF
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            status = PhDeleteValueKey(keyHandle, &valueName);
-            NtClose(keyHandle);
-        }
-
-        if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-            status = STATUS_SUCCESS;
-
-#ifdef _WIN64
-        if (NT_SUCCESS(status))
-        {
-            PH_STRINGREF stringBefore;
-            PH_STRINGREF stringAfter;
-
-            if (PhSplitStringRefAtString(&keyName->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
-            {
-                PhMoveReference(&keyName, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
-
-                status = PhOpenKey(
-                    &keyHandle,
-                    DELETE,
-                    PH_KEY_LOCAL_MACHINE,
-                    &keyName->sr,
-                    OBJ_OPENIF
-                    );
-
-                if (NT_SUCCESS(status))
-                {
-                    status = NtDeleteKey(keyHandle);
-                    NtClose(keyHandle);
-                }
-            }
-        }
-#endif
-    }
-
-    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-        status = STATUS_SUCCESS;
-
-    PhDereferenceObject(keyName);
-    PhDereferenceObject(fileName);
-    PhDereferenceObject(directory);
-
-    return status;
-}
+//
+//NTSTATUS PhpSetExploitProtectionEnabled(
+//    _In_ BOOLEAN Enabled)
+//{
+//    static PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"Software\\");
+//    static PH_STRINGREF wow6432Token = PH_STRINGREF_INIT(L"Software\\WOW6432Node\\");
+//    static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
+//    NTSTATUS status = STATUS_UNSUCCESSFUL;
+//    HANDLE keyHandle;
+//    PPH_STRING directory;
+//    PPH_STRING fileName;
+//    PPH_STRING keyName;
+//
+//    directory = PhCreateString2(&TaskMgrImageOptionsKeyName);
+//    PhMoveReference(&directory, PhGetBaseDirectory(directory));
+//    fileName = PhGetApplicationFileNameWin32();
+//    PhMoveReference(&fileName, PhGetBaseName(fileName));
+//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
+//
+//    //if (Enabled)
+//    //{
+//    //    status = PhCreateKey(
+//    //        &keyHandle,
+//    //        KEY_WRITE,
+//    //        PH_KEY_LOCAL_MACHINE,
+//    //        &keyName->sr,
+//    //        OBJ_OPENIF,
+//    //        0,
+//    //        NULL
+//    //        );
+//    //
+//    //    if (NT_SUCCESS(status))
+//    //    {
+//    //        status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
+//    //        {
+//    //            PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
+//    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
+//    //        }, sizeof(ULONG64));
+//    //
+//    //        NtClose(keyHandle);
+//    //    }
+//    //}
+//    //else
+//    {
+//        status = PhOpenKey(
+//            &keyHandle,
+//            KEY_WRITE,
+//            PH_KEY_LOCAL_MACHINE,
+//            &keyName->sr,
+//            OBJ_OPENIF
+//            );
+//
+//        if (NT_SUCCESS(status))
+//        {
+//            status = PhDeleteValueKey(keyHandle, &valueName);
+//            NtClose(keyHandle);
+//        }
+//
+//        if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+//            status = STATUS_SUCCESS;
+//
+//#ifdef _WIN64
+//        if (NT_SUCCESS(status))
+//        {
+//            PH_STRINGREF stringBefore;
+//            PH_STRINGREF stringAfter;
+//
+//            if (PhSplitStringRefAtString(&keyName->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
+//            {
+//                PhMoveReference(&keyName, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
+//
+//                status = PhOpenKey(
+//                    &keyHandle,
+//                    DELETE,
+//                    PH_KEY_LOCAL_MACHINE,
+//                    &keyName->sr,
+//                    OBJ_OPENIF
+//                    );
+//
+//                if (NT_SUCCESS(status))
+//                {
+//                    status = NtDeleteKey(keyHandle);
+//                    NtClose(keyHandle);
+//                }
+//            }
+//        }
+//#endif
+//    }
+//
+//    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+//        status = STATUS_SUCCESS;
+//
+//    PhDereferenceObject(keyName);
+//    PhDereferenceObject(fileName);
+//    PhDereferenceObject(directory);
+//
+//    return status;
+//}
 
 NTSTATUS PhpSetSilentProcessNotifyEnabled(
     _In_ BOOLEAN Enabled)
@@ -1279,7 +1277,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
 
             if (NT_SUCCESS(status))
             {
-                ULONG globalFlags = PhQueryRegistryUlong(keyHandle, L"GlobalFlag");
+                ULONG globalFlags = PhQueryRegistryUlongZ(keyHandle, L"GlobalFlag");
 
                 if (globalFlags == ULONG_MAX) globalFlags = 0;
                 globalFlags = globalFlags | FLG_MONITOR_SILENT_PROCESS_EXIT;
@@ -1510,7 +1508,7 @@ static VOID PhpOptionsNotifyChangeCallback(
     {
         if (PhShowMessage2(
             PhMainWndHandle,
-            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+            TD_YES_BUTTON | TD_NO_BUTTON,
             TD_INFORMATION_ICON,
             L"One or more options you have changed requires a restart of System Informer.",
             L"Do you want to restart System Informer now?"
@@ -1521,7 +1519,7 @@ static VOID PhpOptionsNotifyChangeCallback(
                 PhMainWndHandle,
                 L"-v -newinstance",
                 SW_SHOW,
-                0,
+                PH_SHELL_EXECUTE_DEFAULT,
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                 0,
                 NULL
@@ -1529,6 +1527,83 @@ static VOID PhpOptionsNotifyChangeCallback(
             ProcessHacker_Destroy();
         }
     }
+}
+
+VOID PhShowOptionsRestartRequired(
+    _In_ HWND WindowHandle
+    )
+{
+    if (PhShowMessage2(
+        PhMainWndHandle,
+        TD_YES_BUTTON | TD_NO_BUTTON,
+        TD_INFORMATION_ICON,
+        L"One or more options you have changed requires a restart of System Informer.",
+        L"Do you want to restart System Informer now?"
+        ) == IDYES)
+    {
+        ProcessHacker_PrepareForEarlyShutdown();
+
+        if (PhShellProcessHacker(
+            WindowHandle,
+            L"-v -newinstance",
+            SW_SHOW,
+            PH_SHELL_EXECUTE_DEFAULT,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+            0,
+            NULL
+            ))
+        {
+            ProcessHacker_Destroy();
+        }
+        else
+        {
+            ProcessHacker_CancelEarlyShutdown();
+        }
+    }
+}
+
+BOOLEAN PhShowOptionsDefaultInstallLocation(
+    _In_ HWND ParentWindowHandle,
+    _In_ PWSTR Message
+    )
+{
+    RTL_ELEVATION_FLAGS flags;
+
+    // Warn the user when we're not installed into secure location. (dmex)
+    if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
+    {
+        PPH_STRING applicationFileName;
+        PPH_STRING programFilesPath;
+
+        if (applicationFileName = PhGetApplicationFileNameWin32())
+        {
+            if (programFilesPath = PhExpandEnvironmentStringsZ(L"%ProgramFiles%\\"))
+            {
+                if (!PhStartsWithString(applicationFileName, programFilesPath, TRUE))
+                {
+                    if (PhShowMessage2(
+                        ParentWindowHandle,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
+                        TD_WARNING_ICON,
+                        L"WARNING: You have not installed System Informer into a secure location.",
+                        L"%s is not recommended when running System Informer from outside a secure location (e.g. Program Files).\r\n\r\nAre you sure you want to continue?",
+                        Message
+                        ) == IDNO)
+                    {
+                        PhDereferenceObject(programFilesPath);
+                        PhDereferenceObject(applicationFileName);
+                        return FALSE;
+                    }
+                }
+
+                PhDereferenceObject(programFilesPath);
+            }
+
+            PhDereferenceObject(applicationFileName);
+        }
+    }
+
+    return TRUE;
 }
 
 static VOID PhpAdvancedPageSave(
@@ -1981,30 +2056,11 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
-                                            RTL_ELEVATION_FLAGS flags;
 
-                                            if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
+                                            if (!PhShowOptionsDefaultInstallLocation(PhOptionsWindowHandle, L"Enabling the 'start as admin' option"))
                                             {
-                                                static PH_STRINGREF programFilesPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\");
-                                                PPH_STRING programFilesPath;
-
-                                                if (programFilesPath = PhExpandEnvironmentStrings(&programFilesPathSr))
-                                                {
-                                                    if (!PhStartsWithString(applicationFileName, programFilesPath, TRUE))
-                                                    {
-                                                        if (PhShowMessage2(
-                                                            PhOptionsWindowHandle,
-                                                            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-                                                            TD_WARNING_ICON,
-                                                            L"WARNING: You have not installed System Informer into a secure location.",
-                                                            L"Enabling the 'start as admin' option is not recommended when running System Informer from outside a secure location (e.g. Program Files).\r\n\r\nAre you sure you want to continue?"
-                                                            ) == IDNO)
-                                                        {
-                                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-                                                            return TRUE;
-                                                        }
-                                                    }
-                                                }
+                                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                                                return TRUE;
                                             }
 
                                             quotedFileName = PH_AUTO(PhConcatStringRef3(
@@ -2024,7 +2080,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                                     PhOptionsWindowHandle,
                                                     L"Unable to enable start as admin.",
                                                     0,
-                                                    HRESULT_CODE(status) // HACK
+                                                    HRESULT_CODE(status)
                                                     );
 
                                                 PhDereferenceObject(applicationFileName);
@@ -2226,15 +2282,12 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                 {
                     PPH_SETTING setting = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
                     PPH_STRING settingValue = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
-                    LONG dpiValue;
-
-                    dpiValue = PhGetWindowDpi(hwndDlg);
 
                     if (!PhSettingFromString(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
-                        dpiValue,
+                        PhSystemDpi,
                         setting
                         ))
                     {
@@ -2242,7 +2295,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
-                            dpiValue,
+                            PhSystemDpi,
                             setting
                             );
                     }
@@ -2814,10 +2867,14 @@ VOID InitializeOptionsAdvancedTree(
 
     TreeNew_SetCallback(Context->TreeNewHandle, OptionsAdvancedTreeNewCallback, Context);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 1, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_VALUE, TRUE, L"Value", 200, PH_ALIGN_LEFT, 2, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT, TRUE, L"Default", 200, PH_ALIGN_LEFT, 3, 0, TRUE);
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
 
@@ -3251,6 +3308,7 @@ static COLOR_ITEM ColorItems[] =
 #endif
     COLOR_ITEM(L"ColorDebuggedProcesses", L"Debugged processes", L"Processes that are currently being debugged."),
     COLOR_ITEM(L"ColorElevatedProcesses", L"Elevated processes", L"Processes with full privileges on a system with UAC enabled."),
+    COLOR_ITEM(L"ColorUIAccessProcesses", L"UIAccess processes", L"Processes with UIAccess privileges."),
     COLOR_ITEM(L"ColorPicoProcesses", L"Pico processes", L"Processes that belong to the Windows subsystem for Linux."),
     COLOR_ITEM(L"ColorImmersiveProcesses", L"Immersive processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),
     COLOR_ITEM(L"ColorSuspended", L"Suspended processes and threads", L"Processes and threads that are suspended from execution."),

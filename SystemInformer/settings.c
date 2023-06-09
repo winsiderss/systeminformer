@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *     jxy-s   2021
  *
  */
@@ -30,11 +30,13 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
+    PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
+    PhpAddIntegerSetting(L"EnableAvxSupport", L"0");
     PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
-    PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
+    PhpAddIntegerSetting(L"EnableDeferredLayout", L"1");
     PhpAddIntegerSetting(L"EnableImageCoherencySupport", L"0");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableHeapReflection", L"0");
@@ -49,7 +51,10 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkBoundConnections", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
+    PhpAddIntegerSetting(L"EnablePackageIconSupport", L"0");
+    PhpAddIntegerSetting(L"EnableProcessHandlePnPDeviceNameSupport", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
+    PhpAddIntegerSetting(L"EnablePluginsNative", L"0");
     PhpAddIntegerSetting(L"EnableGraphMaxScale", L"0");
     PhpAddIntegerSetting(L"EnableGraphMaxText", L"1");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");
@@ -66,6 +71,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableSilentCrashNotify", L"0");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"1");
+    PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
     PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
     PhpAddIntegerSetting(L"EnableThreadStackLineInformation", L"1");
     PhpAddIntegerSetting(L"EnableTooltipSupport", L"1");
@@ -104,12 +110,14 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
     PhpAddIntegerSetting(L"HideOtherUserProcesses", L"0");
     PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
+    PhpAddIntegerSetting(L"HideMicrosoftProcesses", L"0");
     PhpAddIntegerSetting(L"HideWaitingConnections", L"0");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
     PhpAddStringSetting(L"IconTrayGuids", L"");
     PhpAddIntegerSetting(L"IconTrayPersistGuidEnabled", L"0");
+    PhpAddIntegerSetting(L"IconTrayLazyStartDelay", L"1");
     PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
-    PhpAddStringSetting(L"IconSettings", L"1|1");
+    PhpAddStringSetting(L"IconSettings", L"2|1");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
@@ -186,10 +194,13 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
     PhpAddIntegerPairSetting(L"RunAsWindowPosition", L"0,0");
+    PhpAddIntegerPairSetting(L"RunAsPackageWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"RunAsPackageWindowSize", L"@96|500,300");
     PhpAddIntegerSetting(L"RunFileDlgState", L"0");
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
+    PhpAddIntegerSetting(L"ScrollToRemovedProcesses", L"0");
     PhpAddStringSetting(L"SearchEngine", L"https://duckduckgo.com/?q=\"%s\"");
     PhpAddStringSetting(L"SegmentHeapListViewColumns", L"");
     PhpAddStringSetting(L"SegmentHeapListViewSort", L"0,1");
@@ -217,6 +228,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ThreadTreeListFlags", L"0");
     PhpAddStringSetting(L"ThreadStackTreeListColumns", L"");
     PhpAddScalableIntegerPairSetting(L"ThreadStackWindowSize", L"@96|420,400");
+    PhpAddIntegerPairSetting(L"TokenWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"TokenWindowSize", L"@96|0,0");
     PhpAddStringSetting(L"TokenGroupsListViewColumns", L"");
     PhpAddStringSetting(L"TokenGroupsListViewStates", L"");
     PhpAddStringSetting(L"TokenGroupsListViewSort", L"1,2");
@@ -258,6 +271,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorHandleFiltered", L"000000"); // Black
     PhpAddIntegerSetting(L"UseColorImmersiveProcesses", L"1");
     PhpAddIntegerSetting(L"ColorImmersiveProcesses", L"cbc0ff"); // Pink
+    PhpAddIntegerSetting(L"UseColorUIAccessProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorUIAccessProcesses", L"00aaff"); // Orange
     PhpAddIntegerSetting(L"UseColorPicoProcesses", L"1");
     PhpAddIntegerSetting(L"ColorPicoProcesses", L"ff8000"); // Blue
     PhpAddIntegerSetting(L"UseColorSuspended", L"1");
@@ -327,6 +342,7 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(HideOtherUserProcesses);
     PH_UPDATE_SETTING(PropagateCpuUsage);
     PH_UPDATE_SETTING(ScrollToNewProcesses);
+    PH_UPDATE_SETTING(ScrollToRemovedProcesses);
     PH_UPDATE_SETTING(ShowCpuBelow001);
     PH_UPDATE_SETTING(UpdateInterval);
 
@@ -350,6 +366,8 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorHandleFiltered);
     PH_UPDATE_SETTING(UseColorElevatedProcesses);
     PH_UPDATE_SETTING(ColorElevatedProcesses);
+    PH_UPDATE_SETTING(UseColorUIAccessProcesses);
+    PH_UPDATE_SETTING(ColorUIAccessProcesses);
     PH_UPDATE_SETTING(UseColorPicoProcesses);
     PH_UPDATE_SETTING(ColorPicoProcesses);
     PH_UPDATE_SETTING(UseColorImmersiveProcesses);
@@ -396,6 +414,7 @@ VOID PhUpdateCachedSettings(
 
     PH_UPDATE_SETTING(ImageCoherencyScanLevel);
 
+    PhCsEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     PhCsEnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     PhCsEnableGraphMaxText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");

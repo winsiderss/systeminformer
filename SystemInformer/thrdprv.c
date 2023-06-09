@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -23,6 +23,7 @@
 #include <svcsup.h>
 #include <symprv.h>
 #include <workqueue.h>
+#include <kphuser.h>
 
 #include <extmgri.h>
 #include <procprv.h>
@@ -221,13 +222,11 @@ VOID PhSetTerminatingThreadProvider(
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
 
-    if (!context)
-        return FALSE;
     if (context->ThreadProvider->Terminating)
         return FALSE;
 
@@ -252,13 +251,11 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 
 static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
 
-    if (!context)
-        return FALSE;
     if (context->ThreadProvider->Terminating)
         return FALSE;
 
@@ -340,9 +337,7 @@ VOID PhLoadSymbolsThreadProvider(
         {
             if (kernelModules->NumberOfModules > 0)
             {
-                PPH_STRING fileName;
-
-                fileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
+                PPH_STRING fileName = PhConvertUtf8ToUtf16(kernelModules->Modules[0].FullPathName);
 
                 PhLoadModuleSymbolProvider(
                     ThreadProvider->SymbolProvider,
@@ -350,6 +345,7 @@ VOID PhLoadSymbolsThreadProvider(
                     (ULONG64)kernelModules->Modules[0].ImageBase,
                     kernelModules->Modules[0].ImageSize
                     );
+
                 PhDereferenceObject(fileName);
             }
 
@@ -374,6 +370,8 @@ PPH_THREAD_ITEM PhCreateThreadItem(
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
 
+    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
+
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 
     return threadItem;
@@ -392,6 +390,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
     if (threadItem->StartAddressFileName) PhDereferenceObject(threadItem->StartAddressFileName);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
+    if (threadItem->AlternateThreadIdString) PhDereferenceObject(threadItem->AlternateThreadIdString);
 }
 
 BOOLEAN PhpThreadHashtableEqualFunction(
@@ -676,7 +675,7 @@ static NTSTATUS PhpGetThreadCycleTime(
     {
         if (HandleToUlong(ThreadItem->ThreadId) < PhSystemProcessorInformation.NumberOfProcessors)
         {
-            *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].QuadPart;
+            *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].CycleTime;
             return STATUS_SUCCESS;
         }
     }
@@ -958,6 +957,25 @@ VOID PhpThreadProviderUpdate(
                 threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
             }
 
+            if (threadItem->ThreadHandle && KphLevel() >= KphLevelMed)
+            {
+                ULONG wslThreadId;
+                if (NT_SUCCESS(KphQueryInformationThread(
+                    threadItem->ThreadHandle,
+                    KphThreadWSLThreadId,
+                    &wslThreadId,
+                    sizeof(ULONG),
+                    NULL
+                    )))
+                {
+                    threadItem->AlternateThreadIdString = PhFormatString(
+                        L"%lu (%lu)",
+                        HandleToUlong(threadItem->ThreadId),
+                        wslThreadId
+                        );
+                }
+            }
+
             PhpQueueThreadQuery(threadProvider, threadItem);
 
             // Add the thread item to the hashtable.
@@ -1164,6 +1182,18 @@ VOID PhpThreadProviderUpdate(
 
                 if (threadItem->IsGuiThread != oldIsGuiThread)
                     modified = TRUE;
+            }
+
+            if (!threadItem->ThreadHandle || KphLevel() < KphLevelMed || 
+                !NT_SUCCESS(KphQueryInformationThread(
+                    threadItem->ThreadHandle,
+                    KphThreadIoCounters,
+                    &threadItem->IoCounters,
+                    sizeof(IO_COUNTERS),
+                    NULL
+                    )))
+            {
+                RtlZeroMemory(&threadItem->IoCounters, sizeof(IO_COUNTERS));
             }
 
             threadItem->JustResolved = FALSE;

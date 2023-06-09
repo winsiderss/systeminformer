@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *
+ */
+
 #ifndef _PH_FILESTREAM_H
 #define _PH_FILESTREAM_H
 
@@ -156,13 +167,19 @@ PhWriteStringAsUtf8FileStream(
     _In_ PPH_STRINGREF String
     );
 
-PHLIBAPI
+FORCEINLINE
 NTSTATUS
-NTAPI
 PhWriteStringAsUtf8FileStream2(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PWSTR String
-    );
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+
+    return PhWriteStringAsUtf8FileStream(FileStream, &string);
+}
 
 PHLIBAPI
 NTSTATUS

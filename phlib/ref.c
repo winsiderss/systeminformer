@@ -89,7 +89,6 @@ _May_raise_ PVOID PhCreateObject(
     _In_ PPH_OBJECT_TYPE ObjectType
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_HEADER objectHeader;
 
     // Allocate storage for the object. Note that this includes the object header followed by the
@@ -299,40 +298,6 @@ _May_raise_ VOID PhDereferenceObjectEx(
 }
 
 /**
- * References an array of objects.
- *
- * \param Objects An array of objects.
- * \param NumberOfObjects The number of elements in \a Objects.
- */
-VOID PhReferenceObjects(
-    _In_reads_(NumberOfObjects) PVOID *Objects,
-    _In_ ULONG NumberOfObjects
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < NumberOfObjects; i++)
-        PhReferenceObject(Objects[i]);
-}
-
-/**
- * Dereferences an array of objects.
- *
- * \param Objects An array of objects.
- * \param NumberOfObjects The number of elements in \a Objects.
- */
-VOID PhDereferenceObjects(
-    _In_reads_(NumberOfObjects) PVOID *Objects,
-    _In_ ULONG NumberOfObjects
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < NumberOfObjects; i++)
-        PhDereferenceObject(Objects[i]);
-}
-
-/**
  * Gets an object's type.
  *
  * \param Object A pointer to an object.
@@ -392,7 +357,6 @@ PPH_OBJECT_TYPE PhCreateObjectTypeEx(
     _In_opt_ PPH_OBJECT_TYPE_PARAMETERS Parameters
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_TYPE objectType;
 
     // Check the flags.
@@ -411,10 +375,9 @@ PPH_OBJECT_TYPE PhCreateObjectTypeEx(
     objectType->DeleteProcedure = DeleteProcedure;
     objectType->Name = Name;
 
-    if (objectType->TypeIndex < PH_OBJECT_TYPE_TABLE_SIZE)
-        PhObjectTypeTable[objectType->TypeIndex] = objectType;
-    else
-        PhRaiseStatus(STATUS_UNSUCCESSFUL);
+    assert(PhObjectTypeCount < PH_OBJECT_TYPE_TABLE_SIZE);
+
+    PhObjectTypeTable[objectType->TypeIndex] = objectType;
 
     if (Parameters)
     {

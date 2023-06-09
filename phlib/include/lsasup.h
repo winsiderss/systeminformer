@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2018-2022
+ *
+ */
+
 #ifndef _PH_LSASUP_H
 #define _PH_LSASUP_H
 
@@ -94,6 +106,16 @@ PhSidToStringSid(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhSidToStringBuffer(
+    _In_ PSID Sid,
+    _Writable_bytes_(BufferLength) PWCHAR Buffer,
+    _In_ USHORT BufferLength,
+    _Out_opt_ PUSHORT ReturnLength
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetTokenUserString(
@@ -130,7 +152,7 @@ PhGetSidAccountType(
     );
 
 PHLIBAPI
-PPH_STRING
+PCWSTR
 NTAPI
 PhGetSidAccountTypeString(
     _In_ PSID Sid

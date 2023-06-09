@@ -16,7 +16,7 @@ NTSTATUS SetupProgressThread(
     )
 {
     // Create the folder.
-    if (!NT_SUCCESS(PhCreateDirectoryWin32(Context->SetupInstallPath)))
+    if (!NT_SUCCESS(PhCreateDirectoryWin32(&Context->SetupInstallPath->sr)))
     {
         Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;
@@ -47,10 +47,10 @@ NTSTATUS SetupProgressThread(
     SetupCreateUninstallKey(Context);
 
     // Create autorun.
-    SetupSetWindowsOptions(Context);
+    SetupCreateWindowsOptions(Context);
 
     // Create shortcuts.
-    SetupChangeNotifyShortcuts(Context);
+    SetupCreateShortcuts(Context);
 
     // Set the default image execution options.
     //SetupCreateImageFileExecutionOptions();

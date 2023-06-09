@@ -1,5 +1,20 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_PROCPRPP_H
 #define PH_PROCPRPP_H
+
+#include <phuisup.h>
+#include <colmgr.h>
 
 #include <thrdlist.h>
 #include <modlist.h>
@@ -367,6 +382,7 @@ typedef struct _PH_PERFORMANCE_CONTEXT
 
     HWND WindowHandle;
     BOOLEAN Enabled;
+    LONG WindowDpi;
 
     PH_GRAPH_STATE CpuGraphState;
     PH_GRAPH_STATE PrivateGraphState;

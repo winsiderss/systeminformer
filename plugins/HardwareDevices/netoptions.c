@@ -323,7 +323,7 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
 
     if ((result = CM_Get_DevNode_Property(
         deviceInstanceHandle,
-        PhWindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+        NetWindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
         &devicePropertyType,
         (PBYTE)deviceDescription->Buffer,
         &bufferSize,
@@ -335,7 +335,7 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
 
         result = CM_Get_DevNode_Property(
             deviceInstanceHandle,
-            PhWindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
+            NetWindowsVersion >= WINDOWS_8 ? &DEVPKEY_Device_FriendlyName : &DEVPKEY_Device_DeviceDesc,
             &devicePropertyType,
             (PBYTE)deviceDescription->Buffer,
             &bufferSize,
@@ -476,10 +476,10 @@ VOID FindNetworkAdapters(
                 GUID deviceGuid = { 0 };
 
                 adapterEntry = PhAllocateZero(sizeof(NET_ENUM_ENTRY));
-                adapterEntry->DeviceGuidString = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
+                adapterEntry->DeviceGuidString = PhQueryRegistryStringZ(keyHandle, L"NetCfgInstanceId");
                 adapterEntry->DevicePath = PhConcatStringRef2(&devicePathSr, &adapterEntry->DeviceGuidString->sr);
-                adapterEntry->DeviceLuid.Info.IfType = PhQueryRegistryUlong64(keyHandle, L"*IfType");
-                adapterEntry->DeviceLuid.Info.NetLuidIndex = PhQueryRegistryUlong64(keyHandle, L"NetLuidIndex");
+                adapterEntry->DeviceLuid.Info.IfType = PhQueryRegistryUlong64Z(keyHandle, L"*IfType");
+                adapterEntry->DeviceLuid.Info.NetLuidIndex = PhQueryRegistryUlong64Z(keyHandle, L"NetLuidIndex");
                 PhStringToGuid(&adapterEntry->DeviceGuidString->sr, &deviceGuid);
 
                 {
@@ -736,7 +736,7 @@ PPH_STRING FindNetworkDeviceInstance(
         {
             PPH_STRING deviceGuid;
 
-            if (deviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId"))
+            if (deviceGuid = PhQueryRegistryStringZ(keyHandle, L"NetCfgInstanceId"))
             {
                 if (PhEqualString(deviceGuid, DeviceGuid, TRUE))
                 {
@@ -818,7 +818,7 @@ VOID LoadNetworkAdapterImages(
         {
             if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
             {
-                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+                if (PhExtractIconEx(&dllIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
                     HIMAGELIST imageList = PhImageListCreate(
                         PhGetDpi(24, dpiValue), // GetSystemMetrics(SM_CXSMICON)

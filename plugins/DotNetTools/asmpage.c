@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -97,6 +97,8 @@ typedef struct _ASMPAGE_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
     PDNA_NODE ClrV2Node;
 
+    volatile LONG CancelQueryContext;
+
     union
     {
         ULONG Flags;
@@ -122,7 +124,7 @@ typedef struct _ASMPAGE_CONTEXT
 
 typedef struct _ASMPAGE_QUERY_CONTEXT
 {
-    HANDLE WindowHandle;
+    PASMPAGE_CONTEXT PageContext;
 
     HANDLE ProcessId;
     ULONG IsWow64;
@@ -154,11 +156,7 @@ VOID DotNetAsmSaveSettingsTreeList(
 
 BOOLEAN DotNetAsmTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
-    _In_opt_ PVOID Context
-    );
-
-VOID DestroyDotNetTraceQuery(
-    _In_ PASMPAGE_QUERY_CONTEXT Context
+    _In_ PVOID Context
     );
 
 INT_PTR CALLBACK DotNetAsmPageDlgProc(
@@ -492,10 +490,14 @@ VOID DotNetAsmDestroyTreeNodes(
             DotNetAsmDestroyNode(Context->NodeList->Items[i]);
 
         PhDereferenceObject(Context->NodeList);
+        Context->NodeList = NULL;
     }
 
     if (Context->NodeRootList)
+    {
         PhDereferenceObject(Context->NodeRootList);
+        Context->NodeRootList = NULL;
+    }
 }
 
 VOID DotNetAsmClearTreeNodes(
@@ -504,9 +506,6 @@ VOID DotNetAsmClearTreeNodes(
 {
     if (Context->NodeList)
     {
-        for (ULONG i = 0; i < Context->NodeList->Count; i++)
-            DotNetAsmDestroyNode(Context->NodeList->Items[i]);
-
         PhClearList(Context->NodeList);
     }
 
@@ -730,13 +729,10 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PASMPAGE_CONTEXT context = Context;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
@@ -943,7 +939,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
+            data.DefaultSortColumn = DNATNC_STRUCTURE;
             data.DefaultSortOrder = NoSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
@@ -1581,10 +1577,12 @@ NTSTATUS DotNetTraceQueryThreadStart(
             result = ERROR_TIMEOUT;
     }
 
-    if (IsWindow(context->WindowHandle))
-        PostMessage(context->WindowHandle, DN_ASM_UPDATE_MSG, result, (LPARAM)context);
-    else
-        DestroyDotNetTraceQuery(context);
+    if (!context->PageContext->CancelQueryContext && context->PageContext->WindowHandle)
+    {
+        SendMessage(context->PageContext->WindowHandle, DN_ASM_UPDATE_MSG, result, (LPARAM)context);
+    }
+
+    PhDereferenceObject(context);
 
     return STATUS_SUCCESS;
 }
@@ -1595,6 +1593,7 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
 {
     PCLR_PROCESS_SUPPORT support;
     PPH_LIST appdomainlist = NULL;
+    BOOLEAN success = FALSE;
 
 #ifdef _WIN64
     if (Context->IsWow64)
@@ -1652,7 +1651,7 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
                 PhSetReference(&childNode->u.Assembly.DisplayName, assembly->DisplayName);
                 PhSetReference(&childNode->u.Assembly.FullyQualifiedAssemblyName, assembly->ModuleName);
                 childNode->u.Assembly.BaseAddress = assembly->BaseAddress;
-                childNode->StructureText = assembly->DisplayName->sr;
+                childNode->StructureText = PhGetStringRef(assembly->DisplayName);
                 PhSetReference(&childNode->PathText, assembly->ModuleName);
                 PhSetReference(&childNode->NativePathText, assembly->NativeFileName);
                 childNode->MvidText = PhFormatGuid(&assembly->Mvid);
@@ -1689,8 +1688,6 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
 
     // Check whether we got any data.
     {
-        BOOLEAN success = FALSE;
-
         for (ULONG i = 0; i < Context->NodeList->Count; i++)
         {
             PDNA_NODE node = Context->NodeList->Items[i];
@@ -1702,19 +1699,81 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
             }
         }
 
-        if (success && IsWindow(Context->WindowHandle))
+        if (success && !Context->PageContext->CancelQueryContext && Context->PageContext->WindowHandle)
         {
-            PostMessage(Context->WindowHandle, DN_ASM_UPDATE_MSG, 0, (LPARAM)Context);
-            return STATUS_SUCCESS;
+            SendMessage(Context->PageContext->WindowHandle, DN_ASM_UPDATE_MSG, 0, (LPARAM)Context);
         }
     }
 
 CleanupExit:
-    if (IsWindow(Context->WindowHandle))
-        PostMessage(Context->WindowHandle, DN_ASM_UPDATE_ERROR, 0, 0);
-    DestroyDotNetTraceQuery(Context);
+    if (!success && !Context->PageContext->CancelQueryContext && Context->PageContext->WindowHandle)
+    {
+        SendMessage(Context->PageContext->WindowHandle, DN_ASM_UPDATE_ERROR, 0, (LPARAM)Context);
+    }
+
+    PhDereferenceObject(Context);
 
     return STATUS_SUCCESS;
+}
+
+VOID DotNetQueryContextDeleteProcedure(
+    _In_ PASMPAGE_QUERY_CONTEXT Context,
+    _In_ ULONG Flags
+    )
+{
+    if (Context->NodeList)
+    {
+        PhDereferenceObject(Context->NodeList);
+        Context->NodeList = NULL;
+    }
+
+    if (Context->NodeRootList)
+    {
+        PhDereferenceObject(Context->NodeRootList);
+        Context->NodeRootList = NULL;
+    }
+
+    PhDereferenceObject(Context->PageContext);
+}
+
+PASMPAGE_QUERY_CONTEXT DotNetCreateQueryContext(
+    VOID
+    )
+{
+    static PPH_OBJECT_TYPE QueryContextType = NULL;
+    static PH_INITONCE QueryContextTypeInitOnce = PH_INITONCE_INIT;
+    PASMPAGE_QUERY_CONTEXT context;
+
+    if (PhBeginInitOnce(&QueryContextTypeInitOnce))
+    {
+        QueryContextType = PhCreateObjectType(L"DotNetQueryContextObjectType", 0, DotNetQueryContextDeleteProcedure);
+        PhEndInitOnce(&QueryContextTypeInitOnce);
+    }
+
+    context = PhCreateObject(sizeof(ASMPAGE_QUERY_CONTEXT), QueryContextType);
+    memset(context, 0, sizeof(ASMPAGE_QUERY_CONTEXT));
+
+    return context;
+}
+
+PASMPAGE_CONTEXT DotNetCreatePageContext(
+    VOID
+    )
+{
+    static PPH_OBJECT_TYPE PageContextType = NULL;
+    static PH_INITONCE PageContextTypeInitOnce = PH_INITONCE_INIT;
+    PASMPAGE_CONTEXT context;
+
+    if (PhBeginInitOnce(&PageContextTypeInitOnce))
+    {
+        PageContextType = PhCreateObjectType(L"DotNetPageContextObjectType", 0, NULL);
+        PhEndInitOnce(&PageContextTypeInitOnce);
+    }
+
+    context = PhCreateObject(sizeof(ASMPAGE_CONTEXT), PageContextType);
+    memset(context, 0, sizeof(ASMPAGE_CONTEXT));
+
+    return context;
 }
 
 VOID CreateDotNetTraceQueryThread(
@@ -1725,8 +1784,8 @@ VOID CreateDotNetTraceQueryThread(
 {
     PASMPAGE_QUERY_CONTEXT context;
 
-    context = PhAllocateZero(sizeof(ASMPAGE_QUERY_CONTEXT));
-    context->WindowHandle = Context->WindowHandle;
+    context = DotNetCreateQueryContext();
+    context->PageContext = Context;
     context->ProcessId = ProcessId;
     context->IsWow64 = Context->ProcessItem->IsWow64;
     context->NodeList = PhCreateList(64);
@@ -1753,25 +1812,6 @@ VOID CreateDotNetTraceQueryThread(
         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), DotNetTraceQueryThreadStart, context);
     else
         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), DotNetSosTraceQueryThreadStart, context);
-}
-
-VOID DestroyDotNetTraceQuery(
-    _In_ PASMPAGE_QUERY_CONTEXT Context
-    )
-{
-    if (Context->NodeRootList)
-    {
-        PhClearList(Context->NodeRootList);
-        PhDereferenceObject(Context->NodeRootList);
-    }
-
-    if (Context->NodeList)
-    {
-        PhClearList(Context->NodeList);
-        PhDereferenceObject(Context->NodeList);
-    }
-
-    PhFree(Context);
 }
 
 VOID DotNetAsmRefreshTraceQuery(
@@ -1804,14 +1844,12 @@ VOID DotNetAsmRefreshTraceQuery(
 
 BOOLEAN DotNetAsmTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PASMPAGE_CONTEXT context = Context;
     PDNA_NODE node = (PDNA_NODE)Node;
 
-    if (!context)
-        return FALSE;
     if (context->TreeNewSortOrder != NoSortOrder && node->RootNode)
         return FALSE;
     if (context->HideDynamicModules && node->Type == DNA_TYPE_ASSEMBLY && (node->u.Assembly.AssemblyFlags & 0x2) == 0x2)
@@ -1874,7 +1912,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context = propPageContext->Context = PhAllocateZero(sizeof(ASMPAGE_CONTEXT));
+            context = propPageContext->Context = DotNetCreatePageContext();
             context->WindowHandle = hwndDlg;
             context->ProcessItem = processItem;
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
@@ -1885,6 +1923,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
 
             DotNetAsmInitializeTreeList(context);
 
+            PhReferenceObject(context);
             DotNetAsmRefreshTraceQuery(context, FALSE);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
@@ -1892,6 +1931,8 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
         break;
     case WM_DESTROY:
         {
+            InterlockedExchange(&context->CancelQueryContext, TRUE);
+
             DotNetAsmDeleteTree(context);
 
             if (context->SearchBoxText)
@@ -1899,7 +1940,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             if (context->TreeErrorMessage)
                 PhDereferenceObject(context->TreeErrorMessage);
 
-            PhFree(context);
+            PhDereferenceObject(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -1964,6 +2005,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                 break;
             case IDC_REFRESH:
                 {
+                    PhReferenceObject(context);
                     DotNetAsmRefreshTraceQuery(context, FALSE);
                 }
                 break;
@@ -2076,12 +2118,17 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                 PhClearReference(&errorMessage);
             }
 
-            DestroyDotNetTraceQuery(queryContext);
+            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+            return TRUE;
         }
         break;
     case DN_ASM_UPDATE_ERROR:
         {
+            PhReferenceObject(context);
             DotNetAsmRefreshTraceQuery(context, TRUE);
+
+            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+            return TRUE;
         }
         break;
     }

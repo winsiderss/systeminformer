@@ -1,16 +1,16 @@
-﻿/*
+/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
  *
  * Authors:
  *
- *     dmex    2011-2019
+ *     dmex    2011-2023
  *
  */
 
-#ifndef __UPDATER_H__
-#define __UPDATER_H__
+#ifndef UPDATER_H
+#define UPDATER_H
 
 #include <phdk.h>
 #include <phappresource.h>
@@ -19,7 +19,7 @@
 #include <settings.h>
 #include <workqueue.h>
 
-#include <commonutil.h>
+#include <bcrypt.h>
 
 #include "resource.h"
 
@@ -52,6 +52,11 @@
 #ifdef _DEBUG
 //#define FORCE_UPDATE_CHECK
 //#define FORCE_LATEST_VERSION
+//#define FORCE_ELEVATION_CHECK
+//
+//#define FORCE_NO_STATUS_TIMER
+//#define FORCE_SLOW_STATUS_TIMER
+//#define FORCE_FAST_STATUS_TIMER
 #endif
 
 extern HWND UpdateDialogHandle;
@@ -77,6 +82,9 @@ typedef enum _UPDATER_TYPE
 
 typedef struct _PH_UPDATER_CONTEXT
 {
+    HWND DialogHandle;
+    WNDPROC DefaultWindowProc;
+
     union
     {
         BOOLEAN Flags;
@@ -87,12 +95,11 @@ typedef struct _PH_UPDATER_CONTEXT
             BOOLEAN FixedWindowStyles : 1;
             BOOLEAN Cancel : 1;
             BOOLEAN DirectoryElevationRequired : 1;
-            BOOLEAN Spare : 4;
+            BOOLEAN Cleanup : 1;
+            BOOLEAN ProgressMarquee : 1;
+            BOOLEAN ProgressTimer : 1;
         };
     };
-
-    HWND DialogHandle;
-    WNDPROC DefaultWindowProc;
 
     ULONG ErrorCode;
     ULONG64 CurrentVersion;
@@ -108,13 +115,24 @@ typedef struct _PH_UPDATER_CONTEXT
     // Nightly builds only
     PPH_STRING CommitHash;
     UPDATER_TYPE Type;
+
+    // Timer support
+    LONG64 ProgressTotal;
+    LONG64 ProgressDownloaded;
+    LONG64 ProgressBitsPerSecond;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 // TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations
 // after navigating to the page and you press keys such as ctrl, alt, home and insert. (dmex)
 #define TaskDialogNavigatePage(WindowHandle, Config) \
     assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL)); \
-    SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)Config);
+    SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)(Config));
+
+#ifdef FORCE_FAST_STATUS_TIMER
+#define SETTING_NAME_STATUS_TIMER_INTERVAL USER_TIMER_MINIMUM
+#else
+#define SETTING_NAME_STATUS_TIMER_INTERVAL 20
+#endif
 
 VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
@@ -170,6 +188,15 @@ VOID ShowUpdateFailedDialog(
 
 // updater.c
 
+BOOLEAN UpdateShellExecute(
+    _In_ PPH_UPDATER_CONTEXT Context,
+    _In_opt_ HWND WindowHandle
+    );
+
+BOOLEAN UpdateCheckDirectoryElevationRequired(
+    VOID
+    );
+
 VOID ShowUpdateDialog(
     _In_opt_ PPH_UPDATER_CONTEXT Context
     );
@@ -179,10 +206,6 @@ VOID StartInitialCheck(
     );
 
 VOID ShowStartupUpdateDialog(
-    VOID
-    );
-
-BOOLEAN UpdaterInstalledUsingSetup(
     VOID
     );
 

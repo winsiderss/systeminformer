@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2015-2016
+ *     dmex    2015-2023
  *
  */
 
@@ -45,14 +45,11 @@ VOID NTAPI UnloadCallback(
 }
 
 VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-
-    if (!menuItem)
-        return;
 
     switch (menuItem->Id)
     {
@@ -63,52 +60,45 @@ VOID NTAPI MenuItemCallback(
 }
 
 VOID NTAPI TreeNewMessageCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
-    if (Parameter)
-        DispatchTreeNewMessage(Parameter);
+    DispatchTreeNewMessage(Parameter);
 }
 
 VOID NTAPI PhSvcRequestCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
-    if (Parameter)
-        DispatchPhSvcRequest(Parameter);
+    DispatchPhSvcRequest(Parameter);
 }
 
 VOID NTAPI ThreadTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
-    if (Parameter)
-        ThreadTreeNewInitializing(Parameter);
+    ThreadTreeNewInitializing(Parameter);
 }
 
 VOID NTAPI ThreadTreeNewUninitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
-    if (Parameter)
-        ThreadTreeNewUninitializing(Parameter);
+    ThreadTreeNewUninitializing(Parameter);
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
     BOOLEAN isDotNet = FALSE;
     ULONG flags = 0;
-
-    if (!propContext)
-        return;
 
     if (NT_SUCCESS(PhGetProcessIsDotNetEx(
         propContext->ProcessItem->ProcessId,
@@ -172,13 +162,10 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
 }
 
 VOID NTAPI ThreadStackControlCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
-    if (!Parameter)
-        return;
-
     ProcessThreadStackControl(Parameter);
 }
 
@@ -236,18 +223,18 @@ LOGICAL DllMain(
             info->Author = L"dmex, wj32";
             info->Description = L"Adds .NET performance counters, assembly information, thread stack support, and more.";
 
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
-                );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+            //    LoadCallback,
+            //    NULL,
+            //    &PluginLoadCallbackRegistration
+            //    );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+            //    UnloadCallback,
+            //    NULL,
+            //    &PluginUnloadCallbackRegistration
+            //    );
             //PhRegisterCallback(
             //    PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
             //    MenuItemCallback,

@@ -1,8 +1,8 @@
 // Copyright (C) 2019-2021 Intel Corporation
 // SPDX-License-Identifier: MIT
 
-#include "..\exttools.h"
-#include "..\framemon.h"
+#include "../exttools.h"
+#include "../framemon.h"
 #include "PresentMon.hpp"
 
 static bool OutputThreadCreated = false;
@@ -48,7 +48,7 @@ static void CheckForTerminatedRealtimeProcesses(
             )
         {
             LARGE_INTEGER performanceCounter;
-            PhQueryPerformanceCounter(&performanceCounter, nullptr);
+            PhQueryPerformanceCounter(&performanceCounter);
             terminatedProcesses->emplace_back(processId, performanceCounter.QuadPart);
 
             PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));
@@ -79,29 +79,29 @@ static void AddPresents(
 
     for (size_t n = presentEvents.size(); i < n; ++i)
     {
-        auto presentEvent = presentEvents[i];
+        const auto& presentEvent = presentEvents[i];
         assert(presentEvent->IsCompleted);
 
         // Stop processing events if we hit the next stop time.
-        if (checkStopQpc && presentEvent->QpcTime >= stopQpc)
+        if (checkStopQpc && presentEvent->PresentStartTime >= stopQpc)
         {
-            if (hitStopQpc)
-            {
-                *hitStopQpc = true;
-            }
+            *hitStopQpc = true;
             break;
         }
 
         // Look up the swapchain this present belongs to.
         auto processInfo = GetProcessInfo(presentEvent->ProcessId);
+        if (!processInfo->ProcessItem)
+            continue;
+
         auto result = processInfo->mSwapChain.emplace(presentEvent->SwapChainAddress, SwapChainData());
         auto chain = &result.first->second;
 
         if (result.second)
         {
             chain->mPresentHistoryCount = 0;
-            chain->mNextPresentIndex = 1; // Start at 1 so that mLastDisplayedPresentIndex starts out invalid.
-            chain->mLastDisplayedPresentIndex = 0;
+            chain->mNextPresentIndex = 0;
+            chain->mLastDisplayedPresentIndex = UINT32_MAX;
         }
 
         // Add the present to the swapchain history.
@@ -110,10 +110,6 @@ static void AddPresents(
         if (presentEvent->FinalState == PresentResult::Presented)
         {
             chain->mLastDisplayedPresentIndex = chain->mNextPresentIndex;
-        }
-        else if (chain->mLastDisplayedPresentIndex == chain->mNextPresentIndex)
-        {
-            chain->mLastDisplayedPresentIndex = 0;
         }
 
         chain->mNextPresentIndex += 1;
@@ -130,7 +126,7 @@ static void PruneHistory(
     std::vector<std::shared_ptr<PresentEvent>> const& presentEvents
     )
 {
-    ULONGLONG latestQpc = presentEvents.empty() ? 0ull : presentEvents.back()->QpcTime;
+    ULONGLONG latestQpc = presentEvents.empty() ? 0ull : presentEvents.back()->PresentStartTime;
     ULONGLONG minQpc = latestQpc - SecondsDeltaToQpc(2.0);
 
     for (auto& pair : ProcessesHashTable)
@@ -147,14 +143,14 @@ static void PruneHistory(
                 uint32_t index = swapChain->mNextPresentIndex - count;
                 auto const& presentEvent = swapChain->mPresentHistory[index % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
 
-                if (presentEvent->QpcTime >= minQpc)
+                if (presentEvent->PresentStartTime >= minQpc)
                 {
                     break;
                 }
 
                 if (index == swapChain->mLastDisplayedPresentIndex)
                 {
-                    swapChain->mLastDisplayedPresentIndex = 0;
+                    swapChain->mLastDisplayedPresentIndex = UINT32_MAX;
                 }
             }
 
@@ -275,9 +271,9 @@ VOID PresentMonUpdateProcessStats(
         DOUBLE msUntilRenderComplete = 0.0;
         DOUBLE msUntilDisplayed = 0.0;
 
-        cpuAvg = QpcDeltaToSeconds(presentN.QpcTime - present0.QpcTime) / (chain.mPresentHistoryCount - 1);
-        msBetweenPresents = 1000.0 * QpcDeltaToSeconds(presentN.QpcTime - lastPresented.QpcTime);
-        msInPresentApi = 1000.0 * QpcDeltaToSeconds(presentN.TimeTaken);
+        cpuAvg = QpcDeltaToSeconds(presentN.PresentStartTime - present0.PresentStartTime) / (chain.mPresentHistoryCount - 1);
+        msBetweenPresents = 1000.0 * QpcDeltaToSeconds(presentN.PresentStartTime - lastPresented.PresentStartTime);
+        msInPresentApi = 1000.0 * QpcDeltaToSeconds(presentN.PresentStopTime);
 
         if (cpuAvg)
         {
@@ -303,7 +299,7 @@ VOID PresentMonUpdateProcessStats(
                     }
 
                     displayN = p.get();
-                    latSum += p->ScreenTime - p->QpcTime;
+                    latSum += p->ScreenTime - p->PresentStartTime;
                     displayCount += 1;
                 }
             }
@@ -331,14 +327,14 @@ VOID PresentMonUpdateProcessStats(
 
         if (presentN.ReadyTime > 0)
         {
-            msUntilRenderComplete = 1000.0 * QpcDeltaToSeconds(presentN.ReadyTime - presentN.QpcTime);
+            msUntilRenderComplete = 1000.0 * QpcDeltaToSeconds(presentN.ReadyTime - presentN.PresentStartTime);
         }
 
         if (presentN.FinalState == PresentResult::Presented)
         {
-            msUntilDisplayed = 1000.0 * QpcDeltaToSeconds(presentN.ScreenTime - presentN.QpcTime);
+            msUntilDisplayed = 1000.0 * QpcDeltaToSeconds(presentN.ScreenTime - presentN.PresentStartTime);
 
-            //if (chain.mLastDisplayedPresentIndex > 0)
+            //if (chain.mLastDisplayedPresentIndex != UINT32_MAX)
             //{
             //    auto const& lastDisplayed = *chain.mPresentHistory[chain.mLastDisplayedPresentIndex % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
             //    DOUBLE msBetweenDisplayChange = 1000.0 * QpcDeltaToSeconds(presentN.ScreenTime - lastDisplayed.ScreenTime);

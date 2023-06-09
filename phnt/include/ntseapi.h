@@ -55,7 +55,7 @@
 #if (PHNT_MODE == PHNT_MODE_KERNEL)
 typedef enum _TOKEN_INFORMATION_CLASS
 {
-    TokenUser = 1, // q: TOKEN_USER
+    TokenUser = 1, // q: TOKEN_USER, SE_TOKEN_USER
     TokenGroups, // q: TOKEN_GROUPS
     TokenPrivileges, // q: TOKEN_PRIVILEGES
     TokenOwner, // q; s: TOKEN_OWNER
@@ -522,7 +522,7 @@ NtAccessCheckByTypeResultList(
 
 // Signing
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WIN8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -546,6 +546,10 @@ NtGetCachedSigningLevel(
     _Inout_opt_ PULONG ThumbprintSize,
     _Out_opt_ PULONG ThumbprintAlgorithm
     );
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
 
 // rev
 NTSYSCALLAPI

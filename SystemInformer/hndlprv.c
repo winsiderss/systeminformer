@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -141,6 +141,12 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
         handleItem->Attributes = Handle->HandleAttributes;
         handleItem->GrantedAccess = (ACCESS_MASK)Handle->GrantedAccess;
         handleItem->TypeIndex = Handle->ObjectTypeIndex;
+
+        PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
+        PhPrintPointer(handleItem->GrantedAccessString, UlongToPtr(handleItem->GrantedAccess));
+
+        if (handleItem->Object)
+            PhPrintPointer(handleItem->ObjectString, handleItem->Object);
     }
 
     PhEmCallObjectOperation(EmHandleItemType, handleItem, EmObjectCreate);
@@ -466,10 +472,7 @@ VOID PhHandleProviderUpdate(
 
         if (PhBeginInitOnce(&initOnce))
         {
-            static PH_STRINGREF fileTypeName = PH_STRINGREF_INIT(L"File");
-
-            fileObjectTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
-
+            fileObjectTypeIndex = PhGetObjectTypeNumberZ(L"File");
             PhEndInitOnce(&initOnce);
         }
     }
@@ -661,7 +664,7 @@ VOID PhHandleProviderUpdate(
                     // objectInfo.HasActiveTransaction;
                     // objectInfo.UserWritableReferences;
                     // objectInfo.IsIgnoringSharing;
-                    // ... more 
+                    // ... more
                 }
             }
 

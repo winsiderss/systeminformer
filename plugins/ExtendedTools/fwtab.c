@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -20,6 +20,9 @@ ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
 PH_SORT_ORDER FwTreeNewSortOrder = NoSortOrder;
 PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires System Informer to be restarted with administrative privileges.");
 PPH_STRING FwTreeErrorText = NULL;
+LONG FwTreeIconHeightPadding = 0;
+LONG FwTreeLeftMarginPadding = 0;
+LONG FwTreeRightMarginPadding = 0;
 PPH_MAIN_TAB_PAGE EtFwAddedTabPage;
 PH_PROVIDER_EVENT_QUEUE FwNetworkEventQueue;
 PH_CALLBACK_REGISTRATION FwItemAddedRegistration;
@@ -167,7 +170,7 @@ BOOLEAN FwTabPageCallback(
         return TRUE;
     case MainTabPageSaveSettings:
         {
-            SaveSettingsFwTreeList(FwTreeNewHandle);
+            SaveSettingsFwTreeList();
         }
         return TRUE;
     case MainTabPageSelected:
@@ -200,6 +203,14 @@ BOOLEAN FwTabPageCallback(
 
             if (FwTreeNewHandle)
                 SendMessage(FwTreeNewHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
+        }
+        break;
+    case MainTabPageDpiChanged:
+        {
+            if (FwTreeNewHandle)
+            {
+                InitializeFwTreeListDpi(FwTreeNewHandle);
+            }
         }
         break;
     }
@@ -243,6 +254,8 @@ VOID InitializeFwTreeList(
     FwNodeList = PhCreateList(100);
     FwTreeNewHandle = TreeNewHandle;
 
+    InitializeFwTreeListDpi(FwTreeNewHandle);
+
     PhSetControlTheme(FwTreeNewHandle, L"explorer");
     TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
     TreeNew_SetRedraw(FwTreeNewHandle, FALSE);
@@ -284,6 +297,20 @@ VOID InitializeFwTreeList(
     }
 }
 
+VOID InitializeFwTreeListDpi(
+    _In_ HWND TreeNewHandle
+    )
+{
+#define TNP_CELL_LEFT_MARGIN 6
+#define TNP_ICON_RIGHT_PADDING 4
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(TreeNewHandle);
+    FwTreeIconHeightPadding = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+    FwTreeLeftMarginPadding = PhGetDpi(TNP_CELL_LEFT_MARGIN, dpiValue);
+    FwTreeRightMarginPadding = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(TNP_ICON_RIGHT_PADDING, dpiValue);
+}
+
 VOID LoadSettingsFwTreeList(
     _In_ HWND TreeNewHandle
     )
@@ -300,7 +327,7 @@ VOID LoadSettingsFwTreeList(
 }
 
 VOID SaveSettingsFwTreeList(
-    _In_ HWND TreeNewHandle
+    VOID
     )
 {
     PPH_STRING settings;
@@ -311,11 +338,11 @@ VOID SaveSettingsFwTreeList(
     if (!FwTreeNewCreated)
         return;
 
-    settings = PhCmSaveSettings(TreeNewHandle);
+    settings = PhCmSaveSettings(FwTreeNewHandle);
     PhSetStringSetting2(SETTING_NAME_FW_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 
-    TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder);
+    TreeNew_GetSort(FwTreeNewHandle, &sortColumn, &sortOrder);
     sortSettings.X = sortColumn;
     sortSettings.Y = sortOrder;
     PhSetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT, sortSettings);
@@ -1180,24 +1207,15 @@ BOOLEAN NTAPI FwTreeNewCallback(
             ShowFwContextMenu(WindowHandle, contextMenuEvent);
         }
         return TRUE;
-    case TreeNewDestroying:
-        {
-            //SaveSettingsTreeList();
-        }
-        return TRUE;
     case TreeNewCustomDraw:
         {
-            #define TNP_CELL_LEFT_MARGIN 6
-            #define TNP_ICON_RIGHT_PADDING 4
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
             HDC hdc;
             RECT rect;
-            LONG dpiValue;
 
             hdc = customDraw->Dc;
             rect = customDraw->CellRect;
             node = (PFW_EVENT_ITEM)customDraw->Node;
-            dpiValue = PhGetWindowDpi(WindowHandle);
 
             if (customDraw->Column->Id == FW_COLUMN_COUNTRY)
             {
@@ -1205,9 +1223,9 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 {
                     if (node->CountryIconIndex != INT_ERROR)
                     {
-                        rect.left += PhGetDpi(TNP_CELL_LEFT_MARGIN, dpiValue);
+                        rect.left += FwTreeLeftMarginPadding;
                         EtFwDrawCountryIcon(hdc, rect, node->CountryIconIndex);
-                        rect.left += PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(TNP_ICON_RIGHT_PADDING, dpiValue);
+                        rect.left += FwTreeRightMarginPadding;
                     }
 
                     DrawText(
@@ -1232,20 +1250,20 @@ BOOLEAN NTAPI FwTreeNewCallback(
             }
 
             // Padding
-            rect.left += PhGetDpi(TNP_CELL_LEFT_MARGIN, dpiValue);
+            rect.left += FwTreeLeftMarginPadding;
 
             PhImageListDrawIcon(
                 PhGetProcessSmallImageList(),
                 (ULONG)(ULONG_PTR)node->ProcessIconIndex, // HACK (dmex)
                 hdc,
                 rect.left,
-                rect.top + ((rect.bottom - rect.top) - PhGetSystemMetrics(SM_CYSMICON, dpiValue)) / 2,
+                rect.top + ((rect.bottom - rect.top) - FwTreeIconHeightPadding) / 2,
                 ILD_NORMAL | ILD_TRANSPARENT,
                 FALSE
                 );
 
             // Padding
-            rect.left += PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(TNP_ICON_RIGHT_PADDING, dpiValue);
+            rect.left += FwTreeRightMarginPadding;
 
             if (PhIsNullOrEmptyString(node->ProcessBaseString))
             {
@@ -1591,14 +1609,11 @@ VOID ShowFwContextMenu(
 }
 
 VOID NTAPI FwItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PFW_EVENT_ITEM fwItem = (PFW_EVENT_ITEM)Parameter;
-
-    if (!fwItem)
-        return;
 
     PhReferenceObject(fwItem);
     PhPushProviderEventQueue(&FwNetworkEventQueue, ProviderAddedEvent, Parameter, FwRunCount);

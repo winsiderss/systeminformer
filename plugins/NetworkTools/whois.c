@@ -280,8 +280,8 @@ SOCKET WhoisDualStackSocketCreate(
     SOCKET socketHandle;
 
     socketHandle = WSASocket(
-        AF_INET6, 
-        SOCK_STREAM, 
+        AF_INET6,
+        SOCK_STREAM,
         IPPROTO_TCP,
         NULL,
         0,
@@ -292,9 +292,9 @@ SOCKET WhoisDualStackSocketCreate(
         return INVALID_SOCKET;
 
     if (setsockopt(
-        socketHandle, 
-        IPPROTO_IPV6, 
-        IPV6_V6ONLY, 
+        socketHandle,
+        IPPROTO_IPV6,
+        IPV6_V6ONLY,
         (PCSTR)&(INT){ FALSE },
         sizeof(INT)
         ) == SOCKET_ERROR)
@@ -377,8 +377,8 @@ BOOLEAN WhoisDualStackSocketConnectByAddressList(
 
             IN6ADDR_SETSOCKADDR(
                 &socketAddressArray[socketAddressCount],
-                &remoteAddress.sin6_addr, 
-                remoteAddress.sin6_scope_struct, 
+                &remoteAddress.sin6_addr,
+                remoteAddress.sin6_scope_struct,
                 remoteAddress.sin6_port
                 );
 
@@ -861,7 +861,7 @@ INT_PTR CALLBACK WhoisDlgProc(
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
-        if (uMsg == WM_DESTROY)
+        if (uMsg == WM_NCDESTROY)
         {
             PhSaveWindowPlacementToSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -872,8 +872,6 @@ INT_PTR CALLBACK WhoisDlgProc(
 
             context->WindowHandle = NULL;
             PhDereferenceObject(context);
-
-            PostQuitMessage(0);
         }
     }
 
@@ -899,6 +897,7 @@ INT_PTR CALLBACK WhoisDlgProc(
             SendMessage(context->RichEditHandle, EM_SETWORDWRAPMODE, WBF_WORDWRAP, 0);
             //context->FontHandle = PhCreateCommonFont(-11, FW_MEDIUM, context->RichEditHandle);
             SendMessage(context->RichEditHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(4, 0));
+            SendMessage(context->RichEditHandle, EM_SETREADONLY, TRUE, 0);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);
@@ -912,6 +911,11 @@ INT_PTR CALLBACK WhoisDlgProc(
 
             PhReferenceObject(context);
             PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PostQuitMessage(0);
         }
         break;
     case WM_COMMAND:

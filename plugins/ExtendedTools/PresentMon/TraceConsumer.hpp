@@ -40,9 +40,9 @@ enum PropertyStatus {
 struct EventDataDesc
 {
     wchar_t const* name_;   // Property name
-    uint32_t arrayIndex_;   // Array index (optional)
     void* data_;            // OUT pointer to property data
-    uint32_t size_;         // OUT size of property data
+    uint32_t size_;         // OUT size of a property data element
+    uint32_t count_;        // OUT number of elements (if it's an array property)
     uint32_t status_;       // OUT PropertyStatus result of search
 
     template<typename T> T GetData() const
@@ -65,6 +65,16 @@ struct EventDataDesc
         memcpy(&t, data_, size_);
         return t;
     }
+
+    template<typename T> T* GetArray(uint32_t expectedCount) const
+    {
+        assert(status_ & PROP_STATUS_FOUND);
+        assert(data_ != nullptr);
+        assert(size_ == sizeof(T));
+        assert(count_ == expectedCount); (void)expectedCount;
+
+        return (T*)data_;
+    }
 };
 
 template<> std::string EventDataDesc::GetData<std::string>() const;
@@ -77,9 +87,9 @@ struct EventMetadata
     void AddMetadata(EVENT_RECORD* eventRecord);
     void GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc, uint32_t descCount, uint32_t optionalCount=0);
 
-    template<typename T> T GetEventData(EVENT_RECORD* eventRecord, wchar_t const* name, uint32_t arrayIndex = 0)
+    template<typename T> T GetEventData(EVENT_RECORD* eventRecord, wchar_t const* name)
     {
-        EventDataDesc desc = { name, arrayIndex, };
+        EventDataDesc desc = { name };
         GetEventData(eventRecord, &desc, 1);
         return desc.GetData<T>();
     }

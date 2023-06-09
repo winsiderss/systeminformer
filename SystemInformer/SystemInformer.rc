@@ -114,6 +114,7 @@ BEGIN
     EDITTEXT        IDC_FILENAMEWIN32,15,91,191,12,ES_AUTOHSCROLL | ES_READONLY
     PUSHBUTTON      "Inspect",IDC_INSPECT2,210,90,17,15,BS_ICON
     PUSHBUTTON      "Open",IDC_OPENFILENAME2,230,90,17,15,BS_ICON
+    PUSHBUTTON      "Policy",IDC_INTEGRITY,90,218,50,14
 END
 
 IDD_PROCMODULES DIALOGEX 0, 0, 260, 260
@@ -177,7 +178,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     ICON            IDI_PROCESSHACKER,IDC_FILEICON,16,11,20,20
     CONTROL         "System Informer",IDC_ABOUT_NAME,"SysLink",WS_TABSTOP,45,10,192,8
-    LTEXT           "Copyright (c) 2022",IDC_STATIC,45,23,193,8
+    LTEXT           "Copyright (c) 2023",IDC_STATIC,45,23,193,8
     LTEXT           "Winsider Seminars && Solutions, Inc.",IDC_STATIC,45,36,193,8
     CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,49,248,141
     CONTROL         "<a href=""https://systeminformer.sourceforge.io"">System Informer on SourceForge.net</a>",IDC_LINK_SF,
@@ -256,7 +257,7 @@ BEGIN
 END
 
 IDD_OBJTOKEN DIALOGEX 0, 0, 260, 260
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Token"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -1121,6 +1122,9 @@ BEGIN
     LTEXT           "I/O",IDC_TITLE,0,0,110,21
     LTEXT           "Panel layout",IDC_LAYOUT,0,109,315,78,NOT WS_VISIBLE
     LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,84,NOT WS_VISIBLE
+    LTEXT           "Read bytes:",IDC_IOREAD_L,111,1,52,8
+    LTEXT           "Write bytes:",IDC_IOWRITE_L,111,7,56,8
+    LTEXT           "Other bytes:",IDC_IOOTHER_L,111,14,60,8
 END
 
 IDD_SYSINFO_IOPANEL DIALOGEX 0, 0, 276, 75
@@ -1376,6 +1380,30 @@ CAPTION "NTVDM"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,2,2,256,256
+END
+
+IDD_RUNPACKAGE DIALOGEX 0, 0, 317, 239
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Select a package"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Select the identity for access to the package file system and registry.",IDC_MESSAGE,7,36,303,8,SS_ENDELLIPSIS
+    PUSHBUTTON      "Refresh",IDC_REFRESH,144,218,50,14
+    DEFPUSHBUTTON   "OK",IDOK,205,218,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,260,218,50,14
+    COMBOBOX        IDC_PROGRAMCOMBO,7,20,250,200,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_DISABLENOSCROLL | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Enter the command to start as the specified package.",IDC_TITLE,7,7,172,8
+    PUSHBUTTON      "Browse",IDC_BROWSE,260,19,50,14
+    CONTROL         "",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0xa,7,49,303,165,WS_EX_CLIENTEDGE
+    EDITTEXT        IDC_SEARCH,7,218,135,14,ES_AUTOHSCROLL
+END
+
+IDD_OBJMAPPINGS DIALOGEX 0, 0, 260, 260
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Mappings"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,246,246
 END
 
 
@@ -1946,6 +1974,22 @@ BEGIN
         TOPMARGIN, 2
         BOTTOMMARGIN, 258
     END
+
+    IDD_RUNPACKAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 310
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 232
+    END
+
+    IDD_OBJMAPPINGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 253
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 253
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -2022,6 +2066,17 @@ IDB_SEARCH_INACTIVE_SMALL PNG                     "resources\\inactive_search_sm
 //
 
 IDR_RT_MANIFEST         RT_MANIFEST             "SystemInformer.manifest"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OBJMAPPINGS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////

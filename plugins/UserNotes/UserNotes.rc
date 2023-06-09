@@ -49,13 +49,15 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 317, 70
+IDD_OPTIONS DIALOGEX 0, 0, 317, 150
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Collapse services on start",IDC_COLLAPSE_SERVICES_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,98,10
+    CONTROL         "",IDC_DBLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,38,303,105
+    LTEXT           "Current database configuration values:",IDC_STATIC,7,25,241,12
 END
 
 IDD_PROCCOMMENT DIALOGEX 0, 0, 260, 260
@@ -91,7 +93,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 310
         TOPMARGIN, 7
-        BOTTOMMARGIN, 63
+        BOTTOMMARGIN, 143
     END
 
     IDD_PROCCOMMENT, DIALOG
@@ -119,8 +121,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,0,0,0
- PRODUCTVERSION 3,0,0,0
+ FILEVERSION 3,7,0,0
+ PRODUCTVERSION 3,7,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -135,14 +137,14 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "CompanyName", "System Informer"
-            VALUE "FileDescription", "System Informer"
-            VALUE "FileVersion", "3.0.0.0"
+            VALUE "CompanyName", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileDescription", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileVersion", "3.7.0.0"
             VALUE "InternalName", "UserNotes.dll"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "UserNotes.dll"
-            VALUE "ProductName", "System Informer"
-            VALUE "ProductVersion", "3.0.0.0"
+            VALUE "ProductName", "⟆Ⴘ⟆𝜏∈ⲙ ᓰﬡ⨍ᗝᖇⲙ∈ᖇ"
+            VALUE "ProductVersion", "3.7.0.0"
         END
     END
     BLOCK "VarFileInfo"

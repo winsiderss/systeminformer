@@ -6,18 +6,14 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
 
-#include <dbghelp.h>
-#include <shellapi.h>
-
 #include <cpysave.h>
 #include <emenu.h>
-#include <svcsup.h>
 #include <symprv.h>
 #include <settings.h>
 
@@ -25,7 +21,7 @@
 #include <phappres.h>
 #include <phsvccl.h>
 
-#include "..\tools\thirdparty\pcre\pcre2.h"
+#include "../tools/thirdparty/pcre/pcre2.h"
 
 GUID XP_CONTEXT_GUID = { 0xbeb1b341, 0x6837, 0x4c83, { 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b } };
 GUID VISTA_CONTEXT_GUID = { 0xe2011457, 0x1546, 0x43c5, { 0xa5, 0xfe, 0x00, 0x8d, 0xee, 0xe3, 0xd3, 0xf0 } };
@@ -93,6 +89,58 @@ BOOLEAN PhIsProcessBackground(
     }
 
     return FALSE;
+}
+
+PPH_STRINGREF PhGetProcessPriorityClassString(
+    _In_ ULONG PriorityClass
+    )
+{
+    static PH_STRINGREF PriorityClassString[] =
+    {
+        PH_STRINGREF_INIT(L"Unknown"),
+        PH_STRINGREF_INIT(L"Idle"),
+        PH_STRINGREF_INIT(L"Normal"),
+        PH_STRINGREF_INIT(L"High"),
+        PH_STRINGREF_INIT(L"Real time"),
+        PH_STRINGREF_INIT(L"Below normal"),
+        PH_STRINGREF_INIT(L"Above normal")
+    };
+
+    static_assert(ARRAYSIZE(PriorityClassString) == PROCESS_PRIORITY_CLASS_ABOVE_NORMAL + 1, "PriorityClassString must equal PROCESS_PRIORITY_CLASS_MAX");
+
+    switch (PriorityClass)
+    {
+    case PROCESS_PRIORITY_CLASS_UNKNOWN:
+    case PROCESS_PRIORITY_CLASS_IDLE:
+    case PROCESS_PRIORITY_CLASS_NORMAL:
+    case PROCESS_PRIORITY_CLASS_HIGH:
+    case PROCESS_PRIORITY_CLASS_REALTIME:
+    case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
+    case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
+        return &PriorityClassString[PriorityClass];
+    }
+
+    assert(FALSE);
+    return NULL;
+
+    //switch (PriorityClass)
+    //{
+    //case PROCESS_PRIORITY_CLASS_REALTIME:
+    //    return L"Real time";
+    //case PROCESS_PRIORITY_CLASS_HIGH:
+    //    return L"High";
+    //case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
+    //    return L"Above normal";
+    //case PROCESS_PRIORITY_CLASS_NORMAL:
+    //    return L"Normal";
+    //case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
+    //    return L"Below normal";
+    //case PROCESS_PRIORITY_CLASS_IDLE:
+    //    return L"Idle";
+    //case PROCESS_PRIORITY_CLASS_UNKNOWN:
+    //default:
+    //    return L"Unknown";
+    //}
 }
 
 /**
@@ -376,11 +424,15 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
         else if (
             PhStartsWithStringRef2(&name, L"\\System32", TRUE)
 #ifdef _WIN64
-            || (PhStartsWithStringRef2(&name, L"\\SysWow64", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+            || (PhStartsWithStringRef2(&name, L"\\SysWOW64", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+#ifdef _M_ARM64
+            || (PhStartsWithStringRef2(&name, L"\\SysArm32", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+            || (PhStartsWithStringRef2(&name, L"\\SyChpe32", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+#endif
 #endif
             )
         {
-            // SysTem32 and SysWow64 are both 8 characters long.
+            // System32, SysWow64, SysArm32, and SyChpe32 are all 8 characters long.
             PhSkipStringRef(&name, 9 * sizeof(WCHAR));
 
             if (FALSE)
@@ -549,20 +601,9 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // If the DLL name isn't an absolute path, assume it's in system32.
             // TODO: Use a proper search function.
 
-            if (PhDetermineDosPathNameType(PhGetString(dllName)) == RtlPathTypeRelative)
+            if (PhDetermineDosPathNameType(&dllName->sr) == RtlPathTypeRelative)
             {
-                PPH_STRING systemDirectory;
-
-                if (systemDirectory = PhGetSystemDirectory())
-                {
-                    dllName = PhConcatStringRef3(
-                        &systemDirectory->sr,
-                        &PhNtPathSeperatorString,
-                        &dllName->sr
-                        );
-
-                    PhDereferenceObject(systemDirectory);
-                }
+                dllName = PhGetSystemDirectoryWin32(&dllName->sr);
             }
 
             KnownCommandLine->RunDllAsApp.FileName = dllName;
@@ -638,8 +679,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                 0
                 )))
             {
-                KnownCommandLine->ComSurrogate.Name =
-                    PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
+                KnownCommandLine->ComSurrogate.Name = PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
 
                 if (NT_SUCCESS(PhOpenKey(
                     &inprocServer32KeyHandle,
@@ -649,12 +689,9 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                     0
                     )))
                 {
-                    KnownCommandLine->ComSurrogate.FileName =
-                        PH_AUTO(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
+                    KnownCommandLine->ComSurrogate.FileName = PH_AUTO(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
 
-                    if (fileName = PH_AUTO(PhExpandEnvironmentStrings(
-                        &KnownCommandLine->ComSurrogate.FileName->sr
-                        )))
+                    if (fileName = PH_AUTO(PhExpandEnvironmentStrings(&KnownCommandLine->ComSurrogate.FileName->sr)))
                     {
                         KnownCommandLine->ComSurrogate.FileName = fileName;
                     }
@@ -672,8 +709,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                 0
                 )))
             {
-                KnownCommandLine->ComSurrogate.Name =
-                    PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
+                KnownCommandLine->ComSurrogate.Name = PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
                 NtClose(rootKeyHandle);
             }
         }
@@ -683,51 +719,6 @@ BOOLEAN PhaGetProcessKnownCommandLine(
     }
 
     return TRUE;
-}
-
-PPH_STRING PhGetServiceRelevantFileName(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ SC_HANDLE ServiceHandle
-    )
-{
-    PPH_STRING fileName = NULL;
-    LPQUERY_SERVICE_CONFIG config;
-
-    if (config = PhGetServiceConfig(ServiceHandle))
-    {
-        PhGetServiceDllParameter(config->dwServiceType, ServiceName, &fileName);
-
-        if (!fileName)
-        {
-            PPH_STRING commandLine;
-
-            if (config->lpBinaryPathName[0])
-            {
-                commandLine = PhCreateString(config->lpBinaryPathName);
-
-                if (config->dwServiceType & SERVICE_WIN32)
-                {
-                    PH_STRINGREF dummyFileName;
-                    PH_STRINGREF dummyArguments;
-
-                    PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
-
-                    if (!fileName)
-                        PhSwapReference(&fileName, commandLine);
-                }
-                else
-                {
-                    fileName = PhGetFileName(commandLine);
-                }
-
-                PhDereferenceObject(commandLine);
-            }
-        }
-
-        PhFree(config);
-    }
-
-    return fileName;
 }
 
 PPH_STRING PhEscapeStringForDelimiter(
@@ -836,57 +827,90 @@ VOID PhShellExecuteUserString(
     // here because the string may be a URL. (dmex)
     if (PhFindCharInString(executeString, 0, L':') == SIZE_MAX)
     {
-        INT stringArgCount;
-        PWSTR* stringArgList;
+        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+        static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+        PPH_LIST stringArgList;
+        PPH_STRING fileName = NULL;
+        PPH_STRING fileArgs = NULL;
 
         // HACK: Escape the individual executeString components. (dmex)
-        if ((stringArgList = CommandLineToArgvW(executeString->Buffer, &stringArgCount)) && stringArgCount == 2)
-        {
-            PPH_STRING fileName = PhCreateString(stringArgList[0]);
-            PPH_STRING fileArgs = PhCreateString(stringArgList[1]);
 
+        if (stringArgList = PhCommandLineToList(executeString->Buffer))
+        {
+            fileName = PhReferenceObject(stringArgList->Items[0]);
+
+            if (stringArgList->Count == 2)
+            {
+                fileArgs = PhReferenceObject(stringArgList->Items[1]);
+            }
+
+            PhDereferenceObjects(stringArgList->Items, stringArgList->Count);
+            PhDereferenceObject(stringArgList);
+        }
+
+        if (fileName && fileArgs)
+        {
             // Make sure the string is absolute and escape the filename.
-            if (PhDetermineDosPathNameType(fileName->Buffer) == RtlPathTypeRelative)
-                PhMoveReference(&fileName, PhConcatStrings(4, L"\"", applicationDirectory->Buffer, fileName->Buffer, L"\""));
+            if (PhDetermineDosPathNameType(&fileName->sr) == RtlPathTypeRelative)
+            {
+                PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &fileName->sr));
+                PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, &seperator));
+            }
             else
-                PhMoveReference(&fileName, PhConcatStrings(3, L"\"", fileName->Buffer, L"\""));
+            {
+                PhMoveReference(&fileName, PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
+            }
 
             // Escape the parameters.
-            PhMoveReference(&fileArgs, PhConcatStrings(3, L"\"", fileArgs->Buffer, L"\""));
+            PhMoveReference(&fileArgs, PhConcatStringRef3(&seperator, &fileArgs->sr, &seperator));
 
             // Create the escaped execute string.
-            PhMoveReference(&executeString, PhConcatStrings(3, fileName->Buffer, L" ", fileArgs->Buffer));
-
-            PhDereferenceObject(fileArgs);
-            PhDereferenceObject(fileName);
-            LocalFree(stringArgList);
+            PhMoveReference(&executeString, PhConcatStringRef3(&fileName->sr, &space, &fileArgs->sr));
         }
         else
         {
-            if (PhDetermineDosPathNameType(executeString->Buffer) == RtlPathTypeRelative)
-                PhMoveReference(&executeString, PhConcatStrings(4, L"\"", applicationDirectory->Buffer, executeString->Buffer, L"\""));
+            if (PhDetermineDosPathNameType(&executeString->sr) == RtlPathTypeRelative)
+            {
+                PhMoveReference(&executeString, PhConcatStringRef3(&seperator, &applicationDirectory->sr, &executeString->sr));
+                PhMoveReference(&executeString, PhConcatStringRef2(&executeString->sr, &seperator));
+            }
             else
-                PhMoveReference(&executeString, PhConcatStrings(3, L"\"", executeString->Buffer, L"\""));
+            {
+                PhMoveReference(&executeString, PhConcatStringRef3(&seperator, &executeString->sr, &seperator));
+            }
         }
+
+        PhClearReference(&fileArgs);
+        PhClearReference(&fileName);
     }
 
     // Replace the token with the string, or use the original string if the token is not present.
     if (PhSplitStringRefAtString(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
     {
-        PPH_STRING stringTemp;
-        PPH_STRING stringMiddle;
+        // Note: See PhGetProcessImageFileNameWin32 for a description of
+        // the issue with some filenames and faulty RamDisk software (dmex)
 
-        // Note: This code is needed to solve issues with faulty RamDisk software that doesn't use the Mount Manager API
-        // and instead returns \device\ FileName strings. We also can't change the way the process provider stores
-        // the FileName string since it'll break various features and use-cases required by developers
-        // who need the raw untranslated FileName string.
-        stringTemp = PhCreateString(String);
-        stringMiddle = PhGetFileName(stringTemp);
+        if (String[0] == OBJ_NAME_PATH_SEPARATOR) // Workaround faulty software (dmex)
+        {
+            PPH_STRING stringTemp;
+            PPH_STRING stringMiddle;
 
-        PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle->sr, &stringAfter));
+            stringTemp = PhCreateString(String);
+            stringMiddle = PhGetFileName(stringTemp);
 
-        PhDereferenceObject(stringMiddle);
-        PhDereferenceObject(stringTemp);
+            PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle->sr, &stringAfter));
+
+            PhDereferenceObject(stringMiddle);
+            PhDereferenceObject(stringTemp);
+        }
+        else
+        {
+            PH_STRINGREF stringMiddle;
+
+            PhInitializeStringRefLongHint(&stringMiddle, String);
+
+            PhMoveReference(&executeString, PhConcatStringRef3(&stringBefore, &stringMiddle, &stringAfter));
+        }
     }
 
     if (UseShellExecute)
@@ -932,8 +956,8 @@ VOID PhLoadSymbolProviderOptions(
     PPH_STRING searchPath = NULL;
 
     PhSetOptionsSymbolProvider(
-        SYMOPT_UNDNAME,
-        PhGetIntegerSetting(L"DbgHelpUndecorate") ? SYMOPT_UNDNAME : 0
+        PH_SYMOPT_UNDNAME,
+        PhGetIntegerSetting(L"DbgHelpUndecorate") ? PH_SYMOPT_UNDNAME : 0
         );
 
     PhQueryEnvironmentVariable(NULL, &symbolPath, &searchPath);
@@ -1336,6 +1360,7 @@ BOOLEAN PhShellProcessHackerEx(
         WindowHandle,
         FileName ? FileName : PhGetString(applicationFileName),
         parameters,
+        NULL,
         ShowWindowType,
         Flags,
         Timeout,
@@ -1750,7 +1775,7 @@ VOID PhApplyTreeNewFilters(
 }
 
 VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
-    _In_ struct _PH_EMENU_ITEM *Item
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     PPH_COPY_CELL_CONTEXT context;
@@ -1761,7 +1786,7 @@ VOID NTAPI PhpCopyCellEMenuItemDeleteFunction(
 }
 
 BOOLEAN PhInsertCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND TreeNewHandle,
     _In_ PPH_TREENEW_COLUMN Column
@@ -1809,7 +1834,7 @@ BOOLEAN PhInsertCopyCellEMenuItem(
 }
 
 BOOLEAN PhHandleCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     )
 {
     PPH_COPY_CELL_CONTEXT context;
@@ -1860,7 +1885,7 @@ BOOLEAN PhHandleCopyCellEMenuItem(
 }
 
 VOID NTAPI PhpCopyListViewEMenuItemDeleteFunction(
-    _In_ struct _PH_EMENU_ITEM *Item
+    _In_ PPH_EMENU_ITEM Item
     )
 {
     PPH_COPY_ITEM_CONTEXT context;
@@ -1871,7 +1896,7 @@ VOID NTAPI PhpCopyListViewEMenuItemDeleteFunction(
 }
 
 BOOLEAN PhInsertCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND ListViewHandle
     )
@@ -1942,7 +1967,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
 }
 
 BOOLEAN PhHandleCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     )
 {
     PPH_COPY_ITEM_CONTEXT context;
@@ -2073,6 +2098,69 @@ BOOLEAN PhpSelectFavoriteInRegedit(
 }
 
 /**
+ * Opens a key in the Registry Editor.
+ *
+ * \param WindowHandle A handle to the parent window.
+ * \param KeyName The key name to open.
+ */
+VOID PhShellOpenKey(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING KeyName
+    )
+{
+    static PH_STRINGREF regeditKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
+    NTSTATUS status;
+    HANDLE regeditKeyHandle;
+    PPH_STRING lastKey;
+    PPH_STRING regeditFileName;
+    PH_STRINGREF systemRootString;
+
+    status = PhCreateKey(
+        &regeditKeyHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &regeditKeyName,
+        0,
+        0,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(WindowHandle, L"Unable to execute the program.", status, 0);
+        return;
+    }
+
+    lastKey = PhExpandKeyName(KeyName, FALSE);
+    PhSetValueKeyZ(regeditKeyHandle, L"LastKey", REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
+    NtClose(regeditKeyHandle);
+    PhDereferenceObject(lastKey);
+
+    // Start regedit. If we aren't elevated, request that regedit be elevated. This is so we can get
+    // the consent dialog in the center of the specified window. (wj32)
+
+    PhGetSystemRoot(&systemRootString);
+    regeditFileName = PhConcatStringRefZ(&systemRootString, L"\\regedit.exe");
+
+    if (PhGetOwnTokenAttributes().Elevated)
+    {
+        if (!PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, NULL, SW_SHOW, 0, 0, NULL))
+        {
+            PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
+        }
+    }
+    else
+    {
+        if (!PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, NULL, SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+        {
+            PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
+        }
+    }
+
+    PhDereferenceObject(regeditFileName);
+}
+
+/**
  * Opens a key in the Registry Editor. If the Registry Editor is already open,
  * the specified key is selected in the Registry Editor.
  *
@@ -2174,10 +2262,28 @@ PPH_STRING PhPcre2GetErrorMessage(
 }
 
 HBITMAP PhGetShieldBitmap(
-    _In_ LONG dpiValue
+    _In_ LONG WindowDpi,
+    _In_opt_ LONG Width,
+    _In_opt_ LONG Height
     )
 {
     static HBITMAP shieldBitmap = NULL;
+    static LONG systemDpi = 0;
+    static LONG width = 0;
+    static LONG height = 0;
+
+    if (systemDpi != WindowDpi || width != Width || height != Height)
+    {
+        if (shieldBitmap)
+        {
+            DeleteBitmap(shieldBitmap);
+            shieldBitmap = NULL;
+        }
+
+        systemDpi = WindowDpi;
+        width = Width ? Width : PhGetSystemMetrics(SM_CXSMICON, systemDpi);
+        height = Height ? Height : PhGetSystemMetrics(SM_CYSMICON, systemDpi);
+    }
 
     if (!shieldBitmap)
     {
@@ -2186,10 +2292,10 @@ HBITMAP PhGetShieldBitmap(
         shieldIcon = PhLoadIcon(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDI_UACSHIELD),
-            PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+            PH_LOAD_ICON_SIZE_SMALL,
             0,
             0,
-            dpiValue
+            systemDpi
             );
 
         if (!shieldIcon)
@@ -2197,16 +2303,20 @@ HBITMAP PhGetShieldBitmap(
             shieldIcon = PhLoadIcon(
                 NULL,
                 IDI_SHIELD,
-                PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+                PH_LOAD_ICON_SIZE_SMALL,
                 0,
                 0,
-                dpiValue
+                systemDpi
                 );
         }
 
         if (shieldIcon)
         {
-            shieldBitmap = PhIconToBitmap(shieldIcon, PhGetSystemMetrics(SM_CXSMICON, dpiValue), PhGetSystemMetrics(SM_CYSMICON, dpiValue));
+            shieldBitmap = PhIconToBitmap(
+                shieldIcon,
+                width,
+                height
+                );
             DestroyIcon(shieldIcon);
         }
     }
@@ -2249,21 +2359,110 @@ HICON PhGetApplicationIcon(
     return SmallIcon ? smallIcon : largeIcon;
 }
 
+HICON PhGetApplicationIconEx(
+    _In_ BOOLEAN SmallIcon,
+    _In_opt_ LONG WindowDpi
+    )
+{
+    if (SmallIcon)
+        return PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, WindowDpi);
+    return PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, WindowDpi);
+}
+
 VOID PhSetApplicationWindowIcon(
     _In_ HWND WindowHandle
     )
 {
     HICON smallIcon;
     HICON largeIcon;
+    HICON destroyIcon;
 
     if (smallIcon = PhGetApplicationIcon(TRUE))
     {
-        SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
+        if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
     }
 
     if (largeIcon = PhGetApplicationIcon(FALSE))
     {
-        SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);
+        if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)largeIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
+    }
+}
+
+VOID PhSetApplicationWindowIconEx(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    )
+{
+    HICON smallIcon;
+    HICON largeIcon;
+    HICON destroyIcon;
+
+    if (smallIcon = PhGetApplicationIconEx(TRUE, WindowDpi))
+    {
+        if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
+    }
+
+    if (largeIcon = PhGetApplicationIconEx(FALSE, WindowDpi))
+    {
+        if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)largeIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
+    }
+}
+
+VOID PhDeleteApplicationWindowIcon(
+    _In_ HWND WindowHandle
+    )
+{
+    HICON destroyIcon;
+
+    if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, 0))
+    {
+        DestroyIcon(destroyIcon);
+    }
+
+    if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, 0))
+    {
+        DestroyIcon(destroyIcon);
+    }
+}
+
+VOID PhSetStaticWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    )
+{
+    HICON largeIcon;
+    HICON destroyIcon;
+
+    if (largeIcon = PhGetApplicationIconEx(FALSE, WindowDpi))
+    {
+        if (destroyIcon = Static_SetIcon(WindowHandle, largeIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
+    }
+}
+
+VOID PhDeleteStaticWindowIcon(
+    _In_ HWND WindowHandle
+    )
+{
+    HICON destroyIcon;
+
+    if (destroyIcon = Static_GetIcon(WindowHandle, 0))
+    {
+        DestroyIcon(destroyIcon);
     }
 }
 
@@ -2289,18 +2488,6 @@ BOOLEAN PhWordMatchStringRef(
     }
 
     return FALSE;
-}
-
-BOOLEAN PhWordMatchStringZ(
-    _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRefLongHint(&text, Text);
-
-    return PhWordMatchStringRef(&SearchText->sr, &text);
 }
 
 //BOOLEAN PhIsSystemRebootRequired(

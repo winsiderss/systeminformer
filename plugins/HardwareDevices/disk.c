@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -136,18 +136,6 @@ VOID DiskDrivesUpdate(
                 PhClearReference(&entry->DiskIndexName);
             }
 
-            if (runCount > 1)
-            {
-                // Delay the first query for the disk name, index and type.
-                //   1) This information is not needed until the user opens the sysinfo window.
-                //   2) Try not to query this information while opening the sysinfo window (e.g. delay).
-                //   3) Try not to query this information during startup (e.g. delay).
-                //
-                // Note: If the user opens the Sysinfo window before we query the disk info,
-                // we have a second check in diskgraph.c that queries the information on demand.
-                DiskDriveUpdateDeviceInfo(deviceHandle, entry);
-            }
-
             NtClose(deviceHandle);
         }
         else
@@ -198,7 +186,7 @@ VOID DiskDriveUpdateDeviceInfo(
     _In_ PDV_DISK_ENTRY DiskEntry
     )
 {
-    if (!DiskEntry->DiskName || DiskEntry->DiskIndex == ULONG_MAX)
+    if (PhIsNullOrEmptyString(DiskEntry->DiskName) || DiskEntry->DiskIndex == ULONG_MAX)
     {
         HANDLE deviceHandle = NULL;
 
@@ -221,7 +209,7 @@ VOID DiskDriveUpdateDeviceInfo(
 
         if (deviceHandle)
         {
-            if (!DiskEntry->DiskName)
+            if (PhIsNullOrEmptyString(DiskEntry->DiskName))
             {
                 PPH_STRING diskName = NULL;
 

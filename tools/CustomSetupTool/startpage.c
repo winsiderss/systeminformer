@@ -66,6 +66,7 @@ CleanupExit:
 }
 
 static BOOLEAN SetupCheckDirectoryCallback(
+    _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
     )
@@ -176,18 +177,16 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
                 }
                 else
                 {
-                    SHELLEXECUTEINFO info;
-
-                    memset(&info, 0, sizeof(SHELLEXECUTEINFO));
-                    info.cbSize = sizeof(SHELLEXECUTEINFO);
-                    info.lpFile = NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer;
-                    info.lpParameters = NtCurrentPeb()->ProcessParameters->CommandLine.Buffer;
-                    info.lpVerb = L"runas";
-                    info.nShow = SW_SHOW;
-                    info.hwnd = hwndDlg;
-                    info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI;
-
-                    if (ShellExecuteEx(&info))
+                    if (PhShellExecuteEx(
+                        hwndDlg, 
+                        NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer, 
+                        NtCurrentPeb()->ProcessParameters->CommandLine.Buffer,
+                        NULL,
+                        SW_SHOW,
+                        PH_SHELL_EXECUTE_ADMIN,
+                        0,
+                        NULL
+                        ))
                     {
                         NtTerminateProcess(NtCurrentProcess(), STATUS_SUCCESS);
                     }

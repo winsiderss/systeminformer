@@ -231,7 +231,8 @@ VOID PhpSearchDrawButton(
     _In_ HWND WindowHandle,
     _In_ HDC Hdc,
     _In_ RECT WindowRect,
-    _In_ RECT ButtonRect
+    _In_ RECT ButtonRect,
+    _In_ WNDPROC DefaultWindowProc
     )
 {
     if (Context->ThemeSupport) // HACK
@@ -304,7 +305,7 @@ VOID PhpSearchDrawButton(
             //    SetDCBrushColor(Hdc, RGB(153, 209, 255));
             //    FillRect(Hdc, &ButtonRect, GetStockBrush(DC_BRUSH));
             //    break;
-            //case 1: // Old colors 
+            //case 1: // Old colors
             //SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
             SetDCBrushColor(Hdc, RGB(99, 99, 99));
             FillRect(Hdc, &ButtonRect, Context->DCBrush);
@@ -347,7 +348,7 @@ VOID PhpSearchDrawButton(
             //case 0: // New colors
             //    FillRect(Hdc, &ButtonRect, GetSysColorBrush(COLOR_WINDOW));
             //    break;
-            //case 1: // Old colors           
+            //case 1: // Old colors
             //SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
             SetDCBrushColor(Hdc, RGB(60, 60, 60));
             FillRect(Hdc, &ButtonRect, Context->DCBrush);
@@ -358,7 +359,7 @@ VOID PhpSearchDrawButton(
         }
     }
 
-    if (Edit_GetTextLength(WindowHandle) > 0)
+    if ((ULONG)CallWindowProc(DefaultWindowProc, WindowHandle, WM_GETTEXTLENGTH, 0, 0) > 0)
     {
         PhImageListDrawIcon(
             Context->ImageListHandle,
@@ -531,10 +532,11 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 PhSearchControlButtonRect(context, &buttonRect);
                 PhpSearchDrawButton(
                     context,
-                    hWnd, 
-                    context->BufferedDc, 
-                    windowRect, 
-                    buttonRect
+                    hWnd,
+                    context->BufferedDc,
+                    windowRect,
+                    buttonRect,
+                    oldWndProc
                     );
 
                 BitBlt(
@@ -647,7 +649,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhSearchControlThemeChanged(context, hWnd);
         }
@@ -797,10 +799,13 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
                 if (textLength > 0 && textStart == textEnd)
                 {
-                    PWSTR textBuffer;
+                    ULONG textBufferLength;
+                    WCHAR textBuffer[0x100];
 
-                    textBuffer = PhAllocateZero((textLength + 1) * sizeof(WCHAR));
-                    GetWindowText(hWnd, textBuffer, textLength);
+                    if (PhGetWindowTextToBuffer(hWnd, 0, textBuffer, RTL_NUMBER_OF(textBuffer), &textBufferLength) != ERROR_SUCCESS)
+                    {
+                        break;
+                    }
 
                     for (; 0 < textStart; --textStart)
                     {
@@ -808,7 +813,6 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                         {
                             CallWindowProc(oldWndProc, hWnd, EM_SETSEL, textStart, textEnd);
                             CallWindowProc(oldWndProc, hWnd, EM_REPLACESEL, TRUE, (LPARAM)L"");
-                            PhFree(textBuffer);
                             return 1;
                         }
                     }
@@ -817,11 +821,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     {
                         //CallWindowProc(oldWndProc, hWnd, WM_SETTEXT, 0, (LPARAM)L"");
                         PhSetWindowText(hWnd, L"");
-                        PhFree(textBuffer);
                         return 1;
                     }
-
-                    PhFree(textBuffer);
                 }
             }
         }

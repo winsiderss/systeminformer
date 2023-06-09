@@ -6,13 +6,12 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2019
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <svcsup.h>
 #include <settings.h>
 #include <emenu.h>
@@ -90,7 +89,7 @@ HWND PhCreateServiceListControl(
     return windowHandle;
 }
 
-static VOID NTAPI ServiceModifiedHandler(
+VOID NTAPI ServiceModifiedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -248,7 +247,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 {
                     PPH_STRING fileName;
 
-                    if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
+                    if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
                     {
                         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(fileName));
                         PhDereferenceObject(fileName);
@@ -430,7 +429,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 

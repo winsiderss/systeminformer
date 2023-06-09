@@ -6,6 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
+ *     dmex    2017-2023
  *
  */
 
@@ -27,30 +28,24 @@ NTSTATUS PhSvcApiPortInitialization(
     _In_ PUNICODE_STRING PortName
     )
 {
-    static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     PSECURITY_DESCRIPTOR securityDescriptor;
     ULONG sdAllocationLength;
-    UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
     PSID administratorsSid;
     PACL dacl;
     ULONG i;
 
     // Create the API port.
 
-    administratorsSid = (PSID)administratorsSidBuffer;
-    RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-    *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-    *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+    administratorsSid = PhSeAdministratorsSid();
 
     sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(administratorsSid) +
+        PhLengthSid(administratorsSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeEveryoneSid);
+        PhLengthSid(&PhSeEveryoneSid);
 
     securityDescriptor = PhAllocate(sdAllocationLength);
     dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
@@ -217,7 +212,7 @@ VOID PhSvcHandleConnectionRequest(
 
         clientId = message->h.ClientId;
 
-        // Make sure that the remote process is Process Hacker itself and not some other program.
+        // Make sure that the remote process is System Informer and not some other program.
 
         referenceFileName = NULL;
         PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &referenceFileName);
@@ -227,7 +222,7 @@ VOID PhSvcHandleConnectionRequest(
         PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
         PH_AUTO(remoteFileName);
 
-        if (!referenceFileName || !remoteFileName || !PhEqualString(referenceFileName, remoteFileName, TRUE))
+        if (!referenceFileName || !remoteFileName || !PhEqualString(referenceFileName, remoteFileName, FALSE))
         {
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
@@ -293,7 +288,7 @@ VOID PhSvcHandleConnectionRequest(
         client->ClientViewLimit = PTR_ADD_OFFSET(clientView.ViewBase, clientView.ViewSize);
     }
 
-    NtCompleteConnectPort(portHandle);
+    //NtCompleteConnectPort(portHandle); // (dmex)
     PhSetEvent(&client->ReadyEvent);
 
     if (_InterlockedIncrement(&PhSvcApiNumberOfClients) == 1)

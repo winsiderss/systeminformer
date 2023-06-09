@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -14,10 +14,25 @@
 static PPH_LIST PhpToolbarGraphList = NULL;
 static PPH_HASHTABLE PhpToolbarGraphHashtable = NULL;
 
+typedef struct _TB_GRAPH_CONTEXT
+{
+    LONG GraphDpi;
+} TB_GRAPH_CONTEXT, *PTB_GRAPH_CONTEXT;
+
+ULONG CpuHistoryGraphColor1 = 0;
+ULONG CpuHistoryGraphColor2 = 0;
+ULONG PhysicalHistoryGraphColor1 = 0;
+ULONG CommitHistoryGraph1Color1 = 0;
+ULONG IoHistoryGraphColor1 = 0;
+ULONG IoHistoryGraphColor2 = 0;
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback);
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback);
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback);
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback);
+TB_GRAPH_CONTEXT CpuHistoryGraphContext = { 0 };
+TB_GRAPH_CONTEXT PhysicalHistoryGraphContext = { 0 };
+TB_GRAPH_CONTEXT CommitHistoryGraphContext = { 0 };
+TB_GRAPH_CONTEXT IoHistoryGraphContext = { 0 };
 
 VOID ToolbarGraphLoadSettings(
     VOID
@@ -38,8 +53,8 @@ VOID ToolbarGraphLoadSettings(
         PH_STRINGREF idPart;
         PH_STRINGREF flagsPart;
         PH_STRINGREF pluginNamePart;
-        ULONG64 idInteger;
-        ULONG64 flagsInteger;
+        LONG64 idInteger;
+        LONG64 flagsInteger;
 
         PhSplitStringRefAtChar(&remaining, L'|', &idPart, &remaining);
         PhSplitStringRefAtChar(&remaining, L'|', &flagsPart, &remaining);
@@ -57,12 +72,16 @@ VOID ToolbarGraphLoadSettings(
             if (pluginNamePart.Length)
             {
                 if (graph = ToolbarGraphFindByName(&pluginNamePart, (ULONG)idInteger))
-                    graph->Flags |= TOOLSTATUS_GRAPH_ENABLED;
+                {
+                    SetFlag(graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
+                }
             }
             else
             {
                 if (graph = ToolbarGraphFindById((ULONG)idInteger))
-                    graph->Flags |= TOOLSTATUS_GRAPH_ENABLED;
+                {
+                    SetFlag(graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
+                }
             }
         }
     }
@@ -84,7 +103,7 @@ VOID ToolbarGraphSaveSettings(
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
         PPH_STRING pluginName;
 
-        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+        if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
             continue;
 
         pluginName = graph->Plugin ? PhGetPluginName(graph->Plugin) : NULL;
@@ -93,7 +112,7 @@ VOID ToolbarGraphSaveSettings(
             &graphListBuilder,
             L"%lu|%lu|%s|",
             graph->GraphId,
-            graph->Flags & TOOLSTATUS_GRAPH_ENABLED ? 1 : 0,
+            FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED) ? 1 : 0,
             PhGetStringOrEmpty(pluginName)
             );
 
@@ -124,7 +143,7 @@ VOID ToolbarGraphsInitialize(
         1,
         L"CPU history",
         0,
-        NULL,
+        &CpuHistoryGraphContext,
         CpuHistoryGraphMessageCallback
         );
 
@@ -133,7 +152,7 @@ VOID ToolbarGraphsInitialize(
         2,
         L"Physical memory history",
         0,
-        NULL,
+        &PhysicalHistoryGraphContext,
         PhysicalHistoryGraphMessageCallback
         );
 
@@ -142,7 +161,7 @@ VOID ToolbarGraphsInitialize(
         3,
         L"Commit charge history",
         0,
-        NULL,
+        &CommitHistoryGraphContext,
         CommitHistoryGraphMessageCallback
         );
 
@@ -151,9 +170,19 @@ VOID ToolbarGraphsInitialize(
         4,
         L"I/O history",
         0,
-        NULL,
+        &IoHistoryGraphContext,
         IoHistoryGraphMessageCallback
         );
+}
+
+VOID ToolbarGraphsInitializeDpi(
+    VOID
+    )
+{
+    memset(&CpuHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
+    memset(&PhysicalHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
+    memset(&CommitHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
+    memset(&IoHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
 }
 
 VOID ToolbarRegisterGraph(
@@ -251,7 +280,7 @@ VOID ToolbarCreateGraphs(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+        if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
             continue;
 
         ToolbarAddGraph(graph);
@@ -266,7 +295,7 @@ VOID ToolbarUpdateGraphs(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+        if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
             continue;
 
         if (!graph->GraphHandle)
@@ -292,7 +321,7 @@ VOID ToolbarUpdateGraphVisualStates(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+        if (!FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
             continue;
 
         if (!graph->GraphHandle)
@@ -323,7 +352,7 @@ BOOLEAN ToolbarUpdateGraphsInfo(
             }
         }
 
-        graph->MessageCallback(graph, graph->GraphHandle, &graph->GraphState, Header, NULL);
+        graph->MessageCallback(graph, graph->GraphHandle, &graph->GraphState, Header, graph->Context);
         return TRUE;
     }
 
@@ -337,12 +366,12 @@ VOID ToolbarSetVisibleGraph(
 {
     if (Visible)
     {
-        Graph->Flags |= TOOLSTATUS_GRAPH_ENABLED;
+        SetFlag(Graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
         ToolbarAddGraph(Graph);
     }
     else
     {
-        Graph->Flags &= ~TOOLSTATUS_GRAPH_ENABLED;
+        ClearFlag(Graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
         ToolbarRemoveGraph(Graph);
     }
 }
@@ -357,7 +386,7 @@ BOOLEAN ToolbarGraphsEnabled(
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_ENABLED)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
         {
             enabled = TRUE;
             break;
@@ -424,12 +453,12 @@ VOID ToolbarGraphCreateMenu(
         graph = PhpToolbarGraphList->Items[i];
         menuItem = PhCreateEMenuItem(0, MenuId, graph->Text, NULL, graph);
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_ENABLED)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
         {
-            menuItem->Flags |= PH_EMENU_CHECKED;
+            SetFlag(menuItem->Flags, PH_EMENU_CHECKED);
         }
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_UNAVAILABLE)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_UNAVAILABLE))
         {
             PPH_STRING newText;
 
@@ -455,12 +484,12 @@ VOID ToolbarGraphCreatePluginMenu(
         graph = PhpToolbarGraphList->Items[i];
         menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, MenuId, graph->Text, graph);
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_ENABLED)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_ENABLED))
         {
-            menuItem->Flags |= PH_EMENU_CHECKED;
+            SetFlag(menuItem->Flags, PH_EMENU_CHECKED);
         }
 
-        if (graph->Flags & TOOLSTATUS_GRAPH_UNAVAILABLE)
+        if (FlagOn(graph->Flags, TOOLSTATUS_GRAPH_UNAVAILABLE))
         {
             PPH_STRING newText;
 
@@ -663,14 +692,15 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback)
     {
     case GCN_GETDRAWINFO:
         {
+            PTB_GRAPH_CONTEXT context = (PTB_GRAPH_CONTEXT)Context;
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
+            if (context->GraphDpi == 0)
+                context->GraphDpi = PhGetWindowDpi(GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"), dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, CpuHistoryGraphColor1, CpuHistoryGraphColor2, context->GraphDpi);
 
             if (!(SystemStatistics.CpuKernelHistory && SystemStatistics.CpuUserHistory))
                 break;
@@ -751,14 +781,15 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
     {
     case GCN_GETDRAWINFO:
         {
+            PTB_GRAPH_CONTEXT context = (PTB_GRAPH_CONTEXT)Context;
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
+            if (context->GraphDpi == 0)
+                context->GraphDpi = PhGetWindowDpi(GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhysicalHistoryGraphColor1, 0, context->GraphDpi);
 
             if (!SystemStatistics.PhysicalHistory)
                 break;
@@ -833,14 +864,15 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
     {
     case GCN_GETDRAWINFO:
         {
+            PTB_GRAPH_CONTEXT context = (PTB_GRAPH_CONTEXT)Context;
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
+            if (context->GraphDpi == 0)
+                context->GraphDpi = PhGetWindowDpi(GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, CommitHistoryGraph1Color1, 0, context->GraphDpi);
 
             if (!(SystemStatistics.CommitHistory && SystemStatistics.Performance))
                 break;
@@ -915,14 +947,15 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
     {
     case GCN_GETDRAWINFO:
         {
+            PTB_GRAPH_CONTEXT context = (PTB_GRAPH_CONTEXT)Context;
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
+            if (context->GraphDpi == 0)
+                context->GraphDpi = PhGetWindowDpi(GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, IoHistoryGraphColor1, IoHistoryGraphColor2, context->GraphDpi);
 
             if (!(SystemStatistics.IoReadHistory && SystemStatistics.IoOtherHistory && SystemStatistics.IoWriteHistory))
                 break;
