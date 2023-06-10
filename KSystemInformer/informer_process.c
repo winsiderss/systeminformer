@@ -243,7 +243,7 @@ VOID KphpCreateProcessNotifyInformer(
 
         KphMsgInit(msg, KphMsgProcessCreate);
         msg->Kernel.ProcessCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
-        msg->Kernel.ProcessCreate.CreatingClientId.UniqueThread = PsGetCurrentProcessId();
+        msg->Kernel.ProcessCreate.CreatingClientId.UniqueThread = PsGetCurrentThreadId();
         msg->Kernel.ProcessCreate.ParentProcessId = CreateInfo->ParentProcessId;
         msg->Kernel.ProcessCreate.TargetProcessId = Process->ProcessId;
         msg->Kernel.ProcessCreate.IsSubsystemProcess = (CreateInfo->IsSubsystemProcess ? TRUE : FALSE);
