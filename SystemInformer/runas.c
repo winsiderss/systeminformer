@@ -2609,18 +2609,16 @@ static VOID PhpRunFileSetImageList(
     _Inout_ PPHP_RUNFILEDLG Context
     )
 {
-    HICON shieldIcon;
-
-    if (shieldIcon = PhLoadIcon(
-        NULL,
-        IDI_SHIELD,
-        PH_LOAD_ICON_SIZE_SMALL,
-        0,
-        0,
-        Context->WindowDpi
-        ))
+    if (Context->ImageListHandle)
     {
-        if (Context->ImageListHandle) PhImageListDestroy(Context->ImageListHandle);
+        PhImageListSetIconSize(
+            Context->ImageListHandle,
+            PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
+            PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi)
+            );
+    }
+    else
+    {
         Context->ImageListHandle = PhImageListCreate(
             PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
             PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
@@ -2628,9 +2626,17 @@ static VOID PhpRunFileSetImageList(
             1,
             1
             );
+    }
 
-        PhImageListAddIcon(Context->ImageListHandle, shieldIcon);
-        DestroyIcon(shieldIcon);
+    if (Context->ImageListHandle)
+    {
+        HBITMAP shieldBitmap;
+
+        if (shieldBitmap = PhGetShieldBitmap(Context->WindowDpi, 0, 0))
+        {
+            PhImageListAddBitmap(Context->ImageListHandle, shieldBitmap, NULL);
+            DeleteBitmap(shieldBitmap);
+        }
     }
 }
 
@@ -2706,8 +2712,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         {
             PhSetIntegerSetting(L"RunFileDlgState", Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
 
-            if (context->ImageListHandle)
-                PhImageListDestroy(context->ImageListHandle);
+            PhImageListDestroy(context->ImageListHandle);
 
             PhDeleteApplicationWindowIcon(hwndDlg);
             PhDeleteStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON));
@@ -3483,14 +3488,24 @@ static VOID PhRunAsPackageSetImagelist(
     _Inout_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
 {
-    PhImageListDestroy(Context->ImageListHandle);
-    Context->ImageListHandle = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
-        PhGetSystemMetrics(SM_CYICON, Context->WindowDpi),
-        ILC_MASK | ILC_COLOR32,
-        20,
-        10
-        );
+    if (Context->ImageListHandle)
+    {
+        PhImageListSetIconSize(
+            Context->ImageListHandle,
+            PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
+            PhGetSystemMetrics(SM_CYICON, Context->WindowDpi)
+            );
+    }
+    else
+    {
+        Context->ImageListHandle = PhImageListCreate(
+            PhGetSystemMetrics(SM_CXICON, Context->WindowDpi),
+            PhGetSystemMetrics(SM_CYICON, Context->WindowDpi),
+            ILC_MASK | ILC_COLOR32,
+            20,
+            10
+            );
+    }
 }
 
 VOID NTAPI PhPackageWindowContextDeleteProcedure(

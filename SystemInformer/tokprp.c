@@ -964,13 +964,23 @@ static VOID PhpTokenSetImageList(
 
     dpiValue = PhGetWindowDpi(WindowHandle);
 
-    if (TokenPageContext->ListViewImageList) PhImageListDestroy(TokenPageContext->ListViewImageList);
-    TokenPageContext->ListViewImageList = PhImageListCreate(
-        2,
-        PhGetDpi(20, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1, 1
-        );
+    if (TokenPageContext->ListViewImageList)
+    {
+        PhImageListSetIconSize(
+            TokenPageContext->ListViewImageList,
+            2,
+            PhGetDpi(20, dpiValue)
+            );
+    }
+    else
+    {
+        TokenPageContext->ListViewImageList = PhImageListCreate(
+            2,
+            PhGetDpi(20, dpiValue),
+            ILC_MASK | ILC_COLOR32,
+            1, 1
+            );
+    }
 
     ListView_SetImageList(TokenPageContext->ListViewHandle, TokenPageContext->ListViewImageList, LVSIL_SMALL);
 }

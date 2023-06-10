@@ -877,26 +877,28 @@ VOID PvSetListViewImageList(
     )
 {
     HIMAGELIST listViewImageList;
-    LONG dpiValue;
+    LONG dpiValue = PhGetWindowDpi(WindowHandle);
 
     if (listViewImageList = ListView_GetImageList(ListViewHandle, LVSIL_SMALL))
     {
-        PhImageListDestroy(listViewImageList);
-        listViewImageList = NULL;
+        PhImageListSetIconSize(
+            listViewImageList,
+            2,
+            PhGetDpi(20, dpiValue)
+            );
     }
-
-    dpiValue = PhGetWindowDpi(WindowHandle);
-    listViewImageList = PhImageListCreate(
-        2,
-        PhGetDpi(20, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1,
-        1
-        );
-
-    if (listViewImageList)
+    else
     {
-        ListView_SetImageList(ListViewHandle, listViewImageList, LVSIL_SMALL);
+        if (listViewImageList = PhImageListCreate(
+            2,
+            PhGetDpi(20, dpiValue),
+            ILC_MASK | ILC_COLOR32,
+            1,
+            1
+            ))
+        {
+            ListView_SetImageList(ListViewHandle, listViewImageList, LVSIL_SMALL);
+        }
     }
 }
 
@@ -906,26 +908,28 @@ VOID PvSetTreeViewImageList(
     )
 {
     HIMAGELIST treeViewImageList;
-    LONG dpiValue;
+    LONG dpiValue = PhGetWindowDpi(WindowHandle);
 
     if (treeViewImageList = TreeView_GetImageList(TreeViewHandle, TVSIL_NORMAL))
     {
-        PhImageListDestroy(treeViewImageList);
-        treeViewImageList = NULL;
+        PhImageListSetIconSize(
+            treeViewImageList,
+            2,
+            PhGetDpi(24, dpiValue)
+            );
     }
-
-    dpiValue = PhGetWindowDpi(WindowHandle);
-    treeViewImageList = PhImageListCreate(
-        2,
-        PhGetDpi(24, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1,
-        1
-        );
-
-    if (treeViewImageList)
+    else
     {
-        TreeView_SetImageList(TreeViewHandle, treeViewImageList, TVSIL_NORMAL);
+        if (treeViewImageList = PhImageListCreate(
+            2,
+            PhGetDpi(24, dpiValue),
+            ILC_MASK | ILC_COLOR32,
+            1,
+            1
+            ))
+        {
+            TreeView_SetImageList(TreeViewHandle, treeViewImageList, TVSIL_NORMAL);
+        }
     }
 }
 

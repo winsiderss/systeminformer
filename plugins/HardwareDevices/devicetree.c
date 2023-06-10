@@ -2594,12 +2594,12 @@ VOID DeviceTreePublicAsync(
 }
 
 _Function_class_(PCM_NOTIFY_CALLBACK)
-DWORD CALLBACK CmNotifyCallback(
+ULONG CALLBACK CmNotifyCallback(
     _In_ HCMNOTIFICATION hNotify,
     _In_opt_ PVOID Context,
     _In_ CM_NOTIFY_ACTION Action,
     _In_reads_bytes_(EventDataSize) PCM_NOTIFY_EVENT_DATA EventData,
-    _In_ DWORD EventDataSize
+    _In_ ULONG EventDataSize
     )
 {
     if (DeviceTabSelected && AutoRefreshDeviceTree)
@@ -3164,14 +3164,20 @@ VOID DevicesTreeImageListInitialize(
     DeviceIconSize.X = PhGetSystemMetrics(SM_CXSMICON, dpi);
     DeviceIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, dpi);
 
-    if (DeviceImageList) PhImageListDestroy(DeviceImageList);
-    DeviceImageList = PhImageListCreate(
-        DeviceIconSize.X,
-        DeviceIconSize.Y,
-        ILC_MASK | ILC_COLOR32,
-        200,
-        100
-        );
+    if (DeviceImageList)
+    {
+        PhImageListSetIconSize(DeviceImageList, DeviceIconSize.X, DeviceIconSize.Y);
+    }
+    else
+    {
+        DeviceImageList = PhImageListCreate(
+            DeviceIconSize.X,
+            DeviceIconSize.Y,
+            ILC_MASK | ILC_COLOR32,
+            200,
+            100
+            );
+    }
 
     PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE));
 
