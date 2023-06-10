@@ -2209,6 +2209,16 @@ NTSTATUS PhWalkThreadStack(
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
+
+#if defined(_X86_)
+            // (x86 only) Allow the user to change Eip, Esp and Ebp.
+            u.Context.Eip = PtrToUlong(threadStackFrame.PcAddress);
+            stackFrame.AddrPC.Offset = PtrToUlong(threadStackFrame.PcAddress);
+            u.Context.Ebp = PtrToUlong(threadStackFrame.FrameAddress);
+            stackFrame.AddrFrame.Offset = PtrToUlong(threadStackFrame.FrameAddress);
+            u.Context.Esp = PtrToUlong(threadStackFrame.StackAddress);
+            stackFrame.AddrStack.Offset = PtrToUlong(threadStackFrame.StackAddress);
+#endif
         }
     }
 
