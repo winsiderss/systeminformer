@@ -508,7 +508,10 @@ PPH_STRING PhGetServiceNameFromTag(
 
     if (!I_QueryTagInformation)
     {
-        I_QueryTagInformation = PhGetDllProcedureAddress(L"advapi32.dll", "I_QueryTagInformation", 0);
+        I_QueryTagInformation = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
+
+        if (!I_QueryTagInformation)
+            I_QueryTagInformation = PhGetDllProcedureAddress(L"advapi32.dll", "I_QueryTagInformation", 0);
 
         if (!I_QueryTagInformation)
             return NULL;
@@ -540,7 +543,10 @@ PPH_STRING PhGetServiceNameForModuleReference(
 
     if (!I_QueryTagInformation)
     {
-        I_QueryTagInformation = PhGetDllProcedureAddress(L"advapi32.dll", "I_QueryTagInformation", 0);
+        I_QueryTagInformation = PhGetDllProcedureAddress(L"sechost.dll", "I_QueryTagInformation", 0);
+
+        if (!I_QueryTagInformation)
+            I_QueryTagInformation = PhGetDllProcedureAddress(L"advapi32.dll", "I_QueryTagInformation", 0);
 
         if (!I_QueryTagInformation)
             return NULL;

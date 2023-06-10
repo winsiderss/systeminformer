@@ -149,7 +149,7 @@ LRESULT CALLBACK PvpButtonWndProc(
 
 static HWND PvpCreateOptionsButton(
     _In_ HWND hwndDlg
-)
+    )
 {
     if (!OptionsButton)
     {
@@ -187,7 +187,7 @@ static HWND PvpCreateOptionsButton(
 
 static HWND PvpCreateSecurityButton(
     _In_ HWND hwndDlg
-)
+    )
 {
     if (!SecurityButton)
     {

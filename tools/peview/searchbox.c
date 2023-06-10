@@ -143,14 +143,24 @@ VOID PhpSearchInitializeImages(
     Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(4, dpiValue);
     Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, dpiValue) + PhGetDpi(4, dpiValue);
 
-    if (Context->ImageListHandle) PhImageListDestroy(Context->ImageListHandle);
-    Context->ImageListHandle = PhImageListCreate(
-        Context->ImageWidth,
-        Context->ImageHeight,
-        ILC_MASK | ILC_COLOR32,
-        2,
-        0
-        );
+    if (Context->ImageListHandle)
+    {
+        PhImageListSetIconSize(
+            Context->ImageListHandle,
+            Context->ImageWidth,
+            Context->ImageHeight
+            );
+    }
+    else
+    {
+        Context->ImageListHandle = PhImageListCreate(
+            Context->ImageWidth,
+            Context->ImageHeight,
+            ILC_MASK | ILC_COLOR32,
+            2,
+            0
+            );
+    }
     PhImageListSetImageCount(Context->ImageListHandle, 2);
 
     if (bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight))

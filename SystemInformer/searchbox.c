@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2012-2022
+ *     dmex    2012-2023
  *
  */
 
@@ -154,15 +154,21 @@ VOID PhSearchControlInitializeImages(
 
     if (Context->ImageListHandle)
     {
-        PhImageListDestroy(Context->ImageListHandle);
-        Context->ImageListHandle = NULL;
+        PhImageListSetIconSize(
+            Context->ImageListHandle,
+            Context->ImageWidth,
+            Context->ImageHeight
+            );
     }
-    Context->ImageListHandle = PhImageListCreate(
-        Context->ImageWidth,
-        Context->ImageHeight,
-        ILC_MASK | ILC_COLOR32,
-        2, 0
-        );
+    else
+    {
+        Context->ImageListHandle = PhImageListCreate(
+            Context->ImageWidth,
+            Context->ImageHeight,
+            ILC_MASK | ILC_COLOR32,
+            2, 0
+            );
+    }
     PhImageListSetImageCount(Context->ImageListHandle, 2);
 
     if (Context->ImageWidth == 20 && Context->ImageHeight == 20) // Avoids bitmap scaling on startup at default DPI (dmex)
