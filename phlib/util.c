@@ -6747,6 +6747,44 @@ BOOLEAN PhParseCommandLineFuzzy(
     return FALSE;
 }
 
+/**
+ * Parses a Unicode command line string and returns an array of pointers to the command line arguments, along with a count of such arguments.
+ *
+ * \param CommandLine Pointer to a null-terminated Unicode string that contains the full command line. If this parameter is an empty string the function returns the path to the current executable file.
+ * \param NumberOfArguments The number of array elements returned, similar to argc.
+ *
+ * \return A pointer to an array of LPWSTR values, similar to argv. If the function fails, the return value is NULL.
+ */
+_Success_(return != NULL)
+PWSTR* PhCommandLineToArgv(
+    _In_ PCWSTR CommandLine,
+    _Out_ PINT NumberOfArguments
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PWSTR* (WINAPI *CommandLineToArgvW_I)(
+        _In_ PCWSTR CmdLine,
+        _Out_ PINT NumArgs
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"shell32.dll"))
+        {
+            CommandLineToArgvW_I = PhGetDllBaseProcedureAddress(baseAddress, "CommandLineToArgvW", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!CommandLineToArgvW_I)
+        return NULL;
+
+    return CommandLineToArgvW_I(CommandLine, NumberOfArguments);
+}
+
 PPH_LIST PhCommandLineToList(
     _In_ PCWSTR CommandLine
     )
@@ -6755,7 +6793,7 @@ PPH_LIST PhCommandLineToList(
     INT32 commandLineCount;
     PWSTR* commandLineArray;
 
-    if (commandLineArray = CommandLineToArgvW(CommandLine, &commandLineCount))
+    if (commandLineArray = PhCommandLineToArgv(CommandLine, &commandLineCount))
     {
         commandLineList = PhCreateList(commandLineCount);
 
