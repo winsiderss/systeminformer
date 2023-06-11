@@ -1178,6 +1178,15 @@ PhGetObjectSecurityDescriptorAsString(
     _Out_ PPH_STRING* SecurityDescriptorString
     );
 
+typedef struct _SHELLEXECUTEINFOW SHELLEXECUTEINFOW, *PSHELLEXECUTEINFOW;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhShellExecuteWin32(
+    _Inout_ PSHELLEXECUTEINFOW ExecInfo
+    );
+
 PHLIBAPI
 VOID
 NTAPI
