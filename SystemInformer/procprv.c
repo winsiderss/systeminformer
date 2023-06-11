@@ -3460,20 +3460,41 @@ VOID PhProcessImageListInitialization(
         }
     }
 
-    if (PhProcessLargeImageList) PhImageListDestroy(PhProcessLargeImageList);
-    if (PhProcessSmallImageList) PhImageListDestroy(PhProcessSmallImageList);
-    PhProcessLargeImageList = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXICON, PhProcessImageListWindowDpi),
-        PhGetSystemMetrics(SM_CYICON, PhProcessImageListWindowDpi),
-        ILC_MASK | ILC_COLOR32,
-        100,
-        100);
-    PhProcessSmallImageList = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXSMICON, PhProcessImageListWindowDpi),
-        PhGetSystemMetrics(SM_CYSMICON, PhProcessImageListWindowDpi),
-        ILC_MASK | ILC_COLOR32,
-        100,
-        100);
+    if (PhProcessLargeImageList)
+    {
+        PhImageListSetIconSize(
+            PhProcessLargeImageList,
+            PhGetSystemMetrics(SM_CXICON, PhProcessImageListWindowDpi),
+            PhGetSystemMetrics(SM_CYICON, PhProcessImageListWindowDpi)
+            );
+    }
+    else
+    {
+        PhProcessLargeImageList = PhImageListCreate(
+            PhGetSystemMetrics(SM_CXICON, PhProcessImageListWindowDpi),
+            PhGetSystemMetrics(SM_CYICON, PhProcessImageListWindowDpi),
+            ILC_MASK | ILC_COLOR32,
+            100,
+            100);
+    }
+
+    if (PhProcessSmallImageList)
+    {
+        PhImageListSetIconSize(
+            PhProcessSmallImageList,
+            PhGetSystemMetrics(SM_CXSMICON, PhProcessImageListWindowDpi),
+            PhGetSystemMetrics(SM_CYSMICON, PhProcessImageListWindowDpi)
+            );
+    }
+    else
+    {
+        PhProcessSmallImageList = PhImageListCreate(
+            PhGetSystemMetrics(SM_CXSMICON, PhProcessImageListWindowDpi),
+            PhGetSystemMetrics(SM_CYSMICON, PhProcessImageListWindowDpi),
+            ILC_MASK | ILC_COLOR32,
+            100,
+            100);
+    }
 
     //PhImageListSetBkColor(PhProcessLargeImageList, CLR_NONE);
     //PhImageListSetBkColor(PhProcessSmallImageList, CLR_NONE);
@@ -3513,7 +3534,7 @@ VOID PhProcessImageListInitialization(
                 {
                     PPH_PROCESS_ITEM process = processes[j];
 
-                    if (process->FileName && PhEqualString(process->FileName, filename, TRUE))
+                    if (process->FileName && PhEqualString(process->FileName, filename, FALSE))
                     {
                         process->IconEntry = PhReferenceObject(iconEntry);
                         process->SmallIconIndex = iconEntry->SmallIconIndex;
