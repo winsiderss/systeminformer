@@ -3048,9 +3048,34 @@ typedef struct _CONTEXT_EX
     CONTEXT_CHUNK All;
     CONTEXT_CHUNK Legacy;
     CONTEXT_CHUNK XState;
+    CONTEXT_CHUNK KernelCet;
 } CONTEXT_EX, *PCONTEXT_EX;
 
-#define CONTEXT_EX_LENGTH ALIGN_UP_BY(sizeof(CONTEXT_EX), PAGE_SIZE)
+#if defined(_AMD64_) || defined(_ARM64_) || defined(_ARM64EC_)
+#define CONTEXT_ALIGN 0x20
+#else
+#define CONTEXT_ALIGN 0x8
+#endif
+
+#if defined(_AMD64_)
+#define CONTEXT_FRAME_LENGTH 0x4D0
+#elif defined(_ARM64_) || defined(_ARM64EC_)
+#define CONTEXT_FRAME_LENGTH 0x390
+#elif defined(_M_ARM)
+#define CONTEXT_FRAME_LENGTH 0x1a0
+#else
+#define CONTEXT_FRAME_LENGTH 0x2CC
+#endif
+
+#define CONTEXT_ALIGNMENT(Size, Align) \
+    (((ULONG_PTR)(Size) + (Align) - 1) & ~((Align) - 1))
+
+#define CONTEXT_EX_LENGTH \
+    CONTEXT_ALIGNMENT(sizeof(CONTEXT_EX), CONTEXT_ALIGN)
+
+C_ASSERT(CONTEXT_FRAME_LENGTH == sizeof(CONTEXT));
+C_ASSERT(CONTEXT_EX_LENGTH == 0x20);
+
 #define RTL_CONTEXT_EX_OFFSET(ContextEx, Chunk) ((ContextEx)->Chunk.Offset)
 #define RTL_CONTEXT_EX_LENGTH(ContextEx, Chunk) ((ContextEx)->Chunk.Length)
 #define RTL_CONTEXT_EX_CHUNK(Base, Layout, Chunk) ((PVOID)((PCHAR)(Base) + RTL_CONTEXT_EX_OFFSET(Layout, Chunk)))
