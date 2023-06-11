@@ -634,6 +634,7 @@ EXPORTS
     PhGetObjectTypeName
     PhQueryObjectName
     PhStdGetClientIdName
+    PhCallKphQueryFileInformationWithTimeout
 
 ; lsasup
     PhGetSidFullName
@@ -838,3 +839,7 @@ EXPORTS
     PhDnsQuery
     PhDnsQuery2
     PhDnsFree
+
+; kphuser
+    KphLevel
+    KphEnumerateProcessHandles2

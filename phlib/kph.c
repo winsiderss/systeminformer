@@ -1487,6 +1487,27 @@ NTSTATUS KphAlpcQueryComminicationsNamesInfo(
     return status;
 }
 
+BOOLEAN KphpFileObjectIsBusy(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle
+    )
+{
+    KPH_FILE_OBJECT_INFORMATION fileInfo;
+    if (NT_SUCCESS(KphQueryInformationObject(
+        ProcessHandle,
+        FileHandle,
+        KphObjectFileObjectInformation,
+        &fileInfo,
+        sizeof(fileInfo),
+        NULL
+        )))
+    {
+        return fileInfo.Busy ? TRUE : FALSE;
+    }
+
+    return TRUE;
+}
+
 NTSTATUS KphQueryInformationFile(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE FileHandle,
@@ -1500,6 +1521,14 @@ NTSTATUS KphQueryInformationFile(
     PKPH_MESSAGE msg;
 
     KSI_COMMS_INIT_ASSERT();
+
+    // TODO(jxy-s) This is to workaround synchronous busy file objects. The
+    // driver will attach to the process, as the file object is busy and can't
+    // service multiple callers at the same time, the call may never return.
+    // There is obviously a race here, we should instead fix this in the driver
+    // to eliminate it.
+    if (KphpFileObjectIsBusy(ProcessHandle, FileHandle))
+        return STATUS_POSSIBLE_DEADLOCK;
 
     msg = PhAllocateFromFreeList(&KphMessageFreeList);
     KphMsgInit(msg, KphMsgQueryInformationFile);
