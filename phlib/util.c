@@ -5123,6 +5123,43 @@ VOID PhShellProperties(
 }
 
 /**
+ * Sends a message to the taskbar's notification area.
+ *
+ * \param Message A value that specifies the action to be taken by this function.
+ * \param NotifyIconData A pointer to a NOTIFYICONDATA structure. The content of the structure depends on the value of Message.
+ *
+ * \return Successful or errant status.
+ */
+BOOLEAN PhShellNotifyIcon(
+    _In_ ULONG Message,
+    _In_ PNOTIFYICONDATAW NotifyIconData
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *Shell_NotifyIconW_I)(
+        _In_ ULONG dwMessage,
+        _In_ PNOTIFYICONDATAW Data
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"shell32.dll"))
+        {
+            Shell_NotifyIconW_I = PhGetDllBaseProcedureAddress(baseAddress, "Shell_NotifyIconW", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!Shell_NotifyIconW_I)
+        return FALSE;
+
+    return !!Shell_NotifyIconW_I(Message, NotifyIconData);
+}
+
+/**
  * Expands registry name abbreviations.
  *
  * \param KeyName The key name.

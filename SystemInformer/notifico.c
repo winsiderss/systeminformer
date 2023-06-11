@@ -674,7 +674,7 @@ BOOLEAN PhNfShowBalloonTip(
     notifyIcon.uTimeout = Timeout;
     notifyIcon.dwInfoFlags = NIIF_INFO;
 
-    Shell_NotifyIcon(NIM_MODIFY, &notifyIcon);
+    PhShellNotifyIcon(NIM_MODIFY, &notifyIcon);
 
     return TRUE;
 }
@@ -962,9 +962,9 @@ BOOLEAN PhNfpAddNotifyIcon(
     if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (Icon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
-    Shell_NotifyIcon(NIM_ADD, &notifyIcon);
+    PhShellNotifyIcon(NIM_ADD, &notifyIcon);
     notifyIcon.uVersion = NOTIFYICON_VERSION_4;
-    Shell_NotifyIcon(NIM_SETVERSION, &notifyIcon);
+    PhShellNotifyIcon(NIM_SETVERSION, &notifyIcon);
 
     return TRUE;
 }
@@ -986,7 +986,7 @@ BOOLEAN PhNfpRemoveNotifyIcon(
         notifyIcon.guidItem = Icon->IconGuid;
     }
 
-    Shell_NotifyIcon(NIM_DELETE, &notifyIcon);
+    PhShellNotifyIcon(NIM_DELETE, &notifyIcon);
 
     return TRUE;
 }
@@ -1031,11 +1031,11 @@ BOOLEAN PhNfpModifyNotifyIcon(
             );
     }
 
-    if (!Shell_NotifyIcon(NIM_MODIFY, &notifyIcon))
+    if (!PhShellNotifyIcon(NIM_MODIFY, &notifyIcon))
     {
         // Explorer probably died and we lost our icon. Try to add the icon, and try again.
         PhNfpAddNotifyIcon(Icon);
-        Shell_NotifyIcon(NIM_MODIFY, &notifyIcon);
+        PhShellNotifyIcon(NIM_MODIFY, &notifyIcon);
     }
 
     return TRUE;
