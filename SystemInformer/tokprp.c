@@ -908,7 +908,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
         }
     }
 
-    if (NT_SUCCESS(PhGetTokenIsUIAccessEnabled(TokenHandle, &isUIAccess)))
+    if (NT_SUCCESS(PhGetTokenUIAccess(TokenHandle, &isUIAccess)))
     {
         // The presence of UIAccess flag is considered dangerous (diversenok)
         if (isUIAccess)
@@ -1586,7 +1586,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, FALSE);
 
-                        status = PhSetTokenUIAccessEnabled(tokenHandle, FALSE);
+                        status = PhSetTokenUIAccess(tokenHandle, FALSE);
 
                         if (NT_SUCCESS(status))
                         {
@@ -2219,7 +2219,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                     }
                 }
 
-                if (NT_SUCCESS(PhGetTokenIsUIAccessEnabled(tokenHandle, &isUIAccessEnabled)))
+                if (NT_SUCCESS(PhGetTokenUIAccess(tokenHandle, &isUIAccessEnabled)))
                 {
                     tokenUIAccess = isUIAccessEnabled ? L"Enabled": L"Disabled";
                 }

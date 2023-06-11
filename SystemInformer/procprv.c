@@ -1244,7 +1244,7 @@ VOID PhpFillProcessItem(
             }
 
             // UIAccess
-            if (NT_SUCCESS(PhGetTokenIsUIAccessEnabled(tokenHandle, &tokenIsUIAccessEnabled)))
+            if (NT_SUCCESS(PhGetTokenUIAccess(tokenHandle, &tokenIsUIAccessEnabled)))
             {
                 ProcessItem->IsUIAccessEnabled = !!tokenIsUIAccessEnabled;
             }

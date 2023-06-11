@@ -2368,7 +2368,7 @@ BOOLEAN PhUiRestartProcess(
 
     if (NT_SUCCESS(status))
     {
-        status = PhGetTokenIsUIAccessEnabled(tokenHandle, &tokenIsUIAccessEnabled);
+        status = PhGetTokenUIAccess(tokenHandle, &tokenIsUIAccessEnabled);
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
