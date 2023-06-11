@@ -3223,6 +3223,17 @@ PhEnumVirtualMemoryPages(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhEnumVirtualMemoryBulk(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ BOOLEAN BulkQuery,
+    _In_ PPH_ENUM_MEMORY_BULK_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhEnumVirtualMemoryAttributes(
     _In_opt_ HANDLE ProcessHandle,
     _In_opt_ HANDLE ProcessId,

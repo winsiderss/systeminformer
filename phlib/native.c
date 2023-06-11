@@ -16334,6 +16334,121 @@ NTSTATUS PhEnumVirtualMemory(
     return status;
 }
 
+NTSTATUS PhEnumVirtualMemoryBulk(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ BOOLEAN BulkQuery,
+    _In_ PPH_ENUM_MEMORY_BULK_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+
+    // BulkQuery... TRUE:
+    // * Faster.
+    // * More accurate snapshots.
+    // * Copies the entire VA space into local memory.
+    // * Wastes large amounts of heap memory due to buffer doubling.
+    // * Unsuitable for low-memory situations and fails with insufficient system resources.
+    // * ...
+    //
+    // BulkQuery... FALSE:
+    // * Slightly slower.
+    // * Slightly less accurate snapshots.
+    // * Does not copy the VA space.
+    // * Does not waste heap memory.
+    // * Suitable for low-memory situations and doesn't fail with insufficient system resources.
+    // * ...
+
+    if (BulkQuery)
+    {
+        SIZE_T bufferLength;
+        PNTPSS_MEMORY_BULK_INFORMATION buffer;
+        PMEMORY_BASIC_INFORMATION information;
+
+        bufferLength = sizeof(NTPSS_MEMORY_BULK_INFORMATION) + sizeof(MEMORY_BASIC_INFORMATION[20]);
+        buffer = PhAllocate(bufferLength);
+        buffer->QueryFlags = MEMORY_BULK_INFORMATION_FLAG_BASIC;
+
+        // Allocate a large buffer and copy all entries.
+
+        while ((status = NtPssCaptureVaSpaceBulk(
+            ProcessHandle,
+            BaseAddress,
+            buffer,
+            bufferLength,
+            NULL
+            )) == STATUS_MORE_ENTRIES)
+        {
+            PhFree(buffer);
+            bufferLength *= 2;
+
+            if (bufferLength > PH_LARGE_BUFFER_SIZE)
+                return STATUS_INSUFFICIENT_RESOURCES;
+
+            buffer = PhAllocate(bufferLength);
+            buffer->QueryFlags = MEMORY_BULK_INFORMATION_FLAG_BASIC;
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            // Skip the enumeration header.
+
+            information = PTR_ADD_OFFSET(buffer, RTL_SIZEOF_THROUGH_FIELD(NTPSS_MEMORY_BULK_INFORMATION, NextValidAddress));
+
+            // Execute the callback.
+
+            Callback(ProcessHandle, information, buffer->NumberOfEntries, Context);
+        }
+
+        PhFree(buffer);
+    }
+    else
+    {
+        UCHAR stackBuffer[sizeof(NTPSS_MEMORY_BULK_INFORMATION) + sizeof(MEMORY_BASIC_INFORMATION[20])];
+        SIZE_T bufferLength;
+        PNTPSS_MEMORY_BULK_INFORMATION buffer;
+        PMEMORY_BASIC_INFORMATION information;
+
+        bufferLength = sizeof(stackBuffer);
+        buffer = (PNTPSS_MEMORY_BULK_INFORMATION)stackBuffer;
+        buffer->QueryFlags = MEMORY_BULK_INFORMATION_FLAG_BASIC;
+        buffer->NextValidAddress = BaseAddress;
+
+        while (TRUE)
+        {
+            // Get a batch of entries.
+
+            status = NtPssCaptureVaSpaceBulk(
+                ProcessHandle,
+                buffer->NextValidAddress,
+                buffer,
+                bufferLength,
+                NULL
+                );
+
+            if (!NT_SUCCESS(status))
+                break;
+
+            // Skip the enumeration header.
+
+            information = PTR_ADD_OFFSET(buffer, RTL_SIZEOF_THROUGH_FIELD(NTPSS_MEMORY_BULK_INFORMATION, NextValidAddress));
+
+            // Execute the callback.
+
+            if (!NT_SUCCESS(Callback(ProcessHandle, information, buffer->NumberOfEntries, Context)))
+                break;
+
+            // Get the next batch.
+
+            if (status != STATUS_MORE_ENTRIES)
+                break;
+        }
+    }
+
+    return status;
+}
+
 NTSTATUS PhEnumVirtualMemoryPages(
     _In_opt_ HANDLE ProcessHandle,
     _In_opt_ HANDLE ProcessId,
