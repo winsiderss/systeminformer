@@ -16260,6 +16260,16 @@ CreateResult:
     return STATUS_SUCCESS;
 }
 
+/**
+ * Retrieves information about a range of pages within the virtual address space of a specified process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ProcessId The ID of the process.
+ * \param Callback A callback function which is executed for each memory region.
+ * \param Context A user-defined value to pass to the callback function.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhEnumVirtualMemory(
     _In_opt_ HANDLE ProcessHandle,
     _In_opt_ HANDLE ProcessId,
@@ -16334,6 +16344,17 @@ NTSTATUS PhEnumVirtualMemory(
     return status;
 }
 
+/**
+ * Retrieves information about a range of pages within the virtual address space of a specified process in batches for improved performance.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param BaseAddress The base address at which to begin retrieving information.
+ * \param BulkQuery A boolean indicating the mode of bulk query (accuracy vs reliability).
+ * \param Callback A callback function which is executed for each memory region.
+ * \param Context A user-defined value to pass to the callback function.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhEnumVirtualMemoryBulk(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
@@ -16449,6 +16470,16 @@ NTSTATUS PhEnumVirtualMemoryBulk(
     return status;
 }
 
+/**
+ * Retrieves information about the pages currently added to the working set of the specified process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ProcessId The ID of the process.
+ * \param Callback A callback function which is executed for each memory page.
+ * \param Context A user-defined value to pass to the callback function.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhEnumVirtualMemoryPages(
     _In_opt_ HANDLE ProcessHandle,
     _In_opt_ HANDLE ProcessId,
@@ -16512,6 +16543,18 @@ NTSTATUS PhEnumVirtualMemoryPages(
     return status;
 }
 
+/**
+ * Retrieves extended information about the pages currently added to the working set at specific virtual addresses in the address space of the specified process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ProcessId The ID of the process.
+ * \param BaseAddress The base address at which to begin retrieving information.
+ * \param Size The total number of pages to query from the base address.
+ * \param Callback A callback function which is executed for each memory page.
+ * \param Context A user-defined value to pass to the callback function.
+ *
+ * \return Successful or errant status.
+ */
 NTSTATUS PhEnumVirtualMemoryAttributes(
     _In_opt_ HANDLE ProcessHandle,
     _In_opt_ HANDLE ProcessId,

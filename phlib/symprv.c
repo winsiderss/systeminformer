@@ -565,7 +565,7 @@ VOID PhpFreeSymbolModule(
     PhFree(SymbolModule);
 }
 
-static LONG NTAPI PhpSymbolModuleCompareFunction(
+LONG NTAPI PhpSymbolModuleCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
     _In_ PPH_AVL_LINKS Links2
     )
@@ -1810,6 +1810,26 @@ PVOID __stdcall PhFunctionTableAccess64(
     return entry;
 }
 
+/**
+ * Walks a thread's stack.
+ *
+ * \param MachineType The architecture type of the computer for which the stack trace is generated.
+ * \param ProcessHandle A handle to the thread's parent process. The handle must have
+ * PROCESS_QUERY_INFORMATION and PROCESS_VM_READ access. If a symbol provider is being used, pass
+ * its process handle and specify the symbol provider in \a SymbolProvider.
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_QUERY_LIMITED_INFORMATION,
+ * THREAD_GET_CONTEXT and THREAD_SUSPEND_RESUME access. The handle can have any access for kernel
+ * stack walking.
+ * \param StackFrame A pointer to a STACKFRAME_EX structure. This structure receives information for the next frame, if the function call succeeds.
+ * \param ContextRecord A pointer to a CONTEXT structure.
+ * \param SymbolProvider The associated symbol provider.
+ * \param ReadMemoryRoutine A callback routine that provides memory read services.
+ * \param FunctionTableAccessRoutine A callback routine that provides access to the run-time function table for the process.
+ * \param GetModuleBaseRoutine A callback routine that provides a module base for any given virtual address.
+ * \param TranslateAddress A callback routine that provides address translation for 16-bit addresses.
+ *
+ * \return Successful or errant status.
+ */
 BOOLEAN PhStackWalk(
     _In_ ULONG MachineType,
     _In_ HANDLE ProcessHandle,
