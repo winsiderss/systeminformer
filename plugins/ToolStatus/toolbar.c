@@ -14,6 +14,7 @@
 SIZE ToolBarImageSize = { 16, 16 };
 HIMAGELIST ToolBarImageList = NULL;
 HFONT ToolbarWindowFont = NULL;
+BOOLEAN ToolbarInitialized = FALSE;
 TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
 {
     // Default toolbar buttons (displayed)
@@ -215,7 +216,10 @@ VOID RebarCreateOrUpdateWindow(
             WC_EDIT,
             NULL,
             WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            0,
+            0,
+            3,
+            3,
             RebarHandle,
             NULL,
             NULL,
@@ -233,7 +237,10 @@ VOID RebarCreateOrUpdateWindow(
             STATUSCLASSNAME,
             NULL,
             WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            0,
+            0,
+            3,
+            3,
             PhMainWndHandle,
             NULL,
             NULL,
@@ -319,6 +326,8 @@ VOID RebarCreateOrUpdateWindow(
         if (StatusBarHandle && IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
+
+    ToolbarInitialized = TRUE;
 }
 
 VOID ToolbarLoadSettings(

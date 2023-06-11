@@ -141,6 +141,7 @@ extern SIZE ToolBarImageSize;
 extern HIMAGELIST ToolBarImageList;
 extern TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS];
 extern HFONT ToolbarWindowFont;
+extern BOOLEAN ToolbarInitialized;
 
 extern PPH_PLUGIN PluginInstance;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
