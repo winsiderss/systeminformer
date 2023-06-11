@@ -3052,7 +3052,7 @@ typedef struct _CONTEXT_EX
 } CONTEXT_EX, *PCONTEXT_EX;
 
 #if defined(_AMD64_) || defined(_ARM64_) || defined(_ARM64EC_)
-#define CONTEXT_ALIGN 0x20
+#define CONTEXT_ALIGN 0x10
 #else
 #define CONTEXT_ALIGN 0x8
 #endif
