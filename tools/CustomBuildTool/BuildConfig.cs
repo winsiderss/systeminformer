@@ -93,8 +93,8 @@ namespace CustomBuildTool
             "hexedit.h",
             "hndlinfo.h",
             "json.h",
-            "kphapi.h",
             "kphuser.h",
+            "kphcomms.h",
             "lsasup.h",
             "mapimg.h",
             "mapldr.h",
@@ -119,6 +119,13 @@ namespace CustomBuildTool
             "treenew.h",
             "verify.h",
             "workqueue.h"
+        };
+        
+        public static readonly string[] Build_Kphlib_Headers =
+        {
+            "kphapi.h",
+            "kphmsg.h",
+            "kphmsgdefs.h",
         };
     }
 

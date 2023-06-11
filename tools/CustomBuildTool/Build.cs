@@ -699,6 +699,8 @@ namespace CustomBuildTool
                     Win32.CopyIfNewer($"phnt\\include\\{file}", $"sdk\\include\\{file}");
                 foreach (string file in BuildConfig.Build_Phlib_Headers)
                     Win32.CopyIfNewer($"phlib\\include\\{file}", $"sdk\\include\\{file}");
+                foreach (string file in BuildConfig.Build_Kphlib_Headers)
+                    Win32.CopyIfNewer($"kphlib\\include\\{file}", $"sdk\\include\\{file}");
 
                 // Copy readme
                 Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt");
