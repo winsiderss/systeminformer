@@ -4904,6 +4904,40 @@ BOOLEAN PhGetObjectSecurityDescriptorAsString(
 /**
  * Opens a file or location through the shell.
  *
+ * \param ExecInfo A pointer to a SHELLEXECUTEINFO structure that contains and receives information about the application being executed.
+ *
+ * \return Successful or errant status.
+ */
+BOOLEAN PhShellExecuteWin32(
+    _Inout_ PSHELLEXECUTEINFOW ExecInfo
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *ShellExecuteExW_I)(
+        _Inout_ SHELLEXECUTEINFOW *pExecInfo
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"shell32.dll"))
+        {
+            ShellExecuteExW_I = PhGetDllBaseProcedureAddress(baseAddress, "ShellExecuteExW", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!ShellExecuteExW_I)
+        return FALSE;
+
+    return !!ShellExecuteExW_I(ExecInfo);
+}
+
+/**
+ * Opens a file or location through the shell.
+ *
  * \param hWnd The window to display user interface components on.
  * \param FileName A file name or location.
  * \param Parameters The parameters to pass to the executed application.
@@ -4922,7 +4956,7 @@ VOID PhShellExecute(
     info.nShow = SW_SHOW;
     info.hwnd = hWnd;
 
-    if (!ShellExecuteEx(&info))
+    if (!PhShellExecuteWin32(&info))
     {
         PhShowStatus(hWnd, L"Unable to execute the program.", 0, GetLastError());
     }
@@ -4968,7 +5002,7 @@ BOOLEAN PhShellExecuteEx(
     if (Flags & PH_SHELL_EXECUTE_ADMIN)
         info.lpVerb = L"runas";
 
-    if (ShellExecuteEx(&info))
+    if (PhShellExecuteWin32(&info))
     {
         if (Timeout)
         {
@@ -5082,7 +5116,7 @@ VOID PhShellProperties(
     info.lpVerb = L"properties";
     info.hwnd = hWnd;
 
-    if (!ShellExecuteEx(&info))
+    if (!PhShellExecuteWin32(&info))
     {
         PhShowStatus(hWnd, L"Unable to execute the program.", 0, GetLastError());
     }
