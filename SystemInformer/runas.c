@@ -1266,6 +1266,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     NTSTATUS status;
                     BOOLEAN useLinkedToken = FALSE;
                     BOOLEAN createSuspended = FALSE;
+                    BOOLEAN createUIAccess = FALSE;
                     ULONG logonType = ULONG_MAX;
                     ULONG sessionId = ULONG_MAX;
                     PPH_STRING program = NULL;
@@ -1280,6 +1281,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     logonTypeString = PH_AUTO(PhGetWindowText(context->TypeComboBoxWindowHandle));
                     useLinkedToken = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION)) == BST_CHECKED;
                     createSuspended = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TOGGLESUSPENDED)) == BST_CHECKED;
+                    createUIAccess = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TOGGLEUIACCESS)) == BST_CHECKED;
 
                     if (PhIsNullOrEmptyString(program))
                         break;
@@ -1614,7 +1616,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     sessionId,
                                     PhGetString(desktopName),
                                     useLinkedToken,
-                                    createSuspended
+                                    createSuspended,
+                                    createUIAccess
                                     );
                             }
                         }
@@ -1948,7 +1951,7 @@ NTSTATUS PhExecuteRunAsCommand2(
     _In_ BOOLEAN UseLinkedToken
     )
 {
-    return PhExecuteRunAsCommand3(hWnd, Program, UserName, Password, LogonType, ProcessIdWithToken, SessionId, DesktopName, UseLinkedToken, FALSE);
+    return PhExecuteRunAsCommand3(hWnd, Program, UserName, Password, LogonType, ProcessIdWithToken, SessionId, DesktopName, UseLinkedToken, FALSE, FALSE);
 }
 
 NTSTATUS PhExecuteRunAsCommand3(
@@ -1961,7 +1964,8 @@ NTSTATUS PhExecuteRunAsCommand3(
     _In_ ULONG SessionId,
     _In_ PWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken,
-    _In_ BOOLEAN CreateSuspendedProcess
+    _In_ BOOLEAN CreateSuspendedProcess,
+    _In_ BOOLEAN CreateUIAccessProcess
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1981,6 +1985,7 @@ NTSTATUS PhExecuteRunAsCommand3(
     parameters.UseLinkedToken = UseLinkedToken;
     parameters.CreateSuspendedProcess = CreateSuspendedProcess;
     parameters.WindowHandle = hWnd;
+    parameters.CreateUIAccessProcess = CreateUIAccessProcess;
 
     // Try to use an existing instance of the service if possible.
     if (RunAsOldServiceName[0] != UNICODE_NULL)
@@ -2197,6 +2202,8 @@ NTSTATUS PhInvokeRunAsService(
         flags |= PH_CREATE_PROCESS_USE_LINKED_TOKEN;
     if (Parameters->CreateSuspendedProcess)
         flags |= PH_CREATE_PROCESS_SUSPENDED;
+    if (Parameters->CreateUIAccessProcess)
+        flags |= PH_CREATE_PROCESS_SET_UIACCESS;
 
     status = PhCreateProcessAsUser(
         &createInfo,

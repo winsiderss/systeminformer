@@ -401,6 +401,7 @@
 #define IDC_TOGGLEELEVATION             1254
 #define IDC_TOGGLESUSPENDED             1255
 #define IDC_TRUSTEDINSTALLER            1255
+#define IDC_TOGGLEUIACCESS              1256
 #define IDC_PARENT                      1263
 #define IDC_PROCESSNAME                 1264
 #define IDC_SERVICES_LAYOUT             1266
@@ -798,12 +799,12 @@
 #define IDPLUGINS                       55000
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        267
+#define _APS_NEXT_RESOURCE_VALUE        273
 #define _APS_NEXT_COMMAND_VALUE         40298
-#define _APS_NEXT_CONTROL_VALUE         1416
+#define _APS_NEXT_CONTROL_VALUE         1418
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif
