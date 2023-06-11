@@ -3058,24 +3058,49 @@ typedef struct _CONTEXT_EX
 #define RTL_CONTEXT_LENGTH(Context, Chunk) RTL_CONTEXT_EX_LENGTH((PCONTEXT_EX)(Context + 1), Chunk)
 #define RTL_CONTEXT_CHUNK(Context, Chunk) RTL_CONTEXT_EX_CHUNK((PCONTEXT_EX)(Context + 1), (PCONTEXT_EX)(Context + 1), Chunk)
 
+#if defined(_M_AMD64)
+// returns constant 0xf0e0d0c0a0908070 (dmex)
 NTSYSAPI
-VOID
+ULONG64
 NTAPI
 RtlInitializeContext(
-    _In_ HANDLE Process,
+    _Reserved_ HANDLE Reserved,
     _Out_ PCONTEXT Context,
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID InitialPc,
     _In_opt_ PVOID InitialSp
     );
+#else
+// returns status of NtWriteVirtualMemory (dmex)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitializeContext(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PCONTEXT Context,
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID InitialPc,
+    _In_opt_ PVOID InitialSp
+    );
+#endif
 
 NTSYSAPI
-ULONG
+NTSTATUS
 NTAPI
 RtlInitializeExtendedContext(
     _Out_ PCONTEXT Context,
     _In_ ULONG ContextFlags,
     _Out_ PCONTEXT_EX* ContextEx
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitializeExtendedContext2(
+    _Out_ PCONTEXT Context,
+    _In_ ULONG ContextFlags,
+    _Out_ PCONTEXT_EX* ContextEx,
+    _In_ ULONG64 EnabledExtendedFeatures // RtlGetEnabledExtendedFeatures(-1)
     );
 
 NTSYSAPI
@@ -3088,7 +3113,7 @@ RtlCopyContext(
     );
 
 NTSYSAPI
-ULONG
+NTSTATUS
 NTAPI
 RtlCopyExtendedContext(
     _Out_ PCONTEXT_EX Destination,
@@ -3097,11 +3122,20 @@ RtlCopyExtendedContext(
     );
 
 NTSYSAPI
-ULONG
+NTSTATUS
 NTAPI
 RtlGetExtendedContextLength(
     _In_ ULONG ContextFlags,
     _Out_ PULONG ContextLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetExtendedContextLength2(
+    _In_ ULONG ContextFlags,
+    _Out_ PULONG ContextLength,
+    _In_ ULONG64 EnabledExtendedFeatures // RtlGetEnabledExtendedFeatures(-1)
     );
 
 NTSYSAPI
