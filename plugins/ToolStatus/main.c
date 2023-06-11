@@ -293,7 +293,7 @@ VOID ShowCustomizeMenu(
                         SetFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
 
                         SendMessage(RebarHandle, RB_SETBANDINFO, bandIndex, (LPARAM)&rebarBandInfo);
-                        
+
                         ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
                     }
 
@@ -926,7 +926,12 @@ LRESULT CALLBACK MainWndSubclassProc(
                 {
                 case RBN_HEIGHTCHANGE:
                     {
-                        InvalidateMainWindowLayout();
+                        // Note: RB_INSERTBAND sends RBN_HEIGHTCHANGE during initialization and we skip the first
+                        // InvalidateMainWindowLayout since we invalidate layout during initialization from ToolbarLoadSettings (dmex)
+                        if (ToolbarInitialized)
+                        {
+                            InvalidateMainWindowLayout();
+                        }
                     }
                     break;
                 case RBN_CHEVRONPUSHED:
