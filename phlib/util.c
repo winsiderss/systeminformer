@@ -4566,6 +4566,20 @@ NTSTATUS PhCreateProcessAsUser(
         }
     }
 
+    // Set the UIAccess flag if needed.
+
+    if (Flags & PH_CREATE_PROCESS_SET_UIACCESS)
+    {
+        if (!NT_SUCCESS(status = PhSetTokenUIAccess(
+            tokenHandle,
+            TRUE
+            )))
+        {
+            NtClose(tokenHandle);
+            return status;
+        }
+    }
+
     if (!Information->Environment)
     {
         if (CreateEnvironmentBlock_Import())
