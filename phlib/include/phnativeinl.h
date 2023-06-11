@@ -1452,7 +1452,7 @@ PhGetTokenIsVirtualizationEnabled(
 */
 FORCEINLINE
 NTSTATUS
-PhGetTokenIsUIAccessEnabled(
+PhGetTokenUIAccess(
     _In_ HANDLE TokenHandle,
     _Out_ PBOOLEAN IsUIAccessEnabled
     )
@@ -1486,7 +1486,7 @@ PhGetTokenIsUIAccessEnabled(
 */
 FORCEINLINE
 NTSTATUS
-PhSetTokenUIAccessEnabled(
+PhSetTokenUIAccess(
     _In_ HANDLE TokenHandle,
     _In_ BOOLEAN IsUIAccessEnabled
     )
