@@ -1231,6 +1231,16 @@ PhShellProperties(
     _In_ PWSTR FileName
     );
 
+typedef struct _NOTIFYICONDATAW NOTIFYICONDATAW, *PNOTIFYICONDATAW;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhShellNotifyIcon(
+    _In_ ULONG Message,
+    _In_ PNOTIFYICONDATAW NotifyIconData
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI
