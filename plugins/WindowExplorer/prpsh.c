@@ -232,6 +232,25 @@ BOOLEAN CALLBACK PvRefreshButtonWindowEnumCallback(
     return TRUE;
 }
 
+VOID PvRefreshChildWindows(
+    _In_ HWND WindowHandle
+    )
+{
+    HWND propSheetHandle;
+
+    if (propSheetHandle = GetAncestor(WindowHandle, GA_ROOT))
+    {
+        //HWND pageHandle;
+        //
+        //if (pageHandle = PropSheet_GetCurrentPageHwnd(propSheetHandle))
+        //{
+        //    SendMessage(pageHandle, WM_PH_UPDATE_DIALOG, 0, 0);
+        //}
+
+        PhEnumChildWindows(propSheetHandle, ULONG_MAX, PvRefreshButtonWindowEnumCallback, NULL);
+    }
+}
+
 LRESULT CALLBACK PvRefreshButtonWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
@@ -253,19 +272,7 @@ LRESULT CALLBACK PvRefreshButtonWndProc(
         {
             if (GET_WM_COMMAND_HWND(wParam, lParam) == propSheetContext->RefreshButtonWindowHandle)
             {
-                HWND propSheetHandle;
-
-                if (propSheetHandle = GetAncestor(WindowHandle, GA_ROOT))
-                {
-                    //HWND pageHandle;
-                    //
-                    //if (pageHandle = PropSheet_GetCurrentPageHwnd(propSheetHandle))
-                    //{
-                    //    SendMessage(pageHandle, WM_PH_UPDATE_DIALOG, 0, 0);
-                    //}
-
-                    PhEnumChildWindows(propSheetHandle, ULONG_MAX, PvRefreshButtonWindowEnumCallback, NULL);
-                }
+                PvRefreshChildWindows(WindowHandle);
             }
         }
         break;
