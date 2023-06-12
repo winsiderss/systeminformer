@@ -387,6 +387,7 @@ NTSTATUS PhSvcpCaptureRunAsServiceParameters(
     Parameters->UseLinkedToken = Payload->u.ExecuteRunAsCommand.i.UseLinkedToken;
     Parameters->ServiceName = PhGetString(CapturedParameters->ServiceName);
     Parameters->CreateSuspendedProcess = Payload->u.ExecuteRunAsCommand.i.CreateSuspendedProcess;
+    Parameters->CreateUIAccessProcess = Payload->u.ExecuteRunAsCommand.i.CreateUIAccessProcess;
 
     return status;
 }
