@@ -61,6 +61,7 @@ extern BOOLEAN EtGraphShowText;
 extern BOOLEAN EtEnableScaleGraph;
 extern BOOLEAN EtEnableScaleText;
 extern BOOLEAN EtPropagateCpuUsage;
+extern BOOLEAN EtEnableAvxSupport;
 
 #define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")

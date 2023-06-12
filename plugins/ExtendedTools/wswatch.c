@@ -415,15 +415,12 @@ SkipBuffer:
     return result;
 }
 
-static BOOLEAN NTAPI EnumGenericModulesCallback(
+static BOOLEAN NTAPI EtpWsWatchEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PWS_WATCH_CONTEXT context = Context;
-
-    if (!context)
-        return TRUE;
 
     // If we're loading kernel module symbols for a process other than
     // System, ignore modules which are in user space. This may happen
@@ -518,7 +515,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 context->ProcessId,
                 context->ProcessHandle,
                 0,
-                EnumGenericModulesCallback,
+                EtpWsWatchEnumGenericModulesCallback,
                 context
                 );
             context->LoadingSymbolsForProcessId = SYSTEM_PROCESS_ID;
@@ -526,7 +523,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 SYSTEM_PROCESS_ID,
                 NULL,
                 0,
-                EnumGenericModulesCallback,
+                EtpWsWatchEnumGenericModulesCallback,
                 context
                 );
 
@@ -537,7 +534,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 // WS Watch is already enabled for the process. Enable updating.
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_WSWATCHENABLED), SW_SHOW);
-                SetTimer(hwndDlg, 1, 1000, NULL);
+                PhSetTimer(hwndDlg, 1, 1000, NULL);
             }
             else
             {
@@ -551,7 +548,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         {
             context->Destroying = TRUE;
 
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, 1);
 
             PhSaveListViewColumnsToSetting(SETTING_NAME_WSWATCH_COLUMNS, context->ListViewHandle);
             PhSaveWindowPlacementToSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, hwndDlg);
@@ -601,7 +598,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                     {
                         EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
                         ShowWindow(GetDlgItem(hwndDlg, IDC_WSWATCHENABLED), SW_SHOW);
-                        SetTimer(hwndDlg, 1, 1000, NULL);
+                        PhSetTimer(hwndDlg, 1, 1000, NULL);
                     }
                     else
                     {

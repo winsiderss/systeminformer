@@ -61,6 +61,7 @@ BOOLEAN EtGraphShowText = FALSE;
 BOOLEAN EtEnableScaleGraph = FALSE;
 BOOLEAN EtEnableScaleText = FALSE;
 BOOLEAN EtPropagateCpuUsage = FALSE;
+BOOLEAN EtEnableAvxSupport = FALSE;
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -868,6 +869,7 @@ VOID EtLoadSettings(
     EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     EtEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
+    EtEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
 }
 
