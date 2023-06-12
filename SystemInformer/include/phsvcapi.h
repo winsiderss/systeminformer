@@ -74,6 +74,7 @@ typedef union _PHSVC_API_EXECUTERUNASCOMMAND
         BOOLEAN UseLinkedToken;
         PH_RELATIVE_STRINGREF ServiceName;
         BOOLEAN CreateSuspendedProcess;
+        BOOLEAN CreateUIAccessProcess;
     } i;
 } PHSVC_API_EXECUTERUNASCOMMAND, *PPHSVC_API_EXECUTERUNASCOMMAND;
 
