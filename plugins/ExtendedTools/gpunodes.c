@@ -326,12 +326,19 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                 {
                                     FLOAT max = 0;
 
-                                    for (ULONG ii = 0; ii < drawInfo->LineDataCount; ii++)
+                                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                                     {
-                                        FLOAT data = GraphState[i].Data1[ii]; // HACK
+                                        max = PhMaxMemorySingles(GraphState[i].Data1, drawInfo->LineDataCount);
+                                    }
+                                    else
+                                    {
+                                        for (ULONG ii = 0; ii < drawInfo->LineDataCount; ii++)
+                                        {
+                                            FLOAT data = GraphState[i].Data1[ii];
 
-                                        if (max < data)
-                                            max = data;
+                                            if (max < data)
+                                                max = data;
+                                        }
                                     }
 
                                     if (max != 0)

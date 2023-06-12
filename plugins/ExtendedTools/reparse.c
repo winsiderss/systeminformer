@@ -95,54 +95,6 @@ PREPARSE_WINDOW_CONTEXT EtReparseCreateDialogContext(
     return context;
 }
 
-NTSTATUS EtGetFileHandleName(
-    _In_ HANDLE FileHandle,
-    _Out_ PPH_STRING *FileName
-    )
-{
-    NTSTATUS status;
-    ULONG bufferSize;
-    PFILE_NAME_INFORMATION buffer;
-    IO_STATUS_BLOCK isb;
-
-    bufferSize = sizeof(FILE_NAME_INFORMATION) + MAX_PATH;
-    buffer = PhAllocateZero(bufferSize);
-
-    status = NtQueryInformationFile(
-        FileHandle,
-        &isb,
-        buffer,
-        bufferSize,
-        FileNameInformation
-        );
-
-    if (status == STATUS_BUFFER_OVERFLOW)
-    {
-        bufferSize = sizeof(FILE_NAME_INFORMATION) + buffer->FileNameLength + sizeof(UNICODE_NULL);
-        PhFree(buffer);
-        buffer = PhAllocateZero(bufferSize);
-
-        status = NtQueryInformationFile(
-            FileHandle,
-            &isb,
-            buffer,
-            bufferSize,
-            FileNameInformation
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    *FileName = PhCreateStringEx(buffer->FileName, buffer->FileNameLength);
-    PhFree(buffer);
-
-    return status;
-}
-
 NTSTATUS EtEnumerateVolumeReparsePoints(
     _In_ ULONG64 VolumeIndex,
     _In_ PPH_ENUM_REPARSE_POINT Callback,

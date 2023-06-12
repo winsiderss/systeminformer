@@ -608,12 +608,19 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
 
                             PhCopyCircularBuffer_FLOAT(&context->Block->FramesPerSecondHistory, context->FramesPerSecondGraphState.Data1, drawInfo->LineDataCount);
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
-                                FLOAT data = context->FramesPerSecondGraphState.Data1[i]; // HACK
+                                max = PhMaxMemorySingles(context->FramesPerSecondGraphState.Data1, drawInfo->LineDataCount);
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = context->FramesPerSecondGraphState.Data1[i];
 
-                                if (max < data)
-                                    max = data;
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)
@@ -663,12 +670,19 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
 
                             PhCopyCircularBuffer_FLOAT(&context->Block->FramesLatencyHistory, context->FramesLatencyGraphState.Data1, drawInfo->LineDataCount);
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
-                                FLOAT data = context->FramesLatencyGraphState.Data1[i]; // HACK
+                                max = PhMaxMemorySingles(context->FramesLatencyGraphState.Data1, drawInfo->LineDataCount);
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = context->FramesLatencyGraphState.Data1[i];
 
-                                if (max < data)
-                                    max = data;
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)
@@ -718,12 +732,19 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
 
                             PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsBetweenPresentsHistory, context->PresentIntervalGraphState.Data1, drawInfo->LineDataCount);
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
-                                FLOAT data = context->PresentIntervalGraphState.Data1[i]; // HACK
+                                max = PhMaxMemorySingles(context->PresentIntervalGraphState.Data1, drawInfo->LineDataCount);
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = context->PresentIntervalGraphState.Data1[i];
 
-                                if (max < data)
-                                    max = data;
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)
@@ -773,12 +794,19 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
 
                             PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsInPresentApiHistory, context->PresentDurationGraphState.Data1, drawInfo->LineDataCount);
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
-                                FLOAT data = context->PresentDurationGraphState.Data1[i]; // HACK
+                                max = PhMaxMemorySingles(context->PresentDurationGraphState.Data1, drawInfo->LineDataCount);
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = context->PresentDurationGraphState.Data1[i];
 
-                                if (max < data)
-                                    max = data;
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)
@@ -828,12 +856,19 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
 
                             PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsUntilRenderCompleteHistory, context->FramesRenderTimeGraphState.Data1, drawInfo->LineDataCount);
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
-                                FLOAT data = context->FramesRenderTimeGraphState.Data1[i]; // HACK
+                                max = PhMaxMemorySingles(context->FramesRenderTimeGraphState.Data1, drawInfo->LineDataCount);
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = context->FramesRenderTimeGraphState.Data1[i];
 
-                                if (max < data)
-                                    max = data;
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)
@@ -883,12 +918,19 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
 
                             PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsUntilDisplayedHistory, context->FramesDisplayTimeGraphState.Data1, drawInfo->LineDataCount);
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
-                                FLOAT data = context->FramesDisplayTimeGraphState.Data1[i]; // HACK
+                                max = PhMaxMemorySingles(context->FramesDisplayTimeGraphState.Data1, drawInfo->LineDataCount);
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = context->FramesDisplayTimeGraphState.Data1[i];
 
-                                if (max < data)
-                                    max = data;
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)
@@ -938,12 +980,19 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
 
                             PhCopyCircularBuffer_FLOAT(&context->Block->FramesDisplayLatencyHistory, context->FramesDisplayLatencyGraphState.Data1, drawInfo->LineDataCount);
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
-                                FLOAT data = context->FramesDisplayLatencyGraphState.Data1[i]; // HACK
+                                max = PhMaxMemorySingles(context->FramesDisplayLatencyGraphState.Data1, drawInfo->LineDataCount);
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = context->FramesDisplayLatencyGraphState.Data1[i];
 
-                                if (max < data)
-                                    max = data;
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)

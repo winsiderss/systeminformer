@@ -475,12 +475,19 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                             {
                                 FLOAT max = 0;
 
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                                 {
-                                    FLOAT data = context->GpuGraphState.Data1[i]; // HACK
+                                    max = PhMaxMemorySingles(context->GpuGraphState.Data1, drawInfo->LineDataCount);
+                                }
+                                else
+                                {
+                                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                    {
+                                        FLOAT data = context->GpuGraphState.Data1[i];
 
-                                    if (max < data)
-                                        max = data;
+                                        if (max < data)
+                                            max = data;
+                                    }
                                 }
 
                                 if (max != 0)
@@ -544,14 +551,28 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 max = (FLOAT)EtGpuDedicatedLimit / PAGE_SIZE;
                             }
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
                                 FLOAT data1;
 
-                                context->MemoryGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemoryHistory, i);
+                                PhCopyConvertCircularBufferULONG(&context->Block->MemoryHistory, context->MemoryGraphState.Data1, drawInfo->LineDataCount);
+
+                                data1 = PhMaxMemorySingles(context->MemoryGraphState.Data1, drawInfo->LineDataCount);
 
                                 if (max < data1)
                                     max = data1;
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data1;
+
+                                    context->MemoryGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemoryHistory, i);
+
+                                    if (max < data1)
+                                        max = data1;
+                                }
                             }
 
                             if (max != 0)
@@ -605,14 +626,28 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 max = (FLOAT)EtGpuSharedLimit / PAGE_SIZE;
                             }
 
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
-                                FLOAT data;
+                                FLOAT data1;
 
-                                context->MemorySharedGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemorySharedHistory, i);
+                                PhCopyConvertCircularBufferULONG(&context->Block->MemorySharedHistory, context->MemorySharedGraphState.Data1, drawInfo->LineDataCount);
 
-                                if (max < data)
-                                    max = data;
+                                data1 = PhMaxMemorySingles(context->MemorySharedGraphState.Data1, drawInfo->LineDataCount);
+
+                                if (max < data1)
+                                    max = data1;
+                            }
+                            else
+                            {
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data;
+
+                                    context->MemorySharedGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemorySharedHistory, i);
+
+                                    if (max < data)
+                                        max = data;
+                                }
                             }
 
                             if (max != 0)
@@ -667,14 +702,28 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 max = 1024 * 1024; // minimum scaling
                             }
 
-                            for (i = 0; i < drawInfo->LineDataCount; i++)
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
                             {
                                 FLOAT data1;
 
-                                context->GpuCommittedGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->GpuCommittedHistory, i);
+                                PhCopyConvertCircularBufferULONG(&context->Block->GpuCommittedHistory, context->GpuCommittedGraphState.Data1, drawInfo->LineDataCount);
+
+                                data1 = PhMaxMemorySingles(context->GpuCommittedGraphState.Data1, drawInfo->LineDataCount);
 
                                 if (max < data1)
                                     max = data1;
+                            }
+                            else
+                            {
+                                for (i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data1;
+
+                                    context->GpuCommittedGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->GpuCommittedHistory, i);
+
+                                    if (max < data1)
+                                        max = data1;
+                                }
                             }
 
                             if (max != 0)
