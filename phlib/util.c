@@ -3734,17 +3734,25 @@ PPH_STRING PhGetTemporaryDirectory(
     {
         static PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");
         PH_STRINGREF systemRoot;
+        PPH_STRING systemPath;
 
         PhGetSystemRoot(&systemRoot);
 
         if (AppendPath)
         {
-            return PhConcatStringRef4(&systemRoot, &PhNtPathSeperatorString, &systemTemp, AppendPath);
+            systemPath = PhConcatStringRef4(&systemRoot, &PhNtPathSeperatorString, &systemTemp, AppendPath);
         }
         else
         {
-            return PhConcatStringRef3(&systemRoot, &PhNtPathSeperatorString, &systemTemp);
+            systemPath = PhConcatStringRef3(&systemRoot, &PhNtPathSeperatorString, &systemTemp);
         }
+
+        if (PhDoesDirectoryExistWin32(PhGetString(systemPath))) // Required for Windows 7/8 (dmex)
+        {
+            return systemPath;
+        }
+
+        PhDereferenceObject(systemPath);
     }
 
     RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
