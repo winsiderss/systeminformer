@@ -128,4 +128,8 @@ PvPropPageDlgProcHeader(
     return TRUE;
 }
 
+VOID PvRefreshChildWindows(
+    _In_ HWND WindowHandle
+    );
+
 #endif

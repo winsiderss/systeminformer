@@ -99,6 +99,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_EXSTYLES,
     WINDOW_PROPERTIES_INDEX_AUTOMATION,
     WINDOW_PROPERTIES_INDEX_DPICONTEXT,
+    WINDOW_PROPERTIES_INDEX_MONITOR,
 
     WINDOW_PROPERTIES_INDEX_CLASS_NAME,
     WINDOW_PROPERTIES_INDEX_CLASS_BASENAME,
@@ -633,6 +634,31 @@ VOID WepRefreshWindowGeneralInfo(
         PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_APPID, 1, appIdText->Buffer);
         PhDereferenceObject(appIdText);
     }
+
+    // Monitor
+    {
+        typedef struct _MONITORINFOEX2
+        {
+            MONITORINFO MonitorInfo;
+            WCHAR Device[CCHDEVICENAME];
+        } MONITORINFOEX2, *PMONITORINFOEX2;
+
+        HMONITOR monitorHandle;
+
+        if (monitorHandle = MonitorFromWindow(Context->WindowHandle, MONITOR_DEFAULTTONULL))
+        {
+            MONITORINFOEX2 monitorInfoEx;
+
+            memset(&monitorInfoEx, 0, sizeof(MONITORINFOEX2));
+            monitorInfoEx.MonitorInfo.cbSize = sizeof(MONITORINFOEX2);
+
+            if (GetMonitorInfo(monitorHandle, (LPMONITORINFO)&monitorInfoEx))
+            {
+                _wcslwr(monitorInfoEx.Device);
+                PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_MONITOR, 1, monitorInfoEx.Device);
+            }
+        }
+    }
 }
 
 VOID WepRefreshWindowStyles(
@@ -1029,6 +1055,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_EXSTYLES, L"Extended styles", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_AUTOMATION, L"Automation server", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DPICONTEXT, L"DPI Context", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_MONITOR, L"Monitor", NULL);
 
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_NAME, L"Name", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_BASENAME, L"Base name", NULL);
@@ -1348,6 +1375,143 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
     return FALSE;
 }
 
+typedef struct _WEP_WINDOW_PROPEDIT_CONTEXT
+{
+    HWND WindowHandle;
+    HWND TargetWindowHandle;
+    PPH_STRING WindowPropString;
+    BOOLEAN WindowPropCreate;
+} WEP_WINDOW_PROPEDIT_CONTEXT, *PWEP_WINDOW_PROPEDIT_CONTEXT;
+
+static INT_PTR CALLBACK WepWindowPropEditDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_LAYOUT_MANAGER LayoutManager;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PWEP_WINDOW_PROPEDIT_CONTEXT context = (PWEP_WINDOW_PROPEDIT_CONTEXT)lParam;
+
+            PhSetApplicationWindowIcon(hwndDlg);
+
+            PhSetWindowText(hwndDlg, L"Property Editor");
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_VALUE), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            if (!context->WindowPropCreate)
+            {
+                WCHAR value[PH_INT64_STR_LEN_1];
+
+                PhPrintPointer(value, (PVOID)GetProp(context->TargetWindowHandle, PhGetString(context->WindowPropString)));
+                PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetString(context->WindowPropString));
+                PhSetDialogItemText(hwndDlg, IDC_VALUE, value);
+
+                EnableWindow(GetDlgItem(hwndDlg, IDC_NAME), FALSE);
+            }
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            case IDOK:
+                {
+                    PWEP_WINDOW_PROPEDIT_CONTEXT context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+                    PPH_STRING windowPropName = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME)));
+                    PPH_STRING windowPropValue = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
+                    ULONG64 value = 0;
+
+                    PhStringToInteger64(&windowPropValue->sr, 0, &value);
+
+                    if (!context->WindowPropCreate && PhIsNullOrEmptyString(windowPropName))
+                    {
+                        PhShowError2(hwndDlg, L"Unable to add window property.", L"%s", L"The property name is empty.");
+                        break;
+                    }
+
+                    if (context->WindowPropCreate)
+                    {
+                        if (!SetProp(context->TargetWindowHandle, PhGetString(windowPropName), (HANDLE)value))
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to create the window property.", 0, GetLastError());
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (!SetProp(context->TargetWindowHandle, PhGetString(context->WindowPropString), (HANDLE)value))
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to update the window property.", 0, GetLastError());
+                            break;
+                        }
+                    }
+
+                    EndDialog(hwndDlg, IDOK);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}
+
+VOID WepFreeListViewWindowProps(
+    _In_ PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    INT index = INT_ERROR;
+
+    while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
+    {
+        PPH_STRING param;
+
+        if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
+        {
+            PhClearReference(&param);
+        }
+    }
+}
+
 BOOL CALLBACK WepEnumPropsExCallback(
     _In_ HWND WindowHandle,
     _In_ PWSTR Name,
@@ -1357,26 +1521,41 @@ BOOL CALLBACK WepEnumPropsExCallback(
 {
     PWINDOW_PROPERTIES_CONTEXT context = (PWINDOW_PROPERTIES_CONTEXT)Context;
     INT lvItemIndex;
+    PPH_STRING propName;
     WCHAR value[PH_INT64_STR_LEN_1];
 
+    if (IS_INTRESOURCE(Name))
+        propName = PhFormatString(L"#%hu", PtrToUshort(Name));
+    else
+        propName = PhCreateString(Name);
+
     PhPrintUInt32(value, ++context->PropsListCount);
-    lvItemIndex = PhAddListViewItem(context->PropsListViewHandle, MAXINT, value, NULL);
+    lvItemIndex = PhAddListViewItem(context->PropsListViewHandle, MAXINT, value, propName);
 
     if (IS_INTRESOURCE(Name)) // This is an integer atom.
-    {
-        PPH_STRING propName;
-
-        propName = PhFormatString(L"#%hu", PtrToUshort(Name));
-        PhSetListViewSubItem(context->PropsListViewHandle, lvItemIndex, 1, propName->Buffer);
-        PhDereferenceObject(propName);
-    }
+        PhSetListViewSubItem(context->PropsListViewHandle, lvItemIndex, 1, PhGetString(propName));
     else
-    {
         PhSetListViewSubItem(context->PropsListViewHandle, lvItemIndex, 1, Name);
-    }
 
     PhPrintPointer(value, (PVOID)Value);
     PhSetListViewSubItem(context->PropsListViewHandle, lvItemIndex, 2, value);
+
+    if (!IS_INTRESOURCE(Name))
+    {
+        PROPERTYKEY propkey;
+        PWSTR propKeyName;
+
+        propName = PhCreateString(Name);
+
+        if (HR_SUCCESS(PSGetPropertyKeyFromName(PhGetString(propName), &propkey)))
+        {
+            if (HR_SUCCESS(PSGetNameFromPropertyKey(&propkey, &propKeyName)))
+            {
+                PhSetListViewSubItem(context->PropsListViewHandle, lvItemIndex, 3, propKeyName);
+                CoTaskMemFree(propKeyName);
+            }
+        }
+    }
 
     return TRUE;
 }
@@ -1385,6 +1564,7 @@ VOID WepRefreshWindowProps(
     _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
+    WepFreeListViewWindowProps(Context);
     Context->PropsListCount = 0;
 
     ExtendedListView_SetRedraw(Context->PropsListViewHandle, FALSE);
@@ -1426,6 +1606,7 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
             PhAddListViewColumn(context->PropsListViewHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"#");
             PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 160, L"Name");
             PhAddListViewColumn(context->PropsListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Value");
+            PhAddListViewColumn(context->PropsListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Alias");
             PhSetExtendedListView(context->PropsListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, context->PropsListViewHandle);
 
@@ -1437,6 +1618,8 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, context->PropsListViewHandle);
+
+            WepFreeListViewWindowProps(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -1476,38 +1659,108 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
 
                 PhGetSelectedListViewItemParams(context->PropsListViewHandle, &listviewItems, &numberOfItems);
 
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_ADD, L"Add", NULL, NULL), ULONG_MAX);
+
                 if (numberOfItems != 0)
                 {
-                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDD_EDITENV, L"Edit", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_DELETE, L"Delete", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, context->PropsListViewHandle);
+                }
 
-                    item = PhShowEMenu(
-                        menu,
-                        hwndDlg,
-                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                        point.x,
-                        point.y
-                        );
+                item = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    point.x,
+                    point.y
+                    );
 
-                    if (item)
+                if (item)
+                {
+                    if (!PhHandleCopyListViewEMenuItem(item))
                     {
-                        if (!PhHandleCopyListViewEMenuItem(item))
+                        switch (item->Id)
                         {
-                            switch (item->Id)
+                        case PHAPP_IDC_ADD:
                             {
-                            case PHAPP_IDC_COPY:
-                                {
-                                    PhCopyListView(context->PropsListViewHandle);
-                                }
-                                break;
+                                WEP_WINDOW_PROPEDIT_CONTEXT windowPropEditContext;
+
+                                memset(&windowPropEditContext, 0, sizeof(WEP_WINDOW_PROPEDIT_CONTEXT));
+                                windowPropEditContext.TargetWindowHandle = context->WindowHandle;
+                                windowPropEditContext.WindowPropCreate = TRUE;
+
+                                PhDialogBox(
+                                    PluginInstance->DllBase,
+                                    MAKEINTRESOURCE(IDD_WNDPROPEDIT),
+                                    hwndDlg,
+                                    WepWindowPropEditDlgProc,
+                                    &windowPropEditContext
+                                    );
+
+                                //WepRefreshWindowProps(context);
+                                PvRefreshChildWindows(hwndDlg);
                             }
+                            break;
+                        case PHAPP_IDD_EDITENV:
+                            {
+                                WEP_WINDOW_PROPEDIT_CONTEXT windowPropEditContext;
+
+                                memset(&windowPropEditContext, 0, sizeof(WEP_WINDOW_PROPEDIT_CONTEXT));
+                                windowPropEditContext.TargetWindowHandle = context->WindowHandle;
+                                windowPropEditContext.WindowPropString = listviewItems[0];
+
+                                PhDialogBox(
+                                    PluginInstance->DllBase,
+                                    MAKEINTRESOURCE(IDD_WNDPROPEDIT),
+                                    hwndDlg,
+                                    WepWindowPropEditDlgProc,
+                                    &windowPropEditContext
+                                    );
+
+                                //WepRefreshWindowProps(context);
+                                PvRefreshChildWindows(hwndDlg);
+                            }
+                            break;
+                        case PHAPP_IDC_DELETE:
+                            {
+                                if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                                    hwndDlg,
+                                    L"remove",
+                                    L"the window property",
+                                    L"The window property will be permanently deleted.",
+                                    FALSE
+                                    ))
+                                {
+                                    break;
+                                }
+
+                                RemoveProp(context->WindowHandle, PhGetString(listviewItems[0]));
+
+                                ULONG status = GetLastError();
+                                if (status != ERROR_SUCCESS)
+                                    PhShowStatus(hwndDlg, L"Unable to remove the window property.", 0, status);
+
+                                //WepRefreshWindowProps(context);
+                                PvRefreshChildWindows(hwndDlg);
+                            }
+                            break;
+                        case PHAPP_IDC_COPY:
+                            {
+                                PhCopyListView(context->PropsListViewHandle);
+                            }
+                            break;
                         }
                     }
-
-                    PhDestroyEMenu(menu);
                 }
+
+                PhDestroyEMenu(menu);
 
                 PhFree(listviewItems);
             }
