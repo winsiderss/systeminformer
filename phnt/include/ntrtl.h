@@ -3059,12 +3059,16 @@ typedef struct _CONTEXT_EX
 
 #if defined(_AMD64_)
 #define CONTEXT_FRAME_LENGTH 0x4D0
+#define CONTEXT_EX_PADDING   0x10 
 #elif defined(_ARM64_) || defined(_ARM64EC_)
 #define CONTEXT_FRAME_LENGTH 0x390
+#define CONTEXT_EX_PADDING   0x10 
 #elif defined(_M_ARM)
 #define CONTEXT_FRAME_LENGTH 0x1a0
+#define CONTEXT_EX_PADDING   0x8 
 #else
 #define CONTEXT_FRAME_LENGTH 0x2CC
+#define CONTEXT_EX_PADDING   0x4 
 #endif
 
 #define CONTEXT_ALIGNMENT(Size, Align) \
