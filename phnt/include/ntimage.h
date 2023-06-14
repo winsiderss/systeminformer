@@ -138,4 +138,51 @@ typedef struct _IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD
 typedef IMAGE_THUNK_DATA32 UNALIGNED *UNALIGNED_PIMAGE_THUNK_DATA32;
 typedef IMAGE_THUNK_DATA64 UNALIGNED *UNALIGNED_PIMAGE_THUNK_DATA64;
 
+// Note: Required for legacy SDK support (dmex)
+#if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
+#define IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE   0x00000001
+#define IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE   0x00000002
+#define IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER  0x00000003
+#define IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER   0x00000004
+#define IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH       0x00000005
+#define IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE              0x00000007
+
+typedef struct _IMAGE_FUNCTION_OVERRIDE_HEADER {
+    ULONG FuncOverrideSize;
+    // IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION  FuncOverrideInfo[ANYSIZE_ARRAY]; // FuncOverrideSize bytes in size
+    // IMAGE_BDD_INFO BDDInfo; // BDD region, size in bytes: DVRTEntrySize - sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) - FuncOverrideSize
+} IMAGE_FUNCTION_OVERRIDE_HEADER;
+typedef IMAGE_FUNCTION_OVERRIDE_HEADER UNALIGNED *PIMAGE_FUNCTION_OVERRIDE_HEADER;
+
+typedef struct _IMAGE_BDD_INFO {
+    ULONG Version; // decides the semantics of serialized BDD
+    ULONG BDDSize;
+    // IMAGE_BDD_DYNAMIC_RELOCATION BDDNodes[ANYSIZE_ARRAY]; // BDDSize size in bytes.
+} IMAGE_BDD_INFO, *PIMAGE_BDD_INFO;
+
+typedef struct _IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION {
+    ULONG OriginalRva;          // RVA of original function
+    ULONG BDDOffset;            // Offset into the BDD region
+    ULONG RvaSize;              // Size in bytes taken by RVAs. Must be multiple of sizeof(DWORD).
+    ULONG BaseRelocSize;        // Size in bytes taken by BaseRelocs
+    // DWORD RVAs[RvaSize / sizeof(DWORD)];     // Array containing overriding func RVAs.
+    // IMAGE_BASE_RELOCATION  BaseRelocs[ANYSIZE_ARRAY];
+    // ^Base relocations (RVA + Size + TO)
+    // ^Padded with extra TOs for 4B alignment
+    // ^BaseRelocSize size in bytes
+} IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION, *PIMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION;
+
+typedef struct _IMAGE_BDD_DYNAMIC_RELOCATION {
+    USHORT Left;  // Index of FALSE edge in BDD array
+    USHORT Right; // Index of TRUE edge in BDD array
+    ULONG  Value; // Either FeatureNumber or Index into RVAs array
+} IMAGE_BDD_DYNAMIC_RELOCATION, *PIMAGE_BDD_DYNAMIC_RELOCATION;
+
+// Function override relocation types in DVRT records.
+#define IMAGE_FUNCTION_OVERRIDE_INVALID         0
+#define IMAGE_FUNCTION_OVERRIDE_X64_REL32       1  // 32-bit relative address from byte following reloc
+#define IMAGE_FUNCTION_OVERRIDE_ARM64_BRANCH26  2  // 26 bit offset << 2 & sign ext. for B & BL
+#define IMAGE_FUNCTION_OVERRIDE_ARM64_THUNK     3
+#endif
+
 #endif
