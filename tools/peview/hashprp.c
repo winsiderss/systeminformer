@@ -1034,7 +1034,7 @@ BOOLEAN PvGetMappedImageImphash(
                             &importDllName->sr,
                             &separator,
                             &importFuncName->sr);
-                        _wcslwr(importImphashName->Buffer);
+                        PhLowerStringRef(&importImphashName->sr);
 
                         // "%s,"
                         PhAppendStringBuilder(&stringBuilder, &importImphashName->sr);
@@ -1065,7 +1065,7 @@ BOOLEAN PvGetMappedImageImphash(
         importStringUtf8 = PhConvertUtf16ToUtf8Ex(importStringFinal->Buffer, importStringFinal->Length);
 
         hashString = PvHashBuffer(importStringUtf8->Buffer, (ULONG)importStringUtf8->Length);
-        _wcsupr(hashString->Buffer);
+        PhUpperStringRef(&hashString->sr);
 
         // Generate the "impfuzzy" hash:
         // https://blogs.jpcert.or.jp/en/2016/05/classifying-mal-a988.html
@@ -1238,7 +1238,7 @@ VOID PvPeHashesAddListViewItem(
 
     if (!PhIsNullOrEmptyString(Result))
     {
-        if (UpperCase) _wcsupr(Result->Buffer);
+        if (UpperCase) PhUpperStringRef(&Result->sr);
 
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(Result));
         PhDereferenceObject(Result);

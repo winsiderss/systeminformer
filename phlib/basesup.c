@@ -2450,7 +2450,7 @@ VOID PhTrimStringRef(
     SIZE_T count;
     PWCHAR s;
 
-    if (String->Length == 0 || CharSet->Length == 0)
+    if (!String->Buffer || String->Length == 0 || CharSet->Length == 0)
         return;
 
     if (CharSet->Length == sizeof(WCHAR))
@@ -2584,7 +2584,7 @@ PPH_STRING PhCreateString(
     _In_ PWSTR Buffer
     )
 {
-    return PhCreateStringEx(Buffer, wcslen(Buffer) * sizeof(WCHAR));
+    return PhCreateStringEx(Buffer, PhCountStringZ(Buffer) * sizeof(WCHAR));
 }
 
 /**
@@ -2598,22 +2598,55 @@ PPH_STRING PhCreateStringEx(
     _In_ SIZE_T Length
     )
 {
+    PH_STRINGREF sr;
+    sr.Buffer = Buffer;
+    sr.Length = Length;
+    return PhCreateString3(&sr, 0, NULL);
+}
+
+/**
+ * Creates a string object using a specified length and mode.
+ *
+ * \param String A string reference to create a new string object from.
+ * \param Flags A combination of PH_STRING flags.
+ * \param TrimCharSet A string containing characters to trim. If NULL, no trimming is performed.
+ */
+PPH_STRING PhCreateString3(
+    _In_ PPH_STRINGREF String,
+    _In_ ULONG Flags,
+    _In_opt_ PPH_STRINGREF TrimCharSet
+    )
+{
     PPH_STRING string;
+    PH_STRINGREF sr;
+
+    sr = *String;
+    if (TrimCharSet)
+        PhTrimStringRef(&sr, TrimCharSet, Flags & PH_STRING_TRIM_MASK);
 
     string = PhCreateObject(
-        UFIELD_OFFSET(PH_STRING, Data) + Length + sizeof(UNICODE_NULL), // Null terminator for compatibility
+        UFIELD_OFFSET(PH_STRING, Data) + sr.Length + sizeof(UNICODE_NULL), // Null terminator for compatibility
         PhStringType
         );
 
-    assert(!(Length & 1));
-    string->Length = Length;
+    assert(!(sr.Length & 1));
+    string->Length = sr.Length;
     string->Buffer = string->Data;
-    *(PWCHAR)PTR_ADD_OFFSET(string->Buffer, Length) = UNICODE_NULL;
+    *(PWCHAR)PTR_ADD_OFFSET(string->Buffer, sr.Length) = UNICODE_NULL;
 
-    if (Buffer)
+    if (!sr.Buffer)
+        return string;
+
+    if (!(Flags & PH_STRING_CASE_MASK))
     {
-        memcpy(string->Buffer, Buffer, Length);
+        memcpy(string->Buffer, sr.Buffer, sr.Length);
+        return string;
     }
+
+    if (Flags & PH_STRING_UPPER_CASE)
+        PhUpperStringRefInto(&string->sr, &sr);
+    else
+        PhLowerStringRefInto(&string->sr, &sr);
 
     return string;
 }
