@@ -49,8 +49,8 @@ VOID WeFormatLocalObjectName(
     {
         memcpy(Buffer, L"\\Sessions\\", 10 * sizeof(WCHAR));
         _ultow(NtCurrentPeb()->SessionId, Buffer + 10, 10);
-        length = wcslen(Buffer);
-        originalNameLength = wcslen(OriginalName);
+        length = PhCountStringZ(Buffer);
+        originalNameLength = PhCountStringZ(OriginalName);
         memcpy(Buffer + length, OriginalName, (originalNameLength + 1) * sizeof(WCHAR));
         length += originalNameLength;
 

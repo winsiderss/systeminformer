@@ -1224,6 +1224,98 @@ PhCreateString2(
     return PhCreateStringEx(String->Buffer, String->Length);
 }
 
+#define PH_STRING_TRIM_START_ONLY PH_TRIM_START_ONLY
+#define PH_STRING_TRIM_END_ONLY   PH_TRIM_END_ONLY
+#define PH_STRING_TRIM_MASK       (PH_STRING_TRIM_START_ONLY | PH_STRING_TRIM_END_ONLY)
+#define PH_STRING_UPPER_CASE      0x4
+#define PH_STRING_LOWER_CASE      0x8
+#define PH_STRING_CASE_MASK       (PH_STRING_UPPER_CASE | PH_STRING_LOWER_CASE)
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhCreateString3(
+    _In_ PPH_STRINGREF String,
+    _In_ ULONG Flags,
+    _In_opt_ PPH_STRINGREF TrimCharSet
+    );
+
+FORCEINLINE
+WCHAR
+NTAPI
+PhUpcaseUnicodeChar(
+    _In_ WCHAR SourceCharacter
+    )
+{
+    WCHAR c;
+
+    //c = towupper(c);
+    //c = __ascii_towupper(c);
+    c = RtlUpcaseUnicodeChar(SourceCharacter);
+
+    return c;
+}
+
+FORCEINLINE
+WCHAR
+NTAPI
+PhDowncaseUnicodeChar(
+    _In_ WCHAR SourceCharacter
+    )
+{
+    WCHAR c;
+
+    c = RtlDowncaseUnicodeChar(SourceCharacter);
+
+    return c;
+}
+
+FORCEINLINE
+VOID
+PhUpperStringRefInto(
+    _Inout_ PPH_STRINGREF Destination,
+    _In_ PPH_STRINGREF Source
+    )
+{
+    assert(Destination->Length >= Source->Length);
+    SIZE_T numberOfChars = Source->Length / sizeof(WCHAR);
+    for (SIZE_T i = 0; i < numberOfChars; i++)
+        Destination->Buffer[i] = PhUpcaseUnicodeChar(Source->Buffer[i]);
+    Destination->Length = Source->Length;
+}
+
+FORCEINLINE
+VOID
+PhUpperStringRef(
+    _Inout_ PPH_STRINGREF String
+    )
+{
+    PhUpperStringRefInto(String, String);
+}
+
+FORCEINLINE
+VOID
+PhLowerStringRefInto(
+    _Inout_ PPH_STRINGREF Destination,
+    _In_ PPH_STRINGREF Source
+    )
+{
+    assert(Destination->Length >= Source->Length);
+    SIZE_T numberOfChars = Source->Length / sizeof(WCHAR);
+    for (SIZE_T i = 0; i < numberOfChars; i++)
+        Destination->Buffer[i] = PhDowncaseUnicodeChar(Source->Buffer[i]);
+    Destination->Length = Source->Length;
+}
+
+FORCEINLINE
+VOID
+PhLowerStringRef(
+    _Inout_ PPH_STRINGREF String
+    )
+{
+    PhLowerStringRefInto(String, String);
+}
+
 FORCEINLINE
 PPH_STRING
 PhCreateStringFromUnicodeString(
@@ -3726,12 +3818,7 @@ PhLowerString(
     _In_ PPH_STRING String
     )
 {
-    PPH_STRING newString;
-
-    newString = PhDuplicateString(String);
-    _wcslwr(newString->Buffer);
-
-    return newString;
+    return PhCreateString3(&String->sr, PH_STRING_LOWER_CASE, NULL);
 }
 
 FORCEINLINE
@@ -3740,12 +3827,7 @@ PhaLowerString(
     _In_ PPH_STRING String
     )
 {
-    PPH_STRING newString;
-
-    newString = PhaDuplicateString(String);
-    _wcslwr(newString->Buffer);
-
-    return newString;
+    return PH_AUTO_T(PH_STRING, PhCreateString3(&String->sr, PH_STRING_LOWER_CASE, NULL));
 }
 
 FORCEINLINE
@@ -3755,12 +3837,7 @@ PhUpperString(
     _In_ PPH_STRING String
     )
 {
-    PPH_STRING newString;
-
-    newString = PhDuplicateString(String);
-    _wcsupr(newString->Buffer);
-
-    return newString;
+    return PhCreateString3(&String->sr, PH_STRING_UPPER_CASE, NULL);
 }
 
 FORCEINLINE
@@ -3769,12 +3846,7 @@ PhaUpperString(
     _In_ PPH_STRING String
     )
 {
-    PPH_STRING newString;
-
-    newString = PhaDuplicateString(String);
-    _wcsupr(newString->Buffer);
-
-    return newString;
+    return PH_AUTO_T(PH_STRING, PhCreateString3(&String->sr, PH_STRING_UPPER_CASE, NULL));
 }
 
 FORCEINLINE
@@ -3786,22 +3858,6 @@ PhaSubstring(
     )
 {
     return PH_AUTO_T(PH_STRING, PhSubstring(String, StartIndex, Count));
-}
-
-FORCEINLINE
-WCHAR
-NTAPI
-PhUpcaseUnicodeChar(
-    _In_ WCHAR SourceCharacter
-    )
-{
-    WCHAR c;
-
-    //c = towupper(c);
-    //c = __ascii_towupper(c);
-    c = RtlUpcaseUnicodeChar(SourceCharacter);
-
-    return c;
 }
 
 // Format

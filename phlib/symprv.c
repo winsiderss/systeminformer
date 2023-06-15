@@ -285,8 +285,8 @@ static VOID PhpSymbolProviderEventCallback(
 
                     valueString = PhSubstring(
                         string,
-                        progressStartIndex + wcslen(L"percent=\""),
-                        progressValueLength - wcslen(L"percent=\"")
+                        progressStartIndex + RTL_NUMBER_OF(L"percent=\"") - 1,
+                        progressValueLength - RTL_NUMBER_OF(L"percent=\"") - 1
                         );
 
                     if (PhStringToInteger64(&valueString->sr, 10, &integer))

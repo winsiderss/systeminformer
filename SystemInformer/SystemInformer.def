@@ -104,6 +104,7 @@ EXPORTS
     PhCreateSimpleHashtable
     PhCreateString
     PhCreateStringEx
+    PhCreateString3
     PhCreateThread
     PhCreateThread2
     PhCreateThreadEx

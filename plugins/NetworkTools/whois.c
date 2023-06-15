@@ -56,9 +56,7 @@ PPH_STRING TrimString(
     )
 {
     static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L"  ");
-    PH_STRINGREF sr = String->sr;
-    PhTrimStringRef(&sr, &whitespace, 0);
-    return PhCreateString2(&sr);
+    return PhCreateString3(&String->sr, 0, &whitespace);
 }
 
 PPH_STRING TrimString2(
@@ -66,9 +64,7 @@ PPH_STRING TrimString2(
     )
 {
     static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L"\n\n");
-    PH_STRINGREF sr = String->sr;
-    PhTrimStringRef(&sr, &whitespace, 0);
-    return PhCreateString2(&sr);
+    return PhCreateString3(&String->sr, 0, &whitespace);
 }
 
 _Success_(return)
@@ -181,8 +177,8 @@ BOOLEAN WhoisExtractServerUrl(
 
     whoisServerName = PhSubstring(
         WhoisResponse,
-        whoisServerHostnameIndex + wcslen(L"whois:"),
-        whoisServerHostnameLength - wcslen(L"whois:")
+        whoisServerHostnameIndex + RTL_NUMBER_OF(L"whois:") - 1,
+        whoisServerHostnameLength - RTL_NUMBER_OF(L"whois:") - 1
         );
 
     if (WhoisServerAddress)
@@ -217,8 +213,8 @@ BOOLEAN WhoisExtractReferralServer(
 
     whoisServerName = PhSubstring(
         WhoisResponse,
-        whoisServerHostnameIndex + wcslen(L"ReferralServer:"),
-        whoisServerHostnameLength - wcslen(L"ReferralServer:")
+        whoisServerHostnameIndex + RTL_NUMBER_OF(L"ReferralServer:") - 1,
+        whoisServerHostnameLength - RTL_NUMBER_OF(L"ReferralServer:") - 1
         );
 
     whoisServerHostname = TrimString(whoisServerName);
