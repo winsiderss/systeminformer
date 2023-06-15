@@ -595,9 +595,16 @@ BOOLEAN PhInitializeDirectoryPolicy(
 #include <symprv.h>
 #include <minidumpapiset.h>
 
+typedef enum _PH_DUMP_TYPE
+{
+    PhDumpTypeMinidump,
+    PhDumpTypeNormaldump,
+    PhDumpTypeFulldump,
+} PH_DUMP_TYPE;
+
 VOID PhpCreateUnhandledExceptionCrashDump(
     _In_ PEXCEPTION_POINTERS ExceptionInfo,
-    _In_ BOOLEAN MoreInfoDump
+    _In_ PH_DUMP_TYPE DumpType 
     )
 {
     HANDLE fileHandle;
@@ -627,36 +634,44 @@ VOID PhpCreateUnhandledExceptionCrashDump(
         )))
     {
         MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
+        MINIDUMP_TYPE dumpType;
 
         exceptionInfo.ThreadId = HandleToUlong(NtCurrentThreadId());
         exceptionInfo.ExceptionPointers = ExceptionInfo;
         exceptionInfo.ClientPointers = TRUE;
 
-        if (MoreInfoDump)
+        switch (DumpType)
         {
+        case PhDumpTypeMinidump:
+            dumpType = MiniDumpNormal | MiniDumpWithDataSegs;
+            break;
+        case PhDumpTypeNormaldump:
             // Note: This isn't a full dump, still very limited but just enough to see filenames on the stack. (dmex)
-            PhWriteMiniDumpProcess(
-                NtCurrentProcess(),
-                NtCurrentProcessId(),
-                fileHandle,
-                MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithProcessThreadData,
-                &exceptionInfo,
-                NULL,
-                NULL
-                );
+            dumpType = MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithProcessThreadData;
+            break;
+        case PhDumpTypeFulldump:
+            dumpType = (MiniDumpWithFullMemory |
+                        MiniDumpIgnoreInaccessibleMemory |
+                        MiniDumpWithHandleData |
+                        MiniDumpWithUnloadedModules |
+                        MiniDumpWithProcessThreadData |
+                        MiniDumpWithFullMemoryInfo |
+                        MiniDumpWithThreadInfo |
+                        MiniDumpWithTokenInformation |
+                        MiniDumpWithAvxXStateContext |
+                        MiniDumpWithIptTrace);
+            break;
         }
-        else
-        {
-            PhWriteMiniDumpProcess(
-                NtCurrentProcess(),
-                NtCurrentProcessId(),
-                fileHandle,
-                MiniDumpNormal | MiniDumpWithDataSegs,
-                &exceptionInfo,
-                NULL,
-                NULL
-                );
-        }
+
+        PhWriteMiniDumpProcess(
+            NtCurrentProcess(),
+            NtCurrentProcessId(),
+            fileHandle,
+            dumpType,
+            &exceptionInfo,
+            NULL,
+            NULL
+            );
 
         NtClose(fileHandle);
     }
@@ -689,16 +704,18 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
     if (TaskDialogIndirect)
     {
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-        TASKDIALOG_BUTTON buttons[4];
+        TASKDIALOG_BUTTON buttons[5];
 
-        buttons[0].nButtonID = IDYES;
-        buttons[0].pszButtonText = L"Normaldump";
-        buttons[1].nButtonID = IDNO;
-        buttons[1].pszButtonText = L"Minidump";
-        buttons[2].nButtonID = IDABORT;
-        buttons[2].pszButtonText = L"Restart";
-        buttons[3].nButtonID = IDCANCEL;
-        buttons[3].pszButtonText = L"Exit";
+        buttons[0].nButtonID = IDRETRY;
+        buttons[0].pszButtonText = L"Fulldump";
+        buttons[1].nButtonID = IDYES;
+        buttons[1].pszButtonText = L"Normaldump";
+        buttons[2].nButtonID = IDNO;
+        buttons[2].pszButtonText = L"Minidump";
+        buttons[3].nButtonID = IDABORT;
+        buttons[3].pszButtonText = L"Restart";
+        buttons[4].nButtonID = IDCANCEL;
+        buttons[4].pszButtonText = L"Exit";
 
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
         config.pszWindowTitle = PhApplicationName;
@@ -731,11 +748,14 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                         );
                 }
                 break;
+            case IDRETRY:
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeFulldump);
+                break;
             case IDYES:
-                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, TRUE);
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeNormaldump);
                 break;
             case IDNO:
-                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, FALSE);
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeMinidump);
                 break;
             }
         }
