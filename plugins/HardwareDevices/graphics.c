@@ -670,8 +670,8 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
 
         deviceString = PhSubstring(
             locationString,
-            deviceIndex + RTL_NUMBER_OF(L"device ") - 1,
-            deviceIndexLength - RTL_NUMBER_OF(L"device ") - 1
+            deviceIndex + (RTL_NUMBER_OF(L"device ") - 1),
+            deviceIndexLength - (RTL_NUMBER_OF(L"device ") - 1)
             );
 
         if (PhStringToInteger64(&deviceString->sr, 10, &index))

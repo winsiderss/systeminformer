@@ -177,8 +177,8 @@ BOOLEAN WhoisExtractServerUrl(
 
     whoisServerName = PhSubstring(
         WhoisResponse,
-        whoisServerHostnameIndex + RTL_NUMBER_OF(L"whois:") - 1,
-        whoisServerHostnameLength - RTL_NUMBER_OF(L"whois:") - 1
+        whoisServerHostnameIndex + (RTL_NUMBER_OF(L"whois:") - 1),
+        whoisServerHostnameLength - (RTL_NUMBER_OF(L"whois:") - 1)
         );
 
     if (WhoisServerAddress)
@@ -213,8 +213,8 @@ BOOLEAN WhoisExtractReferralServer(
 
     whoisServerName = PhSubstring(
         WhoisResponse,
-        whoisServerHostnameIndex + RTL_NUMBER_OF(L"ReferralServer:") - 1,
-        whoisServerHostnameLength - RTL_NUMBER_OF(L"ReferralServer:") - 1
+        whoisServerHostnameIndex + (RTL_NUMBER_OF(L"ReferralServer:") - 1),
+        whoisServerHostnameLength - (RTL_NUMBER_OF(L"ReferralServer:") - 1)
         );
 
     whoisServerHostname = TrimString(whoisServerName);
