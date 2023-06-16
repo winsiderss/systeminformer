@@ -165,8 +165,8 @@ BOOLEAN PhpUpdaterExtractCoAuthorName(
 
     authoredByName = PhSubstring(
         CommitMessage,
-        authoredByNameIndex + RTL_NUMBER_OF(L"Co-Authored-By:") - 1,
-        authoredByNameLength - RTL_NUMBER_OF(L"Co-Authored-By:") - 1
+        authoredByNameIndex + (RTL_NUMBER_OF(L"Co-Authored-By:") - 1),
+        authoredByNameLength - (RTL_NUMBER_OF(L"Co-Authored-By:") - 1)
         );
 
     if (CommitCoAuthorName)
