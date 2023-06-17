@@ -1448,7 +1448,7 @@ VOID PhGetStockApplicationIcon(
 //    icon = NULL;
 //    memset(&fileInfo, 0, sizeof(SHFILEINFO));
 //
-//    if (FileName && SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
+//    if (FileName && SHGetFileInfo(
 //        FileName,
 //        0,
 //        &fileInfo,
@@ -1463,7 +1463,7 @@ VOID PhGetStockApplicationIcon(
 //    {
 //        memset(&fileInfo, 0, sizeof(SHFILEINFO));
 //
-//        if (SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
+//        if (SHGetFileInfo(
 //            DefaultExtension,
 //            FILE_ATTRIBUTE_NORMAL,
 //            &fileInfo,
