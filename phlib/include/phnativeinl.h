@@ -1562,6 +1562,14 @@ PhGetTokenMandatoryPolicy(
         );
 }
 
+/**
+* The TOKEN_ORIGIN structure contains information about the origin of the logon session.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+* \param Origin A variable which receives the Locally unique identifier (LUID) for the logon session.
+*
+* \return Successful or errant status.
+*/
 FORCEINLINE
 NTSTATUS
 PhGetTokenOrigin(
@@ -1580,6 +1588,15 @@ PhGetTokenOrigin(
         );
 }
 
+/**
+* Gets a value that is nonzero if the token is an app container token.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+* \param IsAppContainer Any callers who check the TokenIsAppContainer and have it return 0 should
+* also verify that the caller token is not an identify level impersonation token.
+*
+* \return Successful or errant status.
+*/
 FORCEINLINE
 NTSTATUS
 PhGetTokenIsAppContainer(
@@ -1607,6 +1624,14 @@ PhGetTokenIsAppContainer(
     return status;
 }
 
+/**
+* Gets a value that includes the app container number for the token.
+*
+* \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+* \param AppContainerNumber The app container number for the token.
+*
+* \return Successful or errant status.
+*/
 FORCEINLINE
 NTSTATUS
 PhGetTokenAppContainerNumber(
@@ -1721,6 +1746,15 @@ PhGetTimerBasicInformation(
         );
 }
 
+/**
+* The action to be performed when the calling thread exits.
+*
+* \param DebugObjectHandle A handle to a process' debug object.
+* \param KillProcessOnExit If this parameter is TRUE, the thread terminates all attached processes on exit
+* (note that this is the default). Otherwise, the thread detaches from all processes being debugged on exit.
+*
+* \return Successful or errant status.
+*/
 FORCEINLINE
 NTSTATUS
 PhSetDebugKillProcessOnExit(
