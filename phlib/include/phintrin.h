@@ -397,6 +397,20 @@ PhShuffleFLOAT128_2103(
 
 FORCEINLINE
 PH_INT128
+PhShiftLeftINT128(
+    _In_ PH_INT128 A,
+    _In_ _In_range_(0, 255) INT32 Count
+    )
+{
+#ifdef _ARM64_
+    return vshlq_s32(A, vdupq_n_s32(Count));
+#else
+    return _mm_slli_epi32(A, Count);
+#endif
+}
+
+FORCEINLINE
+PH_INT128
 PhShiftRightINT128(
     _In_ PH_INT128 A,
     _In_ _In_range_(0, 255) INT32 Count
@@ -476,7 +490,7 @@ FORCEINLINE PH_FLOAT128 PhConvertUINT128ToFLOAT128(
     // Avoid double rounding by doing two exact conversions of high and low 16-bit segments.
 
     const PH_INT128 hi = PhShiftRightINT128(Value, 16);
-    const PH_INT128 lo = PhAndINT128(Value, PhSetINT128by32(0x0000FFFF)); // PhShiftRightINT128(_mm_slli_epi32(Value, 16), 16);
+    const PH_INT128 lo = PhShiftRightINT128(PhShiftLeftINT128(Value, 16), 16); // PhAndINT128(Value, PhSetINT128by32(0x0000FFFF));
     const PH_FLOAT128 fHi = PhMultiplyFLOAT128(PhConvertINT128ToFLOAT128(hi), mul);
     const PH_FLOAT128 fLo = PhConvertINT128ToFLOAT128(lo);
 
