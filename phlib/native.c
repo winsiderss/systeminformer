@@ -16635,3 +16635,64 @@ CleanupExit:
 
     return status;
 }
+
+NTSTATUS PhGetKernelDebuggerInformation(
+    _Out_opt_ PBOOLEAN KernelDebuggerEnabled,
+    _Out_opt_ PBOOLEAN KernelDebuggerPresent
+    )
+{
+    NTSTATUS status;
+    SYSTEM_KERNEL_DEBUGGER_INFORMATION debugInfo;
+
+    status = NtQuerySystemInformation(
+        SystemKernelDebuggerInformation,
+        &debugInfo,
+        sizeof(SYSTEM_KERNEL_DEBUGGER_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (KernelDebuggerEnabled)
+            *KernelDebuggerEnabled = debugInfo.KernelDebuggerEnabled;
+        if (KernelDebuggerPresent)
+            *KernelDebuggerPresent = !debugInfo.KernelDebuggerNotPresent;
+    }
+
+    return status;
+}
+
+// rev from BasepIsDebugPortPresent (dmex)
+BOOLEAN PhIsDebugPortPresent(
+    VOID
+    )
+{
+    BOOLEAN isBeingDebugged;
+
+    if (NT_SUCCESS(PhGetProcessIsBeingDebugged(NtCurrentProcess(), &isBeingDebugged)))
+    {
+        if (isBeingDebugged)
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+// rev from IsDebuggerPresent (dmex)
+/**
+ * Determines whether the calling process is being debugged by a user-mode debugger.
+ *
+ * \return TRUE if the current process is running in the context of a debugger, otherwise the return value is FALSE.
+ */
+BOOLEAN PhIsDebuggerPresent(
+    VOID
+    )
+{
+#ifdef PHNT_NATIVE_DEBUGGER
+    return !!IsDebuggerPresent();
+#else
+    return NtCurrentPeb()->BeingDebugged;
+#endif
+}

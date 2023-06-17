@@ -3243,6 +3243,21 @@ PhEnumVirtualMemoryAttributes(
     _In_ PVOID Context
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetKernelDebuggerInformation(
+    _Out_opt_ PBOOLEAN KernelDebuggerEnabled,
+    _Out_opt_ PBOOLEAN KernelDebuggerPresent
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsDebuggerPresent(
+    VOID
+    );
+
 EXTERN_C_END
 
 #endif
