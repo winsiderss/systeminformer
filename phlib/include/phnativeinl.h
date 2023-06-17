@@ -1819,4 +1819,66 @@ PhGetSystemShadowStackInformation(
         );
 }
 
+/**
+* The system boot time in Coordinated Universal Time (UTC) format.
+*
+* \param BootTime A pointer to a LARGE_INTEGER structure to receive the current system boot date and time.
+*
+* \return Successful or errant status.
+*/
+FORCEINLINE
+NTSTATUS
+PhGetSystemBootTime(
+    _Out_ PLARGE_INTEGER BootTime
+    )
+{
+    NTSTATUS status;
+    SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+
+    status = NtQuerySystemInformation(
+        SystemTimeOfDayInformation,
+        &timeOfDayInfo,
+        sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *BootTime = timeOfDayInfo.BootTime;
+    }
+
+    return status;
+}
+
+/**
+* The system uptime in Coordinated Universal Time (UTC) format.
+*
+* \param Uptime A pointer to a LARGE_INTEGER structure to receive the current system uptime.
+*
+* \return Successful or errant status.
+*/
+FORCEINLINE
+NTSTATUS
+PhGetSystemUptime(
+    _Out_ PLARGE_INTEGER Uptime
+    )
+{
+    NTSTATUS status;
+    SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+
+    status = NtQuerySystemInformation(
+        SystemTimeOfDayInformation,
+        &timeOfDayInfo,
+        sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        Uptime->QuadPart = timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart;
+    }
+
+    return status;
+}
+
 #endif

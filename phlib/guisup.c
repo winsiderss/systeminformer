@@ -3452,19 +3452,7 @@ VOID PhCustomDrawTreeTimeLine(
 
         if (bootTime.QuadPart == 0)
         {
-            SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
-
-            if (NT_SUCCESS(NtQuerySystemInformation(
-                SystemTimeOfDayInformation,
-                &timeOfDayInfo,
-                sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
-                NULL
-                )))
-            {
-                bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
-                bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
-                bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
-            }
+            PhGetSystemBootTime(&bootTime);
 
             //if (NT_SUCCESS(NtQuerySystemInformation(
             //    SystemTimeOfDayInformation,
