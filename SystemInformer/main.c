@@ -591,7 +591,7 @@ BOOLEAN PhInitializeDirectoryPolicy(
     return TRUE;
 }
 
-#ifndef DEBUG
+#pragma region Error Reporting
 #include <symprv.h>
 #include <minidumpapiset.h>
 
@@ -604,28 +604,21 @@ typedef enum _PH_DUMP_TYPE
 
 VOID PhpCreateUnhandledExceptionCrashDump(
     _In_ PEXCEPTION_POINTERS ExceptionInfo,
-    _In_ PH_DUMP_TYPE DumpType 
+    _In_ PH_DUMP_TYPE DumpType
     )
 {
     HANDLE fileHandle;
-    PPH_STRING dumpDirectory;
-    PPH_STRING dumpFileName;
+    PPH_STRING directory;
+    PPH_STRING fileName;
     WCHAR alphastring[16] = L"";
 
-    dumpDirectory = PhExpandEnvironmentStringsZ(L"%USERPROFILE%\\Desktop\\");
     PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
+    directory = PhExpandEnvironmentStringsZ(L"\\??\\%USERPROFILE%\\Desktop\\");
+    fileName = PhConcatStrings(5, PhGetString(directory), L"SystemInformer", L"_DumpFile_", alphastring, L".dmp");
 
-    dumpFileName = PhConcatStrings(
-        4,
-        PhGetString(dumpDirectory),
-        L"\\SystemInformer_",
-        alphastring,
-        L"_DumpFile.dmp"
-        );
-
-    if (NT_SUCCESS(PhCreateFileWin32(
+    if (NT_SUCCESS(PhCreateFile(
         &fileHandle,
-        PhGetString(dumpFileName),
+        &fileName->sr,
         FILE_GENERIC_WRITE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_WRITE,
@@ -635,6 +628,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     {
         MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
         MINIDUMP_TYPE dumpType;
+        ULONG dumpType = PhDumpTypeNormaldump;
 
         exceptionInfo.ThreadId = HandleToUlong(NtCurrentThreadId());
         exceptionInfo.ExceptionPointers = ExceptionInfo;
@@ -643,23 +637,33 @@ VOID PhpCreateUnhandledExceptionCrashDump(
         switch (DumpType)
         {
         case PhDumpTypeMinidump:
-            dumpType = MiniDumpNormal | MiniDumpWithDataSegs;
+            dumpType = MiniDumpWithDataSegs | MiniDumpWithUnloadedModules | MiniDumpWithProcessThreadData;
             break;
         case PhDumpTypeNormaldump:
-            // Note: This isn't a full dump, still very limited but just enough to see filenames on the stack. (dmex)
-            dumpType = MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithProcessThreadData;
+            dumpType =
+                MiniDumpWithDataSegs |
+                MiniDumpWithHandleData |
+                MiniDumpScanMemory |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithProcessThreadData |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory |
+                MiniDumpWithTokenInformation;
             break;
         case PhDumpTypeFulldump:
-            dumpType = (MiniDumpWithFullMemory |
-                        MiniDumpIgnoreInaccessibleMemory |
-                        MiniDumpWithHandleData |
-                        MiniDumpWithUnloadedModules |
-                        MiniDumpWithProcessThreadData |
-                        MiniDumpWithFullMemoryInfo |
-                        MiniDumpWithThreadInfo |
-                        MiniDumpWithTokenInformation |
-                        MiniDumpWithAvxXStateContext |
-                        MiniDumpWithIptTrace);
+            dumpType =
+                MiniDumpWithDataSegs |
+                MiniDumpWithFullMemory |
+                MiniDumpWithHandleData |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithIndirectlyReferencedMemory |
+                MiniDumpWithProcessThreadData |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory |
+                MiniDumpWithTokenInformation |
+                MiniDumpWithAvxXStateContext;
             break;
         }
 
@@ -676,8 +680,8 @@ VOID PhpCreateUnhandledExceptionCrashDump(
         NtClose(fileHandle);
     }
 
-    PhDereferenceObject(dumpFileName);
-    PhDereferenceObject(dumpDirectory);
+    PhDereferenceObject(fileName);
+    PhDereferenceObject(directory);
 }
 
 ULONG CALLBACK PhpUnhandledExceptionCallback(
@@ -685,8 +689,25 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
     )
 {
     PPH_STRING errorMessage;
-    INT result;
     PPH_STRING message;
+    INT result;
+    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+    TASKDIALOG_BUTTON buttons[6] =
+    {
+        { 1, L"Fulldump\nA complete dump of the process, rarely needed most of the time." },
+        { 2, L"Normaldump\nFor most purposes, this dump file is the most useful." },
+        { 3, L"Minidump\nA very limited dump with limited data." },
+        { 4, L"Restart\nRestart the application." }, // and hope it doesn't crash again.";
+        { 5, L"Ignore" },  // \nTry ignore the exception and continue.";
+        { 6, L"Exit" }, // \nTerminate the program.";
+    };
+
+    // Let the debugger handle the exception. (dmex)
+    // NOTE: Disable this check when debugging this callback.
+    if (PhIsDebuggerPresent())
+    {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
 
     if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
         errorMessage = PhGetStatusMessage(0, PhNtStatusToDosError(ExceptionInfo->ExceptionRecord->ExceptionCode));
@@ -699,65 +720,50 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         PhGetStringOrEmpty(errorMessage)
         );
 
-    PhEnableTerminationPolicy(FALSE);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_EXPAND_FOOTER_AREA;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = TD_ERROR_ICON;
+    config.pszMainInstruction = L"System Informer has crashed :(";
+    config.cButtons = RTL_NUMBER_OF(buttons);
+    config.pButtons = buttons;
+    config.nDefaultButton = 6;
+    config.cxWidth = 250;
+    config.pszContent = PhGetString(message);
+#ifdef DEBUG
+    config.pszExpandedInformation = PhGetString(PhGetStacktraceAsString());
+#endif
 
-    if (TaskDialogIndirect)
+    if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)))
     {
-        TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-        TASKDIALOG_BUTTON buttons[5];
-
-        buttons[0].nButtonID = IDRETRY;
-        buttons[0].pszButtonText = L"Fulldump";
-        buttons[1].nButtonID = IDYES;
-        buttons[1].pszButtonText = L"Normaldump";
-        buttons[2].nButtonID = IDNO;
-        buttons[2].pszButtonText = L"Minidump";
-        buttons[3].nButtonID = IDABORT;
-        buttons[3].pszButtonText = L"Restart";
-        buttons[4].nButtonID = IDCANCEL;
-        buttons[4].pszButtonText = L"Exit";
-
-        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
-        config.pszWindowTitle = PhApplicationName;
-        config.pszMainIcon = TD_ERROR_ICON;
-        config.pszMainInstruction = L"System Informer has crashed :(";
-        config.pszContent = PhGetStringOrEmpty(message);
-        config.cButtons = RTL_NUMBER_OF(buttons);
-        config.pButtons = buttons;
-        config.nDefaultButton = IDCANCEL;
-
-        if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)))
+        switch (result)
         {
-            switch (result)
+        case 1:
+            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeFulldump);
+            break;
+        case 2:
+            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeNormaldump);
+            break;
+        case 3:
+            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeMinidump);
+            break;
+        case 4:
             {
-            case IDCANCEL:
-                {
-                    PhExitApplication(ExceptionInfo->ExceptionRecord->ExceptionCode);
-                }
-                break;
-            case IDABORT:
-                {
-                    PhShellProcessHacker(
-                        NULL,
-                        NULL,
-                        SW_SHOW,
-                        PH_SHELL_EXECUTE_DEFAULT,
-                        PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                        0,
-                        NULL
-                        );
-                }
-                break;
-            case IDRETRY:
-                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeFulldump);
-                break;
-            case IDYES:
-                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeNormaldump);
-                break;
-            case IDNO:
-                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeMinidump);
-                break;
+                PhShellProcessHacker(
+                    NULL,
+                    NULL,
+                    SW_SHOW,
+                    PH_SHELL_EXECUTE_DEFAULT,
+                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                    0,
+                    NULL
+                    );
             }
+            break;
+        case 5:
+            {
+                return EXCEPTION_CONTINUE_EXECUTION;
+            }
+            break;
         }
     }
     else
@@ -771,40 +777,31 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         {
             PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, FALSE);
         }
-
-        PhShellProcessHacker(
-            NULL,
-            NULL,
-            SW_SHOW,
-            PH_SHELL_EXECUTE_DEFAULT,
-            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-            0,
-            NULL
-            );
     }
 
     PhExitApplication(ExceptionInfo->ExceptionRecord->ExceptionCode);
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
-#endif
+#pragma endregion
 
 BOOLEAN PhInitializeExceptionPolicy(
     VOID
     )
 {
-#ifndef DEBUG
-    //ULONG errorMode;
-    //
-    //if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
-    //{
-    //    ClearFlag(errorMode, SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
-    //    PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
-    //}
-    PhSetProcessErrorMode(NtCurrentProcess(), 0);
+#if PHNT_MINIMAL_ERRORMODE
+    ULONG errorMode;
 
-    RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
+    if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
+    {
+        ClearFlag(errorMode, SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+        PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
+    }
+#else
+    PhSetProcessErrorMode(NtCurrentProcess(), 0);
 #endif
+    RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
+
     return TRUE;
 }
 
