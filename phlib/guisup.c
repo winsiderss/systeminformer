@@ -3376,22 +3376,6 @@ BOOLEAN PhImageListSetIconSize(
     return SUCCEEDED(IImageList2_SetIconSize((IImageList2*)ImageListHandle, cx, cy));
 }
 
-static BOOLEAN CALLBACK PhpDpiChangedForwardEnumChildWindows(
-    _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
-    )
-{
-    SendMessage(WindowHandle, WM_DPICHANGED, 0, 0);
-    return TRUE;
-}
-
-VOID PhDpiChangedForwardChildWindows(
-    _In_ HWND WindowHandle
-    )
-{
-    PhEnumChildWindows(WindowHandle, 0x1000, PhpDpiChangedForwardEnumChildWindows, NULL);
-}
-
 static const PH_FLAG_MAPPING PhpInitiateShutdownMappings[] =
 {
     { PH_SHUTDOWN_RESTART, SHUTDOWN_RESTART },
