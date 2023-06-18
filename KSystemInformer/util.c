@@ -1314,3 +1314,52 @@ Exit:
 
     return status;
 }
+
+/**
+ * \brief Grants a call target in a process permission to be called by setting
+ * CFG flags for that page.
+ *
+ * \details The process must already have the relevant mitigations enabled for
+ * the CFG flags, else this call will fail. See RtlpGuardGrantSuppressedCallAccess.
+ * 
+ * \param ProcessHandle Handle to the process to configure CFG for.
+ * \param VirtualAddress Virtual address of the call target.
+ * \param Flags CFG flags to configure.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGuardGrantSuppressedCallAccess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress,
+    _In_ ULONG Flags
+    )
+{
+    MEMORY_RANGE_ENTRY memoryRange;
+    CFG_CALL_TARGET_INFO targetInfo;
+    CFG_CALL_TARGET_LIST_INFORMATION targetListInfo;
+    ULONG numberOfEntriesProcessed;
+
+    PAGED_CODE();
+
+    memoryRange.VirtualAddress = (PVOID)((ULONG_PTR)VirtualAddress & ~(PAGE_SIZE - 1));
+    memoryRange.NumberOfBytes = PAGE_SIZE;
+
+    targetInfo.Offset = ((ULONG_PTR)VirtualAddress & (PAGE_SIZE - 1));
+    targetInfo.Flags = Flags;
+
+    numberOfEntriesProcessed = 0;
+
+    RtlZeroMemory(&targetListInfo, sizeof(targetListInfo));
+    targetListInfo.NumberOfEntries = 1;
+    targetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
+    targetListInfo.CallTargetInfo = &targetInfo;
+
+    return ZwSetInformationVirtualMemory(ProcessHandle,
+                                         VmCfgCallTargetInformation,
+                                         1,
+                                         &memoryRange,
+                                         &targetListInfo,
+                                         sizeof(targetListInfo));
+}

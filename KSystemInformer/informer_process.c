@@ -432,8 +432,10 @@ VOID KphpPerformProcessCreationTracking(
     _Inout_opt_ PPS_CREATE_NOTIFY_INFO CreateInfo
     )
 {
+    NTSTATUS status;
     PKPH_THREAD_CONTEXT actor;
     PKPH_PROCESS_CREATE_APC apc;
+    BOOLEAN stopProtecting;
 
     PAGED_PASSIVE();
 
@@ -450,6 +452,11 @@ VOID KphpPerformProcessCreationTracking(
         return;
     }
 
+    //
+    // If we fail here we will stop protecting the process. If protection is
+    // stopped the process will not be given full access to the driver APIs.
+    //
+    stopProtecting = TRUE;
     apc = NULL;
 
     actor = KphGetCurrentThreadContext();
@@ -467,9 +474,13 @@ VOID KphpPerformProcessCreationTracking(
         goto Exit;
     }
 
-    if (!actor->ProcessContext->ApcNoopRoutine)
+    status = KphCheckProcessApcNoopRoutine(actor->ProcessContext);
+    if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "APC no-op routine null.");
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "KphCheckProcessApcNoopRoutine failed: %!STATUS!",
+                      status);
         goto Exit;
     }
 
@@ -516,6 +527,7 @@ VOID KphpPerformProcessCreationTracking(
     //
     KeTestAlertThread(UserMode);
 
+    stopProtecting = FALSE;
     apc = NULL;
 
 Exit:
@@ -528,6 +540,11 @@ Exit:
     if (actor)
     {
         KphDereferenceObject(actor);
+    }
+
+    if (stopProtecting)
+    {
+        KphStopProtectingProcess(Process);
     }
 }
 
