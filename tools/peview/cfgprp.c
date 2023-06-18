@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -133,6 +133,19 @@ VOID PvPeAddListViewCfgFunctionEntry(
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PH_AUTO_T(PH_STRING, PhFinalStringBuilderString(&stringBuilder))->Buffer);
+
+    if (cfgFunctionEntry.XfgHash)
+    {
+        PH_STRINGREF xfgHashString;
+#ifdef _WIN64
+        _ui64tow(cfgFunctionEntry.XfgHash, value, 16);
+#else
+        _ultow(cfgFunctionEntry.XfgHash, value, 16);
+#endif
+        PhInitializeStringRefLongHint(&xfgHashString, value);
+        PhUpperStringRef(&xfgHashString);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PhGetStringRefZ(&xfgHashString));
+    }
 }
 
 VOID PvpPeCgfEnumGuardFunctions(
@@ -210,6 +223,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"Type");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Flags");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"XFG Hash");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageCfgListViewColumns", context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);

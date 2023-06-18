@@ -2302,6 +2302,13 @@ NTSTATUS PhGetMappedImageCfgEntry(
         Entry->LangExcptHandler = cfgMappedEntry->LangExcptHandler;
         Entry->Xfg = cfgMappedEntry->Xfg;
         Entry->Reserved = cfgMappedEntry->Reserved;
+
+        if (cfgMappedEntry->Xfg)
+        {
+            // XFG hashes are offset from the rva (dmex)
+            PVOID cfgFunctionOffset = PTR_ADD_OFFSET(CfgConfig->MappedImage->ViewBase, Entry->Rva);
+            Entry->XfgHash = *(PULONG64)PTR_SUB_OFFSET(cfgFunctionOffset, sizeof(ULONG64));
+        }
     }
 
     return STATUS_SUCCESS;
