@@ -16363,6 +16363,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
     _In_opt_ PVOID Context
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
     NTSTATUS status;
 
     // BulkQuery... TRUE:
@@ -16468,6 +16469,9 @@ NTSTATUS PhEnumVirtualMemoryBulk(
     }
 
     return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
 }
 
 /**
