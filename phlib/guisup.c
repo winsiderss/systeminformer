@@ -1392,6 +1392,21 @@ VOID PhGetStockApplicationIcon(
                 PhDereferenceObject(systemDirectory);
             }
         }
+        else
+        {
+            PH_STRINGREF imageFileName;
+
+            PhInitializeStringRef(&imageFileName, L"\\SystemRoot\\System32\\imageres.dll");
+
+            PhExtractIconEx(
+                &imageFileName,
+                TRUE,
+                11,
+                &largeIcon,
+                &smallIcon,
+                systemDpi
+                );
+        }
     }
 
     if (!smallIcon)
