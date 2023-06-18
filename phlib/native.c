@@ -9051,7 +9051,7 @@ NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (WindowsVersion >= WINDOWS_10_RS1 && NtCurrentPeb()->IsLongPathAwareProcess) // RtlAreLongPathsEnabled
+        if (WindowsVersion >= WINDOWS_10_RS1) // RtlAreLongPathsEnabled() // always true
         {
             PVOID baseAddress;
 
