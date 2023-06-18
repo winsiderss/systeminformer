@@ -34,7 +34,7 @@ if not "%1"=="" (
         goto :argloop
     )
     if "%1"=="prefast" (
-        set PREFAST_ANALYSIS=-p:RunCodeAnalysis=true 
+        set PREFAST_ANALYSIS=-p:RunCodeAnalysis=true -p:CodeAnalysisTreatWarningsAsErrors=true
         shift
         goto :argloop
     )
