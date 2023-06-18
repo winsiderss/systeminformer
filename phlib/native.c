@@ -6695,6 +6695,7 @@ NTSTATUS PhEnumProcesses(
  *
  * \param Processes A variable which receives a pointer to a buffer containing process information.
  * You must free the buffer using PhFree() when you no longer need it.
+ * \param SystemInformationClass A variable which indicates the kind of system information to be retrieved.
  *
  * \remarks You can use the \ref PH_FIRST_PROCESS and \ref PH_NEXT_PROCESS macros to process the
  * information contained in the buffer.
@@ -8209,6 +8210,7 @@ NTSTATUS PhEnumFileHardLinks(
 
 NTSTATUS PhCreateSymbolicLinkObject(
     _Out_ PHANDLE LinkHandle,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_ PPH_STRINGREF FileName,
     _In_ PPH_STRINGREF LinkName
     )
@@ -8234,7 +8236,7 @@ NTSTATUS PhCreateSymbolicLinkObject(
 
     status = NtCreateSymbolicLinkObject(
         &linkHandle,
-        MAXIMUM_ALLOWED,
+        DesiredAccess,
         &objectAttributes,
         &objectTarget
         );
@@ -8248,8 +8250,9 @@ NTSTATUS PhCreateSymbolicLinkObject(
 }
 
 NTSTATUS PhQuerySymbolicLinkObject(
-    _In_ PPH_STRINGREF Name,
-    _Out_ PPH_STRING* LinkTarget
+    _Out_ PPH_STRING* LinkTarget,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF ObjectName
     )
 {
     NTSTATUS status;
@@ -8259,14 +8262,14 @@ NTSTATUS PhQuerySymbolicLinkObject(
     UNICODE_STRING targetName;
     WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
 
-    if (!PhStringRefToUnicodeString(Name, &objectName))
+    if (!PhStringRefToUnicodeString(ObjectName, &objectName))
         return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
         &objectAttributes,
         &objectName,
         OBJ_CASE_INSENSITIVE,
-        NULL,
+        RootDirectory,
         NULL
         );
 
