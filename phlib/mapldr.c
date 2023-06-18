@@ -500,14 +500,19 @@ NTSTATUS PhGetProcedureAddressRemote(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcessMappedFileName(
-        NtCurrentProcess(),
-        mappedImage.ViewBase,
-        &fileName
-        );
+    fileName = PhDosPathNameToNtPathName(FileName);
 
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
+    if (!fileName)
+    {
+        status = PhGetProcessMappedFileName(
+            NtCurrentProcess(),
+            mappedImage.ViewBase,
+            &fileName
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
 
     memset(&context, 0, sizeof(PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT));
     context.FileName = fileName;
