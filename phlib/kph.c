@@ -1522,11 +1522,7 @@ NTSTATUS KphQueryInformationFile(
 
     KSI_COMMS_INIT_ASSERT();
 
-    // TODO(jxy-s) This is to workaround synchronous busy file objects. The
-    // driver will attach to the process, as the file object is busy and can't
-    // service multiple callers at the same time, the call may never return.
-    // There is obviously a race here, we should instead fix this in the driver
-    // to eliminate it.
+    // TODO(jxy-s) safety added to driver (2023-06-19) remove this after next driver release
     if (KphpFileObjectIsBusy(ProcessHandle, FileHandle))
         return STATUS_POSSIBLE_DEADLOCK;
 

@@ -17,6 +17,64 @@
 PAGED_FILE();
 
 /**
+ * \brief Checks if a file handle is safe to issue a query through.
+ *
+ * \details Expects to be stack attached to the process that owns the handle.
+ *
+ * \param[in] FileHandle The file handle to check.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpCheckFileHandleForQuery(
+    _In_ HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    PFILE_OBJECT fileObject;
+
+    PAGED_PASSIVE();
+
+    //
+    // We are stack attached and "invading" the process to perform the query.
+    // If the file object is "Busy" it means it's a synchronous file object
+    // that is currently servicing an I/O request. If we were to issue another
+    // request the call would block until the other completes. Since we don't
+    // control this handle it's possible the call will never complete.
+    //
+    // This check isn't perfect, there is still a race, but it's narrower and
+    // makes it safer and faster for the client. As this stands it's a pretty
+    // gross hack, but we get value out of these APIs, so the hack is better
+    // than nothing.
+    //
+    // TODO(jxy-s) investigate other options to close or eliminate the race
+    //
+
+    status = ObReferenceObjectByHandle(FileHandle,
+                                       0,
+                                       *IoFileObjectType,
+                                       KernelMode,
+                                       &fileObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    status = fileObject->Busy ? STATUS_POSSIBLE_DEADLOCK : STATUS_SUCCESS;
+
+    ObDereferenceObject(fileObject);
+
+    return status;
+}
+
+/**
  * \brief Queries file information.
  *
  * \param[in] ProcessHandle A handle to a process.
@@ -119,11 +177,15 @@ NTSTATUS KphQueryInformationFile(
     }
 
     KeStackAttachProcess(process, &apcState);
-    status = ZwQueryInformationFile(FileHandle,
-                                    &ioStatusBlock,
-                                    buffer,
-                                    FileInformationLength,
-                                    FileInformationClass);
+    status = KphpCheckFileHandleForQuery(FileHandle);
+    if (NT_SUCCESS(status))
+    {
+        status = ZwQueryInformationFile(FileHandle,
+                                        &ioStatusBlock,
+                                        buffer,
+                                        FileInformationLength,
+                                        FileInformationClass);
+    }
     KeUnstackDetachProcess(&apcState);
     if (NT_SUCCESS(status))
     {
@@ -264,11 +326,15 @@ NTSTATUS KphQueryVolumeInformationFile(
     }
 
     KeStackAttachProcess(process, &apcState);
-    status = ZwQueryVolumeInformationFile(FileHandle,
-                                          &ioStatusBlock,
-                                          buffer,
-                                          FsInformationLength,
-                                          FsInformationClass);
+    status = KphpCheckFileHandleForQuery(FileHandle);
+    if (NT_SUCCESS(status))
+    {
+        status = ZwQueryVolumeInformationFile(FileHandle,
+                                              &ioStatusBlock,
+                                              buffer,
+                                              FsInformationLength,
+                                              FsInformationClass);
+    }
     KeUnstackDetachProcess(&apcState);
     if (NT_SUCCESS(status))
     {
