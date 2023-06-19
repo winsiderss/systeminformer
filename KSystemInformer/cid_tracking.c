@@ -1859,7 +1859,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
     PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
     ULONG flags;
 
-    PAGED_CODE();
+    PAGED_PASSIVE();
 
     if (ProcessContext->ApcNoopRoutine)
     {
