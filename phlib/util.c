@@ -8470,6 +8470,3 @@ NTSTATUS PhUpdateProcThreadAttribute(
     return STATUS_SUCCESS;
 #endif
 }
-
-    return STATUS_SUCCESS;
-}
