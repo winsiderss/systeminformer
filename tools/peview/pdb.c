@@ -1374,7 +1374,6 @@ PPH_STRING PdbGetSymbolDetails(
     {
         IDiaEnumSymbols* idiaEnumSymbols;
         IDiaSymbol* idiaGlobalSymbol;
-        IDiaSymbol* idiaSymbol;
         ULONG count;
 
         if (IDiaSession_get_globalScope(

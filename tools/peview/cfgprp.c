@@ -31,7 +31,7 @@ VOID PvPeAddListViewCfgFunctionEntry(
 {
     INT lvItemIndex;
     ULONG64 displacement;
-    PPH_STRING symbol;
+    PPH_STRING symbol = NULL;
     PPH_STRING symbolName = NULL;
     PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
     IMAGE_CFG_ENTRY cfgFunctionEntry = { 0 };
@@ -115,7 +115,8 @@ VOID PvPeAddListViewCfgFunctionEntry(
 
     if (symbolName)
         PhDereferenceObject(symbolName);
-    PhDereferenceObject(symbol);
+    if (symbol)
+        PhDereferenceObject(symbol);
 
     // Add additional flags
     PhInitializeStringBuilder(&stringBuilder, 16);

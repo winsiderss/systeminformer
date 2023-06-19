@@ -89,7 +89,6 @@ VOID PvEnumerateImagePogoSections(
 
             __try
             {
-                PVOID imageSectionData;
                 PPH_STRING entropyString;
                 DOUBLE imageSectionEntropy;
 
