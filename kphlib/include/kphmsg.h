@@ -81,7 +81,6 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgRequiredStateFailure,
 
     MaxKphMsg
-
 } KPH_MESSAGE_ID, *PKPH_MESSAGE_ID;
 
 C_ASSERT(sizeof(KPH_MESSAGE_ID) == 4);
@@ -98,7 +97,6 @@ typedef enum _KPH_MESSAGE_FIELD_ID
     KphMsgFieldStackTrace,
 
     MaxKphMsgField
-
 } KPH_MESSAGE_FIELD_ID, *PKPH_MESSAGE_FIELD_ID;
 
 C_ASSERT(sizeof(KPH_MESSAGE_FIELD_ID) == 4);
@@ -113,7 +111,6 @@ typedef enum _KPH_MESSAGE_TYPE_ID
     KphMsgTypeStackTrace,
 
     MaxKphMsgType
-
 } KPH_MESSAGE_TYPE_ID, *PKPH_MESSAGE_TYPE_ID;
 
 C_ASSERT(sizeof(KPH_MESSAGE_TYPE_ID) == 4);
@@ -125,7 +122,6 @@ typedef struct _KPH_MESSAGE_DYNAMIC_TABLE_ENTRY
     KPH_MESSAGE_TYPE_ID TypeId;
     ULONG Offset;
     ULONG Size;
-
 } KPH_MESSAGE_DYNAMIC_TABLE_ENTRY, *PKPH_MESSAGE_DYNAMIC_TABLE_ENTRY;
 
 typedef const KPH_MESSAGE_DYNAMIC_TABLE_ENTRY* PCKPH_MESSAGE_DYNAMIC_TABLE_ENTRY;
@@ -138,7 +134,6 @@ typedef struct _KPH_MESSAGE
         KPH_MESSAGE_ID MessageId;
         ULONG Size;
         LARGE_INTEGER TimeStamp;
-
     } Header;
 
     union
@@ -175,7 +170,6 @@ typedef struct _KPH_MESSAGE
             KPHM_CREATE_FILE CreateFile;
             KPHM_QUERY_INFORMATION_THREAD QueryInformationThread;
             KPHM_QUERY_SECTION QuerySection;
-
         } User;
 
         //
@@ -203,7 +197,6 @@ typedef struct _KPH_MESSAGE
             KPHM_DESKTOP_HANDLE_PRE_DUPLICATE DesktopHandlePreDuplicate;
             KPHM_DESKTOP_HANDLE_POST_DUPLICATE DesktopHandlePostDuplicate;
             KPHM_REQUIRED_STATE_FAILURE RequiredStateFailure;
-
         } Kernel;
 
         //
@@ -212,7 +205,6 @@ typedef struct _KPH_MESSAGE
         union
         {
             KPHM_PROCESS_CREATE_REPLY ProcessCreate;
-
         } Reply;
     };
 
@@ -225,7 +217,6 @@ typedef struct _KPH_MESSAGE
         KPH_MESSAGE_DYNAMIC_TABLE_ENTRY Entries[8];
         CHAR Buffer[3 * 1024];
     } _Dyn;
-
 } KPH_MESSAGE, *PKPH_MESSAGE;
 
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;

@@ -22,7 +22,6 @@ typedef enum _KPH_THREAD_NOTIFY_TYPE
     KphThreadNotifyCreate,
     KphThreadNotifyExecute,
     KphThreadNotifyExit
-
 } KPH_THREAD_NOTIFY_TYPE;
 
 /**

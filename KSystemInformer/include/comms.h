@@ -55,7 +55,6 @@ typedef struct _KPH_MESSAGE_HANDLER
     KPH_MESSAGE_ID MessageId;
     PKPHM_HANDLER Handler;
     PKPHM_REQUIRED_STATE RequiredState;
-
 } KPH_MESSAGE_HANDLER, *PKPH_MESSAGE_HANDLER;
 
 extern KPH_MESSAGE_HANDLER KphCommsMessageHandlers[];

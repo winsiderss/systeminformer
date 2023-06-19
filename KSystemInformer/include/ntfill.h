@@ -119,7 +119,6 @@ typedef enum _KAPC_ENVIRONMENT
     AttachedApcEnvironment,
     CurrentApcEnvironment,
     InsertApcEnvironment
-
 } KAPC_ENVIRONMENT, *PKAPC_ENVIRONMENT;
 
 typedef
@@ -476,7 +475,6 @@ typedef struct _KLDR_DATA_TABLE_ENTRY
     };
     ULONG SizeOfImageNotRounded;
     ULONG TimeDateStamp;
-
 } KLDR_DATA_TABLE_ENTRY, *PKLDR_DATA_TABLE_ENTRY;
 
 // PS
@@ -570,7 +568,6 @@ typedef struct _PS_PROTECTION
             UCHAR Signer : 4;
         };
     };
-
 } PS_PROTECTION, *PPS_PROTECTION;
 
 typedef enum _PS_PROTECTED_TYPE
@@ -593,7 +590,6 @@ typedef enum _PS_PROTECTED_SIGNER
     PsProtectedSignerWinSystem,
     PsProtectedSignerApp,
     PsProtectedSignerMax
-
 } PS_PROTECTED_SIGNER, *PPS_PROTECTED_SIGNER;
 
 #if (NTDDI_VERSION >= NTDDI_WIN10)
@@ -1317,7 +1313,6 @@ typedef enum _MINCRYPT_KNOWN_ROOT
     MincryptRootMicrosoftECCDevelopmentRoot2018,
     MincryptRootMicrosoftECCProduct2018,
     MincryptRootMicrosoftECCProduct2017
-
 } MINCRYPT_KNOWN_ROOT;
 
 typedef struct _MINCRYPT_STRING
@@ -1326,7 +1321,6 @@ typedef struct _MINCRYPT_STRING
     USHORT Length;
     UCHAR Asn1EncodingTag;
     UCHAR Spare[1];
-
 } MINCRYPT_STRING, *PMINCRYPT_STRING;
 
 typedef struct _MINCRYPT_CHAIN_ELEMENT
@@ -1337,7 +1331,6 @@ typedef struct _MINCRYPT_CHAIN_ELEMENT
     MINCRYPT_STRING Subject;
     MINCRYPT_STRING Issuer;
     CRYPT_DER_BLOB Certificate;
-
 } MINCRYPT_CHAIN_ELEMENT, *PMINCRYPT_CHAIN_ELEMENT;
 
 typedef struct _MINCRYPT_CHAIN_INFO
@@ -1355,7 +1348,6 @@ typedef struct _MINCRYPT_CHAIN_INFO
     MINCRYPT_KNOWN_ROOT KnownRoot;
     CRYPT_ATTR_BLOB AuthenticodeAttributes;
     UCHAR PlatformManifest[MINCRYPT_SHA256_HASH_LEN];
-
 } MINCRYPT_CHAIN_INFO, *PMINCRYPT_CHAIN_INFO;
 
 typedef struct _MINCRYPT_POLICY_INFO
@@ -1373,7 +1365,6 @@ typedef struct _MINCRYPT_POLICY_INFO
 
     LARGE_INTEGER ValidFromTime;
     LARGE_INTEGER ValidToTime;
-
 } MINCRYPT_POLICY_INFO, *PMINCRYPT_POLICY_INFO;
 
 typedef

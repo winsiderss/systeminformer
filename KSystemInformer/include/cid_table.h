@@ -19,14 +19,12 @@
 typedef struct _CID_TABLE_ENTRY
 {
     volatile ULONG_PTR Object;
-
 } CID_TABLE_ENTRY, *PCID_TABLE_ENTRY;
 
 typedef struct _CID_TABLE
 {
     KPH_RWLOCK Lock;
     volatile ULONG_PTR Table;
-
 } CID_TABLE, *PCID_TABLE;
 
 _IRQL_requires_max_(APC_LEVEL)

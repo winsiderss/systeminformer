@@ -85,7 +85,6 @@ typedef enum _KPH_PROCESS_INFORMATION_CLASS
     KphProcessPriorityClassEx,       // s: PROCESS_PRIORITY_CLASS_EX
     KphProcessEmptyWorkingSet,       // s
     KphProcessWSLProcessId,          // q: ULONG 
-
 } KPH_PROCESS_INFORMATION_CLASS;
 
 typedef enum _KPH_THREAD_INFORMATION_CLASS
@@ -104,7 +103,6 @@ typedef enum _KPH_THREAD_INFORMATION_CLASS
     KphThreadPowerThrottlingState,   // s: POWER_THROTTLING_THREAD_STATE
     KphThreadIoCounters,             // q: IO_COUNTERS
     KphThreadWSLThreadId,            // q: ULONG 
-
 } KPH_THREAD_INFORMATION_CLASS;
 
 typedef struct _KPH_PROCESS_BASIC_INFORMATION
@@ -149,7 +147,6 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
     SIZE_T NumberOfAntimalwareImageLoads;
     SIZE_T NumberOfVerifiedImageLoads;
     SIZE_T NumberOfUntrustedImageLoads;
-
 } KPH_PROCESS_BASIC_INFORMATION, *PKPH_PROCESS_BASIC_INFORMATION;
 
 // Process handle information
@@ -212,7 +209,6 @@ typedef struct _KPH_VPB
     ULONG SerialNumber;
     ULONG ReferenceCount;
     WCHAR VolumeLabel[32];
-
 } KPH_VPB, *PKPH_VPB;
 
 typedef struct _KPH_DEVICE_INFO
@@ -221,7 +217,6 @@ typedef struct _KPH_DEVICE_INFO
     ULONG Characteristics;
     ULONG Flags;
     KPH_VPB Vpb;
-
 } KPH_DEVICE_INFO, *PKPH_DEVICE_INFO;
 
 typedef struct _KPH_FILE_OBJECT_INFORMATION
@@ -245,7 +240,6 @@ typedef struct _KPH_FILE_OBJECT_INFORMATION
     KPH_DEVICE_INFO Device;
     KPH_DEVICE_INFO AttachedDevice;
     KPH_DEVICE_INFO RelatedDevice;
-
 } KPH_FILE_OBJECT_INFORMATION, *PKPH_FILE_OBJECT_INFORMATION;
 
 typedef struct _KPH_FILE_OBJECT_DRIVER
@@ -440,7 +434,6 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONGLONG Reserved : 44;
         };
     };
-
 } KPH_INFORMER_SETTINGS, *PKPH_INFORMER_SETTINGS;
 
 #pragma warning(pop)
