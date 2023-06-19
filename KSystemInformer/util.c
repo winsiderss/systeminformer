@@ -1341,7 +1341,7 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
     CFG_CALL_TARGET_LIST_INFORMATION targetListInfo;
     ULONG numberOfEntriesProcessed;
 
-    PAGED_CODE();
+    PAGED_PASSIVE();
 
     memoryRange.VirtualAddress = (PVOID)((ULONG_PTR)VirtualAddress & ~(PAGE_SIZE - 1));
     memoryRange.NumberOfBytes = PAGE_SIZE;
