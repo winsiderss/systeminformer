@@ -6,19 +6,21 @@
  * Authors:
  *
  *     jxy-s    2023
+ *     dmex     2023
  *
  */
 
 #ifndef _PH_PHINTRIN_H
 #define _PH_PHINTRIN_H
 
+#include <intrin.h>
+
 #ifdef _ARM64_
-#define PhHasPopulationCount TRUE
 #define PhHasIntrinsics TRUE
+#define PhHasPopulationCount TRUE
+#define PhHasAVX FALSE
 #else
 extern int __isa_available;
-extern long __isa_enabled;
-
 #define ISA_AVAILABLE_X86 0
 #define ISA_AVAILABLE_SSE2 1
 #define ISA_AVAILABLE_SSE42 2
@@ -27,15 +29,26 @@ extern long __isa_enabled;
 #define ISA_AVAILABLE_AVX2 5
 #define ISA_AVAILABLE_AVX512 6
 
-#define PhHasPopulationCount \
-    (__isa_available >= ISA_AVAILABLE_SSE42)
-#define PhHasIntrinsics \
-    (__isa_available >= ISA_AVAILABLE_SSE2)
-#define PhHasAVX \
-    (__isa_available >= ISA_AVAILABLE_AVX2)
-#endif
+extern long __isa_enabled;
+#define ISA_ENABLED_X86 0x00000001
+#define ISA_ENABLED_SSE2 0x00000002
+#define ISA_ENABLED_SSE42 0x00000004
+#define ISA_ENABLED_AVX 0x00000008
+//#define ISA_ENABLED_ENFSTRG 0x00000010
+#define ISA_ENABLED_AVX2 0x00000020
+#define ISA_ENABLED_AVX512 0x00000040
 
-#include <intrin.h>
+#ifdef _M_IX86
+#define PhHasIntrinsics \
+    FlagOn(__isa_enabled, ISA_ENABLED_SSE2)
+#else
+#define PhHasIntrinsics TRUE
+#endif
+#define PhHasPopulationCount \
+    FlagOn(__isa_enabled, ISA_ENABLED_SSE42)
+#define PhHasAVX \
+    FlagOn(__isa_enabled, ISA_ENABLED_AVX2)
+#endif
 
 FORCEINLINE
 ULONG
