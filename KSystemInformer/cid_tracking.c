@@ -24,7 +24,6 @@ typedef struct _KPH_CID_APC
 {
     KSI_KAPC Apc;
     PKPH_THREAD_CONTEXT Thread;
-
 } KPH_CID_APC, *PKPH_CID_APC;
 
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpCidApcLookaside = NULL;
@@ -202,11 +201,17 @@ PVOID KSIAPI KphpAllocateProcessContext(
     return object;
 }
 
+typedef struct _KPH_INIT_PROCESS_CONTEXT
+{
+    PEPROCESS ProcessObject;
+    BOOLEAN Verify;
+} KPH_INIT_PROCESS_CONTEXT, *PKPH_INIT_PROCESS_CONTEXT;
+
 /**
  * \brief Initializes a process context.
  *
  * \param[in] Object The process context object to initialize.
- * \param[in] Parameter The kernel process object associated with this context.
+ * \param[in] Parameter PKPH_INIT_PROCESS_CONTEXT
  *
  * \return STATUS_SUCCESS
  */
@@ -220,16 +225,16 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 {
     NTSTATUS status;
     PKPH_PROCESS_CONTEXT process;
-    PEPROCESS processObject;
+    PKPH_INIT_PROCESS_CONTEXT init;
     HANDLE processHandle;
     PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
     PAGED_CODE();
 
     process = Object;
-    processObject = Parameter;
+    init = Parameter;
 
-    status = ObOpenObjectByPointer(processObject,
+    status = ObOpenObjectByPointer(init->ProcessObject,
                                    OBJ_KERNEL_HANDLE,
                                    NULL,
                                    PROCESS_ALL_ACCESS,
@@ -288,7 +293,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         process->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
     }
 
-    process->EProcess = processObject;
+    process->EProcess = init->ProcessObject;
     ObReferenceObject(process->EProcess);
 
     process->ProcessId = PsGetProcessId(process->EProcess);
@@ -333,7 +338,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         process->ImageFileName = NULL;
     }
 
-    if (process->ImageFileName)
+    if (process->ImageFileName && init->Verify)
     {
         status = KphVerifyFile(process->ImageFileName);
 
@@ -1208,6 +1213,23 @@ BOOLEAN CIDAPI KphpCidEnumPostPopulate(
 
     process = Context;
 
+    if (process->ImageFileName && !process->VerifiedProcess)
+    {
+        status = KphVerifyFile(process->ImageFileName);
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphVerifyFile: %lu \"%wZ\": %!STATUS!",
+                      HandleToULong(process->ProcessId),
+                      process->ImageFileName,
+                      status);
+
+        if (NT_SUCCESS(status))
+        {
+            process->VerifiedProcess = TRUE;
+        }
+    }
+
     processState = KphGetProcessState(process);
     if ((processState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)
     {
@@ -1334,6 +1356,7 @@ NTSTATUS KphCidPopulate(
     {
         PKPH_PROCESS_CONTEXT process;
         PEPROCESS processObject;
+        KPH_INIT_PROCESS_CONTEXT init;
 
         if (!info->UniqueProcessId)
         {
@@ -1396,10 +1419,13 @@ NTSTATUS KphCidPopulate(
             }
         }
 
+        init.ProcessObject = processObject;
+        init.Verify = FALSE;
+
         process = KphpTrackContext(info->UniqueProcessId,
                                    KphProcessContextType,
                                    sizeof(KPH_PROCESS_CONTEXT),
-                                   processObject);
+                                   &init);
 
         ObDereferenceObject(processObject);
         processObject = NULL;
@@ -1551,14 +1577,19 @@ PKPH_PROCESS_CONTEXT KphTrackProcessContext(
     _In_ PEPROCESS Process
     )
 {
+    KPH_INIT_PROCESS_CONTEXT init;
+
     PAGED_PASSIVE();
 
     KphpCidWaitForPopulate();
 
+    init.ProcessObject = Process;
+    init.Verify = TRUE;
+
     return KphpTrackContext(PsGetProcessId(Process),
                             KphProcessContextType,
                             sizeof(KPH_PROCESS_CONTEXT),
-                            Process);
+                            &init);
 }
 
 /**
@@ -1673,7 +1704,6 @@ typedef struct _KPH_ENUM_CONTEXT
     PKPH_ENUM_PROCESS_CONTEXTS_CALLBACK ProcessCallback;
     PKPH_ENUM_THREAD_CONTEXTS_CALLBACK ThreadCallback;
     PVOID Parameter;
-
 } KPH_ENUM_CONTEXT, *PKPH_ENUM_CONTEXT;
 
 /**

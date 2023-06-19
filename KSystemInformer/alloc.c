@@ -24,7 +24,6 @@ typedef struct _KPH_LOOKASIDE_INIT
 {
     SIZE_T Size;
     ULONG Tag;
-
 } KPH_LOOKASIDE_INIT, *PKPH_LOOKASIDE_INIT;
 
 /**

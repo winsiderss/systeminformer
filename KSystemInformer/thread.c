@@ -30,7 +30,6 @@ typedef struct _KPH_STACK_BACKTRACE_OBJECT
     ULONG BackTraceHash;
     ULONG CapturedFrames;
     PVOID BackTrace[ANYSIZE_ARRAY];
-
 } KPH_STACK_BACKTRACE_OBJECT, *PKPH_STACK_BACKTRACE_OBJECT;
 
 /**

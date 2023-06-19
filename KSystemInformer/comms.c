@@ -42,7 +42,6 @@ typedef struct _KPHM_QUEUE_ITEM
     BOOLEAN NonPaged;
     PEPROCESS TargetClientProcess;
     PKPH_MESSAGE Message;
-
 } KPHM_QUEUE_ITEM, *PKPHM_QUEUE_ITEM;
 
 typedef struct _KPH_CLIENT
@@ -50,7 +49,6 @@ typedef struct _KPH_CLIENT
     LIST_ENTRY Entry;
     PKPH_PROCESS_CONTEXT Process;
     PFLT_PORT Port;
-
 } KPH_CLIENT, *PKPH_CLIENT;
 
 typedef const KPH_CLIENT* PCKPH_CLIENT;

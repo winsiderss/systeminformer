@@ -18,7 +18,6 @@ typedef struct _KPH_SIGNING_INFRASTRUCTURE
 {
     KPH_AUTHENTICODE_INFO HalAuthenticode;
     volatile SIZE_T CatalogsAreLoadedCalls;
-
 } KPH_SIGNING_INFRASTRUCTURE, *PKPH_SIGNING_INFRASTRUCTURE;
 
 static UNICODE_STRING KphpSigningInfraName = RTL_CONSTANT_STRING(L"KphSigningInfrastructure");

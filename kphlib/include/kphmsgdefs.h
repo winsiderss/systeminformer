@@ -24,14 +24,12 @@ typedef struct _KPHM_SET_INFORMER_SETTINGS
 {
     NTSTATUS Status;
     KPH_INFORMER_SETTINGS Settings;
-
 } KPHM_SET_INFORMER_SETTINGS, *PKPHM_SET_INFORMER_SETTINGS;
 
 typedef struct _KPHM_GET_INFORMER_SETTINGS
 {
     NTSTATUS Status;
     KPH_INFORMER_SETTINGS Settings;
-
 } KPHM_GET_INFORMER_SETTINGS, *PKPHM_GET_INFORMER_SETTINGS;
 
 typedef struct _KPHM_OPEN_PROCESS
@@ -40,7 +38,6 @@ typedef struct _KPHM_OPEN_PROCESS
     PHANDLE ProcessHandle;
     ACCESS_MASK DesiredAccess;
     PCLIENT_ID ClientId;
-
 } KPHM_OPEN_PROCESS, *PKPHM_OPEN_PROCESS;
 
 typedef struct _KPHM_OPEN_PROCESS_TOKEN
@@ -49,7 +46,6 @@ typedef struct _KPHM_OPEN_PROCESS_TOKEN
     HANDLE ProcessHandle;
     ACCESS_MASK DesiredAccess;
     PHANDLE TokenHandle;
-
 } KPHM_OPEN_PROCESS_TOKEN, *PKPHM_OPEN_PROCESS_TOKEN;
 
 typedef struct _KPHM_OPEN_PROCESS_JOB
@@ -58,7 +54,6 @@ typedef struct _KPHM_OPEN_PROCESS_JOB
     HANDLE ProcessHandle;
     ACCESS_MASK DesiredAccess;
     PHANDLE JobHandle;
-
 } KPHM_OPEN_PROCESS_JOB, *PKPHM_OPEN_PROCESS_JOB;
 
 typedef struct _KPHM_TERMINATE_PROCESS
@@ -66,7 +61,6 @@ typedef struct _KPHM_TERMINATE_PROCESS
     NTSTATUS Status;
     HANDLE ProcessHandle;
     NTSTATUS ExitStatus;
-
 } KPHM_TERMINATE_PROCESS, *PKPHM_TERMINATE_PROCESS;
 
 typedef struct _KPHM_READ_VIRTUAL_MEMORY_UNSAFE
@@ -77,7 +71,6 @@ typedef struct _KPHM_READ_VIRTUAL_MEMORY_UNSAFE
     PVOID Buffer;
     SIZE_T BufferSize;
     PSIZE_T NumberOfBytesRead;
-
 } KPHM_READ_VIRTUAL_MEMORY_UNSAFE, *PKPHM_READ_VIRTUAL_MEMORY_UNSAFE;
 
 typedef struct _KPHM_OPEN_THREAD
@@ -86,7 +79,6 @@ typedef struct _KPHM_OPEN_THREAD
     PHANDLE ThreadHandle;
     ACCESS_MASK DesiredAccess;
     PCLIENT_ID ClientId;
-
 } KPHM_OPEN_THREAD, *PKPHM_OPEN_THREAD;
 
 typedef struct _KPHM_OPEN_THREAD_PROCESS
@@ -95,7 +87,6 @@ typedef struct _KPHM_OPEN_THREAD_PROCESS
     HANDLE ThreadHandle;
     ACCESS_MASK DesiredAccess;
     PHANDLE ProcessHandle;
-
 } KPHM_OPEN_THREAD_PROCESS, *PKPHM_OPEN_THREAD_PROCESS;
 
 typedef struct _KPHM_CAPTURE_STACK_BACKTRACE_THREAD
@@ -109,7 +100,6 @@ typedef struct _KPHM_CAPTURE_STACK_BACKTRACE_THREAD
     PULONG BackTraceHash;
     ULONG Flags;
     PLARGE_INTEGER Timeout;
-
 } KPHM_CAPTURE_STACK_BACKTRACE_THREAD, *PKPHM_CAPTURE_STACK_BACKTRACE_THREAD;
 
 typedef struct _KPHM_ENUMERATE_PROCESS_HANDLES
@@ -119,7 +109,6 @@ typedef struct _KPHM_ENUMERATE_PROCESS_HANDLES
     PVOID Buffer;
     ULONG BufferLength;
     PULONG ReturnLength;
-
 } KPHM_ENUMERATE_PROCESS_HANDLES, *PKPHM_ENUMERATE_PROCESS_HANDLES;
 
 typedef struct _KPHM_QUERY_INFORMATION_OBJECT
@@ -131,7 +120,6 @@ typedef struct _KPHM_QUERY_INFORMATION_OBJECT
     PVOID ObjectInformation;
     ULONG ObjectInformationLength;
     PULONG ReturnLength;
-
 } KPHM_QUERY_INFORMATION_OBJECT, *PKPHM_QUERY_INFORMATION_OBJECT;
 
 typedef struct _KPHM_SET_INFORMATION_OBJECT
@@ -142,7 +130,6 @@ typedef struct _KPHM_SET_INFORMATION_OBJECT
     KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass;
     PVOID ObjectInformation;
     ULONG ObjectInformationLength;
-
 } KPHM_SET_INFORMATION_OBJECT, *PKPHM_SET_INFORMATION_OBJECT;
 
 typedef struct _KPHM_OPEN_DRIVER
@@ -151,7 +138,6 @@ typedef struct _KPHM_OPEN_DRIVER
     PHANDLE DriverHandle;
     ACCESS_MASK DesiredAccess;
     POBJECT_ATTRIBUTES ObjectAttributes;
-
 } KPHM_OPEN_DRIVER, *PKPHM_OPEN_DRIVER;
 
 typedef struct _KPHM_QUERY_INFORMATION_DRIVER
@@ -162,7 +148,6 @@ typedef struct _KPHM_QUERY_INFORMATION_DRIVER
     PVOID DriverInformation;
     ULONG DriverInformationLength;
     PULONG ReturnLength;
-
 } KPHM_QUERY_INFORMATION_DRIVER, *PKPHM_QUERY_INFORMATION_DRIVER;
 
 typedef struct _KPHM_QUERY_INFORMATION_PROCESS
@@ -173,7 +158,6 @@ typedef struct _KPHM_QUERY_INFORMATION_PROCESS
     PVOID ProcessInformation;
     ULONG ProcessInformationLength;
     PULONG ReturnLength;
-
 } KPHM_QUERY_INFORMATION_PROCESS, *PKPHM_QUERY_INFORMATION_PROCESS;
 
 typedef struct _KPHM_SET_INFORMATION_PROCESS
@@ -183,7 +167,6 @@ typedef struct _KPHM_SET_INFORMATION_PROCESS
     KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass;
     PVOID ProcessInformation;
     ULONG ProcessInformationLength;
-
 } KPHM_SET_INFORMATION_PROCESS, *PKPHM_SET_INFORMATION_PROCESS;
 
 typedef struct _KPHM_SET_INFORMATION_THREAD
@@ -193,7 +176,6 @@ typedef struct _KPHM_SET_INFORMATION_THREAD
     KPH_THREAD_INFORMATION_CLASS ThreadInformationClass;
     PVOID ThreadInformation;
     ULONG ThreadInformationLength;
-
 } KPHM_SET_INFORMATION_THREAD, *PKPHM_SET_INFORMATION_THREAD;
 
 typedef struct _KPHM_SYSTEM_CONTROL
@@ -202,7 +184,6 @@ typedef struct _KPHM_SYSTEM_CONTROL
     KPH_SYSTEM_CONTROL_CLASS SystemControlClass;
     PVOID SystemControlInfo;
     ULONG SystemControlInfoLength;
-
 } KPHM_SYSTEM_CONTROL, *PKPHM_SYSTEM_CONTROL;
 
 typedef struct _KPHM_ALPC_QUERY_INFORMATION
@@ -214,7 +195,6 @@ typedef struct _KPHM_ALPC_QUERY_INFORMATION
     PVOID AlpcInformation;
     ULONG AlpcInformationLength;
     PULONG ReturnLength;
-
 } KPHM_ALPC_QUERY_INFORMATION, *PKPHM_ALPC_QUERY_INFORMATION;
 
 typedef struct _KPHM_QUERY_INFORMATION_FILE
@@ -226,7 +206,6 @@ typedef struct _KPHM_QUERY_INFORMATION_FILE
     PVOID FileInformation;
     ULONG FileInformationLength;
     PIO_STATUS_BLOCK IoStatusBlock;
-
 } KPHM_QUERY_INFORMATION_FILE, *PKPHM_QUERY_INFORMATION_FILE;
 
 typedef struct _KPHM_QUERY_VOLUME_INFORMATION_FILE
@@ -238,7 +217,6 @@ typedef struct _KPHM_QUERY_VOLUME_INFORMATION_FILE
     PVOID FsInformation;
     ULONG FsInformationLength;
     PIO_STATUS_BLOCK IoStatusBlock;
-
 } KPHM_QUERY_VOLUME_INFORMATION_FILE, *PKPHM_QUERY_VOLUME_INFORMATION_FILE;
 
 typedef struct _KPHM_DUPLICATE_OBJECT
@@ -248,14 +226,12 @@ typedef struct _KPHM_DUPLICATE_OBJECT
     HANDLE SourceHandle;
     ACCESS_MASK DesiredAccess;
     PHANDLE TargetHandle;
-
 } KPHM_DUPLICATE_OBJECT, *PKPHM_DUPLICATE_OBJECT;
 
 typedef struct _KPHM_QUERY_PERFORMANCE_COUNTER
 {
     LARGE_INTEGER PerformanceCounter;
     LARGE_INTEGER PerformanceFrequency;
-
 } KPHM_QUERY_PERFORMANCE_COUNTER, *PKPHM_QUERY_PERFORMANCE_COUNTER;
 
 typedef struct _KPHM_CREATE_FILE
@@ -273,7 +249,6 @@ typedef struct _KPHM_CREATE_FILE
     PVOID EaBuffer;
     ULONG EaLength;
     ULONG Options;
-
 } KPHM_CREATE_FILE, *PKPHM_CREATE_FILE;
 
 typedef struct _KPHM_QUERY_INFORMATION_THREAD
@@ -284,7 +259,6 @@ typedef struct _KPHM_QUERY_INFORMATION_THREAD
     PVOID ThreadInformation;
     ULONG ThreadInformationLength;
     PULONG ReturnLength;
-
 } KPHM_QUERY_INFORMATION_THREAD, *PKPHM_QUERY_INFORMATION_THREAD;
 
 typedef struct _KPHM_QUERY_SECTION
@@ -295,7 +269,6 @@ typedef struct _KPHM_QUERY_SECTION
     PVOID SectionInformation;
     ULONG SectionInformationLength;
     PULONG ReturnLength;
-
 } KPHM_QUERY_SECTION, *PKPHM_QUERY_SECTION;
 
 //
@@ -315,40 +288,34 @@ typedef struct _KPHM_PROCESS_CREATE
     // id: KphMsgFieldFileName       type: KphMsgTypeUnicodeString
     // id: KphMsgFieldCommandLine    type: KphMsgTypeUnicodeString
     //
-
 } KPHM_PROCESS_CREATE, *PKPHM_PROCESS_CREATE;
 
 typedef struct _KPHM_PROCESS_CREATE_REPLY
 {
     NTSTATUS CreationStatus;
-
 } KPHM_PROCESS_CREATE_REPLY, *PKPHM_PROCESS_CREATE_REPLY;
 
 typedef struct _KPHM_PROCESS_EXIT
 {
     CLIENT_ID ExitingClientId;
     NTSTATUS ExitStatus;
-
 } KPHM_PROCESS_EXIT, *PKPHM_PROCESS_EXIT;
 
 typedef struct _KPHM_THREAD_CREATE
 {
     CLIENT_ID CreatingClientId;
     CLIENT_ID TargetClientId;
-
 } KPHM_THREAD_CREATE, *PKPHM_THREAD_CREATE;
 
 typedef struct _KPHM_THREAD_EXECUTE
 {
     CLIENT_ID ExecutingClientId;
-
 } KPHM_THREAD_EXECUTE, *PKPHM_THREAD_EXECUTE;
 
 typedef struct _KPHM_THREAD_EXIT
 {
     CLIENT_ID ExitingClientId;
     NTSTATUS ExitStatus;
-
 } KPHM_THREAD_EXIT, *PKPHM_THREAD_EXIT;
 
 typedef struct _KPHM_IMAGE_LOAD
@@ -383,7 +350,6 @@ typedef struct _KPHM_IMAGE_LOAD
     //
     // id: KphMsgFieldFileName    type: KphMsgTypeUnicodeString
     //
-
 } KPHM_IMAGE_LOAD, *PKPHM_IMAGE_LOAD;
 
 typedef struct _KPHM_DEBUG_PRINT
@@ -397,7 +363,6 @@ typedef struct _KPHM_DEBUG_PRINT
     //
     // id: KphMsgFieldOutput      type: KphMsgTypeAnsiString
     //
-
 } KPHM_DEBUG_PRINT, *PKPHM_DEBUG_PRINT;
 
 typedef struct _KPHM_PROCESS_HANDLE_PRE_CREATE
@@ -418,7 +383,6 @@ typedef struct _KPHM_PROCESS_HANDLE_PRE_CREATE
     ACCESS_MASK OriginalDesiredAccess;
 
     HANDLE ObjectProcessId;
-
 } KPHM_PROCESS_HANDLE_PRE_CREATE, *PKPHM_PROCESS_HANDLE_PRE_CREATE;
 
 typedef struct _KPHM_PROCESS_HANDLE_POST_CREATE
@@ -439,7 +403,6 @@ typedef struct _KPHM_PROCESS_HANDLE_POST_CREATE
     ACCESS_MASK GrantedAccess;
 
     HANDLE ObjectProcessId;
-
 } KPHM_PROCESS_HANDLE_POST_CREATE, *PKPHM_PROCESS_HANDLE_POST_CREATE;
 
 typedef struct _KPHM_PROCESS_HANDLE_PRE_DUPLICATE
@@ -463,7 +426,6 @@ typedef struct _KPHM_PROCESS_HANDLE_PRE_DUPLICATE
     HANDLE TargetProcessId;
 
     HANDLE ObjectProcessId;
-
 } KPHM_PROCESS_HANDLE_PRE_DUPLICATE, *PKPHM_PROCESS_HANDLE_PRE_DUPLICATE;
 
 typedef struct _KPHM_PROCESS_HANDLE_POST_DUPLICATE
@@ -484,7 +446,6 @@ typedef struct _KPHM_PROCESS_HANDLE_POST_DUPLICATE
     ACCESS_MASK GrantedAccess;
 
     HANDLE ObjectProcessId;
-
 } KPHM_PROCESS_HANDLE_POST_DUPLICATE, *PKPHM_PROCESS_HANDLE_POST_DUPLICATE;
 
 typedef struct _KPHM_THREAD_HANDLE_PRE_CREATE
@@ -505,7 +466,6 @@ typedef struct _KPHM_THREAD_HANDLE_PRE_CREATE
     ACCESS_MASK OriginalDesiredAccess;
 
     HANDLE ObjectThreadId;
-
 } KPHM_THREAD_HANDLE_PRE_CREATE, *PKPHM_THREAD_HANDLE_PRE_CREATE;
 
 typedef struct _KPHM_THREAD_HANDLE_POST_CREATE
@@ -526,7 +486,6 @@ typedef struct _KPHM_THREAD_HANDLE_POST_CREATE
     ACCESS_MASK GrantedAccess;
 
     HANDLE ObjectThreadId;
-
 } KPHM_THREAD_HANDLE_POST_CREATE, *PKPHM_THREAD_HANDLE_POST_CREATE;
 
 typedef struct _KPHM_THREAD_HANDLE_PRE_DUPLICATE
@@ -550,7 +509,6 @@ typedef struct _KPHM_THREAD_HANDLE_PRE_DUPLICATE
     HANDLE TargetProcessId;
 
     HANDLE ObjectThreadId;
-
 } KPHM_THREAD_HANDLE_PRE_DUPLICATE, *PKPHM_THREAD_HANDLE_PRE_DUPLICATE;
 
 typedef struct _KPHM_THREAD_HANDLE_POST_DUPLICATE
@@ -571,7 +529,6 @@ typedef struct _KPHM_THREAD_HANDLE_POST_DUPLICATE
     ACCESS_MASK GrantedAccess;
 
     HANDLE ObjectThreadId;
-
 } KPHM_THREAD_HANDLE_POST_DUPLICATE, *PKPHM_THREAD_HANDLE_POST_DUPLICATE;
 
 typedef struct _KPHM_DESKTOP_HANDLE_PRE_CREATE
@@ -596,7 +553,6 @@ typedef struct _KPHM_DESKTOP_HANDLE_PRE_CREATE
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
     //
-
 } KPHM_DESKTOP_HANDLE_PRE_CREATE, *PKPHM_DESKTOP_HANDLE_PRE_CREATE;
 
 typedef struct _KPHM_DESKTOP_HANDLE_POST_CREATE
@@ -621,7 +577,6 @@ typedef struct _KPHM_DESKTOP_HANDLE_POST_CREATE
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
     //
-
 } KPHM_DESKTOP_HANDLE_POST_CREATE, *PKPHM_DESKTOP_HANDLE_POST_CREATE;
 
 typedef struct _KPHM_DESKTOP_HANDLE_PRE_DUPLICATE
@@ -649,7 +604,6 @@ typedef struct _KPHM_DESKTOP_HANDLE_PRE_DUPLICATE
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
     //
-
 } KPHM_DESKTOP_HANDLE_PRE_DUPLICATE, *PKPHM_DESKTOP_HANDLE_PRE_DUPLICATE;
 
 typedef struct _KPHM_DESKTOP_HANDLE_POST_DUPLICATE
@@ -674,7 +628,6 @@ typedef struct _KPHM_DESKTOP_HANDLE_POST_DUPLICATE
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
     //
-
 } KPHM_DESKTOP_HANDLE_POST_DUPLICATE, *PKPHM_DESKTOP_HANDLE_POST_DUPLICATE;
 
 typedef struct _KPHM_REQUIRED_STATE_FAILURE
@@ -683,7 +636,6 @@ typedef struct _KPHM_REQUIRED_STATE_FAILURE
     enum _KPH_MESSAGE_ID MessageId;
     KPH_PROCESS_STATE ClientState;
     KPH_PROCESS_STATE RequiredState;
-
 } KPHM_REQUIRED_STATE_FAILURE, *PKPHM_REQUIRED_STATE_FAILURE;
 
 #pragma warning(pop)

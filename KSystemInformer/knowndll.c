@@ -24,7 +24,6 @@ typedef struct _KPH_KNOWN_DLL_EXPORT
 {
     PCHAR Name;
     PVOID* Storage;
-
 } KPH_KNOWN_DLL_EXPORT, *PKPH_KNOWN_DLL_EXPORT;
 
 typedef struct _KPH_KNOWN_DLL_INFORMATION
@@ -32,7 +31,6 @@ typedef struct _KPH_KNOWN_DLL_INFORMATION
     UNICODE_STRING SectionName;
     PVOID* BaseAddressStorage;
     PKPH_KNOWN_DLL_EXPORT Exports;
-
 } KPH_KNOWN_DLL_INFORMATION, *PKPH_KNOWN_DLL_INFORMATION;
 
 static KPH_KNOWN_DLL_EXPORT KphpNtDllExports[] =

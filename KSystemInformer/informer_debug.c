@@ -25,7 +25,6 @@ typedef struct _KPH_DBG_PRINT_SLOT
     ULONG Level;
     USHORT Length;
     CHAR Buffer[3 * 1024];
-
 } KPH_DBG_PRINT_SLOT, *PKPH_DBG_PRINT_SLOT;
 
 static BOOLEAN KphpDbgPrintInitialized = FALSE;
