@@ -627,7 +627,6 @@ VOID PhpCreateUnhandledExceptionCrashDump(
         )))
     {
         MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
-        MINIDUMP_TYPE dumpType;
         ULONG dumpType = PhDumpTypeNormaldump;
 
         exceptionInfo.ThreadId = HandleToUlong(NtCurrentThreadId());
