@@ -138,11 +138,7 @@ VOID PvPeAddListViewCfgFunctionEntry(
     if (cfgFunctionEntry.XfgHash)
     {
         PH_STRINGREF xfgHashString;
-#ifdef _WIN64
         _ui64tow(cfgFunctionEntry.XfgHash, value, 16);
-#else
-        _ultow(cfgFunctionEntry.XfgHash, value, 16);
-#endif
         PhInitializeStringRefLongHint(&xfgHashString, value);
         PhUpperStringRef(&xfgHashString);
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PhGetStringRefZ(&xfgHashString));
