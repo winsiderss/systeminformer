@@ -89,7 +89,6 @@ PH_DEFINE_IMPORT(L"dnsapi.dll", DnsWriteQuestionToBuffer_W);
 PH_DEFINE_IMPORT(L"dnsapi.dll", DnsFree);
 
 PH_DEFINE_IMPORT(L"shlwapi.dll", SHAutoComplete);
-PH_DEFINE_IMPORT(L"shell32.dll", SHGetFileInfoW);
 
 PH_DEFINE_IMPORT(L"kernel32.dll", PssCaptureSnapshot);
 PH_DEFINE_IMPORT(L"kernel32.dll", PssQuerySnapshot);

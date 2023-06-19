@@ -6,19 +6,21 @@
  * Authors:
  *
  *     jxy-s    2023
+ *     dmex     2023
  *
  */
 
 #ifndef _PH_PHINTRIN_H
 #define _PH_PHINTRIN_H
 
+#include <intrin.h>
+
 #ifdef _ARM64_
-#define PhHasPopulationCount TRUE
 #define PhHasIntrinsics TRUE
+#define PhHasPopulationCount TRUE
+#define PhHasAVX FALSE
 #else
 extern int __isa_available;
-extern long __isa_enabled;
-
 #define ISA_AVAILABLE_X86 0
 #define ISA_AVAILABLE_SSE2 1
 #define ISA_AVAILABLE_SSE42 2
@@ -27,15 +29,26 @@ extern long __isa_enabled;
 #define ISA_AVAILABLE_AVX2 5
 #define ISA_AVAILABLE_AVX512 6
 
-#define PhHasPopulationCount \
-    (__isa_available >= ISA_AVAILABLE_SSE42)
-#define PhHasIntrinsics \
-    (__isa_available >= ISA_AVAILABLE_SSE2)
-#define PhHasAVX \
-    (__isa_available >= ISA_AVAILABLE_AVX2)
-#endif
+extern long __isa_enabled;
+#define ISA_ENABLED_X86 0x00000001
+#define ISA_ENABLED_SSE2 0x00000002
+#define ISA_ENABLED_SSE42 0x00000004
+#define ISA_ENABLED_AVX 0x00000008
+//#define ISA_ENABLED_ENFSTRG 0x00000010
+#define ISA_ENABLED_AVX2 0x00000020
+#define ISA_ENABLED_AVX512 0x00000040
 
-#include <intrin.h>
+#ifdef _M_IX86
+#define PhHasIntrinsics \
+    FlagOn(__isa_enabled, ISA_ENABLED_SSE2)
+#else
+#define PhHasIntrinsics TRUE
+#endif
+#define PhHasPopulationCount \
+    FlagOn(__isa_enabled, ISA_ENABLED_SSE42)
+#define PhHasAVX \
+    FlagOn(__isa_enabled, ISA_ENABLED_AVX2)
+#endif
 
 FORCEINLINE
 ULONG
@@ -397,6 +410,20 @@ PhShuffleFLOAT128_2103(
 
 FORCEINLINE
 PH_INT128
+PhShiftLeftINT128(
+    _In_ PH_INT128 A,
+    _In_ _In_range_(0, 255) INT32 Count
+    )
+{
+#ifdef _ARM64_
+    return vshlq_s32(A, vdupq_n_s32(Count));
+#else
+    return _mm_slli_epi32(A, Count);
+#endif
+}
+
+FORCEINLINE
+PH_INT128
 PhShiftRightINT128(
     _In_ PH_INT128 A,
     _In_ _In_range_(0, 255) INT32 Count
@@ -476,7 +503,7 @@ FORCEINLINE PH_FLOAT128 PhConvertUINT128ToFLOAT128(
     // Avoid double rounding by doing two exact conversions of high and low 16-bit segments.
 
     const PH_INT128 hi = PhShiftRightINT128(Value, 16);
-    const PH_INT128 lo = PhAndINT128(Value, PhSetINT128by32(0x0000FFFF)); // PhShiftRightINT128(_mm_slli_epi32(Value, 16), 16);
+    const PH_INT128 lo = PhShiftRightINT128(PhShiftLeftINT128(Value, 16), 16); // PhAndINT128(Value, PhSetINT128by32(0x0000FFFF));
     const PH_FLOAT128 fHi = PhMultiplyFLOAT128(PhConvertINT128ToFLOAT128(hi), mul);
     const PH_FLOAT128 fLo = PhConvertINT128ToFLOAT128(lo);
 

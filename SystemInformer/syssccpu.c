@@ -1147,7 +1147,7 @@ VOID PhSipUpdateCpuPanel(
     DOUBLE cpuFrequency;
     DOUBLE cpuGhz = 0;
     BOOLEAN distributionSucceeded = FALSE;
-    SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+    LARGE_INTEGER systemUptime;
     LARGE_INTEGER performanceCounterStart;
     LARGE_INTEGER performanceCounterEnd;
     LARGE_INTEGER performanceCounterTicks;
@@ -1219,20 +1219,9 @@ VOID PhSipUpdateCpuPanel(
     else
         PhSetWindowText(CpuPanelHandlesLabel, PhaFormatUInt64(PhTotalHandles, TRUE)->Buffer);
 
-    if (NT_SUCCESS(NtQuerySystemInformation(
-        SystemTimeOfDayInformation,
-        &timeOfDayInfo,
-        sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
-        NULL
-        )))
+    if (NT_SUCCESS(PhGetSystemUptime(&systemUptime)))
     {
-        ULARGE_INTEGER bootTime;
-
-        bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
-        bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
-        bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
-
-        PhPrintTimeSpan(uptimeString, timeOfDayInfo.CurrentTime.QuadPart - bootTime.QuadPart, PH_TIMESPAN_DHMS);
+        PhPrintTimeSpan(uptimeString, systemUptime.QuadPart, PH_TIMESPAN_DHMS);
     }
 
     PhSetWindowText(CpuPanelUptimeLabel, uptimeString);

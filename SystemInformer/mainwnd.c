@@ -4298,7 +4298,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY:
         {
-            return (PVOID)PhMwpUpdateAutomatically;
+            return (PVOID)UlongToPtr(PhMwpUpdateAutomatically);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY:
@@ -4331,7 +4331,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE:
         {
-            return (PVOID)PhPortableEnabled;
+            return (PVOID)UlongToPtr(PhPortableEnabled);
         }
         break;
     }

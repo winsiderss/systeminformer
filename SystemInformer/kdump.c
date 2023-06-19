@@ -333,24 +333,16 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SYSTEM_KERNEL_DEBUGGER_INFORMATION debugInfo;
+            BOOLEAN kernelDebuggerEnabled;
 
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, NULL);
 
-            if (NT_SUCCESS(NtQuerySystemInformation(
-                SystemKernelDebuggerInformation,
-                &debugInfo,
-                sizeof(SYSTEM_KERNEL_DEBUGGER_INFORMATION),
-                NULL
-                )))
+            if (NT_SUCCESS(PhGetKernelDebuggerInformation(&kernelDebuggerEnabled, NULL)) && !kernelDebuggerEnabled)
             {
-                if (!debugInfo.KernelDebuggerEnabled)
-                {
-                    Button_Enable(GetDlgItem(hwndDlg, IDC_USERMODE), FALSE);
-                    Button_SetText(GetDlgItem(hwndDlg, IDC_USERMODE), L"Include UserSpace (requires kernel debug enabled)");
-                }
+                Button_Enable(GetDlgItem(hwndDlg, IDC_USERMODE), FALSE);
+                Button_SetText(GetDlgItem(hwndDlg, IDC_USERMODE), L"Include UserSpace (requires kernel debug enabled)");
             }
 
             if (!PhGetOwnTokenAttributes().Elevated)

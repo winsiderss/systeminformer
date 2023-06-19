@@ -566,7 +566,7 @@ typedef struct _RTL_RB_TREE
 
 // rev
 NTSYSAPI
-VOID
+BOOLEAN
 NTAPI
 RtlRbInsertNodeEx(
     _In_ PRTL_RB_TREE Tree,
@@ -577,7 +577,7 @@ RtlRbInsertNodeEx(
 
 // rev
 NTSYSAPI
-VOID
+BOOLEAN
 NTAPI
 RtlRbRemoveNode(
     _In_ PRTL_RB_TREE Tree,
@@ -724,7 +724,7 @@ RtlCreateHashTable(
     );
 
 NTSYSAPI
-VOID
+LOGICAL
 NTAPI
 RtlDeleteHashTable(
     _In_ PRTL_DYNAMIC_HASH_TABLE HashTable
@@ -3059,16 +3059,16 @@ typedef struct _CONTEXT_EX
 
 #if defined(_AMD64_)
 #define CONTEXT_FRAME_LENGTH 0x4D0
-#define CONTEXT_EX_PADDING   0x10 
+#define CONTEXT_EX_PADDING   0x10
 #elif defined(_ARM64_) || defined(_ARM64EC_)
 #define CONTEXT_FRAME_LENGTH 0x390
-#define CONTEXT_EX_PADDING   0x10 
+#define CONTEXT_EX_PADDING   0x10
 #elif defined(_M_ARM)
 #define CONTEXT_FRAME_LENGTH 0x1a0
-#define CONTEXT_EX_PADDING   0x8 
+#define CONTEXT_EX_PADDING   0x8
 #else
 #define CONTEXT_FRAME_LENGTH 0x2CC
-#define CONTEXT_EX_PADDING   0x4 
+#define CONTEXT_EX_PADDING   0x4
 #endif
 
 #define CONTEXT_ALIGNMENT(Size, Align) \

@@ -354,21 +354,23 @@ PVOID PhGetDllHandle(
     _In_ PWSTR DllName
     )
 {
+#if (PHNT_NATIVE_LDR)
+    UNICODE_STRING dllName;
+    PVOID dllHandle;
+
+    RtlInitUnicodeString(&dllName, DllName);
+
+    if (NT_SUCCESS(LdrGetDllHandle(NULL, NULL, &dllName, &dllHandle)))
+        return dllHandle;
+    else
+        return NULL;
+#else
     PH_STRINGREF baseDllName;
 
     PhInitializeStringRefLongHint(&baseDllName, DllName);
 
     return PhGetLoaderEntryDllBase(NULL, &baseDllName);
-
-    //UNICODE_STRING dllName;
-    //PVOID dllHandle;
-    //
-    //RtlInitUnicodeString(&dllName, DllName);
-    //
-    //if (NT_SUCCESS(LdrGetDllHandle(NULL, NULL, &dllName, &dllHandle)))
-    //    return dllHandle;
-    //else
-    //    return NULL;
+#endif
 }
 
 PVOID PhGetModuleProcAddress(
@@ -376,19 +378,21 @@ PVOID PhGetModuleProcAddress(
     _In_opt_ PSTR ProcedureName
     )
 {
+#if (PHNT_NATIVE_LDR)
+    PVOID module;
+
+    module = PhGetDllHandle(ModuleName);
+
+    if (module)
+        return PhGetProcedureAddress(module, ProcedureName, 0);
+    else
+        return NULL;
+#else
     if (IS_INTRESOURCE(ProcedureName))
         return PhGetDllProcedureAddress(ModuleName, NULL, PtrToUshort(ProcedureName));
 
     return PhGetDllProcedureAddress(ModuleName, ProcedureName, 0);
-
-    //PVOID module;
-    //
-    //module = PhGetDllHandle(ModuleName);
-    //
-    //if (module)
-    //    return PhGetProcedureAddress(module, ProcName, 0);
-    //else
-    //    return NULL;
+#endif
 }
 
 PVOID PhGetProcedureAddress(
@@ -397,36 +401,38 @@ PVOID PhGetProcedureAddress(
     _In_opt_ ULONG ProcedureNumber
     )
 {
-    return PhGetDllBaseProcedureAddress(DllHandle, ProcedureName, (USHORT)ProcedureNumber);
+#if (PHNT_NATIVE_LDR)
+    NTSTATUS status;
+    ANSI_STRING procedureName;
+    PVOID procedureAddress;
 
-    //NTSTATUS status;
-    //ANSI_STRING procedureName;
-    //PVOID procedureAddress;
-    //
-    //if (ProcedureName)
-    //{
-    //    RtlInitAnsiString(&procedureName, ProcedureName);
-    //    status = LdrGetProcedureAddress(
-    //        DllHandle,
-    //        &procedureName,
-    //        0,
-    //        &procedureAddress
-    //        );
-    //}
-    //else
-    //{
-    //    status = LdrGetProcedureAddress(
-    //        DllHandle,
-    //        NULL,
-    //        ProcedureNumber,
-    //        &procedureAddress
-    //        );
-    //}
-    //
-    //if (!NT_SUCCESS(status))
-    //    return NULL;
-    //
-    //return procedureAddress;
+    if (ProcedureName)
+    {
+        RtlInitAnsiString(&procedureName, ProcedureName);
+        status = LdrGetProcedureAddress(
+            DllHandle,
+            &procedureName,
+            0,
+            &procedureAddress
+            );
+    }
+    else
+    {
+        status = LdrGetProcedureAddress(
+            DllHandle,
+            NULL,
+            ProcedureNumber,
+            &procedureAddress
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    return procedureAddress;
+#else
+    return PhGetDllBaseProcedureAddress(DllHandle, ProcedureName, (USHORT)ProcedureNumber);
+#endif
 }
 
 typedef struct _PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT
@@ -494,14 +500,19 @@ NTSTATUS PhGetProcedureAddressRemote(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcessMappedFileName(
-        NtCurrentProcess(),
-        mappedImage.ViewBase,
-        &fileName
-        );
+    fileName = PhDosPathNameToNtPathName(FileName);
 
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
+    if (!fileName)
+    {
+        status = PhGetProcessMappedFileName(
+            NtCurrentProcess(),
+            mappedImage.ViewBase,
+            &fileName
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
 
     memset(&context, 0, sizeof(PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT));
     context.FileName = fileName;
@@ -634,6 +645,11 @@ CleanupExit:
  * \param ResourceBuffer A variable which receives the address of the resource data.
  *
  * \return TRUE if the resource was found, FALSE if an error occurred.
+ *
+ * \remarks Use this function instead of LoadResource() because no memory allocation is required.
+ * This function returns the address of the resource from the read-only section of the image
+ * and does not need to be allocated or deallocated. This function cannot be used when the
+ * image will be unloaded since the validity of the address is tied to the lifetime of the image.
  */
 _Success_(return)
 BOOLEAN PhLoadResource(
@@ -667,6 +683,20 @@ BOOLEAN PhLoadResource(
     return TRUE;
 }
 
+ /**
+  * Finds and returns a copy of the resource.
+  *
+  * \param DllBase The base address of the image containing the resource.
+  * \param Name The name of the resource or the integer identifier.
+  * \param Type The type of resource or the integer identifier.
+  * \param ResourceLength A variable which will receive the length of the resource block.
+  * \param ResourceBuffer A variable which receives the address of the resource data.
+  *
+  * \return TRUE if the resource was found, FALSE if an error occurred.
+  *
+  * \remarks This function returns a copy of a resource from heap memory
+  * and must be deallocated. Use this function when the image will be unloaded.
+  */
 _Success_(return)
 BOOLEAN PhLoadResourceCopy(
     _In_ PVOID DllBase,
@@ -690,6 +720,15 @@ BOOLEAN PhLoadResourceCopy(
     return TRUE;
 }
 
+// rev from LoadString (dmex)
+/**
+ * Loads a string resource from the image into a buffer.
+ *
+ * \param DllBase The base address of the image containing the resource.
+ * \param ResourceId The identifier of the string to be loaded.
+ *
+ * \return A string containing a copy of the string resource.
+ */
 PPH_STRING PhLoadString(
     _In_ PVOID DllBase,
     _In_ ULONG ResourceId
@@ -735,7 +774,7 @@ PPH_STRING PhLoadString(
     return string;
 }
 
-// rev from SHLoadIndirectString
+// rev from SHLoadIndirectString (dmex)
 /**
  * Extracts a specified text resource when given that resource in the form of an indirect string (a string that begins with the '@' symbol).
  *
@@ -1073,13 +1112,15 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
     )
 {
     SIZE_T directorySectionLength = 0;
+    PIMAGE_SECTION_HEADER section;
     PIMAGE_SECTION_HEADER sectionHeader;
     PVOID directorySectionAddress = NULL;
-    ULONG i;
 
-    for (i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    section = IMAGE_FIRST_SECTION(ImageNtHeader);
+
+    for (ULONG i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
     {
-        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(ImageNtHeader), UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
 
         if (
             ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
@@ -1110,13 +1151,15 @@ NTSTATUS PhLoaderEntryImageRvaToSection(
     )
 {
     SIZE_T directorySectionLength = 0;
+    PIMAGE_SECTION_HEADER section;
     PIMAGE_SECTION_HEADER sectionHeader;
     PIMAGE_SECTION_HEADER directorySectionHeader = NULL;
-    ULONG i;
 
-    for (i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
+    section = IMAGE_FIRST_SECTION(ImageNtHeader);
+
+    for (ULONG i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
     {
-        sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(ImageNtHeader), UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
+        sectionHeader = PTR_ADD_OFFSET(section, UInt32x32To64(sizeof(IMAGE_SECTION_HEADER), i));
 
         if (
             ((ULONG_PTR)Rva >= (ULONG_PTR)sectionHeader->VirtualAddress) &&
@@ -1337,17 +1380,6 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
     PIMAGE_NT_HEADERS imageNtHeader;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
-
-    // This is a workaround for the CRT __delayLoadHelper2.
-    if (PhEqualBytesZ(ProcedureName, "GetProcAddress", FALSE))
-    {
-        return PhGetDllBaseProcAddress;
-    }
-    // This is a workaround for the CRT __delayLoadHelper2.
-    if (PhEqualBytesZ(ProcedureName, "LoadLibraryExA", FALSE))
-    {
-        return PhLoadLibraryUtf8Ex;
-    }
 
     if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(BaseAddress, &imageNtHeader)))
         return NULL;

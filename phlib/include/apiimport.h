@@ -161,14 +161,6 @@ typedef HRESULT (WINAPI* _SHAutoComplete)(
     _In_ ULONG Flags
     );
 
-typedef ULONG_PTR (WINAPI* _SHGetFileInfoW)(
-    _In_ LPCWSTR pszPath,
-    _In_ ULONG dwFileAttributes,
-    _Inout_updates_bytes_opt_(cbFileInfo) PVOID psfi,
-    _In_ UINT cbFileInfo,
-    _In_ UINT uFlags
-    );
-
 typedef ULONG (WINAPI* _PssCaptureSnapshot)(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG CaptureFlags,
@@ -282,7 +274,6 @@ PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 PH_DECLARE_IMPORT(DnsFree);
 
 PH_DECLARE_IMPORT(SHAutoComplete);
-PH_DECLARE_IMPORT(SHGetFileInfoW);
 
 PH_DECLARE_IMPORT(PssCaptureSnapshot);
 PH_DECLARE_IMPORT(PssQuerySnapshot);

@@ -1392,6 +1392,21 @@ VOID PhGetStockApplicationIcon(
                 PhDereferenceObject(systemDirectory);
             }
         }
+        else
+        {
+            PH_STRINGREF imageFileName;
+
+            PhInitializeStringRef(&imageFileName, L"\\SystemRoot\\System32\\imageres.dll");
+
+            PhExtractIconEx(
+                &imageFileName,
+                TRUE,
+                11,
+                &largeIcon,
+                &smallIcon,
+                systemDpi
+                );
+        }
     }
 
     if (!smallIcon)
@@ -1448,7 +1463,7 @@ VOID PhGetStockApplicationIcon(
 //    icon = NULL;
 //    memset(&fileInfo, 0, sizeof(SHFILEINFO));
 //
-//    if (FileName && SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
+//    if (FileName && SHGetFileInfo(
 //        FileName,
 //        0,
 //        &fileInfo,
@@ -1463,7 +1478,7 @@ VOID PhGetStockApplicationIcon(
 //    {
 //        memset(&fileInfo, 0, sizeof(SHFILEINFO));
 //
-//        if (SHGetFileInfoW_Import() && SHGetFileInfoW_Import()(
+//        if (SHGetFileInfo(
 //            DefaultExtension,
 //            FILE_ATTRIBUTE_NORMAL,
 //            &fileInfo,
@@ -3376,22 +3391,6 @@ BOOLEAN PhImageListSetIconSize(
     return SUCCEEDED(IImageList2_SetIconSize((IImageList2*)ImageListHandle, cx, cy));
 }
 
-static BOOLEAN CALLBACK PhpDpiChangedForwardEnumChildWindows(
-    _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
-    )
-{
-    SendMessage(WindowHandle, WM_DPICHANGED, 0, 0);
-    return TRUE;
-}
-
-VOID PhDpiChangedForwardChildWindows(
-    _In_ HWND WindowHandle
-    )
-{
-    PhEnumChildWindows(WindowHandle, 0x1000, PhpDpiChangedForwardEnumChildWindows, NULL);
-}
-
 static const PH_FLAG_MAPPING PhpInitiateShutdownMappings[] =
 {
     { PH_SHUTDOWN_RESTART, SHUTDOWN_RESTART },
@@ -3452,19 +3451,7 @@ VOID PhCustomDrawTreeTimeLine(
 
         if (bootTime.QuadPart == 0)
         {
-            SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
-
-            if (NT_SUCCESS(NtQuerySystemInformation(
-                SystemTimeOfDayInformation,
-                &timeOfDayInfo,
-                sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
-                NULL
-                )))
-            {
-                bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
-                bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
-                bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
-            }
+            PhGetSystemBootTime(&bootTime);
 
             //if (NT_SUCCESS(NtQuerySystemInformation(
             //    SystemTimeOfDayInformation,

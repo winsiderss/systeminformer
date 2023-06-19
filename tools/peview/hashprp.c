@@ -233,7 +233,7 @@ NTSTATUS PvHashMappedImageData(
     _In_ ULONG64 BufferLength
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
 
     if (BufferLength >= ULONG_MAX)
     {

@@ -1291,26 +1291,32 @@ VOID PhLoadModulesForVirtualSymbolProvider(
 
     // Load symbols for ntdll.dll and kernel32.dll (dmex)
     {
-        static PH_STRINGREF ntdllSr = PH_STRINGREF_INIT(L"ntdll.dll");
-        static PH_STRINGREF kernel32Sr = PH_STRINGREF_INIT(L"kernel32.dll");
+        static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"ntdll.dll");
+        static PH_STRINGREF kernel32FileName = PH_STRINGREF_INIT(L"kernel32.dll");
         PLDR_DATA_TABLE_ENTRY entry;
 
-        if (entry = PhFindLoaderEntry(NULL, NULL, &ntdllSr))
+        if (entry = PhFindLoaderEntry(NULL, NULL, &ntdllFileName))
         {
+            PH_STRINGREF fullName;
             PPH_STRING fileName;
 
-            if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), entry->DllBase, &fileName)))
+            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
+
+            if (fileName = PhDosPathNameToNtPathName(&fullName))
             {
                 PhLoadModuleSymbolProvider(SymbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
                 PhDereferenceObject(fileName);
             }
         }
 
-        if (entry = PhFindLoaderEntry(NULL, NULL, &kernel32Sr))
+        if (entry = PhFindLoaderEntry(NULL, NULL, &kernel32FileName))
         {
+            PH_STRINGREF fullName;
             PPH_STRING fileName;
 
-            if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), entry->DllBase, &fileName)))
+            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
+
+            if (fileName = PhDosPathNameToNtPathName(&fullName))
             {
                 PhLoadModuleSymbolProvider(SymbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
                 PhDereferenceObject(fileName);
