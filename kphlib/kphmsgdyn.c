@@ -21,7 +21,6 @@ typedef struct _KPH_DYN_DATA_BUFFER
 {
     USHORT Size;
     CHAR Buffer[ANYSIZE_ARRAY];
-
 } KPH_DYN_DATA_BUFFER, *PKPH_DYN_DATA_BUFFER;
 #include <poppack.h>
 

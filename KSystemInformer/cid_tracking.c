@@ -24,7 +24,6 @@ typedef struct _KPH_CID_APC
 {
     KSI_KAPC Apc;
     PKPH_THREAD_CONTEXT Thread;
-
 } KPH_CID_APC, *PKPH_CID_APC;
 
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpCidApcLookaside = NULL;
@@ -206,7 +205,6 @@ typedef struct _KPH_INIT_PROCESS_CONTEXT
 {
     PEPROCESS ProcessObject;
     BOOLEAN Verify;
-
 } KPH_INIT_PROCESS_CONTEXT, *PKPH_INIT_PROCESS_CONTEXT;
 
 /**
@@ -1706,7 +1704,6 @@ typedef struct _KPH_ENUM_CONTEXT
     PKPH_ENUM_PROCESS_CONTEXTS_CALLBACK ProcessCallback;
     PKPH_ENUM_THREAD_CONTEXTS_CALLBACK ThreadCallback;
     PVOID Parameter;
-
 } KPH_ENUM_CONTEXT, *PKPH_ENUM_CONTEXT;
 
 /**

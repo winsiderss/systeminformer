@@ -35,7 +35,6 @@ typedef struct _KPH_ACTIVE_DYNDATA
     USHORT RevisionMin;
     USHORT BuildNumberMax;
     USHORT RevisionMax;
-
 } KPH_ACTIVE_DYNDATA, *PKPH_ACTIVE_DYNDATA;
 
 static KPH_ACTIVE_DYNDATA KphpActiveDynData = { 0 };

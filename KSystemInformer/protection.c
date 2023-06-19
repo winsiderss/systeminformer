@@ -25,7 +25,6 @@ typedef struct _KPH_ENUM_FOR_PROTECTION
     PKPH_PROCESS_CONTEXT ProcessEnum;
     PKPH_PROCESS_CONTEXT Process;
     NTSTATUS Status;
-
 } KPH_ENUM_FOR_PROTECTION, *PKPH_ENUM_FOR_PROTECTION;
 
 typedef struct _KPH_IMAGE_LOAD_APC
@@ -34,7 +33,6 @@ typedef struct _KPH_IMAGE_LOAD_APC
     PKPH_PROCESS_CONTEXT Process;
     PVOID ImageBase;
     PFILE_OBJECT FileObject;
-
 } KPH_IMAGE_LOAD_APC, *PKPH_IMAGE_LOAD_APC;
 
 typedef struct _KPH_IMAGE_LOAD_APC_INIT
@@ -42,7 +40,6 @@ typedef struct _KPH_IMAGE_LOAD_APC_INIT
     PKPH_PROCESS_CONTEXT Process;
     PVOID ImageBase;
     PFILE_OBJECT FileObject;
-
 } KPH_IMAGE_LOAD_APC_INIT, *PKPH_IMAGE_LOAD_APC_INIT;
 
 /**

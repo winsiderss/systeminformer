@@ -108,7 +108,6 @@ typedef struct _KPH_SIZED_BUFFER
 {
     ULONG Size;
     PBYTE Buffer;
-
 } KPH_SIZED_BUFFER, *PKPH_SIZED_BUFFER;
 
 // main
@@ -807,7 +806,6 @@ typedef struct _KPH_HASH
     ALG_ID AlgorithmId;
     ULONG Size;
     BYTE Buffer[MINCRYPT_MAX_HASH_LEN];
-
 } KPH_HASH, *PKPH_HASH;
 
 typedef struct _KPH_AUTHENTICODE_INFO
@@ -816,7 +814,6 @@ typedef struct _KPH_AUTHENTICODE_INFO
     BYTE SHA256[MINCRYPT_SHA256_HASH_LEN];
     PBYTE Signature;
     ULONG SignatureSize;
-
 } KPH_AUTHENTICODE_INFO, *PKPH_AUTHENTICODE_INFO;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -893,7 +890,6 @@ typedef struct _KPH_SIGNING_INFO
     LARGE_INTEGER SigningTime;
     MINCRYPT_POLICY_INFO TimeStampPolicyInfo;
     UNICODE_STRING CatalogName;
-
 } KPH_SIGNING_INFO, *PKPH_SIGNING_INFO;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -944,7 +940,6 @@ typedef struct _KPH_OBJECT_HEADER
     UCHAR TypeIndex;
 
     QUAD Body;
-
 } KPH_OBJECT_HEADER, *PKPH_OBJECT_HEADER;
 
 #define KphObjectToObjectHeader(x) ((PKPH_OBJECT_HEADER)CONTAINING_RECORD((PCHAR)Object, KPH_OBJECT_HEADER, Body))
@@ -996,7 +991,6 @@ typedef struct _KPH_OBJECT_TYPE_INFO
     PKPH_TYPE_INITIALIZE_PROCEDURE Initialize;
     PKPH_TYPE_DELETE_PROCEDURE Delete;
     PKPH_TYPE_FREE_PROCEDURE Free;
-
 } KPH_OBJECT_TYPE_INFO, *PKPH_OBJECT_TYPE_INFO;
 
 typedef struct _KPH_OBJECT_TYPE
@@ -1006,7 +1000,6 @@ typedef struct _KPH_OBJECT_TYPE
     volatile SIZE_T TotalNumberOfObjects;
     volatile SIZE_T HighWaterNumberOfObjects;
     KPH_OBJECT_TYPE_INFO TypeInfo;
-
 } KPH_OBJECT_TYPE, *PKPH_OBJECT_TYPE;
 
 VOID
@@ -1114,7 +1107,6 @@ typedef struct _KPH_PROCESS_CONTEXT
         ULONG ProcessId;
 
     } WSL;
-
 } KPH_PROCESS_CONTEXT, *PKPH_PROCESS_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphProcessContextType;
@@ -1162,7 +1154,6 @@ typedef struct _KPH_THREAD_CONTEXT
         ULONG ThreadId;
 
     } WSL;
-
 } KPH_THREAD_CONTEXT, *PKPH_THREAD_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphThreadContextType;
@@ -1378,7 +1369,6 @@ typedef struct _KSI_KAPC
     PVOID InternalRoutine;
     PVOID InternalCleanup;
     PVOID InternalContext;
-
 } KSI_KAPC, *PKSI_KAPC;
 
 typedef enum _KSI_KAPC_CLEANUP_REASON
@@ -1386,7 +1376,6 @@ typedef enum _KSI_KAPC_CLEANUP_REASON
     KsiApcCleanupKernel,
     KsiApcCleanupNormal,
     KsiApcCleanupRundown
-
 } KSI_KAPC_CLEANUP_REASON;
 
 typedef
