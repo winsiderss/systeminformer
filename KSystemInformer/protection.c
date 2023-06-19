@@ -1055,10 +1055,13 @@ VOID KphpHandleUntrustedImageLoad(
         goto Exit;
     }
 
-    if (!actor->ProcessContext->ApcNoopRoutine)
+    status = KphCheckProcessApcNoopRoutine(actor->ProcessContext);
+    if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "APC no-op routine null.");
-        status = STATUS_BAD_FUNCTION_TABLE;
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      PROTECTION,
+                      "KphCheckProcessApcNoopRoutine failed: %!STATUS!",
+                      status);
         goto Exit;
     }
 

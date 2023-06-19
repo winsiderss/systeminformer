@@ -293,8 +293,6 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
     process->ProcessId = PsGetProcessId(process->EProcess);
 
-    process->ApcNoopRoutine = (PKNORMAL_ROUTINE)KphNtDllRtlSetBits;
-
 #if _WIN64
     if (PsGetProcessWow64Process(process->EProcess))
     {
@@ -1811,4 +1809,112 @@ VOID KphEnumerateCidContexts(
     context.Parameter = Parameter;
 
     CidEnumerate(&KphpCidTable, KphpEnumerateContexts, &context);
+}
+
+/**
+ * \brief Checks the APC no-op routine for a given process.
+ *
+ * \param[in] ProcessContext The context of a process to check the routine of. 
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCheckProcessApcNoopRoutine(
+    _In_ PKPH_PROCESS_CONTEXT ProcessContext
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+    ULONG flags;
+
+    PAGED_CODE();
+
+    if (ProcessContext->ApcNoopRoutine)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    status = ObOpenObjectByPointer(ProcessContext->EProcess,
+                                   OBJ_KERNEL_HANDLE,
+                                   NULL,
+                                   PROCESS_ALL_ACCESS,
+                                   *PsProcessType,
+                                   KernelMode,
+                                   &processHandle);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "ObOpenObjectByPointer failed: %!STATUS!",
+                      status);
+
+        processHandle = NULL;
+        goto Exit;
+    }
+
+    policyInfo.Policy = ProcessControlFlowGuardPolicy;
+    policyInfo.ControlFlowGuardPolicy.Flags = 0;
+    status = ZwQueryInformationProcess(processHandle,
+                                       ProcessMitigationPolicy,
+                                       &policyInfo,
+                                       sizeof(policyInfo),
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "ZwQueryInformationProcess failed: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
+    //
+    // TODO(jxy-s) investigate any needed support for XFG
+    //
+    // TODO(jxy-s) KphNtDllRtlSetBits will point to the wrong routine when the
+    // target process is running as ARM64EC. We need to point at the correct
+    // ARM64EC (x64) export. For now this is okay since we shouldn't get here
+    // for a non-native binary.
+    //
+    flags = 0;
+    if (policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard)
+    {
+        flags |= CFG_CALL_TARGET_VALID;
+        if (policyInfo.ControlFlowGuardPolicy.EnableExportSuppression)
+        {
+            flags |= CFG_CALL_TARGET_CONVERT_EXPORT_SUPPRESSED_TO_VALID;
+        }
+    }
+
+    if (flags)
+    {
+        status = KphGuardGrantSuppressedCallAccess(processHandle,
+                                                   KphNtDllRtlSetBits,
+                                                   flags);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          TRACKING,
+                          "KphGuardGrantSuppressedCallAccess failed "
+                          "(0x%08lx, 0x%08lx): %!STATUS!",
+                          policyInfo.ControlFlowGuardPolicy.Flags,
+                          flags,
+                          status);
+            goto Exit;
+        }
+    }
+
+    ProcessContext->ApcNoopRoutine = (PKNORMAL_ROUTINE)KphNtDllRtlSetBits;
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (processHandle)
+    {
+        ObCloseHandle(processHandle, KernelMode);
+    }
+
+    return status;
 }

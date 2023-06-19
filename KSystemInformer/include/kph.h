@@ -755,6 +755,15 @@ NTSTATUS KphLocateKernelRevision(
     _Out_ PUSHORT Revision
     );
 
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGuardGrantSuppressedCallAccess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress,
+    _In_ ULONG Flags
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1269,6 +1278,12 @@ _IRQL_requires_max_(APC_LEVEL)
 VOID KphEnumerateCidContexts(
     _In_ KPH_ENUM_CID_CONTEXTS_CALLBACK Callback,
     _In_opt_ PVOID Parameter
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCheckProcessApcNoopRoutine(
+    _In_ PKPH_PROCESS_CONTEXT ProcessContext
     );
 
 // protection

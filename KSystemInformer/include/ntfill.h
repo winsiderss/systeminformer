@@ -700,6 +700,31 @@ extern PLIST_ENTRY PsLoadedModuleList;
 extern PERESOURCE PsLoadedModuleResource;
 #endif
 
+typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
+{
+    PROCESS_MITIGATION_POLICY Policy;
+    union
+    {
+        PROCESS_MITIGATION_ASLR_POLICY ASLRPolicy;
+        PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY StrictHandleCheckPolicy;
+        PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY SystemCallDisablePolicy;
+        PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY ExtensionPointDisablePolicy;
+        PROCESS_MITIGATION_DYNAMIC_CODE_POLICY DynamicCodePolicy;
+        PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY ControlFlowGuardPolicy;
+        PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY SignaturePolicy;
+        PROCESS_MITIGATION_FONT_DISABLE_POLICY FontDisablePolicy;
+        PROCESS_MITIGATION_IMAGE_LOAD_POLICY ImageLoadPolicy;
+        PROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY SystemCallFilterPolicy;
+        PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY PayloadRestrictionPolicy;
+        PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy;
+        PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy;
+        PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy;
+        PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY RedirectionTrustPolicy;
+        PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY UserPointerAuthPolicy;
+        PROCESS_MITIGATION_SEHOP_POLICY SEHOPPolicy;
+    };
+} PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
+
 // RTL
 
 #ifndef RTL_MAX_DRIVE_LETTERS
@@ -1128,6 +1153,8 @@ MiGetVadEndAddress(
     return MiGetVadShortEndAddress(&Vad->Core);
 }
 
+#define VmCfgCallTargetInformation 2
+
 // CI
 
 #ifndef ALGIDDEF
@@ -1551,3 +1578,62 @@ LXP_THREAD_GET_CURRENT(
     _Out_ PVOID* Thread
     );
 typedef LXP_THREAD_GET_CURRENT* PLXP_THREAD_GET_CURRENT;
+
+// CFG
+
+
+//
+// Define flags for setting process CFG valid call target entries.
+//
+
+//
+// Call target should be made valid.  If not set, the call target is made
+// invalid.  Input flag.
+//
+
+#define CFG_CALL_TARGET_VALID                               (0x00000001) 
+
+//
+// Call target has been successfully processed.  Used to report to the caller
+// how much progress has been made.  Output flag.
+//
+
+#define CFG_CALL_TARGET_PROCESSED                           (0x00000002)
+
+//
+// Call target should be made valid only if it is suppressed export.
+// What this flag means is that it can *only* be used on a cell which is
+// currently in the CFG export suppressed state (only considered for export
+// suppressed processes and not legacy CFG processes!), and it is also
+// allowed to be used even if the process is a restricted (i.e. no ACG) process.
+//
+
+#define CFG_CALL_TARGET_CONVERT_EXPORT_SUPPRESSED_TO_VALID  (0x00000004)
+
+//
+// Call target should be made into an XFG call target.
+//
+
+#define CFG_CALL_TARGET_VALID_XFG                           (0x00000008)
+
+//
+// Call target should be made valid only if it is already an XFG target
+// in a process which has XFG audit mode enabled.
+//
+
+#define CFG_CALL_TARGET_CONVERT_XFG_TO_CFG                  (0x00000010)
+
+typedef struct _CFG_CALL_TARGET_INFO {
+    ULONG_PTR Offset;
+    ULONG_PTR Flags;
+} CFG_CALL_TARGET_INFO, *PCFG_CALL_TARGET_INFO;
+
+typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
+{
+    ULONG NumberOfEntries;
+    ULONG Reserved;
+    PULONG NumberOfEntriesProcessed;
+    PCFG_CALL_TARGET_INFO CallTargetInfo;
+    PVOID Section; // since REDSTONE5
+    ULONGLONG FileOffset;
+} CFG_CALL_TARGET_LIST_INFORMATION, *PCFG_CALL_TARGET_LIST_INFORMATION;
