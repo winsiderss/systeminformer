@@ -1872,23 +1872,25 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhQuerySymbolicLinkObject(
-    _In_ PPH_STRINGREF Name,
-    _Out_ PPH_STRING* LinkTarget
+    _Out_ PPH_STRING* LinkTarget,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF ObjectName
     );
 
 FORCEINLINE
 NTSTATUS
 NTAPI
 PhQuerySymbolicLinkObjectZ(
-    _In_ PWSTR Name,
-    _Out_ PPH_STRING* LinkTarget
+    _Out_ PPH_STRING* LinkTarget,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PWSTR ObjectName
     )
 {
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRef(&name, ObjectName);
 
-    return PhQuerySymbolicLinkObject(&name, LinkTarget);
+    return PhQuerySymbolicLinkObject(LinkTarget, RootDirectory, &name);
 }
 
 PHLIBAPI
@@ -3213,21 +3215,21 @@ PhEnumVirtualMemory(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhEnumVirtualMemoryPages(
-    _In_opt_ HANDLE ProcessHandle,
-    _In_opt_ HANDLE ProcessId,
-    _In_ PPH_ENUM_MEMORY_PAGE_CALLBACK Callback,
+PhEnumVirtualMemoryBulk(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ BOOLEAN BulkQuery,
+    _In_ PPH_ENUM_MEMORY_BULK_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhEnumVirtualMemoryBulk(
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _In_ BOOLEAN BulkQuery,
-    _In_ PPH_ENUM_MEMORY_BULK_CALLBACK Callback,
+PhEnumVirtualMemoryPages(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessId,
+    _In_ PPH_ENUM_MEMORY_PAGE_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
 
@@ -3241,6 +3243,21 @@ PhEnumVirtualMemoryAttributes(
     _In_ SIZE_T Size,
     _In_ PPH_ENUM_MEMORY_ATTRIBUTE_CALLBACK Callback,
     _In_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetKernelDebuggerInformation(
+    _Out_opt_ PBOOLEAN KernelDebuggerEnabled,
+    _Out_opt_ PBOOLEAN KernelDebuggerPresent
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsDebuggerPresent(
+    VOID
     );
 
 EXTERN_C_END

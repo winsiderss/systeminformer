@@ -1476,8 +1476,22 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 {
                     PPH_HANDLE_OBJECT_TREE_ROOT_NODE *handleObjectNodes = NULL;
                     ULONG numberOfHandleObjectNodes = 0;
+                    BOOLEAN allCanBeClosed = TRUE;
 
                     if (!PhpGetSelectedHandleObjectNodes(context, &handleObjectNodes, &numberOfHandleObjectNodes))
+                        break;
+
+                    // Check the item called by TreeNewKeyDown is valid (dmex)
+                    for (ULONG i = 0; i < numberOfHandleObjectNodes; i++)
+                    {
+                        if (handleObjectNodes[i]->ResultType != HandleSearchResult)
+                        {
+                            allCanBeClosed = FALSE;
+                            break;
+                        }
+                    }
+
+                    if (!allCanBeClosed)
                         break;
 
                     if (numberOfHandleObjectNodes != 0 && PhShowConfirmMessage(

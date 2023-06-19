@@ -466,6 +466,7 @@ typedef struct _IMAGE_CFG_ENTRY
         BOOLEAN Xfg : 1;
         BOOLEAN Reserved : 4;
     };
+    ULONG64 XfgHash;
 } IMAGE_CFG_ENTRY, *PIMAGE_CFG_ENTRY;
 
 typedef struct _PH_MAPPED_IMAGE_CFG

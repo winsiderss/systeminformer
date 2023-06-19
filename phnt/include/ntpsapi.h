@@ -1738,19 +1738,20 @@ NtQueueApcThread(
 
 #if (PHNT_VERSION >= PHNT_WIN7)
 
-#define APC_FORCE_THREAD_SIGNAL ((HANDLE)1) // ReserveHandle
+#define QUEUE_USER_APC_SPECIAL_USER_APC ((HANDLE)0x1)
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueueApcThreadEx(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ReserveHandle, // NtAllocateReserveObject
+    _In_opt_ HANDLE ReserveHandle, // NtAllocateReserveObject // SPECIAL_USER_APC
     _In_ PPS_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
     );
+
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN11)

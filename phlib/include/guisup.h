@@ -1567,13 +1567,6 @@ PhImageListSetIconSize(
     _In_ INT32 cy
     );
 
-PHLIBAPI
-VOID
-NTAPI
-PhDpiChangedForwardChildWindows(
-    _In_ HWND WindowHandle
-    );
-
 #define PH_SHUTDOWN_RESTART 0x1
 #define PH_SHUTDOWN_POWEROFF 0x2
 #define PH_SHUTDOWN_INSTALL_UPDATES 0x4

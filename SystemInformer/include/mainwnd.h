@@ -109,7 +109,7 @@ PhPluginInvokeWindowCallback(
 #define ProcessHacker_Refresh() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_REFRESH, 0, 0)
 #define ProcessHacker_GetUpdateAutomatically() \
-    ((BOOLEAN)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY, 0, 0))
+    ((BOOLEAN)PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY, 0, 0)))
 #define ProcessHacker_SetUpdateAutomatically(Value) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY, (PVOID)(ULONG_PTR)(Value), 0)
 #define ProcessHacker_IconClick() \
@@ -123,7 +123,7 @@ PhPluginInvokeWindowCallback(
 #define ProcessHacker_GetWindowsVersion() \
     (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_VERSION, 0, 0)))
 #define ProcessHacker_IsPortableMode() \
-    ((BOOLEAN)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE, 0, 0))
+    ((BOOLEAN)PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE, 0, 0)))
 
 #define PhWindowsVersion ProcessHacker_GetWindowsVersion() // Temporary backwards compat (dmex)
 #define PhMainWindowHandle ProcessHacker_GetWindowHandle() // Temporary backwards compat (dmex)

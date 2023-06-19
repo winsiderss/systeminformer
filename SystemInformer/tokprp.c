@@ -4387,9 +4387,12 @@ NTSTATUS PhGetAppModelPolicy(
 
         if (entry = PhFindLoaderEntry(NULL, NULL, &kernelBaseName))
         {
+            PH_STRINGREF fullName;
             PPH_STRING fileName;
 
-            if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), entry->DllBase, &fileName)))
+            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
+
+            if (fileName = PhDosPathNameToNtPathName(&fullName))
             {
                 PhLoadModuleSymbolProvider(symbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
                 PhDereferenceObject(fileName);

@@ -6695,6 +6695,7 @@ NTSTATUS PhEnumProcesses(
  *
  * \param Processes A variable which receives a pointer to a buffer containing process information.
  * You must free the buffer using PhFree() when you no longer need it.
+ * \param SystemInformationClass A variable which indicates the kind of system information to be retrieved.
  *
  * \remarks You can use the \ref PH_FIRST_PROCESS and \ref PH_NEXT_PROCESS macros to process the
  * information contained in the buffer.
@@ -8209,6 +8210,7 @@ NTSTATUS PhEnumFileHardLinks(
 
 NTSTATUS PhCreateSymbolicLinkObject(
     _Out_ PHANDLE LinkHandle,
+    _In_ ACCESS_MASK DesiredAccess,
     _In_ PPH_STRINGREF FileName,
     _In_ PPH_STRINGREF LinkName
     )
@@ -8234,7 +8236,7 @@ NTSTATUS PhCreateSymbolicLinkObject(
 
     status = NtCreateSymbolicLinkObject(
         &linkHandle,
-        MAXIMUM_ALLOWED,
+        DesiredAccess,
         &objectAttributes,
         &objectTarget
         );
@@ -8248,8 +8250,9 @@ NTSTATUS PhCreateSymbolicLinkObject(
 }
 
 NTSTATUS PhQuerySymbolicLinkObject(
-    _In_ PPH_STRINGREF Name,
-    _Out_ PPH_STRING* LinkTarget
+    _Out_ PPH_STRING* LinkTarget,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF ObjectName
     )
 {
     NTSTATUS status;
@@ -8259,14 +8262,14 @@ NTSTATUS PhQuerySymbolicLinkObject(
     UNICODE_STRING targetName;
     WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
 
-    if (!PhStringRefToUnicodeString(Name, &objectName))
+    if (!PhStringRefToUnicodeString(ObjectName, &objectName))
         return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
         &objectAttributes,
         &objectName,
         OBJ_CASE_INSENSITIVE,
-        NULL,
+        RootDirectory,
         NULL
         );
 
@@ -9051,7 +9054,7 @@ NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (WindowsVersion >= WINDOWS_10_RS1 && NtCurrentPeb()->IsLongPathAwareProcess) // RtlAreLongPathsEnabled
+        if (WindowsVersion >= WINDOWS_10_RS1) // RtlAreLongPathsEnabled() // always true
         {
             PVOID baseAddress;
 
@@ -16363,6 +16366,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
     _In_opt_ PVOID Context
     )
 {
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
     NTSTATUS status;
 
     // BulkQuery... TRUE:
@@ -16468,6 +16472,9 @@ NTSTATUS PhEnumVirtualMemoryBulk(
     }
 
     return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
 }
 
 /**
@@ -16634,4 +16641,65 @@ CleanupExit:
         NtClose(processHandle);
 
     return status;
+}
+
+NTSTATUS PhGetKernelDebuggerInformation(
+    _Out_opt_ PBOOLEAN KernelDebuggerEnabled,
+    _Out_opt_ PBOOLEAN KernelDebuggerPresent
+    )
+{
+    NTSTATUS status;
+    SYSTEM_KERNEL_DEBUGGER_INFORMATION debugInfo;
+
+    status = NtQuerySystemInformation(
+        SystemKernelDebuggerInformation,
+        &debugInfo,
+        sizeof(SYSTEM_KERNEL_DEBUGGER_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (KernelDebuggerEnabled)
+            *KernelDebuggerEnabled = debugInfo.KernelDebuggerEnabled;
+        if (KernelDebuggerPresent)
+            *KernelDebuggerPresent = !debugInfo.KernelDebuggerNotPresent;
+    }
+
+    return status;
+}
+
+// rev from BasepIsDebugPortPresent (dmex)
+BOOLEAN PhIsDebugPortPresent(
+    VOID
+    )
+{
+    BOOLEAN isBeingDebugged;
+
+    if (NT_SUCCESS(PhGetProcessIsBeingDebugged(NtCurrentProcess(), &isBeingDebugged)))
+    {
+        if (isBeingDebugged)
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+// rev from IsDebuggerPresent (dmex)
+/**
+ * Determines whether the calling process is being debugged by a user-mode debugger.
+ *
+ * \return TRUE if the current process is running in the context of a debugger, otherwise the return value is FALSE.
+ */
+BOOLEAN PhIsDebuggerPresent(
+    VOID
+    )
+{
+#ifdef PHNT_NATIVE_DEBUGGER
+    return !!IsDebuggerPresent();
+#else
+    return NtCurrentPeb()->BeingDebugged;
+#endif
 }

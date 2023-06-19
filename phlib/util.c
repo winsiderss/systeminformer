@@ -8410,6 +8410,19 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     _In_ ULONG AttributeCount
     )
 {
+#if (PHNT_NATIVE_PROCATTRIBUTELIST)
+    PPROC_THREAD_ATTRIBUTE_LIST attributeList;
+    SIZE_T attributeListLength;
+
+    if (!InitializeProcThreadAttributeList(NULL, AttributeCount, 0, &attributeListLength))
+        return STATUS_NO_MEMORY;
+
+    attributeList = PhAllocateZero(attributeListLength);
+    attributeList->AttributeCount = AttributeCount;
+    *AttributeList = attributeList;
+
+    return STATUS_SUCCESS;
+#else
     PPROC_THREAD_ATTRIBUTE_LIST attributeList;
     SIZE_T attributeListLength;
 
@@ -8419,6 +8432,7 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     *AttributeList = attributeList;
 
     return STATUS_SUCCESS;
+#endif
 }
 
 // rev from DeleteProcThreadAttributeList (dmex)
@@ -8438,6 +8452,12 @@ NTSTATUS PhUpdateProcThreadAttribute(
     _In_ SIZE_T BufferLength
     )
 {
+#if (PHNT_NATIVE_PROCATTRIBUTELIST)
+    if (!UpdateProcThreadAttribute(AttributeList, 0, AttributeNumber, Buffer, BufferLength, NULL, NULL))
+        return STATUS_NO_MEMORY;
+
+    return STATUS_SUCCESS;
+#else
     if (AttributeList->LastAttribute >= AttributeList->AttributeCount)
         return STATUS_NO_MEMORY;
 
@@ -8448,4 +8468,5 @@ NTSTATUS PhUpdateProcThreadAttribute(
     AttributeList->LastAttribute++;
 
     return STATUS_SUCCESS;
+#endif
 }
