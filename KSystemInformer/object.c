@@ -897,7 +897,7 @@ NTSTATUS KphQueryInformationObject(
             OBJECT_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(basicInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(basicInfo);
@@ -1088,7 +1088,7 @@ NTSTATUS KphQueryInformationObject(
             OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(handleFlagInfo)))
+                (ObjectInformationLength < sizeof(handleFlagInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(handleFlagInfo);
@@ -1124,7 +1124,7 @@ NTSTATUS KphQueryInformationObject(
             PROCESS_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(basicInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(basicInfo);
@@ -1160,7 +1160,7 @@ NTSTATUS KphQueryInformationObject(
             THREAD_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(basicInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(basicInfo);
@@ -1207,7 +1207,7 @@ NTSTATUS KphQueryInformationObject(
             }
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(basicInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(basicInfo);
@@ -1295,7 +1295,7 @@ NTSTATUS KphQueryInformationObject(
             KIRQL irql;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(fileInfo)))
+                (ObjectInformationLength < sizeof(fileInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(fileInfo);
@@ -1446,7 +1446,7 @@ NTSTATUS KphQueryInformationObject(
             HANDLE driverHandle;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(KPH_FILE_OBJECT_DRIVER)))
+                (ObjectInformationLength < sizeof(KPH_FILE_OBJECT_DRIVER)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(KPH_FILE_OBJECT_DRIVER);
@@ -1508,7 +1508,7 @@ NTSTATUS KphQueryInformationObject(
             KERNEL_USER_TIMES times;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(times)))
+                (ObjectInformationLength < sizeof(times)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(times);
@@ -1542,7 +1542,7 @@ NTSTATUS KphQueryInformationObject(
             KERNEL_USER_TIMES times;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(times)))
+                (ObjectInformationLength < sizeof(times)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(times);
@@ -1703,7 +1703,7 @@ NTSTATUS KphQueryInformationObject(
             ULONG threadIsTerminated;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(threadIsTerminated)))
+                (ObjectInformationLength < sizeof(threadIsTerminated)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(threadIsTerminated);
@@ -2102,7 +2102,7 @@ NTSTATUS KphSetInformationObject(
         {
             OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
 
-            if (ObjectInformationLength != sizeof(handleFlagInfo))
+            if (ObjectInformationLength < sizeof(handleFlagInfo))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 goto Exit;
@@ -2362,6 +2362,144 @@ Exit:
     if (sourceProcess)
     {
         ObDereferenceObject(sourceProcess);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Checks if two object handles refer to the same object.
+ *
+ * \param[in] FirstObjectHandle First handle to compare with the second. 
+ * \param[in] SecondObjectHandle Second handle to compare with the first. 
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return STATUS_SUCCESS if the object handles refer to the same object,
+ * STATUS_NOT_SAME_OBJECT if the object handles refer to different objects,
+ * and STATUS_INVALID_HANDLE if one of the handles is invalid.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpCompareObjects(
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PVOID firstObject;
+    PVOID secondObject;
+
+    PAGED_PASSIVE();
+
+    status = ObReferenceObjectByHandle(FirstObjectHandle,
+                                       0,
+                                       NULL,
+                                       AccessMode,
+                                       &firstObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed %!STATUS!",
+                      status);
+
+        firstObject = NULL;
+        secondObject = NULL;
+        goto Exit;
+    }
+
+    status = ObReferenceObjectByHandle(SecondObjectHandle,
+                                       0,
+                                       NULL,
+                                       AccessMode,
+                                       &secondObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed %!STATUS!",
+                      status);
+
+        secondObject = NULL;
+        goto Exit;
+    }
+
+    status = (firstObject == secondObject) ?
+        STATUS_SUCCESS : STATUS_NOT_SAME_OBJECT;
+
+Exit:
+
+    if (secondObject)
+    {
+        ObDereferenceObject(secondObject);
+    }
+
+    if (firstObject)
+    {
+        ObDereferenceObject(firstObject);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Checks if two object handles refer to the same object, for a process. 
+ *
+ * \param[in] ProcessHandle A handle to a process.
+ * \param[in] FirstObjectHandle First handle to compare with the second. 
+ * \param[in] SecondObjectHandle Second handle to compare with the first. 
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return STATUS_SUCCESS if the object handles refer to the same object,
+ * STATUS_NOT_SAME_OBJECT if the object handles refer to different objects,
+ * and STATUS_INVALID_HANDLE if one of the handles is invalid.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCompareObjects(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PEPROCESS process;
+    KAPC_STATE apcState;
+    
+    PAGED_PASSIVE();
+
+    status = ObReferenceObjectByHandle(ProcessHandle,
+                                       0,
+                                       *PsProcessType,
+                                       AccessMode,
+                                       &process,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed %!STATUS!",
+                      status);
+
+        process = NULL;
+        goto Exit;
+    }
+
+    KeStackAttachProcess(process, &apcState);
+    status = KphpCompareObjects(FirstObjectHandle,
+                                SecondObjectHandle,
+                                AccessMode);
+    KeUnstackDetachProcess(&apcState);
+
+Exit:
+
+    if (process)
+    {
+        ObDereferenceObject(process);
     }
 
     return status;

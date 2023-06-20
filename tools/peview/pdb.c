@@ -930,6 +930,24 @@ VOID PePdbPrintDiaSymbol(
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
             PhPrintInt64(symbol->Index, symbol->UniqueId);
 
+            if (symbolRva)
+            {
+                PIMAGE_SECTION_HEADER directorySection = NULL;
+
+                PhMappedImageRvaToVa(&PvMappedImage, symbolRva, &directorySection);
+
+                if (directorySection)
+                {
+                    symbol->Characteristics = directorySection->Characteristics;
+                    PhGetMappedImageSectionName(
+                        directorySection,
+                        symbol->SectionName,
+                        RTL_NUMBER_OF(symbol->SectionName),
+                        &symbol->SectionNameLength
+                        );
+                }
+            }
+
             PhAcquireQueuedLockExclusive(&SearchResultsLock);
             PhAddItemList(SearchResults, symbol);
             PhReleaseQueuedLockExclusive(&SearchResultsLock);
@@ -1023,6 +1041,24 @@ VOID PePdbPrintDiaSymbol(
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
             PhPrintInt64(symbol->Index, symbol->UniqueId);
 
+            if (symbolRva)
+            {
+                PIMAGE_SECTION_HEADER directorySection = NULL;
+
+                PhMappedImageRvaToVa(&PvMappedImage, symbolRva, &directorySection);
+
+                if (directorySection)
+                {
+                    symbol->Characteristics = directorySection->Characteristics;
+                    PhGetMappedImageSectionName(
+                        directorySection,
+                        symbol->SectionName,
+                        RTL_NUMBER_OF(symbol->SectionName),
+                        &symbol->SectionNameLength
+                        );
+                }
+            }
+
             PhAcquireQueuedLockExclusive(&SearchResultsLock);
             PhAddItemList(SearchResults, symbol);
             PhReleaseQueuedLockExclusive(&SearchResultsLock);
@@ -1047,6 +1083,24 @@ VOID PePdbPrintDiaSymbol(
             //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
             PhPrintInt64(symbol->Index, symbol->UniqueId);
+
+            if (symbolRva)
+            {
+                PIMAGE_SECTION_HEADER directorySection = NULL;
+
+                PhMappedImageRvaToVa(&PvMappedImage, symbolRva, &directorySection);
+
+                if (directorySection)
+                {
+                    symbol->Characteristics = directorySection->Characteristics;
+                    PhGetMappedImageSectionName(
+                        directorySection,
+                        symbol->SectionName,
+                        RTL_NUMBER_OF(symbol->SectionName),
+                        &symbol->SectionNameLength
+                        );
+                }
+            }
 
             //if (SymbolInfo->Name[0]) // HACK
             //{

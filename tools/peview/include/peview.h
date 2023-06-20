@@ -192,7 +192,7 @@ VOID PvCreateSearchControl(
     _In_opt_ PWSTR BannerText
     );
 
-typedef enum _WCT_TREE_COLUMN_ITEM_NAME
+typedef enum _PV_SYMBOL_COLUMN_ITEM_NAME
 {
     TREE_COLUMN_ITEM_INDEX,
     TREE_COLUMN_ITEM_TYPE,
@@ -200,8 +200,9 @@ typedef enum _WCT_TREE_COLUMN_ITEM_NAME
     TREE_COLUMN_ITEM_NAME,
     TREE_COLUMN_ITEM_SYMBOL,
     TREE_COLUMN_ITEM_SIZE,
+    TREE_COLUMN_ITEM_SECTION,
     TREE_COLUMN_ITEM_MAXIMUM
-} WCT_TREE_COLUMN_ITEM_NAME;
+} PV_SYMBOL_COLUMN_ITEM_NAME;
 
 typedef enum _PV_SYMBOL_TYPE
 {
@@ -236,6 +237,10 @@ typedef struct _PV_SYMBOL_NODE
     WCHAR Index[PH_INT64_STR_LEN_1];
     WCHAR Pointer[PH_PTR_STR_LEN_1];
 
+    ULONG Characteristics;
+    ULONG SectionNameLength;
+    WCHAR SectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } PV_SYMBOL_NODE, *PPV_SYMBOL_NODE;
 
@@ -250,6 +255,19 @@ typedef struct _PH_TN_COLUMN_MENU_DATA
     struct _PH_EMENU_ITEM *Selection;
     ULONG ProcessedId;
 } PH_TN_COLUMN_MENU_DATA, *PPH_TN_COLUMN_MENU_DATA;
+
+typedef enum PV_SYMBOL_TREE_MENU_ITEM
+{
+    PV_SYMBOL_TREE_MENU_ITEM_HIDE_WRITE = 1,
+    PV_SYMBOL_TREE_MENU_ITEM_HIDE_EXECUTE,
+    PV_SYMBOL_TREE_MENU_ITEM_HIDE_CODE,
+    PV_SYMBOL_TREE_MENU_ITEM_HIDE_READ,
+    PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_WRITE,
+    PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE,
+    PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_CODE,
+    PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_READ,
+    PV_SYMBOL_TREE_MENU_ITEM_MAXIMUM
+} PV_SYMBOL_TREE_MENU_ITEM;
 
 #define PH_TN_COLUMN_MENU_HIDE_COLUMN_ID ((ULONG)-1)
 #define PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID ((ULONG)-2)
@@ -375,6 +393,24 @@ typedef struct _PDB_SYMBOL_CONTEXT
     PPH_LIST NodeList;
 
     PVOID IDiaSession;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Reserved : 1;
+            ULONG HideWriteSection : 1;
+            ULONG HideExecuteSection : 1;
+            ULONG HideCodeSection : 1;
+            ULONG HideReadSection : 1;
+            ULONG HighlightWriteSection : 1;
+            ULONG HighlightExecuteSection : 1;
+            ULONG HighlightCodeSection : 1;
+            ULONG HighlightReadSection : 1;
+            ULONG Spare : 23;
+        };
+    };
 } PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;
 
 INT_PTR CALLBACK PvpSymbolsDlgProc(
