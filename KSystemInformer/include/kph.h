@@ -411,6 +411,15 @@ NTSTATUS KphDuplicateObject(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCompareObjects(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // process
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

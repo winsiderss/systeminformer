@@ -484,6 +484,15 @@ KphQuerySectionMappingsInfo(
     _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info 
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphCompareObjects(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle
+    );
+
 EXTERN_C_END
 
 #endif

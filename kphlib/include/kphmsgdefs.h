@@ -271,6 +271,14 @@ typedef struct _KPHM_QUERY_SECTION
     PULONG ReturnLength;
 } KPHM_QUERY_SECTION, *PKPHM_QUERY_SECTION;
 
+typedef struct _KPHM_COMPARE_OBJECTS
+{
+    NTSTATUS Status;
+    HANDLE ProcessHandle;
+    HANDLE FirstObjectHandle;
+    HANDLE SecondObjectHandle;
+} KPHM_COMPARE_OBJECTS, *PKPHM_COMPARE_OBJECTS;
+
 //
 // KPH -> PH
 //
