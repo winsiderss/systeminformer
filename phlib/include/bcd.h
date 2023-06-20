@@ -16,7 +16,7 @@ EXTERN_C_START
 
 NTSTATUS PhBcdOpenObject(
     _In_ HANDLE StoreHandle,
-    _In_ PGUID Identifier,
+    _In_ PCGUID Identifier,
     _Out_ PHANDLE ObjectHandle
     );
 
