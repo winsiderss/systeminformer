@@ -85,8 +85,18 @@ HICON PhGdiplusConvertBitmapToIcon(
             if (graphics->DrawImage(image, 0, 0) == Status::Ok)
             {
                 if (buffer->GetHICON(&icon) == Status::Ok)
+                {
+                    delete graphics;
+                    delete buffer;
+                    delete image;
+
                     return icon;
+                }
             }
+
+            delete graphics;
+            delete buffer;
+            delete image;
         }
     }
 
