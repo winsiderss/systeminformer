@@ -385,23 +385,28 @@ VOID EtEnumerateNamedPipeHandles(
             for (ULONG i = 0; i < handles->HandleCount; i++)
             {
                 PKPH_PROCESS_HANDLE handle = &handles->Handles[i];
-                PPH_STRING objectName;
+                DEVICE_TYPE deviceType;
 
-                if (!NT_SUCCESS(PhGetHandleInformation(
-                    processHandle,
-                    handle->Handle,
-                    handle->ObjectTypeIndex,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &objectName
-                    )))
-                {
+                if (!NT_SUCCESS(PhGetDeviceType(processHandle, handle->Handle, &deviceType)))
                     continue;
-                }
 
-                if (PhStartsWithString2(objectName, DEVICE_NAMED_PIPE, TRUE))
+                if (deviceType == FILE_DEVICE_NAMED_PIPE)
                 {
+                    PPH_STRING objectName;
+
+                    if (!NT_SUCCESS(PhGetHandleInformation(
+                        processHandle,
+                        handle->Handle,
+                        handle->ObjectTypeIndex,
+                        NULL,
+                        NULL,
+                        NULL,
+                        &objectName
+                        )))
+                    {
+                        continue;
+                    }
+
                     EtAddNamedPipeHandleToListView(
                         Context,
                         process->UniqueProcessId,
