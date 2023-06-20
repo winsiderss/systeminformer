@@ -282,6 +282,7 @@ EXPORTS
     PhFindProcessInformation
     PhFindProcessInformationByImageName
     PhGetActiveProcessorCount
+    PhGetDeviceType
     PhGetFileName
     PhGetFilePosition
     PhGetFileSize

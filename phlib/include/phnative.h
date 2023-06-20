@@ -3260,6 +3260,15 @@ PhIsDebuggerPresent(
     VOID
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetDeviceType(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _Out_ DEVICE_TYPE* DeviceType
+    );
+
 EXTERN_C_END
 
 #endif
