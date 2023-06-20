@@ -897,7 +897,7 @@ NTSTATUS KphQueryInformationObject(
             OBJECT_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(basicInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(basicInfo);
@@ -1088,7 +1088,7 @@ NTSTATUS KphQueryInformationObject(
             OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(handleFlagInfo)))
+                (ObjectInformationLength < sizeof(handleFlagInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(handleFlagInfo);
@@ -1124,7 +1124,7 @@ NTSTATUS KphQueryInformationObject(
             PROCESS_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(basicInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(basicInfo);
@@ -1160,7 +1160,7 @@ NTSTATUS KphQueryInformationObject(
             THREAD_BASIC_INFORMATION basicInfo;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(basicInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(basicInfo);
@@ -1207,7 +1207,7 @@ NTSTATUS KphQueryInformationObject(
             }
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(basicInfo)))
+                (ObjectInformationLength < sizeof(basicInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(basicInfo);
@@ -1295,7 +1295,7 @@ NTSTATUS KphQueryInformationObject(
             KIRQL irql;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(fileInfo)))
+                (ObjectInformationLength < sizeof(fileInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(fileInfo);
@@ -1446,7 +1446,7 @@ NTSTATUS KphQueryInformationObject(
             HANDLE driverHandle;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(KPH_FILE_OBJECT_DRIVER)))
+                (ObjectInformationLength < sizeof(KPH_FILE_OBJECT_DRIVER)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(KPH_FILE_OBJECT_DRIVER);
@@ -1508,7 +1508,7 @@ NTSTATUS KphQueryInformationObject(
             KERNEL_USER_TIMES times;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(times)))
+                (ObjectInformationLength < sizeof(times)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(times);
@@ -1542,7 +1542,7 @@ NTSTATUS KphQueryInformationObject(
             KERNEL_USER_TIMES times;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(times)))
+                (ObjectInformationLength < sizeof(times)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(times);
@@ -1703,7 +1703,7 @@ NTSTATUS KphQueryInformationObject(
             ULONG threadIsTerminated;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(threadIsTerminated)))
+                (ObjectInformationLength < sizeof(threadIsTerminated)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 returnLength = sizeof(threadIsTerminated);
@@ -2102,7 +2102,7 @@ NTSTATUS KphSetInformationObject(
         {
             OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
 
-            if (ObjectInformationLength != sizeof(handleFlagInfo))
+            if (ObjectInformationLength < sizeof(handleFlagInfo))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 goto Exit;

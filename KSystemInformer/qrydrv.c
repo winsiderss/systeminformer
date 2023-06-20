@@ -132,7 +132,7 @@ NTSTATUS KphQueryInformationDriver(
             PDRIVER_BASIC_INFORMATION basicInfo;
 
             if (!DriverInformation ||
-                (DriverInformationLength != sizeof(DRIVER_BASIC_INFORMATION)))
+                (DriverInformationLength < sizeof(DRIVER_BASIC_INFORMATION)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 goto Exit;
