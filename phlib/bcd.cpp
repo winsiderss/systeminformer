@@ -95,7 +95,7 @@ NTSTATUS PhBcdCloseStore(
 
 NTSTATUS PhBcdOpenObject(
     _In_ HANDLE StoreHandle,
-    _In_ PGUID Identifier,
+    _In_ PCGUID Identifier,
     _Out_ PHANDLE ObjectHandle
     )
 {
@@ -689,7 +689,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
 
 static VOID PhpBcdEnumerateBootMgrList(
     _In_ HANDLE StoreHandle,
-    _In_ PGUID Identifier,
+    _In_ PCGUID Identifier,
     _In_ ULONG ElementType,
     _In_ PPH_LIST ObjectList
     )

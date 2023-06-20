@@ -116,4 +116,9 @@ typedef GUID *PGUID;
 #define CONTAINING_RECORD(address, type, field) \
     ((type *)((ULONG_PTR)(address) - UFIELD_OFFSET(type, field)))
 
+#ifndef __PCGUID_DEFINED__
+#define __PCGUID_DEFINED__
+typedef const GUID* PCGUID;
+#endif
+
 #endif
