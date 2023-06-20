@@ -1390,33 +1390,30 @@ VOID PhpEnablePrivileges(
         &tokenHandle
         )))
     {
-        CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 9];
-        PTOKEN_PRIVILEGES privileges;
-        ULONG i;
-
-        privileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
-        privileges->PrivilegeCount = 9;
-
-        for (i = 0; i < privileges->PrivilegeCount; i++)
+        LUID_AND_ATTRIBUTES privileges[] =
         {
-            privileges->Privileges[i].Attributes = SE_PRIVILEGE_ENABLED;
-            privileges->Privileges[i].Luid.HighPart = 0;
-        }
+            { RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_INC_BASE_PRIORITY_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_INC_WORKING_SET_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_LOAD_DRIVER_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_PROF_SINGLE_PROCESS_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_BACKUP_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_RESTORE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_SHUTDOWN_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_TAKE_OWNERSHIP_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_SECURITY_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+        };
+        UCHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(privileges)];
+        PTOKEN_PRIVILEGES tokenPrivileges;
 
-        privileges->Privileges[0].Luid.LowPart = SE_DEBUG_PRIVILEGE;
-        privileges->Privileges[1].Luid.LowPart = SE_INC_BASE_PRIORITY_PRIVILEGE;
-        privileges->Privileges[2].Luid.LowPart = SE_INC_WORKING_SET_PRIVILEGE;
-        privileges->Privileges[3].Luid.LowPart = SE_LOAD_DRIVER_PRIVILEGE;
-        privileges->Privileges[4].Luid.LowPart = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
-        privileges->Privileges[5].Luid.LowPart = SE_BACKUP_PRIVILEGE;
-        privileges->Privileges[6].Luid.LowPart = SE_RESTORE_PRIVILEGE;
-        privileges->Privileges[7].Luid.LowPart = SE_SHUTDOWN_PRIVILEGE;
-        privileges->Privileges[8].Luid.LowPart = SE_TAKE_OWNERSHIP_PRIVILEGE;
+        tokenPrivileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
+        tokenPrivileges->PrivilegeCount = RTL_NUMBER_OF(privileges);
+        memcpy(tokenPrivileges->Privileges, privileges, sizeof(privileges));
 
         NtAdjustPrivilegesToken(
             tokenHandle,
             FALSE,
-            privileges,
+            tokenPrivileges,
             0,
             NULL,
             NULL
