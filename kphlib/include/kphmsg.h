@@ -51,6 +51,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgCreateFile,
     KphMsgQueryInformationThread,
     KphMsgQuerySection,
+    KphMsgCompareObjects,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -170,6 +171,7 @@ typedef struct _KPH_MESSAGE
             KPHM_CREATE_FILE CreateFile;
             KPHM_QUERY_INFORMATION_THREAD QueryInformationThread;
             KPHM_QUERY_SECTION QuerySection;
+            KPHM_COMPARE_OBJECTS CompareObjects;
         } User;
 
         //

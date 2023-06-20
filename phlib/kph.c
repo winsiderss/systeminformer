@@ -1790,3 +1790,30 @@ NTSTATUS KphQuerySectionMappingsInfo(
 
     return status;
 }
+
+NTSTATUS KphCompareObjects(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgCompareObjects);
+    msg->User.CompareObjects.ProcessHandle = ProcessHandle;
+    msg->User.CompareObjects.FirstObjectHandle = FirstObjectHandle;
+    msg->User.CompareObjects.SecondObjectHandle = SecondObjectHandle;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.CompareObjects.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
