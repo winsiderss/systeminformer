@@ -37,6 +37,7 @@
 #define SETTING_NAME_TRACERT_MAX_HOPS (PLUGIN_NAME L".TracertMaxHops")
 #define SETTING_NAME_WHOIS_WINDOW_POSITION (PLUGIN_NAME L".WhoisWindowPosition")
 #define SETTING_NAME_WHOIS_WINDOW_SIZE (PLUGIN_NAME L".WhoisWindowSize")
+#define SETTING_NAME_WHOIS_IPV6_SUPPORT (PLUGIN_NAME L".WhoisProtocalSupport")
 #define SETTING_NAME_EXTENDED_TCP_STATS (PLUGIN_NAME L".EnableExtendedTcpStats")
 #define SETTING_NAME_GEOLITE_API_KEY (PLUGIN_NAME L".MaxMindApiKey")
 
@@ -144,6 +145,7 @@ typedef struct _NETWORK_WHOIS_CONTEXT
     HWND RichEditHandle;
     HFONT FontHandle;
 
+    BOOLEAN Ipv6Support;
     PH_NETWORK_ACTION Action;
     PH_LAYOUT_MANAGER LayoutManager;
 
