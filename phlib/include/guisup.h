@@ -2122,6 +2122,10 @@ PhPtInRect(
 #endif
 }
 
+VOID PhWindowThemeMainMenuBorder(
+    _In_ HWND WindowHandle
+    );
+
 // directdraw.cpp
 
 HICON PhGdiplusConvertBitmapToIcon(

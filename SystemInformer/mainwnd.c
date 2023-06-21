@@ -233,6 +233,17 @@ LRESULT CALLBACK PhMwpWndProc(
             PhMwpOnDpiChanged(hWnd);
         }
         break;
+    case WM_NCPAINT:
+    case WM_NCACTIVATE:
+        {
+            if (WindowsVersion >= WINDOWS_10)
+            {
+                LRESULT result = DefWindowProc(hWnd, uMsg, wParam, lParam);
+                PhWindowThemeMainMenuBorder(hWnd);
+                return result;
+            }
+        }
+        break;
     }
 
     if (uMsg >= WM_PH_FIRST && uMsg <= WM_PH_LAST)
