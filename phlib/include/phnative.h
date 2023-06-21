@@ -509,6 +509,14 @@ PhSetEnvironmentVariableRemote(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhDestroyWindowRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetJobProcessIdList(
     _In_ HANDLE JobHandle,
     _Out_ PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList

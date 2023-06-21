@@ -251,6 +251,7 @@ EXPORTS
     PhDeleteFileWin32
     PhDeleteFile
     PhDeleteValueKey
+    PhDestroyWindowRemote
     PhDetermineDosPathNameType
     PhDoesFileExistWin32
     PhDoesFileExist
