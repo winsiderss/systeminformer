@@ -515,6 +515,8 @@ BOOLEAN NTAPI PvCertificateTreeNewCallback(
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM, "SortFunctions must equal maximum.");
+
                     if (context->TreeNewSortColumn < PV_CERTIFICATE_TREE_COLUMN_NAME_MAXIMUM)
                         sortFunction = sortFunctions[context->TreeNewSortColumn];
                     else

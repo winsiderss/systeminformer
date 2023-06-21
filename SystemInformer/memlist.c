@@ -842,6 +842,8 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == PHMMTLC_MAXIMUM, "SortFunctions must equal maximum.");
+
                     if (!PhCmForwardSort(
                         (PPH_TREENEW_NODE *)context->RegionNodeList->Items,
                         context->RegionNodeList->Count,

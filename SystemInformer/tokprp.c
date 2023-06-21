@@ -5455,6 +5455,8 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
                     };
                     int(__cdecl * sortFunction)(void*, const void*, const void*);
 
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == 2, "SortFunctions must equal maximum.");
+
                     if (context->TreeNewSortColumn < 2)
                         sortFunction = sortFunctions[context->TreeNewSortColumn];
                     else

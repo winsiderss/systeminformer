@@ -437,6 +437,8 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (context->TreeNewSortColumn < TREE_COLUMN_ITEM_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
                 else
