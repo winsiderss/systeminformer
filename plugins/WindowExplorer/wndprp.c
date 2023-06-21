@@ -100,6 +100,9 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_AUTOMATION,
     WINDOW_PROPERTIES_INDEX_DPICONTEXT,
     WINDOW_PROPERTIES_INDEX_MONITOR,
+    WINDOW_PROPERTIES_INDEX_TOPLEVEL,
+    WINDOW_PROPERTIES_INDEX_CLOAKED,
+    WINDOW_PROPERTIES_INDEX_IAMID,
 
     WINDOW_PROPERTIES_INDEX_CLASS_NAME,
     WINDOW_PROPERTIES_INDEX_CLASS_BASENAME,
@@ -247,10 +250,11 @@ VOID NTAPI WeWindowItemDeleteProcedure(
     PhClearReference(&context->ClassWndProcSymbol);
 }
 
-VOID WeShowWindowProperties(
+BOOLEAN WeShowWindowProperties(
     _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
-    _In_ BOOLEAN MessageOnlyWindow
+    _In_ BOOLEAN MessageOnlyWindow,
+    _In_ PCLIENT_ID ClientId
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
@@ -260,21 +264,30 @@ VOID WeShowWindowProperties(
     if (!WeWindowItemType)
         WeWindowItemType = PhCreateObjectType(L"WindowItemType", 0, WeWindowItemDeleteProcedure);
 
+    if (!IsWindow(WindowHandle))
+        return FALSE;
+
+    processId = 0;
+    threadId = GetWindowThreadProcessId(WindowHandle, &processId);
+
+    if (ClientId->UniqueProcess != UlongToHandle(processId))
+        return FALSE;
+    if (ClientId->UniqueThread != UlongToHandle(threadId))
+        return FALSE;
+
     context = PhCreateObjectZero(sizeof(WINDOW_PROPERTIES_CONTEXT), WeWindowItemType);
     context->WindowHandle = WindowHandle;
     context->ParentWindowHandle = ParentWindowHandle;
     context->MessageOnlyWindow = MessageOnlyWindow;
+    context->ClientId.UniqueProcess = UlongToHandle(processId);
+    context->ClientId.UniqueThread = UlongToHandle(threadId);
 
     PhInitializeInitOnce(&context->SymbolProviderInitOnce);
     InitializeListHead(&context->ResolveListHead);
     PhInitializeQueuedLock(&context->ResolveListLock);
 
-    processId = 0;
-    threadId = GetWindowThreadProcessId(WindowHandle, &processId);
-    context->ClientId.UniqueProcess = UlongToHandle(processId);
-    context->ClientId.UniqueThread = UlongToHandle(threadId);
-
     PhCreateThread2(WepPropertiesThreadStart, context);
+    return TRUE;
 }
 
 NTSTATUS WepPropertiesThreadStart(
@@ -401,6 +414,40 @@ VOID WepQueueResolveSymbol(
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), WepResolveSymbolFunction, resolveContext);
 }
 
+BOOL WepIsTopLevelWindow(
+    _In_ HWND WindowHandle
+    )
+{
+    static BOOL (WINAPI* IsTopLevelWindow_I)(
+        _In_ HWND hwnd
+        ) = NULL;
+
+    if (!IsTopLevelWindow_I)
+        IsTopLevelWindow_I = PhGetModuleProcAddress(L"user32.dll", "IsTopLevelWindow");
+
+    if (!IsTopLevelWindow_I)
+        return FALSE;
+
+    return IsTopLevelWindow_I(WindowHandle);
+}
+
+BOOL WepIsInDesktopWindowBand(
+    _In_ HWND WindowHandle
+    )
+{
+    static BOOL (WINAPI* IsInDesktopWindowBand_I)(
+        _In_ HWND hwnd
+        ) = NULL;
+
+    if (!IsInDesktopWindowBand_I)
+        IsInDesktopWindowBand_I = PhGetModuleProcAddress(L"user32.dll", "IsInDesktopWindowBand");
+
+    if (!IsInDesktopWindowBand_I)
+        return FALSE;
+
+    return !!IsInDesktopWindowBand_I(WindowHandle);
+}
+
 HICON WepGetInternalWindowIcon(
     _In_ HWND WindowHandle,
     _In_ UINT IconType
@@ -459,6 +506,123 @@ HICON WepGetWindowIcon(
     }
 
     return (HICON)windowIcon;
+}
+
+static BOOLEAN WepWindowHasAutomationProvider(
+    _In_ HWND WindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *UiaHasServerSideProvider_I)(
+        _In_ HWND WindowHandle
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HANDLE baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"uiautomationcore.dll"))
+        {
+            UiaHasServerSideProvider_I = PhGetProcedureAddress(baseAddress, "UiaHasServerSideProvider", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!UiaHasServerSideProvider_I)
+        return FALSE;
+
+    return !!UiaHasServerSideProvider_I(WindowHandle);
+}
+
+static BOOLEAN WepIsWindowCloaked(
+    _In_ HWND WindowHandle
+    )
+{
+#define DWMWA_CLOAKED 14
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI *DwmGetWindowAttribute_I)(
+        _In_ HWND hwnd,
+        _In_ DWORD dwAttribute,
+        _Out_ PVOID pvAttribute,
+        _In_ DWORD cbAttribute
+        );
+    BOOL windowCloaked = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HANDLE baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"dwmapi.dll"))
+        {
+            DwmGetWindowAttribute_I = PhGetProcedureAddress(baseAddress, "DwmGetWindowAttribute", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (DwmGetWindowAttribute_I)
+    {
+        DwmGetWindowAttribute_I(WindowHandle, DWMWA_CLOAKED, &windowCloaked, sizeof(BOOL));
+    }
+
+    return !!windowCloaked;
+}
+
+typedef enum _WINDOW_BAND
+{
+    ZBID_DEFAULT = 0,
+    ZBID_DESKTOP = 1,
+    ZBID_UIACCESS = 2,
+    ZBID_IMMERSIVE_IHM = 3,
+    ZBID_IMMERSIVE_NOTIFICATION = 4,
+    ZBID_IMMERSIVE_APPCHROME = 5,
+    ZBID_IMMERSIVE_MOGO = 6,
+    ZBID_IMMERSIVE_EDGY = 7,
+    ZBID_IMMERSIVE_INACTIVEMOBODY = 8,
+    ZBID_IMMERSIVE_INACTIVEDOCK = 9,
+    ZBID_IMMERSIVE_ACTIVEMOBODY = 10,
+    ZBID_IMMERSIVE_ACTIVEDOCK = 11,
+    ZBID_IMMERSIVE_BACKGROUND = 12,
+    ZBID_IMMERSIVE_SEARCH = 13,
+    ZBID_GENUINE_WINDOWS = 14,
+    ZBID_IMMERSIVE_RESTRICTED = 15,
+    ZBID_SYSTEM_TOOLS = 16,
+    ZBID_LOCK = 17,
+    ZBID_ABOVELOCK_UX = 18,
+} WINDOW_BAND;
+
+static ULONG WepGetWindowBand(
+    _In_ HWND WindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *GetWindowBand_I)(
+        _In_ HWND hwnd,
+        _Out_ PULONG pdwBand
+        );
+    ULONG windowBand = ULONG_MAX;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HANDLE baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"user32.dll"))
+        {
+            GetWindowBand_I = PhGetProcedureAddress(baseAddress, "GetWindowBand", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    // "Identity and Access Management (IAM)" (dmex)
+
+    if (GetWindowBand_I)
+    {
+        GetWindowBand_I(WindowHandle, &windowBand);
+    }
+
+    return windowBand;
 }
 
 PPH_STRING WepFormatRect(
@@ -657,6 +821,116 @@ VOID WepRefreshWindowGeneralInfo(
                 _wcslwr(monitorInfoEx.Device);
                 PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_MONITOR, 1, monitorInfoEx.Device);
             }
+        }
+    }
+
+    // IsTopLevelWindow
+    {
+        if (WepIsTopLevelWindow(Context->WindowHandle))
+        {
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_TOPLEVEL, 1, L"Yes");
+        }
+        else
+        {
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_TOPLEVEL, 1, L"No");
+        }
+    }
+
+    // Cloaked
+    {
+        if (WepIsWindowCloaked(Context->WindowHandle))
+        {
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLOAKED, 1, L"Yes");
+        }
+        else
+        {
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLOAKED, 1, L"No");
+        }
+    }
+
+    // Identity and Access Management (IAM) aka Window Bands
+    {
+        ULONG bandId = WepGetWindowBand(Context->WindowHandle);
+
+        if (bandId != ULONG_MAX)
+        {
+            PWSTR string = L"";
+            WCHAR value[PH_INT64_STR_LEN_1];
+
+            switch (bandId)
+            {
+            case ZBID_DEFAULT:
+                string = L"Default";
+                break;
+            case ZBID_DESKTOP:
+                string = L"Desktop";
+                break;
+            case ZBID_UIACCESS:
+                string = L"UIAccess";
+                break;
+            case ZBID_IMMERSIVE_IHM:
+                string = L"IHM";
+                break;
+            case ZBID_IMMERSIVE_NOTIFICATION:
+                string = L"Notification";
+                break;
+            case ZBID_IMMERSIVE_APPCHROME:
+                string = L"IMMERSIVE_APPCHROME";
+                break;
+            case ZBID_IMMERSIVE_MOGO:
+                string = L"IMMERSIVE_MOGO";
+                break;
+            case ZBID_IMMERSIVE_EDGY:
+                string = L"IMMERSIVE_EDGY";
+                break;
+            case ZBID_IMMERSIVE_INACTIVEMOBODY:
+                string = L"IMMERSIVE_INACTIVEMOBODY";
+                break;
+            case ZBID_IMMERSIVE_INACTIVEDOCK:
+                string = L"IMMERSIVE_INACTIVEDOCK";
+                break;
+            case ZBID_IMMERSIVE_ACTIVEMOBODY:
+                string = L"IMMERSIVE_ACTIVEMOBODY";
+                break;
+            case ZBID_IMMERSIVE_ACTIVEDOCK:
+                string = L"IMMERSIVE_ACTIVEDOCK";
+                break;
+            case ZBID_IMMERSIVE_BACKGROUND:
+                string = L"IMMERSIVE_BACKGROUND";
+                break;
+            case ZBID_IMMERSIVE_SEARCH:
+                string = L"IMMERSIVE_SEARCH";
+                break;
+            case ZBID_GENUINE_WINDOWS:
+                string = L"GENUINE_WINDOWS";
+                break;
+            case ZBID_IMMERSIVE_RESTRICTED:
+                string = L"IMMERSIVE_RESTRICTED";
+                break;
+            case ZBID_SYSTEM_TOOLS:
+                string = L"SYSTEM_TOOLS";
+                break;
+            case ZBID_LOCK:
+                string = L"Lock";
+                break;
+            case ZBID_ABOVELOCK_UX:
+                string = L"Above-Lock UX";
+                break;
+            default:
+                string = L"[MISSING]";
+                break;
+            }
+
+            PhPrintPointer(value, UlongToPtr(bandId));
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_IAMID, 1, PhaFormatString(
+                L"%s (%s)",
+                string,
+                value
+                )->Buffer);
+        }
+        else
+        {
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_IAMID, 1, L"N/A");
         }
     }
 }
@@ -897,33 +1171,6 @@ VOID WepRefreshWindowClassInfo(
     WepRefreshWindowClassInfoSymbols(ListViewHandle, Context);
 }
 
-static BOOLEAN WepWindowHasAutomationProvider(
-    _In_ HWND WindowHandle
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *UiaHasServerSideProvider_I)(
-        _In_ HWND WindowHandle
-        );
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        HANDLE baseAddress;
-
-        if (baseAddress = PhLoadLibrary(L"uiautomationcore.dll"))
-        {
-            UiaHasServerSideProvider_I = PhGetProcedureAddress(baseAddress, "UiaHasServerSideProvider", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!UiaHasServerSideProvider_I)
-        return FALSE;
-
-    return !!UiaHasServerSideProvider_I(WindowHandle);
-}
-
 VOID WepRefreshAutomationProvider(
     _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
@@ -1056,6 +1303,9 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_AUTOMATION, L"Automation server", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DPICONTEXT, L"DPI Context", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_MONITOR, L"Monitor", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_TOPLEVEL, L"Top level", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_CLOAKED, L"Cloaked", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_IAMID, L"Band", NULL);
 
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_NAME, L"Name", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_BASENAME, L"Base name", NULL);
@@ -1198,9 +1448,6 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
 
             PhSetApplicationWindowIcon(GetParent(hwndDlg));
 
-            if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X == 0) // HACK
-                PhCenterWindow(GetParent(hwndDlg), context->ParentWindowHandle);
-
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
@@ -1209,6 +1456,12 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPERTY_COLUMNS, context->ListViewHandle);
 
             WepWindowRefreshGeneralPage(hwndDlg, context);
+
+            if (!PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X) // HACK
+            {
+                PhCenterWindow(GetParent(hwndDlg), context->ParentWindowHandle);
+                ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+            }
 
             if (!!PhGetIntegerSetting(L"EnableThemeSupport")) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(GetParent(hwndDlg), !!PhGetIntegerSetting(L"EnableThemeSupport"));

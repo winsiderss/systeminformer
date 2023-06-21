@@ -11,6 +11,7 @@
  */
 
 #include "wndexp.h"
+#include <commdlg.h>
 
 typedef struct _WINDOWS_CONTEXT
 {
@@ -563,6 +564,7 @@ PPH_EMENU WepCreateWindowMenu(
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MINIMIZE, L"Minimize", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MAXIMIZE, L"Maximize", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_CLOSE, L"Close", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_DESTROY, L"Destroy", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_VISIBLE, L"Visible", NULL, NULL), ULONG_MAX);
@@ -584,6 +586,7 @@ PPH_EMENU WepCreateWindowMenu(
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_SETDPI, L"DPI", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_OPENFILELOCATION, L"Open &file location", NULL, NULL), ULONG_MAX);
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -652,6 +655,81 @@ BOOLEAN WepWindowEndTask(
         return FALSE;
 
     return !!EndTask_I(WindowHandle, FALSE, Force);
+}
+
+static VOID WepSetWindowToDpiForTesting(
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDPI
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *NtUserForceWindowToDpiForTest_I)(
+        _In_ HWND hwnd,
+        _Out_ UINT32 dpi
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HANDLE baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"win32u.dll"))
+        {
+            NtUserForceWindowToDpiForTest_I = PhGetProcedureAddress(baseAddress, "NtUserForceWindowToDpiForTest", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (NtUserForceWindowToDpiForTest_I)
+    {
+        NtUserForceWindowToDpiForTest_I(WindowHandle, WindowDPI);
+    }
+}
+
+VOID WepDestroyRemoteWindow(
+    _In_ HWND WindowHandle,
+    _In_ HWND TargetWindow,
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE processHandle = NULL;
+
+    // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+    if (PhWindowsVersion >= WINDOWS_8 && PhWindowsVersion <= WINDOWS_8_1)
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_ALL_ACCESS,
+            ProcessId
+            );
+    }
+
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+            PROCESS_VM_READ | SYNCHRONIZE,
+            ProcessId
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhDestroyWindowRemote(
+            processHandle,
+            TargetWindow
+            );
+
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(WindowHandle, L"Unable to destroy the window.", status, 0);
+    }
 }
 
 VOID NTAPI WepWindowNotifyEventChangeCallback(
@@ -826,6 +904,23 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case IDC_REFRESH:
                 {
+
+
+
+                    //FINDREPLACE fr;       // common dialog box structure
+                    //WCHAR szFindWhat[80] = { 0 };  // buffer receiving string
+                    //HWND hdlg = NULL;     // handle to Find dialog box
+
+                    //// Initialize FINDREPLACE
+                    //ZeroMemory(&fr, sizeof(fr));
+                    //fr.lStructSize = sizeof(fr);
+                    //fr.hwndOwner = hwndDlg;
+                    //fr.lpstrFindWhat = szFindWhat;
+                    //fr.wFindWhatLen = 40;
+                    //fr.Flags = 0;
+
+                    //hdlg = FindText(&fr);
+
                     WepRefreshWindows(context);
 
                     PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
@@ -1006,6 +1101,28 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         //WepWindowEndTask(selectedNode->WindowHandle, TRUE);
                         PostMessage(selectedNode->WindowHandle, WM_CLOSE, 0, 0);
+
+                        WepRefreshWindows(context);
+                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+                        TreeNew_NodesStructured(context->TreeNewHandle);
+                    }
+                }
+                break;
+            case ID_WINDOW_DESTROY:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        WepDestroyRemoteWindow(
+                            hwndDlg,
+                            selectedNode->WindowHandle,
+                            selectedNode->ClientId.UniqueProcess
+                            );
+
+                        WepRefreshWindows(context);
+                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+                        TreeNew_NodesStructured(context->TreeNewHandle);
                     }
                 }
                 break;
@@ -1147,6 +1264,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             {
                                 ProcessHacker_SelectTabPage(0);
                                 PhSelectAndEnsureVisibleProcessNode(processNode);
+                                ProcessHacker_ToggleVisible(FALSE);
                             }
 
                             PhDereferenceObject(processItem);
@@ -1208,7 +1326,10 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly);
+                        if (!WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly, &selectedNode->ClientId))
+                        {
+                            PhShowError(hwndDlg, L"%s", L"The window does not exist.");
+                        }
                     }
                 }
                 break;
@@ -1219,6 +1340,41 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     text = PhGetTreeNewText(context->TreeNewHandle, 0);
                     PhSetClipboardString(hwndDlg, &text->sr);
                     PhDereferenceObject(text);
+                }
+                break;
+            case ID_WINDOW_SETDPI:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        PPH_STRING selectedChoice = NULL;
+
+                        while (PhaChoiceDialog(
+                            hwndDlg,
+                            L"Enter new Window DPI:",
+                            L"Enter new Window DPI:",
+                            NULL,
+                            0,
+                            NULL,
+                            PH_CHOICE_DIALOG_USER_CHOICE,
+                            &selectedChoice,
+                            NULL,
+                            NULL
+                            ))
+                        {
+                            LONG64 value;
+
+                            if (selectedChoice->Length == 0)
+                                continue;
+
+                            if (PhStringToInteger64(&selectedChoice->sr, 0, &value))
+                            {
+                                WepSetWindowToDpiForTesting(selectedNode->WindowHandle, (LONG)value);
+                                break;
+                            }
+                        }
+                    }
                 }
                 break;
             }
@@ -1685,6 +1841,20 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     }
                 }
                 break;
+            case ID_WINDOW_DESTROY:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        WepDestroyRemoteWindow(
+                            hwndDlg,
+                            selectedNode->WindowHandle,
+                            selectedNode->ClientId.UniqueProcess
+                            );
+                    }
+                }
+                break;
             case ID_WINDOW_VISIBLE:
                 {
                     PWE_WINDOW_NODE selectedNode;
@@ -1858,7 +2028,12 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     PWE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
-                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly);
+                    {
+                        if (!WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly, &selectedNode->ClientId))
+                        {
+                            PhShowError(hwndDlg, L"%s", L"The window does not exist.");
+                        }
+                    }
                 }
                 break;
             case ID_WINDOW_COPY:
