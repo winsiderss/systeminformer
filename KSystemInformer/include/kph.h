@@ -1286,6 +1286,11 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
     _In_ PKPH_PROCESS_CONTEXT ProcessContext
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphVerifyProcessAndProtectIfAppropriate(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    );
+
 // protection
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

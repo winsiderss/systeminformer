@@ -90,7 +90,6 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     _Inout_opt_ PPS_CREATE_NOTIFY_INFO CreateInfo
     )
 {
-    NTSTATUS status;
     PKPH_PROCESS_CONTEXT process;
     PKPH_PROCESS_CONTEXT creatorProcess;
     KPH_PROCESS_STATE processState;
@@ -140,39 +139,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
                   "Tracking process %lu",
                   HandleToULong(process->ProcessId));
 
-    processState = KphGetProcessState(process);
-    if ((processState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)
-    {
-        ACCESS_MASK processAllowedMask;
-        ACCESS_MASK threadAllowedMask;
-
-        if (KphSuppressProtections())
-        {
-            //
-            // Allow all access, but still exercise the code by registering.
-            //
-            processAllowedMask = ((ACCESS_MASK)-1);
-            threadAllowedMask = ((ACCESS_MASK)-1);
-        }
-        else
-        {
-            processAllowedMask = KPH_PROTECED_PROCESS_MASK;
-            threadAllowedMask = KPH_PROTECED_THREAD_MASK;
-        }
-
-        status = KphStartProtectingProcess(process,
-                                           processAllowedMask,
-                                           threadAllowedMask);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          PROTECTION,
-                          "KphStartProtectingProcess failed: %!STATUS!",
-                          status);
-
-            NT_ASSERT(!process->Protected);
-        }
-    }
+    KphVerifyProcessAndProtectIfAppropriate(process);
 
     creatorProcess = KphGetCurrentProcessContext();
     if (!creatorProcess)
