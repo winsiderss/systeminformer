@@ -202,7 +202,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_SIZE:
         {
-            PhMwpOnSize(hWnd, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            PhMwpOnSize(hWnd, (UINT)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         }
         break;
     case WM_SIZING:
