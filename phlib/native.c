@@ -507,6 +507,7 @@ typedef struct _PH_PROCESS_RUNTIME_LIBRARY
 {
     PH_STRINGREF NtdllFileName;
     PH_STRINGREF Kernel32FileName;
+    PH_STRINGREF User32FileName;
 } PH_PROCESS_RUNTIME_LIBRARY, *PPH_PROCESS_RUNTIME_LIBRARY;
 
 NTSTATUS PhGetProcessRuntimeLibrary(
@@ -519,23 +520,27 @@ NTSTATUS PhGetProcessRuntimeLibrary(
     {
         PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll"),
         PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\kernel32.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\user32.dll"),
     };
 #ifdef _WIN64
     static PH_PROCESS_RUNTIME_LIBRARY Wow64Runtime =
     {
         PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\ntdll.dll"),
         PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\kernel32.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\user32.dll"),
     };
 #ifdef _M_ARM64
     static PH_PROCESS_RUNTIME_LIBRARY Arm32Runtime =
     {
         PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\ntdll.dll"),
         PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\kernel32.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\user32.dll"),
     };
     static PH_PROCESS_RUNTIME_LIBRARY Chpe32Runtime =
     {
         PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\ntdll.dll"),
         PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\kernel32.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\user32.dll"),
     };
 #endif
 #endif
@@ -2659,6 +2664,98 @@ CleanupExit:
             &valueAllocationSize,
             MEM_RELEASE
             );
+    }
+
+    return status;
+}
+
+/**
+ * Destroys the specified window in a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_LIMITED_INFORMATION access.
+ * \param WindowHandle A handle to the window to be destroyed.
+ *
+ * \return Successful or errant status.
+ *
+ * \remarks A thread cannot call DestroyWindow for a window created by a different thread,
+ * unless we queue a special APC to the owner thread.
+ */
+NTSTATUS PhDestroyWindowRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ HWND WindowHandle
+    )
+{
+    NTSTATUS status;
+    PVOID destroyWindow = NULL;
+    HANDLE threadId = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->User32FileName,
+        "DestroyWindow",
+        0,
+        &destroyWindow,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    threadId = UlongToHandle(GetWindowThreadProcessId(WindowHandle, NULL));
+
+    if (!threadId)
+    {
+        status = STATUS_NOT_FOUND;
+        goto CleanupExit;
+    }
+
+    status = PhOpenThread(
+        &threadHandle,
+        THREAD_SET_CONTEXT, // THREAD_ALERT
+        threadId
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtQueueApcThreadEx(
+        threadHandle,
+        QUEUE_USER_APC_SPECIAL_USER_APC,
+        destroyWindow,
+        (PVOID)WindowHandle,
+        NULL,
+        NULL
+        );
+
+    //PostThreadMessage(HandleToUlong(threadId), WM_NULL, 0, 0);
+    //NtAlertThread(threadHandle);
+    NtClose(threadHandle);
+
+CleanupExit:
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
     }
 
     return status;
@@ -5473,8 +5570,8 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
-    _In_opt_ PVOID Context1,
-    _In_opt_ PVOID Context2
+    _In_ PVOID Context1,
+    _In_ PVOID Context2
     )
 {
     PPH_ENUM_PROCESS_MODULES_PARAMETERS parameters = Context1;
@@ -5485,9 +5582,6 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     PWSTR fullDllNameBuffer = NULL;
     PWSTR baseDllNameOriginal;
     PWSTR baseDllNameBuffer = NULL;
-
-    if (!parameters)
-        return TRUE;
 
     if (parameters->Flags & PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME)
     {
