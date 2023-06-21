@@ -345,6 +345,8 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (context->TreeNewSortColumn < PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
                 else

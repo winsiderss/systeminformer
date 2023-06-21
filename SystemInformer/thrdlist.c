@@ -1248,6 +1248,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PH_THREAD_TREELIST_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (!PhCmForwardSort(
                     (PPH_TREENEW_NODE *)context->NodeList->Items,
                     context->NodeList->Count,

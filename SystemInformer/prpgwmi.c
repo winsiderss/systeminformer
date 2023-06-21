@@ -1431,6 +1431,8 @@ BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
                 };
                 int (__cdecl* sortFunction)(void*, const void*, const void*);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PROCESS_WMI_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (context->TreeNewSortColumn < PROCESS_WMI_COLUMN_ITEM_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
                 else

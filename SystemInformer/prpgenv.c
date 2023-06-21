@@ -1019,6 +1019,8 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == ENVIRONMENT_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
+
                     if (context->TreeNewSortColumn < ENVIRONMENT_COLUMN_ITEM_MAXIMUM)
                         sortFunction = sortFunctions[context->TreeNewSortColumn];
                     else

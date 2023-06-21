@@ -820,6 +820,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PHMOTLC_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (context->TreeNewSortOrder == NoSortOrder)
                 {
                     sortFunction = SORT_FUNCTION(TriState);

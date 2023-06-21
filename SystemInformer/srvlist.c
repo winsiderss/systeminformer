@@ -636,6 +636,8 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PHSVTLC_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (!PhCmForwardSort(
                     (PPH_TREENEW_NODE *)ServiceNodeList->Items,
                     ServiceNodeList->Count,

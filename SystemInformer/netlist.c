@@ -530,6 +530,8 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PHNETLC_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (!PhCmForwardSort(
                     (PPH_TREENEW_NODE *)NetworkNodeList->Items,
                     NetworkNodeList->Count,

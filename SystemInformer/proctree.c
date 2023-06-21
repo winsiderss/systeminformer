@@ -2597,6 +2597,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == PHPRTLC_MAXIMUM, "SortFunctions must equal maximum.");
+
                     if (!PhCmForwardSort(
                         (PPH_TREENEW_NODE *)ProcessNodeList->Items,
                         ProcessNodeList->Count,
