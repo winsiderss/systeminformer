@@ -755,9 +755,13 @@ inputSuppression
 internetClient
 internetClientServer
 interopServices
+isolatedWin32-accessToPublisherDirectory
 isolatedWin32-dotNetBreadcrumbStore
 isolatedWin32-print
 isolatedWin32-profilesRootMinimal
+isolatedWin32-promptForAccess
+isolatedWin32-shellExtensionContextMenu
+isolatedWin32-sysTrayIcon
 isolatedWin32-userProfileMinimal
 isolatedWin32-volumeRootMinimal
 keyboardDeviceSettings
