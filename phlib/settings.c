@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -63,7 +63,11 @@ BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
     PPH_SETTING setting1 = (PPH_SETTING)Entry1;
     PPH_SETTING setting2 = (PPH_SETTING)Entry2;
 
+#ifdef PH_SETTINGS_CONSTEXPR
+    return setting1->HashName == setting2->HashName;
+#else
     return PhEqualStringRef(&setting1->Name, &setting2->Name, FALSE);
+#endif
 }
 
 ULONG NTAPI PhpSettingsHashtableHashFunction(
@@ -72,7 +76,11 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
 
+#ifdef PH_SETTINGS_CONSTEXPR
+    return setting->HashName;
+#else
     return PhHashStringRefEx(&setting->Name, FALSE, PH_STRING_HASH_X65599);
+#endif
 }
 
 PPH_STRING PhSettingToString(
@@ -259,13 +267,18 @@ static VOID PhpFreeSettingValue(
 }
 
 static PVOID PhpLookupSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PH_SETTINGS_NAME Name
     )
 {
     PH_SETTING lookupSetting;
     PPH_SETTING setting;
 
+#ifdef PH_SETTINGS_CONSTEXPR
+    lookupSetting.HashName = Name;
+#else
     lookupSetting.Name = *Name;
+#endif
+
     setting = (PPH_SETTING)PhFindEntryHashtable(
         PhSettingsHashtable,
         &lookupSetting
@@ -296,7 +309,7 @@ VOID PhEnumSettings(
 }
 
 _May_raise_ ULONG PhGetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PH_SETTINGS_NAME Name
     )
 {
     PPH_SETTING setting;
@@ -324,7 +337,7 @@ _May_raise_ ULONG PhGetIntegerStringRefSetting(
 }
 
 _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PH_SETTINGS_NAME Name
     )
 {
     PPH_SETTING setting;
@@ -352,7 +365,7 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
 }
 
 _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PH_SETTINGS_NAME Name,
     _In_ BOOLEAN ScaleToCurrent,
     _In_ LONG dpiValue
     )
@@ -392,7 +405,7 @@ _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
 }
 
 _May_raise_ PPH_STRING PhGetStringRefSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PH_SETTINGS_NAME Name
     )
 {
     PPH_SETTING setting;
@@ -431,23 +444,8 @@ _May_raise_ PPH_STRING PhGetStringRefSetting(
     return value;
 }
 
-_May_raise_ BOOLEAN PhGetBinarySetting(
-    _In_ PWSTR Name,
-    _Out_ PVOID Buffer
-    )
-{
-    PPH_STRING setting;
-    BOOLEAN result;
-
-    setting = PhGetStringSetting(Name);
-    result = PhHexStringToBuffer(&setting->sr, (PUCHAR)Buffer);
-    PhDereferenceObject(setting);
-
-    return result;
-}
-
 _May_raise_ VOID PhSetIntegerStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PH_SETTINGS_NAME Name,
     _In_ ULONG Value
     )
 {
@@ -469,11 +467,12 @@ _May_raise_ VOID PhSetIntegerStringRefSetting(
 }
 
 _May_raise_ VOID PhSetIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PH_SETTINGS_NAME Name,
     _In_ PH_INTEGER_PAIR Value
     )
 {
     PPH_SETTING setting;
+
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
@@ -490,7 +489,7 @@ _May_raise_ VOID PhSetIntegerPairStringRefSetting(
 }
 
 _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PH_SETTINGS_NAME Name,
     _In_ PH_SCALABLE_INTEGER_PAIR Value
     )
 {
@@ -513,7 +512,7 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
 }
 
 _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
-    _In_ PPH_STRINGREF Name,
+    _In_ PH_SETTINGS_NAME Name,
     _In_ PH_INTEGER_PAIR Value,
     _In_ LONG dpiValue
     )
@@ -526,7 +525,7 @@ _May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
 }
 
 _May_raise_ VOID PhSetStringRefSetting(
-    _In_ PPH_STRINGREF Name,
+    _In_ PH_SETTINGS_NAME Name,
     _In_ PPH_STRINGREF Value
     )
 {
@@ -610,8 +609,11 @@ VOID PhConvertIgnoredSettings(
     {
         ignoredSetting = PhIgnoredSettings->Items[i];
 
+#ifdef PH_SETTINGS_CONSTEXPR
+        setting = PhpLookupSetting(PhHashSettingName(&ignoredSetting->Name));
+#else
         setting = PhpLookupSetting(&ignoredSetting->Name);
-
+#endif
         if (setting)
         {
             PhpFreeSettingValue(setting->Type, setting);
@@ -634,16 +636,242 @@ VOID PhConvertIgnoredSettings(
             }
 
             PhpFreeIgnoredSetting(ignoredSetting);
-
-            PhRemoveItemList(PhIgnoredSettings, i);
-            i--;
         }
+
+        PhRemoveItemList(PhIgnoredSettings, i);
+        i--;
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-NTSTATUS PhLoadSettings(
+#if defined(PH_SETTINGS_APPKEY) || defined(PH_SETTINGS_REGISTRY)
+BOOLEAN NTAPI PhSettingskeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_STRINGREF settingName;
+    PPH_STRING settingValue;
+    PPH_SETTING setting;
+
+    settingName.Buffer = Information->Name;
+    settingName.Length = Information->NameLength;
+    settingValue = PhCreateStringEx(
+        PTR_ADD_OFFSET(Information, Information->DataOffset),
+        Information->DataLength - sizeof(UNICODE_NULL)
+        );
+
+#ifdef PH_SETTINGS_CONSTEXPR
+    setting = PhpLookupSetting(PhHashSettingName(&settingName));
+#else
+    setting = PhpLookupSetting(&settingName);
+#endif
+    if (setting)
+    {
+        PhpFreeSettingValue(setting->Type, setting);
+
+        if (!PhSettingFromString(
+            setting->Type,
+            &settingValue->sr,
+            settingValue,
+            PhSystemDpi,
+            setting
+            ))
+        {
+            PhSettingFromString(
+                setting->Type,
+                &setting->DefaultValue,
+                NULL,
+                PhSystemDpi,
+                setting
+                );
+        }
+    }
+    else
+    {
+        setting = PhAllocate(sizeof(PH_SETTING));
+        setting->Name.Buffer = PhAllocateCopy(settingName.Buffer, settingName.Length + sizeof(WCHAR));
+        setting->Name.Length = settingName.Length;
+        PhReferenceObject(settingValue);
+        setting->u.Pointer = settingValue;
+
+        PhAddItemList(PhIgnoredSettings, setting);
+    }
+
+    PhDereferenceObject(settingValue);
+    return TRUE;
+}
+#endif
+
+#if defined(PH_SETTINGS_APPKEY)
+NTSTATUS PhLoadSettingsAppKey(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhLoadAppKey(
+        &keyHandle,
+        FileName,
+        KEY_ALL_ACCESS,
+        REG_APP_HIVE | REG_PROCESS_PRIVATE | REG_HIVE_NO_RM
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+
+    status = PhEnumerateValueKey(
+        keyHandle,
+        KeyValueFullInformation,
+        PhSettingskeyCallback,
+        NULL
+        );
+
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
+
+    NtClose(keyHandle);
+
+    return status;
+}
+#endif
+
+#if defined(PH_SETTINGS_REGISTRY)
+NTSTATUS PhLoadSettingsRegistry(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\SystemInformer");
+    PKEY_FULL_INFORMATION basicInfo = NULL;
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhCreateKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &keyName,
+        0,
+        0,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (NT_SUCCESS(PhQueryKey(keyHandle, KeyFullInformation, &basicInfo)))
+    {
+        if (basicInfo->Values == 0)
+        {
+            NtClose(keyHandle);
+            PhFree(basicInfo);
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        PhFree(basicInfo);
+    }
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+
+    status = PhEnumerateValueKey(
+        keyHandle,
+        KeyValueFullInformation,
+        PhSettingskeyCallback,
+        NULL
+        );
+
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
+
+    NtClose(keyHandle);
+
+    return status;
+}
+#endif
+
+#if defined(PH_SETTINGS_JSON)
+static BOOLEAN PhLoadSettingsEnumJsonCallback(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ PVOID Value,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_SETTING setting;
+    PPH_STRING settingName;
+    PPH_STRING settingValue;
+
+    settingName = PhZeroExtendToUtf16(Key);
+    settingValue = PhGetJsonObjectString(Value);
+
+#ifdef PH_SETTINGS_CONSTEXPR
+    setting = PhpLookupSetting(PhHashSettingName(&settingName->sr));
+#else
+    setting = PhpLookupSetting(&settingName->sr);
+#endif
+    if (setting)
+    {
+        PhpFreeSettingValue(setting->Type, setting);
+
+        if (!PhSettingFromString(
+            setting->Type,
+            &settingValue->sr,
+            settingValue,
+            PhSystemDpi,
+            setting
+            ))
+        {
+            PhSettingFromString(
+                setting->Type,
+                &setting->DefaultValue,
+                NULL,
+                PhSystemDpi,
+                setting
+                );
+        }
+    }
+    else
+    {
+        setting = PhAllocate(sizeof(PH_SETTING));
+        setting->Name.Buffer = PhAllocateCopy(settingName->Buffer, settingName->Length + sizeof(WCHAR));
+        setting->Name.Length = settingName->Length;
+        PhReferenceObject(settingValue);
+        setting->u.Pointer = settingValue;
+
+        PhAddItemList(PhIgnoredSettings, setting);
+    }
+
+    PhDereferenceObject(settingValue);
+    PhDereferenceObject(settingName);
+    return TRUE;
+}
+
+NTSTATUS PhLoadSettingsJson(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    PVOID object;
+
+    object = PhLoadJsonObjectFromFile(FileName);
+
+    if (!object)
+        return STATUS_FILE_CORRUPT_ERROR;
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+    PhEnumJsonArrayObject(object, PhLoadSettingsEnumJsonCallback, NULL);
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
+
+    PhFreeJsonObject(object);
+
+    return STATUS_SUCCESS;
+}
+#endif
+
+#if defined(PH_SETTINGS_XML)
+NTSTATUS PhLoadSettingsXml(
     _In_ PPH_STRINGREF FileName
     )
 {
@@ -654,12 +882,12 @@ NTSTATUS PhLoadSettings(
     PPH_STRING settingName;
     PPH_STRING settingValue;
 
-    PhpClearIgnoredSettings();
-
     if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName, &topNode)))
         return status;
     if (!topNode) // Return corrupt status and reset the settings.
         return STATUS_FILE_CORRUPT_ERROR;
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     currentNode = PhGetXmlNodeFirstChild(topNode);
 
@@ -669,45 +897,42 @@ NTSTATUS PhLoadSettings(
         {
             settingValue = PhGetXmlNodeOpaqueText(currentNode);
 
-            PhAcquireQueuedLockExclusive(&PhSettingsLock);
-
+#ifdef PH_SETTINGS_CONSTEXPR
+            setting = PhpLookupSetting(PhHashSettingName(&settingName->sr));
+#else
+            setting = PhpLookupSetting(&settingName->sr);
+#endif
+            if (setting)
             {
-                setting = PhpLookupSetting(&settingName->sr);
+                PhpFreeSettingValue(setting->Type, setting);
 
-                if (setting)
+                if (!PhSettingFromString(
+                    setting->Type,
+                    &settingValue->sr,
+                    settingValue,
+                    PhSystemDpi,
+                    setting
+                    ))
                 {
-                    PhpFreeSettingValue(setting->Type, setting);
-
-                    if (!PhSettingFromString(
+                    PhSettingFromString(
                         setting->Type,
-                        &settingValue->sr,
-                        settingValue,
+                        &setting->DefaultValue,
+                        NULL,
                         PhSystemDpi,
                         setting
-                        ))
-                    {
-                        PhSettingFromString(
-                            setting->Type,
-                            &setting->DefaultValue,
-                            NULL,
-                            PhSystemDpi,
-                            setting
-                            );
-                    }
-                }
-                else
-                {
-                    setting = PhAllocate(sizeof(PH_SETTING));
-                    setting->Name.Buffer = PhAllocateCopy(settingName->Buffer, settingName->Length + sizeof(WCHAR));
-                    setting->Name.Length = settingName->Length;
-                    PhReferenceObject(settingValue);
-                    setting->u.Pointer = settingValue;
-
-                    PhAddItemList(PhIgnoredSettings, setting);
+                        );
                 }
             }
+            else
+            {
+                setting = PhAllocate(sizeof(PH_SETTING));
+                setting->Name.Buffer = PhAllocateCopy(settingName->Buffer, settingName->Length + sizeof(WCHAR));
+                setting->Name.Length = settingName->Length;
+                PhReferenceObject(settingValue);
+                setting->u.Pointer = settingValue;
 
-            PhReleaseQueuedLockExclusive(&PhSettingsLock);
+                PhAddItemList(PhIgnoredSettings, setting);
+            }
 
             PhDereferenceObject(settingValue);
             PhDereferenceObject(settingName);
@@ -716,11 +941,267 @@ NTSTATUS PhLoadSettings(
         currentNode = PhGetXmlNodeNextChild(currentNode);
     }
 
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
+
     PhFreeXmlObject(topNode);
 
     return STATUS_SUCCESS;
 }
+#endif
 
+NTSTATUS PhLoadSettings(
+    _In_ PPH_STRINGREF FileName
+)
+{
+    NTSTATUS status;
+
+    PhpClearIgnoredSettings();
+
+#if defined(PH_SETTINGS_APPKEY)
+    {
+        PPH_STRING fileName = PhGetBaseNameChangeExtensionZ(FileName, L".dat");
+
+        status = PhLoadSettingsAppKey(&fileName->sr);
+
+        PhDereferenceObject(fileName);
+    }
+#endif
+
+#if defined(PH_SETTINGS_REGISTRY)
+    {
+        status = PhLoadSettingsRegistry(FileName);
+    }
+#endif
+
+#if defined(PH_SETTINGS_JSON)
+    {
+        PPH_STRING fileName = PhGetBaseNameChangeExtensionZ(FileName, L".json");
+
+        status = PhLoadSettingsJson(&fileName->sr);
+
+        PhDereferenceObject(fileName);
+    }
+#endif
+
+#if defined(PH_SETTINGS_XML)
+    {
+        status = PhLoadSettingsXml(FileName);
+    }
+#endif
+
+    return status;
+}
+
+#if defined(PH_SETTINGS_APPKEY)
+NTSTATUS PhSaveSettingsAppKey(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SETTING setting;
+
+    status = PhLoadAppKey(
+        &keyHandle,
+        FileName,
+        KEY_ALL_ACCESS,
+        REG_APP_HIVE | REG_PROCESS_PRIVATE | REG_HIVE_NO_RM
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    PhAcquireQueuedLockShared(&PhSettingsLock);
+
+    PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
+
+    while (setting = PhNextEnumHashtable(&enumContext))
+    {
+        PPH_STRING settingValue = PhSettingToString(setting->Type, setting);
+
+        PhSetValueKey(
+            keyHandle,
+            &setting->Name,
+            REG_SZ,
+            settingValue->Buffer,
+            (ULONG)settingValue->Length + sizeof(UNICODE_NULL)
+            );
+
+        PhDereferenceObject(settingValue);
+    }
+
+    for (ULONG i = 0; i < PhIgnoredSettings->Count; i++)
+    {
+        PPH_STRING settingValue;
+
+        setting = PhIgnoredSettings->Items[i];
+        settingValue = setting->u.Pointer;
+
+        if (settingValue->Length)
+        {
+            PhSetValueKey(
+                keyHandle,
+                &setting->Name,
+                REG_SZ,
+                settingValue->Buffer,
+                (ULONG)settingValue->Length + sizeof(UNICODE_NULL)
+                );
+        }
+        else
+        {
+            PhDeleteValueKey(keyHandle, &setting->Name);
+        }
+    }
+
+    PhReleaseQueuedLockShared(&PhSettingsLock);
+
+    NtClose(keyHandle);
+
+    return status;
+}
+#endif
+
+#if defined(PH_SETTINGS_REGISTRY)
+NTSTATUS PhSaveSettingsRegistry(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\SystemInformer");
+    NTSTATUS status;
+    HANDLE keyHandle;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SETTING setting;
+
+    status = PhCreateKey(
+        &keyHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &keyName,
+        0,
+        0,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    PhAcquireQueuedLockShared(&PhSettingsLock);
+
+    PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
+
+    while (setting = PhNextEnumHashtable(&enumContext))
+    {
+        PPH_STRING settingValue = PhSettingToString(setting->Type, setting);
+
+        PhSetValueKey(
+            keyHandle,
+            &setting->Name,
+            REG_SZ,
+            settingValue->Buffer,
+            (ULONG)settingValue->Length + sizeof(UNICODE_NULL)
+            );
+
+        PhDereferenceObject(settingValue);
+    }
+
+    for (ULONG i = 0; i < PhIgnoredSettings->Count; i++)
+    {
+        PPH_STRING settingValue;
+
+        setting = PhIgnoredSettings->Items[i];
+        settingValue = setting->u.Pointer;
+
+        if (settingValue->Length)
+        {
+            PhSetValueKey(
+                keyHandle,
+                &setting->Name,
+                REG_SZ,
+                settingValue->Buffer,
+                (ULONG)settingValue->Length + sizeof(UNICODE_NULL)
+                );
+        }
+        else
+        {
+            PhDeleteValueKey(keyHandle, &setting->Name);
+        }
+    }
+
+    PhReleaseQueuedLockShared(&PhSettingsLock);
+
+    NtClose(keyHandle);
+
+    return status;
+}
+#endif
+
+#if defined(PH_SETTINGS_JSON)
+NTSTATUS PhSaveSettingsJson(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    NTSTATUS status;
+    PVOID object;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SETTING setting;
+
+    object = PhCreateJsonObject();
+
+    if (!object)
+        return STATUS_FILE_CORRUPT_ERROR;
+
+    PhAcquireQueuedLockShared(&PhSettingsLock);
+
+    PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
+
+    while (setting = PhNextEnumHashtable(&enumContext))
+    {
+        PPH_STRING settingValue = PhSettingToString(setting->Type, setting);
+        PPH_BYTES stringName;
+        PPH_BYTES stringValue;
+
+        stringName = PhConvertUtf16ToUtf8Ex(setting->Name.Buffer, setting->Name.Length);
+        stringValue = PhConvertUtf16ToUtf8Ex(settingValue->Buffer, settingValue->Length);
+
+        PhAddJsonObject2(object, stringName->Buffer, stringValue->Buffer, stringValue->Length);
+
+        //PhDereferenceObject(stringName);
+        //PhDereferenceObject(stringValue);
+
+        PhDereferenceObject(settingValue);
+    }
+
+    for (ULONG i = 0; i < PhIgnoredSettings->Count; i++)
+    {
+        PPH_STRING settingValue;
+
+        setting = PhIgnoredSettings->Items[i];
+        settingValue = setting->u.Pointer;
+
+        PPH_BYTES stringName;
+        PPH_BYTES stringValue;
+
+        stringName = PhConvertUtf16ToUtf8Ex(setting->Name.Buffer, setting->Name.Length);
+        stringValue = PhConvertUtf16ToUtf8Ex(settingValue->Buffer, settingValue->Length);
+
+        PhAddJsonObject2(object, stringName->Buffer, stringValue->Buffer, stringValue->Length);
+
+        //PhDereferenceObject(stringName);
+        //PhDereferenceObject(stringValue);
+    }
+
+    PhReleaseQueuedLockShared(&PhSettingsLock);
+
+    status = PhSaveJsonObjectToFile(FileName, object);
+
+    PhFreeJsonObject(object);
+
+    return status;
+}
+#endif
+
+#if defined(PH_SETTINGS_XML)
 PSTR PhpSettingsSaveCallback(
     _In_ PVOID node,
     _In_ INT position
@@ -775,7 +1256,7 @@ PVOID PhpCreateSettingElement(
     return settingNode;
 }
 
-NTSTATUS PhSaveSettings(
+NTSTATUS PhSaveSettingsXml(
     _In_ PPH_STRINGREF FileName
     )
 {
@@ -785,6 +1266,9 @@ NTSTATUS PhSaveSettings(
     PPH_SETTING setting;
 
     topNode = PhCreateXmlNode(NULL, "settings");
+
+    if (!topNode)
+        return STATUS_FILE_CORRUPT_ERROR;
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -821,6 +1305,48 @@ NTSTATUS PhSaveSettings(
 
     return status;
 }
+#endif
+
+NTSTATUS PhSaveSettings(
+    _In_ PPH_STRINGREF FileName
+)
+{
+    NTSTATUS status;
+
+#if defined(PH_SETTINGS_APPKEY)
+    {
+        PPH_STRING fileName = PhGetBaseNameChangeExtensionZ(FileName, L".dat");
+
+        status = PhSaveSettingsAppKey(&fileName->sr);
+
+        PhDereferenceObject(fileName);
+}
+#endif
+
+#if defined(PH_SETTINGS_REGISTRY)
+    {
+        status = PhSaveSettingsRegistry(FileName);
+    }
+#endif
+
+#if defined(PH_SETTINGS_JSON)
+    {
+        PPH_STRING fileName = PhGetBaseNameChangeExtensionZ(FileName, L".json");
+
+        status = PhSaveSettingsJson(&fileName->sr);
+
+        PhDereferenceObject(fileName);
+    }
+#endif
+
+#if defined(PH_SETTINGS_XML)
+    {
+        status = PhSaveSettingsXml(FileName);
+    }
+#endif
+
+    return status;
+}
 
 VOID PhResetSettings(
     _In_ HWND hwnd
@@ -848,16 +1374,24 @@ VOID PhResetSettings(
 VOID PhAddSetting(
     _In_ PH_SETTING_TYPE Type,
     _In_ PPH_STRINGREF Name,
-    _In_ PPH_STRINGREF DefaultValue
+    _In_ PPH_STRINGREF DefaultValue,
+    _In_ ULONG Hash
     )
 {
     PH_SETTING setting;
 
+#ifdef PH_SETTINGS_CONSTEXPR
+    setting.Type = Type;
+    setting.HashName = Hash;
+    setting.Name = *Name;
+    setting.DefaultValue = *DefaultValue;
+    memset(&setting.u, 0, sizeof(setting.u));
+#else
     setting.Type = Type;
     setting.Name = *Name;
     setting.DefaultValue = *DefaultValue;
     memset(&setting.u, 0, sizeof(setting.u));
-
+#endif
     PhSettingFromString(Type, &setting.DefaultValue, NULL, PhSystemDpi, &setting);
 
     PhAddEntryHashtable(PhSettingsHashtable, &setting);
@@ -879,14 +1413,14 @@ VOID PhAddSettings(
 
         PhInitializeStringRefLongHint(&name, Settings[i].Name);
         PhInitializeStringRefLongHint(&defaultValue, Settings[i].DefaultValue);
-        PhAddSetting(Settings[i].Type, &name, &defaultValue);
+        PhAddSetting(Settings[i].Type, &name, &defaultValue, PhHashSettingNameZ(Settings[i].Name));
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
 PPH_SETTING PhGetSetting(
-    _In_ PPH_STRINGREF Name
+    _In_ PH_SETTINGS_NAME Name
     )
 {
     PPH_SETTING setting;
