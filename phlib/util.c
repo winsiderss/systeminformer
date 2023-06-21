@@ -3652,7 +3652,7 @@ PPH_STRING PhGetKnownLocation(
 }
 
 PPH_STRING PhGetKnownFolderPath(
-    _In_ PGUID Folder,
+    _In_ PCGUID Folder,
     _In_opt_ PPH_STRINGREF AppendPath
     )
 {
@@ -3666,7 +3666,7 @@ static const PH_FLAG_MAPPING PhpKnownFolderFlagMappings[] =
 };
 
 PPH_STRING PhGetKnownFolderPathEx(
-    _In_ PGUID Folder,
+    _In_ PCGUID Folder,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
     _In_opt_ PPH_STRINGREF AppendPath

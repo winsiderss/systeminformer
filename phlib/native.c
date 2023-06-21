@@ -16703,3 +16703,100 @@ BOOLEAN PhIsDebuggerPresent(
     return NtCurrentPeb()->BeingDebugged;
 #endif
 }
+
+/**
+ * Queries information about the volume associated with a given file, directory, storage device, or volume.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param DesiredAccess The desired access to the token.
+ * \param TokenHandle A variable which receives a handle to the token.
+ */
+NTSTATUS PhQueryVolumeInformationFile(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FS_INFORMATION_CLASS FsInformationClass,
+    _Out_writes_bytes_(FsInformationLength) PVOID FsInformation,
+    _In_ ULONG FsInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    )
+{
+    NTSTATUS status;
+
+    if (ProcessHandle)
+    {
+        if (KphLevel() >= KphLevelMed)
+        {
+            status = KphQueryVolumeInformationFile(
+                ProcessHandle,
+                FileHandle,
+                FsInformationClass,
+                FsInformation,
+                FsInformationLength,
+                IoStatusBlock
+                );
+        }
+        else if (ProcessHandle == NtCurrentProcess())
+        {
+            status = NtQueryVolumeInformationFile(
+                FileHandle,
+                IoStatusBlock,
+                FsInformation,
+                FsInformationLength,
+                FsInformationClass
+                );
+        }
+        else
+        {
+            status = STATUS_UNSUCCESSFUL;
+        }
+    }
+    else
+    {
+        status = NtQueryVolumeInformationFile(
+            FileHandle,
+            IoStatusBlock,
+            FsInformation,
+            FsInformationLength,
+            FsInformationClass
+            );
+    }
+
+    return status;
+}
+
+// rev from GetFileType (dmex)
+/**
+ * Retrieves the type of the specified file handle.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param FileHandle A handle to the file.
+ * \param DeviceType The type of the specified file
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetDeviceType(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _Out_ DEVICE_TYPE* DeviceType
+    )
+{
+    NTSTATUS status;
+    FILE_FS_DEVICE_INFORMATION debugInfo;
+    IO_STATUS_BLOCK isb;
+
+    status = PhQueryVolumeInformationFile(
+        ProcessHandle,
+        FileHandle,
+        FileFsDeviceInformation,
+        &debugInfo,
+        sizeof(FILE_FS_DEVICE_INFORMATION),
+        &isb
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *DeviceType = debugInfo.DeviceType;
+    }
+
+    return status;
+}
