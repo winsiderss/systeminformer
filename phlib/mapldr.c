@@ -502,7 +502,7 @@ NTSTATUS PhGetProcedureAddressRemote(
 
     fileName = PhDosPathNameToNtPathName(FileName);
 
-    if (!fileName)
+    if (PhIsNullOrEmptyString(fileName))
     {
         status = PhGetProcessMappedFileName(
             NtCurrentProcess(),
