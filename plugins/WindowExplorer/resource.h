@@ -33,6 +33,7 @@
 #define ID_WINDOW_MINIMIZE              40006
 #define ID_WINDOW_MAXIMIZE              40007
 #define ID_WINDOW_CLOSE                 40008
+#define ID_WINDOW_DESTROY               40009
 #define ID_WINDOW_HIGHLIGHT             40010
 #define ID_WINDOW_ALWAYSONTOP           40014
 #define ID_OPACITY_10                   40016
@@ -49,13 +50,14 @@
 #define ID_WINDOW_ENABLED               40027
 #define ID_WINDOW_INSPECT               40028
 #define ID_WINDOW_OPENFILELOCATION      40029
+#define ID_WINDOW_SETDPI                40030
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        114
-#define _APS_NEXT_COMMAND_VALUE         40030
+#define _APS_NEXT_COMMAND_VALUE         40031
 #define _APS_NEXT_CONTROL_VALUE         1037
 #define _APS_NEXT_SYMED_VALUE           107
 #endif

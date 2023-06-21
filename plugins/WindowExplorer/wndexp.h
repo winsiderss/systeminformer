@@ -82,10 +82,11 @@ VOID WeShowWindowsPropPage(
 
 // wndprp
 
-VOID WeShowWindowProperties(
+BOOLEAN WeShowWindowProperties(
     _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
-    _In_ BOOLEAN MessageOnlyWindow
+    _In_ BOOLEAN MessageOnlyWindow,
+    _In_ PCLIENT_ID ClientId
     );
 
 HICON WepGetInternalWindowIcon(
