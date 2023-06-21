@@ -2119,6 +2119,7 @@ VOID PhMwpOnInitMenuPopup(
 
 VOID PhMwpOnSize(
     _In_ HWND WindowHandle,
+    _In_ UINT State,
     _In_ LONG Width,
     _In_ LONG Height
     )
@@ -2126,7 +2127,7 @@ VOID PhMwpOnSize(
     //if (!(Width && Height))
     //    return;
 
-    if (!IsMinimized(WindowHandle))
+    if (State != SIZE_MINIMIZED)
     {
         HDWP deferHandle;
 

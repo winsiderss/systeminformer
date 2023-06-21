@@ -138,6 +138,7 @@ VOID PhMwpOnInitMenuPopup(
 
 VOID PhMwpOnSize(
     _In_ HWND WindowHandle,
+    _In_ UINT State,
     _In_ LONG Width,
     _In_ LONG Height
     );
