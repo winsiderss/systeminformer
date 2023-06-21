@@ -3430,11 +3430,10 @@ VOID PhCustomDrawTreeTimeLine(
     _In_ PLARGE_INTEGER CreateTime
     )
 {
-    HBRUSH previousBrush = NULL;
     RECT rect = CellRect;
     RECT borderRect = CellRect;
-    FLOAT percent = 0;
-    FLOAT percentabs = 0;
+    FLOAT percent;
+    ULONG flags = 0;
     LARGE_INTEGER systemTime;
     LARGE_INTEGER startTime;
     LARGE_INTEGER createTime;
@@ -3471,62 +3470,55 @@ VOID PhCustomDrawTreeTimeLine(
         createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
     }
 
-    // Note: Time is 8 bytes, Float is 4 bytes. Use DOUBLE type at some stage. (dmex)
-    percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
-    percentabs = fabsf(percent);
-
-    if (!(Flags & PH_DRAW_TIMELINE_OVERFLOW))
+    if (createTime.QuadPart >= startTime.QuadPart)
     {
-        // Prevent overflow from changing the system time to an earlier date. (dmex)
-        if (percentabs > 100.f)
-            percent = 100.f;
-        if (percentabs < 0.0005f)
-            percent = 0.f;
+        SetFlag(flags, PH_DRAW_TIMELINE_OVERFLOW); // System threads created before startup. (dmex)
     }
 
-    if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
+    percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+
+    if (percent > 100.f)
+        percent = 100.f;
+    if (percent < 0.0005f)
+        percent = 0.0f;
+
+    if (FlagOn(Flags, PH_DRAW_TIMELINE_DARKTHEME))
         FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
     else
         FillRect(Hdc, &rect, GetSysColorBrush(COLOR_WINDOW));
 
     PhInflateRect(&rect, -1, -1);
     rect.bottom += 1;
+    PhInflateRect(&borderRect, -1, -1);
+    borderRect.bottom += 1;
 
-    if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
+    if (FlagOn(Flags, PH_DRAW_TIMELINE_DARKTHEME))
     {
         FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
 
-        if (Flags & PH_DRAW_TIMELINE_OVERFLOW) // System threads created before startup. (dmex)
-            SetDCBrushColor(Hdc, percent > 100.f ? RGB(128, 128, 128) : RGB(0, 130, 135));
+        if (FlagOn(flags, PH_DRAW_TIMELINE_OVERFLOW))
+            SetDCBrushColor(Hdc, RGB(128, 128, 128));
         else
             SetDCBrushColor(Hdc, RGB(0, 130, 135));
 
-        previousBrush = SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+        SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
     }
     else
     {
         FillRect(Hdc, &rect, GetSysColorBrush(COLOR_3DFACE));
 
-        if (Flags & PH_DRAW_TIMELINE_OVERFLOW) // System threads created before startup. (dmex)
-            SetDCBrushColor(Hdc, percent > 100.f ? RGB(128, 128, 128) : RGB(158, 202, 158));
+        if (FlagOn(flags, PH_DRAW_TIMELINE_OVERFLOW))
+            SetDCBrushColor(Hdc, RGB(128, 128, 128));
         else
             SetDCBrushColor(Hdc, RGB(158, 202, 158));
 
-        previousBrush = SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+        SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
     }
 
-    if (Flags & PH_DRAW_TIMELINE_OVERFLOW)
-    {
-        // Prevent overflow from changing the system time to an earlier date. (dmex)
-        if (percentabs > 100.f)
-            percent = 100.f;
-        if (percentabs < 0.0005f)
-            percent = 0.f;
-    }
+    rect.left = (LONG)((LONG)rect.right + ((LONG)(rect.left - rect.right) * (percent / 100.f)));
 
-    //rect.right = ((LONG)(rect.left + ((rect.right - rect.left) * (LONG)percent) / 100));
-    //rect.left = ((LONG)(rect.right + ((rect.left - rect.right) * (LONG)percent) / 100));
-    rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));
+    if (rect.left < borderRect.left)
+        rect.left = borderRect.left;
 
     PatBlt(
         Hdc,
@@ -3537,10 +3529,6 @@ VOID PhCustomDrawTreeTimeLine(
         PATCOPY
         );
 
-    if (previousBrush) SelectBrush(Hdc, previousBrush);
-
-    PhInflateRect(&borderRect, -1, -1);
-    borderRect.bottom += 1;
     FrameRect(Hdc, &borderRect, GetStockBrush(GRAY_BRUSH));
 }
 
