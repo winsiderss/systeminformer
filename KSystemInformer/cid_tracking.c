@@ -201,17 +201,11 @@ PVOID KSIAPI KphpAllocateProcessContext(
     return object;
 }
 
-typedef struct _KPH_INIT_PROCESS_CONTEXT
-{
-    PEPROCESS ProcessObject;
-    BOOLEAN Verify;
-} KPH_INIT_PROCESS_CONTEXT, *PKPH_INIT_PROCESS_CONTEXT;
-
 /**
  * \brief Initializes a process context.
  *
  * \param[in] Object The process context object to initialize.
- * \param[in] Parameter PKPH_INIT_PROCESS_CONTEXT
+ * \param[in] Parameter The kernel process object associated with this context. 
  *
  * \return STATUS_SUCCESS
  */
@@ -225,16 +219,16 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 {
     NTSTATUS status;
     PKPH_PROCESS_CONTEXT process;
-    PKPH_INIT_PROCESS_CONTEXT init;
+    PEPROCESS processObject;
     HANDLE processHandle;
     PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
     PAGED_CODE();
 
     process = Object;
-    init = Parameter;
+    processObject = Parameter;
 
-    status = ObOpenObjectByPointer(init->ProcessObject,
+    status = ObOpenObjectByPointer(processObject,
                                    OBJ_KERNEL_HANDLE,
                                    NULL,
                                    PROCESS_ALL_ACCESS,
@@ -293,7 +287,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         process->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
     }
 
-    process->EProcess = init->ProcessObject;
+    process->EProcess = processObject;
     ObReferenceObject(process->EProcess);
 
     process->ProcessId = PsGetProcessId(process->EProcess);
@@ -336,23 +330,6 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
                       status);
 
         process->ImageFileName = NULL;
-    }
-
-    if (process->ImageFileName && init->Verify)
-    {
-        status = KphVerifyFile(process->ImageFileName);
-
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "KphVerifyFile: %lu \"%wZ\": %!STATUS!",
-                      HandleToULong(process->ProcessId),
-                      process->ImageFileName,
-                      status);
-
-        if (NT_SUCCESS(status))
-        {
-            process->VerifiedProcess = TRUE;
-        }
     }
 
     if (!KphpLsassIsKnown && KphProcessIsLsass(process->EProcess))
@@ -1193,10 +1170,8 @@ BOOLEAN CIDAPI KphpCidEnumPostPopulate(
     _In_opt_ PVOID Parameter
     )
 {
-    NTSTATUS status;
     PKPH_OBJECT_TYPE objectType;
     PKPH_PROCESS_CONTEXT process;
-    KPH_PROCESS_STATE processState;
 
     PAGED_PASSIVE();
 
@@ -1204,47 +1179,10 @@ BOOLEAN CIDAPI KphpCidEnumPostPopulate(
 
     objectType = KphGetObjectType(Context);
 
-    if (objectType == KphThreadContextType)
+    if (objectType == KphProcessContextType)
     {
-        return FALSE;
-    }
-
-    NT_ASSERT(objectType == KphProcessContextType);
-
-    process = Context;
-
-    if (process->ImageFileName && !process->VerifiedProcess)
-    {
-        status = KphVerifyFile(process->ImageFileName);
-
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "KphVerifyFile: %lu \"%wZ\": %!STATUS!",
-                      HandleToULong(process->ProcessId),
-                      process->ImageFileName,
-                      status);
-
-        if (NT_SUCCESS(status))
-        {
-            process->VerifiedProcess = TRUE;
-        }
-    }
-
-    processState = KphGetProcessState(process);
-    if ((processState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)
-    {
-        status = KphStartProtectingProcess(process,
-                                           KPH_PROTECED_PROCESS_MASK,
-                                           KPH_PROTECED_THREAD_MASK);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          PROTECTION,
-                          "KphStartProtectingProcess failed: %!STATUS!",
-                          status);
-
-            NT_ASSERT(!process->Protected);
-        }
+        process = Context;
+        KphVerifyProcessAndProtectIfAppropriate(process);
     }
 
     return FALSE;
@@ -1356,7 +1294,6 @@ NTSTATUS KphCidPopulate(
     {
         PKPH_PROCESS_CONTEXT process;
         PEPROCESS processObject;
-        KPH_INIT_PROCESS_CONTEXT init;
 
         if (!info->UniqueProcessId)
         {
@@ -1419,13 +1356,10 @@ NTSTATUS KphCidPopulate(
             }
         }
 
-        init.ProcessObject = processObject;
-        init.Verify = FALSE;
-
         process = KphpTrackContext(info->UniqueProcessId,
                                    KphProcessContextType,
                                    sizeof(KPH_PROCESS_CONTEXT),
-                                   &init);
+                                   processObject);
 
         ObDereferenceObject(processObject);
         processObject = NULL;
@@ -1577,19 +1511,14 @@ PKPH_PROCESS_CONTEXT KphTrackProcessContext(
     _In_ PEPROCESS Process
     )
 {
-    KPH_INIT_PROCESS_CONTEXT init;
-
     PAGED_PASSIVE();
 
     KphpCidWaitForPopulate();
 
-    init.ProcessObject = Process;
-    init.Verify = TRUE;
-
     return KphpTrackContext(PsGetProcessId(Process),
                             KphProcessContextType,
                             sizeof(KPH_PROCESS_CONTEXT),
-                            &init);
+                            Process);
 }
 
 /**
@@ -1844,14 +1773,14 @@ VOID KphEnumerateCidContexts(
 /**
  * \brief Checks the APC no-op routine for a given process.
  *
- * \param[in] ProcessContext The context of a process to check the routine of. 
+ * \param[in] Process The context of a process to check the routine of. 
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCheckProcessApcNoopRoutine(
-    _In_ PKPH_PROCESS_CONTEXT ProcessContext
+    _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
     NTSTATUS status;
@@ -1861,12 +1790,12 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
 
     PAGED_PASSIVE();
 
-    if (ProcessContext->ApcNoopRoutine)
+    if (Process->ApcNoopRoutine)
     {
         return STATUS_SUCCESS;
     }
 
-    status = ObOpenObjectByPointer(ProcessContext->EProcess,
+    status = ObOpenObjectByPointer(Process->EProcess,
                                    OBJ_KERNEL_HANDLE,
                                    NULL,
                                    PROCESS_ALL_ACCESS,
@@ -1936,7 +1865,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
         }
     }
 
-    ProcessContext->ApcNoopRoutine = (PKNORMAL_ROUTINE)KphNtDllRtlSetBits;
+    Process->ApcNoopRoutine = (PKNORMAL_ROUTINE)KphNtDllRtlSetBits;
     status = STATUS_SUCCESS;
 
 Exit:
@@ -1947,4 +1876,72 @@ Exit:
     }
 
     return status;
+}
+
+/**
+ * \brief Performs actions to verify a process and begin protecting it. Process
+ * protection is only started processes that meet the necessary requirements. 
+ *
+ * \param[in] Process The context of a process verify and protect. 
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphVerifyProcessAndProtectIfAppropriate(
+    _In_ PKPH_PROCESS_CONTEXT Process 
+    )
+{
+    NTSTATUS status;
+    KPH_PROCESS_STATE processState;
+
+    PAGED_PASSIVE();
+
+    if (Process->ImageFileName && !Process->VerifiedProcess)
+    {
+        status = KphVerifyFile(Process->ImageFileName);
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphVerifyFile: %lu \"%wZ\": %!STATUS!",
+                      HandleToULong(Process->ProcessId),
+                      Process->ImageFileName,
+                      status);
+
+        if (NT_SUCCESS(status))
+        {
+            Process->VerifiedProcess = TRUE;
+        }
+    }
+
+    processState = KphGetProcessState(Process);
+    if ((processState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)
+    {
+        ACCESS_MASK processAllowedMask;
+        ACCESS_MASK threadAllowedMask;
+
+        if (KphSuppressProtections())
+        {
+            //
+            // Allow all access, but still exercise the code by registering.
+            //
+            processAllowedMask = ((ACCESS_MASK)-1);
+            threadAllowedMask = ((ACCESS_MASK)-1);
+        }
+        else
+        {
+            processAllowedMask = KPH_PROTECED_PROCESS_MASK;
+            threadAllowedMask = KPH_PROTECED_THREAD_MASK;
+        }
+
+        status = KphStartProtectingProcess(Process,
+                                           processAllowedMask,
+                                           threadAllowedMask);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          PROTECTION,
+                          "KphStartProtectingProcess failed: %!STATUS!",
+                          status);
+
+            NT_ASSERT(!Process->Protected);
+        }
+    }
 }
