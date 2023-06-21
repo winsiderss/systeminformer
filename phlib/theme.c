@@ -523,7 +523,44 @@ HBRUSH PhWindowThemeControlColor(
         break;
     }
 
-    return NULL;
+    return (HBRUSH)DefWindowProc(WindowHandle, Type, (WPARAM)Hdc, (LPARAM)ChildWindowHandle);
+}
+
+VOID PhWindowThemeMainMenuBorder(
+    _In_ HWND WindowHandle
+    )
+{
+    if (GetMenu(WindowHandle))
+    {
+        RECT clientRect;
+        RECT windowRect;
+        HDC hdc;
+
+        GetClientRect(WindowHandle, &clientRect);
+        GetWindowRect(WindowHandle, &windowRect);
+
+        MapWindowPoints(WindowHandle, NULL, (PPOINT)&clientRect, 2);
+        PhOffsetRect(&clientRect, -windowRect.left, -windowRect.top);
+
+        // the rcBar is offset by the window rect (thanks to adzm) (dmex)
+        RECT rcAnnoyingLine = clientRect;
+        rcAnnoyingLine.bottom = rcAnnoyingLine.top;
+        rcAnnoyingLine.top--;
+
+        if (hdc = GetWindowDC(WindowHandle))
+        {
+            if (PhEnableThemeSupport)
+            {
+                FillRect(hdc, &rcAnnoyingLine, PhThemeWindowBackgroundBrush);
+            }
+            else
+            {
+                FillRect(hdc, &rcAnnoyingLine, GetSysColorBrush(COLOR_WINDOW));
+            }
+
+            ReleaseDC(WindowHandle, hdc);
+        }
+    }
 }
 
 VOID PhInitializeThemeWindowTabControl(
@@ -2164,29 +2201,7 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         {
             LRESULT result = CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 
-            if (GetMenu(hWnd))
-            {
-                RECT clientRect;
-                RECT windowRect;
-                HDC hdc;
-
-                GetClientRect(hWnd, &clientRect);
-                GetWindowRect(hWnd, &windowRect);
-
-                MapWindowPoints(hWnd, NULL, (PPOINT)&clientRect, 2);
-                PhOffsetRect(&clientRect, -windowRect.left, -windowRect.top);
-
-                // the rcBar is offset by the window rect (thanks to adzm) (dmex)
-                RECT rcAnnoyingLine = clientRect;
-                rcAnnoyingLine.bottom = rcAnnoyingLine.top;
-                rcAnnoyingLine.top--;
-
-                if (hdc = GetWindowDC(hWnd))
-                {
-                    FillRect(hdc, &rcAnnoyingLine, PhThemeWindowBackgroundBrush);
-                    ReleaseDC(hWnd, hdc);
-                }
-            }
+            PhWindowThemeMainMenuBorder(hWnd);
 
             return result;
         }
