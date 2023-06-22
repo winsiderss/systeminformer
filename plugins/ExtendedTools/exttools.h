@@ -113,6 +113,9 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_POOL_TREE_LIST_SORT (PLUGIN_NAME L".PoolTreeViewSort")
 #define SETTING_NAME_BIGPOOL_WINDOW_POSITION (PLUGIN_NAME L".BigPoolWindowPosition")
 #define SETTING_NAME_BIGPOOL_WINDOW_SIZE (PLUGIN_NAME L".BigPoolWindowSize")
+#define SETTING_NAME_TPM_WINDOW_POSITION (PLUGIN_NAME L".TpmWindowPosition")
+#define SETTING_NAME_TPM_WINDOW_SIZE (PLUGIN_NAME L".TpmWindowSize")
+#define SETTING_NAME_TPM_LISTVIEW_COLUMNS (PLUGIN_NAME L".TpmListViewColumns")
 
 VOID EtLoadSettings(
     VOID
@@ -1238,6 +1241,16 @@ VOID EtShowObjectManagerDialog(
 // poolmon
 
 VOID EtShowPoolTableDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
+// tpm
+
+BOOLEAN EtTpmIsReady(
+    VOID
+    );
+
+VOID EtShowTpmDialog(
     _In_ HWND ParentWindowHandle
     );
 

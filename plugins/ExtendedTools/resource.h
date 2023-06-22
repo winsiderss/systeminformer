@@ -150,6 +150,10 @@
 #define ID_DISK_PROPERTIES              40007
 #define ID_DISK_OPENFILELOCATION        40008
 #define ID_DISK_INSPECT                 40009
+#define ID_TPM                          50001
+#define IDD_TPM                         50002
+#define IDC_TPM_LIST                    50003
+#define IDC_TPM_LIST_REFRESH            50004
 
 // Next default values for new objects
 // 
