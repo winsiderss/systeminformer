@@ -182,6 +182,11 @@ VOID NTAPI MenuItemCallback(
             EtShowPoolTableDialog(menuItem->OwnerWindow);
         }
         break;
+    case ID_TPM:
+        {
+            EtShowTpmDialog(menuItem->OwnerWindow);
+        }
+        break;
     }
 }
 
@@ -217,6 +222,7 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM systemMenu;
     PPH_EMENU_ITEM bootMenuItem;
+    PPH_EMENU_ITEM tpmMenuItem;
     PPH_EMENU_ITEM reparsePointsMenu;
     PPH_EMENU_ITEM reparseObjIdMenu;
     PPH_EMENU_ITEM reparseSsdlMenu;
@@ -232,6 +238,7 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, tpmMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_TPM, L"&Trusted Platform Module", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparsePointsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_POINTS, L"NTFS Reparse Points", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparseObjIdMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_OBJID, L"NTFS Object Identifiers", NULL), ULONG_MAX);
@@ -240,10 +247,14 @@ VOID NTAPI MainMenuInitializingCallback(
     if (!PhGetOwnTokenAttributes().Elevated)
     {
         bootMenuItem->Flags |= PH_EMENU_DISABLED;
+        tpmMenuItem->Flags |= PH_EMENU_DISABLED;
         reparsePointsMenu->Flags |= PH_EMENU_DISABLED;
         reparseObjIdMenu->Flags |= PH_EMENU_DISABLED;
         reparseSsdlMenu->Flags |= PH_EMENU_DISABLED;
     }
+
+    if (EtWindowsVersion < WINDOWS_8 || !EtTpmIsReady())
+        tpmMenuItem->Flags |= PH_EMENU_DISABLED;
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -1137,6 +1148,9 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_POOL_TREE_LIST_SORT, L"0,0" },
                 { IntegerPairSettingType, SETTING_NAME_BIGPOOL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_BIGPOOL_WINDOW_SIZE, L"@96|510,380" },
+                { IntegerPairSettingType, SETTING_NAME_TPM_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_TPM_WINDOW_SIZE, L"@96|490,340" },
+                { StringSettingType, SETTING_NAME_TPM_LISTVIEW_COLUMNS, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
