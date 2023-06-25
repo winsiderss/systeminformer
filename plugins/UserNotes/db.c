@@ -175,8 +175,10 @@ NTSTATUS LoadDb(
     NTSTATUS status;
     PVOID topNode;
     PVOID currentNode;
+    PH_STRINGREF sr;
 
-    status = PhLoadXmlObjectFromFile(&ObjectDbPath->sr, &topNode);
+    sr = PhGetStringRef(ObjectDbPath);
+    status = PhLoadXmlObjectFromFile(&sr, &topNode);
 
     if (!NT_SUCCESS(status))
         return status;
