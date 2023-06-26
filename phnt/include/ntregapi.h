@@ -242,16 +242,25 @@ typedef enum _CM_EXTENDED_PARAMETER_TYPE
   CmExtendedParameterMax,
 } CM_EXTENDED_PARAMETER_TYPE;
 
+#define CM_EXTENDED_PARAMETER_TYPE_BITS 8
+
 // private
-typedef struct _CM_EXTENDED_PARAMETER
+typedef struct DECLSPEC_ALIGN(8) _CM_EXTENDED_PARAMETER
 {
-    CM_EXTENDED_PARAMETER_TYPE Type;
+    struct
+    {
+        ULONG64 Type : CM_EXTENDED_PARAMETER_TYPE_BITS;
+        ULONG64 Reserved : 64 - CM_EXTENDED_PARAMETER_TYPE_BITS;
+    };
+
     union
     {
-        ULONGLONG ULong64;
+        ULONG64 ULong64;
         PVOID Pointer;
+        SIZE_T Size;
         HANDLE Handle;
         ULONG ULong;
+        ACCESS_MASK AccessMask;
     };
 } CM_EXTENDED_PARAMETER, *PCM_EXTENDED_PARAMETER;
 
