@@ -232,24 +232,28 @@ typedef struct _KEY_VALUE_LAYER_INFORMATION
     ULONG Reserved : 31;
 } KEY_VALUE_LAYER_INFORMATION, *PKEY_VALUE_LAYER_INFORMATION;
 
-// rev
-typedef enum _KEY_LOAD_ENTRY_TYPE
+// private
+typedef enum _CM_EXTENDED_PARAMETER_TYPE
 {
-    KeyLoadTrustClassKey = 1,
-    KeyLoadEvent,
-    KeyLoadToken
-} KEY_LOAD_ENTRY_TYPE;
+  CmExtendedParameterInvalidType,
+  CmExtendedParameterTrustClassKey,
+  CmExtendedParameterEvent,
+  CmExtendedParameterFileAccessToken,
+  CmExtendedParameterMax,
+} CM_EXTENDED_PARAMETER_TYPE;
 
-// rev
-typedef struct _KEY_LOAD_ENTRY
+// private
+typedef struct _CM_EXTENDED_PARAMETER
 {
-    KEY_LOAD_ENTRY_TYPE EntryType;
+    CM_EXTENDED_PARAMETER_TYPE Type;
     union
     {
+        ULONGLONG ULong64;
+        PVOID Pointer;
         HANDLE Handle;
-        ULONG_PTR Value;
+        ULONG ULong;
     };
-} KEY_LOAD_ENTRY, *PKEY_LOAD_ENTRY;
+} CM_EXTENDED_PARAMETER, *PCM_EXTENDED_PARAMETER;
 
 typedef struct _KEY_VALUE_ENTRY
 {
@@ -529,8 +533,8 @@ NtLoadKey3(
     _In_ POBJECT_ATTRIBUTES TargetKey,
     _In_ POBJECT_ATTRIBUTES SourceFile,
     _In_ ULONG Flags,
-    _In_reads_(LoadEntryCount) PKEY_LOAD_ENTRY LoadEntries,
-    _In_ ULONG LoadEntryCount,
+    _In_reads_(ExtendedParameterCount) PCM_EXTENDED_PARAMETER ExtendedParameters,
+    _In_ ULONG ExtendedParameterCount,
     _In_opt_ ACCESS_MASK DesiredAccess,
     _Out_opt_ PHANDLE RootHandle,
     _Reserved_ PVOID Reserved
