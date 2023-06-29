@@ -32,6 +32,8 @@
 
 #include <shlobj.h>
 
+#include "colmgr.h"
+
 #include "..\resource.h"
 
 EXTERN_C PPH_STRING PvFileName;
@@ -386,6 +388,7 @@ typedef struct _PDB_SYMBOL_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
 
+    PH_CM_MANAGER Cm;
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
     PH_TN_FILTER_SUPPORT FilterSupport;
@@ -399,7 +402,6 @@ typedef struct _PDB_SYMBOL_CONTEXT
         ULONG Flags;
         struct
         {
-            ULONG Reserved : 1;
             ULONG HideWriteSection : 1;
             ULONG HideExecuteSection : 1;
             ULONG HideCodeSection : 1;
@@ -408,7 +410,7 @@ typedef struct _PDB_SYMBOL_CONTEXT
             ULONG HighlightExecuteSection : 1;
             ULONG HighlightCodeSection : 1;
             ULONG HighlightReadSection : 1;
-            ULONG Spare : 23;
+            ULONG Spare : 24;
         };
     };
 } PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;

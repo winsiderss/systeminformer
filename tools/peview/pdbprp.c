@@ -27,14 +27,44 @@ VOID PvDestroySymbolNode(
     _In_ PPV_SYMBOL_NODE Node
     );
 
+VOID PvLoadSettingsSymbolsList(
+    _In_ PPDB_SYMBOL_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+    PPH_STRING sortSettings;
+
+    settings = PhGetStringSetting(L"SymbolsTreeListColumns");
+    sortSettings = PhGetStringSetting(L"SymbolsTreeListSort");
+    Context->Flags = PhGetIntegerSetting(L"SymbolsTreeListFlags");
+
+    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
+
+    PhDereferenceObject(settings);
+    PhDereferenceObject(sortSettings);
+}
+
+VOID PvSaveSettingsSymbolsList(
+    _In_ PPDB_SYMBOL_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+    PPH_STRING sortSettings;
+
+    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
+
+    PhSetIntegerSetting(L"SymbolsTreeListFlags", Context->Flags);
+    PhSetStringSetting2(L"SymbolsTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"SymbolsTreeListSort", &sortSettings->sr);
+
+    PhDereferenceObject(settings);
+    PhDereferenceObject(sortSettings);
+}
+
 VOID PvDeleteSymbolTree(
     _In_ PPDB_SYMBOL_CONTEXT Context
     )
 {
-    PPH_STRING settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(L"PdbTreeListColumns", &settings->sr);
-    PhDereferenceObject(settings);
-
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
         PvDestroySymbolNode(Context->NodeList->Items[i]);
@@ -228,15 +258,26 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Section)
 {
-    PH_STRINGREF text1;
-    PH_STRINGREF text2;
+    if (node1->SectionNameLength && node2->SectionNameLength)
+    {
+        PH_STRINGREF text1;
+        PH_STRINGREF text2;
 
-    text1.Length = (node1->SectionNameLength - 1) * sizeof(WCHAR);
-    text1.Buffer = node1->SectionName;
-    text2.Length = (node2->SectionNameLength - 1) * sizeof(WCHAR);
-    text2.Buffer = node2->SectionName;
+        text1.Length = (node1->SectionNameLength - 1) * sizeof(WCHAR);
+        text1.Buffer = node1->SectionName;
+        text2.Length = (node2->SectionNameLength - 1) * sizeof(WCHAR);
+        text2.Buffer = node2->SectionName;
 
-    sortResult = PhCompareStringRef(&text1, &text2, TRUE);
+        sortResult = PhCompareStringRef(&text1, &text2, TRUE);
+    }
+    else if (!node1->SectionNameLength)
+    {
+        return !node2->SectionNameLength ? 0 : 1;
+    }
+    else
+    {
+        return -1;
+    }
 }
 END_SORT_FUNCTION
 
@@ -545,8 +586,6 @@ VOID PvInitializeSymbolTree(
     _In_ HWND TreeNewHandle
     )
 {
-    PPH_STRING settings;
-
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPV_SYMBOL_NODE),
         SymbolNodeHashtableCompareFunction,
@@ -573,9 +612,7 @@ VOID PvInitializeSymbolTree(
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
 
-    settings = PhGetStringSetting(L"PdbTreeListColumns");
-    PhCmLoadSettings(TreeNewHandle, &settings->sr);
-    PhDereferenceObject(settings);
+    PvLoadSettingsSymbolsList(Context);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
@@ -848,6 +885,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                 context->UpdateTimerHandle = NULL;
             }
 
+            PvSaveSettingsSymbolsList(context);
             PvDeleteSymbolTree(context);
 
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -958,7 +996,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                     if (selectedItem && selectedItem->Id)
                     {
                         PvSetOptionsSymbolsList(context, selectedItem->Id);
-                        //PvSaveSettingsSymbolsList(context);
+                        PvSaveSettingsSymbolsList(context);
                         PhApplyTreeNewFilters(&context->FilterSupport);
                     }
 
