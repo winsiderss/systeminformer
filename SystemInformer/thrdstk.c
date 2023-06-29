@@ -574,6 +574,14 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
             case VK_F5:
                 SendMessage(context->WindowHandle, WM_COMMAND, IDC_REFRESH, 0);
                 break;
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    SendMessage(context->WindowHandle, WM_COMMAND, IDC_COPY, 0);
+                break;
+            case 'A':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
+                break;
             }
         }
         return TRUE;
