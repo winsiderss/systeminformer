@@ -6038,6 +6038,9 @@ RtlSecondsSince1980ToTime(
     _Out_ PLARGE_INTEGER Time
     );
 
+#define SecondsToStartOf1980 11960006400
+#define SecondsToStartOf1970 11644473600
+
 NTSYSAPI
 BOOLEAN
 NTAPI
