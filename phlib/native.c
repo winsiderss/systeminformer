@@ -11741,7 +11741,7 @@ NTSTATUS PhCreateDirectoryFullPathWin32(
     {
         if (directory = PhCreateString2(&directoryPart))
         {
-            if (directoryPath = PhGetFullPath(PhGetString(directory), NULL))
+            if (NT_SUCCESS(PhGetFullPath(PhGetString(directory), &directoryPath, NULL)))
             {
                 status = PhCreateDirectoryWin32(&directoryPath->sr);
                 PhDereferenceObject(directoryPath);
