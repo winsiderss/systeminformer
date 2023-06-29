@@ -87,7 +87,9 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageVolatileListViewColumns", L"");
     PhpAddStringSetting(L"ImageVersionInfoListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
-    PhpAddStringSetting(L"PdbTreeListColumns", L"");
+    PhpAddStringSetting(L"SymbolsTreeListColumns", L"");
+    PhpAddStringSetting(L"SymbolsTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerSetting(L"SymbolsTreeListFlags", L"0");
     PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
     PhpAddStringSetting(L"CHPEListViewColumns", L"");
     // Wsl properties
