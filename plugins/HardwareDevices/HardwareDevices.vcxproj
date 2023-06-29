@@ -107,6 +107,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="adapter.c" />
+    <ClCompile Include="devicenotify.c" />
+    <ClCompile Include="deviceprv.c" />
     <ClCompile Include="devicetree.c" />
     <ClCompile Include="diskdetails.c" />
     <ClCompile Include="disknotify.c" />
@@ -131,6 +133,7 @@
     <ClCompile Include="storage.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="deviceprv.h" />
     <ClInclude Include="devices.h" />
     <ClInclude Include="fmifs.h" />
     <ClInclude Include="prpsh.h" />

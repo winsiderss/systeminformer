@@ -11,6 +11,7 @@
  */
 
 #include "devices.h"
+#include "deviceprv.h"
 #include <hndlinfo.h>
 #include <secedit.h>
 
@@ -123,7 +124,10 @@ VOID NTAPI MainWindowShowingCallback(
 {
     AddRemoveDeviceChangeCallback();
     if (NetWindowsVersion >= WINDOWS_10)
+    {
+        InitializeDeviceProvider();
         InitializeDevicesTab();
+    }
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
@@ -671,6 +675,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME, L"1" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_ROOT, L"0" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS, L"1" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_ENABLE_NOTIFICATIONS, L"1" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
