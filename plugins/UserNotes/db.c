@@ -176,6 +176,9 @@ NTSTATUS LoadDb(
     PVOID topNode;
     PVOID currentNode;
 
+    if (PhIsNullOrEmptyString(ObjectDbPath))
+        return STATUS_UNSUCCESSFUL;
+
     status = PhLoadXmlObjectFromFile(&ObjectDbPath->sr, &topNode);
 
     if (!NT_SUCCESS(status))
@@ -373,6 +376,9 @@ NTSTATUS SaveDb(
     PVOID topNode;
     ULONG enumerationKey = 0;
     PDB_OBJECT *object;
+
+    if (PhIsNullOrEmptyString(ObjectDbPath))
+        return STATUS_UNSUCCESSFUL;
 
     // Skip saving the DB when there's no objects (dmex)
     if (GetNumberOfDbObjects() == 0)
