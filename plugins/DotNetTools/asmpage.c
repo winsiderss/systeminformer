@@ -167,8 +167,8 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
     );
 
 static UNICODE_STRING DotNetLoggerName = RTL_CONSTANT_STRING(L"SiDnLogger");
-static GUID ClrRuntimeProviderGuid = { 0xe13c0d23, 0xccbc, 0x4e12, { 0x93, 0x1b, 0xd9, 0xcc, 0x2e, 0xee, 0x27, 0xe4 } };
-static GUID ClrRundownProviderGuid = { 0xa669021c, 0xc450, 0x4609, { 0xa0, 0x35, 0x5a, 0xf5, 0x9a, 0xf4, 0xdf, 0x18 } };
+DEFINE_GUID(ClrRuntimeProviderGuid, 0xe13c0d23, 0xccbc, 0x4e12, 0x93, 0x1b, 0xd9, 0xcc, 0x2e, 0xee, 0x27, 0xe4);
+DEFINE_GUID(ClrRundownProviderGuid, 0xa669021c, 0xc450, 0x4609, 0xa0, 0x35, 0x5a, 0xf5, 0x9a, 0xf4, 0xdf, 0x18);
 
 static FLAG_DEFINITION AppDomainFlagsMap[] =
 {
@@ -777,6 +777,8 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
                         SORT_FUNCTION(Mvid),
                     };
                     int (__cdecl* sortFunction)(void*, void const*, void const*);
+
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == DNATNC_MAXIMUM, "SortFunctions must equal maximum.");
 
                     if (context->TreeNewSortColumn < DNATNC_MAXIMUM)
                         sortFunction = sortFunctions[context->TreeNewSortColumn];
@@ -1427,7 +1429,7 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     PASMPAGE_QUERY_CONTEXT context = Parameter;
     TRACEHANDLE sessionHandle;
     PEVENT_TRACE_PROPERTIES properties;
-    PGUID guidToEnable;
+    PCGUID guidToEnable;
 
     context->TraceResult = StartDotNetTrace(&sessionHandle, &properties);
 

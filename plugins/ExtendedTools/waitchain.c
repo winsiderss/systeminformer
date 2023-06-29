@@ -297,7 +297,7 @@ VOID WaitChainCheckThread(
     }
 }
 
-BOOLEAN WaitChainEnumNextThread(
+NTSTATUS WaitChainEnumNextThread(
     _In_ HANDLE ThreadHandle,
     _In_ PWCT_CONTEXT Context
     )
@@ -309,7 +309,7 @@ BOOLEAN WaitChainEnumNextThread(
         WaitChainCheckThread(Context, basicInfo.ClientId.UniqueThread);
     }
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS WaitChainCallbackThread(
@@ -684,6 +684,8 @@ BOOLEAN NTAPI WtcWaitTreeNewCallback(
                         SORT_FUNCTION(ContextSwitch),
                     };
                     int (__cdecl* sortFunction)(void*, void const*, void const*);
+
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
                     if (context->TreeNewSortColumn < TREE_COLUMN_ITEM_MAXIMUM)
                         sortFunction = sortFunctions[context->TreeNewSortColumn];

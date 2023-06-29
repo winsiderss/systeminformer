@@ -470,35 +470,44 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RuleName)
 {
-    sortResult = PhCompareStringWithNull(node1->RuleName, node2->RuleName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->RuleName, node2->RuleName, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RuleDescription)
 {
-    sortResult = PhCompareStringWithNull(node1->RuleDescription, node2->RuleDescription, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->RuleDescription, node2->RuleDescription, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalAddress)
 {
-    SOCKADDR_IN6 localAddress1 = { 0 };
-    SOCKADDR_IN6 localAddress2 = { 0 };
+    SOCKADDR_IN6 localAddress1;
+    SOCKADDR_IN6 localAddress2;
 
-    if (node1->LocalEndpoint.Address.Type & PH_IPV4_NETWORK_TYPE)
+    memset(&localAddress1, 0, sizeof(SOCKADDR_IN6)); // memset for zero padding (dmex)
+    memset(&localAddress2, 0, sizeof(SOCKADDR_IN6));
+
+    if (node1->LocalEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
-        IN6ADDR_SETV4MAPPED(&localAddress1, &node1->LocalEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
+        localAddress1.sin6_family = AF_INET6;
+        IN6_SET_ADDR_V4COMPAT(&localAddress1.sin6_addr, &node1->LocalEndpoint.Address.InAddr);
+        IN4_UNCANONICALIZE_SCOPE_ID(&node1->LocalEndpoint.Address.InAddr, &localAddress1.sin6_scope_struct);
+        //IN6ADDR_SETV4MAPPED(&localAddress1, &node1->LocalEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
     }
-    else if (node1->LocalEndpoint.Address.Type & PH_IPV6_NETWORK_TYPE)
+    else if (node1->LocalEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
         IN6ADDR_SETSOCKADDR(&localAddress1, &node1->LocalEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = node1->ScopeId }, 0);
     }
 
-    if (node2->LocalEndpoint.Address.Type & PH_IPV4_NETWORK_TYPE)
+    if (node2->LocalEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
-        IN6ADDR_SETV4MAPPED(&localAddress2, &node2->LocalEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
+        localAddress2.sin6_family = AF_INET6;
+        IN6_SET_ADDR_V4COMPAT(&localAddress2.sin6_addr, &node2->LocalEndpoint.Address.InAddr);
+        IN4_UNCANONICALIZE_SCOPE_ID(&node2->LocalEndpoint.Address.InAddr, &localAddress2.sin6_scope_struct);
+        //IN6ADDR_SETV4MAPPED(&localAddress2, &node2->LocalEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
     }
-    else if (node2->LocalEndpoint.Address.Type & PH_IPV6_NETWORK_TYPE)
+    else if (node2->LocalEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
         IN6ADDR_SETSOCKADDR(&localAddress2, &node2->LocalEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = node2->ScopeId }, 0);
     }
@@ -515,27 +524,36 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalHostname)
 {
-    sortResult = PhCompareStringWithNull(node1->LocalHostnameString, node2->LocalHostnameString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->LocalHostnameString, node2->LocalHostnameString, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemoteAddress)
 {
-    SOCKADDR_IN6 remoteAddress1 = { 0 };
-    SOCKADDR_IN6 remoteAddress2 = { 0 };
+    SOCKADDR_IN6 remoteAddress1;
+    SOCKADDR_IN6 remoteAddress2;
 
-    if (node1->RemoteEndpoint.Address.Type & PH_IPV4_NETWORK_TYPE)
+    memset(&remoteAddress1, 0, sizeof(SOCKADDR_IN6)); // memset for zero padding (dmex)
+    memset(&remoteAddress2, 0, sizeof(SOCKADDR_IN6));
+
+    if (node1->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
-        IN6ADDR_SETV4MAPPED(&remoteAddress1, &node1->RemoteEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
+        remoteAddress1.sin6_family = AF_INET6;
+        IN6_SET_ADDR_V4COMPAT(&remoteAddress1.sin6_addr, &node1->RemoteEndpoint.Address.InAddr);
+        IN4_UNCANONICALIZE_SCOPE_ID(&node1->RemoteEndpoint.Address.InAddr, &remoteAddress1.sin6_scope_struct);
+        //IN6ADDR_SETV4MAPPED(&remoteAddress1, &node1->RemoteEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
     }
     else if (node1->RemoteEndpoint.Address.Type & PH_IPV6_NETWORK_TYPE)
     {
         IN6ADDR_SETSOCKADDR(&remoteAddress1, &node1->RemoteEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = node1->ScopeId }, 0);
     }
 
-    if (node2->RemoteEndpoint.Address.Type & PH_IPV4_NETWORK_TYPE)
+    if (node2->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
-        IN6ADDR_SETV4MAPPED(&remoteAddress2, &node2->RemoteEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
+        remoteAddress2.sin6_family = AF_INET6;
+        IN6_SET_ADDR_V4COMPAT(&remoteAddress2.sin6_addr, &node2->RemoteEndpoint.Address.InAddr);
+        IN4_UNCANONICALIZE_SCOPE_ID(&node2->RemoteEndpoint.Address.InAddr, &remoteAddress2.sin6_scope_struct);
+        //IN6ADDR_SETV4MAPPED(&remoteAddress2, &node2->RemoteEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
     }
     else if (node2->RemoteEndpoint.Address.Type & PH_IPV6_NETWORK_TYPE)
     {
@@ -554,7 +572,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemoteHostname)
 {
-    sortResult = PhCompareStringWithNull(node1->RemoteHostnameString, node2->RemoteHostnameString, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->RemoteHostnameString, node2->RemoteHostnameString, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -572,13 +590,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Filename)
 {
-    sortResult = PhCompareStringWithNull(node1->ProcessFileName, node2->ProcessFileName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->ProcessFileName, node2->ProcessFileName, FwTreeNewSortOrder, FALSE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(User)
 {
-    sortResult = PhCompareStringWithNull(node1->UserName, node2->UserName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->UserName, node2->UserName, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -590,7 +608,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Country)
 {
-    sortResult = PhCompareStringWithNull(node1->RemoteCountryName, node2->RemoteCountryName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->RemoteCountryName, node2->RemoteCountryName, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -689,6 +707,8 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         SORT_FUNCTION(RemoteAddressScope),
                     };
                     int (__cdecl* sortFunction)(void*, void const*, void const*);
+
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == FW_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
 
                     if (FwTreeNewSortColumn < FW_COLUMN_MAXIMUM)
                         sortFunction = sortFunctions[FwTreeNewSortColumn];

@@ -425,6 +425,8 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == WEWNTLC_MAXIMUM, "SortFunctions must equal maximum.");
+
                     if (context->TreeNewSortColumn < WEWNTLC_MAXIMUM)
                         sortFunction = sortFunctions[context->TreeNewSortColumn];
                     else
