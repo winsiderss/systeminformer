@@ -9,9 +9,6 @@
  *
  */
 
-#include <phbase.h>
-#include <phnative.h> // dmex
-
 #include "config.h"
 #undef realloc
 
@@ -133,118 +130,46 @@ struct json_object *json_object_from_fd_ex(int fd, int in_depth)
     return obj;
 }
 
-struct json_object *json_object_from_file(wchar_t *filename)
+struct json_object* json_object_from_file(const char* filename)
 {
-    NTSTATUS status;
-    HANDLE fileHandle;
-    IO_STATUS_BLOCK isb;
-    struct json_object* obj = NULL;
+    struct json_object* obj;
+    int fd;
 
-    status = PhCreateFileWin32(
-        &fileHandle,
-        filename,
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (NT_SUCCESS(status))
+    if ((fd = open(filename, O_RDONLY)) < 0)
     {
-        PSTR data;
-        ULONG allocatedLength;
-        ULONG dataLength;
-        ULONG returnLength;
-        BYTE buffer[PAGE_SIZE];
-
-        allocatedLength = sizeof(buffer);
-        data = (PSTR)PhAllocate(allocatedLength);
-        dataLength = 0;
-
-        memset(data, 0, allocatedLength);
-
-        while (NT_SUCCESS(NtReadFile(fileHandle, NULL, NULL, NULL, &isb, buffer, PAGE_SIZE, NULL, NULL)))
-        {
-            returnLength = (ULONG)isb.Information;
-
-            if (returnLength == 0)
-                break;
-
-            if (allocatedLength < dataLength + returnLength)
-            {
-                allocatedLength *= 2;
-                data = (PSTR)PhReAllocate(data, allocatedLength);
-            }
-
-            memcpy(data + dataLength, buffer, returnLength);
-
-            dataLength += returnLength;
-        }
-
-        if (allocatedLength < dataLength + 1)
-        {
-            allocatedLength++;
-            data = (PSTR)PhReAllocate(data, allocatedLength);
-        }
-
-        data[dataLength] = ANSI_NULL;
-
-        obj = json_tokener_parse(data);
-
-        PhFree(data);
-        NtClose(fileHandle);
+        _json_c_set_last_err("json_object_from_file: error opening file %s: %s\n",
+            filename, strerror(errno));
+        return NULL;
     }
-
+    obj = json_object_from_fd(fd);
+    _close(fd);
     return obj;
 }
 
 /* extended "format and write to file" function */
 
-int json_object_to_file_ext(wchar_t *filename, struct json_object *obj, int flags)
+int json_object_to_file_ext(const char *filename, struct json_object *obj, int flags)
 {
-    NTSTATUS status;
-    HANDLE fileHandle;
-    IO_STATUS_BLOCK isb;
-    PSTR json_string;
-    size_t json_length;
+    int fd, ret;
+    int saved_errno;
 
-    if (!(json_string = (PSTR)json_object_to_json_string_length(obj, flags, &json_length)))
-        return -1;
-
-    status = PhCreateFileWin32(
-        &fileHandle,
-        filename,
-        FILE_GENERIC_WRITE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
-        FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        return -1;
-
-    status = NtWriteFile(
-        fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
-        json_string,
-        (ULONG)json_length,
-        NULL,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
+    if (!obj)
     {
-        NtClose(fileHandle);
+        _json_c_set_last_err("json_object_to_file_ext: object is null\n");
         return -1;
     }
 
-    NtClose(fileHandle);
-    return 0;
+    if ((fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0644)) < 0)
+    {
+        _json_c_set_last_err("json_object_to_file_ext: error opening file %s: %s\n",
+            filename, strerror(errno));
+        return -1;
+    }
+    ret = _json_object_to_fd(fd, obj, flags, filename);
+    saved_errno = errno;
+    _close(fd);
+    errno = saved_errno;
+    return ret;
 }
 
 int json_object_to_fd(int fd, struct json_object *obj, int flags)
@@ -291,9 +216,9 @@ static int _json_object_to_fd(int fd, struct json_object *obj, int flags, const 
 
 // backwards compatible "format and write to file" function
 
-int json_object_to_file(wchar_t *filename, struct json_object *obj)
+int json_object_to_file(const char *filename, struct json_object *obj)
 {
-    return json_object_to_file_ext(filename, obj, JSON_C_TO_STRING_PLAIN);
+	return json_object_to_file_ext(filename, obj, JSON_C_TO_STRING_PLAIN);
 }
 
 // Deprecated json_parse_double function.  See json_tokener_parse_double instead.

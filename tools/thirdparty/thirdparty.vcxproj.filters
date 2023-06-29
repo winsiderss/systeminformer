@@ -49,6 +49,9 @@
     <Filter Include="zydis">
       <UniqueIdentifier>{eb165962-c40f-479c-96f2-bbe8f3617100}</UniqueIdentifier>
     </Filter>
+    <Filter Include="yyjson">
+      <UniqueIdentifier>{1818696b-f7ae-415d-b65d-92ed25a53bb4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -401,6 +404,9 @@
     </ClCompile>
     <ClCompile Include="zydis\Zydis.c">
       <Filter>zydis</Filter>
+    </ClCompile>
+    <ClCompile Include="yyjson\yyjson.c">
+      <Filter>yyjson</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -769,6 +775,9 @@
     </ClInclude>
     <ClInclude Include="zydis\Zydis.h">
       <Filter>zydis</Filter>
+    </ClInclude>
+    <ClInclude Include="yyjson\yyjson.h">
+      <Filter>yyjson</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
