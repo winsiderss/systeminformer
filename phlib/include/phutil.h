@@ -202,6 +202,14 @@ PhLargeIntegerToLocalSystemTime(
     _In_ PLARGE_INTEGER LargeInteger
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhLocalSystemTimeToLargeInteger(
+    _Out_ PLARGE_INTEGER LargeInteger,
+    _In_ PSYSTEMTIME SystemTime
+    );
+
 // Error messages
 
 PHLIBAPI
@@ -751,21 +759,12 @@ PhFlushImageVersionInfoCache(
     );
 
 PHLIBAPI
-_Success_(return != NULL)
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetFullPath(
     _In_ PWSTR FileName,
+    _Out_ PPH_STRING *FullPath,
     _Out_opt_ PULONG IndexOfFileName
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetFullPathEx(
-    _In_ PWSTR FileName,
-    _Out_opt_ PULONG IndexOfFileName,
-    _Out_ PPH_STRING *FullPath
     );
 
 PHLIBAPI

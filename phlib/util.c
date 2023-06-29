@@ -425,6 +425,22 @@ VOID PhLargeIntegerToLocalSystemTime(
 #endif
 }
 
+BOOLEAN PhLocalSystemTimeToLargeInteger(
+    _Out_ PLARGE_INTEGER LargeInteger,
+    _In_ PSYSTEMTIME SystemTime
+    )
+{
+    LARGE_INTEGER timeZoneBias;
+
+    if (!PhSystemTimeToLargeInteger(LargeInteger, SystemTime))
+        return FALSE;
+
+    PhQueryTimeZoneBias(&timeZoneBias);
+    LargeInteger->QuadPart += timeZoneBias.QuadPart;
+
+    return TRUE;
+}
+
 /**
  * Gets a string stored in a DLL's message table.
  *
@@ -2809,18 +2825,20 @@ VOID PhFlushImageVersionInfoCache(
  * Gets an absolute file name.
  *
  * \param FileName A file name.
+ * \param FullPath An absolute file name, or NULL if the function failed.
  * \param IndexOfFileName A variable which receives the index of the base name.
  *
- * \return An absolute file name, or NULL if the function failed.
+ * \return Successful or errant status.
  */
-_Success_(return != NULL)
-PPH_STRING PhGetFullPath(
+NTSTATUS PhGetFullPath(
     _In_ PWSTR FileName,
+    _Out_ PPH_STRING *FullPath,
     _Out_opt_ PULONG IndexOfFileName
     )
 {
+    NTSTATUS status;
     PPH_STRING fullPath;
-    ULONG bufferSize;
+    ULONG fullPathLength;
     ULONG returnLength;
     PWSTR filePart;
 
@@ -2828,83 +2846,16 @@ PPH_STRING PhGetFullPath(
     assert(RtlEqualMemory(FileName, RtlNtPathSeperatorString.Buffer, RtlNtPathSeperatorString.Length) == FALSE);
 #endif
 
-    bufferSize = 0x80;
-    fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
-
-    returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
-
-    if (returnLength > bufferSize)
-    {
-        PhDereferenceObject(fullPath);
-        bufferSize = returnLength;
-        fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
-
-        returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
-    }
-
-    if (returnLength == 0)
-    {
-        PhDereferenceObject(fullPath);
-        return NULL;
-    }
-
-    PhTrimToNullTerminatorString(fullPath);
-
-    if (IndexOfFileName)
-    {
-        if (filePart)
-        {
-            // The path points to a file.
-            *IndexOfFileName = (ULONG)(filePart - fullPath->Buffer);
-        }
-        else
-        {
-            // The path points to a directory.
-            *IndexOfFileName = ULONG_MAX;
-        }
-    }
-
-    return fullPath;
-}
-
-NTSTATUS PhGetFullPathEx(
-    _In_ PWSTR FileName,
-    _Out_opt_ PULONG IndexOfFileName,
-    _Out_ PPH_STRING *FullPath
-    )
-{
-#if (PHNT_VERSION >= PHNT_WIN7)
-    NTSTATUS status;
-    PPH_STRING fullPath;
-    ULONG bufferSize;
-    ULONG returnLength = 0;
-    PWSTR filePart;
-
-    bufferSize = 0x80;
-    fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
+    fullPathLength = DOS_MAX_PATH_LENGTH;
+    fullPath = PhCreateStringEx(NULL, fullPathLength);
 
     status = RtlGetFullPathName_UEx(
         FileName,
-        bufferSize,
+        fullPathLength,
         fullPath->Buffer,
         &filePart,
         &returnLength
         );
-
-    if (returnLength > bufferSize)
-    {
-        PhDereferenceObject(fullPath);
-        bufferSize = returnLength;
-        fullPath = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
-
-        status = RtlGetFullPathName_UEx(
-            FileName,
-            bufferSize,
-            fullPath->Buffer,
-            &filePart,
-            &returnLength
-            );
-    }
 
     if (!NT_SUCCESS(status))
     {
@@ -2912,8 +2863,29 @@ NTSTATUS PhGetFullPathEx(
         return status;
     }
 
-    fullPath->Length = returnLength;
-    //PhTrimToNullTerminatorString(fullPath);
+    if (returnLength > fullPathLength)
+    {
+        PhDereferenceObject(fullPath);
+        fullPathLength = returnLength;
+        fullPath = PhCreateStringEx(NULL, fullPathLength);
+
+        status = RtlGetFullPathName_UEx(
+            FileName,
+            fullPathLength,
+            fullPath->Buffer,
+            &filePart,
+            &returnLength
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            PhDereferenceObject(fullPath);
+            return status;
+        }
+    }
+
+    PhTrimToNullTerminatorString(fullPath);
+    *FullPath = fullPath;
 
     if (IndexOfFileName)
     {
@@ -2929,20 +2901,7 @@ NTSTATUS PhGetFullPathEx(
         }
     }
 
-    *FullPath = fullPath;
-
     return status;
-#else
-    PPH_STRING fullPath;
-
-    if (fullPath = PhGetFullPath(FileName, IndexOfFileName))
-    {
-        *FullPath = fullPath;
-        return STATUS_SUCCESS;
-    }
-
-    return STATUS_UNSUCCESSFUL;
-#endif
 }
 
 /**
@@ -3193,6 +3152,46 @@ VOID PhGetSystemRoot(
     systemRoot.Buffer = localSystemRoot.Buffer;
 }
 
+/**
+ * Retrieves the Windows directory path.
+ */
+PPH_STRING PhGetWindowsDirectory(
+    _In_opt_ PPH_STRINGREF AppendPath
+    )
+{
+    PH_STRINGREF systemRoot;
+    PPH_STRING systemRootNative;
+
+    PhGetSystemRoot(&systemRoot);
+    systemRootNative = PhDosPathNameToNtPathName(&systemRoot);
+
+    if (systemRootNative && AppendPath)
+    {
+        PhMoveReference(&systemRootNative, PhConcatStringRef2(&systemRootNative->sr, AppendPath));
+    }
+
+    return systemRootNative;
+}
+
+/**
+ * Retrieves the Windows directory path.
+ */
+PPH_STRING PhGetWindowsDirectoryWin32(
+    _In_opt_ PPH_STRINGREF AppendPath
+    )
+{
+    PH_STRINGREF systemRoot;
+
+    PhGetSystemRoot(&systemRoot);
+
+    if (AppendPath)
+    {
+        return PhConcatStringRef2(&systemRoot, AppendPath);
+    }
+
+    return PhCreateString2(&systemRoot);
+}
+
 PPH_STRING PhGetApplicationFileName(
     VOID
     )
@@ -3252,7 +3251,7 @@ PPH_STRING PhGetApplicationFileNameWin32(
     //{
     //    PPH_STRING fullPath;
     //
-    //    if (fullPath = PhGetFullPath(PhGetString(fileName), NULL))
+    //    if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
     //    {
     //        PhMoveReference(&fileName, fullPath);
     //    }
@@ -6994,7 +6993,8 @@ PPH_STRING PhSearchFilePath(
 
     if (!NT_SUCCESS(PhQueryAttributesFileWin32(fullPath->Buffer, &basicInfo)))
         goto CleanupExit;
-    if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+
+    if (FlagOn(basicInfo.FileAttributes, FILE_ATTRIBUTE_DIRECTORY))
         goto CleanupExit;
 
     return fullPath;
@@ -7157,7 +7157,7 @@ VOID PhDeleteCacheFile(
         PhDeleteFileWin32(PhGetString(FileName));
     }
 
-    if (cacheFullFilePath = PhGetFullPath(PhGetString(FileName), &indexOfFileName))
+    if (NT_SUCCESS(PhGetFullPath(PhGetString(FileName), &cacheFullFilePath, &indexOfFileName)))
     {
         if (indexOfFileName != ULONG_MAX && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
