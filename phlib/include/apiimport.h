@@ -189,14 +189,16 @@ typedef LONG (WINAPI* _DnsQuery_W)(
     _Outptr_opt_result_maybenull_ PVOID* Reserved
     );
 
+typedef struct _DNS_MESSAGE_BUFFER* PDNS_MESSAGE_BUFFER;
+
 typedef LONG (WINAPI* _DnsExtractRecordsFromMessage_W)(
-    _In_ struct _DNS_MESSAGE_BUFFER* DnsBuffer,
+    _In_ PDNS_MESSAGE_BUFFER DnsBuffer,
     _In_ USHORT MessageLength,
     _Out_ PVOID* DnsRecordList
     );
 
 typedef BOOL (WINAPI* _DnsWriteQuestionToBuffer_W)(
-    _Inout_ struct _DNS_MESSAGE_BUFFER* DnsBuffer,
+    _Inout_ PDNS_MESSAGE_BUFFER DnsBuffer,
     _Inout_ PULONG BufferSize,
     _In_ PWSTR Name,
     _In_ USHORT Type,

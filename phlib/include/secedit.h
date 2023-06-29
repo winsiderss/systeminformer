@@ -48,8 +48,8 @@ PhEditSecurity(
     _In_opt_ HWND WindowHandle,
     _In_ PWSTR ObjectName,
     _In_ PWSTR ObjectType,
-    _In_ PPH_OPEN_OBJECT OpenCallback,
-    _In_opt_ PPH_CLOSE_OBJECT CloseCallback,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PVOID Context
     );
 

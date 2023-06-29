@@ -6879,8 +6879,13 @@ NTSTATUS PhEnumNextProcess(
 
     while (TRUE)
     {
-        if (!Callback(processHandle, Context))
+        status = Callback(processHandle, Context);
+
+        if (!NT_SUCCESS(status))
+        {
+            NtClose(processHandle);
             break;
+        }
 
         status = NtGetNextProcess(
             processHandle,
@@ -6934,8 +6939,13 @@ NTSTATUS PhEnumNextThread(
 
     while (TRUE)
     {
-        if (!Callback(threadHandle, Context))
+        status = Callback(threadHandle, Context);
+
+        if (!NT_SUCCESS(status))
+        {
+            NtClose(threadHandle);
             break;
+        }
 
         status = NtGetNextThread(
             ProcessHandle,
@@ -10104,13 +10114,13 @@ NTSTATUS PhOpenKey(
  * Loads the specified registry hive file into a private application hive.
  *
  * \param KeyHandle A variable which receives a handle to the key.
- * \param FileName The Win32 file name.
+ * \param FileName A string containing a file name.
  * \param DesiredAccess The desired access to the key.
  * \param Flags Optional flags for loading the hive.
  */
 NTSTATUS PhLoadAppKey(
     _Out_ PHANDLE KeyHandle,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ ULONG Flags
     )
@@ -10121,6 +10131,9 @@ NTSTATUS PhLoadAppKey(
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES targetAttributes;
     OBJECT_ATTRIBUTES sourceAttributes;
+
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
+        return STATUS_NAME_TOO_LONG;
 
     PhGenerateGuid(&guid);
 
@@ -10150,19 +10163,9 @@ NTSTATUS PhLoadAppKey(
     if (!PhStringRefToUnicodeString(&guidString->sr, &objectName))
     {
         PhDereferenceObject(guidString);
-        return STATUS_UNSUCCESSFUL;
+        return STATUS_NAME_TOO_LONG;
     }
 #endif
-
-    status = PhDosLongPathNameToNtPathNameWithStatus(
-        FileName,
-        &fileName,
-        NULL,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
 
     InitializeObjectAttributes(
         &targetAttributes,
@@ -10191,13 +10194,9 @@ NTSTATUS PhLoadAppKey(
         NULL
         );
 
-    RtlFreeUnicodeString(&fileName);
-
 #if (PHNT_USE_NATIVE_APPEND)
-CleanupExit:
     RtlFreeUnicodeString(&guidStringUs);
 #else
-CleanupExit:
     PhDereferenceObject(guidString);
 #endif
 
@@ -15142,7 +15141,7 @@ NTSTATUS PhSetSystemEnvironmentBootToFirmware(
     VOID
     )
 {
-    static GUID EFI_GLOBAL_VARIABLE_GUID = { 0x8be4df61, 0x93ca, 0x11d2, { 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c } };
+    static const GUID EFI_GLOBAL_VARIABLE_GUID = { 0x8be4df61, 0x93ca, 0x11d2, { 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c } };
     static UNICODE_STRING OsIndicationsSupportedName = RTL_CONSTANT_STRING(L"OsIndicationsSupported");
     static UNICODE_STRING OsIndicationsName = RTL_CONSTANT_STRING(L"OsIndications");
     const ULONG64 EFI_OS_INDICATIONS_BOOT_TO_FW_UI = 0x0000000000000001ULL;

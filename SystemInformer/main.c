@@ -1026,7 +1026,7 @@ VOID PhpInitializeSettings(
         //if (PhStartupParameters.SettingsFileName)
         //{
         //    // Get an absolute path now.
-        //    PhSettingsFileName = PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, NULL);
+        //    PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, &PhSettingsFileName, NULL);
         //}
 
         // 2. File in program directory

@@ -61,12 +61,7 @@
 #include <phintrin.h>
 #include <circbuf.h>
 
-#define PH_VECTOR_LEVEL_NONE 0
-#define PH_VECTOR_LEVEL_SSE2 1
-#define PH_VECTOR_LEVEL_AVX 2
-
 #define PH_NATIVE_STRING_CONVERSION 1
-#define PH_NATIVE_THREAD_CREATE 1
 
 typedef struct _PHP_BASE_THREAD_CONTEXT
 {
@@ -240,6 +235,19 @@ NTSTATUS PhCreateUserThread(
     )
 {
 #if (PH_NATIVE_THREAD_CREATE)
+    return RtlCreateUserThread(
+        ProcessHandle,
+        ThreadSecurityDescriptor,
+        BooleanFlagOn(CreateFlags, THREAD_CREATE_FLAGS_CREATE_SUSPENDED),
+        (ULONG)ZeroBits,
+        MaximumStackSize,
+        StackSize,
+        StartRoutine,
+        Argument,
+        ThreadHandle,
+        ClientId
+        );
+#else
     NTSTATUS status;
     HANDLE threadHandle;
     OBJECT_ATTRIBUTES objectAttributes;
@@ -247,15 +255,7 @@ NTSTATUS PhCreateUserThread(
     PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
     CLIENT_ID clientId = { 0 };
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        NULL,
-        0,
-        NULL,
-        NULL
-        );
-    objectAttributes.SecurityDescriptor = ThreadSecurityDescriptor;
-
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
     attributeList->TotalLength = sizeof(buffer);
     attributeList->Attributes[0].Attribute = PS_ATTRIBUTE_CLIENT_ID;
     attributeList->Attributes[0].Size = sizeof(CLIENT_ID);
@@ -294,19 +294,6 @@ NTSTATUS PhCreateUserThread(
     }
 
     return status;
-#else
-    return RtlCreateUserThread(
-        ProcessHandle,
-        ThreadSecurityDescriptor,
-        BooleanFlagOn(CreateFlags, THREAD_CREATE_FLAGS_CREATE_SUSPENDED),
-        (ULONG)ZeroBits,
-        MaximumStackSize,
-        StackSize,
-        StartRoutine,
-        Argument,
-        ThreadHandle,
-        ClientId
-        );
 #endif
 }
 

@@ -364,14 +364,16 @@ BOOLEAN PhpStartPhSvcProcess(
                     &applicationFileName->sr
                     );
 
-                if (fileFullPath = PhGetFullPath(fileName->Buffer, NULL))
+                if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fileFullPath, NULL)))
+                {
                     PhMoveReference(&fileName, fileFullPath);
+                }
 
-                if (PhDoesFileExistWin32(fileName->Buffer))
+                if (PhDoesFileExistWin32(PhGetString(fileName)))
                 {
                     if (PhShellProcessHackerEx(
                         hWnd,
-                        fileName->Buffer,
+                        PhGetString(fileName),
                         L"-phsvc",
                         SW_HIDE,
                         PH_SHELL_EXECUTE_DEFAULT,

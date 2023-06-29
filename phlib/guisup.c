@@ -2985,8 +2985,21 @@ BOOLEAN PhGetSystemResourcesFileName(
     return FALSE;
 }
 
-// rev from PrivateExtractIconExW with changes
-// for using SEC_COMMIT instead of SEC_IMAGE. (dmex)
+/**
+ * \brief Extracts icons from the specified executable file.
+ *
+ * \param FileName A string containing a file name.
+ * \param NativeFileName The type of name format.
+ * \param IconIndex The zero-based index of the icon within the group or a negative number for a specific resource identifier.
+ * \param IconLarge A handle to the large icon within the group or handle to the an icon from the resource identifier.
+ * \param IconSmall A handle to the small icon within the group or handle to the an icon from the resource identifier.
+ * \param WindowDpi The DPI to use for scaling the metric.
+ *
+ * \return Successful or errant status.
+ *
+ * \remarks Use this function instead of PrivateExtractIconExW() because images are mapped with SEC_COMMIT and READONLY
+ * while PrivateExtractIconExW loads images with EXECUTE and SEC_IMAGE (section allocations and relocation processing).
+ */
 _Success_(return)
 BOOLEAN PhExtractIconEx(
     _In_ PPH_STRINGREF FileName,
@@ -2994,7 +3007,7 @@ BOOLEAN PhExtractIconEx(
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall,
-    _In_ LONG SystemDpi
+    _In_ LONG WindowDpi
     )
 {
     NTSTATUS status;
@@ -3089,8 +3102,8 @@ BOOLEAN PhExtractIconEx(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXICON, SystemDpi),
-                PhGetSystemMetrics(SM_CYICON, SystemDpi),
+                PhGetSystemMetrics(SM_CXICON, WindowDpi),
+                PhGetSystemMetrics(SM_CYICON, WindowDpi),
                 LR_DEFAULTCOLOR
                 );
         }
@@ -3101,8 +3114,8 @@ BOOLEAN PhExtractIconEx(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
-                PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
+                PhGetSystemMetrics(SM_CXSMICON, WindowDpi),
+                PhGetSystemMetrics(SM_CYSMICON, WindowDpi),
                 LR_DEFAULTCOLOR
                 );
         }

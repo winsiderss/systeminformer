@@ -19,7 +19,7 @@ EXTERN_C_START
 #define SYSTEM_IDLE_PROCESS_ID ((HANDLE)0)
 /** The PID of the system process. */
 #define SYSTEM_PROCESS_ID ((HANDLE)4)
-
+/** The name of the system idle process. */
 #define SYSTEM_IDLE_PROCESS_NAME ((UNICODE_STRING)RTL_CONSTANT_STRING(L"System Idle Process"))
 
 #define PhNtPathSeperatorString ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\")) // OBJ_NAME_PATH_SEPARATOR // RtlNtPathSeperatorString
@@ -1568,10 +1568,12 @@ PhEnumProcessesEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
     );
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_NEXT_PROCESS)(
+_Function_class_(PH_ENUM_NEXT_PROCESS)
+typedef NTSTATUS (NTAPI PH_ENUM_NEXT_PROCESS)(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_NEXT_PROCESS* PPH_ENUM_NEXT_PROCESS;
 
 PHLIBAPI
 NTSTATUS
@@ -1583,10 +1585,12 @@ PhEnumNextProcess(
     _In_opt_ PVOID Context
     );
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_NEXT_THREAD)(
+_Function_class_(PH_ENUM_NEXT_THREAD)
+typedef NTSTATUS (NTAPI PH_ENUM_NEXT_THREAD)(
     _In_ HANDLE ThreadHandle,
     _In_opt_ PVOID Context
     );
+typedef PH_ENUM_NEXT_THREAD* PPH_ENUM_NEXT_THREAD;
 
 PHLIBAPI
 NTSTATUS
@@ -2081,7 +2085,7 @@ NTSTATUS
 NTAPI
 PhLoadAppKey(
     _Out_ PHANDLE KeyHandle,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ ULONG Flags
     );

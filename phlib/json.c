@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -167,6 +167,13 @@ ULONGLONG PhGetJsonValueAsUInt64(
     )
 {
     return json_object_get_uint64(json_get_object(Object, Key));
+}
+
+ULONG PhGetJsonUInt32Object(
+    _In_ PVOID Object
+    )
+{
+    return json_object_get_int(Object);
 }
 
 PVOID PhCreateJsonObject(
@@ -345,6 +352,19 @@ PVOID PhGetJsonArrayIndexObject(
     return json_object_array_get_idx(Object, Index);
 }
 
+VOID PhEnumJsonArrayObject(
+    _In_ PVOID Object,
+    _In_ PPH_ENUM_JSON_OBJECT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    json_object_object_foreach(Object, key, value)
+    {
+        if (!Callback(Object, key, value, Context))
+            break;
+    }
+}
+
 PVOID PhGetJsonObjectAsArrayList(
     _In_ PVOID Object
     )
@@ -372,7 +392,18 @@ PVOID PhLoadJsonObjectFromFile(
     _In_ PPH_STRINGREF FileName
     )
 {
-    return json_object_from_file(FileName->Buffer);
+    PPH_BYTES content;
+    PVOID object;
+
+    if (content = PhFileReadAllText(FileName, FALSE))
+    {
+        object = PhCreateJsonParserEx(content, FALSE);
+
+        PhDereferenceObject(content);
+        return object;
+    }
+
+    return NULL;
 }
 
 NTSTATUS PhSaveJsonObjectToFile(
@@ -380,19 +411,52 @@ NTSTATUS PhSaveJsonObjectToFile(
     _In_ PVOID Object
     )
 {
-#ifdef _DEBUG
-    if (json_object_to_file_ext(FileName->Buffer, Object, JSON_C_TO_STRING_PRETTY) == -1)
-    {
-        return STATUS_UNSUCCESSFUL;
-    }
-#else
-    if (json_object_to_file_ext(FileName->Buffer, Object, 0) == -1)
-    {
-        return STATUS_UNSUCCESSFUL;
-    }
-#endif
+    INT json_flags = JSON_C_TO_STRING_PRETTY;
+    NTSTATUS status;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK isb;
+    size_t json_length;
+    PCSTR json_string;
 
-    return STATUS_SUCCESS;
+    json_string = json_object_to_json_string_length(
+        Object,
+        json_flags,
+        &json_length
+        );
+
+    if (json_length == 0)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    status = PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtWriteFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        (PVOID)json_string,
+        (ULONG)json_length,
+        NULL,
+        NULL
+        );
+
+    NtClose(fileHandle);
+
+    return status;
 }
 
 // XML support

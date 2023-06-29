@@ -74,6 +74,13 @@ PhGetJsonValueAsUInt64(
     );
 
 PHLIBAPI
+ULONG
+NTAPI
+PhGetJsonUInt32Object(
+    _In_ PVOID Object
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhCreateJsonObject(
@@ -221,6 +228,19 @@ NTAPI
 PhGetJsonArrayIndexObject(
     _In_ PVOID Object,
     _In_ ULONG Index
+    );
+
+typedef BOOLEAN (NTAPI* PPH_ENUM_JSON_OBJECT_CALLBACK)(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ PVOID Value,
+    _In_opt_ PVOID Context
+    );
+
+VOID PhEnumJsonArrayObject(
+    _In_ PVOID Object,
+    _In_ PPH_ENUM_JSON_OBJECT_CALLBACK Callback,
+    _In_opt_ PVOID Context
     );
 
 PHLIBAPI
