@@ -3435,6 +3435,45 @@ ULONG PhInitiateShutdown(
     return status;
 }
 
+/**
+ * Sets shutdown parameters for the current process relative to the other processes in the system.
+ *
+ * \param Level The shutdown priority for the current process.
+ * \param Flags Optional flags for terminating the current process. 
+ *
+ * \return Successful or errant status.
+ */
+BOOLEAN PhSetProcessShutdownParameters(
+    _In_ ULONG Level,
+    _In_ ULONG Flags
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *SetProcessShutdownParameters_I)(
+        _In_ ULONG dwLevel,
+        _In_ ULONG dwFlags
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"kernel32.dll"))
+        {
+            SetProcessShutdownParameters_I = PhGetDllBaseProcedureAddress(baseAddress, "SetProcessShutdownParameters", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!SetProcessShutdownParameters_I)
+        return FALSE;
+
+    return !!SetProcessShutdownParameters_I(Level, Flags);
+}
+
+// Timeline drawing support
+
 VOID PhCustomDrawTreeTimeLine(
     _In_ HDC Hdc,
     _In_ RECT CellRect,

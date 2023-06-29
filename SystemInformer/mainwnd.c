@@ -567,8 +567,7 @@ NTSTATUS PhMwpLoadStage1Worker(
         // programs registered for late shutdown, so when services delay shutdown they won't be shown
         // to the user while we are shown and this has caused some users to blame us instead. (dmex)
 
-        //SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
-        SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
+        PhSetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
     }
 
     // Allow WM_PH_ACTIVATE to pass through UIPI. (wj32)
