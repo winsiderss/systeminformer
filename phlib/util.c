@@ -3520,6 +3520,13 @@ PPH_STRING PhGetApplicationDataFileName(
 //    return NULL;
 //}
 
+/**
+ * Retrieves the full path of a known folder.
+ *
+ * \param Folder A reference that identifies the folder.
+ * \param AppendPath The string to append to the path.
+ * \param NativeFileName A boolean to return the native path or Win32 path.
+ */
 PPH_STRING PhGetKnownLocation(
     _In_ ULONG Folder,
     _In_opt_ PPH_STRINGREF AppendPath,
@@ -3532,16 +3539,29 @@ PPH_STRING PhGetKnownLocation(
     case PH_FOLDERID_LocalAppData:
         {
             static UNICODE_STRING variableName = RTL_CONSTANT_STRING(L"LOCALAPPDATA");
+            static UNICODE_STRING variableNameProfile = RTL_CONSTANT_STRING(L"USERPROFILE");
+            NTSTATUS status;
             UNICODE_STRING variableValue;
             WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
             RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
 
-            if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(
+            status = RtlQueryEnvironmentVariable_U(
                 NULL,
                 &variableName,
                 &variableValue
-                )))
+                );
+
+            if (!NT_SUCCESS(status))
+            {
+                status = RtlQueryEnvironmentVariable_U(
+                    NULL,
+                    &variableNameProfile,
+                    &variableValue
+                    );
+            }
+
+            if (NT_SUCCESS(status))
             {
                 PH_STRINGREF string;
 
@@ -3578,16 +3598,29 @@ PPH_STRING PhGetKnownLocation(
     case PH_FOLDERID_RoamingAppData:
         {
             static UNICODE_STRING variableName = RTL_CONSTANT_STRING(L"APPDATA");
+            static UNICODE_STRING variableNameProfile = RTL_CONSTANT_STRING(L"USERPROFILE");
+            NTSTATUS status;
             UNICODE_STRING variableValue;
             WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
             RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
 
-            if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(
+            status = RtlQueryEnvironmentVariable_U(
                 NULL,
                 &variableName,
                 &variableValue
-                )))
+                );
+
+            if (!NT_SUCCESS(status))
+            {
+                status = RtlQueryEnvironmentVariable_U(
+                    NULL,
+                    &variableNameProfile,
+                    &variableValue
+                    );
+            }
+
+            if (NT_SUCCESS(status))
             {
                 PH_STRINGREF string;
 
@@ -3641,9 +3674,35 @@ PPH_STRING PhGetKnownLocation(
     switch (Folder)
     {
     case PH_FOLDERID_LocalAppData:
-        return PhGetKnownFolderPath(&FOLDERID_LocalAppData, AppendPath);
+        {
+            PPH_STRING value;
+
+            if (value = PhGetKnownFolderPath(&FOLDERID_LocalAppData, AppendPath))
+            {
+                if (NativeFileName)
+                {
+                    PhMoveReference(&value, PhDosPathNameToNtPathName(&value->sr));
+                }
+
+                return value;
+            }
+        }
+        break;
     case PH_FOLDERID_RoamingAppData:
-        return PhGetKnownFolderPath(&FOLDERID_RoamingAppData, AppendPath);
+        {
+            PPH_STRING value;
+
+            if (value = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, AppendPath))
+            {
+                if (NativeFileName)
+                {
+                    PhMoveReference(&value, PhDosPathNameToNtPathName(&value->sr));
+                }
+
+                return value;
+            }
+        }
+        break;
     //case PH_FOLDERID_ProgramFiles:
     //    return PhGetKnownFolderPath(&FOLDERID_ProgramFiles, AppendPath);
     }
