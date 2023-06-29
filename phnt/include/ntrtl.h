@@ -885,6 +885,15 @@ RtlInitializeCriticalSectionAndSpinCount(
 NTSYSAPI
 NTSTATUS
 NTAPI
+RtlInitializeCriticalSectionEx(
+    _Out_ PRTL_CRITICAL_SECTION CriticalSection,
+    _In_ ULONG SpinCount,
+    _In_ ULONG Flags
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 RtlDeleteCriticalSection(
     _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
@@ -4745,7 +4754,7 @@ NTAPI
 RtlValidateHeap(
     _In_opt_ PVOID HeapHandle,
     _In_ ULONG Flags,
-    _In_ PVOID BaseAddress
+    _In_opt_ PVOID BaseAddress
     );
 
 NTSYSAPI
@@ -6022,6 +6031,9 @@ RtlTimeFieldsToTime(
     _Out_ PLARGE_INTEGER Time
     );
 
+#define SecondsToStartOf1980 11960006400
+#define SecondsToStartOf1970 11644473600
+
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -6037,9 +6049,6 @@ RtlSecondsSince1980ToTime(
     _In_ ULONG ElapsedSeconds,
     _Out_ PLARGE_INTEGER Time
     );
-
-#define SecondsToStartOf1980 11960006400
-#define SecondsToStartOf1970 11644473600
 
 NTSYSAPI
 BOOLEAN
