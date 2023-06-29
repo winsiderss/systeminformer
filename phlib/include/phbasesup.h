@@ -117,9 +117,6 @@ PhLocalTimeToSystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     );
 
-#define SecondsToStartOf1980 11960006400
-#define SecondsToStartOf1970 11644473600
-
 PHLIBAPI
 BOOLEAN
 NTAPI
