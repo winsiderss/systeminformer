@@ -18,9 +18,7 @@ static PH_INITONCE DeviceNotifyInitOnce = PH_INITONCE_INIT;
 static LIST_ENTRY DeviceNotifyList = { 0 };
 static PH_FAST_LOCK DeviceNotifyLock = PH_FAST_LOCK_INIT;
 static HANDLE DeviceNotifyEvent = NULL;
-
 static PH_STRINGREF DeviceString = PH_STRINGREF_INIT(L"Device");
-static PH_STRINGREF DeviceStringTrimCharSet = PH_STRINGREF_INIT(L" \n\r\t()");
 
 typedef struct _DEVICE_NOTIFY_ENTRY
 {
@@ -47,7 +45,7 @@ PPH_STRING NotifyDeviceGetString(
     if (TrimDevice && PhEndsWithStringRef(&sr, &DeviceString, TRUE))
         sr.Length -= DeviceString.Length;
 
-    return PhCreateString3(&sr, 0, &DeviceStringTrimCharSet);
+    return PhCreateString2(&sr);
 }
 
 VOID NotifyForDevice(
@@ -57,12 +55,10 @@ VOID NotifyForDevice(
 {
     PPH_STRING classification;
     PPH_STRING name;
-    PPH_STRING manufacturer;
     PPH_STRING title;
 
     classification = NotifyDeviceGetString(Node, DevKeyClass, TRUE);
     name = NotifyDeviceGetString(Node, DevKeyName, FALSE);
-    manufacturer = NotifyDeviceGetString(Node, DevKeyManufacturer, FALSE);
 
     title = PhFormatString(
         L"%ls Device %ls",
@@ -70,12 +66,9 @@ VOID NotifyForDevice(
         Removed ? L"Removed" : L"Arrived"
         );
 
-    PhShowIconNotification(PhGetString(title), PhGetString(name));
+    PhShowIconNotification(PhGetString(title), PhGetStringOrDefault(name, L"Unnamed"));
 
     PhDereferenceObject(title);
-
-    if (manufacturer)
-        PhDereferenceObject(manufacturer);
 
     if (name)
         PhDereferenceObject(name);
@@ -186,13 +179,13 @@ VOID HandleDeviceNotify(
 
     if (PhBeginInitOnce(&DeviceNotifyInitOnce))
     {
-        PhEndInitOnce(&DeviceNotifyInitOnce);
         InitializeListHead(&DeviceNotifyList);
         if (!NT_SUCCESS(NtCreateEvent(&DeviceNotifyEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE)) ||
             !NT_SUCCESS(PhCreateThread2(DeviceNotifyWorker, NULL)))
         {
             DeviceNotifyEvent = NULL;
         }
+        PhEndInitOnce(&DeviceNotifyInitOnce);
     }
 
     if (!DeviceNotifyEvent)
