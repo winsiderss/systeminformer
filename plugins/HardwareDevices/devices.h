@@ -43,6 +43,7 @@
 #define SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME (PLUGIN_NAME L".SortDeviceChildrenByName")
 #define SETTING_NAME_DEVICE_SHOW_ROOT (PLUGIN_NAME L".ShowRootDevice")
 #define SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS (PLUGIN_NAME L".ShowSoftwareComponents")
+#define SETTING_NAME_DEVICE_ENABLE_NOTIFICATIONS (PLUGIN_NAME L".EnableDeviceNotifications")
 
 #include <phdk.h>
 #include <phappresource.h>
@@ -1516,6 +1517,13 @@ VOID GraphicsDeviceShowDetailsDialog(
 
 VOID InitializeDevicesTab(
     VOID
+    );
+
+// devicenotify.c
+
+VOID HandleDeviceNotify(
+    _In_ BOOLEAN Removed,
+    _In_z_ PWSTR InstanceId
     );
 
 #endif
