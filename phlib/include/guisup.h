@@ -1581,6 +1581,14 @@ PhInitiateShutdown(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhSetProcessShutdownParameters(
+    _In_ ULONG Level,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhCustomDrawTreeCpuHeatMap(
