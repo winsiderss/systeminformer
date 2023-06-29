@@ -544,6 +544,8 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == ETDSTNC_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (DiskTreeNewSortColumn < ETDSTNC_MAXIMUM)
                     sortFunction = sortFunctions[DiskTreeNewSortColumn];
                 else
