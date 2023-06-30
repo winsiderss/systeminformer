@@ -657,9 +657,9 @@ INT PhShowMessage(
     va_end(argptr);
 
     if (!message)
-        return -1;
+        return INT_ERROR;
 
-    result = MessageBoxW_Import()(hWnd, message->Buffer, PhApplicationName, Type);
+    result = MessageBox(WindowHandle, message->Buffer, PhApplicationName, Type);
     PhDereferenceObject(message);
 
     return result;

@@ -221,13 +221,6 @@ typedef BOOL (WINAPI* _DestroyEnvironmentBlock)(
     _In_ PVOID Environment
     );
 
-typedef int (WINAPI* _MessageBoxW)(
-    _In_opt_ HWND hWnd,
-    _In_opt_ LPCWSTR lpText,
-    _In_opt_ LPCWSTR lpCaption,
-    _In_ UINT uType
-    );
-
 typedef BOOL (WINAPI* _MessageBeep)(
     _In_ UINT uType
     );
@@ -286,7 +279,6 @@ PH_DECLARE_IMPORT(DestroyEnvironmentBlock);
 PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
 PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 
-PH_DECLARE_IMPORT(MessageBoxW);
 PH_DECLARE_IMPORT(MessageBeep);
 PH_DECLARE_IMPORT(SetWindowDisplayAffinity);
 
