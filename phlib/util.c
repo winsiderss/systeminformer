@@ -83,20 +83,20 @@ VOID PhCenterRectangle(
 /**
  * Ensures a rectangle is positioned within the working area of the specified window's monitor.
  *
- * \param hWnd A handle to a window. If NULL, the monitor closest to \a Rectangle is used.
+ * \param WindowHandle A handle to a window. If NULL, the monitor closest to \a Rectangle is used.
  * \param Rectangle The rectangle to be adjusted.
  */
 VOID PhAdjustRectangleToWorkingArea(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _Inout_ PPH_RECTANGLE Rectangle
     )
 {
     HMONITOR monitor;
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
 
-    if (hWnd)
+    if (WindowHandle)
     {
-        monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+        monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
     }
     else
     {
@@ -635,14 +635,14 @@ PPH_STRING PhGetWin32FormatMessage(
 /**
  * Displays a message box.
  *
- * \param hWnd The owner window of the message box.
+ * \param WindowHandle The owner window of the message box.
  * \param Type The type of message box to display.
  * \param Format A format string.
  *
  * \return The user's response.
  */
 INT PhShowMessage(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ ULONG Type,
     _In_ PWSTR Format,
     ...
@@ -676,7 +676,7 @@ static const PH_FLAG_MAPPING PhShowMessageTaskDialogButtonFlagMappings[] =
 };
 
 INT PhShowMessage2(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
     _In_opt_ PWSTR Icon,
     _In_opt_ PWSTR Title,
@@ -705,9 +705,9 @@ INT PhShowMessage2(
         ARRAYSIZE(PhShowMessageTaskDialogButtonFlagMappings)
         );
 
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd) && !IsMinimized(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((WindowHandle && IsWindowVisible(WindowHandle) && !IsMinimized(WindowHandle)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.dwCommonButtons = buttonsFlags;
-    config.hwndParent = hWnd;
+    config.hwndParent = WindowHandle;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = Icon;
     config.pszMainInstruction = Title;
@@ -731,7 +731,7 @@ INT PhShowMessage2(
 }
 
 BOOLEAN PhShowMessageOneTime(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
     _In_opt_ PWSTR Icon,
     _In_opt_ PWSTR Title,
@@ -761,9 +761,9 @@ BOOLEAN PhShowMessageOneTime(
         ARRAYSIZE(PhShowMessageTaskDialogButtonFlagMappings)
         );
 
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd) && !IsMinimized(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((WindowHandle && IsWindowVisible(WindowHandle) && !IsMinimized(WindowHandle)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
     config.dwCommonButtons = buttonsFlags;
-    config.hwndParent = hWnd;
+    config.hwndParent = WindowHandle;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = Icon;
     config.pszMainInstruction = Title;
@@ -823,13 +823,13 @@ PPH_STRING PhGetStatusMessage(
 /**
  * Displays an error message for a NTSTATUS value or Win32 error code.
  *
- * \param hWnd The owner window of the message box.
+ * \param WindowHandle The owner window of the message box.
  * \param Message A message describing the operation that failed.
  * \param Status A NTSTATUS value, or 0 if there is none.
  * \param Win32Result A Win32 error code, or 0 if there is none.
  */
 VOID PhShowStatus(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR Message,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
@@ -841,11 +841,11 @@ VOID PhShowStatus(
     {
         if (Message)
         {
-            PhShowError2(hWnd, Message, L"%s", statusMessage->Buffer);
+            PhShowError2(WindowHandle, Message, L"%s", statusMessage->Buffer);
         }
         else
         {
-            PhShowError(hWnd, L"%s", statusMessage->Buffer);
+            PhShowError(WindowHandle, L"%s", statusMessage->Buffer);
         }
 
         PhDereferenceObject(statusMessage);
@@ -854,11 +854,11 @@ VOID PhShowStatus(
     {
         if (Message)
         {
-            PhShowError(hWnd, L"%s", Message);
+            PhShowError(WindowHandle, L"%s", Message);
         }
         else
         {
-            PhShowError(hWnd, L"%s", L"Unable to perform the operation.");
+            PhShowError(WindowHandle, L"%s", L"Unable to perform the operation.");
         }
     }
 }
@@ -867,7 +867,7 @@ VOID PhShowStatus(
  * Displays an error message for a NTSTATUS value or Win32 error code, and allows the user to cancel
  * the current operation.
  *
- * \param hWnd The owner window of the message box.
+ * \param WindowHandle The owner window of the message box.
  * \param Message A message describing the operation that failed.
  * \param Status A NTSTATUS value, or 0 if there is none.
  * \param Win32Result A Win32 error code, or 0 if there is none.
@@ -875,7 +875,7 @@ VOID PhShowStatus(
  * \return TRUE if the user wishes to continue with the current operation, otherwise FALSE.
  */
 BOOLEAN PhShowContinueStatus(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_opt_ PWSTR Message,
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
@@ -887,13 +887,13 @@ BOOLEAN PhShowContinueStatus(
     statusMessage = PhGetStatusMessage(Status, Win32Result);
 
     if (Message && statusMessage)
-        result = PhShowMessage2(hWnd, TD_OK_BUTTON | TD_CLOSE_BUTTON, TD_ERROR_ICON, Message, L"%s", PhGetString(statusMessage));
+        result = PhShowMessage2(WindowHandle, TD_OK_BUTTON | TD_CLOSE_BUTTON, TD_ERROR_ICON, Message, L"%s", PhGetString(statusMessage));
     else if (Message)
-        result = PhShowMessage2(hWnd, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", Message);
+        result = PhShowMessage2(WindowHandle, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", Message);
     else if (statusMessage)
-        result = PhShowMessage2(hWnd, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", PhGetString(statusMessage));
+        result = PhShowMessage2(WindowHandle, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", PhGetString(statusMessage));
     else
-        result = PhShowMessage2(hWnd, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"Unable to perform the operation.", L"%s", L"");
+        result = PhShowMessage2(WindowHandle, TD_OK_BUTTON | TD_CANCEL_BUTTON, TD_ERROR_ICON, L"Unable to perform the operation.", L"%s", L"");
 
     if (statusMessage) PhDereferenceObject(statusMessage);
 
@@ -903,7 +903,7 @@ BOOLEAN PhShowContinueStatus(
 /**
  * Displays a confirmation message.
  *
- * \param hWnd The owner window of the message box.
+ * \param WindowHandle The owner window of the message box.
  * \param Verb A verb describing the operation, e.g. "terminate".
  * \param Object The object of the operation, e.g. "the process".
  * \param Message A message describing the operation.
@@ -912,7 +912,7 @@ BOOLEAN PhShowContinueStatus(
  * \return TRUE if the user wishes to continue, otherwise FALSE.
  */
 BOOLEAN PhShowConfirmMessage(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
     _In_ PWSTR Object,
     _In_opt_ PWSTR Message,
@@ -940,9 +940,9 @@ BOOLEAN PhShowConfirmMessage(
 
         memset(&config, 0, sizeof(TASKDIALOGCONFIG));
         config.cbSize = sizeof(TASKDIALOGCONFIG);
-        config.hwndParent = hWnd;
+        config.hwndParent = WindowHandle;
         config.hInstance = PhInstanceHandle;
-        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd) && !IsMinimized(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((WindowHandle && IsWindowVisible(WindowHandle) && !IsMinimized(WindowHandle)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
         config.pszWindowTitle = PhApplicationName;
         config.pszMainIcon = Warning ? TD_WARNING_ICON : TD_INFORMATION_ICON;
         config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
@@ -970,7 +970,7 @@ BOOLEAN PhShowConfirmMessage(
         else
         {
             return PhShowMessage(
-                hWnd,
+                WindowHandle,
                 MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
                 L"Are you sure you want to %s?",
                 action->Buffer
@@ -3861,7 +3861,7 @@ PPH_STRING PhGetTemporaryDirectory(
 /**
  * Waits on multiple objects while processing window messages.
  *
- * \param hWnd The window to process messages for, or NULL to process all messages for the current
+ * \param WindowHandle The window to process messages for, or NULL to process all messages for the current
  * thread.
  * \param NumberOfHandles The number of handles specified in \a Handles. This must not be greater
  * than MAXIMUM_WAIT_OBJECTS - 1.
@@ -3871,7 +3871,7 @@ PPH_STRING PhGetTemporaryDirectory(
  * \remarks The wait is always in WaitAny mode.
  */
 NTSTATUS PhWaitForMultipleObjectsAndPump(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ ULONG NumberOfHandles,
     _In_ PHANDLE Handles,
     _In_ ULONG Timeout
@@ -3908,7 +3908,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
 
             // Pump messages
 
-            while (PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE))
+            while (PeekMessage(&msg, WindowHandle, 0, 0, PM_REMOVE))
             {
                 TranslateMessage(&msg);
                 DispatchMessage(&msg);
@@ -5004,12 +5004,12 @@ BOOLEAN PhShellExecuteWin32(
 /**
  * Opens a file or location through the shell.
  *
- * \param hWnd The window to display user interface components on.
+ * \param WindowHandle The window to display user interface components on.
  * \param FileName A file name or location.
  * \param Parameters The parameters to pass to the executed application.
  */
 VOID PhShellExecute(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters
     )
@@ -5020,18 +5020,18 @@ VOID PhShellExecute(
     info.lpParameters = Parameters;
     info.fMask = SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
     info.nShow = SW_SHOW;
-    info.hwnd = hWnd;
+    info.hwnd = WindowHandle;
 
     if (!PhShellExecuteWin32(&info))
     {
-        PhShowStatus(hWnd, L"Unable to execute the program.", 0, GetLastError());
+        PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
     }
 }
 
 /**
  * Opens a file or location through the shell.
  *
- * \param hWnd The window to display user interface components on.
+ * \param WindowHandle The window to display user interface components on.
  * \param FileName A file name or location.
  * \param Parameters The parameters to pass to the executed application.
  * \param Directory The default working directory. If this value is NULL, the current process working directory is used.
@@ -5046,7 +5046,7 @@ VOID PhShellExecute(
  */
 _Success_(return)
 BOOLEAN PhShellExecuteEx(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_opt_ PWSTR Directory,
@@ -5063,7 +5063,7 @@ BOOLEAN PhShellExecuteEx(
     info.lpDirectory = Directory;
     info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC | SEE_MASK_NOZONECHECKS;
     info.nShow = ShowWindowType;
-    info.hwnd = hWnd;
+    info.hwnd = WindowHandle;
 
     if (Flags & PH_SHELL_EXECUTE_ADMIN)
         info.lpVerb = L"runas";
@@ -5103,11 +5103,11 @@ BOOLEAN PhShellExecuteEx(
 /**
  * Opens Windows Explorer with a file selected.
  *
- * \param hWnd A handle to the parent window.
+ * \param WindowHandle A handle to the parent window.
  * \param FileName A file name.
  */
 VOID PhShellExploreFile(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR FileName
     )
 {
@@ -5150,7 +5150,7 @@ VOID PhShellExploreFile(
         }
         else
         {
-            PhShowError2(hWnd, L"The location could not be found.", L"%s", FileName);
+            PhShowError2(WindowHandle, L"The location could not be found.", L"%s", FileName);
         }
     }
     else
@@ -5158,7 +5158,7 @@ VOID PhShellExploreFile(
         PPH_STRING selectFileName;
 
         selectFileName = PhConcatStrings2(L"/select,", FileName);
-        PhShellExecute(hWnd, L"explorer.exe", selectFileName->Buffer);
+        PhShellExecute(WindowHandle, L"explorer.exe", selectFileName->Buffer);
         PhDereferenceObject(selectFileName);
     }
 }
@@ -5166,11 +5166,11 @@ VOID PhShellExploreFile(
 /**
  * Shows properties for a file.
  *
- * \param hWnd A handle to the parent window.
+ * \param WindowHandle A handle to the parent window.
  * \param FileName A file name.
  */
 VOID PhShellProperties(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR FileName
     )
 {
@@ -5180,11 +5180,11 @@ VOID PhShellProperties(
     info.nShow = SW_SHOW;
     info.fMask = SEE_MASK_INVOKEIDLIST | SEE_MASK_FLAG_NO_UI;
     info.lpVerb = L"properties";
-    info.hwnd = hWnd;
+    info.hwnd = WindowHandle;
 
     if (!PhShellExecuteWin32(&info))
     {
-        PhShowStatus(hWnd, L"Unable to execute the program.", 0, GetLastError());
+        PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
     }
 }
 
@@ -5694,14 +5694,14 @@ VOID PhFreeFileDialog(
 /**
  * Shows a file dialog to the user.
  *
- * \param hWnd A handle to the parent window.
+ * \param WindowHandle A handle to the parent window.
  * \param FileDialog The file dialog.
  *
  * \return TRUE if the user selected a file, FALSE if the user cancelled the operation or an error
  * occurred.
  */
 BOOLEAN PhShowFileDialog(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ PVOID FileDialog
     )
 {
@@ -5713,13 +5713,13 @@ BOOLEAN PhShowFileDialog(
         // file type.
         IFileDialog_SetDefaultExtension(fileDialog->u.FileDialog, L"");
 
-        return SUCCEEDED(IFileDialog_Show(fileDialog->u.FileDialog, hWnd));
+        return SUCCEEDED(IFileDialog_Show(fileDialog->u.FileDialog, WindowHandle));
     }
     else
     {
         OPENFILENAME *ofn = fileDialog->u.OpenFileName;
 
-        ofn->hwndOwner = hWnd;
+        ofn->hwndOwner = WindowHandle;
 
         // Determine whether the structure represents a open or save dialog and call the appropriate
         // function.
