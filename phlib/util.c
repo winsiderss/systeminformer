@@ -5992,7 +5992,7 @@ PPH_STRING PhGetFileDialogFileName(
             IShellItem_Release(result);
         }
 
-        if (!fileName)
+        if (PhIsNullOrEmptyString(fileName))
         {
             PWSTR name;
 
@@ -6001,6 +6001,15 @@ PPH_STRING PhGetFileDialogFileName(
                 fileName = PhCreateString(name);
                 CoTaskMemFree(name);
             }
+        }
+
+        if (PhIsNullOrEmptyString(fileName))
+        {
+            // NOTE: When the user selects IShellItem types with SIGDN_URL from the OpenFileDialog/SaveFileDialog
+            // the shell returns S_OK for the file dialog then immediately returns E_FAIL when we query the filename.
+            // This case was unexpected, and plugins/legacy callers will auto-dereference the filename when the dialog
+            // returns success, so return an empty string to prevent plugins/legacy callers referencing invalid memory. (dmex)
+            PhMoveReference(&fileName, PhReferenceEmptyString());
         }
 
         return fileName;
