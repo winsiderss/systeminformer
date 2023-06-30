@@ -1881,4 +1881,24 @@ PhGetSystemUptime(
     return status;
 }
 
+/**
+ * Waits until the specified object is in the signaled state or the time-out interval elapses.
+ *
+ * \param ProcessHandle A handle to the object.
+ * \param Timeout The time-out interval.
+ * If a nonzero value is specified, the function waits until the object is signaled or the interval elapses.
+ * If Timeout is zero, the function does not enter a wait state if the object is not signaled; it always returns immediately.
+ * If Timeout is INFINITE, the function will return only when the object is signaled.
+ *
+ * \return Successful or errant status.
+ */
+FORCEINLINE
+NTSTATUS PhWaitForSingleObject(
+    _In_ HANDLE Handle,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    return NtWaitForSingleObject(Handle, FALSE, Timeout);
+}
+
 #endif

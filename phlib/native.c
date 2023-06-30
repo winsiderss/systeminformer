@@ -667,7 +667,7 @@ NTSTATUS PhTerminateProcessAlternative(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+    status = PhWaitForSingleObject(threadHandle, Timeout);
 
 CleanupExit:
 
@@ -2299,7 +2299,7 @@ NTSTATUS PhLoadDllProcess(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+    status = PhWaitForSingleObject(threadHandle, Timeout);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -2422,7 +2422,7 @@ NTSTATUS PhUnloadDllProcess(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+    status = PhWaitForSingleObject(threadHandle, Timeout);
 
     if (status == STATUS_WAIT_0)
     {
@@ -14306,7 +14306,7 @@ NTSTATUS PhGetProcessConsoleCodePage(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = NtWaitForSingleObject(threadHandle, FALSE, PhTimeoutFromMillisecondsEx(1000));
+    status = PhWaitForSingleObject(threadHandle, PhTimeoutFromMillisecondsEx(1000));
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
