@@ -883,17 +883,17 @@ INT PhAddTabControlTab(
 }
 
 PPH_STRING PhGetWindowText(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     PPH_STRING text;
 
-    PhGetWindowTextEx(hwnd, 0, &text);
+    PhGetWindowTextEx(WindowHandle, 0, &text);
     return text;
 }
 
 ULONG PhGetWindowTextEx(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG Flags,
     _Out_opt_ PPH_STRING *Text
     )
@@ -906,14 +906,14 @@ ULONG PhGetWindowTextEx(
         if (Flags & PH_GET_WINDOW_TEXT_LENGTH_ONLY)
         {
             WCHAR buffer[32];
-            length = InternalGetWindowText(hwnd, buffer, sizeof(buffer) / sizeof(WCHAR));
+            length = InternalGetWindowText(WindowHandle, buffer, sizeof(buffer) / sizeof(WCHAR));
             if (Text) *Text = NULL;
         }
         else
         {
             // TODO: Resize the buffer until we get the entire thing.
             string = PhCreateStringEx(NULL, 256 * sizeof(WCHAR));
-            length = InternalGetWindowText(hwnd, string->Buffer, (ULONG)string->Length / sizeof(WCHAR) + 1);
+            length = InternalGetWindowText(WindowHandle, string->Buffer, (ULONG)string->Length / sizeof(WCHAR) + 1);
             string->Length = length * sizeof(WCHAR);
 
             if (Text)
@@ -926,7 +926,7 @@ ULONG PhGetWindowTextEx(
     }
     else
     {
-        length = GetWindowTextLength(hwnd);
+        length = GetWindowTextLength(WindowHandle);
 
         if (length == 0 || (Flags & PH_GET_WINDOW_TEXT_LENGTH_ONLY))
         {
@@ -938,7 +938,7 @@ ULONG PhGetWindowTextEx(
 
         string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
 
-        if (GetWindowText(hwnd, string->Buffer, (ULONG)string->Length / sizeof(WCHAR) + 1))
+        if (GetWindowText(WindowHandle, string->Buffer, (ULONG)string->Length / sizeof(WCHAR) + 1))
         {
             if (Text)
                 *Text = string;
@@ -960,7 +960,7 @@ ULONG PhGetWindowTextEx(
 }
 
 ULONG PhGetWindowTextToBuffer(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG Flags,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _In_opt_ ULONG BufferLength,
@@ -971,9 +971,9 @@ ULONG PhGetWindowTextToBuffer(
     ULONG length;
 
     if (Flags & PH_GET_WINDOW_TEXT_INTERNAL)
-        length = InternalGetWindowText(hwnd, Buffer, BufferLength);
+        length = InternalGetWindowText(WindowHandle, Buffer, BufferLength);
     else
-        length = GetWindowText(hwnd, Buffer, BufferLength);
+        length = GetWindowText(WindowHandle, Buffer, BufferLength);
 
     if (length == 0)
         status = GetLastError();
@@ -985,7 +985,7 @@ ULONG PhGetWindowTextToBuffer(
 }
 
 VOID PhAddComboBoxStrings(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR *Strings,
     _In_ ULONG NumberOfStrings
     )
@@ -993,11 +993,11 @@ VOID PhAddComboBoxStrings(
     ULONG i;
 
     for (i = 0; i < NumberOfStrings; i++)
-        ComboBox_AddString(hWnd, Strings[i]);
+        ComboBox_AddString(WindowHandle, Strings[i]);
 }
 
 PPH_STRING PhGetComboBoxString(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ INT Index
     )
 {
@@ -1006,13 +1006,13 @@ PPH_STRING PhGetComboBoxString(
 
     if (Index == INT_ERROR)
     {
-        Index = ComboBox_GetCurSel(hwnd);
+        Index = ComboBox_GetCurSel(WindowHandle);
 
         if (Index == CB_ERR)
             return NULL;
     }
 
-    length = ComboBox_GetLBTextLen(hwnd, Index);
+    length = ComboBox_GetLBTextLen(WindowHandle, Index);
 
     if (length == CB_ERR)
         return NULL;
@@ -1021,7 +1021,7 @@ PPH_STRING PhGetComboBoxString(
 
     string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
 
-    if (ComboBox_GetLBText(hwnd, Index, string->Buffer) != CB_ERR)
+    if (ComboBox_GetLBText(WindowHandle, Index, string->Buffer) != CB_ERR)
     {
         return string;
     }
@@ -1033,34 +1033,34 @@ PPH_STRING PhGetComboBoxString(
 }
 
 INT PhSelectComboBoxString(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR String,
     _In_ BOOLEAN Partial
     )
 {
     if (Partial)
     {
-        return ComboBox_SelectString(hwnd, INT_ERROR, String);
+        return ComboBox_SelectString(WindowHandle, INT_ERROR, String);
     }
     else
     {
         INT index;
 
-        index = ComboBox_FindStringExact(hwnd, INT_ERROR, String);
+        index = ComboBox_FindStringExact(WindowHandle, INT_ERROR, String);
 
         if (index == CB_ERR)
             return CB_ERR;
 
-        ComboBox_SetCurSel(hwnd, index);
+        ComboBox_SetCurSel(WindowHandle, index);
 
-        InvalidateRect(hwnd, NULL, TRUE);
+        InvalidateRect(WindowHandle, NULL, TRUE);
 
         return index;
     }
 }
 
 PPH_STRING PhGetListBoxString(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ INT Index
     )
 {
@@ -1069,13 +1069,13 @@ PPH_STRING PhGetListBoxString(
 
     if (Index == INT_ERROR)
     {
-        Index = ListBox_GetCurSel(hwnd);
+        Index = ListBox_GetCurSel(WindowHandle);
 
         if (Index == LB_ERR)
             return NULL;
     }
 
-    length = ListBox_GetTextLen(hwnd, Index);
+    length = ListBox_GetTextLen(WindowHandle, Index);
 
     if (length == LB_ERR)
         return NULL;
@@ -1084,7 +1084,7 @@ PPH_STRING PhGetListBoxString(
 
     string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
 
-    if (ListBox_GetText(hwnd, Index, string->Buffer) != LB_ERR)
+    if (ListBox_GetText(WindowHandle, Index, string->Buffer) != LB_ERR)
     {
         return string;
     }
@@ -1096,7 +1096,7 @@ PPH_STRING PhGetListBoxString(
 }
 
 VOID PhSetStateAllListViewItems(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG State,
     _In_ ULONG Mask
     )
@@ -1104,26 +1104,26 @@ VOID PhSetStateAllListViewItems(
     INT i;
     INT count;
 
-    count = ListView_GetItemCount(hWnd);
+    count = ListView_GetItemCount(WindowHandle);
 
     if (count <= 0)
         return;
 
     for (i = 0; i < count; i++)
     {
-        ListView_SetItemState(hWnd, i, State, Mask);
+        ListView_SetItemState(WindowHandle, i, State, Mask);
     }
 }
 
 PVOID PhGetSelectedListViewItemParam(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     )
 {
     INT index;
     PVOID param;
 
     index = PhFindListViewItemByFlags(
-        hWnd,
+        WindowHandle,
         INT_ERROR,
         LVNI_SELECTED
         );
@@ -1131,7 +1131,7 @@ PVOID PhGetSelectedListViewItemParam(
     if (index != INT_ERROR)
     {
         if (PhGetListViewItemParam(
-            hWnd,
+            WindowHandle,
             index,
             &param
             ))
@@ -1144,7 +1144,7 @@ PVOID PhGetSelectedListViewItemParam(
 }
 
 VOID PhGetSelectedListViewItemParams(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _Out_ PVOID **Items,
     _Out_ PULONG NumberOfItems
     )
@@ -1157,12 +1157,12 @@ VOID PhGetSelectedListViewItemParams(
     index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
-        hWnd,
+        WindowHandle,
         index,
         LVNI_SELECTED
         )) != INT_ERROR)
     {
-        if (PhGetListViewItemParam(hWnd, index, &param))
+        if (PhGetListViewItemParam(WindowHandle, index, &param))
             PhAddItemArray(&array, &param);
     }
 
@@ -1492,12 +1492,12 @@ VOID PhGetStockApplicationIcon(
 //}
 
 VOID PhpSetClipboardData(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG Format,
     _In_ HANDLE Data
     )
 {
-    if (OpenClipboard(hWnd))
+    if (OpenClipboard(WindowHandle))
     {
         if (!EmptyClipboard())
             goto Fail;
@@ -1515,7 +1515,7 @@ Fail:
 }
 
 VOID PhSetClipboardString(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_STRINGREF String
     )
 {
@@ -1530,7 +1530,7 @@ VOID PhSetClipboardString(
 
     GlobalUnlock(memory);
 
-    PhpSetClipboardData(hWnd, CF_UNICODETEXT, data);
+    PhpSetClipboardData(WindowHandle, CF_UNICODETEXT, data);
 }
 
 HWND PhCreateDialogFromTemplate(
