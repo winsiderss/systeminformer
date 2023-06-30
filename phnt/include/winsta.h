@@ -7,6 +7,17 @@
 #ifndef _WINSTA_H
 #define _WINSTA_H
 
+// Specifies the current server.
+#define WINSTATION_CURRENT_SERVER         ((HANDLE)NULL)
+#define WINSTATION_CURRENT_SERVER_HANDLE  ((HANDLE)NULL)
+#define WINSTATION_CURRENT_SERVER_NAME    (NULL)
+
+// Specifies the current session (SessionId)
+#define WINSTATION_CURRENT_SESSION ((ULONG)-1)
+
+// Specifies any-session (SessionId)
+#define WINSTATION_ANY_SESSION ((ULONG)-2)
+
 // Access rights
 
 #define WINSTATION_QUERY 0x00000001 // WinStationQueryInformation
