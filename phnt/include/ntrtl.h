@@ -5879,14 +5879,16 @@ RtlUnicodeStringToInteger(
 
 // IPv4/6 conversion
 
-struct in_addr;
-struct in6_addr;
+typedef struct in_addr IN_ADDR, *PIN_ADDR;
+typedef struct in6_addr IN6_ADDR, *PIN6_ADDR;
+typedef IN_ADDR const *PCIN_ADDR;
+typedef IN6_ADDR const *PCIN6_ADDR;
 
 NTSYSAPI
 PWSTR
 NTAPI
 RtlIpv4AddressToStringW(
-    _In_ const struct in_addr *Address,
+    _In_ PCIN_ADDR Address,
     _Out_writes_(16) PWSTR AddressString
     );
 
@@ -5894,7 +5896,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv4AddressToStringExW(
-    _In_ const struct in_addr *Address,
+    _In_ PCIN_ADDR Address,
     _In_ USHORT Port,
     _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
     _Inout_ PULONG AddressStringLength
@@ -5904,7 +5906,7 @@ NTSYSAPI
 PWSTR
 NTAPI
 RtlIpv6AddressToStringW(
-    _In_ const struct in6_addr *Address,
+    _In_ PCIN6_ADDR Address,
     _Out_writes_(46) PWSTR AddressString
     );
 
@@ -5912,7 +5914,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIpv6AddressToStringExW(
-    _In_ const struct in6_addr *Address,
+    _In_ PCIN6_ADDR Address,
     _In_ ULONG ScopeId,
     _In_ USHORT Port,
     _Out_writes_to_(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
@@ -5926,7 +5928,7 @@ RtlIpv4StringToAddressW(
     _In_ PCWSTR AddressString,
     _In_ BOOLEAN Strict,
     _Out_ LPCWSTR *Terminator,
-    _Out_ struct in_addr *Address
+    _Out_ PIN_ADDR Address
     );
 
 NTSYSAPI
@@ -5935,7 +5937,7 @@ NTAPI
 RtlIpv4StringToAddressExW(
     _In_ PCWSTR AddressString,
     _In_ BOOLEAN Strict,
-    _Out_ struct in_addr *Address,
+    _Out_ PIN_ADDR Address,
     _Out_ PUSHORT Port
     );
 
@@ -5945,7 +5947,7 @@ NTAPI
 RtlIpv6StringToAddressW(
     _In_ PCWSTR AddressString,
     _Out_ PCWSTR *Terminator,
-    _Out_ struct in6_addr *Address
+    _Out_ PIN6_ADDR Address
     );
 
 NTSYSAPI
@@ -5953,7 +5955,7 @@ NTSTATUS
 NTAPI
 RtlIpv6StringToAddressExW(
     _In_ PCWSTR AddressString,
-    _Out_ struct in6_addr *Address,
+    _Out_ PIN6_ADDR Address,
     _Out_ PULONG ScopeId,
     _Out_ PUSHORT Port
     );
