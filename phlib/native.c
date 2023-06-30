@@ -3572,6 +3572,48 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
     return status;
 }
 
+BOOLEAN PhPrivilegeCheck(
+    _In_ HANDLE TokenHandle,
+    _In_ ULONG Privilege
+    )
+{
+    CHAR privilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES) * 1];
+    PPRIVILEGE_SET requiredPrivileges;
+    BOOLEAN result = FALSE;
+
+    requiredPrivileges = (PPRIVILEGE_SET)privilegesBuffer;
+    requiredPrivileges->PrivilegeCount = 1;
+    requiredPrivileges->Control = PRIVILEGE_SET_ALL_NECESSARY;
+    requiredPrivileges->Privilege[0].Attributes = SE_PRIVILEGE_ENABLED;
+    requiredPrivileges->Privilege[0].Luid = RtlConvertUlongToLuid(Privilege);
+
+    NtPrivilegeCheck(TokenHandle, requiredPrivileges, &result);
+
+    return result;
+}
+
+BOOLEAN PhPrivilegeCheckAny(
+    _In_ HANDLE TokenHandle,
+    _In_ ULONG Privilege
+    )
+{
+    CHAR privilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES) * 1];
+    PPRIVILEGE_SET requiredPrivileges;
+    BOOLEAN result = FALSE;
+
+    requiredPrivileges = (PPRIVILEGE_SET)privilegesBuffer;
+    requiredPrivileges->PrivilegeCount = 1;
+    requiredPrivileges->Privilege[0].Attributes = SE_PRIVILEGE_ENABLED;
+    requiredPrivileges->Privilege[0].Luid = RtlConvertUlongToLuid(Privilege);
+
+    NtPrivilegeCheck(TokenHandle, requiredPrivileges, &result);
+
+    if (requiredPrivileges->Privilege[0].Attributes == SE_PRIVILEGE_USED_FOR_ACCESS)
+        return TRUE;
+
+    return FALSE;
+}
+
 /**
  * Modifies a token privilege.
  *
