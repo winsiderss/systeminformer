@@ -562,7 +562,7 @@ INT PhAddTabControlTab(
 
 PHLIBAPI
 PPH_STRING PhGetWindowText(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 #define PH_GET_WINDOW_TEXT_INTERNAL 0x1
@@ -572,7 +572,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhGetWindowTextEx(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG Flags,
     _Out_opt_ PPH_STRING *Text
     );
@@ -581,7 +581,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhGetWindowTextToBuffer(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG Flags,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _In_opt_ ULONG BufferLength,
@@ -590,45 +590,45 @@ PhGetWindowTextToBuffer(
 
 PHLIBAPI
 VOID PhAddComboBoxStrings(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR *Strings,
     _In_ ULONG NumberOfStrings
     );
 
 PHLIBAPI
 PPH_STRING PhGetComboBoxString(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ INT Index
     );
 
 PHLIBAPI
 INT PhSelectComboBoxString(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR String,
     _In_ BOOLEAN Partial
     );
 
 PHLIBAPI
 PPH_STRING PhGetListBoxString(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ INT Index
     );
 
 PHLIBAPI
 VOID PhSetStateAllListViewItems(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG State,
     _In_ ULONG Mask
     );
 
 PHLIBAPI
 PVOID PhGetSelectedListViewItemParam(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     );
 
 PHLIBAPI
 VOID PhGetSelectedListViewItemParams(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _Out_ PVOID **Items,
     _Out_ PULONG NumberOfItems
     );
@@ -671,7 +671,7 @@ VOID PhGetStockApplicationIcon(
 
 PHLIBAPI
 VOID PhSetClipboardString(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_STRINGREF String
     );
 
@@ -1105,7 +1105,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhSetExtendedListView(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     );
 
 PHLIBAPI

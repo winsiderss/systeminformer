@@ -88,13 +88,13 @@ INT PhpDefaultCompareListViewItems(
 /**
  * Enables extended list view support for a list view control.
  *
- * \param hWnd A handle to the list view control.
+ * \param WindowHandle A handle to the list view control.
  */
 VOID PhSetExtendedListView(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     )
 {
-    PhSetExtendedListViewEx(hWnd, 0, AscendingSortOrder);
+    PhSetExtendedListViewEx(WindowHandle, 0, AscendingSortOrder);
 }
 
 VOID PhSetExtendedListViewEx(
