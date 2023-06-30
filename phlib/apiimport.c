@@ -99,7 +99,6 @@ PH_DEFINE_IMPORT(L"userenv.dll", DestroyEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
-PH_DEFINE_IMPORT(L"user32.dll", MessageBoxW);
 PH_DEFINE_IMPORT(L"user32.dll", MessageBeep);
 PH_DEFINE_IMPORT(L"user32.dll", SetWindowDisplayAffinity);
 
