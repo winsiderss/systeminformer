@@ -4206,27 +4206,32 @@ NTSTATUS PhCreateProcessWin32Ex(
             PPH_STRING escaped;
 
             escaped = PhConcatStringRef3(&seperator, &commandLineFileName, &seperator);
-            PhMoveReference(&escaped, PhConcatStringRef3(&commandLine->sr, &space, &commandLineArguments));
-            PhMoveReference(&commandLine, escaped); // Note: Only update 'commandLine' after escape or arguments capture the old string (dmex)
+
+            if (commandLineArguments.Length)
+            {
+                PhMoveReference(&escaped, PhConcatStringRef3(&escaped->sr, &space, &commandLineArguments));
+            }
+
+            PhMoveReference(&commandLine, escaped);
         }
 
         //INT cmdlineArgCount;
         //PWSTR* cmdlineArgList;
         //
         //// Try extract the filename or CreateProcess might execute the wrong executable. (dmex)
-        //if (commandLine && (cmdlineArgList = CommandLineToArgvW(commandLine->Buffer, &cmdlineArgCount)))
+        //if (commandLine && (cmdlineArgList = PhCommandLineToArgv(commandLine->Buffer, &cmdlineArgCount)))
         //{
         //    PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
         //    LocalFree(cmdlineArgList);
         //}
 
-        if (fileName && !PhDoesFileExistWin32(fileName->Buffer))
+        if (fileName && !PhDoesFileExistWin32(PhGetString(fileName)))
         {
-            PPH_STRING filePathSr;
+            PPH_STRING filePath;
 
             // The user typed a name without a path so attempt to locate the executable. (dmex)
-            if (filePathSr = PhSearchFilePath(fileName->Buffer, L".exe"))
-                PhMoveReference(&fileName, filePathSr);
+            if (filePath = PhSearchFilePath(PhGetString(fileName), L".exe"))
+                PhMoveReference(&fileName, filePath);
             else
                 PhClearReference(&fileName);
         }
@@ -6819,12 +6824,11 @@ BOOLEAN PhParseCommandLineFuzzy(
     )
 {
     static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t");
-
     PH_STRINGREF commandLine;
     PH_STRINGREF temp;
     PH_STRINGREF currentPart;
     PH_STRINGREF remainingPart;
-    PPH_STRING filePathSr;
+    PPH_STRING filePath;
 
     commandLine = *CommandLine;
     PhTrimStringRef(&commandLine, &whitespace, 0);
@@ -6870,9 +6874,9 @@ BOOLEAN PhParseCommandLineFuzzy(
 
             tempCommandLine = PhCreateString2(&commandLine);
 
-            if (filePathSr = PhSearchFilePath(tempCommandLine->Buffer, L".exe"))
+            if (filePath = PhSearchFilePath(tempCommandLine->Buffer, L".exe"))
             {
-                *FullFileName = filePathSr;
+                *FullFileName = filePath;
             }
             else
             {
@@ -6916,26 +6920,37 @@ BOOLEAN PhParseCommandLineFuzzy(
             *(remainingPart.Buffer - 1) = UNICODE_NULL;
         }
 
-        filePathSr = PhSearchFilePath(temp.Buffer, L".exe");
+        filePath = PhSearchFilePath(temp.Buffer, L".exe");
 
         if (found)
         {
             *(remainingPart.Buffer - 1) = originalChar;
         }
 
-        if (filePathSr)
+        if (filePath)
         {
             FileName->Buffer = commandLine.Buffer;
             FileName->Length = (SIZE_T)PTR_SUB_OFFSET(currentPart.Buffer, temp.Buffer) + currentPart.Length;
 
-            PhTrimStringRef(&remainingPart, &whitespace, PH_TRIM_START_ONLY);
-            Arguments->Buffer = PTR_ADD_OFFSET(commandLine.Buffer, PTR_SUB_OFFSET(remainingPart.Buffer, temp.Buffer));
-            Arguments->Length = commandLine.Length - (SIZE_T)PTR_SUB_OFFSET(remainingPart.Buffer, temp.Buffer);
+            if (Arguments)
+            {
+                PhTrimStringRef(&remainingPart, &whitespace, PH_TRIM_START_ONLY);
+
+                if (remainingPart.Length)
+                {
+                    Arguments->Buffer = PTR_ADD_OFFSET(commandLine.Buffer, PTR_SUB_OFFSET(remainingPart.Buffer, temp.Buffer));
+                    Arguments->Length = commandLine.Length - (SIZE_T)PTR_SUB_OFFSET(remainingPart.Buffer, temp.Buffer);
+                }
+                else
+                {
+                    PhInitializeEmptyStringRef(Arguments);
+                }
+            }
 
             if (FullFileName)
-                *FullFileName = filePathSr;
+                *FullFileName = filePath;
             else
-                PhDereferenceObject(filePathSr);
+                PhDereferenceObject(filePath);
 
             PhFree(temp.Buffer);
 
