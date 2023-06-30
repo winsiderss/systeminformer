@@ -4146,3 +4146,27 @@ HCURSOR PhLoadDividerCursor(
 
     return dividerCursorHandle;
 }
+
+BOOLEAN PhIsInteractiveUserSession(
+    VOID
+    )
+{
+    USEROBJECTFLAGS flags;
+
+    memset(&flags, 0, sizeof(USEROBJECTFLAGS));
+
+    if (GetUserObjectInformation(
+        GetProcessWindowStation(),
+        UOI_FLAGS,
+        &flags,
+        sizeof(USEROBJECTFLAGS),
+        NULL
+        ))
+    {
+        if (BooleanFlagOn(flags.dwFlags, WSF_VISIBLE))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
