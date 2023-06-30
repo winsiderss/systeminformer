@@ -3874,7 +3874,8 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG NumberOfHandles,
     _In_ PHANDLE Handles,
-    _In_ ULONG Timeout
+    _In_ ULONG Timeout,
+    _In_ ULONG WakeMask
     )
 {
     NTSTATUS status;
@@ -3892,7 +3893,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
             Handles,
             FALSE,
             (ULONG)currentTimeout,
-            QS_ALLEVENTS
+            WakeMask
             );
 
         if (
