@@ -1060,7 +1060,7 @@ PPH_LIST PhEnumApplicationUserModelIds(
     IShellItem2* shellKnownFolderItem = NULL;
     IEnumShellItems* shellEnumFolderItem = NULL;
 
-    status = SHGetKnownFolderItem(
+    status = PhShellGetKnownFolderItem(
         &FOLDERID_AppsFolder,
         KF_FLAG_DONT_VERIFY,
         NULL,
