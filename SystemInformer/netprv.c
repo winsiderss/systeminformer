@@ -1333,7 +1333,7 @@ BOOLEAN PhGetNetworkConnections(
                 index++;
             }
 
-            PhFree(boundTcpTable);
+            RtlFreeHeap(PhHeapHandle, 0, boundTcpTable);
         }
 
         if (boundTcp6Table)
@@ -1359,7 +1359,7 @@ BOOLEAN PhGetNetworkConnections(
                 index++;
             }
 
-            PhFree(boundTcp6Table);
+            RtlFreeHeap(PhHeapHandle, 0, boundTcp6Table);
         }
     }
 

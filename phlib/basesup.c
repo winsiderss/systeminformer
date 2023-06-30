@@ -687,7 +687,11 @@ PVOID PhAllocate(
     )
 {
     assert(Size);
+#if defined(PH_DEBUG_HEAP)
+    return malloc(Size);
+#else
     return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
+#endif
 }
 
 /**
@@ -705,7 +709,11 @@ PVOID PhAllocateSafe(
     )
 {
     assert(Size);
+#if defined(PH_DEBUG_HEAP)
+    return malloc(Size);
+#else
     return RtlAllocateHeap(PhHeapHandle, 0, Size);
+#endif
 }
 
 /**
@@ -725,7 +733,11 @@ PVOID PhAllocateExSafe(
     )
 {
     assert(Size);
+#if defined(PH_DEBUG_HEAP)
+    return malloc(Size);
+#else
     return RtlAllocateHeap(PhHeapHandle, Flags, Size);
+#endif
 }
 
 /**
@@ -737,7 +749,11 @@ VOID PhFree(
     _Frees_ptr_opt_ PVOID Memory
     )
 {
+#if defined(PH_DEBUG_HEAP)
+    free(Memory);
+#else
     RtlFreeHeap(PhHeapHandle, 0, Memory);
+#endif
 }
 
 /**
@@ -759,7 +775,11 @@ PVOID PhReAllocate(
     )
 {
     assert(Size);
+#if defined(PH_DEBUG_HEAP)
+    return realloc(Memory, Size);
+#else
     return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
+#endif
 }
 
 /**
@@ -780,7 +800,11 @@ PVOID PhReAllocateSafe(
     )
 {
     assert(Size);
+#if defined(PH_DEBUG_HEAP)
+    return realloc(Memory, Size);
+#else
     return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
+#endif
 }
 
 /**
