@@ -3867,6 +3867,7 @@ PPH_STRING PhGetTemporaryDirectory(
  * than MAXIMUM_WAIT_OBJECTS - 1.
  * \param Handles An array of handles.
  * \param Timeout The number of milliseconds to wait on the objects, or INFINITE for no timeout.
+ * \param WakeMask The input types for which an input event object handle will be added to the array of object handles.
  *
  * \remarks The wait is always in WaitAny mode.
  */
@@ -5082,14 +5083,12 @@ BOOLEAN PhShellExecuteEx(
             {
                 if (info.hProcess)
                 {
-                    LARGE_INTEGER timeout;
-
-                    NtWaitForSingleObject(info.hProcess, FALSE, PhTimeoutFromMilliseconds(&timeout, Timeout));
+                    PhWaitForSingleObject(info.hProcess, PhTimeoutFromMillisecondsEx(Timeout));
                 }
             }
             else
             {
-                PhWaitForMultipleObjectsAndPump(NULL, 1, &info.hProcess, Timeout);
+                PhWaitForMultipleObjectsAndPump(NULL, 1, &info.hProcess, Timeout, QS_ALLEVENTS);
             }
         }
 
