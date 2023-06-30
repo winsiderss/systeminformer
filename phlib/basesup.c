@@ -893,6 +893,74 @@ VOID PhFreePage(
 }
 
 /**
+ * Reserves, commits, or both, a region of pages within the user-mode virtual address space of a specified process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param BaseAddress The pointer that specifies a desired starting address for the region of pages that you want to allocate.
+ * If you are reserving memory, the function rounds this address down to the nearest multiple of the allocation granularity.
+ * If you are committing memory that is already reserved, the function rounds this address down to the nearest page boundary.
+ * \param AllocationSize The size of the region of memory to allocate, in bytes. If BaseAddress is NULL, the function rounds Size up to the next page boundary.
+ * \param AllocationType The type of memory allocation.
+ * \param Protection The type of memory protection.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAllocateVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* BaseAddress,
+    _In_ SIZE_T AllocationSize,
+    _In_ ULONG AllocationType,
+    _In_ ULONG Protection
+    )
+{
+    NTSTATUS status;
+    PVOID baseAddress = NULL;
+    SIZE_T allocationSize = AllocationSize;
+
+    status = NtAllocateVirtualMemory(
+        ProcessHandle,
+        &baseAddress,
+        0,
+        &allocationSize,
+        AllocationType,
+        Protection
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *BaseAddress = baseAddress;
+    }
+
+    return status;
+}
+
+/**
+ * Releases, decommits, or both releases and decommits, a region of pages within the virtual address space of a specified process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param BaseAddress The pointer that specifies a desired starting address for the region of pages that you want to allocate.
+ * \param FreeType A bitmask containing flags that describe the type of free operation.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhFreeVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ ULONG FreeType
+    )
+{
+    PVOID baseAddress = BaseAddress;
+    SIZE_T allocationSize = 0;
+
+    return NtFreeVirtualMemory(
+        ProcessHandle,
+        &baseAddress,
+        &allocationSize,
+        FreeType
+        );
+}
+
+/**
  * Determines the length of the specified string, in characters.
  *
  * \param String The string.
