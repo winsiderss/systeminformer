@@ -1241,6 +1241,27 @@ PhShellNotifyIcon(
     );
 
 PHLIBAPI
+HRESULT
+NTAPI
+PhShellGetKnownFolderPath(
+    _In_ PCGUID rfid, // REFKNOWNFOLDERID
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
+    _Outptr_ PWSTR * FolderPath
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhShellGetKnownFolderItem(
+    _In_ PCGUID rfid, // REFKNOWNFOLDERID
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
+    _In_ REFIID riid,
+    _Outptr_ PVOID* ppv
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhExpandKeyName(

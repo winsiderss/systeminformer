@@ -3739,7 +3739,7 @@ PPH_STRING PhGetKnownFolderPathEx(
     flags = 0;
     PhMapFlags1(&flags, Flags, PhpKnownFolderFlagMappings, ARRAYSIZE(PhpKnownFolderFlagMappings));
 
-    if (FAILED(SHGetKnownFolderPath(
+    if (FAILED(PhShellGetKnownFolderPath(
         Folder,
         flags | KF_FLAG_DONT_VERIFY,
         TokenHandle,
@@ -5223,6 +5223,74 @@ BOOLEAN PhShellNotifyIcon(
         return FALSE;
 
     return !!Shell_NotifyIconW_I(Message, NotifyIconData);
+}
+
+HRESULT PhShellGetKnownFolderPath(
+    _In_ PCGUID rfid,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
+    _Outptr_ PWSTR* FolderPath
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI *SHGetKnownFolderPath_I)(
+        _In_ REFKNOWNFOLDERID rfid,
+        _In_ ULONG dwFlags, // KNOWN_FOLDER_FLAG
+        _In_opt_ HANDLE hToken,
+        _Outptr_ PWSTR* ppszPath // CoTaskMemFree
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"shell32.dll"))
+        {
+            SHGetKnownFolderPath_I = PhGetDllBaseProcedureAddress(baseAddress, "SHGetKnownFolderPath", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!SHGetKnownFolderPath_I)
+        return E_FAIL;
+
+    return SHGetKnownFolderPath_I(rfid, Flags, TokenHandle, FolderPath);
+}
+
+HRESULT PhShellGetKnownFolderItem(
+    _In_ PCGUID rfid,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
+    _In_ REFIID riid,
+    _Outptr_ PVOID* ppv
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI *SHGetKnownFolderItem_I)(
+        _In_ REFKNOWNFOLDERID rfid,
+        _In_ ULONG flags, // KNOWN_FOLDER_FLAG
+        _In_opt_ HANDLE hToken,
+        _In_ REFIID riid,
+        _Outptr_ void** ppv
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"shell32.dll"))
+        {
+            SHGetKnownFolderItem_I = PhGetDllBaseProcedureAddress(baseAddress, "SHGetKnownFolderItem", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!SHGetKnownFolderItem_I)
+        return E_FAIL;
+
+    return SHGetKnownFolderItem_I(rfid, Flags, TokenHandle, riid, ppv);
 }
 
 /**
