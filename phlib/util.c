@@ -6860,7 +6860,8 @@ BOOLEAN PhParseCommandLineFuzzy(
             FileName->Length = (SIZE_T)PTR_SUB_OFFSET(currentPart.Buffer, temp.Buffer) + currentPart.Length;
 
             PhTrimStringRef(&remainingPart, &whitespace, PH_TRIM_START_ONLY);
-            *Arguments = remainingPart;
+            Arguments->Buffer = PTR_ADD_OFFSET(commandLine.Buffer, PTR_SUB_OFFSET(remainingPart.Buffer, temp.Buffer));
+            Arguments->Length = commandLine.Length - (SIZE_T)PTR_SUB_OFFSET(remainingPart.Buffer, temp.Buffer);
 
             if (FullFileName)
                 *FullFileName = filePathSr;
