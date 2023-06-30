@@ -248,6 +248,9 @@ BOOLEAN PhHeapInitialization(
     VOID
     )
 {
+#if defined(PH_DEBUG_HEAP)
+    PhHeapHandle = RtlProcessHeap();
+#else
     if (WindowsVersion >= WINDOWS_8)
     {
         PhHeapHandle = RtlCreateHeap(
@@ -281,7 +284,7 @@ BOOLEAN PhHeapInitialization(
             sizeof(ULONG)
             );
     }
-
+#endif
     return TRUE;
 }
 
