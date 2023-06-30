@@ -228,6 +228,26 @@ PhFreePage(
     _In_ _Post_invalid_ PVOID Memory
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAllocateVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* BaseAddress,
+    _In_ SIZE_T RegionSize,
+    _In_ ULONG AllocationType,
+    _In_ ULONG Protection
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreeVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ ULONG FreeType
+    );
+
 FORCEINLINE
 PVOID
 PhAllocateCopy(
