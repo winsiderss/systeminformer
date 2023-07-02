@@ -278,6 +278,7 @@ NTSTATUS KphCopyVirtualMemory(
     // We don't check if buffer == NULL when freeing. If buffer doesn't need to
     // be freed, set to stackBuffer, not NULL.
     //
+    RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
     buffer = stackBuffer;
 
     mappedTotalSize = (KPH_MAPPED_COPY_PAGES - 2) * PAGE_SIZE;
