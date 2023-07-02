@@ -102,7 +102,10 @@ ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
 #define RebaseUnicodeString(string, oldBase, newBase)\
-(string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer));
+if ((string)->Buffer)\
+{\
+    (string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer));\
+}
 
 typedef struct _KPH_SIZED_BUFFER
 {
