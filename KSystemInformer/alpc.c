@@ -768,26 +768,15 @@ NTSTATUS KphAlpcQueryInformation(
                 goto Exit;
             }
 
-            if (info->ConnectionPort.Buffer)
-            {
-                RebaseUnicodeString(&info->ConnectionPort,
-                                    buffer,
-                                    AlpcInformation);
-            }
-
-            if (info->ServerCommunicationPort.Buffer)
-            {
-                RebaseUnicodeString(&info->ServerCommunicationPort,
-                                    buffer,
-                                    AlpcInformation);
-            }
-
-            if (info->ClientCommunicationPort.Buffer)
-            {
-                RebaseUnicodeString(&info->ClientCommunicationPort,
-                                    buffer,
-                                    AlpcInformation);
-            }
+            RebaseUnicodeString(&info->ConnectionPort,
+                                buffer,
+                                AlpcInformation);
+            RebaseUnicodeString(&info->ServerCommunicationPort,
+                                buffer,
+                                AlpcInformation);
+            RebaseUnicodeString(&info->ClientCommunicationPort,
+                                buffer,
+                                AlpcInformation);
 
             __try
             {

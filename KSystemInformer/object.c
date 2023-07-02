@@ -988,12 +988,9 @@ NTSTATUS KphQueryInformationObject(
                     goto Exit;
                 }
 
-                if (nameInfo->Name.Buffer)
-                {
-                    RebaseUnicodeString(&nameInfo->Name,
-                                        nameInfo,
-                                        ObjectInformation);
-                }
+                RebaseUnicodeString(&nameInfo->Name,
+                                    nameInfo,
+                                    ObjectInformation);
 
                 __try
                 {
@@ -1064,12 +1061,9 @@ NTSTATUS KphQueryInformationObject(
                     goto Exit;
                 }
 
-                if (typeInfo->TypeName.Buffer)
-                {
-                    RebaseUnicodeString(&typeInfo->TypeName,
-                                        typeInfo,
-                                        ObjectInformation);
-                }
+                RebaseUnicodeString(&typeInfo->TypeName,
+                                    typeInfo,
+                                    ObjectInformation);
 
                 __try
                 {
@@ -1682,12 +1676,9 @@ NTSTATUS KphQueryInformationObject(
                     goto Exit;
                 }
 
-                if (nameInfo->ThreadName.Buffer)
-                {
-                    RebaseUnicodeString(&nameInfo->ThreadName,
-                                        nameInfo,
-                                        ObjectInformation);
-                }
+                RebaseUnicodeString(&nameInfo->ThreadName,
+                                    nameInfo,
+                                    ObjectInformation);
 
                 __try
                 {
@@ -1947,12 +1938,9 @@ NTSTATUS KphQueryInformationObject(
                     goto Exit;
                 }
 
-                if (sectionFileName->Buffer)
-                {
-                    RebaseUnicodeString(sectionFileName,
-                                        sectionFileName,
-                                        ObjectInformation);
-                }
+                RebaseUnicodeString(sectionFileName,
+                                    sectionFileName,
+                                    ObjectInformation);
 
                 __try
                 {
