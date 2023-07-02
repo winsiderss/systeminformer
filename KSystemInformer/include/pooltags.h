@@ -85,6 +85,7 @@
 // alpc
 
 #define KPH_TAG_ALPC_NAME_QUERY                 '0ApK'
+#define KPH_TAG_ALPC_QUERY                      '1ApK'
 
 // file
 
