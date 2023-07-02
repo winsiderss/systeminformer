@@ -571,12 +571,15 @@ NTSTATUS KphAlpcQueryInformation(
     KAPC_STATE apcState;
     PVOID port;
     ULONG returnLength;
+    PVOID buffer;
+    BYTE stackBuffer[64];
 
     PAGED_PASSIVE();
 
     process = NULL;
     port = NULL;
     returnLength = 0;
+    buffer = NULL;
 
     if (AccessMode != KernelMode)
     {
@@ -653,21 +656,29 @@ NTSTATUS KphAlpcQueryInformation(
     {
         case KphAlpcBasicInformation:
         {
-            PKPH_ALPC_BASIC_INFORMATION info;
+            KPH_ALPC_BASIC_INFORMATION info;
 
-            if (!AlpcInformation ||
-                (AlpcInformationLength < sizeof(KPH_ALPC_BASIC_INFORMATION)))
+            if (!AlpcInformation || (AlpcInformationLength < sizeof(info)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(KPH_ALPC_BASIC_INFORMATION);
+                returnLength = sizeof(info);
                 goto Exit;
             }
 
-            info = AlpcInformation;
+            status = KphpAlpcBasicInfo(port, &info);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "KphpAlpcBasicInfo failed: %!STATUS!",
+                              status);
+                goto Exit;
+            }
 
             __try
             {
-                status = KphpAlpcBasicInfo(port, info);
+                RtlCopyMemory(AlpcInformation, &info, sizeof(info));
+                returnLength = sizeof(info);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -679,21 +690,29 @@ NTSTATUS KphAlpcQueryInformation(
         }
         case KphAlpcCommunicationInformation:
         {
-            PKPH_ALPC_COMMUNICATION_INFORMATION info;
+            KPH_ALPC_COMMUNICATION_INFORMATION info;
 
-            if (!AlpcInformation ||
-                (AlpcInformationLength < sizeof(KPH_ALPC_COMMUNICATION_INFORMATION)))
+            if (!AlpcInformation || (AlpcInformationLength < sizeof(info)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(KPH_ALPC_COMMUNICATION_INFORMATION);
+                returnLength = sizeof(info);
                 goto Exit;
             }
 
-            info = AlpcInformation;
+            status = KphpAlpcCommunicationInfo(port, &info);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "KphpAlpcCommunicationInfo failed: %!STATUS!",
+                              status);
+                goto Exit;
+            }
 
             __try
             {
-                status = KphpAlpcCommunicationInfo(port, info);
+                RtlCopyMemory(AlpcInformation, &info, sizeof(info));
+                returnLength = sizeof(info);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -705,12 +724,73 @@ NTSTATUS KphAlpcQueryInformation(
         }
         case KphAlpcCommunicationNamesInformation:
         {
+            ULONG allocatedSize;
+            PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION info;
+
+            allocatedSize = AlpcInformationLength;
+            if (allocatedSize < sizeof(KPH_ALPC_COMMUNICATION_NAMES_INFORMATION))
+            {
+                allocatedSize = sizeof(KPH_ALPC_COMMUNICATION_NAMES_INFORMATION);
+            }
+
+            if (allocatedSize <= ARRAYSIZE(stackBuffer))
+            {
+                buffer = stackBuffer;
+            }
+            else
+            {
+                buffer = KphAllocatePaged(allocatedSize, KPH_TAG_ALPC_QUERY);
+                if (!buffer)
+                {
+                    status = STATUS_INSUFFICIENT_RESOURCES;
+                    goto Exit;
+                }
+            }
+
+            info = buffer;
+            status = KphpAlpcCommunicationNamesInfo(port,
+                                                    info,
+                                                    AlpcInformationLength,
+                                                    &returnLength);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "KphpAlpcCommunicationNamesInfo failed: %!STATUS!",
+                              status);
+                goto Exit;
+            }
+
+            if (!AlpcInformation)
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+                goto Exit;
+            }
+
+            if (info->ConnectionPort.Buffer)
+            {
+                RebaseUnicodeString(&info->ConnectionPort,
+                                    buffer,
+                                    AlpcInformation);
+            }
+
+            if (info->ServerCommunicationPort.Buffer)
+            {
+                RebaseUnicodeString(&info->ServerCommunicationPort,
+                                    buffer,
+                                    AlpcInformation);
+            }
+
+            if (info->ClientCommunicationPort.Buffer)
+            {
+                RebaseUnicodeString(&info->ClientCommunicationPort,
+                                    buffer,
+                                    AlpcInformation);
+            }
+
             __try
             {
-                status = KphpAlpcCommunicationNamesInfo(port,
-                                                        AlpcInformation,
-                                                        AlpcInformationLength,
-                                                        &returnLength);
+                RtlCopyMemory(AlpcInformation, info, returnLength);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -729,6 +809,21 @@ NTSTATUS KphAlpcQueryInformation(
 
 Exit:
 
+    if (buffer && (buffer != stackBuffer))
+    {
+        KphFree(buffer, KPH_TAG_ALPC_QUERY);
+    }
+
+    if (port)
+    {
+        ObDereferenceObject(port);
+    }
+
+    if (process)
+    {
+        ObDereferenceObject(process);
+    }
+
     if (ReturnLength)
     {
         if (AccessMode != KernelMode)
@@ -746,16 +841,6 @@ Exit:
         {
             *ReturnLength = returnLength;
         }
-    }
-
-    if (port)
-    {
-        ObDereferenceObject(port);
-    }
-
-    if (process)
-    {
-        ObDereferenceObject(process);
     }
 
     return status;
