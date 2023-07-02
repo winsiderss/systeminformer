@@ -735,6 +735,7 @@ NTSTATUS KphAlpcQueryInformation(
 
             if (allocatedSize <= ARRAYSIZE(stackBuffer))
             {
+                RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
                 buffer = stackBuffer;
             }
             else

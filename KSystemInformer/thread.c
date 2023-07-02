@@ -914,6 +914,7 @@ NTSTATUS KphSetInformationThread(
     {
         if (ThreadInformationLength <= ARRAYSIZE(stackBuffer))
         {
+            RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
             threadInformation = stackBuffer;
         }
         else

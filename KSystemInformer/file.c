@@ -164,6 +164,7 @@ NTSTATUS KphQueryInformationFile(
 
     if (FileInformationLength <= ARRAYSIZE(stackBuffer))
     {
+        RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
         buffer = stackBuffer;
     }
     else
@@ -313,6 +314,7 @@ NTSTATUS KphQueryVolumeInformationFile(
 
     if (FsInformationLength <= ARRAYSIZE(stackBuffer))
     {
+        RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
         buffer = stackBuffer;
     }
     else

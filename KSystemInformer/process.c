@@ -850,6 +850,7 @@ NTSTATUS KphSetInformationProcess(
     {
         if (ProcessInformationLength <= ARRAYSIZE(stackBuffer))
         {
+            RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
             processInformation = stackBuffer;
         }
         else

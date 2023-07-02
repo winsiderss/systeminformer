@@ -961,6 +961,7 @@ NTSTATUS KphQueryInformationObject(
 
             if (allocateSize <= ARRAYSIZE(stackBuffer))
             {
+                RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
                 buffer = stackBuffer;
             }
             else
@@ -1033,6 +1034,7 @@ NTSTATUS KphQueryInformationObject(
 
             if (allocateSize <= ARRAYSIZE(stackBuffer))
             {
+                RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
                 buffer = stackBuffer;
             }
             else
@@ -1650,6 +1652,7 @@ NTSTATUS KphQueryInformationObject(
 
             if (allocateSize <= ARRAYSIZE(stackBuffer))
             {
+                RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
                 buffer = stackBuffer;
             }
             else
@@ -1743,6 +1746,7 @@ NTSTATUS KphQueryInformationObject(
             {
                 if (ObjectInformationLength <= ARRAYSIZE(stackBuffer))
                 {
+                    RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
                     buffer = stackBuffer;
                 }
                 else
@@ -1860,6 +1864,7 @@ NTSTATUS KphQueryInformationObject(
 
             if (allocateSize <= ARRAYSIZE(stackBuffer))
             {
+                RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
                 buffer = stackBuffer;
             }
             else
