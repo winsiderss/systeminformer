@@ -180,6 +180,14 @@ PhBuildTrusteeWithSid(
     _In_opt_ PSID Sid
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhMapGenericMask(
+    _Inout_ PACCESS_MASK AccessMask,
+    _In_ PGENERIC_MAPPING GenericMapping
+    );
+
 #ifdef __cplusplus
 }
 #endif

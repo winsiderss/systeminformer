@@ -1077,3 +1077,24 @@ BOOLEAN PhBuildTrusteeWithSid(
     ((PTRUSTEE)Trustee)->ptstrName = (LPWCH)Sid;
     return TRUE;
 }
+
+// rev from RtlMapGenericMask (dmex)
+VOID PhMapGenericMask(
+    _Inout_ PACCESS_MASK AccessMask,
+    _In_ PGENERIC_MAPPING GenericMapping
+    )
+{
+    ACCESS_MASK accessMask = *AccessMask;
+
+    if (BooleanFlagOn(accessMask, GENERIC_READ))
+        SetFlag(accessMask, GenericMapping->GenericRead);
+    if (BooleanFlagOn(accessMask, GENERIC_WRITE))
+        SetFlag(accessMask, GenericMapping->GenericWrite);
+    if (BooleanFlagOn(accessMask, GENERIC_EXECUTE))
+        SetFlag(accessMask, GenericMapping->GenericExecute);
+    if (BooleanFlagOn(accessMask, GENERIC_ALL))
+        SetFlag(accessMask, GenericMapping->GenericAll);
+
+    *AccessMask = ClearFlag(accessMask, GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE | GENERIC_ALL);
+}
+
