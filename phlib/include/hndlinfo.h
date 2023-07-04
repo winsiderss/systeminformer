@@ -127,6 +127,14 @@ PhEnumObjectTypes(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetObjectTypeMask(
+    _In_ PPH_STRINGREF TypeName,
+    _Out_ PGENERIC_MAPPING GenericMapping
+    );
+
+PHLIBAPI
 ULONG
 NTAPI
 PhGetObjectTypeNumber(

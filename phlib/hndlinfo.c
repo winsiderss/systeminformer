@@ -2036,6 +2036,41 @@ NTSTATUS PhEnumObjectTypes(
     return status;
 }
 
+NTSTATUS PhGetObjectTypeMask(
+    _In_ PPH_STRINGREF TypeName,
+    _Out_ PGENERIC_MAPPING GenericMapping
+    )
+{
+    NTSTATUS status = STATUS_NOT_FOUND;
+    POBJECT_TYPES_INFORMATION objectTypes;
+    POBJECT_TYPE_INFORMATION objectType;
+
+    if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+    {
+        objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+
+        for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
+        {
+            PH_STRINGREF typeName;
+
+            PhUnicodeStringToStringRef(&objectType->TypeName, &typeName);
+
+            if (PhEqualStringRef(&typeName, TypeName, TRUE))
+            {
+                *GenericMapping = objectType->GenericMapping;
+                status = STATUS_SUCCESS;
+                break;
+            }
+
+            objectType = PH_NEXT_OBJECT_TYPE(objectType);
+        }
+
+        PhFree(objectTypes);
+    }
+
+    return status;
+}
+
 ULONG PhGetObjectTypeNumber(
     _In_ PPH_STRINGREF TypeName
     )
