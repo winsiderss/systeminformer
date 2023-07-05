@@ -14,7 +14,7 @@
 #include "secedit.h"
 #include <tbs.h>
 
-PH_ACCESS_ENTRY TpmAttributeEntries[31] =
+CONST PH_ACCESS_ENTRY TpmAttributeEntries[31] =
 {
     { L"TPMA_NV_PPWRITE", TPMA_NV_PPWRITE, FALSE, FALSE, L"Platform write" },
     { L"TPMA_NV_OWNERWRITE", TPMA_NV_OWNERWRITE, FALSE, FALSE, L"Owner write" },
@@ -201,7 +201,7 @@ PPH_STRING EtMakeTpmAttributesString(
     PPH_STRING attributesString;
     PPH_STRING string;
 
-    attributesString = PhGetAccessString(Attributes, TpmAttributeEntries, RTL_NUMBER_OF(TpmAttributeEntries));
+    attributesString = PhGetAccessString(Attributes, (PVOID)TpmAttributeEntries, RTL_NUMBER_OF(TpmAttributeEntries));
     PhInitFormatSR(&format[0], attributesString->sr);
     PhInitFormatS(&format[1], L" (0x");
     PhInitFormatX(&format[2], Attributes);

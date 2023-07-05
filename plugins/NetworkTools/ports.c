@@ -5,14 +5,14 @@
  *
  * Authors:
  *
- *     dmex    2015-2016
+ *     dmex    2015-2023
  *     TETYYS  2015-2016
  *
  */
 
 #include "nettools.h"
 
-RESOLVED_PORT ResolvedPortsTable[] =
+CONST RESOLVED_PORT ResolvedPortsTable[] =
 {
     { L"1ci-smcs", 3091 }, { L"2ping", 15998 }, { L"3com-amp3", 629 }, { L"3com-net-mgmt", 2391 },
     { L"3com-njack-1", 5264 }, { L"3com-njack-2", 5265 }, { L"3Com-nsd", 1742 }, { L"3com-tsmux", 106 },
