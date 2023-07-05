@@ -3281,6 +3281,13 @@ PhGetDeviceType(
     _Out_ DEVICE_TYPE* DeviceType
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsAppExecutionAliasTarget(
+    _In_ PPH_STRING FileName
+    );
+
 EXTERN_C_END
 
 #endif
