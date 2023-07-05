@@ -605,6 +605,7 @@ BOOLEAN PhInitializeDirectoryPolicy(
 #pragma region Error Reporting
 #include <symprv.h>
 #include <minidumpapiset.h>
+#include <winsta.h>
 
 typedef enum _PH_DUMP_TYPE
 {
@@ -626,6 +627,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
     directory = PhExpandEnvironmentStringsZ(L"\\??\\%USERPROFILE%\\Desktop\\");
     fileName = PhConcatStrings(5, PhGetString(directory), L"SystemInformer", L"_DumpFile_", alphastring, L".dmp");
+    PhCreateDirectoryFullPath(&fileName->sr);
 
     if (NT_SUCCESS(PhCreateFile(
         &fileHandle,
@@ -701,91 +703,145 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
     PPH_STRING errorMessage;
     PPH_STRING message;
     INT result;
-    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-    TASKDIALOG_BUTTON buttons[6] =
-    {
-        { 1, L"Fulldump\nA complete dump of the process, rarely needed most of the time." },
-        { 2, L"Normaldump\nFor most purposes, this dump file is the most useful." },
-        { 3, L"Minidump\nA very limited dump with limited data." },
-        { 4, L"Restart\nRestart the application." }, // and hope it doesn't crash again.";
-        { 5, L"Ignore" },  // \nTry ignore the exception and continue.";
-        { 6, L"Exit" }, // \nTerminate the program.";
-    };
 
     // Let the debugger handle the exception. (dmex)
-    // NOTE: Disable this check when debugging this callback.
     if (PhIsDebuggerPresent())
     {
+        // Remove this return to debug the exception callback. (dmex)
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
-        errorMessage = PhGetStatusMessage(0, PhNtStatusToDosError(ExceptionInfo->ExceptionRecord->ExceptionCode));
-    else
-        errorMessage = PhGetStatusMessage(ExceptionInfo->ExceptionRecord->ExceptionCode, 0);
+    if (PhIsInteractiveUserSession())
+    {
+        TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+        TASKDIALOG_BUTTON buttons[6] =
+        {
+            { 1, L"Fulldump\nA complete dump of the process, rarely needed most of the time." },
+            { 2, L"Normaldump\nFor most purposes, this dump file is the most useful." },
+            { 3, L"Minidump\nA very limited dump with limited data." },
+            { 4, L"Restart\nRestart the application." }, // and hope it doesn't crash again.";
+            { 5, L"Ignore" },  // \nTry ignore the exception and continue.";
+            { 6, L"Exit" }, // \nTerminate the program.";
+        };
 
-    message = PhFormatString(
-        L"0x%08X (%s)",
-        ExceptionInfo->ExceptionRecord->ExceptionCode,
-        PhGetStringOrEmpty(errorMessage)
-        );
+        if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
+            errorMessage = PhGetStatusMessage(0, PhNtStatusToDosError(ExceptionInfo->ExceptionRecord->ExceptionCode));
+        else
+            errorMessage = PhGetStatusMessage(ExceptionInfo->ExceptionRecord->ExceptionCode, 0);
 
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_EXPAND_FOOTER_AREA;
-    config.pszWindowTitle = PhApplicationName;
-    config.pszMainIcon = TD_ERROR_ICON;
-    config.pszMainInstruction = L"System Informer has crashed :(";
-    config.cButtons = RTL_NUMBER_OF(buttons);
-    config.pButtons = buttons;
-    config.nDefaultButton = 6;
-    config.cxWidth = 250;
-    config.pszContent = PhGetString(message);
+        message = PhFormatString(
+            L"0x%08X (%s)",
+            ExceptionInfo->ExceptionRecord->ExceptionCode,
+            PhGetStringOrEmpty(errorMessage)
+            );
+
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_EXPAND_FOOTER_AREA;
+        config.pszWindowTitle = PhApplicationName;
+        config.pszMainIcon = TD_ERROR_ICON;
+        config.pszMainInstruction = L"System Informer has crashed :(";
+        config.cButtons = RTL_NUMBER_OF(buttons);
+        config.pButtons = buttons;
+        config.nDefaultButton = 6;
+        config.cxWidth = 250;
+        config.pszContent = PhGetString(message);
 #ifdef DEBUG
-    config.pszExpandedInformation = PhGetString(PhGetStacktraceAsString());
+        config.pszExpandedInformation = PhGetString(PhGetStacktraceAsString());
 #endif
 
-    if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)))
-    {
-        switch (result)
+        if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)))
         {
-        case 1:
-            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeFulldump);
-            break;
-        case 2:
-            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeNormaldump);
-            break;
-        case 3:
-            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeMinidump);
-            break;
-        case 4:
+            switch (result)
             {
-                PhShellProcessHacker(
-                    NULL,
-                    NULL,
-                    SW_SHOW,
-                    PH_SHELL_EXECUTE_DEFAULT,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-                    0,
-                    NULL
-                    );
+            case 1:
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeFulldump);
+                break;
+            case 2:
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeNormaldump);
+                break;
+            case 3:
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeMinidump);
+                break;
+            case 4:
+                {
+                    PhShellProcessHacker(
+                        NULL,
+                        NULL,
+                        SW_SHOW,
+                        PH_SHELL_EXECUTE_DEFAULT,
+                        PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+                        0,
+                        NULL
+                        );
+                }
+                break;
+            case 5:
+                {
+                    return EXCEPTION_CONTINUE_EXECUTION;
+                }
+                break;
             }
-            break;
-        case 5:
+        }
+        else
+        {
+            if (PhShowMessage(
+                NULL,
+                MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
+                L"System Informer has crashed :(\r\n\r\n%s",
+                L"Do you want to create a minidump on the Desktop?"
+                ) == IDYES)
             {
-                return EXCEPTION_CONTINUE_EXECUTION;
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, FALSE);
             }
-            break;
         }
     }
     else
     {
-        if (PhShowMessage(
-            NULL,
-            MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
-            L"System Informer has crashed :(\r\n\r\n%s",
-            L"Do you want to create a minidump on the Desktop?"
-            ) == IDYES)
+        ULONG response;
+        PPH_STRING errorMessage;
+        PPH_STRING message;
+        PPH_STRING title;
+
+        if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
+            errorMessage = PhGetStatusMessage(0, PhNtStatusToDosError(ExceptionInfo->ExceptionRecord->ExceptionCode));
+        else
+            errorMessage = PhGetStatusMessage(ExceptionInfo->ExceptionRecord->ExceptionCode, 0);
+
+        title = PhCreateString(L"System Informer has crashed :(");
+#ifdef DEBUG
+        message = PhFormatString(
+            L"%s\r\n0x%08X (%s)\r\n%s",
+            PhGetStringOrEmpty(title),
+            ExceptionInfo->ExceptionRecord->ExceptionCode,
+            PhGetStringOrEmpty(errorMessage),
+            PhGetString(PhGetStacktraceAsString())
+            );
+#else
+        message = PhFormatString(
+            L"%s\r\n0x%08X (%s)\r\n%s",
+            PhGetStringOrEmpty(title),
+            ExceptionInfo->ExceptionRecord->ExceptionCode,
+            PhGetStringOrEmpty(errorMessage)
+            );
+#endif
+        if (WinStationSendMessageW(
+            SERVERNAME_CURRENT,
+            USER_SHARED_DATA->ActiveConsoleId, // RtlGetActiveConsoleId
+            title->Buffer,
+            (ULONG)title->Length,
+            message->Buffer,
+            (ULONG)message->Length,
+            MB_OKCANCEL | MB_ICONERROR,
+            30,
+            &response,
+            FALSE
+            ))
         {
-            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, FALSE);
+#ifdef DEBUG
+            if (response == IDOK)
+            {
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhDumpTypeFulldump);
+            }
+#endif
         }
     }
 
