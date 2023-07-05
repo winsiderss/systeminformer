@@ -156,6 +156,10 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"MemoryTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerPairSetting(L"MemoryListsWindowPosition", L"400,400");
     PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
+    PhpAddIntegerPairSetting(L"MemoryModifiedWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"MemoryModifiedWindowSize", L"@96|450,500");
+    PhpAddStringSetting(L"MemoryModifiedListViewColumns", L"");
+    PhpAddStringSetting(L"MemoryModifiedListViewSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"MiniInfoContainerClassName", L"MiniInfoContainerClassName");
     PhpAddStringSetting(L"MiniInfoWindowClassName", L"MiniInfoWindowClassName");
     PhpAddIntegerSetting(L"MiniInfoWindowEnabled", L"1");

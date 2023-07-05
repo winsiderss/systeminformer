@@ -112,6 +112,7 @@
 #define IDD_OBJMAPPINGS                 258
 #define IDI_UACSHIELD                   261
 #define IDD_RUNPACKAGE                  263
+#define IDD_MODIFIEDPAGES               264
 #define IDB_SEARCH_ACTIVE_SMALL         265
 #define IDB_SEARCH_INACTIVE_SMALL       266
 #define IDC_TERMINATE                   1003
@@ -716,6 +717,7 @@
 #define ID_TAB_PREV                     40224
 #define ID_MISCELLANEOUS_RUNAS          40229
 #define ID_MISCELLANEOUS_RUNASTHISUSER  40230
+#define ID_MISCELLANEOUS_PAGESMODIFIED  40231
 #define ID_VIEW_HIDEPROCESSESFROMOTHERUSERS 40232
 #define ID_THREAD_AFFINITY              40233
 #define ID_THREAD_BOOST                 40234

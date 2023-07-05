@@ -1603,6 +1603,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_MISCELLANEOUS_PAGESMODIFIED:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhShowImagePageModifiedDialog(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_PRIORITY_REALTIME:
     case ID_PRIORITY_HIGH:
     case ID_PRIORITY_ABOVENORMAL:
