@@ -107,6 +107,21 @@ typedef struct _MRUINFO
     MRUSTRINGCMPPROC lpfnCompare;
 } MRUINFO, *PMRUINFO;
 
+static ULONG (WINAPI *NetUserEnum_I)(
+    _In_ PCWSTR servername,
+    _In_ ULONG level,
+    _In_ ULONG filter,
+    _Out_ PVOID *bufptr,
+    _In_ ULONG prefmaxlen,
+    _Out_ PULONG entriesread,
+    _Out_ PULONG totalentries,
+    _Inout_ PULONG resume_handle
+    );
+
+static ULONG (WINAPI *NetApiBufferFree_I)(
+    _Frees_ptr_opt_ PVOID Buffer
+    );
+
 static HANDLE (WINAPI *CreateMRUList_I)(
     _In_ PMRUINFO lpmi
     );
@@ -376,6 +391,34 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     return desktopInfo;
 }
 
+BOOLEAN PhpInitializeNetApi(VOID)
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID netapiModuleHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (netapiModuleHandle = PhLoadLibrary(L"netapi32.dll"))
+        {
+            NetUserEnum_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetUserEnum", 0);
+            NetApiBufferFree_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetApiBufferFree", 0);
+
+            if (!(NetUserEnum_I && NetApiBufferFree_I))
+            {
+                PhFreeLibrary(netapiModuleHandle);
+                netapiModuleHandle = NULL;
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (netapiModuleHandle)
+        return TRUE;
+
+    return FALSE;
+}
+
 BOOLEAN PhpInitializeMRUList(VOID)
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -521,27 +564,129 @@ static VOID PhpFreeAccountsComboBox(
     ComboBox_ResetContent(ComboBoxHandle);
 }
 
-NTSTATUS PhpEnumerateAccountsToComboBox(
-    _In_ PPH_STRING AccountName,
-    _In_opt_ PVOID Context
-    )
-{
-    ComboBox_AddString(Context,  PhGetString(AccountName));
-
-    return STATUS_SUCCESS;
-}
-
 static VOID PhpAddAccountsToComboBox(
     _In_ HWND ComboBoxHandle
     )
 {
+    NET_API_STATUS status;
+    LPUSER_INFO_0 userinfoArray = NULL;
+    ULONG userinfoEntriesRead = 0;
+    ULONG userinfoTotalEntries = 0;
+
     PhpFreeAccountsComboBox(ComboBoxHandle);
 
     ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL))->Buffer);
     ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeLocalServiceSid, TRUE, NULL))->Buffer);
     ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeNetworkServiceSid, TRUE, NULL))->Buffer);
 
-    PhEnumerateAccounts(PhpEnumerateAccountsToComboBox, ComboBoxHandle);
+    if (!PhpInitializeNetApi())
+        return;
+
+    NetUserEnum_I(
+        NULL,
+        0,
+        FILTER_NORMAL_ACCOUNT,
+        &userinfoArray,
+        MAX_PREFERRED_LENGTH,
+        &userinfoEntriesRead,
+        &userinfoTotalEntries,
+        NULL
+        );
+
+    if (userinfoArray)
+    {
+        NetApiBufferFree_I(userinfoArray);
+        userinfoArray = NULL;
+    }
+
+    status = NetUserEnum_I(
+        NULL,
+        0,
+        FILTER_NORMAL_ACCOUNT,
+        &userinfoArray,
+        MAX_PREFERRED_LENGTH,
+        &userinfoEntriesRead,
+        &userinfoTotalEntries,
+        NULL
+        );
+
+    if (status == NERR_Success)
+    {
+        PPH_STRING username;
+        PPH_STRING userDomainName = NULL;
+
+        if (username = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+        {
+            PhpSplitUserName(username->Buffer, &userDomainName, NULL);
+            PhDereferenceObject(username);
+        }
+
+        for (ULONG i = 0; i < userinfoEntriesRead; i++)
+        {
+            LPUSER_INFO_0 entry = PTR_ADD_OFFSET(userinfoArray, sizeof(USER_INFO_0) * i);
+
+            if (entry->usri0_name)
+            {
+                if (userDomainName)
+                {
+                    PPH_STRING usernameString;
+
+                    usernameString = PhConcatStrings(
+                        3,
+                        userDomainName->Buffer,
+                        L"\\",
+                        entry->usri0_name
+                        );
+
+                    ComboBox_AddString(ComboBoxHandle, usernameString->Buffer);
+                    PhDereferenceObject(usernameString);
+                }
+                else
+                {
+                    ComboBox_AddString(ComboBoxHandle, entry->usri0_name);
+                }
+            }
+        }
+
+        if (userDomainName)
+            PhDereferenceObject(userDomainName);
+    }
+
+    if (userinfoArray)
+        NetApiBufferFree_I(userinfoArray);
+
+    //LSA_HANDLE policyHandle;
+    //LSA_ENUMERATION_HANDLE enumerationContext = 0;
+    //PLSA_ENUMERATION_INFORMATION buffer;
+    //ULONG count;
+    //PPH_STRING name;
+    //SID_NAME_USE nameUse;
+    //
+    //if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
+    //{
+    //    while (NT_SUCCESS(LsaEnumerateAccounts(
+    //        policyHandle,
+    //        &enumerationContext,
+    //        &buffer,
+    //        0x100,
+    //        &count
+    //        )))
+    //    {
+    //        for (i = 0; i < count; i++)
+    //        {
+    //            name = PhGetSidFullName(buffer[i].Sid, TRUE, &nameUse);
+    //            if (name)
+    //            {
+    //                if (nameUse == SidTypeUser)
+    //                    ComboBox_AddString(ComboBoxHandle, name->Buffer);
+    //                PhDereferenceObject(name);
+    //            }
+    //        }
+    //        LsaFreeMemory(buffer);
+    //    }
+    //
+    //    LsaClose(policyHandle);
+    //}
 }
 
 static VOID PhpFreeSessionsComboBox(
