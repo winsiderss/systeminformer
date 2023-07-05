@@ -240,7 +240,7 @@ VOID PhShowRunAsPackageDialog(
         MAKEINTRESOURCE(IDD_RUNPACKAGE),
         NULL,
         PhRunAsPackageWndProc,
-        ParentWindowHandle
+        PhCsForceNoParent ? NULL : ParentWindowHandle
         );
 }
 
@@ -834,7 +834,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             if (PhGetIntegerPairSetting(L"RunAsWindowPosition").X)
                 PhLoadWindowPlacementFromSetting(L"RunAsWindowPosition", NULL, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle);
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             if (PhGetIntegerSetting(L"RunAsEnableAutoComplete"))
             {
@@ -3311,7 +3311,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             if (PhGetIntegerPairSetting(L"RunAsPackageWindowPosition").X)
                 PhLoadWindowPlacementFromSetting(L"RunAsPackageWindowPosition", L"RunAsPackageWindowSize", WindowHandle);
             else
-                PhCenterWindow(WindowHandle, PhMainWndHandle);
+                PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
             TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
 
