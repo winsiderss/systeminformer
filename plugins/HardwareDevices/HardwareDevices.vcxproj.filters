@@ -39,9 +39,6 @@
     <ClInclude Include="fmifs.h">
       <Filter>Source Files\Disk</Filter>
     </ClInclude>
-    <ClInclude Include="deviceprv.h">
-      <Filter>Source Files\Devices</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -111,12 +108,6 @@
       <Filter>Source Files\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="devicetree.c">
-      <Filter>Source Files\Devices</Filter>
-    </ClCompile>
-    <ClCompile Include="deviceprv.c">
-      <Filter>Source Files\Devices</Filter>
-    </ClCompile>
-    <ClCompile Include="devicenotify.c">
       <Filter>Source Files\Devices</Filter>
     </ClCompile>
   </ItemGroup>

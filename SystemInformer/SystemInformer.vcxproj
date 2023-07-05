@@ -141,14 +141,14 @@
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -179,14 +179,14 @@
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -217,14 +217,14 @@
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineARM64</TargetMachine>
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -260,7 +260,7 @@
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -269,7 +269,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
@@ -308,7 +308,7 @@
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -317,7 +317,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
@@ -355,7 +355,7 @@
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -364,7 +364,7 @@
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
@@ -393,6 +393,7 @@
     <ClCompile Include="dbgcon.c" />
     <ClCompile Include="delayhook.c" />
     <ClCompile Include="delayload.c" />
+    <ClCompile Include="devprv.c" />
     <ClCompile Include="extmgr.c" />
     <ClCompile Include="findobj.c" />
     <ClCompile Include="gdihndl.c" />
@@ -426,6 +427,7 @@
     <ClCompile Include="modlist.c" />
     <ClCompile Include="modprv.c" />
     <ClCompile Include="mtgndlg.c" />
+    <ClCompile Include="mwpgdev.c" />
     <ClCompile Include="mwpgnet.c" />
     <ClCompile Include="mwpgproc.c" />
     <ClCompile Include="mwpgsrv.c" />
@@ -487,6 +489,7 @@
     <ClInclude Include="include\appsup.h" />
     <ClInclude Include="include\colmgr.h" />
     <ClInclude Include="include\colsetmgr.h" />
+    <ClInclude Include="include\devprv.h" />
     <ClInclude Include="include\extmgr.h" />
     <ClInclude Include="include\extmgri.h" />
     <ClInclude Include="include\heapstruct.h" />

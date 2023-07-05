@@ -11,7 +11,6 @@
  */
 
 #include "devices.h"
-#include "deviceprv.h"
 #include <hndlinfo.h>
 #include <secedit.h>
 
@@ -124,10 +123,7 @@ VOID NTAPI MainWindowShowingCallback(
 {
     AddRemoveDeviceChangeCallback();
     if (NetWindowsVersion >= WINDOWS_10)
-    {
-        InitializeDeviceProvider();
         InitializeDevicesTab();
-    }
 }
 
 VOID NTAPI ProcessesUpdatedCallback(

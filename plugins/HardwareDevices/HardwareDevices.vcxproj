@@ -71,44 +71,42 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link>
-      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link>
-      <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;wlanapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="adapter.c" />
-    <ClCompile Include="devicenotify.c" />
-    <ClCompile Include="deviceprv.c" />
     <ClCompile Include="devicetree.c" />
     <ClCompile Include="diskdetails.c" />
     <ClCompile Include="disknotify.c" />
@@ -133,7 +131,6 @@
     <ClCompile Include="storage.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="deviceprv.h" />
     <ClInclude Include="devices.h" />
     <ClInclude Include="fmifs.h" />
     <ClInclude Include="prpsh.h" />

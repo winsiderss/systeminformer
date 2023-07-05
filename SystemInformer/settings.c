@@ -119,7 +119,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconTrayLazyStartDelay", L"1");
     PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
     PhpAddStringSetting(L"IconSettings", L"2|1");
-    PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
+    PhpAddIntegerSetting(L"IconNotifyMask", L"18c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE | PH_NOTIFY_DEVICE_ARRIVED | PH_NOTIFY_DEVICE_REMOVED
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");

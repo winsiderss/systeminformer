@@ -532,6 +532,11 @@ VOID PhMwpInitializeControls(
     PhNetworkTreeListInitialization();
     PhInitializeNetworkTreeList(PhMwpNetworkTreeNewHandle);
 
+    // N.B. Devices tab is handled by the HardwareDevices plug-in. The provider is managed internally
+    // such that we can handle notifications and dispatch them to other plug-ins. Here we initialize
+    // only the device notifications. (jxy-s).
+    PhMwpInitializesDeviceNotifications();
+
     CurrentPage = PageList->Items[0];
 }
 
@@ -915,6 +920,8 @@ VOID PhMwpOnCommand(
     case ID_NOTIFICATIONS_STOPPEDSERVICES:
     case ID_NOTIFICATIONS_DELETEDSERVICES:
     case ID_NOTIFICATIONS_MODIFIEDSERVICES:
+    case ID_NOTIFICATIONS_ARRIVEDDEVICES:
+    case ID_NOTIFICATIONS_REMOVEDDEVICES:
         {
             PhMwpExecuteNotificationMenuCommand(WindowHandle, Id);
         }
@@ -3011,6 +3018,11 @@ PPH_EMENU PhpCreateNotificationMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_STOPPEDSERVICES, L"St&opped services", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_DELETEDSERVICES, L"&Deleted services", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_MODIFIEDSERVICES, L"&Modified services", NULL, NULL), ULONG_MAX);
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ARRIVEDDEVICES, L"&Arrived devices", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_REMOVEDDEVICES, L"&Removed devices", NULL, NULL), ULONG_MAX);
+    }
 
     for (i = PH_NOTIFY_MINIMUM; i != PH_NOTIFY_MAXIMUM; i <<= 1)
     {
@@ -3038,6 +3050,12 @@ PPH_EMENU PhpCreateNotificationMenu(
                 break;
             case PH_NOTIFY_SERVICE_MODIFIED:
                 id = ID_NOTIFICATIONS_MODIFIEDSERVICES;
+                break;
+            case PH_NOTIFY_DEVICE_ARRIVED:
+                id = ID_NOTIFICATIONS_ARRIVEDDEVICES;
+                break;
+            case PH_NOTIFY_DEVICE_REMOVED:
+                id = ID_NOTIFICATIONS_REMOVEDDEVICES;
                 break;
             }
 
@@ -3070,6 +3088,8 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     case ID_NOTIFICATIONS_STOPPEDSERVICES:
     case ID_NOTIFICATIONS_DELETEDSERVICES:
     case ID_NOTIFICATIONS_MODIFIEDSERVICES:
+    case ID_NOTIFICATIONS_ARRIVEDDEVICES:
+    case ID_NOTIFICATIONS_REMOVEDDEVICES:
         {
             ULONG bit = 0;
 
@@ -3095,6 +3115,12 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
                 break;
             case ID_NOTIFICATIONS_MODIFIEDSERVICES:
                 bit = PH_NOTIFY_SERVICE_MODIFIED;
+                break;
+            case ID_NOTIFICATIONS_ARRIVEDDEVICES:
+                bit = PH_NOTIFY_DEVICE_ARRIVED;
+                break;
+            case ID_NOTIFICATIONS_REMOVEDDEVICES:
+                bit = PH_NOTIFY_DEVICE_REMOVED;
                 break;
             }
 

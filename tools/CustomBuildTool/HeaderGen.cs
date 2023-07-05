@@ -33,6 +33,7 @@ namespace CustomBuildTool
             "thrdprv.h",
             "hndlprv.h",
             "memprv.h",
+            "devprv.h",
             "phuisup.h",
             "colmgr.h",
             "proctree.h",
