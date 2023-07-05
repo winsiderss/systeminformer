@@ -550,6 +550,10 @@ HRESULT PhCreateAdminTask(
     _In_ PPH_STRINGREF FileName
     );
 
+NTSTATUS PhRunAsAdminTaskUIAccess(
+    VOID
+    );
+
 // begin_phapppub
 PHAPPAPI
 BOOLEAN
