@@ -539,6 +539,13 @@ VOID PhShowMemoryStringDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+// memmod
+
+VOID PhShowImagePageModifiedDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 // mtgndlg
 
 VOID PhShowProcessMitigationPolicyDialog(
