@@ -21,9 +21,11 @@ typedef struct
 
     HWND WindowHandle;
     BOOLEAN IsPage;
+    BOOLEAN HaveGenericMapping;
     PPH_ACCESS_ENTRY AccessEntriesArray;
     PSI_ACCESS AccessEntries;
     ULONG NumberOfAccessEntries;
+    GENERIC_MAPPING GenericMapping;
 
     PPH_STRING ObjectName;
     PPH_STRING ObjectType;

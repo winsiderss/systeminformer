@@ -215,6 +215,16 @@ ISecurityInformation *PhSecurityInformation_Create(
         }
     }
 
+    {
+        GENERIC_MAPPING genericMapping;
+
+        if (NT_SUCCESS(PhGetObjectTypeMask(&info->ObjectType->sr, &genericMapping)))
+        {
+            memcpy(&info->GenericMapping, &genericMapping, sizeof(genericMapping));
+            info->HaveGenericMapping = TRUE;
+        }
+    }
+
     return (ISecurityInformation *)info;
 }
 
@@ -490,25 +500,15 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
             FILE_ALL_ACCESS
         };
 
-        RtlMapGenericMask(Mask, &genericMappings);
+        PhMapGenericMask(Mask, &genericMappings);
     }
-
-    // TODO we're supposed to lookup the GenericMapping for the object type. (dmex)
-
-    //POBJECT_TYPES_INFORMATION objectTypes;
-    //POBJECT_TYPE_INFORMATION objectType;
-
-    //if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
-    //{
-    //    objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
-    //
-    //    for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
-    //    {
-    //        RtlMapGenericMask(Mask, &objectType->GenericMapping);
-    //    }
-    //
-    //    PhFree(objectTypes);
-    //}
+    else
+    {
+        if (this->HaveGenericMapping)
+        {
+            PhMapGenericMask(Mask, &this->GenericMapping);
+        }
+    }
 
     return S_OK;
 }
