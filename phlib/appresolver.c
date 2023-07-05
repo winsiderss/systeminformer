@@ -994,12 +994,14 @@ static BOOLEAN PhParseStartMenuAppShellItem(
     _In_ PPH_LIST List
     )
 {
-    PROPVARIANT packageHostEnvironment = { 0 };
+    PROPVARIANT packageHostEnvironment;
     PWSTR packageAppUserModelID = NULL;
     PWSTR packageInstallPath = NULL;
     PWSTR packageFullName = NULL;
     PWSTR packageSmallLogoPath = NULL;
     PWSTR packageLongDisplayName = NULL;
+
+    PropVariantInit(&packageHostEnvironment);
 
     if (FAILED(IShellItem2_GetProperty(ShellItem, &PKEY_AppUserModel_HostEnvironment, &packageHostEnvironment)))
         return FALSE;
@@ -1226,21 +1228,25 @@ BOOLEAN PhAppResolverGetPackageIcon(
     )
 {
     IPropertyStore* propertyStore = NULL;
-    PROPVARIANT propertyKeyValue = { 0 };
-    PROPVARIANT propertyColorValue = { 0 };
+    PROPVARIANT propertyPathValue;
+    PROPVARIANT propertyColorValue;
     PWSTR imagePath = NULL;
-    HICON largeIcon = NULL;
-    HICON smallIcon = NULL;
+    HICON iconLarge = NULL;
+    HICON iconSmall = NULL;
 
-    if (FAILED(PhAppResolverGetPackageStartMenuPropertyStore(ProcessId, &propertyStore)))
+    PropVariantInit(&propertyPathValue);
+    PropVariantInit(&propertyColorValue);
+
+    if (HR_FAILED(PhAppResolverGetPackageStartMenuPropertyStore(ProcessId, &propertyStore)))
         goto CleanupExit;
-    if (FAILED(IPropertyStore_GetValue(propertyStore, &PKEY_Tile_SmallLogoPath, &propertyKeyValue)))
+    if (HR_FAILED(IPropertyStore_GetValue(propertyStore, &PKEY_Tile_SmallLogoPath, &propertyPathValue)))
         goto CleanupExit;
-    //if (FAILED(IPropertyStore_GetValue(propertyStore, &PKEY_Tile_Background, &propertyColorValue)))
-    //    goto CleanupExit;
-    if (FAILED(PhAppResolverGetPackageResourceFilePath(PhGetString(PackageFullName), V_BSTR(&propertyKeyValue), &imagePath)))
+    if (HR_FAILED(IPropertyStore_GetValue(propertyStore, &PKEY_Tile_Background, &propertyColorValue)))
+        goto CleanupExit;
+    if (HR_FAILED(PhAppResolverGetPackageResourceFilePath(PhGetString(PackageFullName), V_BSTR(&propertyPathValue), &imagePath)))
         goto CleanupExit;
 
+    if (IconLarge)
     {
         HBITMAP bitmap;
         LONG width;
@@ -1251,11 +1257,12 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            largeIcon = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
+            iconLarge = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
             DeleteBitmap(bitmap);
         }
     }
 
+    if (IconSmall)
     {
         HBITMAP bitmap;
         LONG width;
@@ -1266,7 +1273,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            smallIcon = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
+            iconSmall = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
             DeleteBitmap(bitmap);
         }
     }
@@ -1274,33 +1281,46 @@ BOOLEAN PhAppResolverGetPackageIcon(
 CleanupExit:
     if (imagePath)
         CoTaskMemFree(imagePath);
-    if (V_BSTR(&propertyKeyValue))
-        CoTaskMemFree(V_BSTR(&propertyKeyValue));
+    if (V_BSTR(&propertyPathValue))
+        CoTaskMemFree(V_BSTR(&propertyPathValue));
     if (propertyStore)
         IPropertyStore_Release(propertyStore);
 
-    if (largeIcon && smallIcon)
+    if (IconLarge && IconSmall)
     {
-        if (IconLarge)
-            *IconLarge = largeIcon;
-        else
-            DestroyIcon(largeIcon);
+        if (iconLarge && iconSmall)
+        {
+            *IconLarge = iconLarge;
+            *IconSmall = iconSmall;
+            return TRUE;
+        }
 
-        if (IconSmall)
-            *IconSmall = smallIcon;
-        else
-            DestroyIcon(smallIcon);
+        if (iconLarge)
+            DestroyIcon(iconLarge);
+        if (iconSmall)
+            DestroyIcon(iconSmall);
 
-        return TRUE;
-    }
-    else
-    {
-        if (smallIcon)
-            DestroyIcon(smallIcon);
-        if (largeIcon)
-            DestroyIcon(largeIcon);
         return FALSE;
     }
+
+    if (IconLarge && iconLarge)
+    {
+        *IconLarge = iconLarge;
+        return TRUE;
+    }
+
+    if (IconSmall && iconSmall)
+    {
+        *IconSmall = iconSmall;
+        return TRUE;
+    }
+
+    if (iconLarge)
+        DestroyIcon(iconLarge);
+    if (iconSmall)
+        DestroyIcon(iconSmall);
+
+    return FALSE;
 }
 
 // rev from Invoke-CommandInDesktopPackage (dmex)
