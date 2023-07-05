@@ -49,24 +49,26 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 231, 147
+IDD_OPTIONS DIALOGEX 0, 0, 231, 175
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Enable toolbar",IDC_ENABLE_TOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,62,10
-    CONTROL         "Enable status bar",IDC_ENABLE_STATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,45,72,10
+    CONTROL         "Enable toolbar",IDC_ENABLE_TOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,42,62,10
+    CONTROL         "Enable status bar",IDC_ENABLE_STATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,54,72,10
     CONTROL         "Resolve ghost windows to hung windows",IDC_RESOLVEGHOSTWINDOWS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,57,152,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,66,152,10
     CONTROL         "Auto-hide main menu (Alt or F10 key toggle)",IDC_ENABLE_AUTOHIDE_MENU,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,69,157,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,78,157,10
     CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,81,113,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,90,113,10
     LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,7,157,18
-    COMBOBOX        IDC_CURRENT,7,121,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Select the graph for the taskbar window icon:",IDC_STATIC,7,110,147,8
+    COMBOBOX        IDC_CURRENT,14,143,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Select the graph to show on the taskbar:",IDC_STATIC,14,132,132,8
     CONTROL         "Enable large toolbar icons",IDC_ENABLE_LARGETOOLBARICON,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,94,98,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,102,98,10
+    GROUPBOX        "Toolbar configuration",IDC_STATIC,7,29,217,88
+    GROUPBOX        "Taskbar configuration",IDC_STATIC,7,119,217,45
 END
 
 IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 188
