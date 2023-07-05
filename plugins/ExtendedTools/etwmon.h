@@ -87,7 +87,7 @@ VOID EtStopEtwSession(
     VOID
     );
 
-ULONG EtStartEtwRundown(
+VOID EtStartEtwRundown(
     VOID
     );
 
