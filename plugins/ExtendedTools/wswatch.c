@@ -534,7 +534,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 // WS Watch is already enabled for the process. Enable updating.
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_WSWATCHENABLED), SW_SHOW);
-                PhSetTimer(hwndDlg, 1, 1000, NULL);
+                PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
             }
             else
             {
@@ -548,7 +548,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         {
             context->Destroying = TRUE;
 
-            PhKillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
             PhSaveListViewColumnsToSetting(SETTING_NAME_WSWATCH_COLUMNS, context->ListViewHandle);
             PhSaveWindowPlacementToSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, hwndDlg);
@@ -664,7 +664,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         {
             switch (wParam)
             {
-            case 1:
+            case PH_WINDOW_TIMER_DEFAULT:
                 EtpUpdateWsWatch(hwndDlg, context);
                 break;
             }

@@ -58,7 +58,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
 
             if (PhUiStopService(hwndDlg, context->ServiceItem))
             {
-                PhSetTimer(hwndDlg, 1, 250, NULL);
+                PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 250, NULL);
             }
             else
             {
@@ -70,7 +70,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhKillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -79,7 +79,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
             {
             case IDCANCEL:
                 {
-                    PhKillTimer(hwndDlg, 1);
+                    PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
                     EndDialog(hwndDlg, IDCANCEL);
                 }
@@ -89,7 +89,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
         break;
     case WM_TIMER:
         {
-            if (wParam == 1 && !context->DisableTimer)
+            if (wParam == PH_WINDOW_TIMER_DEFAULT && !context->DisableTimer)
             {
                 SERVICE_STATUS serviceStatus;
 

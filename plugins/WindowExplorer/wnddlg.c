@@ -832,7 +832,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 DeleteFont(context->TreeWindowFont);
             }
 
-            PhKillTimer(hwndDlg, 9);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
 
@@ -1220,7 +1220,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                         context->HighlightingWindow = selectedNode->WindowHandle;
                         context->HighlightingWindowCount = 10;
-                        PhSetTimer(hwndDlg, 9, 100, NULL);
+                        PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
                     }
                 }
                 break;
@@ -1384,12 +1384,12 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         {
             switch (wParam)
             {
-            case 9:
+            case PH_WINDOW_TIMER_DEFAULT:
                 {
                     WeInvertWindowBorder(context->HighlightingWindow);
 
                     if (--context->HighlightingWindowCount == 0)
-                        PhKillTimer(hwndDlg, 9);
+                        PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
                 }
                 break;
             }
@@ -1949,7 +1949,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                         context->HighlightingWindow = selectedNode->WindowHandle;
                         context->HighlightingWindowCount = 10;
-                        PhSetTimer(hwndDlg, 9, 100, NULL);
+                        PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
                     }
                 }
                 break;
@@ -2052,12 +2052,12 @@ INT_PTR CALLBACK WepWindowsPageProc(
         {
             switch (wParam)
             {
-            case 9:
+            case PH_WINDOW_TIMER_DEFAULT:
                 {
                     WeInvertWindowBorder(context->HighlightingWindow);
 
                     if (--context->HighlightingWindowCount == 0)
-                        PhKillTimer(hwndDlg, 9);
+                        PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
                 }
                 break;
             }

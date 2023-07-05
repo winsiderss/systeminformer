@@ -2348,12 +2348,12 @@ INT_PTR CALLBACK WepWindowPreviewDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            PhSetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            PhKillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
         }
         break;
     case WM_SHOWWINDOW:
