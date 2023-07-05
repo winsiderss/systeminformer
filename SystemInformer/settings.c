@@ -63,6 +63,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableStreamerMode", L"0");
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
+    PhpAddIntegerSetting(L"EnableStartAsAdminAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"EnableDefaultSafePlugins", L"1");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableShortRelativeStartTime", L"1");

@@ -149,7 +149,18 @@ INT WINAPI wWinMain(
         !PhStartupParameters.ShowOptions &&
         !PhStartupParameters.PhSvc)
     {
-        if (!PhGetOwnTokenAttributes().Elevated)
+        if (PhGetOwnTokenAttributes().Elevated)
+        {
+            if (PhGetIntegerSetting(L"EnableStartAsAdminAlwaysOnTop"))
+            {
+                if (NT_SUCCESS(PhRunAsAdminTaskUIAccess()))
+                {
+                    PhActivatePreviousInstance();
+                    PhExitApplication(STATUS_SUCCESS);
+                }
+            }
+        }
+        else
         {
             AllowSetForegroundWindow(ASFW_ANY);
 
