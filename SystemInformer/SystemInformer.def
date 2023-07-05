@@ -470,6 +470,7 @@ EXPORTS
     PhShowStatus
     PhStringToGuid
     PhUpdateHash
+    PhWaitForMultipleObjectsAndPump
 
 ; circbuf
     PhClearCircularBuffer_FLOAT
