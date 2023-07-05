@@ -325,6 +325,8 @@ FORCEINLINE WNDPROC PhSetWindowProcedure(
     return (WNDPROC)SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)SubclassProcedure);
 }
 
+#define PH_WINDOW_TIMER_DEFAULT 0xF
+
 FORCEINLINE UINT_PTR PhSetTimer(
     _In_ HWND WindowHandle,
     _In_ UINT_PTR TimerID,
