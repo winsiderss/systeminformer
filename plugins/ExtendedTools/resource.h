@@ -9,14 +9,13 @@
 #define ID_MODULE_SERVICES              106
 #define IDD_MODSERVICES                 107
 #define ID_VIEW_MEMORYLISTS             108
-#define IDD_PROCDISKNET                 110
+#define IDD_PROCDISK                    110
 #define ID_VIEW_DISKANDNETWORK          111
 #define ID_PROCESS_WSWATCH              112
 #define IDD_SYSINFO_DISKPANEL           113
 #define IDD_OPTIONS                     114
 #define IDD_WSWATCH                     115
 #define IDD_SYSINFO_GPU                 117
-#define IDR_DISK                        118
 #define ID_VIEW_GPUINFORMATION          119
 #define IDD_SYSINFO_GPUPANEL            120
 #define IDD_PROCGPU                     121
@@ -24,7 +23,7 @@
 #define IDD_GPUNODES                    123
 #define IDD_SYSINFO_NETPANEL            124
 #define IDD_SYSINFO_NET                 125
-#define IDD_PROCDISKNET_PANEL           129
+#define IDD_PROCDISK_PANEL              129
 #define IDC_UTILIZATION                 132
 #define IDC_SPEED                       133
 #define IDD_SYSINFO_GPUDETAILS          141
@@ -55,7 +54,6 @@
 #define IDC_ENABLEGPUMONITOR            1049
 #define IDC_ENABLESYSINFOGRAPHS         1050
 #define IDC_GROUPGPU                    1051
-#define IDC_ENABLEFWMONITOR             1051
 #define IDC_ENABLEFPSMONITOR            1051
 #define IDC_GROUPMEM                    1052
 #define IDC_GROUPSHARED                 1053
@@ -79,8 +77,8 @@
 #define IDC_ZWRITESDELTA_V              1082
 #define IDC_ZREADSDELTA_V               1083
 #define IDC_PANEL_LAYOUT                1085
-#define IDC_GROUPDISK                   1088
-#define IDC_GROUPNETWORK                1089
+#define IDC_GROUPNETRECEIVE             1088
+#define IDC_GROUPNETSEND                1089
 #define IDC_DETAILS                     1092
 #define IDC_GPULIST                     1093
 #define IDC_POWER_USAGE_L               1094
@@ -90,12 +88,13 @@
 #define IDC_GROUPFPSLATENCY             1099
 #define IDC_GROUPFPSPRESENT             1100
 #define IDC_GROUPFPSPRESENTINTERVAL     1101
-#define IDC_BUTTON1                     1103
 #define IDC_POOL_AUTOSIZE_COLUMNS       1104
 #define IDC_DISKREAD_L                  1108
 #define IDC_DISKWRITE_L                 1109
 #define IDC_NETRECEIVE_L                1110
 #define IDC_NETSEND_L                   1111
+#define IDC_GROUPDISKREAD               1112
+#define IDC_GROUPDISKWRITE              1113
 #define ID_POOL_TABLE                   3000
 #define IDD_POOL                        3001
 #define IDR_TXT_POOLTAGS                3002
@@ -142,7 +141,9 @@
 #define ID_THREAD_WAITCHAIN             8001
 #define ID_WCT_SHOWCONTEXTMENU          8001
 #define IDD_WCT_DIALOG                  8002
+#define IDD_PROCNET                     8003
 #define IDC_WCT_TREE                    8004
+#define IDD_PROCNET_PANEL               8004
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
 #define ID_DISK_GOTOPROCESS             40005
@@ -159,9 +160,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        154
+#define _APS_NEXT_RESOURCE_VALUE        158
 #define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1112
+#define _APS_NEXT_CONTROL_VALUE         1114
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif
