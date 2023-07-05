@@ -253,9 +253,9 @@ BOOLEAN IsServiceAccount(
     PPH_STRING localServiceSidName;
     PPH_STRING localNetworkSidName;
 
-    localSystemSidName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL);
-    localServiceSidName = PhGetSidFullName(&PhSeLocalServiceSid, TRUE, NULL);
-    localNetworkSidName = PhGetSidFullName(&PhSeNetworkServiceSid, TRUE, NULL);
+    localSystemSidName = PhGetSidFullName((PSID)&PhSeLocalSystemSid, TRUE, NULL);
+    localServiceSidName = PhGetSidFullName((PSID)&PhSeLocalServiceSid, TRUE, NULL);
+    localNetworkSidName = PhGetSidFullName((PSID)&PhSeNetworkServiceSid, TRUE, NULL);
 
     if (
         PhEqualString(localSystemSidName, UserName, TRUE) ||
@@ -483,9 +483,9 @@ static VOID PhpAddAccountsToComboBox(
 {
     PhpFreeAccountsComboBox(ComboBoxHandle);
 
-    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL))->Buffer);
-    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeLocalServiceSid, TRUE, NULL))->Buffer);
-    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName(&PhSeNetworkServiceSid, TRUE, NULL))->Buffer);
+    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName((PSID)&PhSeLocalSystemSid, TRUE, NULL))->Buffer);
+    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName((PSID)&PhSeLocalServiceSid, TRUE, NULL))->Buffer);
+    ComboBox_AddString(ComboBoxHandle, PH_AUTO_T(PH_STRING, PhGetSidFullName((PSID)&PhSeNetworkServiceSid, TRUE, NULL))->Buffer);
 
     PhEnumerateAccounts(PhpEnumerateAccountsToComboBox, ComboBoxHandle);
 }
@@ -1473,7 +1473,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
     allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid(&PhSeEveryoneSid) +
+        PhLengthSid((PSID)&PhSeEveryoneSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         PhLengthSid(allAppPackagesSid);
 
@@ -1482,7 +1482,7 @@ NTSTATUS PhSetDesktopWinStaAccess(
 
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     RtlCreateAcl(dacl, allocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, &PhSeEveryoneSid);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, (PSID)&PhSeEveryoneSid);
 
     if (WindowsVersion >= WINDOWS_8)
     {

@@ -19,29 +19,29 @@ extern "C" {
 
 // SIDs
 
-extern SID PhSeNobodySid;
+extern CONST SID PhSeNobodySid;
 
-extern SID PhSeEveryoneSid;
+extern CONST SID PhSeEveryoneSid;
 
-extern SID PhSeLocalSid;
+extern CONST SID PhSeLocalSid;
 
-extern SID PhSeCreatorOwnerSid;
-extern SID PhSeCreatorGroupSid;
+extern CONST SID PhSeCreatorOwnerSid;
+extern CONST SID PhSeCreatorGroupSid;
 
-extern SID PhSeDialupSid;
-extern SID PhSeNetworkSid;
-extern SID PhSeBatchSid;
-extern SID PhSeInteractiveSid;
-extern SID PhSeServiceSid;
-extern SID PhSeAnonymousLogonSid;
-extern SID PhSeProxySid;
-extern SID PhSeAuthenticatedUserSid;
-extern SID PhSeRestrictedCodeSid;
-extern SID PhSeTerminalServerUserSid;
-extern SID PhSeRemoteInteractiveLogonSid;
-extern SID PhSeLocalSystemSid;
-extern SID PhSeLocalServiceSid;
-extern SID PhSeNetworkServiceSid;
+extern CONST SID PhSeDialupSid;
+extern CONST SID PhSeNetworkSid;
+extern CONST SID PhSeBatchSid;
+extern CONST SID PhSeInteractiveSid;
+extern CONST SID PhSeServiceSid;
+extern CONST SID PhSeAnonymousLogonSid;
+extern CONST SID PhSeProxySid;
+extern CONST SID PhSeAuthenticatedUserSid;
+extern CONST SID PhSeRestrictedCodeSid;
+extern CONST SID PhSeTerminalServerUserSid;
+extern CONST SID PhSeRemoteInteractiveLogonSid;
+extern CONST SID PhSeLocalSystemSid;
+extern CONST SID PhSeLocalServiceSid;
+extern CONST SID PhSeNetworkServiceSid;
 
 PSID PhSeAdministratorsSid(
     VOID

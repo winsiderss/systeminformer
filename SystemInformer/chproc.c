@@ -123,7 +123,7 @@ static VOID PhpRefreshProcessList(
 
         if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID && !userName)
         {
-            PhSetReference(&userName, PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL));
+            PhSetReference(&userName, PhGetSidFullName((PSID)&PhSeLocalSystemSid, TRUE, NULL));
         }
 
         if (process->UniqueProcessId == SYSTEM_PROCESS_ID)

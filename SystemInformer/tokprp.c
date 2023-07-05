@@ -3627,7 +3627,7 @@ PPH_STRING PhpGetTokenFolderPath(
 
             if (subAuthority == SECURITY_UMFD_BASE_RID)
             {
-                if (tokenUserSid = PhSidToStringSid(&PhSeLocalSystemSid))
+                if (tokenUserSid = PhSidToStringSid((PSID)&PhSeLocalSystemSid))
                 {
                     profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
                     PhDereferenceObject(tokenUserSid);

@@ -45,7 +45,7 @@ NTSTATUS PhSvcApiPortInitialization(
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         PhLengthSid(administratorsSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid(&PhSeEveryoneSid);
+        PhLengthSid((PSID)&PhSeEveryoneSid);
 
     securityDescriptor = PhAllocate(sdAllocationLength);
     dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
@@ -53,7 +53,7 @@ NTSTATUS PhSvcApiPortInitialization(
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, PORT_ALL_ACCESS, administratorsSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, PORT_CONNECT, &PhSeEveryoneSid);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, PORT_CONNECT, (PSID)&PhSeEveryoneSid);
     RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
     InitializeObjectAttributes(

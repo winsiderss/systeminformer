@@ -1520,7 +1520,7 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
         // 3) Remove the INHERIT_REQ flag (not required but makes the sddl consistent with powercfg).
 
         RtlSetOwnerSecurityDescriptor(SecurityDescriptor, PhSeAdministratorsSid(), TRUE);
-        RtlSetGroupSecurityDescriptor(SecurityDescriptor, &PhSeLocalSystemSid, TRUE);
+        RtlSetGroupSecurityDescriptor(SecurityDescriptor, (PSID)&PhSeLocalSystemSid, TRUE);
         RtlSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
 
         if (powerPolicySddl = PhGetSecurityDescriptorAsString(

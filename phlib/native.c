@@ -9925,7 +9925,7 @@ VOID PhpInitializePredefineKeys(
     {
         RtlInitEmptyUnicodeString(&stringSid, stringSidBuffer, sizeof(stringSidBuffer));
 
-        if (PhEqualSid(tokenUser.User.Sid, &PhSeLocalSystemSid))
+        if (PhEqualSid(tokenUser.User.Sid, (PSID)&PhSeLocalSystemSid))
         {
             status = RtlInitUnicodeStringEx(&stringSid, L".DEFAULT");
         }
