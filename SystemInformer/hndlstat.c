@@ -12,7 +12,6 @@
 
 #include <phapp.h>
 #include <hndlinfo.h>
-#include <hndlprv.h>
 #include <settings.h>
 
 typedef struct _HANDLE_STATISTICS_ENTRY
@@ -43,6 +42,7 @@ VOID PhShowHandleStatisticsDialog(
     _In_ HANDLE ProcessId
     )
 {
+    BOOLEAN enableHandleSnapshot;
     NTSTATUS status;
     HANDLE_STATISTICS_CONTEXT context;
     BOOLEAN filterNeeded;
@@ -61,9 +61,12 @@ VOID PhShowHandleStatisticsDialog(
         return;
     }
 
+    enableHandleSnapshot = !!PhGetIntegerSetting(L"EnableHandleSnapshot");
+
     status = PhEnumHandlesGeneric(
         context.ProcessId,
         context.ProcessHandle,
+        enableHandleSnapshot,
         &context.Handles,
         &filterNeeded
         );
@@ -156,8 +159,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-
-
+            
             if (PhGetScalableIntegerPairSetting(L"HandleStatisticsWindowSize", TRUE, dpiValue).X)
                 PhLoadWindowPlacementFromSetting(NULL, L"HandleStatisticsWindowSize", hwndDlg);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));

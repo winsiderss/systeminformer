@@ -1649,6 +1649,17 @@ PhEnumHandlesEx2(
     _Out_ PPROCESS_HANDLE_SNAPSHOT_INFORMATION *Handles
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumHandlesGeneric(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN EnableHandleSnapshot,
+    _Out_ PSYSTEM_HANDLE_INFORMATION_EX* Handles,
+    _Out_ PBOOLEAN FilterNeeded
+    );
+
 #define PH_FIRST_PAGEFILE(Pagefiles) ( \
     /* The size of a pagefile can never be 0. A TotalSize of 0
      * is used to indicate that there are no pagefiles.
