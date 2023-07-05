@@ -7343,6 +7343,106 @@ NTSTATUS PhEnumHandlesEx2(
 }
 
 /**
+ * Enumerates all handles in a process.
+ *
+ * \param ProcessId The ID of the process.
+ * \param ProcessHandle A handle to the process.
+ * \param Handles A variable which receives a pointer to a buffer containing
+ * information about the handles.
+ * \param FilterNeeded A variable which receives a boolean indicating
+ * whether the handle information needs to be filtered by process ID.
+ */
+NTSTATUS PhEnumHandlesGeneric(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN EnableHandleSnapshot,
+    _Out_ PSYSTEM_HANDLE_INFORMATION_EX *Handles,
+    _Out_ PBOOLEAN FilterNeeded
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+
+    // There are three ways of enumerating handles:
+    // * On Windows 8 and later, NtQueryInformationProcess with ProcessHandleInformation is the most efficient method.
+    // * On Windows XP and later, NtQuerySystemInformation with SystemExtendedHandleInformation.
+    // * Otherwise, NtQuerySystemInformation with SystemHandleInformation can be used.
+
+    if ((KphLevel() >= KphLevelMed) && ProcessHandle)
+    {
+        PKPH_PROCESS_HANDLE_INFORMATION handles;
+        PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
+        ULONG i;
+
+        // Enumerate handles using KSystemInformer. Unlike with NtQuerySystemInformation,
+        // this only enumerates handles for a single process and saves a lot of processing.
+
+        if (NT_SUCCESS(status = KphEnumerateProcessHandles2(ProcessHandle, &handles)))
+        {
+            convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->HandleCount]));
+            convertedHandles->NumberOfHandles = handles->HandleCount;
+
+            for (i = 0; i < handles->HandleCount; i++)
+            {
+                convertedHandles->Handles[i].Object = handles->Handles[i].Object;
+                convertedHandles->Handles[i].UniqueProcessId = (ULONG_PTR)ProcessId;
+                convertedHandles->Handles[i].HandleValue = (ULONG_PTR)handles->Handles[i].Handle;
+                convertedHandles->Handles[i].GrantedAccess = (ULONG)handles->Handles[i].GrantedAccess;
+                convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
+                convertedHandles->Handles[i].ObjectTypeIndex = handles->Handles[i].ObjectTypeIndex;
+                convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
+            }
+
+            PhFree(handles);
+
+            *Handles = convertedHandles;
+            *FilterNeeded = FALSE;
+        }
+    }
+
+    if (!NT_SUCCESS(status) && WindowsVersion >= WINDOWS_8 && ProcessHandle && EnableHandleSnapshot)
+    {
+        PPROCESS_HANDLE_SNAPSHOT_INFORMATION handles;
+        PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
+        ULONG i;
+
+        if (NT_SUCCESS(status = PhEnumHandlesEx2(ProcessHandle, &handles)))
+        {
+            convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->NumberOfHandles]));
+            convertedHandles->NumberOfHandles = handles->NumberOfHandles;
+
+            for (i = 0; i < handles->NumberOfHandles; i++)
+            {
+                convertedHandles->Handles[i].Object = 0;
+                convertedHandles->Handles[i].UniqueProcessId = (ULONG_PTR)ProcessId;
+                convertedHandles->Handles[i].HandleValue = (ULONG_PTR)handles->Handles[i].HandleValue;
+                convertedHandles->Handles[i].GrantedAccess = handles->Handles[i].GrantedAccess;
+                convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
+                convertedHandles->Handles[i].ObjectTypeIndex = (USHORT)handles->Handles[i].ObjectTypeIndex;
+                convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
+            }
+
+            PhFree(handles);
+
+            *Handles = convertedHandles;
+            *FilterNeeded = FALSE;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PSYSTEM_HANDLE_INFORMATION_EX handles;
+
+        if (!NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
+            return status;
+
+        *Handles = handles;
+        *FilterNeeded = TRUE;
+    }
+
+    return status;
+}
+
+/**
  * Enumerates all pagefiles.
  *
  * \param Pagefiles A variable which receives a pointer to a buffer containing information about all
