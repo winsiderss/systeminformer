@@ -554,7 +554,6 @@ EXPORTS
     PhSetGraphText
 
 ; guisup
-    PhAddComboBoxStrings
     PhAddLayoutItem
     PhAddLayoutItemEx
     PhAddListViewColumn

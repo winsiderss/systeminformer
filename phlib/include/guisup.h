@@ -588,12 +588,18 @@ PhGetWindowTextToBuffer(
     _Out_opt_ PULONG ReturnLength
     );
 
-PHLIBAPI
-VOID PhAddComboBoxStrings(
+FORCEINLINE
+VOID
+NTAPI
+PhAddComboBoxStrings(
     _In_ HWND WindowHandle,
-    _In_ PWSTR *Strings,
+    _In_ PWSTR* Strings,
     _In_ ULONG NumberOfStrings
-    );
+    )
+{
+    for (ULONG i = 0; i < NumberOfStrings; i++)
+        ComboBox_AddString(WindowHandle, Strings[i]);
+}
 
 PHLIBAPI
 PPH_STRING PhGetComboBoxString(
