@@ -77,6 +77,8 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessStatsNotifyEvent,
     GeneralCallbackSettingsUpdated,
 
+    GeneralCallbackDeviceNotificationEvent, // [device provider thread]
+
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 
@@ -125,6 +127,7 @@ typedef struct _PH_PLUGIN_NOTIFY_EVENT
     // Parameter is:
     // PPH_PROCESS_ITEM for Type = PH_NOTIFY_PROCESS_*
     // PPH_SERVICE_ITEM for Type = PH_NOTIFY_SERVICE_*
+    // PPH_DEVICE_ITEM for type = PH_NOTIFY_DEVICE_*
 
     ULONG Type;
     BOOLEAN Handled;

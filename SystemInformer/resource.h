@@ -696,6 +696,8 @@
 #define ID_MISCELLANEOUS_GDIHANDLES     40188
 #define ID_MISCELLANEOUS_HEAPS          40189
 #define ID_ESC_EXIT                     40190
+#define ID_NOTIFICATIONS_ARRIVEDDEVICES 40191
+#define ID_NOTIFICATIONS_REMOVEDDEVICES 40192
 #define ID_PROCESS_COPY                 40194
 #define ID_THREAD_COPY                  40195
 #define ID_NETWORK_COPY                 40197

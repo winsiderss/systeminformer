@@ -531,4 +531,10 @@ VOID PhMwpOnNetworkItemsUpdated(
     _In_ ULONG RunId
     );
 
+// Devices
+
+VOID PhMwpInitializesDeviceNotifications(
+    VOID
+    );
+
 #endif

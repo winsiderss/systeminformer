@@ -22,6 +22,7 @@
 #include <phsettings.h>
 #include <phsvc.h>
 #include <procprv.h>
+#include <devprv.h>
 
 #include <ksisup.h>
 #include <settings.h>
@@ -1064,6 +1065,9 @@ BOOLEAN PhInitializeAppSystem(
     if (!PhServiceProviderInitialization())
         return FALSE;
     if (!PhNetworkProviderInitialization())
+        return FALSE;
+
+    if (WindowsVersion >= WINDOWS_10 && !PhDeviceProviderInitialization())
         return FALSE;
 
     PhSetHandleClientIdFunction(PhGetClientIdName);
