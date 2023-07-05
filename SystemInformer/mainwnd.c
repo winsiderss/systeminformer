@@ -236,7 +236,7 @@ LRESULT CALLBACK PhMwpWndProc(
     case WM_NCPAINT:
     case WM_NCACTIVATE:
         {
-            if (WindowsVersion >= WINDOWS_10)
+            if (WindowsVersion >= WINDOWS_10 && !PhEnableThemeSupport)
             {
                 LRESULT result = DefWindowProc(hWnd, uMsg, wParam, lParam);
                 PhWindowThemeMainMenuBorder(hWnd);
