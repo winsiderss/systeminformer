@@ -58,7 +58,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
 
             if (PhUiStopService(hwndDlg, context->ServiceItem))
             {
-                SetTimer(hwndDlg, 1, 250, NULL);
+                PhSetTimer(hwndDlg, 1, 250, NULL);
             }
             else
             {
@@ -68,13 +68,18 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
+    case WM_DESTROY:
+        {
+            PhKillTimer(hwndDlg, 1);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
                 {
-                    KillTimer(hwndDlg, 1);
+                    PhKillTimer(hwndDlg, 1);
 
                     EndDialog(hwndDlg, IDCANCEL);
                 }
