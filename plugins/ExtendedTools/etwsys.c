@@ -1409,7 +1409,7 @@ VOID EtpNotifyNetworkSendGraph(
 
                     PhCopyConvertCircularBufferULONG(
                         &EtNetworkSendHistory,
-                        NetworkSendGraphState.Data2,
+                        NetworkSendGraphState.Data1,
                         drawInfo->LineDataCount
                         );
 
