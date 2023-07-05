@@ -427,3 +427,64 @@ CleanupExit:
 
     return status;
 }
+
+NTSTATUS PhRunAsAdminTaskUIAccess(
+    VOID
+    )
+{
+    NTSTATUS status;
+    BOOLEAN tokenIsUIAccess;
+    ULONG sessionId;
+    ULONG processId;
+    HWND windowHandle;
+    PPH_STRING fileName;
+
+    if (!PhGetOwnTokenAttributes().Elevated)
+        return STATUS_UNSUCCESSFUL;
+
+    if (!NT_SUCCESS(PhGetTokenUIAccess(
+        PhGetOwnTokenAttributes().TokenHandle,
+        &tokenIsUIAccess
+        )) || tokenIsUIAccess)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    fileName = PhGetApplicationFileNameWin32();
+
+    if (PhIsNullOrEmptyString(fileName))
+        return STATUS_UNSUCCESSFUL;
+
+    // Query the user desktop from the current shell window.
+
+    if (!(windowHandle = GetShellWindow()))
+        return STATUS_UNSUCCESSFUL;
+
+    if (!GetWindowThreadProcessId(windowHandle, &processId))
+        return STATUS_UNSUCCESSFUL;
+
+    // Query the session from the current process.
+
+    status = PhGetProcessSessionId(NtCurrentProcess(), &sessionId);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhExecuteRunAsCommand3(
+        NULL,
+        fileName->Buffer,
+        NULL,
+        NULL,
+        LOGON32_LOGON_INTERACTIVE,
+        UlongToHandle(processId),
+        sessionId,
+        NULL,
+        TRUE,
+        FALSE,
+        TRUE
+        );
+
+    PhDereferenceObject(fileName);
+
+    return status;
+}
