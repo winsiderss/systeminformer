@@ -264,9 +264,6 @@ EXPORTS
     PhEnumFileStreams
     PhEnumFirmwareEnvironmentValues
     PhEnumGenericModules
-    PhEnumHandles
-    PhEnumHandlesEx
-    PhEnumHandlesEx2
     PhEnumKernelModules
     PhEnumNextProcess
     PhEnumNextThread
