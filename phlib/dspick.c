@@ -30,14 +30,12 @@ IDsObjectPicker *PhpCreateDsObjectPicker(
     VOID
     )
 {
-    static CLSID CLSID_DsObjectPicker_I = { 0x17d6ccd8, 0x3b7b, 0x11d2, { 0xb9, 0xe0, 0x00, 0xc0, 0x4f, 0xd8, 0xdb, 0xf7 } };
-    static IID IID_IDsObjectPicker_I = { 0x0c87e64e, 0x3b7a, 0x11d2, { 0xb9, 0xe0, 0x00, 0xc0, 0x4f, 0xd8, 0xdb, 0xf7 } };
     IDsObjectPicker *picker;
 
     if (SUCCEEDED(PhGetClassObject(
         L"objsel.dll",
-        &CLSID_DsObjectPicker_I,
-        &IID_IDsObjectPicker_I,
+        &CLSID_DsObjectPicker,
+        &IID_IDsObjectPicker,
         &picker
         )))
     {

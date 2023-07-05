@@ -133,7 +133,7 @@ PH_STRINGREF PhUnicodeByteOrderMark = PH_STRINGREF_INIT(L"\ufeff");
 
 // Characters
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 BOOLEAN PhCharIsPrintable[256] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, /* 0 - 15 */ // TAB, LF and CR are printable
@@ -155,7 +155,7 @@ BOOLEAN PhCharIsPrintable[256] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 /* 240 - 255 */
 };
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 ULONG PhCharToInteger[256] =
 {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 0 - 15 */
@@ -177,7 +177,7 @@ ULONG PhCharToInteger[256] =
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 /* 240 - 255 */
 };
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 CHAR PhIntegerToChar[69] =
     "0123456789" /* 0 - 9 */
     "abcdefghijklmnopqrstuvwxyz" /* 10 - 35 */
@@ -187,7 +187,7 @@ CHAR PhIntegerToChar[69] =
     "{|}~" /* 65 - 68 */
     ;
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 CHAR PhIntegerToCharUpper[69] =
     "0123456789" /* 0 - 9 */
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ" /* 10 - 35 */
@@ -199,7 +199,7 @@ CHAR PhIntegerToCharUpper[69] =
 
 // CRC32 (IEEE 802.3)
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 ULONG PhCrc32Table[256] =
 {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -238,7 +238,7 @@ ULONG PhCrc32Table[256] =
 
 // Enums
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes] =
 {
     L"Very low",
@@ -248,7 +248,7 @@ WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes] =
     L"Critical"
 };
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 WCHAR *PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
 {
     L"Lowest",
@@ -259,7 +259,7 @@ WCHAR *PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
     L"Normal"
 };
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 WCHAR *PhKThreadStateNames[MaximumThreadState] =
 {
     L"Initialized",
@@ -274,7 +274,7 @@ WCHAR *PhKThreadStateNames[MaximumThreadState] =
     L"WaitingForProcessInSwap"
 };
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 WCHAR *PhKWaitReasonNames[MaximumWaitReason] =
 {
     L"Executive",

@@ -620,14 +620,12 @@ VOID PhpFillRunningTasks(
     _Inout_ PPH_STRING_BUILDER Tasks
     )
 {
-    static CLSID CLSID_TaskScheduler_I = { 0x0f87369f, 0xa4e5, 0x4cfc, { 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd } };
-    static IID IID_ITaskService_I = { 0x2faba4c7, 0x4da9, 0x4013, { 0x96, 0x97, 0x20, 0xcc, 0x3f, 0xd4, 0x0f, 0x85 } };
     ITaskService *taskService = NULL;
 
     if (SUCCEEDED(PhGetClassObject(
         L"taskschd.dll",
-        &CLSID_TaskScheduler_I,
-        &IID_ITaskService_I,
+        &CLSID_TaskScheduler,
+        &IID_ITaskService,
         &taskService
         )))
     {

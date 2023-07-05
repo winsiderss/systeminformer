@@ -135,7 +135,7 @@
 #define COMMON_INTEGER_FORMAT(Input, Format) \
     do { \
         ULONG radix; \
-        PCHAR integerToChar; \
+        PCCH integerToChar; \
         PWSTR temp; \
         ULONG tempCount; \
         ULONG r; \

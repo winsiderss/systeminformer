@@ -39,8 +39,8 @@ _CertDuplicateCertificateContext CertDuplicateCertificateContext_I;
 _CertFreeCertificateContext CertFreeCertificateContext_I;
 
 static PH_INITONCE PhpVerifyInitOnce = PH_INITONCE_INIT;
-static GUID WinTrustActionGenericVerifyV2 = WINTRUST_ACTION_GENERIC_VERIFY_V2;
-static GUID DriverActionVerify = DRIVER_ACTION_VERIFY;
+static CONST GUID WinTrustActionGenericVerifyV2 = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+static CONST GUID DriverActionVerify = DRIVER_ACTION_VERIFY;
 #ifdef PH_ENABLE_VERIFY_CACHE
 static PPH_HASHTABLE PhpVerifyCacheHashTable = NULL;
 static PH_QUEUED_LOCK PhpVerifyCacheLock = PH_QUEUED_LOCK_INIT;
@@ -429,7 +429,7 @@ VERIFY_RESULT PhpVerifyFile(
     _In_ PPH_VERIFY_FILE_INFO Information,
     _In_ ULONG UnionChoice,
     _In_ PVOID UnionData,
-    _In_ PGUID ActionId,
+    _In_ PCGUID ActionId,
     _In_opt_ PVOID PolicyCallbackData,
     _Out_ PCERT_CONTEXT **Signatures,
     _Out_ PULONG NumberOfSignatures

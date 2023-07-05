@@ -6344,7 +6344,7 @@ PPH_STRING PhBufferToHexStringEx(
     )
 {
     PPH_STRING string;
-    PCHAR table;
+    PCCH table;
     ULONG i;
 
     if (UpperCase)
@@ -6368,12 +6368,12 @@ BOOLEAN PhBufferToHexStringBuffer(
     _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
     _In_ SIZE_T InputLength,
     _In_ BOOLEAN UpperCase,
-    _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PWSTR OutputBuffer,
+    _Out_writes_bytes_to_(OutputLength, *ReturnLength) PWSTR OutputBuffer,
     _In_ SIZE_T OutputLength,
     _Out_opt_ PSIZE_T ReturnLength
     )
 {
-    PCHAR table;
+    PCCH table;
     ULONG i;
 
     if (OutputLength < InputLength * sizeof(WCHAR) * 2)
