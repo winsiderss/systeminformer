@@ -415,8 +415,6 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
 
     if (processItem->IconEntry) PhDereferenceObject(processItem->IconEntry);
-
-    if (processItem->AlternateProcessIdString) PhDereferenceObject(processItem->AlternateProcessIdString);
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessItem(
@@ -1137,25 +1135,6 @@ VOID PhpFillProcessItem(
             ProcessItem->IsWow64 = basicInfo.IsWow64Process;
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
         }
-
-        if (ProcessItem->IsSubsystemProcess && KphLevel() >= KphLevelMed)
-        {
-            ULONG wslProcessId;
-            if (NT_SUCCESS(KphQueryInformationProcess(
-                ProcessItem->QueryHandle,
-                KphProcessWSLProcessId,
-                &wslProcessId,
-                sizeof(ULONG),
-                NULL
-                )))
-            {
-                ProcessItem->AlternateProcessIdString = PhFormatString(
-                    L"%lu (%lu)", 
-                    HandleToUlong(ProcessItem->ProcessId), 
-                    wslProcessId
-                    );
-            }
-        }
     }
 
     // Process information
@@ -1348,6 +1327,26 @@ VOID PhpFillProcessItem(
                 {
                     ProcessItem->IsCetEnabled = cetEnabled;
                 }
+            }
+        }
+    }
+
+    // WSL
+    if (WindowsVersion >= WINDOWS_10_22H2 && ProcessItem->QueryHandle)
+    {
+        if (ProcessItem->IsSubsystemProcess && KphLevel() >= KphLevelMed)
+        {
+            ULONG lxssProcessId;
+
+            if (NT_SUCCESS(KphQueryInformationProcess(
+                ProcessItem->QueryHandle,
+                KphProcessWSLProcessId,
+                &lxssProcessId,
+                sizeof(ULONG),
+                NULL
+                )))
+            {
+                ProcessItem->LxssProcessId = lxssProcessId;
             }
         }
     }
