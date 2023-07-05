@@ -321,15 +321,15 @@ NTSTATUS PhRestartSelf(
         NULL
         );
 
-    if (startupInfo.lpAttributeList)
-        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-
-    PhDereferenceObject(commandline);
-
     if (NT_SUCCESS(status))
     {
         PhExitApplication(STATUS_SUCCESS);
     }
+
+    if (startupInfo.lpAttributeList)
+        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+
+    PhDereferenceObject(commandline);
 
     return status;
 }

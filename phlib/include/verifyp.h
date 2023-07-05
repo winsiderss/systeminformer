@@ -79,13 +79,13 @@ typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle3)(
 
 typedef BOOL (WINAPI *_CryptCATAdminAcquireContext)(
     _Out_ HCATADMIN *phCatAdmin,
-    _In_opt_ PGUID pgSubsystem,
+    _In_opt_ PCGUID pgSubsystem,
     _Reserved_ ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminAcquireContext2)(
     _Out_ HCATADMIN *phCatAdmin,
-    _In_opt_ PGUID pgSubsystem,
+    _In_opt_ PCGUID pgSubsystem,
     _In_opt_ PCWSTR pwszHashAlgorithm,
     _In_opt_ PCCERT_STRONG_SIGN_PARA pStrongHashPolicy,
     _Reserved_ ULONG dwFlags
@@ -144,7 +144,7 @@ typedef BOOL (WINAPI* _WTHelperCheckCertUsage)(
 
 typedef LONG (WINAPI *_WinVerifyTrust)(
     _In_ HWND hWnd,
-    _In_ GUID *pgActionID,
+    _In_ PCGUID pgActionID,
     _In_ PVOID pWVTData
     );
 

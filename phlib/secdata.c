@@ -15,9 +15,9 @@
 #include <wbemcli.h>
 #include <wtsapi32.h>
 
-#define ACCESS_ENTRIES(Type) static PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
+#define ACCESS_ENTRIES(Type) static const PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
 #define ACCESS_ENTRY(Type, HasSynchronize) \
-   { TEXT(#Type), Ph##Type##AccessEntries, sizeof(Ph##Type##AccessEntries), HasSynchronize }
+   { TEXT(#Type), (PPH_ACCESS_ENTRY)Ph##Type##AccessEntries, sizeof(Ph##Type##AccessEntries), HasSynchronize }
 
 typedef struct _PH_SPECIFIC_TYPE
 {
@@ -819,7 +819,7 @@ BOOLEAN PhGetAccessEntries(
     }
     else
     {
-        *AccessEntries = PhAllocateCopy(PhStandardAccessEntries, sizeof(PhStandardAccessEntries));
+        *AccessEntries = PhAllocateCopy((PVOID)PhStandardAccessEntries, sizeof(PhStandardAccessEntries));
         *NumberOfAccessEntries = sizeof(PhStandardAccessEntries) / sizeof(PH_ACCESS_ENTRY);
     }
 

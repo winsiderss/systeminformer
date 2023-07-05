@@ -1442,7 +1442,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_PAGEPRIORITY:
                 {
-                    PWSTR pagePriority = L"N/A";
+                    PCWSTR pagePriority = L"N/A";
 
                     PhpUpdateThreadNodePagePriority(node);
 
@@ -1451,12 +1451,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         pagePriority = PhPagePriorityNames[node->PagePriority];
                     }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, pagePriority);
+                    PhInitializeStringRefLongHint(&getCellText->Text, (PWSTR)pagePriority);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_IOPRIORITY:
                 {
-                    PWSTR ioPriority = L"N/A";
+                    PCWSTR ioPriority = L"N/A";
 
                     PhpUpdateThreadNodeIoPriority(node);
 
@@ -1465,7 +1465,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         ioPriority = PhIoPriorityHintNames[node->IoPriority];
                     }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, ioPriority);
+                    PhInitializeStringRefLongHint(&getCellText->Text, (PWSTR)ioPriority);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CYCLES:
@@ -1490,14 +1490,14 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (threadItem->State != Waiting)
                     {
                         if ((ULONG)threadItem->State < MaximumThreadState)
-                            PhMoveReference(&node->StateText, PhCreateString(PhKThreadStateNames[(ULONG)threadItem->State]));
+                            PhMoveReference(&node->StateText, PhCreateString((PWSTR)PhKThreadStateNames[(ULONG)threadItem->State]));
                         else
                             PhMoveReference(&node->StateText, PhCreateString(L"Unknown"));
                     }
                     else
                     {
                         if ((ULONG)threadItem->WaitReason < MaximumWaitReason)
-                            PhMoveReference(&node->StateText, PhConcatStrings2(L"Wait:", PhKWaitReasonNames[(ULONG)threadItem->WaitReason]));
+                            PhMoveReference(&node->StateText, PhConcatStrings2(L"Wait:", (PWSTR)PhKWaitReasonNames[(ULONG)threadItem->WaitReason]));
                         else
                             PhMoveReference(&node->StateText, PhCreateString(L"Waiting"));
                     }
