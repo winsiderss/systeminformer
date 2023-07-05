@@ -96,20 +96,13 @@ VOID PhPinMiniInformation(
 
         if (!PhMipContainerWindow)
         {
-            WNDCLASSEX wcex;
             RTL_ATOM windowAtom;
-            PPH_STRING className;
 
-            memset(&wcex, 0, sizeof(WNDCLASSEX));
-            wcex.cbSize = sizeof(WNDCLASSEX);
-            wcex.lpfnWndProc = PhMipContainerWndProc;
-            wcex.hInstance = PhInstanceHandle;
-            className = PhaGetStringSetting(L"MiniInfoWindowClassName");
-            wcex.lpszClassName = PhGetStringOrDefault(className, L"MiniInfoWindowClassName");
-            wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-            windowAtom = RegisterClassEx(&wcex);
+            if ((windowAtom = PhMipContainerInitializeWindowClass()) == INVALID_ATOM)
+                return;
 
-            PhMipContainerWindow = CreateWindow(
+            PhMipContainerWindow = CreateWindowEx(
+                WS_EX_TOOLWINDOW,
                 MAKEINTATOM(windowAtom),
                 PhApplicationName,
                 WS_BORDER | WS_THICKFRAME | WS_POPUP,
@@ -122,7 +115,7 @@ VOID PhPinMiniInformation(
                 NULL,
                 NULL
                 );
-            PhSetWindowExStyle(PhMipContainerWindow, WS_EX_TOOLWINDOW, WS_EX_TOOLWINDOW);
+
             PhMipWindow = PhCreateDialog(
                 PhInstanceHandle,
                 MAKEINTRESOURCE(IDD_MINIINFO),
@@ -168,7 +161,7 @@ VOID PhPinMiniInformation(
             SetWindowPos(PhMipContainerWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
         }
 
-        PhInitializeWindowTheme(PhMipContainerWindow, PhEnableThemeSupport); // HACK
+        PhInitializeWindowTheme(PhMipContainerWindow, PhEnableThemeSupport);
 
         ShowWindow(PhMipContainerWindow, (Flags & PH_MINIINFO_ACTIVATE_WINDOW) ? SW_SHOW : SW_SHOWNOACTIVATE);
     }
@@ -236,7 +229,6 @@ LRESULT CALLBACK PhMipContainerWndProc(
         {
             // Hide, don't close.
             ShowWindow(hWnd, SW_HIDE);
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, 0);
         }
         return TRUE;
     case WM_ERASEBKGND:
@@ -315,6 +307,24 @@ INT_PTR CALLBACK PhMipMiniInfoDialogProc(
     }
 
     return FALSE;
+}
+
+RTL_ATOM PhMipContainerInitializeWindowClass(
+    VOID
+    )
+{
+    WNDCLASSEX wcex;
+    PPH_STRING name;
+
+    memset(&wcex, 0, sizeof(WNDCLASSEX));
+    wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.lpfnWndProc = PhMipContainerWndProc;
+    wcex.hInstance = PhInstanceHandle;
+    name = PhaGetStringSetting(L"MiniInfoContainerClassName");
+    wcex.lpszClassName = PhGetStringOrDefault(name, L"MiniInfoContainerClassName");
+    wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+
+    return RegisterClassEx(&wcex);
 }
 
 VOID PhMipContainerOnShowWindow(
@@ -442,10 +452,12 @@ VOID PhMipOnInitDialog(
 {
     HICON cog;
     HICON pin;
-    WNDPROC oldWndProc;
     LONG dpiValue;
+    HWND sectionWindow;
+    WNDPROC oldWndProc;
 
     dpiValue = PhGetWindowDpi(PhMipWindow);
+    sectionWindow = GetDlgItem(PhMipWindow, IDC_SECTION);
 
     cog = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), dpiValue);
     SET_BUTTON_ICON(PhMipWindow, IDC_OPTIONS, cog);
@@ -455,16 +467,16 @@ VOID PhMipOnInitDialog(
 
     PhInitializeLayoutManager(&PhMipLayoutManager, PhMipWindow);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_LAYOUT), NULL, PH_ANCHOR_ALL);
-    PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_SECTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
+    PhAddLayoutItem(&PhMipLayoutManager, sectionWindow, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM | PH_LAYOUT_FORCE_INVALIDATE);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_OPTIONS), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
     PhAddLayoutItem(&PhMipLayoutManager, GetDlgItem(PhMipWindow, IDC_PINWINDOW), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
     Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), !!PhGetIntegerSetting(L"MiniInfoWindowPinned"));
 
     // Subclass the window procedure.
-    oldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
-    PhSetWindowContext(GetDlgItem(PhMipWindow, IDC_SECTION), 0xF, oldWndProc);
-    SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
+    oldWndProc = (WNDPROC)GetWindowLongPtr(sectionWindow, GWLP_WNDPROC);
+    PhSetWindowContext(sectionWindow, 0xF, oldWndProc);
+    SetWindowLongPtr(sectionWindow, GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
 }
 
 VOID PhMipOnShowWindow(
