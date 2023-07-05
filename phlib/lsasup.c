@@ -1098,3 +1098,524 @@ VOID PhMapGenericMask(
     *AccessMask = ClearFlag(accessMask, GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE | GENERIC_ALL);
 }
 
+NTSTATUS PhEnumerateAccounts(
+    _In_ PPH_ENUM_ACCOUNT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static ULONG (WINAPI* NetUserEnum_I)( // NET_API_STATUS
+        _In_ PCWSTR servername,
+        _In_ ULONG level,
+        _In_ ULONG filter,
+        _Out_ PVOID * bufptr,
+        _In_ ULONG prefmaxlen,
+        _Out_ PULONG entriesread,
+        _Out_ PULONG totalentries,
+        _Inout_ PULONG resume_handle
+        );
+    static ULONG (WINAPI* NetApiBufferFree_I)(
+        _Frees_ptr_opt_ PVOID Buffer
+        );
+    typedef struct _USER_INFO_0
+    {
+        PWSTR usri0_name;
+    } USER_INFO_0, *PUSER_INFO_0;
+    #define FILTER_NORMAL_ACCOUNT (0x0002)
+    #define MAX_PREFERRED_LENGTH ((ULONG)-1)
+
+    ULONG status;
+    PUSER_INFO_0 userinfoArray = NULL;
+    ULONG userinfoEntriesRead = 0;
+    ULONG userinfoTotalEntries = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"netapi32.dll"))
+        {
+            NetUserEnum_I = PhGetDllBaseProcedureAddress(baseAddress, "NetUserEnum", 0);
+            NetApiBufferFree_I = PhGetDllBaseProcedureAddress(baseAddress, "NetApiBufferFree", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(NetUserEnum_I && NetApiBufferFree_I))
+        return STATUS_UNSUCCESSFUL;
+    
+    NetUserEnum_I(
+        NULL,
+        0,
+        FILTER_NORMAL_ACCOUNT,
+        &userinfoArray,
+        MAX_PREFERRED_LENGTH,
+        &userinfoEntriesRead,
+        &userinfoTotalEntries,
+        NULL
+        );
+
+    if (userinfoArray)
+    {
+        NetApiBufferFree_I(userinfoArray);
+        userinfoArray = NULL;
+    }
+
+    status = NetUserEnum_I(
+        NULL,
+        0,
+        FILTER_NORMAL_ACCOUNT,
+        &userinfoArray,
+        MAX_PREFERRED_LENGTH,
+        &userinfoEntriesRead,
+        &userinfoTotalEntries,
+        NULL
+        );
+
+    if (status == ERROR_SUCCESS)
+    {
+        PPH_STRING userName;
+        PPH_STRING userDomainName = NULL;
+
+        if (userName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+        {
+            PH_STRINGREF domainPart;
+            PH_STRINGREF userPart;
+
+            if (PhSplitStringRefAtChar(&userName->sr, OBJ_NAME_PATH_SEPARATOR, &domainPart, &userPart))
+            {
+                if (domainPart.Length)
+                {
+                    userDomainName = PhCreateString2(&domainPart);
+                }
+            }
+
+            PhDereferenceObject(userName);
+        }
+
+        if (userDomainName)
+        {
+            for (ULONG i = 0; i < userinfoEntriesRead; i++)
+            {
+                PUSER_INFO_0 entry = PTR_ADD_OFFSET(userinfoArray, sizeof(USER_INFO_0) * i);
+
+                if (entry->usri0_name)
+                {
+                    PPH_STRING usernameString;
+                    PH_STRINGREF usri10String;
+
+                    PhInitializeStringRefLongHint(&usri10String, entry->usri0_name);
+
+                    usernameString = PhConcatStringRef3(
+                        &userDomainName->sr,
+                        &PhNtPathSeperatorString,
+                        &usri10String
+                        );
+
+                    if (!NT_SUCCESS(Callback(usernameString, Context)))
+                    {
+                        PhDereferenceObject(usernameString);
+                        break;
+                    }
+
+                    PhDereferenceObject(usernameString);
+                }
+            }
+            
+            PhDereferenceObject(userDomainName);
+        }
+    }
+
+    if (userinfoArray)
+        NetApiBufferFree_I(userinfoArray);
+
+    //LSA_HANDLE policyHandle;
+    //LSA_ENUMERATION_HANDLE enumerationContext = 0;
+    //PLSA_ENUMERATION_INFORMATION buffer;
+    //ULONG count;
+    //PPH_STRING name;
+    //SID_NAME_USE nameUse;
+    //
+    //if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
+    //{
+    //    while (NT_SUCCESS(LsaEnumerateAccounts(
+    //        policyHandle,
+    //        &enumerationContext,
+    //        &buffer,
+    //        0x100,
+    //        &count
+    //        )))
+    //    {
+    //        for (i = 0; i < count; i++)
+    //        {
+    //            name = PhGetSidFullName(buffer[i].Sid, TRUE, &nameUse);
+    //            if (name)
+    //            {
+    //                if (nameUse == SidTypeUser)
+    //                    ComboBox_AddString(ComboBoxHandle, name->Buffer);
+    //                PhDereferenceObject(name);
+    //            }
+    //        }
+    //        LsaFreeMemory(buffer);
+    //    }
+    //
+    //    LsaClose(policyHandle);
+    //}
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+//VOID PhpSessionPropertiesQuerySamAccountInfo(
+//    _In_ ULONG SessionId
+//    )
+//{
+//    NTSTATUS status;
+//    WINSTATIONINFORMATION stationInfo;
+//    PPOLICY_ACCOUNT_DOMAIN_INFO lsaDomainInfo = NULL;
+//    PUSER_LOGON_INFORMATION samLogonInfo = NULL;
+//    LSA_OBJECT_ATTRIBUTES objectAttributes;
+//    LSA_HANDLE lookupPolicyHandle = NULL;
+//    SAM_HANDLE lookupServerHandle = NULL;
+//    SAM_HANDLE lookupDomainHandle = NULL;
+//    SAM_HANDLE lookupUserHandle = NULL;
+//    SAM_HANDLE groupHandle = NULL;
+//    UNICODE_STRING unicodeString;
+//    PULONG lookupRelativeId = NULL;
+//    PSID_NAME_USE Use = NULL;
+//    PUSER_ACCOUNT_INFORMATION UserInfo = NULL;
+//    ULONG returnLength;
+//
+//    if (!WinStationQueryInformationW(
+//        NULL,
+//        SessionId,
+//        WinStationInformation,
+//        &stationInfo,
+//        sizeof(WINSTATIONINFORMATION),
+//        &returnLength
+//        ))
+//    {
+//        goto CleanupExit;
+//    }
+//
+//    RtlInitUnicodeString(&unicodeString, stationInfo.Domain);
+//    InitializeObjectAttributes(
+//        &objectAttributes,
+//        NULL,
+//        OBJ_CASE_INSENSITIVE,
+//        NULL,
+//        NULL
+//        );
+//
+//    status = LsaOpenPolicy(
+//        &unicodeString,
+//        &objectAttributes,
+//        POLICY_VIEW_LOCAL_INFORMATION,
+//        &lookupPolicyHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = LsaQueryInformationPolicy(
+//        lookupPolicyHandle,
+//        PolicyAccountDomainInformation,
+//        &lsaDomainInfo
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    InitializeObjectAttributes(
+//        &objectAttributes,
+//        NULL,
+//        OBJ_CASE_INSENSITIVE,
+//        NULL,
+//        NULL
+//        );
+//
+//    status = SamConnect(
+//        &unicodeString,
+//        &lookupServerHandle,
+//        SAM_SERVER_CONNECT | SAM_SERVER_LOOKUP_DOMAIN,
+//        &objectAttributes
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = SamOpenDomain(
+//        lookupServerHandle,
+//        DOMAIN_LOOKUP | DOMAIN_READ_OTHER_PARAMETERS,
+//        lsaDomainInfo->DomainSid,
+//        &lookupDomainHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    RtlInitUnicodeString(&unicodeString, stationInfo.UserName);
+//    status = SamLookupNamesInDomain(
+//        lookupDomainHandle,
+//        1,
+//        &unicodeString,
+//        &lookupRelativeId,
+//        &Use
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = SamOpenUser(
+//        lookupDomainHandle,
+//        USER_READ_GENERAL | USER_READ_PREFERENCES |
+//        USER_READ_LOGON | USER_READ_ACCOUNT |
+//        USER_LIST_GROUPS | USER_READ_GROUP_INFORMATION,
+//        lookupRelativeId[0],
+//        &lookupUserHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    if (NT_SUCCESS(SamQueryInformationUser(
+//        lookupUserHandle,
+//        UserAllInformation,
+//        &samLogonInfo
+//        )))
+//    {
+//        SamFreeMemory(samLogonInfo);
+//    }
+//
+//CleanupExit:
+//
+//    if (Use)
+//        SamFreeMemory(Use);
+//    if (lookupRelativeId)
+//        SamFreeMemory(lookupRelativeId);
+//
+//    if (lookupUserHandle)
+//        SamCloseHandle(lookupUserHandle);
+//    if (lookupDomainHandle)
+//        SamCloseHandle(lookupDomainHandle);
+//    if (lookupServerHandle)
+//        SamCloseHandle(lookupServerHandle);
+//
+//    if (lsaDomainInfo)
+//        LsaFreeMemory(lsaDomainInfo);
+//    if (lookupPolicyHandle)
+//        LsaClose(lookupPolicyHandle);
+//}
+//
+//NTSTATUS WINAPI NetUserEnum(LPCWSTR servername,
+//    DWORD level,
+//    DWORD filter,
+//    LPBYTE* bufptr,
+//    DWORD prefmaxlen,
+//    LPDWORD entriesread,
+//    LPDWORD totalentries,
+//    LPDWORD resume_handle)
+//{
+//    SAM_HANDLE lookupServerHandle = NULL;
+//    SAM_HANDLE lookupDomainHandle = NULL;
+//    UNICODE_STRING ServerName;
+//    PSAM_RID_ENUMERATION CurrentUser;
+//    //PENUM_CONTEXT EnumContext = NULL;
+//    LPVOID Buffer = NULL;
+//    ULONG i;
+//    SAM_HANDLE UserHandle = NULL;
+//    ACCESS_MASK DesiredAccess;
+//    ULONG ApiStatus = ERROR_SUCCESS;
+//    NTSTATUS Status = STATUS_SUCCESS;
+//
+//    if (servername != NULL)
+//    {
+//        RtlInitUnicodeString(&ServerName, servername);
+//    }
+//    
+//    //ApiStatus = AllocateEnumContext(&EnumContext);
+//    //if (ApiStatus != ERROR_SUCCESS)
+//    //    goto done;
+//
+//    Status = SamConnect((servername != NULL) ? &ServerName : NULL, &lookupServerHandle, SAM_SERVER_CONNECT | SAM_SERVER_LOOKUP_DOMAIN, NULL);
+//    if (!NT_SUCCESS(Status))
+//    {
+//        //ERR("SamConnect failed (Status %08lx)\n", Status);
+//        //ApiStatus = NetpNtStatusToApiStatus(Status);
+//        goto done;
+//    }
+//
+//    /* Get the Account Domain SID */
+//    //Status = GetAccountDomainSid((servername != NULL) ? &ServerName : NULL, &EnumContext->AccountDomainSid);
+//    //if (!NT_SUCCESS(Status))
+//    //{
+//    //    //ERR("GetAccountDomainSid failed (Status %08lx)\n", Status);
+//    //    //ApiStatus = NetpNtStatusToApiStatus(Status);
+//    //    goto done;
+//    //}
+//
+//    ///* Open the Account Domain */
+//    //Status = SamOpenDomain(
+//    //    lookupServerHandle,
+//    //    DOMAIN_LIST_ACCOUNTS | DOMAIN_LOOKUP,
+//    //    EnumContext->AccountDomainSid,
+//    //    &lookupDomainHandle
+//    //    );
+//    //if (!NT_SUCCESS(Status))
+//    //{
+//    //    //ERR("SamOpenDomain failed (Status %08lx)\n", Status);
+//    //    //ApiStatus = NetpNtStatusToApiStatus(Status);
+//    //    goto done;
+//    //}
+//
+//    ///* Get the Builtin Domain SID */
+//    //Status = GetBuiltinDomainSid(&EnumContext->BuiltinDomainSid);
+//    //if (!NT_SUCCESS(Status))
+//    //{
+//    //    //ERR("GetBuiltinDomainSid failed (Status %08lx)\n", Status);
+//    //    //ApiStatus = NetpNtStatusToApiStatus(Status);
+//    //    goto done;
+//    //}
+//
+//    //DesiredAccess = DOMAIN_LIST_ACCOUNTS | DOMAIN_LOOKUP;
+//    //if ((level == 1) || (level == 2) || (level == 3) || (level == 4) || (level == 11))
+//    //    DesiredAccess |= DOMAIN_GET_ALIAS_MEMBERSHIP;
+//
+//    ///* Open the Builtin Domain */
+//    //Status = SamOpenDomain(
+//    //    lookupServerHandle,
+//    //    DesiredAccess,
+//    //    EnumContext->BuiltinDomainSid,
+//    //    &lookupDomainHandle);
+//    //if (!NT_SUCCESS(Status))
+//    //{
+//    //    //ERR("SamOpenDomain failed (Status %08lx)\n", Status);
+//    //    //ApiStatus = NetpNtStatusToApiStatus(Status);
+//    //    goto done;
+//    //}
+//
+//
+//    //    while (TRUE)
+//    //    {
+//    //TRACE("EnumContext->Index: %lu\n", EnumContext->Index);
+//    //TRACE("EnumContext->Count: %lu\n", EnumContext->Count);
+//
+//    SAM_ENUMERATE_HANDLE EnumerationContext;
+//    PVOID buffer;
+//    ULONG count;
+//
+//    //TRACE("Calling SamEnumerateUsersInDomain\n");
+//    Status = SamEnumerateUsersInDomain(
+//        lookupServerHandle, //BuiltinDomainHandle,
+//        &EnumerationContext,
+//        0,
+//        &buffer,
+//        prefmaxlen,
+//        &count);
+//
+//    //TRACE("SamEnumerateUsersInDomain returned (Status %08lx)\n", Status);
+//    if (!NT_SUCCESS(Status))
+//    {
+//        //ERR("SamEnumerateUsersInDomain failed (Status %08lx)\n", Status);
+//        //ApiStatus = NetpNtStatusToApiStatus(Status);
+//        goto done;
+//    }
+//
+//    if (Status == STATUS_MORE_ENTRIES)
+//    {
+//        //ApiStatus = NERR_BufTooSmall;
+//        goto done;
+//    }
+//    //else
+//    //{
+//    //    EnumContext->BuiltinDone = TRUE;
+//    //}
+//
+//    //TRACE("EnumContext: %lu\n", EnumContext);
+//    //TRACE("EnumContext->Count: %lu\n", EnumContext->Count);
+//    //TRACE("EnumContext->Buffer: %p\n", EnumContext->Buffer);
+//
+//    /* Get a pointer to the current user */
+//    CurrentUser = &buffer[0];
+//
+//    //TRACE("RID: %lu\n", CurrentUser->RelativeId);
+//
+//    DesiredAccess = READ_CONTROL | USER_READ_GENERAL | USER_READ_PREFERENCES | USER_READ_LOGON | USER_READ_ACCOUNT;
+//    if ((level == 1) || (level == 2) || (level == 3) || (level == 4) || (level == 11))
+//        DesiredAccess |= USER_LIST_GROUPS;
+//
+//    //Status = SamOpenUser(
+//    //    EnumContext->AccountDomainHandle, //BuiltinDomainHandle,
+//    //    DesiredAccess,
+//    //    CurrentUser->RelativeId,
+//    //    &UserHandle);
+//    //if (!NT_SUCCESS(Status))
+//    //{
+//    //    //ERR("SamOpenUser failed (Status %08lx)\n", Status);
+//    //    //ApiStatus = NetpNtStatusToApiStatus(Status);
+//    //    goto done;
+//    //}
+//
+//    //ApiStatus = BuildUserInfoBuffer(EnumContext->BuiltinDomainHandle,
+//    //    UserHandle,
+//    //    EnumContext->AccountDomainSid,
+//    //    CurrentUser->RelativeId,
+//    //    level,
+//    //    &Buffer);
+//    //if (ApiStatus != ERROR_SUCCESS)
+//    //{
+//    //    //ERR("BuildUserInfoBuffer failed (ApiStatus %lu)\n", ApiStatus);
+//    //    goto done;
+//    //}
+//
+//    SamCloseHandle(UserHandle);
+//    UserHandle = NULL;
+//
+//done:
+//    //if (ApiStatus == ERROR_SUCCESS && EnumContext != NULL && EnumContext->Index < EnumContext->Count)
+//    //    ApiStatus = ERROR_MORE_DATA;
+//
+//    //if (resume_handle == NULL || ApiStatus != ERROR_MORE_DATA)
+//    //{
+//    //    if (EnumContext != NULL)
+//    //    {
+//    //        if (EnumContext->BuiltinDomainHandle != NULL)
+//    //            SamCloseHandle(EnumContext->BuiltinDomainHandle);
+//
+//    //        if (EnumContext->AccountDomainHandle != NULL)
+//    //            SamCloseHandle(EnumContext->AccountDomainHandle);
+//
+//    //        if (EnumContext->BuiltinDomainSid != NULL)
+//    //            RtlFreeHeap(RtlProcessHeap(), 0, EnumContext->BuiltinDomainSid);
+//
+//    //        if (EnumContext->AccountDomainSid != NULL)
+//    //            RtlFreeHeap(RtlProcessHeap(), 0, EnumContext->AccountDomainSid);
+//
+//    //        if (EnumContext->ServerHandle != NULL)
+//    //            SamCloseHandle(EnumContext->ServerHandle);
+//
+//    //        if (EnumContext->Buffer != NULL)
+//    //        {
+//    //            for (i = 0; i < EnumContext->Count; i++)
+//    //            {
+//    //                SamFreeMemory(EnumContext->Buffer[i].Name.Buffer);
+//    //            }
+//
+//    //            SamFreeMemory(EnumContext->Buffer);
+//    //        }
+//
+//    //        //FreeEnumContext(EnumContext);
+//    //        //EnumContext = NULL;
+//    //    }
+//    //}
+//
+//    //if (UserHandle != NULL)
+//    //    SamCloseHandle(UserHandle);
+//
+//    //if (resume_handle != NULL)
+//    //    *resume_handle = EnumContext ? EnumContext->EnumHandle : 0;
+//
+//    *bufptr = (LPBYTE)Buffer;
+//
+//    return ApiStatus;
+//}
