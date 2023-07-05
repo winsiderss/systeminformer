@@ -477,7 +477,10 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             if (statisticsContext->ProcessHandle)
                 NtClose(statisticsContext->ProcessHandle);
 

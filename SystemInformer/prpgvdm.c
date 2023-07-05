@@ -296,7 +296,10 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
 
             PhSaveListViewColumnsToSetting(L"VdmHostListViewColumns", context->ListViewHandle);
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhpClearVdmHostProcessItems(context);
             PhDereferenceObject(context->VdmHostProcessList);
 

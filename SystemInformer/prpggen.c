@@ -541,7 +541,10 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 DestroyIcon(context->ProgramIcon);
             }
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhFree(context);
         }
         break;
