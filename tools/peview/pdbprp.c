@@ -217,6 +217,19 @@ VOID PvSetOptionsSymbolsList(
     return PhModifySort(sortResult, ((PPDB_SYMBOL_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
+LONG PvSymbolsTreeNewPostSortFunction(
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
+    )
+{
+    if (Result == 0)
+        Result = uintptrcmp((ULONG_PTR)((PPV_SYMBOL_NODE)Node1)->UniqueId, (ULONG_PTR)((PPV_SYMBOL_NODE)Node2)->UniqueId);
+
+    return PhModifySort(Result, SortOrder);
+}
+
 BEGIN_SORT_FUNCTION(Index)
 {
     sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId);
@@ -611,6 +624,8 @@ VOID PvInitializeSymbolTree(
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
+
+    PhCmInitializeManager(&Context->Cm, TreeNewHandle, TREE_COLUMN_ITEM_MAXIMUM, PvSymbolsTreeNewPostSortFunction);
 
     PvLoadSettingsSymbolsList(Context);
 
