@@ -1624,6 +1624,12 @@ BOOLEAN PhUiTerminateProcesses(
         NTSTATUS status;
         HANDLE processHandle;
 
+        // Note: The current process is a special case (see GH#1770) (dmex)
+        if (Processes[i]->ProcessId == NtCurrentProcessId())
+        {
+            RtlExitUserProcess(STATUS_SUCCESS);
+        }
+
         if (NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
             PROCESS_TERMINATE,
