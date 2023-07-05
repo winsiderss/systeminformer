@@ -231,7 +231,6 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR SessionIdString[PH_INT32_STR_LEN_1];
-    PPH_STRING AlternateProcessIdString;
 
     // Dynamic
 
@@ -293,6 +292,8 @@ typedef struct _PH_PROCESS_ITEM
 
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
+
+    ULONG LxssProcessId;
 
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
