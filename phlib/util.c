@@ -3787,7 +3787,7 @@ PPH_STRING PhGetTemporaryDirectory(
 
     if (
         PhGetOwnTokenAttributes().Elevated ||
-        PhEqualSid(PhGetOwnTokenAttributes().TokenSid, &PhSeLocalSystemSid)
+        PhEqualSid(PhGetOwnTokenAttributes().TokenSid, (PSID)&PhSeLocalSystemSid)
         )
     {
         static PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");
@@ -7355,20 +7355,20 @@ HANDLE PhGetNamespaceHandle(
         sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
             (ULONG)sizeof(ACL) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid(&PhSeLocalSid) +
+            PhLengthSid((PSID)&PhSeLocalSid) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
             PhLengthSid(administratorsSid) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid(&PhSeInteractiveSid);
+            PhLengthSid((PSID)&PhSeInteractiveSid);
 
         securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
         dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
         RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, &PhSeLocalSid);
+        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, (PSID)&PhSeLocalSid);
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
-        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeInteractiveSid);
+        RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, (PSID)&PhSeInteractiveSid);
         RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
         InitializeObjectAttributes(

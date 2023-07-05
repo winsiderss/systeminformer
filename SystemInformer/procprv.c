@@ -1242,9 +1242,9 @@ VOID PhpFillProcessItem(
         ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
     {
         if (!ProcessItem->Sid)
-            ProcessItem->Sid = PhAllocateCopy(&PhSeLocalSystemSid, PhLengthSid(&PhSeLocalSystemSid));
+            ProcessItem->Sid = PhAllocateCopy((PSID)&PhSeLocalSystemSid, PhLengthSid((PSID)&PhSeLocalSystemSid));
         if (!ProcessItem->UserName)
-            ProcessItem->UserName = PhpGetSidFullNameCached(&PhSeLocalSystemSid);
+            ProcessItem->UserName = PhpGetSidFullNameCached((PSID)&PhSeLocalSystemSid);
     }
 
     // Known Process Type
@@ -2617,7 +2617,7 @@ VOID PhProcessProviderUpdate(
                     {
                         if (PhIsNullOrEmptyString(processItem->UserName))
                         {
-                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(&PhSeLocalSystemSid));
+                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow((PSID)&PhSeLocalSystemSid));
                             modified = TRUE;
                         }
                     }

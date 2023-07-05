@@ -3894,14 +3894,14 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             else if (
                 PhCsUseColorServiceProcesses &&
                 ((processItem->ServiceList && processItem->ServiceList->Count != 0) ||
-                 (processItem->Sid && PhEqualSid(processItem->Sid, &PhSeServiceSid)) ||
-                 (processItem->Sid && PhEqualSid(processItem->Sid, &PhSeLocalServiceSid)) ||
-                 (processItem->Sid && PhEqualSid(processItem->Sid, &PhSeNetworkServiceSid))
+                 (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeServiceSid)) ||
+                 (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeLocalServiceSid)) ||
+                 (processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeNetworkServiceSid))
                 ))
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
             else if (
                 PhCsUseColorSystemProcesses &&
-                ((processItem->Sid && PhEqualSid(processItem->Sid, &PhSeLocalSystemSid)) ||
+                ((processItem->Sid && PhEqualSid(processItem->Sid, (PSID)&PhSeLocalSystemSid)) ||
                 PH_IS_FAKE_PROCESS_ID(processItem->ProcessId)))
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
