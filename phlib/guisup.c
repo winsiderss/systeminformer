@@ -4170,3 +4170,54 @@ BOOLEAN PhIsInteractiveUserSession(
     return FALSE;
 }
 
+PPH_STRING PhGetCurrentWindowStationName(
+    VOID
+    )
+{
+    PPH_STRING string;
+
+    string = PhCreateStringEx(NULL, 0x200);
+
+    if (GetUserObjectInformation(
+        GetProcessWindowStation(),
+        UOI_NAME,
+        string->Buffer,
+        (ULONG)string->Length + sizeof(UNICODE_NULL),
+        NULL
+        ))
+    {
+        PhTrimToNullTerminatorString(string);
+        return string;
+    }
+    else
+    {
+        PhDereferenceObject(string);
+        return PhCreateString(L"WinSta0"); // assume the current window station is WinSta0
+    }
+}
+
+PPH_STRING PhGetCurrentThreadDesktopName(
+    VOID
+    )
+{
+    PPH_STRING string;
+
+    string = PhCreateStringEx(NULL, 0x200);
+
+    if (GetUserObjectInformation(
+        GetThreadDesktop(HandleToUlong(NtCurrentThreadId())),
+        UOI_NAME,
+        string->Buffer,
+        (ULONG)string->Length + sizeof(UNICODE_NULL),
+        NULL
+        ))
+    {
+        PhTrimToNullTerminatorString(string);
+        return string;
+    }
+    else
+    {
+        PhDereferenceObject(string);
+        return PhCreateString(L"Default");
+    }
+}

@@ -1812,6 +1812,20 @@ PhIsInteractiveUserSession(
     VOID
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetCurrentWindowStationName(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetCurrentThreadDesktopName(
+    VOID
+    );
+
 #ifndef DBT_DEVICEARRIVAL
 #define DBT_DEVICEARRIVAL        0x8000  // system detected a new device
 #define DBT_DEVICEREMOVECOMPLETE 0x8004  // device is gone

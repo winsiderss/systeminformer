@@ -293,58 +293,6 @@ BOOLEAN IsCurrentUserAccount(
     return FALSE;
 }
 
-PPH_STRING GetCurrentWinStaName(
-    VOID
-    )
-{
-    PPH_STRING string;
-
-    string = PhCreateStringEx(NULL, 0x200);
-
-    if (GetUserObjectInformation(
-        GetProcessWindowStation(),
-        UOI_NAME,
-        string->Buffer,
-        (ULONG)string->Length + sizeof(UNICODE_NULL),
-        NULL
-        ))
-    {
-        PhTrimToNullTerminatorString(string);
-        return string;
-    }
-    else
-    {
-        PhDereferenceObject(string);
-        return PhCreateString(L"WinSta0"); // assume the current window station is WinSta0
-    }
-}
-
-PPH_STRING GetCurrentDesktopName(
-    VOID
-    )
-{
-    PPH_STRING string;
-
-    string = PhCreateStringEx(NULL, 0x200);
-
-    if (GetUserObjectInformation(
-        GetThreadDesktop(HandleToUlong(NtCurrentThreadId())),
-        UOI_NAME,
-        string->Buffer,
-        (ULONG)string->Length + sizeof(UNICODE_NULL),
-        NULL
-        ))
-    {
-        PhTrimToNullTerminatorString(string);
-        return string;
-    }
-    else
-    {
-        PhDereferenceObject(string);
-        return PhCreateString(L"Default");
-    }
-}
-
 PPH_STRING PhpGetCurrentDesktopInfo(
     VOID
     )
@@ -353,8 +301,8 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     PPH_STRING winstationName = NULL;
     PPH_STRING desktopName = NULL;
 
-    winstationName = GetCurrentWinStaName();
-    desktopName = GetCurrentDesktopName();
+    winstationName = PhGetCurrentWindowStationName();
+    desktopName = PhGetCurrentThreadDesktopName();
 
     if (winstationName && desktopName)
     {
@@ -756,7 +704,7 @@ static VOID PhpAddDesktopsToComboBox(
     PhpFreeDesktopsComboBox(ComboBoxHandle);
 
     callback.DesktopList = PhCreateList(10);
-    callback.WinStaName = GetCurrentWinStaName();
+    callback.WinStaName = PhGetCurrentWindowStationName();
 
     EnumDesktops(GetProcessWindowStation(), EnumDesktopsCallback, (LPARAM)&callback);
 
