@@ -4004,6 +4004,8 @@ NTSTATUS PhGetProcessMandatoryPolicy(
     )
 {
     NTSTATUS status;
+    BOOLEAN found = FALSE;
+    ACCESS_MASK currentMask;
     PSYSTEM_MANDATORY_LABEL_ACE currentAce;
     PSECURITY_DESCRIPTOR currentSecurityDescriptor;
     BOOLEAN currentSaclPresent;
@@ -4029,8 +4031,6 @@ NTSTATUS PhGetProcessMandatoryPolicy(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = STATUS_UNSUCCESSFUL;
-
     if (!(currentSaclPresent && currentSacl))
         goto CleanupExit;
 
@@ -4043,14 +4043,27 @@ NTSTATUS PhGetProcessMandatoryPolicy(
 
         if (currentAce->Header.AceType == SYSTEM_MANDATORY_LABEL_ACE_TYPE)
         {
-            *Mask = currentAce->Mask;
-            status = STATUS_SUCCESS;
+            currentMask = currentAce->Mask;
+            found = TRUE;
             break;
         }
     }
 
 CleanupExit:
     PhFree(currentSecurityDescriptor);
+
+    if (NT_SUCCESS(status))
+    {
+        if (found)
+        {
+            *Mask = currentMask;
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+    }
 
     return status;
 }
