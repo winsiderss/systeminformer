@@ -21,6 +21,7 @@
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
+#include <mainwnd.h>
 
 PPH_OBJECT_TYPE PhpProcessPropContextType = NULL;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType = NULL;
@@ -303,6 +304,14 @@ LRESULT CALLBACK PhpPropSheetWndProc(
                 if (SendMessage(pageWindowHandle, uMsg, wParam, lParam))
                 {
                     return TRUE;
+                }
+            }
+
+            if (PhCsForceNoParent)
+            {
+                if (wParam == VK_F5)
+                {
+                    ProcessHacker_Refresh();
                 }
             }
         }
