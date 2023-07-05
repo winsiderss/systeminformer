@@ -984,18 +984,6 @@ ULONG PhGetWindowTextToBuffer(
     return status;
 }
 
-VOID PhAddComboBoxStrings(
-    _In_ HWND WindowHandle,
-    _In_ PWSTR *Strings,
-    _In_ ULONG NumberOfStrings
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < NumberOfStrings; i++)
-        ComboBox_AddString(WindowHandle, Strings[i]);
-}
-
 PPH_STRING PhGetComboBoxString(
     _In_ HWND WindowHandle,
     _In_ INT Index
