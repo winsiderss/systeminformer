@@ -8683,11 +8683,11 @@ VOID PhUpdateDosDevicePrefixes(
     VOID
     )
 {
-    //ULONG deviceMap = 0;
     WCHAR deviceNameBuffer[7] = L"\\??\\ :";
-
-    //PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
-
+#ifdef PHNT_DEVICE_MAP
+    ULONG deviceMap = 0;
+    PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
+#endif
     PhAcquireQueuedLockExclusive(&PhDevicePrefixesLock);
 
     for (ULONG i = 0; i < 0x1A; i++)
@@ -8696,15 +8696,16 @@ VOID PhUpdateDosDevicePrefixes(
         OBJECT_ATTRIBUTES objectAttributes;
         UNICODE_STRING deviceName;
 
-        //if (deviceMap)
-        //{
-        //    if (!(deviceMap & (0x1 << i)))
-        //    {
-        //        PhDevicePrefixes[i].Length = 0;
-        //        continue;
-        //    }
-        //}
-
+#ifdef PHNT_DEVICE_MAP
+        if (deviceMap)
+        {
+            if (!(deviceMap & (0x1 << i)))
+            {
+                PhDevicePrefixes[i].Length = 0;
+                continue;
+            }
+        }
+#endif
         deviceNameBuffer[4] = (WCHAR)('A' + i);
         deviceName.Buffer = deviceNameBuffer;
         deviceName.Length = sizeof(deviceNameBuffer) - sizeof(UNICODE_NULL);
