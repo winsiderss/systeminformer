@@ -1710,11 +1710,18 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_TIMER:
         {
-            if (!context->SearchThreadHandle)
-                break;
+            switch (wParam)
+            {
+            case PH_WINDOW_TIMER_DEFAULT:
+                {
+                    if (!context->SearchThreadHandle)
+                        break;
 
-            // Update the search results.
-            PhpFindObjectAddResultEntries(context);
+                    // Update the search results.
+                    PhpFindObjectAddResultEntries(context);
+                }
+                break;
+            }
         }
         break;
     case WM_PH_SEARCH_FINISHED:

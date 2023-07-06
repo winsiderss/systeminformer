@@ -530,12 +530,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
-            PhSetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            PhKillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
             if (context->ProgramIcon)
             {
@@ -919,33 +919,40 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         break;
     case WM_TIMER:
         {
-            if (!(context->Enabled && GetFocus() != context->StartedLabelHandle))
+            switch (wParam)
+            {
+            case PH_WINDOW_TIMER_DEFAULT:
+                {
+                    if (!(context->Enabled && GetFocus() != context->StartedLabelHandle))
+                        break;
+
+                    if (processItem->CreateTime.QuadPart != 0)
+                    {
+                        LARGE_INTEGER startTime;
+                        LARGE_INTEGER currentTime;
+                        SYSTEMTIME startTimeFields;
+                        PPH_STRING startTimeRelativeString;
+                        PPH_STRING startTimeString;
+
+                        startTime = processItem->CreateTime;
+                        PhQuerySystemTime(&currentTime);
+                        startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
+
+                        PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
+                        startTimeString = PhaFormatDateTime(&startTimeFields);
+
+                        PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                            L"%s ago (%s)",
+                            startTimeRelativeString->Buffer,
+                            startTimeString->Buffer
+                            )->Buffer);
+                    }
+                    else
+                    {
+                        PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                    }
+                }
                 break;
-
-            if (processItem->CreateTime.QuadPart != 0)
-            {
-                LARGE_INTEGER startTime;
-                LARGE_INTEGER currentTime;
-                SYSTEMTIME startTimeFields;
-                PPH_STRING startTimeRelativeString;
-                PPH_STRING startTimeString;
-
-                startTime = processItem->CreateTime;
-                PhQuerySystemTime(&currentTime);
-                startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
-
-                PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
-                startTimeString = PhaFormatDateTime(&startTimeFields);
-
-                PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
-                    L"%s ago (%s)",
-                    startTimeRelativeString->Buffer,
-                    startTimeString->Buffer
-                    )->Buffer);
-            }
-            else
-            {
-                PhSetWindowText(context->StartedLabelHandle, L"N/A");
             }
         }
         break;
