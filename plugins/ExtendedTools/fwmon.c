@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2020-2022
+ *     dmex    2020-2023
  *
  */
 
@@ -880,11 +880,11 @@ PPH_PROCESS_ITEM EtFwFileNameToProcess(
 
 typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
     _In_ PH_IP_ADDRESS RemoteAddress,
-    _Out_ PPH_STRING* CountryCode,
+    _Out_ ULONG* CountryCode,
     _Out_ PPH_STRING* CountryName
     );
 typedef INT (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
-    _In_ PPH_STRING Name
+    _In_ ULONG Name
     );
 typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
     _In_ HDC hdc,
@@ -1721,7 +1721,7 @@ VOID CALLBACK EtFwEventCallback(
 
     if (EtFwGetPluginInterface())
     {
-        PPH_STRING remoteCountryCode;
+        ULONG remoteCountryCode;
         PPH_STRING remoteCountryName;
 
         if (EtFwGetPluginInterface()->LookupCountryCode(
@@ -1732,7 +1732,6 @@ VOID CALLBACK EtFwEventCallback(
         {
             PhMoveReference(&entry.RemoteCountryName, remoteCountryName);
             entry.CountryIconIndex = EtFwGetPluginInterface()->LookupCountryIcon(remoteCountryCode);
-            PhDereferenceObject(remoteCountryCode);
         }
     }
 

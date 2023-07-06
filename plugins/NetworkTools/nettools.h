@@ -274,26 +274,26 @@ VOID FreeGeoLiteDb(
 _Success_(return)
 BOOLEAN LookupCountryCode(
     _In_ PH_IP_ADDRESS RemoteAddress,
-    _Out_ PPH_STRING *CountryCode,
+    _Out_ ULONG *CountryNameId,
     _Out_ PPH_STRING *CountryName
     );
 
 _Success_(return)
 BOOLEAN LookupSockInAddr4CountryCode(
     _In_ IN_ADDR RemoteAddress,
-    _Out_ PPH_STRING *CountryCode,
+    _Out_ ULONG *CountryNameId,
     _Out_ PPH_STRING *CountryName
     );
 
 _Success_(return)
 BOOLEAN LookupSockInAddr6CountryCode(
     _In_ IN6_ADDR RemoteAddress,
-    _Out_ PPH_STRING *CountryCode,
+    _Out_ ULONG *CountryNameId,
     _Out_ PPH_STRING *CountryName
     );
 
 INT LookupCountryIcon(
-    _In_ PPH_STRING Name
+    _In_ ULONG Name
     );
 
 VOID DrawCountryIcon(
