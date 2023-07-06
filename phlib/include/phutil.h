@@ -1498,7 +1498,13 @@ typedef enum _PH_IMGCOHERENCY_SCAN_TYPE
     * - .NET manifests if appropriate
     * - Scans for code caves in tail of mapped sections (virtual mapping > size on disk)
     */
-    PhImageCoherencyFull
+    PhImageCoherencyFull,
+
+    /**
+     * Fast scan of the image coherency
+     * - only checks for shared original pages using NtQueryVirtualMemory
+     */
+    PhImageCoherencySharedOriginal,
 
 } PH_IMAGE_COHERENCY_SCAN_TYPE;
 
@@ -1523,6 +1529,17 @@ PhGetProcessModuleImageCoherency(
     _In_ BOOLEAN IsKernelModule,
     _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
     _Out_ PFLOAT ImageCoherency
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCheckImagePagesForTampering(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T SizeOfImage,
+    _Out_ PSIZE_T NumberOfPages,
+    _Out_ PSIZE_T NumberOfTamperedPages
     );
 
 PHLIBAPI
