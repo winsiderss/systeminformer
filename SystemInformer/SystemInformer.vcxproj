@@ -418,7 +418,6 @@
     <ClCompile Include="memedit.c" />
     <ClCompile Include="memlist.c" />
     <ClCompile Include="memlists.c" />
-    <ClCompile Include="memmod.c" />
     <ClCompile Include="memprot.c" />
     <ClCompile Include="memprv.c" />
     <ClCompile Include="memrslt.c" />
