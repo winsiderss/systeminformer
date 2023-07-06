@@ -7356,12 +7356,12 @@ VOID PhClearCacheDirectory(
     }
     else
     {
-        cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, FALSE);
+        cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
     }
 
     if (cacheDirectory)
     {
-        PhDeleteDirectoryWin32(&cacheDirectory->sr);
+        PhDeleteDirectory(&cacheDirectory->sr);
 
         PhDereferenceObject(cacheDirectory);
     }
