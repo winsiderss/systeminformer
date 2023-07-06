@@ -1680,14 +1680,16 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhCreateCacheFile(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
     );
 
 PHLIBAPI
 VOID
 NTAPI
 PhDeleteCacheFile(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
     );
 
 PHLIBAPI
