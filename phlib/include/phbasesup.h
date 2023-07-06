@@ -1650,6 +1650,29 @@ PhCompareStringWithNullSortOrder(
     }
 }
 
+FORCEINLINE
+LONG
+PhCompareStringRefWithNullSortOrder(
+    _In_opt_ PPH_STRINGREF String1,
+    _In_opt_ PPH_STRINGREF String2,
+    _In_ PH_SORT_ORDER Order,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    if (String1 && String2)
+    {
+        return PhCompareStringRef(String1, String2, IgnoreCase);
+    }
+    else if (!String1)
+    {
+        return !String2 ? 0 : (Order == AscendingSortOrder ? 1 : -1);
+    }
+    else
+    {
+        return (Order == AscendingSortOrder ? -1 : 1);
+    }
+}
+
 /**
  * Determines whether two strings are equal.
  *
