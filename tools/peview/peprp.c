@@ -2041,12 +2041,12 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             if (PhEnableThemeSupport)
                 PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
-            PhSetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            PhKillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
             PhSaveListViewGroupStatesToSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
@@ -2181,9 +2181,16 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_TIMER:
         {
-            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
-            PvUpdatePeFileTimes(context->ListViewHandle);
-            ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+            switch (wParam)
+            {
+            case PH_WINDOW_TIMER_DEFAULT:
+                {
+                    ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+                    PvUpdatePeFileTimes(context->ListViewHandle);
+                    ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+                }
+                break;
+            }
         }
         break;
     case WM_CONTEXTMENU:
