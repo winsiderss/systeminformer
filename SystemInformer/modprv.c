@@ -185,6 +185,9 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     default:
         moduleProvider->ImageCoherencyScanLevel = PhImageCoherencyFull;
         break;
+    case 4:
+        moduleProvider->ImageCoherencyScanLevel = PhImageCoherencySharedOriginal;
+        break;
     }
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);

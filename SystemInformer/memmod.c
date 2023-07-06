@@ -16,65 +16,6 @@
 #include <symprv.h>
 #include <workqueue.h>
 
-// Checkout our blog for more info:
-// https://windows-internals.com/understanding-a-new-mitigation-module-tampering-protection/
-
-NTSTATUS PhCheckImagePagesForTampering(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _In_ SIZE_T SizeOfImage
-    )
-{
-    NTSTATUS status;
-    SIZE_T numberOfPages;
-    ULONG_PTR virtualAddress;
-    MEMORY_WORKING_SET_EX_INFORMATION* info;
-    SIZE_T i;
-
-    numberOfPages = ((SIZE_T)((ULONG_PTR)BaseAddress & PAGE_MASK) + SizeOfImage + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
-    virtualAddress = (ULONG_PTR)BaseAddress & ~PAGE_MASK;
-
-    if (!numberOfPages)
-        return STATUS_UNSUCCESSFUL;
-
-    info = PhAllocatePage(numberOfPages * sizeof(MEMORY_WORKING_SET_EX_INFORMATION), NULL);
-
-    if (!info)
-        return STATUS_UNSUCCESSFUL;
-
-    for (i = 0; i < numberOfPages; i++)
-    {
-        info[i].VirtualAddress = (PVOID)virtualAddress;
-        virtualAddress += PAGE_SIZE;
-    }
-
-    status = NtQueryVirtualMemory(
-        ProcessHandle,
-        NULL,
-        MemoryWorkingSetExInformation,
-        info,
-        numberOfPages * sizeof(MEMORY_WORKING_SET_EX_INFORMATION),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        for (i = 0; i < numberOfPages; i++)
-        {
-            PMEMORY_WORKING_SET_EX_BLOCK page = &info[i].u1.VirtualAttributes;
-
-            if (!page->SharedOriginal)
-            {
-                dprintf("0x%p\n", info[i].VirtualAddress);
-            }
-        }
-    }
-
-    PhFreePage(info);
-
-    return status;
-}
-
 typedef struct _PH_IMAGE_MODIFIED_DIALOG_CONTEXT
 {
     LONG RefCount;

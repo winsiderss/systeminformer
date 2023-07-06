@@ -921,6 +921,9 @@ VOID PhpProcessQueryStage2(
             default:
                 type = PhImageCoherencyFull;
                 break;
+            case 4:
+                type = PhImageCoherencySharedOriginal;
+                break;
             }
 
             Data->ImageCoherencyStatus = PhGetProcessImageCoherency(

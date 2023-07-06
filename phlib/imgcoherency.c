@@ -1222,6 +1222,90 @@ CleanupExit:
 }
 
 /**
+* Inspects a module image coherency compared to the file on disk.
+*
+* \param[in] FileName Win32 path to the image file on disk.
+* \param[in] ProcessHandle - Handle to the process where the module is mapped
+* requires PROCESS_VM_READ.
+* \param[in] RemoteImageBase - Base address of the image.
+* \param[in] RemoteImageSize - Size of the image.
+* \param[in] RemoteImageBaseStatus - If RemoteImageBase is null, this is stored
+* in the context instead of attempting to map the image.
+* \param[in] IsKernelModule - Notes if this is a kernel module.
+* \param[in] Type - Image coherency scan type.
+* \param[out] ImageCoherency Image coherency value between 0 and 1. This
+* indicates how similar the image on-disk is compared to what is mapped into
+* the process. A value of 1 means coherent while a value lower than 1
+* indicates how incoherent the image is.
+*
+* \return Status indicating the coherency calculation, note errors may indicate
+* partial success.
+* STATUS_SUCCESS The coherency calculation was successful.
+* STATUS_INVALID_IMAGE_HASH The coherency calculation was successful or
+* partially successful and unusually incoherent.
+* STATUS_INVALID_IMAGE_FORMAT The coherency calculation was successful or
+* partially successful and unusually incoherent.
+* STATUS_SUBSYSTEM_NOT_PRESENT The coherency calculation was successful or
+* partially successful and unusually incoherent.
+* All other errors are failures to calculate.
+*/
+NTSTATUS PhpGetModuleCoherency(
+    _In_ PPH_STRING FileName,
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID RemoteImageBase,
+    _In_opt_ SIZE_T RemoteImageSize,
+    _In_ NTSTATUS RemoteImageBaseStatus,
+    _In_ BOOLEAN IsKernelModule,
+    _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
+    _Out_ PFLOAT ImageCoherency
+    )
+{
+    NTSTATUS status;
+    PPH_IMAGE_COHERENCY_CONTEXT context;
+
+    *ImageCoherency = 0.0f;
+
+    if (Type == PhImageCoherencySharedOriginal)
+    {
+        SIZE_T numberOfPages;
+        SIZE_T numberOfTamperedPages;
+
+        if (!RemoteImageBase || RemoteImageSize < PAGE_SIZE)
+            return STATUS_INVALID_PARAMETER;
+
+        status = PhCheckImagePagesForTampering(
+            ProcessHandle,
+            RemoteImageBase,
+            RemoteImageSize,
+            &numberOfPages,
+            &numberOfTamperedPages
+            );
+        if (NT_SUCCESS(status))
+        {
+            *ImageCoherency = (FLOAT)(numberOfPages - numberOfTamperedPages) / (FLOAT)numberOfPages;
+        }
+    }
+    else
+    {
+        context = PhpCreateImageCoherencyContext(Type,
+                                                 FileName,
+                                                 ProcessHandle,
+                                                 RemoteImageBase,
+                                                 RemoteImageSize,
+                                                 RemoteImageBaseStatus,
+                                                 IsKernelModule ? KphReadVirtualMemoryUnsafe : NtReadVirtualMemory);
+
+        status = PhpInspectForImageCoherency(ProcessHandle,
+                                             context,
+                                             ImageCoherency);
+
+        PhpFreeImageCoherencyContext(context);
+    }
+
+    return status;
+}
+
+/**
 * Inspects the process image coherency compared to the file on disk.
 *
 * \param[in] FileName Win32 path to the image file on disk.
@@ -1252,25 +1336,33 @@ NTSTATUS PhGetProcessImageCoherency(
 {
     NTSTATUS status;
     HANDLE processHandle;
-    PPH_IMAGE_COHERENCY_CONTEXT context;
     PVOID remoteImageBase;
     PVOID imageBase;
     SIZE_T imageSize;
 
-    context = NULL;
     remoteImageBase = NULL;
     imageBase = NULL;
     imageSize = 0;
 
     *ImageCoherency = 0.0f;
 
-    status = PhOpenProcess(&processHandle,
-                           PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-                           ProcessId);
-    if (!NT_SUCCESS(status))
+    // Try to get a handle with query information + vm read access.
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        ProcessId
+        )))
     {
-        processHandle = NULL;
-        goto CleanupExit;
+        // Try to get a handle with query limited information + vm read access.
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+            ProcessId
+            )))
+        {
+            processHandle = NULL;
+            goto CleanupExit;
+        }
     }
 
     //
@@ -1294,21 +1386,18 @@ NTSTATUS PhGetProcessImageCoherency(
         imageSize = 0;
     }
 
-    context = PhpCreateImageCoherencyContext(Type,
-                                             FileName,
-                                             processHandle,
-                                             imageBase,
-                                             imageSize,
-                                             status,
-                                             NtReadVirtualMemory);
-
-    status = PhpInspectForImageCoherency(processHandle,
-                                         context,
-                                         ImageCoherency);
+    status = PhpGetModuleCoherency(
+        FileName,
+        processHandle,
+        imageBase,
+        imageSize,
+        status,
+        FALSE,
+        Type,
+        ImageCoherency
+        );
 
 CleanupExit:
-
-    PhpFreeImageCoherencyContext(context);
 
     if (processHandle)
     {
@@ -1354,24 +1443,92 @@ NTSTATUS PhGetProcessModuleImageCoherency(
     _Out_ PFLOAT ImageCoherency
     )
 {
+    return PhpGetModuleCoherency(
+        FileName,
+        ProcessHandle,
+        ImageBaseAddress,
+        ImageSize,
+        STATUS_UNSUCCESSFUL,
+        IsKernelModule,
+        Type,
+        ImageCoherency
+        );
+}
+
+/**
+ * \brief Checks the image pages for tampering.
+ *
+ * \details Checkout out or blog for more info: 
+ * https://windows-internals.com/understanding-a-new-mitigation-module-tampering-protection/
+ *
+ * \param[in] ProcessHandle - Handle to the process where the module is mapped.
+ * \param[in] BaseAddress - Base address of the image pages to check. 
+ * \param[in] SizeOfImage - Size of the image to check. 
+ * \param[out] NumberOfPages - Number of pages checked.
+ * \param[out] NumberOfTamperedPages - Number of tampered pages. 
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhCheckImagePagesForTampering(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T SizeOfImage,
+    _Out_ PSIZE_T NumberOfPages,
+    _Out_ PSIZE_T NumberOfTamperedPages
+    )
+{
     NTSTATUS status;
-    PPH_IMAGE_COHERENCY_CONTEXT context;
+    SIZE_T numberOfPages;
+    ULONG_PTR virtualAddress;
+    MEMORY_WORKING_SET_EX_INFORMATION* info;
+    SIZE_T i;
 
-    *ImageCoherency = 0.0f;
+    *NumberOfPages = 0;
+    *NumberOfTamperedPages = 0;
 
-    context = PhpCreateImageCoherencyContext(Type,
-                                             FileName,
-                                             ProcessHandle,
-                                             ImageBaseAddress,
-                                             ImageSize,
-                                             STATUS_UNSUCCESSFUL,
-                                             IsKernelModule ? KphReadVirtualMemoryUnsafe : NtReadVirtualMemory);
+    numberOfPages = ((SIZE_T)((ULONG_PTR)BaseAddress & PAGE_MASK) + SizeOfImage + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
+    virtualAddress = (ULONG_PTR)BaseAddress & ~PAGE_MASK;
 
-    status = PhpInspectForImageCoherency(ProcessHandle,
-                                         context,
-                                         ImageCoherency);
+    if (!numberOfPages)
+        return STATUS_INVALID_PARAMETER;
 
-    PhpFreeImageCoherencyContext(context);
+    info = PhAllocatePage(numberOfPages * sizeof(MEMORY_WORKING_SET_EX_INFORMATION), NULL);
+
+    if (!info)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    for (i = 0; i < numberOfPages; i++)
+    {
+        info[i].VirtualAddress = (PVOID)virtualAddress;
+        virtualAddress += PAGE_SIZE;
+    }
+
+    status = NtQueryVirtualMemory(
+        ProcessHandle,
+        NULL,
+        MemoryWorkingSetExInformation,
+        info,
+        numberOfPages * sizeof(MEMORY_WORKING_SET_EX_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *NumberOfPages = numberOfPages;
+
+        for (i = 0; i < numberOfPages; i++)
+        {
+            PMEMORY_WORKING_SET_EX_BLOCK page = &info[i].u1.VirtualAttributes;
+
+            if (!page->SharedOriginal)
+            {
+                (*NumberOfTamperedPages)++;
+            }
+        }
+    }
+
+    PhFreePage(info);
 
     return status;
 }
+
