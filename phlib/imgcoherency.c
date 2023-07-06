@@ -43,7 +43,6 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
     PVOID RemoteImageBase;                    /**< Remote image base address */
     SIZE_T RemoteImageSize;                   /**< Remote image size */
     PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemory; /**< Read virtual memory callback */
-
 } PH_IMAGE_COHERENCY_CONTEXT, *PPH_IMAGE_COHERENCY_CONTEXT;
 
 /**
@@ -78,27 +77,25 @@ ULONG PhpGetSectionScanSize(
 
     switch (Type)
     {
-        case PhImageCoherencyQuick:
+    case PhImageCoherencyQuick:
         {
             if (size > PH_IMGCOHERENCY_QUICK_SCAN_LIMIT)
             {
                 size = PH_IMGCOHERENCY_QUICK_SCAN_LIMIT;
             }
-            break;
         }
-        case PhImageCoherencyNormal:
+        break;
+    case PhImageCoherencyNormal:
         {
             if (size > PH_IMGCOHERENCY_NORMAL_SCAN_LIMIT)
             {
                 size = PH_IMGCOHERENCY_NORMAL_SCAN_LIMIT;
             }
-            break;
         }
-        case PhImageCoherencyFull:
-        default:
-        {
-            break;
-        }
+        break;
+    case PhImageCoherencyFull:
+    default:
+        break;
     }
 
     return size;
@@ -119,9 +116,9 @@ BOOLEAN PhpShouldScanSection(
 {
     switch (Type)
     {
-        case PhImageCoherencyQuick:
-        case PhImageCoherencyNormal:
-        case PhImageCoherencyFull:
+    case PhImageCoherencyQuick:
+    case PhImageCoherencyNormal:
+    case PhImageCoherencyFull:
         {
             if ((SectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0)
             {
@@ -130,8 +127,8 @@ BOOLEAN PhpShouldScanSection(
                 //
                 return TRUE;
             }
-            break;
         }
+        break;
     }
 
     return FALSE;
@@ -152,9 +149,7 @@ VOID PhpFreeImageCoherencyContext(
         PhUnloadRemoteMappedImage(&Context->RemoteMappedImage);
 
         if (Context->MappedImageReloc)
-        {
             PhDereferenceObject(Context->MappedImageReloc);
-        }
 
         PhFree(Context);
     }
@@ -239,9 +234,11 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
 
                     if (entry->Record.Type == IMAGE_REL_BASED_DIR64)
                     {
-                        PhAddItemSimpleHashtable(context->MappedImageReloc,
-                                                 (PVOID)rva,
-                                                 ULongToPtr(8));
+                        PhAddItemSimpleHashtable(
+                            context->MappedImageReloc,
+                            (PVOID)rva,
+                            ULongToPtr(8)
+                            );
                     }
                     else
                     {
@@ -251,9 +248,11 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
                         // work for higher accuracy.
                         //
 
-                        PhAddItemSimpleHashtable(context->MappedImageReloc,
-                                                 (PVOID)rva,
-                                                 ULongToPtr(4));
+                        PhAddItemSimpleHashtable(
+                            context->MappedImageReloc,
+                            (PVOID)rva,
+                            ULongToPtr(4)
+                            );
                     }
                 }
             }
@@ -276,13 +275,13 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
                     rva = (ULONG_PTR)entry->ARM64X.BlockRva + entry->ARM64X.RecordFixup.Offset;
                     switch (entry->ARM64X.RecordFixup.Type)
                     {
-                        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL:
-                        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE:
-                            size = (ULONG_PTR)(1ull << entry->ARM64X.RecordFixup.Size);
-                            break;
-                        case IMAGE_DVRT_ARM64X_FIXUP_TYPE_DELTA:
-                            size = 4;
-                            break;
+                    case IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL:
+                    case IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE:
+                        size = (ULONG_PTR)(1ull << entry->ARM64X.RecordFixup.Size);
+                        break;
+                    case IMAGE_DVRT_ARM64X_FIXUP_TYPE_DELTA:
+                        size = 4;
+                        break;
                     }
                 }
                 else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
@@ -332,19 +331,17 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
                 }
 
                 if (rva && size)
-                {
-                    PhAddItemSimpleHashtable(context->MappedImageReloc,
-                                             (PVOID)rva,
-                                             (PVOID)size);
-                }
+                    PhAddItemSimpleHashtable(context->MappedImageReloc, (PVOID)rva, (PVOID)size);
             }
 
             PhFreeMappedImageDynamicRelocations(&dynRelocs);
         }
 
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&context->MappedImage,
-                                                 IMAGE_DIRECTORY_ENTRY_IAT,
-                                                 &directory)))
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(
+            &context->MappedImage,
+            IMAGE_DIRECTORY_ENTRY_IAT,
+            &directory
+            )))
         {
             context->MappedImageIatRva = directory->VirtualAddress;
             context->MappedImageIatSize = directory->Size;
@@ -500,12 +497,13 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
         //
         // Try to read the remote process
         //
-        if (!NT_SUCCESS(Context->ReadVirtualMemory(ProcessHandle,
-                                                   PTR_ADD_OFFSET(Context->RemoteImageBase,
-                                                                  rva),
-                                                   buffer,
-                                                   chunk,
-                                                   &bytesRead)))
+        if (!NT_SUCCESS(Context->ReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(Context->RemoteImageBase, rva),
+            buffer,
+            chunk,
+            &bytesRead
+            )))
         {
             //
             // Force 0, we'll handle this below
@@ -540,14 +538,16 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
         //
         // Do the inspection, clamp the bytes to the minimum
         //
-        PhpAnalyzeImageCoherencyInspect(fileBytes,
-                                        (ULONG)bytes,
-                                        buffer,
-                                        (ULONG)bytes,
-                                        Context,
-                                        rva,
-                                        SkipCallback,
-                                        SkipCallbackContext);
+        PhpAnalyzeImageCoherencyInspect(
+            fileBytes,
+            (ULONG)bytes,
+            buffer,
+            (ULONG)bytes,
+            Context,
+            rva,
+            SkipCallback,
+            SkipCallbackContext
+            );
 
         rva += chunk;
         remainingBytes -= chunk;
@@ -595,26 +595,29 @@ VOID PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
         //
         // Try to read the remote process
         //
-        if (NT_SUCCESS(Context->ReadVirtualMemory(ProcessHandle,
-                                                  PTR_ADD_OFFSET(Context->RemoteImageBase,
-                                                                 rva),
-                                                  buffer,
-                                                  chunk,
-                                                  &bytesRead)))
+        if (NT_SUCCESS(Context->ReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(Context->RemoteImageBase, rva),
+            buffer,
+            chunk,
+            &bytesRead
+            )))
         {
             assert(bytesRead <= PAGE_SIZE);
 
             //
             // Do the inspection
             //
-            PhpAnalyzeImageCoherencyInspect(expected,
-                                            (ULONG)bytesRead,
-                                            buffer,
-                                            (ULONG)bytesRead,
-                                            Context,
-                                            rva,
-                                            NULL,
-                                            NULL);
+            PhpAnalyzeImageCoherencyInspect(
+                expected,
+                (ULONG)bytesRead,
+                buffer,
+                (ULONG)bytesRead,
+                Context,
+                rva,
+                NULL,
+                NULL
+                );
         }
 
         rva += chunk;
@@ -656,12 +659,9 @@ ULONG CALLBACK PhpImgCoherencySkip(
         // Look up the RVA in our hash table, if we find one we will skip the
         // number of bytes stored in the hash table for that entry.
         //
-        entry = PhFindItemSimpleHashtable(context->MappedImageReloc,
-                                          PTR_ADD_OFFSET(NULL, Rva));
+        entry = PhFindItemSimpleHashtable(context->MappedImageReloc, PTR_ADD_OFFSET(NULL, Rva));
         if (entry)
-        {
             return PtrToUlong(*entry);
-        }
     }
 
     if (context->MappedImageIatRva && (context->MappedImageIatRva == Rva))
@@ -691,30 +691,20 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
 
     switch (Context->MappedImage.Magic)
     {
-        case IMAGE_NT_OPTIONAL_HDR32_MAGIC:
-        {
-            addressOfEntry = Context->MappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
-            break;
-        }
-        case IMAGE_NT_OPTIONAL_HDR64_MAGIC:
-        {
-            addressOfEntry = Context->MappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
-            break;
-        }
-        default:
-        {
-            break;
-        }
+    case IMAGE_NT_OPTIONAL_HDR32_MAGIC:
+        addressOfEntry = Context->MappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
+        break;
+    case IMAGE_NT_OPTIONAL_HDR64_MAGIC:
+        addressOfEntry = Context->MappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
+        break;
+    default:
+        break;
     }
 
     if (addressOfEntry != 0)
-    {
         entrySection = PhMappedImageRvaToSection(&Context->MappedImage, addressOfEntry);
-    }
     else
-    {
         entrySection = NULL;
-    }
 
     //
     // Here we will inspect each executable section.
@@ -747,12 +737,14 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
                 prevTotal = Context->TotalBytes;
                 prevSkipped = Context->SkippedBytes;
 
-                PhpAnalyzeImageCoherencyCommonByRva(ProcessHandle,
-                                                    mappedSection->VirtualAddress,
-                                                    size,
-                                                    Context,
-                                                    PhpImgCoherencySkip,
-                                                    Context);
+                PhpAnalyzeImageCoherencyCommonByRva(
+                    ProcessHandle,
+                    mappedSection->VirtualAddress,
+                    size,
+                    Context,
+                    PhpImgCoherencySkip,
+                    Context
+                    );
 
                 bytesInspected = (Context->TotalBytes - prevTotal);
                 bytesSkipped = (Context->SkippedBytes - prevSkipped);
@@ -775,12 +767,14 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
                     if ((bytesInspected + bytesSkipped) <
                         (((ULONGLONG)addressOfEntry - entrySection->VirtualAddress) + length))
                     {
-                        PhpAnalyzeImageCoherencyCommonByRva(ProcessHandle,
-                                                            addressOfEntry,
-                                                            length,
-                                                            Context,
-                                                            PhpImgCoherencySkip,
-                                                            Context);
+                        PhpAnalyzeImageCoherencyCommonByRva(
+                            ProcessHandle,
+                            addressOfEntry,
+                            length,
+                            Context,
+                            PhpImgCoherencySkip,
+                            Context
+                            );
                     }
                 }
 
@@ -801,7 +795,8 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
                         mappedSection->VirtualAddress + mappedSection->SizeOfRawData,
                         mappedSection->Misc.VirtualSize - mappedSection->SizeOfRawData,
                         Context,
-                        0x00);
+                        0x00
+                        );
                 }
             }
         }
@@ -848,9 +843,11 @@ VOID PhpAnalyzeImageCoherencyCommonAsManaged(
     //
     // Get the COM32 directory bytes
     //
-    if (!NT_SUCCESS(PhGetMappedImageDataEntry(&Context->MappedImage,
-                                              IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
-                                              &dataDirectory)))
+    if (!NT_SUCCESS(PhGetMappedImageDataEntry(
+        &Context->MappedImage,
+        IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
+        &dataDirectory
+        )))
     {
         return;
     }
@@ -858,19 +855,19 @@ VOID PhpAnalyzeImageCoherencyCommonAsManaged(
     //
     // Inspect the COR20 header
     //
-    PhpAnalyzeImageCoherencyCommonByRva(ProcessHandle,
-                                        dataDirectory->VirtualAddress,
-                                        dataDirectory->Size,
-                                        Context,
-                                        NULL,
-                                        NULL);
+    PhpAnalyzeImageCoherencyCommonByRva(
+        ProcessHandle,
+        dataDirectory->VirtualAddress,
+        dataDirectory->Size,
+        Context,
+        NULL,
+        NULL
+        );
 
     //
     // Get the .NET MetaData
     //
-    dotNet = PhMappedImageRvaToVa(&Context->MappedImage,
-                                  dataDirectory->VirtualAddress,
-                                  NULL);
+    dotNet = PhMappedImageRvaToVa(&Context->MappedImage, dataDirectory->VirtualAddress, NULL);
     if (!dotNet ||
         (dotNet->MetaData.Size == 0) ||
         !dotNet->MetaData.VirtualAddress)
@@ -881,12 +878,14 @@ VOID PhpAnalyzeImageCoherencyCommonAsManaged(
     //
     // Inspect the .NET MetaData
     //
-    PhpAnalyzeImageCoherencyCommonByRva(ProcessHandle,
-                                        dotNet->MetaData.VirtualAddress,
-                                        dotNet->MetaData.Size,
-                                        Context,
-                                        NULL,
-                                        NULL);
+    PhpAnalyzeImageCoherencyCommonByRva(
+        ProcessHandle,
+        dotNet->MetaData.VirtualAddress,
+        dotNet->MetaData.Size,
+        Context,
+        NULL,
+        NULL
+        );
 }
 
 /**
@@ -907,9 +906,11 @@ BOOLEAN PhpAnalyzeImageCoherencyIsDotNet (
     //
     // Get the com descriptor directly, if it doesn't exist it isn't .NET
     //
-    if (!NT_SUCCESS(PhGetMappedImageDataEntry(&Context->MappedImage,
-                                              IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
-                                              &dataDirectory)))
+    if (!NT_SUCCESS(PhGetMappedImageDataEntry(
+        &Context->MappedImage,
+        IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR,
+        &dataDirectory
+        )))
     {
         return FALSE;
     }
@@ -917,17 +918,21 @@ BOOLEAN PhpAnalyzeImageCoherencyIsDotNet (
     //
     // Check for the COR20 header
     //
-    dotNet = PhMappedImageRvaToVa(&Context->MappedImage,
-                                  dataDirectory->VirtualAddress,
-                                  NULL);
+    dotNet = PhMappedImageRvaToVa(
+        &Context->MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
     if (!dotNet || (dotNet->cb != sizeof(IMAGE_COR20_HEADER)))
     {
         return FALSE;
     }
 
-    dotNetMagic = PhMappedImageRvaToVa(&Context->MappedImage,
-                                       dotNet->MetaData.VirtualAddress,
-                                       NULL);
+    dotNetMagic = PhMappedImageRvaToVa(
+        &Context->MappedImage,
+        dotNet->MetaData.VirtualAddress,
+        NULL
+        );
     //
     // If we can locate the magic number and it equal the .NET magic then we
     // are reasonably confident it is .NET.
@@ -957,14 +962,16 @@ VOID PhpAnalyzeImageCoherencyCommon(
         if ((i < Context->MappedImage.NumberOfSections) &&
             (i < Context->RemoteMappedImage.NumberOfSections))
         {
-            PhpAnalyzeImageCoherencyInspect((PBYTE)&Context->MappedImage.Sections[i],
-                                            sizeof(IMAGE_SECTION_HEADER),
-                                            (PBYTE)&Context->RemoteMappedImage.Sections[i],
-                                            sizeof(IMAGE_SECTION_HEADER),
-                                            Context,
-                                            0,
-                                            NULL,
-                                            NULL);
+            PhpAnalyzeImageCoherencyInspect(
+                (PBYTE)&Context->MappedImage.Sections[i],
+                sizeof(IMAGE_SECTION_HEADER),
+                (PBYTE)&Context->RemoteMappedImage.Sections[i],
+                sizeof(IMAGE_SECTION_HEADER),
+                Context,
+                0,
+                NULL,
+                NULL
+                );
         }
         else
         {
@@ -984,13 +991,9 @@ VOID PhpAnalyzeImageCoherencyCommon(
     // Otherwise use the native path and inspect by the supplied RVAs
     //
     if (PhpAnalyzeImageCoherencyIsDotNet(Context))
-    {
         PhpAnalyzeImageCoherencyCommonAsManaged(ProcessHandle, Context);
-    }
     else
-    {
         PhpAnalyzeImageCoherencyCommonAsNative(ProcessHandle, Context);
-    }
 }
 
 /**
@@ -1015,26 +1018,30 @@ NTSTATUS PhpAnalyzeImageCoherencyNt32(
     //
     // Inspect the header
     //
-    PhpAnalyzeImageCoherencyInspect((PBYTE)Context->MappedImage.NtHeaders32,
-                                    UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader),
-                                    (PBYTE)Context->RemoteMappedImage.NtHeaders32,
-                                    UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader),
-                                    Context,
-                                    PtrToUlong(PTR_SUB_OFFSET(Context->MappedImage.NtHeaders32, Context->MappedImage.ViewBase)),
-                                    PhpImgCoherencySkip,
-                                    Context);
+    PhpAnalyzeImageCoherencyInspect(
+        (PBYTE)Context->MappedImage.NtHeaders32,
+        UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader),
+        (PBYTE)Context->RemoteMappedImage.NtHeaders32,
+        UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader),
+        Context,
+        PtrToUlong(PTR_SUB_OFFSET(Context->MappedImage.NtHeaders32, Context->MappedImage.ViewBase)),
+        PhpImgCoherencySkip,
+        Context
+        );
 
     //
     // Inspect the optional header
     //
-    PhpAnalyzeImageCoherencyInspect((PBYTE)fileOptHeader,
-                                    sizeof(IMAGE_OPTIONAL_HEADER32),
-                                    (PBYTE)procOptHeader,
-                                    sizeof(IMAGE_OPTIONAL_HEADER32),
-                                    Context,
-                                    PtrToUlong(PTR_SUB_OFFSET(fileOptHeader, Context->MappedImage.ViewBase)),
-                                    PhpImgCoherencySkip,
-                                    Context);
+    PhpAnalyzeImageCoherencyInspect(
+        (PBYTE)fileOptHeader,
+        sizeof(IMAGE_OPTIONAL_HEADER32),
+        (PBYTE)procOptHeader,
+        sizeof(IMAGE_OPTIONAL_HEADER32),
+        Context,
+        PtrToUlong(PTR_SUB_OFFSET(fileOptHeader, Context->MappedImage.ViewBase)),
+        PhpImgCoherencySkip,
+        Context
+        );
 
     //
     // Do the common inspection
@@ -1070,25 +1077,29 @@ NTSTATUS PhpAnalyzeImageCoherencyNt64(
     //
     // Inspect the header
     //
-    PhpAnalyzeImageCoherencyInspect((PBYTE)Context->MappedImage.NtHeaders,
-                                    UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader),
-                                    (PBYTE)Context->RemoteMappedImage.NtHeaders,
-                                    UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader),
-                                    Context,
-                                    PtrToUlong(PTR_SUB_OFFSET(Context->MappedImage.NtHeaders, Context->MappedImage.ViewBase)),
-                                    PhpImgCoherencySkip,
-                                    Context);
+    PhpAnalyzeImageCoherencyInspect(
+        (PBYTE)Context->MappedImage.NtHeaders,
+        UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader),
+        (PBYTE)Context->RemoteMappedImage.NtHeaders,
+        UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader),
+        Context,
+        PtrToUlong(PTR_SUB_OFFSET(Context->MappedImage.NtHeaders, Context->MappedImage.ViewBase)),
+        PhpImgCoherencySkip,
+        Context
+        );
     //
     // And the optional header
     //
-    PhpAnalyzeImageCoherencyInspect((PBYTE)fileOptHeader,
-                                    sizeof(IMAGE_OPTIONAL_HEADER64),
-                                    (PBYTE)procOptHeader,
-                                    sizeof(IMAGE_OPTIONAL_HEADER64),
-                                    Context,
-                                    PtrToUlong(PTR_SUB_OFFSET(fileOptHeader, Context->MappedImage.ViewBase)),
-                                    PhpImgCoherencySkip,
-                                    Context);
+    PhpAnalyzeImageCoherencyInspect(
+        (PBYTE)fileOptHeader,
+        sizeof(IMAGE_OPTIONAL_HEADER64),
+        (PBYTE)procOptHeader,
+        sizeof(IMAGE_OPTIONAL_HEADER64),
+        Context,
+        PtrToUlong(PTR_SUB_OFFSET(fileOptHeader, Context->MappedImage.ViewBase)),
+        PhpImgCoherencySkip,
+        Context
+        );
 
     //
     // Do the common inspection
@@ -1174,26 +1185,20 @@ NTSTATUS PhpInspectForImageCoherency(
         // in some cases, if it's a .NET mapping do the managed calculation.
         //
         if (PhpAnalyzeImageCoherencyIsDotNet(Context))
-        {
             PhpAnalyzeImageCoherencyCommonAsManaged(ProcessHandle, Context);
-        }
         status = STATUS_INVALID_IMAGE_FORMAT;
         goto CleanupExit;
     }
 
     switch (Context->MappedImage.Magic)
     {
-        case IMAGE_NT_OPTIONAL_HDR32_MAGIC:
-        {
-            status = PhpAnalyzeImageCoherencyNt32(ProcessHandle, Context);
-            break;
-        }
-        case IMAGE_NT_OPTIONAL_HDR64_MAGIC:
-        {
-            status = PhpAnalyzeImageCoherencyNt64(ProcessHandle, Context);
-            break;
-        }
-        default:
+    case IMAGE_NT_OPTIONAL_HDR32_MAGIC:
+        status = PhpAnalyzeImageCoherencyNt32(ProcessHandle, Context);
+        break;
+    case IMAGE_NT_OPTIONAL_HDR64_MAGIC:
+        status = PhpAnalyzeImageCoherencyNt64(ProcessHandle, Context);
+        break;
+    default:
         {
             //
             // Not supporting ELF for WSL yet. Note however, if the image type
@@ -1203,20 +1208,16 @@ NTSTATUS PhpInspectForImageCoherency(
             // handle remote mapping ELF.
             //
             status = STATUS_NOT_IMPLEMENTED;
-            break;
         }
+        break;
     }
 
 CleanupExit:
 
     if (Context->TotalBytes)
-    {
         *ImageCoherency = (FLOAT)Context->CoherentBytes / (FLOAT)Context->TotalBytes;
-    }
     else
-    {
         *ImageCoherency = 0.0f;
-    }
 
     return status;
 }
@@ -1281,23 +1282,21 @@ NTSTATUS PhpGetModuleCoherency(
             &numberOfTamperedPages
             );
         if (NT_SUCCESS(status))
-        {
             *ImageCoherency = (FLOAT)(numberOfPages - numberOfTamperedPages) / (FLOAT)numberOfPages;
-        }
     }
     else
     {
-        context = PhpCreateImageCoherencyContext(Type,
-                                                 FileName,
-                                                 ProcessHandle,
-                                                 RemoteImageBase,
-                                                 RemoteImageSize,
-                                                 RemoteImageBaseStatus,
-                                                 IsKernelModule ? KphReadVirtualMemoryUnsafe : NtReadVirtualMemory);
+        context = PhpCreateImageCoherencyContext(
+            Type,
+            FileName,
+            ProcessHandle,
+            RemoteImageBase,
+            RemoteImageSize,
+            RemoteImageBaseStatus,
+            IsKernelModule ? KphReadVirtualMemoryUnsafe : NtReadVirtualMemory
+            );
 
-        status = PhpInspectForImageCoherency(ProcessHandle,
-                                             context,
-                                             ImageCoherency);
+        status = PhpInspectForImageCoherency(ProcessHandle, context, ImageCoherency);
 
         PhpFreeImageCoherencyContext(context);
     }
@@ -1531,4 +1530,3 @@ NTSTATUS PhCheckImagePagesForTampering(
 
     return status;
 }
-
