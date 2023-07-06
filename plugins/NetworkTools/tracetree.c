@@ -27,8 +27,6 @@ VOID NTAPI TracertTreeNodeItemDeleteProcedure(
         PhDereferenceObject(tracertNode->HostnameString);
     if (tracertNode->IpAddressString)
         PhDereferenceObject(tracertNode->IpAddressString);
-    if (tracertNode->RemoteCountryCode)
-        PhDereferenceObject(tracertNode->RemoteCountryCode);
     if (tracertNode->RemoteCountryName)
         PhDereferenceObject(tracertNode->RemoteCountryName);
 
@@ -532,6 +530,7 @@ PTRACERT_ROOT_NODE GetSelectedTracertNode(
     return NULL;
 }
 
+_Success_(return)
 BOOLEAN GetSelectedTracertNodes(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _Out_ PTRACERT_ROOT_NODE **Nodes,

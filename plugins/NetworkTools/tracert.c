@@ -295,7 +295,7 @@ VOID TracertQueueHostLookup(
     _In_ PVOID SocketAddress
     )
 {
-    PPH_STRING remoteCountryCode;
+    ULONG remoteCountryCode;
     PPH_STRING remoteCountryName;
     ULONG addressStringLength = INET6_ADDRSTRLEN;
     WCHAR addressString[INET6_ADDRSTRLEN] = L"";
@@ -348,7 +348,7 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
+            Node->RemoteCountryCode = remoteCountryCode;
             PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
         }
     }
@@ -400,7 +400,7 @@ VOID TracertQueueHostLookup(
             &remoteCountryName
             ))
         {
-            PhMoveReference(&Node->RemoteCountryCode, remoteCountryCode);
+            Node->RemoteCountryCode = remoteCountryCode;
             PhMoveReference(&Node->RemoteCountryName, remoteCountryName);
         }
     }

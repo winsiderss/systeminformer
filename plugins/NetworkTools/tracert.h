@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2015-2019
+ *     dmex    2015-2023
  *
  */
 
@@ -43,10 +43,10 @@ typedef struct _TRACERT_ROOT_NODE
     PPH_STRING PingMessage[DEFAULT_MAXIMUM_PINGS];
 
     INT CountryIconIndex;
+    ULONG RemoteCountryCode;
     PPH_STRING TtlString;
     PPH_STRING HostnameString;
     PPH_STRING IpAddressString;
-    PPH_STRING RemoteCountryCode;
     PPH_STRING RemoteCountryName;
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } TRACERT_ROOT_NODE, *PTRACERT_ROOT_NODE;

@@ -32,11 +32,11 @@ PH_QUEUED_LOCK NetworkExtensionListLock = PH_QUEUED_LOCK_INIT;
 
 typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
     _In_ PH_IP_ADDRESS RemoteAddress,
-    _Out_ PPH_STRING* CountryCode,
+    _Out_ ULONG* CountryCode,
     _Out_ PPH_STRING* CountryName
     );
 typedef INT (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
-    _In_ PPH_STRING Name
+    _In_ ULONG CountryCode
     );
 typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
     _In_ HDC hdc,
@@ -582,7 +582,7 @@ VOID NTAPI NetworkNodeCreateCallback(
 
     if (!extension->CountryValid)
     {
-        PPH_STRING remoteCountryCode;
+        ULONG remoteCountryCode;
         PPH_STRING remoteCountryName;
 
         if (LookupCountryCode(
@@ -593,7 +593,6 @@ VOID NTAPI NetworkNodeCreateCallback(
         {
             PhMoveReference(&extension->RemoteCountryName, remoteCountryName);
             extension->CountryIconIndex = LookupCountryIcon(remoteCountryCode);
-            PhDereferenceObject(remoteCountryCode);
         }
 
         extension->CountryValid = TRUE;
