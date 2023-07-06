@@ -283,7 +283,7 @@ BOOLEAN DownloadUpdateToFile(
 
     // Create temporary file in the cache directory.
 
-    PhMoveReference(&httpHeaderFileName, PhCreateCacheFile(httpHeaderFileName));
+    PhMoveReference(&httpHeaderFileName, PhCreateCacheFile(httpHeaderFileName, FALSE));
 
     if (PhIsNullOrEmptyString(httpHeaderFileName))
     {
@@ -297,7 +297,7 @@ BOOLEAN DownloadUpdateToFile(
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
         &(LARGE_INTEGER){ .QuadPart = httpContentLength },
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_SHARE_READ,
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL
@@ -442,7 +442,8 @@ CleanupExit:
     {
         if (httpHeaderFileName)
         {
-            PhDeleteCacheFile(httpHeaderFileName);
+            PhDeleteCacheFile(httpHeaderFileName, FALSE);
+
             PhDereferenceObject(httpHeaderFileName);
         }
     }

@@ -28,7 +28,7 @@ VOID UpdateContextDeleteProcedure(
     {
         if (context->Cleanup)
         {
-            PhDeleteCacheFile(context->SetupFilePath);
+            PhDeleteCacheFile(context->SetupFilePath, FALSE);
         }
 
         PhDereferenceObject(context->SetupFilePath);
@@ -628,7 +628,7 @@ PPH_STRING UpdateParseDownloadFileName(
         return NULL;
 
     downloadFileName = PhCreateString2(&namePart);
-    localfileName = PhCreateCacheFile(downloadFileName);
+    localfileName = PhCreateCacheFile(downloadFileName, FALSE);
     PhDereferenceObject(downloadFileName);
 
     return localfileName;
@@ -923,7 +923,7 @@ CleanupExit:
     {
         if (context->SetupFilePath)
         {
-            PhDeleteCacheFile(context->SetupFilePath);
+            PhDeleteCacheFile(context->SetupFilePath, FALSE);
         }
 
         if (signatureSuccess)
@@ -1207,12 +1207,13 @@ VOID ShowStartupUpdateDialog(
     PhInitializeAutoPool(&autoPool);
 
     context = CreateUpdateContext(TRUE);
-    jsonString = PH_AUTO(PhGetStringSetting(SETTING_NAME_UPDATE_DATA));
 
     //
     // TODO configurable nightly/release option.
     //
     context->Type = UpdaterTypeNightly;
+
+    jsonString = PhGetStringSetting(SETTING_NAME_UPDATE_DATA);
 
     if (jsonString && jsonString->Length)
     {
@@ -1237,6 +1238,8 @@ VOID ShowStartupUpdateDialog(
         }
     }
 
+    PhClearReference(&jsonString);
+
     if (PhIsNullOrEmptyString(context->Version) &&
         PhIsNullOrEmptyString(context->RelDate) &&
         PhIsNullOrEmptyString(context->SetupFileDownloadUrl) &&
@@ -1245,6 +1248,7 @@ VOID ShowStartupUpdateDialog(
         PhIsNullOrEmptyString(context->SetupFileSignature) &&
         PhIsNullOrEmptyString(context->CommitHash))
     {
+        PhDereferenceObject(context);
         return;
     }
 
@@ -1257,6 +1261,5 @@ VOID ShowStartupUpdateDialog(
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
     PhDereferenceObject(context);
-
     PhDeleteAutoPool(&autoPool);
 }

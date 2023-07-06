@@ -16,7 +16,6 @@
 #include <processsnapshot.h>
 #include <sddl.h>
 #include <shellapi.h>
-#include <shellscalingapi.h>
 #include <shlobj.h>
 #include <winsta.h>
 
@@ -7126,7 +7125,8 @@ CleanupExit:
 //}
 
 PPH_STRING PhCreateCacheFile(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
     )
 {
     static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
@@ -7151,16 +7151,16 @@ PPH_STRING PhCreateCacheFile(
         randomAlphaStringRef.Buffer = randomAlphaString;
         randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
 
-        applicationDirectory = PhGetApplicationDirectoryWin32();
+        applicationDirectory = PhGetApplicationDirectory();
         applicationFileName = PhConcatStringRef3(
             &applicationDirectory->sr,
             &PhNtPathSeperatorString,
             &randomAlphaStringRef
             );
 
-        if (NT_SUCCESS(PhCreateFileWin32(
+        if (NT_SUCCESS(PhCreateFile(
             &fileHandle,
-            PhGetString(applicationFileName),
+            &applicationFileName->sr,
             FILE_GENERIC_WRITE | DELETE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -7173,7 +7173,7 @@ PPH_STRING PhCreateCacheFile(
         }
         else
         {
-            cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, FALSE);
+            cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
         }
 
         PhDereferenceObject(applicationFileName);
@@ -7181,13 +7181,13 @@ PPH_STRING PhCreateCacheFile(
     }
     else
     {
-        cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, FALSE);
+        cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
 
         if (PhIsNullOrEmptyString(cacheDirectory))
         {
             PhDereferenceObject(settingsFileName);
             PhDereferenceObject(fileName);
-            return FileName;
+            return NULL;
         }
     }
 
@@ -7207,7 +7207,7 @@ PPH_STRING PhCreateCacheFile(
         &FileName->sr
         ));
 
-    if (!NT_SUCCESS(PhCreateDirectoryFullPathWin32(&cacheFilePath->sr)))
+    if (!NT_SUCCESS(PhCreateDirectoryFullPath(&cacheFilePath->sr)))
     {
         PhClearReference(&cacheFilePath);
     }
@@ -7216,9 +7216,28 @@ PPH_STRING PhCreateCacheFile(
     PhDereferenceObject(settingsFileName);
     PhDereferenceObject(fileName);
 
+    if (NativeFileName)
+    {
+        PPH_STRING cacheFileName;
+
+        if (cacheFileName = PhDosPathNameToNtPathName(&cacheFilePath->sr))
+        {
+            PhMoveReference(&cacheFilePath, cacheFileName);
+        }
+    }
+    else
+    {
+        PPH_STRING cacheFileName;
+
+        if (cacheFileName = PhResolveDevicePrefix(&cacheFilePath->sr))
+        {
+            PhMoveReference(&cacheFilePath, cacheFileName);
+        }
+    }
+
     return cacheFilePath;
 }
-//
+
 //VOID PhDeleteCacheFile(
 //    _In_ PPH_STRING FileName
 //    )
@@ -7238,28 +7257,46 @@ PPH_STRING PhCreateCacheFile(
 //}
 
 VOID PhDeleteCacheFile(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
     )
 {
-    PPH_STRING cacheDirectory;
-    PPH_STRING cacheFullFilePath;
-    ULONG indexOfFileName = ULONG_MAX;
-
-    if (PhDoesFileExistWin32(PhGetString(FileName)))
+    if (NativeFileName)
     {
-        PhDeleteFileWin32(PhGetString(FileName));
-    }
+        PH_STRINGREF directoryPart;
 
-    if (NT_SUCCESS(PhGetFullPath(PhGetString(FileName), &cacheFullFilePath, &indexOfFileName)))
-    {
-        if (indexOfFileName != ULONG_MAX && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
+        if (PhDoesFileExist(&FileName->sr))
         {
-            PhDeleteDirectoryWin32(&cacheDirectory->sr);
-
-            PhDereferenceObject(cacheDirectory);
+            PhDeleteFile(&FileName->sr);
         }
 
-        PhDereferenceObject(cacheFullFilePath);
+        if (PhGetBasePath(&FileName->sr, &directoryPart, NULL))
+        {
+            PhDeleteDirectory(&directoryPart);
+        }
+    }
+    else
+    {
+        PPH_STRING cacheDirectory;
+        PPH_STRING cacheFullFilePath;
+        ULONG indexOfFileName = ULONG_MAX;
+
+        if (PhDoesFileExistWin32(PhGetString(FileName)))
+        {
+            PhDeleteFileWin32(PhGetString(FileName));
+        }
+
+        if (NT_SUCCESS(PhGetFullPath(PhGetString(FileName), &cacheFullFilePath, &indexOfFileName)))
+        {
+            if (indexOfFileName != ULONG_MAX && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
+            {
+                PhDeleteDirectoryWin32(&cacheDirectory->sr);
+
+                PhDereferenceObject(cacheDirectory);
+            }
+
+            PhDereferenceObject(cacheFullFilePath);
+        }
     }
 }
 
@@ -7284,7 +7321,7 @@ VOID PhClearCacheDirectory(
         PH_STRINGREF randomAlphaStringRef;
         WCHAR randomAlphaString[32] = L"";
 
-        applicationDirectory = PhGetApplicationDirectoryWin32();
+        applicationDirectory = PhGetApplicationDirectory();
 
         PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
         randomAlphaStringRef.Buffer = randomAlphaString;
@@ -7296,9 +7333,9 @@ VOID PhClearCacheDirectory(
             &randomAlphaStringRef
             );
 
-        if (NT_SUCCESS(PhCreateFileWin32(
+        if (NT_SUCCESS(PhCreateFile(
             &fileHandle,
-            PhGetString(applicationFileName),
+            &applicationFileName->sr,
             FILE_GENERIC_WRITE | DELETE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -7311,7 +7348,7 @@ VOID PhClearCacheDirectory(
         }
         else
         {
-            cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, FALSE);
+            cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
         }
 
         PhDereferenceObject(applicationFileName);
