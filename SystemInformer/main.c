@@ -1066,8 +1066,7 @@ BOOLEAN PhInitializeAppSystem(
         return FALSE;
     if (!PhNetworkProviderInitialization())
         return FALSE;
-
-    if (WindowsVersion >= WINDOWS_10 && !PhDeviceProviderInitialization())
+    if (!PhDeviceProviderInitialization())
         return FALSE;
 
     PhSetHandleClientIdFunction(PhGetClientIdName);
