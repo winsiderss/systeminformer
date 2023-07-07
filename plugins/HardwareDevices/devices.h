@@ -43,7 +43,9 @@
 #define SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME (PLUGIN_NAME L".SortDeviceChildrenByName")
 #define SETTING_NAME_DEVICE_SHOW_ROOT (PLUGIN_NAME L".ShowRootDevice")
 #define SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS (PLUGIN_NAME L".ShowSoftwareComponents")
-#define SETTING_NAME_DEVICE_ENABLE_NOTIFICATIONS (PLUGIN_NAME L".EnableDeviceNotifications")
+#define SETTING_NAME_DEVICE_PROPERTIES_POSITION (PLUGIN_NAME L".DevicePropertiesPossition")
+#define SETTING_NAME_DEVICE_GENERAL_COLUMNS (PLUGIN_NAME L".DeviceGeneralColumns")
+#define SETTING_NAME_DEVICE_PROPERTIES_COLUMNS (PLUGIN_NAME L".DevicePropertiesColumns")
 
 #include <phdk.h>
 #include <phappresource.h>
@@ -1519,11 +1521,23 @@ VOID InitializeDevicesTab(
     VOID
     );
 
-// devicenotify.c
+typedef struct DEVICE_PROPERTY_TABLE_ENTRY
+{
+    PH_DEVICE_PROPERTY_CLASS PropClass;
+    PWSTR ColumnName;
+    BOOLEAN ColumnVisible;
+    ULONG ColumnWidth;
+    ULONG ColumnTextFlags;
+} DEVICE_PROPERTY_TABLE_ENTRY, *PDEVICE_PROPERTY_TABLE_ENTRY;
 
-VOID HandleDeviceNotify(
-    _In_ BOOLEAN Removed,
-    _In_z_ PWSTR InstanceId
+extern const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[];
+extern const ULONG DeviceItemPropertyTableCount;
+
+// deviceprops.c
+
+BOOLEAN DeviceShowProperties(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_DEVICE_ITEM DeviceItem
     );
 
 #endif

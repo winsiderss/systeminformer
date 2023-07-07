@@ -107,6 +107,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="adapter.c" />
+    <ClCompile Include="deviceprops.c" />
     <ClCompile Include="devicetree.c" />
     <ClCompile Include="diskdetails.c" />
     <ClCompile Include="disknotify.c" />

@@ -213,9 +213,114 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
 }
 
+BOOLEAN CALLBACK PvUpdateButtonWindowEnumCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    WCHAR className[256];
+
+    if (!GetClassName(WindowHandle, className, RTL_NUMBER_OF(className)))
+        className[0] = UNICODE_NULL;
+
+    if (PhEqualStringZ(className, L"#32770", TRUE))
+    {
+        SendMessage(WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
+    }
+
+    return TRUE;
+}
+
+VOID PvUpdateChildWindows(
+    _In_ HWND WindowHandle
+    )
+{
+    HWND propSheetHandle;
+
+    if (propSheetHandle = GetAncestor(WindowHandle, GA_ROOT))
+    {
+        PhEnumChildWindows(propSheetHandle, ULONG_MAX, PvUpdateButtonWindowEnumCallback, NULL);
+    }
+}
+
+LRESULT CALLBACK PvControlButtonWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPV_PROPSHEETCONTEXT propSheetContext;
+    WNDPROC oldWndProc;
+
+    if (!(propSheetContext = PhGetWindowContext(WindowHandle, SCHAR_MAX)))
+        return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
+
+    oldWndProc = propSheetContext->OldOptionsButtonWndProc;
+
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        {
+            if (GET_WM_COMMAND_HWND(wParam, lParam) == propSheetContext->OptionsButtonWindowHandle)
+            {
+                PvUpdateChildWindows(WindowHandle);
+            }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
+}
+
+HWND PvpCreateControlButton(
+    _In_ PPV_PROPSHEETCONTEXT PropSheetContext,
+    _In_ HWND PropSheetWindow
+    )
+{
+    if (!PropSheetContext->OptionsButtonWindowHandle)
+    {
+        RECT clientRect;
+        RECT rect;
+
+        PropSheetContext->OldOptionsButtonWndProc = PhGetWindowProcedure(PropSheetWindow);
+        PhSetWindowContext(PropSheetWindow, SCHAR_MAX, PropSheetContext);
+        PhSetWindowProcedure(PropSheetWindow, PvControlButtonWndProc);
+
+        // Create the refresh button.
+        GetClientRect(PropSheetWindow, &clientRect);
+        GetWindowRect(GetDlgItem(PropSheetWindow, IDCANCEL), &rect);
+        MapWindowPoints(NULL, PropSheetWindow, (POINT*)& rect, 2);
+        PropSheetContext->OptionsButtonWindowHandle = CreateWindowEx(
+            WS_EX_NOPARENTNOTIFY,
+            WC_BUTTON,
+            L"Options",
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+            clientRect.right - rect.right,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            PropSheetWindow,
+            NULL,
+            PluginInstance->DllBase,
+            NULL
+            );
+        SetWindowFont(PropSheetContext->OptionsButtonWindowHandle, GetWindowFont(GetDlgItem(PropSheetWindow, IDCANCEL)), TRUE);
+    }
+
+    return PropSheetContext->OptionsButtonWindowHandle;
+}
+
 BOOLEAN PhpInitializePropSheetLayoutStage1(
     _In_ PPV_PROPSHEETCONTEXT PropSheetContext,
-    _In_ HWND hwnd
+    _In_ HWND hwnd,
+    _In_ BOOLEAN EnableOptionsButton
     )
 {
     if (!PropSheetContext->LayoutInitialized)
@@ -234,6 +339,15 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
 
         PhAddLayoutItem(&PropSheetContext->LayoutManager, GetDlgItem(hwnd, IDCANCEL),
             NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+        if (EnableOptionsButton)
+        {
+            PhAddLayoutItem(
+                &PropSheetContext->LayoutManager,
+                PvpCreateControlButton(PropSheetContext, hwnd),
+                NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM
+                );
+        }
 
         // Hide the OK button.
         ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
@@ -357,11 +471,12 @@ INT CALLBACK PvpStandardPropPageProc(
     return 1;
 }
 
-PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
+PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
     _In_ HWND hwnd,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
-    _In_ ULONG Anchor
+    _In_ ULONG Anchor,
+    _In_ BOOLEAN EnableOptionsButton
     )
 {
     HWND parent;
@@ -374,7 +489,7 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     propSheetContext = PvpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
-    PhpInitializePropSheetLayoutStage1(propSheetContext, parent);
+    PhpInitializePropSheetLayoutStage1(propSheetContext, parent, EnableOptionsButton);
 
     if (ParentItem != PH_PROP_PAGE_TAB_CONTROL_PARENT)
         realParentItem = ParentItem;
@@ -415,6 +530,16 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     }
 
     return item;
+}
+
+PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
+    _In_ HWND hwnd,
+    _In_ HWND Handle,
+    _In_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor
+    )
+{
+    return PvAddPropPageLayoutItemEx(hwnd, Handle, ParentItem, Anchor, FALSE);
 }
 
 VOID PvDoPropPageLayout(
