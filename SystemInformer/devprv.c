@@ -11,20 +11,17 @@
 
 #include <phapp.h>
 #include <phplug.h>
+#include <settings.h>
 
 #include <devprv.h>
 
 #include <SetupAPI.h>
 #include <cfgmgr32.h>
-#include <devguid.h>
 #include <wdmguid.h>
 
 #undef DEFINE_GUID
-#include <devpropdef.h>
 #include <pciprop.h>
 #include <ntddstor.h>
-
-#include <guiddef.h>
 
 static PH_STRINGREF RootInstanceId = PH_STRINGREF_INIT(L"HTREE\\ROOT\\0");
 PPH_OBJECT_TYPE PhDeviceTreeType = NULL;
@@ -565,7 +562,7 @@ Exit:
     if (buffer)
         PhFree(buffer);
 
-    return result;
+    return !!result;
 }
 
 BOOLEAN PhpGetClassPropertyString(
@@ -623,7 +620,7 @@ Exit:
     if (buffer)
         PhFree(buffer);
 
-    return result;
+    return !!result;
 }
 
 BOOLEAN PhpGetDevicePropertyStringList(
@@ -701,7 +698,7 @@ Exit:
     if (buffer)
         PhFree(buffer);
 
-    return result;
+    return !!result;
 }
 
 BOOLEAN PhpGetClassPropertyStringList(
@@ -756,18 +753,18 @@ BOOLEAN PhpGetClassPropertyStringList(
 
     for (PZZWSTR item = buffer;;)
     {
-        UNICODE_STRING string;
+        PH_STRINGREF string;
 
-        RtlInitUnicodeString(&string, item);
+        PhInitializeStringRefLongHint(&string, item);
 
         if (string.Length == 0)
         {
             break;
         }
 
-        PhAddItemList(stringList, PhCreateStringFromUnicodeString(&string));
+        PhAddItemList(stringList, PhCreateString2(&string));
 
-        item = PTR_ADD_OFFSET(item, string.MaximumLength);
+        item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
     }
 
     *StringList = stringList;
@@ -777,7 +774,7 @@ Exit:
     if (buffer)
         PhFree(buffer);
 
-    return result;
+    return !!result;
 }
 
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
@@ -1826,7 +1823,7 @@ static PH_DEVICE_PROPERTY_CLASS PhpBreakOnDevicePropertyClass = 0;
 
 PPH_DEVICE_PROPERTY PhGetDeviceProperty(
     _In_ PPH_DEVICE_ITEM Item,
-    _In_ PH_DEVICE_PROPERTY_CLASS Class 
+    _In_ PH_DEVICE_PROPERTY_CLASS Class
     )
 {
     PPH_DEVICE_PROPERTY prop;
@@ -1884,9 +1881,11 @@ PPH_DEVICE_TREE PhReferenceDeviceTree(
     )
 {
     PPH_DEVICE_TREE deviceTree;
+
     PhAcquireFastLockShared(&PhpDeviceTreeLock);
-    deviceTree = PhpDeviceTree ? PhReferenceObject(PhpDeviceTree) : NULL;
+    PhSetReference(&deviceTree, PhpDeviceTree);
     PhReleaseFastLockShared(&PhpDeviceTreeLock);
+
     return deviceTree;
 }
 
@@ -2211,7 +2210,7 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
 }
 
 VOID PhpDeviceNotify(
-    _In_ PLIST_ENTRY List 
+    _In_ PLIST_ENTRY List
     )
 {
     PPH_DEVICE_TREE newTree;
@@ -2245,6 +2244,8 @@ NTSTATUS NTAPI PhpDeviceNotifyWorker(
     _In_ PVOID ThreadParameter
     )
 {
+    PhSetThreadName(NtCurrentThread(), L"DeviceNotifyWorker");
+
     for (;;)
     {
         LIST_ENTRY list;
@@ -2338,8 +2339,8 @@ BOOLEAN PhDeviceProviderInitialization(
     NTSTATUS status;
     CM_NOTIFY_FILTER cmFilter;
 
-    if (WindowsVersion < WINDOWS_10)
-        return FALSE;
+    if (WindowsVersion < WINDOWS_10 || !PhGetIntegerSetting(L"EnableDeviceSupport"))
+        return TRUE;
 
     PhDeviceItemType = PhCreateObjectType(L"DeviceItem", 0, PhpDeviceItemDeleteProcedure);
     PhDeviceTreeType = PhCreateObjectType(L"DeviceTree", 0, PhpDeviceTreeDeleteProcedure);
