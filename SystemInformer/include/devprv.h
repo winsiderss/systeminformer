@@ -278,6 +278,13 @@ typedef struct _PH_DEVICE_PROPERTY
     PPH_STRING AsString;
 } PH_DEVICE_PROPERTY, *PPH_DEVICE_PROPERTY;
 
+// end_phapppub
+typedef struct _PH_DEVINFO
+{
+    HDEVINFO Handle;
+} PH_DEVINFO, *PPH_DEVINFO;
+// begin_phapppub
+
 typedef struct _PH_DEVICE_ITEM
 {
     PPH_LIST Children;
@@ -306,7 +313,7 @@ typedef struct _PH_DEVICE_ITEM
     PH_DEVICE_PROPERTY Properties[PhMaxDeviceProperty];
 
 // end_phapppub
-    HDEVINFO DeviceInfoHandle;
+    PPH_DEVINFO DeviceInfo;
     SP_DEVINFO_DATA DeviceInfoData;
 // begin_phapppub
 } PH_DEVICE_ITEM, *PPH_DEVICE_ITEM;
@@ -316,7 +323,7 @@ typedef struct _PH_DEVICE_TREE
     PPH_DEVICE_ITEM Root;
     PPH_LIST DeviceList;
 // end_phapppub
-    HDEVINFO DeviceInfoHandle;
+    PPH_DEVINFO DeviceInfo;
 // begin_phapppub
 } PH_DEVICE_TREE, *PPH_DEVICE_TREE;
 
@@ -350,6 +357,25 @@ PPH_DEVICE_ITEM
 NTAPI
 PhLookupDeviceItem(
     _In_ PPH_DEVICE_TREE Tree,
+    _In_ PPH_STRINGREF InstanceId
+    );
+
+PHAPPAPI
+_Success_(return != NULL)
+_Must_inspect_result_
+PPH_DEVICE_ITEM
+NTAPI
+PhReferenceDeviceItem(
+    _In_ PPH_DEVICE_TREE Tree,
+    _In_ PPH_STRINGREF InstanceId
+    );
+
+PHAPPAPI
+_Success_(return != NULL)
+_Must_inspect_result_
+PPH_DEVICE_ITEM
+NTAPI
+PhReferenceDeviceItem2(
     _In_ PPH_STRINGREF InstanceId
     );
 

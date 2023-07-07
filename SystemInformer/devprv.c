@@ -27,6 +27,7 @@ static PH_STRINGREF RootInstanceId = PH_STRINGREF_INIT(L"HTREE\\ROOT\\0");
 PPH_OBJECT_TYPE PhDeviceTreeType = NULL;
 PPH_OBJECT_TYPE PhDeviceItemType = NULL;
 PPH_OBJECT_TYPE PhDeviceNotifyType = NULL;
+static PPH_OBJECT_TYPE PhpDeviceInfoType = NULL;
 static PPH_DEVICE_TREE PhpDeviceTree = NULL;
 static PH_FAST_LOCK PhpDeviceTreeLock = PH_FAST_LOCK_INIT;
 static HCMNOTIFICATION PhpDeviceNotification = NULL;
@@ -1841,7 +1842,7 @@ PPH_DEVICE_PROPERTY PhGetDeviceProperty(
 #endif
 
         entry->Callback(
-            Item->DeviceInfoHandle,
+            Item->DeviceInfo->Handle,
             &Item->DeviceInfoData,
             entry->PropKey,
             prop,
@@ -1862,7 +1863,7 @@ HICON PhGetDeviceIcon(
     HICON iconHandle;
 
     if (!SetupDiLoadDeviceIcon(
-        Item->DeviceInfoHandle,
+        Item->DeviceInfo->Handle,
         &Item->DeviceInfoData,
         IconSize->X,
         IconSize->Y,
@@ -1905,6 +1906,50 @@ PPH_DEVICE_ITEM PhLookupDeviceItem(
     }
 
     return NULL;
+}
+
+_Success_(return != NULL)
+_Must_inspect_result_
+PPH_DEVICE_ITEM PhReferenceDeviceItem(
+    _In_ PPH_DEVICE_TREE Tree,
+    _In_ PPH_STRINGREF InstanceId
+    )
+{
+    PPH_DEVICE_ITEM deviceItem;
+
+    PhSetReference(&deviceItem, PhLookupDeviceItem(Tree, InstanceId));
+
+    return deviceItem;
+}
+
+_Success_(return != NULL)
+_Must_inspect_result_
+PPH_DEVICE_ITEM PhReferenceDeviceItem2(
+    _In_ PPH_STRINGREF InstanceId
+    )
+{
+    PPH_DEVICE_TREE deviceTree;
+    PPH_DEVICE_ITEM deviceItem;
+
+    deviceTree = PhReferenceDeviceTree();
+    PhSetReference(&deviceItem, PhLookupDeviceItem(deviceTree, InstanceId));
+    PhDereferenceObject(deviceTree);
+
+    return deviceItem;
+}
+
+VOID PhpDeviceInfoDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_DEVINFO info = Object;
+
+    if (info->Handle != INVALID_HANDLE_VALUE)
+    {
+        SetupDiDestroyDeviceInfoList(info->Handle);
+        info->Handle = INVALID_HANDLE_VALUE;
+    }
 }
 
 VOID PhpDeviceItemDeleteProcedure(
@@ -1963,12 +2008,7 @@ VOID PhpDeviceTreeDeleteProcedure(
     }
 
     PhDereferenceObject(tree->DeviceList);
-
-    if (tree->DeviceInfoHandle != INVALID_HANDLE_VALUE)
-    {
-        SetupDiDestroyDeviceInfoList(tree->DeviceInfoHandle);
-        tree->DeviceInfoHandle = INVALID_HANDLE_VALUE;
-    }
+    PhDereferenceObject(tree->DeviceInfo);
 }
 
 VOID PhpDeviceNotifyDeleteProcedure(
@@ -1995,7 +2035,7 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceItem(
 
     item = PhCreateObjectZero(sizeof(PH_DEVICE_ITEM), PhDeviceItemType);
 
-    item->DeviceInfoHandle = Tree->DeviceInfoHandle;
+    item->DeviceInfo = PhReferenceObject(Tree->DeviceInfo);
     RtlCopyMemory(&item->DeviceInfoData, DeviceInfoData, sizeof(SP_DEVINFO_DATA));
     RtlCopyMemory(&item->ClassGuid, &DeviceInfoData->ClassGuid, sizeof(GUID));
 
@@ -2089,14 +2129,15 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
     tree = PhCreateObjectZero(sizeof(PH_DEVICE_TREE), PhDeviceTreeType);
 
     tree->DeviceList = PhCreateList(40);
+    tree->DeviceInfo = PhCreateObject(sizeof(PH_DEVINFO), PhpDeviceInfoType);
 
-    tree->DeviceInfoHandle = SetupDiGetClassDevsW(
+    tree->DeviceInfo->Handle = SetupDiGetClassDevsW(
         NULL,
         NULL,
         NULL,
         DIGCF_ALLCLASSES
         );
-    if (tree->DeviceInfoHandle == INVALID_HANDLE_VALUE)
+    if (tree->DeviceInfo->Handle == INVALID_HANDLE_VALUE)
     {
         return tree;
     }
@@ -2108,7 +2149,7 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
         memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
         deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
-        if (!SetupDiEnumDeviceInfo(tree->DeviceInfoHandle, i, &deviceInfoData))
+        if (!SetupDiEnumDeviceInfo(tree->DeviceInfo->Handle, i, &deviceInfoData))
             break;
 
         PhpAddDeviceItem(tree, &deviceInfoData);
@@ -2345,6 +2386,7 @@ BOOLEAN PhDeviceProviderInitialization(
     PhDeviceItemType = PhCreateObjectType(L"DeviceItem", 0, PhpDeviceItemDeleteProcedure);
     PhDeviceTreeType = PhCreateObjectType(L"DeviceTree", 0, PhpDeviceTreeDeleteProcedure);
     PhDeviceNotifyType = PhCreateObjectType(L"DeviceNotify", 0, PhpDeviceNotifyDeleteProcedure);
+    PhpDeviceInfoType = PhCreateObjectType(L"DeviceInfo", 0, PhpDeviceInfoDeleteProcedure);
 
     PhpDeviceTree = PhpCreateDeviceTree();
 
