@@ -634,7 +634,7 @@ VOID PhMwpOnServiceRemoved(
 {
     PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
 
-    if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
+    if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_DELETE)
     {
         if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_DELETE, ServiceItem))
         {
