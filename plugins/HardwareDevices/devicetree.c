@@ -623,7 +623,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         break;
                     case 10:
                         if (node->DeviceItem->InstanceId)
-                            HardwareDeviceShowProperties(hwnd, node->DeviceItem->InstanceId);
+                            DeviceShowProperties(hwnd, node->DeviceItem);
                         break;
                     case 11:
                         {
@@ -700,8 +700,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
             node = (PDEVICE_NODE)mouseEvent->Node;
 
-            if (node->DeviceItem->InstanceId)
-                HardwareDeviceShowProperties(hwnd, node->DeviceItem->InstanceId);
+            if (node && node->DeviceItem->InstanceId)
+                DeviceShowProperties(hwnd, node->DeviceItem);
         }
         return TRUE;
     case TreeNewHeaderRightClick:
@@ -796,16 +796,7 @@ VOID DevicesTreeImageListInitialize(
     TreeNew_SetImageList(DeviceTreeHandle, DeviceImageList);
 }
 
-typedef struct DEVICE_PROPERTY_TABLE_ENTRY
-{
-    PH_DEVICE_PROPERTY_CLASS PropClass;
-    PWSTR ColumnName;
-    BOOLEAN ColumnVisible;
-    ULONG ColumnWidth;
-    ULONG ColumnTextFlags;
-} DEVICE_PROPERTY_TABLE_ENTRY, *PDEVICE_PROPERTY_TABLE_ENTRY;
-
-static const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
+const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
 {
     { PhDevicePropertyName, L"Name", TRUE, 400, 0 },
     { PhDevicePropertyManufacturer, L"Manufacturer", TRUE, 180, 0 },
@@ -1021,6 +1012,7 @@ static const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
     { PhDevicePropertyStoragePartitionNumber, L"Storage disk partition number", FALSE, 80, 0 },
 };
 C_ASSERT(RTL_NUMBER_OF(DeviceItemPropertyTable) == PhMaxDeviceProperty);
+const ULONG DeviceItemPropertyTableCount = RTL_NUMBER_OF(DeviceItemPropertyTable);
 
 VOID DevicesTreeInitialize(
     _In_ HWND TreeNewHandle
@@ -1039,7 +1031,7 @@ VOID DevicesTreeInitialize(
 
     TreeNew_SetRedraw(DeviceTreeHandle, FALSE);
 
-    for (ULONG i = 0; i < RTL_NUMBER_OF(DeviceItemPropertyTable); i++)
+    for (ULONG i = 0; i < DeviceItemPropertyTableCount; i++)
     {
         ULONG displayIndex;
         const DEVICE_PROPERTY_TABLE_ENTRY* entry;

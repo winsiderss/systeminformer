@@ -671,7 +671,9 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME, L"1" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_ROOT, L"0" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS, L"1" },
-                { IntegerSettingType, SETTING_NAME_DEVICE_ENABLE_NOTIFICATIONS, L"1" },
+                { IntegerPairSettingType, SETTING_NAME_DEVICE_PROPERTIES_POSITION, L"0,0" },
+                { StringSettingType, SETTING_NAME_DEVICE_GENERAL_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

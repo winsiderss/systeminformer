@@ -110,6 +110,9 @@
     <ClCompile Include="devicetree.c">
       <Filter>Source Files\Devices</Filter>
     </ClCompile>
+    <ClCompile Include="deviceprops.c">
+      <Filter>Source Files\Devices</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="HardwareDevices.rc">

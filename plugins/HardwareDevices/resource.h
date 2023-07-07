@@ -69,6 +69,14 @@
 #define IDC_POWER_USAGE_L               1094
 #define IDC_TEMPERATURE_L               1095
 #define IDC_FAN_RPM_L                   1096
+#define IDD_DEVICE_GENERAL              1100
+#define IDC_DEVICE_INFO                 1101
+#define IDC_DEVICE_ICON                 1102
+#define IDC_DEVICE_GROUPBOX             1103
+#define IDC_DEVICE_NAME                 1104
+#define IDC_DEVICE_MANUFACTURER         1105
+#define IDD_DEVICE_PROPERTIES           1106
+#define IDC_DEVICE_PROPERTIES_LIST      1107
 
 // Next default values for new objects
 // 
