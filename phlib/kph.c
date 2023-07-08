@@ -218,7 +218,7 @@ NTSTATUS KphSetParameters(
         parametersKeyHandle,
         L"DynData",
         REG_BINARY,
-        KphDynData,
+        (PVOID)KphDynData,
         KphDynDataLength
         );
 
@@ -229,7 +229,7 @@ NTSTATUS KphSetParameters(
         parametersKeyHandle,
         L"DynDataSig",
         REG_BINARY,
-        KphDynDataSig,
+        (PVOID)KphDynDataSig,
         KphDynDataSigLength
         );
 
@@ -503,8 +503,8 @@ NTSTATUS KsiLoadUnloadService(
 
                 if (NT_SUCCESS(PhCreateKey(&parametersKeyHandle, KEY_WRITE, serviceKeyHandle, &parametersKeyName, 0, 0, NULL)))
                 {
-                    PhSetValueKeyZ(parametersKeyHandle, L"DynData", REG_BINARY, KphDynData, KphDynDataLength);
-                    PhSetValueKeyZ(parametersKeyHandle, L"DynDataSig", REG_BINARY, KphDynDataSig, KphDynDataSigLength);
+                    PhSetValueKeyZ(parametersKeyHandle, L"DynData", REG_BINARY, (PVOID)KphDynData, KphDynDataLength);
+                    PhSetValueKeyZ(parametersKeyHandle, L"DynDataSig", REG_BINARY, (PVOID)KphDynDataSig, KphDynDataSigLength);
                     PhSetValueKeyZ(parametersKeyHandle, L"KphPortName", REG_SZ, Config->PortName->Buffer, (ULONG)Config->PortName->Length + sizeof(UNICODE_NULL));
                     PhSetValueKeyZ(parametersKeyHandle, L"KphAltitude", REG_SZ, Config->Altitude->Buffer, (ULONG)Config->Altitude->Length + sizeof(UNICODE_NULL));
                     PhSetValueKeyZ(parametersKeyHandle, L"DisableImageLoadProtection", REG_DWORD, &(ULONG){ Config->DisableImageLoadProtection }, sizeof(ULONG));

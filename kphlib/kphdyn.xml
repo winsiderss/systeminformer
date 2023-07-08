@@ -48,7 +48,7 @@ uf lxcore!LxpSyscall_GETPID
 uf lxcore!LxpSyscall_GETTID
 uf lxcore!LxpSyscall_GETTID
 dt nt!_SECTION u1.ControlArea
-dt nt!_CONTROL_AREA ListHead 
+dt nt!_CONTROL_AREA ListHead
 dt nt!_CONTROL_AREA ControlAreaLock
 
 -->

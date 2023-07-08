@@ -16,7 +16,7 @@
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
 #define KPH_DYN_CI_V2      ((SHORT)2)
-    
+
 #define KPH_DYN_LX_INVALID ((SHORT)-1)
 #define KPH_DYN_LX_V1      ((SHORT)1)
 
@@ -66,7 +66,7 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT LxPicoThrdInfo;               // uf lxcore!LxpSyscall_GETTID
     USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
     USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
-    USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead 
+    USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
 
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
@@ -82,8 +82,8 @@ typedef struct _KPH_DYNDATA
 #include <poppack.h>
 
 #ifdef _WIN64
-extern BYTE KphDynData[];
-extern ULONG KphDynDataLength;
-extern BYTE KphDynDataSig[];
-extern ULONG KphDynDataSigLength;
+extern CONST BYTE KphDynData[];
+extern CONST ULONG KphDynDataLength;
+extern CONST BYTE KphDynDataSig[];
+extern CONST ULONG KphDynDataSigLength;
 #endif
