@@ -1890,6 +1890,49 @@ PPH_DEVICE_TREE PhReferenceDeviceTree(
     return deviceTree;
 }
 
+ULONG PhpGenerateInstanceIdHash(
+    _In_ PPH_STRINGREF InstanceId
+    )
+{
+    return PhHashStringRefEx(InstanceId, TRUE, PH_STRING_HASH_X65599);
+}
+
+static int __cdecl PhpDeviceItemSortFunction(
+    const void* Left,
+    const void* Right
+    )
+{
+    PPH_DEVICE_ITEM lhsItem;
+    PPH_DEVICE_ITEM rhsItem;
+
+    lhsItem = *(PPH_DEVICE_ITEM*)Left;
+    rhsItem = *(PPH_DEVICE_ITEM*)Right;
+
+    if (lhsItem->InstanceIdHash < rhsItem->InstanceIdHash)
+        return -1;
+    else if (lhsItem->InstanceIdHash > rhsItem->InstanceIdHash)
+        return 1;
+    else
+        return 0;
+}
+
+static int __cdecl PhpDeviceItemSearchFunction(
+    const void* Hash,
+    const void* Item 
+    )
+{
+    PPH_DEVICE_ITEM item;
+
+    item = *(PPH_DEVICE_ITEM*)Item;
+
+    if (PtrToUlong(Hash) < item->InstanceIdHash)
+        return -1;
+    else if (PtrToUlong(Hash) > item->InstanceIdHash)
+        return 1;
+    else
+        return 0;
+}
+
 _Success_(return != NULL)
 _Must_inspect_result_
 PPH_DEVICE_ITEM PhLookupDeviceItem(
@@ -1897,15 +1940,20 @@ PPH_DEVICE_ITEM PhLookupDeviceItem(
     _In_ PPH_STRINGREF InstanceId
     )
 {
-    // TODO(jxy-s) could do with improvement using faster search algorithm 
-    for (ULONG i = 0; i < Tree->DeviceList->Count; i++)
-    {
-        PPH_DEVICE_ITEM item = Tree->DeviceList->Items[i];
-        if (PhEqualStringRef(&item->InstanceId->sr, InstanceId, TRUE))
-            return Tree->DeviceList->Items[i];
-    }
+    ULONG hash;
+    PPH_DEVICE_ITEM* deviceItem;
 
-    return NULL;
+    hash = PhpGenerateInstanceIdHash(InstanceId);
+
+    deviceItem = bsearch(
+        UlongToPtr(hash),
+        Tree->DeviceList->Items,
+        Tree->DeviceList->Count,
+        sizeof(PVOID),
+        PhpDeviceItemSearchFunction
+        );
+
+    return deviceItem ? *deviceItem : NULL;
 }
 
 _Success_(return != NULL)
@@ -2049,6 +2097,8 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceItem(
     item->InstanceId = PhGetDeviceProperty(item, PhDevicePropertyInstanceId)->AsString;
     if (item->InstanceId)
     {
+        item->InstanceIdHash = PhpGenerateInstanceIdHash(&item->InstanceId->sr);
+
         //
         // If this is the root enumerator override some properties.
         //
@@ -2155,9 +2205,7 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
         PhpAddDeviceItem(tree, &deviceInfoData);
     }
 
-    //
     // Link the device relations.
-    //
     root = NULL;
 
     for (ULONG i = 0; i < tree->DeviceList->Count; i++)
@@ -2246,6 +2294,14 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
 
     assert(root && !root->Sibling);
     tree->Root = root;
+
+    // sort the list for faster lookups later
+    qsort(
+        tree->DeviceList->Items,
+        tree->DeviceList->Count,
+        sizeof(PVOID),
+        PhpDeviceItemSortFunction
+        );
 
     return tree;
 }

@@ -293,6 +293,7 @@ typedef struct _PH_DEVICE_ITEM
     struct _PH_DEVICE_ITEM* Child;
 
     GUID ClassGuid;
+    ULONG InstanceIdHash;
     PPH_STRING InstanceId;
     PPH_STRING ParentInstanceId;
     ULONG ProblemCode;
