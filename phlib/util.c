@@ -8659,3 +8659,34 @@ NTSTATUS PhUpdateProcThreadAttribute(
     return STATUS_SUCCESS;
 #endif
 }
+
+PPH_STRING PhGetActiveComputerName(
+    VOID
+    )
+{
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\ComputerName\\ActiveComputerName");
+    PPH_STRING computerName = NULL;
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        )))
+    {
+        computerName = PhQueryRegistryStringZ(keyHandle, L"ComputerName");
+        NtClose(keyHandle);
+    }
+
+    //WCHAR computerName[MAX_COMPUTERNAME_LENGTH + 1];
+    //ULONG length = MAX_COMPUTERNAME_LENGTH + 1;
+    //
+    //if (GetComputerNameW(computerName, &length))
+    //{
+    //   return PhCreateStringEx(computerName, length * sizeof(WCHAR));
+    //}
+
+    return computerName;
+}
