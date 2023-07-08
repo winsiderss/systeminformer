@@ -34,7 +34,7 @@ $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
 #define KPH_DYN_CI_V2      ((SHORT)2)
-    
+
 #define KPH_DYN_LX_INVALID ((SHORT)-1)
 #define KPH_DYN_LX_V1      ((SHORT)1)
 
@@ -84,7 +84,7 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT LxPicoThrdInfo;               // uf lxcore!LxpSyscall_GETTID
     USHORT LxPicoThrdInfoTID;            // uf lxcore!LxpSyscall_GETTID
     USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
-    USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead 
+    USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
 
 }} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
@@ -224,10 +224,10 @@ typedef struct _KPH_DYNDATA
             sb.AppendLine(DynConfigC);
             sb.AppendLine();
             sb.AppendLine("#ifdef _WIN64");
-            sb.AppendLine("extern BYTE KphDynData[];");
-            sb.AppendLine("extern ULONG KphDynDataLength;");
-            sb.AppendLine("extern BYTE KphDynDataSig[];");
-            sb.AppendLine("extern ULONG KphDynDataSigLength;");
+            sb.AppendLine("extern CONST BYTE KphDynData[];");
+            sb.AppendLine("extern CONST ULONG KphDynDataLength;");
+            sb.AppendLine("extern CONST BYTE KphDynDataSig[];");
+            sb.AppendLine("extern CONST ULONG KphDynDataSigLength;");
             sb.AppendLine("#endif");
 
             return sb.ToString();
@@ -245,19 +245,19 @@ typedef struct _KPH_DYNDATA
             sb.AppendLine(Includes);
             sb.AppendLine();
             sb.AppendLine("#ifdef _WIN64");
-            sb.AppendLine("BYTE KphDynData[] =");
+            sb.AppendLine("CONST BYTE KphDynData[] =");
             sb.AppendLine("{");
             sb.Append(Config);
             sb.AppendLine("};");
             sb.AppendLine();
-            sb.AppendLine("ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
+            sb.AppendLine("CONST ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
             sb.AppendLine();
-            sb.AppendLine("BYTE KphDynDataSig[] =");
+            sb.AppendLine("CONST BYTE KphDynDataSig[] =");
             sb.AppendLine("{");
             sb.Append(Sig);
             sb.AppendLine("};");
             sb.AppendLine();
-            sb.AppendLine("ULONG KphDynDataSigLength = ARRAYSIZE(KphDynDataSig);");
+            sb.AppendLine("CONST ULONG KphDynDataSigLength = ARRAYSIZE(KphDynDataSig);");
             sb.AppendLine("#endif");
 
             return sb.ToString();
@@ -290,7 +290,7 @@ typedef struct _KPH_DYNDATA
 
                     if (value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
                     {
-                        value = Convert.ToUInt64(value, 16).ToString(); 
+                        value = Convert.ToUInt64(value, 16).ToString();
                     }
                     else if (value.Equals("-1", StringComparison.OrdinalIgnoreCase) && member.FieldType == typeof(ushort))
                     {
@@ -309,7 +309,7 @@ typedef struct _KPH_DYNDATA
                 throw new Exception("Dynamic configuration is invalid!");
             }
 
-            string tempName = Path.GetTempPath() + Guid.NewGuid().ToString();
+            string tempName = $"{Build.BuildWorkingFolder}\\tools\\CustomBuildTool\\bin\\Release\\" + Guid.NewGuid();
             string configFile = $"{tempName}.bin";
             string sigFile = $"{tempName}.sig";
 
@@ -366,7 +366,7 @@ typedef struct _KPH_DYNDATA
                     Program.PrintColorMessage($"{configName} - BuildNumber range is invalid", ConsoleColor.Red);
                     valid = false;
                 }
-                
+
                 if (config.BuildNumberMax == config.BuildNumberMin &&
                     config.RevisionMax < config.RevisionMin)
                 {
