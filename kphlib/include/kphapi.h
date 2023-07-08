@@ -103,6 +103,7 @@ typedef enum _KPH_THREAD_INFORMATION_CLASS
     KphThreadPowerThrottlingState,   // s: POWER_THROTTLING_THREAD_STATE
     KphThreadIoCounters,             // q: IO_COUNTERS
     KphThreadWSLThreadId,            // q: ULONG 
+    KphThreadExplicitCaseSensitivity,// s: ULONG; s: 0 disables, otherwise enables
 } KPH_THREAD_INFORMATION_CLASS;
 
 typedef struct _KPH_PROCESS_BASIC_INFORMATION

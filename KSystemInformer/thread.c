@@ -1060,6 +1060,11 @@ NTSTATUS KphSetInformationThread(
             threadInformationClass = ThreadPowerThrottlingState;
             break;
         }
+        case KphThreadExplicitCaseSensitivity:
+        {
+            threadInformationClass = ThreadExplicitCaseSensitivity;
+            break;
+        }
         default:
         {
             status = STATUS_INVALID_INFO_CLASS;
