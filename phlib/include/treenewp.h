@@ -545,6 +545,7 @@ VOID PhTnpAutoSizeColumnHeader(
 
 // Nodes
 
+_Success_(return)
 BOOLEAN PhTnpGetNodeChildren(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_opt_ PPH_TREENEW_NODE Node,

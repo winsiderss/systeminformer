@@ -124,9 +124,6 @@ extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #define PH_PROCESS_ITEM_REMOVED 0x1
 // end_phapppub
 
-#define PH_INTEGRITY_STR_LEN 10
-#define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
-
 // begin_phapppub
 typedef enum _VERIFY_RESULT VERIFY_RESULT;
 typedef struct _PH_PROCESS_RECORD *PPH_PROCESS_RECORD;

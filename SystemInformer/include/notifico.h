@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_NOTIFICO_H
 #define PH_NOTIFICO_H
 
@@ -40,8 +52,10 @@ typedef enum _PH_TRAY_ICON_GUID
 #define PH_ICON_ALL 0xffffffff
 
 // begin_phapppub
+typedef struct _PH_NF_ICON PH_NF_ICON, *PPH_NF_ICON;
+
 typedef VOID (NTAPI *PPH_NF_UPDATE_REGISTERED_ICON)(
-    _In_ struct _PH_NF_ICON *Icon
+    _In_ PPH_NF_ICON Icon
     );
 
 typedef VOID (NTAPI *PPH_NF_BEGIN_BITMAP)(
@@ -62,7 +76,7 @@ typedef struct _PH_NF_POINTERS
 #define PH_NF_UPDATE_DESTROY_RESOURCE 0x2
 
 typedef VOID (NTAPI *PPH_NF_ICON_UPDATE_CALLBACK)(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -70,7 +84,7 @@ typedef VOID (NTAPI *PPH_NF_ICON_UPDATE_CALLBACK)(
     );
 
 typedef BOOLEAN (NTAPI *PPH_NF_ICON_MESSAGE_CALLBACK)(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
@@ -94,11 +108,13 @@ typedef struct _PH_NF_MSG_SHOWMINIINFOSECTION_DATA
 // end_phapppub
 
 // begin_phapppub
+typedef struct _PH_PLUGIN PH_PLUGIN, *PPH_PLUGIN;
+
 typedef struct _PH_NF_ICON
 {
     // Public
 
-    struct _PH_PLUGIN *Plugin;
+    PPH_PLUGIN Plugin;
     ULONG SubId;
     PVOID Context;
     PPH_NF_POINTERS Pointers;
@@ -156,7 +172,7 @@ HICON PhNfBitmapToIcon(
     );
 
 PPH_NF_ICON PhNfRegisterIcon(
-    _In_opt_ struct _PH_PLUGIN *Plugin,
+    _In_opt_ PPH_PLUGIN Plugin,
     _In_ ULONG Id,
     _In_ GUID Guid,
     _In_opt_ PVOID Context,

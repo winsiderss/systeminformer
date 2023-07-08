@@ -3903,6 +3903,7 @@ VOID PhMwpAddIconProcesses(
 }
 
 VOID PhShowIconContextMenu(
+    _In_ HWND WindowHandle,
     _In_ POINT Location
     )
 {
@@ -3934,14 +3935,14 @@ VOID PhShowIconContextMenu(
 
     if (PhPluginsEnabled)
     {
-        PhPluginInitializeMenuInfo(&menuInfo, menu, PhMainWndHandle, 0);
+        PhPluginInitializeMenuInfo(&menuInfo, menu, WindowHandle, 0);
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackIconMenuInitializing), &menuInfo);
     }
 
-    SetForegroundWindow(PhMainWndHandle); // window must be foregrounded so menu will disappear properly
+    SetForegroundWindow(WindowHandle); // window must be foregrounded so menu will disappear properly (wj32)
     item = PhShowEMenu(
         menu,
-        PhMainWndHandle,
+        WindowHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_TOP,
         Location.x,
@@ -3959,13 +3960,13 @@ VOID PhShowIconContextMenu(
             handled = PhHandleMiniProcessMenuItem(item);
 
         if (!handled)
-            handled = PhMwpExecuteComputerCommand(PhMainWndHandle, item->Id);
+            handled = PhMwpExecuteComputerCommand(WindowHandle, item->Id);
 
         if (!handled)
-            handled = PhMwpExecuteNotificationMenuCommand(PhMainWndHandle, item->Id);
+            handled = PhMwpExecuteNotificationMenuCommand(WindowHandle, item->Id);
 
         if (!handled)
-            handled = PhMwpExecuteNotificationSettingsMenuCommand(PhMainWndHandle, item->Id);
+            handled = PhMwpExecuteNotificationSettingsMenuCommand(WindowHandle, item->Id);
 
         if (!handled)
         {
@@ -3975,10 +3976,10 @@ VOID PhShowIconContextMenu(
                 ProcessHacker_ToggleVisible(FALSE);
                 break;
             case ID_ICON_SYSTEMINFORMATION:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
+                SendMessage(WindowHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
                 break;
             case ID_ICON_EXIT:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
+                SendMessage(WindowHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
                 break;
             }
         }
