@@ -690,6 +690,7 @@ ZwSetInformationProcess(
 
 #define ThreadPowerThrottlingState     49
 #define ThreadNameInformation          38
+#define ThreadExplicitCaseSensitivity  43
 
 #if (NTDDI_VERSION >= NTDDI_WIN10)
 extern PLIST_ENTRY PsLoadedModuleList;
