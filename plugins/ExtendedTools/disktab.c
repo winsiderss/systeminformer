@@ -190,9 +190,7 @@ BOOLEAN EtpDiskPageCallback(
                 &DiskItemsUpdatedRegistration
                 );
 
-            PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
             EtInitializeDiskInformation();
-            PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
             if (Parameter1)
             {
