@@ -759,9 +759,6 @@ NTSTATUS KSIAPI KphpCommsAlpcQueryInformation(
     return STATUS_SUCCESS;
 }
 
-KPHM_DEFINE_HANDLER(KphpCommsQueryInformationFile);
-KPHM_DEFINE_HANDLER(KphpCommsQueryVolumeInformationFile);
-
 _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
