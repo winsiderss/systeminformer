@@ -40,10 +40,13 @@
 #define SETTING_NAME_WHOIS_IPV6_SUPPORT (PLUGIN_NAME L".WhoisProtocalSupport")
 #define SETTING_NAME_EXTENDED_TCP_STATS (PLUGIN_NAME L".EnableExtendedTcpStats")
 #define SETTING_NAME_GEOLITE_API_KEY (PLUGIN_NAME L".MaxMindApiKey")
+#define SETTING_NAME_GEOLITE_DB_TYPE (PLUGIN_NAME L".MaxMindType")
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbInitialized;
-extern PH_STRINGREF GeoDbFileName;
+extern BOOLEAN GeoDbDatabaseType;
+extern PH_STRINGREF GeoDbCityFileName;
+extern PH_STRINGREF GeoDbCountryFileName;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
@@ -236,8 +239,8 @@ typedef struct _NETWORK_EXTENSION
         };
     };
 
-    PPH_STRING LocalServiceName;
-    PPH_STRING RemoteServiceName;
+    PH_STRINGREF LocalServiceName;
+    PH_STRINGREF RemoteServiceName;
 
     PPH_STRING RemoteCountryName;
     INT CountryIconIndex;

@@ -14,9 +14,11 @@
 
 BOOLEAN GeoDbInitialized = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
+BOOLEAN GeoDbDatabaseType = FALSE;
 HIMAGELIST GeoImageList = NULL;
 MMDB_s GeoDbCountry = { 0 };
-PH_STRINGREF GeoDbFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
+PH_STRINGREF GeoDbCityFileName = PH_STRINGREF_INIT(L"GeoLite2-City.mmdb");
+PH_STRINGREF GeoDbCountryFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
 PPH_HASHTABLE NetworkToolsGeoDbCacheHashtable = NULL;
 PH_QUEUED_LOCK NetworkToolsGeoDbCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
@@ -49,7 +51,12 @@ BOOLEAN NetToolsGeoLiteInitialized(
     {
         PPH_STRING dbpath;
 
-        if (dbpath = PhGetApplicationDataFileName(&GeoDbFileName, TRUE))
+        if (GeoDbDatabaseType)
+            dbpath = PhGetApplicationDataFileName(&GeoDbCityFileName, TRUE);
+        else
+            dbpath = PhGetApplicationDataFileName(&GeoDbCountryFileName, TRUE);
+
+        if (dbpath)
         {
             if (MMDB_open(&dbpath->sr, MMDB_MODE_MMAP, &GeoDbCountry) == MMDB_SUCCESS)
             {

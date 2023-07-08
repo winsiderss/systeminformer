@@ -16,6 +16,7 @@ HANDLE UpdateDialogThreadHandle = NULL;
 PH_EVENT InitializedEvent = PH_EVENT_INIT;
 PPH_OBJECT_TYPE UpdateContextType = NULL;
 PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
+BOOLEAN UpdateDatabaseType = FALSE;
 
 // Note: We're using the built-in tar.exe on Windows 10/11 for extracting the database
 // updates since SI doesn't currently ship with a tar library. (dmex)
@@ -81,6 +82,15 @@ PPH_STRING CreateUserAgentString(
     return userAgentString;
 }
 
+PWSTR CreateDatabaseName(
+    _In_ PWSTR Format
+    )
+{
+    if (GeoDbDatabaseType)
+        return PH_AUTO_T(PH_STRING, PhFormatString(Format, L"City"))->Buffer;
+    return PH_AUTO_T(PH_STRING, PhFormatString(Format, L"Country"))->Buffer;
+}
+
 NTSTATUS ExtractUpdateToFile(
     _In_ PPH_STRING WorkingDirectory,
     _In_ PPH_STRING CompressedFileName,
@@ -102,7 +112,7 @@ NTSTATUS ExtractUpdateToFile(
     PhInitFormatSR(&format[2], CompressedFileName->sr);
     PhInitFormatS(&format[3], L"\" --directory=\"");
     PhInitFormatSR(&format[4], WorkingDirectory->sr);
-    PhInitFormatS(&format[5], L"\" --strip-components=1 */GeoLite2-Country.mmdb"); // NewFileName
+    PhInitFormatS(&format[5], CreateDatabaseName(L"\" --strip-components=1 */GeoLite2-%s.mmdb"));
     commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
 
     status = PhCreateProcessRedirection(
@@ -147,7 +157,7 @@ BOOLEAN DownloadUpdateToFile(
 
         httpRequestString = PhFormatString(
             L"/app/geoip_download?edition_id=%s&license_key=%s&suffix=tar.gz",
-            L"GeoLite2-Country",
+            CreateDatabaseName(L"GeoLite2-%s"),
             PhGetString(apikeyString)
             );
 
@@ -234,7 +244,7 @@ BOOLEAN DownloadUpdateToFile(
     // Update status message.
 
     SendMessage(Context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Downloading GeoLite2-Country...");
+    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)CreateDatabaseName(L"Downloading GeoLite2-%s..."));
 
     // Extract the content hash from the request headers.
 
@@ -269,7 +279,7 @@ BOOLEAN DownloadUpdateToFile(
 
     PhSkipStringRef(&httpHeaderFileName->sr, 21 * sizeof(WCHAR));
 
-    if (!PhStartsWithString2(httpHeaderFileName, L"GeoLite2-Country", TRUE))
+    if (!PhStartsWithString2(httpHeaderFileName, CreateDatabaseName(L"GeoLite2-%s"), TRUE))
     {
         Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;
@@ -374,7 +384,7 @@ BOOLEAN DownloadUpdateToFile(
 
             // Update download status (TODO: Update on timer callback)
             {
-                FLOAT percent = ((FLOAT)bytesTotalDownloaded / httpContentLength * 100);
+                ULONG percent = bytesTotalDownloaded * 100 / httpContentLength;
                 PH_FORMAT format[9];
                 WCHAR string[MAX_PATH];
 
@@ -384,7 +394,7 @@ BOOLEAN DownloadUpdateToFile(
                 PhInitFormatS(&format[2], L" of ");
                 PhInitFormatSize(&format[3], httpContentLength);
                 PhInitFormatS(&format[4], L" (");
-                PhInitFormatF(&format[5], percent, 1);
+                PhInitFormatU(&format[5], percent);
                 PhInitFormatS(&format[6], L"%)\r\nSpeed: ");
                 PhInitFormatSize(&format[7], timeBitsPerSecond);
                 PhInitFormatS(&format[8], L"/s");
@@ -462,7 +472,10 @@ BOOLEAN MoveUpdateToFile(
 
     // Get the current database filename.
 
-    existingFileName = PhGetApplicationDataFileName(&GeoDbFileName, FALSE);
+    if (GeoDbDatabaseType)
+        existingFileName = PhGetApplicationDataFileName(&GeoDbCityFileName, FALSE);
+    else
+        existingFileName = PhGetApplicationDataFileName(&GeoDbCountryFileName, FALSE);
 
     if (PhIsNullOrEmptyString(existingFileName))
     {
@@ -517,9 +530,12 @@ NTSTATUS GeoLiteUpdateThread(
     )
 {
     BOOLEAN success = FALSE;
+    PH_AUTO_POOL autoPool;
     PPH_STRING compressedFileName = NULL;
     PPH_STRING cacheDirectory = NULL;
     PPH_STRING updateFileName = NULL;
+
+    PhInitializeAutoPool(&autoPool);
 
     // Download the update into the cache.
 
@@ -530,12 +546,12 @@ NTSTATUS GeoLiteUpdateThread(
 
     cacheDirectory = PhGetBaseDirectory(compressedFileName);
 
-    if (!NT_SUCCESS(ExtractUpdateToFile(cacheDirectory, compressedFileName, L"\\GeoLite2-Country.mmdb")))
+    if (!NT_SUCCESS(ExtractUpdateToFile(cacheDirectory, compressedFileName, CreateDatabaseName(L"\\GeoLite2-%s.mmdb"))))
         goto CleanupExit;
 
     // Check the update file was extracted.
 
-    updateFileName = PhConcatStringRefZ(&cacheDirectory->sr, L"\\GeoLite2-Country.mmdb");
+    updateFileName = PhConcatStringRefZ(&cacheDirectory->sr, CreateDatabaseName(L"\\GeoLite2-%s.mmdb"));
 
     if (!PhDoesFileExistWin32(PhGetString(updateFileName)))
     {
@@ -565,6 +581,7 @@ CleanupExit:
     }
 
     PhDereferenceObject(Context);
+    PhDeleteAutoPool(&autoPool);
     return STATUS_SUCCESS;
 }
 
