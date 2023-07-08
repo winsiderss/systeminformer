@@ -3302,6 +3302,7 @@ VOID PhTnpAutoSizeColumnHeader(
     Header_SetItem(HeaderHandle, Column->s.ViewIndex, &item);
 }
 
+_Success_(return)
 BOOLEAN PhTnpGetNodeChildren(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_opt_ PPH_TREENEW_NODE Node,

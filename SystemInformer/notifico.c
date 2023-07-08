@@ -287,7 +287,7 @@ VOID PhNfCreateIconThreadDelayed(
 }
 
 PPH_NF_ICON PhNfRegisterIcon(
-    _In_opt_ struct _PH_PLUGIN* Plugin,
+    _In_opt_ PPH_PLUGIN Plugin,
     _In_ ULONG Id,
     _In_ GUID Guid,
     _In_opt_ PVOID Context,
@@ -318,13 +318,13 @@ PPH_NF_ICON PhNfRegisterIcon(
 }
 
 PPH_NF_ICON PhNfPluginRegisterIcon(
-    _In_ struct _PH_PLUGIN* Plugin,
+    _In_ PPH_PLUGIN Plugin,
     _In_ ULONG SubId,
     _In_ GUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
-    _In_ struct _PH_NF_ICON_REGISTRATION_DATA* RegistrationData
+    _In_ PPH_NF_ICON_REGISTRATION_DATA RegistrationData
     )
 {
     return PhNfRegisterIcon(
@@ -537,7 +537,7 @@ VOID PhNfForwardMessage(
 
             PhPinMiniInformation(MiniInfoIconPinType, -1, 0, 0, NULL, NULL);
             GetCursorPos(&location);
-            PhShowIconContextMenu(location);
+            PhShowIconContextMenu(WindowHandle, location);
         }
         break;
     case NIN_KEYSELECT:
@@ -1338,7 +1338,7 @@ VOID PhNfpBeginBitmap2(
 }
 
 VOID PhNfpCpuHistoryIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -1434,7 +1434,7 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
 }
 
 VOID PhNfpIoHistoryIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -1546,7 +1546,7 @@ VOID PhNfpIoHistoryIconUpdateCallback(
 }
 
 VOID PhNfpCommitHistoryIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -1623,7 +1623,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
 }
 
 VOID PhNfpPhysicalHistoryIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -1702,7 +1702,7 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
 }
 
 VOID PhNfpCpuUsageIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -1849,7 +1849,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
 // Text icons
 
 VOID PhNfpCpuUsageTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -1941,7 +1941,7 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
 }
 
 VOID PhNfpIoUsageTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -2029,7 +2029,7 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
 }
 
 VOID PhNfpCommitTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -2094,7 +2094,7 @@ VOID PhNfpCommitTextIconUpdateCallback(
 }
 
 VOID PhNfpPhysicalUsageTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -2164,15 +2164,23 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
 }
 
 VOID PhNfpPlainIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
     _In_opt_ PVOID Context
     )
 {
+    static PPH_STRING string = NULL;
+
+    if (!string)
+    {
+        PH_STRINGREF text = PH_STRINGREF_INIT(L"System Informer");
+        string = PhCreateString2(&text);
+    }
+
     *NewIconOrBitmap = PhGetApplicationIcon(TRUE);
-    *NewText = PhCreateString(L"System Informer");
+    *NewText = PhReferenceObject(string);
     *Flags = 0;
 }
 
