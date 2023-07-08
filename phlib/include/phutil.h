@@ -1887,6 +1887,13 @@ PhUpdateProcThreadAttribute(
     _In_ SIZE_T BufferLength
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetActiveComputerName(
+    VOID
+    );
+
 FORCEINLINE
 BOOLEAN
 PhPtrAddOffset(

@@ -2104,18 +2104,12 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceItem(
         //
         if (PhEqualStringRef(&item->InstanceId->sr, &RootInstanceId, TRUE))
         {
-            WCHAR computerName[MAX_COMPUTERNAME_LENGTH + 1];
-            ULONG length = MAX_COMPUTERNAME_LENGTH + 1;
             PPH_DEVICE_PROPERTY prop;
 
             prop = &item->Properties[PhDevicePropertyName];
             assert(!prop->Initialized);
 
-            if (GetComputerNameW(computerName, &length))
-            {
-                prop->AsString = PhCreateStringEx(computerName, length * sizeof(WCHAR));
-            }
-
+            prop->AsString = PhGetActiveComputerName();
             prop->Initialized = TRUE;
         }
 
