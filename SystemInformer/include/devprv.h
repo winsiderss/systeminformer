@@ -348,6 +348,14 @@ PhGetDeviceProperty(
     );
 
 PHAPPAPI
+BOOLEAN
+NTAPI
+PhLookupDevicePropertyClass(
+    _In_ const DEVPROPKEY* Key,
+    _Out_ PPH_DEVICE_PROPERTY_CLASS Class
+    );
+
+PHAPPAPI
 HICON
 NTAPI
 PhGetDeviceIcon(

@@ -11,6 +11,8 @@
 
 #include "devices.h"
 
+#include <devquery.h>
+
 typedef enum _DEVICE_PROPERTIES_CATEGORY
 {
     DEVICE_PROPERTIES_CATEGORY_GENERAL,
@@ -406,24 +408,232 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
     return FALSE;
 }
 
+PPH_STRING DevicePropertyToString(
+    _In_ const DEVPROPERTY* Property
+    )
+{
+    PH_FORMAT format[1];
+
+    switch (Property->Type)
+    {
+        case DEVPROP_TYPE_INT32:
+            {
+                if (Property->BufferSize != sizeof(LONG))
+                   return PhReferenceEmptyString();
+
+                PhInitFormatD(&format[0], *(PLONG)Property->Buffer);
+                return PhFormat(format, 1, 1);
+            }
+        case DEVPROP_TYPE_ERROR:
+        case DEVPROP_TYPE_UINT32:
+            {
+                if (Property->BufferSize != sizeof(ULONG))
+                   return PhReferenceEmptyString();
+
+                PhInitFormatU(&format[0], *(PULONG)Property->Buffer);
+                return PhFormat(format, 1, 1);
+            }
+        case DEVPROP_TYPE_INT64:
+            {
+                if (Property->BufferSize != sizeof(LONG64))
+                   return PhReferenceEmptyString();
+
+                PhInitFormatI64D(&format[0], *(PLONG64)Property->Buffer);
+                return PhFormat(format, 1, 1);
+            }
+        case DEVPROP_TYPE_UINT64:
+            {
+                if (Property->BufferSize != sizeof(ULONG64))
+                   return PhReferenceEmptyString();
+
+                PhInitFormatI64U(&format[0], *(PULONG64)Property->Buffer);
+                return PhFormat(format, 1, 1);
+            }
+        case DEVPROP_TYPE_GUID:
+            {
+                if (Property->BufferSize != sizeof(GUID))
+                   return PhReferenceEmptyString();
+
+                return PhFormatGuid((PGUID)Property->Buffer);
+            }
+        case DEVPROP_TYPE_FILETIME:
+            {
+                FILETIME fileTime;
+                LARGE_INTEGER timeStamp;
+                SYSTEMTIME systemTime;
+
+                if (Property->BufferSize != sizeof(FILETIME))
+                   return PhReferenceEmptyString();
+
+                fileTime = *(PFILETIME)Property->Buffer;
+                timeStamp.HighPart = fileTime.dwHighDateTime;
+                timeStamp.LowPart = fileTime.dwLowDateTime;
+                PhLargeIntegerToLocalSystemTime(&systemTime, &timeStamp);
+                return PhFormatDateTime(&systemTime);
+            }
+        case DEVPROP_TYPE_NTSTATUS:
+            {
+                if (Property->BufferSize != sizeof(NTSTATUS))
+                   return PhReferenceEmptyString();
+
+                return PhGetStatusMessage(*(PNTSTATUS)Property->Buffer, 0);
+            }
+        case DEVPROP_TYPE_BOOLEAN:
+            {
+                if (Property->BufferSize != sizeof(DEVPROP_BOOLEAN))
+                   return PhReferenceEmptyString();
+
+                if (*(PDEVPROP_BOOLEAN)Property->Buffer == DEVPROP_TRUE)
+                    return PhCreateString(L"true");
+                else
+                    return PhCreateString(L"false");
+            }
+        case DEVPROP_TYPE_STRING:
+        case DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING:
+            return PhCreateString((PWSTR)Property->Buffer);
+        case DEVPROP_TYPE_STRING_LIST:
+            {
+                PPH_STRING string;
+                PH_STRING_BUILDER stringBuilder;
+
+                PhInitializeStringBuilder(&stringBuilder, 10);
+
+                for (PZZWSTR item = Property->Buffer;;)
+                {
+                    UNICODE_STRING ucs;
+
+                    RtlInitUnicodeString(&ucs, item);
+
+                    if (ucs.Length == 0)
+                        break;
+
+                    PhAppendStringBuilderEx(&stringBuilder, ucs.Buffer, ucs.Length);
+                    PhAppendStringBuilder2(&stringBuilder, L", ");
+
+                    item = PTR_ADD_OFFSET(item, ucs.MaximumLength);
+                }
+
+                if (stringBuilder.String->Length > 2)
+                    PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+                string = PhFinalStringBuilderString(&stringBuilder);
+                PhReferenceObject(string);
+
+                PhDeleteStringBuilder(&stringBuilder);
+
+                return string;
+            }
+        case DEVPROP_TYPE_SECURITY_DESCRIPTOR:
+        case DEVPROP_TYPE_BINARY:
+            return PhBufferToHexString(Property->Buffer, Property->BufferSize);
+        case DEVPROP_TYPE_SBYTE:
+        case DEVPROP_TYPE_BYTE:
+        case DEVPROP_TYPE_INT16:
+        case DEVPROP_TYPE_UINT16:
+        case DEVPROP_TYPE_FLOAT:
+        case DEVPROP_TYPE_DOUBLE:
+        case DEVPROP_TYPE_DECIMAL:
+        case DEVPROP_TYPE_DATE:
+        case DEVPROP_TYPE_CURRENCY:
+        case DEVPROP_TYPE_EMPTY:
+        case DEVPROP_TYPE_DEVPROPKEY:
+        case DEVPROP_TYPE_DEVPROPTYPE:
+        case DEVPROP_TYPE_NULL:
+        case DEVPROP_TYPE_STRING_INDIRECT:
+        default:
+            return PhReferenceEmptyString();
+    }
+}
+
 VOID DeviceInitializePropsPage(
     _In_ HWND hwndDlg,
     _In_ PDEVICE_PROPERTIES_CONTEXT Context
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT(WINAPI * DevGetObjectProperties_I)(
+    _In_ DEV_OBJECT_TYPE ObjectType,
+    _In_ PCWSTR pszObjectId,
+    _In_ ULONG QueryFlags,
+    _In_ ULONG cRequestedProperties,
+    _In_reads_(cRequestedProperties) const DEVPROPCOMPKEY *pRequestedProperties,
+    _Out_ PULONG pcPropertyCount,
+    _Outptr_result_buffer_(*pcPropertyCount) const DEVPROPERTY **ppProperties) = NULL;
+    static VOID(WINAPI * DevFreeObjectProperties_I)(
+        _In_ ULONG cPropertyCount,
+        _In_reads_(cPropertyCount) const DEVPROPERTY *pProperties) = NULL;
+
+    // Use DevGetObjectProperties to get all properties of the device. This enables us to display
+    // information for items that we might not be aware of in our table. Device manager maintains a
+    // similar table with all the DEVPROPKEYs that it knows about. It maintains a MUI resource
+    // which appears to map locale to their known table.
+
+    const DEVPROPERTY* properties;
+    ULONG propertyCount;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID cfgmgr32;
+
+        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
+        {
+            DevGetObjectProperties_I = PhGetProcedureAddress(cfgmgr32, "DevGetObjectProperties", 0);
+            DevFreeObjectProperties_I = PhGetProcedureAddress(cfgmgr32, "DevFreeObjectProperties", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
     ExtendedListView_SetRedraw(Context->PropsListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->PropsListViewHandle);
 
-    for (ULONG i = 0; i < DeviceItemPropertyTableCount; i++)
+    if (SUCCEEDED(DevGetObjectProperties_I(
+        DevObjectTypeDevice,
+        PhGetString(Context->DeviceItem->InstanceId),
+        DevQueryFlagAllProperties,
+        0,
+        NULL,
+        &propertyCount,
+        &properties)))
     {
-        const DEVICE_PROPERTY_TABLE_ENTRY* entry = &DeviceItemPropertyTable[i];
-        INT lvItemIndex;
-        PWSTR value;
+        for (ULONG i = 0; i < propertyCount; i++)
+        {
+            const DEVPROPERTY* prop = &properties[i];
+            PH_DEVICE_PROPERTY_CLASS propClass;
+            INT lvItemIndex;
+            PPH_STRING nameString = NULL;
+            PPH_STRING valueString = NULL;
+            PWSTR name;
+            PWSTR value;
 
-        value = PhGetStringOrEmpty(PhGetDeviceProperty(Context->DeviceItem, entry->PropClass)->AsString);
+            if (PhLookupDevicePropertyClass(&prop->CompKey.Key, &propClass))
+            {
+                name = DeviceItemPropertyTable[propClass].ColumnName;
+                value = PhGetStringOrEmpty(PhGetDeviceProperty(Context->DeviceItem, propClass)->AsString);
+            }
+            else
+            {
+                // use the property key format ID as the column name
+                nameString = PhFormatGuid((PGUID)&prop->CompKey.Key.fmtid);
+                name = PhGetString(nameString);
+                valueString = DevicePropertyToString(prop);
+                value = PhGetString(valueString);
+            }
 
-        lvItemIndex = PhAddListViewItem(Context->PropsListViewHandle, MAXINT, entry->ColumnName, NULL);
-        PhSetListViewSubItem(Context->PropsListViewHandle, lvItemIndex, 1, value);
+            lvItemIndex = PhAddListViewItem(Context->PropsListViewHandle, MAXINT, name, NULL);
+
+            if (prop->CompKey.Store == DEVPROP_STORE_SYSTEM)
+                PhSetListViewSubItem(Context->PropsListViewHandle, lvItemIndex, 1, L"System");
+            else if (prop->CompKey.Store == DEVPROP_STORE_USER)
+                PhSetListViewSubItem(Context->PropsListViewHandle, lvItemIndex, 1, L"User");
+
+            PhSetListViewSubItem(Context->PropsListViewHandle, lvItemIndex, 2, value);
+
+            PhClearReference(&nameString);
+            PhClearReference(&valueString);
+        }
+
+        DevFreeObjectProperties_I(propertyCount, properties);
     }
 
     ExtendedListView_SetRedraw(Context->PropsListViewHandle, TRUE);
@@ -457,7 +667,8 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
             PhSetListViewStyle(context->PropsListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->PropsListViewHandle, L"explorer");
             PhAddListViewColumn(context->PropsListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
+            PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"Store");
+            PhAddListViewColumn(context->PropsListViewHandle, 2, 2, 2, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->PropsListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, context->PropsListViewHandle);
 

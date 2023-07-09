@@ -2638,6 +2638,26 @@ PPH_DEVICE_PROPERTY PhGetDeviceProperty(
     return prop;
 }
 
+BOOLEAN PhLookupDevicePropertyClass(
+    _In_ const DEVPROPKEY* Key,
+    _Out_ PPH_DEVICE_PROPERTY_CLASS Class
+    )
+{
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpDeviceItemPropertyTable); i++)
+    {
+        const PH_DEVICE_PROPERTY_TABLE_ENTRY* entry = &PhpDeviceItemPropertyTable[i];
+
+        if (IsEqualDevPropKey(*Key, *entry->PropKey))
+        {
+            *Class = entry->PropClass;
+            return TRUE;
+        }
+    }
+
+    *Class = PhMaxDeviceProperty;
+    return FALSE;
+}
+
 HICON PhGetDeviceIcon(
     _In_ PPH_DEVICE_ITEM Item,
     _In_ PPH_INTEGER_PAIR IconSize
