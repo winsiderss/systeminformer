@@ -947,7 +947,7 @@ const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
     { PhDevicePropertyInterfaceEnabled, L"Interface enabled", FALSE, 80, 0 },
     { PhDevicePropertyInterfaceClassGuid, L"Interface class GUID", FALSE, 80, 0 },
     { PhDevicePropertyInterfaceReferenceString, L"Interface reference", FALSE, 80, 0 },
-    { PhDevicePropertyInterfaceRestricted, L"Interface Restricted", FALSE, 80, 0 },
+    { PhDevicePropertyInterfaceRestricted, L"Interface restricted", FALSE, 80, 0 },
     { PhDevicePropertyInterfaceUnrestrictedAppCapabilities, L"Interface unrestricted application capabilities", FALSE, 80, 0 },
     { PhDevicePropertyInterfaceSchematicName, L"Interface schematic name", FALSE, 80, 0 },
 
