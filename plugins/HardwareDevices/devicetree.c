@@ -353,12 +353,19 @@ static int __cdecl DeviceTreeSortFunction(
             sortResult = int64cmp(lhs->TimeStamp.QuadPart, rhs->TimeStamp.QuadPart);
             break;
         case PhDevicePropertyTypeStringList:
-        {
-            srl = PhGetStringRef(lhs->AsString);
-            srr = PhGetStringRef(rhs->AsString);
-            sortResult = PhCompareStringRef(&srl, &srr, TRUE);
+            {
+                srl = PhGetStringRef(lhs->AsString);
+                srr = PhGetStringRef(rhs->AsString);
+                sortResult = PhCompareStringRef(&srl, &srr, TRUE);
+            }
             break;
-        }
+        case PhDevicePropertyTypeBinary: 
+            {
+                sortResult = memcmp(lhs->Binary.Buffer, rhs->Binary.Buffer, min(lhs->Binary.Size, rhs->Binary.Size));
+                if (sortResult == 0)
+                    sortResult = uint64cmp(lhs->Binary.Size, rhs->Binary.Size);
+            }
+            break;
         default:
             assert(FALSE);
         }
@@ -835,13 +842,13 @@ const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
     { PhDevicePropertyBusTypeGuid, L"Bus type GUID", FALSE, 80, 0 },
     { PhDevicePropertyLegacyBusType, L"Legacy bus type", FALSE, 80, 0 },
     { PhDevicePropertyBusNumber, L"Bus number", FALSE, 80, 0 },
-    //{ PhDeviceProperty, L"", FALSE, 80, 0 },               // DEVPROP_TYPE_SECURITY_DESCRIPTOR
+    { PhDevicePropertySecurity, L"Security descriptor (binary)", FALSE, 80, 0 },
     { PhDevicePropertySecuritySDS, L"Security descriptor", FALSE, 80, 0 },
     { PhDevicePropertyDevType, L"Type", FALSE, 80, 0 },
     { PhDevicePropertyExclusive, L"Exclusive", FALSE, 80, 0 },
     { PhDevicePropertyCharacteristics, L"Characteristics", FALSE, 80, 0 },
     { PhDevicePropertyAddress, L"Address", FALSE, 80, 0 },
-    //{ PhDeviceProperty, L"", FALSE, 80, 0 },              // DEVPROP_TYPE_BINARY
+    { PhDevicePropertyPowerData, L"Power data", FALSE, 80, 0 },
     { PhDevicePropertyRemovalPolicy, L"Removal policy", FALSE, 80, 0 },
     { PhDevicePropertyRemovalPolicyDefault, L"Removal policy default", FALSE, 80, 0 },
     { PhDevicePropertyRemovalPolicyOverride, L"Removal policy override", FALSE, 80, 0 },
@@ -874,7 +881,7 @@ const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
     { PhDevicePropertyIsPresent, L"Present", FALSE, 80, 0 },
     { PhDevicePropertyConfigurationId, L"Configuration ID", FALSE, 80, 0 },
     { PhDevicePropertyReportedDeviceIdsHash, L"Reported IDs hash", FALSE, 80, 0 },
-    //{ PhDeviceProperty, L"", FALSE, 80, 0 },    // DEVPROP_TYPE_BINARY
+    { PhDevicePropertyPhysicalDeviceLocation, L"Physical location", FALSE, 80, 0 },
     { PhDevicePropertyBiosDeviceName, L"BIOS name", FALSE, 80, 0 },
     { PhDevicePropertyDriverProblemDesc, L"Problem description", FALSE, 80, 0 },
     { PhDevicePropertyDebuggerSafe, L"Debugger safe", FALSE, 80, 0 },
@@ -917,7 +924,7 @@ const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
 
     { PhDevicePropertyClassUpperFilters, L"Class upper filters", FALSE, 80, 0 },
     { PhDevicePropertyClassLowerFilters, L"Class lower filters", FALSE, 80, 0 },
-    //{ PhDeviceProperty, L"", FALSE, 80, 0 },    // DEVPROP_TYPE_SECURITY_DESCRIPTOR
+    { PhDevicePropertyClassSecurity, L"Class security descriptor (binary)", FALSE, 80, 0 },
     { PhDevicePropertyClassSecuritySDS, L"Class security descriptor", FALSE, 80, 0 },
     { PhDevicePropertyClassDevType, L"Class type", FALSE, 80, 0 },
     { PhDevicePropertyClassExclusive, L"Class exclusive", FALSE, 80, 0 },
@@ -961,7 +968,7 @@ const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
     { PhDevicePropertyContainerIsLocalMachine, L"Container local machine", FALSE, 80, 0 },
     { PhDevicePropertyContainerMetadataPath, L"Container metadata path", FALSE, 80, 0 },
     { PhDevicePropertyContainerIsMetadataSearchInProgress, L"Container metadata search in progress", FALSE, 80, 0 },
-    //{ PhDeviceProperty, L"", FALSE, 80, 0 },            // DEVPROP_TYPE_BINARY
+    { PhDevicePropertyContainerIsMetadataChecksum, L"Metadata checksum", FALSE, 80, 0 },
     { PhDevicePropertyContainerIsNotInterestingForDisplay, L"Container not interesting for display", FALSE, 80, 0 },
     { PhDevicePropertyContainerLaunchDeviceStageOnDeviceConnect, L"Container launch on connect", FALSE, 80, 0 },
     { PhDevicePropertyContainerLaunchDeviceStageFromExplorer, L"Container launch from explorer", FALSE, 80, 0 },

@@ -778,6 +778,132 @@ Exit:
     return !!result;
 }
 
+BOOLEAN PhpGetDevicePropertyBinary(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PBYTE* Buffer,
+    _Out_ PULONG Size
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = 0;
+    PVOID buffer = NULL;
+
+    *Buffer = NULL;
+    *Size = 0;
+
+    result = SetupDiGetDevicePropertyW(
+        DeviceInfoSet,
+        DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        NULL,
+        0,
+        &requiredLength,
+        0
+        );
+    if (result ||
+        (requiredLength == 0) ||
+        (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
+        ((devicePropertyType != DEVPROP_TYPE_BINARY) &&
+         (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR)))
+    {
+        goto Exit;
+    }
+
+    buffer = PhAllocate(requiredLength);
+
+    result = SetupDiGetDevicePropertyW(
+        DeviceInfoSet,
+        DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        buffer,
+        requiredLength,
+        &requiredLength,
+        0
+        );
+    if (!result)
+    {
+        goto Exit;
+    }
+
+    *Size = requiredLength;
+    *Buffer = buffer;
+    buffer = NULL;
+
+Exit:
+
+    if (buffer)
+        PhFree(buffer);
+
+    return !!result;
+}
+
+BOOLEAN PhpGetClassPropertyBinary(
+    _In_ const GUID* ClassGuid,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _In_ ULONG Flags,
+    _Out_ PBYTE* Buffer,
+    _Out_ PULONG Size
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = 0;
+    PVOID buffer = NULL;
+
+    *Buffer = NULL;
+    *Size = 0;
+
+    result = SetupDiGetClassPropertyW(
+        ClassGuid,
+        DeviceProperty,
+        &devicePropertyType,
+        NULL,
+        0,
+        &requiredLength,
+        Flags
+        );
+    if (result ||
+        (requiredLength == 0) ||
+        (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
+        ((devicePropertyType != DEVPROP_TYPE_BINARY) &&
+         (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR)))
+    {
+        goto Exit;
+    }
+
+    buffer = PhAllocate(requiredLength);
+
+    result = SetupDiGetClassPropertyW(
+        ClassGuid,
+        DeviceProperty,
+        &devicePropertyType,
+        buffer,
+        requiredLength,
+        &requiredLength,
+        Flags
+        );
+    if (!result)
+    {
+        goto Exit;
+    }
+
+    *Size = requiredLength;
+    *Buffer = buffer;
+    buffer = NULL;
+
+Exit:
+
+    if (buffer)
+        PhFree(buffer);
+
+    return !!result;
+}
+
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillString(
     _In_ HDEVINFO DeviceInfoSet,
@@ -1600,6 +1726,56 @@ VOID NTAPI PhpDevPropFillStringOrStringList(
     }
 }
 
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillBinary(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = PhDevicePropertyTypeBinary;
+
+    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    {
+        Property->Valid = PhpGetDevicePropertyBinary(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            &Property->Binary.Buffer,
+            &Property->Binary.Size
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    {
+        Property->Valid = PhpGetClassPropertyBinary(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INTERFACE,
+            &Property->Binary.Buffer,
+            &Property->Binary.Size
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
+    {
+        Property->Valid = PhpGetClassPropertyBinary(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INSTALLER,
+            &Property->Binary.Buffer,
+            &Property->Binary.Size
+            );
+    }
+
+    if (Property->Valid)
+    {
+        Property->AsString = PhBufferToHexString(Property->Binary.Buffer, Property->Binary.Size);
+    }
+}
+
 static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
 {
     { PhDevicePropertyName, &DEVPKEY_NAME, PhpDevPropFillString, 0 },
@@ -1639,13 +1815,13 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyBusTypeGuid, &DEVPKEY_Device_BusTypeGuid, PhpDevPropFillBusTypeGuid, 0 },
     { PhDevicePropertyLegacyBusType, &DEVPKEY_Device_LegacyBusType, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyBusNumber, &DEVPKEY_Device_BusNumber, PhpDevPropFillUInt32, 0 },
-    //{ , &DEVPKEY_Device_Security, NULL, 0 },               // DEVPROP_TYPE_SECURITY_DESCRIPTOR
+    { PhDevicePropertySecurity, &DEVPKEY_Device_Security, PhpDevPropFillBinary, 0 }, // DEVPROP_TYPE_SECURITY_DESCRIPTOR as binary, PhDevicePropertySecuritySDS for string
     { PhDevicePropertySecuritySDS, &DEVPKEY_Device_SecuritySDS, PhpDevPropFillString, 0 },
     { PhDevicePropertyDevType, &DEVPKEY_Device_DevType, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyExclusive, &DEVPKEY_Device_Exclusive, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyCharacteristics, &DEVPKEY_Device_Characteristics, PhpDevPropFillUInt32Hex, 0 },
     { PhDevicePropertyAddress, &DEVPKEY_Device_Address, PhpDevPropFillUInt32Hex, 0 },
-    //{ , &DEVPKEY_Device_PowerData, NULL, 0 },              // DEVPROP_TYPE_BINARY
+    { PhDevicePropertyPowerData, &DEVPKEY_Device_PowerData, PhpDevPropFillBinary, 0 }, // TODO(jxy-s) CM_POWER_DATA could be formatted AsString nicer
     { PhDevicePropertyRemovalPolicy, &DEVPKEY_Device_RemovalPolicy, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyRemovalPolicyDefault, &DEVPKEY_Device_RemovalPolicyDefault, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyRemovalPolicyOverride, &DEVPKEY_Device_RemovalPolicyOverride, PhpDevPropFillUInt32, 0 },
@@ -1678,7 +1854,7 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyIsPresent, &DEVPKEY_Device_IsPresent, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyConfigurationId, &DEVPKEY_Device_ConfigurationId, PhpDevPropFillString, 0 },
     { PhDevicePropertyReportedDeviceIdsHash, &DEVPKEY_Device_ReportedDeviceIdsHash, PhpDevPropFillUInt32, 0 },
-    //{ , &DEVPKEY_Device_PhysicalDeviceLocation, NULL, 0 },    // DEVPROP_TYPE_BINARY
+    { PhDevicePropertyPhysicalDeviceLocation, &DEVPKEY_Device_PhysicalDeviceLocation, PhpDevPropFillBinary, 0 }, // TODO(jxy-s) look into ACPI 4.0a Specification, section 6.1.6 for AsString formatting 
     { PhDevicePropertyBiosDeviceName, &DEVPKEY_Device_BiosDeviceName, PhpDevPropFillString, 0 },
     { PhDevicePropertyDriverProblemDesc, &DEVPKEY_Device_DriverProblemDesc, PhpDevPropFillString, 0 },
     { PhDevicePropertyDebuggerSafe, &DEVPKEY_Device_DebuggerSafe, PhpDevPropFillUInt32, 0 },
@@ -1721,8 +1897,8 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
 
     { PhDevicePropertyClassUpperFilters, &DEVPKEY_DeviceClass_UpperFilters, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
     { PhDevicePropertyClassLowerFilters, &DEVPKEY_DeviceClass_LowerFilters, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    //{ , &DEVPKEY_DeviceClass_Security, NULL, 0 },    // DEVPROP_TYPE_SECURITY_DESCRIPTOR
-    { PhDevicePropertyClassSecuritySDS, &DEVPKEY_DeviceClass_SecuritySDS, PhpDevPropFillString, 0 },
+    { PhDevicePropertyClassSecurity, &DEVPKEY_DeviceClass_Security, PhpDevPropFillBinary, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER }, // DEVPROP_TYPE_SECURITY_DESCRIPTOR as binary, PhDevicePropertyClassSecuritySDS for string
+    { PhDevicePropertyClassSecuritySDS, &DEVPKEY_DeviceClass_SecuritySDS, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
     { PhDevicePropertyClassDevType, &DEVPKEY_DeviceClass_DevType, PhpDevPropFillUInt32, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
     { PhDevicePropertyClassExclusive, &DEVPKEY_DeviceClass_Exclusive, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
     { PhDevicePropertyClassCharacteristics, &DEVPKEY_DeviceClass_Characteristics, PhpDevPropFillUInt32Hex, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
@@ -1765,7 +1941,7 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyContainerIsLocalMachine, &DEVPKEY_DeviceContainer_IsLocalMachine, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyContainerMetadataPath, &DEVPKEY_DeviceContainer_MetadataPath, PhpDevPropFillString, 0 },
     { PhDevicePropertyContainerIsMetadataSearchInProgress, &DEVPKEY_DeviceContainer_IsMetadataSearchInProgress, PhpDevPropFillBoolean, 0 },
-    //{ , &DEVPKEY_DeviceContainer_MetadataChecksum, NULL, 0 },            // DEVPROP_TYPE_BINARY
+    { PhDevicePropertyContainerIsMetadataChecksum, &DEVPKEY_DeviceContainer_MetadataChecksum, PhpDevPropFillBinary, 0 },
     { PhDevicePropertyContainerIsNotInterestingForDisplay, &DEVPKEY_DeviceContainer_IsNotInterestingForDisplay, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyContainerLaunchDeviceStageOnDeviceConnect, &DEVPKEY_DeviceContainer_LaunchDeviceStageOnDeviceConnect, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyContainerLaunchDeviceStageFromExplorer, &DEVPKEY_DeviceContainer_LaunchDeviceStageFromExplorer, PhpDevPropFillBoolean, 0 },
@@ -2029,6 +2205,10 @@ VOID PhpDeviceItemDeleteProcedure(
                 }
 
                 PhDereferenceObject(prop->StringList);
+            }
+            else if (prop->Type == PhDevicePropertyTypeBinary)
+            {
+                PhFree(prop->Binary.Buffer);
             }
         }
 
