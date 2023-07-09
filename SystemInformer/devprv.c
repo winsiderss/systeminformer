@@ -394,7 +394,7 @@ BOOLEAN PhpGetDevicePropertyBoolean(
         );
     if (result && (devicePropertyType == DEVPROP_TYPE_BOOLEAN))
     {
-        *Boolean = !!boolean;
+        *Boolean = boolean == DEVPROP_TRUE;
 
         return TRUE;
     }
@@ -427,7 +427,7 @@ BOOLEAN PhpGetClassPropertyBoolean(
         );
     if (result && (devicePropertyType == DEVPROP_TYPE_BOOLEAN))
     {
-        *Boolean = !!boolean;
+        *Boolean = boolean == DEVPROP_TRUE;
 
         return TRUE;
     }
