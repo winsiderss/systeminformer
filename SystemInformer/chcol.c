@@ -383,7 +383,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDOK:
                 {
-                    #define ORDER_LIMIT 200
+                    #define ORDER_LIMIT 210
                     ULONG i;
                     INT orderArray[ORDER_LIMIT];
                     INT maxOrder;

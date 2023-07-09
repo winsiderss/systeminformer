@@ -58,11 +58,13 @@ typedef enum _PH_DEVICE_PROPERTY_CLASS
     PhDevicePropertyBusTypeGuid,
     PhDevicePropertyLegacyBusType,
     PhDevicePropertyBusNumber,
+    PhDevicePropertySecurity,
     PhDevicePropertySecuritySDS,
     PhDevicePropertyDevType,
     PhDevicePropertyExclusive,
     PhDevicePropertyCharacteristics,
     PhDevicePropertyAddress,
+    PhDevicePropertyPowerData,
     PhDevicePropertyRemovalPolicy,
     PhDevicePropertyRemovalPolicyDefault,
     PhDevicePropertyRemovalPolicyOverride,
@@ -95,6 +97,7 @@ typedef enum _PH_DEVICE_PROPERTY_CLASS
     PhDevicePropertyIsPresent,
     PhDevicePropertyConfigurationId,
     PhDevicePropertyReportedDeviceIdsHash,
+    PhDevicePropertyPhysicalDeviceLocation,
     PhDevicePropertyBiosDeviceName,
     PhDevicePropertyDriverProblemDesc,
     PhDevicePropertyDebuggerSafe,
@@ -137,6 +140,7 @@ typedef enum _PH_DEVICE_PROPERTY_CLASS
 
     PhDevicePropertyClassUpperFilters,
     PhDevicePropertyClassLowerFilters,
+    PhDevicePropertyClassSecurity,
     PhDevicePropertyClassSecuritySDS,
     PhDevicePropertyClassDevType,
     PhDevicePropertyClassExclusive,
@@ -180,6 +184,7 @@ typedef enum _PH_DEVICE_PROPERTY_CLASS
     PhDevicePropertyContainerIsLocalMachine,
     PhDevicePropertyContainerMetadataPath,
     PhDevicePropertyContainerIsMetadataSearchInProgress,
+    PhDevicePropertyContainerIsMetadataChecksum,
     PhDevicePropertyContainerIsNotInterestingForDisplay,
     PhDevicePropertyContainerLaunchDeviceStageOnDeviceConnect,
     PhDevicePropertyContainerLaunchDeviceStageFromExplorer,
@@ -243,6 +248,7 @@ typedef enum _PH_DEVICE_PROPERTY_TYPE
     PhDevicePropertyTypeBoolean,
     PhDevicePropertyTypeTimeStamp,
     PhDevicePropertyTypeStringList,
+    PhDevicePropertyTypeBinary,
 
     PhMaxDevicePropertyType
 } PH_DEVICE_PROPERTY_TYPE, PPH_DEVICE_PROPERTY_TYPE;
@@ -273,6 +279,11 @@ typedef struct _PH_DEVICE_PROPERTY
         BOOLEAN Boolean;
         LARGE_INTEGER TimeStamp;
         PPH_LIST StringList;
+        struct
+        {
+            ULONG Size;
+            PBYTE Buffer;
+        } Binary;
     };
 
     PPH_STRING AsString;
