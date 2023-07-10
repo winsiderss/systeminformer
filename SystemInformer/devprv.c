@@ -12,8 +12,11 @@
 #include <phapp.h>
 #include <phplug.h>
 #include <settings.h>
+#include <mapldr.h>
 
 #include <devprv.h>
+
+#include <devquery.h>
 
 DEFINE_GUID(GUID_DEVINTERFACE_A2DP_SIDEBAND_AUDIO, 0xf3b1362f, 0xc9f4, 0x4dd1, 0x9d, 0x55, 0xe0, 0x20, 0x38, 0xa1, 0x29, 0xfb);
 DEFINE_GUID(GUID_DEVINTERFACE_BLUETOOTH_HFP_SCO_HCIBYPASS, 0xbe446647, 0xf655, 0x4919, 0x8b, 0xd0, 0x12, 0x5b, 0xa5, 0xd4, 0xce, 0x65);
@@ -128,8 +131,7 @@ static LIST_ENTRY PhpDeviceNotifyList = { 0 };
 DEFINE_DEVPROPKEY(DEVPKEY_Device_FirmwareVendor, 0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 26);   // DEVPROP_TYPE_STRING
 #endif
 
-#define DEVPROP_FILL_FLAG_CLASS_INTERFACE 0x00000001
-#define DEVPROP_FILL_FLAG_CLASS_INSTALLER 0x00000002
+#define DEVPROP_FILL_FLAG_CLASS  0x00000001
 
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 typedef
@@ -137,7 +139,7 @@ VOID
 NTAPI
 PH_DEVICE_PROPERTY_FILL_CALLBACK(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -166,6 +168,37 @@ BOOLEAN PhpGetDevicePropertyGuid(
     result = SetupDiGetDevicePropertyW(
         DeviceInfoSet,
         DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Guid,
+        sizeof(GUID),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_GUID))
+    {
+        return TRUE;
+    }
+
+    RtlZeroMemory(Guid, sizeof(GUID));
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetDeviceInterfacePropertyGuid(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PGUID Guid
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(GUID);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
         DeviceProperty,
         &devicePropertyType,
         (PBYTE)Guid,
@@ -244,6 +277,37 @@ BOOLEAN PhpGetDevicePropertyUInt64(
     return FALSE;
 }
 
+BOOLEAN PhpGetDeviceInterfacePropertyUInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PULONG64 Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(ULONG64);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(ULONG64),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_UINT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
 BOOLEAN PhpGetClassPropertyUInt64(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
@@ -288,6 +352,37 @@ BOOLEAN PhpGetDevicePropertyUInt32(
     result = SetupDiGetDevicePropertyW(
         DeviceInfoSet,
         DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(ULONG),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_UINT32))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetDeviceInterfacePropertyUInt32(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PULONG Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(ULONG);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
         DeviceProperty,
         &devicePropertyType,
         (PBYTE)Value,
@@ -366,6 +461,37 @@ BOOLEAN PhpGetDevicePropertyInt32(
     return FALSE;
 }
 
+BOOLEAN PhpGetDeviceInterfacePropertyInt32(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PLONG Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(LONG);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(LONG),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_INT32))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
 BOOLEAN PhpGetClassPropertyInt32(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
@@ -410,6 +536,37 @@ BOOLEAN PhpGetDevicePropertyNTSTATUS(
     result = SetupDiGetDevicePropertyW(
         DeviceInfoSet,
         DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Status,
+        sizeof(NTSTATUS),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_NTSTATUS))
+    {
+        return TRUE;
+    }
+
+    *Status = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetDeviceInterfacePropertyNTSTATUS(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PNTSTATUS Status
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(NTSTATUS);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
         DeviceProperty,
         &devicePropertyType,
         (PBYTE)Status,
@@ -491,6 +648,40 @@ BOOLEAN PhpGetDevicePropertyBoolean(
     return FALSE;
 }
 
+BOOLEAN PhpGetDeviceInterfacePropertyBoolean(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PBOOLEAN Boolean
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    DEVPROP_BOOLEAN boolean;
+    ULONG requiredLength = sizeof(DEVPROP_BOOLEAN);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)&boolean,
+        sizeof(DEVPROP_BOOLEAN),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_BOOLEAN))
+    {
+        *Boolean = boolean == DEVPROP_TRUE;
+
+        return TRUE;
+    }
+
+    *Boolean = FALSE;
+
+    return FALSE;
+}
+
 BOOLEAN PhpGetClassPropertyBoolean(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
@@ -539,6 +730,41 @@ BOOLEAN PhpGetDevicePropertyTimeStamp(
     result = SetupDiGetDevicePropertyW(
         DeviceInfoSet,
         DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)&fileTime,
+        sizeof(FILETIME),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_FILETIME))
+    {
+        TimeStamp->HighPart = fileTime.dwHighDateTime;
+        TimeStamp->LowPart = fileTime.dwLowDateTime;
+
+        return TRUE;
+    }
+
+    TimeStamp->QuadPart = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetDeviceInterfacePropertyTimeStamp(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PLARGE_INTEGER TimeStamp
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    FILETIME fileTime;
+    ULONG requiredLength = sizeof(FILETIME);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
         DeviceProperty,
         &devicePropertyType,
         (PBYTE)&fileTime,
@@ -631,6 +857,66 @@ BOOLEAN PhpGetDevicePropertyString(
     result = SetupDiGetDevicePropertyW(
         DeviceInfoSet,
         DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        buffer,
+        requiredLength,
+        &requiredLength,
+        0
+        );
+    if (!result)
+    {
+        goto Exit;
+    }
+
+    *String = PhCreateString(buffer);
+
+Exit:
+
+    if (buffer)
+        PhFree(buffer);
+
+    return !!result;
+}
+
+BOOLEAN PhpGetDeviceInterfacePropertyString(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PPH_STRING* String
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = 0;
+    PVOID buffer = NULL;
+
+    *String = NULL;
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        NULL,
+        0,
+        &requiredLength,
+        0
+        );
+    if (result ||
+        (requiredLength == 0) ||
+        (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
+        ((devicePropertyType != DEVPROP_TYPE_STRING) &&
+         (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
+    {
+        goto Exit;
+    }
+
+    buffer = PhAllocate(requiredLength);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
         DeviceProperty,
         &devicePropertyType,
         buffer,
@@ -749,6 +1035,84 @@ BOOLEAN PhpGetDevicePropertyStringList(
     result = SetupDiGetDevicePropertyW(
         DeviceInfoSet,
         DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        buffer,
+        requiredLength,
+        &requiredLength,
+        0
+        );
+    if (!result)
+    {
+        goto Exit;
+    }
+
+    stringList = PhCreateList(1);
+
+    for (PZZWSTR item = buffer;;)
+    {
+        UNICODE_STRING string;
+
+        RtlInitUnicodeString(&string, item);
+
+        if (string.Length == 0)
+        {
+            break;
+        }
+
+        PhAddItemList(stringList, PhCreateStringFromUnicodeString(&string));
+
+        item = PTR_ADD_OFFSET(item, string.MaximumLength);
+    }
+
+    *StringList = stringList;
+
+Exit:
+
+    if (buffer)
+        PhFree(buffer);
+
+    return !!result;
+}
+
+BOOLEAN PhpGetDeviceInterfacePropertyStringList(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PPH_LIST* StringList
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = 0;
+    PVOID buffer = NULL;
+    PPH_LIST stringList;
+
+    *StringList = NULL;
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        NULL,
+        0,
+        &requiredLength,
+        0
+        );
+    if (result ||
+        (requiredLength == 0) ||
+        (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
+        (devicePropertyType != DEVPROP_TYPE_STRING_LIST))
+    {
+        goto Exit;
+    }
+
+    buffer = PhAllocate(requiredLength);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
         DeviceProperty,
         &devicePropertyType,
         buffer,
@@ -929,6 +1293,70 @@ Exit:
     return !!result;
 }
 
+BOOLEAN PhpGetDeviceInterfacePropertyBinary(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PBYTE* Buffer,
+    _Out_ PULONG Size
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = 0;
+    PVOID buffer = NULL;
+
+    *Buffer = NULL;
+    *Size = 0;
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        NULL,
+        0,
+        &requiredLength,
+        0
+        );
+    if (result ||
+        (requiredLength == 0) ||
+        (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
+        ((devicePropertyType != DEVPROP_TYPE_BINARY) &&
+         (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR)))
+    {
+        goto Exit;
+    }
+
+    buffer = PhAllocate(requiredLength);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        buffer,
+        requiredLength,
+        &requiredLength,
+        0
+        );
+    if (!result)
+    {
+        goto Exit;
+    }
+
+    *Size = requiredLength;
+    *Buffer = buffer;
+    buffer = NULL;
+
+Exit:
+
+    if (buffer)
+        PhFree(buffer);
+
+    return !!result;
+}
+
 BOOLEAN PhpGetClassPropertyBinary(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
@@ -994,7 +1422,7 @@ Exit:
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillString(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -1002,34 +1430,47 @@ VOID NTAPI PhpDevPropFillString(
 {
     Property->Type = PhDevicePropertyTypeString;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyString(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->String
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyString(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->String
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyString(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->String
+                );
+        }
     }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    else
     {
-        Property->Valid = PhpGetClassPropertyString(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->String
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyString(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->String
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyString(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->String
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyString(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->String
+                );
+        }
     }
 
     if (Property->Valid)
@@ -1039,10 +1480,9 @@ VOID NTAPI PhpDevPropFillString(
     }
 }
 
-_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
-VOID NTAPI PhpDevPropFillUInt64(
+VOID PhpDevPropFillUInt64Common(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -1050,35 +1490,66 @@ VOID NTAPI PhpDevPropFillUInt64(
 {
     Property->Type = PhDevicePropertyTypeUInt64;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyUInt64(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->UInt64
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyUInt64(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->UInt64
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyUInt64(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->UInt64
+                );
+        }
     }
+    else
+    {
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyUInt64(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->UInt64
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyUInt64(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->UInt64
+                );
+        }
+    }
+}
 
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
-    {
-        Property->Valid = PhpGetClassPropertyUInt64(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->UInt64
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyUInt64(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->UInt64
-            );
-    }
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillUInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillUInt64Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
 
     if (Property->Valid)
     {
@@ -1093,43 +1564,19 @@ VOID NTAPI PhpDevPropFillUInt64(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillUInt64Hex(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
     )
 {
-    Property->Type = PhDevicePropertyTypeUInt64;
-
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
-    {
-        Property->Valid = PhpGetDevicePropertyUInt64(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->UInt64
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
-    {
-        Property->Valid = PhpGetClassPropertyUInt64(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->UInt64
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyUInt64(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->UInt64
-            );
-    }
+    PhpDevPropFillUInt64Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
 
     if (Property->Valid)
     {
@@ -1141,11 +1588,9 @@ VOID NTAPI PhpDevPropFillUInt64Hex(
     }
 }
 
-
-_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
-VOID NTAPI PhpDevPropFillUInt32(
+VOID PhpDevPropFillUInt32Common(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -1153,35 +1598,66 @@ VOID NTAPI PhpDevPropFillUInt32(
 {
     Property->Type = PhDevicePropertyTypeUInt32;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyUInt32(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->UInt32
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyUInt32(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->UInt32
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyUInt32(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->UInt32
+                );
+        }
     }
+    else
+    {
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyUInt32(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->UInt32
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyUInt32(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->UInt32
+                );
+        }
+    }
+}
 
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
-    {
-        Property->Valid = PhpGetClassPropertyUInt32(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->UInt32
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyUInt32(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->UInt32
-            );
-    }
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillUInt32(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillUInt32Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
 
     if (Property->Valid)
     {
@@ -1196,43 +1672,19 @@ VOID NTAPI PhpDevPropFillUInt32(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillUInt32Hex(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
     )
 {
-    Property->Type = PhDevicePropertyTypeUInt32;
-
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
-    {
-        Property->Valid = PhpGetDevicePropertyUInt32(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->UInt32
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
-    {
-        Property->Valid = PhpGetClassPropertyUInt32(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->UInt32
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyUInt32(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->UInt32
-            );
-    }
+    PhpDevPropFillUInt32Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
 
     if (Property->Valid)
     {
@@ -1248,7 +1700,7 @@ VOID NTAPI PhpDevPropFillUInt32Hex(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillInt32(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -1256,34 +1708,47 @@ VOID NTAPI PhpDevPropFillInt32(
 {
     Property->Type = PhDevicePropertyTypeUInt32;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyInt32(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->Int32
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyInt32(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->Int32
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyInt32(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->Int32
+                );
+        }
     }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    else
     {
-        Property->Valid = PhpGetClassPropertyInt32(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->Int32
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyInt32(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->Int32
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyInt32(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->Int32
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyInt32(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->Int32
+                );
+        }
     }
 
     if (Property->Valid)
@@ -1299,7 +1764,7 @@ VOID NTAPI PhpDevPropFillInt32(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillNTSTATUS(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -1307,34 +1772,47 @@ VOID NTAPI PhpDevPropFillNTSTATUS(
 {
     Property->Type = PhDevicePropertyTypeNTSTATUS;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyNTSTATUS(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->Status
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyNTSTATUS(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->Status
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyNTSTATUS(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->Status
+                );
+        }
     }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    else
     {
-        Property->Valid = PhpGetClassPropertyNTSTATUS(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->Status
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyNTSTATUS(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->Status
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyNTSTATUS(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->Status
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyNTSTATUS(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->Status
+                );
+        }
     }
 
     if (Property->Valid && Property->Status != STATUS_SUCCESS)
@@ -2018,7 +2496,7 @@ PPH_STRING PhpDevPropWellKnownGuidToString(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillGuid(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -2026,34 +2504,47 @@ VOID NTAPI PhpDevPropFillGuid(
 {
     Property->Type = PhDevicePropertyTypeGUID;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyGuid(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->Guid
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyGuid(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->Guid
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyGuid(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->Guid
+                );
+        }
     }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    else
     {
-        Property->Valid = PhpGetClassPropertyGuid(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->Guid
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyGuid(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->Guid
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyGuid(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->Guid
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyGuid(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->Guid
+                );
+        }
     }
 
     if (Property->Valid)
@@ -2093,43 +2584,19 @@ PPH_STRING PhpDevPropPciDeviceInterruptSupportToString(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillPciDeviceInterruptSupport(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
     )
 {
-    Property->Type = PhDevicePropertyTypeUInt32;
-
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
-    {
-        Property->Valid = PhpGetDevicePropertyUInt32(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->UInt32
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
-    {
-        Property->Valid = PhpGetClassPropertyUInt32(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->UInt32
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyUInt32(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->UInt32
-            );
-    }
+    PhpDevPropFillUInt32Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
 
     if (Property->Valid)
     {
@@ -2140,7 +2607,7 @@ VOID NTAPI PhpDevPropFillPciDeviceInterruptSupport(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillBoolean(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -2148,34 +2615,47 @@ VOID NTAPI PhpDevPropFillBoolean(
 {
     Property->Type = PhDevicePropertyTypeBoolean;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyBoolean(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->Boolean
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyBoolean(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->Boolean
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyBoolean(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->Boolean
+                );
+        }
     }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    else
     {
-        Property->Valid = PhpGetClassPropertyBoolean(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->Boolean
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyBoolean(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->Boolean
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyBoolean(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->Boolean
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyBoolean(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->Boolean
+                );
+        }
     }
 
     if (Property->Valid)
@@ -2190,7 +2670,7 @@ VOID NTAPI PhpDevPropFillBoolean(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillTimeStamp(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -2198,34 +2678,47 @@ VOID NTAPI PhpDevPropFillTimeStamp(
 {
     Property->Type = PhDevicePropertyTypeTimeStamp;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyTimeStamp(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->TimeStamp
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyTimeStamp(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->TimeStamp
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyTimeStamp(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->TimeStamp
+                );
+        }
     }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    else
     {
-        Property->Valid = PhpGetClassPropertyTimeStamp(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->TimeStamp
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyTimeStamp(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->TimeStamp
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyTimeStamp(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->TimeStamp
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyTimeStamp(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->TimeStamp
+                );
+        }
     }
 
     if (Property->Valid)
@@ -2241,7 +2734,7 @@ VOID NTAPI PhpDevPropFillTimeStamp(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillStringList(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -2249,34 +2742,47 @@ VOID NTAPI PhpDevPropFillStringList(
 {
     Property->Type = PhDevicePropertyTypeStringList;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyStringList(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->StringList
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyStringList(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->StringList
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyStringList(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->StringList
+                );
+        }
     }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    else
     {
-        Property->Valid = PhpGetClassPropertyStringList(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->StringList
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyStringList(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->StringList
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyStringList(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->StringList
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyStringList(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->StringList
+                );
+        }
     }
 
     if (Property->Valid && Property->StringList->Count > 0)
@@ -2308,7 +2814,7 @@ VOID NTAPI PhpDevPropFillStringList(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillStringOrStringList(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -2336,7 +2842,7 @@ VOID NTAPI PhpDevPropFillStringOrStringList(
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
 VOID NTAPI PhpDevPropFillBinary(
     _In_ HDEVINFO DeviceInfoSet,
-    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
     _Out_ PPH_DEVICE_PROPERTY Property,
     _In_ ULONG Flags
@@ -2344,37 +2850,51 @@ VOID NTAPI PhpDevPropFillBinary(
 {
     Property->Type = PhDevicePropertyTypeBinary;
 
-    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    if (DeviceInfoData->Interface)
     {
-        Property->Valid = PhpGetDevicePropertyBinary(
-            DeviceInfoSet,
-            DeviceInfoData,
-            PropertyKey,
-            &Property->Binary.Buffer,
-            &Property->Binary.Size
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyBinary(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->Binary.Buffer,
+                &Property->Binary.Size
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyBinary(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->Binary.Buffer,
+                &Property->Binary.Size
+                );
+        }
     }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    else
     {
-        Property->Valid = PhpGetClassPropertyBinary(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INTERFACE,
-            &Property->Binary.Buffer,
-            &Property->Binary.Size
-            );
-    }
-
-    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
-    {
-        Property->Valid = PhpGetClassPropertyBinary(
-            &DeviceInfoData->ClassGuid,
-            PropertyKey,
-            DICLASSPROP_INSTALLER,
-            &Property->Binary.Buffer,
-            &Property->Binary.Size
-            );
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyBinary(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->Binary.Buffer,
+                &Property->Binary.Size
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyBinary(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->Binary.Buffer,
+                &Property->Binary.Size
+                );
+        }
     }
 
     if (Property->Valid)
@@ -2502,26 +3022,26 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyPkgIcon, &DEVPKEY_DrvPkg_Icon, PhpDevPropFillStringList, 0 },
     { PhDevicePropertyPkgBrandingIcon, &DEVPKEY_DrvPkg_BrandingIcon, PhpDevPropFillStringList, 0 },
 
-    { PhDevicePropertyClassUpperFilters, &DEVPKEY_DeviceClass_UpperFilters, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassLowerFilters, &DEVPKEY_DeviceClass_LowerFilters, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassSecurity, &DEVPKEY_DeviceClass_Security, PhpDevPropFillBinary, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER }, // DEVPROP_TYPE_SECURITY_DESCRIPTOR as binary, PhDevicePropertyClassSecuritySDS for string
-    { PhDevicePropertyClassSecuritySDS, &DEVPKEY_DeviceClass_SecuritySDS, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassDevType, &DEVPKEY_DeviceClass_DevType, PhpDevPropFillUInt32, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassExclusive, &DEVPKEY_DeviceClass_Exclusive, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassCharacteristics, &DEVPKEY_DeviceClass_Characteristics, PhpDevPropFillUInt32Hex, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassName, &DEVPKEY_DeviceClass_Name, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassClassName, &DEVPKEY_DeviceClass_ClassName, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassIcon, &DEVPKEY_DeviceClass_Icon, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassClassInstaller, &DEVPKEY_DeviceClass_ClassInstaller, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassPropPageProvider, &DEVPKEY_DeviceClass_PropPageProvider, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassNoInstallClass, &DEVPKEY_DeviceClass_NoInstallClass, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassNoDisplayClass, &DEVPKEY_DeviceClass_NoDisplayClass, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassSilentInstall, &DEVPKEY_DeviceClass_SilentInstall, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassNoUseClass, &DEVPKEY_DeviceClass_NoUseClass, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassDefaultService, &DEVPKEY_DeviceClass_DefaultService, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassIconPath, &DEVPKEY_DeviceClass_IconPath, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassDHPRebalanceOptOut, &DEVPKEY_DeviceClass_DHPRebalanceOptOut, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyClassClassCoInstallers, &DEVPKEY_DeviceClass_ClassCoInstallers, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { PhDevicePropertyClassUpperFilters, &DEVPKEY_DeviceClass_UpperFilters, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassLowerFilters, &DEVPKEY_DeviceClass_LowerFilters, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassSecurity, &DEVPKEY_DeviceClass_Security, PhpDevPropFillBinary, DEVPROP_FILL_FLAG_CLASS }, // DEVPROP_TYPE_SECURITY_DESCRIPTOR as binary, PhDevicePropertyClassSecuritySDS for string
+    { PhDevicePropertyClassSecuritySDS, &DEVPKEY_DeviceClass_SecuritySDS, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassDevType, &DEVPKEY_DeviceClass_DevType, PhpDevPropFillUInt32, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassExclusive, &DEVPKEY_DeviceClass_Exclusive, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassCharacteristics, &DEVPKEY_DeviceClass_Characteristics, PhpDevPropFillUInt32Hex, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassName, &DEVPKEY_DeviceClass_Name, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassClassName, &DEVPKEY_DeviceClass_ClassName, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassIcon, &DEVPKEY_DeviceClass_Icon, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassClassInstaller, &DEVPKEY_DeviceClass_ClassInstaller, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassPropPageProvider, &DEVPKEY_DeviceClass_PropPageProvider, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassNoInstallClass, &DEVPKEY_DeviceClass_NoInstallClass, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassNoDisplayClass, &DEVPKEY_DeviceClass_NoDisplayClass, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassSilentInstall, &DEVPKEY_DeviceClass_SilentInstall, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassNoUseClass, &DEVPKEY_DeviceClass_NoUseClass, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassDefaultService, &DEVPKEY_DeviceClass_DefaultService, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassIconPath, &DEVPKEY_DeviceClass_IconPath, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassDHPRebalanceOptOut, &DEVPKEY_DeviceClass_DHPRebalanceOptOut, PhpDevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyClassClassCoInstallers, &DEVPKEY_DeviceClass_ClassCoInstallers, PhpDevPropFillStringList, DEVPROP_FILL_FLAG_CLASS },
 
     { PhDevicePropertyInterfaceFriendlyName, &DEVPKEY_DeviceInterface_FriendlyName, PhpDevPropFillString, 0 },
     { PhDevicePropertyInterfaceEnabled, &DEVPKEY_DeviceInterface_Enabled, PhpDevPropFillBoolean, 0 },
@@ -2531,8 +3051,8 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyInterfaceUnrestrictedAppCapabilities, &DEVPKEY_DeviceInterface_UnrestrictedAppCapabilities, PhpDevPropFillStringList, 0 },
     { PhDevicePropertyInterfaceSchematicName, &DEVPKEY_DeviceInterface_SchematicName, PhpDevPropFillString, 0 },
 
-    { PhDevicePropertyInterfaceClassDefaultInterface, &DEVPKEY_DeviceInterfaceClass_DefaultInterface, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
-    { PhDevicePropertyInterfaceClassName, &DEVPKEY_DeviceInterfaceClass_Name, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { PhDevicePropertyInterfaceClassDefaultInterface, &DEVPKEY_DeviceInterfaceClass_DefaultInterface, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
+    { PhDevicePropertyInterfaceClassName, &DEVPKEY_DeviceInterfaceClass_Name, PhpDevPropFillString, DEVPROP_FILL_FLAG_CLASS },
 
     { PhDevicePropertyContainerAddress, &DEVPKEY_DeviceContainer_Address, PhpDevPropFillStringOrStringList, 0 },
     { PhDevicePropertyContainerDiscoveryMethod, &DEVPKEY_DeviceContainer_DiscoveryMethod, PhpDevPropFillStringList, 0 },
@@ -2665,16 +3185,23 @@ HICON PhGetDeviceIcon(
 {
     HICON iconHandle;
 
-    if (!SetupDiLoadDeviceIcon(
-        Item->DeviceInfo->Handle,
-        &Item->DeviceInfoData,
-        IconSize->X,
-        IconSize->Y,
-        0,
-        &iconHandle
-        ))
+    if (Item->DeviceInfoData.Interface)
     {
-        iconHandle = NULL;
+        iconHandle = NULL; // TODO?
+    }
+    else
+    {
+        if (!SetupDiLoadDeviceIcon(
+            Item->DeviceInfo->Handle,
+            &Item->DeviceInfoData.DeviceData,
+            IconSize->X,
+            IconSize->Y,
+            0,
+            &iconHandle
+            ))
+        {
+            iconHandle = NULL;
+        }
     }
 
     return iconHandle;
@@ -2810,7 +3337,8 @@ VOID PhpDeviceItemDeleteProcedure(
 {
     PPH_DEVICE_ITEM item = Object;
 
-    PhDereferenceObject(item->Children);
+    PhClearReference(&item->Children);
+    PhClearReference(&item->Interfaces);
 
     for (ULONG i = 0; i < ARRAYSIZE(item->Properties); i++)
     {
@@ -2862,7 +3390,17 @@ VOID PhpDeviceTreeDeleteProcedure(
         PhDereferenceObject(item);
     }
 
+    for (ULONG i = 0; i < tree->DeviceInterfaceList->Count; i++)
+    {
+        PPH_DEVICE_ITEM item;
+
+        item = tree->DeviceList->Items[i];
+
+        PhDereferenceObject(item);
+    }
+
     PhDereferenceObject(tree->DeviceList);
+    PhDereferenceObject(tree->DeviceInterfaceList);
     PhDereferenceObject(tree->DeviceInfo);
 }
 
@@ -2891,10 +3429,11 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceItem(
     item = PhCreateObjectZero(sizeof(PH_DEVICE_ITEM), PhDeviceItemType);
 
     item->DeviceInfo = PhReferenceObject(Tree->DeviceInfo);
-    RtlCopyMemory(&item->DeviceInfoData, DeviceInfoData, sizeof(SP_DEVINFO_DATA));
+    RtlCopyMemory(&item->DeviceInfoData.DeviceData, DeviceInfoData, sizeof(SP_DEVINFO_DATA));
     RtlCopyMemory(&item->ClassGuid, &DeviceInfoData->ClassGuid, sizeof(GUID));
 
     item->Children = PhCreateList(1);
+    item->Interfaces = PhCreateList(1);
 
     //
     // Only get the minimum here, the rest will be retrieved later if necessary.
@@ -2970,16 +3509,155 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceItem(
     return item;
 }
 
+PPH_DEVICE_ITEM NTAPI PhpAddDeviceInterfaceItem(
+    _In_ PPH_DEVICE_TREE Tree,
+    _In_ PPH_DEVICE_ITEM DeviceItem,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData
+    )
+{
+    PPH_DEVICE_ITEM item;
+
+    item = PhCreateObjectZero(sizeof(PH_DEVICE_ITEM), PhDeviceItemType);
+
+    item->DeviceInfo = PhReferenceObject(Tree->DeviceInfo);
+    item->DeviceInfoData.Interface = TRUE;
+    RtlCopyMemory(&item->DeviceInfoData.InterfaceData, DeviceInterfaceData, sizeof(SP_DEVICE_INTERFACE_DATA));
+    RtlCopyMemory(&item->ClassGuid, &DeviceInterfaceData->InterfaceClassGuid, sizeof(GUID));
+
+    item->Parent = DeviceItem;
+    item->ParentInstanceId = PhReferenceObject(DeviceItem->InstanceId);
+    item->DeviceInterface = TRUE;
+
+    if (DeviceItem->Interfaces->Count > 0)
+    {
+        PPH_DEVICE_ITEM sibling = DeviceItem->Interfaces->Items[DeviceItem->Interfaces->Count - 1];
+        assert(!sibling->Sibling);
+        sibling->Sibling = item;
+    }
+
+    PhAddItemList(DeviceItem->Interfaces, item);
+    PhAddItemList(Tree->DeviceInterfaceList, item);
+
+    return item;
+}
+
+VOID PhpGetInterfaceClassList(
+    _Out_ PGUID* InterfaceClassList,
+    _Out_ PULONG InterfaceClassListCount
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT(WINAPI * DevGetObjects_I)(
+        _In_ DEV_OBJECT_TYPE ObjectType,
+        _In_ ULONG QueryFlags,
+        _In_ ULONG cRequestedProperties,
+        _In_reads_opt_(cRequestedProperties) const DEVPROPCOMPKEY *pRequestedProperties,
+        _In_ ULONG cFilterExpressionCount,
+        _In_reads_opt_(cFilterExpressionCount) const DEVPROP_FILTER_EXPRESSION *pFilter,
+        _Out_ PULONG pcObjectCount,
+        _Outptr_result_buffer_maybenull_(*pcObjectCount) const DEV_OBJECT **ppObjects) = NULL;
+    static VOID(WINAPI * DevFreeObjects_I)(
+        _In_ ULONG cObjectCount,
+        _In_reads_(cObjectCount) const DEV_OBJECT *pObjects) = NULL;
+
+    const DEV_OBJECT* objects = NULL;
+    ULONG objectCount;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID cfgmgr32;
+
+        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
+        {
+            DevGetObjects_I = PhGetProcedureAddress(cfgmgr32, "DevGetObjects", 0);
+            DevFreeObjects_I = PhGetProcedureAddress(cfgmgr32, "DevFreeObjects", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (FAILED(DevGetObjects_I(
+        DevObjectTypeDeviceInterfaceClass,
+        DevQueryFlagNone,
+        0,
+        NULL,
+        0,
+        NULL,
+        &objectCount,
+        &objects
+        )))
+    {
+        *InterfaceClassList = NULL;
+        *InterfaceClassListCount = 0;
+        return;
+    }
+
+    *InterfaceClassList = PhAllocateZero(objectCount * sizeof(GUID));
+    *InterfaceClassListCount = objectCount;
+
+    for (ULONG i = 0; i < objectCount; i++)
+    {
+        GUID interfaceClassGuid;
+        UNICODE_STRING interfaceClassGuidString;
+
+        RtlInitUnicodeString(&interfaceClassGuidString, objects[i].pszObjectId);
+
+        if (!NT_SUCCESS(RtlGUIDFromString(&interfaceClassGuidString, &interfaceClassGuid)))
+            continue;
+
+        RtlCopyMemory(&(*InterfaceClassList)[i], &interfaceClassGuid, sizeof(GUID));
+    }
+
+    DevFreeObjects_I(objectCount, objects);
+}
+
+VOID PhpAssociateDeviceIntefaces(
+    _Inout_ PPH_DEVICE_TREE Tree,
+    _In_ PPH_DEVICE_ITEM DeviceItem,
+    _In_ PGUID InterfaceClassList,
+    _In_ ULONG InterfaceClassListCount
+    )
+{
+    assert(!DeviceItem->DeviceInfoData.Interface);
+
+    for (ULONG i = 0; i < InterfaceClassListCount; i++)
+    {
+        for (ULONG j = 0;; j++)
+        {
+            SP_DEVICE_INTERFACE_DATA deviceInterfaceData;
+
+            RtlZeroMemory(&deviceInterfaceData, sizeof(SP_DEVICE_INTERFACE_DATA));
+            deviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+
+            if (!SetupDiEnumDeviceInterfaces(
+                Tree->DeviceInfo->Handle,
+                &DeviceItem->DeviceInfoData.DeviceData,
+                &InterfaceClassList[i],
+                j,
+                &deviceInterfaceData
+                ))
+            {
+                break;
+            }
+
+            PhpAddDeviceInterfaceItem(Tree, DeviceItem, &deviceInterfaceData);
+        }
+    }
+}
+
 PPH_DEVICE_TREE PhpCreateDeviceTree(
     VOID
     )
 {
     PPH_DEVICE_TREE tree;
     PPH_DEVICE_ITEM root;
+    PGUID interfaceClassList;
+    ULONG interfaceClassListCount;
 
     tree = PhCreateObjectZero(sizeof(PH_DEVICE_TREE), PhDeviceTreeType);
 
     tree->DeviceList = PhCreateList(40);
+    tree->DeviceInterfaceList = PhCreateList(40);
     tree->DeviceInfo = PhCreateObject(sizeof(PH_DEVINFO), PhpDeviceInfoType);
 
     tree->DeviceInfo->Handle = SetupDiGetClassDevsW(
@@ -2997,7 +3675,7 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
     {
         SP_DEVINFO_DATA deviceInfoData;
 
-        memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
+        RtlZeroMemory(&deviceInfoData, sizeof(SP_DEVINFO_DATA));
         deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
         if (!SetupDiEnumDeviceInfo(tree->DeviceInfo->Handle, i, &deviceInfoData))
@@ -3005,6 +3683,20 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
 
         PhpAddDeviceItem(tree, &deviceInfoData);
     }
+
+    // now add interfaces to the device info set, the return value will be the
+    // same pointer as the existing handle
+    (VOID)SetupDiGetClassDevsExW(
+        NULL,
+        NULL,
+        NULL,
+        DIGCF_ALLCLASSES | DIGCF_DEVICEINTERFACE,
+        tree->DeviceInfo->Handle,
+        NULL,
+        NULL
+        );
+
+    PhpGetInterfaceClassList(&interfaceClassList, &interfaceClassListCount);
 
     // Link the device relations.
     root = NULL;
@@ -3018,6 +3710,9 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
         found = FALSE;
 
         item = tree->DeviceList->Items[i];
+
+        // for this device item associate any device interfaces 
+        PhpAssociateDeviceIntefaces(tree, item, interfaceClassList, interfaceClassListCount);
 
         for (ULONG j = 0; j < tree->DeviceList->Count; j++)
         {
@@ -3103,6 +3798,9 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
         sizeof(PVOID),
         PhpDeviceItemSortFunction
         );
+
+    if (interfaceClassList)
+        PhFree(interfaceClassList);
 
     return tree;
 }
