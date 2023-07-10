@@ -294,11 +294,22 @@ typedef struct _PH_DEVINFO
 {
     HDEVINFO Handle;
 } PH_DEVINFO, *PPH_DEVINFO;
+
+typedef struct _PH_DEVINFO_DATA
+{
+    BOOLEAN Interface;
+    union
+    {
+        SP_DEVINFO_DATA DeviceData;
+        SP_DEVICE_INTERFACE_DATA InterfaceData;
+    };
+} PH_DEVINFO_DATA, *PPH_DEVINFO_DATA;
 // begin_phapppub
 
 typedef struct _PH_DEVICE_ITEM
 {
     PPH_LIST Children;
+    PPH_LIST Interfaces;
     struct _PH_DEVICE_ITEM* Parent;
     struct _PH_DEVICE_ITEM* Sibling;
     struct _PH_DEVICE_ITEM* Child;
@@ -317,7 +328,8 @@ typedef struct _PH_DEVICE_ITEM
         {
             ULONG HasUpperFilters : 1;
             ULONG HasLowerFilters : 1;
-            ULONG Spare : 30;
+            ULONG DeviceInterface : 1;
+            ULONG Spare : 29;
         };
         ULONG Flags;
     };
@@ -326,7 +338,7 @@ typedef struct _PH_DEVICE_ITEM
 
 // end_phapppub
     PPH_DEVINFO DeviceInfo;
-    SP_DEVINFO_DATA DeviceInfoData;
+    PH_DEVINFO_DATA DeviceInfoData;
 // begin_phapppub
 } PH_DEVICE_ITEM, *PPH_DEVICE_ITEM;
 
@@ -334,6 +346,7 @@ typedef struct _PH_DEVICE_TREE
 {
     PPH_DEVICE_ITEM Root;
     PPH_LIST DeviceList;
+    PPH_LIST DeviceInterfaceList;
 // end_phapppub
     PPH_DEVINFO DeviceInfo;
 // begin_phapppub
