@@ -3187,7 +3187,25 @@ HICON PhGetDeviceIcon(
 
     if (Item->DeviceInfoData.Interface)
     {
-        iconHandle = NULL; // TODO?
+        // try to give the icon for the parent device 
+        if (Item->Parent && !Item->Parent->DeviceInfoData.Interface)
+        {
+            if (!SetupDiLoadDeviceIcon(
+                Item->Parent->DeviceInfo->Handle,
+                &Item->Parent->DeviceInfoData.DeviceData,
+                IconSize->X,
+                IconSize->Y,
+                0,
+                &iconHandle
+                ))
+            {
+                iconHandle = NULL;
+            }
+        }
+        else
+        {
+            iconHandle = NULL;
+        }
     }
     else
     {
@@ -3516,6 +3534,7 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceInterfaceItem(
     )
 {
     PPH_DEVICE_ITEM item;
+    PPH_DEVICE_PROPERTY prop;
 
     item = PhCreateObjectZero(sizeof(PH_DEVICE_ITEM), PhDeviceItemType);
 
@@ -3525,6 +3544,9 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceInterfaceItem(
     RtlCopyMemory(&item->ClassGuid, &DeviceInterfaceData->InterfaceClassGuid, sizeof(GUID));
 
     item->Parent = DeviceItem;
+    item->InstanceId = PhGetDeviceProperty(item, PhDevicePropertyInstanceId)->AsString;
+    if (item->InstanceId)
+        PhReferenceObject(item->InstanceId);
     item->ParentInstanceId = PhReferenceObject(DeviceItem->InstanceId);
     item->DeviceInterface = TRUE;
 
@@ -3533,6 +3555,22 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceInterfaceItem(
         PPH_DEVICE_ITEM sibling = DeviceItem->Interfaces->Items[DeviceItem->Interfaces->Count - 1];
         assert(!sibling->Sibling);
         sibling->Sibling = item;
+    }
+
+    // if the interface has no name, override it to be the best possible name
+    prop = PhGetDeviceProperty(item, PhDevicePropertyName);
+    if (!prop->AsString)
+    {
+        PPH_STRING string;
+
+        if (string = PhGetDeviceProperty(item, PhDevicePropertyInterfaceFriendlyName)->AsString)
+            prop->AsString = PhReferenceObject(string);
+        else if (string = PhGetDeviceProperty(item, PhDevicePropertyInterfaceClassName)->AsString)
+            prop->AsString = PhReferenceObject(string);
+        else if (string = PhGetDeviceProperty(item, PhDevicePropertyInstanceId)->AsString)
+            prop->AsString = PhReferenceObject(string);
+        else
+            prop->AsString = PhFormatGuid(&DeviceInterfaceData->InterfaceClassGuid);
     }
 
     PhAddItemList(DeviceItem->Interfaces, item);

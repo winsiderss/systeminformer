@@ -35,10 +35,12 @@ static BOOLEAN ShowDisconnected = TRUE;
 static BOOLEAN ShowSoftwareComponents = TRUE;
 static BOOLEAN HighlightUpperFiltered = TRUE;
 static BOOLEAN HighlightLowerFiltered = TRUE;
+static BOOLEAN ShowDeviceInterfaces = TRUE;
 static ULONG DeviceProblemColor = 0;
 static ULONG DeviceDisabledColor = 0;
 static ULONG DeviceDisconnectedColor = 0;
 static ULONG DeviceHighlightColor = 0;
+static ULONG DeviceInterfaceColor = 0;
 
 static BOOLEAN DeviceTabCreated = FALSE;
 static HWND DeviceTreeHandle = NULL;
@@ -105,10 +107,21 @@ PDEVICE_NODE DeviceTreeCreateNode(
     else
         node->Node.Visible = TRUE;
 
-    node->Children = PhCreateList(Item->Children->AllocatedCount);
-    for (ULONG i = 0; i < Item->Children->Count; i++)
+    node->Children = PhCreateList(1);
+    if (Item->Children)
     {
-        PhAddItemList(node->Children, DeviceTreeCreateNode(Item->Children->Items[i], Nodes));
+        for (ULONG i = 0; i < Item->Children->Count; i++)
+        {
+            PhAddItemList(node->Children, DeviceTreeCreateNode(Item->Children->Items[i], Nodes));
+        }
+    }
+
+    if (ShowDeviceInterfaces && Item->Interfaces)
+    {
+        for (ULONG i = 0; i < Item->Interfaces->Count; i++)
+        {
+            PhAddItemList(node->Children, DeviceTreeCreateNode(Item->Interfaces->Items[i], Nodes));
+        }
     }
 
     if (PhGetIntegerSetting(SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME))
@@ -164,14 +177,14 @@ VOID DeviceTreeFree(
 _Must_inspect_impl_
 _Success_(return != NULL)
 PDEVICE_TREE DeviceTreeCreateIfNecessary(
-    VOID
+    _In_ BOOLEAN Force
     )
 {
     PDEVICE_TREE deviceTree;
     PPH_DEVICE_TREE tree;
 
     tree = PhReferenceDeviceTree();
-    if (!DeviceTree || DeviceTree->Tree != tree)
+    if (Force || !DeviceTree || DeviceTree->Tree != tree)
     {
         deviceTree = DeviceTreeCreate(tree);
     }
@@ -217,16 +230,18 @@ NTSTATUS NTAPI DeviceTreePublishThread(
     _In_ PVOID Parameter
     )
 {
-    ProcessHacker_Invoke(DeviceTreePublish, DeviceTreeCreateIfNecessary());
+    BOOLEAN force = PtrToUlong(Parameter) ? TRUE : FALSE;
+
+    ProcessHacker_Invoke(DeviceTreePublish, DeviceTreeCreateIfNecessary(force));
 
     return STATUS_SUCCESS;
 }
 
 VOID DeviceTreePublicAsync(
-    VOID
+    _In_ BOOLEAN Force
     )
 {
-    PhCreateThread2(DeviceTreePublishThread, NULL);
+    PhCreateThread2(DeviceTreePublishThread, ULongToPtr(Force ? 1ul : 0ul));
 }
 
 VOID InvalidateDeviceNodes(
@@ -381,6 +396,22 @@ static int __cdecl DeviceTreeSortFunction(
     return PhModifySort(sortResult, DeviceTreeSortOrder);
 }
 
+VOID DeviceNodeShowProperties(
+    _In_ HWND ParentWindowHandle,
+    _In_ PDEVICE_NODE DeviceNode
+)
+{
+    PPH_DEVICE_ITEM deviceItem;
+
+    if (DeviceNode->DeviceItem->DeviceInterface)
+        deviceItem = DeviceNode->DeviceItem->Parent;
+    else
+        deviceItem = DeviceNode->DeviceItem;
+
+    if (deviceItem->InstanceId)
+        DeviceShowProperties(ParentWindowHandle, deviceItem);
+}
+
 BOOLEAN NTAPI DeviceTreeCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -469,7 +500,11 @@ BOOLEAN NTAPI DeviceTreeCallback(
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
 
-            if (node->DeviceItem->DevNodeStatus & DN_HAS_PROBLEM && (node->DeviceItem->ProblemCode != CM_PROB_DISABLED))
+            if (node->DeviceItem->DeviceInterface)
+            {
+                getNodeColor->BackColor = DeviceInterfaceColor;
+            }
+            else if (node->DeviceItem->DevNodeStatus & DN_HAS_PROBLEM && (node->DeviceItem->ProblemCode != CM_PROB_DISABLED))
             {
                 getNodeColor->BackColor = DeviceProblemColor;
             }
@@ -512,6 +547,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_EMENU_ITEM autoRefresh;
             PPH_EMENU_ITEM showDisconnectedDevices;
             PPH_EMENU_ITEM showSoftwareDevices;
+            PPH_EMENU_ITEM showDeviceInterfaces;
             PPH_EMENU_ITEM highlightUpperFiltered;
             PPH_EMENU_ITEM highlightLowerFiltered;
             PPH_EMENU_ITEM gotoServiceItem;
@@ -531,10 +567,11 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, showDisconnectedDevices = PhCreateEMenuItem(0, 102, L"Show disconnected devices", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, showSoftwareDevices = PhCreateEMenuItem(0, 103, L"Show software components", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightUpperFiltered = PhCreateEMenuItem(0, 104, L"Highlight upper filtered", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightLowerFiltered = PhCreateEMenuItem(0, 105, L"Highlight lower filtered", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, showDeviceInterfaces = PhCreateEMenuItem(0, 104, L"Show device interfaces", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightUpperFiltered = PhCreateEMenuItem(0, 105, L"Highlight upper filtered", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightLowerFiltered = PhCreateEMenuItem(0, 106, L"Highlight lower filtered", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-            PhInsertEMenuItem(menu, gotoServiceItem = PhCreateEMenuItem(0, 106, L"Go to service...", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, gotoServiceItem = PhCreateEMenuItem(0, 107, L"Go to service...", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, enable = PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, disable = PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
@@ -564,6 +601,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 highlightUpperFiltered->Flags |= PH_EMENU_CHECKED;
             if (HighlightLowerFiltered)
                 highlightLowerFiltered->Flags |= PH_EMENU_CHECKED;
+            if (ShowDeviceInterfaces)
+                showDeviceInterfaces->Flags |= PH_EMENU_CHECKED;
 
             if (!node)
             {
@@ -629,8 +668,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
                             HardwareDeviceOpenKey(hwnd, node->DeviceItem->InstanceId, selectedItem->Id);
                         break;
                     case 10:
-                        if (node->DeviceItem->InstanceId)
-                            DeviceShowProperties(hwnd, node->DeviceItem);
+                        DeviceNodeShowProperties(hwnd, node);
                         break;
                     case 11:
                         {
@@ -659,16 +697,21 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         republish = TRUE;
                         break;
                     case 104:
+                        ShowDeviceInterfaces = !ShowDeviceInterfaces;
+                        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_DEVICE_INTERFACES, ShowDeviceInterfaces);
+                        republish = TRUE;
+                        break;
+                    case 105:
                         HighlightUpperFiltered = !HighlightUpperFiltered;
                         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, HighlightUpperFiltered);
                         invalidate = TRUE;
                         break;
-                    case 105:
+                    case 106:
                         HighlightLowerFiltered = !HighlightLowerFiltered;
                         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED, HighlightLowerFiltered);
                         invalidate = TRUE;
                         break;
-                    case 106:
+                    case 107:
                         {
                             PPH_STRING serviceName = PhGetDeviceProperty(node->DeviceItem, PhDevicePropertyService)->AsString;
                             PPH_SERVICE_ITEM serviceItem;
@@ -692,7 +735,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
 
             if (republish)
             {
-                DeviceTreePublicAsync();
+                DeviceTreePublicAsync(TRUE);
             }
             else if (invalidate)
             {
@@ -707,8 +750,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
             node = (PDEVICE_NODE)mouseEvent->Node;
 
-            if (node && node->DeviceItem->InstanceId)
-                DeviceShowProperties(hwnd, node->DeviceItem);
+            if (node)
+                DeviceNodeShowProperties(hwnd, node);
         }
         return TRUE;
     case TreeNewHeaderRightClick:
@@ -1173,7 +1216,7 @@ BOOLEAN DevicesTabPageCallback(
         {
             DeviceTabSelected = (BOOLEAN)Parameter1;
             if (DeviceTabSelected)
-                DeviceTreePublicAsync();
+                DeviceTreePublicAsync(FALSE);
         }
         break;
     case MainTabPageFontChanged:
@@ -1255,7 +1298,7 @@ VOID NTAPI DeviceProviderCallbackHandler(
     )
 {
     if (DeviceTabCreated && DeviceTabSelected && AutoRefreshDeviceTree)
-        ProcessHacker_Invoke(DeviceTreePublish, DeviceTreeCreateIfNecessary());
+        ProcessHacker_Invoke(DeviceTreePublish, DeviceTreeCreateIfNecessary(FALSE));
 }
 
 VOID InitializeDevicesTab(
@@ -1275,12 +1318,14 @@ VOID InitializeDevicesTab(
     AutoRefreshDeviceTree = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_AUTO_REFRESH);
     ShowDisconnected = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED);
     ShowSoftwareComponents = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS);
+    ShowDeviceInterfaces = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_SHOW_DEVICE_INTERFACES);
     HighlightUpperFiltered = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED);
     HighlightLowerFiltered = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED);
     DeviceProblemColor = PhGetIntegerSetting(SETTING_NAME_DEVICE_PROBLEM_COLOR);
     DeviceDisabledColor = PhGetIntegerSetting(SETTING_NAME_DEVICE_DISABLED_COLOR);
     DeviceDisconnectedColor = PhGetIntegerSetting(SETTING_NAME_DEVICE_DISCONNECTED_COLOR);
     DeviceHighlightColor = PhGetIntegerSetting(SETTING_NAME_DEVICE_HIGHLIGHT_COLOR);
+    DeviceInterfaceColor = PhGetIntegerSetting(SETTING_NAME_DEVICE_INTERFACE_COLOR);
 
     RtlZeroMemory(&page, sizeof(PH_MAIN_TAB_PAGE));
     PhInitializeStringRef(&page.Name, L"Devices");
