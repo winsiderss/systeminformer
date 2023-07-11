@@ -541,13 +541,13 @@ BOOLEAN NTAPI DeviceTreeCallback(
             {
                 getNodeColor->BackColor = DeviceProblemColor;
             }
-            else if ((node->DeviceItem->Capabilities & CM_DEVCAP_HARDWAREDISABLED) || (node->DeviceItem->ProblemCode == CM_PROB_DISABLED))
-            {
-                getNodeColor->BackColor = DeviceDisabledColor;
-            }
             else if (!PhGetDeviceProperty(node->DeviceItem, PhDevicePropertyIsPresent)->Boolean)
             {
                 getNodeColor->BackColor = DeviceDisconnectedColor;
+            }
+            else if ((node->DeviceItem->Capabilities & CM_DEVCAP_HARDWAREDISABLED) || (node->DeviceItem->ProblemCode == CM_PROB_DISABLED))
+            {
+                getNodeColor->BackColor = DeviceDisabledColor;
             }
             else if ((HighlightUpperFiltered && node->DeviceItem->HasUpperFilters) || (HighlightLowerFiltered && node->DeviceItem->HasLowerFilters))
             {

@@ -665,7 +665,7 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_DEVICE_TREE_SORT, L"0,0" },
                 { StringSettingType, SETTING_NAME_DEVICE_TREE_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_PROBLEM_COLOR, L"283cff" },
-                { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"777777" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"000000" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"6d6d6d" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHT_COLOR, L"00aaff" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_INTERFACE_COLOR, L"ffccaa" },
