@@ -776,7 +776,7 @@ VOID DeviceInitializeInterfacesPage(
         PhAddListViewGroup(
             Context->InterfacesListViewHandle,
             i,
-            PhGetString(PhGetDeviceProperty(Context->DeviceItem, PhDevicePropertyName)->AsString)
+            PhGetString(PhGetDeviceProperty(deviceItem, PhDevicePropertyName)->AsString)
             );
 
         for (ULONG j = 0; j < DeviceItemPropertyTableCount; j++)
