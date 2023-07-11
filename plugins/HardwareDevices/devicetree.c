@@ -78,6 +78,26 @@ static int __cdecl DeviceListSortByNameFunction(
     return PhCompareStringWithNull(lhs->AsString, rhs->AsString, TRUE);
 }
 
+BOOLEAN DeviceTreeShouldIncludeDeviceItem(
+    _In_ PPH_DEVICE_ITEM DeviceItem
+    )
+{
+    if (DeviceItem->DeviceInterface)
+    {
+        if (ShowDisabledDeviceInterfaces)
+            return TRUE;
+
+        return PhGetDeviceProperty(DeviceItem, PhDevicePropertyInterfaceEnabled)->Boolean;
+    }
+    else
+    {
+        if (ShowDisconnected)
+            return TRUE;
+
+        return PhGetDeviceProperty(DeviceItem, PhDevicePropertyIsPresent)->Boolean;
+    }
+}
+
 PDEVICE_NODE DeviceTreeCreateNode(
     _In_ PPH_DEVICE_ITEM Item,
     _Inout_ PPH_LIST Nodes
@@ -114,7 +134,10 @@ PDEVICE_NODE DeviceTreeCreateNode(
     {
         for (ULONG i = 0; i < Item->Children->Count; i++)
         {
-            PhAddItemList(node->Children, DeviceTreeCreateNode(Item->Children->Items[i], Nodes));
+            PPH_DEVICE_ITEM childItem = Item->Children->Items[i];
+
+            if (DeviceTreeShouldIncludeDeviceItem(childItem))
+                PhAddItemList(node->Children, DeviceTreeCreateNode(childItem, Nodes));
         }
     }
 
@@ -122,13 +145,10 @@ PDEVICE_NODE DeviceTreeCreateNode(
     {
         for (ULONG i = 0; i < Item->Interfaces->Count; i++)
         {
-            if (!ShowDisabledDeviceInterfaces &&
-                !PhGetDeviceProperty(Item->Interfaces->Items[i], PhDevicePropertyInterfaceEnabled)->Boolean)
-            {
-                continue;
-            }
+            PPH_DEVICE_ITEM interfaceItem = Item->Interfaces->Items[i];
 
-            PhAddItemList(node->Children, DeviceTreeCreateNode(Item->Interfaces->Items[i], Nodes));
+            if (DeviceTreeShouldIncludeDeviceItem(interfaceItem))
+                PhAddItemList(node->Children, DeviceTreeCreateNode(interfaceItem, Nodes));
         }
     }
 
@@ -155,7 +175,12 @@ PDEVICE_TREE DeviceTreeCreate(
     {
         tree->Roots = PhCreateList(Tree->Root->Children->AllocatedCount);
         for (ULONG i = 0; i < Tree->Root->Children->Count; i++)
-            PhAddItemList(tree->Roots, DeviceTreeCreateNode(Tree->Root->Children->Items[i], tree->Nodes));
+        {
+            PPH_DEVICE_ITEM childItem = Tree->Root->Children->Items[i];
+            
+            if (DeviceTreeShouldIncludeDeviceItem(childItem))
+                PhAddItemList(tree->Roots, DeviceTreeCreateNode(childItem, tree->Nodes));
+        }
     }
 
     tree->Tree = PhReferenceObject(Tree);
@@ -277,9 +302,6 @@ BOOLEAN NTAPI DeviceTreeFilterCallback(
     )
 {
     PDEVICE_NODE node = (PDEVICE_NODE)Node;
-
-    if (!ShowDisconnected && (node->DeviceItem->ProblemCode == CM_PROB_PHANTOM))
-        return FALSE;
 
     if (PhIsNullOrEmptyString(ToolStatusInterface->GetSearchboxText()))
         return TRUE;
@@ -523,7 +545,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             {
                 getNodeColor->BackColor = DeviceDisabledColor;
             }
-            else if (node->DeviceItem->ProblemCode == CM_PROB_PHANTOM)
+            else if (!PhGetDeviceProperty(node->DeviceItem, PhDevicePropertyIsPresent)->Boolean)
             {
                 getNodeColor->BackColor = DeviceDisconnectedColor;
             }
@@ -699,12 +721,12 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         break;
                     case 101:
                         AutoRefreshDeviceTree = !AutoRefreshDeviceTree;
-                        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_AUTO_REFRESH, ShowDisconnected);
+                        PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_AUTO_REFRESH, AutoRefreshDeviceTree);
                         break;
                     case 102:
                         ShowDisconnected = !ShowDisconnected;
                         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED, ShowDisconnected);
-                        invalidate = TRUE;
+                        republish = TRUE;
                         break;
                     case 103:
                         ShowSoftwareComponents = !ShowSoftwareComponents;
