@@ -48,6 +48,7 @@
 #define SETTING_NAME_DEVICE_PROPERTIES_POSITION (PLUGIN_NAME L".DevicePropertiesPossition")
 #define SETTING_NAME_DEVICE_GENERAL_COLUMNS (PLUGIN_NAME L".DeviceGeneralColumns")
 #define SETTING_NAME_DEVICE_PROPERTIES_COLUMNS (PLUGIN_NAME L".DevicePropertiesColumns")
+#define SETTING_NAME_DEVICE_INTERFACES_COLUMNS (PLUGIN_NAME L".DeviceInterfacesColumns")
 
 #include <phdk.h>
 #include <phappresource.h>

@@ -399,7 +399,7 @@ static int __cdecl DeviceTreeSortFunction(
 VOID DeviceNodeShowProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PDEVICE_NODE DeviceNode
-)
+    )
 {
     PPH_DEVICE_ITEM deviceItem;
 

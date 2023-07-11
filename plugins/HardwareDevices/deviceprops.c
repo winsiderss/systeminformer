@@ -63,6 +63,7 @@ typedef struct _DEVICE_PROPERTIES_CONTEXT
     HWND ParentWindowHandle;
     HWND GeneralListViewHandle;
     HWND PropsListViewHandle;
+    HWND InterfacesListViewHandle;
     HICON DeviceIcon;
     PH_INTEGER_PAIR DeviceIconSize;
 
@@ -594,7 +595,8 @@ VOID DeviceInitializePropsPage(
         0,
         NULL,
         &propertyCount,
-        &properties)))
+        &properties
+        )))
     {
         for (ULONG i = 0; i < propertyCount; i++)
         {
@@ -621,13 +623,7 @@ VOID DeviceInitializePropsPage(
             }
 
             lvItemIndex = PhAddListViewItem(Context->PropsListViewHandle, MAXINT, name, NULL);
-
-            if (prop->CompKey.Store == DEVPROP_STORE_SYSTEM)
-                PhSetListViewSubItem(Context->PropsListViewHandle, lvItemIndex, 1, L"System");
-            else if (prop->CompKey.Store == DEVPROP_STORE_USER)
-                PhSetListViewSubItem(Context->PropsListViewHandle, lvItemIndex, 1, L"User");
-
-            PhSetListViewSubItem(Context->PropsListViewHandle, lvItemIndex, 2, value);
+            PhSetListViewSubItem(Context->PropsListViewHandle, lvItemIndex, 1, value);
 
             PhClearReference(&nameString);
             PhClearReference(&valueString);
@@ -667,8 +663,7 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
             PhSetListViewStyle(context->PropsListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->PropsListViewHandle, L"explorer");
             PhAddListViewColumn(context->PropsListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"Store");
-            PhAddListViewColumn(context->PropsListViewHandle, 2, 2, 2, LVCFMT_LEFT, 300, L"Value");
+            PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->PropsListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, context->PropsListViewHandle);
 
@@ -761,11 +756,171 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
     return FALSE;
 }
 
-VOID DeviceAddControlButtons(
-    _In_ PPV_PROPSHEETCONTEXT PropSheetContext
+VOID DeviceInitializeInterfacesPage(
+    _In_ HWND hwndDlg,
+    _In_ PDEVICE_PROPERTIES_CONTEXT Context
     )
 {
+    ExtendedListView_SetRedraw(Context->InterfacesListViewHandle, FALSE);
+    ListView_DeleteAllItems(Context->InterfacesListViewHandle);
+    ListView_EnableGroupView(Context->InterfacesListViewHandle, TRUE);
 
+    // TODO(jxy-s) Look into using DevGetObjectProperties instead, the initial attempt using this
+    // API didn't return any properties for the interfaces.
+
+    ULONG index = 0;
+    for (ULONG i = 0; i < Context->DeviceItem->Interfaces->Count; i++)
+    {
+        PPH_DEVICE_ITEM deviceItem = Context->DeviceItem->Interfaces->Items[i];
+
+        PhAddListViewGroup(
+            Context->InterfacesListViewHandle,
+            i,
+            PhGetString(PhGetDeviceProperty(Context->DeviceItem, PhDevicePropertyName)->AsString)
+            );
+
+        for (ULONG j = 0; j < DeviceItemPropertyTableCount; j++)
+        {
+            PPH_DEVICE_PROPERTY prop;
+            const DEVICE_PROPERTY_TABLE_ENTRY* entry = &DeviceItemPropertyTable[j];
+            PPH_STRING value;
+
+            prop = PhGetDeviceProperty(deviceItem, entry->PropClass);
+            value = prop->AsString;
+
+            // N.B. We check "valid" here since PhDevicePropertyName AsString is overridden by the
+            // device provider but we prefer to show only originally valid information in this tab.
+            if (value && prop->Valid)
+            {
+                PhAddListViewGroupItem(Context->InterfacesListViewHandle, i, index, entry->ColumnName, NULL);
+                PhSetListViewSubItem(Context->InterfacesListViewHandle, index, 1, PhGetString(value));
+                index++;
+            }
+        }
+    }
+
+    ExtendedListView_SetRedraw(Context->InterfacesListViewHandle, TRUE);
+}
+
+INT_PTR CALLBACK DevicePropInterfacesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PDEVICE_PROPERTIES_CONTEXT context;
+    LPPROPSHEETPAGE propSheetPage;
+    PPV_PROPPAGECONTEXT propPageContext;
+
+    if (!PvPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext))
+        return FALSE;
+
+    context = (PDEVICE_PROPERTIES_CONTEXT)propPageContext->Context;
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            context->InterfacesListViewHandle = GetDlgItem(hwndDlg, IDC_DEVICE_INTERFACES_INFO);
+
+            PhSetListViewStyle(context->InterfacesListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->InterfacesListViewHandle, L"explorer");
+            PhAddListViewColumn(context->InterfacesListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
+            PhAddListViewColumn(context->InterfacesListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
+            PhSetExtendedListView(context->InterfacesListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->InterfacesListViewHandle);
+
+            DeviceInitializeInterfacesPage(hwndDlg, context);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveListViewColumnsToSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->InterfacesListViewHandle);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvAddPropPageLayoutItem(hwndDlg, context->InterfacesListViewHandle, dialogItem, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyBehaviors(lParam, context->InterfacesListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->InterfacesListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID *listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->InterfacesListViewHandle, &point);
+
+                PhGetSelectedListViewItemParams(context->InterfacesListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, context->InterfacesListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PhHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case PHAPP_IDC_COPY:
+                                {
+                                    PhCopyListView(context->InterfacesListViewHandle);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
 }
 
 NTSTATUS DevicePropertiesThreadStart(
@@ -797,6 +952,16 @@ NTSTATUS DevicePropertiesThreadStart(
             DevicePropPropertiesDlgProc,
             context);
         PvAddPropPage(propContext, newPage);
+
+        if (context->DeviceItem->Interfaces->Count > 0)
+        {
+            // Interfaces
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_DEVICE_INTERFACES),
+                DevicePropInterfacesDlgProc,
+                context);
+            PvAddPropPage(propContext, newPage);
+        }
 
         PhModalPropertySheet(&propContext->PropSheetHeader);
         PhDereferenceObject(propContext);
