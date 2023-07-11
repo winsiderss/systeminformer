@@ -3412,7 +3412,7 @@ VOID PhpDeviceTreeDeleteProcedure(
     {
         PPH_DEVICE_ITEM item;
 
-        item = tree->DeviceList->Items[i];
+        item = tree->DeviceInterfaceList->Items[i];
 
         PhDereferenceObject(item);
     }
