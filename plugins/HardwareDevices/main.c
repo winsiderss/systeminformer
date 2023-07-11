@@ -676,6 +676,7 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_DEVICE_PROPERTIES_POSITION, L"0,0" },
                 { StringSettingType, SETTING_NAME_DEVICE_GENERAL_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_DEVICE_INTERFACES_COLUMNS, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

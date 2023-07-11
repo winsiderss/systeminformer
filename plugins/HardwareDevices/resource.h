@@ -77,6 +77,8 @@
 #define IDC_DEVICE_MANUFACTURER         1105
 #define IDD_DEVICE_PROPERTIES           1106
 #define IDC_DEVICE_PROPERTIES_LIST      1107
+#define IDD_DEVICE_INTERFACES           1108
+#define IDC_DEVICE_INTERFACES_INFO      1109
 
 // Next default values for new objects
 // 
