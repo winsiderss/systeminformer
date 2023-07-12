@@ -21,7 +21,7 @@ KPH_INFORMER_SETTINGS KphInformerSettings = { 0 };
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static BYTE KphpProtectedSection = 0;
 RTL_OSVERSIONINFOEXW KphOsVersionInfo = { 0 };
-USHORT KphOsRevision = 0;
+KPH_FILE_VERSION KphKernelVersion = { 0 };
 BOOLEAN KphIgnoreProtectionSuppression = FALSE;
 SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo = { 0 };
@@ -180,7 +180,7 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
-    status = KphLocateKernelRevision(&KphOsRevision);
+    status = KphGetKernelVersion(&KphKernelVersion);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -190,6 +190,17 @@ NTSTATUS DriverEntry(
 
         goto Exit;
     }
+
+    KphTracePrint(TRACE_LEVEL_INFORMATION,
+                  GENERAL,
+                  "Windows %lu.%lu.%lu Kernel %lu.%lu.%lu.%lu",
+                  KphOsVersionInfo.dwMajorVersion,
+                  KphOsVersionInfo.dwMinorVersion,
+                  KphOsVersionInfo.dwBuildNumber,
+                  KphKernelVersion.MajorVersion,
+                  KphKernelVersion.MinorVersion,
+                  KphKernelVersion.BuildNumber,
+                  KphKernelVersion.Revision);
 
     status = KphInitializeVerify();
     if (!NT_SUCCESS(status))

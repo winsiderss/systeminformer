@@ -1069,20 +1069,65 @@ NTSTATUS KphpGetKernelFileName(
 }
 
 /**
- * \brief Locates the revision of the kernel.
+ * \brief Retrieves the version of the kernel.
  *
- * \param[out] Revision Set to the kernel build revision.
+ * \param[out] Version Set to the kernel build version.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphLocateKernelRevision(
-    _Out_ PUSHORT Revision
+NTSTATUS KphGetKernelVersion(
+    _Out_ PKPH_FILE_VERSION Version 
     )
 {
     NTSTATUS status;
     UNICODE_STRING kernelFileName;
+
+    PAGED_PASSIVE();
+
+    status = KphpGetKernelFileName(&kernelFileName);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      UTIL,
+                      "KphGetKernelFileName failed: %!STATUS!",
+                      status);
+
+        RtlZeroMemory(Version, sizeof(KPH_FILE_VERSION));
+        goto Exit;
+    }
+
+    KphTracePrint(TRACE_LEVEL_INFORMATION,
+                  UTIL,
+                  "Kernel file name: \"%wZ\"",
+                  &kernelFileName);
+
+    status = KphGetFileVersion(&kernelFileName, Version);
+
+Exit:
+
+    RtlFreeUnicodeString(&kernelFileName);
+
+    return status;
+}
+
+/**
+ * \brief Retrieves the file version from a file.
+ *
+ * \param[in] FileName The name of the file to get the version from.
+ * \param[out] Version Set to the file version.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetFileVersion(
+    _In_ PUNICODE_STRING FileName,
+    _Out_ PKPH_FILE_VERSION Version
+    )
+{
+    NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE fileHandle;
     IO_STATUS_BLOCK ioStatusBlock;
@@ -1099,29 +1144,13 @@ NTSTATUS KphLocateKernelRevision(
 
     PAGED_PASSIVE();
 
-    *Revision = 0;
+    RtlZeroMemory(Version, sizeof(KPH_FILE_VERSION));
 
     imageBase = NULL;
     fileHandle = NULL;
 
-    status = KphpGetKernelFileName(&kernelFileName);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      UTIL,
-                      "KphGetKernelFileName failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    KphTracePrint(TRACE_LEVEL_INFORMATION,
-                  UTIL,
-                  "Kernel file name: \"%wZ\"",
-                  &kernelFileName);
-
     InitializeObjectAttributes(&objectAttributes,
-                               &kernelFileName,
+                               FileName,
                                OBJ_KERNEL_HANDLE,
                                NULL,
                                NULL);
@@ -1290,7 +1319,10 @@ NTSTATUS KphLocateKernelRevision(
             goto Exit;
         }
 
-        *Revision = LOWORD(fileInfo->dwFileVersionLS);
+        Version->MajorVersion = HIWORD(fileInfo->dwFileVersionMS);
+        Version->MinorVersion = LOWORD(fileInfo->dwFileVersionMS);
+        Version->BuildNumber = HIWORD(fileInfo->dwFileVersionLS);
+        Version->Revision = LOWORD(fileInfo->dwFileVersionLS);
         status = STATUS_SUCCESS;
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
@@ -1309,8 +1341,6 @@ Exit:
     {
         ObCloseHandle(fileHandle, KernelMode);
     }
-
-    RtlFreeUnicodeString(&kernelFileName);
 
     return status;
 }

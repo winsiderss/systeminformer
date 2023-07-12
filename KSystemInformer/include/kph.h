@@ -113,11 +113,19 @@ typedef struct _KPH_SIZED_BUFFER
     PBYTE Buffer;
 } KPH_SIZED_BUFFER, *PKPH_SIZED_BUFFER;
 
+typedef struct _KPH_FILE_VERSION
+{
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT BuildNumber;
+    USHORT Revision;
+} KPH_FILE_VERSION, *PKPH_FILE_VERSION;
+
 // main
 
 extern PDRIVER_OBJECT KphDriverObject;
 extern RTL_OSVERSIONINFOEXW KphOsVersionInfo;
-extern USHORT KphOsRevision;
+extern KPH_FILE_VERSION KphKernelVersion;
 extern KPH_INFORMER_SETTINGS KphInformerSettings;
 extern BOOLEAN KphIgnoreProtectionSuppression;
 extern SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo;
@@ -762,10 +770,16 @@ BOOLEAN KphProcessIsLsass(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphLocateKernelRevision(
-    _Out_ PUSHORT Revision
+NTSTATUS KphGetFileVersion(
+    _In_ PUNICODE_STRING FileName,
+    _Out_ PKPH_FILE_VERSION Version
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetKernelVersion(
+    _Out_ PKPH_FILE_VERSION Version
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

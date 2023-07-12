@@ -56,38 +56,35 @@ NTSTATUS KphpSetDynamicConfigiration(
 {
     PAGED_PASSIVE();
 
-    if ((Configuration->MajorVersion != KphOsVersionInfo.dwMajorVersion) ||
-        (Configuration->MinorVersion != KphOsVersionInfo.dwMinorVersion))
+    if ((Configuration->MajorVersion != KphKernelVersion.MajorVersion) ||
+        (Configuration->MinorVersion != KphKernelVersion.MinorVersion))
     {
         return STATUS_NOT_SUPPORTED;
     }
 
-    if ((KphOsVersionInfo.dwBuildNumber < Configuration->BuildNumberMin) ||
-        (KphOsVersionInfo.dwBuildNumber > Configuration->BuildNumberMax))
+    if ((KphKernelVersion.BuildNumber < Configuration->BuildNumberMin) ||
+        (KphKernelVersion.BuildNumber > Configuration->BuildNumberMax))
     {
         return STATUS_NOT_SUPPORTED;
     }
 
-    if ((KphOsVersionInfo.dwBuildNumber == Configuration->BuildNumberMin) &&
-        (KphOsRevision < Configuration->RevisionMin))
+    if ((KphKernelVersion.BuildNumber == Configuration->BuildNumberMin) &&
+        (KphKernelVersion.Revision < Configuration->RevisionMin))
     {
         return STATUS_NOT_SUPPORTED;
     }
 
-    if ((KphOsVersionInfo.dwBuildNumber == Configuration->BuildNumberMax) &&
-        (KphOsRevision > Configuration->RevisionMax))
+    if ((KphKernelVersion.BuildNumber == Configuration->BuildNumberMax) &&
+        (KphKernelVersion.Revision > Configuration->RevisionMax))
     {
         return STATUS_NOT_SUPPORTED;
     }
 
-    KphTracePrint(TRACE_LEVEL_VERBOSE,
+    KphTracePrint(TRACE_LEVEL_INFORMATION,
                   GENERAL,
-                  "Setting dynamic configuration for Windows %lu.%lu.%lu.%lu "
-                  "(%lu.%lu.%lu.%lu - %lu.%lu.%lu.%lu)",
-                  KphOsVersionInfo.dwMajorVersion,
-                  KphOsVersionInfo.dwMinorVersion,
-                  KphOsVersionInfo.dwBuildNumber,
-                  KphOsRevision,
+                  "Setting dynamic configuration "
+                  "(%lu.%lu.%lu.%lu - %lu.%lu.%lu.%lu) "
+                  "for Windows %lu.%lu.%lu Kernel %lu.%lu.%lu.%lu",
                   Configuration->MajorVersion,
                   Configuration->MinorVersion,
                   Configuration->BuildNumberMin,
@@ -95,7 +92,14 @@ NTSTATUS KphpSetDynamicConfigiration(
                   Configuration->MajorVersion,
                   Configuration->MinorVersion,
                   Configuration->BuildNumberMax,
-                  Configuration->RevisionMax);
+                  Configuration->RevisionMax,
+                  KphOsVersionInfo.dwMajorVersion,
+                  KphOsVersionInfo.dwMinorVersion,
+                  KphOsVersionInfo.dwBuildNumber,
+                  KphKernelVersion.MajorVersion,
+                  KphKernelVersion.MinorVersion,
+                  KphKernelVersion.BuildNumber,
+                  KphKernelVersion.Revision);
 
     KPH_LOAD_DYNITEM(EgeGuid);
     KPH_LOAD_DYNITEM(EpObjectTable);
