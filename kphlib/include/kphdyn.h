@@ -52,7 +52,7 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT AlpcPortContext;              // dt nt!_ALPC_PORT PortContext
     USHORT AlpcPortObjectLock;           // dt nt!_ALPC_PORT PortObjectLock
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
-    USHORT AlpcState;                    // dt nt!_ALPC_PORT State
+    USHORT AlpcState;                    // dt nt!_ALPC_PORT u1.State
     USHORT KtReadOperationCount;         // dt nt!_KTHREAD ReadOperationCount
     USHORT KtWriteOperationCount;        // dt nt!_KTHREAD WriteOperationCount
     USHORT KtOtherOperationCount;        // dt nt!_KTHREAD OtherOperationCount
