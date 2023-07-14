@@ -870,7 +870,13 @@ BOOLEAN PhpGetDevicePropertyString(
         goto Exit;
     }
 
-    *String = PhCreateString(buffer);
+    if (requiredLength < sizeof(UNICODE_NULL))
+    {
+        result = FALSE;
+        goto Exit;
+    }
+
+    *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
 
 Exit:
 
@@ -930,7 +936,13 @@ BOOLEAN PhpGetDeviceInterfacePropertyString(
         goto Exit;
     }
 
-    *String = PhCreateString(buffer);
+    if (requiredLength < sizeof(UNICODE_NULL))
+    {
+        result = FALSE;
+        goto Exit;
+    }
+
+    *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
 
 Exit:
 
@@ -988,7 +1000,13 @@ BOOLEAN PhpGetClassPropertyString(
         goto Exit;
     }
 
-    *String = PhCreateString(buffer);
+    if (requiredLength < sizeof(UNICODE_NULL))
+    {
+        result = FALSE;
+        goto Exit;
+    }
+
+    *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
 
 Exit:
 
@@ -1052,18 +1070,18 @@ BOOLEAN PhpGetDevicePropertyStringList(
 
     for (PZZWSTR item = buffer;;)
     {
-        UNICODE_STRING string;
+        PH_STRINGREF string;
 
-        RtlInitUnicodeString(&string, item);
+        PhInitializeStringRefLongHint(&string, item);
 
         if (string.Length == 0)
         {
             break;
         }
 
-        PhAddItemList(stringList, PhCreateStringFromUnicodeString(&string));
+        PhAddItemList(stringList, PhCreateString2(&string));
 
-        item = PTR_ADD_OFFSET(item, string.MaximumLength);
+        item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
     }
 
     *StringList = stringList;
@@ -1130,18 +1148,18 @@ BOOLEAN PhpGetDeviceInterfacePropertyStringList(
 
     for (PZZWSTR item = buffer;;)
     {
-        UNICODE_STRING string;
+        PH_STRINGREF string;
 
-        RtlInitUnicodeString(&string, item);
+        PhInitializeStringRefLongHint(&string, item);
 
         if (string.Length == 0)
         {
             break;
         }
 
-        PhAddItemList(stringList, PhCreateStringFromUnicodeString(&string));
+        PhAddItemList(stringList, PhCreateString2(&string));
 
-        item = PTR_ADD_OFFSET(item, string.MaximumLength);
+        item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
     }
 
     *StringList = stringList;
@@ -2443,7 +2461,7 @@ static int __cdecl PhpWellKnownGuidSortFunction(
 
 static int __cdecl PhpWellKnownGuidSearchFunction(
     const GUID* Guid,
-    const void* Item 
+    const void* Item
     )
 {
     PPH_WELL_KNOWN_GUID item;
@@ -2454,7 +2472,7 @@ static int __cdecl PhpWellKnownGuidSearchFunction(
 }
 
 PPH_STRING PhpDevPropWellKnownGuidToString(
-    _In_ PGUID Guid 
+    _In_ PGUID Guid
     )
 {
     const PH_WELL_KNOWN_GUID** entry;
@@ -2469,7 +2487,7 @@ PPH_STRING PhpDevPropWellKnownGuidToString(
             );
 
 #ifdef DEBUG
-        // check for collisions 
+        // check for collisions
         for (ULONG i = 0; i < RTL_NUMBER_OF(PhpWellKnownGuids) - 1; i++)
         {
             const PH_WELL_KNOWN_GUID* lhs = PhpWellKnownGuids[i];
@@ -2662,9 +2680,15 @@ VOID NTAPI PhpDevPropFillBoolean(
     if (Property->Valid)
     {
         if (Property->Boolean)
-            Property->AsString = PhCreateString(L"true");
+        {
+            static PH_STRINGREF string = PH_STRINGREF_INIT(L"true");
+            Property->AsString = PhCreateString2(&string);
+        }
         else
-            Property->AsString = PhCreateString(L"false");
+        {
+            static PH_STRINGREF string = PH_STRINGREF_INIT(L"false");
+            Property->AsString = PhCreateString2(&string);
+        }
     }
 }
 
@@ -2982,7 +3006,7 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyIsPresent, &DEVPKEY_Device_IsPresent, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyConfigurationId, &DEVPKEY_Device_ConfigurationId, PhpDevPropFillString, 0 },
     { PhDevicePropertyReportedDeviceIdsHash, &DEVPKEY_Device_ReportedDeviceIdsHash, PhpDevPropFillUInt32, 0 },
-    { PhDevicePropertyPhysicalDeviceLocation, &DEVPKEY_Device_PhysicalDeviceLocation, PhpDevPropFillBinary, 0 }, // TODO(jxy-s) look into ACPI 4.0a Specification, section 6.1.6 for AsString formatting 
+    { PhDevicePropertyPhysicalDeviceLocation, &DEVPKEY_Device_PhysicalDeviceLocation, PhpDevPropFillBinary, 0 }, // TODO(jxy-s) look into ACPI 4.0a Specification, section 6.1.6 for AsString formatting
     { PhDevicePropertyBiosDeviceName, &DEVPKEY_Device_BiosDeviceName, PhpDevPropFillString, 0 },
     { PhDevicePropertyDriverProblemDesc, &DEVPKEY_Device_DriverProblemDesc, PhpDevPropFillString, 0 },
     { PhDevicePropertyDebuggerSafe, &DEVPKEY_Device_DebuggerSafe, PhpDevPropFillUInt32, 0 },
@@ -3188,7 +3212,7 @@ HICON PhGetDeviceIcon(
 
     if (Item->DeviceInfoData.Interface)
     {
-        // try to give the icon for the parent device 
+        // try to give the icon for the parent device
         if (Item->Parent && !Item->Parent->DeviceInfoData.Interface)
         {
             if (!SetupDiLoadDeviceIcon(
@@ -3262,7 +3286,7 @@ static int __cdecl PhpDeviceItemSortFunction(
 
 static int __cdecl PhpDeviceItemSearchFunction(
     const void* Hash,
-    const void* Item 
+    const void* Item
     )
 {
     PPH_DEVICE_ITEM item;
@@ -3573,40 +3597,14 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceInterfaceItem(
 
 VOID PhpGetInterfaceClassList(
     _Out_ PGUID* InterfaceClassList,
-    _Out_ PULONG InterfaceClassListCount
+    _Out_ PSIZE_T InterfaceClassListCount
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT(WINAPI * DevGetObjects_I)(
-        _In_ DEV_OBJECT_TYPE ObjectType,
-        _In_ ULONG QueryFlags,
-        _In_ ULONG cRequestedProperties,
-        _In_reads_opt_(cRequestedProperties) const DEVPROPCOMPKEY *pRequestedProperties,
-        _In_ ULONG cFilterExpressionCount,
-        _In_reads_opt_(cFilterExpressionCount) const DEVPROP_FILTER_EXPRESSION *pFilter,
-        _Out_ PULONG pcObjectCount,
-        _Outptr_result_buffer_maybenull_(*pcObjectCount) const DEV_OBJECT **ppObjects) = NULL;
-    static VOID(WINAPI * DevFreeObjects_I)(
-        _In_ ULONG cObjectCount,
-        _In_reads_(cObjectCount) const DEV_OBJECT *pObjects) = NULL;
-
     const DEV_OBJECT* objects = NULL;
     ULONG objectCount;
+    PH_ARRAY objectArray;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevGetObjects_I = PhGetProcedureAddress(cfgmgr32, "DevGetObjects", 0);
-            DevFreeObjects_I = PhGetProcedureAddress(cfgmgr32, "DevFreeObjects", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (FAILED(DevGetObjects_I(
+    if (HR_FAILED(PhDevGetObjects(
         DevObjectTypeDeviceInterfaceClass,
         DevQueryFlagNone,
         0,
@@ -3622,35 +3620,37 @@ VOID PhpGetInterfaceClassList(
         return;
     }
 
-    *InterfaceClassList = PhAllocateZero(objectCount * sizeof(GUID));
-    *InterfaceClassListCount = objectCount;
+    PhInitializeArray(&objectArray, sizeof(GUID), objectCount);
 
     for (ULONG i = 0; i < objectCount; i++)
     {
         GUID interfaceClassGuid;
-        UNICODE_STRING interfaceClassGuidString;
+        PH_STRINGREF interfaceClassGuidString;
 
-        RtlInitUnicodeString(&interfaceClassGuidString, objects[i].pszObjectId);
+        PhInitializeStringRefLongHint(&interfaceClassGuidString, (PWSTR)objects[i].pszObjectId);
 
-        if (!NT_SUCCESS(RtlGUIDFromString(&interfaceClassGuidString, &interfaceClassGuid)))
+        if (!NT_SUCCESS(PhStringToGuid(&interfaceClassGuidString, &interfaceClassGuid)))
             continue;
 
-        RtlCopyMemory(&(*InterfaceClassList)[i], &interfaceClassGuid, sizeof(GUID));
+        PhAddItemArray(&objectArray, &interfaceClassGuid);
     }
 
-    DevFreeObjects_I(objectCount, objects);
+    *InterfaceClassList = PhFinalArrayItems(&objectArray);
+    *InterfaceClassListCount = PhFinalArrayCount(&objectArray);
+
+    PhDevFreeObjects(objectCount, objects);
 }
 
 VOID PhpAssociateDeviceIntefaces(
     _Inout_ PPH_DEVICE_TREE Tree,
     _In_ PPH_DEVICE_ITEM DeviceItem,
     _In_ PGUID InterfaceClassList,
-    _In_ ULONG InterfaceClassListCount
+    _In_ SIZE_T InterfaceClassListCount
     )
 {
     assert(!DeviceItem->DeviceInfoData.Interface);
 
-    for (ULONG i = 0; i < InterfaceClassListCount; i++)
+    for (SIZE_T i = 0; i < InterfaceClassListCount; i++)
     {
         for (ULONG j = 0;; j++)
         {
@@ -3682,12 +3682,12 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
     PPH_DEVICE_TREE tree;
     PPH_DEVICE_ITEM root;
     PGUID interfaceClassList;
-    ULONG interfaceClassListCount;
+    SIZE_T interfaceClassListCount;
 
     tree = PhCreateObjectZero(sizeof(PH_DEVICE_TREE), PhDeviceTreeType);
 
-    tree->DeviceList = PhCreateList(40);
-    tree->DeviceInterfaceList = PhCreateList(40);
+    tree->DeviceList = PhCreateList(250);
+    tree->DeviceInterfaceList = PhCreateList(1024);
     tree->DeviceInfo = PhCreateObject(sizeof(PH_DEVINFO), PhpDeviceInfoType);
 
     tree->DeviceInfo->Handle = SetupDiGetClassDevsW(
@@ -3741,7 +3741,7 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
 
         item = tree->DeviceList->Items[i];
 
-        // for this device item associate any device interfaces 
+        // for this device item associate any device interfaces
         PhpAssociateDeviceIntefaces(tree, item, interfaceClassList, interfaceClassListCount);
 
         for (ULONG j = 0; j < tree->DeviceList->Count; j++)
