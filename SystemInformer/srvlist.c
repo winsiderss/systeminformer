@@ -116,11 +116,11 @@ VOID PhInitializeServiceTreeList(
 
     // Default columns
     PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display name", 220, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_STATUS, TRUE, L"Status", 70, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start type", 130, PH_ALIGN_LEFT, 4, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display name", 220, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_STATUS, TRUE, L"Status", 70, PH_ALIGN_LEFT, 4, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start type", 130, PH_ALIGN_LEFT, 5, 0);
 
     PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary path", 180, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error control", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -451,7 +451,6 @@ static VOID PhpUpdateServiceNodeKey(
 }
 
 #define SORT_FUNCTION(Column) PhpServiceTreeNewCompare##Column
-
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpServiceTreeNewCompare##Column( \
     _In_ const void *_elem1, \
     _In_ const void *_elem2 \
@@ -494,6 +493,12 @@ BEGIN_SORT_FUNCTION(Name)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Pid)
+{
+    sortResult = uintptrcmp((ULONG_PTR)serviceItem1->ProcessId, (ULONG_PTR)serviceItem2->ProcessId);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(DisplayName)
 {
     sortResult = PhCompareStringWithNull(serviceItem1->DisplayName, serviceItem2->DisplayName, TRUE);
@@ -520,12 +525,6 @@ BEGIN_SORT_FUNCTION(StartType)
         sortResult = ucharcmp(serviceItem1->DelayedStart, serviceItem2->DelayedStart);
     if (sortResult == 0)
         sortResult = ucharcmp(serviceItem1->HasTriggers, serviceItem2->HasTriggers);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(Pid)
-{
-    sortResult = uintptrcmp((ULONG_PTR)serviceItem1->ProcessId, (ULONG_PTR)serviceItem2->ProcessId);
 }
 END_SORT_FUNCTION
 
@@ -619,11 +618,11 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 static PVOID sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
+                    SORT_FUNCTION(Pid),
                     SORT_FUNCTION(DisplayName),
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(Status),
                     SORT_FUNCTION(StartType),
-                    SORT_FUNCTION(Pid),
                     SORT_FUNCTION(BinaryPath),
                     SORT_FUNCTION(ErrorControl),
                     SORT_FUNCTION(Group),
@@ -682,6 +681,16 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             case PHSVTLC_NAME:
                 getCellText->Text = PhGetStringRef(serviceItem->Name);
                 break;
+            case PHSVTLC_PID:
+                {
+                    if (serviceItem->ProcessId)
+                        PhPrintUInt32(serviceItem->ProcessIdString, HandleToUlong(serviceItem->ProcessId));
+                    else
+                        serviceItem->ProcessIdString[0] = UNICODE_NULL;
+
+                    PhInitializeStringRefLongHint(&getCellText->Text, serviceItem->ProcessIdString);
+                }
+                break;
             case PHSVTLC_DISPLAYNAME:
                 getCellText->Text = PhGetStringRef(serviceItem->DisplayName);
                 break;
@@ -734,16 +743,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                         getCellText->Text.Buffer = node->StartTypeText;
                         getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
-                }
-                break;
-            case PHSVTLC_PID:
-                {
-                    if (serviceItem->ProcessId)
-                        PhPrintUInt32(serviceItem->ProcessIdString, HandleToUlong(serviceItem->ProcessId));
-                    else
-                        serviceItem->ProcessIdString[0] = UNICODE_NULL;
-
-                    PhInitializeStringRefLongHint(&getCellText->Text, serviceItem->ProcessIdString);
                 }
                 break;
             case PHSVTLC_BINARYPATH:
