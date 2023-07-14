@@ -375,8 +375,9 @@ EXPORTS
     PhCreateProcessWin32
     PhCreateProcessWin32Ex
     PhCreateSaveFileDialog
-    PhDevGetObjects
     PhDeleteImageVersionInfo
+    PhDevGetObjects
+    PhDevFreeObjects
     PhEllipsisString
     PhEllipsisStringPath
     PhEscapeCommandLinePart
