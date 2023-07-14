@@ -768,14 +768,18 @@ VOID DeviceInitializeInterfacesPage(
     // TODO(jxy-s) Look into using DevGetObjectProperties instead, the initial attempt using this
     // API didn't return any properties for the interfaces.
 
+    ULONG group = 0;
     ULONG index = 0;
-    for (ULONG i = 0; i < Context->DeviceItem->Interfaces->Count; i++)
+    for (PPH_DEVICE_ITEM deviceItem = Context->DeviceItem->Child;
+         deviceItem;
+         deviceItem = deviceItem->Sibling)
     {
-        PPH_DEVICE_ITEM deviceItem = Context->DeviceItem->Interfaces->Items[i];
+        if (!deviceItem->DeviceInterface)
+            continue;
 
         PhAddListViewGroup(
             Context->InterfacesListViewHandle,
-            i,
+            group,
             PhGetString(PhGetDeviceProperty(deviceItem, PhDevicePropertyName)->AsString)
             );
 
@@ -792,11 +796,13 @@ VOID DeviceInitializeInterfacesPage(
             // device provider but we prefer to show only originally valid information in this tab.
             if (value && prop->Valid)
             {
-                PhAddListViewGroupItem(Context->InterfacesListViewHandle, i, index, entry->ColumnName, NULL);
+                PhAddListViewGroupItem(Context->InterfacesListViewHandle, group, index, entry->ColumnName, NULL);
                 PhSetListViewSubItem(Context->InterfacesListViewHandle, index, 1, PhGetString(value));
                 index++;
             }
         }
+
+        group++;
     }
 
     ExtendedListView_SetRedraw(Context->InterfacesListViewHandle, TRUE);
@@ -953,7 +959,7 @@ NTSTATUS DevicePropertiesThreadStart(
             context);
         PvAddPropPage(propContext, newPage);
 
-        if (context->DeviceItem->Interfaces->Count > 0)
+        if (context->DeviceItem->InterfaceCount > 0)
         {
             // Interfaces
             newPage = PvCreatePropPageContext(
