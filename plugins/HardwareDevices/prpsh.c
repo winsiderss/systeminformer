@@ -307,7 +307,7 @@ HWND PvpCreateControlButton(
             rect.right - rect.left,
             rect.bottom - rect.top,
             PropSheetWindow,
-            NULL,
+            (HMENU)IDABORT,
             PluginInstance->DllBase,
             NULL
             );
