@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   CLAssistant:
+    if: ${{ github.event_name == 'pull_request_target' || github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     steps:
       - name: "CLA Assistant"
