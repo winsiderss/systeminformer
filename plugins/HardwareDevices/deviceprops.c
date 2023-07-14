@@ -363,14 +363,14 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
                 uninstall->Flags |= PH_EMENU_DISABLED;
             }
 
-            GetWindowRect(hwndDlg, &rect);
+            GetWindowRect(GetDlgItem(GetParent(hwndDlg), IDABORT), &rect);
             selectedItem = PhShowEMenu(
                 menu,
                 hwndDlg,
                 PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
-                rect.left - 4,
-                rect.bottom + 10
+                rect.left,
+                rect.top
                 );
 
             if (selectedItem && selectedItem->Id != ULONG_MAX)
