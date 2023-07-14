@@ -1441,9 +1441,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     }
                     else
                     {
-                        UNICODE_STRING guidString;
-
-                        PhStringRefToUnicodeString(&customSubTypeString->sr, &guidString);
+                        PH_STRINGREF guidString = customSubTypeString->sr;
 
                         // Trim whitespace.
 
@@ -1458,7 +1456,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                             guidString.Length -= sizeof(WCHAR);
                         }
 
-                        if (NT_SUCCESS(RtlGUIDFromString(&guidString, &context->EditingInfo->SubtypeBuffer)))
+                        if (NT_SUCCESS(PhStringToGuid(&guidString, &context->EditingInfo->SubtypeBuffer)))
                         {
                             context->EditingInfo->Subtype = &context->EditingInfo->SubtypeBuffer;
                         }
