@@ -97,6 +97,9 @@ BOOLEAN DeviceTreeShouldIncludeDeviceItem(
         if (ShowDisconnected)
             return TRUE;
 
+        if (!ShowSoftwareComponents && IsEqualGUID(&DeviceItem->ClassGuid, &GUID_DEVCLASS_SOFTWARECOMPONENT))
+            return FALSE;
+
         return PhGetDeviceProperty(DeviceItem, PhDevicePropertyIsPresent)->Boolean;
     }
 }
