@@ -101,7 +101,11 @@ BOOLEAN FwTabPageCallback(
                     EtFwEnabled = TRUE;
             }
 
-            if (!EtFwEnabled)
+            if (EtFwEnabled)
+            {
+                EtFwMonitorEnumEvents();
+            }
+            else
             {
                 if (EtFwStatus != ERROR_SUCCESS)
                 {
@@ -281,6 +285,7 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSCLASS, FALSE, L"Remote address class", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSCLASS, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, FALSE, L"Local address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, FALSE, L"Remote address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ORIGINALNAME, FALSE, L"Original name", 100, PH_ALIGN_LEFT, FW_COLUMN_ORIGINALNAME, DT_PATH_ELLIPSIS);
 
     TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
     TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
@@ -401,7 +406,7 @@ VOID FwTickNodes(
         static ULONG64 lastTickCount = 0;
         ULONG64 tickCount = NtGetTickCount64();
 
-        if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
+        if (tickCount - lastTickCount >= UInt32x32To64(240, CLOCKS_PER_SEC))
         {
             PPH_LIST newList;
             PPH_LIST oldList;
@@ -432,6 +437,31 @@ VOID FwTickNodes(
     TreeNew_NodesStructured(FwTreeNewHandle);
 }
 
+VOID FwUpdateNodeTimeStamp(
+    _In_ PFW_EVENT_ITEM FwNode
+    )
+{
+    SYSTEMTIME systemTime;
+
+    PhLargeIntegerToLocalSystemTime(&systemTime, &FwNode->TimeStamp);
+
+    PhMoveReference(&FwNode->TimeString, PhFormatDateTime(&systemTime));
+}
+
+VOID FwUpdateNodeUserSid(
+    _In_ PFW_EVENT_ITEM FwNode
+    )
+{
+    if (FwNode->UserSid)
+    {
+        PhMoveReference(&FwNode->UserName, EtFwGetSidFullNameCachedSlow(FwNode->UserSid));
+    }
+    else
+    {
+        PhClearReference(&FwNode->UserName);
+    }
+}
+
 #define SORT_FUNCTION(Column) FwTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl FwTreeNewCompare##Column( \
     _In_ void* _context, \
@@ -452,7 +482,7 @@ VOID FwTickNodes(
 
 BEGIN_SORT_FUNCTION(Name)
 {
-    sortResult = PhCompareStringZ(PhGetStringOrDefault(node1->ProcessBaseString, L"System"), PhGetStringOrDefault(node2->ProcessBaseString, L"System"), TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->ProcessBaseString, node2->ProcessBaseString, FwTreeNewSortOrder, FALSE);
 }
 END_SORT_FUNCTION
 
@@ -584,6 +614,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Timestamp)
 {
+    FwUpdateNodeTimeStamp(node1);
+    FwUpdateNodeTimeStamp(node2);
+
     sortResult = uint64cmp(node1->Index, node2->Index);
 }
 END_SORT_FUNCTION
@@ -596,6 +629,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(User)
 {
+    FwUpdateNodeUserSid(node1);
+    FwUpdateNodeUserSid(node2);
+
     sortResult = PhCompareStringWithNullSortOrder(node1->UserName, node2->UserName, FwTreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
@@ -614,25 +650,25 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalAddressClass)
 {
-
+    NOTHING;
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemoteAddressClass)
 {
-
+    NOTHING;
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalAddressScope)
 {
-
+    NOTHING;
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemoteAddressScope)
 {
-
+    NOTHING;
 }
 END_SORT_FUNCTION
 
@@ -705,6 +741,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         SORT_FUNCTION(RemoteAddressClass),
                         SORT_FUNCTION(LocalAddressScope),
                         SORT_FUNCTION(RemoteAddressScope),
+                        SORT_FUNCTION(Filename),
                     };
                     int (__cdecl* sortFunction)(void*, void const*, void const*);
 
@@ -742,10 +779,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             {
             case FW_COLUMN_NAME:
                 {
-                    if (PhIsNullOrEmptyString(node->ProcessBaseString))
-                        PhInitializeStringRef(&getCellText->Text, L"System");
-                    else
-                        getCellText->Text = PhGetStringRef(node->ProcessBaseString);
+                    getCellText->Text = PhGetStringRef(node->ProcessBaseString);
                 }
                 break;
             case FW_COLUMN_ACTION:
@@ -1038,11 +1072,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
            case FW_COLUMN_TIMESTAMP:
                {
-                   SYSTEMTIME systemTime;
-
-                   PhLargeIntegerToLocalSystemTime(&systemTime, &node->TimeStamp);
-                   PhMoveReference(&node->TimeString, PhFormatDateTime(&systemTime));
-
+                   FwUpdateNodeTimeStamp(node);
                    getCellText->Text = PhGetStringRef(node->TimeString);
                }
                break;
@@ -1053,11 +1083,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                break;
            case FW_COLUMN_USER:
                {
-                   if (node->UserSid)
-                   {
-                       PhMoveReference(&node->UserName, EtFwGetSidFullNameCachedSlow(node->UserSid));
-                   }
-
+                   FwUpdateNodeUserSid(node);
                    getCellText->Text = PhGetStringRef(node->UserName);
                }
                break;
@@ -1133,6 +1159,11 @@ BOOLEAN NTAPI FwTreeNewCallback(
                    {
                        PhInitializeEmptyStringRef(&getCellText->Text);
                    }
+               }
+               break;
+           case FW_COLUMN_ORIGINALNAME:
+               {
+                   getCellText->Text = PhGetStringRef(node->ProcessFileName);
                }
                break;
             default:
@@ -1285,17 +1316,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             // Padding
             rect.left += FwTreeRightMarginPadding;
 
-            if (PhIsNullOrEmptyString(node->ProcessBaseString))
-            {
-                DrawText(
-                    hdc,
-                    L"System",
-                    (UINT)sizeof(L"System") / sizeof(WCHAR),
-                    &rect,
-                    DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
-                    );
-            }
-            else
+            if (!PhIsNullOrEmptyString(node->ProcessBaseString))
             {
                 DrawText(
                     hdc,
@@ -1817,7 +1838,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
-    if (fwNode->LocalAddressString[0] && fwNode->LocalAddressStringLength)
+    if (fwNode->LocalAddressStringLength)
     {
         PH_STRINGREF localAddressSr;
 
@@ -1834,7 +1855,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
             return TRUE;
     }
 
-    if (fwNode->RemoteAddressString[0] && fwNode->RemoteAddressStringLength)
+    if (fwNode->RemoteAddressStringLength)
     {
         PH_STRINGREF remoteAddressSr;
 

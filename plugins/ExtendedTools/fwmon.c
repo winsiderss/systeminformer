@@ -23,10 +23,9 @@ ULONG EtFwMaxEventAge = 60;
 SLIST_HEADER EtFwPacketListHead;
 PH_FREE_LIST EtFwPacketFreeList;
 LIST_ENTRY EtFwAgeListHead = { &EtFwAgeListHead, &EtFwAgeListHead };
-_FwpmNetEventSubscribe FwpmNetEventSubscribe_I = NULL;
-
 BOOLEAN EtFwEnableResolveCache = TRUE;
 BOOLEAN EtFwEnableResolveDoH = FALSE;
+BOOLEAN EtFwIgnoreLoopback = TRUE;
 PH_INITONCE EtFwWorkQueueInitOnce = PH_INITONCE_INIT;
 SLIST_HEADER EtFwQueryListHead;
 PH_WORK_QUEUE EtFwWorkQueue;
@@ -36,11 +35,46 @@ PPH_HASHTABLE EtFwSidFullNameCacheHashtable = NULL;
 PH_QUEUED_LOCK EtFwSidFullNameCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 PPH_HASHTABLE EtFwFilterDisplayDataHashTable = NULL;
 PH_QUEUED_LOCK EtFwFilterDisplayDataHashTableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASHTABLE EtFwFileNameProcessCacheHashTable = NULL;
+PH_QUEUED_LOCK EtFwFileNameProcessCacheHashTableLock = PH_QUEUED_LOCK_INIT;
 
 PH_CALLBACK_DECLARE(FwItemAddedEvent);
 PH_CALLBACK_DECLARE(FwItemModifiedEvent);
 PH_CALLBACK_DECLARE(FwItemRemovedEvent);
 PH_CALLBACK_DECLARE(FwItemsUpdatedEvent);
+
+_FwpmEngineOpen0 FwpmEngineOpen_I = NULL;
+_FwpmEngineClose0 FwpmEngineClose_I = NULL;
+_FwpmFreeMemory0 FwpmFreeMemory_I = NULL;
+_FwpmEngineSetOption0 FwpmEngineSetOption_I = NULL;
+_FwpmFilterGetById0 FwpmFilterGetById_I = NULL;
+_FwpmNetEventSubscribe4 FwpmNetEventSubscribe_I = NULL;
+_FwpmNetEventUnsubscribe0 FwpmNetEventUnsubscribe_I = NULL;
+_FwpmNetEventCreateEnumHandle0 FwpmNetEventCreateEnumHandle_I = NULL;
+_FwpmNetEventDestroyEnumHandle0 FwpmNetEventDestroyEnumHandle_I = NULL;
+_FwpmNetEventEnum5 FwpmNetEventEnum_I = NULL;
+
+#undef FwpmEngineOpen
+#undef FwpmEngineClose
+#undef FwpmFreeMemory
+#undef FwpmFilterGetById0
+#undef FwpmEngineSetOption
+#undef FwpmNetEventSubscribe
+#undef FwpmNetEventUnsubscribe
+#undef FwpmNetEventCreateEnumHandle
+#undef FwpmNetEventDestroyEnumHandle
+#undef FwpmNetEventEnum
+
+#define FwpmEngineOpen FwpmEngineOpen_I
+#define FwpmEngineClose FwpmEngineClose_I
+#define FwpmFreeMemory FwpmFreeMemory_I
+#define FwpmFilterGetById0 FwpmFilterGetById_I
+#define FwpmEngineSetOption FwpmEngineSetOption_I
+#define FwpmNetEventSubscribe FwpmNetEventSubscribe_I
+#define FwpmNetEventUnsubscribe FwpmNetEventUnsubscribe_I
+#define FwpmNetEventCreateEnumHandle FwpmNetEventCreateEnumHandle_I
+#define FwpmNetEventDestroyEnumHandle FwpmNetEventDestroyEnumHandle_I
+#define FwpmNetEventEnum FwpmNetEventEnum_I
 
 typedef struct _FW_EVENT
 {
@@ -107,8 +141,8 @@ BOOLEAN EtFwResolveCacheHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    PFW_RESOLVE_CACHE_ITEM cacheItem1 = *(PFW_RESOLVE_CACHE_ITEM*)Entry1;
-    PFW_RESOLVE_CACHE_ITEM cacheItem2 = *(PFW_RESOLVE_CACHE_ITEM*)Entry2;
+    PFW_RESOLVE_CACHE_ITEM cacheItem1 = (PFW_RESOLVE_CACHE_ITEM)Entry1;
+    PFW_RESOLVE_CACHE_ITEM cacheItem2 = (PFW_RESOLVE_CACHE_ITEM)Entry2;
 
     return PhEqualIpAddress(&cacheItem1->Address, &cacheItem2->Address);
 }
@@ -117,32 +151,57 @@ ULONG NTAPI EtFwResolveCacheHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    PFW_RESOLVE_CACHE_ITEM cacheItem = *(PFW_RESOLVE_CACHE_ITEM*)Entry;
+    PFW_RESOLVE_CACHE_ITEM cacheItem = (PFW_RESOLVE_CACHE_ITEM)Entry;
 
     return PhHashIpAddress(&cacheItem->Address);
+}
+
+VOID EtFwFlushResolveCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PFW_RESOLVE_CACHE_ITEM entry;
+
+    if (!EtFwResolveCacheHashtable)
+        return;
+
+    PhBeginEnumHashtable(EtFwResolveCacheHashtable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        if (entry->HostString)
+            PhDereferenceObject(entry->HostString);
+    }
+
+    PhDereferenceObject(EtFwResolveCacheHashtable);
+    EtFwResolveCacheHashtable = PhCreateHashtable(
+        sizeof(FW_RESOLVE_CACHE_ITEM),
+        EtFwResolveCacheHashtableEqualFunction,
+        EtFwResolveCacheHashtableHashFunction,
+        20
+        );
 }
 
 PFW_RESOLVE_CACHE_ITEM EtFwLookupResolveCacheItem(
     _In_ PPH_IP_ADDRESS Address
     )
 {
-    FW_RESOLVE_CACHE_ITEM lookupCacheItem;
-    PFW_RESOLVE_CACHE_ITEM lookupCacheItemPtr = &lookupCacheItem;
-    PFW_RESOLVE_CACHE_ITEM* cacheItemPtr;
+    FW_RESOLVE_CACHE_ITEM lookupEntry;
+    PFW_RESOLVE_CACHE_ITEM entry;
 
     if (!EtFwResolveCacheHashtable)
         return NULL;
 
-    // Construct a temporary cache item for the lookup.
-    lookupCacheItem.Address = *Address;
+    lookupEntry.Address = *Address;
 
-    cacheItemPtr = (PFW_RESOLVE_CACHE_ITEM*)PhFindEntryHashtable(
+    entry = (PFW_RESOLVE_CACHE_ITEM)PhFindEntryHashtable(
         EtFwResolveCacheHashtable,
-        &lookupCacheItemPtr
+        &lookupEntry
         );
 
-    if (cacheItemPtr)
-        return *cacheItemPtr;
+    if (entry)
+        return entry;
     else
         return NULL;
 }
@@ -269,7 +328,7 @@ BOOLEAN FwProcessEventType(
         {
             FWPM_NET_EVENT_CLASSIFY_DROP* fwDropEvent = FwEvent->classifyDrop;
 
-            if (EtWindowsVersion >= WINDOWS_10 && fwDropEvent->isLoopback) // TODO: add settings and make user optional (dmex)
+            if (EtWindowsVersion >= WINDOWS_10 && fwDropEvent->isLoopback && EtFwIgnoreLoopback)
                 return FALSE;
 
             switch (fwDropEvent->msFwpDirection)
@@ -299,7 +358,7 @@ BOOLEAN FwProcessEventType(
         {
             FWPM_NET_EVENT_CLASSIFY_ALLOW* fwAllowEvent = FwEvent->classifyAllow;
 
-            if (EtWindowsVersion >= WINDOWS_10 && fwAllowEvent->isLoopback) // TODO: add settings and make user optional (dmex)
+            if (EtWindowsVersion >= WINDOWS_10 && fwAllowEvent->isLoopback && EtFwIgnoreLoopback)
                 return FALSE;
 
             switch (fwAllowEvent->msFwpDirection)
@@ -694,12 +753,12 @@ NTSTATUS EtFwNetworkItemQueryWorker(
 
             if (!cacheItem)
             {
-                cacheItem = PhAllocateZero(sizeof(FW_RESOLVE_CACHE_ITEM));
-                cacheItem->Address = data->Address;
-                cacheItem->HostString = hostString;
-                PhReferenceObject(hostString);
+                FW_RESOLVE_CACHE_ITEM newEntry;
 
-                PhAddEntryHashtable(EtFwResolveCacheHashtable, &cacheItem);
+                memset(&newEntry, 0, sizeof(FW_RESOLVE_CACHE_ITEM));
+                memcpy(&newEntry.Address, &data->Address, sizeof(data->Address));
+                newEntry.HostString = PhReferenceObject(hostString);
+                PhAddEntryHashtable(EtFwResolveCacheHashtable, &newEntry);
             }
 
             PhReleaseQueuedLockExclusive(&EtFwCacheHashtableLock);
@@ -847,7 +906,7 @@ PPH_PROCESS_ITEM EtFwFileNameToProcess(
 
     if (
         ProcessFileName->Length == 12 &&
-        PhEqualString2(ProcessFileName, L"System", TRUE)
+        PhEqualString2(ProcessFileName, L"System", FALSE)
         )
     {
         return PhReferenceProcessItem(SYSTEM_PROCESS_ID);
@@ -997,25 +1056,54 @@ static ULONG NTAPI EtFwFilterDisplayDataHashFunction(
     return PhHashInt64(entry->FilterId);
 }
 
+VOID EtFwFlushFilterDisplayCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PETFW_FILTER_DISPLAY_CONTEXT entry;
+
+    if (!EtFwFilterDisplayDataHashTable)
+        return;
+
+    PhBeginEnumHashtable(EtFwFilterDisplayDataHashTable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        if (entry->Name)
+            PhDereferenceObject(entry->Name);
+        if (entry->Description)
+            PhDereferenceObject(entry->Description);
+    }
+
+    PhDereferenceObject(EtFwFilterDisplayDataHashTable);
+    EtFwFilterDisplayDataHashTable = PhCreateHashtable(
+        sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
+        EtFwFilterDisplayDataEqualFunction,
+        EtFwFilterDisplayDataHashFunction,
+        20
+        );
+}
+
 PETFW_FILTER_DISPLAY_CONTEXT EtFwFilterLookupCacheItem(
     _In_ ULONG64 FilterId
     )
 {
-    ETFW_FILTER_DISPLAY_CONTEXT lookupCacheItem;
-    PETFW_FILTER_DISPLAY_CONTEXT cacheItemPtr;
+    ETFW_FILTER_DISPLAY_CONTEXT lookupEntry;
+    PETFW_FILTER_DISPLAY_CONTEXT entry;
 
     if (!EtFwFilterDisplayDataHashTable)
         return NULL;
 
-    lookupCacheItem.FilterId = FilterId;
+    lookupEntry.FilterId = FilterId;
 
-    cacheItemPtr = (PETFW_FILTER_DISPLAY_CONTEXT)PhFindEntryHashtable(
+    entry = (PETFW_FILTER_DISPLAY_CONTEXT)PhFindEntryHashtable(
         EtFwFilterDisplayDataHashTable,
-        &lookupCacheItem
+        &lookupEntry
         );
 
-    if (cacheItemPtr)
-        return cacheItemPtr;
+    if (entry)
+        return entry;
     else
         return NULL;
 }
@@ -1397,22 +1485,21 @@ PETFW_SID_FULL_NAME_CACHE_ENTRY EtFwSidLookupCacheItem(
     _In_ PSID Sid
     )
 {
-    ETFW_SID_FULL_NAME_CACHE_ENTRY lookupCacheItem;
-    PETFW_SID_FULL_NAME_CACHE_ENTRY lookupCacheItemPtr = &lookupCacheItem;
-    PETFW_SID_FULL_NAME_CACHE_ENTRY* cacheItemPtr;
+    ETFW_SID_FULL_NAME_CACHE_ENTRY lookupEntry;
+    PETFW_SID_FULL_NAME_CACHE_ENTRY entry;
 
     if (!EtFwSidFullNameCacheHashtable)
         return NULL;
 
-    lookupCacheItem.Sid = Sid;
+    lookupEntry.Sid = Sid;
 
-    cacheItemPtr = (PETFW_SID_FULL_NAME_CACHE_ENTRY*)PhFindEntryHashtable(
+    entry = (PETFW_SID_FULL_NAME_CACHE_ENTRY)PhFindEntryHashtable(
         EtFwSidFullNameCacheHashtable,
-        &lookupCacheItemPtr
+        &lookupEntry
         );
 
-    if (cacheItemPtr)
-        return *cacheItemPtr;
+    if (entry)
+        return entry;
     else
         return NULL;
 }
@@ -1455,6 +1542,7 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
         PhAcquireQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
 
         ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
+        memset(&newEntry, 0, sizeof(ETFW_SID_FULL_NAME_CACHE_ENTRY));
         newEntry.Sid = PhAllocateCopy(Sid, PhLengthSid(Sid));
         newEntry.FullName = PhReferenceObject(fullName);
         PhAddEntryHashtable(EtFwSidFullNameCacheHashtable, &newEntry);
@@ -1488,67 +1576,176 @@ PPH_STRING EtFwGetSidFullNameCached(
     return NULL;
 }
 
+typedef struct _ETFW_NAME_PROCESS_CACHE_ENTRY
+{
+    PPH_PROCESS_ITEM ProcessItem;
+    ULONG FileNameHash;
+} ETFW_NAME_PROCESS_CACHE_ENTRY, *PETFW_NAME_PROCESS_CACHE_ENTRY;
+
+BOOLEAN EtFwFileNameProcessCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PETFW_NAME_PROCESS_CACHE_ENTRY entry1 = Entry1;
+    PETFW_NAME_PROCESS_CACHE_ENTRY entry2 = Entry2;
+
+    return entry1->FileNameHash == entry2->FileNameHash;
+}
+
+ULONG EtFwFileNameProcessCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PETFW_NAME_PROCESS_CACHE_ENTRY entry = Entry;
+
+    return entry->FileNameHash;
+}
+
+VOID EtFwFlushFileNameProcessCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PETFW_NAME_PROCESS_CACHE_ENTRY entry;
+
+    if (!EtFwFileNameProcessCacheHashTable)
+        return;
+
+    PhBeginEnumHashtable(EtFwFileNameProcessCacheHashTable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        if (entry->ProcessItem)
+            PhDereferenceObject(entry->ProcessItem);
+    }
+
+    PhDereferenceObject(EtFwFileNameProcessCacheHashTable);
+    EtFwFileNameProcessCacheHashTable = PhCreateHashtable(
+        sizeof(ETFW_NAME_PROCESS_CACHE_ENTRY),
+        EtFwFileNameProcessCacheHashtableEqualFunction,
+        EtFwFileNameProcessCacheHashtableHashFunction,
+        16
+        );
+}
+
+PETFW_NAME_PROCESS_CACHE_ENTRY EtFwFileNameProcessLookupCacheItem(
+    _In_ PPH_STRING FileName
+    )
+{
+    ETFW_NAME_PROCESS_CACHE_ENTRY lookupEntry;
+    PETFW_NAME_PROCESS_CACHE_ENTRY entry;
+
+    if (!EtFwFileNameProcessCacheHashTable)
+        return NULL;
+
+    lookupEntry.FileNameHash = PhHashStringRefEx(&FileName->sr, FALSE, PH_STRING_HASH_X65599);
+
+    entry = (PETFW_NAME_PROCESS_CACHE_ENTRY)PhFindEntryHashtable(
+        EtFwFileNameProcessCacheHashTable,
+        &lookupEntry
+        );
+
+    if (entry)
+        return entry;
+    else
+        return NULL;
+}
+
+PPH_PROCESS_ITEM EtFwGetFileNameProcessCachedSlow(
+    _In_ PPH_STRING FileName
+    )
+{
+    PETFW_NAME_PROCESS_CACHE_ENTRY entry;
+    PPH_PROCESS_ITEM process;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return NULL;
+
+    if (!EtFwFileNameProcessCacheHashTable)
+    {
+        EtFwFileNameProcessCacheHashTable = PhCreateHashtable(
+            sizeof(ETFW_NAME_PROCESS_CACHE_ENTRY),
+            EtFwFileNameProcessCacheHashtableEqualFunction,
+            EtFwFileNameProcessCacheHashtableHashFunction,
+            16
+            );
+    }
+
+    PhAcquireQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
+
+    if (entry = EtFwFileNameProcessLookupCacheItem(FileName))
+    {
+        PPH_PROCESS_ITEM processItem = PhReferenceObject(entry->ProcessItem);
+        PhReleaseQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
+        return processItem;
+    }
+
+    PhReleaseQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
+
+    process = EtFwFileNameToProcess(FileName);
+
+    if (!process)
+        return NULL;
+
+    if (EtFwFileNameProcessCacheHashTable)
+    {
+        PhAcquireQueuedLockExclusive(&EtFwFileNameProcessCacheHashTableLock);
+
+        ETFW_NAME_PROCESS_CACHE_ENTRY newEntry;
+        memset(&newEntry, 0, sizeof(ETFW_NAME_PROCESS_CACHE_ENTRY));
+        newEntry.FileNameHash = PhHashStringRefEx(&FileName->sr, FALSE, PH_STRING_HASH_X65599);
+        newEntry.ProcessItem = PhReferenceObject(process);
+        PhAddEntryHashtable(EtFwFileNameProcessCacheHashTable, &newEntry);
+
+        PhReleaseQueuedLockExclusive(&EtFwFileNameProcessCacheHashTableLock);
+    }
+
+    return process;
+}
+
+PPH_PROCESS_ITEM EtFwGetFileNameProcessCached(
+    _In_ PPH_STRING FileName
+    )
+{
+    if (EtFwFileNameProcessCacheHashTable)
+    {
+        PhAcquireQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
+
+        PETFW_NAME_PROCESS_CACHE_ENTRY entry;
+
+        if (entry = EtFwFileNameProcessLookupCacheItem(FileName))
+        {
+            PPH_PROCESS_ITEM processItem = PhReferenceObject(entry->ProcessItem);
+            PhReleaseQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
+            return processItem;
+        }
+
+        PhReleaseQueuedLockShared(&EtFwFileNameProcessCacheHashTableLock);
+    }
+
+    return NULL;
+}
+
 VOID EtFwFlushCache(
     VOID
     )
 {
     static ULONG64 lastTickCount = 0;
+    static ULONG64 lastFilenameTickCount = 0;
     ULONG64 tickCount = NtGetTickCount64();
 
-    if (tickCount - lastTickCount >= 120 * 1000)
+    if (tickCount - lastTickCount >= UInt32x32To64(120, CLOCKS_PER_SEC))
     {
         // Hostname cache
-        if (EtFwResolveCacheHashtable)
-        {
-            PFW_RESOLVE_CACHE_ITEM* entry;
-            ULONG i = 0;
-
-            PhAcquireQueuedLockExclusive(&EtFwCacheHashtableLock);
-
-            while (PhEnumHashtable(EtFwResolveCacheHashtable, (PVOID*)&entry, &i))
-            {
-                if ((*entry)->HostString)
-                    PhDereferenceObject((*entry)->HostString);
-                PhFree(*entry);
-            }
-
-            PhDereferenceObject(EtFwResolveCacheHashtable);
-            EtFwResolveCacheHashtable = PhCreateHashtable(
-                sizeof(FW_RESOLVE_CACHE_ITEM),
-                EtFwResolveCacheHashtableEqualFunction,
-                EtFwResolveCacheHashtableHashFunction,
-                20
-                );
-
-            PhReleaseQueuedLockExclusive(&EtFwCacheHashtableLock);
-        }
+        PhAcquireQueuedLockExclusive(&EtFwCacheHashtableLock);
+        EtFwFlushResolveCache();
+        PhReleaseQueuedLockExclusive(&EtFwCacheHashtableLock);
 
         // Filter cache
-        if (EtFwFilterDisplayDataHashTable)
-        {
-            ETFW_FILTER_DISPLAY_CONTEXT* enumEntry;
-            ULONG i = 0;
-
-            PhAcquireQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
-
-            while (PhEnumHashtable(EtFwFilterDisplayDataHashTable, (PVOID*)&enumEntry, &i))
-            {
-                if ((*enumEntry).Name)
-                    PhDereferenceObject((*enumEntry).Name);
-                if ((*enumEntry).Description)
-                    PhDereferenceObject((*enumEntry).Description);
-            }
-
-            PhDereferenceObject(EtFwFilterDisplayDataHashTable);
-            EtFwFilterDisplayDataHashTable = PhCreateHashtable(
-                sizeof(ETFW_FILTER_DISPLAY_CONTEXT),
-                EtFwFilterDisplayDataEqualFunction,
-                EtFwFilterDisplayDataHashFunction,
-                20
-                );
-
-            PhReleaseQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
-        }
+        PhAcquireQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+        EtFwFlushFilterDisplayCache();
+        PhReleaseQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
 
         // SID cache
         PhAcquireQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
@@ -1557,10 +1754,20 @@ VOID EtFwFlushCache(
 
         lastTickCount = tickCount;
     }
+
+    if (tickCount - lastFilenameTickCount >= UInt32x32To64(30, CLOCKS_PER_SEC))
+    {
+        // Filename cache
+        PhAcquireQueuedLockExclusive(&EtFwFileNameProcessCacheHashTableLock);
+        EtFwFlushFileNameProcessCache();
+        PhReleaseQueuedLockExclusive(&EtFwFileNameProcessCacheHashTableLock);
+
+        lastFilenameTickCount = tickCount;
+    }
 }
 
 VOID CALLBACK EtFwEventCallback(
-    _Inout_ PVOID FwContext,
+    _In_opt_ PVOID FwContext,
     _In_ const FWPM_NET_EVENT* FwEvent
     )
 {
@@ -1687,14 +1894,9 @@ VOID CALLBACK EtFwEventCallback(
             entry.ProcessFileName = PhGetFileName(fileName);
             entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
 
-            if (entry.ProcessItem = EtFwFileNameToProcess(fileName))
+            if (entry.ProcessItem = EtFwGetFileNameProcessCachedSlow(fileName))
             {
-                // We get a lower case filename from the firewall netevent which is inconsistent
-                // with the file_object paths we get elsewhere. Switch the filename here
-                // to the same filename as the process. (dmex)
-                PhSwapReference(&entry.ProcessFileName, entry.ProcessItem->FileName);
                 PhSwapReference(&entry.ProcessFileNameWin32, entry.ProcessItem->FileNameWin32);
-                PhSwapReference(&entry.ProcessBaseString, entry.ProcessItem->ProcessName);
             }
 
             PhDereferenceObject(fileName);
@@ -1733,6 +1935,14 @@ VOID CALLBACK EtFwEventCallback(
             PhMoveReference(&entry.RemoteCountryName, remoteCountryName);
             entry.CountryIconIndex = EtFwGetPluginInterface()->LookupCountryIcon(remoteCountryCode);
         }
+    }
+
+    if (PhIsNullOrEmptyString(entry.ProcessFileName) || PhIsNullOrEmptyString(entry.ProcessBaseString))
+    {
+        PhMoveReference(&entry.ProcessItem, PhReferenceProcessItem(SYSTEM_PROCESS_ID));
+        PhSwapReference(&entry.ProcessFileName, entry.ProcessItem->FileName);
+        PhSwapReference(&entry.ProcessFileNameWin32, entry.ProcessItem->FileNameWin32);
+        PhSwapReference(&entry.ProcessBaseString, entry.ProcessItem->ProcessName);
     }
 
     FwPushFirewallEvent(&entry);
@@ -1802,19 +2012,60 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
     EtFwFlushCache();
 }
 
+ULONG EtFwMonitorEnumEvents(
+    VOID
+    )
+{
+    ULONG status;
+    HANDLE enumHandle;
+    FWPM_NET_EVENT_ENUM_TEMPLATE enumTemplate = { 0 };
+
+    status = FwpmNetEventCreateEnumHandle(
+        EtFwEngineHandle,
+        &enumTemplate,
+        &enumHandle
+        );
+
+    if (status == ERROR_SUCCESS)
+    {
+        UINT32 count = 0;
+        FWPM_NET_EVENT** events;
+
+        while (TRUE)
+        {
+            status = FwpmNetEventEnum(EtFwEngineHandle, enumHandle, 20, &events, &count);
+
+            if (status != ERROR_SUCCESS || count == 0)
+                break;
+
+            for (UINT32 i = 0; i < count; i++)
+            {
+                EtFwEventCallback(NULL, events[i]);
+            }
+
+            FwpmFreeMemory(events);
+        }
+
+        FwpmNetEventDestroyEnumHandle(EtFwEngineHandle, enumHandle);
+    }
+
+    return status;
+}
+
 ULONG EtFwMonitorInitialize(
     VOID
     )
 {
-    PVOID baseAddress;
     ULONG status;
-    FWP_VALUE value = { FWP_EMPTY };
-    FWPM_SESSION session = { 0 };
-    FWPM_NET_EVENT_SUBSCRIPTION subscription = { 0 };
-    FWPM_NET_EVENT_ENUM_TEMPLATE eventTemplate = { 0 };
+    PVOID baseAddress;
+    FWP_VALUE value;
+    FWPM_SESSION session;
+    FWPM_NET_EVENT_ENUM_TEMPLATE enumTemplate;
+    FWPM_NET_EVENT_SUBSCRIPTION subscription;
 
     EtFwEnableResolveCache = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     EtFwEnableResolveDoH = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
+    EtFwIgnoreLoopback = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_LOOPBACK);
 
     PhInitializeFreeList(&EtFwPacketFreeList, sizeof(FW_EVENT_PACKET), 64);
     RtlInitializeSListHead(&EtFwPacketListHead);
@@ -1836,23 +2087,58 @@ ULONG EtFwMonitorInitialize(
 
     if (!(baseAddress = PhLoadLibrary(L"fwpuclnt.dll")))
         return GetLastError();
-    if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe4", 0);
-    if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe3", 0);
-    if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe2", 0);
-    if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe1", 0);
-    if (!FwpmNetEventSubscribe_I)
-        FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe0", 0);
-    if (!FwpmNetEventSubscribe_I)
+
+    FwpmEngineOpen = PhGetProcedureAddress(baseAddress, "FwpmEngineOpen0", 0);
+    FwpmEngineClose = PhGetProcedureAddress(baseAddress, "FwpmEngineClose0", 0);
+    FwpmFreeMemory = PhGetProcedureAddress(baseAddress, "FwpmFreeMemory0", 0);
+    FwpmFilterGetById = PhGetProcedureAddress(baseAddress, "FwpmFilterGetById0", 0);
+    FwpmEngineSetOption = PhGetProcedureAddress(baseAddress, "FwpmEngineSetOption0", 0);
+    FwpmNetEventUnsubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventUnsubscribe0", 0);
+    FwpmNetEventCreateEnumHandle = PhGetProcedureAddress(baseAddress, "FwpmNetEventCreateEnumHandle0", 0);
+    FwpmNetEventDestroyEnumHandle = PhGetProcedureAddress(baseAddress, "FwpmNetEventDestroyEnumHandle0", 0);
+
+    FwpmNetEventSubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe4", 0);
+    if (!FwpmNetEventSubscribe)
+        FwpmNetEventSubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe3", 0);
+    if (!FwpmNetEventSubscribe)
+        FwpmNetEventSubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe2", 0);
+    if (!FwpmNetEventSubscribe)
+        FwpmNetEventSubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe1", 0);
+    if (!FwpmNetEventSubscribe)
+        FwpmNetEventSubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe0", 0);
+
+    FwpmNetEventEnum = PhGetProcedureAddress(baseAddress, "FwpmNetEventEnum5", 0);
+    if (!FwpmNetEventEnum)
+        FwpmNetEventEnum = PhGetProcedureAddress(baseAddress, "FwpmNetEventEnum4", 0);
+    if (!FwpmNetEventEnum)
+        FwpmNetEventEnum = PhGetProcedureAddress(baseAddress, "FwpmNetEventEnum3", 0);
+    if (!FwpmNetEventEnum)
+        FwpmNetEventEnum = PhGetProcedureAddress(baseAddress, "FwpmNetEventEnum2", 0);
+    if (!FwpmNetEventEnum)
+        FwpmNetEventEnum = PhGetProcedureAddress(baseAddress, "FwpmNetEventEnum1", 0);
+    if (!FwpmNetEventEnum)
+        FwpmNetEventEnum = PhGetProcedureAddress(baseAddress, "FwpmNetEventEnum0", 0);
+
+    if (!(
+        FwpmEngineOpen &&
+        FwpmEngineClose &&
+        FwpmFreeMemory &&
+        FwpmFilterGetById &&
+        FwpmEngineSetOption &&
+        FwpmNetEventUnsubscribe &&
+        FwpmNetEventCreateEnumHandle &&
+        FwpmNetEventDestroyEnumHandle &&
+        FwpmNetEventSubscribe &&
+        FwpmNetEventEnum
+        ))
+    {
         return ERROR_PROC_NOT_FOUND;
+    }
 
     // Create a non-dynamic BFE session
 
-    session.flags = 0;
-    session.displayData.name  = L"SiEtwFirewallSession";
+    memset(&session, 0, sizeof(FWPM_SESSION));
+    session.displayData.name = L"SiNetEventSession";
     session.displayData.description = L"";
 
     status = FwpmEngineOpen(
@@ -1866,16 +2152,22 @@ ULONG EtFwMonitorInitialize(
     if (status != ERROR_SUCCESS)
         return status;
 
-    // Enable collection of NetEvents
+    // Enable collection of events
 
+    memset(&value, 0, sizeof(FWP_VALUE));
     value.type = FWP_UINT32;
     value.uint32 = TRUE;
 
-    status = FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
+    status = FwpmEngineSetOption(
+        EtFwEngineHandle,
+        FWPM_ENGINE_COLLECT_NET_EVENTS,
+        &value
+        );
 
     if (status != ERROR_SUCCESS)
         return status;
 
+    memset(&value, 0, sizeof(FWP_VALUE));
     value.type = FWP_UINT32;
     value.uint32 = FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
     if (EtWindowsVersion >= WINDOWS_8)
@@ -1883,29 +2175,37 @@ ULONG EtFwMonitorInitialize(
     if (EtWindowsVersion >= WINDOWS_10_19H1 && !PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_PORTSCAN))
         value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
 
-    status = FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS, &value);
+    status = FwpmEngineSetOption(
+        EtFwEngineHandle,
+        FWPM_ENGINE_NET_EVENT_MATCH_ANY_KEYWORDS,
+        &value
+        );
 
     if (status != ERROR_SUCCESS)
         return status;
 
-    if (EtWindowsVersion >= WINDOWS_8)
-    {
-        value.type = FWP_UINT32;
-        value.uint32 = TRUE;
-        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
+    //if (EtWindowsVersion >= WINDOWS_8)
+    //{
+    //    memset(&value, 0, sizeof(FWP_VALUE));
+    //    value.type = FWP_UINT32;
+    //    value.uint32 = TRUE;
+    //    FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
+    //
+    //    memset(&value, 0, sizeof(FWP_VALUE));
+    //    value.type = FWP_UINT32;
+    //    value.uint32 = FWPM_ENGINE_OPTION_PACKET_QUEUE_INBOUND | FWPM_ENGINE_OPTION_PACKET_QUEUE_FORWARD | FWPM_ENGINE_OPTION_PACKET_BATCH_INBOUND;
+    //    FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_PACKET_QUEUING, &value);
+    //}
 
-        //value.type = FWP_UINT32;
-        //value.uint32 = FWPM_ENGINE_OPTION_PACKET_QUEUE_INBOUND | FWPM_ENGINE_OPTION_PACKET_QUEUE_FORWARD;
-        //FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_PACKET_QUEUING, &value);
-    }
+    // Subscribe to all event conditions
 
-    eventTemplate.numFilterConditions = 0; // get events for all conditions
+    memset(&enumTemplate, 0, sizeof(FWPM_NET_EVENT_ENUM_TEMPLATE));
+    memset(&subscription, 0, sizeof(FWPM_NET_EVENT_SUBSCRIPTION));
+
     subscription.sessionKey = session.sessionKey;
-    subscription.enumTemplate = &eventTemplate;
+    subscription.enumTemplate = &enumTemplate;
 
-    // Subscribe to the events
-
-    status = FwpmNetEventSubscribe_I(
+    status = FwpmNetEventSubscribe(
         EtFwEngineHandle,
         &subscription,
         EtFwEventCallback,
@@ -1930,7 +2230,7 @@ VOID EtFwMonitorUninitialize(
     VOID
     )
 {
-    if (EtFwEventHandle)
+    if (EtFwEventHandle && FwpmNetEventUnsubscribe)
     {
         FwpmNetEventUnsubscribe(EtFwEngineHandle, EtFwEventHandle);
         EtFwEventHandle = NULL;
@@ -1938,14 +2238,20 @@ VOID EtFwMonitorUninitialize(
 
     if (EtFwEngineHandle)
     {
-        FWP_VALUE value;
+        if (FwpmEngineSetOption)
+        {
+            FWP_VALUE value;
 
-        // Disable event collection
-        value.type = FWP_UINT32;
-        value.uint32 = 0;
-        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
+            // Disable event collection
+            value.type = FWP_UINT32;
+            value.uint32 = 0;
+            FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &value);
+        }
 
-        FwpmEngineClose(EtFwEngineHandle);
-        EtFwEngineHandle = NULL;
+        if (FwpmEngineClose)
+        {
+            FwpmEngineClose(EtFwEngineHandle);
+            EtFwEngineHandle = NULL;
+        }
     }
 }
