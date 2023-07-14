@@ -8691,6 +8691,7 @@ PPH_STRING PhGetActiveComputerName(
     return computerName;
 }
 
+_Check_return_
 HRESULT PhDevGetObjects(
     _In_ DEV_OBJECT_TYPE ObjectType,
     _In_ DEV_QUERY_FLAGS QueryFlags,

@@ -3396,6 +3396,7 @@ VOID PhpDeviceItemDeleteProcedure(
             }
             else if (prop->Type == PhDevicePropertyTypeBinary)
             {
+#pragma warning(suppress : 6001) // buffer is valid and initialized
                 PhFree(prop->Binary.Buffer);
             }
         }
@@ -3613,7 +3614,7 @@ VOID PhpGetInterfaceClassList(
         NULL,
         &objectCount,
         &objects
-        )))
+        )) || !objects)
     {
         *InterfaceClassList = NULL;
         *InterfaceClassListCount = 0;
