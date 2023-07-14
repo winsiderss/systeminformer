@@ -122,7 +122,7 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     AddRemoveDeviceChangeCallback();
-    if (NetWindowsVersion >= WINDOWS_10)
+    if (PhDeviceProviderInitialization())
         InitializeDevicesTab();
 }
 

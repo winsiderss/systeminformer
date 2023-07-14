@@ -4013,7 +4013,7 @@ ULONG CALLBACK PhpCmNotifyCallback(
     return ERROR_SUCCESS;
 }
 
-BOOLEAN PhDeviceProviderInitialization(
+BOOLEAN PhpDeviceProviderInitialization(
     VOID
     )
 {
@@ -4021,7 +4021,7 @@ BOOLEAN PhDeviceProviderInitialization(
     CM_NOTIFY_FILTER cmFilter;
 
     if (WindowsVersion < WINDOWS_10 || !PhGetIntegerSetting(L"EnableDeviceSupport"))
-        return TRUE;
+        return FALSE;
 
     PhDeviceItemType = PhCreateObjectType(L"DeviceItem", 0, PhpDeviceItemDeleteProcedure);
     PhDeviceTreeType = PhCreateObjectType(L"DeviceTree", 0, PhpDeviceTreeDeleteProcedure);
@@ -4064,4 +4064,21 @@ BOOLEAN PhDeviceProviderInitialization(
     }
 
     return TRUE;
+}
+
+BOOLEAN PhDeviceProviderInitialization(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN initialized = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        initialized = PhpDeviceProviderInitialization();
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return initialized;
 }

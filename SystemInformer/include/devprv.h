@@ -443,11 +443,14 @@ typedef struct _PH_DEVICE_NOTIFY
     LIST_ENTRY ListEntry;
 // begin_phapppub
 } PH_DEVICE_NOTIFY, *PPH_DEVICE_NOTIFY;
-// end_phapppub
 
+PHAPPAPI
 BOOLEAN
+NTAPI
 PhDeviceProviderInitialization(
     VOID
     );
+
+// end_phapppub
 
 #endif
