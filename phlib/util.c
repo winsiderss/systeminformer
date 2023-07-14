@@ -8690,3 +8690,82 @@ PPH_STRING PhGetActiveComputerName(
 
     return computerName;
 }
+
+HRESULT PhDevGetObjects(
+    _In_ DEV_OBJECT_TYPE ObjectType,
+    _In_ DEV_QUERY_FLAGS QueryFlags,
+    _In_ ULONG RequestedPropertiesCount,
+    _In_reads_opt_(RequestedPropertiesCount) const DEVPROPCOMPKEY* RequestedProperties,
+    _In_ ULONG FilterExpressionCount,
+    _In_reads_opt_(FilterExpressionCount) const DEVPROP_FILTER_EXPRESSION* FilterExpressions,
+    _Out_ PULONG ObjectCount,
+    _Outptr_result_buffer_maybenull_(*ObjectCount) const DEV_OBJECT** Objects
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI * DevGetObjects_I)(
+        _In_ DEV_OBJECT_TYPE dwObjectType,
+        _In_ ULONG dwQueryFlags,
+        _In_ ULONG cRequestedProperties,
+        _In_reads_opt_(cRequestedProperties) const DEVPROPCOMPKEY * pRequestedProperties,
+        _In_ ULONG cFilterExpressionCount,
+        _In_reads_opt_(cFilterExpressionCount) const DEVPROP_FILTER_EXPRESSION * pFilter,
+        _Out_ PULONG pcObjectCount,
+        _Outptr_result_buffer_maybenull_(*pcObjectCount) const DEV_OBJECT * *ppObjects
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID cfgmgr32;
+
+        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
+        {
+            DevGetObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevGetObjects", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!DevGetObjects_I)
+        return E_FAIL;
+
+    return DevGetObjects_I(
+        ObjectType,
+        QueryFlags,
+        RequestedPropertiesCount,
+        RequestedProperties,
+        FilterExpressionCount,
+        FilterExpressions,
+        ObjectCount,
+        Objects
+        );
+}
+
+VOID PhDevFreeObjects(
+    _In_ ULONG ObjectCount,
+    _In_reads_(ObjectCount) const DEV_OBJECT* Objects
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static VOID (WINAPI *DevFreeObjects_I)(
+        _In_ ULONG cObjectCount,
+        _In_reads_(cObjectCount) const DEV_OBJECT* pObjects
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID cfgmgr32;
+
+        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
+        {
+            DevFreeObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevFreeObjects", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (DevFreeObjects_I)
+    {
+        DevFreeObjects_I(ObjectCount, Objects);
+    }
+}
