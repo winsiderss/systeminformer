@@ -114,6 +114,7 @@ DEFINE_GUID(GUID_BLUETOOTH_GATT_SERVICE_DEVICE_INTERFACE, 0x6e3bb679, 0x4372, 0x
 #include <ntddstor.h>
 
 static PH_STRINGREF RootInstanceId = PH_STRINGREF_INIT(L"HTREE\\ROOT\\0");
+static ULONG RootInstanceIdHash = 2387464428; // PhHashStringRefEx(TRUE, PH_STRING_HASH_X65599);
 PPH_OBJECT_TYPE PhDeviceTreeType = NULL;
 PPH_OBJECT_TYPE PhDeviceItemType = NULL;
 PPH_OBJECT_TYPE PhDeviceNotifyType = NULL;
@@ -3256,12 +3257,7 @@ static int __cdecl PhpDeviceItemSortFunction(
     lhsItem = *(PPH_DEVICE_ITEM*)Left;
     rhsItem = *(PPH_DEVICE_ITEM*)Right;
 
-    if (lhsItem->InstanceIdHash < rhsItem->InstanceIdHash)
-        return -1;
-    else if (lhsItem->InstanceIdHash > rhsItem->InstanceIdHash)
-        return 1;
-    else
-        return 0;
+    return uintcmp(lhsItem->InstanceIdHash, rhsItem->InstanceIdHash);
 }
 
 static int __cdecl PhpDeviceItemSearchFunction(
@@ -3273,12 +3269,7 @@ static int __cdecl PhpDeviceItemSearchFunction(
 
     item = *(PPH_DEVICE_ITEM*)Item;
 
-    if (PtrToUlong(Hash) < item->InstanceIdHash)
-        return -1;
-    else if (PtrToUlong(Hash) > item->InstanceIdHash)
-        return 1;
-    else
-        return 0;
+    return uintcmp(PtrToUlong(Hash), item->InstanceIdHash);
 }
 
 _Success_(return != NULL)
@@ -3466,7 +3457,8 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceItem(
         //
         // If this is the root enumerator override some properties.
         //
-        if (PhEqualStringRef(&item->InstanceId->sr, &RootInstanceId, TRUE))
+        //if (PhEqualStringRef(&item->InstanceId->sr, &RootInstanceId, TRUE))
+        if (item->InstanceIdHash == RootInstanceIdHash)
         {
             PPH_DEVICE_PROPERTY prop;
 
