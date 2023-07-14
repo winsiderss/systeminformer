@@ -2570,6 +2570,15 @@ PhFinalArrayItems(
     _Inout_ PPH_ARRAY Array
     );
 
+FORCEINLINE
+SIZE_T
+PhFinalArrayCount(
+    _In_ PPH_ARRAY Array
+    )
+{
+    return Array->Count;
+}
+
 PHLIBAPI
 VOID
 NTAPI
