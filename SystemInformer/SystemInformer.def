@@ -367,15 +367,6 @@ EXPORTS
     PhAdjustRectangleToWorkingArea
     PhCenterRectangle
     PhCenterWindow
-    PhGetDpi
-    PhGetMonitorDpi
-    PhGetSystemDpi
-    PhGetTaskbarDpi
-    PhGetWindowDpi
-    PhGetDpiValue
-    PhGetSystemMetrics
-    PhGetSystemParametersInfo
-    PhGetSizeDpiValue
     PhCompareUnicodeStringZIgnoreMenuPrefix
     PhCreateOpenFileDialog
     PhCreateProcess
@@ -384,6 +375,7 @@ EXPORTS
     PhCreateProcessWin32
     PhCreateProcessWin32Ex
     PhCreateSaveFileDialog
+    PhDevGetObjects
     PhDeleteImageVersionInfo
     PhEllipsisString
     PhEllipsisStringPath
@@ -420,6 +412,8 @@ EXPORTS
     PhGetBaseName
     PhGetClassObject
     PhGetDllFileName
+    PhGetDpi
+    PhGetDpiValue
     PhGetFileDialogFileName
     PhGetFileDialogFilterIndex
     PhGetFileDialogOptions
@@ -433,10 +427,17 @@ EXPORTS
     PhGetKnownFolderPath
     PhGetKnownLocation
     PhGetMessage
+    PhGetMonitorDpi
     PhGetNtMessage
+    PhGetSizeDpiValue
     PhGetStatusMessage
     PhGetSystemDirectory
+    PhGetSystemDpi
+    PhGetSystemMetrics
+    PhGetSystemParametersInfo
     PhGetSystemRoot
+    PhGetTaskbarDpi
+    PhGetWindowDpi
     PhGetWin32Message
     PhGetTemporaryDirectoryRandomAlphaFileName
     PhInitializeHash
@@ -469,6 +470,7 @@ EXPORTS
     PhShowMessage2
     PhShowStatus
     PhStringToGuid
+    PhSystemTimeToLargeInteger
     PhUpdateHash
     PhWaitForMultipleObjectsAndPump
 
