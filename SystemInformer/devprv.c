@@ -3450,6 +3450,7 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceItem(
 
     item = PhCreateObjectZero(sizeof(PH_DEVICE_ITEM), PhDeviceItemType);
 
+    item->Tree = Tree;
     item->DeviceInfo = PhReferenceObject(Tree->DeviceInfo);
     RtlCopyMemory(&item->DeviceInfoData.DeviceData, DeviceInfoData, sizeof(SP_DEVINFO_DATA));
     RtlCopyMemory(&item->ClassGuid, &DeviceInfoData->ClassGuid, sizeof(GUID));
@@ -3540,6 +3541,7 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceInterfaceItem(
 
     item = PhCreateObjectZero(sizeof(PH_DEVICE_ITEM), PhDeviceItemType);
 
+    item->Tree = Tree;
     item->DeviceInfo = PhReferenceObject(Tree->DeviceInfo);
     item->DeviceInfoData.Interface = TRUE;
     RtlCopyMemory(&item->DeviceInfoData.InterfaceData, DeviceInterfaceData, sizeof(SP_DEVICE_INTERFACE_DATA));
