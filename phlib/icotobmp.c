@@ -200,10 +200,10 @@ HBITMAP PhIconToBitmap(
     {
         PVOID uxtheme;
 
-        uxtheme = PhGetLoaderEntryDllBaseZ(L"uxtheme.dll");
-        BeginBufferedPaint_I = PhGetProcedureAddress(uxtheme, "BeginBufferedPaint", 0);
-        EndBufferedPaint_I = PhGetProcedureAddress(uxtheme, "EndBufferedPaint", 0);
-        GetBufferedPaintBits_I = PhGetProcedureAddress(uxtheme, "GetBufferedPaintBits", 0);
+        uxtheme = PhLoadLibrary(L"uxtheme.dll");
+        BeginBufferedPaint_I = PhGetDllBaseProcedureAddress(uxtheme, "BeginBufferedPaint", 0);
+        EndBufferedPaint_I = PhGetDllBaseProcedureAddress(uxtheme, "EndBufferedPaint", 0);
+        GetBufferedPaintBits_I = PhGetDllBaseProcedureAddress(uxtheme, "GetBufferedPaintBits", 0);
         ImportsInitialized = TRUE;
     }
 
