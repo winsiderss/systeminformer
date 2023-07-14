@@ -88,6 +88,7 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_FW_TREE_LIST_COLUMNS (PLUGIN_NAME L".FwTreeColumns")
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
+#define SETTING_NAME_FW_IGNORE_LOOPBACK (PLUGIN_NAME L".FwIgnoreLoopback")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
 #define SETTING_NAME_WCT_TREE_LIST_COLUMNS (PLUGIN_NAME L".WaitChainTreeListColumns")
 #define SETTING_NAME_WCT_WINDOW_POSITION (PLUGIN_NAME L".WaitChainWindowPosition")
@@ -908,6 +909,7 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_REMOTEADDRESSCLASS,
     FW_COLUMN_LOCALADDRESSSSCOPE,
     FW_COLUMN_REMOTEADDRESSSCOPE,
+    FW_COLUMN_ORIGINALNAME,
     FW_COLUMN_MAXIMUM
 } FW_COLUMN_TYPE;
 
@@ -998,6 +1000,10 @@ VOID EtFwMonitorUninitialize(
     VOID
     );
 
+ULONG EtFwMonitorEnumEvents(
+    VOID
+    );
+
 VOID EtInitializeFirewallTab(
     VOID
     );
@@ -1051,12 +1057,74 @@ VOID EtFwShowWhoisWindow(
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
-typedef ULONG (WINAPI* _FwpmNetEventSubscribe)(
+typedef struct _SEC_WINNT_AUTH_IDENTITY_W SEC_WINNT_AUTH_IDENTITY_W, *PSEC_WINNT_AUTH_IDENTITY_W;
+typedef struct FWPM_SESSION0_ FWPM_SESSION0;
+
+typedef ULONG (WINAPI* _FwpmEngineOpen0)(
+    _In_opt_ const wchar_t* serverName,
+    _In_ UINT32 authnService,
+    _In_opt_ SEC_WINNT_AUTH_IDENTITY_W* authIdentity,
+    _In_opt_ const FWPM_SESSION0* session,
+    _Out_ HANDLE* engineHandle
+    );
+
+typedef ULONG (WINAPI* _FwpmEngineClose0)(
+    _Inout_ HANDLE engineHandle
+    );
+
+typedef VOID (WINAPI* _FwpmFreeMemory0)(
+    _Inout_ PVOID* p
+    );
+
+typedef enum FWPM_ENGINE_OPTION_ FWPM_ENGINE_OPTION;
+typedef struct FWP_VALUE0_ FWP_VALUE0;
+
+typedef ULONG (WINAPI* _FwpmEngineSetOption0)(
+    _In_ HANDLE engineHandle,
+    _In_ FWPM_ENGINE_OPTION option,
+    _In_ const FWP_VALUE0* newValue
+    );
+
+typedef struct FWPM_FILTER0_ FWPM_FILTER0;
+
+typedef ULONG (WINAPI* _FwpmFilterGetById0)(
+   _In_ HANDLE engineHandle,
+   _In_ UINT64 id,
+   _Outptr_ FWPM_FILTER0** filter
+   );
+
+typedef ULONG (WINAPI* _FwpmNetEventSubscribe4)(
     _In_ HANDLE engineHandle,
     _In_ PVOID subscription,
     _In_ PVOID callback,
     _In_opt_ PVOID context,
     _Out_ HANDLE* eventsHandle
+    );
+
+typedef ULONG (WINAPI* _FwpmNetEventUnsubscribe0)(
+    _In_ HANDLE engineHandle,
+    _Inout_ HANDLE eventsHandle
+    );
+
+typedef struct FWPM_NET_EVENT_ENUM_TEMPLATE0_ FWPM_NET_EVENT_ENUM_TEMPLATE0;
+
+typedef ULONG (WINAPI* _FwpmNetEventCreateEnumHandle0)(
+    _In_ HANDLE engineHandle,
+    _In_opt_ const FWPM_NET_EVENT_ENUM_TEMPLATE0* enumTemplate,
+    _Out_ HANDLE* enumHandle
+    );
+
+typedef ULONG (WINAPI* _FwpmNetEventDestroyEnumHandle0)(
+   _In_ HANDLE engineHandle,
+   _Inout_ HANDLE enumHandle
+   );
+
+typedef ULONG (WINAPI* _FwpmNetEventEnum5)(
+    _In_ HANDLE engineHandle,
+    _In_ HANDLE enumHandle,
+    _In_ UINT32 numEntriesRequested,
+    _Out_ PVOID** entries,
+    _Out_ UINT32* numEntriesReturned
     );
 
 // ETW Microsoft-Windows-WFP::DirectionMap

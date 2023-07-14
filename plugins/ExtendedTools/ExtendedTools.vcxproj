@@ -71,38 +71,38 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
