@@ -871,12 +871,9 @@ BOOLEAN PhpGetDevicePropertyString(
     }
 
     if (requiredLength < sizeof(UNICODE_NULL))
-    {
-        result = FALSE;
-        goto Exit;
-    }
-
-    *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
+        *String = PhReferenceEmptyString();
+    else
+        *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
 
 Exit:
 
@@ -937,12 +934,9 @@ BOOLEAN PhpGetDeviceInterfacePropertyString(
     }
 
     if (requiredLength < sizeof(UNICODE_NULL))
-    {
-        result = FALSE;
-        goto Exit;
-    }
-
-    *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
+        *String = PhReferenceEmptyString();
+    else
+        *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
 
 Exit:
 
@@ -1001,12 +995,9 @@ BOOLEAN PhpGetClassPropertyString(
     }
 
     if (requiredLength < sizeof(UNICODE_NULL))
-    {
-        result = FALSE;
-        goto Exit;
-    }
-
-    *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
+        *String = PhReferenceEmptyString();
+    else
+        *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
 
 Exit:
 
