@@ -84,6 +84,9 @@ BOOLEAN DeviceTreeShouldIncludeDeviceItem(
 {
     if (DeviceItem->DeviceInterface)
     {
+        if (!ShowDeviceInterfaces)
+            return FALSE;
+
         if (ShowDisabledDeviceInterfaces)
             return TRUE;
 
@@ -129,27 +132,11 @@ PDEVICE_NODE DeviceTreeCreateNode(
     else
         node->Node.Visible = TRUE;
 
-    node->Children = PhCreateList(1);
-    if (Item->Children)
+    node->Children = PhCreateList(Item->ChildrenCount);
+    for (PPH_DEVICE_ITEM item = Item->Child; item; item = item->Sibling)
     {
-        for (ULONG i = 0; i < Item->Children->Count; i++)
-        {
-            PPH_DEVICE_ITEM childItem = Item->Children->Items[i];
-
-            if (DeviceTreeShouldIncludeDeviceItem(childItem))
-                PhAddItemList(node->Children, DeviceTreeCreateNode(childItem, Nodes));
-        }
-    }
-
-    if (ShowDeviceInterfaces && Item->Interfaces)
-    {
-        for (ULONG i = 0; i < Item->Interfaces->Count; i++)
-        {
-            PPH_DEVICE_ITEM interfaceItem = Item->Interfaces->Items[i];
-
-            if (DeviceTreeShouldIncludeDeviceItem(interfaceItem))
-                PhAddItemList(node->Children, DeviceTreeCreateNode(interfaceItem, Nodes));
-        }
+        if (DeviceTreeShouldIncludeDeviceItem(item))
+            PhAddItemList(node->Children, DeviceTreeCreateNode(item, Nodes));
     }
 
     if (PhGetIntegerSetting(SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME))
@@ -173,13 +160,11 @@ PDEVICE_TREE DeviceTreeCreate(
     }
     else
     {
-        tree->Roots = PhCreateList(Tree->Root->Children->AllocatedCount);
-        for (ULONG i = 0; i < Tree->Root->Children->Count; i++)
+        tree->Roots = PhCreateList(Tree->Root->ChildrenCount);
+        for (PPH_DEVICE_ITEM item = Tree->Root->Child; item; item = item->Sibling)
         {
-            PPH_DEVICE_ITEM childItem = Tree->Root->Children->Items[i];
-            
-            if (DeviceTreeShouldIncludeDeviceItem(childItem))
-                PhAddItemList(tree->Roots, DeviceTreeCreateNode(childItem, tree->Nodes));
+            if (DeviceTreeShouldIncludeDeviceItem(item))
+                PhAddItemList(tree->Roots, DeviceTreeCreateNode(item, tree->Nodes));
         }
     }
 

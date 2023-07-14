@@ -308,8 +308,6 @@ typedef struct _PH_DEVINFO_DATA
 
 typedef struct _PH_DEVICE_ITEM
 {
-    PPH_LIST Children;
-    PPH_LIST Interfaces;
     struct _PH_DEVICE_ITEM* Parent;
     struct _PH_DEVICE_ITEM* Sibling;
     struct _PH_DEVICE_ITEM* Child;
@@ -321,6 +319,8 @@ typedef struct _PH_DEVICE_ITEM
     ULONG ProblemCode;
     ULONG DevNodeStatus;
     ULONG Capabilities;
+    ULONG ChildrenCount;
+    ULONG InterfaceCount;
 
     union
     {

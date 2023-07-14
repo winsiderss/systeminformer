@@ -3370,9 +3370,6 @@ VOID PhpDeviceItemDeleteProcedure(
 {
     PPH_DEVICE_ITEM item = Object;
 
-    PhClearReference(&item->Children);
-    PhClearReference(&item->Interfaces);
-
     for (ULONG i = 0; i < ARRAYSIZE(item->Properties); i++)
     {
         PPH_DEVICE_PROPERTY prop;
@@ -3465,9 +3462,6 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceItem(
     item->DeviceInfo = PhReferenceObject(Tree->DeviceInfo);
     RtlCopyMemory(&item->DeviceInfoData.DeviceData, DeviceInfoData, sizeof(SP_DEVINFO_DATA));
     RtlCopyMemory(&item->ClassGuid, &DeviceInfoData->ClassGuid, sizeof(GUID));
-
-    item->Children = PhCreateList(1);
-    item->Interfaces = PhCreateList(1);
 
     //
     // Only get the minimum here, the rest will be retrieved later if necessary.
@@ -3567,11 +3561,20 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceInterfaceItem(
     item->ParentInstanceId = PhReferenceObject(DeviceItem->InstanceId);
     item->DeviceInterface = TRUE;
 
-    if (DeviceItem->Interfaces->Count > 0)
+    // link the interface as a "child" of the device
+    DeviceItem->InterfaceCount++;
+    if (DeviceItem->Child)
     {
-        PPH_DEVICE_ITEM sibling = DeviceItem->Interfaces->Items[DeviceItem->Interfaces->Count - 1];
-        assert(!sibling->Sibling);
+        PPH_DEVICE_ITEM sibling = DeviceItem->Child;
+
+        while (sibling->Sibling)
+            sibling = sibling->Sibling;
+
         sibling->Sibling = item;
+    }
+    else
+    {
+        DeviceItem->Child = item;
     }
 
     // if the interface has no name, override it to be the best possible name
@@ -3590,7 +3593,6 @@ PPH_DEVICE_ITEM NTAPI PhpAddDeviceInterfaceItem(
             prop->AsString = PhFormatGuid(&DeviceInterfaceData->InterfaceClassGuid);
     }
 
-    PhAddItemList(DeviceItem->Interfaces, item);
     PhAddItemList(Tree->DeviceInterfaceList, item);
 
     return item;
@@ -3767,6 +3769,7 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
             found = TRUE;
 
             item->Parent = other;
+            item->Parent->ChildrenCount++;
 
             if (!other->Child)
             {
@@ -3784,42 +3787,13 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
             break;
         }
 
-        if (found)
+        if (!found)
         {
-            continue;
-        }
-
-        other = root;
-        if (!other)
-        {
+            assert(!root);
             root = item;
-            continue;
-        }
-
-        while (other->Sibling)
-        {
-            other = other->Sibling;
-        }
-
-        other->Sibling = item;
-    }
-
-    for (ULONG i = 0; i < tree->DeviceList->Count; i++)
-    {
-        PPH_DEVICE_ITEM item;
-        PPH_DEVICE_ITEM child;
-
-        item = tree->DeviceList->Items[i];
-
-        child = item->Child;
-        while (child)
-        {
-            PhAddItemList(item->Children, child);
-            child = child->Sibling;
         }
     }
 
-    assert(root && !root->Sibling);
     tree->Root = root;
 
     // sort the list for faster lookups later

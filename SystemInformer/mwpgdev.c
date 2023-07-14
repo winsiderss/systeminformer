@@ -26,7 +26,7 @@ BOOLEAN PhpShouldNotifyForDevice(
     _In_ ULONG Type
     )
 {
-    if (Item->Children->Count > 0)
+    if (Item->ChildrenCount)
         return FALSE;
 
     if (IsEqualGUID(&Item->ClassGuid, &GUID_DEVCLASS_HIDCLASS))
