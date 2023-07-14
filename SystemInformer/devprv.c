@@ -3678,6 +3678,89 @@ VOID PhpAssociateDeviceIntefaces(
     }
 }
 
+#ifdef DEBUG
+VOID PhpCheckDeviceTree(
+    _In_ PPH_DEVICE_TREE Tree
+    )
+{
+    static ULONG runawayLimit = 5000;
+    ULONG count;
+
+    assert(!Tree->Root->Sibling);
+    assert(!Tree->Root->Parent);
+
+    for (ULONG i = 0; i < Tree->DeviceList->Count; i++)
+    {
+        PPH_DEVICE_ITEM item;
+        PPH_DEVICE_ITEM other;
+
+        item = Tree->DeviceList->Items[i];
+
+        // ensure children terminate 
+        other = item->Child;
+        count = 0;
+        while (other)
+        {
+            other = other->Child;
+            assert(count < runawayLimit);
+        }
+
+        // ensure siblings terminate
+        other = item->Sibling;
+        count = 0;
+        while (other)
+        {
+            other = other->Sibling;
+            assert(count < runawayLimit);
+        }
+
+        // ensure parents terminate
+        other = item->Parent;
+        count = 0;
+        while (other)
+        {
+            other = other->Parent;
+            assert(count < runawayLimit);
+        }
+    }
+
+    for (ULONG i = 0; i < Tree->DeviceInterfaceList->Count; i++)
+    {
+        PPH_DEVICE_ITEM item;
+        PPH_DEVICE_ITEM other;
+
+        item = Tree->DeviceInterfaceList->Items[i];
+
+        // ensure children terminate 
+        other = item->Child;
+        count = 0;
+        while (other)
+        {
+            other = other->Child;
+            assert(count < runawayLimit);
+        }
+
+        // ensure siblings terminate
+        other = item->Sibling;
+        count = 0;
+        while (other)
+        {
+            other = other->Sibling;
+            assert(count < runawayLimit);
+        }
+
+        // ensure parents terminate
+        other = item->Parent;
+        count = 0;
+        while (other)
+        {
+            other = other->Parent;
+            assert(count < runawayLimit);
+        }
+    }
+}
+#endif
+
 PPH_DEVICE_TREE PhpCreateDeviceTree(
     VOID
     )
@@ -3806,6 +3889,10 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
 
     if (interfaceClassList)
         PhFree(interfaceClassList);
+
+#ifdef DEBUG
+    PhpCheckDeviceTree(tree);
+#endif
 
     return tree;
 }
