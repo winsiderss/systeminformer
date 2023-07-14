@@ -602,20 +602,6 @@ PPH_STRING PhGetPnPDeviceName(
     _In_ PPH_STRING ObjectName
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI* DevGetObjects_I)(
-        _In_ DEV_OBJECT_TYPE ObjectType,
-        _In_ ULONG QueryFlags,
-        _In_ ULONG cRequestedProperties,
-        _In_reads_opt_(cRequestedProperties) const DEVPROPCOMPKEY *pRequestedProperties,
-        _In_ ULONG cFilterExpressionCount,
-        _In_reads_opt_(cFilterExpressionCount) const DEVPROP_FILTER_EXPRESSION *pFilter,
-        _Out_ PULONG pcObjectCount,
-        _Outptr_result_buffer_maybenull_(*pcObjectCount) const DEV_OBJECT **ppObjects) = NULL;
-    static HRESULT (WINAPI* DevFreeObjects_I)(
-        _In_ ULONG cObjectCount,
-        _In_reads_(cObjectCount) const DEV_OBJECT *pObjects) = NULL;
-
     PPH_STRING objectPnPDeviceName = NULL;
     ULONG deviceCount = 0;
     PDEV_OBJECT deviceObjects = NULL;
@@ -623,22 +609,6 @@ PPH_STRING PhGetPnPDeviceName(
     DEVPROP_FILTER_EXPRESSION deviceFilter[1];
     DEVPROPERTY deviceFilterProperty;
     DEVPROPCOMPKEY deviceFilterCompoundProp;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevGetObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevGetObjects", 0);
-            DevFreeObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevFreeObjects", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!(DevGetObjects_I && DevFreeObjects_I))
-        return NULL;
 
     memset(deviceProperties, 0, sizeof(deviceProperties));
     deviceProperties[0].Key = DEVPKEY_NAME;
@@ -661,7 +631,7 @@ PPH_STRING PhGetPnPDeviceName(
     deviceFilter[0].Operator = DEVPROP_OPERATOR_EQUALS_IGNORE_CASE;
     deviceFilter[0].Property = deviceFilterProperty;
 
-    if (SUCCEEDED(DevGetObjects_I(
+    if (HR_SUCCESS(PhDevGetObjects(
         DevObjectTypeDevice,
         DevQueryFlagNone,
         RTL_NUMBER_OF(deviceProperties),
@@ -732,7 +702,7 @@ PPH_STRING PhGetPnPDeviceName(
                 PhDereferenceObject(deviceName);
         }
 
-        DevFreeObjects_I(deviceCount, deviceObjects);
+        PhDevFreeObjects(deviceCount, deviceObjects);
     }
 
     return objectPnPDeviceName;
