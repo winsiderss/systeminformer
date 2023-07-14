@@ -973,6 +973,8 @@ NTSTATUS DevicePropertiesThreadStart(
         PhDereferenceObject(propContext);
     }
 
+    PhDereferenceObject(context->DeviceItem->Tree);
+    PhDereferenceObject(context->DeviceItem);
     PhFree(context);
 
     return STATUS_SUCCESS;
@@ -989,6 +991,8 @@ BOOLEAN DeviceShowProperties(
 
     context->ParentWindowHandle = ParentWindowHandle;
     context->DeviceItem = PhReferenceObject(DeviceItem);
+    // Since we might use the relationships of the device item, we must reference the tree too.
+    PhReferenceObject(context->DeviceItem->Tree);
 
     PhCreateThread2(DevicePropertiesThreadStart, context);
     return TRUE;
