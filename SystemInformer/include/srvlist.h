@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_SRVLIST_H
 #define PH_SRVLIST_H
 
@@ -6,11 +18,11 @@
 // Columns
 
 #define PHSVTLC_NAME 0
-#define PHSVTLC_DISPLAYNAME 1
-#define PHSVTLC_TYPE 2
-#define PHSVTLC_STATUS 3
-#define PHSVTLC_STARTTYPE 4
-#define PHSVTLC_PID 5
+#define PHSVTLC_PID 1
+#define PHSVTLC_DISPLAYNAME 2
+#define PHSVTLC_TYPE 3
+#define PHSVTLC_STATUS 4
+#define PHSVTLC_STARTTYPE 5
 
 #define PHSVTLC_BINARYPATH 6
 #define PHSVTLC_ERRORCONTROL 7

@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_NETLIST_H
 #define PH_NETLIST_H
 
@@ -6,17 +18,17 @@
 // Columns
 
 #define PHNETLC_PROCESS 0
-#define PHNETLC_LOCALADDRESS 1
-#define PHNETLC_LOCALPORT 2
-#define PHNETLC_REMOTEADDRESS 3
-#define PHNETLC_REMOTEPORT 4
-#define PHNETLC_PROTOCOL 5
-#define PHNETLC_STATE 6
-#define PHNETLC_OWNER 7
-#define PHNETLC_TIMESTAMP 8
-#define PHNETLC_LOCALHOSTNAME 9
-#define PHNETLC_REMOTEHOSTNAME 10
-#define PHNETLC_PID 11
+#define PHNETLC_PID 1
+#define PHNETLC_LOCALADDRESS 2
+#define PHNETLC_LOCALPORT 3
+#define PHNETLC_REMOTEADDRESS 4
+#define PHNETLC_REMOTEPORT 5
+#define PHNETLC_PROTOCOL 6
+#define PHNETLC_STATE 7
+#define PHNETLC_OWNER 8
+#define PHNETLC_TIMESTAMP 9
+#define PHNETLC_LOCALHOSTNAME 10
+#define PHNETLC_REMOTEHOSTNAME 11
 #define PHNETLC_TIMELINE 12
 #define PHNETLC_MAXIMUM 13
 
