@@ -115,6 +115,9 @@ VOID PhMwpInitializesDeviceNotifications(
     VOID
     )
 {
+    if (!PhDeviceProviderInitialization())
+        return;
+
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent),
         PhpDeviceProviderCallbackHandler,

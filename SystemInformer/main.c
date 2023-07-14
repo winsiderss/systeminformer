@@ -1066,8 +1066,6 @@ BOOLEAN PhInitializeAppSystem(
         return FALSE;
     if (!PhNetworkProviderInitialization())
         return FALSE;
-    if (!PhDeviceProviderInitialization())
-        return FALSE;
 
     PhSetHandleClientIdFunction(PhGetClientIdName);
 
