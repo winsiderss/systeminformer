@@ -205,7 +205,7 @@ PPH_STRING EtMakeTpmAttributesString(
     PhInitFormatSR(&format[0], attributesString->sr);
     PhInitFormatS(&format[1], L" (0x");
     PhInitFormatX(&format[2], Attributes);
-    PhInitFormatS(&format[3], L" )");
+    PhInitFormatS(&format[3], L")");
     string = PhFormat(format, RTL_NUMBER_OF(format), 1);
     PhDereferenceObject(attributesString);
 
