@@ -746,6 +746,43 @@ NTSTATUS PhUnlockFileStream(
         );
 }
 
+NTSTATUS PhSetAllocationSizeFileStream(
+    _Inout_ PPH_FILE_STREAM FileStream,
+    _In_ PLARGE_INTEGER AllocationSize
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    FILE_END_OF_FILE_INFORMATION endOfFileInfo;
+    FILE_ALLOCATION_INFORMATION allocationInfo;
+
+    memset(&endOfFileInfo, 0, sizeof(FILE_END_OF_FILE_INFORMATION));
+    endOfFileInfo.EndOfFile.QuadPart = AllocationSize->QuadPart;
+
+    if (!NT_SUCCESS(status = NtSetInformationFile(
+        FileStream->FileHandle,
+        &isb,
+        &endOfFileInfo,
+        sizeof(FILE_END_OF_FILE_INFORMATION),
+        FileEndOfFileInformation
+        )))
+        return status;
+
+    memset(&allocationInfo, 0, sizeof(FILE_ALLOCATION_INFORMATION));
+    allocationInfo.AllocationSize.QuadPart = AllocationSize->QuadPart;
+
+    if (!NT_SUCCESS(status = NtSetInformationFile(
+        FileStream->FileHandle,
+        &isb,
+        &allocationInfo,
+        sizeof(FILE_ALLOCATION_INFORMATION),
+        FileAllocationInformation
+        )))
+        return status;
+
+    return status;
+}
+
 NTSTATUS PhWriteStringAsUtf8FileStream(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PPH_STRINGREF String
