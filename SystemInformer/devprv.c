@@ -3004,76 +3004,47 @@ PPH_STRING PhpDevSysPowerPowerDataString(
     PPH_STRING capabilities;
     PPH_STRING string;
 
-    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_MostRecentPowerState));
-    count++; // TODO(jxy-s) if PhInitFormat were inline instead of macros we could clean this up
+    PhInitFormatSR(&format[count++], *PhpDevPowerStateString(PowerData->PD_MostRecentPowerState));
     if (PowerData->PD_D1Latency)
     {
-        PhInitFormatS(&format[count], L", ");
-        count++;
-        PhInitFormatU(&format[count], PowerData->PD_D1Latency);
-        count++;
-        PhInitFormatS(&format[count], L" D1 latency");
-        count++;
+        PhInitFormatS(&format[count++], L", ");
+        PhInitFormatU(&format[count++], PowerData->PD_D1Latency);
+        PhInitFormatS(&format[count++], L" D1 latency");
     }
     if (PowerData->PD_D2Latency)
     {
-        PhInitFormatS(&format[count], L", ");
-        count++;
-        PhInitFormatU(&format[count], PowerData->PD_D2Latency);
-        count++;
-        PhInitFormatS(&format[count], L" D2 latency");
-        count++;
+        PhInitFormatS(&format[count++], L", ");
+        PhInitFormatU(&format[count++], PowerData->PD_D2Latency);
+        PhInitFormatS(&format[count++], L" D2 latency");
     }
     if (PowerData->PD_D2Latency)
     {
-        PhInitFormatS(&format[count], L", ");
-        count++;
-        PhInitFormatU(&format[count], PowerData->PD_D3Latency);
-        count++;
-        PhInitFormatS(&format[count], L" D3 latency");
-        count++;
+        PhInitFormatS(&format[count++], L", ");
+        PhInitFormatU(&format[count++], PowerData->PD_D3Latency);
+        PhInitFormatS(&format[count++], L" D3 latency");
     }
-    PhInitFormatS(&format[count], L", S0->");
-    count++;
-    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemWorking]));
-    count++;
-    PhInitFormatS(&format[count], L", S1->");
-    count++;
-    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping1]));
-    count++;
-    PhInitFormatS(&format[count], L", S2->");
-    count++;
-    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping2]));
-    count++;
-    PhInitFormatS(&format[count], L", S3->");
-    count++;
-    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping3]));
-    count++;
-    PhInitFormatS(&format[count], L", S4->");
-    count++;
-    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemHibernate]));
-    count++;
-    PhInitFormatS(&format[count], L", S5->");
-    count++;
-    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemShutdown]));
-    count++;
+    PhInitFormatS(&format[count++], L", S0->");
+    PhInitFormatSR(&format[count++], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemWorking]));
+    PhInitFormatS(&format[count++], L", S1->");
+    PhInitFormatSR(&format[count++], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping1]));
+    PhInitFormatS(&format[count++], L", S2->");
+    PhInitFormatSR(&format[count++], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping2]));
+    PhInitFormatS(&format[count++], L", S3->");
+    PhInitFormatSR(&format[count++], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping3]));
+    PhInitFormatS(&format[count++], L", S4->");
+    PhInitFormatSR(&format[count++], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemHibernate]));
+    PhInitFormatS(&format[count++], L", S5->");
+    PhInitFormatSR(&format[count++], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemShutdown]));
     capabilities = PhGetAccessString(PowerData->PD_Capabilities, (PVOID)pdCap, RTL_NUMBER_OF(pdCap));
-    PhInitFormatS(&format[count], L", (");
-    count++;
-    PhInitFormatSR(&format[count], capabilities->sr);
-    count++;
-    PhInitFormatS(&format[count], L" (0x");
-    count++;
-    PhInitFormatX(&format[count], PowerData->PD_Capabilities);
-    count++;
-    PhInitFormatS(&format[count], L"))");
-    count++;
+    PhInitFormatS(&format[count++], L", (");
+    PhInitFormatSR(&format[count++], capabilities->sr);
+    PhInitFormatS(&format[count++], L" (0x");
+    PhInitFormatX(&format[count++], PowerData->PD_Capabilities);
+    PhInitFormatS(&format[count++], L"))");
     if (PowerData->PD_DeepestSystemWake != PowerSystemUnspecified)
     {
-        PhInitFormatS(&format[count], L", Deepest wake ");
-        count++;
-        PhInitFormatSR(&format[count], *PhpDevSysPowerStateString(PowerData->PD_DeepestSystemWake));
-        count++;
+        PhInitFormatS(&format[count++], L", Deepest wake ");
+        PhInitFormatSR(&format[count++], *PhpDevSysPowerStateString(PowerData->PD_DeepestSystemWake));
     }
 
     string = PhFormat(format, count, 20);
