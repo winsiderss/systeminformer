@@ -13,6 +13,7 @@
 #include <phplug.h>
 #include <settings.h>
 #include <mapldr.h>
+#include <secedit.h>
 
 #include <devprv.h>
 
@@ -2855,8 +2856,7 @@ VOID NTAPI PhpDevPropFillStringOrStringList(
     }
 }
 
-_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
-VOID NTAPI PhpDevPropFillBinary(
+VOID PhpDevPropFillBinaryCommon(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PPH_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* PropertyKey,
@@ -2912,10 +2912,200 @@ VOID NTAPI PhpDevPropFillBinary(
                 );
         }
     }
+}
+
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillBinary(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillBinaryCommon(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
 
     if (Property->Valid)
     {
         Property->AsString = PhBufferToHexString(Property->Binary.Buffer, Property->Binary.Size);
+    }
+}
+
+static const PH_STRINGREF UnknownString = PH_STRINGREF_INIT(L"Unk");
+
+PPH_STRINGREF PhpDevPowerStateString(
+    _In_ DEVICE_POWER_STATE PowerState
+    )
+{
+    static const PH_STRINGREF states[] =
+    {
+        PH_STRINGREF_INIT(L"Uns"), // PowerDeviceUnspecified
+        PH_STRINGREF_INIT(L"D0"),  // PowerDeviceD0
+        PH_STRINGREF_INIT(L"D1"),  // PowerDeviceD1
+        PH_STRINGREF_INIT(L"D2"),  // PowerDeviceD2
+        PH_STRINGREF_INIT(L"D3"),  // PowerDeviceD3
+        PH_STRINGREF_INIT(L"D4"),  // PowerDeviceD4
+        PH_STRINGREF_INIT(L"Max"), // PowerDeviceMaximum
+    };
+
+    if (PowerState < RTL_NUMBER_OF(states))
+        return (PPH_STRINGREF)&states[PowerState];
+
+    return (PPH_STRINGREF)&UnknownString;
+}
+
+PPH_STRINGREF PhpDevSysPowerStateString(
+    _In_ SYSTEM_POWER_STATE PowerState
+    )
+{
+    static const PH_STRINGREF states[] =
+    {
+        PH_STRINGREF_INIT(L"Uns"), // PowerSystemUnspecified
+        PH_STRINGREF_INIT(L"S0"),  // PowerSystemWorking
+        PH_STRINGREF_INIT(L"S1"),  // PowerSystemSleep1
+        PH_STRINGREF_INIT(L"S2"),  // PowerSystemSleep2
+        PH_STRINGREF_INIT(L"S3"),  // PowerSystemSleep3
+        PH_STRINGREF_INIT(L"S4"),  // PowerSystemHybernate 
+        PH_STRINGREF_INIT(L"S5"),  // PowerSystemShutdown
+        PH_STRINGREF_INIT(L"Max"), // PowerSystemMaximum
+    };
+
+    if (PowerState < RTL_NUMBER_OF(states))
+        return (PPH_STRINGREF)&states[PowerState];
+
+    return (PPH_STRINGREF)&UnknownString;
+}
+
+PPH_STRING PhpDevSysPowerPowerDataString(
+    _In_ PCM_POWER_DATA PowerData
+    )
+{
+    static const PH_ACCESS_ENTRY pdCap[9] =
+    {
+        { L"PDCAP_D0_SUPPORTED", PDCAP_D0_SUPPORTED, FALSE, FALSE, L"D0" },
+        { L"PDCAP_D1_SUPPORTED", PDCAP_D1_SUPPORTED, FALSE, FALSE, L"D1" },
+        { L"PDCAP_D2_SUPPORTED", PDCAP_D2_SUPPORTED, FALSE, FALSE, L"D2" },
+        { L"PDCAP_D3_SUPPORTED", PDCAP_D3_SUPPORTED, FALSE, FALSE, L"D3" },
+        { L"PDCAP_WAKE_FROM_D0_SUPPORTED", PDCAP_WAKE_FROM_D0_SUPPORTED, FALSE, FALSE, L"Wake from D0" },
+        { L"PDCAP_WAKE_FROM_D1_SUPPORTED", PDCAP_WAKE_FROM_D1_SUPPORTED, FALSE, FALSE, L"Wake from D1" },
+        { L"PDCAP_WAKE_FROM_D2_SUPPORTED", PDCAP_WAKE_FROM_D2_SUPPORTED, FALSE, FALSE, L"Wake from D2" },
+        { L"PDCAP_WAKE_FROM_D3_SUPPORTED", PDCAP_WAKE_FROM_D3_SUPPORTED, FALSE, FALSE, L"Wake from D3" },
+        { L"PDCAP_WARM_EJECT_SUPPORTED", PDCAP_WARM_EJECT_SUPPORTED, FALSE, FALSE, L"Warm eject" },
+    };
+
+    PH_FORMAT format[29];
+    ULONG count = 0;
+    PPH_STRING capabilities;
+    PPH_STRING string;
+
+    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_MostRecentPowerState));
+    count++; // TODO(jxy-s) if PhInitFormat were inline instead of macros we could clean this up
+    if (PowerData->PD_D1Latency)
+    {
+        PhInitFormatS(&format[count], L", ");
+        count++;
+        PhInitFormatU(&format[count], PowerData->PD_D1Latency);
+        count++;
+        PhInitFormatS(&format[count], L" D1 latency");
+        count++;
+    }
+    if (PowerData->PD_D2Latency)
+    {
+        PhInitFormatS(&format[count], L", ");
+        count++;
+        PhInitFormatU(&format[count], PowerData->PD_D2Latency);
+        count++;
+        PhInitFormatS(&format[count], L" D2 latency");
+        count++;
+    }
+    if (PowerData->PD_D2Latency)
+    {
+        PhInitFormatS(&format[count], L", ");
+        count++;
+        PhInitFormatU(&format[count], PowerData->PD_D3Latency);
+        count++;
+        PhInitFormatS(&format[count], L" D3 latency");
+        count++;
+    }
+    PhInitFormatS(&format[count], L", S0->");
+    count++;
+    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemWorking]));
+    count++;
+    PhInitFormatS(&format[count], L", S1->");
+    count++;
+    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping1]));
+    count++;
+    PhInitFormatS(&format[count], L", S2->");
+    count++;
+    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping2]));
+    count++;
+    PhInitFormatS(&format[count], L", S3->");
+    count++;
+    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemSleeping3]));
+    count++;
+    PhInitFormatS(&format[count], L", S4->");
+    count++;
+    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemHibernate]));
+    count++;
+    PhInitFormatS(&format[count], L", S5->");
+    count++;
+    PhInitFormatSR(&format[count], *PhpDevPowerStateString(PowerData->PD_PowerStateMapping[PowerSystemShutdown]));
+    count++;
+    capabilities = PhGetAccessString(PowerData->PD_Capabilities, (PVOID)pdCap, RTL_NUMBER_OF(pdCap));
+    PhInitFormatS(&format[count], L", (");
+    count++;
+    PhInitFormatSR(&format[count], capabilities->sr);
+    count++;
+    PhInitFormatS(&format[count], L" (0x");
+    count++;
+    PhInitFormatX(&format[count], PowerData->PD_Capabilities);
+    count++;
+    PhInitFormatS(&format[count], L"))");
+    count++;
+    if (PowerData->PD_DeepestSystemWake != PowerSystemUnspecified)
+    {
+        PhInitFormatS(&format[count], L", Deepest wake ");
+        count++;
+        PhInitFormatSR(&format[count], *PhpDevSysPowerStateString(PowerData->PD_DeepestSystemWake));
+        count++;
+    }
+
+    string = PhFormat(format, count, 20);
+
+    PhDereferenceObject(capabilities);
+
+    return string;
+}
+
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillPowerData(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillBinaryCommon(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
+
+    if (Property->Valid)
+    {
+        if (Property->Binary.Size >= sizeof(CM_POWER_DATA))
+            Property->AsString = PhpDevSysPowerPowerDataString((PCM_POWER_DATA)Property->Binary.Buffer);
+        else
+            Property->AsString = PhBufferToHexString(Property->Binary.Buffer, Property->Binary.Size);
     }
 }
 
@@ -2964,7 +3154,7 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyExclusive, &DEVPKEY_Device_Exclusive, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyCharacteristics, &DEVPKEY_Device_Characteristics, PhpDevPropFillUInt32Hex, 0 },
     { PhDevicePropertyAddress, &DEVPKEY_Device_Address, PhpDevPropFillUInt32Hex, 0 },
-    { PhDevicePropertyPowerData, &DEVPKEY_Device_PowerData, PhpDevPropFillBinary, 0 }, // TODO(jxy-s) CM_POWER_DATA could be formatted AsString nicer
+    { PhDevicePropertyPowerData, &DEVPKEY_Device_PowerData, PhpDevPropFillPowerData, 0 },
     { PhDevicePropertyRemovalPolicy, &DEVPKEY_Device_RemovalPolicy, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyRemovalPolicyDefault, &DEVPKEY_Device_RemovalPolicyDefault, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyRemovalPolicyOverride, &DEVPKEY_Device_RemovalPolicyOverride, PhpDevPropFillUInt32, 0 },
