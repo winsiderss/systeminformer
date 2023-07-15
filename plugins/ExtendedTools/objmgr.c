@@ -5,25 +5,31 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "exttools.h"
 #include <secedit.h>
+#include <hndlinfo.h>
 
 static PH_STRINGREF EtObjectManagerRootDirectoryObject = PH_STRINGREF_INIT(L"\\"); // RtlNtPathSeperatorString
 static HWND EtObjectManagerDialogHandle = NULL;
 static HANDLE EtObjectManagerDialogThreadHandle = NULL;
 static PH_EVENT EtObjectManagerDialogInitializedEvent = PH_EVENT_INIT;
 
-typedef struct _OBJECT_ENTRY
+typedef struct _ET_OBJECT_ENTRY
 {
     PPH_STRING Name;
     PPH_STRING TypeName;
-} OBJECT_ENTRY, *POBJECT_ENTRY;
+} ET_OBJECT_ENTRY, *POBJECT_ENTRY;
 
-typedef struct _OBJ_CONTEXT
+typedef struct _ET_OBJECT_ITEM
+{
+    PPH_STRING Name;
+} ET_OBJECT_ITEM, *POBJECT_ITEM;
+
+typedef struct _ET_OBJECT_CONTEXT
 {
     HWND WindowHandle;
     HWND ParentWindowHandle;
@@ -36,7 +42,7 @@ typedef struct _OBJ_CONTEXT
 
     HIMAGELIST TreeImageList;
     HIMAGELIST ListImageList;
-} OBJ_CONTEXT, *POBJ_CONTEXT;
+} ET_OBJECT_CONTEXT, *POBJECT_CONTEXT;
 
 typedef struct _DIRECTORY_ENUM_CONTEXT
 {
@@ -45,63 +51,93 @@ typedef struct _DIRECTORY_ENUM_CONTEXT
     PH_STRINGREF DirectoryPath;
 } DIRECTORY_ENUM_CONTEXT, *PDIRECTORY_ENUM_CONTEXT;
 
-NTSTATUS EnumDirectoryObjects(
+NTSTATUS EtTreeViewEnumDirectoryObjects(
     _In_ HWND TreeViewHandle,
     _In_ HTREEITEM RootTreeItem,
     _In_ PH_STRINGREF DirectoryPath
     );
 
-PPH_STRING EtGetSelectedTreeViewPath(
-    _In_ POBJ_CONTEXT Context
+_Success_(return)
+BOOLEAN PhGetTreeViewItemParam(
+    _In_ HWND TreeViewHandle,
+    _In_ HTREEITEM TreeItemHandle,
+    _Outptr_ PVOID *Param,
+    _Out_opt_ PULONG Children
     )
 {
-    HTREEITEM treeItem;
+    TVITEM item;
+
+    memset(&item, 0, sizeof(TVITEM));
+    item.mask = TVIF_HANDLE | TVIF_PARAM | (Children ? TVIF_CHILDREN : 0);
+    item.hItem = TreeItemHandle;
+
+    if (!TreeView_GetItem(TreeViewHandle, &item))
+        return FALSE;
+
+    *Param = (PVOID)item.lParam;
+
+    if (Children)
+        *Children = item.cChildren;
+
+    return TRUE;
+}
+
+PPH_STRING EtGetSelectedTreeViewPath(
+    _In_ POBJECT_CONTEXT Context
+    )
+{
     PPH_STRING treePath = NULL;
-    WCHAR buffer[MAX_PATH] = L"";
+    HTREEITEM treeItem;
 
     treeItem = Context->SelectedTreeItem;
 
     while (treeItem != Context->RootTreeObject)
     {
-        TVITEM tvItem;
-        tvItem.mask = TVIF_PARAM | TVIF_HANDLE | TVIF_TEXT;
-        tvItem.hItem = treeItem;
-        tvItem.pszText = buffer;
-        tvItem.cchTextMax = ARRAYSIZE(buffer);
+        POBJECT_ITEM item;
 
-        if (!TreeView_GetItem(Context->TreeViewHandle, &tvItem))
+        if (!PhGetTreeViewItemParam(Context->TreeViewHandle, treeItem, &item, NULL))
             break;
 
         if (treePath)
-            treePath = PhaConcatStrings(3, buffer, RtlNtPathSeperatorString.Buffer, treePath->Buffer);
+            treePath = PH_AUTO(PhConcatStringRef3(&item->Name->sr, &PhNtPathSeperatorString, &treePath->sr));
         else
-            treePath = PhaCreateString(buffer);
+            treePath = PH_AUTO(PhCreateString2(&item->Name->sr));
 
         treeItem = TreeView_GetParent(Context->TreeViewHandle, treeItem);
     }
 
-    return PhConcatStrings2(RtlNtPathSeperatorString.Buffer, PhGetStringOrEmpty(treePath));
+    if (!PhIsNullOrEmptyString(treePath))
+    {
+        return PhConcatStringRef2(&PhNtPathSeperatorString, &treePath->sr);
+    }
+
+    return PhCreateString2(&EtObjectManagerRootDirectoryObject);
 }
 
 HTREEITEM EtTreeViewAddItem(
     _In_ HWND TreeViewHandle,
     _In_ HTREEITEM Parent,
     _In_ BOOLEAN Expanded,
-    _In_ PPH_STRINGREF Text
+    _In_ PPH_STRINGREF Name
     )
 {
     TV_INSERTSTRUCT insert;
+    POBJECT_ITEM item;
 
     memset(&insert, 0, sizeof(TV_INSERTSTRUCT));
-    insert.item.mask = TVIF_TEXT | TVIF_STATE;
+    insert.item.mask = TVIF_TEXT | TVIF_PARAM | TVIF_STATE;
     insert.hInsertAfter = TVI_LAST;
     insert.hParent = Parent;
-    insert.item.pszText = Text->Buffer;
+    insert.item.pszText = LPSTR_TEXTCALLBACK;
 
     if (Expanded)
     {
         insert.item.state = insert.item.stateMask = TVIS_EXPANDED;
     }
+
+    item = PhAllocateZero(sizeof(ET_OBJECT_ITEM));
+    item->Name = PhCreateString2(Name);
+    insert.item.lParam = (LPARAM)item;
 
     return TreeView_InsertItem(TreeViewHandle, &insert);
 }
@@ -109,36 +145,33 @@ HTREEITEM EtTreeViewAddItem(
 HTREEITEM EtTreeViewFindItem(
     _In_ HWND TreeViewHandle,
     _In_ HTREEITEM ParentTreeItem,
-    _In_ PWSTR Name
+    _In_ PPH_STRINGREF Name
     )
 {
-    TVITEM treeItem;
+    HTREEITEM current;
+    HTREEITEM child;
+    POBJECT_ITEM item;
+    ULONG children;
 
     for (
-        treeItem.hItem = TreeView_GetChild(TreeViewHandle, ParentTreeItem);
-        treeItem.hItem;
-        treeItem.hItem = TreeView_GetNextSibling(TreeViewHandle, treeItem.hItem)
+        current = TreeView_GetChild(TreeViewHandle, ParentTreeItem);
+        current;
+        current = TreeView_GetNextSibling(TreeViewHandle, current)
         )
     {
-        WCHAR itemText[MAX_PATH] = L"";
-
-        treeItem.mask = TVIF_TEXT | TVIF_CHILDREN;
-        treeItem.pszText = itemText;
-        treeItem.cchTextMax = ARRAYSIZE(itemText);
-
-        if (TreeView_GetItem(TreeViewHandle, &treeItem))
+        if (PhGetTreeViewItemParam(TreeViewHandle, current, &item, &children))
         {
-            if (PhEqualStringZ(treeItem.pszText, Name, TRUE))
+            if (PhEqualStringRef(&item->Name->sr, Name, TRUE))
             {
-                return treeItem.hItem;
+                return current;
             }
 
-            if (treeItem.cChildren)
+            if (children)
             {
-                HTREEITEM item;
-
-                if (item = EtTreeViewFindItem(TreeViewHandle, treeItem.hItem, Name))
-                    return item;
+                if (child = EtTreeViewFindItem(TreeViewHandle, current, Name))
+                {
+                    return child;
+                }
             }
         }
     }
@@ -146,8 +179,36 @@ HTREEITEM EtTreeViewFindItem(
     return NULL;
 }
 
+VOID EtCleanupTreeViewItemParams(
+    _In_ POBJECT_CONTEXT Context,
+    _In_ HTREEITEM ParentTreeItem
+    )
+{
+    HTREEITEM current;
+    POBJECT_ITEM item;
+    ULONG children;
+
+    for (
+        current = TreeView_GetChild(Context->TreeViewHandle, ParentTreeItem);
+        current;
+        current = TreeView_GetNextSibling(Context->TreeViewHandle, current)
+        )
+    {
+        if (PhGetTreeViewItemParam(Context->TreeViewHandle, current, &item, &children))
+        {
+            if (children)
+            {
+                EtCleanupTreeViewItemParams(Context, current);
+            }
+
+            PhClearReference(&item->Name);
+            PhFree(item);
+        }
+    }
+}
+
 VOID EtInitializeTreeImages(
-    _In_ POBJ_CONTEXT Context
+    _In_ POBJECT_CONTEXT Context
     )
 {
     HICON icon;
@@ -177,7 +238,7 @@ VOID EtInitializeTreeImages(
 }
 
 VOID EtInitializeListImages(
-    _In_ POBJ_CONTEXT Context
+    _In_ POBJECT_CONTEXT Context
     )
 {
     HICON icon;
@@ -185,7 +246,7 @@ VOID EtInitializeListImages(
     LONG size;
 
     dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
-    size = PhGetDpi(16, dpiValue); // 24
+    size = PhGetDpi(20, dpiValue); // 24
 
     Context->ListImageList = PhImageListCreate(
         size,
@@ -235,69 +296,52 @@ VOID EtInitializeListImages(
     DestroyIcon(icon);
 }
 
-static BOOLEAN NTAPI EnumDirectoryObjectsCallback(
+static BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
-    _In_ PVOID Context
+    _In_ PDIRECTORY_ENUM_CONTEXT Context
     )
 {
-    PDIRECTORY_ENUM_CONTEXT context = (PDIRECTORY_ENUM_CONTEXT)Context;
-
-    if (PhEqualStringZ(TypeName->Buffer, L"Directory", TRUE))
+    if (PhEqualStringRef2(TypeName, L"Directory", TRUE))
     {
-        PPH_STRING childDirectoryPath;
+        PPH_STRING currentPath;
         HTREEITEM currentItem;
 
-        if (PhEqualStringRef(&context->DirectoryPath, &EtObjectManagerRootDirectoryObject, TRUE))
-        {
-            childDirectoryPath = PhConcatStringRef2(
-                &context->DirectoryPath,
-                Name
-                );
-        }
+        if (PhEqualStringRef(&Context->DirectoryPath, &EtObjectManagerRootDirectoryObject, TRUE))
+            currentPath = PhConcatStringRef2(&Context->DirectoryPath, Name);
         else
-        {
-            childDirectoryPath = PhConcatStrings(
-                3,
-                context->DirectoryPath.Buffer,
-                RtlNtPathSeperatorString.Buffer,
-                Name->Buffer
-                );
-        }
+            currentPath = PhConcatStringRef3(&Context->DirectoryPath, &PhNtPathSeperatorString, Name);
 
         currentItem = EtTreeViewAddItem(
-            context->TreeViewHandle,
-            context->RootTreeItem,
+            Context->TreeViewHandle,
+            Context->RootTreeItem,
             FALSE,
             Name
             );
 
-        // Recursively enumerate all subdirectories.
-        EnumDirectoryObjects(
-            context->TreeViewHandle,
+        EtTreeViewEnumDirectoryObjects(
+            Context->TreeViewHandle,
             currentItem,
-            PhGetStringRef(childDirectoryPath)
+            PhGetStringRef(currentPath)
             );
 
-        PhDereferenceObject(childDirectoryPath);
+        PhDereferenceObject(currentPath);
     }
 
     return TRUE;
 }
 
-static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
+static BOOLEAN NTAPI EtEnumCurrentDirectoryObjectsCallback(
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
-    _In_ PVOID Context
+    _In_ POBJECT_CONTEXT Context
     )
 {
-    POBJ_CONTEXT context = (POBJ_CONTEXT)Context;
-
-    if (PhEqualStringZ(TypeName->Buffer, L"Directory", TRUE))
+    if (PhEqualStringRef2(TypeName, L"Directory", TRUE))
     {
-        if (!EtTreeViewFindItem(context->TreeViewHandle, context->SelectedTreeItem, Name->Buffer))
+        if (!EtTreeViewFindItem(Context->TreeViewHandle, Context->SelectedTreeItem, Name))
         {
-            EtTreeViewAddItem(context->TreeViewHandle, context->SelectedTreeItem, TRUE, Name);
+            EtTreeViewAddItem(Context->TreeViewHandle, Context->SelectedTreeItem, TRUE, Name);
         }
     }
     else
@@ -306,7 +350,7 @@ static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
         INT imageIndex;
         POBJECT_ENTRY entry;
 
-        entry = PhAllocateZero(sizeof(OBJECT_ENTRY));
+        entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
         entry->Name = PhCreateString2(Name);
         entry->TypeName = PhCreateString2(TypeName);
 
@@ -351,77 +395,17 @@ static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
             imageIndex = 0;
         }
 
-        index = PhAddListViewItem(
-            context->ListViewHandle,
-            MAXINT,
-            Name->Buffer,
-            entry
-            );
-
-        PhSetListViewItemImageIndex(
-            context->ListViewHandle,
-            index,
-            imageIndex
-            );
-
-        PhSetListViewSubItem(
-            context->ListViewHandle,
-            index,
-            1,
-            TypeName->Buffer
-            );
+        index = PhAddListViewItem(Context->ListViewHandle, MAXINT, PhGetStringRefZ(Name), entry);
+        PhSetListViewItemImageIndex(Context->ListViewHandle, index, imageIndex);
+        PhSetListViewSubItem(Context->ListViewHandle, index, 1, PhGetStringRefZ(TypeName));
     }
 
     return TRUE;
 }
 
-NTSTATUS EnumDirectoryObjects(
+NTSTATUS EtTreeViewEnumDirectoryObjects(
     _In_ HWND TreeViewHandle,
     _In_ HTREEITEM RootTreeItem,
-    _In_ PH_STRINGREF DirectoryPath
-    )
-{
-    HANDLE directoryHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectName;
-
-    PhStringRefToUnicodeString(&DirectoryPath, &objectName);
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectName,
-        OBJ_CASE_INSENSITIVE,
-        NULL,
-        NULL
-        );
-
-    if (NT_SUCCESS(NtOpenDirectoryObject(
-        &directoryHandle,
-        DIRECTORY_QUERY,
-        &objectAttributes
-        )))
-    {
-        DIRECTORY_ENUM_CONTEXT enumContext;
-
-        enumContext.TreeViewHandle = TreeViewHandle;
-        enumContext.RootTreeItem = RootTreeItem;
-        enumContext.DirectoryPath = DirectoryPath;
-
-        PhEnumDirectoryObjects(
-            directoryHandle,
-            EnumDirectoryObjectsCallback,
-            &enumContext
-            );
-
-        NtClose(directoryHandle);
-    }
-
-    TreeView_SortChildren(TreeViewHandle, RootTreeItem, TRUE);
-
-    return STATUS_SUCCESS;
-}
-
-NTSTATUS EnumCurrentDirectoryObjects(
-    _In_ POBJ_CONTEXT Context,
     _In_ PH_STRINGREF DirectoryPath
     )
 {
@@ -447,9 +431,61 @@ NTSTATUS EnumCurrentDirectoryObjects(
 
     if (NT_SUCCESS(status))
     {
+        DIRECTORY_ENUM_CONTEXT enumContext;
+
+        enumContext.TreeViewHandle = TreeViewHandle;
+        enumContext.RootTreeItem = RootTreeItem;
+        enumContext.DirectoryPath = DirectoryPath;
+
         status = PhEnumDirectoryObjects(
             directoryHandle,
-            EnumCurrentDirectoryObjectsCallback,
+            EtEnumDirectoryObjectsCallback,
+            &enumContext
+            );
+
+        NtClose(directoryHandle);
+    }
+
+    TreeView_SortChildren(TreeViewHandle, RootTreeItem, TRUE);
+
+    return status;
+}
+
+NTSTATUS EtEnumCurrentDirectoryObjects(
+    _In_ POBJECT_CONTEXT Context,
+    _In_ PH_STRINGREF DirectoryPath
+    )
+{
+    NTSTATUS status;
+    HANDLE directoryHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectName;
+
+    //if (!EtTreeViewFindItem(Context->TreeViewHandle, Context->SelectedTreeItem, &DirectoryPath))
+    //{
+    //    EtTreeViewAddItem(Context->TreeViewHandle, Context->SelectedTreeItem, TRUE, &DirectoryPath);
+    //}
+
+    PhStringRefToUnicodeString(&DirectoryPath, &objectName);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenDirectoryObject(
+        &directoryHandle,
+        DIRECTORY_QUERY,
+        &objectAttributes
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhEnumDirectoryObjects(
+            directoryHandle,
+            EtEnumCurrentDirectoryObjectsCallback,
             Context
             );
 
@@ -707,10 +743,20 @@ NTSTATUS EtObjectManagerHandleCloseCallback(
 {
     PHANDLE_OPEN_CONTEXT context = Context;
 
-    if (context->CurrentPath)
-        PhDereferenceObject(context->CurrentPath);
-    PhFree(context);
+    if (context->Object)
+    {
+        POBJECT_ENTRY entry = context->Object;
+        PhClearReference(&entry->Name);
+        PhClearReference(&entry->TypeName);
+        PhFree(entry);
+    }
 
+    if (context->CurrentPath)
+    {
+        PhClearReference(&context->CurrentPath);
+    }
+
+    PhFree(context);
     return STATUS_SUCCESS;
 }
 
@@ -745,11 +791,11 @@ INT_PTR CALLBACK WinObjDlgProc(
     _In_ LPARAM lParam
     )
 {
-    POBJ_CONTEXT context = NULL;
+    POBJECT_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocateZero(sizeof(OBJ_CONTEXT));
+        context = PhAllocateZero(sizeof(ET_OBJECT_CONTEXT));
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -800,7 +846,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            EnumDirectoryObjects(
+            EtTreeViewEnumDirectoryObjects(
                 context->TreeViewHandle,
                 context->RootTreeObject,
                 EtObjectManagerRootDirectoryObject
@@ -813,6 +859,8 @@ INT_PTR CALLBACK WinObjDlgProc(
         break;
     case WM_DESTROY:
         {
+            EtCleanupTreeViewItemParams(context, context->RootTreeObject);
+
             if (context->TreeImageList)
                 PhImageListDestroy(context->TreeImageList);
             if (context->ListImageList)
@@ -822,10 +870,13 @@ INT_PTR CALLBACK WinObjDlgProc(
             PhSaveListViewColumnsToSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PostQuitMessage(0);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
-
-            PostQuitMessage(0);
         }
         break;
     case WM_PH_SHOW_DIALOG:
@@ -859,6 +910,9 @@ INT_PTR CALLBACK WinObjDlgProc(
             {
             case TVN_SELCHANGED:
                 {
+                    if (header->hwndFrom != context->TreeViewHandle)
+                        break;
+
                     context->SelectedTreeItem = TreeView_GetSelection(context->TreeViewHandle);
 
                     ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
@@ -866,13 +920,13 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     if (context->SelectedTreeItem == context->RootTreeObject)
                     {
-                        EnumCurrentDirectoryObjects(context, EtObjectManagerRootDirectoryObject);
+                        EtEnumCurrentDirectoryObjects(context, EtObjectManagerRootDirectoryObject);
                     }
                     else
                     {
                         PPH_STRING selectedPath = EtGetSelectedTreeViewPath(context);
 
-                        EnumCurrentDirectoryObjects(
+                        EtEnumCurrentDirectoryObjects(
                             context,
                             PhGetStringRef(selectedPath)
                             );
@@ -883,6 +937,21 @@ INT_PTR CALLBACK WinObjDlgProc(
                     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
                 }
                 break;
+            case TVN_GETDISPINFO:
+                {
+                    NMTVDISPINFO* dispInfo = (NMTVDISPINFO*)header;
+
+                    if (header->hwndFrom != context->TreeViewHandle)
+                        break;
+
+                    if (FlagOn(dispInfo->item.mask, TVIF_TEXT))
+                    {
+                        POBJECT_ITEM entry = (POBJECT_ITEM)dispInfo->item.lParam;
+
+                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, entry->Name->Buffer, _TRUNCATE);
+                    }
+                }
+                break;
             case NM_SETCURSOR:
                 {
                     if (header->hwndFrom == context->TreeViewHandle)
@@ -890,6 +959,22 @@ INT_PTR CALLBACK WinObjDlgProc(
                         PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
                         return TRUE;
+                    }
+                }
+                break;
+            case NM_DBLCLK:
+                {
+                    POBJECT_ENTRY item;
+
+                    if (header->hwndFrom != context->ListViewHandle)
+                        break;
+
+                    if (item = PhGetSelectedListViewItemParam(context->ListViewHandle))
+                    {
+                        //if (PhEqualStringRef2(&item->TypeName->sr, L"SymbolicLink", TRUE))
+                        //{
+                        //    PPH_STRING currentPath = EtGetSelectedTreeViewPath(context);
+                        //}
                     }
                 }
                 break;
@@ -1038,12 +1123,12 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                                     name = EtGetSelectedTreeViewPath(context);
 
-                                    entry = PhAllocateZero(sizeof(OBJECT_ENTRY));
-                                    entry->Name = name;
+                                    entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
+                                    entry->Name = PhReferenceObject(name);
                                     entry->TypeName = PhCreateString(L"DirectoryObject");
 
                                     objectContext = PhAllocateZero(sizeof(HANDLE_OPEN_CONTEXT));
-                                    objectContext->CurrentPath = name;
+                                    objectContext->CurrentPath = PhReferenceObject(name);
                                     objectContext->Object = entry;
 
                                     if (NT_SUCCESS(status = EtObjectManagerOpenHandle(&objectHandle, objectContext, READ_CONTROL)))
@@ -1063,7 +1148,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                                         EtObjectManagerHandleCloseCallback(objectContext);
                                     }
 
-                                    //PhFree(entry);
+                                    PhDereferenceObject(name);
                                 }
                                 break;
                             }
