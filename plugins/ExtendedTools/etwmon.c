@@ -145,26 +145,26 @@ VOID EtStartEtwSession(
     if (EtWindowsVersion >= WINDOWS_8)
         EtpTraceProperties->LogFileMode |= EVENT_TRACE_SYSTEM_LOGGER_MODE;
 
-    status = StartTrace(
-        &traceHandle,
+    // Get the existing session handle.
+    status = ControlTrace(
+        0,
         EtpActualKernelLoggerName->Buffer,
-        EtpTraceProperties
+        EtpTraceProperties,
+        EVENT_TRACE_CONTROL_QUERY
         );
 
-    if (status == ERROR_ALREADY_EXISTS)
+    if (status == ERROR_SUCCESS)
     {
-        // Get the existing session handle.
-        status = ControlTrace(
-            0,
+        traceHandle = EtpTraceProperties->Wnode.HistoricalContext;
+    }
+    else
+    {
+        EtpTraceProperties->LogFileNameOffset = 0;
+        status = StartTrace(
+            &traceHandle,
             EtpActualKernelLoggerName->Buffer,
-            EtpTraceProperties,
-            EVENT_TRACE_CONTROL_QUERY
+            EtpTraceProperties
             );
-
-        if (status == ERROR_SUCCESS)
-        {
-            traceHandle = EtpTraceProperties->Wnode.HistoricalContext;
-        }
     }
 
     // Enable stack tracing.
