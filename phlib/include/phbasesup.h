@@ -1258,6 +1258,22 @@ PhCreateString3(
     );
 
 FORCEINLINE
+PPH_STRING
+NTAPI
+PhTrimStringZ(
+    _In_ PPH_STRINGREF String,
+    _In_ ULONG Flags,
+    _In_ PWSTR TrimCharSet
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, TrimCharSet);
+
+    return PhCreateString3(String, Flags, &string);
+}
+
+FORCEINLINE
 WCHAR
 NTAPI
 PhUpcaseUnicodeChar(
