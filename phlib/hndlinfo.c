@@ -1594,92 +1594,76 @@ NTSTATUS PhpGetBestObjectName(
 
         if (commsInfo.ClientCommunicationPort.OwnerProcessId == processInfo.UniqueProcessId)
         {
-            PhInitFormatS(&format[formatCount], L"Client: ");
-            formatCount++;
+            PhInitFormatS(&format[formatCount++], L"Client: ");
             if (commsInfo.ServerCommunicationPort.OwnerProcessId)
             {
-                PhInitFormatS(&format[formatCount], L"Connection to ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Connection to ");
                 clientId.UniqueProcess = commsInfo.ServerCommunicationPort.OwnerProcessId;
                 clientId.UniqueThread = 0;
                 name = PhStdGetClientIdName(&clientId);
             }
             else if (commsInfo.ClientCommunicationPort.ConnectionRefused)
             {
-                PhInitFormatS(&format[formatCount], L"Refused ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Refused ");
             }
             else if (commsInfo.ClientCommunicationPort.Closed)
             {
-                PhInitFormatS(&format[formatCount], L"Closed ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Closed ");
             }
             else if (commsInfo.ClientCommunicationPort.Disconnected)
             {
-                PhInitFormatS(&format[formatCount], L"Disconnected ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Disconnected ");
             }
             else if (commsInfo.ClientCommunicationPort.ConnectionPending)
             {
-                PhInitFormatS(&format[formatCount], L"Pending ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Pending ");
             }
         }
         else if (commsInfo.ServerCommunicationPort.OwnerProcessId == processInfo.UniqueProcessId)
         {
-            PhInitFormatS(&format[formatCount], L"Server: ");
-            formatCount++;
+            PhInitFormatS(&format[formatCount++], L"Server: ");
             if (commsInfo.ClientCommunicationPort.OwnerProcessId)
             {
-                PhInitFormatS(&format[formatCount], L" Connection from ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L" Connection from ");
                 clientId.UniqueProcess = commsInfo.ClientCommunicationPort.OwnerProcessId;
                 clientId.UniqueThread = 0;
                 name = PhStdGetClientIdName(&clientId);
             }
             else if (commsInfo.ClientCommunicationPort.ConnectionRefused)
             {
-                PhInitFormatS(&format[formatCount], L"Refused ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Refused ");
             }
             else if (commsInfo.ServerCommunicationPort.Closed)
             {
-                PhInitFormatS(&format[formatCount], L"Closed ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Closed ");
             }
             else if (commsInfo.ServerCommunicationPort.Disconnected)
             {
-                PhInitFormatS(&format[formatCount], L"Disconnected ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Disconnected ");
             }
             else if (commsInfo.ServerCommunicationPort.ConnectionPending)
             {
-                PhInitFormatS(&format[formatCount], L"Pending ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Pending ");
             }
         }
         else if (commsInfo.ConnectionPort.OwnerProcessId == processInfo.UniqueProcessId)
         {
-            PhInitFormatS(&format[formatCount], L"Connection: ");
-            formatCount++;
+            PhInitFormatS(&format[formatCount++], L"Connection: ");
         }
 
         if (name)
         {
-            PhInitFormatSR(&format[formatCount], name->sr);
-            formatCount++;
+            PhInitFormatSR(&format[formatCount++], name->sr);
 
             if (namesInfo && namesInfo->ConnectionPort.Length > 0)
             {
-                PhInitFormatS(&format[formatCount], L" on ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L" on ");
             }
         }
 
         if (namesInfo && namesInfo->ConnectionPort.Length > 0)
         {
-            PhInitFormatUCS(&format[formatCount], &namesInfo->ConnectionPort);
-            formatCount++;
+            PhInitFormatUCS(&format[formatCount++], &namesInfo->ConnectionPort);
         }
 
         if (formatCount > 0)
