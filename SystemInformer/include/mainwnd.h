@@ -168,7 +168,7 @@ typedef enum _PH_MAIN_TAB_PAGE_MESSAGE
 {
     MainTabPageCreate,
     MainTabPageDestroy,
-    MainTabPageCreateWindow, // HWND *Parameter1 (WindowHandle)
+    MainTabPageCreateWindow, // HWND *Parameter1 (WindowHandle), HWND Parameter2 (ParentWindow)
     MainTabPageSelected, // BOOLEAN Parameter1 (Selected)
     MainTabPageInitializeSectionMenuItems, // PPH_MAIN_TAB_PAGE_MENU_INFORMATION Parameter1
 

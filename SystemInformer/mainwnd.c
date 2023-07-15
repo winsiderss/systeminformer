@@ -543,7 +543,7 @@ NTSTATUS PhMwpLoadStage1Worker(
     //PPH_STRING windowTitle;
     //if (windowTitle = PhMwpInitializeWindowTitle())
     //{
-    //    PhSetWindowText(PhMainWndHandle, PhGetString(windowTitle));
+    //    PhSetWindowText((HWND)Parameter, PhGetString(windowTitle));
     //    PhDereferenceObject(windowTitle);
     //}
 
@@ -573,7 +573,7 @@ NTSTATUS PhMwpLoadStage1Worker(
     // Allow WM_PH_ACTIVATE to pass through UIPI. (wj32)
     if (PhGetOwnTokenAttributes().Elevated)
     {
-        ChangeWindowMessageFilterEx(PhMainWndHandle, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
+        ChangeWindowMessageFilterEx((HWND)Parameter, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
     }
 
     // N.B. Devices tab is handled by the HardwareDevices plug-in. The provider is managed internally
@@ -3477,7 +3477,7 @@ VOID PhMwpSelectionChangedTabControl(
             // Create the tab page window if it doesn't exist. (wj32)
             if (!page->WindowHandle && !page->CreateWindowCalled)
             {
-                if (page->Callback(page, MainTabPageCreateWindow, &page->WindowHandle, NULL))
+                if (page->Callback(page, MainTabPageCreateWindow, &page->WindowHandle, PhMainWndHandle))
                     page->CreateWindowCalled = TRUE;
 
                 if (page->WindowHandle)
