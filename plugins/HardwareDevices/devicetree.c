@@ -176,7 +176,7 @@ PDEVICE_TREE DeviceTreeCreate(
 }
 
 VOID DeviceTreeFree(
-    _In_opt_ PDEVICE_TREE Tree 
+    _In_opt_ PDEVICE_TREE Tree
     )
 {
     if (!Tree)
@@ -221,7 +221,7 @@ PDEVICE_TREE DeviceTreeCreateIfNecessary(
 }
 
 VOID NTAPI DeviceTreePublish(
-    _In_opt_ PDEVICE_TREE Tree 
+    _In_opt_ PDEVICE_TREE Tree
     )
 {
     PDEVICE_TREE oldTree;
@@ -392,7 +392,7 @@ static int __cdecl DeviceTreeSortFunction(
                 sortResult = PhCompareStringRef(&srl, &srr, TRUE);
             }
             break;
-        case PhDevicePropertyTypeBinary: 
+        case PhDevicePropertyTypeBinary:
             {
                 sortResult = memcmp(lhs->Binary.Buffer, rhs->Binary.Buffer, min(lhs->Binary.Size, rhs->Binary.Size));
                 if (sortResult == 0)
@@ -1213,7 +1213,7 @@ BOOLEAN DevicesTabPageCallback(
                 0,
                 3,
                 3,
-                PhMainWndHandle,
+                Parameter2,
                 NULL,
                 PluginInstance->DllBase,
                 &treelistCreateParams

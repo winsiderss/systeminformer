@@ -72,7 +72,7 @@ BOOLEAN FwTabPageCallback(
                 0,
                 3,
                 3,
-                PhMainWndHandle,
+                Parameter2,
                 NULL,
                 PluginInstance->DllBase,
                 &treelistCreateParams
