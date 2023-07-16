@@ -4293,9 +4293,6 @@ NTSTATUS PhSetFileBasicInformation(
 {
     IO_STATUS_BLOCK isb;
 
-    // Set to SIZE_MAX to ignore updating the value (dmex)
-    BasicInfo->LastWriteTime.QuadPart = SIZE_MAX;
-
     return NtSetInformationFile(
         FileHandle,
         &isb,
@@ -9307,14 +9304,14 @@ NTSTATUS PhDosLongPathNameToNtPathNameWithStatus(
     static NTSTATUS (NTAPI* RtlDosLongPathNameToNtPathName_I_WithStatus)(
         _In_ PCWSTR DosFileName,
         _Out_ PUNICODE_STRING NtFileName,
-        _Out_opt_ PWSTR * FilePart,
+        _Out_opt_ PWSTR *FilePart,
         _Out_opt_ PRTL_RELATIVE_NAME_U RelativeName
         ) = NULL;
     NTSTATUS status;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (WindowsVersion >= WINDOWS_10_RS1) // RtlAreLongPathsEnabled() // always true
+        if (WindowsVersion >= WINDOWS_10_RS1 && NtCurrentPeb()->IsLongPathAwareProcess) // RtlAreLongPathsEnabled()
         {
             PVOID baseAddress;
 
