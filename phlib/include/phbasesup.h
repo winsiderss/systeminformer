@@ -4036,247 +4036,247 @@ typedef struct _PH_FORMAT
 FORCEINLINE
 VOID
 PhInitFormatC(
-    _Out_ PPH_FORMAT f,
-    _In_ WCHAR v
+    _Out_ PPH_FORMAT Format,
+    _In_ WCHAR Char
     )
 {
-    f->Type = CharFormatType;
-    f->u.Char = v;
+    Format->Type = CharFormatType;
+    Format->u.Char = Char;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatS(
-    _Out_ PPH_FORMAT f,
-    _In_ PWSTR v
+    _Out_ PPH_FORMAT Format,
+    _In_ PWSTR String
     )
 {
-    f->Type = StringFormatType;
-    PhInitializeStringRef(&f->u.String, v);
+    Format->Type = StringFormatType;
+    PhInitializeStringRef(&Format->u.String, String);
 }
 
 FORCEINLINE
 VOID
 PhInitFormatSR(
-    _Out_ PPH_FORMAT f,
-    _In_ PH_STRINGREF v
+    _Out_ PPH_FORMAT Format,
+    _In_ PH_STRINGREF String
     )
 {
-    f->Type = StringFormatType;
-    f->u.String = v;
+    Format->Type = StringFormatType;
+    Format->u.String = String;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatUCS(
-    _Out_ PPH_FORMAT f,
-    _In_ PUNICODE_STRING v
+    _Out_ PPH_FORMAT Format,
+    _In_ PUNICODE_STRING String
     )
 {
-    f->Type = StringFormatType;
-    PhUnicodeStringToStringRef(v, &f->u.String);
+    Format->Type = StringFormatType;
+    PhUnicodeStringToStringRef(String, &Format->u.String);
 }
 
 FORCEINLINE
 VOID
 PhInitFormatMultiByteS(
-    _Out_ PPH_FORMAT f,
-    _In_ PSTR v
+    _Out_ PPH_FORMAT Format,
+    _In_ PSTR String
     )
 {
-    f->Type = MultiByteStringFormatType;
-    PhInitializeBytesRef(&f->u.MultiByteString, v);
+    Format->Type = MultiByteStringFormatType;
+    PhInitializeBytesRef(&Format->u.MultiByteString, String);
 }
 
 FORCEINLINE
 VOID
 PhInitFormatD(
-    _Out_ PPH_FORMAT f,
-    _In_ LONG v
+    _Out_ PPH_FORMAT Format,
+    _In_ LONG Int32
     )
 {
-    f->Type = Int32FormatType;
-    f->u.Int32 = v;
+    Format->Type = Int32FormatType;
+    Format->u.Int32 = Int32;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatU(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG UInt32
     )
 {
-    f->Type = UInt32FormatType;
-    f->u.UInt32 = v;
+    Format->Type = UInt32FormatType;
+    Format->u.UInt32 = UInt32;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatX(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG UInt32
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(UInt32FormatType | FormatUseRadix);
-    f->u.UInt32 = v;
-    f->Radix = 16;
+    Format->Type = (PH_FORMAT_TYPE)(UInt32FormatType | FormatUseRadix);
+    Format->u.UInt32 = UInt32;
+    Format->Radix = 16;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatI64D(
-    _Out_ PPH_FORMAT f,
-    _In_ LONG64 v
+    _Out_ PPH_FORMAT Format,
+    _In_ LONG64 Int64
     )
 {
-    f->Type = Int64FormatType;
-    f->u.Int64 = v;
+    Format->Type = Int64FormatType;
+    Format->u.Int64 = Int64;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatI64U(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG64 v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG64 UInt64
     )
 {
-    f->Type = UInt64FormatType;
-    f->u.UInt64 = v;
+    Format->Type = UInt64FormatType;
+    Format->u.UInt64 = UInt64;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatI64UGroupDigits(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG64 v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG64 UInt64
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(UInt64FormatType | FormatGroupDigits);
-    f->u.UInt64 = v;
+    Format->Type = (PH_FORMAT_TYPE)(UInt64FormatType | FormatGroupDigits);
+    Format->u.UInt64 = UInt64;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatI64UWithWidth(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG64 v,
-    _In_ USHORT w
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG64 UInt64,
+    _In_ USHORT Width
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(UInt64FormatType | FormatPadZeros);
-    f->u.UInt64 = v;
-    f->Width = w;
+    Format->Type = (PH_FORMAT_TYPE)(UInt64FormatType | FormatPadZeros);
+    Format->u.UInt64 = UInt64;
+    Format->Width = Width;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatI64X(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG64 v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG64 UInt64
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(UInt64FormatType | FormatUseRadix);
-    f->u.UInt64 = v;
-    f->Radix = 16;
+    Format->Type = (PH_FORMAT_TYPE)(UInt64FormatType | FormatUseRadix);
+    Format->u.UInt64 = UInt64;
+    Format->Radix = 16;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatIU(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG_PTR v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG_PTR UIntPtr
     )
 {
-    f->Type = UIntPtrFormatType;
-    f->u.UIntPtr = v;
+    Format->Type = UIntPtrFormatType;
+    Format->u.UIntPtr = UIntPtr;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatIX(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG_PTR v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG_PTR UIntPtr
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(UIntPtrFormatType | FormatUseRadix);
-    f->u.UIntPtr = v;
-    f->Radix = 16;
+    Format->Type = (PH_FORMAT_TYPE)(UIntPtrFormatType | FormatUseRadix);
+    Format->u.UIntPtr = UIntPtr;
+    Format->Radix = 16;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatIXPadZeros(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG_PTR v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG_PTR UIntPtr
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(UIntPtrFormatType | FormatUseRadix | FormatPadZeros);
-    f->u.UIntPtr = v;
-    f->Radix = 16;
-    f->Width = sizeof(ULONG_PTR) * 2;
+    Format->Type = (PH_FORMAT_TYPE)(UIntPtrFormatType | FormatUseRadix | FormatPadZeros);
+    Format->u.UIntPtr = UIntPtr;
+    Format->Radix = 16;
+    Format->Width = sizeof(ULONG_PTR) * 2;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatF(
-    _Out_ PPH_FORMAT f,
-    _In_ DOUBLE v,
-    _In_ USHORT p
+    _Out_ PPH_FORMAT Format,
+    _In_ DOUBLE Double,
+    _In_ USHORT Precision
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(DoubleFormatType | FormatUsePrecision);
-    f->u.Double = v;
-    f->Precision = p;
+    Format->Type = (PH_FORMAT_TYPE)(DoubleFormatType | FormatUsePrecision);
+    Format->u.Double = Double;
+    Format->Precision = Precision;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatE(
-    _Out_ PPH_FORMAT f,
-    _In_ DOUBLE v,
-    _In_ USHORT p
+    _Out_ PPH_FORMAT Format,
+    _In_ DOUBLE Double,
+    _In_ USHORT Precision
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(DoubleFormatType | FormatStandardForm | FormatUsePrecision);
-    f->u.Double = v;
-    f->Precision = p;
+    Format->Type = (PH_FORMAT_TYPE)(DoubleFormatType | FormatStandardForm | FormatUsePrecision);
+    Format->u.Double = Double;
+    Format->Precision = Precision;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatA(
-    _Out_ PPH_FORMAT f,
-    _In_ DOUBLE v,
-    _In_ USHORT p
+    _Out_ PPH_FORMAT Format,
+    _In_ DOUBLE Double,
+    _In_ USHORT Precision
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(DoubleFormatType | FormatHexadecimalForm | FormatUsePrecision);
-    f->u.Double = v;
-    f->Precision = p;
+    Format->Type = (PH_FORMAT_TYPE)(DoubleFormatType | FormatHexadecimalForm | FormatUsePrecision);
+    Format->u.Double = Double;
+    Format->Precision = Precision;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatSize(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG64 v
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG64 Size
     )
 {
-    f->Type = SizeFormatType;
-    f->u.Size = v;
+    Format->Type = SizeFormatType;
+    Format->u.Size = Size;
 }
 
 FORCEINLINE
 VOID
 PhInitFormatSizeWithPrecision(
-    _Out_ PPH_FORMAT f,
-    _In_ ULONG64 v,
-    _In_ USHORT p
+    _Out_ PPH_FORMAT Format,
+    _In_ ULONG64 Size,
+    _In_ USHORT Precision
     )
 {
-    f->Type = (PH_FORMAT_TYPE)(SizeFormatType | FormatUsePrecision);
-    f->u.Size = v;
-    f->Precision = p;
+    Format->Type = (PH_FORMAT_TYPE)(SizeFormatType | FormatUsePrecision);
+    Format->u.Size = Size;
+    Format->Precision = Precision;
 }
 
 PHLIBAPI
