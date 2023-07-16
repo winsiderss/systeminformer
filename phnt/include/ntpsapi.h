@@ -1005,7 +1005,9 @@ typedef union _PROCESS_LOGGING_INFORMATION
         ULONG EnableWriteVmLogging : 1;
         ULONG EnableProcessSuspendResumeLogging : 1;
         ULONG EnableThreadSuspendResumeLogging : 1;
-        ULONG Reserved : 28;
+        ULONG EnableLocalExecProtectVmLogging : 1;
+        ULONG EnableRemoteExecProtectVmLogging : 1;
+        ULONG Reserved : 26;
     };
 } PROCESS_LOGGING_INFORMATION, *PPROCESS_LOGGING_INFORMATION;
 
@@ -1430,6 +1432,9 @@ NtResumeProcess(
 #define NtCurrentThreadEffectiveToken() ((HANDLE)(LONG_PTR)-6) // NtOpenThreadToken(NtCurrentThread()) + NtOpenProcessToken(NtCurrentProcess())
 
 #define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
+
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#define NtCurrentImageBase() ((PVOID)&__ImageBase)
 
 // Not NT, but useful.
 #define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
@@ -1992,7 +1997,7 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeDesktopAppPolicy, // in PULONG (PROCESS_CREATION_DESKTOP_APP_*)
     PsAttributeChpe, // in BOOLEAN // since REDSTONE3
     PsAttributeMitigationAuditOptions, // in PPS_MITIGATION_AUDIT_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_AUDIT_POLICY_*) // since 21H1
-    PsAttributeMachineType, // in WORD // since 21H2
+    PsAttributeMachineType, // in USHORT // since 21H2
     PsAttributeComponentFilter,
     PsAttributeEnableOptionalXStateFeatures, // since WIN11
     PsAttributeMax
@@ -2223,6 +2228,7 @@ typedef enum _PS_MITIGATION_OPTION
     PS_MITIGATION_OPTION_BLOCK_NON_CET_BINARIES,
     PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY,
     PS_MITIGATION_OPTION_REDIRECTION_TRUST, // since 22H1
+    PS_MITIGATION_OPTION_RESTRICT_CORE_SHARING,
 } PS_MITIGATION_OPTION;
 
 // windows-internals-book:"Chapter 5"
@@ -2406,8 +2412,8 @@ NtCreateThreadEx(
 #define JobObjectClearPeakJobMemoryUsed 27
 #define JobObjectMemoryUsageInformation 28 // JOBOBJECT_MEMORY_USAGE_INFORMATION // JOBOBJECT_MEMORY_USAGE_INFORMATION_V2
 #define JobObjectSharedCommit 29
-#define JobObjectContainerId 30
-#define JobObjectIoRateControlInformation 31
+#define JobObjectContainerId 30 // JOBOBJECT_CONTAINER_IDENTIFIER_V2
+#define JobObjectIoRateControlInformation 31 // JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE, JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE_V2, JOBOBJECT_IO_RATE_CONTROL_INFORMATION_NATIVE_V3
 #define JobObjectNetRateControlInformation 32 // JOBOBJECT_NET_RATE_CONTROL_INFORMATION
 #define JobObjectNotificationLimitInformation2 33 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION_2
 #define JobObjectLimitViolationInformation2 34 // JOBOBJECT_LIMIT_VIOLATION_INFORMATION_2
@@ -2418,14 +2424,14 @@ NtCreateThreadEx(
 #define JobObjectServerSiloUserSharedData 39 // SILO_USER_SHARED_DATA
 #define JobObjectServerSiloInitialize 40
 #define JobObjectServerSiloRunningState 41
-#define JobObjectIoAttribution 42
+#define JobObjectIoAttribution 42 // JOBOBJECT_IO_ATTRIBUTION_INFORMATION
 #define JobObjectMemoryPartitionInformation 43
 #define JobObjectContainerTelemetryId 44
 #define JobObjectSiloSystemRoot 45
 #define JobObjectEnergyTrackingState 46 // JOBOBJECT_ENERGY_TRACKING_STATE
 #define JobObjectThreadImpersonationInformation 47
-#define JobObjectIoPriorityLimit 48
-#define JobObjectPagePriorityLimit 49
+#define JobObjectIoPriorityLimit 48 // JOBOBJECT_IO_PRIORITY_LIMIT
+#define JobObjectPagePriorityLimit 49 // JOBOBJECT_PAGE_PRIORITY_LIMIT
 #define MaxJobObjectInfoClass 50
 
 // private
@@ -2488,6 +2494,14 @@ typedef struct _JOBOBJECT_FREEZE_INFORMATION
 } JOBOBJECT_FREEZE_INFORMATION, *PJOBOBJECT_FREEZE_INFORMATION;
 
 // private
+typedef struct _JOBOBJECT_CONTAINER_IDENTIFIER_V2
+{
+    GUID ContainerId;
+    GUID ContainerTelemetryId;
+    ULONG JobId;
+} JOBOBJECT_CONTAINER_IDENTIFIER_V2, *PJOBOBJECT_CONTAINER_IDENTIFIER_V2;
+
+// private
 typedef struct _JOBOBJECT_MEMORY_USAGE_INFORMATION
 {
     ULONG64 JobMemory;
@@ -2535,6 +2549,34 @@ typedef struct _JOBOBJECT_ENERGY_TRACKING_STATE
     ULONG UpdateMask;
     ULONG DesiredState;
 } JOBOBJECT_ENERGY_TRACKING_STATE, *PJOBOBJECT_ENERGY_TRACKING_STATE;
+
+// private
+typedef enum _JOBOBJECT_IO_PRIORITY_LIMIT_FLAGS
+{
+    JOBOBJECT_IO_PRIORITY_LIMIT_ENABLE = 0x1,
+    JOBOBJECT_IO_PRIORITY_LIMIT_VALID_FLAGS = 0x1,
+} JOBOBJECT_IO_PRIORITY_LIMIT_FLAGS;
+
+// private
+typedef struct _JOBOBJECT_IO_PRIORITY_LIMIT
+{
+    JOBOBJECT_IO_PRIORITY_LIMIT_FLAGS Flags;
+    ULONG Priority;
+} JOBOBJECT_IO_PRIORITY_LIMIT, *PJOBOBJECT_IO_PRIORITY_LIMIT;
+
+// private
+typedef enum _JOBOBJECT_PAGE_PRIORITY_LIMIT_FLAGS
+{
+    JOBOBJECT_PAGE_PRIORITY_LIMIT_ENABLE = 0x1,
+    JOBOBJECT_PAGE_PRIORITY_LIMIT_VALID_FLAGS = 0x1,
+} JOBOBJECT_PAGE_PRIORITY_LIMIT_FLAGS;
+
+// private
+typedef struct _JOBOBJECT_PAGE_PRIORITY_LIMIT
+{
+    JOBOBJECT_PAGE_PRIORITY_LIMIT_FLAGS Flags;
+    ULONG Priority;
+} JOBOBJECT_PAGE_PRIORITY_LIMIT, *PJOBOBJECT_PAGE_PRIORITY_LIMIT;
 
 NTSYSCALLAPI
 NTSTATUS
