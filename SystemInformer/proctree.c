@@ -1326,7 +1326,8 @@ static VOID PhpUpdateProcessNodeFileAttributes(
         }
         else
         {
-            ProcessNode->FileEndOfFile.QuadPart = -1;
+            ProcessNode->FileLastWriteTime.QuadPart = 0;
+            ProcessNode->FileEndOfFile.QuadPart = 0;
         }
 
         ProcessNode->ValidMask |= PHPN_FILEATTRIBUTES;
@@ -3446,7 +3447,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_FILESIZE:
                 PhpUpdateProcessNodeFileAttributes(node);
 
-                if (node->FileEndOfFile.QuadPart != -1)
+                if (node->FileEndOfFile.QuadPart != 0)
                 {
                     PhMoveReference(&node->FileSizeText, PhFormatSize(node->FileEndOfFile.QuadPart, ULONG_MAX));
                     getCellText->Text = node->FileSizeText->sr;

@@ -779,7 +779,7 @@ VOID PhModuleProviderUpdate(
             else
             {
                 moduleItem->FileLastWriteTime.QuadPart = 0;
-                moduleItem->FileEndOfFile.QuadPart = MAXLONGLONG;
+                moduleItem->FileEndOfFile.QuadPart = 0;
             }
 
             if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
@@ -837,9 +837,9 @@ VOID PhModuleProviderUpdate(
                     modified = TRUE;
                 }
 
-                if (moduleItem->FileEndOfFile.QuadPart != MAXLONGLONG)
+                if (moduleItem->FileEndOfFile.QuadPart != 0)
                 {
-                    moduleItem->FileEndOfFile.QuadPart = MAXLONGLONG;
+                    moduleItem->FileEndOfFile.QuadPart = 0;
                     modified = TRUE;
                 }
             }
