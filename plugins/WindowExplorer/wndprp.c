@@ -793,9 +793,9 @@ VOID WepRefreshWindowGeneralInfo(
 
     WepRefreshWindowGeneralInfoSymbols(ListViewHandle, Context);
 
-    if (PhAppResolverGetAppIdForWindow(Context->WindowHandle, &appIdText))
+    if (HR_SUCCESS(PhAppResolverGetAppIdForWindow(Context->WindowHandle, &appIdText)))
     {
-        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_APPID, 1, appIdText->Buffer);
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_APPID, 1, PhGetString(appIdText));
         PhDereferenceObject(appIdText);
     }
 
@@ -1394,9 +1394,9 @@ VOID WepWindowRefreshGeneralPageHeader(
     {
         PPH_STRING appIdText;
 
-        if (PhAppResolverGetAppIdForWindow(Context->WindowHandle, &appIdText))
+        if (HR_SUCCESS(PhAppResolverGetAppIdForWindow(Context->WindowHandle, &appIdText)))
         {
-            PhSetWindowText(GetDlgItem(WindowHandle, IDC_APPIDTEXT), appIdText->Buffer);
+            PhSetWindowText(GetDlgItem(WindowHandle, IDC_APPIDTEXT), PhGetString(appIdText));
             PhDereferenceObject(appIdText);
         }
     }

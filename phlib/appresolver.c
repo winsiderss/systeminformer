@@ -60,23 +60,6 @@ static PVOID PhpQueryStartMenuCacheInterface(
     return startMenuInterface;
 }
 
-//static LPMALLOC PhpQueryStartMenuMallocInterface(
-//    VOID
-//    )
-//{
-//    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-//    static LPMALLOC allocInterface = NULL;
-//
-//    if (PhBeginInitOnce(&initOnce))
-//    {
-//        CoGetMalloc(MEMCTX_TASK, &allocInterface);
-//
-//        PhEndInitOnce(&initOnce);
-//    }
-//
-//    return allocInterface;
-//}
-
 static BOOLEAN PhpKernelAppCoreInitialized(
     VOID
     )
@@ -113,21 +96,21 @@ static BOOLEAN PhpKernelAppCoreInitialized(
     return kernelAppCoreInitialized;
 }
 
-_Success_(return)
-BOOLEAN PhAppResolverGetAppIdForProcess(
+HRESULT PhAppResolverGetAppIdForProcess(
     _In_ HANDLE ProcessId,
     _Out_ PPH_STRING *ApplicationUserModelId
     )
 {
+    HRESULT status;
     PVOID resolverInterface;
-    PWSTR appIdText = NULL;
+    PWSTR appIdText;
 
     if (!(resolverInterface = PhpQueryAppResolverInterface()))
-        return FALSE;
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
     if (WindowsVersion < WINDOWS_8)
     {
-        IApplicationResolver_GetAppIDForProcess(
+        status = IApplicationResolver_GetAppIDForProcess(
             (IApplicationResolver61*)resolverInterface,
             HandleToUlong(ProcessId),
             &appIdText,
@@ -138,7 +121,7 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
     }
     else
     {
-        IApplicationResolver2_GetAppIDForProcess(
+        status = IApplicationResolver2_GetAppIDForProcess(
             (IApplicationResolver62*)resolverInterface,
             HandleToUlong(ProcessId),
             &appIdText,
@@ -148,35 +131,49 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
             );
     }
 
-    if (appIdText)
+    if (HR_SUCCESS(status))
     {
-        //SIZE_T appIdTextLength = IMalloc_GetSize(PhpQueryStartMenuMallocInterface(), appIdText);
-        //*ApplicationUserModelId = PhCreateStringEx(appIdText, appIdTextLength - sizeof(UNICODE_NULL));
-        //IMalloc_Free(PhpQueryStartMenuMallocInterface(), appIdText);
+        SIZE_T appIdTextLength;
 
-        *ApplicationUserModelId = PhCreateString(appIdText);
+        appIdTextLength = RtlSizeHeap(
+            RtlProcessHeap(),
+            0,
+            appIdText
+            );
+
+        if (appIdTextLength > sizeof(UNICODE_NULL))
+        {
+            *ApplicationUserModelId = PhCreateStringEx(
+                appIdText,
+                appIdTextLength - sizeof(UNICODE_NULL)
+                );
+        }
+        else
+        {
+            status = E_UNEXPECTED;
+        }
+
         CoTaskMemFree(appIdText);
-        return TRUE;
     }
 
-    return FALSE;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN PhAppResolverGetAppIdForWindow(
+HRESULT PhAppResolverGetAppIdForWindow(
     _In_ HWND WindowHandle,
     _Out_ PPH_STRING *ApplicationUserModelId
     )
 {
+    HRESULT status;
     PVOID resolverInterface;
-    PWSTR appIdText = NULL;
+    PWSTR appIdText;
 
     if (!(resolverInterface = PhpQueryAppResolverInterface()))
-        return FALSE;
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
     if (WindowsVersion < WINDOWS_8)
     {
-        IApplicationResolver_GetAppIDForWindow(
+        status = IApplicationResolver_GetAppIDForWindow(
             (IApplicationResolver61*)resolverInterface,
             WindowHandle,
             &appIdText,
@@ -187,7 +184,7 @@ BOOLEAN PhAppResolverGetAppIdForWindow(
     }
     else
     {
-        IApplicationResolver_GetAppIDForWindow(
+        status = IApplicationResolver_GetAppIDForWindow(
             (IApplicationResolver62*)resolverInterface,
             WindowHandle,
             &appIdText,
@@ -197,18 +194,32 @@ BOOLEAN PhAppResolverGetAppIdForWindow(
             );
     }
 
-    if (appIdText)
+    if (HR_SUCCESS(status))
     {
-        //SIZE_T appIdTextLength = IMalloc_GetSize(PhpQueryStartMenuMallocInterface(), appIdText);
-        //*ApplicationUserModelId = PhCreateStringEx(appIdText, appIdTextLength - sizeof(UNICODE_NULL));
-        //IMalloc_Free(PhpQueryStartMenuMallocInterface(), appIdText);
+        SIZE_T appIdTextLength;
 
-        *ApplicationUserModelId = PhCreateString(appIdText);
+        appIdTextLength = RtlSizeHeap(
+            RtlProcessHeap(),
+            0,
+            appIdText
+            );
+
+        if (appIdTextLength > sizeof(UNICODE_NULL))
+        {
+            *ApplicationUserModelId = PhCreateStringEx(
+                appIdText,
+                appIdTextLength - sizeof(UNICODE_NULL)
+                );
+        }
+        else
+        {
+            status = E_UNEXPECTED;
+        }
+
         CoTaskMemFree(appIdText);
-        return TRUE;
     }
 
-    return FALSE;
+    return status;
 }
 
 HRESULT PhAppResolverActivateAppId(
@@ -489,7 +500,7 @@ PPH_STRING PhGetAppContainerName(
         &packageMonikerName
         );
 
-    if (SUCCEEDED(result))
+    if (HR_SUCCESS(result))
     {
         appContainerName = PhCreateString(packageMonikerName);
         AppContainerFreeMemory_I(packageMonikerName);
@@ -534,7 +545,7 @@ PPH_STRING PhGetAppContainerSidFromName(
     if (!PhpKernelAppCoreInitialized())
         return NULL;
 
-    if (SUCCEEDED(AppContainerDeriveSidFromMoniker_I(
+    if (HR_SUCCESS(AppContainerDeriveSidFromMoniker_I(
         AppContainerName,
         &appContainerSid
         )))
@@ -777,7 +788,7 @@ HRESULT PhAppResolverBeginCrashDumpTask(
         &taskCompletion
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         status = IOSTaskCompletion_BeginTask(
             taskCompletion,
@@ -786,7 +797,7 @@ HRESULT PhAppResolverBeginCrashDumpTask(
             );
     }
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         *TaskHandle = taskCompletion;
     }
@@ -813,7 +824,7 @@ HRESULT PhAppResolverBeginCrashDumpTaskByHandle(
         &taskCompletion
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         status = IOSTaskCompletion_BeginTaskByHandle(
             taskCompletion,
@@ -822,7 +833,7 @@ HRESULT PhAppResolverBeginCrashDumpTaskByHandle(
             );
     }
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         *TaskHandle = taskCompletion;
     }
@@ -1003,7 +1014,7 @@ static BOOLEAN PhParseStartMenuAppShellItem(
 
     PropVariantInit(&packageHostEnvironment);
 
-    if (FAILED(IShellItem2_GetProperty(ShellItem, &PKEY_AppUserModel_HostEnvironment, &packageHostEnvironment)))
+    if (HR_FAILED(IShellItem2_GetProperty(ShellItem, &PKEY_AppUserModel_HostEnvironment, &packageHostEnvironment)))
         return FALSE;
     if (!(V_VT(&packageHostEnvironment) == VT_UI4 && V_UI4(&packageHostEnvironment)))
         return FALSE;
@@ -1029,7 +1040,7 @@ static BOOLEAN PhParseStartMenuAppShellItem(
         entry->PackageInstallPath = PhCreateString(packageInstallPath);
         entry->PackageFullName = PhCreateString(packageFullName);
 
-        if (SUCCEEDED(PhAppResolverGetPackageResourceFilePath(packageFullName, packageSmallLogoPath, &imagePath)))
+        if (HR_SUCCESS(PhAppResolverGetPackageResourceFilePath(packageFullName, packageSmallLogoPath, &imagePath)))
         {
             entry->SmallLogoPath = PhCreateString(imagePath);
             CoTaskMemFree(imagePath);
@@ -1070,7 +1081,7 @@ PPH_LIST PhEnumApplicationUserModelIds(
         &shellKnownFolderItem
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = IShellItem2_BindToHandler(
@@ -1081,7 +1092,7 @@ PPH_LIST PhEnumApplicationUserModelIds(
         &shellEnumFolderItem
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     list = PhCreateList(10);
@@ -1091,7 +1102,7 @@ PPH_LIST PhEnumApplicationUserModelIds(
         ULONG count = 0;
         IShellItem* itemlist[10];
 
-        if (FAILED(IEnumShellItems_Next(shellEnumFolderItem, 10, itemlist, &count)))
+        if (HR_FAILED(IEnumShellItems_Next(shellEnumFolderItem, 10, itemlist, &count)))
             break;
         if (count == 0)
             break;
@@ -1100,7 +1111,7 @@ PPH_LIST PhEnumApplicationUserModelIds(
         {
             IShellItem2* item;
 
-            if (SUCCEEDED(IShellItem_QueryInterface(itemlist[i], &IID_IShellItem2, &item)))
+            if (HR_SUCCESS(IShellItem_QueryInterface(itemlist[i], &IID_IShellItem2, &item)))
             {
                 PhParseStartMenuAppShellItem(item, list);
 
@@ -1142,17 +1153,17 @@ HRESULT PhAppResolverGetPackageResourceFilePath(
         &resourceManager
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = IMrtResourceManager_InitializeForPackage(resourceManager, PackageFullName);
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = IMrtResourceManager_GetMainResourceMap(resourceManager, &IID_IResourceMap_I, &resourceMap);
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = IResourceMap_GetFilePath(resourceMap, Key, &filePath);
@@ -1163,7 +1174,7 @@ CleanupExit:
     if (resourceManager)
         IMrtResourceManager_Release(resourceManager);
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         *FilePath = filePath;
     }
@@ -1178,14 +1189,16 @@ HRESULT PhAppResolverGetPackageStartMenuPropertyStore(
 {
     HRESULT status;
     PVOID startMenuInterface;
-    PPH_STRING applicationUserModelId = NULL;
-    IPropertyStore* propertyStore = NULL;
+    PPH_STRING applicationUserModelId;
+    IPropertyStore* propertyStore;
 
     if (!(startMenuInterface = PhpQueryStartMenuCacheInterface()))
-        return E_FAIL;
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
-    if (!PhAppResolverGetAppIdForProcess(ProcessId, &applicationUserModelId))
-        return E_FAIL;
+    status = PhAppResolverGetAppIdForProcess(ProcessId, &applicationUserModelId);
+
+    if (!HR_SUCCESS(status))
+        return status;
 
     if (WindowsVersion < WINDOWS_8)
     {
@@ -1208,7 +1221,7 @@ HRESULT PhAppResolverGetPackageStartMenuPropertyStore(
             );
     }
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         *PropertyStore = propertyStore;
     }
@@ -1378,7 +1391,7 @@ HRESULT PhCreateProcessDesktopPackage(
             );
     }
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         ULONG options = DAXAO_CHECK_FOR_APPINSTALLER_UPDATES | DAXAO_CENTENNIAL_PROCESS;
         SetFlag(options, PreventBreakaway ? DAXAO_NONPACKAGED_EXE_PROCESS_TREE : DAXAO_NONPACKAGED_EXE);

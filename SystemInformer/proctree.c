@@ -1246,7 +1246,10 @@ static VOID PhpUpdateProcessNodeAppId(
         {
             NOTHING;
         }
-        else if (PhAppResolverGetAppIdForProcess(ProcessNode->ProcessId, &applicationUserModelId))
+        else if (HR_SUCCESS(PhAppResolverGetAppIdForProcess(
+            ProcessNode->ProcessId,
+            &applicationUserModelId
+            )))
         {
             ProcessNode->AppIdText = applicationUserModelId;
         }
