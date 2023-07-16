@@ -1088,6 +1088,14 @@ PhGetFileBasicInformation(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetFileBasicInformation(
+    _In_ HANDLE FileHandle,
+    _In_ PFILE_BASIC_INFORMATION BasicInfo
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetFileStandardInformation(
     _In_ HANDLE FileHandle,
     _Out_ PFILE_STANDARD_INFORMATION StandardInfo
