@@ -2050,7 +2050,7 @@ VOID ProcessMenuInitializingCallback(
 
     LockDb();
 
-    if ((object = FindDbObject(FILE_TAG, &menuInfo->u.Process.Processes[0]->ProcessName->sr)) && object->Collapse)
+    if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Collapse)
         collapseMenuItem->Flags |= PH_EMENU_CHECKED;
     if (highlightPresent)
         highlightMenuItem->Flags |= PH_EMENU_CHECKED;
