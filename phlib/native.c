@@ -14485,6 +14485,58 @@ CleanupExit:
     return status;
 }
 
+NTSTATUS PhGetProcessSecurityDomain(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONGLONG SecurityDomain
+    )
+{
+    NTSTATUS status;
+    PROCESS_SECURITY_DOMAIN_INFORMATION processSecurityDomainInfo;
+
+    memset(&processSecurityDomainInfo, 0, sizeof(PROCESS_SECURITY_DOMAIN_INFORMATION));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessSecurityDomainInformation,
+        &processSecurityDomainInfo,
+        sizeof(PROCESS_SECURITY_DOMAIN_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *SecurityDomain = processSecurityDomainInfo.SecurityDomain;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessServerSilo(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ServerSilo
+    )
+{
+    NTSTATUS status;
+    PROCESS_MEMBERSHIP_INFORMATION processMembershipInfo;
+
+    memset(&processMembershipInfo, 0, sizeof(PROCESS_MEMBERSHIP_INFORMATION));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessMembershipInformation,
+        &processMembershipInfo,
+        sizeof(PROCESS_MEMBERSHIP_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ServerSilo = processMembershipInfo.ServerSiloId;
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetProcessSequenceNumber(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONGLONG SequenceNumber
