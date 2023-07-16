@@ -119,9 +119,6 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -214,6 +211,11 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -249,9 +251,6 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -341,6 +340,11 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
