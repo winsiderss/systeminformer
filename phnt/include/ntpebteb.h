@@ -442,4 +442,10 @@ typedef struct _TEB
     ULONGLONG ExtendedFeatureDisableMask;
 } TEB, *PTEB;
 
+#ifdef _WIN64
+C_ASSERT(sizeof(TEB) == 0x1850); // WIN11
+#else
+C_ASSERT(sizeof(TEB) == 0x1018); // WIN11
+#endif
+
 #endif
