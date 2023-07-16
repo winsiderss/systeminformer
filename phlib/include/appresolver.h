@@ -14,14 +14,12 @@
 
 EXTERN_C_START
 
-_Success_(return)
-BOOLEAN PhAppResolverGetAppIdForProcess(
+HRESULT PhAppResolverGetAppIdForProcess(
     _In_ HANDLE ProcessId,
     _Out_ PPH_STRING *ApplicationUserModelId
     );
 
-_Success_(return)
-BOOLEAN PhAppResolverGetAppIdForWindow(
+HRESULT PhAppResolverGetAppIdForWindow(
     _In_ HWND WindowHandle,
     _Out_ PPH_STRING *ApplicationUserModelId
     );
