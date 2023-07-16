@@ -2837,6 +2837,22 @@ PhGetProcessConsoleCodePage(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessSecurityDomain(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONGLONG SecurityDomain
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessServerSilo(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ServerSilo
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessSequenceNumber(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONGLONG SequenceNumber
