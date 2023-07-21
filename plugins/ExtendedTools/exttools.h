@@ -89,6 +89,7 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
 #define SETTING_NAME_FW_IGNORE_LOOPBACK (PLUGIN_NAME L".FwIgnoreLoopback")
+#define SETTING_NAME_FW_IGNORE_ALLOW (PLUGIN_NAME L".FwIgnoreAllow")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
 #define SETTING_NAME_WCT_TREE_LIST_COLUMNS (PLUGIN_NAME L".WaitChainTreeListColumns")
 #define SETTING_NAME_WCT_WINDOW_POSITION (PLUGIN_NAME L".WaitChainWindowPosition")
@@ -913,19 +914,15 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_MAXIMUM
 } FW_COLUMN_TYPE;
 
-typedef struct _BOOT_WINDOW_CONTEXT
+typedef enum _FW_EVENT_DIRECTION
 {
-    HWND ListViewHandle;
-    HWND SearchHandle;
-
-    PH_LAYOUT_MANAGER LayoutManager;
-
-    HFONT NormalFontHandle;
-    HFONT BoldFontHandle;
-
-    HWND PluginMenuActive;
-    UINT PluginMenuActiveId;
-} BOOT_WINDOW_CONTEXT, *PBOOT_WINDOW_CONTEXT;
+    FW_EVENT_DIRECTION_NONE,
+    FW_EVENT_DIRECTION_INBOUND,
+    FW_EVENT_DIRECTION_OUTBOUND,
+    FW_EVENT_DIRECTION_FORWARD,
+    FW_EVENT_DIRECTION_BIDIRECTIONAL,
+    FW_EVENT_DIRECTION_MAX
+} FW_EVENT_DIRECTION;
 
 typedef struct _FW_EVENT_ITEM
 {
@@ -950,7 +947,7 @@ typedef struct _FW_EVENT_ITEM
 
     LONG JustResolved;
 
-    ULONG Direction;
+    FW_EVENT_DIRECTION Direction;
     ULONG Type; // FWPM_NET_EVENT_TYPE
     ULONG IpProtocol;
     ULONG ScopeId;
@@ -1091,6 +1088,14 @@ typedef ULONG (WINAPI* _FwpmFilterGetById0)(
    _In_ HANDLE engineHandle,
    _In_ UINT64 id,
    _Outptr_ FWPM_FILTER0** filter
+   );
+
+typedef struct FWPM_LAYER0_ FWPM_LAYER0;
+
+typedef ULONG (WINAPI* _FwpmLayerGetById0)(
+   _In_ HANDLE engineHandle,
+   _In_ UINT16 id,
+   _Outptr_ FWPM_LAYER0** layer
    );
 
 typedef ULONG (WINAPI* _FwpmNetEventSubscribe4)(

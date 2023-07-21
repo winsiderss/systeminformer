@@ -25,7 +25,10 @@ PH_FREE_LIST EtFwPacketFreeList;
 LIST_ENTRY EtFwAgeListHead = { &EtFwAgeListHead, &EtFwAgeListHead };
 BOOLEAN EtFwEnableResolveCache = TRUE;
 BOOLEAN EtFwEnableResolveDoH = FALSE;
+BOOLEAN EtFwIgnoreOnError = TRUE;
+BOOLEAN EtFwIgnorePortScan = FALSE;
 BOOLEAN EtFwIgnoreLoopback = TRUE;
+BOOLEAN EtFwIgnoreAllow = FALSE;
 PH_INITONCE EtFwWorkQueueInitOnce = PH_INITONCE_INIT;
 SLIST_HEADER EtFwQueryListHead;
 PH_WORK_QUEUE EtFwWorkQueue;
@@ -48,6 +51,7 @@ _FwpmEngineClose0 FwpmEngineClose_I = NULL;
 _FwpmFreeMemory0 FwpmFreeMemory_I = NULL;
 _FwpmEngineSetOption0 FwpmEngineSetOption_I = NULL;
 _FwpmFilterGetById0 FwpmFilterGetById_I = NULL;
+_FwpmLayerGetById0 FwpmLayerGetById_I = NULL;
 _FwpmNetEventSubscribe4 FwpmNetEventSubscribe_I = NULL;
 _FwpmNetEventUnsubscribe0 FwpmNetEventUnsubscribe_I = NULL;
 _FwpmNetEventCreateEnumHandle0 FwpmNetEventCreateEnumHandle_I = NULL;
@@ -69,6 +73,7 @@ _FwpmNetEventEnum5 FwpmNetEventEnum_I = NULL;
 #define FwpmEngineClose FwpmEngineClose_I
 #define FwpmFreeMemory FwpmFreeMemory_I
 #define FwpmFilterGetById0 FwpmFilterGetById_I
+#define FwpmLayerGetById0 FwpmLayerGetById_I
 #define FwpmEngineSetOption FwpmEngineSetOption_I
 #define FwpmNetEventSubscribe FwpmNetEventSubscribe_I
 #define FwpmNetEventUnsubscribe FwpmNetEventUnsubscribe_I
@@ -275,8 +280,7 @@ VOID FwProcessFirewallEvent(
     PFW_EVENT_ITEM entry;
 
     entry = FwCreateEventItem();
-    PhQuerySystemTime(&entry->TimeStamp);
-    //entry->TimeStamp = firewallEvent->TimeStamp;
+    entry->TimeStamp = firewallEvent->TimeStamp;
     entry->Direction = firewallEvent->Direction;
     entry->Type = firewallEvent->Type;
     entry->ScopeId = firewallEvent->ScopeId;
@@ -335,14 +339,20 @@ BOOLEAN FwProcessEventType(
             {
             case FWP_DIRECTION_INBOUND:
             case FWP_DIRECTION_MAP_INBOUND:
-                *Direction = FWP_DIRECTION_INBOUND;
+                *Direction = FW_EVENT_DIRECTION_INBOUND;
                 break;
             case FWP_DIRECTION_OUTBOUND:
             case FWP_DIRECTION_MAP_OUTBOUND:
-                *Direction = FWP_DIRECTION_OUTBOUND;
+                *Direction = FW_EVENT_DIRECTION_OUTBOUND;
+                break;
+            case FWP_DIRECTION_MAP_FORWARD:
+                *Direction = FW_EVENT_DIRECTION_FORWARD;
+                break;
+            case FWP_DIRECTION_MAP_BIDIRECTIONAL:
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
                 break;
             default:
-                *Direction = fwDropEvent->msFwpDirection;
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL; assert(FALSE);
                 break;
             }
 
@@ -365,14 +375,20 @@ BOOLEAN FwProcessEventType(
             {
             case FWP_DIRECTION_INBOUND:
             case FWP_DIRECTION_MAP_INBOUND:
-                *Direction = FWP_DIRECTION_INBOUND;
+                *Direction = FW_EVENT_DIRECTION_INBOUND;
                 break;
             case FWP_DIRECTION_OUTBOUND:
             case FWP_DIRECTION_MAP_OUTBOUND:
-                *Direction = FWP_DIRECTION_OUTBOUND;
+                *Direction = FW_EVENT_DIRECTION_OUTBOUND;
+                break;
+            case FWP_DIRECTION_MAP_FORWARD:
+                *Direction = FW_EVENT_DIRECTION_FORWARD;
+                break;
+            case FWP_DIRECTION_MAP_BIDIRECTIONAL:
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
                 break;
             default:
-                *Direction = fwAllowEvent->msFwpDirection;
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL; assert(FALSE);
                 break;
             }
 
@@ -479,20 +495,40 @@ BOOLEAN FwProcessEventType(
         return FALSE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
         {
-            //FWPM_NET_EVENT_CAPABILITY_DROP* fwCapabilityDropEvent = FwEvent->capabilityDrop;
-            //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId;
-            //UINT64 filterId;
-            //BOOL isLoopback;
+            FWPM_NET_EVENT_CAPABILITY_DROP* fwCapabilityDropEvent = FwEvent->capabilityDrop;
+            //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId = fwCapabilityDropEvent->networkCapabilityId;
+
+            if (EtWindowsVersion >= WINDOWS_10 && fwCapabilityDropEvent->isLoopback && EtFwIgnoreLoopback)
+                return FALSE;
+
+            *Direction = FW_EVENT_DIRECTION_OUTBOUND;
+
+            if (IsLoopback)
+                *IsLoopback = !!fwCapabilityDropEvent->isLoopback;
+            if (FilterId)
+                *FilterId = fwCapabilityDropEvent->filterId;
+            if (LayerId)
+                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
-        return FALSE;
+        return TRUE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
         {
-            //FWPM_NET_EVENT_CAPABILITY_ALLOW* fwCapabilityAllowEvent = FwEvent->capabilityAllow;
-            //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId;
-            //UINT64 filterId;
-            //BOOL isLoopback;
+            FWPM_NET_EVENT_CAPABILITY_ALLOW* fwCapabilityAllowEvent = FwEvent->capabilityAllow;
+            //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId = fwCapabilityAllowEvent->networkCapabilityId;
+
+            if (EtWindowsVersion >= WINDOWS_10 && fwCapabilityAllowEvent->isLoopback && EtFwIgnoreLoopback)
+                return FALSE;
+
+            *Direction = FW_EVENT_DIRECTION_OUTBOUND;
+
+            if (IsLoopback)
+                *IsLoopback = !!fwCapabilityAllowEvent->isLoopback;
+            if (FilterId)
+                *FilterId = fwCapabilityAllowEvent->filterId;
+            if (LayerId)
+                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
-        return FALSE;
+        return TRUE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
         {
             //FWPM_NET_EVENT_CLASSIFY_DROP_MAC* fwClassifyDropMacEvent = FwEvent->classifyDropMac;
@@ -1160,13 +1196,10 @@ BOOLEAN EtFwGetFilterDisplayData(
         newentry.FilterId = FilterId;
         newentry.Name = filterName;
         newentry.Description = filterDescription;
-
         PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &newentry);
 
-        if (Name)
-            *Name = PhReferenceObject(filterName);
-        if (Description)
-            *Description = PhReferenceObject(filterDescription);
+        *Name = PhReferenceObject(filterName);
+        *Description = PhReferenceObject(filterDescription);
 
         PhReleaseQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
 
@@ -1192,6 +1225,42 @@ VOID EtFwRemoveFilterDisplayData(
     PhRemoveEntryHashtable(EtFwFilterDisplayDataHashTable, &lookupEntry);
 }
 
+//_Success_(return)
+//BOOLEAN EtFwGetLayerDisplayData(
+//    _In_ UINT16 LayerId,
+//    _Out_ PPH_STRING* Name,
+//    _Out_ PPH_STRING* Description
+//    )
+//{
+//    PPH_STRING layerName = NULL;
+//    PPH_STRING layerDescription = NULL;
+//    FWPM_LAYER* layer;
+//
+//    if (FwpmLayerGetById(EtFwEngineHandle, LayerId, &layer) == ERROR_SUCCESS)
+//    {
+//        if (layer->displayData.name)
+//            layerName = PhCreateString(layer->displayData.name);
+//        if (layer->displayData.description)
+//            layerDescription = PhCreateString(layer->displayData.description);
+//
+//        FwpmFreeMemory(&layer);
+//    }
+//
+//    if (layerName && layerDescription)
+//    {
+//        *Name = layerName;
+//        *Description = layerDescription;
+//        return TRUE;
+//    }
+//
+//    if (layerName)
+//        PhDereferenceObject(layerName);
+//    if (layerDescription)
+//        PhDereferenceObject(layerDescription);
+//
+//    return FALSE;
+//}
+
 _Success_(return)
 BOOLEAN EtFwLookupAddressClass(
     _In_ PPH_IP_ADDRESS Address,
@@ -1206,49 +1275,49 @@ BOOLEAN EtFwLookupAddressClass(
 
             if (IN4_IS_ADDR_UNSPECIFIED(inAddr))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Unspecified");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Unspecified");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN4_IS_ADDR_LOOPBACK(inAddr))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Loopback");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Loopback");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN4_IS_ADDR_BROADCAST(inAddr))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Broadcast");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Broadcast");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN4_IS_ADDR_MULTICAST(inAddr))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN4_IS_ADDR_LINKLOCAL(inAddr))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Linklocal");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Linklocal");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN4_IS_ADDR_MC_LINKLOCAL(inAddr))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast-Linklocal");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast-Linklocal");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN4_IS_ADDR_RFC1918(inAddr))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"RFC1918");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"RFC1918");
                 *ClassString = string;
                 return TRUE;
             }
             else
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Unicast");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Unicast");
                 *ClassString = string;
                 return TRUE;
             }
@@ -1260,37 +1329,37 @@ BOOLEAN EtFwLookupAddressClass(
 
             if (IN6_IS_ADDR_UNSPECIFIED(inAddr6))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Unspecified");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Unspecified");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN6_IS_ADDR_LOOPBACK(inAddr6))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Loopback");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Loopback");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN6_IS_ADDR_MULTICAST(inAddr6))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN6_IS_ADDR_LINKLOCAL(inAddr6))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Linklocal");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Linklocal");
                 *ClassString = string;
                 return TRUE;
             }
             else if (IN6_IS_ADDR_MC_LINKLOCAL(inAddr6))
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast-Linklocal");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast-Linklocal");
                 *ClassString = string;
                 return TRUE;
             }
             else
             {
-                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Unicast");
+                static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Unicast");
                 *ClassString = string;
                 return TRUE;
             }
@@ -1315,53 +1384,46 @@ BOOLEAN EtFwLookupAddressScope(
             {
             case ScopeLevelInterface:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Interface");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Interface");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelLink:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Link");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Link");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelSubnet:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Subnet");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Subnet");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelAdmin:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Admin");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Admin");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelSite:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Site");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Site");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelOrganization:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Organization");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Organization");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelGlobal:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Global");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Global");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             }
         }
         break;
@@ -1371,53 +1433,46 @@ BOOLEAN EtFwLookupAddressScope(
             {
             case ScopeLevelInterface:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Interface");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Interface");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelLink:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Link");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Link");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelSubnet:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Subnet");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Subnet");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelAdmin:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Admin");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Admin");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelSite:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Site");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Site");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelOrganization:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Organization");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Organization");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             case ScopeLevelGlobal:
                 {
-                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Global");
+                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Global");
                     *ScopeString = string;
-                    return TRUE;
                 }
-                break;
+                return TRUE;
             }
         }
         break;
@@ -1790,11 +1845,11 @@ VOID CALLBACK EtFwEventCallback(
         &layerId
         ))
     {
-        if (EtWindowsVersion >= WINDOWS_10) // TODO: add settings and make user optional (dmex)
+        if (EtWindowsVersion >= WINDOWS_10 && EtFwIgnoreOnError)
             return;
     }
 
-    if (EtWindowsVersion >= WINDOWS_10) // TODO: add settings and make user optional (dmex)
+    if (EtWindowsVersion >= WINDOWS_10 && EtFwIgnoreOnError)
     {
         if (
             layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4)
@@ -2040,6 +2095,12 @@ ULONG EtFwMonitorEnumEvents(
 
             for (UINT32 i = 0; i < count; i++)
             {
+                if (EtFwIgnoreAllow)
+                {
+                    if (events[i]->type == FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW || events[i]->type == FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW)
+                        continue;
+                }
+
                 EtFwEventCallback(NULL, events[i]);
             }
 
@@ -2065,7 +2126,9 @@ ULONG EtFwMonitorInitialize(
 
     EtFwEnableResolveCache = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     EtFwEnableResolveDoH = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
+    EtFwIgnorePortScan = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_PORTSCAN);
     EtFwIgnoreLoopback = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_LOOPBACK);
+    EtFwIgnoreAllow = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_ALLOW);
 
     PhInitializeFreeList(&EtFwPacketFreeList, sizeof(FW_EVENT_PACKET), 64);
     RtlInitializeSListHead(&EtFwPacketListHead);
@@ -2171,8 +2234,10 @@ ULONG EtFwMonitorInitialize(
     value.type = FWP_UINT32;
     value.uint32 = FWPM_NET_EVENT_KEYWORD_INBOUND_MCAST | FWPM_NET_EVENT_KEYWORD_INBOUND_BCAST;
     if (EtWindowsVersion >= WINDOWS_8)
-        value.uint32 |= FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP | FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW | FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
-    if (EtWindowsVersion >= WINDOWS_10_19H1 && !PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_PORTSCAN))
+        value.uint32 |= FWPM_NET_EVENT_KEYWORD_CAPABILITY_DROP;
+    if (EtWindowsVersion >= WINDOWS_8 && !EtFwIgnoreAllow)
+        value.uint32 |= FWPM_NET_EVENT_KEYWORD_CAPABILITY_ALLOW | FWPM_NET_EVENT_KEYWORD_CLASSIFY_ALLOW;
+    if (EtWindowsVersion >= WINDOWS_10_19H1 && !EtFwIgnorePortScan)
         value.uint32 |= FWPM_NET_EVENT_KEYWORD_PORT_SCANNING_DROP;
 
     status = FwpmEngineSetOption(
@@ -2183,6 +2248,21 @@ ULONG EtFwMonitorInitialize(
 
     if (status != ERROR_SUCCESS)
         return status;
+
+    //// Enable the name cache
+    //
+    //memset(&value, 0, sizeof(FWP_VALUE));
+    //value.type = FWP_UINT32;
+    //value.uint32 = TRUE;
+    //
+    //status = FwpmEngineSetOption(
+    //    EtFwEngineHandle,
+    //    FWPM_ENGINE_NAME_CACHE,
+    //    &value
+    //    );
+    //
+    //if (status != ERROR_SUCCESS)
+    //    return status;
 
     //if (EtWindowsVersion >= WINDOWS_8)
     //{

@@ -819,17 +819,37 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 {
                     if (node->Loopback)
                     {
-                        PhInitializeStringRef(&getCellText->Text, L"Loopback");
+                        switch (node->Direction)
+                        {
+                        case FW_EVENT_DIRECTION_INBOUND:
+                            PhInitializeStringRef(&getCellText->Text, L"Loopback [In]");
+                            break;
+                        case FW_EVENT_DIRECTION_OUTBOUND:
+                            PhInitializeStringRef(&getCellText->Text, L"Loopback [Out]");
+                            break;
+                        case FW_EVENT_DIRECTION_FORWARD:
+                            PhInitializeStringRef(&getCellText->Text, L"Loopback [Fwd]");
+                            break;
+                        case FW_EVENT_DIRECTION_BIDIRECTIONAL:
+                            PhInitializeStringRef(&getCellText->Text, L"Loopback [Bi]");
+                            break;
+                        }
                     }
                     else
                     {
                         switch (node->Direction)
                         {
-                        case FWP_DIRECTION_INBOUND:
+                        case FW_EVENT_DIRECTION_INBOUND:
                             PhInitializeStringRef(&getCellText->Text, L"In");
                             break;
-                        case FWP_DIRECTION_OUTBOUND:
+                        case FW_EVENT_DIRECTION_OUTBOUND:
                             PhInitializeStringRef(&getCellText->Text, L"Out");
+                            break;
+                        case FW_EVENT_DIRECTION_FORWARD:
+                            PhInitializeStringRef(&getCellText->Text, L"Fwd");
+                            break;
+                        case FW_EVENT_DIRECTION_BIDIRECTIONAL:
+                            PhInitializeStringRef(&getCellText->Text, L"Bi");
                             break;
                         }
                     }
@@ -1436,6 +1456,7 @@ VOID EtFwWriteFwList(
 
     PhDereferenceObject(lines);
 }
+
 typedef enum _FW_ITEM_COMMAND_ID
 {
     FW_ITEM_COMMAND_ID_PING = 1,
