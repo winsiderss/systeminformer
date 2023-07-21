@@ -177,6 +177,9 @@
     <ClCompile Include="mappings.c">
       <Filter>Source Files\Pages</Filter>
     </ClCompile>
+    <ClCompile Include="pemuiprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

@@ -19,7 +19,7 @@ typedef struct _PVP_RELOCATIONS_CONTEXT
     PPV_PROPPAGECONTEXT PropSheetContext;
 } PVP_RELOCATIONS_CONTEXT, *PPVP_RELOCATIONS_CONTEXT;
 
-VOID PvCreateeSections(
+VOID PvCreateSections(
     _Out_ PHANDLE ImageSection,
     _Out_ PHANDLE DataSection
     )
@@ -49,7 +49,7 @@ VOID PvCreateeSections(
         NULL,
         PAGE_READONLY,
         WindowsVersion < WINDOWS_8 ? SEC_IMAGE : SEC_IMAGE_NO_EXECUTE,
-        fileHandle 
+        fileHandle
         );
     if (!NT_SUCCESS(status))
         *ImageSection = NULL;
@@ -61,7 +61,7 @@ VOID PvCreateeSections(
         NULL,
         PAGE_READONLY,
         SEC_COMMIT,
-        fileHandle 
+        fileHandle
         );
     if (!NT_SUCCESS(status))
         *DataSection = NULL;
@@ -112,80 +112,83 @@ VOID PvEnumerateMappingsEntries(
     _In_ HWND ListViewHandle
     )
 {
-    ULONG count = 0;
     PKPH_SECTION_MAPPINGS_INFORMATION sectionInfo;
     HANDLE imageSection;
     HANDLE dataSection;
 
-    PvCreateeSections(&imageSection, &dataSection);
+    PvCreateSections(&imageSection, &dataSection);
 
     ExtendedListView_SetRedraw(ListViewHandle, FALSE);
     ListView_DeleteAllItems(ListViewHandle);
 
-    if (imageSection && NT_SUCCESS(KphQuerySectionMappingsInfo(imageSection, &sectionInfo)))
-    {
-        for (ULONG i = 0; i < sectionInfo->NumberOfMappings; i++)
-        {
-            PvAddMappingsEntry(ListViewHandle, &sectionInfo->Mappings[i], L"Image");
-        }
-
-        PhFree(sectionInfo);
-    }
-
-    if (dataSection && NT_SUCCESS(KphQuerySectionMappingsInfo(dataSection, &sectionInfo)))
-    {
-        for (ULONG i = 0; i < sectionInfo->NumberOfMappings; i++)
-        {
-            PvAddMappingsEntry(ListViewHandle, &sectionInfo->Mappings[i], L"Data");
-        }
-
-        PhFree(sectionInfo);
-    }
-
     if (imageSection)
+    {
+        if (NT_SUCCESS(KphQuerySectionMappingsInfo(imageSection, &sectionInfo)))
+        {
+            for (ULONG i = 0; i < sectionInfo->NumberOfMappings; i++)
+            {
+                PvAddMappingsEntry(ListViewHandle, &sectionInfo->Mappings[i], L"Image");
+            }
+
+            PhFree(sectionInfo);
+        }
+
         NtClose(imageSection);
+    }
 
     if (dataSection)
+    {
+        if (NT_SUCCESS(KphQuerySectionMappingsInfo(dataSection, &sectionInfo)))
+        {
+            for (ULONG i = 0; i < sectionInfo->NumberOfMappings; i++)
+            {
+                PvAddMappingsEntry(ListViewHandle, &sectionInfo->Mappings[i], L"Data");
+            }
+
+            PhFree(sectionInfo);
+        }
+
         NtClose(dataSection);
+    }
 
     //ExtendedListView_SortItems(ListViewHandle);
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
 INT_PTR CALLBACK PvpMappingsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PPVP_RELOCATIONS_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PVP_RELOCATIONS_CONTEXT));
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
 
         if (lParam)
         {
-            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            const LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
         }
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_LIST);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -196,20 +199,20 @@ INT_PTR CALLBACK PvpMappingsDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             PvEnumerateMappingsEntries(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
         }
         break;
     case WM_SHOWWINDOW:
         {
             if (context->PropSheetContext && !context->PropSheetContext->LayoutInitialized)
             {
-                PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PvDoPropPageLayout(hwndDlg);
+                PvAddPropPageLayoutItem(WindowHandle, WindowHandle, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                PvDoPropPageLayout(WindowHandle);
 
                 context->PropSheetContext->LayoutInitialized = TRUE;
             }
@@ -219,7 +222,7 @@ INT_PTR CALLBACK PvpMappingsDlgProc(
         {
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -235,7 +238,7 @@ INT_PTR CALLBACK PvpMappingsDlgProc(
         break;
     case WM_CONTEXTMENU:
         {
-            PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+            PvHandleListViewCommandCopy(WindowHandle, lParam, wParam, context->ListViewHandle);
         }
         break;
     case WM_CTLCOLORBTN:

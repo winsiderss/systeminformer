@@ -11,7 +11,7 @@
 
 #include <peview.h>
 
-typedef struct _PVP_PE_ATTRIBUTES_CONTEXT
+typedef struct _PV_PE_ATTRIBUTES_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
@@ -111,7 +111,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
 
         if (lParam)
         {
-            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            const LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
         }
     }
