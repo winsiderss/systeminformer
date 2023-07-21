@@ -31,14 +31,12 @@ extern RECT PhNormalGraphTextPadding;
 
 typedef struct _PH_GRAPH_DRAW_INFO *PPH_GRAPH_DRAW_INFO;
 
-_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
-typedef PPH_STRING (NTAPI PH_GRAPH_LABEL_Y_FUNCTION)(
+typedef PPH_STRING (NTAPI *PPH_GRAPH_LABEL_Y_FUNCTION)(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
     _In_ FLOAT Parameter
     );
-typedef PH_GRAPH_LABEL_Y_FUNCTION *PPH_GRAPH_LABEL_Y_FUNCTION;
 
 typedef struct _PH_GRAPH_DRAW_INFO
 {
