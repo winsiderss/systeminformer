@@ -674,6 +674,15 @@ VOID PvAddTreeViewSections(
             );
     }
 
+    // MUI page
+    PvCreateTabSection(
+        L"MUI",
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_PEVERSIONINFO),
+        PvpPeMuiResourceDlgProc,
+        NULL
+        );
+
     if (PhGetIntegerSetting(L"MainWindowPageRestoreEnabled"))
     {
         PPH_STRING startPage;

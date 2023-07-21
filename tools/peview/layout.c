@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2020-2022
+ *     dmex    2020-2023
  *
  */
 
@@ -65,7 +65,7 @@ VOID PvDestroyLayoutNode(
     _In_ PPV_LAYOUT_NODE CertificateNode
     );
 BOOLEAN NTAPI PvLayoutTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2,
@@ -79,7 +79,7 @@ VOID PvInitializeLayoutTree(
     PPH_STRING settings;
 
     Context->NodeHashtable = PhCreateHashtable(
-        sizeof(PV_LAYOUT_NODE),
+        sizeof(PPV_LAYOUT_NODE),
         PvLayoutNodeHashtableEqualFunction,
         PvLayoutNodeHashtableHashFunction,
         100
@@ -281,14 +281,14 @@ BEGIN_SORT_FUNCTION(Index)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI PvLayoutTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    PPV_PE_LAYOUT_CONTEXT context = Context;
+    const PPV_PE_LAYOUT_CONTEXT context = Context;
     PPV_LAYOUT_NODE node;
 
     if (!context)
@@ -298,11 +298,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
     {
     case TreeNewGetChildren:
         {
-            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
+            const PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
             node = (PPV_LAYOUT_NODE)getChildren->Node;
 
             if (!node)
@@ -319,11 +315,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewIsLeaf:
         {
-            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            if (!isLeaf)
-                break;
-
+            const PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
             node = (PPV_LAYOUT_NODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -334,11 +326,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewGetCellText:
         {
-            PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-
-            if (!getCellText)
-                break;
-
+            const PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             node = (PPV_LAYOUT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -362,11 +350,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewGetNodeColor:
         {
-            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-
-            if (!getNodeColor)
-                break;
-
+            const PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             node = (PPV_LAYOUT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_AUTO_FORECOLOR | TN_CACHE;
@@ -374,17 +358,14 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewSortChanged:
         {
-            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            TreeNew_GetSort(WindowHandle, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
         {
-            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
+            const PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
 
             switch (keyEvent->VirtualKey)
             {
@@ -402,7 +383,7 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
-            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+            const PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
             SendMessage(context->WindowHandle, WM_COMMAND, WM_PV_LAYOUT_CONTEXTMENU, (LPARAM)contextMenuEvent);
         }
@@ -411,13 +392,13 @@ BOOLEAN NTAPI PvLayoutTreeNewCallback(
         {
             //PH_TN_COLUMN_MENU_DATA data;
 
-            //data.TreeNewHandle = hwnd;
+            //data.TreeNewHandle = WindowHandle;
             //data.MouseEvent = Parameter1;
             //data.DefaultSortColumn = 0;
             //data.DefaultSortOrder = AscendingSortOrder;
             //PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            //data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            //data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
             //    PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             //PhHandleTreeNewColumnMenu(&data);
             //PhDeleteTreeNewColumnMenu(&data);
@@ -446,7 +427,7 @@ PPV_LAYOUT_NODE PvGetSelectedLayoutNode(
 {
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        PPV_LAYOUT_NODE layoutNode = Context->NodeList->Items[i];
+        const PPV_LAYOUT_NODE layoutNode = Context->NodeList->Items[i];
 
         if (layoutNode->Node.Selected)
             return layoutNode;
@@ -469,7 +450,7 @@ BOOLEAN PvGetSelectedLayoutNodes(
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        PPV_LAYOUT_NODE node = Context->NodeList->Items[i];
+        const PPV_LAYOUT_NODE node = Context->NodeList->Items[i];
 
         if (node->Node.Selected)
         {
@@ -500,7 +481,7 @@ VOID PvExpandAllLayoutNodes(
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        PPV_LAYOUT_NODE node = Context->NodeList->Items[i];
+        const PPV_LAYOUT_NODE node = Context->NodeList->Items[i];
 
         if (node->Children->Count != 0 && node->Node.Expanded != Expand)
         {
@@ -782,8 +763,8 @@ PPH_STRING PvLayoutFormatSize(
 #define FILE_LAYOUT_ENTRY_VERSION 0x1
 #define STREAM_LAYOUT_ENTRY_VERSION 0x1
 #define PH_FIRST_LAYOUT_ENTRY(LayoutEntry) \
-    ((PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET(LayoutEntry, \
-    ((PQUERY_FILE_LAYOUT_OUTPUT)LayoutEntry)->FirstFileOffset)))
+    ((PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET((LayoutEntry), \
+    ((PQUERY_FILE_LAYOUT_OUTPUT)(LayoutEntry))->FirstFileOffset)))
 #define PH_NEXT_LAYOUT_ENTRY(LayoutEntry) ( \
     ((PFILE_LAYOUT_ENTRY)(LayoutEntry))->NextFileOffset ? \
     (PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET((LayoutEntry), \
@@ -1149,8 +1130,8 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
             PvAddChildLayoutNode(Context, NULL, L"File attributes", PhFormatUInt64(fileLayoutEntry->FileAttributes, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"File entry flags", PhFormatUInt64(fileLayoutEntry->Flags, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"Creation time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.CreationTime));
-            //PvAddChildLayoutNode(Context, NULL, L"Last access time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastAccessTime));
-            PvAddChildLayoutNode(Context, NULL, L"Last write time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastWriteTime));
+            //PvAddChildLayoutNode(Context, NULL, L"Access time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastAccessTime));
+            PvAddChildLayoutNode(Context, NULL, L"Write time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastWriteTime));
             PvAddChildLayoutNode(Context, NULL, L"Change time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.ChangeTime));
             PvAddChildLayoutNode(Context, NULL, L"LastUsn", PhFormatUInt64(fileLayoutInfoEntry->Usn, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"OwnerId", PhFormatUInt64(fileLayoutInfoEntry->OwnerId, FALSE));

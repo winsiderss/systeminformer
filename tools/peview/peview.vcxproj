@@ -397,6 +397,7 @@
     <ClCompile Include="layout.c" />
     <ClCompile Include="pedynrelocprp.c" />
     <ClCompile Include="peheaderprp.c" />
+    <ClCompile Include="pemuiprp.c" />
     <ClCompile Include="peprpwnd.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="peexceptprp.c" />
