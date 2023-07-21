@@ -1850,10 +1850,10 @@ typedef struct _DEV_BROADCAST_HDR
 
 // theme support (theme.c)
 
-PHLIBAPI extern HFONT PhApplicationFont; // phapppub
-PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
-PHLIBAPI extern HFONT PhMonospaceFont; // phapppub
-PHLIBAPI extern HBRUSH PhThemeWindowBackgroundBrush;
+extern HFONT PhApplicationFont;
+extern HFONT PhTreeWindowFont;
+extern HFONT PhMonospaceFont;
+extern HBRUSH PhThemeWindowBackgroundBrush;
 extern BOOLEAN PhEnableThemeSupport;
 extern BOOLEAN PhEnableThemeAcrylicSupport;
 extern BOOLEAN PhEnableThemeListviewBorder;

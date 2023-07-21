@@ -606,8 +606,6 @@ EXPORTS
     PhSetDialogItemText
     PhSetGroupBoxText
     PhSetWindowText
-    PhApplicationFont
-    PhTreeWindowFont
     PhRegisterWindowCallback
     PhUnregisterWindowCallback
     PhInitializeWindowTheme
