@@ -300,10 +300,9 @@ INT WINAPI wWinMain(
                     status = STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
                     break;
                 }
-            }
 
-            if (NT_SUCCESS(status))
                 PhUnloadMappedImage(&PvMappedImage);
+            }
         }
 
         if (!NT_SUCCESS(status))
