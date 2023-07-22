@@ -573,6 +573,11 @@ NTSTATUS KphpExtractNameFileObject(
     PFILE_OBJECT relatedFileObject;
 
     PAGED_PASSIVE();
+    
+    if (FlagOn(FileObject->Flags, FO_CLEANUP_COMPLETE))
+    {
+        return STATUS_FILE_CLOSED;
+    }
 
     if (BufferLength < sizeof(OBJECT_NAME_INFORMATION))
     {
@@ -731,55 +736,49 @@ NTSTATUS KphQueryNameFileObject(
 {
     NTSTATUS status;
     PFLT_FILE_NAME_INFORMATION fileNameInfo;
+    FLT_FILE_NAME_OPTIONS nameOptions;
 
     PAGED_PASSIVE();
 
-    fileNameInfo = NULL;
+    nameOptions = FLT_FILE_NAME_NORMALIZED;
 
     if (IoGetTopLevelIrp() || KeAreAllApcsDisabled())
     {
-        status = STATUS_POSSIBLE_DEADLOCK;
+        nameOptions |= FLT_FILE_NAME_QUERY_CACHE_ONLY;
     }
     else
     {
-        status = FltGetFileNameInformationUnsafe(FileObject,
-                                                 NULL,
-                                                 (FLT_FILE_NAME_NORMALIZED |
-                                                  FLT_FILE_NAME_QUERY_DEFAULT),
-                                                 &fileNameInfo);
-        if (!NT_SUCCESS(status))
-        {
-            fileNameInfo = NULL;
-        }
-        else
-        {
-            *ReturnLength = sizeof(OBJECT_NAME_INFORMATION);
-            *ReturnLength += fileNameInfo->Name.Length;
-            if (BufferLength < *ReturnLength)
-            {
-                status = STATUS_BUFFER_TOO_SMALL;
-                goto Exit;
-            }
-
-            Buffer->Name.Length = 0;
-            Buffer->Name.MaximumLength = (USHORT)(BufferLength - sizeof(OBJECT_NAME_INFORMATION));
-            Buffer->Name.Buffer = (PWSTR)Add2Ptr(Buffer, sizeof(OBJECT_NAME_INFORMATION));
-
-            RtlCopyUnicodeString(&Buffer->Name, &fileNameInfo->Name);
-
-            status = STATUS_SUCCESS;
-            goto Exit;
-        }
+        nameOptions |= FLT_FILE_NAME_QUERY_ALWAYS_ALLOW_CACHE_LOOKUP;
     }
 
-    if (!NT_SUCCESS(status) &&
-        !BooleanFlagOn(FileObject->Flags, FO_CLEANUP_COMPLETE))
+    status = FltGetFileNameInformationUnsafe(FileObject,
+                                             NULL,
+                                             nameOptions,
+                                             &fileNameInfo);
+    if (!NT_SUCCESS(status))
     {
+        fileNameInfo = NULL;
+
         status = KphpExtractNameFileObject(FileObject,
                                            Buffer,
                                            BufferLength,
                                            ReturnLength);
+        goto Exit;
     }
+
+    *ReturnLength = sizeof(OBJECT_NAME_INFORMATION);
+    *ReturnLength += fileNameInfo->Name.Length;
+    if (BufferLength < *ReturnLength)
+    {
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto Exit;
+    }
+
+    Buffer->Name.Length = 0;
+    Buffer->Name.MaximumLength = (USHORT)(BufferLength - sizeof(OBJECT_NAME_INFORMATION));
+    Buffer->Name.Buffer = (PWSTR)Add2Ptr(Buffer, sizeof(OBJECT_NAME_INFORMATION));
+
+    RtlCopyUnicodeString(&Buffer->Name, &fileNameInfo->Name);
 
 Exit:
 
