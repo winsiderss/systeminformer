@@ -204,7 +204,7 @@ PDEVICE_TREE DeviceTreeCreateIfNecessary(
     PDEVICE_TREE deviceTree;
     PPH_DEVICE_TREE tree;
 
-    tree = PhReferenceDeviceTree();
+    tree = PhReferenceDeviceTreeEx(Force);
     if (Force || !DeviceTree || DeviceTree->Tree != tree)
     {
         deviceTree = DeviceTreeCreate(tree);
@@ -258,7 +258,7 @@ NTSTATUS NTAPI DeviceTreePublishThread(
     return STATUS_SUCCESS;
 }
 
-VOID DeviceTreePublicAsync(
+VOID DeviceTreePublishAsync(
     _In_ BOOLEAN Force
     )
 {
@@ -765,7 +765,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
 
             if (republish)
             {
-                DeviceTreePublicAsync(TRUE);
+                DeviceTreePublishAsync(TRUE);
             }
             else if (invalidate)
             {
@@ -1246,7 +1246,7 @@ BOOLEAN DevicesTabPageCallback(
         {
             DeviceTabSelected = (BOOLEAN)Parameter1;
             if (DeviceTabSelected)
-                DeviceTreePublicAsync(FALSE);
+                DeviceTreePublishAsync(FALSE);
         }
         break;
     case MainTabPageFontChanged:

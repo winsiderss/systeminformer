@@ -385,6 +385,13 @@ PhReferenceDeviceTree(
     );
 
 PHAPPAPI
+PPH_DEVICE_TREE
+NTAPI
+PhReferenceDeviceTreeEx(
+    _In_ BOOLEAN ForceRefresh
+    );
+
+PHAPPAPI
 _Success_(return != NULL)
 _Must_inspect_result_
 PPH_DEVICE_ITEM

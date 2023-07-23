@@ -3402,19 +3402,6 @@ HICON PhGetDeviceIcon(
     return iconHandle;
 }
 
-PPH_DEVICE_TREE PhReferenceDeviceTree(
-    VOID
-    )
-{
-    PPH_DEVICE_TREE deviceTree;
-
-    PhAcquireFastLockShared(&PhpDeviceTreeLock);
-    PhSetReference(&deviceTree, PhpDeviceTree);
-    PhReleaseFastLockShared(&PhpDeviceTreeLock);
-
-    return deviceTree;
-}
-
 ULONG PhpGenerateInstanceIdHash(
     _In_ PPH_STRINGREF InstanceId
     )
@@ -4051,21 +4038,30 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
     return tree;
 }
 
-VOID PhpDeviceNotify(
-    _In_ PLIST_ENTRY List
+VOID PhpPublishDeviceTree(
+    VOID
     )
 {
     PPH_DEVICE_TREE newTree;
     PPH_DEVICE_TREE oldTree;
-
-    // We process device notifications in blocks so that bursts of device changes
-    // don't each trigger a new tree each time.
 
     newTree = PhpCreateDeviceTree();
     PhAcquireFastLockExclusive(&PhpDeviceTreeLock);
     oldTree = PhpDeviceTree;
     PhpDeviceTree = newTree;
     PhReleaseFastLockExclusive(&PhpDeviceTreeLock);
+
+    PhDereferenceObject(oldTree);
+}
+
+VOID PhpDeviceNotify(
+    _In_ PLIST_ENTRY List
+    )
+{
+    // We process device notifications in blocks so that bursts of device changes
+    // don't each trigger a new tree each time.
+
+    PhpPublishDeviceTree();
 
     while (!IsListEmpty(List))
     {
@@ -4077,8 +4073,6 @@ VOID PhpDeviceNotify(
 
         PhDereferenceObject(entry);
     }
-
-    PhDereferenceObject(oldTree);
 }
 
 _Function_class_(PUSER_THREAD_START_ROUTINE)
@@ -4242,4 +4236,27 @@ BOOLEAN PhDeviceProviderInitialization(
     }
 
     return initialized;
+}
+
+PPH_DEVICE_TREE PhReferenceDeviceTree(
+    VOID
+    )
+{
+    return PhReferenceDeviceTreeEx(FALSE);
+}
+
+PPH_DEVICE_TREE PhReferenceDeviceTreeEx(
+    _In_ BOOLEAN ForceRefresh
+    )
+{
+    PPH_DEVICE_TREE deviceTree;
+
+    if (ForceRefresh)
+        PhpPublishDeviceTree();
+
+    PhAcquireFastLockShared(&PhpDeviceTreeLock);
+    PhSetReference(&deviceTree, PhpDeviceTree);
+    PhReleaseFastLockShared(&PhpDeviceTreeLock);
+
+    return deviceTree;
 }
