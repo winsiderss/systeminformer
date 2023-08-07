@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -714,7 +714,10 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                 DiskDrivesSaveList();
 
             FreeListViewDiskDriveEntries(context);
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }

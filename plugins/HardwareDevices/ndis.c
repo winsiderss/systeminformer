@@ -601,7 +601,7 @@ PPH_STRING NetAdapterFormatBitratePrefix(
     _In_ ULONG64 Value
     )
 {
-    static PH_STRINGREF SiPrefixUnitNamesCounted[7] =
+    static const PH_STRINGREF SiPrefixUnitNamesCounted[7] =
     {
         PH_STRINGREF_INIT(L" Bps"),
         PH_STRINGREF_INIT(L" Kbps"),

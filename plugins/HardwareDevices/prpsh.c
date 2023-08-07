@@ -172,13 +172,17 @@ LRESULT CALLBACK PvpPropSheetWndProc(
 
     switch (uMsg)
     {
+    case WM_DESTROY:
+        {
+            PhSaveWindowPlacementToSetting(SETTING_NAME_DISK_POSITION, SETTING_NAME_DISK_SIZE, hWnd);
+            PhDeleteLayoutManager(&context->LayoutManager);
+        }
+        break;
     case WM_NCDESTROY:
         {
             SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-            PhRemoveWindowContext(hWnd, ULONG_MAX);
 
-            PhSaveWindowPlacementToSetting(SETTING_NAME_DISK_POSITION, SETTING_NAME_DISK_SIZE, hWnd);
-            PhDeleteLayoutManager(&context->LayoutManager);
+            PhRemoveWindowContext(hWnd, ULONG_MAX);
 
             PhFree(context);
         }
@@ -268,7 +272,7 @@ LRESULT CALLBACK PvControlButtonWndProc(
             }
         }
         break;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             PhRemoveWindowContext(WindowHandle, SCHAR_MAX);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);

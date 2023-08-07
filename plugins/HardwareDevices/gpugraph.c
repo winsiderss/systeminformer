@@ -1299,11 +1299,6 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (context == NULL)
@@ -1348,6 +1343,11 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&context->GpuLayoutManager);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_DPICHANGED_AFTERPARENT:
@@ -1433,11 +1433,6 @@ INT_PTR CALLBACK GraphicsDevicePanelDialogProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (context == NULL)
@@ -1451,6 +1446,11 @@ INT_PTR CALLBACK GraphicsDevicePanelDialogProc(
             context->GpuPanelDedicatedLimitLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDLIMIT_V);
             context->GpuPanelSharedUsageLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDCURRENT_V);
             context->GpuPanelSharedLimitLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDLIMIT_V);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
