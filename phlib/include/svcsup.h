@@ -73,6 +73,20 @@ PhCreateService(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhContinueService(
+    _In_ SC_HANDLE ServiceHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhPauseService(
+    _In_ SC_HANDLE ServiceHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhDeleteService(
     _In_ SC_HANDLE ServiceHandle
     );
@@ -84,6 +98,13 @@ PhStartService(
     _In_ SC_HANDLE ServiceHandle,
     _In_ ULONG NumberOfServiceArgs,
     _In_reads_opt_(NumberOfServiceArgs) PCWSTR* ServiceArgVectors
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhStopService(
+    _In_ SC_HANDLE ServiceHandle
     );
 
 PHLIBAPI

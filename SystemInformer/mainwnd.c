@@ -1888,7 +1888,7 @@ VOID PhMwpOnCommand(
                     PhDereferenceObject(fileName);
                 }
 
-                CloseServiceHandle(serviceHandle);
+                PhCloseServiceHandle(serviceHandle);
             }
         }
         break;

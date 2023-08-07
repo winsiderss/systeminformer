@@ -292,6 +292,36 @@ NTSTATUS PhCreateService(
     return status;
 }
 
+NTSTATUS PhContinueService(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    NTSTATUS status;
+    SERVICE_STATUS serviceStatus;
+
+    if (ControlService(ServiceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhPauseService(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    NTSTATUS status;
+    SERVICE_STATUS serviceStatus;
+
+    if (ControlService(ServiceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
 NTSTATUS PhDeleteService(
     _In_ SC_HANDLE ServiceHandle
     )
@@ -315,6 +345,21 @@ NTSTATUS PhStartService(
     NTSTATUS status;
 
     if (StartService(ServiceHandle, NumberOfServiceArgs, ServiceArgVectors))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhStopService(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    NTSTATUS status;
+    SERVICE_STATUS serviceStatus;
+
+    if (ControlService(ServiceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
         status = STATUS_SUCCESS;
     else
         status = PhGetLastWin32ErrorAsNtStatus();
