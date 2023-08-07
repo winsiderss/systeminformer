@@ -1540,10 +1540,8 @@ NTSTATUS PhExecuteRunAsCommand(
     )
 {
     NTSTATUS status;
-    ULONG win32Result;
     PPH_STRING applicationFileName;
     PPH_STRING commandLine;
-    SC_HANDLE scManagerHandle;
     SC_HANDLE serviceHandle;
     PPH_STRING portName;
     UNICODE_STRING portNameUs;
@@ -1554,43 +1552,32 @@ NTSTATUS PhExecuteRunAsCommand(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
-        return PhGetLastWin32ErrorAsNtStatus();
-
     if (!(applicationFileName = PhGetApplicationFileNameWin32()))
         return STATUS_FAIL_CHECK;
 
     commandLine = PhFormatString(L"\"%s\" -ras \"%s\"", applicationFileName->Buffer, Parameters->ServiceName);
 
-    serviceHandle = CreateService(
-        scManagerHandle,
+    status = PhCreateService(
+        &serviceHandle,
         Parameters->ServiceName,
         Parameters->ServiceName,
         SERVICE_ALL_ACCESS,
         SERVICE_WIN32_OWN_PROCESS,
         SERVICE_DEMAND_START,
         SERVICE_ERROR_IGNORE,
-        commandLine->Buffer,
-        NULL,
-        NULL,
-        NULL,
+        PhGetString(commandLine),
         L"LocalSystem",
         L""
         );
-    win32Result = GetLastError();
 
     PhDereferenceObject(commandLine);
     PhDereferenceObject(applicationFileName);
 
-    CloseServiceHandle(scManagerHandle);
+    if (!NT_SUCCESS(status))
+        return status;
 
-    if (!serviceHandle)
-    {
-        return NTSTATUS_FROM_WIN32(win32Result);
-    }
-
-    StartService(serviceHandle, 0, NULL);
-    DeleteService(serviceHandle);
+    PhStartService(serviceHandle, 0, NULL);
+    PhDeleteService(serviceHandle);
 
     portName = PhConcatStrings2(L"\\BaseNamedObjects\\", Parameters->ServiceName);
     PhStringRefToUnicodeString(&portName->sr, &portNameUs);
@@ -1617,8 +1604,7 @@ NTSTATUS PhExecuteRunAsCommand(
         PhSvcDisconnectFromServer();
     }
 
-    if (serviceHandle)
-        CloseServiceHandle(serviceHandle);
+    PhCloseServiceHandle(serviceHandle);
 
     return status;
 }
@@ -1841,7 +1827,7 @@ NTSTATUS PhRunAsServiceStart(
     _In_ PPH_STRING ServiceName
     )
 {
-    SERVICE_TABLE_ENTRY serviceDispatchTable[] =
+    const SERVICE_TABLE_ENTRY serviceDispatchTable[] =
     {
         { PhGetString(ServiceName), RunAsServiceMain },
         { NULL, NULL }
@@ -2237,7 +2223,7 @@ NTSTATUS RunAsCreateProcessThread(
     {
         ULONG attempts = 10;
 
-        StartService(serviceHandle, 0, NULL);
+        PhStartService(serviceHandle, 0, NULL);
 
         do
         {
@@ -2304,7 +2290,7 @@ CleanupExit:
         NtClose(processHandle);
 
     if (serviceHandle)
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
 
     if (startupInfo.lpAttributeList)
     {
