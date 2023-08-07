@@ -55,8 +55,6 @@
 #include <phplug.h>
 #include <srvprv.h>
 
-#include <mapimg.h>
-
 #define PROCESS_ID_BUCKETS 64
 #define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) ((HandleToUlong(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
 
