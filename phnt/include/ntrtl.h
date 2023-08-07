@@ -5531,6 +5531,7 @@ RtlDeCommitDebugInfo(
 #define RTL_QUERY_PROCESS_HEAP_SEGMENTS 0x00000200
 #define RTL_QUERY_PROCESS_CS_OWNER 0x00000400 // rev
 #define RTL_QUERY_PROCESS_NONINVASIVE 0x80000000
+#define RTL_QUERY_PROCESS_NONINVASIVE_CS_OWNER 0x80000800 // WIN11
 
 NTSYSAPI
 NTSTATUS
@@ -9834,6 +9835,23 @@ RtlCompareExchangePropertyStore(
     _In_ PULONG_PTR Comperand,
     _In_opt_ PULONG_PTR Exchange,
     _Out_ PULONG_PTR Context
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+typedef enum _THREAD_STATE_CHANGE_TYPE THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWow64ChangeThreadState(
+    _In_ HANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle,
+    _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
+    _In_opt_ PVOID ExtendedInformation,
+    _In_opt_ SIZE_T ExtendedInformationLength,
+    _In_opt_ ULONG64 Reserved
     );
 #endif
 
