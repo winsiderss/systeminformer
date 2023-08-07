@@ -3427,7 +3427,7 @@ ULONG PhInitiateShutdown(
  * Sets shutdown parameters for the current process relative to the other processes in the system.
  *
  * \param Level The shutdown priority for the current process.
- * \param Flags Optional flags for terminating the current process. 
+ * \param Flags Optional flags for terminating the current process.
  *
  * \return Successful or errant status.
  */
@@ -3491,18 +3491,6 @@ VOID PhCustomDrawTreeTimeLine(
         if (bootTime.QuadPart == 0)
         {
             PhGetSystemBootTime(&bootTime);
-
-            //if (NT_SUCCESS(NtQuerySystemInformation(
-            //    SystemTimeOfDayInformation,
-            //    &timeOfDayInfo,
-            //    RTL_SIZEOF_THROUGH_FIELD(SYSTEM_TIMEOFDAY_INFORMATION, CurrentTime),
-            //    NULL
-            //    )))
-            //{
-            //    startTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart;
-            //    createTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - processItem->CreateTime.QuadPart;
-            //    percent = round((DOUBLE)((FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100));
-            //}
         }
 
         PhQuerySystemTime(&systemTime);
@@ -3510,9 +3498,9 @@ VOID PhCustomDrawTreeTimeLine(
         createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
     }
 
-    if (createTime.QuadPart >= startTime.QuadPart)
+    if (createTime.QuadPart > startTime.QuadPart)
     {
-        SetFlag(flags, PH_DRAW_TIMELINE_OVERFLOW); // System threads created before startup. (dmex)
+        SetFlag(flags, PH_DRAW_TIMELINE_OVERFLOW);
     }
 
     percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
