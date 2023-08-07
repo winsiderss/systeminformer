@@ -52,9 +52,9 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
+            PhAddComboBoxStringRefs(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
+            PhAddComboBoxStringRefs(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
+            PhAddComboBoxStringRefs(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
 
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"Own Process", FALSE);
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), L"Demand Start", FALSE);

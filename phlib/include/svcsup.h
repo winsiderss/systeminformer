@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2018-2023
+ *
+ */
+
 #ifndef _PH_SVCSUP_H
 #define _PH_SVCSUP_H
 
@@ -5,9 +17,9 @@
 extern "C" {
 #endif
 
-extern WCHAR *PhServiceTypeStrings[12];
-extern WCHAR *PhServiceStartTypeStrings[5];
-extern WCHAR *PhServiceErrorControlStrings[4];
+extern CONST PPH_STRINGREF PhServiceTypeStrings[12];
+extern CONST PPH_STRINGREF PhServiceStartTypeStrings[5];
+extern CONST PPH_STRINGREF PhServiceErrorControlStrings[4];
 
 _Success_(return != NULL)
 PHLIBAPI
@@ -40,6 +52,38 @@ VOID
 NTAPI
 PhCloseServiceHandle(
     _In_ SC_HANDLE ServiceHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateService(
+    _Out_ SC_HANDLE* ServiceHandle,
+    _In_ PCWSTR ServiceName,
+    _In_opt_ PCWSTR DisplayName,
+    _In_ ULONG DesiredAccess,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PCWSTR BinaryPathName,
+    _In_opt_ PCWSTR UserName,
+    _In_opt_ PCWSTR Password
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDeleteService(
+    _In_ SC_HANDLE ServiceHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhStartService(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG NumberOfServiceArgs,
+    _In_reads_opt_(NumberOfServiceArgs) PCWSTR* ServiceArgVectors
     );
 
 PHLIBAPI

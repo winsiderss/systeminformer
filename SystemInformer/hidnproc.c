@@ -349,7 +349,7 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                             0
                             )))
                         {
-                            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
+                            PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
                             PhWritePhTextHeader(fileStream);
                             PhWriteStringAsUtf8FileStream2(fileStream, L"Method: ");
                             PhWriteStringAsUtf8FileStream2(fileStream,

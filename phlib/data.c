@@ -129,6 +129,7 @@ PSID PhSeInternetExplorerSid( // S-1-15-3-4096 (dmex)
 
 // Unicode
 
+DECLSPEC_SELECTANY CONST
 PH_STRINGREF PhUnicodeByteOrderMark = PH_STRINGREF_INIT(L"\ufeff");
 
 // Characters
@@ -239,86 +240,86 @@ ULONG PhCrc32Table[256] =
 // Enums
 
 DECLSPEC_SELECTANY CONST
-WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes] =
+PH_STRINGREF PhIoPriorityHintNames[MaxIoPriorityTypes] =
 {
-    L"Very low",
-    L"Low",
-    L"Normal",
-    L"High",
-    L"Critical"
+    PH_STRINGREF_INIT(L"Very low"),
+    PH_STRINGREF_INIT(L"Low"),
+    PH_STRINGREF_INIT(L"Normal"),
+    PH_STRINGREF_INIT(L"High"),
+    PH_STRINGREF_INIT(L"Critical"),
 };
 
 DECLSPEC_SELECTANY CONST
-WCHAR *PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
+PH_STRINGREF PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
 {
-    L"Lowest",
-    L"Very low",
-    L"Low",
-    L"Medium",
-    L"Below normal",
-    L"Normal"
+    PH_STRINGREF_INIT(L"Lowest"),
+    PH_STRINGREF_INIT(L"Very low"),
+    PH_STRINGREF_INIT(L"Low"),
+    PH_STRINGREF_INIT(L"Medium"),
+    PH_STRINGREF_INIT(L"Below normal"),
+    PH_STRINGREF_INIT(L"Normal"),
 };
 
 DECLSPEC_SELECTANY CONST
-WCHAR *PhKThreadStateNames[MaximumThreadState] =
+PH_STRINGREF PhKThreadStateNames[MaximumThreadState] =
 {
-    L"Initialized",
-    L"Ready",
-    L"Running",
-    L"Standby",
-    L"Terminated",
-    L"Waiting",
-    L"Transition",
-    L"DeferredReady",
-    L"GateWait",
-    L"WaitingForProcessInSwap"
+    PH_STRINGREF_INIT(L"Initialized"),
+    PH_STRINGREF_INIT(L"Ready"),
+    PH_STRINGREF_INIT(L"Running"),
+    PH_STRINGREF_INIT(L"Standby"),
+    PH_STRINGREF_INIT(L"Terminated"),
+    PH_STRINGREF_INIT(L"Waiting"),
+    PH_STRINGREF_INIT(L"Transition"),
+    PH_STRINGREF_INIT(L"DeferredReady"),
+    PH_STRINGREF_INIT(L"GateWait"),
+    PH_STRINGREF_INIT(L"WaitingForProcessInSwap"),
 };
 
 DECLSPEC_SELECTANY CONST
-WCHAR *PhKWaitReasonNames[MaximumWaitReason] =
+PH_STRINGREF PhKWaitReasonNames[MaximumWaitReason] =
 {
-    L"Executive",
-    L"FreePage",
-    L"PageIn",
-    L"PoolAllocation",
-    L"DelayExecution",
-    L"Suspended",
-    L"UserRequest",
-    L"WrExecutive",
-    L"WrFreePage",
-    L"WrPageIn",
-    L"WrPoolAllocation",
-    L"WrDelayExecution",
-    L"WrSuspended",
-    L"WrUserRequest",
-    L"WrEventPair",
-    L"WrQueue",
-    L"WrLpcReceive",
-    L"WrLpcReply",
-    L"WrVirtualMemory",
-    L"WrPageOut",
-    L"WrRendezvous",
-    L"WrKeyedEvent",
-    L"WrTerminated",
-    L"WrProcessInSwap",
-    L"WrCpuRateControl",
-    L"WrCalloutStack",
-    L"WrKernel",
-    L"WrResource",
-    L"WrPushLock",
-    L"WrMutex",
-    L"WrQuantumEnd",
-    L"WrDispatchInt",
-    L"WrPreempted",
-    L"WrYieldExecution",
-    L"WrFastMutex",
-    L"WrGuardedMutex",
-    L"WrRundown",
-    L"WrAlertByThreadId",
-    L"WrDeferredPreempt",
-    L"WrPhysicalFault",
-    L"WrIoRing",
-    L"WrMdlCache",
+    PH_STRINGREF_INIT(L"Executive"),
+    PH_STRINGREF_INIT(L"FreePage"),
+    PH_STRINGREF_INIT(L"PageIn"),
+    PH_STRINGREF_INIT(L"PoolAllocation"),
+    PH_STRINGREF_INIT(L"DelayExecution"),
+    PH_STRINGREF_INIT(L"Suspended"),
+    PH_STRINGREF_INIT(L"UserRequest"),
+    PH_STRINGREF_INIT(L"WrExecutive"),
+    PH_STRINGREF_INIT(L"WrFreePage"),
+    PH_STRINGREF_INIT(L"WrPageIn"),
+    PH_STRINGREF_INIT(L"WrPoolAllocation"),
+    PH_STRINGREF_INIT(L"WrDelayExecution"),
+    PH_STRINGREF_INIT(L"WrSuspended"),
+    PH_STRINGREF_INIT(L"WrUserRequest"),
+    PH_STRINGREF_INIT(L"WrEventPair"),
+    PH_STRINGREF_INIT(L"WrQueue"),
+    PH_STRINGREF_INIT(L"WrLpcReceive"),
+    PH_STRINGREF_INIT(L"WrLpcReply"),
+    PH_STRINGREF_INIT(L"WrVirtualMemory"),
+    PH_STRINGREF_INIT(L"WrPageOut"),
+    PH_STRINGREF_INIT(L"WrRendezvous"),
+    PH_STRINGREF_INIT(L"WrKeyedEvent"),
+    PH_STRINGREF_INIT(L"WrTerminated"),
+    PH_STRINGREF_INIT(L"WrProcessInSwap"),
+    PH_STRINGREF_INIT(L"WrCpuRateControl"),
+    PH_STRINGREF_INIT(L"WrCalloutStack"),
+    PH_STRINGREF_INIT(L"WrKernel"),
+    PH_STRINGREF_INIT(L"WrResource"),
+    PH_STRINGREF_INIT(L"WrPushLock"),
+    PH_STRINGREF_INIT(L"WrMutex"),
+    PH_STRINGREF_INIT(L"WrQuantumEnd"),
+    PH_STRINGREF_INIT(L"WrDispatchInt"),
+    PH_STRINGREF_INIT(L"WrPreempted"),
+    PH_STRINGREF_INIT(L"WrYieldExecution"),
+    PH_STRINGREF_INIT(L"WrFastMutex"),
+    PH_STRINGREF_INIT(L"WrGuardedMutex"),
+    PH_STRINGREF_INIT(L"WrRundown"),
+    PH_STRINGREF_INIT(L"WrAlertByThreadId"),
+    PH_STRINGREF_INIT(L"WrDeferredPreempt"),
+    PH_STRINGREF_INIT(L"WrPhysicalFault"),
+    PH_STRINGREF_INIT(L"WrIoRing"),
+    PH_STRINGREF_INIT(L"WrMdlCache"),
 };
 
 static_assert(ARRAYSIZE(PhIoPriorityHintNames) == MaxIoPriorityTypes, "PhIoPriorityHintNames must equal MaxIoPriorityTypes");

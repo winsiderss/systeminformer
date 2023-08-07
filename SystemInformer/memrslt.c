@@ -435,7 +435,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             0
                             )))
                         {
-                            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
+                            PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
                             PhWritePhTextHeader(fileStream);
 
                             string = PhpGetStringForSelectedResults(GetDlgItem(hwndDlg, IDC_LIST), context->Results, TRUE);

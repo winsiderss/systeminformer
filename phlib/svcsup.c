@@ -18,7 +18,7 @@
 #define SIP(String, Integer) \
     { (String), (PVOID)(Integer) }
 
-#define SREF(String) (PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String))
+#define SREF(String) ((PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String)))
 static PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
 
 static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
@@ -65,37 +65,37 @@ static PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
     SIP(SREF(L"Critical"), SERVICE_ERROR_CRITICAL)
 };
 
-PWSTR PhServiceTypeStrings[] =
+CONST PPH_STRINGREF PhServiceTypeStrings[] =
 {
-    L"Driver",
-    L"FS driver",
-    L"Own process",
-    L"Share process",
-    L"Own interactive process",
-    L"Share interactive process",
-    L"User own process",
-    L"User own process (instance)",
-    L"User share process",
-    L"User share process (instance)",
-    L"Package own process",
-    L"Package share process",
+    SREF(L"Driver"),
+    SREF(L"FS driver"),
+    SREF(L"Own process"),
+    SREF(L"Share process"),
+    SREF(L"Own interactive process"),
+    SREF(L"Share interactive process"),
+    SREF(L"User own process"),
+    SREF(L"User own process (instance)"),
+    SREF(L"User share process"),
+    SREF(L"User share process (instance)"),
+    SREF(L"Package own process"),
+    SREF(L"Package share process"),
 };
 
-PWSTR PhServiceStartTypeStrings[5] =
+CONST PPH_STRINGREF PhServiceStartTypeStrings[5] =
 {
-    L"Disabled",
-    L"Boot start",
-    L"System start",
-    L"Auto start",
-    L"Demand start"
+    SREF(L"Disabled"),
+    SREF(L"Boot start"),
+    SREF(L"System start"),
+    SREF(L"Auto start"),
+    SREF(L"Demand start"),
 };
 
-PWSTR PhServiceErrorControlStrings[4] =
+CONST PPH_STRINGREF PhServiceErrorControlStrings[4] =
 {
-    L"Ignore",
-    L"Normal",
-    L"Severe",
-    L"Critical"
+    SREF(L"Ignore"),
+    SREF(L"Normal"),
+    SREF(L"Severe"),
+    SREF(L"Critical"),
 };
 
 _Success_(return != NULL)

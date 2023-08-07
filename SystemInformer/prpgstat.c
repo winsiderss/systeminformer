@@ -841,9 +841,15 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                             case PH_PROCESS_STATISTICS_INDEX_PAGEPRIORITY:
                                 {
                                     if (statisticsContext->PagePriority != ULONG_MAX && statisticsContext->PagePriority <= MEMORY_PRIORITY_NORMAL)
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhPagePriorityNames[statisticsContext->PagePriority], _TRUNCATE);
+                                    {
+                                        const PH_STRINGREF pagePriority = PhPagePriorityNames[statisticsContext->PagePriority];
+
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, pagePriority.Buffer, _TRUNCATE);
+                                    }
                                     else
+                                    {
                                         wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                    }
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_SHAREDCOMMIT:
@@ -1045,9 +1051,15 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                             case PH_PROCESS_STATISTICS_INDEX_IOPRIORITY:
                                 {
                                     if (statisticsContext->IoPriority != LONG_MAX && statisticsContext->IoPriority >= IoPriorityVeryLow && statisticsContext->IoPriority <= MaxIoPriorityTypes)
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhIoPriorityHintNames[statisticsContext->IoPriority], _TRUNCATE);
+                                    {
+                                        const PH_STRINGREF ioPriority = PhIoPriorityHintNames[statisticsContext->IoPriority];
+
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, ioPriority.Buffer, _TRUNCATE);
+                                    }
                                     else
+                                    {
                                         wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"N/A", _TRUNCATE);
+                                    }
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_HANDLES:
