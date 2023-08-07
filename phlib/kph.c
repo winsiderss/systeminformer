@@ -569,9 +569,7 @@ NTSTATUS KphServiceStop(
 
         if (serviceHandle = PhOpenService(PhGetStringRefZ(Config->ServiceName), SERVICE_STOP))
         {
-            SERVICE_STATUS serviceStatus;
-
-            ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+            status = PhStopService(serviceHandle);
 
             PhCloseServiceHandle(serviceHandle);
         }
