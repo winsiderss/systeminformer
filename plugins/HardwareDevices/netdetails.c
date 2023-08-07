@@ -627,9 +627,6 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -696,7 +693,13 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             PhSaveListViewColumnsToSetting(SETTING_NAME_NETWORK_COLUMNS, context->ListViewHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
+
             PostQuitMessage(0);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
@@ -230,7 +230,7 @@ PPH_STRING GraphicsQueryDeviceDescription(
     _In_ DEVINST DeviceHandle
     )
 {
-    static PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
+    static const PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
     PPH_STRING string;
 
     string = GraphicsQueryDevicePropertyString(
@@ -239,7 +239,7 @@ PPH_STRING GraphicsQueryDeviceDescription(
         );
 
     if (PhIsNullOrEmptyString(string))
-        return PhCreateString2(&defaultName);
+        return PhCreateString2((PPH_STRINGREF)&defaultName);
     else
         return string;
 }
@@ -248,8 +248,6 @@ PPH_STRING GraphicsQueryDeviceInterfaceDescription(
     _In_opt_ PWSTR DeviceInterface
     )
 {
-    static PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
-
     if (DeviceInterface)
     {
         DEVPROPTYPE devicePropertyType;
@@ -273,7 +271,10 @@ PPH_STRING GraphicsQueryDeviceInterfaceDescription(
         }
     }
 
-    return PhCreateString2(&defaultName);
+    {
+        static const PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
+        return PhCreateString2((PPH_STRINGREF)&defaultName);
+    }
 }
 
 _Success_(return)
@@ -512,11 +513,11 @@ BOOLEAN GraphicsQueryDeviceProperties(
 
         if (GraphicsQueryDevicePropertyKey(deviceInstanceHandle, &DEVPKEY_Gpu_Luid, &propertyType, &bufferSize, &buffer))
         {
-            AdapterLuid = (PLUID)buffer;
+            memcpy(AdapterLuid, buffer, sizeof(LUID));
         }
         else
         {
-            memset(AdapterLuid, 0, sizeof(AdapterLuid));
+            memset(AdapterLuid, 0, sizeof(LUID));
         }
     }
 
@@ -581,7 +582,7 @@ BOOLEAN GraphicsQueryDeviceInterfaceLuid(
         return FALSE;
     }
 
-    AdapterLuid = (PLUID)buffer;
+    memcpy(AdapterLuid, buffer, sizeof(LUID));
     return TRUE;
 }
 

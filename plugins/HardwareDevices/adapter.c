@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -201,7 +201,7 @@ VOID NetAdapterUpdateDeviceInfo(
 {
     if (PhIsNullOrEmptyString(AdapterEntry->AdapterAlias))
     {
-        AdapterEntry->AdapterAlias = NetworkAdapterGetInterfaceAliasFromLuid(&AdapterEntry->AdapterId);
+        PhMoveReference(&AdapterEntry->AdapterAlias, NetworkAdapterGetInterfaceAliasFromLuid(&AdapterEntry->AdapterId));
     }
 
     if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
@@ -251,12 +251,12 @@ VOID NetAdapterUpdateDeviceInfo(
         {
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryName(deviceHandle);
+                PhMoveReference(&AdapterEntry->AdapterName, NetworkAdapterQueryName(deviceHandle));
             }
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid);
+                PhMoveReference(&AdapterEntry->AdapterName, NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid));
             }
 
             if (!DeviceHandle && deviceHandle)
@@ -270,7 +270,7 @@ VOID NetAdapterUpdateDeviceInfo(
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid);
+                PhMoveReference(&AdapterEntry->AdapterName, NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid));
             }
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
@@ -279,7 +279,7 @@ VOID NetAdapterUpdateDeviceInfo(
                 {
                     if (PhIsNullOrEmptyString(AdapterEntry->AdapterName) && PhCountStringZ(interfaceRow.Description) > 0)
                     {
-                        AdapterEntry->AdapterName = PhCreateString(interfaceRow.Description);
+                        PhMoveReference(&AdapterEntry->AdapterName, PhCreateString(interfaceRow.Description));
                     }
                 }
             }
@@ -294,12 +294,10 @@ VOID InitializeNetAdapterId(
     _In_ PPH_STRING InterfaceGuidString
     )
 {
-    static PH_STRINGREF nativeNamespacePath = PH_STRINGREF_INIT(L"\\??\\");
-
     Id->InterfaceIndex = InterfaceIndex;
     Id->InterfaceLuid = InterfaceLuid;
     PhSetReference(&Id->InterfaceGuidString, InterfaceGuidString);
-    Id->InterfacePath = PhConcatStringRef2(&nativeNamespacePath, &InterfaceGuidString->sr);
+    Id->InterfacePath = PhConcatStringRef2(&PhNtDosDevicesPrefix, &InterfaceGuidString->sr);
 
     if (NT_SUCCESS(PhStringToGuid(&InterfaceGuidString->sr, &Id->InterfaceGuid)))
     {

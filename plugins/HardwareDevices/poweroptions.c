@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
@@ -737,7 +737,10 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
                 RaplDevicesSaveList();
 
             FreeListViewRaplDeviceEntries(context);
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }

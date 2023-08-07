@@ -29,11 +29,6 @@ INT_PTR CALLBACK RaplDevicePanelDialogProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (context == NULL)
@@ -49,6 +44,11 @@ INT_PTR CALLBACK RaplDevicePanelDialogProc(
             context->RaplDeviceGpuLimitLabel = GetDlgItem(hwndDlg, IDC_GPUDISCRETE_L);
             context->RaplDeviceComponentUsageLabel = GetDlgItem(hwndDlg, IDC_CPUCOMP_L);
             context->RaplDeviceTotalUsageLabel = GetDlgItem(hwndDlg, IDC_TOTALPOWER_L);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_CTLCOLORBTN:
@@ -697,11 +697,6 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (context == NULL)
@@ -756,6 +751,11 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
                 DestroyWindow(context->TotalGraphHandle);
             if (context->RaplDevicePanel)
                 DestroyWindow(context->RaplDevicePanel);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_DPICHANGED_AFTERPARENT:

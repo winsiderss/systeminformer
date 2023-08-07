@@ -122,6 +122,7 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     AddRemoveDeviceChangeCallback();
+
     if (PhDeviceProviderInitialization())
         InitializeDevicesTab();
 }
@@ -235,14 +236,6 @@ VOID NTAPI SettingsUpdatedCallback(
     )
 {
     LoadSettings();
-}
-
-PPH_STRING TrimString(
-    _In_ PPH_STRING String
-    )
-{
-    static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t\r\n");
-    return PhCreateString3(&String->sr, 0, &whitespace);
 }
 
 BOOLEAN HardwareDeviceEnableDisable(
