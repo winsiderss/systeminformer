@@ -3369,13 +3369,16 @@ BOOLEAN PhUiStartServices(
 
     for (i = 0; i < NumberOfServices; i++)
     {
+        NTSTATUS status = STATUS_UNSUCCESSFUL;
         SC_HANDLE serviceHandle;
 
         success = FALSE;
 
         if (serviceHandle = PhOpenService(PhGetString(Services[i]->Name), SERVICE_START))
         {
-            if (StartService(serviceHandle, 0, NULL))
+            status = PhStartService(serviceHandle, 0, NULL);
+
+            if (NT_SUCCESS(status))
                 success = TRUE;
 
             PhCloseServiceHandle(serviceHandle);
@@ -3458,13 +3461,16 @@ BOOLEAN PhUiStartService(
     )
 {
     SC_HANDLE serviceHandle;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     BOOLEAN success = FALSE;
 
     serviceHandle = PhOpenService(Service->Name->Buffer, SERVICE_START);
 
     if (serviceHandle)
     {
-        if (StartService(serviceHandle, 0, NULL))
+        status = PhStartService(serviceHandle, 0, NULL);
+
+        if (NT_SUCCESS(status))
             success = TRUE;
 
         PhCloseServiceHandle(serviceHandle);
@@ -3472,10 +3478,7 @@ BOOLEAN PhUiStartService(
 
     if (!success)
     {
-        NTSTATUS status;
         BOOLEAN connected;
-
-        status = PhGetLastWin32ErrorAsNtStatus();
 
         if (PhpShowErrorAndConnectToPhSvc(
             hWnd,
@@ -3541,10 +3544,8 @@ BOOLEAN PhUiContinueServices(
 
         if (!success)
         {
-            NTSTATUS status;
             BOOLEAN connected;
 
-            status = PhGetLastWin32ErrorAsNtStatus();
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
@@ -3995,6 +3996,7 @@ BOOLEAN PhUiDeleteService(
     )
 {
     SC_HANDLE serviceHandle;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     BOOLEAN success = FALSE;
 
     // Warnings cannot be disabled for service deletion.
@@ -4012,7 +4014,9 @@ BOOLEAN PhUiDeleteService(
 
     if (serviceHandle)
     {
-        if (DeleteService(serviceHandle))
+        status = PhDeleteService(serviceHandle);
+
+        if (NT_SUCCESS(status))
             success = TRUE;
 
         PhCloseServiceHandle(serviceHandle);
@@ -4020,10 +4024,7 @@ BOOLEAN PhUiDeleteService(
 
     if (!success)
     {
-        NTSTATUS status;
         BOOLEAN connected;
-
-        status = PhGetLastWin32ErrorAsNtStatus();
 
         if (PhpShowErrorAndConnectToPhSvc(
             hWnd,

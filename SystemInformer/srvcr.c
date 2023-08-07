@@ -82,9 +82,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                 {
                     NTSTATUS status = STATUS_SUCCESS;
                     BOOLEAN success = FALSE;
-                    SC_HANDLE scManagerHandle;
                     SC_HANDLE serviceHandle;
-                    ULONG win32Result = ERROR_SUCCESS;
                     PPH_STRING serviceName;
                     PPH_STRING serviceDisplayName;
                     PPH_STRING serviceTypeString;
@@ -109,38 +107,24 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
 
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
-                        if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
-                        {
-                            if (serviceHandle = CreateService(
-                                scManagerHandle,
-                                serviceName->Buffer,
-                                serviceDisplayName->Buffer,
-                                SERVICE_CHANGE_CONFIG,
-                                serviceType,
-                                serviceStartType,
-                                serviceErrorControl,
-                                serviceBinaryPath->Buffer,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                L""
-                                ))
-                            {
-                                EndDialog(hwndDlg, IDOK);
-                                CloseServiceHandle(serviceHandle);
-                                success = TRUE;
-                            }
-                            else
-                            {
-                                win32Result = GetLastError();
-                            }
+                        status = PhCreateService(
+                            &serviceHandle,
+                            serviceName->Buffer,
+                            serviceDisplayName->Buffer,
+                            SERVICE_CHANGE_CONFIG,
+                            serviceType,
+                            serviceStartType,
+                            serviceErrorControl,
+                            serviceBinaryPath->Buffer,
+                            NULL,
+                            L""
+                            );
 
-                            CloseServiceHandle(scManagerHandle);
-                        }
-                        else
+                        if (NT_SUCCESS(status))
                         {
-                            win32Result = GetLastError();
+                            EndDialog(hwndDlg, IDOK);
+                            PhCloseServiceHandle(serviceHandle);
+                            success = TRUE;
                         }
                     }
                     else
@@ -176,7 +160,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                     }
 
                     if (!success)
-                        PhShowStatus(hwndDlg, L"Unable to create the service", status, win32Result);
+                        PhShowStatus(hwndDlg, L"Unable to create the service", status, 0);
                 }
                 break;
             case IDC_BROWSE:

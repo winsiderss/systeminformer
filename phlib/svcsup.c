@@ -251,6 +251,77 @@ VOID PhCloseServiceHandle(
     CloseServiceHandle(ServiceHandle);
 }
 
+NTSTATUS PhCreateService(
+    _Out_ SC_HANDLE* ServiceHandle,
+    _In_ PCWSTR ServiceName,
+    _In_opt_ PCWSTR DisplayName,
+    _In_ ULONG DesiredAccess,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PCWSTR BinaryPathName,
+    _In_opt_ PCWSTR UserName,
+    _In_opt_ PCWSTR Password
+    )
+{
+    NTSTATUS status;
+    SC_HANDLE serviceManagerHandle;
+
+    if (!(serviceManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    *ServiceHandle = CreateService(
+        serviceManagerHandle,
+        ServiceName,
+        DisplayName,
+        DesiredAccess,
+        ServiceType,
+        StartType,
+        ErrorControl,
+        BinaryPathName,
+        NULL,
+        NULL,
+        NULL,
+        UserName,
+        Password
+        );
+    status = PhGetLastWin32ErrorAsNtStatus();
+
+    CloseServiceHandle(serviceManagerHandle);
+
+    return status;
+}
+
+NTSTATUS PhDeleteService(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    NTSTATUS status;
+
+    if (DeleteService(ServiceHandle))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhStartService(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG NumberOfServiceArgs,
+    _In_reads_opt_(NumberOfServiceArgs) PCWSTR* ServiceArgVectors
+    )
+{
+    NTSTATUS status;
+
+    if (StartService(ServiceHandle, NumberOfServiceArgs, ServiceArgVectors))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
 PVOID PhGetServiceConfig(
     _In_ SC_HANDLE ServiceHandle
     )

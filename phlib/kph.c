@@ -38,8 +38,7 @@ NTSTATUS KphConnect(
     )
 {
     NTSTATUS status;
-    SC_HANDLE scmHandle;
-    SC_HANDLE serviceHandle = NULL;
+    SC_HANDLE serviceHandle;
     BOOLEAN started = FALSE;
     BOOLEAN created = FALSE;
 
@@ -71,7 +70,9 @@ NTSTATUS KphConnect(
 
     if (serviceHandle = PhOpenService(PhGetStringRefZ(Config->ServiceName), SERVICE_START))
     {
-        if (StartService(serviceHandle, 0, NULL))
+        status = PhStartService(serviceHandle, 0, NULL);
+
+        if (NT_SUCCESS(status))
             started = TRUE;
 
         PhCloseServiceHandle(serviceHandle);
@@ -81,48 +82,34 @@ NTSTATUS KphConnect(
     {
         // Try to create the service.
 
-        scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
+        status = PhCreateService(
+            &serviceHandle,
+            PhGetStringRefZ(Config->ServiceName),
+            PhGetStringRefZ(Config->ServiceName),
+            SERVICE_ALL_ACCESS,
+            SERVICE_KERNEL_DRIVER,
+            SERVICE_DEMAND_START,
+            SERVICE_ERROR_IGNORE,
+            PhGetStringRefZ(Config->FileName),
+            PhGetStringRefZ(Config->ObjectName),
+            L""
+            );
 
-        if (scmHandle)
+        if (NT_SUCCESS(status))
         {
-            serviceHandle = CreateService(
-                scmHandle,
-                PhGetStringRefZ(Config->ServiceName),
-                PhGetStringRefZ(Config->ServiceName),
-                SERVICE_ALL_ACCESS,
-                SERVICE_KERNEL_DRIVER,
-                SERVICE_DEMAND_START,
-                SERVICE_ERROR_IGNORE,
-                PhGetStringRefZ(Config->FileName),
-                NULL,
-                NULL,
-                NULL,
-                PhGetStringRefZ(Config->ObjectName),
-                L""
-                );
+            created = TRUE;
 
-            if (serviceHandle)
-            {
-                created = TRUE;
+            KphSetServiceSecurity(serviceHandle);
 
-                KphSetServiceSecurity(serviceHandle);
+            status = KphSetParameters(Config);
 
-                status = KphSetParameters(Config);
+            if (!NT_SUCCESS(status))
+                goto CreateAndConnectEnd;
 
-                if (!NT_SUCCESS(status))
-                    goto CreateAndConnectEnd;
+            status = PhStartService(serviceHandle, 0, NULL);
 
-                if (StartService(serviceHandle, 0, NULL))
-                    started = TRUE;
-                else
-                    status = PhGetLastWin32ErrorAsNtStatus();
-            }
-            else
-            {
-                status = PhGetLastWin32ErrorAsNtStatus();
-            }
-
-            CloseServiceHandle(scmHandle);
+            if (NT_SUCCESS(status))
+                started = TRUE;
         }
     }
 
@@ -141,8 +128,8 @@ CreateAndConnectEnd:
         // device object, SCM will detect that the driver has gone away by the
         // driver object (the specified "ObjectName").
         //
-        DeleteService(serviceHandle);
-        CloseServiceHandle(serviceHandle);
+        PhDeleteService(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     return status;

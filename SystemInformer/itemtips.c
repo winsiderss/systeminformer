@@ -824,7 +824,7 @@ PPH_STRING PhGetServiceTooltipText(
             PhDereferenceObject(description);
         }
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     // Remove the trailing newline.
