@@ -1884,7 +1884,7 @@ PhGetSystemUptime(
 /**
  * Waits until the specified object is in the signaled state or the time-out interval elapses.
  *
- * \param ProcessHandle A handle to the object.
+ * \param Handle A handle to the object.
  * \param Timeout The time-out interval.
  * If a nonzero value is specified, the function waits until the object is signaled or the interval elapses.
  * If Timeout is zero, the function does not enter a wait state if the object is not signaled; it always returns immediately.
