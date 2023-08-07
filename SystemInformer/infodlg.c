@@ -158,7 +158,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                         {
                             PH_STRINGREF string;
 
-                            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
+                            PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
                             PhInitializeStringRefLongHint(&string, context->String);
                             PhWriteStringAsUtf8FileStream(fileStream, &string);
                             PhDereferenceObject(fileStream);

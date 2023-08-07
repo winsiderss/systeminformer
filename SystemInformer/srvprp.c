@@ -306,9 +306,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             else
                 PhLoadWindowPlacementFromSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));
 
-            PhAddComboBoxStrings(context->TypeWindowHandle, PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
-            PhAddComboBoxStrings(context->StartTypeWindowHandle, PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
-            PhAddComboBoxStrings(context->ErrorControlWindowHandle, PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
+            PhAddComboBoxStringRefs(context->TypeWindowHandle, PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
+            PhAddComboBoxStringRefs(context->StartTypeWindowHandle, PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
+            PhAddComboBoxStringRefs(context->ErrorControlWindowHandle, PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
 
             PhSetWindowText(context->DescriptionWindowHandle, PhGetStringOrEmpty(serviceItem->DisplayName));
             PhSelectComboBoxString(context->TypeWindowHandle, PhGetServiceTypeString(serviceItem->Type)->Buffer, FALSE);

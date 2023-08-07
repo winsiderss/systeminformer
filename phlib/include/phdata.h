@@ -61,7 +61,7 @@ PSID PhSeInternetExplorerSid(
 
 // Unicode
 
-extern PH_STRINGREF PhUnicodeByteOrderMark;
+extern CONST PH_STRINGREF PhUnicodeByteOrderMark;
 
 // Characters
 
@@ -76,10 +76,10 @@ extern CONST ULONG PhCrc32Table[256];
 
 // Enums
 
-extern CONST WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes];
-extern CONST WCHAR *PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1];
-extern CONST WCHAR *PhKThreadStateNames[MaximumThreadState];
-extern CONST WCHAR *PhKWaitReasonNames[MaximumWaitReason];
+extern CONST PH_STRINGREF PhIoPriorityHintNames[MaxIoPriorityTypes];
+extern CONST PH_STRINGREF PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1];
+extern CONST PH_STRINGREF PhKThreadStateNames[MaximumThreadState];
+extern CONST PH_STRINGREF PhKWaitReasonNames[MaximumWaitReason];
 
 #ifdef __cplusplus
 }
