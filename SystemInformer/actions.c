@@ -3386,10 +3386,8 @@ BOOLEAN PhUiStartServices(
 
         if (!success)
         {
-            NTSTATUS status;
             BOOLEAN connected;
 
-            status = PhGetLastWin32ErrorAsNtStatus();
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
@@ -3544,8 +3542,10 @@ BOOLEAN PhUiContinueServices(
 
         if (!success)
         {
+            NTSTATUS status;
             BOOLEAN connected;
 
+            status = PhGetLastWin32ErrorAsNtStatus();
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
