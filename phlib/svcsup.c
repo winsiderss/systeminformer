@@ -18,7 +18,7 @@
 #define SIP(String, Integer) \
     { (String), (PVOID)(Integer) }
 
-#define SREF(String) (PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String))
+#define SREF(String) ((PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String)))
 static PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
 
 static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
@@ -65,37 +65,37 @@ static PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
     SIP(SREF(L"Critical"), SERVICE_ERROR_CRITICAL)
 };
 
-PWSTR PhServiceTypeStrings[] =
+CONST PPH_STRINGREF PhServiceTypeStrings[] =
 {
-    L"Driver",
-    L"FS driver",
-    L"Own process",
-    L"Share process",
-    L"Own interactive process",
-    L"Share interactive process",
-    L"User own process",
-    L"User own process (instance)",
-    L"User share process",
-    L"User share process (instance)",
-    L"Package own process",
-    L"Package share process",
+    SREF(L"Driver"),
+    SREF(L"FS driver"),
+    SREF(L"Own process"),
+    SREF(L"Share process"),
+    SREF(L"Own interactive process"),
+    SREF(L"Share interactive process"),
+    SREF(L"User own process"),
+    SREF(L"User own process (instance)"),
+    SREF(L"User share process"),
+    SREF(L"User share process (instance)"),
+    SREF(L"Package own process"),
+    SREF(L"Package share process"),
 };
 
-PWSTR PhServiceStartTypeStrings[5] =
+CONST PPH_STRINGREF PhServiceStartTypeStrings[5] =
 {
-    L"Disabled",
-    L"Boot start",
-    L"System start",
-    L"Auto start",
-    L"Demand start"
+    SREF(L"Disabled"),
+    SREF(L"Boot start"),
+    SREF(L"System start"),
+    SREF(L"Auto start"),
+    SREF(L"Demand start"),
 };
 
-PWSTR PhServiceErrorControlStrings[4] =
+CONST PPH_STRINGREF PhServiceErrorControlStrings[4] =
 {
-    L"Ignore",
-    L"Normal",
-    L"Severe",
-    L"Critical"
+    SREF(L"Ignore"),
+    SREF(L"Normal"),
+    SREF(L"Severe"),
+    SREF(L"Critical"),
 };
 
 _Success_(return != NULL)
@@ -249,6 +249,122 @@ VOID PhCloseServiceHandle(
     )
 {
     CloseServiceHandle(ServiceHandle);
+}
+
+NTSTATUS PhCreateService(
+    _Out_ SC_HANDLE* ServiceHandle,
+    _In_ PCWSTR ServiceName,
+    _In_opt_ PCWSTR DisplayName,
+    _In_ ULONG DesiredAccess,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PCWSTR BinaryPathName,
+    _In_opt_ PCWSTR UserName,
+    _In_opt_ PCWSTR Password
+    )
+{
+    NTSTATUS status;
+    SC_HANDLE serviceManagerHandle;
+
+    if (!(serviceManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
+        return PhGetLastWin32ErrorAsNtStatus();
+
+    *ServiceHandle = CreateService(
+        serviceManagerHandle,
+        ServiceName,
+        DisplayName,
+        DesiredAccess,
+        ServiceType,
+        StartType,
+        ErrorControl,
+        BinaryPathName,
+        NULL,
+        NULL,
+        NULL,
+        UserName,
+        Password
+        );
+    status = PhGetLastWin32ErrorAsNtStatus();
+
+    CloseServiceHandle(serviceManagerHandle);
+
+    return status;
+}
+
+NTSTATUS PhContinueService(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    NTSTATUS status;
+    SERVICE_STATUS serviceStatus;
+
+    if (ControlService(ServiceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhPauseService(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    NTSTATUS status;
+    SERVICE_STATUS serviceStatus;
+
+    if (ControlService(ServiceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhDeleteService(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    NTSTATUS status;
+
+    if (DeleteService(ServiceHandle))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhStartService(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG NumberOfServiceArgs,
+    _In_reads_opt_(NumberOfServiceArgs) PCWSTR* ServiceArgVectors
+    )
+{
+    NTSTATUS status;
+
+    if (StartService(ServiceHandle, NumberOfServiceArgs, ServiceArgVectors))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhStopService(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    NTSTATUS status;
+    SERVICE_STATUS serviceStatus;
+
+    if (ControlService(ServiceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
 }
 
 PVOID PhGetServiceConfig(

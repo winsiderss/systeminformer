@@ -1676,7 +1676,6 @@ static VOID PhpUpdateProcessNodeObjectReferences(
 }
 
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
-
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
     _In_ const void *_elem1, \
     _In_ const void *_elem2 \
@@ -2930,14 +2929,30 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhInitializeStringRefLongHint(&getCellText->Text, processItem->IntegrityString);
                 break;
             case PHPRTLC_IOPRIORITY:
-                PhpUpdateProcessNodeIoPagePriority(node);
-                if (node->IoPriority != ULONG_MAX && node->IoPriority >= IoPriorityVeryLow && node->IoPriority < MaxIoPriorityTypes)
-                    PhInitializeStringRefLongHint(&getCellText->Text, (PWSTR)PhIoPriorityHintNames[node->IoPriority]);
+                {
+                    PhpUpdateProcessNodeIoPagePriority(node);
+
+                    if (node->IoPriority != ULONG_MAX && node->IoPriority >= IoPriorityVeryLow && node->IoPriority < MaxIoPriorityTypes)
+                    {
+                        const PH_STRINGREF ioPriority = PhIoPriorityHintNames[node->IoPriority];
+
+                        getCellText->Text.Buffer = ioPriority.Buffer;
+                        getCellText->Text.Length = ioPriority.Length;
+                    }
+                }
                 break;
             case PHPRTLC_PAGEPRIORITY:
-                PhpUpdateProcessNodeIoPagePriority(node);
-                if (node->PagePriority != ULONG_MAX && node->PagePriority <= MEMORY_PRIORITY_NORMAL)
-                    PhInitializeStringRefLongHint(&getCellText->Text, (PWSTR)PhPagePriorityNames[node->PagePriority]);
+                {
+                    PhpUpdateProcessNodeIoPagePriority(node);
+
+                    if (node->PagePriority != ULONG_MAX && node->PagePriority <= MEMORY_PRIORITY_NORMAL)
+                    {
+                        const PH_STRINGREF pagePriority = PhPagePriorityNames[node->PagePriority];
+
+                        getCellText->Text.Buffer = pagePriority.Buffer;
+                        getCellText->Text.Length = pagePriority.Length;
+                    }
+                }
                 break;
             case PHPRTLC_STARTTIME:
                 if (processItem->CreateTime.QuadPart != 0)

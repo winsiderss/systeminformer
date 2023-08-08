@@ -1442,7 +1442,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_PAGEPRIORITY:
                 {
-                    PCWSTR pagePriority = L"N/A";
+                    PH_STRINGREF pagePriority = PH_STRINGREF_INIT(L"N/A");
 
                     PhpUpdateThreadNodePagePriority(node);
 
@@ -1451,12 +1451,13 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         pagePriority = PhPagePriorityNames[node->PagePriority];
                     }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, (PWSTR)pagePriority);
+                    getCellText->Text.Buffer = pagePriority.Buffer;
+                    getCellText->Text.Length = pagePriority.Length;
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_IOPRIORITY:
                 {
-                    PCWSTR ioPriority = L"N/A";
+                    PH_STRINGREF ioPriority = PH_STRINGREF_INIT(L"N/A");
 
                     PhpUpdateThreadNodeIoPriority(node);
 
@@ -1465,7 +1466,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         ioPriority = PhIoPriorityHintNames[node->IoPriority];
                     }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, (PWSTR)ioPriority);
+                    getCellText->Text.Buffer = ioPriority.Buffer;
+                    getCellText->Text.Length = ioPriority.Length;
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CYCLES:
@@ -1489,17 +1491,22 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 {
                     if (threadItem->State != Waiting)
                     {
+                        static const PH_STRINGREF stringUnknown = PH_STRINGREF_INIT(L"Unknown");
+
                         if ((ULONG)threadItem->State < MaximumThreadState)
-                            PhMoveReference(&node->StateText, PhCreateString((PWSTR)PhKThreadStateNames[(ULONG)threadItem->State]));
+                            PhMoveReference(&node->StateText, PhCreateString2((PPH_STRINGREF)&PhKThreadStateNames[(ULONG)threadItem->State]));
                         else
-                            PhMoveReference(&node->StateText, PhCreateString(L"Unknown"));
+                            PhMoveReference(&node->StateText, PhCreateString2((PPH_STRINGREF)&stringUnknown));
                     }
                     else
                     {
+                        static const PH_STRINGREF stringWait = PH_STRINGREF_INIT(L"Wait:");
+                        static const PH_STRINGREF stringWaiting = PH_STRINGREF_INIT(L"Waiting");
+
                         if ((ULONG)threadItem->WaitReason < MaximumWaitReason)
-                            PhMoveReference(&node->StateText, PhConcatStrings2(L"Wait:", (PWSTR)PhKWaitReasonNames[(ULONG)threadItem->WaitReason]));
+                            PhMoveReference(&node->StateText, PhConcatStringRef2((PPH_STRINGREF)&stringWait, (PPH_STRINGREF)&PhKWaitReasonNames[(ULONG)threadItem->WaitReason]));
                         else
-                            PhMoveReference(&node->StateText, PhCreateString(L"Waiting"));
+                            PhMoveReference(&node->StateText, PhCreateString2((PPH_STRINGREF)&stringWaiting));
                     }
 
                     if (threadItem->ThreadHandle && threadItem->WaitReason == Suspended)

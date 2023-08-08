@@ -134,9 +134,9 @@ PhLoadINT128U(
     )
 {
 #ifdef _ARM64_
-   return vld1q_s32(Memory);
+    return vld1q_s32(Memory);
 #else
-    return _mm_loadu_si128((__m128i*)Memory);
+    return _mm_loadu_si128((__m128i const*)Memory);
 #endif
 }
 

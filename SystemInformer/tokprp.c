@@ -24,8 +24,6 @@
 #include <workqueue.h>
 #include <phsettings.h>
 
-#include <userenv.h>
-
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
 {
     PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS,
@@ -78,22 +76,22 @@ typedef struct _PHP_TOKEN_GROUP_RESOLVE_CONTEXT
     PSID TokenGroupSid;
 } PHP_TOKEN_GROUP_RESOLVE_CONTEXT, *PPHP_TOKEN_GROUP_RESOLVE_CONTEXT;
 
-typedef struct _ATTRIBUTE_NODE
+typedef struct _PH_TOKEN_ATTRIBUTE_NODE
 {
     PH_TREENEW_NODE Node;
     PPH_LIST Children;
     PPH_STRING Text;
     PPH_STRING Value;
-} ATTRIBUTE_NODE, *PATTRIBUTE_NODE;
+} PH_TOKEN_ATTRIBUTE_NODE, *PPH_TOKEN_ATTRIBUTE_NODE;
 
-typedef struct _ATTRIBUTE_TREE_CONTEXT
+typedef struct _PH_TOKEN_ATTRIBUTE_TREE_CONTEXT
 {
     HWND WindowHandle;
     PPH_LIST RootList;
     PPH_LIST NodeList;
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
-} ATTRIBUTE_TREE_CONTEXT, *PATTRIBUTE_TREE_CONTEXT;
+} PH_TOKEN_ATTRIBUTE_TREE_CONTEXT, *PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT;
 
 typedef struct _TOKEN_PAGE_CONTEXT
 {
@@ -112,13 +110,13 @@ typedef struct _TOKEN_PAGE_CONTEXT
     PTOKEN_PRIVILEGES Privileges;
     PTOKEN_GROUPS Capabilities;
 
-    ATTRIBUTE_TREE_CONTEXT CapsTreeContext;
-    ATTRIBUTE_TREE_CONTEXT ClaimsTreeContext;
-    ATTRIBUTE_TREE_CONTEXT AuthzTreeContext;
-    ATTRIBUTE_TREE_CONTEXT AppPolicyTreeContext;
+    PH_TOKEN_ATTRIBUTE_TREE_CONTEXT CapsTreeContext;
+    PH_TOKEN_ATTRIBUTE_TREE_CONTEXT ClaimsTreeContext;
+    PH_TOKEN_ATTRIBUTE_TREE_CONTEXT AuthzTreeContext;
+    PH_TOKEN_ATTRIBUTE_TREE_CONTEXT AppPolicyTreeContext;
 } TOKEN_PAGE_CONTEXT, *PTOKEN_PAGE_CONTEXT;
 
-PH_ACCESS_ENTRY PhpGroupDescriptionEntries[6] =
+CONST PH_ACCESS_ENTRY PhpGroupDescriptionEntries[6] =
 {
     { NULL, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED, FALSE, FALSE, L"Integrity" },
     { NULL, SE_GROUP_LOGON_ID, FALSE, FALSE, L"Logon Id" },
@@ -175,9 +173,9 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 INT_PTR CALLBACK PhpTokenClaimsPageProc(
@@ -395,9 +393,7 @@ PPH_STRING PhGetGroupAttributesString(
 
     if (Restricted)
     {
-        PPH_STRING prefixString = string;
-        string = PhConcatStrings2(prefixString->Buffer, L" (restricted)");
-        PhDereferenceObject(prefixString);
+        PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (restricted)"));
     }
 
     return string;
@@ -709,7 +705,7 @@ VOID PhpUpdateSidsFromTokenGroups(
 
         descriptionString = PhGetAccessString(
             Groups->Groups[i].Attributes,
-            PhpGroupDescriptionEntries,
+            (PPH_ACCESS_ENTRY)PhpGroupDescriptionEntries,
             RTL_NUMBER_OF(PhpGroupDescriptionEntries)
             );
 
@@ -2652,27 +2648,20 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    PATTRIBUTE_TREE_CONTEXT context = Context;
-    PATTRIBUTE_NODE node;
-
-    if (!context)
-        return FALSE;
+    PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT context = Context;
+    PPH_TOKEN_ATTRIBUTE_NODE node;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
-            node = (PATTRIBUTE_NODE)getChildren->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)getChildren->Node;
 
             if (!node)
             {
@@ -2689,11 +2678,7 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            if (!isLeaf)
-                break;
-
-            node = (PATTRIBUTE_NODE)isLeaf->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = node->Children->Count == 0;
         }
@@ -2701,11 +2686,7 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-
-            if (!getCellText)
-                break;
-
-            node = (PATTRIBUTE_NODE)getCellText->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)getCellText->Node;
 
             if (getCellText->Id == 0)
                 getCellText->Text = PhGetStringRef(node->Text);
@@ -2716,9 +2697,6 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -2739,9 +2717,6 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            if (!contextMenuEvent)
-                break;
-
             SendMessage(
                 context->WindowHandle,
                 WM_CONTEXTMENU,
@@ -2755,16 +2730,16 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     return FALSE;
 }
 
-PATTRIBUTE_NODE PhpAddAttributeNode(
-    _In_ PATTRIBUTE_TREE_CONTEXT Context,
-    _In_opt_ PATTRIBUTE_NODE Parent,
+PPH_TOKEN_ATTRIBUTE_NODE PhpAddAttributeNode(
+    _In_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
+    _In_opt_ PPH_TOKEN_ATTRIBUTE_NODE Parent,
     _In_opt_ _Assume_refs_(1) PPH_STRING Text
     )
 {
-    PATTRIBUTE_NODE node;
+    PPH_TOKEN_ATTRIBUTE_NODE node;
 
-    node = PhAllocate(sizeof(ATTRIBUTE_NODE));
-    memset(node, 0, sizeof(ATTRIBUTE_NODE));
+    node = PhAllocate(sizeof(PH_TOKEN_ATTRIBUTE_NODE));
+    memset(node, 0, sizeof(PH_TOKEN_ATTRIBUTE_NODE));
     PhInitializeTreeNewNode(&node->Node);
 
     node->Children = PhCreateList(2);
@@ -2782,7 +2757,7 @@ PATTRIBUTE_NODE PhpAddAttributeNode(
 }
 
 VOID PhpDestroyAttributeNode(
-    _In_ PATTRIBUTE_NODE Node
+    _In_ PPH_TOKEN_ATTRIBUTE_NODE Node
     )
 {
     PhDereferenceObject(Node->Children);
@@ -2792,8 +2767,8 @@ VOID PhpDestroyAttributeNode(
 }
 
 VOID PhpRemoveAttributeNode(
-    _In_ PATTRIBUTE_TREE_CONTEXT Context,
-    _In_ PATTRIBUTE_NODE Node
+    _In_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
+    _In_ PPH_TOKEN_ATTRIBUTE_NODE Node
     )
 {
     ULONG index;
@@ -2808,8 +2783,8 @@ VOID PhpRemoveAttributeNode(
 
 _Success_(return)
 BOOLEAN PhpGetSelectedAttributeTreeNodes(
-    _Inout_ PATTRIBUTE_TREE_CONTEXT Context,
-    _Out_ PATTRIBUTE_NODE **Nodes,
+    _Inout_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
+    _Out_ PPH_TOKEN_ATTRIBUTE_NODE **Nodes,
     _Out_ PULONG NumberOfNodes
     )
 {
@@ -2817,7 +2792,7 @@ BOOLEAN PhpGetSelectedAttributeTreeNodes(
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        PATTRIBUTE_NODE node = (PATTRIBUTE_NODE)Context->NodeList->Items[i];
+        PPH_TOKEN_ATTRIBUTE_NODE node = (PPH_TOKEN_ATTRIBUTE_NODE)Context->NodeList->Items[i];
 
         if (node->Node.Selected)
         {
@@ -2839,7 +2814,7 @@ BOOLEAN PhpGetSelectedAttributeTreeNodes(
 }
 
 VOID PhpInitializeAttributeTreeContext(
-    _Out_ PATTRIBUTE_TREE_CONTEXT Context,
+    _Out_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
     _In_ HWND WindowHandle,
     _In_ HWND TreeNewHandle
     )
@@ -2857,7 +2832,7 @@ VOID PhpInitializeAttributeTreeContext(
 }
 
 VOID PhpDeleteAttributeTreeContext(
-    _Inout_ PATTRIBUTE_TREE_CONTEXT Context
+    _Inout_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context
     )
 {
     ULONG i;
@@ -2899,7 +2874,7 @@ BOOLEAN PhpAddTokenCapabilities(
     {
         for (i = 0; i < TokenPageContext->Capabilities->GroupCount; i++)
         {
-            PATTRIBUTE_NODE node;
+            PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING name;
             ULONG subAuthoritiesCount;
             ULONG subAuthority;
@@ -3058,7 +3033,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
-            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            PPH_TOKEN_ATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
             if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->CapsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
@@ -3278,7 +3253,7 @@ BOOLEAN PhpAddTokenClaimAttributes(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ HWND tnHandle,
     _In_ BOOLEAN DeviceClaims,
-    _In_ PATTRIBUTE_NODE Parent
+    _In_ PPH_TOKEN_ATTRIBUTE_NODE Parent
     )
 {
     HANDLE tokenHandle;
@@ -3298,7 +3273,7 @@ BOOLEAN PhpAddTokenClaimAttributes(
         for (i = 0; i < info->AttributeCount; i++)
         {
             PCLAIM_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-            PATTRIBUTE_NODE node;
+            PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING temp;
 
             // Attribute
@@ -3351,8 +3326,8 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
     {
     case WM_INITDIALOG:
         {
-            PATTRIBUTE_NODE userNode;
-            PATTRIBUTE_NODE deviceNode;
+            PPH_TOKEN_ATTRIBUTE_NODE userNode;
+            PPH_TOKEN_ATTRIBUTE_NODE deviceNode;
 
             PhpInitializeAttributeTreeContext(&tokenPageContext->ClaimsTreeContext, hwndDlg, tnHandle);
 
@@ -3399,7 +3374,7 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
-            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            PPH_TOKEN_ATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
             if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->ClaimsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
@@ -3472,7 +3447,7 @@ BOOLEAN PhpAddTokenAttributes(
         for (i = 0; i < info->AttributeCount; i++)
         {
             PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-            PATTRIBUTE_NODE node;
+            PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING temp;
 
             // Attribute
@@ -3557,7 +3532,7 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
-            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            PPH_TOKEN_ATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
             if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->AuthzTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
@@ -4473,7 +4448,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LifecycleManager, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LifecycleManager"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LifecycleManager"));
 
         switch (result)
         {
@@ -4491,7 +4466,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppDataAccess, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppDataAccess"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppDataAccess"));
 
         switch (result)
         {
@@ -4506,7 +4481,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_WindowingModel, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WindowingModel"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WindowingModel"));
 
         switch (result)
         {
@@ -4527,7 +4502,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_DllSearchOrder, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"DllSearchOrder"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"DllSearchOrder"));
 
         switch (result)
         {
@@ -4542,7 +4517,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_Fusion, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"Fusion"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"Fusion"));
 
         switch (result)
         {
@@ -4557,7 +4532,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_NonWindowsCodecLoading, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"NonWindowsCodecLoading"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"NonWindowsCodecLoading"));
 
         switch (result)
         {
@@ -4572,7 +4547,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ProcessEnd, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ProcessEnd"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ProcessEnd"));
 
         switch (result)
         {
@@ -4587,7 +4562,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_BeginThreadInit, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BeginThreadInit"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BeginThreadInit"));
 
         switch (result)
         {
@@ -4602,7 +4577,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_DeveloperInformation, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"DeveloperInformation"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"DeveloperInformation"));
 
         switch (result)
         {
@@ -4617,7 +4592,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_CreateFileAccess, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CreateFileAccess"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CreateFileAccess"));
 
         switch (result)
         {
@@ -4632,7 +4607,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ImplicitPackageBreakaway_Internal, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ImplicitPackageBreakaway"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ImplicitPackageBreakaway"));
 
         switch (result)
         {
@@ -4650,7 +4625,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ProcessActivationShim, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ProcessActivationShim"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ProcessActivationShim"));
 
         switch (result)
         {
@@ -4665,7 +4640,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppKnownToStateRepository, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppKnownToStateRepository"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppKnownToStateRepository"));
 
         switch (result)
         {
@@ -4680,7 +4655,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AudioManagement, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AudioManagement"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AudioManagement"));
 
         switch (result)
         {
@@ -4695,7 +4670,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PackageMayContainPublicComRegistrations, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPublicComRegistrations"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPublicComRegistrations"));
 
         switch (result)
         {
@@ -4710,7 +4685,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PackageMayContainPrivateComRegistrations, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPrivateComRegistrations"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPrivateComRegistrations"));
 
         switch (result)
         {
@@ -4725,7 +4700,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LaunchCreateProcessExtensions, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LaunchCreateProcessExtensions"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LaunchCreateProcessExtensions"));
 
         switch (result)
         {
@@ -4746,7 +4721,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ClrCompat, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ClrCompat"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ClrCompat"));
 
         switch (result)
         {
@@ -4767,7 +4742,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LoaderIgnoreAlteredSearchForRelativePath, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"IgnoreAlteredSearchForRelativePath"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"IgnoreAlteredSearchForRelativePath"));
 
         switch (result)
         {
@@ -4782,7 +4757,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ImplicitlyActivateClassicAAAServersAsIU, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ImplicitlyActivateClassicAAAServersAsIU"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ImplicitlyActivateClassicAAAServersAsIU"));
 
         switch (result)
         {
@@ -4797,7 +4772,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComClassicCatalog, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComClassicCatalog"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComClassicCatalog"));
 
         switch (result)
         {
@@ -4812,7 +4787,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComUnmarshaling, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComUnmarshaling"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComUnmarshaling"));
 
         switch (result)
         {
@@ -4827,7 +4802,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComAppLaunchPerfEnhancements, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComAppLaunchPerfEnhancements"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComAppLaunchPerfEnhancements"));
 
         switch (result)
         {
@@ -4842,7 +4817,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComSecurityInitialization, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComSecurityInitialization"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComSecurityInitialization"));
 
         switch (result)
         {
@@ -4857,7 +4832,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_RoInitializeSingleThreadedBehavior, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"RoInitializeSingleThreadedBehavior"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"RoInitializeSingleThreadedBehavior"));
 
         switch (result)
         {
@@ -4872,7 +4847,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComDefaultExceptionHandling, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComDefaultExceptionHandling"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComDefaultExceptionHandling"));
 
         switch (result)
         {
@@ -4887,7 +4862,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComOopProxyAgility, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComOopProxyAgility"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComOopProxyAgility"));
 
         switch (result)
         {
@@ -4902,7 +4877,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppServiceLifetime, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppServiceLifetime"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppServiceLifetime"));
 
         switch (result)
         {
@@ -4920,7 +4895,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_WebPlatform, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WebPlatform"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WebPlatform"));
 
         switch (result)
         {
@@ -4935,7 +4910,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_WinInetStoragePartitioning, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WinInetStoragePartitioning"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WinInetStoragePartitioning"));
 
         switch (result)
         {
@@ -4950,7 +4925,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_IndexerProtocolHandlerHost, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"IndexerProtocolHandlerHost"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"IndexerProtocolHandlerHost"));
 
         switch (result)
         {
@@ -4965,7 +4940,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LoaderIncludeUserDirectories, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoaderIncludeUserDirectories"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoaderIncludeUserDirectories"));
 
         switch (result)
         {
@@ -4980,7 +4955,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ConvertAppContainerToRestrictedAppContainer, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConvertAppContainerToRestrictedAppContainer"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConvertAppContainerToRestrictedAppContainer"));
 
         switch (result)
         {
@@ -4995,7 +4970,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PackageMayContainPrivateMapiProvider, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPrivateMapiProvider"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPrivateMapiProvider"));
 
         switch (result)
         {
@@ -5010,7 +4985,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AdminProcessPackageClaims, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AdminProcessPackageClaims"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AdminProcessPackageClaims"));
 
         switch (result)
         {
@@ -5025,7 +5000,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_RegistryRedirectionBehavior, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"RegistryRedirectionBehavior"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"RegistryRedirectionBehavior"));
 
         switch (result)
         {
@@ -5040,7 +5015,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_BypassCreateProcessAppxExtension, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BypassCreateProcessAppxExtension"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BypassCreateProcessAppxExtension"));
 
         switch (result)
         {
@@ -5055,7 +5030,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_KnownFolderRedirection, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"KnownFolderRedirection"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"KnownFolderRedirection"));
 
         switch (result)
         {
@@ -5070,7 +5045,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PrivateActivateAsPackageWinrtClasses, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PrivateActivateAsPackageWinrtClasses"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PrivateActivateAsPackageWinrtClasses"));
 
         switch (result)
         {
@@ -5088,7 +5063,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppPrivateFolderRedirection, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppPrivateFolderRedirection"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppPrivateFolderRedirection"));
 
         switch (result)
         {
@@ -5103,7 +5078,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_GlobalSystemAppDataAccess, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"GlobalSystemAppDataAccess"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"GlobalSystemAppDataAccess"));
 
         switch (result)
         {
@@ -5118,7 +5093,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ConsoleHandleInheritance, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConsoleHandleInheritance"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConsoleHandleInheritance"));
 
         switch (result)
         {
@@ -5133,7 +5108,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ConsoleBufferAccess, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConsoleBufferAccess"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConsoleBufferAccess"));
 
         switch (result)
         {
@@ -5148,7 +5123,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ConvertCallerTokenToUserTokenForDeployment, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConvertCallerTokenToUserTokenForDeployment"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConvertCallerTokenToUserTokenForDeployment"));
 
         switch (result)
         {
@@ -5163,7 +5138,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ShellExecuteRetrieveIdentityFromCurrentProcess, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ShellExecuteRetrieveIdentityFromCurrentProcess"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ShellExecuteRetrieveIdentityFromCurrentProcess"));
 
         switch (result)
         {
@@ -5178,7 +5153,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_CodeIntegritySigning, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CodeIntegritySigning"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CodeIntegritySigning"));
 
         switch (result)
         {
@@ -5196,7 +5171,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PTCActivation, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PTCActivation"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PTCActivation"));
 
         switch (result)
         {
@@ -5211,7 +5186,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComIntraPackageRpcCall, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComIntraPackageRpcCall"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComIntraPackageRpcCall"));
 
         switch (result)
         {
@@ -5226,7 +5201,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LoadUser32ShimOnWindowsCoreOS, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoadUser32ShimOnWindowsCoreOS"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoadUser32ShimOnWindowsCoreOS"));
 
         switch (result)
         {
@@ -5241,7 +5216,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_SecurityCapabilitiesOverride, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"SecurityCapabilitiesOverride"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"SecurityCapabilitiesOverride"));
 
         switch (result)
         {
@@ -5256,7 +5231,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_CurrentDirectoryOverride, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CurrentDirectoryOverride"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CurrentDirectoryOverride"));
 
         switch (result)
         {
@@ -5271,7 +5246,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComTokenMatchingForAAAServers, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComTokenMatching"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComTokenMatching"));
 
         switch (result)
         {
@@ -5286,7 +5261,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_UseOriginalFileNameInTokenFQBNAttribute, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"UseOriginalFileNameInTokenFQBN"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"UseOriginalFileNameInTokenFQBN"));
 
         switch (result)
         {
@@ -5301,7 +5276,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LoaderIncludeAlternateForwarders, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoaderIncludeAlternateForwarders"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoaderIncludeAlternateForwarders"));
 
         switch (result)
         {
@@ -5316,7 +5291,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PullPackageDependencyData, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PullPackageDependencyData"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PullPackageDependencyData"));
 
         switch (result)
         {
@@ -5331,7 +5306,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppInstancingErrorBehavior, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppInstancingErrorBehavior"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppInstancingErrorBehavior"));
 
         switch (result)
         {
@@ -5346,7 +5321,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_BackgroundTaskRegistrationType, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BackgroundTaskRegistrationType"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BackgroundTaskRegistrationType"));
 
         switch (result)
         {
@@ -5364,7 +5339,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ModsPowerNotification, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ModsPowerNotification"));
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ModsPowerNotification"));
 
         switch (result)
         {
@@ -5390,15 +5365,15 @@ VOID PhEnumTokenAppModelPolicy(
     _In_ const void *_elem2 \
     ) \
 { \
-    PATTRIBUTE_NODE node1 = *(PATTRIBUTE_NODE*)_elem1; \
-    PATTRIBUTE_NODE node2 = *(PATTRIBUTE_NODE*)_elem2; \
+    PPH_TOKEN_ATTRIBUTE_NODE node1 = *(PPH_TOKEN_ATTRIBUTE_NODE*)_elem1; \
+    PPH_TOKEN_ATTRIBUTE_NODE node2 = *(PPH_TOKEN_ATTRIBUTE_NODE*)_elem2; \
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \
         sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
     \
-    return PhModifySort(sortResult, ((PATTRIBUTE_TREE_CONTEXT)_context)->TreeNewSortOrder); \
+    return PhModifySort(sortResult, ((PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
 BEGIN_SORT_FUNCTION(Name)
@@ -5421,15 +5396,15 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
     _In_ PVOID Context
     )
 {
-    PATTRIBUTE_TREE_CONTEXT context = Context;
-    PATTRIBUTE_NODE node;
+    PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT context = Context;
+    PPH_TOKEN_ATTRIBUTE_NODE node;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-            node = (PATTRIBUTE_NODE)getChildren->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)getChildren->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
             {
@@ -5453,7 +5428,7 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
                         SORT_FUNCTION(Name),
                         SORT_FUNCTION(Value)
                     };
-                    int(__cdecl * sortFunction)(void*, const void*, const void*);
+                    int (__cdecl* sortFunction)(void*, const void*, const void*);
 
                     static_assert(RTL_NUMBER_OF(sortFunctions) == 2, "SortFunctions must equal maximum.");
 
@@ -5476,7 +5451,7 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-            node = (PATTRIBUTE_NODE)isLeaf->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
         }
@@ -5484,7 +5459,7 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-            node = (PATTRIBUTE_NODE)getCellText->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)getCellText->Node;
 
             if (getCellText->Id == 0)
                 getCellText->Text = PhGetStringRef(node->Text);
@@ -5498,7 +5473,7 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
 
                     for (ULONG i = 0; i < node->Children->Count; i++)
                     {
-                        PhAppendStringBuilder(&stringBuilder, &((PATTRIBUTE_NODE)node->Children->Items[0])->Text->sr);
+                        PhAppendStringBuilder(&stringBuilder, &((PPH_TOKEN_ATTRIBUTE_NODE)node->Children->Items[i])->Text->sr);
                         PhAppendStringBuilder2(&stringBuilder, L", ");
                     }
 
@@ -5508,8 +5483,7 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
                     node->Value = PhFinalStringBuilderString(&stringBuilder);
                 }
 
-                getCellText->Text.Buffer = node->Value->Buffer;
-                getCellText->Text.Length = node->Value->Length;
+                getCellText->Text = PhGetStringRef(node->Value);
             }
             else
                 return FALSE;
@@ -5639,7 +5613,7 @@ INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
-            PATTRIBUTE_NODE* attributeObjectNodes = NULL;
+            PPH_TOKEN_ATTRIBUTE_NODE* attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
             if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->AppPolicyTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))

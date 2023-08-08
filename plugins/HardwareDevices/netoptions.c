@@ -420,7 +420,6 @@ VOID FindNetworkAdapters(
     }
     else
     {
-        static PH_STRINGREF devicePathSr = PH_STRINGREF_INIT(L"\\??\\");
         PPH_LIST deviceList;
         PWSTR deviceInterfaceList;
         ULONG deviceInterfaceListLength = 0;
@@ -477,7 +476,7 @@ VOID FindNetworkAdapters(
 
                 adapterEntry = PhAllocateZero(sizeof(NET_ENUM_ENTRY));
                 adapterEntry->DeviceGuidString = PhQueryRegistryStringZ(keyHandle, L"NetCfgInstanceId");
-                adapterEntry->DevicePath = PhConcatStringRef2(&devicePathSr, &adapterEntry->DeviceGuidString->sr);
+                adapterEntry->DevicePath = PhConcatStringRef2(&PhNtDosDevicesPrefix, &adapterEntry->DeviceGuidString->sr);
                 adapterEntry->DeviceLuid.Info.IfType = PhQueryRegistryUlong64Z(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = PhQueryRegistryUlong64Z(keyHandle, L"NetLuidIndex");
                 PhStringToGuid(&adapterEntry->DeviceGuidString->sr, &deviceGuid);
@@ -906,7 +905,10 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 NetAdaptersSaveList();
 
             FreeListViewAdapterEntries(context);
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }

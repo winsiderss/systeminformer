@@ -603,6 +603,19 @@ PhAddComboBoxStrings(
         ComboBox_AddString(WindowHandle, Strings[i]);
 }
 
+FORCEINLINE
+VOID
+NTAPI
+PhAddComboBoxStringRefs(
+    _In_ HWND WindowHandle,
+    _In_ CONST PPH_STRINGREF* Strings,
+    _In_ ULONG NumberOfStrings
+    )
+{
+    for (ULONG i = 0; i < NumberOfStrings; i++)
+        ComboBox_AddString(WindowHandle, Strings[i]->Buffer);
+}
+
 PHLIBAPI
 PPH_STRING PhGetComboBoxString(
     _In_ HWND WindowHandle,
