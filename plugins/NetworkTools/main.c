@@ -38,6 +38,10 @@ typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
 typedef INT (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
     _In_ ULONG CountryCode
     );
+typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_SERVICENAME)(
+    _In_ ULONG Port,
+    _Out_ PPH_STRINGREF ServiceName
+    );
 typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
     _In_ HDC hdc,
     _In_ RECT rect,
@@ -61,6 +65,7 @@ typedef struct _NETWORKTOOLS_INTERFACE
     ULONG Version;
     PNETWORKTOOLS_GET_COUNTRYCODE LookupCountryCode;
     PNETWORKTOOLS_GET_COUNTRYICON LookupCountryIcon;
+    PNETWORKTOOLS_GET_SERVICENAME LookupPortServiceName;
     PNETWORKTOOLS_DRAW_COUNTRYICON DrawCountryIcon;
     PNETWORKTOOLS_SHOWWINDOW_PING ShowPingWindow;
     PNETWORKTOOLS_SHOWWINDOW_TRACERT ShowTracertWindow;
@@ -72,6 +77,7 @@ NETWORKTOOLS_INTERFACE PluginInterface =
     NETWORKTOOLS_INTERFACE_VERSION,
     LookupCountryCode,
     LookupCountryIcon,
+    LookupPortServiceName,
     DrawCountryIcon,
     ShowPingWindowFromAddress,
     ShowTracertWindowFromAddress,
@@ -643,14 +649,11 @@ VOID UpdateNetworkNode(
         {
             if (!Extension->LocalValid)
             {
-                for (ULONG x = 0; x < ARRAYSIZE(ResolvedPortsTable); x++)
+                PH_STRINGREF localServiceName;
+
+                if (LookupPortServiceName(Node->NetworkItem->LocalEndpoint.Port, &localServiceName))
                 {
-                    if (Node->NetworkItem->LocalEndpoint.Port == ResolvedPortsTable[x].Port)
-                    {
-                        //PhAppendFormatStringBuilder(&stringBuilder, L"%s,", ResolvedPortsTable[x].Name);
-                        PhInitializeStringRefLongHint(&Extension->LocalServiceName, ResolvedPortsTable[x].Name);
-                        break;
-                    }
+                    Extension->LocalServiceName = localServiceName;
                 }
 
                 Extension->LocalValid = TRUE;
@@ -661,14 +664,11 @@ VOID UpdateNetworkNode(
         {
             if (!Extension->RemoteValid)
             {
-                for (ULONG x = 0; x < ARRAYSIZE(ResolvedPortsTable); x++)
+                PH_STRINGREF remoteServiceName;
+
+                if (LookupPortServiceName(Node->NetworkItem->RemoteEndpoint.Port, &remoteServiceName))
                 {
-                    if (Node->NetworkItem->RemoteEndpoint.Port == ResolvedPortsTable[x].Port)
-                    {
-                        //PhAppendFormatStringBuilder(&stringBuilder, L"%s,", ResolvedPortsTable[x].Name);
-                        PhInitializeStringRefLongHint(&Extension->RemoteServiceName, ResolvedPortsTable[x].Name);
-                        break;
-                    }
+                    Extension->RemoteServiceName = remoteServiceName;
                 }
 
                 Extension->RemoteValid = TRUE;

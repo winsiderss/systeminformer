@@ -1584,3 +1584,20 @@ CONST RESOLVED_PORT ResolvedPortsTable[] =
     { L"zion-lm", 1425 }, { L"zmp", 3925 }, { L"zoomcp", 9666 }, { L"zre-disc", 5670 },
     { L"zsecure", 7173 }, { L"zserv", 346 }, { L"zymed-zpp", 2133 }
 };
+
+BOOLEAN LookupPortServiceName(
+    _In_ ULONG Port,
+    _Out_ PPH_STRINGREF ServiceName
+    )
+{
+    for (UINT i = 0; i < RTL_NUMBER_OF(ResolvedPortsTable); i++)
+    {
+        if (Port == ResolvedPortsTable[i].Port)
+        {
+            PhInitializeStringRefLongHint(ServiceName, ResolvedPortsTable[i].Name);
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}

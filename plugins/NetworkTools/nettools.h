@@ -358,4 +358,9 @@ typedef struct _RESOLVED_PORT
 
 extern CONST RESOLVED_PORT ResolvedPortsTable[6265];
 
+BOOLEAN LookupPortServiceName(
+    _In_ ULONG Port,
+    _Out_ PPH_STRINGREF ServiceName
+    );
+
 #endif
