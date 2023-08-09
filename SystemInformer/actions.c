@@ -3533,7 +3533,7 @@ BOOLEAN PhUiContinueServices(
 
         if (serviceHandle = PhOpenService(PhGetString(Services[i]->Name), SERVICE_PAUSE_CONTINUE))
         {
-            status = PhPauseService(serviceHandle);
+            status = PhContinueService(serviceHandle);
 
             if (NT_SUCCESS(status))
                 success = TRUE;
@@ -3692,7 +3692,7 @@ BOOLEAN PhUiPauseServices(
 
         if (serviceHandle = PhOpenService(PhGetString(Services[i]->Name), SERVICE_PAUSE_CONTINUE))
         {
-            status = PhContinueService(serviceHandle);
+            status = PhPauseService(serviceHandle);
 
             if (NT_SUCCESS(status))
                 success = TRUE;
