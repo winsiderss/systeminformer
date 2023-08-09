@@ -235,15 +235,18 @@ INT_PTR CALLBACK EtpModuleServicesDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
             if (context->LayoutManager.List) // HACK (dmex)
                 PhDeleteLayoutManager(&context->LayoutManager);
 
             PhDereferenceObject(context->ModuleName);
-            PhFree(context);
 
             PostQuitMessage(0);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SIZE:

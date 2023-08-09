@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2015
+ *     dmex    2016-2023
+ *
+ */
+
 #ifndef GPUMON_H
 #define GPUMON_H
 
@@ -34,12 +46,16 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
 
 _Success_(return)
 BOOLEAN EtQueryDeviceProperties(
-    _In_ PCWSTR DeviceInterface,
+    _In_ PPH_STRING DeviceInterface,
     _Out_opt_ PPH_STRING *Description,
     _Out_opt_ PPH_STRING *DriverDate,
     _Out_opt_ PPH_STRING *DriverVersion,
     _Out_opt_ PPH_STRING *LocationInfo,
     _Out_opt_ ULONG64 *InstalledMemory
+    );
+
+PPH_STRING EtQueryDeviceDescription(
+    _In_ PPH_STRING DeviceInterface
     );
 
 VOID NTAPI EtGpuProcessesUpdatedCallback(

@@ -911,6 +911,8 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_LOCALADDRESSSSCOPE,
     FW_COLUMN_REMOTEADDRESSSCOPE,
     FW_COLUMN_ORIGINALNAME,
+    FW_COLUMN_LOCALSERVICENAME,
+    FW_COLUMN_REMOTESERVICENAME,
     FW_COLUMN_MAXIMUM
 } FW_COLUMN_TYPE;
 
@@ -939,13 +941,15 @@ typedef struct _FW_EVENT_ITEM
         struct
         {
             BOOLEAN Loopback : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN Spare : 3;
+            BOOLEAN LocalPortServiceResolved : 1;
+            BOOLEAN RemotePortServiceResolved : 1;
             BOOLEAN LocalHostnameResolved : 1;
             BOOLEAN RemoteHostnameResolved : 1;
         };
     };
 
-    LONG JustResolved;
+    volatile LONG JustResolved;
 
     FW_EVENT_DIRECTION Direction;
     ULONG Type; // FWPM_NET_EVENT_TYPE
@@ -985,6 +989,9 @@ typedef struct _FW_EVENT_ITEM
 
     PPH_STRING TimeString;
     PPH_STRING TooltipText;
+
+    PH_STRINGREF LocalPortServiceName;
+    PH_STRINGREF RemotePortServiceName;
 
     PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
 } FW_EVENT_ITEM, *PFW_EVENT_ITEM;
@@ -1052,6 +1059,12 @@ VOID EtFwShowTracerWindow(
 VOID EtFwShowWhoisWindow(
     _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
+    );
+
+_Success_(return)
+BOOLEAN EtFwLookupPortServiceName(
+    _In_ ULONG Port,
+    _Out_ PPH_STRINGREF ServiceName
     );
 
 typedef struct _SEC_WINNT_AUTH_IDENTITY_W SEC_WINNT_AUTH_IDENTITY_W, *PSEC_WINNT_AUTH_IDENTITY_W;

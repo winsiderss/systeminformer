@@ -873,7 +873,7 @@ VOID EtFwFlushHostNameData(
             data->EventItem->LocalHostnameResolved = TRUE;
         }
 
-        data->EventItem->JustResolved = TRUE;
+        InterlockedExchange(&data->EventItem->JustResolved, 1);
 
         PhDereferenceObject(data->EventItem);
         PhFree(data);
@@ -981,6 +981,10 @@ typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
 typedef INT (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
     _In_ ULONG Name
     );
+typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_SERVICENAME)(
+    _In_ ULONG Port,
+    _Out_ PPH_STRINGREF ServiceName
+    );
 typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
     _In_ HDC hdc,
     _In_ RECT rect,
@@ -1004,6 +1008,7 @@ typedef struct _NETWORKTOOLS_INTERFACE
     ULONG Version;
     PNETWORKTOOLS_GET_COUNTRYCODE LookupCountryCode;
     PNETWORKTOOLS_GET_COUNTRYICON LookupCountryIcon;
+    PNETWORKTOOLS_GET_SERVICENAME LookupPortServiceName;
     PNETWORKTOOLS_DRAW_COUNTRYICON DrawCountryIcon;
     PNETWORKTOOLS_SHOWWINDOW_PING ShowPingWindow;
     PNETWORKTOOLS_SHOWWINDOW_TRACERT ShowTracertWindow;
@@ -1063,6 +1068,20 @@ VOID EtFwShowWhoisWindow(
 {
     if (EtFwGetPluginInterface())
         EtFwGetPluginInterface()->ShowWhoisWindow(ParentWindowHandle, Endpoint);
+}
+
+_Success_(return)
+BOOLEAN EtFwLookupPortServiceName(
+    _In_ ULONG Port,
+    _Out_ PPH_STRINGREF ServiceName
+    )
+{
+    if (EtFwGetPluginInterface())
+    {
+        return EtFwGetPluginInterface()->LookupPortServiceName(Port, ServiceName);
+    }
+
+    return FALSE;
 }
 
 typedef struct _ETFW_FILTER_DISPLAY_CONTEXT

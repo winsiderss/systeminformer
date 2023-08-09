@@ -286,6 +286,8 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, FALSE, L"Local address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, FALSE, L"Remote address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ORIGINALNAME, FALSE, L"Original name", 100, PH_ALIGN_LEFT, FW_COLUMN_ORIGINALNAME, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALSERVICENAME, FALSE, L"Local port service", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALSERVICENAME, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTESERVICENAME, FALSE, L"Remote port service", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTESERVICENAME, 0);
 
     TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
     TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
@@ -459,6 +461,42 @@ VOID FwUpdateNodeUserSid(
     else
     {
         PhClearReference(&FwNode->UserName);
+    }
+}
+
+VOID FwUpdateNodeLocalPortServiceName(
+    _In_ PFW_EVENT_ITEM FwNode
+    )
+{
+    if (!FwNode->LocalPortServiceResolved)
+    {
+        PH_STRINGREF string;
+
+        if (EtFwLookupPortServiceName(FwNode->LocalEndpoint.Port, &string))
+        {
+            FwNode->LocalPortServiceName.Buffer = string.Buffer;
+            FwNode->LocalPortServiceName.Length = string.Length;
+        }
+
+        FwNode->LocalPortServiceResolved = TRUE;
+    }
+}
+
+VOID FwUpdateNodeRemotePortServiceName(
+    _In_ PFW_EVENT_ITEM FwNode
+    )
+{
+    if (!FwNode->RemotePortServiceResolved)
+    {
+        PH_STRINGREF string;
+
+        if (EtFwLookupPortServiceName(FwNode->RemoteEndpoint.Port, &string))
+        {
+            FwNode->RemotePortServiceName.Buffer = string.Buffer;
+            FwNode->RemotePortServiceName.Length = string.Length;
+        }
+
+        FwNode->RemotePortServiceResolved = TRUE;
     }
 }
 
@@ -672,6 +710,24 @@ BEGIN_SORT_FUNCTION(RemoteAddressScope)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(LocalPortServiceName)
+{
+    FwUpdateNodeLocalPortServiceName(node1);
+    FwUpdateNodeLocalPortServiceName(node2);
+
+    sortResult = PhCompareStringRefWithNullSortOrder(&node1->LocalPortServiceName, &node2->LocalPortServiceName, FwTreeNewSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RemotePortServiceName)
+{
+    FwUpdateNodeRemotePortServiceName(node1);
+    FwUpdateNodeRemotePortServiceName(node2);
+
+    sortResult = PhCompareStringRefWithNullSortOrder(&node1->RemotePortServiceName, &node2->RemotePortServiceName, FwTreeNewSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
 int __cdecl EtFwNodeNoOrderSortFunction(
     _In_ void* _context,
     _In_ void const* _elem1,
@@ -680,7 +736,7 @@ int __cdecl EtFwNodeNoOrderSortFunction(
 {
     PFW_EVENT_ITEM node1 = *(PFW_EVENT_ITEM*)_elem1;
     PFW_EVENT_ITEM node2 = *(PFW_EVENT_ITEM*)_elem2;
-    int sortResult = 0;
+    int sortResult;
 
     sortResult = uint64cmp(node1->Index, node2->Index);
 
@@ -742,6 +798,8 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         SORT_FUNCTION(LocalAddressScope),
                         SORT_FUNCTION(RemoteAddressScope),
                         SORT_FUNCTION(Filename),
+                        SORT_FUNCTION(LocalPortServiceName),
+                        SORT_FUNCTION(RemotePortServiceName),
                     };
                     int (__cdecl* sortFunction)(void*, void const*, void const*);
 
@@ -1184,6 +1242,18 @@ BOOLEAN NTAPI FwTreeNewCallback(
            case FW_COLUMN_ORIGINALNAME:
                {
                    getCellText->Text = PhGetStringRef(node->ProcessFileName);
+               }
+               break;
+           case FW_COLUMN_LOCALSERVICENAME:
+               {
+                   FwUpdateNodeLocalPortServiceName(node);
+                   getCellText->Text = node->LocalPortServiceName;
+               }
+               break;
+           case FW_COLUMN_REMOTESERVICENAME:
+               {
+                   FwUpdateNodeRemotePortServiceName(node);
+                   getCellText->Text = node->RemotePortServiceName;
                }
                break;
             default:
