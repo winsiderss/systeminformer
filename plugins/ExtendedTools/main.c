@@ -264,6 +264,7 @@ VOID NTAPI MainWindowShowingCallback(
 {
     EtInitializeDiskTab();
     EtInitializeFirewallTab();
+
     EtRegisterToolbarGraphs();
 
     EtFramesMonitorStart();
@@ -277,7 +278,6 @@ VOID NTAPI ProcessesUpdatedCallback(
     if (ProcessesUpdatedCount != 3)
     {
         ProcessesUpdatedCount++;
-        return;
     }
 }
 
@@ -554,14 +554,12 @@ VOID NTAPI NetworkItemsUpdatedCallback(
 }
 
 VOID NTAPI ProcessStatsEventCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_PROCESS_STATS_EVENT event = Parameter;
 
-    if (!event)
-        return;
     if (event->Version)
         return;
 

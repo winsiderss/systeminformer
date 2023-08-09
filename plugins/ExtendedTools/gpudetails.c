@@ -55,7 +55,7 @@ VOID EtpGpuDetailsAddListViewItemGroups(
 }
 
 VOID EtpQueryAdapterDeviceProperties(
-    _In_ PCWSTR DeviceName,
+    _In_ PPH_STRING DeviceName,
     _In_ HWND ListViewHandle)
 {
     PPH_STRING driverDate;
@@ -324,7 +324,7 @@ VOID EtpGpuDetailsEnumAdapters(
             EtpGpuDetailsAddListViewItemGroups(ListViewHandle, i);
         }
 
-        EtpQueryAdapterDeviceProperties(openAdapterFromDeviceName.pDeviceName, ListViewHandle);
+        EtpQueryAdapterDeviceProperties(gpuAdapter->DeviceInterface, ListViewHandle);
         //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
         EtpQueryAdapterDriverModel(openAdapterFromDeviceName.hAdapter, ListViewHandle);
         //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
@@ -336,7 +336,7 @@ VOID EtpGpuDetailsEnumAdapters(
     }
 }
 
-static VOID ProcessesUpdatedCallback(
+VOID EtpGpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -370,11 +370,6 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (context == NULL)
@@ -407,7 +402,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-                ProcessesUpdatedCallback,
+                EtpGpuProcessesUpdatedCallback,
                 hwndDlg,
                 &context->ProcessesUpdatedCallbackRegistration
                 );
@@ -418,9 +413,14 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
 
             PhDeleteLayoutManager(&context->LayoutManager);
-            PhFree(context);
 
             PostQuitMessage(0);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_COMMAND:

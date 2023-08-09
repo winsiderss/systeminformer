@@ -59,7 +59,7 @@ VOID EtGpuMonitorInitialization(
 {
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
     {
-        EtGpuSupported = EtWindowsVersion >= WINDOWS_10_RS4;
+        EtGpuSupported = EtWindowsVersion >= WINDOWS_10_RS4; // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3 (dmex)
         EtD3DEnabled = EtGpuSupported && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPUPERFCOUNTERS);
 
         EtpGpuAdapterList = PhCreateList(4);
@@ -458,7 +458,7 @@ ULONG64 EtpQueryGpuInstalledMemory(
 
 _Success_(return)
 BOOLEAN EtQueryDeviceProperties(
-    _In_ PCWSTR DeviceInterface,
+    _In_ PPH_STRING DeviceInterface,
     _Out_opt_ PPH_STRING *Description,
     _Out_opt_ PPH_STRING *DriverDate,
     _Out_opt_ PPH_STRING *DriverVersion,
@@ -472,7 +472,7 @@ BOOLEAN EtQueryDeviceProperties(
     WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
 
     if (CM_Get_Device_Interface_Property(
-        DeviceInterface,
+        PhGetString(DeviceInterface),
         &DEVPKEY_Device_InstanceId,
         &devicePropertyType,
         (PBYTE)deviceInstanceId,
@@ -505,6 +505,20 @@ BOOLEAN EtQueryDeviceProperties(
     // EtpQueryDevicePropertyString(deviceInstanceHandle, &DEVPKEY_Device_Manufacturer);
 
     return TRUE;
+}
+
+PPH_STRING EtQueryDeviceDescription(
+    _In_ PPH_STRING DeviceInterface
+    )
+{
+    PPH_STRING description;
+
+    if (EtQueryDeviceProperties(DeviceInterface, &description, NULL, NULL, NULL, NULL))
+    {
+        return description;
+    }
+
+    return NULL;
 }
 
 D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
@@ -594,7 +608,7 @@ D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
 }
 
 PETP_GPU_ADAPTER EtpAddDisplayAdapter(
-    _In_ PCWSTR DeviceInterface,
+    _In_ PPH_STRING DeviceInterface,
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ LUID AdapterLuid,
     _In_ ULONG NumberOfSegments,
@@ -604,7 +618,7 @@ PETP_GPU_ADAPTER EtpAddDisplayAdapter(
     PETP_GPU_ADAPTER adapter;
 
     adapter = EtpAllocateGpuAdapter(NumberOfSegments);
-    adapter->DeviceInterface = PhCreateString((PWSTR)DeviceInterface);
+    adapter->DeviceInterface = PhReferenceObject(DeviceInterface);
     adapter->AdapterLuid = AdapterLuid;
     adapter->NodeCount = NumberOfNodes;
     adapter->SegmentCount = NumberOfSegments;
@@ -619,7 +633,7 @@ PETP_GPU_ADAPTER EtpAddDisplayAdapter(
         }
     }
 
-    if (EtGpuSupported) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
+    if (EtGpuSupported)
     {
         adapter->NodeNameList = PhCreateList(adapter->NodeCount);
 
@@ -689,21 +703,31 @@ BOOLEAN EtpInitializeD3DStatistics(
     }
 
     deviceAdapterList = PhCreateList(10);
+    deviceInterface = deviceInterfaceList;
 
-    for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
+    while (TRUE)
     {
-        PhAddItemList(deviceAdapterList, deviceInterface);
+        PH_STRINGREF string;
+
+        PhInitializeStringRefLongHint(&string, deviceInterface);
+
+        if (string.Length == 0)
+            break;
+
+        PhAddItemList(deviceAdapterList, PhCreateString2(&string));
+
+        deviceInterface = PTR_ADD_OFFSET(deviceInterface, string.Length + sizeof(UNICODE_NULL));
     }
 
     for (ULONG i = 0; i < deviceAdapterList->Count; i++)
     {
         memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
-        openAdapterFromDeviceName.pDeviceName = deviceAdapterList->Items[i];
+        openAdapterFromDeviceName.pDeviceName = PhGetString(deviceAdapterList->Items[i]);
 
         if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
             continue;
 
-        if (EtGpuSupported && deviceAdapterList->Count > 1) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
+        if (EtGpuSupported && deviceAdapterList->Count > 1)
         {
             if (EtpIsGpuSoftwareDevice(openAdapterFromDeviceName.hAdapter))
             {
@@ -712,7 +736,7 @@ BOOLEAN EtpInitializeD3DStatistics(
             }
         }
 
-        if (EtGpuSupported) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
+        if (EtGpuSupported)
         {
             D3DKMT_SEGMENTSIZEINFO segmentInfo;
 
@@ -755,7 +779,7 @@ BOOLEAN EtpInitializeD3DStatistics(
             PETP_GPU_ADAPTER gpuAdapter;
 
             gpuAdapter = EtpAddDisplayAdapter(
-                openAdapterFromDeviceName.pDeviceName,
+                deviceAdapterList->Items[i],
                 openAdapterFromDeviceName.hAdapter,
                 openAdapterFromDeviceName.AdapterLuid,
                 queryStatistics.QueryResult.AdapterInformation.NbSegments,
@@ -793,7 +817,7 @@ BOOLEAN EtpInitializeD3DStatistics(
                         aperture = segmentInfo->Aperture;
                     }
 
-                    if (!EtGpuSupported || !EtD3DEnabled) // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3
+                    if (!EtGpuSupported || !EtD3DEnabled)
                     {
                         if (aperture)
                             EtGpuSharedLimit += commitLimit;
@@ -823,6 +847,7 @@ BOOLEAN EtpInitializeD3DStatistics(
             EtGpuTemperatureLimit = 100;
     }
 
+    PhDereferenceObjects(deviceAdapterList->Items, deviceAdapterList->Count);
     PhDereferenceObject(deviceAdapterList);
     PhFree(deviceInterfaceList);
 
