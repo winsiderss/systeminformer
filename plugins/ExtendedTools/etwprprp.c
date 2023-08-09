@@ -975,7 +975,7 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
                     }
                     else if (header->hwndFrom == context->NetworkSendGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, context->WindowDpi);
                         PhGraphStateGetDrawInfo(&context->NetworkSendGraphState, getDrawInfo, context->Block->NetworkSendHistory.Count);
 
