@@ -1085,7 +1085,8 @@ ULONG EtPerfCounterAddCounters(
     PPERF_COUNTER_IDENTIFIER counterIdentifierBuffer;
 
     counterIdentifierLength = ALIGN_UP_BY(sizeof(PERF_COUNTER_IDENTIFIER) + sizeof(PERF_WILDCARD_INSTANCE), 8);
-    counterIdentifierBuffer = PhAllocateZero(counterIdentifierLength);
+    counterIdentifierBuffer = _malloca(counterIdentifierLength);
+    memset(counterIdentifierBuffer, 0, counterIdentifierLength);
     counterIdentifierBuffer->Size = counterIdentifierLength;
     counterIdentifierBuffer->CounterSetGuid = CounterGuid;
     counterIdentifierBuffer->InstanceId = ULONG_MAX;
@@ -1106,6 +1107,8 @@ ULONG EtPerfCounterAddCounters(
     {
         status = counterIdentifierBuffer->Status;
     }
+
+    _freea(counterIdentifierBuffer);
 
     return status;
 }
@@ -1297,40 +1300,85 @@ VOID EtPerfCounterInitialization(
 }
 
 _Success_(return)
-BOOLEAN EtPerfCounterOpenHandle(
+ULONG EtPerfCounterOpenHandle(
     _Out_ PHANDLE PerfQueryHandle
     )
 {
     ULONG status;
     HANDLE perfQueryHandle;
+    ULONG counterIdentifierLength;
+    PPERF_COUNTER_IDENTIFIER counterIdentifierBuffer;
+    PPERF_COUNTER_IDENTIFIER counterIdentifierEngine;
+    PPERF_COUNTER_IDENTIFIER counterIdentifierAdapter;
+    PPERF_COUNTER_IDENTIFIER counterIdentifierProcess;
 
-    status = PerfOpenQueryHandle(NULL, &perfQueryHandle);
-    if (status != ERROR_SUCCESS)
-        return FALSE;
+    counterIdentifierLength = ALIGN_UP_BY(sizeof(PERF_COUNTER_IDENTIFIER) + sizeof(PERF_WILDCARD_INSTANCE), 8) * 3;
+    counterIdentifierBuffer = _malloca(counterIdentifierLength);
 
-    status = EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_ENGINE, ET_GPU_ENGINE_RUNNINGTIME_COUNTER);
+    if (!counterIdentifierBuffer)
+        return ERROR_INSUFFICIENT_BUFFER;
+
+    memset(counterIdentifierBuffer, 0, counterIdentifierLength);
+    counterIdentifierEngine = PTR_ADD_OFFSET(counterIdentifierBuffer, 0);
+    counterIdentifierEngine->Size = ALIGN_UP_BY(sizeof(PERF_COUNTER_IDENTIFIER) + sizeof(PERF_WILDCARD_INSTANCE), 8);
+    counterIdentifierEngine->CounterSetGuid = GUID_GPU_ENGINE;
+    counterIdentifierEngine->InstanceId = PERF_WILDCARD_COUNTER;
+    counterIdentifierEngine->CounterId = ET_GPU_ENGINE_RUNNINGTIME_COUNTER;
+    memcpy(PTR_ADD_OFFSET(counterIdentifierEngine, RTL_SIZEOF_THROUGH_FIELD(PERF_COUNTER_IDENTIFIER, Reserved)), PERF_WILDCARD_INSTANCE, sizeof(PERF_WILDCARD_INSTANCE));
+
+    counterIdentifierAdapter = PTR_ADD_OFFSET(counterIdentifierEngine, counterIdentifierEngine->Size);
+    counterIdentifierAdapter->Size = ALIGN_UP_BY(sizeof(PERF_COUNTER_IDENTIFIER) + sizeof(PERF_WILDCARD_INSTANCE), 8);
+    counterIdentifierAdapter->CounterSetGuid = GUID_GPU_ADAPTERMEMORY;
+    counterIdentifierAdapter->InstanceId = PERF_WILDCARD_COUNTER;
+    counterIdentifierAdapter->CounterId = ET_GPU_ADAPTERMEMORY_DEDICATEDUSAGE_COUNTER;
+    memcpy(PTR_ADD_OFFSET(counterIdentifierAdapter, RTL_SIZEOF_THROUGH_FIELD(PERF_COUNTER_IDENTIFIER, Reserved)), PERF_WILDCARD_INSTANCE, sizeof(PERF_WILDCARD_INSTANCE));
+
+    counterIdentifierProcess = PTR_ADD_OFFSET(counterIdentifierAdapter, counterIdentifierAdapter->Size);
+    counterIdentifierProcess->Size = ALIGN_UP_BY(sizeof(PERF_COUNTER_IDENTIFIER) + sizeof(PERF_WILDCARD_INSTANCE), 8);
+    counterIdentifierProcess->CounterSetGuid = GUID_GPU_PROCESSMEMORY;
+    counterIdentifierProcess->InstanceId = PERF_WILDCARD_COUNTER;
+    counterIdentifierProcess->CounterId = PERF_WILDCARD_COUNTER;
+    memcpy(PTR_ADD_OFFSET(counterIdentifierProcess, RTL_SIZEOF_THROUGH_FIELD(PERF_COUNTER_IDENTIFIER, Reserved)), PERF_WILDCARD_INSTANCE, sizeof(PERF_WILDCARD_INSTANCE));
+
+    status = PerfOpenQueryHandle(
+        NULL,
+        &perfQueryHandle
+        );
+
     if (status != ERROR_SUCCESS)
         goto CleanupExit;
 
-    status = EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_ADAPTERMEMORY, ET_GPU_ADAPTERMEMORY_DEDICATEDUSAGE_COUNTER);
+    status = PerfAddCounters(
+        perfQueryHandle,
+        counterIdentifierBuffer,
+        counterIdentifierLength
+        );
+
     if (status != ERROR_SUCCESS)
         goto CleanupExit;
-
-    status = EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_PROCESSMEMORY, PERF_WILDCARD_COUNTER);
-    if (status != ERROR_SUCCESS)
+    if ((status = counterIdentifierEngine->Status) != ERROR_SUCCESS)
+        goto CleanupExit;
+    if ((status = counterIdentifierAdapter->Status) != ERROR_SUCCESS)
+        goto CleanupExit;
+    if ((status = counterIdentifierProcess->Status) != ERROR_SUCCESS)
         goto CleanupExit;
 
-    *PerfQueryHandle = perfQueryHandle;
-    return TRUE;
-
+    //EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_ENGINE, ET_GPU_ENGINE_RUNNINGTIME_COUNTER);
+    //EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_ADAPTERMEMORY, ET_GPU_ADAPTERMEMORY_DEDICATEDUSAGE_COUNTER);
+    //EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_PROCESSMEMORY, PERF_WILDCARD_COUNTER);
     //EtPerfCounterQueryCounterInfo(perfQueryHandle);
     //EtPerfCounterDumpCounterInfo(GUID_GPU_ENGINE);
     //EtPerfCounterDumpCounterInfo(GUID_GPU_ADAPTERMEMORY);
     //EtPerfCounterDumpCounterInfo(GUID_GPU_PROCESSMEMORY);
 
+    *PerfQueryHandle = perfQueryHandle;
+    _freea(counterIdentifierBuffer);
+    return status;
+
 CleanupExit:
     PerfCloseQueryHandle(perfQueryHandle);
-    return FALSE;
+    _freea(counterIdentifierBuffer);
+    return status;
 }
 
 NTSTATUS EtUpdatePerfCounterData(
@@ -1352,7 +1400,7 @@ NTSTATUS EtUpdatePerfCounterData(
 
     if (!perfQueryHandle)
     {
-        if (!EtPerfCounterOpenHandle(&perfQueryHandle))
+        if (EtPerfCounterOpenHandle(&perfQueryHandle) != ERROR_SUCCESS)
             return STATUS_UNSUCCESSFUL;
     }
 
