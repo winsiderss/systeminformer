@@ -14955,6 +14955,440 @@ NTSTATUS PhGetThreadApartmentState(
     return status;
 }
 
+// rev from advapi32!WctGetCOMInfo (dmex)
+/**
+ * If a thread is blocked on a COM call, we can retrieve COM ownership information using these functions. Retrieves COM information when a thread is blocked on a COM call.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param ProcessHandle An optional handle to a process.
+ * \param ApartmentCallState The COM call information.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadApartmentCallState(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PPH_COM_CALLSTATE ApartmentCallState
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    BOOLEAN openedProcessHandle = FALSE;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+    ULONG_PTR oletlsDataAddress = 0;
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    if (!ProcessHandle)
+    {
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &ProcessHandle,
+            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
+            basicInfo.ClientId.UniqueProcess
+            )))
+            return status;
+
+        openedProcessHandle = TRUE;
+    }
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForOle)),
+            &oletlsDataAddress,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+    else
+#endif
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForOle)),
+            &oletlsDataAddress,
+            sizeof(ULONG_PTR),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status) && oletlsDataAddress)
+    {
+        typedef enum _CALL_STATE_TYPE
+        {
+            CALL_STATE_TYPE_OUTGOING, // tagOutgoingCallData
+            CALL_STATE_TYPE_INCOMING, // tagIncomingCallData
+            CALL_STATE_TYPE_ACTIVATION // tagOutgoingActivationData
+        } CALL_STATE_TYPE;
+        typedef struct tagOutgoingCallData // private
+        {
+            ULONG dwServerPID;
+            ULONG dwServerTID;
+        } tagOutgoingCallData, *PtagOutgoingCallData;
+        typedef struct tagIncomingCallData // private
+        {
+            ULONG dwClientPID;
+        } tagIncomingCallData, *PtagIncomingCallData;
+        typedef struct tagOutgoingActivationData // private
+        {
+            GUID guidServer;
+        } tagOutgoingActivationData, *PtagOutgoingActivationData;
+        static HRESULT (WINAPI* CoGetCallState_I)( // rev
+            _In_ CALL_STATE_TYPE Type,
+            _Out_ PULONG OffSet
+            ) = NULL;
+        //static HRESULT (WINAPI* CoGetActivationState_I)( // rev
+        //    _In_ LPCLSID Clsid,
+        //    _In_ ULONG ClientTid,
+        //    _Out_ PULONG ServerPid
+        //    ) = NULL;
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        ULONG outgoingCallDataOffset = 0;
+        ULONG incomingCallDataOffset = 0;
+        ULONG outgoingActivationDataOffset = 0;
+        tagOutgoingCallData outgoingCallData;
+        tagIncomingCallData incomingCallData;
+        tagOutgoingActivationData outgoingActivationData;
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            PVOID baseAddress;
+
+            if (baseAddress = PhGetLoaderEntryDllBaseZ(L"combase.dll"))
+            {
+                CoGetCallState_I = PhGetDllBaseProcedureAddress(baseAddress, "CoGetCallState", 0);
+                //CoGetActivationState_I = PhGetDllBaseProcedureAddress(baseAddress, "CoGetActivationState", 0);
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+
+        memset(&outgoingCallData, 0, sizeof(tagOutgoingCallData));
+        memset(&incomingCallData, 0, sizeof(tagIncomingCallData));
+        memset(&outgoingActivationData, 0, sizeof(tagOutgoingActivationData));
+
+        if (HR_SUCCESS(CoGetCallState_I(CALL_STATE_TYPE_OUTGOING, &outgoingCallDataOffset)) && outgoingCallDataOffset)
+        {
+            NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(oletlsDataAddress, outgoingCallDataOffset),
+                &outgoingCallData,
+                sizeof(tagOutgoingCallData),
+                NULL
+                );
+        }
+
+        if (HR_SUCCESS(CoGetCallState_I(CALL_STATE_TYPE_INCOMING, &incomingCallDataOffset)) && incomingCallDataOffset)
+        {
+            NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(oletlsDataAddress, incomingCallDataOffset),
+                &incomingCallData,
+                sizeof(tagIncomingCallData),
+                NULL
+                );
+        }
+
+        if (HR_SUCCESS(CoGetCallState_I(CALL_STATE_TYPE_ACTIVATION, &outgoingActivationDataOffset)) && outgoingActivationDataOffset)
+        {
+            NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(oletlsDataAddress, outgoingActivationDataOffset),
+                &outgoingActivationData,
+                sizeof(tagOutgoingActivationData),
+                NULL
+                );
+        }
+
+        memset(ApartmentCallState, 0, sizeof(PH_COM_CALLSTATE));
+        ApartmentCallState->ServerPID = outgoingCallData.dwServerPID != 0 ? outgoingCallData.dwServerPID : ULONG_MAX;
+        ApartmentCallState->ServerTID = outgoingCallData.dwServerTID != 0 ? outgoingCallData.dwServerTID : ULONG_MAX;
+        ApartmentCallState->ClientPID = incomingCallData.dwClientPID != 0 ? incomingCallData.dwClientPID : ULONG_MAX;
+        memcpy(&ApartmentCallState->ServerGuid, &outgoingActivationData.guidServer, sizeof(GUID));
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+    if (openedProcessHandle)
+        NtClose(ProcessHandle);
+
+    return status;
+}
+
+// rev from advapi32!WctGetCritSecInfo (dmex)
+/**
+ * Retrieves the thread identifier when a thread is blocked on a critical section.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param ProcessId The ID of a process.
+ * \param ThreadId The ID of the thread owning the critical section.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadCriticalSectionOwnerThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessId,
+    _Out_ PULONG ThreadId
+    )
+{
+    NTSTATUS status;
+    PRTL_DEBUG_INFORMATION debugBuffer;
+
+    if (WindowsVersion < WINDOWS_11)
+        return STATUS_UNSUCCESSFUL;
+
+    if (!(debugBuffer = RtlCreateQueryDebugBuffer(0, FALSE)))
+        return STATUS_UNSUCCESSFUL;
+
+    debugBuffer->CriticalSectionOwnerThread = ThreadHandle;
+
+    status = RtlQueryProcessDebugInformation(
+        ProcessId,
+        RTL_QUERY_PROCESS_NONINVASIVE_CS_OWNER, // TODO: RTL_QUERY_PROCESS_CS_OWNER (dmex)
+        debugBuffer
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return status;
+    }
+
+    if (!debugBuffer->Reserved[0])
+    {
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    *ThreadId = PtrToUlong(debugBuffer->Reserved[0]);
+
+    RtlDestroyQueryDebugBuffer(debugBuffer);
+
+    return STATUS_SUCCESS;
+}
+
+// rev from advapi32!WctGetSocketInfo (dmex)
+/**
+ * Retrieves the connection state when a thread is blocked on a socket.
+ *
+ * \param ThreadHandle A handle to the thread.
+ * \param ProcessHandle An optional handle to a process.
+ * \param ThreadSocketState The state of the socket.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhGetThreadSocketState(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PPH_THREAD_SOCKET_STATE ThreadSocketState
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    BOOLEAN openedProcessHandle = FALSE;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+    HANDLE winsockHandleAddress;
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    if (!ProcessHandle)
+    {
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &ProcessHandle,
+            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
+            basicInfo.ClientId.UniqueProcess
+            )))
+            return status;
+
+        openedProcessHandle = TRUE;
+    }
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        ULONG winsockDataAddress = 0;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, WinSockData)),
+            &winsockDataAddress,
+            sizeof(ULONG),
+            NULL
+            );
+
+        winsockHandleAddress = UlongToHandle(winsockDataAddress);
+    }
+    else
+#endif
+    {
+        ULONG_PTR winsockDataAddress = 0;
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, WinSockData)),
+            &winsockDataAddress,
+            sizeof(ULONG_PTR),
+            NULL
+            );
+
+        winsockHandleAddress = (HANDLE)winsockDataAddress;
+    }
+
+    if (NT_SUCCESS(status) && winsockHandleAddress)
+    {
+        static INT (WINAPI* LPFN_WSASTARTUP)(
+            _In_ WORD wVersionRequested,
+            _Out_ PVOID* lpWSAData
+            );
+        static INT (WINAPI* LPFN_GETSOCKOPT)(
+            _In_ UINT_PTR s,
+            _In_ INT level,
+            _In_ INT optname,
+            _Out_writes_bytes_(*optlen) char FAR* optval,
+            _Inout_ INT FAR* optlen
+            );
+        static INT (WINAPI* LPFN_CLOSESOCKET)(
+            _In_ UINT_PTR s
+            );
+        static INT (WINAPI* LPFN_WSACLEANUP)(
+            void
+            );
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        #ifndef WINSOCK_VERSION
+        #define WINSOCK_VERSION MAKEWORD(2,2)
+        #endif
+        #ifndef SOCKET_ERROR
+        #define SOCKET_ERROR (-1)
+        #endif
+        #ifndef SOL_SOCKET
+        #define SOL_SOCKET 0xffff
+        #endif
+        #ifndef SO_BSP_STATE
+        #define SO_BSP_STATE 0x1009
+        #endif
+        typedef struct _SOCKET_ADDRESS
+        {
+            _Field_size_bytes_(iSockaddrLength) PVOID lpSockaddr;
+            // _When_(lpSockaddr->sa_family == AF_INET, _Field_range_(>=, sizeof(SOCKADDR_IN)))
+            // _When_(lpSockaddr->sa_family == AF_INET6, _Field_range_(>=, sizeof(SOCKADDR_IN6)))
+            INT iSockaddrLength;
+        } SOCKET_ADDRESS, *PSOCKET_ADDRESS, *LPSOCKET_ADDRESS;
+        typedef struct _CSADDR_INFO
+        {
+            SOCKET_ADDRESS LocalAddr;
+            SOCKET_ADDRESS RemoteAddr;
+            INT iSocketType;
+            INT iProtocol;
+        } CSADDR_INFO, *PCSADDR_INFO, FAR* LPCSADDR_INFO;
+        PVOID wsaStartupData;
+        HANDLE winsockTargetHandle;
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            PVOID baseAddress;
+
+            if (baseAddress = PhLoadLibrary(L"ws2_32.dll"))
+            {
+                LPFN_WSASTARTUP = PhGetDllBaseProcedureAddress(baseAddress, "WSAStartup", 0);
+                LPFN_GETSOCKOPT = PhGetDllBaseProcedureAddress(baseAddress, "getsockopt", 0);
+                //LPFN_GETSOCKNAME = PhGetDllBaseProcedureAddress(baseAddress, "getsockname", 0);
+                //LPFN_GETPEERNAME = PhGetDllBaseProcedureAddress(baseAddress, "getpeername", 0);
+                LPFN_CLOSESOCKET = PhGetDllBaseProcedureAddress(baseAddress, "closesocket", 0);
+                LPFN_WSACLEANUP = PhGetDllBaseProcedureAddress(baseAddress, "WSACleanup", 0);
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+
+        if (LPFN_WSASTARTUP(WINSOCK_VERSION, &wsaStartupData) != 0)
+        {
+            status = STATUS_UNSUCCESSFUL;
+            goto CleanupExit;
+        }
+
+        status = NtDuplicateObject(
+            ProcessHandle,
+            winsockHandleAddress,
+            NtCurrentProcess(),
+            &winsockTargetHandle,
+            0,
+            0,
+            DUPLICATE_SAME_ACCESS
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            ULONG returnLength;
+            OBJECT_BASIC_INFORMATION winsockTargetBasicInfo;
+            INT winsockAddressInfoLength = sizeof(CSADDR_INFO);
+            CSADDR_INFO winsockAddressInfo;
+
+            memset(&winsockTargetBasicInfo, 0, sizeof(OBJECT_BASIC_INFORMATION));
+            NtQueryObject(
+                winsockTargetHandle,
+                ObjectBasicInformation,
+                &winsockTargetBasicInfo,
+                sizeof(OBJECT_BASIC_INFORMATION),
+                &returnLength
+                );
+
+            if (winsockTargetBasicInfo.HandleCount > 2)
+            {
+                if (LPFN_GETSOCKOPT((UINT_PTR)winsockTargetHandle, SOL_SOCKET, SO_BSP_STATE, (PCHAR)&winsockAddressInfo, &winsockAddressInfoLength) != SOCKET_ERROR)
+                {
+                    if (winsockAddressInfo.iProtocol == 6)
+                    {
+                        if (winsockAddressInfo.LocalAddr.lpSockaddr && winsockAddressInfo.RemoteAddr.lpSockaddr)
+                            *ThreadSocketState = PH_THREAD_SOCKET_STATE_SHARED;
+                        else
+                            *ThreadSocketState = PH_THREAD_SOCKET_STATE_DISCONNECTED;
+                    }
+                    else
+                        *ThreadSocketState = PH_THREAD_SOCKET_STATE_NOT_TCPIP;
+                }
+                else
+                {
+                    status = STATUS_UNSUCCESSFUL; // WSAGetLastError();
+                }
+            }
+            else
+            {
+                status = STATUS_UNSUCCESSFUL;
+            }
+
+            LPFN_CLOSESOCKET((UINT_PTR)winsockTargetHandle);
+
+            NtClose(winsockTargetHandle);
+        }
+
+        LPFN_WSACLEANUP();
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+CleanupExit:
+    if (openedProcessHandle)
+        NtClose(ProcessHandle);
+
+    return status;
+}
+
 NTSTATUS PhGetThreadStackLimits(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,

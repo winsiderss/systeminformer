@@ -2945,6 +2945,49 @@ PhGetThreadApartmentState(
     _Out_ POLETLSFLAGS ApartmentState
     );
 
+typedef struct _PH_COM_CALLSTATE
+{
+    ULONG ClientPID;
+    ULONG ServerPID;
+    ULONG ServerTID;
+    GUID ServerGuid;
+} PH_COM_CALLSTATE, *PPH_COM_CALLSTATE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadApartmentCallState(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PPH_COM_CALLSTATE ApartmentCallState
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadCriticalSectionOwnerThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessId,
+    _Out_ PULONG ThreadId
+    );
+
+typedef enum _PH_THREAD_SOCKET_STATE
+{
+    PH_THREAD_SOCKET_STATE_NONE,
+    PH_THREAD_SOCKET_STATE_SHARED,
+    PH_THREAD_SOCKET_STATE_DISCONNECTED,
+    PH_THREAD_SOCKET_STATE_NOT_TCPIP
+} PH_THREAD_SOCKET_STATE, *PPH_THREAD_SOCKET_STATE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadSocketState(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PPH_THREAD_SOCKET_STATE ThreadSocketState
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
