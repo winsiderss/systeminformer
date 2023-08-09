@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -48,13 +48,23 @@ PPH_STRING FindPoolTagFilePath(
 
         if (path)
         {
+            PhMoveReference(&path, PhConcatStringRef2(&PhNtDosDevicesPrefix, &path->sr));
             PhMoveReference(&path, PhConcatStringRefZ(&path->sr, L"triage\\pooltag.txt"));
 
-            if (PhDoesFileExistWin32(PhGetString(path)))
+            if (PhDoesFileExist(&path->sr))
                 return path;
 
             PhDereferenceObject(path);
         }
+    }
+
+    {
+        PPH_STRING path = PhGetApplicationDirectoryFileNameZ(L"pooltag.txt", TRUE);
+
+        if (PhDoesFileExist(&path->sr))
+            return path;
+
+        PhDereferenceObject(path);
     }
 
     return NULL;
@@ -124,9 +134,9 @@ VOID EtLoadPoolTagDatabase(
 
     if (poolTagFilePath = FindPoolTagFilePath())
     {
-        if (!NT_SUCCESS(PhCreateFileWin32(
+        if (!NT_SUCCESS(PhCreateFile(
             &fileHandle,
-            PhGetString(poolTagFilePath),
+            &poolTagFilePath->sr,
             FILE_GENERIC_READ,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -173,22 +183,6 @@ VOID EtLoadPoolTagDatabase(
         PhFree(stringBuffer);
         NtClose(fileHandle);
         PhDereferenceObject(poolTagFilePath);
-    }
-    else
-    {
-        ULONG resourceLength;
-        PVOID resourceBuffer;
-
-        if (PhLoadResource(
-            PluginInstance->DllBase,
-            MAKEINTRESOURCE(IDR_TXT_POOLTAGS),
-            L"TXT",
-            &resourceLength,
-            &resourceBuffer
-            ))
-        {
-            utf16StringBuffer = PhZeroExtendToUtf16Ex(resourceBuffer, resourceLength);
-        }
     }
 
     if (utf16StringBuffer)

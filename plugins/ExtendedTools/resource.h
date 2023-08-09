@@ -97,7 +97,6 @@
 #define IDC_GROUPDISKWRITE              1113
 #define ID_POOL_TABLE                   3000
 #define IDD_POOL                        3001
-#define IDR_TXT_POOLTAGS                3002
 #define IDD_BIGPOOL                     3003
 #define IDC_POOLTREE                    3004
 #define IDC_POOLSEARCH                  3005
