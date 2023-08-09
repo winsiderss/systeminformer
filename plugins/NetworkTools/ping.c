@@ -12,8 +12,6 @@
 #include "nettools.h"
 #include <math.h>
 
-#define WM_PING_UPDATE (WM_APP + 151)
-
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
@@ -270,7 +268,7 @@ CleanupExit:
         PhFree(icmpReplyBuffer);
     }
 
-    PostMessage(context->WindowHandle, WM_PING_UPDATE, 0, 0);
+    PostMessage(context->WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
     PhDereferenceObject(context);
 
     return STATUS_SUCCESS;
@@ -450,7 +448,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
     case WM_SIZING:
         //PhResizingMinimumSize((PRECT)lParam, wParam, 420, 250);
         break;
-    case WM_PING_UPDATE:
+    case WM_PH_UPDATE_DIALOG:
         {
             FLOAT pingSumValue = 0.0f;
             FLOAT pingAvgMeanValue = 0.0f;
