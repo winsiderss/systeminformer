@@ -1433,6 +1433,7 @@ NtResumeProcess(
 
 #define NtCurrentSilo() ((HANDLE)(LONG_PTR)-1)
 
+// Not NT, but useful.
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define NtCurrentImageBase() ((PVOID)&__ImageBase)
 
