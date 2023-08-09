@@ -1108,7 +1108,7 @@ NTSTATUS PhEnumerateAccounts(
         _In_ PCWSTR servername,
         _In_ ULONG level,
         _In_ ULONG filter,
-        _Out_ PVOID * bufptr,
+        _Out_ PVOID* bufptr,
         _In_ ULONG prefmaxlen,
         _Out_ PULONG entriesread,
         _Out_ PULONG totalentries,
@@ -1122,8 +1122,6 @@ NTSTATUS PhEnumerateAccounts(
         PWSTR usri0_name;
     } USER_INFO_0, *PUSER_INFO_0;
     #define FILTER_NORMAL_ACCOUNT (0x0002)
-    #define MAX_PREFERRED_LENGTH ((ULONG)-1)
-
     ULONG status;
     PUSER_INFO_0 userinfoArray = NULL;
     ULONG userinfoEntriesRead = 0;
@@ -1144,13 +1142,13 @@ NTSTATUS PhEnumerateAccounts(
 
     if (!(NetUserEnum_I && NetApiBufferFree_I))
         return STATUS_UNSUCCESSFUL;
-    
+
     NetUserEnum_I(
         NULL,
         0,
         FILTER_NORMAL_ACCOUNT,
         &userinfoArray,
-        MAX_PREFERRED_LENGTH,
+        ULONG_MAX,
         &userinfoEntriesRead,
         &userinfoTotalEntries,
         NULL
@@ -1167,7 +1165,7 @@ NTSTATUS PhEnumerateAccounts(
         0,
         FILTER_NORMAL_ACCOUNT,
         &userinfoArray,
-        MAX_PREFERRED_LENGTH,
+        ULONG_MAX,
         &userinfoEntriesRead,
         &userinfoTotalEntries,
         NULL
@@ -1180,17 +1178,7 @@ NTSTATUS PhEnumerateAccounts(
 
         if (userName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
         {
-            PH_STRINGREF domainPart;
-            PH_STRINGREF userPart;
-
-            if (PhSplitStringRefAtChar(&userName->sr, OBJ_NAME_PATH_SEPARATOR, &domainPart, &userPart))
-            {
-                if (domainPart.Length)
-                {
-                    userDomainName = PhCreateString2(&domainPart);
-                }
-            }
-
+            userDomainName = PhGetBaseDirectory(userName);
             PhDereferenceObject(userName);
         }
 
@@ -1222,7 +1210,7 @@ NTSTATUS PhEnumerateAccounts(
                     PhDereferenceObject(usernameString);
                 }
             }
-            
+
             PhDereferenceObject(userDomainName);
         }
     }
