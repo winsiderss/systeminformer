@@ -100,7 +100,7 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
 #define PhFileModeUpdAsyncFlag(mode) \
     ((mode) & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? (mode) &~ PH_FILEMODE_ASYNC: (mode) | PH_FILEMODE_ASYNC)
 
-PH_ACCESS_ENTRY FileModeAccessEntries[6] =
+CONST PH_ACCESS_ENTRY FileModeAccessEntries[6] =
 {
     { L"FILE_FLAG_OVERLAPPED", PH_FILEMODE_ASYNC, FALSE, FALSE, L"Asynchronous" },
     { L"FILE_FLAG_WRITE_THROUGH", FILE_WRITE_THROUGH, FALSE, FALSE, L"Write through" },
@@ -1191,7 +1191,7 @@ VOID PhpUpdateHandleGeneral(
                 // it only if none of synchronous flags are present. That's why we need PhFileModeUpdAsyncFlag.
                 fileModeAccessStr = PhGetAccessString(
                     PhFileModeUpdAsyncFlag(fileModeInfo.Mode),
-                    FileModeAccessEntries,
+                    (PPH_ACCESS_ENTRY)FileModeAccessEntries,
                     RTL_NUMBER_OF(FileModeAccessEntries)
                     );
 
@@ -1397,7 +1397,7 @@ VOID PhpUpdateHandleGeneral(
                     // it only if none of synchronous flags are present. That's why we need PhFileModeUpdAsyncFlag.
                     fileModeAccessStr = PhGetAccessString(
                         PhFileModeUpdAsyncFlag(fileModeInfo.Mode),
-                        FileModeAccessEntries,
+                        (PPH_ACCESS_ENTRY)FileModeAccessEntries,
                         RTL_NUMBER_OF(FileModeAccessEntries)
                         );
 
