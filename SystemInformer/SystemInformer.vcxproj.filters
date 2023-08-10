@@ -111,9 +111,6 @@
     <ClCompile Include="netprv.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="netstk.c">
-      <Filter>System Informer</Filter>
-    </ClCompile>
     <ClCompile Include="notifico.c">
       <Filter>System Informer</Filter>
     </ClCompile>
