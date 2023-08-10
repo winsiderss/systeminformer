@@ -43,7 +43,7 @@ typedef struct _PH_NETWORK_NODE
 
     PPH_STRING ProcessNameText;
     PPH_STRING TimeStampText;
-    PPH_STRING PidText;
+    PPH_STRING ProcessIdText;
 // end_phapppub
 
     PPH_STRING TooltipText;

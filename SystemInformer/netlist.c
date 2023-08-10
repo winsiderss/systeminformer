@@ -58,6 +58,10 @@ PPH_STRING PhpGetNetworkItemProcessName(
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
+PPH_STRING PhpGetNetworkItemProcessId(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    );
+
 static HWND NetworkTreeListHandle;
 static ULONG NetworkTreeListSortColumn;
 static PH_SORT_ORDER NetworkTreeListSortOrder;
@@ -216,6 +220,7 @@ PPH_NETWORK_NODE PhAddNetworkNode(
     networkNode->Node.TextCacheSize = PHNETLC_MAXIMUM;
 
     networkNode->ProcessNameText = PhpGetNetworkItemProcessName(NetworkItem);
+    networkNode->ProcessIdText = PhpGetNetworkItemProcessId(NetworkItem);
 
     PhAddEntryHashtable(NetworkNodeHashtable, &networkNode);
     PhAddItemList(NetworkNodeList, networkNode);
@@ -291,7 +296,7 @@ VOID PhpRemoveNetworkNode(
 
     if (NetworkNode->ProcessNameText) PhDereferenceObject(NetworkNode->ProcessNameText);
     if (NetworkNode->TimeStampText) PhDereferenceObject(NetworkNode->TimeStampText);
-    if (NetworkNode->PidText) PhDereferenceObject(NetworkNode->PidText);
+    if (NetworkNode->ProcessIdText) PhDereferenceObject(NetworkNode->ProcessIdText);
     if (NetworkNode->TooltipText) PhDereferenceObject(NetworkNode->TooltipText);
 
     PhDereferenceObject(NetworkNode->NetworkItem);
@@ -573,20 +578,10 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHNETLC_PROCESS:
-                getCellText->Text = node->ProcessNameText->sr;
+                getCellText->Text = PhGetStringRef(node->ProcessNameText);
                 break;
             case PHNETLC_PID:
-                {
-                    PH_FORMAT format[1];
-
-                    if (networkItem->ProcessId)
-                        PhInitFormatU(&format[0], HandleToUlong(networkItem->ProcessId));
-                    else
-                        PhInitFormatS(&format[0], L"Waiting connections");
-
-                    PhMoveReference(&node->PidText, PhFormat(format, 1, 96));
-                    getCellText->Text = node->PidText->sr;
-                }
+                getCellText->Text = PhGetStringRef(node->ProcessIdText);
                 break;
             case PHNETLC_LOCALADDRESS:
                 {
@@ -863,6 +858,24 @@ PPH_STRING PhpGetNetworkItemProcessName(
     }
 
     return PhFormat(format, 1, 96);
+}
+
+PPH_STRING PhpGetNetworkItemProcessId(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    PH_FORMAT format[1];
+
+    if (NetworkItem->ProcessId)
+    {
+        PhInitFormatU(&format[0], HandleToUlong(NetworkItem->ProcessId));
+    }
+    else
+    {
+        PhInitFormatS(&format[0], L"Waiting connections");
+    }
+
+    return PhFormat(format, 1, 0);
 }
 
 PPH_NETWORK_ITEM PhGetSelectedNetworkItem(
