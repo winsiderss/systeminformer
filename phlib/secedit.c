@@ -138,6 +138,8 @@ HPROPSHEETPAGE PhCreateSecurityPage(
         ObjectType,
         OpenObject,
         CloseObject,
+        NULL,
+        NULL,
         Context,
         TRUE
         );
@@ -176,6 +178,51 @@ VOID PhEditSecurity(
         ObjectType,
         OpenObject,
         CloseObject,
+        NULL,
+        NULL,
+        Context,
+        FALSE
+        );
+
+    if (PhEnableSecurityDialogThread)
+        PhCreateThread2(PhEditSecurityAdvancedThread, info);
+    else
+        PhEditSecurityAdvanced(info);
+}
+
+/**
+ * Displays a security editor dialog.
+ *
+ * \param WindowHandle The parent window of the dialog.
+ * \param ObjectName The name of the object.
+ * \param ObjectType The type of object.
+ * \param OpenObject An optional procedure for opening the object.
+ * \param CloseObject An optional procedure for closing the object.
+ * \param GetObjectSecurity A callback function executed to retrieve the security descriptor of the object.
+ * \param SetObjectSecurity A callback function executed to modify the security descriptor of the object.
+ * \param Context A user-defined value to pass to the callback functions.
+ */
+VOID PhEditSecurityEx(
+    _In_opt_ HWND WindowHandle,
+    _In_ PWSTR ObjectName,
+    _In_ PWSTR ObjectType,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    _In_opt_ PVOID Context
+    )
+{
+    ISecurityInformation *info;
+
+    info = PhSecurityInformation_Create(
+        WindowHandle,
+        ObjectName,
+        ObjectType,
+        OpenObject,
+        CloseObject,
+        GetObjectSecurity,
+        SetObjectSecurity,
         Context,
         FALSE
         );
@@ -192,6 +239,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
     _In_ BOOLEAN IsPage
     )
@@ -208,6 +257,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->ObjectType = PhCreateString(ObjectType);
     info->OpenObject = OpenObject;
     info->CloseObject = CloseObject;
+    info->GetObjectSecurity = GetObjectSecurity;
+    info->SetObjectSecurity = SetObjectSecurity;
     info->Context = Context;
     info->IsPage = IsPage;
 
@@ -433,11 +484,22 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
     //}
     //else
     {
-        status = PhStdGetObjectSecurity(
-            &securityDescriptor,
-            RequestedInformation,
-            this
-            );
+        if (this->GetObjectSecurity)
+        {
+            status = this->GetObjectSecurity(
+                &securityDescriptor,
+                RequestedInformation,
+                this
+                );
+        }
+        else
+        {
+            status = PhStdGetObjectSecurity(
+                &securityDescriptor,
+                RequestedInformation,
+                this
+                );
+        }
 
         if (!NT_SUCCESS(status))
             return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
@@ -462,11 +524,22 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
     PhSecurityInformation *this = (PhSecurityInformation *)This;
     NTSTATUS status;
 
-    status = PhStdSetObjectSecurity(
-        SecurityDescriptor,
-        SecurityInformation,
-        this
-        );
+    if (this->SetObjectSecurity)
+    {
+        status = this->SetObjectSecurity(
+            SecurityDescriptor,
+            SecurityInformation,
+            this
+            );
+    }
+    else
+    {
+        status = PhStdSetObjectSecurity(
+            SecurityDescriptor,
+            SecurityInformation,
+            this
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
@@ -537,9 +610,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
     {
         static SI_INHERIT_TYPE inheritTypes[] =
         {
-            0, 0, L"This namespace only",
-            0, CONTAINER_INHERIT_ACE, L"This namespace and subnamespaces",
-            0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subnamespaces only",
+            { 0, 0, L"This namespace only" },
+            { 0, CONTAINER_INHERIT_ACE, L"This namespace and subnamespaces" },
+            { 0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subnamespaces only" },
         };
 
         *InheritTypes = inheritTypes;
@@ -550,9 +623,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
     {
         static SI_INHERIT_TYPE inheritTypes[] =
         {
-            0, 0, L"This folder only",
-            0, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files",
-            0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only",
+            { 0, 0, L"This folder only" },
+            { 0, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files" },
+            { 0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only" },
         };
 
         *InheritTypes = inheritTypes;
@@ -560,12 +633,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
         return S_OK;
     }
 
-    //if (Folder-Container)
-    //*InheritTypes = inheritTypes;
-    //*InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
-    //return S_OK;
-    //else
-    //return E_NOTIMPL;
+    return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(

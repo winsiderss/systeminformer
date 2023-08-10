@@ -31,6 +31,8 @@ typedef struct
     PPH_STRING ObjectType;
     PPH_OPEN_OBJECT OpenObject;
     PPH_CLOSE_OBJECT CloseObject;
+    PPH_GET_OBJECT_SECURITY GetObjectSecurity;
+    PPH_SET_OBJECT_SECURITY SetObjectSecurity;
     PVOID Context;
 } PhSecurityInformation;
 
@@ -101,6 +103,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
     _In_ BOOLEAN IsPage
     );
