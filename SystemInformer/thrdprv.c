@@ -390,7 +390,6 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
     if (threadItem->StartAddressFileName) PhDereferenceObject(threadItem->StartAddressFileName);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
-    if (threadItem->AlternateThreadIdString) PhDereferenceObject(threadItem->AlternateThreadIdString);
 }
 
 BOOLEAN PhpThreadHashtableEqualFunction(
@@ -957,22 +956,22 @@ VOID PhpThreadProviderUpdate(
                 threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
             }
 
-            if (threadItem->ThreadHandle && KphLevel() >= KphLevelMed)
+            if (WindowsVersion >= WINDOWS_10_22H2 && threadItem->ThreadHandle)
             {
-                ULONG wslThreadId;
-                if (NT_SUCCESS(KphQueryInformationThread(
-                    threadItem->ThreadHandle,
-                    KphThreadWSLThreadId,
-                    &wslThreadId,
-                    sizeof(ULONG),
-                    NULL
-                    )))
+                if (KphLevel() >= KphLevelMed) // threadItem->IsSubsystemProcess
                 {
-                    threadItem->AlternateThreadIdString = PhFormatString(
-                        L"%lu (%lu)",
-                        HandleToUlong(threadItem->ThreadId),
-                        wslThreadId
-                        );
+                    ULONG lxssThreadId;
+
+                    if (NT_SUCCESS(KphQueryInformationThread(
+                        threadItem->ThreadHandle,
+                        KphThreadWSLThreadId,
+                        &lxssThreadId,
+                        sizeof(ULONG),
+                        NULL
+                        )))
+                    {
+                        threadItem->LxssThreadId = lxssThreadId;
+                    }
                 }
             }
 
@@ -1184,7 +1183,7 @@ VOID PhpThreadProviderUpdate(
                     modified = TRUE;
             }
 
-            if (!threadItem->ThreadHandle || KphLevel() < KphLevelMed || 
+            if (!threadItem->ThreadHandle || KphLevel() < KphLevelMed ||
                 !NT_SUCCESS(KphQueryInformationThread(
                     threadItem->ThreadHandle,
                     KphThreadIoCounters,
