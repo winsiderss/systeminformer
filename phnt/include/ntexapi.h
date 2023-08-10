@@ -5373,7 +5373,9 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG BhbDisabledSystemPolicy : 1;
             ULONG BhbDisabledNoHardwareSupport : 1;
             ULONG Reserved2 : 3;
-            ULONG Reserved : 21;
+            ULONG RdclHardwareProtectedReported : 1;
+            ULONG RdclHardwareProtected : 1;
+            ULONG Reserved : 19;
         };
     } SpeculationControlFlags2;
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
@@ -5468,7 +5470,9 @@ typedef union _SECURE_SPECULATION_CONTROL_INFORMATION
     ULONG SsbdRequired : 1;
     ULONG BpbKernelToUser : 1;
     ULONG BpbUserToKernel : 1;
-    ULONG Reserved : 18;
+    ULONG ReturnSpeculate : 1;
+    ULONG BranchConfusionSafe : 1;
+    ULONG Reserved : 16;
 } SECURE_SPECULATION_CONTROL_INFORMATION, *PSECURE_SPECULATION_CONTROL_INFORMATION;
 
 // private
