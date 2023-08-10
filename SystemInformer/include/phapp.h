@@ -553,13 +553,6 @@ VOID PhShowProcessMitigationPolicyDialog(
     _In_ HANDLE ProcessId
     );
 
-// netstk
-
-VOID PhShowNetworkStackDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ PPH_NETWORK_ITEM NetworkItem
-    );
-
 // ntobjprp
 
 HPROPSHEETPAGE PhCreateEventPage(

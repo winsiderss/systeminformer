@@ -45,7 +45,6 @@ typedef struct _PH_NETWORK_ITEM
     PPH_STRING RemoteHostString;
 
     LARGE_INTEGER CreateTime;
-    ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
     ULONG LocalScopeId;
     ULONG RemoteScopeId;
 

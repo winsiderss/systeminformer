@@ -54,12 +54,14 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
     _In_opt_ PVOID Context
     );
 
-PPH_STRING PhpGetNetworkItemProcessName(
-    _In_ PPH_NETWORK_ITEM NetworkItem
+VOID PhpUpdateNetworkItemProcessName(
+    _In_ PPH_NETWORK_ITEM NetworkItem,
+    _In_ PPH_NETWORK_NODE NetworkNode
     );
 
-PPH_STRING PhpGetNetworkItemProcessId(
-    _In_ PPH_NETWORK_ITEM NetworkItem
+VOID PhpUpdateNetworkItemProcessId(
+    _In_ PPH_NETWORK_ITEM NetworkItem,
+    _In_ PPH_NETWORK_NODE NetworkNode
     );
 
 static HWND NetworkTreeListHandle;
@@ -219,8 +221,8 @@ PPH_NETWORK_NODE PhAddNetworkNode(
     networkNode->Node.TextCache = networkNode->TextCache;
     networkNode->Node.TextCacheSize = PHNETLC_MAXIMUM;
 
-    networkNode->ProcessNameText = PhpGetNetworkItemProcessName(NetworkItem);
-    networkNode->ProcessIdText = PhpGetNetworkItemProcessId(NetworkItem);
+    PhpUpdateNetworkItemProcessName(NetworkItem, networkNode);
+    PhpUpdateNetworkItemProcessId(NetworkItem, networkNode);
 
     PhAddEntryHashtable(NetworkNodeHashtable, &networkNode);
     PhAddItemList(NetworkNodeList, networkNode);
@@ -296,7 +298,6 @@ VOID PhpRemoveNetworkNode(
 
     if (NetworkNode->ProcessNameText) PhDereferenceObject(NetworkNode->ProcessNameText);
     if (NetworkNode->TimeStampText) PhDereferenceObject(NetworkNode->TimeStampText);
-    if (NetworkNode->ProcessIdText) PhDereferenceObject(NetworkNode->ProcessIdText);
     if (NetworkNode->TooltipText) PhDereferenceObject(NetworkNode->TooltipText);
 
     PhDereferenceObject(NetworkNode->NetworkItem);
@@ -581,7 +582,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->ProcessNameText);
                 break;
             case PHNETLC_PID:
-                getCellText->Text = PhGetStringRef(node->ProcessIdText);
+                {
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->ProcessIdString);
+                }
                 break;
             case PHNETLC_LOCALADDRESS:
                 {
@@ -839,43 +842,61 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
     return FALSE;
 }
 
-PPH_STRING PhpGetNetworkItemProcessName(
-    _In_ PPH_NETWORK_ITEM NetworkItem
+VOID PhpUpdateNetworkItemProcessName(
+    _In_ PPH_NETWORK_ITEM NetworkItem,
+    _In_ PPH_NETWORK_NODE NetworkNode
     )
 {
-    PH_FORMAT format[1];
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PH_STRINGREF processNameUnknown = PH_STRINGREF_INIT(L"Unknown process");
+    static PH_STRINGREF processNameWaiting = PH_STRINGREF_INIT(L"Waiting connections");
+    static PPH_STRING cachedNameUnknown = NULL;
+    static PPH_STRING cachedNameWaiting = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        cachedNameUnknown = PhCreateString2(&processNameUnknown);
+        cachedNameWaiting = PhCreateString2(&processNameWaiting);
+        PhEndInitOnce(&initOnce);
+    }
 
     if (NetworkItem->ProcessId)
     {
         if (NetworkItem->ProcessName)
-            PhInitFormatSR(&format[0], NetworkItem->ProcessName->sr);
+            PhSetReference(&NetworkNode->ProcessNameText, NetworkItem->ProcessName);
         else
-            PhInitFormatS(&format[0], L"Unknown process");
+            PhSetReference(&NetworkNode->ProcessNameText, cachedNameUnknown);
     }
     else
     {
-        PhInitFormatS(&format[0], L"Waiting connections");
+        PhSetReference(&NetworkNode->ProcessNameText, cachedNameWaiting);
     }
-
-    return PhFormat(format, 1, 96);
 }
 
-PPH_STRING PhpGetNetworkItemProcessId(
-    _In_ PPH_NETWORK_ITEM NetworkItem
+VOID PhpUpdateNetworkItemProcessId(
+    _In_ PPH_NETWORK_ITEM NetworkItem,
+    _In_ PPH_NETWORK_NODE NetworkNode
     )
 {
-    PH_FORMAT format[1];
-
     if (NetworkItem->ProcessId)
     {
-        PhInitFormatU(&format[0], HandleToUlong(NetworkItem->ProcessId));
+        if (NetworkItem->ProcessItem)
+        {
+            memcpy(
+                NetworkNode->ProcessIdString,
+                NetworkItem->ProcessItem->ProcessIdString,
+                sizeof(NetworkNode->ProcessIdString)
+                );
+        }
+        else
+        {
+            PhPrintUInt32(NetworkNode->ProcessIdString, HandleToUlong(NetworkItem->ProcessId));
+        }
     }
     else
     {
-        PhInitFormatS(&format[0], L"Waiting connections");
+        PhPrintUInt32(NetworkNode->ProcessIdString, HandleToUlong(SYSTEM_PROCESS_ID));
     }
-
-    return PhFormat(format, 1, 0);
 }
 
 PPH_NETWORK_ITEM PhGetSelectedNetworkItem(
