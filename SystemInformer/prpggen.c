@@ -26,8 +26,28 @@
 #include <procprv.h>
 #include <settings.h>
 
-static PWSTR ProtectedSignerStrings[] =
-    { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)", L" (StoreApp)" };
+#define SIP(String, Integer) { (String), (PVOID)(Integer) }
+#define SREF(String) ((PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String)))
+
+static PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
+{
+    SIP(L"None", PsProtectedTypeNone),
+    SIP(L"Light", PsProtectedTypeProtectedLight),
+    SIP(L"Full", PsProtectedTypeProtected),
+};
+
+static PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
+{
+    SIP(L" ", PsProtectedSignerNone),
+    SIP(L" (Authenticode)", PsProtectedSignerAuthenticode),
+    SIP(L" (CodeGen)", PsProtectedSignerCodeGen),
+    SIP(L" (Antimalware)", PsProtectedSignerAntimalware),
+    SIP(L" (Lsa)", PsProtectedSignerLsa),
+    SIP(L" (Windows)", PsProtectedSignerWindows),
+    SIP(L" (WinTcb)", PsProtectedSignerWinTcb),
+    SIP(L" (WinSystem)", PsProtectedSignerWinSystem),
+    SIP(L" (StoreApp)", PsProtectedSignerApp),
+};
 
 PPH_STRING PhGetProcessItemProtectionText(
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -37,29 +57,11 @@ PPH_STRING PhGetProcessItemProtectionText(
     {
         if (WindowsVersion >= WINDOWS_8_1)
         {
-            PWSTR type;
-            PWSTR signer;
+            PWSTR type = L"Unknown";
+            PWSTR signer = L"";
 
-            switch (ProcessItem->Protection.Type)
-            {
-            case PsProtectedTypeNone:
-                type = L"None";
-                break;
-            case PsProtectedTypeProtectedLight:
-                type = L"Light";
-                break;
-            case PsProtectedTypeProtected:
-                type = L"Full";
-                break;
-            default:
-                type = L"Unknown";
-                break;
-            }
-
-            if (ProcessItem->Protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
-                signer = ProtectedSignerStrings[ProcessItem->Protection.Signer];
-            else
-                signer = L"";
+            PhFindStringSiKeyValuePairs(PhProtectedTypeStrings, sizeof(PhProtectedTypeStrings), ProcessItem->Protection.Type, &type);
+            PhFindStringSiKeyValuePairs(PhProtectedSignerStrings, sizeof(PhProtectedSignerStrings), ProcessItem->Protection.Signer, &signer);
 
             // Isolated User Mode (IUM) (dmex)
             if (ProcessItem->Protection.Type == PsProtectedTypeNone && ProcessItem->IsSecureProcess)
@@ -327,12 +329,17 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
             else
             {
-                PhSetDialogItemText(hwndDlg, IDC_NAME, processItem->ProcessName->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(processItem->ProcessName));
             }
 
             if (processItem->QueryHandle)
             {
                 PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32);
+                PH_AUTO(fileNameWin32);
+            }
+            else
+            {
+                fileNameWin32 = processItem->FileName ? PhGetFileName(processItem->FileName) : NULL;
                 PH_AUTO(fileNameWin32);
             }
 
