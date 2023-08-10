@@ -625,17 +625,14 @@ VOID PhpQueueNetworkItemQuery(
 
 VOID PhpUpdateNetworkItemOwner(
     _In_ PPH_NETWORK_ITEM NetworkItem,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ ULONGLONG ServiceTag
     )
 {
-    if (*(PULONG64)NetworkItem->OwnerInfo)
+    if (ServiceTag)
     {
-        PVOID serviceTag;
         PPH_STRING serviceName;
 
-        // May change in the future...
-        serviceTag = UlongToPtr(*(PULONG)NetworkItem->OwnerInfo);
-        serviceName = PhGetServiceNameFromTag(NetworkItem->ProcessId, serviceTag);
+        serviceName = PhGetServiceNameFromTag(NetworkItem->ProcessId, (PVOID)ServiceTag);
 
         if (serviceName)
             PhMoveReference(&NetworkItem->OwnerName, serviceName);
@@ -649,8 +646,8 @@ VOID PhFlushNetworkQueryData(
     PSLIST_ENTRY entry;
     PPH_NETWORK_ITEM_QUERY_DATA data;
 
-    if (!RtlFirstEntrySList(&PhNetworkItemQueryListHead))
-        return;
+    //if (!RtlFirstEntrySList(&PhNetworkItemQueryListHead))
+    //    return;
 
     entry = RtlInterlockedFlushSList(&PhNetworkItemQueryListHead);
 
@@ -787,81 +784,91 @@ VOID PhNetworkProviderUpdate(
             networkItem->State = connections[i].State;
             networkItem->ProcessId = connections[i].ProcessId;
             networkItem->CreateTime = connections[i].CreateTime;
-            memcpy(networkItem->OwnerInfo, connections[i].OwnerInfo, sizeof(ULONGLONG) * PH_NETWORK_OWNER_INFO_SIZE);
             networkItem->LocalScopeId = connections[i].LocalScopeId;
             networkItem->RemoteScopeId = connections[i].RemoteScopeId;
+            PhpUpdateNetworkItemOwner(networkItem, connections[i].OwnerInfo[0]);
 
             // Format various strings.
 
-            if (networkItem->LocalEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+            //if (!PhIsNullIpAddress(&networkItem->LocalEndpoint.Address))
             {
-                ULONG localAddressStringLength = RTL_NUMBER_OF(networkItem->LocalAddressString);
-
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
-                    &networkItem->LocalEndpoint.Address.InAddr,
-                    0,
-                    networkItem->LocalAddressString,
-                    &localAddressStringLength
-                    )))
+                switch (networkItem->LocalEndpoint.Address.Type)
                 {
-                    networkItem->LocalAddressStringLength = (localAddressStringLength - 1) * sizeof(WCHAR);
-                }
-            }
-            else
-            {
-                ULONG localAddressStringLength = RTL_NUMBER_OF(networkItem->LocalAddressString);
+                case PH_IPV4_NETWORK_TYPE:
+                    {
+                        ULONG localAddressStringLength = RTL_NUMBER_OF(networkItem->LocalAddressString);
 
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
-                    &networkItem->LocalEndpoint.Address.In6Addr,
-                    networkItem->LocalScopeId,
-                    0,
-                    networkItem->LocalAddressString,
-                    &localAddressStringLength
-                    )))
-                {
-                    networkItem->LocalAddressStringLength = (localAddressStringLength - 1) * sizeof(WCHAR);
-                }
-            }
+                        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                            &networkItem->LocalEndpoint.Address.InAddr,
+                            0,
+                            networkItem->LocalAddressString,
+                            &localAddressStringLength
+                            )))
+                        {
+                            networkItem->LocalAddressStringLength = (localAddressStringLength - 1) * sizeof(WCHAR);
+                        }
+                    }
+                    break;
+                case PH_IPV6_NETWORK_TYPE:
+                    {
+                        ULONG localAddressStringLength = RTL_NUMBER_OF(networkItem->LocalAddressString);
 
-            if (
-                networkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE &&
-                networkItem->RemoteEndpoint.Address.Ipv4 != 0
-                )
-            {
-                ULONG remoteAddressStringLength = RTL_NUMBER_OF(networkItem->RemoteAddressString);
-
-                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
-                    &networkItem->RemoteEndpoint.Address.InAddr,
-                    0,
-                    networkItem->RemoteAddressString,
-                    &remoteAddressStringLength
-                    )))
-                {
-                    networkItem->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
-                }
-            }
-            else if (
-                networkItem->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE &&
-                !PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address)
-                )
-            {
-                ULONG remoteAddressStringLength = RTL_NUMBER_OF(networkItem->RemoteAddressString);
-
-                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
-                    &networkItem->RemoteEndpoint.Address.In6Addr,
-                    networkItem->RemoteScopeId,
-                    0,
-                    networkItem->RemoteAddressString,
-                    &remoteAddressStringLength
-                    )))
-                {
-                    networkItem->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+                        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                            &networkItem->LocalEndpoint.Address.In6Addr,
+                            networkItem->LocalScopeId,
+                            0,
+                            networkItem->LocalAddressString,
+                            &localAddressStringLength
+                            )))
+                        {
+                            networkItem->LocalAddressStringLength = (localAddressStringLength - 1) * sizeof(WCHAR);
+                        }
+                    }
+                    break;
                 }
             }
 
-            PhPrintUInt32(networkItem->LocalPortString, networkItem->LocalEndpoint.Port);
+            if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
+            {
+                switch (networkItem->RemoteEndpoint.Address.Type)
+                {
+                case PH_IPV4_NETWORK_TYPE:
+                    {
+                        ULONG remoteAddressStringLength = RTL_NUMBER_OF(networkItem->RemoteAddressString);
 
-            if (networkItem->RemoteEndpoint.Address.Type != 0 && networkItem->RemoteEndpoint.Port != 0)
+                        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                            &networkItem->RemoteEndpoint.Address.InAddr,
+                            0,
+                            networkItem->RemoteAddressString,
+                            &remoteAddressStringLength
+                            )))
+                        {
+                            networkItem->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+                        }
+                    }
+                    break;
+                case PH_IPV6_NETWORK_TYPE:
+                    {
+                        ULONG remoteAddressStringLength = RTL_NUMBER_OF(networkItem->RemoteAddressString);
+
+                        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                            &networkItem->RemoteEndpoint.Address.In6Addr,
+                            networkItem->RemoteScopeId,
+                            0,
+                            networkItem->RemoteAddressString,
+                            &remoteAddressStringLength
+                            )))
+                        {
+                            networkItem->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+                        }
+                    }
+                    break;
+                }
+            }
+
+            if (networkItem->LocalEndpoint.Port != 0)
+                PhPrintUInt32(networkItem->LocalPortString, networkItem->LocalEndpoint.Port);
+            if (networkItem->RemoteEndpoint.Port != 0)
                 PhPrintUInt32(networkItem->RemotePortString, networkItem->RemoteEndpoint.Port);
 
             // Get host names.
@@ -918,7 +925,6 @@ VOID PhNetworkProviderUpdate(
                 networkItem->ProcessItem = processItem;
                 PhSetReference(&networkItem->ProcessName, processItem->ProcessName);
                 networkItem->SubsystemProcess = !!processItem->IsSubsystemProcess;
-                PhpUpdateNetworkItemOwner(networkItem, processItem);
 
                 if (PhTestEvent(&processItem->Stage1Event))
                 {
@@ -986,10 +992,9 @@ VOID PhNetworkProviderUpdate(
 
             if (networkItem->ProcessItem)
             {
-                if (!networkItem->ProcessName)
+                if (PhIsNullOrEmptyString(networkItem->ProcessName))
                 {
-                    networkItem->ProcessName = PhReferenceObject(networkItem->ProcessItem->ProcessName);
-                    PhpUpdateNetworkItemOwner(networkItem, networkItem->ProcessItem);
+                    PhSetReference(&networkItem->ProcessName, &networkItem->ProcessItem->ProcessName);
                     modified = TRUE;
                 }
 
