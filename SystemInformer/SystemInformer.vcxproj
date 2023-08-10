@@ -433,7 +433,6 @@
     <ClCompile Include="mwpgsrv.c" />
     <ClCompile Include="netlist.c" />
     <ClCompile Include="netprv.c" />
-    <ClCompile Include="netstk.c" />
     <ClCompile Include="notifico.c" />
     <ClCompile Include="ntobjprp.c" />
     <ClCompile Include="options.c" />
