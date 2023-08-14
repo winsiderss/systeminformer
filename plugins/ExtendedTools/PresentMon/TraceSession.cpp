@@ -443,14 +443,14 @@ DOUBLE QpcDeltaToSeconds(
     _In_ ULONGLONG qpcDelta
     )
 {
-    return (DOUBLE)qpcDelta / TraceFrequencyQpc.QuadPart;
+    return static_cast<DOUBLE>(qpcDelta) / static_cast<DOUBLE>(TraceFrequencyQpc.QuadPart);
 }
 
 ULONGLONG SecondsDeltaToQpc(
     _In_ DOUBLE secondsDelta
     )
 {
-    return (ULONGLONG)(secondsDelta * TraceFrequencyQpc.QuadPart);
+    return static_cast<ULONGLONG>(secondsDelta * static_cast<DOUBLE>(TraceFrequencyQpc.QuadPart));
 }
 
 DOUBLE QpcToSeconds(

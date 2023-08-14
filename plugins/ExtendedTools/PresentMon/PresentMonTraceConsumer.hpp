@@ -173,7 +173,7 @@ void CompletePresent(std::shared_ptr<PresentEvent> const& p);
 void CompletePresentHelper(std::shared_ptr<PresentEvent> const& p);
 void EnqueueDeferredCompletions(DeferredCompletions* deferredCompletions);
 void EnqueueDeferredPresent(std::shared_ptr<PresentEvent> const& p);
-void TrackPresent(std::shared_ptr<PresentEvent> present, OrderedPresents* presentsByThisProcess);
+void TrackPresent(std::shared_ptr<PresentEvent> const& present, OrderedPresents* presentsByThisProcess);
 void RemoveLostPresent(std::shared_ptr<PresentEvent> present);
 void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent> const& present);
 void RemovePresentFromSubmitSequenceIdTracking(std::shared_ptr<PresentEvent> const& present);
