@@ -1099,11 +1099,7 @@ static VOID PhpUpdateProcessOsContext(
     {
         HANDLE processHandle;
 
-        if (ProcessNode->ProcessItem->IsSubsystemProcess)
-        {
-            NOTHING;
-        }
-        else if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
             {
@@ -1296,7 +1292,7 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
 {
     if (!(ProcessNode->ValidMask & PHPN_DPIAWARENESS))
     {
-        if (ProcessNode->ProcessItem->QueryHandle)
+        if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             PH_PROCESS_DPI_AWARENESS dpiAwareness;
 
@@ -1344,7 +1340,7 @@ static VOID PhpUpdateProcessNodeDesktopInfo(
 
         PhClearReference(&ProcessNode->DesktopInfoText);
 
-        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId) && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
@@ -1375,7 +1371,7 @@ static VOID PhpUpdateProcessBreakOnTermination(
     {
         ProcessNode->BreakOnTerminationEnabled = FALSE;
 
-        if (ProcessNode->ProcessItem->QueryHandle)
+        if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             BOOLEAN breakOnTermination;
 
@@ -1400,7 +1396,7 @@ static VOID PhpUpdateProcessNodeErrorMode(
     {
         PhClearReference(&ProcessNode->ErrorModeText);
 
-        if (ProcessNode->ProcessItem->QueryHandle)
+        if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             ULONG errorMode;
 
@@ -1454,7 +1450,7 @@ static VOID PhpUpdateProcessNodeCodePage(
 {
     if (!(ProcessNode->ValidMask & PHPN_CODEPAGE))
     {
-        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId) && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             HANDLE processHandle;
 
@@ -1487,7 +1483,7 @@ static VOID PhpUpdateProcessNodePowerThrottling(
     {
         ProcessNode->PowerThrottling = FALSE;
 
-        if (ProcessNode->ProcessItem->QueryHandle)
+        if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
 
@@ -1531,11 +1527,11 @@ static VOID PhpUpdateProcessNodePriorityBoost(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_PRIORITYBOOST))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_PRIORITYBOOST))
     {
         ProcessNode->PriorityBoost = FALSE;
 
-        if (ProcessNode->ProcessItem->QueryHandle)
+        if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             BOOLEAN priorityBoostDisabled;
 
@@ -1553,7 +1549,7 @@ static VOID PhpUpdateProcessNodeGrantedAccess(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_GRANTEDACCESS))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_GRANTEDACCESS))
     {
         PhClearReference(&ProcessNode->GrantedAccessText);
 
@@ -1616,7 +1612,7 @@ static VOID PhpUpdateProcessNodeGrantedAccess(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_GRANTEDACCESS;
+        SetFlag(ProcessNode->ValidMask, PHPN_GRANTEDACCESS);
     }
 }
 
@@ -1624,9 +1620,9 @@ static VOID PhpUpdateProcessNodeTlsBitmapDelta(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_TLSBITMAPDELTA))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_TLSBITMAPDELTA))
     {
-        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId) && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             HANDLE processHandle;
 
@@ -1648,7 +1644,7 @@ static VOID PhpUpdateProcessNodeTlsBitmapDelta(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_TLSBITMAPDELTA;
+        SetFlag(ProcessNode->ValidMask, PHPN_TLSBITMAPDELTA);
     }
 }
 
@@ -1656,7 +1652,7 @@ static VOID PhpUpdateProcessNodeObjectReferences(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_REFERENCEDELTA))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_REFERENCEDELTA))
     {
         if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
         {
@@ -1671,7 +1667,7 @@ static VOID PhpUpdateProcessNodeObjectReferences(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_REFERENCEDELTA;
+        SetFlag(ProcessNode->ValidMask, PHPN_REFERENCEDELTA);
     }
 }
 
