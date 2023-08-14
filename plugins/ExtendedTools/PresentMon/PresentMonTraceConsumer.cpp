@@ -1110,7 +1110,7 @@ void HandleWin7DxgkBlt(EVENT_RECORD* pEventRecord)
     //DebugEvent(this, pEventRecord, &mMetadata);
     TRACK_PRESENT_PATH_GENERATE_ID();
 
-    auto pBltEvent = reinterpret_cast<Win7::DXGKETW_BLTEVENT*>(pEventRecord->UserData);
+    auto pBltEvent = static_cast<Win7::DXGKETW_BLTEVENT*>(pEventRecord->UserData);
     HandleDxgkBlt(
         pEventRecord->EventHeader,
         pBltEvent->hwnd,
@@ -1122,7 +1122,7 @@ void HandleWin7DxgkFlip(EVENT_RECORD* pEventRecord)
     //DebugEvent(this, pEventRecord, &mMetadata);
     TRACK_PRESENT_PATH_GENERATE_ID();
 
-    auto pFlipEvent = reinterpret_cast<Win7::DXGKETW_FLIPEVENT*>(pEventRecord->UserData);
+    auto pFlipEvent = static_cast<Win7::DXGKETW_FLIPEVENT*>(pEventRecord->UserData);
     HandleDxgkFlip(
         pEventRecord->EventHeader,
         pFlipEvent->FlipInterval,
@@ -1134,7 +1134,7 @@ void HandleWin7DxgkPresentHistory(EVENT_RECORD* pEventRecord)
 {
     //DebugEvent(this, pEventRecord, &mMetadata);
 
-    auto pPresentHistoryEvent = reinterpret_cast<Win7::DXGKETW_PRESENTHISTORYEVENT*>(pEventRecord->UserData);
+    auto pPresentHistoryEvent = static_cast<Win7::DXGKETW_PRESENTHISTORYEVENT*>(pEventRecord->UserData);
     if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_START)
     {
         TRACK_PRESENT_PATH_GENERATE_ID();
@@ -1156,7 +1156,7 @@ void HandleWin7DxgkQueuePacket(EVENT_RECORD* pEventRecord)
     //DebugEvent(this, pEventRecord, &mMetadata);
 
     if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_START) {
-        auto pSubmitEvent = reinterpret_cast<Win7::DXGKETW_QUEUESUBMITEVENT*>(pEventRecord->UserData);
+        auto pSubmitEvent = static_cast<Win7::DXGKETW_QUEUESUBMITEVENT*>(pEventRecord->UserData);
         HandleDxgkQueueSubmit(
             pEventRecord->EventHeader,
             pSubmitEvent->hContext,
@@ -1165,7 +1165,7 @@ void HandleWin7DxgkQueuePacket(EVENT_RECORD* pEventRecord)
             pSubmitEvent->bPresent != 0,
             true);
     } else if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_STOP) {
-        auto pCompleteEvent = reinterpret_cast<Win7::DXGKETW_QUEUECOMPLETEEVENT*>(pEventRecord->UserData);
+        auto pCompleteEvent = static_cast<Win7::DXGKETW_QUEUECOMPLETEEVENT*>(pEventRecord->UserData);
         TRACK_PRESENT_PATH_GENERATE_ID();
         HandleDxgkQueueComplete(
             pEventRecord->EventHeader.TimeStamp.QuadPart,
@@ -1179,7 +1179,7 @@ void HandleWin7DxgkVSyncDPC(EVENT_RECORD* pEventRecord)
     //DebugEvent(this, pEventRecord, &mMetadata);
     TRACK_PRESENT_PATH_GENERATE_ID();
 
-    auto pVSyncDPCEvent = reinterpret_cast<Win7::DXGKETW_SCHEDULER_VSYNC_DPC*>(pEventRecord->UserData);
+    auto pVSyncDPCEvent = static_cast<Win7::DXGKETW_SCHEDULER_VSYNC_DPC*>(pEventRecord->UserData);
 
     // Windows 7 does not support MultiPlaneOverlay.
     HandleDxgkSyncDPC(pEventRecord->EventHeader.TimeStamp.QuadPart, (uint32_t)(pVSyncDPCEvent->FlipFenceId.QuadPart >> 32u));
@@ -1192,7 +1192,7 @@ void HandleWin7DxgkMMIOFlip(EVENT_RECORD* pEventRecord)
 
     if (pEventRecord->EventHeader.Flags & EVENT_HEADER_FLAG_32_BIT_HEADER)
     {
-        auto pMMIOFlipEvent = reinterpret_cast<Win7::DXGKETW_SCHEDULER_MMIO_FLIP_32*>(pEventRecord->UserData);
+        auto pMMIOFlipEvent = static_cast<Win7::DXGKETW_SCHEDULER_MMIO_FLIP_32*>(pEventRecord->UserData);
         HandleDxgkMMIOFlip(
             pEventRecord->EventHeader.TimeStamp.QuadPart,
             pMMIOFlipEvent->FlipSubmitSequence,
@@ -1200,7 +1200,7 @@ void HandleWin7DxgkMMIOFlip(EVENT_RECORD* pEventRecord)
     }
     else
     {
-        auto pMMIOFlipEvent = reinterpret_cast<Win7::DXGKETW_SCHEDULER_MMIO_FLIP_64*>(pEventRecord->UserData);
+        auto pMMIOFlipEvent = static_cast<Win7::DXGKETW_SCHEDULER_MMIO_FLIP_64*>(pEventRecord->UserData);
         HandleDxgkMMIOFlip(
             pEventRecord->EventHeader.TimeStamp.QuadPart,
             pMMIOFlipEvent->FlipSubmitSequence,
@@ -1968,7 +1968,7 @@ std::shared_ptr<PresentEvent> FindOrCreatePresent(EVENT_HEADER const& hdr)
     auto present = std::make_shared<PresentEvent>();
 
     //DebugModifyPresent(present.get());
-    present->PresentStartTime = *(uint64_t*)&hdr.TimeStamp;
+    present->PresentStartTime = hdr.TimeStamp.QuadPart;
     present->ProcessId = hdr.ProcessId;
     present->ThreadId = hdr.ThreadId;
 
@@ -1978,7 +1978,7 @@ std::shared_ptr<PresentEvent> FindOrCreatePresent(EVENT_HEADER const& hdr)
 }
 
 void TrackPresent(
-    std::shared_ptr<PresentEvent> present,
+    std::shared_ptr<PresentEvent> const& present,
     OrderedPresents* presentsByThisProcess)
 {
     // If there is an existing present that hasn't completed by the time the
@@ -2015,7 +2015,7 @@ void RuntimePresentStart(Runtime runtime, EVENT_HEADER const& hdr, uint64_t swap
     auto present = std::make_shared<PresentEvent>();
 
     //DebugModifyPresent(present.get());
-    present->PresentStartTime = *(uint64_t*)&hdr.TimeStamp;
+    present->PresentStartTime = hdr.TimeStamp.QuadPart;
     present->ProcessId = hdr.ProcessId;
     present->ThreadId = hdr.ThreadId;
     present->Runtime = runtime;
