@@ -1253,3 +1253,135 @@ NTSTATUS PhEnumerateAccounts(
 
     return STATUS_UNSUCCESSFUL;
 }
+
+//NTSTATUS PhQueryLogonInformation(
+//    _In_ PWSTR DomainName,
+//    _In_ PWSTR UserName,
+//    _Out_ PUSER_LOGON_INFORMATION* LogonInfo
+//    )
+//{
+//    NTSTATUS status;
+//    PPOLICY_ACCOUNT_DOMAIN_INFO lsaDomainInfo = NULL;
+//    PUSER_LOGON_INFORMATION samLogonInfo = NULL;
+//    LSA_OBJECT_ATTRIBUTES objectAttributes;
+//    LSA_HANDLE lookupPolicyHandle = NULL;
+//    SAM_HANDLE lookupServerHandle = NULL;
+//    SAM_HANDLE lookupDomainHandle = NULL;
+//    SAM_HANDLE lookupUserHandle = NULL;
+//    UNICODE_STRING unicodeString;
+//    PULONG lookupRelativeId = NULL;
+//    PSID_NAME_USE Use = NULL;
+//
+//    RtlInitUnicodeString(&unicodeString, DomainName);
+//    InitializeObjectAttributes(
+//        &objectAttributes,
+//        NULL,
+//        OBJ_CASE_INSENSITIVE,
+//        NULL,
+//        NULL
+//        );
+//
+//    status = LsaOpenPolicy(
+//        &unicodeString,
+//        &objectAttributes,
+//        POLICY_VIEW_LOCAL_INFORMATION,
+//        &lookupPolicyHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = LsaQueryInformationPolicy(
+//        lookupPolicyHandle,
+//        PolicyAccountDomainInformation,
+//        &lsaDomainInfo
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    InitializeObjectAttributes(
+//        &objectAttributes,
+//        NULL,
+//        OBJ_CASE_INSENSITIVE,
+//        NULL,
+//        NULL
+//        );
+//
+//    status = SamConnect(
+//        &unicodeString,
+//        &lookupServerHandle,
+//        SAM_SERVER_CONNECT | SAM_SERVER_LOOKUP_DOMAIN,
+//        &objectAttributes
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = SamOpenDomain(
+//        lookupServerHandle,
+//        DOMAIN_LOOKUP | DOMAIN_READ_OTHER_PARAMETERS,
+//        lsaDomainInfo->DomainSid,
+//        &lookupDomainHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    RtlInitUnicodeString(&unicodeString, UserName);
+//    status = SamLookupNamesInDomain(
+//        lookupDomainHandle,
+//        1,
+//        &unicodeString,
+//        &lookupRelativeId,
+//        &Use
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = SamOpenUser(
+//        lookupDomainHandle,
+//        USER_READ_GENERAL | USER_READ_PREFERENCES |
+//        USER_READ_LOGON | USER_READ_ACCOUNT |
+//        USER_LIST_GROUPS | USER_READ_GROUP_INFORMATION,
+//        lookupRelativeId[0],
+//        &lookupUserHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = SamQueryInformationUser(
+//        lookupUserHandle,
+//        UserAllInformation,
+//        &samLogonInfo
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    *LogonInfo = PhAllocateCopy(samLogonInfo, sizeof(USER_LOGON_INFORMATION));
+//
+//CleanupExit:
+//    if (samLogonInfo)
+//        SamFreeMemory(samLogonInfo);
+//    if (lookupRelativeId)
+//        SamFreeMemory(lookupRelativeId);
+//    if (Use)
+//        SamFreeMemory(Use);
+//
+//    if (lookupUserHandle)
+//        SamCloseHandle(lookupUserHandle);
+//    if (lookupDomainHandle)
+//        SamCloseHandle(lookupDomainHandle);
+//    if (lookupServerHandle)
+//        SamCloseHandle(lookupServerHandle);
+//
+//    if (lsaDomainInfo)
+//        LsaFreeMemory(lsaDomainInfo);
+//    if (lookupPolicyHandle)
+//        LsaClose(lookupPolicyHandle);
+//
+//    return status;
+//}
