@@ -7466,13 +7466,27 @@ RtlAddAuditAccessObjectAce(
     _In_ BOOLEAN AuditFailure
     );
 
+// private
+#define COMPOUND_ACE_IMPERSONATION 1
+
+// private
+typedef struct _COMPOUND_ACCESS_ALLOWED_ACE
+{
+    ACE_HEADER Header;
+    ACCESS_MASK Mask;
+    USHORT CompoundAceType; // COMPOUND_ACE_*
+    USHORT Reserved;
+    ULONG SidStart; // Server SID
+    // Client SID follows
+} COMPOUND_ACCESS_ALLOWED_ACE, *PCOMPOUND_ACCESS_ALLOWED_ACE;
+
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddCompoundAce(
     _Inout_ PACL Acl,
     _In_ ULONG AceRevision,
-    _In_ UCHAR AceType,
+    _In_ UCHAR AceType, // COMPOUND_ACE_*
     _In_ ACCESS_MASK AccessMask,
     _In_ PSID ServerSid,
     _In_ PSID ClientSid
