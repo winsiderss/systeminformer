@@ -1919,7 +1919,8 @@ typedef enum _SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS
     SeSafeOpenExperienceUninstaller = 0x10,
     SeSafeOpenExperienceIgnoreUnknownOrBad = 0x20,
     SeSafeOpenExperienceDefenderTrustedInstaller = 0x40,
-    SeSafeOpenExperienceMOTWPresent = 0x80
+    SeSafeOpenExperienceMOTWPresent = 0x80,
+    SeSafeOpenExperienceElevatedNoPropagation = 0x100
 } SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS;
 
 // private
@@ -1993,7 +1994,7 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeChildProcessPolicy, // 20, in PULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2
     PsAttributeAllApplicationPackagesPolicy, // in PULONG (PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*) // since REDSTONE
     PsAttributeWin32kFilter, // in PWIN32K_SYSCALL_FILTER
-    PsAttributeSafeOpenPromptOriginClaim, // in
+    PsAttributeSafeOpenPromptOriginClaim, // in SE_SAFE_OPEN_PROMPT_RESULTS
     PsAttributeBnoIsolation, // in PPS_BNO_ISOLATION_PARAMETERS // since REDSTONE2
     PsAttributeDesktopAppPolicy, // in PULONG (PROCESS_CREATION_DESKTOP_APP_*)
     PsAttributeChpe, // in BOOLEAN // since REDSTONE3
@@ -2384,15 +2385,15 @@ NtCreateThreadEx(
 
 // JOBOBJECTINFOCLASS
 // Note: We don't use an enum since it conflicts with the Windows SDK.
-#define JobObjectBasicAccountingInformation 1 // JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
-#define JobObjectBasicLimitInformation 2 // JOBOBJECT_BASIC_LIMIT_INFORMATION
-#define JobObjectBasicProcessIdList 3 // JOBOBJECT_BASIC_PROCESS_ID_LIST
-#define JobObjectBasicUIRestrictions 4 // JOBOBJECT_BASIC_UI_RESTRICTIONS
+#define JobObjectBasicAccountingInformation 1 // q: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+#define JobObjectBasicLimitInformation 2 // q; s: JOBOBJECT_BASIC_LIMIT_INFORMATION
+#define JobObjectBasicProcessIdList 3 // q: JOBOBJECT_BASIC_PROCESS_ID_LIST
+#define JobObjectBasicUIRestrictions 4 // q; s: JOBOBJECT_BASIC_UI_RESTRICTIONS
 #define JobObjectSecurityLimitInformation 5 // JOBOBJECT_SECURITY_LIMIT_INFORMATION
-#define JobObjectEndOfJobTimeInformation 6 // JOBOBJECT_END_OF_JOB_TIME_INFORMATION
-#define JobObjectAssociateCompletionPortInformation 7 // JOBOBJECT_ASSOCIATE_COMPLETION_PORT
-#define JobObjectBasicAndIoAccountingInformation 8 // JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION
-#define JobObjectExtendedLimitInformation 9 // JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+#define JobObjectEndOfJobTimeInformation 6 // q; s: JOBOBJECT_END_OF_JOB_TIME_INFORMATION
+#define JobObjectAssociateCompletionPortInformation 7 // s: JOBOBJECT_ASSOCIATE_COMPLETION_PORT
+#define JobObjectBasicAndIoAccountingInformation 8 // q: JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION
+#define JobObjectExtendedLimitInformation 9 // q; s: JOBOBJECT_EXTENDED_LIMIT_INFORMATION[V2]
 #define JobObjectJobSetInformation 10 // JOBOBJECT_JOBSET_INFORMATION
 #define JobObjectGroupInformation 11 // USHORT
 #define JobObjectNotificationLimitInformation 12 // JOBOBJECT_NOTIFICATION_LIMIT_INFORMATION
@@ -2423,7 +2424,7 @@ NtCreateThreadEx(
 #define JobObjectSiloRootDirectory 37 // SILOOBJECT_ROOT_DIRECTORY
 #define JobObjectServerSiloBasicInformation 38 // SERVERSILO_BASIC_INFORMATION
 #define JobObjectServerSiloUserSharedData 39 // SILO_USER_SHARED_DATA
-#define JobObjectServerSiloInitialize 40
+#define JobObjectServerSiloInitialize 40 // SERVERSILO_INIT_INFORMATION
 #define JobObjectServerSiloRunningState 41
 #define JobObjectIoAttribution 42 // JOBOBJECT_IO_ATTRIBUTION_INFORMATION
 #define JobObjectMemoryPartitionInformation 43
@@ -2434,6 +2435,21 @@ NtCreateThreadEx(
 #define JobObjectIoPriorityLimit 48 // JOBOBJECT_IO_PRIORITY_LIMIT
 #define JobObjectPagePriorityLimit 49 // JOBOBJECT_PAGE_PRIORITY_LIMIT
 #define MaxJobObjectInfoClass 50
+
+// rev // extended limit v2
+#define JOB_OBJECT_LIMIT_SILO_READY 0x00400000
+
+// private
+typedef struct _JOBOBJECT_EXTENDED_LIMIT_INFORMATION_V2
+{
+    JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
+    IO_COUNTERS IoInfo;
+    SIZE_T ProcessMemoryLimit;
+    SIZE_T JobMemoryLimit;
+    SIZE_T PeakProcessMemoryUsed;
+    SIZE_T PeakJobMemoryUsed;
+    SIZE_T JobTotalMemoryLimit;
+} JOBOBJECT_EXTENDED_LIMIT_INFORMATION_V2, *PJOBOBJECT_EXTENDED_LIMIT_INFORMATION_V2;
 
 // private
 typedef struct _JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
@@ -2536,12 +2552,27 @@ typedef struct _SILO_USER_SHARED_DATA
     LARGE_INTEGER TimeZoneBiasEffectiveEnd;
 } SILO_USER_SHARED_DATA, *PSILO_USER_SHARED_DATA;
 
+// rev
+#define SILO_OBJECT_ROOT_DIRECTORY_SHADOW_ROOT 0x00000001
+#define SILO_OBJECT_ROOT_DIRECTORY_INITIALIZE 0x00000002
+#define SILO_OBJECT_ROOT_DIRECTORY_SHADOW_DOS_DEVICES 0x00000004
+
 // private
 typedef struct _SILOOBJECT_ROOT_DIRECTORY
 {
-    ULONG ControlFlags;
-    UNICODE_STRING Path;
+    union
+    {
+        ULONG ControlFlags; // SILO_OBJECT_ROOT_DIRECTORY_*
+        UNICODE_STRING Path;
+    };
 } SILOOBJECT_ROOT_DIRECTORY, *PSILOOBJECT_ROOT_DIRECTORY;
+
+// private
+typedef struct _SERVERSILO_INIT_INFORMATION
+{
+    HANDLE DeleteEvent;
+    BOOLEAN IsDownlevelContainer;
+} SERVERSILO_INIT_INFORMATION, * PSERVERSILO_INIT_INFORMATION;
 
 // private
 typedef struct _JOBOBJECT_ENERGY_TRACKING_STATE
