@@ -15,8 +15,8 @@
 
 #include <trace.h>
 
-KPH_PROTECTED_DATA_SECTION_PUSH();
-static BYTE KphpTrustedPublicKey[] =
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const BYTE KphpTrustedPublicKey[] =
 {
     0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
     0x7C, 0x32, 0xAB, 0xA6, 0x40, 0x79, 0x9C, 0x00,
@@ -28,7 +28,7 @@ static BYTE KphpTrustedPublicKey[] =
     0xA2, 0x55, 0x38, 0x71, 0xF0, 0x0F, 0xCC, 0x8F,
     0x84, 0xF4, 0x2B, 0x60, 0x38, 0xA6, 0xE7, 0x37,
 };
-KPH_PROTECTED_DATA_SECTION_POP();
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 PAGED_FILE();
 
@@ -71,7 +71,7 @@ NTSTATUS KphInitializeVerify(
                                  NULL,
                                  BCRYPT_ECCPUBLIC_BLOB,
                                  &KphpTrustedPublicKeyHandle,
-                                 KphpTrustedPublicKey,
+                                 (PUCHAR)KphpTrustedPublicKey,
                                  sizeof(KphpTrustedPublicKey),
                                  0);
     if (!NT_SUCCESS(status))

@@ -26,6 +26,9 @@ BOOLEAN KphIgnoreProtectionSuppression = FALSE;
 SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo = { 0 };
 KPH_PROTECTED_DATA_SECTION_POP();
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const BYTE KphpProtectedSectionReadOnly = 0;
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 PAGED_FILE();
 
@@ -51,6 +54,15 @@ VOID KphpProtectSections(
     }
 
     status = KphDynMmProtectDriverSection(&KphpProtectedSection,
+                                          0,
+                                          MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD);
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  GENERAL,
+                  "MmProtectDriverSection %!STATUS!",
+                  status);
+
+    status = KphDynMmProtectDriverSection((PVOID)&KphpProtectedSectionReadOnly,
                                           0,
                                           MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD);
 

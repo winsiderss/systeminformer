@@ -481,7 +481,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     NTSTATUS status;
     PKPH_CLIENT client;
     PKPH_MESSAGE msg;
-    PKPH_MESSAGE_HANDLER handler;
+    const KPH_MESSAGE_HANDLER* handler;
     KPH_PROCESS_STATE processState;
     KPH_PROCESS_STATE requiredState;
 
