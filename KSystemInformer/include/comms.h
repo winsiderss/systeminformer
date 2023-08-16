@@ -57,8 +57,8 @@ typedef struct _KPH_MESSAGE_HANDLER
     PKPHM_REQUIRED_STATE RequiredState;
 } KPH_MESSAGE_HANDLER, *PKPH_MESSAGE_HANDLER;
 
-extern KPH_MESSAGE_HANDLER KphCommsMessageHandlers[];
-extern ULONG KphCommsMessageHandlerCount;
+extern const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[];
+extern const ULONG KphCommsMessageHandlerCount;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

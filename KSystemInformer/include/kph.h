@@ -43,6 +43,11 @@
     __pragma(data_seg("KSIDATA"))
 #define KPH_PROTECTED_DATA_SECTION_POP() \
     __pragma(data_seg(pop))
+#define KPH_PROTECTED_DATA_SECTION_RO_PUSH() \
+    __pragma(const_seg(push))\
+    __pragma(const_seg("KSIRO"))
+#define KPH_PROTECTED_DATA_SECTION_RO_POP() \
+    __pragma(const_seg(pop))
 
 #define _Outptr_allocatesMem_ _Outptr_result_nullonfailure_ __drv_allocatesMem(Mem)
 #define _Out_allocatesMem_ _Out_ __drv_allocatesMem(Mem)

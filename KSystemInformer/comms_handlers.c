@@ -52,9 +52,9 @@ KPHM_DEFINE_REQUIRED_STATE(KphpCommsOpenThreadProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsCreateFileRequires);
 
-KPH_PROTECTED_DATA_SECTION_PUSH();
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 
-KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
+const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 {
 { InvalidKphMsg,                     NULL,                                 NULL },
 { KphMsgGetInformerSettings,         KphpCommsGetInformerSettings,         KphpCommsRequireLow },
@@ -87,9 +87,9 @@ KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgCompareObjects,              KphpCommsCompareObjects,              KphpCommsRequireMedium },
 };
 
-ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
+const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 
-KPH_PROTECTED_DATA_SECTION_POP();
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 PAGED_FILE();
 
