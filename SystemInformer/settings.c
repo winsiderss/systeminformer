@@ -338,6 +338,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiEnableLoadNative", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadFilter", L"0");
     PhpAddIntegerSetting(L"KsiUnloadOnExitTest", L"0");
+    PhpAddIntegerSetting(L"KphRandomizedPoolTag", L"0");
 }
 
 VOID PhUpdateCachedSettings(

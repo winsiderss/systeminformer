@@ -379,6 +379,7 @@ VOID KSIAPI KphpDeleteProcessContext(
 
     if (process->ImageFileName)
     {
+#pragma warning(suppress: 4995) // intentional use of ExFreePool 
         ExFreePool(process->ImageFileName);
     }
 

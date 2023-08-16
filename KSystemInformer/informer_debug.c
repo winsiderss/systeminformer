@@ -250,7 +250,7 @@ Exit:
 
         if (KphpDbgPrintSlots)
         {
-            ExFreePoolWithTag(KphpDbgPrintSlots, KPH_TAG_DBG_SLOTS);
+            KphFree(KphpDbgPrintSlots, KPH_TAG_DBG_SLOTS);
             KphpDbgPrintSlots = NULL;
         }
     }
@@ -285,7 +285,7 @@ VOID KphDebugInformerStop(
     KphpDebugPrintFlush();
 
     KphpDbgPrintSlotCount = 0;
-    ExFreePoolWithTag(KphpDbgPrintSlots, KPH_TAG_DBG_SLOTS);
+    KphFree(KphpDbgPrintSlots, KPH_TAG_DBG_SLOTS);
     KphpDbgPrintSlots = NULL;
 
     KeReleaseSpinLock(&KphpDbgPrintLock, oldIrql);

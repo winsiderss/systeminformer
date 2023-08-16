@@ -990,7 +990,7 @@ BeginHashing:
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             status = GetExceptionCode();
-            ExFreePoolWithTag(Info->Signature, KPH_TAG_AUTHENTICODE_SIG);
+            KphFree(Info->Signature, KPH_TAG_AUTHENTICODE_SIG);
             Info->Signature = NULL;
             goto Exit;
         }
@@ -1107,6 +1107,6 @@ VOID KphFreeAuthenticodeInfo(
 
     if (Info->Signature)
     {
-        ExFreePoolWithTag(Info->Signature, KPH_TAG_AUTHENTICODE_SIG);
+        KphFree(Info->Signature, KPH_TAG_AUTHENTICODE_SIG);
     }
 }

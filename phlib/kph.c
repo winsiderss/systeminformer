@@ -237,6 +237,20 @@ NTSTATUS KphSetParameters(
             goto CleanupExit;
     }
 
+    if (Config->RandomizedPoolTag)
+    {
+        status = PhSetValueKeyZ(
+            parametersKeyHandle,
+            L"RandomizedPoolTag",
+            REG_DWORD,
+            &(ULONG){ TRUE },
+            sizeof(ULONG)
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
     // Put more parameters here...
 
     status = STATUS_SUCCESS;
