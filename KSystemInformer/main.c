@@ -177,7 +177,16 @@ NTSTATUS DriverEntry(
         RtlZeroMemory(&KphCodeIntegrityInfo, sizeof(KphCodeIntegrityInfo));
     }
 
-    KphInitializeAlloc();
+    status = KphInitializeAlloc(RegistryPath);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "KphInitializeAlloc failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
 
     KphDynamicImport();
 

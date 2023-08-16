@@ -420,6 +420,7 @@ NTSTATUS KsiInitializeCallbackThread(
         PPH_STRING portName = NULL;
         PPH_STRING altitudeName = NULL;
         BOOLEAN disableImageLoadProtection = FALSE;
+        BOOLEAN randomizedPoolTag = FALSE;
 
         if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KphObjectName")))
             PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
@@ -428,6 +429,7 @@ NTSTATUS KsiInitializeCallbackThread(
         if (PhIsNullOrEmptyString(altitudeName = PhGetStringSetting(L"KphAltitude")))
             PhMoveReference(&altitudeName, PhCreateString(KPH_ALTITUDE_NAME));
         disableImageLoadProtection = !!PhGetIntegerSetting(L"KphDisableImageLoadProtection");
+        randomizedPoolTag = !!PhGetIntegerSetting(L"KphRandomizedPoolTag");
 
         config.FileName = &ksiFileName->sr;
         config.ServiceName = &ksiServiceName->sr;
@@ -437,6 +439,7 @@ NTSTATUS KsiInitializeCallbackThread(
         config.EnableNativeLoad = KsiEnableLoadNative;
         config.EnableFilterLoad = KsiEnableLoadFilter;
         config.DisableImageLoadProtection = disableImageLoadProtection;
+        config.RandomizedPoolTag = randomizedPoolTag;
         config.Callback = KsiCommsCallback;
         status = KphConnect(&config);
 

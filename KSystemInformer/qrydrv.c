@@ -116,9 +116,9 @@ NTSTATUS KphQueryInformationDriver(
         goto Exit;
     }
 
-        //
-        // We reach into the driver object on purpose
-        //
+    //
+    // We reach into the driver object on purpose
+    //
 #pragma prefast(push)
 #pragma prefast(disable : 28175)
     switch (DriverInformationClass)
@@ -307,6 +307,7 @@ NTSTATUS KphQueryInformationDriver(
                 }
             }
 
+#pragma warning(suppress: 4995) // intentional use of ExFreePool 
             ExFreePool(fullDriverPath.Buffer);
             break;
         }

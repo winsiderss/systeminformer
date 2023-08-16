@@ -46,7 +46,8 @@ typedef struct _KPH_CONFIG_PARAMETERS
             BOOLEAN EnableNativeLoad : 1;
             BOOLEAN EnableFilterLoad : 1;
             BOOLEAN DisableImageLoadProtection : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN RandomizedPoolTag : 1;
+            BOOLEAN Spare : 4;
         };
     };
 

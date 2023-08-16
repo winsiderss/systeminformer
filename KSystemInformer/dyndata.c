@@ -180,7 +180,7 @@ NTSTATUS KphpSetDynamicConfigiration(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphpOpenParametersKey(
+NTSTATUS KphOpenParametersKey(
     _In_ PUNICODE_STRING RegistryPath,
     _Out_ PHANDLE KeyHandle
     )
@@ -400,7 +400,7 @@ NTSTATUS KphDynamicDataInitialization(
     keyHandle = NULL;
     dynData = NULL;
 
-    status = KphpOpenParametersKey(RegistryPath, &keyHandle);
+    status = KphOpenParametersKey(RegistryPath, &keyHandle);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,

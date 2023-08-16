@@ -1272,7 +1272,7 @@ Exit:
                                       NULL);
                 ObDereferenceObject(KphpMessageQueueThreads[i]);
             }
-            ExFreePoolWithTag(KphpMessageQueueThreads, KPH_TAG_THREAD_POOL);
+            KphFree(KphpMessageQueueThreads, KPH_TAG_THREAD_POOL);
             KphpMessageQueueThreads = NULL;
             KphpMessageQueueThreadsCount = 0;
         }
@@ -1317,7 +1317,7 @@ VOID KphCommsStop(
         ObDereferenceObject(KphpMessageQueueThreads[i]);
     }
 
-    ExFreePoolWithTag(KphpMessageQueueThreads, KPH_TAG_THREAD_POOL);
+    KphFree(KphpMessageQueueThreads, KPH_TAG_THREAD_POOL);
     KphpMessageQueueThreads = NULL;
     KphpMessageQueueThreadsCount = 0;
 

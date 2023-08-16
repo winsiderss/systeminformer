@@ -168,9 +168,46 @@ BOOLEAN KphSuppressProtections(
 
 // alloc
 
+//
+// Always use wrapped allocators, unless explicitly necessary.
+//
+// This helps catch programmer error. Deprecate the original ones here, the
+// allocation infrastructure will internally suppress the deprecated warnings.
+//
+#pragma deprecated(ExAllocateCacheAwareRundownProtection)
+#pragma deprecated(ExAllocateFromLookasideListEx)
+#pragma deprecated(ExAllocateFromNPagedLookasideList)
+#pragma deprecated(ExAllocateFromPagedLookasideList)
+#pragma deprecated(ExAllocatePool)
+#pragma deprecated(ExAllocatePool2)
+#pragma deprecated(ExAllocatePool3)
+#pragma deprecated(ExAllocatePoolPriorityUninitialized)
+#pragma deprecated(ExAllocatePoolPriorityZero)
+#pragma deprecated(ExAllocatePoolQuotaUninitialized)
+#pragma deprecated(ExAllocatePoolQuotaZero)
+#pragma deprecated(ExAllocatePoolUninitialized)
+#pragma deprecated(ExAllocatePoolWithQuota)
+#pragma deprecated(ExAllocatePoolWithQuotaTag)
+#pragma deprecated(ExAllocatePoolWithTag)
+#pragma deprecated(ExAllocatePoolWithTagPriority)
+#pragma deprecated(ExAllocatePoolZero)
+#pragma deprecated(ExFreePool)
+#pragma deprecated(ExFreePool2)
+#pragma deprecated(ExFreePoolWithTag)
+#pragma deprecated(ExFreeToLookasideListEx)
+#pragma deprecated(ExFreeToNPagedLookasideList)
+#pragma deprecated(ExFreeToPagedLookasideList)
+#pragma deprecated(ExDeleteLookasideListEx)
+#pragma deprecated(ExDeleteNPagedLookasideList)
+#pragma deprecated(ExDeletePagedLookasideList)
+#pragma deprecated(ExInitializeLookasideListEx)
+#pragma deprecated(ExInitializeNPagedLookasideList)
+#pragma deprecated(ExInitializePagedLookasideList)
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphInitializeAlloc(
-    VOID
+_Must_inspect_result_
+NTSTATUS KphInitializeAlloc(
+    _In_ PUNICODE_STRING RegistryPath
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
