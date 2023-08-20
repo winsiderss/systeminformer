@@ -1928,8 +1928,8 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
         }
         else
         {
-            processAllowedMask = KPH_PROTECED_PROCESS_MASK;
-            threadAllowedMask = KPH_PROTECED_THREAD_MASK;
+            processAllowedMask = KPH_PROTECTED_PROCESS_MASK;
+            threadAllowedMask = KPH_PROTECTED_THREAD_MASK;
         }
 
         status = KphStartProtectingProcess(Process,
