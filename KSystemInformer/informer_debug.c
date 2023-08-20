@@ -93,7 +93,7 @@ VOID KphpDebugPrintFlush(
  * \param SystemArgument2 Unused
  */
 _IRQL_requires_same_
-VOID KphpDebugPrintDpc (
+VOID KphpDebugPrintDpc(
     _In_ PKDPC Dpc,
     _In_opt_ PVOID DeferredContext,
     _In_opt_ PVOID SystemArgument1,

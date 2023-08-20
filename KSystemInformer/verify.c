@@ -356,7 +356,6 @@ Exit:
  * strict and lacks enough information from the kernel to fully understand the
  * protected process state.
  *
- * \param[in] Client - Client information.
  * \param[in] Process - Calling process.
  * \param[in] ProcessTarget - Target process to check that the calling process
  * dominates.

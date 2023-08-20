@@ -1104,13 +1104,13 @@ KphGetObjectType(
 
 // cid_tracking
 
-#define KPH_PROTECED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS |\
-                                   PROCESS_TERMINATE |\
-                                   PROCESS_SUSPEND_RESUME)
-#define KPH_PROTECED_THREAD_MASK (KPH_THREAD_READ_ACCESS |\
-                                  THREAD_TERMINATE |\
-                                  THREAD_SUSPEND_RESUME |\
-                                  THREAD_RESUME)
+#define KPH_PROTECTED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS |\
+                                    PROCESS_TERMINATE |\
+                                    PROCESS_SUSPEND_RESUME)
+#define KPH_PROTECTED_THREAD_MASK (KPH_THREAD_READ_ACCESS |\
+                                   THREAD_TERMINATE |\
+                                   THREAD_SUSPEND_RESUME |\
+                                   THREAD_RESUME)
 
 typedef struct _KPH_PROCESS_CONTEXT
 {
