@@ -669,11 +669,9 @@ VOID KphApplyObProtections(
 
         if (KphpShouldPermitCreatorProcess(Info, actor, process))
         {
-            //
-            // add permissions which are not present in the usual KPH_PROTECED_PROCESS_MASK
-            //
-
-            allowedAccessMask |= (PROCESS_VM_OPERATION |
+            allowedAccessMask |= (KPH_PROCESS_READ_ACCESS |
+                                  PROCESS_TERMINATE |
+                                  PROCESS_VM_OPERATION |
                                   PROCESS_VM_WRITE);
 
             if ((allowedAccessMask & process->ProcessAllowedMask)
@@ -712,29 +710,26 @@ VOID KphApplyObProtections(
 
         allowedAccessMask = process->ThreadAllowedMask;
 
-        //if (KphpShouldPermitCreatorProcess(Info, actor, process))
-        //{
-        //    //
-        //    // add permissions which are not present in the usual KPH_PROTECED_THREAD_MASK
-        //    // currently none
-        //    //
-        //
-        //    //allowedAccessMask |= 
-        //
-        //    if ((allowedAccessMask & process->ThreadAllowedMask)
-        //        != allowedAccessMask)
-        //    {
-        //        KphTracePrint(TRACE_LEVEL_VERBOSE,
-        //                      PROTECTION,
-        //                      "Permitting extra thread handle access "
-        //                      "(0x%08x -> 0x%08x) in creator process %lu for "
-        //                      "process %lu",
-        //                      process->ThreadAllowedMask,
-        //                      allowedAccessMask,
-        //                      HandleToULong(actor->ProcessContext->ProcessId),
-        //                      HandleToULong(process->ProcessId));
-        //    }
-        //}
+        if (KphpShouldPermitCreatorProcess(Info, actor, process))
+        {
+            allowedAccessMask |= (KPH_THREAD_READ_ACCESS |
+                                  THREAD_TERMINATE |
+                                  THREAD_RESUME);
+
+            if ((allowedAccessMask & process->ThreadAllowedMask)
+                != allowedAccessMask)
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              PROTECTION,
+                              "Permitting extra thread handle access "
+                              "(0x%08x -> 0x%08x) in creator process %lu for "
+                              "process %lu",
+                              process->ThreadAllowedMask,
+                              allowedAccessMask,
+                              HandleToULong(actor->ProcessContext->ProcessId),
+                              HandleToULong(process->ProcessId));
+            }
+        }
 
         if ((desiredAccess & allowedAccessMask) != desiredAccess)
         {
