@@ -188,12 +188,12 @@ BOOLEAN KphpShouldSuppressObjectProtections(
     if (!NT_SUCCESS(status))
     {
         //
-        // If the process being protected doesn't dominate the target then
-        // do not strip any access from it.
+        // Grant access when the actor is a protected process and the target is
+        // not protected at a higher level.
         //
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "Protected process %lu does not dominate process %lu",
+                      "Protected process %lu access grated to PPL process %lu",
                       HandleToULong(Target->ProcessId),
                       HandleToULong(Actor->ProcessId));
 
