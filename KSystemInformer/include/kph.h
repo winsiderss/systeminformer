@@ -833,9 +833,9 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN KphUSrchr(
-    _In_ PUNICODE_STRING String,
+    _In_opt_ PUNICODE_STRING String,
     _In_ WCHAR ToFind,
-    _Out_ PUNICODE_STRING Out
+    _Inout_ PUNICODE_STRING Out
     );
 
 // vm

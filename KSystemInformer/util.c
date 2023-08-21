@@ -1407,21 +1407,26 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN KphUSrchr(
-    _In_ PUNICODE_STRING String,
+    _In_opt_ PUNICODE_STRING String,
     _In_ WCHAR ToFind,
-    _Out_ PUNICODE_STRING Out
+    _Inout_ PUNICODE_STRING Out
     )
 {
+    WCHAR* ptr;
+    USHORT len;
+
+    PAGED_PASSIVE();
+
     if (!String || !String->Buffer)
         return FALSE;
 
-    WCHAR* ptr = &String->Buffer[String->Length / sizeof(WCHAR)];
+    ptr = &String->Buffer[String->Length / sizeof(WCHAR)];
     while (ptr > String->Buffer) {
         if (*--ptr == ToFind)
             break;
     }
 
-    USHORT len = (USHORT)((ptr - String->Buffer) * sizeof(WCHAR));
+    len = (USHORT)((ptr - String->Buffer) * sizeof(WCHAR));
     Out->Buffer = ptr;
     Out->Length = String->Length - len;
     Out->MaximumLength = String->MaximumLength - len;
