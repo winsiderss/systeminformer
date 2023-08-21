@@ -1395,42 +1395,103 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
 }
 
 /**
- * \brief UNICODE_STRING version of wcsrchr
- * 
- * Note: the output string will use the input strings Buffer!
+ * \brief Gets the final component of a file name.
  *
- * \param[in] String to look within, might be NULL.
- * \param[in] ToFind charakter to find.
- * \param[out] Out an alocated empty unicode string to set values of, must not be NULL.
+ * \details The final component is the last part of the file name, e.g. for
+ * "\SystemRoot\System32\ntoskrnl.exe" it would be "ntoskrnl.exe". Returns an
+ * error if the final component is not found.
  *
- * \return TRUE on success
+ * \param[in] FileName File name to get the final component of.
+ * \param[out] FinalComponent Final component of the file name, references
+ * input string, this string should not be freed and the input string must
+ * remain valid as long as this is in use.
+ *
+ * \return Successful or errant status.
  */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KphUSrchr(
-    _In_opt_ PUNICODE_STRING String,
-    _In_ WCHAR ToFind,
-    _Inout_ PUNICODE_STRING Out
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetFileNameFinalComponent(
+    _In_ PUNICODE_STRING FileName,
+    _Out_ PUNICODE_STRING FinalComponent
     )
 {
-    WCHAR* ptr;
-    USHORT len;
+    PAGED_CODE();
+
+    for (USHORT i = (FileName->Length / sizeof(WCHAR)); i > 0; i--)
+    {
+        if (FileName->Buffer[i - 1] != L'\\')
+        {
+            continue;
+        }
+
+        FinalComponent->Buffer = &FileName->Buffer[i];
+        FinalComponent->Length = FileName->Length - (i * sizeof(WCHAR));
+        FinalComponent->MaximumLength = FinalComponent->Length;
+
+        return STATUS_SUCCESS;
+    }
+
+    RtlZeroMemory(FinalComponent, sizeof(*FinalComponent));
+
+    return STATUS_NOT_FOUND;
+}
+
+/**
+ * \brief Gets the image name from a process.
+ *
+ * \param[in] Process The process to get the image name from.
+ * \param[out] ImageName Populated with the image name of the process, this 
+ * string should be freed using KphFreeProcessImageName.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetProcessImageName(
+    _In_ PEPROCESS Process,
+    _Out_allocatesMem_ PUNICODE_STRING ImageName
+    )
+{
+    NTSTATUS status;
+    PUCHAR fileName;
+    SIZE_T len;
 
     PAGED_PASSIVE();
 
-    if (!String || !String->Buffer)
-        return FALSE;
+    fileName = PsGetProcessImageFileName(Process);
 
-    ptr = &String->Buffer[String->Length / sizeof(WCHAR)];
-    while (ptr > String->Buffer)
+    status = RtlStringCbLengthA((STRSAFE_PCNZCH)fileName, 15, &len);
+    if (NT_SUCCESS(status))
     {
-        if (*--ptr == ToFind)
-            break;
+        ANSI_STRING string;
+
+        string.Buffer = (PCHAR)fileName;
+        string.Length = (USHORT)len;
+        string.MaximumLength = string.Length;
+
+        status = RtlAnsiStringToUnicodeString(ImageName, &string, TRUE);
+        if (NT_SUCCESS(status))
+        {
+            return status;
+        }
     }
 
-    len = (USHORT)((ptr - String->Buffer) * sizeof(WCHAR));
-    Out->Buffer = ptr;
-    Out->Length = String->Length - len;
-    Out->MaximumLength = String->MaximumLength - len;
+    RtlZeroMemory(ImageName, sizeof(*ImageName));
 
-    return len > 0;
+    return status;
+}
+
+/**
+ * \brief Frees a process image file name from KphGetProcessImageName.
+ *
+ * \param[in] ImageName The image name to free.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphFreeProcessImageName(
+    _In_freesMem_ PUNICODE_STRING ImageName
+    )
+{
+    PAGED_CODE();
+
+    RtlFreeUnicodeString(ImageName);
 }

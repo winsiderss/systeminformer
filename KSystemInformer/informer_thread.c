@@ -60,7 +60,7 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
                       TRACKING,
                       "Stopped tracking thread %lu in process %wZ (%lu)",
                       HandleToULong(thread->ClientId.UniqueThread),
-                      thread->ProcessContext ? &thread->ProcessContext->ImageName : NULL,
+                      KphGetThreadImageName(thread),
                       HandleToULong(thread->ClientId.UniqueProcess));
 
         thread->ExitNotification = TRUE;
@@ -88,8 +88,9 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   TRACKING,
-                  "Tracking thread %lu in process %lu",
+                  "Tracking thread %lu in process %wZ (%lu)",
                   HandleToULong(thread->ClientId.UniqueThread),
+                  KphGetThreadImageName(thread),
                   HandleToULong(thread->ClientId.UniqueProcess));
 
     return thread;

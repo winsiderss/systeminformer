@@ -39,8 +39,6 @@ PKPH_OBJECT_TYPE KphThreadContextType = NULL;
 
 static volatile LONG KphpLsassIsKnown = 0;
 
-static UNICODE_STRING KphpUnknownImageName = RTL_CONSTANT_STRING(L"");
-
 PAGED_FILE();
 
 /**
@@ -324,7 +322,21 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
     status = SeLocateProcessImageName(process->EProcess,
                                       &process->ImageFileName);
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
+    {
+        status = KphGetFileNameFinalComponent(process->ImageFileName,
+                                              &process->ImageName);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_WARNING,
+                          TRACKING,
+                          "KphGetFileNameFinalComponent failed: %!STATUS!",
+                          status);
+
+            NT_ASSERT(process->ImageName.Length == 0);
+        }
+    }
+    else
     {
         KphTracePrint(TRACE_LEVEL_WARNING,
                       TRACKING,
@@ -334,14 +346,24 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         process->ImageFileName = NULL;
     }
 
-    if (KphUSrchr(process->ImageFileName, L'\\', &process->ImageName)) 
-    {   // skip L'\\'
-        process->ImageName.Buffer ++;
-        process->ImageName.Length -= sizeof(WCHAR);
-        process->ImageName.MaximumLength -= sizeof(WCHAR);
+    if (process->ImageName.Length == 0)
+    {
+        status = KphGetProcessImageName(process->EProcess,
+                                        &process->ImageName);
+        if (NT_SUCCESS(status))
+        {
+            process->AllocatedImageName = TRUE;
+        }
+        else
+        {
+            KphTracePrint(TRACE_LEVEL_WARNING,
+                          TRACKING,
+                          "KphGetProcessImageName failed: %!STATUS!",
+                          status);
+
+            NT_ASSERT(process->ImageName.Length == 0);
+        }
     }
-    else
-        process->ImageName = KphpUnknownImageName;
 
     if (!KphpLsassIsKnown && KphProcessIsLsass(process->EProcess))
     {
@@ -392,6 +414,11 @@ VOID KSIAPI KphpDeleteProcessContext(
     {
 #pragma warning(suppress: 4995) // intentional use of ExFreePool 
         ExFreePool(process->ImageFileName);
+    }
+
+    if (process->AllocatedImageName)
+    {
+        KphFreeProcessImageName(&process->ImageName);
     }
 
     if (process->FileObject)
@@ -1398,14 +1425,21 @@ NTSTATUS KphCidPopulate(
         {
             PKPH_THREAD_CONTEXT thread;
             PETHREAD threadObject;
+            PSYSTEM_THREAD_INFORMATION threadInfo;
 
-            status = PsLookupThreadByThreadId(info->Threads[i].ClientId.UniqueThread,
+            threadInfo = &info->Threads[i];
+
+            status = PsLookupThreadByThreadId(threadInfo->ClientId.UniqueThread,
                                               &threadObject);
             if (!NT_SUCCESS(status))
             {
                 KphTracePrint(TRACE_LEVEL_WARNING,
                               TRACKING,
-                              "PsLookupThreadByThreadId failed: %!STATUS!",
+                              "PsLookupThreadByThreadId failed "
+                              "(thread %lu in process %wZ (%lu))): %!STATUS!",
+                              HandleToULong(threadInfo->ClientId.UniqueThread),
+                              &process->ImageName,
+                              HandleToULong(process->ProcessId),
                               status);
 
                 continue;
@@ -1415,13 +1449,17 @@ NTSTATUS KphCidPopulate(
             {
                 KphTracePrint(TRACE_LEVEL_WARNING,
                               TRACKING,
-                              "PsIsThreadTerminating reported: TRUE");
+                              "PsIsThreadTerminating reported TRUE "
+                              "(thread %lu in process %wZ (%lu)))",
+                              HandleToULong(threadInfo->ClientId.UniqueThread),
+                              &process->ImageName,
+                              HandleToULong(process->ProcessId));
 
                 ObDereferenceObject(threadObject);
                 continue;
             }
 
-            thread = KphpTrackContext(info->Threads[i].ClientId.UniqueThread,
+            thread = KphpTrackContext(threadInfo->ClientId.UniqueThread,
                                       KphThreadContextType,
                                       sizeof(KPH_THREAD_CONTEXT),
                                       threadObject);
@@ -1433,8 +1471,9 @@ NTSTATUS KphCidPopulate(
             {
                 KphTracePrint(TRACE_LEVEL_ERROR,
                               TRACKING,
-                              "KphpTrackContext failed (thread %lu in process %wZ (%lu))",
-                              HandleToULong(info->Threads[i].ClientId.UniqueThread),
+                              "KphpTrackContext failed "
+                              "(thread %lu in process %wZ (%lu))",
+                              HandleToULong(threadInfo->ClientId.UniqueThread),
                               &process->ImageName,
                               HandleToULong(process->ProcessId));
                 continue;
@@ -1445,8 +1484,9 @@ NTSTATUS KphCidPopulate(
 
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
-                          "Tracking thread %lu in process %lu",
+                          "Tracking thread %lu in process %wZ (%lu)",
                           HandleToULong(thread->ClientId.UniqueThread),
+                          &process->ImageName,
                           HandleToULong(thread->ClientId.UniqueProcess));
 
             KphDereferenceObject(thread);
@@ -1958,4 +1998,33 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
             NT_ASSERT(!Process->Protected);
         }
     }
+}
+
+/**
+ * \brief Gets the process image name for a given thread.
+ *
+ * \details The image name of a thread might not be available if there is no
+ * process context associated with the thread. This is very unlikely but
+ * possible if resources are constrained on the system. If there is no process
+ * context associated with the thread, this function will return NULL.
+ *
+ * \param[in] Thread The thread context to get the process image name of.
+ *
+ * \return Image name for the process of the given thread, otherwise NULL.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+_Maybenull_
+PUNICODE_STRING KphGetThreadImageName(
+    _In_ PKPH_THREAD_CONTEXT Thread
+    )
+{
+    PAGED_CODE();
+
+    if (!Thread->ProcessContext)
+    {
+        return NULL;
+    }
+
+    return &Thread->ProcessContext->ImageName;
 }
