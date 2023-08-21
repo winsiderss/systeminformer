@@ -831,11 +831,23 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
     _In_ ULONG Flags
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetFileNameFinalComponent(
+    _In_ PUNICODE_STRING FileName,
+    _Out_ PUNICODE_STRING FinalComponent
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KphUSrchr(
-    _In_opt_ PUNICODE_STRING String,
-    _In_ WCHAR ToFind,
-    _Inout_ PUNICODE_STRING Out
+_Must_inspect_result_
+NTSTATUS KphGetProcessImageName(
+    _In_ PEPROCESS Process,
+    _Out_allocatesMem_ PUNICODE_STRING ImageName
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphFreeProcessImageName(
+    _In_freesMem_ PUNICODE_STRING ImageName
     );
 
 // vm
@@ -1145,7 +1157,8 @@ typedef struct _KPH_PROCESS_CONTEXT
             ULONG IsLsass : 1;
             ULONG IsWow64 : 1;
             ULONG IsSubsystemProcess : 1;
-            ULONG Reserved : 24;
+            ULONG AllocatedImageName : 1;
+            ULONG Reserved : 23;
         };
     };
 
@@ -1356,6 +1369,13 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphVerifyProcessAndProtectIfAppropriate(
     _In_ PKPH_PROCESS_CONTEXT Process
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+_Maybenull_
+PUNICODE_STRING KphGetThreadImageName(
+    _In_ PKPH_THREAD_CONTEXT Thread
     );
 
 // protection

@@ -1498,4 +1498,3 @@ VOID KphCaptureStackInMessage(
                       status);
     }
 }
-
