@@ -1223,10 +1223,14 @@ ULONG64 PhGenerateRandomNumber64(
     )
 {
     LARGE_INTEGER seed;
+    ULARGE_INTEGER value;
 
     PhQueryPerformanceCounter(&seed);
 
-    return (ULONG64)RtlRandomEx(&seed.LowPart) | ((ULONG64)RtlRandomEx(&seed.LowPart) << 31);
+    value.LowPart = RtlRandomEx(&seed.LowPart);
+    value.HighPart = RtlRandomEx(&seed.LowPart);
+
+    return value.QuadPart;
 }
 
 BOOLEAN PhGenerateRandomNumber(
