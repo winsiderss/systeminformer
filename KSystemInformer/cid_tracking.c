@@ -39,7 +39,7 @@ PKPH_OBJECT_TYPE KphThreadContextType = NULL;
 
 static volatile LONG KphpLsassIsKnown = 0;
 
-static UNICODE_STRING KphpUnknownImageName = RTL_CONSTANT_STRING(L"UNKNOWN");
+static UNICODE_STRING KphpUnknownImageName = RTL_CONSTANT_STRING(L"");
 
 PAGED_FILE();
 
