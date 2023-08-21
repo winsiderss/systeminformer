@@ -1157,7 +1157,7 @@ PPH_LIST PhEnumPackageApplicationUserModelIds(
         &packageManager
         );
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         return NULL;
 
     if (PhGetOwnTokenAttributes().Elevated)
@@ -1165,17 +1165,17 @@ PPH_LIST PhEnumPackageApplicationUserModelIds(
     else
         status = __x_ABI_CWindows_CManagement_CDeployment_CIPackageManager_FindPackagesByUserSecurityId(packageManager, NULL, &enumPackages);
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = __FIIterable_1_Windows__CApplicationModel__CPackage_First(enumPackages, &enumPackage);
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     status = __FIIterator_1_Windows__CApplicationModel__CPackage_get_HasCurrent(enumPackage, &haveCurrentPackage);
 
-    if (FAILED(status))
+    if (HR_FAILED(status))
         goto CleanupExit;
 
     list = PhCreateList(10);
@@ -1184,11 +1184,11 @@ PPH_LIST PhEnumPackageApplicationUserModelIds(
     {
         status = __FIIterator_1_Windows__CApplicationModel__CPackage_get_Current(enumPackage, &currentPackage);
 
-        if (SUCCEEDED(status))
+        if (HR_SUCCESS(status))
         {
             status = __x_ABI_CWindows_CApplicationModel_CIPackage_QueryInterface(currentPackage, &IID_IPackage2, &currentPackage2);
 
-            if (SUCCEEDED(status))
+            if (HR_SUCCESS(status))
             {
                 PhQueryApplicationModelPackageInformation(
                     list,
@@ -1213,17 +1213,18 @@ PPH_LIST PhEnumPackageApplicationUserModelIds(
             __FIIterator_1_Windows__CApplicationModel__CPackage_Release(currentPackage);
         }
 
-        if (FAILED(status))
+        if (HR_FAILED(status))
             break;
 
         status = __FIIterator_1_Windows__CApplicationModel__CPackage_MoveNext(enumPackage, &haveCurrentPackage);
 
-        if (FAILED(status))
+        if (HR_FAILED(status))
             break;
     }
 
 CleanupExit:
-
+    if (enumPackage)
+        __FIIterator_1_Windows__CApplicationModel__CPackage_Release(enumPackage);
     if (enumPackages)
         __FIIterable_1_Windows__CApplicationModel__CPackage_Release(enumPackages);
     __x_ABI_CWindows_CManagement_CDeployment_CIPackageManager_Release(packageManager);
