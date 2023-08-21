@@ -3204,6 +3204,15 @@ PhGetNumaProcessorNode(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhPrefetchVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG_PTR NumberOfEntries,
+    _In_ PMEMORY_RANGE_ENTRY VirtualAddresses
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGuardGrantSuppressedCallAccess(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID VirtualAddress
