@@ -1945,27 +1945,6 @@ typedef struct _ISOLATION_MANIFEST_PROPERTIES
     ULONG_PTR Level;
 } ISOLATION_MANIFEST_PROPERTIES, *PISOLATION_MANIFEST_PROPERTIES;
 
-#ifndef PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS
-#define PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS \
-    ProcThreadAttributeValue(ProcThreadAttributeExtendedFlags, FALSE, TRUE, TRUE)
-#endif
-#ifndef PROC_THREAD_ATTRIBUTE_CONSOLE_REFERENCE
-#define PROC_THREAD_ATTRIBUTE_CONSOLE_REFERENCE \
-    ProcThreadAttributeValue(ProcThreadAttributeConsoleReference, FALSE, TRUE, FALSE)
-#endif
-#ifndef PROC_THREAD_ATTRIBUTE_OSMAXVERSIONTESTED
-#define PROC_THREAD_ATTRIBUTE_OSMAXVERSIONTESTED \
-    ProcThreadAttributeValue(ProcThreadAttributeOsMaxVersionTested, FALSE, TRUE, FALSE)
-#endif
-#ifndef PROC_THREAD_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM
-#define PROC_THREAD_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM \
-    ProcThreadAttributeValue(ProcThreadAttributeSafeOpenPromptOriginClaim, FALSE, TRUE, FALSE)
-#endif
-#ifndef PROC_THREAD_ATTRIBUTE_BNO_ISOLATION
-#define PROC_THREAD_ATTRIBUTE_BNO_ISOLATION \
-    ProcThreadAttributeValue(ProcThreadAttributeBnoIsolation, FALSE, TRUE, FALSE)
-#endif
-
 // Attributes (Native)
 
 // private
