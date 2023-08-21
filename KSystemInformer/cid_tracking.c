@@ -39,6 +39,8 @@ PKPH_OBJECT_TYPE KphThreadContextType = NULL;
 
 static volatile LONG KphpLsassIsKnown = 0;
 
+static UNICODE_STRING KphpUnknownImageName = RTL_CONSTANT_STRING(L"UNKNOWN");
+
 PAGED_FILE();
 
 /**
@@ -331,6 +333,15 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
         process->ImageFileName = NULL;
     }
+
+    if (KphUSrchr(process->ImageFileName, L'\\', &process->ImageName)) 
+    {   // skip L'\\'
+        process->ImageName.Buffer ++;
+        process->ImageName.Length -= sizeof(WCHAR);
+        process->ImageName.MaximumLength -= sizeof(WCHAR);
+    }
+    else
+        process->ImageName = KphpUnknownImageName;
 
     if (!KphpLsassIsKnown && KphProcessIsLsass(process->EProcess))
     {
@@ -1379,7 +1390,8 @@ NTSTATUS KphCidPopulate(
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
-                      "Tracking process %lu",
+                      "Tracking process %wZ (%lu)",
+                      &process->ImageName,
                       HandleToULong(process->ProcessId));
 
         for (ULONG i = 0; i < info->NumberOfThreads; i++)
@@ -1421,8 +1433,9 @@ NTSTATUS KphCidPopulate(
             {
                 KphTracePrint(TRACE_LEVEL_ERROR,
                               TRACKING,
-                              "KphpTrackContext failed (thread %lu in process %lu)",
+                              "KphpTrackContext failed (thread %lu in process %wZ (%lu))",
                               HandleToULong(info->Threads[i].ClientId.UniqueThread),
+                              &process->ImageName,
                               HandleToULong(process->ProcessId));
                 continue;
             }

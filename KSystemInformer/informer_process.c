@@ -106,7 +106,8 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
-                      "Stopped tracking process %lu",
+                      "Stopped tracking process %wZ (%lu)",
+                      &process->ImageName,
                       HandleToULong(process->ProcessId));
 
         process->ExitNotification = TRUE;
@@ -136,7 +137,8 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   TRACKING,
-                  "Tracking process %lu",
+                  "Tracking process %wZ (%lu)",
+                  &process->ImageName,
                   HandleToULong(process->ProcessId));
 
     KphVerifyProcessAndProtectIfAppropriate(process);
