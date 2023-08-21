@@ -328,7 +328,8 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     {
         KphTracePrint(TRACE_LEVEL_CRITICAL,
                       COMMS,
-                      "Untrusted client %lu (0x%08x)",
+                      "Untrusted client %wZ (%lu) (0x%08x)",
+                      &process->ImageName,
                       HandleToULong(process->ProcessId),
                       processState);
 
@@ -359,7 +360,8 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
 
     KphTracePrint(TRACE_LEVEL_INFORMATION,
                   COMMS,
-                  "Client connected: %lu (0x%08x)",
+                  "Client connected: %wZ (%lu) (0x%08x)",
+                  &client->Process->ImageName,
                   HandleToULong(client->Process->ProcessId),
                   processState);
 
@@ -406,7 +408,8 @@ VOID FLTAPI KphpCommsDisconnectNotifyCallback(
 
     KphTracePrint(TRACE_LEVEL_INFORMATION,
                   COMMS,
-                  "Client disconnected: %lu",
+                  "Client disconnected: %wZ (%lu)",
+                  &client->Process->ImageName,
                   HandleToULong(client->Process->ProcessId));
 
     KphDereferenceObject(client);
@@ -582,9 +585,10 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   COMMS,
-                  "Received input (%lu - %!TIME!) from client: %lu",
+                  "Received input (%lu - %!TIME!) from client: %wZ (%lu)",
                   (ULONG)msg->Header.MessageId,
                   msg->Header.TimeStamp.QuadPart,
+                  &client->Process->ImageName,
                   HandleToULong(client->Process->ProcessId));
 
     handler = &KphCommsMessageHandlers[msg->Header.MessageId];
@@ -600,7 +604,8 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     {
         KphTracePrint(TRACE_LEVEL_CRITICAL,
                       COMMS,
-                      "Untrusted client %lu (0x%08x, 0x%08x)",
+                      "Untrusted client %wZ (%lu) (0x%08x, 0x%08x)",
+                      &client->Process->ImageName,
                       HandleToULong(client->Process->ProcessId),
                       processState,
                       requiredState);
@@ -644,9 +649,10 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   COMMS,
-                  "Sending output (%lu - %!TIME!) to client: %lu",
+                  "Sending output (%lu - %!TIME!) to client: %wZ (%lu)",
                   (ULONG)msg->Header.MessageId,
                   msg->Header.TimeStamp.QuadPart,
+                  &client->Process->ImageName,
                   HandleToULong(client->Process->ProcessId));
 
     status = STATUS_SUCCESS;
@@ -940,9 +946,10 @@ NTSTATUS KphpCommsSendMessage(
             KphTracePrint(TRACE_LEVEL_INFORMATION,
                           COMMS,
                           "Bottleneck protection, forcing asynchronous send "
-                          "(%lu - %!TIME!) to client: %lu",
+                          "(%lu - %!TIME!) to client: %wZ (%lu)",
                           (ULONG)Message->Header.MessageId,
                           Message->Header.TimeStamp.QuadPart,
+                          &client->Process->ImageName,
                           HandleToULong(client->Process->ProcessId));
 
             //
@@ -967,9 +974,10 @@ NTSTATUS KphpCommsSendMessage(
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
-                      "Sending message (%lu - %!TIME!) to client: %lu",
+                      "Sending message (%lu - %!TIME!) to client: %wZ (%lu)",
                       (ULONG)Message->Header.MessageId,
                       Message->Header.TimeStamp.QuadPart,
+                      &client->Process->ImageName,
                       HandleToULong(client->Process->ProcessId));
 
         status2 = KphpFltSendMessage(&client->Port,
@@ -989,7 +997,8 @@ NTSTATUS KphpCommsSendMessage(
         {
             KphTracePrint(TRACE_LEVEL_CRITICAL,
                           COMMS,
-                          "Untrusted client %lu (0x%08x)",
+                          "Untrusted client %wZ (%lu) (0x%08x)",
+                          &client->Process->ImageName,
                           HandleToULong(client->Process->ProcessId),
                           processState);
 
@@ -1002,16 +1011,18 @@ NTSTATUS KphpCommsSendMessage(
             {
                 KphTracePrint(TRACE_LEVEL_ERROR,
                               COMMS,
-                              "Received invalid reply from client: %lu",
+                              "Received invalid reply from client: %wZ (%lu)",
+                              &client->Process->ImageName,
                               HandleToULong(client->Process->ProcessId));
             }
             else
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               COMMS,
-                              "Received reply (%lu - %!TIME!) from client: %lu",
+                              "Received reply (%lu - %!TIME!) from client: %wZ (%lu)",
                               (ULONG)reply->Header.MessageId,
                               reply->Header.TimeStamp.QuadPart,
+                              &client->Process->ImageName,
                               HandleToULong(client->Process->ProcessId));
             }
         }

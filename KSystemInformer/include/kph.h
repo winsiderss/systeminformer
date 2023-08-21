@@ -831,6 +831,13 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
     _In_ ULONG Flags
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphUSrchr(
+    _In_opt_ PUNICODE_STRING String,
+    _In_ WCHAR ToFind,
+    _Inout_ PUNICODE_STRING Out
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1120,6 +1127,7 @@ typedef struct _KPH_PROCESS_CONTEXT
     CLIENT_ID CreatorClientId;
 
     PUNICODE_STRING ImageFileName;
+    UNICODE_STRING ImageName;
     PFILE_OBJECT FileObject;
 
     volatile SIZE_T NumberOfImageLoads;
