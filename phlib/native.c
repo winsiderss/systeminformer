@@ -16671,6 +16671,111 @@ NTSTATUS PhGetNumaProximityNode(
     return status;
 }
 
+// rev from PrefetchVirtualMemory (dmex)
+/**
+ * Provides an efficient mechanism to bring into memory potentially discontiguous virtual address ranges in a process address space.
+ *
+ * \param ProcessHandle A handle to the process whose virtual address ranges are to be prefetched.
+ * \param NumberOfEntries Number of entries in the array pointed to by the VirtualAddresses parameter.
+ * \param VirtualAddresses A pointer to an array of MEMORY_RANGE_ENTRY structures which each specify a virtual address range
+ * to be prefetched. The virtual address ranges may cover any part of the process address space accessible by the target process.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhPrefetchVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG_PTR NumberOfEntries,
+    _In_ PMEMORY_RANGE_ENTRY VirtualAddresses
+    )
+{
+    NTSTATUS status;
+    ULONG prefetchInformationFlags;
+
+    if (!NtSetInformationVirtualMemory_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    memset(&prefetchInformationFlags, 0, sizeof(prefetchInformationFlags));
+
+    status = NtSetInformationVirtualMemory_Import()(
+        ProcessHandle,
+        VmPrefetchInformation,
+        NumberOfEntries,
+        VirtualAddresses,
+        &prefetchInformationFlags,
+        sizeof(prefetchInformationFlags)
+        );
+
+    return status;
+}
+
+// rev from OfferVirtualMemory (dmex)
+//NTSTATUS PhOfferVirtualMemory(
+//    _In_ HANDLE ProcessHandle,
+//    _In_ PVOID VirtualAddress,
+//    _In_ SIZE_T NumberOfBytes,
+//    _In_ OFFER_PRIORITY Priority
+//    )
+//{
+//    NTSTATUS status;
+//    MEMORY_RANGE_ENTRY virtualMemoryRange;
+//    ULONG virtualMemoryFlags;
+//
+//    if (!NtSetInformationVirtualMemory_Import())
+//        return STATUS_PROCEDURE_NOT_FOUND;
+//
+//    // TODO: NtQueryVirtualMemory (dmex)
+//
+//    memset(&virtualMemoryRange, 0, sizeof(MEMORY_RANGE_ENTRY));
+//    virtualMemoryRange.VirtualAddress = VirtualAddress;
+//    virtualMemoryRange.NumberOfBytes = NumberOfBytes;
+//
+//    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
+//    virtualMemoryFlags = Priority;
+//
+//    status = NtSetInformationVirtualMemory_Import()(
+//        ProcessHandle,
+//        VmPagePriorityInformation,
+//        1,
+//        &virtualMemoryRange,
+//        &virtualMemoryFlags,
+//        sizeof(virtualMemoryFlags)
+//        );
+//
+//    return status;
+//}
+//
+// rev from DiscardVirtualMemory (dmex)
+//NTSTATUS PhDiscardVirtualMemory(
+//    _In_ HANDLE ProcessHandle,
+//    _In_ PVOID VirtualAddress,
+//    _In_ SIZE_T NumberOfBytes
+//    )
+//{
+//    NTSTATUS status;
+//    MEMORY_RANGE_ENTRY virtualMemoryRange;
+//    ULONG virtualMemoryFlags;
+//
+//    if (!NtSetInformationVirtualMemory_Import())
+//        return STATUS_PROCEDURE_NOT_FOUND;
+//
+//    memset(&virtualMemoryRange, 0, sizeof(MEMORY_RANGE_ENTRY));
+//    virtualMemoryRange.VirtualAddress = VirtualAddress;
+//    virtualMemoryRange.NumberOfBytes = NumberOfBytes;
+//
+//    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
+//
+//    status = NtSetInformationVirtualMemory_Import()(
+//        ProcessHandle,
+//        VmPagePriorityInformation,
+//        1,
+//        &virtualMemoryRange,
+//        &virtualMemoryFlags,
+//        sizeof(virtualMemoryFlags)
+//        );
+//
+//    return status;
+//}
+//
 // rev from SetProcessValidCallTargets (dmex)
 //NTSTATUS PhSetProcessValidCallTarget(
 //    _In_ HANDLE ProcessHandle,
