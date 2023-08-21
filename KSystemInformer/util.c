@@ -1421,7 +1421,8 @@ BOOLEAN KphUSrchr(
         return FALSE;
 
     ptr = &String->Buffer[String->Length / sizeof(WCHAR)];
-    while (ptr > String->Buffer) {
+    while (ptr > String->Buffer)
+    {
         if (*--ptr == ToFind)
             break;
     }
