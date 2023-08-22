@@ -146,6 +146,53 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
     </data>
+    <!-- Windows Server 2022 -->
+    <data name="10.0.20348.587 - 10.0.20348.1906">
+        <field value="10"     name="MajorVersion"/>
+        <field value="0"      name="MinorVersion"/>
+        <field value="20348"  name="BuildNumberMin"/>
+        <field value="587"    name="RevisionMin"/>
+        <field value="20348"  name="BuildNumberMax"/>
+        <field value="1906"   name="RevisionMax"/>
+
+        <field value="0x28"   name="EgeGuid"/>
+        <field value="0x570"  name="EpObjectTable"/>
+        <field value="0x20"   name="EreGuidEntry"/>
+        <field value="0x30"   name="HtHandleContentionEvent"/>
+        <field value="0x10"   name="OtName"/>
+        <field value="0x28"   name="OtIndex"/>
+        <field value="16"     name="ObDecodeShift"/>
+        <field value="17"     name="ObAttributesShift"/>
+        <field value="2"      name="CiVersion"/>
+        <field value="0x10"   name="AlpcCommunicationInfo"/>
+        <field value="0x18"   name="AlpcOwnerProcess"/>
+        <field value="0x0"    name="AlpcConnectionPort"/>
+        <field value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field value="0x28"   name="AlpcHandleTable"/>
+        <field value="0x8"    name="AlpcHandleTableLock"/>
+        <field value="0x100"  name="AlpcAttributes"/>
+        <field value="0x0"    name="AlpcAttributesFlags"/>
+        <field value="0x38"   name="AlpcPortContext"/>
+        <field value="0x160"  name="AlpcPortObjectLock"/>
+        <field value="0x190"  name="AlpcSequenceNo"/>
+        <field value="0x1a0"  name="AlpcState"/>
+        <field value="0x380"  name="KtReadOperationCount"/>
+        <field value="0x388"  name="KtWriteOperationCount"/>
+        <field value="0x390"  name="KtOtherOperationCount"/>
+        <field value="0x398"  name="KtReadTransferCount"/>
+        <field value="0x3a0"  name="KtWriteTransferCount"/>
+        <field value="0x3a8"  name="KtOtherTransferCount"/>
+        <field value="1"      name="LxVersion"/>
+        <field value="0x80"   name="LxPicoProc"/>
+        <field value="0x10"   name="LxPicoProcInfo"/>
+        <field value="0x10"   name="LxPicoProcInfoPID"/>
+        <field value="0x10"   name="LxPicoThrdInfo"/>
+        <field value="0x10"   name="LxPicoThrdInfoTID"/>
+        <field value="0x28"   name="MmSectionControlArea"/>
+        <field value="0x8"    name="MmControlAreaListHead"/>
+        <field value="0x48"   name="MmControlAreaLock"/>
+    </data>
     <!-- Windows 10 -->
     <data name="10.0.19041.1586 - 10.0.19041.3324">
         <field value="10"     name="MajorVersion"/>
