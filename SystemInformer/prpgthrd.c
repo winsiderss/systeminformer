@@ -344,6 +344,12 @@ BOOLEAN PhpThreadTreeFilterCallback(
             return TRUE;
     }
 
+    if (threadItem->LxssThreadIdString[0])
+    {
+        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadItem->LxssThreadIdString))
+            return TRUE;
+    }
+
     if (threadNode->PriorityText[0])
     {
         if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->PriorityText))

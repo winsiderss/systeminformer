@@ -153,6 +153,12 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
     //    if (PhWordMatchStringLongHintZ(SearchText, processNode->ProcessItem->SessionIdString))
     //        return Matched;
     //}
+    
+    if (processNode->ProcessItem->LxssProcessIdString[0])
+    {
+        if (PhWordMatchStringLongHintZ(SearchText, processNode->ProcessItem->LxssProcessIdString))
+            return FILTER_RESULT_FOUND_NAME;
+    }
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->PackageFullName))
     {

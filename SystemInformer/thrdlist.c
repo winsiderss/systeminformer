@@ -128,6 +128,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOREADBYTES, FALSE, L"I/O read bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES, FALSE, L"I/O write bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES, FALSE, L"I/O other bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LXSSTID, FALSE, L"TID (LXSS)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -1180,6 +1181,12 @@ BEGIN_SORT_FUNCTION(IoOtherBytes)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(LxssTid)
+{
+    sortResult = uintcmp(threadItem1->LxssThreadId, threadItem2->LxssThreadId);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1245,6 +1252,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(IoReadBytes),
                     SORT_FUNCTION(IoWriteBytes),
                     SORT_FUNCTION(IoOtherBytes),
+                    SORT_FUNCTION(LxssTid),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1298,6 +1306,11 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             case PH_THREAD_TREELIST_COLUMN_TID:
                 {
                     PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_LXSSTID:
+                {
+                    PhInitializeStringRefLongHint(&getCellText->Text, threadItem->LxssThreadIdString);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CPU:

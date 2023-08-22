@@ -52,6 +52,7 @@ typedef struct _PH_THREAD_ITEM
     BOOLEAN IsGuiThread;
     BOOLEAN JustResolved;
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
+    WCHAR LxssThreadIdString[PH_INT32_STR_LEN_1];
 
     IO_COUNTERS IoCounters;
 
