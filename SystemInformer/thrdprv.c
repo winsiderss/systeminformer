@@ -971,6 +971,7 @@ VOID PhpThreadProviderUpdate(
                         )))
                     {
                         threadItem->LxssThreadId = lxssThreadId;
+                        PhPrintUInt32(threadItem->LxssThreadIdString, lxssThreadId);
                     }
                 }
             }
