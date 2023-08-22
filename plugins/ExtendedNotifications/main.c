@@ -340,7 +340,7 @@ VOID NTAPI ShowOptionsCallback(
         L"Notifications - Devices",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_DEVICES),
-        ServicesDlgProc,
+        DevicesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
@@ -802,75 +802,6 @@ INT_PTR CALLBACK ServicesDlgProc(
     INT_PTR result;
 
     if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
-        GetDlgItem(hwndDlg, IDC_LIST), EditingDeviceFilterList))
-        return result;
-
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            EditingDeviceFilterList = PhCreateList(DeviceFilterList->Count + 10);
-            CopyFilterList(EditingDeviceFilterList, DeviceFilterList);
-
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-
-            AddEntriesToListBox(GetDlgItem(hwndDlg, IDC_LIST), EditingDeviceFilterList);
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PPH_STRING string;
-
-            ClearFilterList(DeviceFilterList);
-            CopyFilterList(DeviceFilterList, EditingDeviceFilterList);
-
-            string = SaveFilterList(DeviceFilterList);
-            PhSetStringSetting2(SETTING_NAME_DEVICE_LIST, &string->sr);
-            PhDereferenceObject(string);
-
-            ClearFilterList(EditingDeviceFilterList);
-            PhDereferenceObject(EditingDeviceFilterList);
-            EditingDeviceFilterList = NULL;
-
-            PhDeleteLayoutManager(&LayoutManager);
-        }
-        break;
-    case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    }
-
-    return FALSE;
-}
-
-INT_PTR CALLBACK DevicesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    static PH_LAYOUT_MANAGER LayoutManager;
-    INT_PTR result;
-
-    if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
         GetDlgItem(hwndDlg, IDC_LIST), EditingServiceFilterList))
         return result;
 
@@ -909,6 +840,75 @@ INT_PTR CALLBACK DevicesDlgProc(
             ClearFilterList(EditingServiceFilterList);
             PhDereferenceObject(EditingServiceFilterList);
             EditingServiceFilterList = NULL;
+
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK DevicesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_LAYOUT_MANAGER LayoutManager;
+    INT_PTR result;
+
+    if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
+        GetDlgItem(hwndDlg, IDC_LIST), EditingDeviceFilterList))
+        return result;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            EditingDeviceFilterList = PhCreateList(DeviceFilterList->Count + 10);
+            CopyFilterList(EditingDeviceFilterList, DeviceFilterList);
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_EXCLUDE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_REMOVE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+
+            AddEntriesToListBox(GetDlgItem(hwndDlg, IDC_LIST), EditingDeviceFilterList);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PPH_STRING string;
+
+            ClearFilterList(DeviceFilterList);
+            CopyFilterList(DeviceFilterList, EditingDeviceFilterList);
+
+            string = SaveFilterList(DeviceFilterList);
+            PhSetStringSetting2(SETTING_NAME_DEVICE_LIST, &string->sr);
+            PhDereferenceObject(string);
+
+            ClearFilterList(EditingDeviceFilterList);
+            PhDereferenceObject(EditingDeviceFilterList);
+            EditingDeviceFilterList = NULL;
 
             PhDeleteLayoutManager(&LayoutManager);
         }
