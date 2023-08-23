@@ -503,7 +503,7 @@ NTSTATUS KphInitializeSocket(
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       SOCKET,
-                      "WskRegister failed: %!STATUS!",
+                      "WskCaptureProviderNPI failed: %!STATUS!",
                       status);
 
         goto Exit;
