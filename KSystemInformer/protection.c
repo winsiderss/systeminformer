@@ -482,7 +482,7 @@ NTSTATUS KphStartProtectingProcess(
 
     SeCaptureSubjectContextEx(NULL, Process->EProcess, &subjectContext);
 
-    accessGranted = KphSinglePrivilegeCheckEx(SeExports->SeDebugPrivilege,
+    accessGranted = KphSinglePrivilegeCheckEx(SeDebugPrivilege,
                                               &subjectContext,
                                               UserMode);
 

@@ -1000,7 +1000,7 @@ BOOLEAN KphProcessIsLsass(
 
     SeCaptureSubjectContextEx(NULL, Process, &subjectContext);
 
-    result = KphSinglePrivilegeCheckEx(SeExports->SeCreateTokenPrivilege,
+    result = KphSinglePrivilegeCheckEx(SeCreateTokenPrivilege,
                                        &subjectContext,
                                        UserMode);
 
