@@ -102,6 +102,9 @@
     <ClCompile Include="knowndll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="socket.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
