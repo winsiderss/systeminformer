@@ -1580,7 +1580,6 @@ typedef LXP_THREAD_GET_CURRENT* PLXP_THREAD_GET_CURRENT;
 
 // CFG
 
-
 //
 // Define flags for setting process CFG valid call target entries.
 //
@@ -1636,3 +1635,8 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
     PVOID Section; // since REDSTONE5
     ULONGLONG FileOffset;
 } CFG_CALL_TARGET_LIST_INFORMATION, *PCFG_CALL_TARGET_LIST_INFORMATION;
+
+// SE
+
+#define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
+#define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)

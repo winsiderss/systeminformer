@@ -300,7 +300,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     process = NULL;
     client = NULL;
 
-    if (!KphSinglePrivilegeCheck(SeExports->SeDebugPrivilege, UserMode))
+    if (!KphSinglePrivilegeCheck(SeDebugPrivilege, UserMode))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       COMMS,
