@@ -54,7 +54,7 @@ NTSTATUS KphpSetDynamicConfigiration(
     _In_ PKPH_DYN_CONFIGURATION Configuration
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if ((Configuration->MajorVersion != KphKernelVersion.MajorVersion) ||
         (Configuration->MinorVersion != KphKernelVersion.MinorVersion))
@@ -190,7 +190,7 @@ NTSTATUS KphOpenParametersKey(
     UNICODE_STRING parametersKeyName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *KeyHandle = NULL;
 
@@ -255,7 +255,7 @@ NTSTATUS KphpReadDynamicConfiguration(
     ULONG actualLength;
     PKPH_DYNDATA dynData;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *DynData = NULL;
 
@@ -395,7 +395,7 @@ NTSTATUS KphDynamicDataInitialization(
     HANDLE keyHandle;
     PKPH_DYNDATA dynData;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     keyHandle = NULL;
     dynData = NULL;
@@ -510,7 +510,7 @@ VOID KphDynamicDataCleanup(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphDynAltitude)
     {

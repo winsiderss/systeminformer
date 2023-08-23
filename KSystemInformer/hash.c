@@ -174,7 +174,7 @@ PBYTE KphpAllocateHashingBuffer(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpHashingInfra);
 
@@ -191,7 +191,7 @@ VOID KphpFreeHashingBuffer(
     _In_freesMem_ PBYTE Buffer
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpHashingInfra);
 
@@ -213,7 +213,7 @@ NTSTATUS KphInitializeHashing(
     NTSTATUS status;
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     typeInfo.Allocate = KphpAllocateHashingInfra;
     typeInfo.Initialize = KphpInitHashingInfra;
@@ -244,7 +244,7 @@ VOID KphCleanupHashing(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphpHashingInfra)
     {
@@ -305,7 +305,7 @@ NTSTATUS KphHashBuffer(
     BCRYPT_ALG_HANDLE algHandle;
     BCRYPT_HASH_HANDLE hashHandle;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpHashingInfra);
 
@@ -428,7 +428,7 @@ NTSTATUS KphHashFile(
     PBYTE readBuffer;
     SIZE_T readSize;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpHashingInfra);
 
@@ -606,7 +606,7 @@ NTSTATUS KphHashFileByName(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(Hash, sizeof(*Hash));
 
@@ -688,7 +688,7 @@ NTSTATUS KphGetAuthenticodeInfo(
     PVOID securityEnd;
     PBYTE readBuffer;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(regions, sizeof(regions));
     mappedBase = NULL;
@@ -1047,7 +1047,7 @@ NTSTATUS KphGetAuthenticodeInfoByFileName(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(Info, sizeof(*Info));
 
@@ -1103,7 +1103,7 @@ VOID KphFreeAuthenticodeInfo(
     _In_freesMem_ PKPH_AUTHENTICODE_INFO Info
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (Info->Signature)
     {

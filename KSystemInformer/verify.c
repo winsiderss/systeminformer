@@ -50,7 +50,7 @@ NTSTATUS KphInitializeVerify(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = BCryptOpenAlgorithmProvider(&KphpBCryptSigningProvider,
                                          BCRYPT_ECDSA_P256_ALGORITHM,
@@ -96,7 +96,7 @@ VOID KphCleanupVerify(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphpTrustedPublicKeyHandle)
     {
@@ -133,7 +133,7 @@ NTSTATUS KphVerifyBuffer(
     NTSTATUS status;
     KPH_HASH hash;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpTrustedPublicKeyHandle);
 
@@ -193,7 +193,7 @@ NTSTATUS KphVerifyFile(
     IO_STATUS_BLOCK ioStatusBlock;
     BYTE signature[MINCRYPT_MAX_HASH_LEN];
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpTrustedPublicKeyHandle);
 

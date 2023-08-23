@@ -80,7 +80,7 @@ VOID KphpDriverCleanup(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphObjectInformerStop();
     KphDebugInformerStop();
@@ -109,7 +109,7 @@ VOID DriverUnload(
     _In_ PDRIVER_OBJECT DriverObject
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "Driver Unloading...");
 
@@ -138,7 +138,7 @@ NTSTATUS DriverEntry(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     WPP_INIT_TRACING(DriverObject, RegistryPath);
 

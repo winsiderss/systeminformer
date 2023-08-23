@@ -44,7 +44,7 @@ NTSTATUS KphOpenProcess(
     PEPROCESS process;
     HANDLE processHandle;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
 
@@ -191,7 +191,7 @@ NTSTATUS KphOpenProcessToken(
     PACCESS_TOKEN primaryToken;
     HANDLE tokenHandle;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
     primaryToken = NULL;
@@ -329,7 +329,7 @@ NTSTATUS KphOpenProcessJob(
     PEJOB job;
     HANDLE jobHandle;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
 
@@ -455,7 +455,7 @@ NTSTATUS KphTerminateProcess(
     PEPROCESS process;
     HANDLE processHandle;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
     processHandle = NULL;
@@ -572,7 +572,7 @@ NTSTATUS KphQueryInformationProcess(
     PKPH_PROCESS_CONTEXT process;
     ULONG returnLength;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     processObject = NULL;
     process = NULL;
@@ -834,7 +834,7 @@ NTSTATUS KphSetInformationProcess(
     HANDLE processHandle;
     PROCESSINFOCLASS processInformationClass;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     processInformation = NULL;
     process = NULL;

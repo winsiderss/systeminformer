@@ -38,7 +38,7 @@ NTSTATUS KphSystemControl(
     NTSTATUS status;
     HANDLE processHandle;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(SystemControlInfo);
     UNREFERENCED_PARAMETER(SystemControlInfoLength);

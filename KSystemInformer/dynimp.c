@@ -25,7 +25,7 @@ VOID KphDynamicImport(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphDynPsSetLoadImageNotifyRoutineEx = (PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX)KphGetSystemRoutineAddress(L"PsSetLoadImageNotifyRoutineEx");
     KphDynPsSetCreateProcessNotifyRoutineEx2 = (PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2)KphGetSystemRoutineAddress(L"PsSetCreateProcessNotifyRoutineEx2");
@@ -47,7 +47,7 @@ PVOID KphGetSystemRoutineAddress(
 {
     UNICODE_STRING systemRoutineName;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlInitUnicodeString(&systemRoutineName, SystemRoutineName);
 
@@ -74,7 +74,7 @@ PVOID KphpGetRoutineAddressByModuleList(
     PVOID routine;
     UNICODE_STRING moduleName;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     routine = NULL;
     RtlInitUnicodeString(&moduleName, ModuleName);
@@ -144,7 +144,7 @@ PVOID KphGetRoutineAddress(
     _In_z_ PCSTR RoutineName
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     return KphpGetRoutineAddressByModuleList(ModuleName, RoutineName);
 }

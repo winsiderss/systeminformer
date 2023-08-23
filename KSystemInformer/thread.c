@@ -58,7 +58,7 @@ NTSTATUS KphOpenThread(
     PETHREAD thread;
     HANDLE threadHandle = NULL;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     thread = NULL;
 
@@ -198,7 +198,7 @@ NTSTATUS KphOpenThreadProcess(
     PETHREAD thread;
     HANDLE processHandle;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     thread = NULL;
 
@@ -544,7 +544,7 @@ VOID KphInitializeStackBackTrace(
 {
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     typeInfo.Allocate = KphpStackBackTraceAllocate;
     typeInfo.Initialize = KphpStackBackTraceInitialize;
@@ -592,7 +592,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
     PKPH_STACK_BACKTRACE_OBJECT backTrace;
     ULONG backTraceSize;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     backTrace = NULL;
 
@@ -823,7 +823,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     NTSTATUS status = STATUS_SUCCESS;
     PETHREAD thread;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (ThreadHandle == NtCurrentThread())
     {
@@ -898,7 +898,7 @@ NTSTATUS KphSetInformationThread(
     HANDLE threadHandle;
     THREADINFOCLASS threadInformationClass;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     threadInformation = NULL;
     thread = NULL;
@@ -1128,7 +1128,7 @@ NTSTATUS KphQueryInformationThread(
     PKPH_THREAD_CONTEXT thread;
     ULONG returnLength;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     threadObject = NULL;
     thread = NULL;

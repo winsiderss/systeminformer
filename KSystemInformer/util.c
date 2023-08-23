@@ -33,7 +33,7 @@ ULONG KphCaptureStack(
 {
     ULONG frames;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     frames = RtlWalkFrameChain(Frames, Count, 0);
 
@@ -66,7 +66,7 @@ BOOLEAN KphAcquireRundown(
     _Inout_ PKPH_RUNDOWN Rundown
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     return ExAcquireRundownProtection(Rundown);
 }
@@ -81,7 +81,7 @@ VOID KphReleaseRundown(
     _Inout_ PKPH_RUNDOWN Rundown
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     ExReleaseRundownProtection(Rundown);
 }
@@ -295,7 +295,7 @@ NTSTATUS KphQueryRegistryString(
     PUNICODE_STRING string;
     ULONG length;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *String = NULL;
     info = NULL;
@@ -435,7 +435,7 @@ NTSTATUS KphQueryRegistryBinary(
     ULONG resultLength;
     PKEY_VALUE_PARTIAL_INFORMATION info;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *Buffer = NULL;
     *Length = 0;
@@ -537,7 +537,7 @@ NTSTATUS KphQueryRegistryULong(
     ULONG resultLength;
     PKEY_VALUE_PARTIAL_INFORMATION info;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *Value = 0;
 
@@ -598,7 +598,7 @@ NTSTATUS KphMapViewInSystem(
     SIZE_T fileSize;
     LARGE_INTEGER sectionOffset;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     sectionHandle = NULL;
     sectionObject = NULL;
@@ -720,7 +720,7 @@ VOID KphUnmapViewInSystem(
     _In_ PVOID MappedBase
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     MmUnmapViewInSystemSpace(MappedBase);
 }
@@ -745,7 +745,7 @@ NTSTATUS KphGetNameFileObject(
     ULONG returnLength;
     POBJECT_NAME_INFORMATION nameInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *FileName = NULL;
 
@@ -843,7 +843,7 @@ BOOLEAN KphSinglePrivilegeCheckEx(
 {
     PRIVILEGE_SET requiredPrivileges;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     requiredPrivileges.PrivilegeCount = 1;
     requiredPrivileges.Control = PRIVILEGE_SET_ALL_NECESSARY;
@@ -872,7 +872,7 @@ BOOLEAN KphSinglePrivilegeCheck(
     BOOLEAN accessGranted;
     SECURITY_SUBJECT_CONTEXT subjectContext;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     SeCaptureSubjectContext(&subjectContext);
 
@@ -902,7 +902,7 @@ NTSTATUS KphpGetLsassProcessId(
     KAPC_STATE apcState;
     KPH_ALPC_COMMUNICATION_INFORMATION info;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *ProcessId = NULL;
 
@@ -985,7 +985,7 @@ BOOLEAN KphProcessIsLsass(
     SECURITY_SUBJECT_CONTEXT subjectContext;
     BOOLEAN result;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = KphpGetLsassProcessId(&processId);
     if (!NT_SUCCESS(status))
@@ -1028,7 +1028,7 @@ NTSTATUS KphpGetKernelFileName(
     SYSTEM_SINGLE_MODULE_INFORMATION info;
     ANSI_STRING fullPathName;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(FileName, sizeof(UNICODE_STRING));
 
@@ -1084,7 +1084,7 @@ NTSTATUS KphGetKernelVersion(
     NTSTATUS status;
     UNICODE_STRING kernelFileName;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = KphpGetKernelFileName(&kernelFileName);
     if (!NT_SUCCESS(status))
@@ -1142,7 +1142,7 @@ NTSTATUS KphGetFileVersion(
     UNICODE_STRING keyName;
     PVS_FIXEDFILEINFO fileInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(Version, sizeof(KPH_FILE_VERSION));
 
@@ -1371,7 +1371,7 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
     CFG_CALL_TARGET_LIST_INFORMATION targetListInfo;
     ULONG numberOfEntriesProcessed;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     memoryRange.VirtualAddress = (PVOID)((ULONG_PTR)VirtualAddress & ~(PAGE_SIZE - 1));
     memoryRange.NumberOfBytes = PAGE_SIZE;
@@ -1456,7 +1456,7 @@ NTSTATUS KphGetProcessImageName(
     PUCHAR fileName;
     SIZE_T len;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     fileName = PsGetProcessImageFileName(Process);
 

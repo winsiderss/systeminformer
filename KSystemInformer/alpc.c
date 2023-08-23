@@ -47,7 +47,7 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
     PVOID serverPort;
     PVOID clientPort;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *ConnectionPort = NULL;
     *ServerPort = NULL;
@@ -184,7 +184,7 @@ NTSTATUS KphpAlpcBasicInfo(
     PEPROCESS process;
     PVOID portObjectLock;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(Info, sizeof(*Info));
 
@@ -257,7 +257,7 @@ NTSTATUS KphpAlpcCommunicationInfo(
     PVOID serverPort;
     PVOID clientPort;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(Info, sizeof(*Info));
 
@@ -351,7 +351,7 @@ NTSTATUS KphpAlpcCopyPortName(
     NTSTATUS status;
     ULONG returnLength;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (String)
     {
@@ -421,7 +421,7 @@ NTSTATUS KphpAlpcCommunicationNamesInfo(
     PVOID buffer;
     ULONG remainingLength;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *ReturnLength = sizeof(KPH_ALPC_COMMUNICATION_NAMES_INFORMATION);
 
@@ -574,7 +574,7 @@ NTSTATUS KphAlpcQueryInformation(
     PVOID buffer;
     BYTE stackBuffer[64];
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
     port = NULL;

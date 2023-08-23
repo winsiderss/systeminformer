@@ -49,7 +49,7 @@ VOID KphCidMarkPopulated(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (!KphpCidTrackingInitialized)
     {
@@ -76,7 +76,7 @@ VOID KphpCidWaitForPopulate(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphpCidPopulated)
     {
@@ -107,7 +107,7 @@ PKPH_CID_APC KphpAllocateCidApc(
 {
     PKPH_CID_APC apc;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpCidApcLookaside);
 
@@ -186,7 +186,7 @@ PVOID KSIAPI KphpAllocateProcessContext(
 {
     PVOID object;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     DBG_UNREFERENCED_PARAMETER(Size);
     NT_ASSERT(KphpProcessContextLookaside);
@@ -471,7 +471,7 @@ PVOID KSIAPI KphpAllocateThreadContext(
 {
     PVOID object;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     DBG_UNREFERENCED_PARAMETER(Size);
     NT_ASSERT(KphpThreadContextLookaside);
@@ -806,7 +806,7 @@ NTSTATUS KphCidInitialize(
     NTSTATUS status;
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = CidTableCreate(&KphpCidTable);
     if (!NT_SUCCESS(status))
@@ -963,7 +963,7 @@ BOOLEAN CIDAPI KphpCidCleanupCallback(
 {
     PVOID object;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -995,7 +995,7 @@ VOID KphCidCleanup(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (!KphpCidTrackingInitialized)
     {
@@ -1084,7 +1084,7 @@ PVOID KphpTrackContext(
     PCID_TABLE_ENTRY entry;
     PVOID object;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     entry = CidGetEntry(Cid, &KphpCidTable);
     if (!entry)
@@ -1158,7 +1158,7 @@ PVOID KphpUntrackContext(
     PCID_TABLE_ENTRY entry;
     PVOID object;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     entry = CidGetEntry(Cid, &KphpCidTable);
     if (!entry)
@@ -1212,7 +1212,7 @@ BOOLEAN CIDAPI KphpCidEnumPostPopulate(
     PKPH_OBJECT_TYPE objectType;
     PKPH_PROCESS_CONTEXT process;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Parameter);
 
@@ -1252,7 +1252,7 @@ NTSTATUS KphCidPopulate(
     PVOID buffer;
     PSYSTEM_PROCESS_INFORMATION info;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     size = (PAGE_SIZE * 4);
     buffer = KphAllocatePaged(size, KPH_TAG_CID_POPULATE);
@@ -1565,7 +1565,7 @@ PKPH_PROCESS_CONTEXT KphTrackProcessContext(
     _In_ PEPROCESS Process
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphpCidWaitForPopulate();
 
@@ -1591,7 +1591,7 @@ PKPH_PROCESS_CONTEXT KphUntrackProcessContext(
 {
     PKPH_PROCESS_CONTEXT process;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphpCidWaitForPopulate();
 
@@ -1621,7 +1621,7 @@ PKPH_THREAD_CONTEXT KphTrackThreadContext(
     _In_ PETHREAD Thread
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphpCidWaitForPopulate();
 
@@ -1647,7 +1647,7 @@ PKPH_THREAD_CONTEXT KphUntrackThreadContext(
 {
     PKPH_THREAD_CONTEXT thread;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphpCidWaitForPopulate();
 
@@ -1842,7 +1842,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
     PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
     ULONG flags;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (Process->ApcNoopRoutine)
     {
@@ -1946,7 +1946,7 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
     NTSTATUS status;
     KPH_PROCESS_STATE processState;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (Process->ImageFileName && !Process->VerifiedProcess)
     {

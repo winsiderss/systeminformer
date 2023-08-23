@@ -40,7 +40,7 @@ VOID KphpPopulateObjectNameInMessage(
     POBJECT_NAME_INFORMATION info;
     ULONG length;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     buffer = NULL;
 
@@ -112,7 +112,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleCreate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -175,7 +175,7 @@ VOID KphpObPostProcessHandleCreate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -235,7 +235,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleDuplicate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -302,7 +302,7 @@ VOID KphpObPostProcessHandleDuplicate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -362,7 +362,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleCreate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -425,7 +425,7 @@ VOID KphpObPostThreadHandleCreate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -485,7 +485,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleDuplicate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -552,7 +552,7 @@ VOID KphpObPostThreadHandleDuplicate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -612,7 +612,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleCreate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -673,7 +673,7 @@ VOID KphpObPostDesktopHandleCreate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -733,7 +733,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleDuplicate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -798,7 +798,7 @@ VOID KphpObPostDesktopHandleDuplicate(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -856,7 +856,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreCallback(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (Info->ObjectType == *PsProcessType)
     {
@@ -907,7 +907,7 @@ VOID KphpObPostCallback(
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
@@ -967,7 +967,7 @@ NTSTATUS KphObjectInformerStart(
     OB_CALLBACK_REGISTRATION callbackRegistration;
     OB_OPERATION_REGISTRATION operationRegistration[3];
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphDynAltitude);
 
@@ -1019,7 +1019,7 @@ VOID KphObjectInformerStop(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphpObRegistrationHandle)
     {

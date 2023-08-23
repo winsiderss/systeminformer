@@ -46,7 +46,7 @@ PVOID KphAllocateNPaged(
     _In_ ULONG Tag
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     if (KphpRandomPoolTag)
     {
@@ -69,7 +69,7 @@ VOID KphFree(
     _In_ ULONG Tag
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
     NT_ASSERT(Memory);
 
     if (KphpRandomPoolTag)
@@ -95,7 +95,7 @@ VOID KphInitializeNPagedLookaside(
     _In_ ULONG Tag
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     if (KphpRandomPoolTag)
     {
@@ -122,7 +122,7 @@ VOID KphDeleteNPagedLookaside(
     _Inout_ PNPAGED_LOOKASIDE_LIST Lookaside
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
 #pragma warning(suppress: 4995) // suppress deprecation warning
     ExDeleteNPagedLookasideList(Lookaside);
@@ -143,7 +143,7 @@ PVOID KphAllocateFromNPagedLookaside(
 {
     PVOID memory;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
 #pragma warning(suppress: 4995) // suppress deprecation warning
     memory = ExAllocateFromNPagedLookasideList(Lookaside);
@@ -167,7 +167,7 @@ VOID KphFreeToNPagedLookaside(
     _In_freesMem_ PVOID Memory
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
     NT_ASSERT(Memory);
 
 #pragma warning(suppress: 4995) // suppress deprecation warning
@@ -187,7 +187,7 @@ PVOID KSIAPI KphpAllocateNPagedLookasideObject(
     _In_ SIZE_T Size
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     return KphAllocateNPaged(Size, KPH_TAG_NPAGED_LOOKASIDE_OBJECT);
 }
@@ -210,7 +210,7 @@ NTSTATUS KSIAPI KphpInitializeNPagedLookasideObject(
     PKPH_NPAGED_LOOKASIDE_OBJECT lookaside;
     PKPH_LOOKASIDE_INIT init;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     NT_ASSERT(Parameter);
 
@@ -236,7 +236,7 @@ VOID KSIAPI KphpDeleteNPagedLookasideObject(
 {
     PKPH_NPAGED_LOOKASIDE_OBJECT lookaside;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     lookaside = Object;
 
@@ -253,7 +253,7 @@ VOID KSIAPI KphpFreeNPagedLookasideObject(
     _In_freesMem_ PVOID Object
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     KphFree(Object, KPH_TAG_NPAGED_LOOKASIDE_OBJECT);
 }
@@ -277,7 +277,7 @@ NTSTATUS KphCreateNPagedLookasideObject(
     NTSTATUS status;
     KPH_LOOKASIDE_INIT init;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     if (KphpRandomPoolTag)
     {
@@ -314,7 +314,7 @@ PVOID KphAllocateFromNPagedLookasideObject(
     _Inout_ PKPH_NPAGED_LOOKASIDE_OBJECT Lookaside
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     return KphAllocateFromNPagedLookaside((PNPAGED_LOOKASIDE_LIST)Lookaside);
 }
@@ -331,7 +331,7 @@ VOID KphFreeToNPagedLookasideObject(
     _In_freesMem_ PVOID Memory
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     KphFreeToNPagedLookaside((PNPAGED_LOOKASIDE_LIST)Lookaside, Memory);
 }
@@ -629,7 +629,7 @@ BYTE KphpMakePoolTagByte(
 {
     BYTE outByte;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     outByte = Byte % '~';
     if (outByte < ' ')
@@ -655,7 +655,7 @@ ULONG KphpGenerateRandomPoolTag(
     BYTE byte;
     ULONG poolTag;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     interruptTime = KeQueryInterruptTime();
     seed = (ULONG)(interruptTime >> 32);
@@ -697,7 +697,7 @@ NTSTATUS KphpInitializeAllocOptions(
     HANDLE keyHandle;
     ULONG randomizedPoolTag;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = KphOpenParametersKey(RegistryPath, &keyHandle);
     if (!NT_SUCCESS(status))
@@ -751,7 +751,7 @@ NTSTATUS KphInitializeAlloc(
     NTSTATUS status;
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = KphpInitializeAllocOptions(RegistryPath);
     if (!NT_SUCCESS(status))

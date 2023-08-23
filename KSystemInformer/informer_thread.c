@@ -46,7 +46,7 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
 {
     PKPH_THREAD_CONTEXT thread;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (!Create)
     {
@@ -117,7 +117,7 @@ VOID KphpCreateThreadNotifyInformer(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     msg = NULL;
 
@@ -222,7 +222,7 @@ VOID KphpExecuteThreadNotifyRoutine(
 {
     PKPH_THREAD_CONTEXT thread;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Create);
 
@@ -260,7 +260,7 @@ VOID KphpCreateThreadNotifyRoutine(
     PKPH_THREAD_CONTEXT thread;
     PETHREAD threadObject;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_VERIFY(NT_SUCCESS(PsLookupThreadByThreadId(ThreadId, &threadObject)));
     NT_ASSERT(threadObject);
@@ -313,7 +313,7 @@ NTSTATUS KphThreadInformerStart(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = PsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifySubsystems,
                                               (PVOID)KphpCreateThreadNotifyRoutine);
@@ -348,7 +348,7 @@ VOID KphThreadInformerStop(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     PsRemoveCreateThreadNotifyRoutine(KphpExecuteThreadNotifyRoutine);
     PsRemoveCreateThreadNotifyRoutine(KphpCreateThreadNotifyRoutine);
