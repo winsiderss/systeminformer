@@ -132,7 +132,7 @@ VOID KphpDebugPrintCallback(
 {
     PKPH_DBG_PRINT_SLOT slot;
 
-    NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MIN();
 
     if (!KphInformerSettings.DebugPrint)
     {
@@ -196,7 +196,9 @@ NTSTATUS KphDebugInformerStart(
 {
     NTSTATUS status;
     ULONG count;
-
+    
+    NPAGED_CODE_PASSIVE();
+    
     NT_ASSERT(KphpDbgPrintSlotNext == 0);
     NT_ASSERT(!KphpDbgPrintInitialized);
 
@@ -267,6 +269,8 @@ VOID KphDebugInformerStop(
     )
 {
     KIRQL oldIrql;
+
+    NPAGED_CODE_PASSIVE();
 
     if (!KphpDbgPrintInitialized)
     {

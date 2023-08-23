@@ -36,7 +36,7 @@ NTSTATUS KphOpenDriver(
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     return KphOpenNamedObject(DriverHandle,
                               DesiredAccess,
@@ -73,7 +73,7 @@ NTSTATUS KphQueryInformationDriver(
     PDRIVER_OBJECT driverObject;
     ULONG returnLength;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     driverObject = NULL;
     returnLength = 0;

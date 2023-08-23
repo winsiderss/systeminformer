@@ -61,7 +61,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Return_allocatesMem_
 PKPHM_QUEUE_ITEM KphpAllocateMessageQueueItem()
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     return KphAllocateFromNPagedLookaside(&KphpMessageQueueItemLookaside);
 }
@@ -75,7 +75,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphpFreeMessageQueueItem(_In_freesMem_ PKPHM_QUEUE_ITEM Item)
 {
     NT_ASSERT(Item);
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     if (Item->NonPaged)
     {
@@ -100,7 +100,7 @@ PKPH_MESSAGE KphAllocateNPagedMessage(
     VOID
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     return KphAllocateFromNPagedLookaside(&KphpNPagedMessageLookaside);
 }
@@ -116,7 +116,7 @@ VOID KphFreeNPagedMessage(
     )
 {
     NT_ASSERT(Message);
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     KphFreeToNPagedLookaside(&KphpNPagedMessageLookaside, Message);
 }
@@ -135,7 +135,7 @@ VOID KphCommsSendNPagedMessageAsync(
 {
     PKPHM_QUEUE_ITEM item;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     if (!KphAcquireRundown(&KphpCommsRundown))
     {
@@ -189,7 +189,7 @@ PVOID KSIAPI KphpAllocateClientObject(
     _In_ SIZE_T Size
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     return KphAllocatePaged(Size, KPH_TAG_CLIENT);
 }
@@ -289,7 +289,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     KPH_PROCESS_STATE processState;
     PKPH_CLIENT client;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(ServerPortCookie);
     UNREFERENCED_PARAMETER(ConnectionContext);
@@ -396,7 +396,7 @@ VOID FLTAPI KphpCommsDisconnectNotifyCallback(
 {
     PKPH_CLIENT client;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(ConnectionCookie);
 
@@ -431,7 +431,7 @@ VOID KphpSendRequiredStateFailure(
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     msg = KphAllocateMessage();
     if (!msg)
@@ -488,7 +488,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     KPH_PROCESS_STATE processState;
     KPH_PROCESS_STATE requiredState;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     client = (PKPH_CLIENT)PortCookie;
 
@@ -677,7 +677,7 @@ VOID KphpFreeCommsSecurityDescriptor(
     _In_freesMem_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     FltFreeSecurityDescriptor(SecurityDescriptor);
 }
@@ -699,7 +699,7 @@ NTSTATUS KphpBuildCommsSecurityDescriptor(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = FltBuildDefaultSecurityDescriptor(SecurityDescriptor,
                                                FLT_PORT_ALL_ACCESS);
@@ -1045,7 +1045,7 @@ VOID KphpMessageQueueThread (
     _In_ PVOID StartContext
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(StartContext);
 
@@ -1122,7 +1122,7 @@ NTSTATUS KphCommsStart(
     PSECURITY_DESCRIPTOR securityDescriptor;
     ULONG threadCount;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
     NT_ASSERT(KphFltFilter);
     NT_ASSERT(!KphpFltServerPort);
     NT_ASSERT(KphDynPortName);
@@ -1307,7 +1307,7 @@ VOID KphCommsStop(
 {
     PLIST_ENTRY entry;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (!KphpFltServerPort)
     {

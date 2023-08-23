@@ -202,7 +202,7 @@ ULONG KphpGetCopyExceptionInfo(
 {
     PEXCEPTION_RECORD exceptionRecord;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     *HaveBadAddress = FALSE;
     *BadAddress = 0;
@@ -267,7 +267,7 @@ NTSTATUS KphCopyVirtualMemory(
     BOOLEAN haveBadAddress;
     ULONG_PTR badAddress;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     sourceAddress = FromAddress;
     targetAddress = ToAddress;
@@ -523,7 +523,7 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
     SIZE_T numberOfBytesRead;
     BOOLEAN releaseModuleLock;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     numberOfBytesRead = 0;
     releaseModuleLock = FALSE;
@@ -718,7 +718,7 @@ NTSTATUS KphQuerySection(
     PVOID sectionObject;
     ULONG returnLength;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     sectionObject = NULL;
     returnLength = 0;

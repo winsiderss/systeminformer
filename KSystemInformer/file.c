@@ -34,7 +34,7 @@ NTSTATUS KphpCheckFileHandleForQuery(
     NTSTATUS status;
     PFILE_OBJECT fileObject;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     //
     // We are stack attached and "invading" the process to perform the query.
@@ -106,7 +106,7 @@ NTSTATUS KphQueryInformationFile(
     PVOID buffer;
     BYTE stackBuffer[64];
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
     buffer = NULL;
@@ -256,7 +256,7 @@ NTSTATUS KphQueryVolumeInformationFile(
     PVOID buffer;
     BYTE stackBuffer[64];
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
     buffer = NULL;
@@ -418,7 +418,7 @@ NTSTATUS KphCreateFile(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (AccessMode != KernelMode)
     {

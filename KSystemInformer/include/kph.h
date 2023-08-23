@@ -29,9 +29,15 @@
 
 #define KSIAPI NTAPI
 
-#define PAGED_PASSIVE()\
+#define PAGED_CODE_PASSIVE()\
     PAGED_CODE()\
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#define NPAGED_CODE_PASSIVE()\
+    NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#define NPAGED_CODE_DISPATCH_MAX()\
+    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL)
+#define NPAGED_CODE_DISPATCH_MIN()\
+    NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL)
 
 #define PAGED_FILE() \
     __pragma(bss_seg("PAGEBBS"))\

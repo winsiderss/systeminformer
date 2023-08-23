@@ -43,7 +43,7 @@ NTSTATUS KphpWskIoCompletionRoutine(
     UNREFERENCED_PARAMETER(DeviceObject);
     UNREFERENCED_PARAMETER(Irp);
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
     NT_ASSERT(Context);
 
     KeSetEvent((PKEVENT)Context, IO_NO_INCREMENT, FALSE);
@@ -65,7 +65,7 @@ NTSTATUS KphpWskIoCreate(
     _Out_ PKPH_WSK_IO Io
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     KeInitializeEvent(&Io->Event, NotificationEvent, FALSE);
 
@@ -96,7 +96,7 @@ VOID KphpWskIoReset(
     _Inout_ PKPH_WSK_IO Io
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     KeResetEvent(&Io->Event);
     IoReuseIrp(Io->Irp, STATUS_UNSUCCESSFUL);
@@ -118,7 +118,7 @@ VOID KphpWskIoDelete(
     _In_ PKPH_WSK_IO Io
     )
 {
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     if (Io->Irp)
     {
@@ -145,7 +145,7 @@ NTSTATUS KphpWskIoWaitForCompletion(
 {
     NTSTATUS status;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     if (RequestStatus != STATUS_PENDING)
     {
@@ -188,7 +188,7 @@ VOID KphSocketClose(
     NTSTATUS status;
     PKPH_SOCKET socket;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     socket = (PKPH_SOCKET)Socket;
 
@@ -236,7 +236,7 @@ NTSTATUS KphSocketConnect(
     NTSTATUS status;
     PKPH_SOCKET socket;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     socket = KphAllocateNPaged(sizeof(KPH_SOCKET), KPH_TAG_SOCKET);
     if (!socket)
@@ -319,7 +319,7 @@ NTSTATUS KphSocketSend(
     WSK_BUF wskBuffer;
     BOOLEAN unlockPages;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     socket = (PKPH_SOCKET)Socket;
     unlockPages = FALSE;
@@ -400,7 +400,7 @@ NTSTATUS KphSocketRecv(
     WSK_BUF wskBuffer;
     BOOLEAN unlockPages;
 
-    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL);
+    NPAGED_CODE_DISPATCH_MAX();
 
     socket = (PKPH_SOCKET)Socket;
     unlockPages = FALSE;
@@ -478,7 +478,7 @@ NTSTATUS KphInitializeSocket(
     NTSTATUS status;
     WSK_CLIENT_NPI wskClient;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     wskClient.ClientContext = NULL;
     wskClient.Dispatch = &KphpWskDispatch;
@@ -524,7 +524,7 @@ VOID KphCleanupSocket(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphpWskProviderCaptured)
     {
@@ -562,7 +562,7 @@ NTSTATUS KphGetAddressInfo(
     NTSTATUS status;
     KPH_WSK_IO io;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = KphpWskIoCreate(&io);
     if (!NT_SUCCESS(status))
@@ -609,7 +609,7 @@ VOID KphFreeAddressInfo(
     _In_ PADDRINFOEXW AddressInfo
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphpWskProvider.Dispatch->WskFreeAddressInfo(KphpWskProvider.Client,
                                                  AddressInfo);

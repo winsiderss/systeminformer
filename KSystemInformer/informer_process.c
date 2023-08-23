@@ -40,7 +40,7 @@ PKPH_PROCESS_CREATE_APC KphpAllocateProcessCreateApc(
 {
     PKPH_PROCESS_CREATE_APC apc;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpProcesCreateApcLookaside);
 
@@ -94,7 +94,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     PKPH_PROCESS_CONTEXT creatorProcess;
     KPH_PROCESS_STATE processState;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (!CreateInfo)
     {
@@ -179,7 +179,7 @@ VOID KphpCreateProcessNotifyInformer(
     PKPH_MESSAGE msg;
     PKPH_MESSAGE reply;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     msg = NULL;
     reply = NULL;
@@ -405,7 +405,7 @@ VOID KphpPerformProcessCreationTracking(
     PKPH_PROCESS_CREATE_APC apc;
     BOOLEAN stopProtecting;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (!CreateInfo)
     {
@@ -534,7 +534,7 @@ VOID KphpCreateProcessNotifyRoutine(
 {
     PKPH_PROCESS_CONTEXT process;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = KphpPerformProcessTracking(Process, ProcessId, CreateInfo);
     if (process)
@@ -558,7 +558,7 @@ NTSTATUS KphProcessInformerStart(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     status = KphCreateNPagedLookasideObject(&KphpProcesCreateApcLookaside,
                                             sizeof(KPH_PROCESS_CREATE_APC),
@@ -628,7 +628,7 @@ VOID KphProcessInformerStop(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (!KphpProcesCreateApcLookaside)
     {

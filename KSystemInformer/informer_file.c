@@ -37,7 +37,7 @@ NTSTATUS FLTAPI KphpFltFilterUnloadCallback(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Flags);
 
@@ -61,7 +61,7 @@ NTSTATUS FLTAPI KphpFltInstanceQueryTeardownCallback(
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
@@ -116,7 +116,7 @@ NTSTATUS KphFltRegister(
     POBJECT_NAME_INFORMATION objectInfo;
     ULONG returnLength;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
     NT_ASSERT(!KphFltFilter);
 
     instancesKeyHandle = NULL;
@@ -370,7 +370,7 @@ VOID KphFltUnregister(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     KphCommsStop();
 
@@ -394,7 +394,7 @@ NTSTATUS KphFltInformerStart(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphFltFilter);
 

@@ -124,7 +124,7 @@ VOID KphpResetSigningInfo(
     _Inout_opt_ PUNICODE_STRING CatalogName
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphDynCiFreePolicyInfo);
 
@@ -161,7 +161,7 @@ NTSTATUS KphpCiCheckSignedFile(
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphDynCiFreePolicyInfo);
     NT_ASSERT(Info->Signature);
@@ -225,7 +225,7 @@ NTSTATUS KphpCiVerifyHashInCatalog(
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphDynCiFreePolicyInfo);
 
@@ -294,7 +294,7 @@ NTSTATUS KphInitializeSigning(
     NTSTATUS status;
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     typeInfo.Allocate = KphpAllocateSigningInfra;
     typeInfo.Initialize = KphpInitSigningInfra;
@@ -325,7 +325,7 @@ VOID KphCleanupSigning(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphpSigningInfra)
     {
@@ -378,7 +378,7 @@ BOOLEAN KphpSigningCatalogsAreLoaded(
     MINCRYPT_POLICY_INFO policyInfo;
     MINCRYPT_POLICY_INFO timeStampPolicyInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphDynCiFreePolicyInfo);
     NT_ASSERT(KphpSigningInfra);
@@ -424,7 +424,7 @@ NTSTATUS KphpPopulateCiInfo(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphDynCiFreePolicyInfo);
 
@@ -492,7 +492,7 @@ NTSTATUS KphGetSigningInfo(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(Info, sizeof(*Info));
 
@@ -529,7 +529,7 @@ NTSTATUS KphGetSigningInfoByFileName(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlZeroMemory(Info, sizeof(*Info));
 
@@ -557,7 +557,7 @@ VOID KphFreeSigningInfo(
     _In_freesMem_ PKPH_SIGNING_INFO Info
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     RtlFreeUnicodeString(&Info->CatalogName);
 
