@@ -22,6 +22,7 @@
         WPP_DEFINE_BIT(HASH)        /* bit  5 = 0x00000020 */                 \
         WPP_DEFINE_BIT(TRACKING)    /* bit  5 = 0x00000040 */                 \
         WPP_DEFINE_BIT(PROTECTION)  /* bit  5 = 0x00000080 */                 \
+        WPP_DEFINE_BIT(SOCKET)      /* bit  6 = 0x00000100 */                 \
         )
 
 #define WPP_LEVEL_EVENT_LOGGER(level,event) WPP_LEVEL_LOGGER(event)
