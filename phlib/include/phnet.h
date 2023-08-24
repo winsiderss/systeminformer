@@ -17,6 +17,10 @@ EXTERN_C_START
 
 #define __WINDOT11_H__ // temporary preprocessor workaround (dmex)
 
+#ifndef PIO_APC_ROUTINE_DEFINED
+#define PIO_APC_ROUTINE_DEFINED 1
+#endif
+
 #ifndef UM_NDIS60
 #define UM_NDIS60 1
 #endif
