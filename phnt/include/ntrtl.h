@@ -5351,7 +5351,10 @@ FORCEINLINE BOOLEAN RtlIsZeroLuid(
     return (L1->LowPart | L1->HighPart) == 0;
 }
 
-FORCEINLINE LUID RtlConvertLongToLuid(
+FORCEINLINE
+LUID
+NTAPI_INLINE
+RtlConvertLongToLuid(
     _In_ LONG Long
     )
 {
@@ -5365,7 +5368,10 @@ FORCEINLINE LUID RtlConvertLongToLuid(
     return tempLuid;
 }
 
-FORCEINLINE LUID RtlConvertUlongToLuid(
+FORCEINLINE
+LUID
+NTAPI_INLINE
+RtlConvertUlongToLuid(
     _In_ ULONG Ulong
     )
 {
@@ -8946,7 +8952,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIsApiSetImplemented(
-    _In_ PCSTR Namespace
+    _In_ PCSTR ApiSetName
     );
 #endif
 
