@@ -182,7 +182,7 @@ NTSTATUS KphpWskIoWaitForCompletion(
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphSocketClose(
-    _In_ KPH_SOCKET_HANDLE Socket
+    _In_freesMem_ KPH_SOCKET_HANDLE Socket
     )
 {
     NTSTATUS status;
@@ -230,13 +230,15 @@ NTSTATUS KphSocketConnect(
     _In_ PSOCKADDR LocalAddress,
     _In_ PSOCKADDR RemoteAddress,
     _In_opt_ PLARGE_INTEGER Timeout,
-    _Out_ PKPH_SOCKET_HANDLE Socket
+    _Outptr_allocatesMem_ PKPH_SOCKET_HANDLE Socket
     )
 {
     NTSTATUS status;
     PKPH_SOCKET socket;
 
     NPAGED_CODE_DISPATCH_MAX();
+
+    *Socket = NULL;
 
     socket = KphAllocateNPaged(sizeof(KPH_SOCKET), KPH_TAG_SOCKET);
     if (!socket)
@@ -556,13 +558,15 @@ NTSTATUS KphGetAddressInfo(
     _In_opt_ PUNICODE_STRING ServiceName,
     _In_opt_ PADDRINFOEXW Hints,
     _In_opt_ PLARGE_INTEGER Timeout,
-    _Out_ PADDRINFOEXW* AddressInfo
+    _Outptr_allocatesMem_ PADDRINFOEXW* AddressInfo
     )
 {
     NTSTATUS status;
     KPH_WSK_IO io;
 
     PAGED_CODE_PASSIVE();
+
+    *AddressInfo = NULL;
 
     status = KphpWskIoCreate(&io);
     if (!NT_SUCCESS(status))
@@ -592,6 +596,8 @@ NTSTATUS KphGetAddressInfo(
                       SOCKET,
                       "WskGetAddressInfo failed: %!STATUS!",
                       status);
+
+        *AddressInfo = NULL;
     }
 
     KphpWskIoDelete(&io);
@@ -606,7 +612,7 @@ NTSTATUS KphGetAddressInfo(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphFreeAddressInfo(
-    _In_ PADDRINFOEXW AddressInfo
+    _In_freesMem_ PADDRINFOEXW AddressInfo
     )
 {
     PAGED_CODE_PASSIVE();
