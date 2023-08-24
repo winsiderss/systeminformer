@@ -466,7 +466,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 {
     if (EtGpuEnabled)
         EtGpuSystemInformationInitializing(Parameter);
-    if (EtEtwEnabled && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
+    if (EtEtwEnabled && PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
         EtEtwSystemInformationInitializing(Parameter);
 }
 

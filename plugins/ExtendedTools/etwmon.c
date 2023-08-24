@@ -88,6 +88,8 @@ VOID EtEtwMonitorInitialization(
 {
     if (PhGetOwnTokenAttributes().Elevated && PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR))
     {
+        EtEtwEnabled = TRUE;
+
         PhCreateThread2(EtpEtwMonitorThreadStart, NULL);
     }
 }
@@ -209,14 +211,12 @@ VOID EtStartEtwSession(
 
     if (status == ERROR_SUCCESS)
     {
-        EtEtwEnabled = TRUE;
         EtpStartedSession = TRUE;
         EtpSessionHandle = traceHandle;
         EtEtwStatus = status;
     }
     else
     {
-        EtEtwEnabled = FALSE;
         EtpStartedSession = FALSE;
         EtpSessionHandle = INVALID_PROCESSTRACE_HANDLE; // StartTrace set the handle 0 on failure. (dmex)
         EtEtwStatus = status;
@@ -241,7 +241,7 @@ VOID EtStopEtwSession(
     VOID
     )
 {
-    if (EtEtwEnabled)
+    if (EtpStartedSession)
         EtControlEtwSession(EVENT_TRACE_CONTROL_STOP);
 }
 
@@ -557,7 +557,7 @@ NTSTATUS EtpEtwMonitorThreadStart(
 
         // Some error occurred, so sleep for a while before trying again.
         // Don't sleep if we just successfully started a session, though.
-        if (!EtEtwEnabled)
+        if (!EtpStartedSession)
             PhDelayExecution(250);
     }
 
@@ -568,7 +568,7 @@ VOID EtStartEtwRundown(
     VOID
     )
 {
-    if (EtWindowsVersion >= WINDOWS_8 && EtEtwEnabled && EtpSessionHandle != INVALID_PROCESSTRACE_HANDLE)
+    if (EtWindowsVersion >= WINDOWS_8 && EtpStartedSession && EtpSessionHandle != INVALID_PROCESSTRACE_HANDLE)
     {
         ULONG result;
 
