@@ -86,6 +86,12 @@ PhCreateThread2(
     );
 
 // Misc. system
+PHLIBAPI
+VOID
+NTAPI
+PhQueryInterruptTime(
+    _Out_ PULARGE_INTEGER InterruptTime
+    );
 
 PHLIBAPI
 VOID
@@ -4031,7 +4037,7 @@ typedef struct _PH_FORMAT
     } u;
 } PH_FORMAT, *PPH_FORMAT;
 
-// Convenience functions 
+// Convenience functions
 
 FORCEINLINE
 VOID
