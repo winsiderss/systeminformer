@@ -455,6 +455,27 @@ PhGenerateGuidFromName(
 PHLIBAPI
 VOID
 NTAPI
+PhGenerateClass5Guid(
+    _In_ REFGUID NamespaceGuid,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PGUID Guid
+    );
+
+DEFINE_GUID(GUID_NAMESPACE_MICROSOFT, 0x70ffd812, 0x4c7f, 0x4c7d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
+PHLIBAPI
+VOID
+NTAPI
+PhGenerateHardwareIDGuid(
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PGUID Guid
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhGenerateRandomAlphaString(
     _Out_writes_z_(Count) PWSTR Buffer,
     _In_ ULONG Count
