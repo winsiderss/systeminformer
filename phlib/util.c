@@ -1190,6 +1190,49 @@ VOID PhGenerateGuidFromName(
     guid->s2.Variant |= GUID_VARIANT_STANDARD;
 }
 
+// rev from ntoskrnl.exe!RtlGenerateClass5Guid (dmex)
+VOID PhGenerateClass5Guid(
+    _In_ REFGUID NamespaceGuid,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PGUID Guid
+    )
+{
+    A_SHA_CTX context;
+    GUID data;
+    PGUID_EX guid;
+    UCHAR hash[20];
+
+    data = *NamespaceGuid;
+    data.Data1 = _byteswap_ulong(NamespaceGuid->Data1);
+    data.Data2 = _rotr16(NamespaceGuid->Data2, 8);
+    data.Data3 = _rotr16(NamespaceGuid->Data3, 8);
+
+    A_SHAInit(&context);
+    A_SHAUpdate(&context, (PUCHAR)&data, sizeof(GUID));
+    A_SHAUpdate(&context, Buffer, BufferSize);
+    A_SHAFinal(&context, hash);
+
+    guid = (PGUID_EX)Guid;
+    memcpy(guid->Data, hash, sizeof(GUID));
+    guid->Guid.Data1 = _byteswap_ulong(guid->Guid.Data1);
+    guid->Guid.Data2 = _rotr16(guid->Guid.Data2, 8);
+    guid->Guid.Data3 = _rotr16(guid->Guid.Data3, 8);
+    guid->s2.Version = GUID_VERSION_SHA1;
+    guid->s2.Variant &= ~GUID_VARIANT_STANDARD_MASK;
+    guid->s2.Variant |= GUID_VARIANT_STANDARD;
+}
+
+// rev from Windows SDK\\ComputerHardwareIds.exe (dmex)
+VOID PhGenerateHardwareIDGuid(
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PGUID Guid
+    )
+{
+    PhGenerateClass5Guid(&GUID_NAMESPACE_MICROSOFT, Buffer, BufferSize, Guid);
+}
+
 /**
  * Fills a buffer with random uppercase alphabetical characters.
  *
