@@ -115,6 +115,13 @@ PhMapViewOfEntireFileEx(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhMappedImagePrefetch(
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
+PHLIBAPI
 PIMAGE_SECTION_HEADER
 NTAPI
 PhMappedImageRvaToSection(
