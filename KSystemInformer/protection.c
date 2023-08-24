@@ -193,7 +193,7 @@ BOOLEAN KphpShouldSuppressObjectProtections(
         //
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "Protected process %wZ (%lu) access grated to PPL process %wZ (%lu)",
+                      "Protected process %wZ (%lu) access granted to PPL process %wZ (%lu)",
                       &Target->ImageName,
                       HandleToULong(Target->ProcessId),
                       &Actor->ImageName,
@@ -206,7 +206,7 @@ BOOLEAN KphpShouldSuppressObjectProtections(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "Protected process %wZ (%lu) access grated to LSA process %wZ (%lu)",
+                      "Protected process %wZ (%lu) access granted to LSA process %wZ (%lu)",
                       &Target->ImageName,
                       HandleToULong(Target->ProcessId),
                       &Actor->ImageName,
