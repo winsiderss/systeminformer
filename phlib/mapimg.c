@@ -200,9 +200,9 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
     )
 {
     NTSTATUS status;
-    HANDLE sectionHandle = NULL;
     BOOLEAN openedFile = FALSE;
     LARGE_INTEGER sectionSize;
+    HANDLE sectionHandle;
     SIZE_T viewSize;
     PVOID viewBase;
 
@@ -295,7 +295,7 @@ NTSTATUS PhMapViewOfEntireFile(
     NTSTATUS status;
     BOOLEAN openedFile = FALSE;
     LARGE_INTEGER size;
-    HANDLE sectionHandle = NULL;
+    HANDLE sectionHandle;
     SIZE_T viewSize;
     PVOID viewBase;
 
@@ -359,6 +359,8 @@ NTSTATUS PhMapViewOfEntireFile(
         PAGE_READONLY
         );
 
+    NtClose(sectionHandle);
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -366,8 +368,6 @@ NTSTATUS PhMapViewOfEntireFile(
     *Size = (SIZE_T)size.QuadPart;
 
 CleanupExit:
-    if (sectionHandle)
-        NtClose(sectionHandle);
     if (openedFile)
         NtClose(FileHandle);
 
@@ -384,7 +384,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
     NTSTATUS status;
     BOOLEAN openedFile = FALSE;
     LARGE_INTEGER size;
-    HANDLE sectionHandle = NULL;
+    HANDLE sectionHandle;
     SIZE_T viewSize;
     PVOID viewBase;
 
@@ -448,6 +448,8 @@ NTSTATUS PhMapViewOfEntireFileEx(
         PAGE_READONLY
         );
 
+    NtClose(sectionHandle);
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -455,8 +457,6 @@ NTSTATUS PhMapViewOfEntireFileEx(
     *Size = (SIZE_T)size.QuadPart;
 
 CleanupExit:
-    if (sectionHandle)
-        NtClose(sectionHandle);
     if (openedFile)
         NtClose(FileHandle);
 
