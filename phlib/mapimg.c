@@ -472,6 +472,19 @@ VOID PhpMappedImageProbe(
     PhProbeAddress(Address, Length, MappedImage->ViewBase, MappedImage->Size, 1);
 }
 
+VOID PhMappedImagePrefetch(
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    MEMORY_RANGE_ENTRY prefetchMemoryRange[1];
+
+    memset(prefetchMemoryRange, 0, sizeof(prefetchMemoryRange));
+    prefetchMemoryRange[0].NumberOfBytes = MappedImage->Size;
+    prefetchMemoryRange[0].VirtualAddress = MappedImage->ViewBase;
+
+    PhPrefetchVirtualMemory(NtCurrentProcess(), RTL_NUMBER_OF(prefetchMemoryRange), prefetchMemoryRange);
+}
+
 PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva
@@ -4941,6 +4954,8 @@ PPH_STRING PhGetMappedImageAuthenticodeHash(
         return NULL;
     }
 
+    PhMappedImagePrefetch(MappedImage);
+
     if (NT_SUCCESS(PhGetMappedImageDataEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
     {
         imageSecurityAddress = dataDirectory->VirtualAddress;
@@ -5028,6 +5043,8 @@ PPH_STRING PhGetMappedImageAuthenticodeLegacy(
     {
         return NULL;
     }
+
+    PhMappedImagePrefetch(MappedImage);
 
     if (NT_SUCCESS(PhGetMappedImageDataEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
     {
