@@ -1643,17 +1643,17 @@ NTSTATUS KphGetAddressInfo(
     _In_opt_ PUNICODE_STRING ServiceName,
     _In_opt_ PADDRINFOEXW Hints,
     _In_opt_ PLARGE_INTEGER Timeout,
-    _Out_ PADDRINFOEXW* AddressInfo
+    _Outptr_allocatesMem_ PADDRINFOEXW* AddressInfo
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphFreeAddressInfo(
-    _In_ PADDRINFOEXW AddressInfo
+    _In_freesMem_ PADDRINFOEXW AddressInfo
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphSocketClose(
-    _In_ KPH_SOCKET_HANDLE Socket
+    _In_freesMem_ KPH_SOCKET_HANDLE Socket
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1664,7 +1664,7 @@ NTSTATUS KphSocketConnect(
     _In_ PSOCKADDR LocalAddress,
     _In_ PSOCKADDR RemoteAddress,
     _In_opt_ PLARGE_INTEGER Timeout,
-    _Out_ PKPH_SOCKET_HANDLE Socket
+    _Outptr_allocatesMem_ PKPH_SOCKET_HANDLE Socket
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
