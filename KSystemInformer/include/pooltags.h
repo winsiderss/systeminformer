@@ -95,3 +95,5 @@
 // socket
 
 #define KPH_TAG_SOCKET                           '0spK'
+#define KPH_TAG_TLS                              '1spK'
+#define KPH_TAG_TLS_BUFFER                       '2spK'
