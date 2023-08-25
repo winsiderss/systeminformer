@@ -1684,3 +1684,52 @@ NTSTATUS KphSocketRecv(
     _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
     _Inout_ PULONG Length
     );
+
+typedef PVOID KPH_TLS_HANDLE;
+typedef PVOID* PKPH_TLS_HANDLE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphSocketTlsClose(
+    _In_freesMem_ KPH_TLS_HANDLE Tls
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketTlsCreate(
+    _Outptr_allocatesMem_ PKPH_TLS_HANDLE Tls
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketTlsHandshake(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ KPH_TLS_HANDLE Tls,
+    _In_ PUNICODE_STRING TargetName
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphSocketTlsShutdown(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_ KPH_TLS_HANDLE Tls
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketTlsSend(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ KPH_TLS_HANDLE Tls,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketTlsRecv(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ KPH_TLS_HANDLE Tls,
+    _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length
+    );

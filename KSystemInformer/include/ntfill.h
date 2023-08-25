@@ -1640,3 +1640,313 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 
 #define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
 #define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)
+
+// schannel.h
+
+#define UNISP_NAME_A    "Microsoft Unified Security Protocol Provider"
+#define UNISP_NAME_W    L"Microsoft Unified Security Protocol Provider"
+
+#define SSL2SP_NAME_A    "Microsoft SSL 2.0"
+#define SSL2SP_NAME_W    L"Microsoft SSL 2.0"
+
+#define SSL3SP_NAME_A    "Microsoft SSL 3.0"
+#define SSL3SP_NAME_W    L"Microsoft SSL 3.0"
+
+#define TLS1SP_NAME_A    "Microsoft TLS 1.0"
+#define TLS1SP_NAME_W    L"Microsoft TLS 1.0"
+
+#define PCT1SP_NAME_A    "Microsoft PCT 1.0"
+#define PCT1SP_NAME_W    L"Microsoft PCT 1.0"
+
+#define SCHANNEL_NAME_A  "Schannel"
+#define SCHANNEL_NAME_W  L"Schannel"
+
+#define DEFAULT_TLS_SSP_NAME_A  "Default TLS SSP"
+#define DEFAULT_TLS_SSP_NAME_W  L"Default TLS SSP"
+
+#ifdef UNICODE
+
+#define UNISP_NAME  UNISP_NAME_W
+#define PCT1SP_NAME  PCT1SP_NAME_W
+#define SSL2SP_NAME  SSL2SP_NAME_W
+#define SSL3SP_NAME  SSL3SP_NAME_W
+#define TLS1SP_NAME  TLS1SP_NAME_W
+#define SCHANNEL_NAME  SCHANNEL_NAME_W
+#define DEFAULT_TLS_SSP_NAME  DEFAULT_TLS_SSP_NAME_W
+
+#else
+
+#define UNISP_NAME  UNISP_NAME_A
+#define PCT1SP_NAME  PCT1SP_NAME_A
+#define SSL2SP_NAME  SSL2SP_NAME_A
+#define SSL3SP_NAME  SSL3SP_NAME_A
+#define TLS1SP_NAME  TLS1SP_NAME_A
+#define SCHANNEL_NAME  SCHANNEL_NAME_A
+#define DEFAULT_TLS_SSP_NAME  DEFAULT_TLS_SSP_NAME_A
+
+#endif
+
+#define SP_PROT_PCT1_SERVER             0x00000001
+#define SP_PROT_PCT1_CLIENT             0x00000002
+#define SP_PROT_PCT1                    (SP_PROT_PCT1_SERVER | SP_PROT_PCT1_CLIENT)
+
+#define SP_PROT_SSL2_SERVER             0x00000004
+#define SP_PROT_SSL2_CLIENT             0x00000008
+#define SP_PROT_SSL2                    (SP_PROT_SSL2_SERVER | SP_PROT_SSL2_CLIENT)
+
+#define SP_PROT_SSL3_SERVER             0x00000010
+#define SP_PROT_SSL3_CLIENT             0x00000020
+#define SP_PROT_SSL3                    (SP_PROT_SSL3_SERVER | SP_PROT_SSL3_CLIENT)
+
+#define SP_PROT_TLS1_SERVER             0x00000040
+#define SP_PROT_TLS1_CLIENT             0x00000080
+#define SP_PROT_TLS1                    (SP_PROT_TLS1_SERVER | SP_PROT_TLS1_CLIENT)
+
+#define SP_PROT_SSL3TLS1_CLIENTS        (SP_PROT_TLS1_CLIENT | SP_PROT_SSL3_CLIENT)
+#define SP_PROT_SSL3TLS1_SERVERS        (SP_PROT_TLS1_SERVER | SP_PROT_SSL3_SERVER)
+#define SP_PROT_SSL3TLS1                (SP_PROT_SSL3 | SP_PROT_TLS1)
+
+#define SP_PROT_UNI_SERVER              0x40000000
+#define SP_PROT_UNI_CLIENT              0x80000000
+#define SP_PROT_UNI                     (SP_PROT_UNI_SERVER | SP_PROT_UNI_CLIENT)
+
+#define SP_PROT_ALL                     0xffffffff
+#define SP_PROT_NONE                    0
+#define SP_PROT_CLIENTS                 (SP_PROT_PCT1_CLIENT | SP_PROT_SSL2_CLIENT | SP_PROT_SSL3_CLIENT | SP_PROT_UNI_CLIENT | SP_PROT_TLS1_CLIENT)
+#define SP_PROT_SERVERS                 (SP_PROT_PCT1_SERVER | SP_PROT_SSL2_SERVER | SP_PROT_SSL3_SERVER | SP_PROT_UNI_SERVER | SP_PROT_TLS1_SERVER)
+
+
+#define SP_PROT_TLS1_0_SERVER           SP_PROT_TLS1_SERVER
+#define SP_PROT_TLS1_0_CLIENT           SP_PROT_TLS1_CLIENT
+#define SP_PROT_TLS1_0                  (SP_PROT_TLS1_0_SERVER | \
+                                         SP_PROT_TLS1_0_CLIENT)
+
+#define SP_PROT_TLS1_1_SERVER           0x00000100
+#define SP_PROT_TLS1_1_CLIENT           0x00000200
+#define SP_PROT_TLS1_1                  (SP_PROT_TLS1_1_SERVER | \
+                                         SP_PROT_TLS1_1_CLIENT)
+
+#define SP_PROT_TLS1_2_SERVER           0x00000400
+#define SP_PROT_TLS1_2_CLIENT           0x00000800
+#define SP_PROT_TLS1_2                  (SP_PROT_TLS1_2_SERVER | \
+                                         SP_PROT_TLS1_2_CLIENT)
+
+#define SP_PROT_TLS1_3_SERVER           0x00001000
+#define SP_PROT_TLS1_3_CLIENT           0x00002000
+#define SP_PROT_TLS1_3                  (SP_PROT_TLS1_3_SERVER | \
+                                         SP_PROT_TLS1_3_CLIENT)
+
+#define SP_PROT_DTLS_SERVER             0x00010000
+#define SP_PROT_DTLS_CLIENT             0x00020000
+#define SP_PROT_DTLS                    (SP_PROT_DTLS_SERVER | \
+                                         SP_PROT_DTLS_CLIENT )
+
+#define SP_PROT_DTLS1_0_SERVER          SP_PROT_DTLS_SERVER
+#define SP_PROT_DTLS1_0_CLIENT          SP_PROT_DTLS_CLIENT
+#define SP_PROT_DTLS1_0                 (SP_PROT_DTLS1_0_SERVER | SP_PROT_DTLS1_0_CLIENT)
+
+#define SP_PROT_DTLS1_2_SERVER          0x00040000
+#define SP_PROT_DTLS1_2_CLIENT          0x00080000
+#define SP_PROT_DTLS1_2                 (SP_PROT_DTLS1_2_SERVER | SP_PROT_DTLS1_2_CLIENT)
+
+#define SP_PROT_DTLS1_X_SERVER          (SP_PROT_DTLS1_0_SERVER | \
+                                         SP_PROT_DTLS1_2_SERVER)
+
+#define SP_PROT_DTLS1_X_CLIENT          (SP_PROT_DTLS1_0_CLIENT | \
+                                         SP_PROT_DTLS1_2_CLIENT)
+
+#define SP_PROT_DTLS1_X                 (SP_PROT_DTLS1_X_SERVER | \
+                                         SP_PROT_DTLS1_X_CLIENT)
+
+#define SP_PROT_TLS1_1PLUS_SERVER       (SP_PROT_TLS1_1_SERVER | \
+                                         SP_PROT_TLS1_2_SERVER | \
+                                         SP_PROT_TLS1_3_SERVER)
+#define SP_PROT_TLS1_1PLUS_CLIENT       (SP_PROT_TLS1_1_CLIENT | \
+                                         SP_PROT_TLS1_2_CLIENT | \
+                                         SP_PROT_TLS1_3_CLIENT)
+
+#define SP_PROT_TLS1_1PLUS              (SP_PROT_TLS1_1PLUS_SERVER | \
+                                         SP_PROT_TLS1_1PLUS_CLIENT)
+
+#define SP_PROT_TLS1_3PLUS_SERVER       SP_PROT_TLS1_3_SERVER
+#define SP_PROT_TLS1_3PLUS_CLIENT       SP_PROT_TLS1_3_CLIENT
+#define SP_PROT_TLS1_3PLUS              (SP_PROT_TLS1_3PLUS_SERVER | \
+                                         SP_PROT_TLS1_3PLUS_CLIENT)
+
+#define SP_PROT_TLS1_X_SERVER           (SP_PROT_TLS1_0_SERVER | \
+                                         SP_PROT_TLS1_1_SERVER | \
+                                         SP_PROT_TLS1_2_SERVER | \
+                                         SP_PROT_TLS1_3_SERVER)
+#define SP_PROT_TLS1_X_CLIENT           (SP_PROT_TLS1_0_CLIENT | \
+                                         SP_PROT_TLS1_1_CLIENT | \
+                                         SP_PROT_TLS1_2_CLIENT | \
+                                         SP_PROT_TLS1_3_CLIENT)
+#define SP_PROT_TLS1_X                  (SP_PROT_TLS1_X_SERVER | \
+                                         SP_PROT_TLS1_X_CLIENT)
+
+#define SP_PROT_SSL3TLS1_X_CLIENTS      (SP_PROT_TLS1_X_CLIENT | \
+                                         SP_PROT_SSL3_CLIENT)
+#define SP_PROT_SSL3TLS1_X_SERVERS      (SP_PROT_TLS1_X_SERVER | \
+                                         SP_PROT_SSL3_SERVER)
+#define SP_PROT_SSL3TLS1_X              (SP_PROT_SSL3 | SP_PROT_TLS1_X)
+
+#define SP_PROT_X_CLIENTS               (SP_PROT_CLIENTS | \
+                                         SP_PROT_TLS1_X_CLIENT | \
+                                         SP_PROT_DTLS1_X_CLIENT )
+#define SP_PROT_X_SERVERS               (SP_PROT_SERVERS | \
+                                         SP_PROT_TLS1_X_SERVER | \
+                                         SP_PROT_DTLS1_X_SERVER )
+
+#define SCH_CRED_NO_SYSTEM_MAPPER                    0x00000002
+#define SCH_CRED_NO_SERVERNAME_CHECK                 0x00000004
+#define SCH_CRED_MANUAL_CRED_VALIDATION              0x00000008
+#define SCH_CRED_NO_DEFAULT_CREDS                    0x00000010
+#define SCH_CRED_AUTO_CRED_VALIDATION                0x00000020
+#define SCH_CRED_USE_DEFAULT_CREDS                   0x00000040
+#define SCH_CRED_DISABLE_RECONNECTS                  0x00000080
+
+#define SCH_CRED_REVOCATION_CHECK_END_CERT           0x00000100
+#define SCH_CRED_REVOCATION_CHECK_CHAIN              0x00000200
+#define SCH_CRED_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 0x00000400
+#define SCH_CRED_IGNORE_NO_REVOCATION_CHECK          0x00000800
+#define SCH_CRED_IGNORE_REVOCATION_OFFLINE           0x00001000
+
+#define SCH_CRED_RESTRICTED_ROOTS                    0x00002000
+#define SCH_CRED_REVOCATION_CHECK_CACHE_ONLY         0x00004000
+#define SCH_CRED_CACHE_ONLY_URL_RETRIEVAL            0x00008000
+
+#define SCH_CRED_MEMORY_STORE_CERT                   0x00010000
+
+#define SCH_CRED_CACHE_ONLY_URL_RETRIEVAL_ON_CREATE  0x00020000
+
+#define SCH_SEND_ROOT_CERT                           0x00040000
+#define SCH_CRED_SNI_CREDENTIAL                      0x00080000
+#define SCH_CRED_SNI_ENABLE_OCSP                     0x00100000
+#define SCH_SEND_AUX_RECORD                          0x00200000
+#define SCH_USE_STRONG_CRYPTO                        0x00400000
+#define SCH_USE_PRESHAREDKEY_ONLY                    0x00800000
+#define SCH_USE_DTLS_ONLY                            0x01000000
+#define SCH_ALLOW_NULL_ENCRYPTION                    0x02000000
+
+#define SCHANNEL_RENEGOTIATE    0   // renegotiate a connection
+#define SCHANNEL_SHUTDOWN       1   // gracefully close down a connection
+#define SCHANNEL_ALERT          2   // build an error message
+#define SCHANNEL_SESSION        3   // session control
+
+#define SCH_CRED_V1              0x00000001
+#define SCH_CRED_V2              0x00000002  // for legacy code
+#define SCH_CRED_VERSION         0x00000002  // for legacy code
+#define SCH_CRED_V3              0x00000003  // for legacy code
+#define SCHANNEL_CRED_VERSION    0x00000004  // for legacy code
+#define SCH_CREDENTIALS_VERSION  0x00000005
+
+typedef struct _SCHANNEL_CRED
+{
+    DWORD           dwVersion;      // always SCHANNEL_CRED_VERSION
+    DWORD           cCreds;
+    //PCCERT_CONTEXT *paCred;
+    PVOID           paCred;
+    //HCERTSTORE      hRootStore;
+    PVOID           hRootStore;
+
+    DWORD           cMappers;
+    struct _HMAPPER **aphMappers;
+
+    DWORD           cSupportedAlgs;
+    ALG_ID *        palgSupportedAlgs;
+
+    DWORD           grbitEnabledProtocols;
+    DWORD           dwMinimumCipherStrength;
+    DWORD           dwMaximumCipherStrength;
+    DWORD           dwSessionLifespan;
+    DWORD           dwFlags;
+    DWORD           dwCredFormat;
+} SCHANNEL_CRED, *PSCHANNEL_CRED;
+
+#define SECPKG_ATTR_ISSUER_LIST          0x50   // (OBSOLETE) returns SecPkgContext_IssuerListInfo
+#define SECPKG_ATTR_REMOTE_CRED          0x51   // (OBSOLETE) returns SecPkgContext_RemoteCredentialInfo
+#define SECPKG_ATTR_LOCAL_CRED           0x52   // (OBSOLETE) returns SecPkgContext_LocalCredentialInfo
+#define SECPKG_ATTR_REMOTE_CERT_CONTEXT  0x53   // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_LOCAL_CERT_CONTEXT   0x54   // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_ROOT_STORE           0x55   // returns HCERTCONTEXT to the root store
+#define SECPKG_ATTR_SUPPORTED_ALGS       0x56   // returns SecPkgCred_SupportedAlgs
+#define SECPKG_ATTR_CIPHER_STRENGTHS     0x57   // returns SecPkgCred_CipherStrengths
+#define SECPKG_ATTR_SUPPORTED_PROTOCOLS  0x58   // returns SecPkgCred_SupportedProtocols
+#define SECPKG_ATTR_ISSUER_LIST_EX       0x59   // returns SecPkgContext_IssuerListInfoEx
+#define SECPKG_ATTR_CONNECTION_INFO      0x5a   // returns SecPkgContext_ConnectionInfo
+#define SECPKG_ATTR_EAP_KEY_BLOCK        0x5b   // returns SecPkgContext_EapKeyBlock
+#define SECPKG_ATTR_MAPPED_CRED_ATTR     0x5c   // returns SecPkgContext_MappedCredAttr
+#define SECPKG_ATTR_SESSION_INFO         0x5d   // returns SecPkgContext_SessionInfo
+#define SECPKG_ATTR_APP_DATA             0x5e   // sets/returns SecPkgContext_SessionAppData
+#define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
+#define SECPKG_ATTR_CLIENT_CERT_POLICY   0x60   // sets    SecPkgCred_ClientCertCtlPolicy
+#define SECPKG_ATTR_CC_POLICY_RESULT     0x61   // returns SecPkgContext_ClientCertPolicyResult
+#define SECPKG_ATTR_USE_NCRYPT           0x62   // Sets the CRED_FLAG_USE_NCRYPT_PROVIDER FLAG on cred group
+#define SECPKG_ATTR_LOCAL_CERT_INFO      0x63   // returns SecPkgContext_CertInfo
+#define SECPKG_ATTR_CIPHER_INFO          0x64   // returns new CNG SecPkgContext_CipherInfo
+#define SECPKG_ATTR_EAP_PRF_INFO         0x65   // sets    SecPkgContext_EapPrfInfo
+#define SECPKG_ATTR_SUPPORTED_SIGNATURES 0x66   // returns SecPkgContext_SupportedSignatures
+#define SECPKG_ATTR_REMOTE_CERT_CHAIN    0x67   // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_UI_INFO              0x68   // sets SEcPkgContext_UiInfo
+#define SECPKG_ATTR_EARLY_START          0x69   // sets SecPkgContext_EarlyStart
+#define SECPKG_ATTR_KEYING_MATERIAL_INFO 0x6a   // sets SecPkgContext_KeyingMaterialInfo
+#define SECPKG_ATTR_KEYING_MATERIAL      0x6b   // returns SecPkgContext_KeyingMaterial
+#define SECPKG_ATTR_SRTP_PARAMETERS      0x6c   // returns negotiated SRTP parameters
+#define SECPKG_ATTR_TOKEN_BINDING        0x6d   // returns SecPkgContext_TokenBinding
+#define SECPKG_ATTR_CONNECTION_INFO_EX   0x6e   // returns SecPkgContext_ConnectionInfoEx
+#define SECPKG_ATTR_KEYING_MATERIAL_TOKEN_BINDING 0x6f // returns SecPkgContext_KeyingMaterial specific to Token Binding
+#define SECPKG_ATTR_KEYING_MATERIAL_INPROC        0x70 // returns SecPkgContext_KeyingMaterial_Inproc
+#define SECPKG_ATTR_CERT_CHECK_RESULT        0x71 // returns SecPkgContext_CertificateValidationResult, use during and after SSPI handshake loop
+#define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
+#define SECPKG_ATTR_SESSION_TICKET_KEYS      0x73 // sets    SecPkgCred_SessionTicketKeys
+#define SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC 0x74 // returns CERT_BLOB, use only after SSPI handshake loop
+#define SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT 0x75 // returns CERT_BLOB, use during and after SSPI handshake loop
+
+typedef struct _SecPkgContext_ConnectionInfo
+{
+    DWORD   dwProtocol;
+    ALG_ID  aiCipher;
+    DWORD   dwCipherStrength;
+    ALG_ID  aiHash;
+    DWORD   dwHashStrength;
+    ALG_ID  aiExch;
+    DWORD   dwExchStrength;
+} SecPkgContext_ConnectionInfo, *PSecPkgContext_ConnectionInfo;
+
+#define SZ_ALG_MAX_SIZE 64
+
+#define SECPKGCONTEXT_CONNECTION_INFO_EX_V1   1
+
+typedef struct _SecPkgContext_ConnectionInfoEx
+{
+    DWORD   dwVersion;
+    DWORD   dwProtocol;
+    WCHAR   szCipher[SZ_ALG_MAX_SIZE];
+    DWORD   dwCipherStrength;
+    WCHAR   szHash[SZ_ALG_MAX_SIZE];
+    DWORD   dwHashStrength;
+    WCHAR   szExchange[SZ_ALG_MAX_SIZE];
+    DWORD   dwExchStrength;
+} SecPkgContext_ConnectionInfoEx, *PSecPkgContext_ConnectionInfoEx;
+
+#define SECPKGCONTEXT_CIPHERINFO_V1 1
+
+typedef struct _SecPkgContext_CipherInfo
+{
+
+    DWORD dwVersion;
+    DWORD dwProtocol;
+    DWORD dwCipherSuite;
+    DWORD dwBaseCipherSuite;
+    WCHAR szCipherSuite[SZ_ALG_MAX_SIZE];
+    WCHAR szCipher[SZ_ALG_MAX_SIZE];
+    DWORD dwCipherLen;
+    DWORD dwCipherBlockLen;    // in bytes
+    WCHAR szHash[SZ_ALG_MAX_SIZE];
+    DWORD dwHashLen;
+    WCHAR szExchange[SZ_ALG_MAX_SIZE];
+    DWORD dwMinExchangeLen;
+    DWORD dwMaxExchangeLen;
+    WCHAR szCertificate[SZ_ALG_MAX_SIZE];
+    DWORD dwKeyType;
+} SecPkgContext_CipherInfo, *PSecPkgContext_CipherInfo;
