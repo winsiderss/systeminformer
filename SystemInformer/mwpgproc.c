@@ -107,7 +107,7 @@ BOOLEAN PhMwpProcessesPageCallback(
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), startIndex + 3);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), startIndex + 4);
 
-            if (PhCsHideOtherUserProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
+            if (PhGetIntegerSetting(L"HideOtherUserProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhGetIntegerSetting(L"HideSignedProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
@@ -166,7 +166,7 @@ BOOLEAN PhMwpProcessesPageCallback(
         {
             PhLoadSettingsProcessTreeList();
 
-            if (PhCsHideOtherUserProcesses)
+            if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
                 CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
 
             if (PhGetIntegerSetting(L"HideSignedProcesses"))
@@ -237,12 +237,15 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     {
         PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), CurrentUserFilterEntry);
         CurrentUserFilterEntry = NULL;
+
+        // Expand the nodes to ensure that they will be visible to the user. (dmex)
+        PhExpandAllProcessNodes(TRUE);
+        PhDeselectAllProcessNodes();
     }
 
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 
-    PhCsHideOtherUserProcesses = !PhCsHideOtherUserProcesses;
-    PhSetIntegerSetting(L"HideOtherUserProcesses", PhCsHideOtherUserProcesses);
+    PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
 }
 
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
@@ -284,6 +287,10 @@ VOID PhMwpToggleSignedProcessTreeFilter(
     {
         PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), SignedFilterEntry);
         SignedFilterEntry = NULL;
+
+        // Expand the nodes to ensure that they will be visible to the user. (dmex)
+        PhExpandAllProcessNodes(TRUE);
+        PhDeselectAllProcessNodes();
     }
 
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
@@ -303,6 +310,10 @@ VOID PhMwpToggleMicrosoftProcessTreeFilter(
     {
         PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), MicrosoftSignedFilterEntry);
         MicrosoftSignedFilterEntry = NULL;
+
+        // Expand the nodes to ensure that they will be visible to the user. (dmex)
+        PhExpandAllProcessNodes(TRUE);
+        PhDeselectAllProcessNodes();
     }
 
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
@@ -1232,7 +1243,7 @@ VOID PhMwpOnProcessesUpdated(
 
     if (ProcessEndToScrollTo)
     {
-        ULONG count = TreeNew_GetFlatNodeCount(PhMwpProcessTreeNewHandle);
+        count = TreeNew_GetFlatNodeCount(PhMwpProcessTreeNewHandle);
 
         if (ProcessEndToScrollTo > count)
             ProcessEndToScrollTo = count;
