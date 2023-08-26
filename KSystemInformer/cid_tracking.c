@@ -1839,7 +1839,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
 {
     NTSTATUS status;
     HANDLE processHandle;
-    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+    PROCESS_MITIGATION_POLICY_INFORMATION policyInfo, policyInfo2;
     ULONG flags;
 
     PAGED_CODE_PASSIVE();
@@ -1883,6 +1883,22 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
         goto Exit;
     }
 
+    policyInfo2.Policy = ProcessDynamicCodePolicy;
+    policyInfo2.DynamicCodePolicy.Flags = 0;
+    status = ZwQueryInformationProcess(processHandle,
+                                       ProcessMitigationPolicy,
+                                       &policyInfo2,
+                                       sizeof(policyInfo2),
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      TRACKING,
+                      "ZwQueryInformationProcess failed: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
     //
     // TODO(jxy-s) investigate any needed support for XFG
     //
@@ -1908,14 +1924,33 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
                                                    flags);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          TRACKING,
-                          "KphGuardGrantSuppressedCallAccess failed "
-                          "(0x%08lx, 0x%08lx): %!STATUS!",
-                          policyInfo.ControlFlowGuardPolicy.Flags,
-                          flags,
-                          status);
-            goto Exit;
+            //
+            // ACG causes ZwSetInformationVirtualMemory to STATUS_ACCESS_DENIED
+            // and there is no choice but to mark this as successful else it will
+            // lead to immediate protecting process stop.
+            // See MiCfgMarkValidEntries.
+            //
+            if (status == STATUS_ACCESS_DENIED && !policyInfo2.DynamicCodePolicy.ProhibitDynamicCode)
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              TRACKING,
+                              "KphGuardGrantSuppressedCallAccess failed "
+                              "(0x%08lx, 0x%08lx): %!STATUS!",
+                              policyInfo.ControlFlowGuardPolicy.Flags,
+                              flags,
+                              status);
+
+                goto Exit;
+            }
+            else
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              TRACKING,
+                              "KphGuardGrantSuppressedCallAccess failed, "
+                              "but ACG is enabled: (0x%08lx): %!STATUS!",
+                              policyInfo.DynamicCodePolicy.Flags,
+                              status);
+            }
         }
     }
 
