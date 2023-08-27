@@ -1840,28 +1840,64 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 #define SCHANNEL_CRED_VERSION    0x00000004  // for legacy code
 #define SCH_CREDENTIALS_VERSION  0x00000005
 
-typedef struct _SCHANNEL_CRED
+typedef enum _eTlsAlgorithmUsage
 {
-    DWORD           dwVersion;      // always SCHANNEL_CRED_VERSION
-    DWORD           cCreds;
-    //PCCERT_CONTEXT *paCred;
-    PVOID           paCred;
-    //HCERTSTORE      hRootStore;
-    PVOID           hRootStore;
+    TlsParametersCngAlgUsageKeyExchange,          // Key exchange algorithm. RSA, ECHDE, DHE, etc.
+    TlsParametersCngAlgUsageSignature,            // Signature algorithm. RSA, DSA, ECDSA, etc.
+    TlsParametersCngAlgUsageCipher,               // Encryption algorithm. AES, DES, RC4, etc.
+    TlsParametersCngAlgUsageDigest,               // Digest of cipher suite. SHA1, SHA256, SHA384, etc.
+    TlsParametersCngAlgUsageCertSig               // Signature and/or hash used to sign certificate. RSA, DSA, ECDSA, SHA1, SHA256, etc.
+} eTlsAlgorithmUsage;
 
-    DWORD           cMappers;
-    struct _HMAPPER **aphMappers;
+//
+// SCH_CREDENTIALS structures
+//
+typedef struct _CRYPTO_SETTINGS
+{
+    eTlsAlgorithmUsage  eAlgorithmUsage;         // How this algorithm is being used.
+    UNICODE_STRING      strCngAlgId;             // CNG algorithm identifier.
+    DWORD               cChainingModes;          // Set to 0 if CNG algorithm does not have a chaining mode.
+    PUNICODE_STRING     rgstrChainingModes;      // Set to NULL if CNG algorithm does not have a chaining mode.
+    DWORD               dwMinBitLength;          // Blacklist key sizes less than this. Set to 0 if not defined or CNG algorithm implies bit length.
+    DWORD               dwMaxBitLength;          // Blacklist key sizes greater than this. Set to 0 if not defined or CNG algorithm implies bit length.
+} CRYPTO_SETTINGS, *PCRYPTO_SETTINGS;
 
-    DWORD           cSupportedAlgs;
-    ALG_ID *        palgSupportedAlgs;
+typedef struct _TLS_PARAMETERS
+{
+    DWORD               cAlpnIds;                // Valid for server applications only. Must be zero otherwise. Number of ALPN IDs in rgstrAlpnIds; set to 0 if applies to all.
+    PUNICODE_STRING     rgstrAlpnIds;            // Valid for server applications only. Must be NULL otherwise. Array of ALPN IDs that the following settings apply to; set to NULL if applies to all.
+    DWORD               grbitDisabledProtocols;  // List protocols you DO NOT want negotiated.
+    DWORD               cDisabledCrypto;         // Number of CRYPTO_SETTINGS structures; set to 0 if there are none.
+    PCRYPTO_SETTINGS    pDisabledCrypto;         // Array of CRYPTO_SETTINGS structures; set to NULL if there are none;
+    DWORD               dwFlags;                 // Optional flags to pass; set to 0 if there are none.
+} TLS_PARAMETERS, *PTLS_PARAMETERS;
 
-    DWORD           grbitEnabledProtocols;
-    DWORD           dwMinimumCipherStrength;
-    DWORD           dwMaximumCipherStrength;
-    DWORD           dwSessionLifespan;
-    DWORD           dwFlags;
-    DWORD           dwCredFormat;
-} SCHANNEL_CRED, *PSCHANNEL_CRED;
+#define TLS_PARAMS_OPTIONAL 0x00000001           // Valid for server applications only. Must be zero otherwise.
+                                                 // TLS_PARAMETERS that will only be honored if they do not cause this server to terminate the handshake.
+
+typedef struct _SCH_CREDENTIALS
+{
+    DWORD               dwVersion;               // Always SCH_CREDENTIALS_VERSION.
+    DWORD               dwCredFormat;
+    DWORD               cCreds;
+    //PCCERT_CONTEXT     *paCred;
+    PVOID               *paCred;
+    //HCERTSTORE          hRootStore;
+    PVOID               hRootStore;
+
+    DWORD               cMappers;
+    struct _HMAPPER   **aphMappers;
+
+    DWORD               dwSessionLifespan;
+    DWORD               dwFlags;
+    DWORD               cTlsParameters;
+    PTLS_PARAMETERS     pTlsParameters;
+} SCH_CREDENTIALS, *PSCH_CREDENTIALS;
+
+#define SCH_CRED_MAX_SUPPORTED_PARAMETERS 16
+#define SCH_CRED_MAX_SUPPORTED_ALPN_IDS 16
+#define SCH_CRED_MAX_SUPPORTED_CRYPTO_SETTINGS 16
+#define SCH_CRED_MAX_SUPPORTED_CHAINING_MODES 16
 
 #define SECPKG_ATTR_ISSUER_LIST          0x50   // (OBSOLETE) returns SecPkgContext_IssuerListInfo
 #define SECPKG_ATTR_REMOTE_CRED          0x51   // (OBSOLETE) returns SecPkgContext_RemoteCredentialInfo
