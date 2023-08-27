@@ -208,7 +208,7 @@ KeTestAlertThread (
     ((Access) & OBJ_GRANTED_ACCESS_MASK)
 
 FORCEINLINE
-VOID 
+VOID
 ObpSetGrantedAccess(
     _Inout_ PACCESS_MASK GrantedAccess,
     _In_ ACCESS_MASK Access
@@ -222,7 +222,7 @@ ObpSetGrantedAccess(
 
 FORCEINLINE
 _Must_inspect_result_
-PVOID 
+PVOID
 ObpDecodeObject(
     _In_ PVOID Object
     )
@@ -243,7 +243,7 @@ ObpDecodeObject(
 
 FORCEINLINE
 _Must_inspect_result_
-ULONG 
+ULONG
 ObpGetHandleAttributes(
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
@@ -980,13 +980,13 @@ typedef struct _MMEXTEND_INFO
 {
     ULONGLONG CommittedSize;
     ULONG ReferenceCount;
-} MMEXTEND_INFO, *PMMEXTEND_INFO; 
+} MMEXTEND_INFO, *PMMEXTEND_INFO;
 
 typedef struct _MMPTE_HIGHLOW
 {
     ULONG LowPart;
     ULONG HighPart;
-} MMPTE_HIGHLOW, *PMMPTE_HIGHLOW; 
+} MMPTE_HIGHLOW, *PMMPTE_HIGHLOW;
 
 typedef struct _MMPTE_HARDWARE
 {
@@ -1122,7 +1122,7 @@ typedef struct _MMVAD
         ULONG LongFlags2;
         MMVAD_FLAGS2 VadFlags2;
     } u2;
-    PVOID Subsection; // PSUBSECTION 
+    PVOID Subsection; // PSUBSECTION
     PMMPTE FirstPrototypePte;
     PMMPTE LastContiguousPte;
     LIST_ENTRY ViewLinks;
@@ -1137,7 +1137,7 @@ typedef struct _MMVAD
         PMMEXTEND_INFO ExtendedInfo;
     } u4;
     PFILE_OBJECT FileObject; // since WIN10
-} MMVAD, *PMMVAD; 
+} MMVAD, *PMMVAD;
 
 FORCEINLINE
 PVOID
@@ -1589,7 +1589,7 @@ typedef LXP_THREAD_GET_CURRENT* PLXP_THREAD_GET_CURRENT;
 // invalid.  Input flag.
 //
 
-#define CFG_CALL_TARGET_VALID                               (0x00000001) 
+#define CFG_CALL_TARGET_VALID                               (0x00000001)
 
 //
 // Call target has been successfully processed.  Used to report to the caller

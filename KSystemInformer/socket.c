@@ -55,7 +55,7 @@ typedef struct _KPH_TLS
  *
  * \param[in] DeviceObject unused
  * \param[in] Irp unused
- * \param[in] Context Points to an event to signal. 
+ * \param[in] Context Points to an event to signal.
  *
  * \return STATUS_MORE_PROCESSING_REQUIRED
  */
@@ -82,7 +82,7 @@ NTSTATUS KphpWskIoCompletionRoutine(
 /**
  * \brief Initialize an WSK I/O object.
  *
- * \param[out] Io The WSK I/O object to initialize. Once initialized the data 
+ * \param[out] Io The WSK I/O object to initialize. Once initialized the data
  * must be deleted with KphpWskIoDelete.
  *
  * \return Successful or errant status.
@@ -584,7 +584,7 @@ VOID KphCleanupSocket(
  * \param[in] ServiceName Optional service name or port number string.
  * \param[in] Hints Optional hints about the type of socket desired.
  * \param[in] Timeout Optional timeout for the resolution to complete.
- * \param[out] AddressInfo Receives a linked list of resolved items. This must 
+ * \param[out] AddressInfo Receives a linked list of resolved items. This must
  * be freed using KphFreeAddressInfo.
  *
  * \return Successful or errant status.
@@ -739,7 +739,7 @@ NTSTATUS KphpSecStatusToNtStatus(
             return STATUS_ACCESS_DENIED;
         }
         case SEC_I_CONTEXT_EXPIRED: // server closed the TLS connection
-        case SEC_I_RENEGOTIATE:     // we don't support TLS renegotiation 
+        case SEC_I_RENEGOTIATE:     // we don't support TLS renegotiation
         {
             return STATUS_PORT_DISCONNECTED;
         }
@@ -882,7 +882,7 @@ SECURITY_STATUS KphpSecFreeCredentialsHandle(
 }
 
 /**
- * \brief Wrapper for InitializeSecurityContext. 
+ * \brief Wrapper for InitializeSecurityContext.
  */
 _Function_class_(INITIALIZE_SECURITY_CONTEXT_FN_W)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1304,7 +1304,7 @@ Exit:
  *    Downstream we will reallocate as necessary.
  * Regardless, this prepares the state during the handshake by moving the extra
  * data to the front of the buffer.
- * 
+ *
  * \param[in,out] Tls The TLS object to process extra data for.
  * \param[in] Extra The extra data to process.
  * \param[in,out] Received On input, the amount of data already received during
@@ -1317,7 +1317,7 @@ _Must_inspect_result_
 NTSTATUS KphpSocketTlsHandshakeExtra(
     _Inout_ PKPH_TLS Tls,
     _In_ PSecBuffer Extra,
-    _Inout_ PULONG Received 
+    _Inout_ PULONG Received
     )
 {
     NTSTATUS status;
@@ -1384,13 +1384,13 @@ Exit:
 /**
  * \brief Receives data during the TLS handshake.
  *
- * \details Reallocates the internal TLS object buffer if necessary. 
+ * \details Reallocates the internal TLS object buffer if necessary.
  *
  * \param[in] Socket A handle to the socket object to receive data from.
  * \param[in] Timeout Optional timeout for the receive.
  * \param[in,out] Tls The TLS object to receive data for.
  * \param[in,out] Received On input, the amount of data already received during
- * the TLS handshake. On output, updated to reflect the addition of the newly 
+ * the TLS handshake. On output, updated to reflect the addition of the newly
  * received bytes.
  *
  * \return Successful or error status.
@@ -1450,7 +1450,7 @@ NTSTATUS KphpSocketTlsHandshakeRecv(
 
         goto Exit;
     }
-    
+
     *Received += length;
 
 Exit:
@@ -1463,7 +1463,7 @@ Exit:
  *
  * \details After a successful TLS handshake, the caller must eventually call
  * KphSocketTlsShutdown to inform the peer the intention to shut down the TLS
- * session. It is acceptable to call TlsSocketTlsShutdown on a TLS handle even 
+ * session. It is acceptable to call TlsSocketTlsShutdown on a TLS handle even
  * if this routine fails.
  *
  * \param[in] Socket Handle to a socket to perform the handshake on.
@@ -1498,7 +1498,7 @@ NTSTATUS KphSocketTlsHandshake(
     PAGED_CODE_PASSIVE();
 
     tls = (PKPH_TLS)Tls;
-    
+
     NT_ASSERT(SecIsValidHandle(&tls->CredentialsHandle));
     NT_ASSERT(!SecIsValidHandle(&tls->ContextHandle));
 
@@ -1832,7 +1832,7 @@ Exit:
 /**
  * \brief Sends data over a TLS session.
  *
- * \details If the requested data to be sent exceeds the maximum size capable 
+ * \details If the requested data to be sent exceeds the maximum size capable
  * of being sent at once, this routine will perform multiple sends.
  *
  * \param[in] Socket Handle to a socket object to send data over.

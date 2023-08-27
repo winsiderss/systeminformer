@@ -436,8 +436,8 @@ VOID KphpPerformProcessCreationTracking(
 
     if (actor->ProcessContext->IsSubsystemProcess)
     {
-        KphTracePrint(TRACE_LEVEL_WARNING, 
-                      TRACKING, 
+        KphTracePrint(TRACE_LEVEL_WARNING,
+                      TRACKING,
                       "Skipping for subsystem process.");
         goto Exit;
     }

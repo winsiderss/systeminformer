@@ -573,7 +573,7 @@ NTSTATUS KphpExtractNameFileObject(
     PFILE_OBJECT relatedFileObject;
 
     PAGED_CODE_PASSIVE();
-    
+
     if (FlagOn(FileObject->Flags, FO_CLEANUP_COMPLETE))
     {
         return STATUS_FILE_CLOSED;
@@ -2362,8 +2362,8 @@ Exit:
 /**
  * \brief Checks if two object handles refer to the same object.
  *
- * \param[in] FirstObjectHandle First handle to compare with the second. 
- * \param[in] SecondObjectHandle Second handle to compare with the first. 
+ * \param[in] FirstObjectHandle First handle to compare with the second.
+ * \param[in] SecondObjectHandle Second handle to compare with the first.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return STATUS_SUCCESS if the object handles refer to the same object,
@@ -2438,11 +2438,11 @@ Exit:
 }
 
 /**
- * \brief Checks if two object handles refer to the same object, for a process. 
+ * \brief Checks if two object handles refer to the same object, for a process.
  *
  * \param[in] ProcessHandle A handle to a process.
- * \param[in] FirstObjectHandle First handle to compare with the second. 
- * \param[in] SecondObjectHandle Second handle to compare with the first. 
+ * \param[in] FirstObjectHandle First handle to compare with the second.
+ * \param[in] SecondObjectHandle Second handle to compare with the first.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return STATUS_SUCCESS if the object handles refer to the same object,
@@ -2461,7 +2461,7 @@ NTSTATUS KphCompareObjects(
     NTSTATUS status;
     PEPROCESS process;
     KAPC_STATE apcState;
-    
+
     PAGED_CODE_PASSIVE();
 
     status = ObReferenceObjectByHandle(ProcessHandle,

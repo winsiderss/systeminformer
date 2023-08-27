@@ -416,7 +416,7 @@ VOID FLTAPI KphpCommsDisconnectNotifyCallback(
 }
 
 /**
- * \brief Signals clients when a required state failure occurs on inbound requests. 
+ * \brief Signals clients when a required state failure occurs on inbound requests.
  *
  * \param[in] MessageId The message ID that failed.
  * \param[in] ClientState The client state that was checked.

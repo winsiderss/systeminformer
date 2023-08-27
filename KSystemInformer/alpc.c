@@ -196,7 +196,7 @@ NTSTATUS KphpAlpcBasicInfo(
 
     //
     // The OS uses the first bit of the OwnerProcess to denote if it is valid,
-    // if the first bit of the OwnerProcess is set is it invalid. Checking the  
+    // if the first bit of the OwnerProcess is set is it invalid. Checking the
     // bit should be done under the PortObjectLock.
     // See: ntoskrnl!AlpcpPortQueryServerSessionInfo
     //

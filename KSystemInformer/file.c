@@ -387,7 +387,7 @@ Exit:
  * \param[in] ShareAccess Specifies the type of share access to the file that
  * the caller would like.
  * \param[in] CreateDisposition Value that determines how the file should be
- * handled when the file already exists. 
+ * handled when the file already exists.
  * \param[in] CreateOptions Specifies the options to be applied when creating
  * or opening the file.
  * \param[in] EaBuffer Optional pointer to an EA buffer.

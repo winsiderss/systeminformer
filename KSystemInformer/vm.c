@@ -17,7 +17,7 @@
 
 /**
  * \brief Queries information on mappings for a given section object.
- * 
+ *
  * \param[in] SectionObject The section object to query the info of.
  * \param[out] SectionInformation Populated with the information.
  * \param[in] SectionInformationLength Length of the section information.
@@ -58,8 +58,8 @@ NTSTATUS KphpQuerySectionMappings(
     controlArea = *(PVOID*)Add2Ptr(SectionObject, KphDynMmSectionControlArea);
     if ((ULONG_PTR)controlArea & 3)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, 
-                      GENERAL, 
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
                       "Section remote mappings not supported.");
 
         status = STATUS_NOT_SUPPORTED;
@@ -69,8 +69,8 @@ NTSTATUS KphpQuerySectionMappings(
     controlArea = (PVOID)((ULONG_PTR)controlArea & ~3);
     if (!controlArea)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, 
-                      GENERAL, 
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
                       "Section control area is null.");
 
         status = STATUS_INVALID_PARAMETER;
