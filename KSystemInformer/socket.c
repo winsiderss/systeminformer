@@ -10,6 +10,7 @@ static WSK_CLIENT_DISPATCH KphpWskDispatch = { MAKE_WSK_VERSION(1, 0), 0, NULL }
 static BOOLEAN KphpWskRegistered = FALSE;
 static BOOLEAN KphpWskProviderCaptured = FALSE;
 static UNICODE_STRING KphpSecurityPackageName = RTL_CONSTANT_STRING(SCHANNEL_NAME_W);
+static LARGE_INTEGER KphpSocketCloseTimeout = { .QuadPart = -30000000ll }; // 3 seconds
 KPH_PROTECTED_DATA_SECTION_PUSH();
 //
 // Not all the functions we need are exported, however they should all be
@@ -223,7 +224,9 @@ VOID KphSocketClose(
 
     status = socket->WskDispatch->WskCloseSocket(socket->WskSocket,
                                                  socket->Io.Irp);
-    status = KphpWskIoWaitForCompletion(&socket->Io, status, NULL);
+    status = KphpWskIoWaitForCompletion(&socket->Io,
+                                        status,
+                                        &KphpSocketCloseTimeout);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -1793,7 +1796,7 @@ VOID KphSocketTlsShutdown(
             (outBuffers[0].BufferType != SECBUFFER_MISSING))
         {
             status = KphSocketSend(Socket,
-                                   NULL,
+                                   &KphpSocketCloseTimeout,
                                    outBuffers[0].pvBuffer,
                                    outBuffers[0].cbBuffer);
             if (!NT_SUCCESS(status))
