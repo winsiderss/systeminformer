@@ -1080,7 +1080,8 @@ NTSTATUS KphSocketTlsCreate(
     SECURITY_STATUS secStatus;
     KAPC_STATE apcState;
     PKPH_TLS tls;
-    SCHANNEL_CRED cred;
+    SCH_CREDENTIALS credentials;
+    TLS_PARAMETERS tlsParameters[1];
 
     PAGED_CODE_PASSIVE();
 
@@ -1102,21 +1103,28 @@ NTSTATUS KphSocketTlsCreate(
     SecInvalidateHandle(&tls->CredentialsHandle);
     SecInvalidateHandle(&tls->ContextHandle);
 
-    RtlZeroMemory(&cred, sizeof(cred));
-    cred.dwVersion = SCHANNEL_CRED_VERSION;
-    cred.dwFlags = (
+    RtlZeroMemory(&credentials, sizeof(credentials));
+    RtlZeroMemory(&tlsParameters, sizeof(tlsParameters));
+
+    credentials.dwVersion = SCH_CREDENTIALS_VERSION;
+    credentials.dwFlags = (
         SCH_USE_STRONG_CRYPTO |
         SCH_CRED_AUTO_CRED_VALIDATION |
         SCH_CRED_NO_DEFAULT_CREDS |
         SCH_CRED_REVOCATION_CHECK_CHAIN
         );
-    cred.grbitEnabledProtocols = SP_PROT_TLS1_2;
+    credentials.cTlsParameters = ARRAYSIZE(tlsParameters);
+    credentials.pTlsParameters = tlsParameters;
+    //
+    // TODO(jxy-s) look into testing and supporting TLS 1.3
+    //
+    tlsParameters[0].grbitDisabledProtocols = (ULONG)~SP_PROT_TLS1_2;
 
     secStatus = KphpSecAcquireCredentialsHandle(NULL,
                                                 &KphpSecurityPackageName,
                                                 SECPKG_CRED_OUTBOUND,
                                                 NULL,
-                                                &cred,
+                                                &credentials,
                                                 NULL,
                                                 NULL,
                                                 &tls->CredentialsHandle,
