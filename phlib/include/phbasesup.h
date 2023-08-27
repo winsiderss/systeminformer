@@ -4341,6 +4341,16 @@ PhNtStatusFileNotFound(
     _In_ NTSTATUS Status
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetLastWin32ErrorAsNtStatus(
+    VOID
+    )
+{
+    return PhDosErrorToNtStatus(GetLastError());
+}
+
 // Generic tree definitions
 
 typedef enum _PH_TREE_ENUMERATION_ORDER
