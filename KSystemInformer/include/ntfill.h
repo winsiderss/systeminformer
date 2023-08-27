@@ -1840,6 +1840,29 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 #define SCHANNEL_CRED_VERSION    0x00000004  // for legacy code
 #define SCH_CREDENTIALS_VERSION  0x00000005
 
+typedef struct _SCHANNEL_CRED
+{
+    DWORD           dwVersion;      // always SCHANNEL_CRED_VERSION
+    DWORD           cCreds;
+    //PCCERT_CONTEXT *paCred;
+    PVOID           paCred;
+    //HCERTSTORE      hRootStore;
+    PVOID           hRootStore;
+
+    DWORD           cMappers;
+    struct _HMAPPER **aphMappers;
+
+    DWORD           cSupportedAlgs;
+    ALG_ID *        palgSupportedAlgs;
+
+    DWORD           grbitEnabledProtocols;
+    DWORD           dwMinimumCipherStrength;
+    DWORD           dwMaximumCipherStrength;
+    DWORD           dwSessionLifespan;
+    DWORD           dwFlags;
+    DWORD           dwCredFormat;
+} SCHANNEL_CRED, *PSCHANNEL_CRED;
+
 typedef enum _eTlsAlgorithmUsage
 {
     TlsParametersCngAlgUsageKeyExchange,          // Key exchange algorithm. RSA, ECHDE, DHE, etc.
