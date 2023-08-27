@@ -669,6 +669,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_DEVICE_INTERFACES, L"0" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_DISABLED_DEVICE_INTERFACES, L"0" },
                 { IntegerPairSettingType, SETTING_NAME_DEVICE_PROPERTIES_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_DEVICE_PROPERTIES_SIZE, L"@96|300,200" },
                 { StringSettingType, SETTING_NAME_DEVICE_GENERAL_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_DEVICE_INTERFACES_COLUMNS, L"" },

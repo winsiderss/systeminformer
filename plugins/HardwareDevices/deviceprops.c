@@ -231,8 +231,6 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
         {
             context->GeneralListViewHandle = GetDlgItem(hwndDlg, IDC_DEVICE_INFO);
 
-            PhSetApplicationWindowIcon(GetParent(hwndDlg));
-
             PhSetListViewStyle(context->GeneralListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->GeneralListViewHandle, L"explorer");
             PhAddListViewColumn(context->GeneralListViewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
@@ -242,9 +240,8 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
 
             DeviceInitializeGeneralPage(hwndDlg, context);
 
-            if (!PhGetIntegerPairSetting(SETTING_NAME_DEVICE_PROPERTIES_POSITION).X) // HACK
+            if (!PhGetIntegerPairSetting(SETTING_NAME_DEVICE_PROPERTIES_POSITION).X)
             {
-                PhCenterWindow(GetParent(hwndDlg), context->ParentWindowHandle);
                 ExtendedListView_SetColumnWidth(context->GeneralListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
             }
 
@@ -268,7 +265,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItemEx(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL, TRUE);
+                dialogItem = PvAddPropPageLayoutItemEx(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL, TRUE, SETTING_NAME_DEVICE_PROPERTIES_POSITION, SETTING_NAME_DEVICE_PROPERTIES_SIZE);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEVICE_GROUPBOX), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEVICE_NAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PvAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEVICE_MANUFACTURER), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);

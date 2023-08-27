@@ -174,7 +174,9 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     {
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(SETTING_NAME_DISK_POSITION, SETTING_NAME_DISK_SIZE, hWnd);
+            if (context->PositionSettingName)
+                PhSaveWindowPlacementToSetting(context->PositionSettingName, context->SizeSettingName, hWnd);
+
             PhDeleteLayoutManager(&context->LayoutManager);
         }
         break;
@@ -324,7 +326,9 @@ HWND PvpCreateControlButton(
 BOOLEAN PhpInitializePropSheetLayoutStage1(
     _In_ PPV_PROPSHEETCONTEXT PropSheetContext,
     _In_ HWND hwnd,
-    _In_ BOOLEAN EnableOptionsButton
+    _In_ BOOLEAN EnableOptionsButton,
+    _In_opt_ PWSTR PositionSettingName,
+    _In_opt_ PWSTR SizeSettingName
     )
 {
     if (!PropSheetContext->LayoutInitialized)
@@ -358,7 +362,22 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
         // Set the Cancel button's text to "Close".
         PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
 
-        PhLoadWindowPlacementFromSetting(SETTING_NAME_DISK_POSITION, SETTING_NAME_DISK_SIZE, hwnd);
+        if (PositionSettingName)
+        {
+            PropSheetContext->PositionSettingName = PositionSettingName;
+            PropSheetContext->SizeSettingName = SizeSettingName;
+
+            if (PhGetIntegerPairSetting(PositionSettingName).X)
+            {
+                PhLoadWindowPlacementFromSetting(PositionSettingName, SizeSettingName, hwnd);
+            }
+            else
+            {
+                PhCenterWindow(hwnd, GetParent(hwnd));
+            }
+
+            PhSetApplicationWindowIcon(hwnd);
+        }
 
         PropSheetContext->LayoutInitialized = TRUE;
 
@@ -480,7 +499,9 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor,
-    _In_ BOOLEAN EnableOptionsButton
+    _In_ BOOLEAN EnableOptionsButton,
+    _In_opt_ PWSTR PositionSettingName,
+    _In_opt_ PWSTR SizeSettingName
     )
 {
     HWND parent;
@@ -493,7 +514,7 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
     propSheetContext = PvpGetPropSheetContext(parent);
     layoutManager = &propSheetContext->LayoutManager;
 
-    PhpInitializePropSheetLayoutStage1(propSheetContext, parent, EnableOptionsButton);
+    PhpInitializePropSheetLayoutStage1(propSheetContext, parent, EnableOptionsButton, PositionSettingName, SizeSettingName);
 
     if (ParentItem != PH_PROP_PAGE_TAB_CONTROL_PARENT)
         realParentItem = ParentItem;
@@ -543,7 +564,19 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
     _In_ ULONG Anchor
     )
 {
-    return PvAddPropPageLayoutItemEx(hwnd, Handle, ParentItem, Anchor, FALSE);
+    return PvAddPropPageLayoutItemEx(hwnd, Handle, ParentItem, Anchor, FALSE, NULL, NULL);
+}
+
+PPH_LAYOUT_ITEM PvAddPropPageLayoutConfig(
+    _In_ HWND hwnd,
+    _In_ HWND Handle,
+    _In_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor,
+    _In_opt_ PWSTR PositionSettingName,
+    _In_opt_ PWSTR SizeSettingName
+    )
+{
+    return PvAddPropPageLayoutItemEx(hwnd, Handle, ParentItem, Anchor, FALSE, PositionSettingName, SizeSettingName);
 }
 
 VOID PvDoPropPageLayout(

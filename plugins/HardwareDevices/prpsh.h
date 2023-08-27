@@ -25,6 +25,8 @@ typedef struct _PV_PROPSHEETCONTEXT
 
     WNDPROC OldOptionsButtonWndProc;
     HWND OptionsButtonWindowHandle;
+    PWSTR PositionSettingName;
+    PWSTR SizeSettingName;
 } PV_PROPSHEETCONTEXT, *PPV_PROPSHEETCONTEXT;
 
 typedef struct _PV_PROPCONTEXT
@@ -32,6 +34,8 @@ typedef struct _PV_PROPCONTEXT
     PROPSHEETHEADER PropSheetHeader;
     HPROPSHEETPAGE *PropSheetPages;
     BOOLEAN EnableControlButtons;
+    PWSTR PositionSettingName;
+    PWSTR SizeSettingName;
 } PV_PROPCONTEXT, *PPV_PROPCONTEXT;
 
 typedef struct _PV_PROPPAGECONTEXT
@@ -84,7 +88,9 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItemEx(
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor,
-    _In_ BOOLEAN EnableControlButtons
+    _In_ BOOLEAN EnableControlButtons,
+    _In_opt_ PWSTR PositionSettingName,
+    _In_opt_ PWSTR SizeSettingName
     );
 
 VOID PvDoPropPageLayout(

@@ -593,9 +593,6 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
             context->WindowHandle = context->PageContext->SysInfoContext->DetailsWindowDialogHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
 
-            PhCenterWindow(GetParent(hwndDlg), NULL); // HACK (dmex)
-            PhSetApplicationWindowIcon(GetParent(hwndDlg));
-
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 290, L"Property");
@@ -639,7 +636,8 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PvAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+                dialogItem = PvAddPropPageLayoutItemEx(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL, FALSE,
+                    SETTING_NAME_DISK_POSITION, SETTING_NAME_DISK_SIZE);
                 PvAddPropPageLayoutItem(hwndDlg, context->ListViewHandle, dialogItem, PH_ANCHOR_ALL);
                 PvDoPropPageLayout(hwndDlg);
 
