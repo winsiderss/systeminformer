@@ -1189,7 +1189,7 @@ NTSTATUS KphQueryInformationThread(
         {
             PIO_COUNTERS counters;
             PULONGLONG value;
-            
+
             if ((KphDynKtReadOperationCount == ULONG_MAX) ||
                 (KphDynKtWriteOperationCount == ULONG_MAX) ||
                 (KphDynKtOtherOperationCount == ULONG_MAX) ||

@@ -196,9 +196,9 @@ NTSTATUS KphDebugInformerStart(
 {
     NTSTATUS status;
     ULONG count;
-    
+
     NPAGED_CODE_PASSIVE();
-    
+
     NT_ASSERT(KphpDbgPrintSlotNext == 0);
     NT_ASSERT(!KphpDbgPrintInitialized);
 

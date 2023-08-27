@@ -15,8 +15,6 @@
 
 #include <trace.h>
 
-#define KPH_MODULES_MAX_COUNT 1024
-
 /**
  * \brief Captures the current stack, both kernel and user if possible.
  *
@@ -1020,7 +1018,7 @@ BOOLEAN KphProcessIsLsass(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpGetKernelFileName(
-    _Out_ _At_(FileName->Buffer, __drv_allocatesMem(Mem)) 
+    _Out_ _At_(FileName->Buffer, __drv_allocatesMem(Mem))
     PUNICODE_STRING FileName
     )
 {
@@ -1078,7 +1076,7 @@ NTSTATUS KphpGetKernelFileName(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetKernelVersion(
-    _Out_ PKPH_FILE_VERSION Version 
+    _Out_ PKPH_FILE_VERSION Version
     )
 {
     NTSTATUS status;
@@ -1351,7 +1349,7 @@ Exit:
  *
  * \details The process must already have the relevant mitigations enabled for
  * the CFG flags, else this call will fail. See RtlpGuardGrantSuppressedCallAccess.
- * 
+ *
  * \param ProcessHandle Handle to the process to configure CFG for.
  * \param VirtualAddress Virtual address of the call target.
  * \param Flags CFG flags to configure.
@@ -1440,7 +1438,7 @@ NTSTATUS KphGetFileNameFinalComponent(
  * \brief Gets the image name from a process.
  *
  * \param[in] Process The process to get the image name from.
- * \param[out] ImageName Populated with the image name of the process, this 
+ * \param[out] ImageName Populated with the image name of the process, this
  * string should be freed using KphFreeProcessImageName.
  *
  * \return Successful or errant status.

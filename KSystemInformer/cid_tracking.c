@@ -205,7 +205,7 @@ PVOID KSIAPI KphpAllocateProcessContext(
  * \brief Initializes a process context.
  *
  * \param[in] Object The process context object to initialize.
- * \param[in] Parameter The kernel process object associated with this context. 
+ * \param[in] Parameter The kernel process object associated with this context.
  *
  * \return STATUS_SUCCESS
  */
@@ -412,7 +412,7 @@ VOID KSIAPI KphpDeleteProcessContext(
 
     if (process->ImageFileName)
     {
-#pragma warning(suppress: 4995) // intentional use of ExFreePool 
+#pragma warning(suppress: 4995) // intentional use of ExFreePool
         ExFreePool(process->ImageFileName);
     }
 
@@ -488,7 +488,7 @@ PVOID KSIAPI KphpAllocateThreadContext(
 
 /**
  * \brief Preforms thread context initialization for a WSL thread.
- * 
+ *
  * \param[in] ThreadContext The thread context to initialize.
  */
 _IRQL_requires_(APC_LEVEL)
@@ -523,7 +523,7 @@ VOID KphpInitializeWSLThreadContext(
     NT_ASSERT(!ThreadContext->WSL.ValidThreadId);
 
     value = *(PVOID*)Add2Ptr(picoContext, KphDynLxPicoThrdInfo);
-    ThreadContext->WSL.ThreadId = 
+    ThreadContext->WSL.ThreadId =
         *(PULONG)Add2Ptr(value, KphDynLxPicoThrdInfoTID);
     ThreadContext->WSL.ValidThreadId = TRUE;
 
@@ -687,7 +687,7 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
     {
         //
         // We use an APC here to reach into the thread pico context. We could
-        // reach directly into the pico context here, but reversing shows 
+        // reach directly into the pico context here, but reversing shows
         // intent for possible other pico subsystem providers in the future.
         // So, we use some "undocumented" APIs in the APC to ask "nicely" for
         // the correct pico context.
@@ -896,7 +896,7 @@ Exit:
             KphDereferenceObject(KphpThreadContextLookaside);
             KphpThreadContextLookaside = NULL;
         }
-        
+
         if (KphpCidApcLookaside)
         {
             KphDereferenceObject(KphpCidApcLookaside);
@@ -1674,7 +1674,7 @@ PKPH_THREAD_CONTEXT KphUntrackThreadContext(
             thread->ProcessContext->InitialThread = NULL;
             KphDereferenceObject(thread);
         }
-        
+
         KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
     }
 
@@ -1827,7 +1827,7 @@ VOID KphEnumerateCidContexts(
 /**
  * \brief Checks the APC no-op routine for a given process.
  *
- * \param[in] Process The context of a process to check the routine of. 
+ * \param[in] Process The context of a process to check the routine of.
  *
  * \return Successful or errant status.
  */
@@ -1934,13 +1934,13 @@ Exit:
 
 /**
  * \brief Performs actions to verify a process and begin protecting it. Process
- * protection is only started processes that meet the necessary requirements. 
+ * protection is only started processes that meet the necessary requirements.
  *
- * \param[in] Process The context of a process verify and protect. 
+ * \param[in] Process The context of a process verify and protect.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphVerifyProcessAndProtectIfAppropriate(
-    _In_ PKPH_PROCESS_CONTEXT Process 
+    _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
     NTSTATUS status;
