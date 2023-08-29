@@ -626,6 +626,8 @@ VOID PhMwpOnServiceModified(
             }
         }
     }
+
+    PhFree(ServiceModifiedData);
 }
 
 VOID PhMwpOnServiceRemoved(
