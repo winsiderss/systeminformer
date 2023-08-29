@@ -8,9 +8,6 @@
  *
  */
 
-#pragma warning(push)
-#pragma warning(disable: 4996)
-
 #include "config.h"
 
 #include "strerror_override.h"
@@ -56,6 +53,7 @@
 #endif
 #endif
 
+const char *json_number_chars = "0123456789.+-eE"; /* Unused, but part of public API, drop for 1.0 */
 const char *json_hex_chars = "0123456789abcdefABCDEF";
 
 static void json_object_generic_delete(struct json_object *jso);
@@ -66,6 +64,12 @@ static void json_object_generic_delete(struct json_object *jso);
 #elif defined(AIX_CC)
 #define inline
 #endif
+
+/* define colors */
+#define ANSI_COLOR_RESET "\033[0m"
+#define ANSI_COLOR_FG_GREEN "\033[0;32m"
+#define ANSI_COLOR_FG_BLUE "\033[0;34m"
+#define ANSI_COLOR_FG_MAGENTA "\033[0;35m"
 
 /*
  * Helper functions to more safely cast to a particular type of json_object
@@ -204,7 +208,7 @@ static int json_escape_str(struct printbuf *pb, const char *str, size_t len, int
             }
 
             if (pos > start_offset)
-                printbuf_memappend(pb, str + start_offset, (int)(pos - start_offset));
+                printbuf_memappend(pb, str + start_offset, pos - start_offset);
 
             if (c == '\b')
                 printbuf_memappend(pb, "\\b", 2);
@@ -231,7 +235,7 @@ static int json_escape_str(struct printbuf *pb, const char *str, size_t len, int
                 char sbuf[7];
                 if (pos > start_offset)
                     printbuf_memappend(pb, str + start_offset,
-                                       (int)(pos - start_offset));
+                                       pos - start_offset);
                 snprintf(sbuf, sizeof(sbuf), "\\u00%c%c", json_hex_chars[c >> 4],
                          json_hex_chars[c & 0xf]);
                 printbuf_memappend_fast(pb, sbuf, (int)sizeof(sbuf) - 1);
@@ -242,7 +246,7 @@ static int json_escape_str(struct printbuf *pb, const char *str, size_t len, int
         }
     }
     if (pos > start_offset)
-        printbuf_memappend(pb, str + start_offset, (int)(pos - start_offset));
+        printbuf_memappend(pb, str + start_offset, pos - start_offset);
     return 0;
 }
 
@@ -456,42 +460,52 @@ static void indent(struct printbuf *pb, int level, int flags)
 
 /* json_object_object */
 
-static int json_object_object_to_json_string(struct json_object *jso, struct printbuf *pb,
+static size_t json_object_object_to_json_string(struct json_object *jso, struct printbuf *pb,
                                              int level, int flags)
 {
     int had_children = 0;
     struct json_object_iter iter;
 
     printbuf_strappend(pb, "{" /*}*/);
-    if (flags & JSON_C_TO_STRING_PRETTY)
-        printbuf_strappend(pb, "\n");
     json_object_object_foreachC(jso, iter)
     {
         if (had_children)
         {
             printbuf_strappend(pb, ",");
-            if (flags & JSON_C_TO_STRING_PRETTY)
-                printbuf_strappend(pb, "\n");
         }
+        if (flags & JSON_C_TO_STRING_PRETTY)
+            printbuf_strappend(pb, "\n");
         had_children = 1;
         if (flags & JSON_C_TO_STRING_SPACED && !(flags & JSON_C_TO_STRING_PRETTY))
             printbuf_strappend(pb, " ");
         indent(pb, level + 1, flags);
+        if (flags & JSON_C_TO_STRING_COLOR)
+            printbuf_strappend(pb, ANSI_COLOR_FG_BLUE);
+
         printbuf_strappend(pb, "\"");
         json_escape_str(pb, iter.key, strlen(iter.key), flags);
+        printbuf_strappend(pb, "\"");
+
+        if (flags & JSON_C_TO_STRING_COLOR)
+            printbuf_strappend(pb, ANSI_COLOR_RESET);
+
         if (flags & JSON_C_TO_STRING_SPACED)
-            printbuf_strappend(pb, "\": ");
+            printbuf_strappend(pb, ": ");
         else
-            printbuf_strappend(pb, "\":");
-        if (iter.val == NULL)
+            printbuf_strappend(pb, ":");
+
+        if (iter.val == NULL) {
+            if (flags & JSON_C_TO_STRING_COLOR)
+                printbuf_strappend(pb, ANSI_COLOR_FG_MAGENTA);
             printbuf_strappend(pb, "null");
-        else if (iter.val->_to_json_string(iter.val, pb, level + 1, flags) < 0)
+            if (flags & JSON_C_TO_STRING_COLOR)
+                printbuf_strappend(pb, ANSI_COLOR_RESET);
+        } else if (iter.val->_to_json_string(iter.val, pb, level + 1, flags) < 0)
             return -1;
     }
-    if (flags & JSON_C_TO_STRING_PRETTY)
+    if ((flags & JSON_C_TO_STRING_PRETTY) && had_children)
     {
-        if (had_children)
-            printbuf_strappend(pb, "\n");
+        printbuf_strappend(pb, "\n");
         indent(pb, level, flags);
     }
     if (flags & JSON_C_TO_STRING_SPACED && !(flags & JSON_C_TO_STRING_PRETTY))
@@ -629,12 +643,21 @@ void json_object_object_del(struct json_object *jso, const char *key)
 
 /* json_object_boolean */
 
-static int json_object_boolean_to_json_string(struct json_object *jso, struct printbuf *pb,
+static size_t json_object_boolean_to_json_string(struct json_object *jso, struct printbuf *pb,
                                               int level, int flags)
 {
+    size_t ret;
+
+    if (flags & JSON_C_TO_STRING_COLOR)
+        printbuf_strappend(pb, ANSI_COLOR_FG_MAGENTA);
+
     if (JC_BOOL(jso)->c_boolean)
-        return printbuf_strappend(pb, "true");
-    return printbuf_strappend(pb, "false");
+        ret = printbuf_strappend(pb, "true");
+    else
+        ret = printbuf_strappend(pb, "false");
+    if (ret > -1 && flags & JSON_C_TO_STRING_COLOR)
+        return printbuf_strappend(pb, ANSI_COLOR_RESET);
+    return ret;
 }
 
 struct json_object *json_object_new_boolean(json_bool b)
@@ -676,7 +699,7 @@ int json_object_set_boolean(struct json_object *jso, json_bool new_value)
 
 /* json_object_int */
 
-static int json_object_int_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
+static size_t json_object_int_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
                                           int flags)
 {
     /* room for 19 digits, the sign char, and a null term */
@@ -685,7 +708,7 @@ static int json_object_int_to_json_string(struct json_object *jso, struct printb
         snprintf(sbuf, sizeof(sbuf), "%" PRId64, JC_INT(jso)->cint.c_int64);
     else
         snprintf(sbuf, sizeof(sbuf), "%" PRIu64, JC_INT(jso)->cint.c_uint64);
-    return printbuf_memappend(pb, sbuf, (int)strlen(sbuf));
+    return printbuf_memappend(pb, sbuf, strlen(sbuf));
 }
 
 struct json_object *json_object_new_int(int32_t i)
@@ -990,12 +1013,12 @@ int json_c_set_serialization_double_format(const char *double_format, int global
     return 0;
 }
 
-static int json_object_double_to_json_string_format(struct json_object *jso, struct printbuf *pb,
+static size_t json_object_double_to_json_string_format(struct json_object *jso, struct printbuf *pb,
                                                     int level, int flags, const char *format)
 {
     struct json_object_double *jsodbl = JC_DOUBLE(jso);
     char buf[128], *p, *q;
-    int size;
+    size_t size;
     /* Although JSON RFC does not support
      * NaN or Infinity as numeric values
      * ECMA 262 section 9.8.1 defines
@@ -1068,7 +1091,7 @@ static int json_object_double_to_json_string_format(struct json_object *jso, str
             /* drop trailing zeroes */
             if (*p != 0)
                 *(++p) = 0;
-            size = (int)(p - buf);
+            size = p - buf;
         }
     }
     // although unlikely, snprintf can fail
@@ -1083,13 +1106,13 @@ static int json_object_double_to_json_string_format(struct json_object *jso, str
     return size;
 }
 
-static int json_object_double_to_json_string_default(struct json_object *jso, struct printbuf *pb,
+static size_t json_object_double_to_json_string_default(struct json_object *jso, struct printbuf *pb,
                                                      int level, int flags)
 {
     return json_object_double_to_json_string_format(jso, pb, level, flags, NULL);
 }
 
-int json_object_double_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
+size_t json_object_double_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
                                       int flags)
 {
     return json_object_double_to_json_string_format(jso, pb, level, flags,
@@ -1130,16 +1153,16 @@ struct json_object *json_object_new_double_s(double d, const char *ds)
  * by json_object_new_double_s() just so json_object_set_double() can
  * detect when it needs to reset the serializer to the default.
  */
-static int _json_object_userdata_to_json_string(struct json_object *jso, struct printbuf *pb,
+static size_t _json_object_userdata_to_json_string(struct json_object *jso, struct printbuf *pb,
                                                 int level, int flags)
 {
     return json_object_userdata_to_json_string(jso, pb, level, flags);
 }
 
-int json_object_userdata_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
+size_t json_object_userdata_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
                                         int flags)
 {
-    int userdata_len = (int)strlen((const char *)jso->_userdata);
+    size_t userdata_len = strlen((const char *)jso->_userdata);
     printbuf_memappend(pb, (const char *)jso->_userdata, userdata_len);
     return userdata_len;
 }
@@ -1219,13 +1242,17 @@ int json_object_set_double(struct json_object *jso, double new_value)
 
 /* json_object_string */
 
-static int json_object_string_to_json_string(struct json_object *jso, struct printbuf *pb,
+static size_t json_object_string_to_json_string(struct json_object *jso, struct printbuf *pb,
                                              int level, int flags)
 {
     ssize_t len = JC_STRING(jso)->len;
+    if (flags & JSON_C_TO_STRING_COLOR)
+        printbuf_strappend(pb, ANSI_COLOR_FG_GREEN);
     printbuf_strappend(pb, "\"");
     json_escape_str(pb, get_string_component(jso), len < 0 ? -(ssize_t)len : len, flags);
     printbuf_strappend(pb, "\"");
+    if (flags & JSON_C_TO_STRING_COLOR)
+        printbuf_strappend(pb, ANSI_COLOR_RESET);
     return 0;
 }
 
@@ -1279,7 +1306,7 @@ struct json_object *json_object_new_string(const char *s)
     return _json_object_new_string(s, strlen(s));
 }
 
-struct json_object *json_object_new_string_len(const char *s, const int len)
+struct json_object *json_object_new_string_len(const char *s, const size_t len)
 {
     return _json_object_new_string(s, len);
 }
@@ -1301,13 +1328,13 @@ static inline ssize_t _json_object_get_string_len(const struct json_object_strin
     len = jso->len;
     return (len < 0) ? -(ssize_t)len : len;
 }
-int json_object_get_string_len(const struct json_object *jso)
+size_t json_object_get_string_len(const struct json_object *jso)
 {
     if (!jso)
         return 0;
     switch (jso->o_type)
     {
-    case json_type_string: return (int)_json_object_get_string_len(JC_STRING_C(jso));
+    case json_type_string: return _json_object_get_string_len(JC_STRING_C(jso));
     default: return 0;
     }
 }
@@ -1326,11 +1353,18 @@ static int _json_object_set_string_len(json_object *jso, const char *s, size_t l
         // length as int, cap length at INT_MAX.
         return 0;
 
-    dstbuf = get_string_component_mutable(jso);
     curlen = JC_STRING(jso)->len;
-    if (curlen < 0)
-        curlen = -curlen;
+    if (curlen < 0) {
+        if (len == 0) {
+            free(JC_STRING(jso)->c_string.pdata);
+            JC_STRING(jso)->len = curlen = 0;
+        } else {
+            curlen = -curlen;
+        }
+    }
+
     newlen = len;
+    dstbuf = get_string_component_mutable(jso);
 
     if ((ssize_t)len > curlen)
     {
@@ -1370,38 +1404,41 @@ int json_object_set_string_len(json_object *jso, const char *s, int len)
 
 /* json_object_array */
 
-static int json_object_array_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
+static size_t json_object_array_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
                                             int flags)
 {
     int had_children = 0;
     size_t ii;
 
     printbuf_strappend(pb, "[");
-    if (flags & JSON_C_TO_STRING_PRETTY)
-        printbuf_strappend(pb, "\n");
     for (ii = 0; ii < json_object_array_length(jso); ii++)
     {
         struct json_object *val;
         if (had_children)
         {
             printbuf_strappend(pb, ",");
-            if (flags & JSON_C_TO_STRING_PRETTY)
-                printbuf_strappend(pb, "\n");
         }
+        if (flags & JSON_C_TO_STRING_PRETTY)
+            printbuf_strappend(pb, "\n");
         had_children = 1;
         if (flags & JSON_C_TO_STRING_SPACED && !(flags & JSON_C_TO_STRING_PRETTY))
             printbuf_strappend(pb, " ");
         indent(pb, level + 1, flags);
         val = json_object_array_get_idx(jso, ii);
-        if (val == NULL)
+        if (val == NULL) {
+
+            if (flags & JSON_C_TO_STRING_COLOR)
+                printbuf_strappend(pb, ANSI_COLOR_FG_MAGENTA);
             printbuf_strappend(pb, "null");
-        else if (val->_to_json_string(val, pb, level + 1, flags) < 0)
+            if (flags & JSON_C_TO_STRING_COLOR)
+                printbuf_strappend(pb, ANSI_COLOR_RESET);
+
+        } else if (val->_to_json_string(val, pb, level + 1, flags) < 0)
             return -1;
     }
-    if (flags & JSON_C_TO_STRING_PRETTY)
+    if ((flags & JSON_C_TO_STRING_PRETTY) && had_children)
     {
-        if (had_children)
-            printbuf_strappend(pb, "\n");
+        printbuf_strappend(pb, "\n");
         indent(pb, level, flags);
     }
 
@@ -1481,6 +1518,12 @@ int json_object_array_add(struct json_object *jso, struct json_object *val)
 {
     assert(json_object_get_type(jso) == json_type_array);
     return array_list_add(JC_ARRAY(jso)->c_array, val);
+}
+
+int json_object_array_insert_idx(struct json_object *jso, size_t idx, struct json_object *val)
+{
+    assert(json_object_get_type(jso) == json_type_array);
+    return array_list_insert_idx(JC_ARRAY(jso)->c_array, idx, val);
 }
 
 int json_object_array_put_idx(struct json_object *jso, size_t idx, struct json_object *val)
@@ -1675,7 +1718,7 @@ int json_c_shallow_copy_default(json_object *src, json_object *parent, const cha
 
     case json_type_string:
         *dst = json_object_new_string_len(get_string_component(src),
-                                          (int)_json_object_get_string_len(JC_STRING(src)));
+                                          _json_object_get_string_len(JC_STRING(src)));
         break;
 
     case json_type_object: *dst = json_object_new_object(); break;
@@ -1809,5 +1852,3 @@ static void json_abort(const char *message)
         fprintf(stderr, "json-c aborts with error: %s\n", message);
     abort();
 }
-
-#pragma warning(pop)

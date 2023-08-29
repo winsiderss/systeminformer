@@ -17,14 +17,14 @@
 #include "../tools/thirdparty/jsonc/json.h"
 #include "../tools/thirdparty/mxml/mxml.h"
 
-static json_object_ptr json_get_object(
-    _In_ json_object_ptr rootObj,
-    _In_ PSTR key
+static PVOID json_get_object(
+    _In_ PVOID Object,
+    _In_ PSTR Key
     )
 {
-    json_object_ptr returnObj;
+    json_object* returnObj;
 
-    if (json_object_object_get_ex(rootObj, key, &returnObj))
+    if (json_object_object_get_ex(Object, Key, &returnObj))
     {
         return returnObj;
     }
@@ -45,7 +45,7 @@ PVOID PhCreateJsonParserEx(
     )
 {
     json_tokener* tokenerObject;
-    json_object_ptr jsonObject;
+    json_object* jsonObject;
 
     if (Unicode)
     {
@@ -53,9 +53,9 @@ PVOID PhCreateJsonParserEx(
         PPH_BYTES jsonStringUtf8;
 
         if (jsonStringUtf16->Length / sizeof(WCHAR) >= INT32_MAX)
-            return NULL;
+            return NULL; // STATUS_INVALID_BUFFER_SIZE
         if (!(tokenerObject = json_tokener_new()))
-            return NULL;
+            return NULL; // STATUS_NO_MEMORY
 
         json_tokener_set_flags(
             tokenerObject,
@@ -69,7 +69,7 @@ PVOID PhCreateJsonParserEx(
         jsonObject = json_tokener_parse_ex(
             tokenerObject,
             jsonStringUtf8->Buffer,
-            (INT)jsonStringUtf8->Length
+            jsonStringUtf8->Length
             );
         PhDereferenceObject(jsonStringUtf8);
     }
@@ -78,9 +78,9 @@ PVOID PhCreateJsonParserEx(
         PPH_BYTES jsonStringUtf8 = JsonString;
 
         if (jsonStringUtf8->Length >= INT32_MAX)
-            return NULL;
+            return NULL; // STATUS_INVALID_BUFFER_SIZE
         if (!(tokenerObject = json_tokener_new()))
-            return NULL;
+            return NULL; // STATUS_NO_MEMORY
 
         json_tokener_set_flags(
             tokenerObject,
@@ -90,14 +90,14 @@ PVOID PhCreateJsonParserEx(
         jsonObject = json_tokener_parse_ex(
             tokenerObject,
             jsonStringUtf8->Buffer,
-            (INT)jsonStringUtf8->Length
+            jsonStringUtf8->Length
             );
     }
 
     if (json_tokener_get_error(tokenerObject) != json_tokener_success)
     {
         json_tokener_free(tokenerObject);
-        return NULL;
+        return NULL; // STATUS_UNSUCCESSFUL
     }
 
     json_tokener_free(tokenerObject);

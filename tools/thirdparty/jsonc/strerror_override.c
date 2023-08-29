@@ -59,7 +59,7 @@ static struct
 /* clang-format on */
 
 // Enabled during tests
-static int _json_c_strerror_enable = 0;
+//static int _json_c_strerror_enable = 0;
 //extern char *getenv(const char *name); // Avoid including stdlib.h
 
 #define PREFIX "ERRNO="

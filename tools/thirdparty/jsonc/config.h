@@ -119,7 +119,7 @@
 //#define HAVE_SETLOCALE 1
 
 /* Define to 1 if you have the `snprintf' function. */
-/* #undef HAVE_SNPRINTF */
+#define HAVE_SNPRINTF 1
 
 
 /* Define to 1 if you have the `strcasecmp' function. */
@@ -136,6 +136,9 @@
 
 /* Define to 1 if you have the `uselocale' function. */
 /* #undef HAVE_USELOCALE */
+
+/* Define to 1 if newlocale() needs freelocale() called on it's `base` argument */
+/* #undef NEWLOCALE_NEEDS_FREELOCALE */
 
 /* Define to 1 if you have the `vasprintf' function. */
 /* #undef HAVE_VASPRINTF */
@@ -171,7 +174,7 @@
 /* #undef HAVE___THREAD */
 
 /* Public define for json_inttypes.h */
-/* #undef JSON_C_HAVE_INTTYPES_H */
+#define JSON_C_HAVE_INTTYPES_H 1
 
 /* Name of package */
 #define PACKAGE "json-c"
@@ -183,7 +186,7 @@
 #define PACKAGE_NAME "json-c"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "json-c 0.16"
+#define PACKAGE_STRING "json-c 0.17"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "json-c"
@@ -192,7 +195,7 @@
 #define PACKAGE_URL "https://github.com/json-c/json-c"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.15"
+#define PACKAGE_VERSION "0.17"
 
 /* The number of bytes in type int */
 #define SIZEOF_INT 4
@@ -219,7 +222,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.16"
+#define VERSION "0.17"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */
