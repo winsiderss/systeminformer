@@ -115,7 +115,7 @@ BOOLEAN PhpGetSelectedWmiProviderNodes(
     _Out_ PULONG NumberOfNodes
     );
 
-PVOID PhpGetWmiUtilsDllBase(
+PVOID PhGetWmiUtilsDllBase(
     VOID
     )
 {
@@ -124,14 +124,12 @@ PVOID PhpGetWmiUtilsDllBase(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PPH_STRING systemFileName;
+        PPH_STRING fileName;
 
-        if (systemFileName = PhGetSystemDirectoryWin32Z(L"\\wbem\\wmiutils.dll"))
+        if (fileName = PhGetSystemDirectoryWin32Z(L"\\wbem\\wmiutils.dll"))
         {
-            if (!(imageBaseAddress = PhGetLoaderEntryDllBase(&systemFileName->sr, NULL)))
-                imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
-
-            PhDereferenceObject(systemFileName);
+            imageBaseAddress = PhLoadLibrary(PhGetString(fileName));
+            PhDereferenceObject(fileName);
         }
 
         PhEndInitOnce(&initOnce);
@@ -209,8 +207,14 @@ HRESULT PhpWmiProviderExecMethod(
     if (FAILED(status))
         goto CleanupExit;
 
-    querySelectString = PhConcatStrings2(
-        L"SELECT Namespace,Provider,User,__RELPATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
+    querySelectString = PhFormatString(
+        L"%s %s %s %s %s %s = %s",
+        L"SELECT",
+        L"Namespace,Provider,User,__RELPATH",
+        L"FROM",
+        L"Msft_Providers",
+        L"WHERE",
+        L"HostProcessIdentifier",
         ProcessIdString
         );
 
@@ -356,7 +360,13 @@ HRESULT PhpQueryWmiProviderFileName(
         goto CleanupExit;
 
     querySelectString = PhFormatString(
-        L"SELECT clsid FROM __Win32Provider WHERE Name = '%s'",
+        L"%s %s %s %s %s %s = '%s'",
+        L"SELECT",
+        L"clsid",
+        L"FROM",
+        L"__Win32Provider",
+        L"WHERE",
+        L"Name",
         PhGetString(ProviderName)
         );
 
@@ -501,8 +511,14 @@ HRESULT PhpQueryWmiProviderHostProcess(
     if (FAILED(status))
         goto CleanupExit;
 
-    querySelectString = PhConcatStrings2(
-        L"SELECT Namespace,Provider,User,__RELPATH,__RELPATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
+    querySelectString = PhFormatString(
+        L"%s %s %s %s %s %s = %s",
+        L"SELECT",
+        L"Namespace,Provider,User,__RELPATH",
+        L"FROM",
+        L"Msft_Providers",
+        L"WHERE",
+        L"HostProcessIdentifier",
         ProcessItem->ProcessIdString
         );
 
@@ -981,7 +997,7 @@ VOID PhpShowWmiProviderStatus(
     PPH_STRING statusMessage;
 
     statusMessage = PhGetMessage(
-        PhpGetWmiUtilsDllBase(),
+        PhGetWmiUtilsDllBase(),
         0xb,
         PhGetUserDefaultLangID(),
         Win32Result
