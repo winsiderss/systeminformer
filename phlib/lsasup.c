@@ -669,6 +669,53 @@ NTSTATUS PhGetAccountPrivileges(
     return status;
 }
 
+NTSTATUS PhEnumeratePrivileges(
+    _In_ PPH_ENUM_PRIVILEGES Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    LSA_HANDLE policyHandle;
+    LSA_ENUMERATION_HANDLE enumContext;
+    PPOLICY_PRIVILEGE_DEFINITION buffer;
+    ULONG count;
+
+    status = PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    enumContext = 0;
+
+    while (TRUE)
+    {
+        status = LsaEnumeratePrivileges(
+            policyHandle,
+            &enumContext,
+            &buffer,
+            0x100,
+            &count
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        status = Callback(buffer, count, Context);
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        LsaFreeMemory(buffer);
+    }
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+        status = STATUS_SUCCESS;
+
+    LsaClose(policyHandle);
+
+    return status;
+}
+
 NTSTATUS PhGetSidAccountType(
     _In_ PSID Sid,
     _Out_ PLSA_USER_ACCOUNT_TYPE AccountType

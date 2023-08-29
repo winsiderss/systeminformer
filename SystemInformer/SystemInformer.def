@@ -638,6 +638,7 @@ EXPORTS
     PhCallKphQueryFileInformationWithTimeout
 
 ; lsasup
+    PhEnumeratePrivileges
     PhGetSidFullName
     PhLookupName
     PhLookupPrivilegeDisplayName

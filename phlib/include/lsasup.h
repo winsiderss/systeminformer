@@ -131,6 +131,20 @@ PhGetAccountPrivileges(
     _Out_ PTOKEN_PRIVILEGES* Privileges
     );
 
+typedef NTSTATUS (NTAPI* PPH_ENUM_PRIVILEGES)(
+    _In_ PPOLICY_PRIVILEGE_DEFINITION Privileges,
+    _In_ ULONG NumberOfPrivileges,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumeratePrivileges(
+    _In_ PPH_ENUM_PRIVILEGES Callback,
+    _In_opt_ PVOID Context
+    );
+
 typedef enum _LSA_USER_ACCOUNT_TYPE
 {
     UnknownUserAccountType,

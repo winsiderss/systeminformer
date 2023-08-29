@@ -281,7 +281,7 @@ BOOLEAN EspChangeServiceConfig2(
     }
 }
 
-static int __cdecl PrivilegeNameCompareFunction(
+static int __cdecl EspPrivilegeNameCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
     )
@@ -290,6 +290,20 @@ static int __cdecl PrivilegeNameCompareFunction(
     PWSTR string2 = *(PWSTR *)elem2;
 
     return PhCompareStringZ(string1, string2, TRUE);
+}
+
+NTSTATUS NTAPI EspEnumeratePrivilegesCallback(
+    _In_ PPOLICY_PRIVILEGE_DEFINITION Privileges,
+    _In_ ULONG NumberOfPrivileges,
+    _In_opt_ PVOID Context
+    )
+{
+    for (ULONG i = 0; i < NumberOfPrivileges; i++)
+    {
+        PhAddItemList(Context, PhaCreateStringEx(Privileges[i].Name.Buffer, Privileges[i].Name.Length)->Buffer);
+    }
+
+    return STATUS_SUCCESS;
 }
 
 INT_PTR CALLBACK EspServiceOtherDlgProc(
@@ -403,50 +417,21 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             case IDC_ADD:
                 {
                     NTSTATUS status;
-                    LSA_HANDLE policyHandle;
-                    LSA_ENUMERATION_HANDLE enumContext;
-                    PPOLICY_PRIVILEGE_DEFINITION buffer;
-                    ULONG count;
                     ULONG i;
                     PPH_LIST choices;
                     PPH_STRING selectedChoice = NULL;
 
                     choices = PH_AUTO(PhCreateList(100));
 
-                    if (!NT_SUCCESS(status = PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
+                    status = PhEnumeratePrivileges(EspEnumeratePrivilegesCallback, choices);
+
+                    if (!NT_SUCCESS(status))
                     {
                         PhShowStatus(hwndDlg, L"Unable to open LSA policy", status, 0);
                         break;
                     }
 
-                    enumContext = 0;
-
-                    while (TRUE)
-                    {
-                        status = LsaEnumeratePrivileges(
-                            policyHandle,
-                            &enumContext,
-                            &buffer,
-                            0x100,
-                            &count
-                            );
-
-                        if (status == STATUS_NO_MORE_ENTRIES)
-                            break;
-                        if (!NT_SUCCESS(status))
-                            break;
-
-                        for (i = 0; i < count; i++)
-                        {
-                            PhAddItemList(choices, PhaCreateStringEx(buffer[i].Name.Buffer, buffer[i].Name.Length)->Buffer);
-                        }
-
-                        LsaFreeMemory(buffer);
-                    }
-
-                    LsaClose(policyHandle);
-
-                    qsort(choices->Items, choices->Count, sizeof(PWSTR), PrivilegeNameCompareFunction);
+                    qsort(choices->Items, choices->Count, sizeof(PWSTR), EspPrivilegeNameCompareFunction);
 
                     while (PhaChoiceDialog(
                         hwndDlg,
