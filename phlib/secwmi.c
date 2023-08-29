@@ -113,7 +113,7 @@ NTSTATUS PhpGetPowerPolicySecurityDescriptor(
         );
 
     if (status != ERROR_SUCCESS)
-        return NTSTATUS_FROM_WIN32(status);
+        return PhDosErrorToNtStatus(status);
 
     // PowerReadSecurityDescriptor/PowerWriteSecurityDescriptor both use the same SDDL
     // format as registry keys and are RPC wrappers for this registry key:
@@ -137,7 +137,7 @@ NTSTATUS PhpGetPowerPolicySecurityDescriptor(
 
     LocalFree(policyGuid);
 
-    return NTSTATUS_FROM_WIN32(status);
+    return PhDosErrorToNtStatus(status);
 }
 
 NTSTATUS PhpSetPowerPolicySecurityDescriptor(
@@ -165,7 +165,7 @@ NTSTATUS PhpSetPowerPolicySecurityDescriptor(
         );
 
     if (status != ERROR_SUCCESS)
-        return NTSTATUS_FROM_WIN32(status);
+        return PhDosErrorToNtStatus(status);
 
     status = PowerWriteSecurityDescriptor_I(
         ACCESS_DEFAULT_SECURITY_DESCRIPTOR,
@@ -181,7 +181,7 @@ NTSTATUS PhpSetPowerPolicySecurityDescriptor(
 
     LocalFree(policyGuid);
 
-    return NTSTATUS_FROM_WIN32(status);
+    return PhDosErrorToNtStatus(status);
 }
 
 // Terminal server security descriptors
@@ -294,8 +294,11 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     IWbemServices* wbemServices = NULL;
     IWbemClassObject* wbemClassObject = NULL;
     IWbemClassObject* wbemGetSDClassObject = 0;
-    VARIANT variantReturnValue = { VT_EMPTY };
-    VARIANT variantArrayValue = { VT_EMPTY };
+    VARIANT variantArrayValue;
+    VARIANT variantReturnValue;
+
+    RtlZeroMemory(&variantArrayValue, sizeof(VARIANT));
+    RtlZeroMemory(&variantReturnValue, sizeof(VARIANT));
 
     if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return STATUS_UNSUCCESSFUL;
@@ -464,8 +467,11 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     PSECURITY_DESCRIPTOR relativeSecurityDescriptor = 0;
     ULONG relativeSecurityDescriptorLength = 0;
     BOOLEAN freeSecurityDescriptor = FALSE;
-    VARIANT variantArrayValue = { VT_EMPTY };
-    VARIANT variantReturnValue = { VT_EMPTY };
+    VARIANT variantArrayValue;
+    VARIANT variantReturnValue;
+
+    RtlZeroMemory(&variantArrayValue, sizeof(VARIANT));
+    RtlZeroMemory(&variantReturnValue, sizeof(VARIANT));
 
     if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return STATUS_UNSUCCESSFUL;
@@ -676,7 +682,9 @@ HRESULT PhRestartDefenderOfflineScan(
     IWbemServices* wbemServices = NULL;
     IWbemClassObject* wbemClassObject = NULL;
     IWbemClassObject* wbemStartClassObject = 0;
-    VARIANT variantReturnValue = { VT_EMPTY };
+    VARIANT variantReturnValue;
+
+    RtlZeroMemory(&variantReturnValue, sizeof(VARIANT));
 
     if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return STATUS_UNSUCCESSFUL;
