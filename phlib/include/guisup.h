@@ -381,6 +381,16 @@ PhSetCursor(
     return SetCursor(CursorHandle);
 }
 
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhGetKeyState(
+    _In_ INT VirtualKey
+    )
+{
+    return GetKeyState(VirtualKey) < 0;
+}
+
 #ifndef WM_REFLECT
 #define WM_REFLECT 0x2000
 #endif
