@@ -1650,7 +1650,7 @@ NTSTATUS PhGetSeObjectSecurity(
         );
 
     if (win32Result != ERROR_SUCCESS)
-        return NTSTATUS_FROM_WIN32(win32Result);
+        return PhDosErrorToNtStatus(win32Result);
 
     *SecurityDescriptor = PhAllocateCopy(securityDescriptor, RtlLengthSecurityDescriptor(securityDescriptor));
     LocalFree(securityDescriptor);
@@ -1734,7 +1734,7 @@ NTSTATUS PhSetSeObjectSecurity(
         );
 
     if (win32Result != ERROR_SUCCESS)
-        return NTSTATUS_FROM_WIN32(win32Result);
+        return PhDosErrorToNtStatus(win32Result);
 
     return STATUS_SUCCESS;
 }
