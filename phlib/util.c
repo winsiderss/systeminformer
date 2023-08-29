@@ -7082,6 +7082,29 @@ PPH_LIST PhCommandLineToList(
     return commandLineList;
 }
 
+PPH_STRING PhCommandLineQuoteSpaces(
+    _In_ PPH_STRINGREF CommandLine
+    )
+{
+    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+    static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+    PH_STRINGREF commandLineFileName;
+    PH_STRINGREF commandLineArguments;
+    PPH_STRING escaped;
+
+    if (!PhParseCommandLineFuzzy(CommandLine, &commandLineFileName, &commandLineArguments, NULL))
+        return NULL;
+
+    escaped = PhConcatStringRef3(&seperator, &commandLineFileName, &seperator);
+
+    if (commandLineArguments.Length)
+    {
+        PhMoveReference(&escaped, PhConcatStringRef3(&escaped->sr, &space, &commandLineArguments));
+    }
+
+    return escaped;
+}
+
 PPH_STRING PhSearchFilePath(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Extension

@@ -1692,6 +1692,13 @@ PhCommandLineToList(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhCommandLineQuoteSpaces(
+    _In_ PPH_STRINGREF CommandLine
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhSearchFilePath(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Extension
