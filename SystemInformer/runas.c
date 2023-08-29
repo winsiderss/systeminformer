@@ -147,6 +147,10 @@ NTSTATUS PhSetDesktopWinStaAccess(
     _In_ HWND WindowHandle
     );
 
+BOOLEAN PhRunAsExecuteCommandPrompt(
+    _In_ HWND WindowHandle
+    );
+
 VOID PhpSplitUserName(
     _In_ PWSTR UserName,
     _Out_opt_ PPH_STRING* DomainPart,
@@ -189,6 +193,15 @@ BOOLEAN PhShowRunFileDialog(
     _In_ HWND ParentWindowHandle
     )
 {
+    // Note: Task Manager launches the command prompt instead of RunFileDlg
+    // when holding CTRL and selecting the 'Run New Task' menu. (dmex)
+
+    if (PhGetKeyState(VK_CONTROL))
+    {
+        if (PhRunAsExecuteCommandPrompt(ParentWindowHandle))
+            return TRUE;
+    }
+
     if (PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_RUNFILEDLG),
@@ -1644,8 +1657,8 @@ NTSTATUS PhExecuteRunAsCommand2(
     _In_opt_ PWSTR Password,
     _In_opt_ ULONG LogonType,
     _In_opt_ HANDLE ProcessIdWithToken,
-    _In_ ULONG SessionId,
-    _In_ PWSTR DesktopName,
+    _In_opt_ ULONG SessionId,
+    _In_opt_ PWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken
     )
 {
@@ -1659,8 +1672,8 @@ NTSTATUS PhExecuteRunAsCommand3(
     _In_opt_ PWSTR Password,
     _In_opt_ ULONG LogonType,
     _In_opt_ HANDLE ProcessIdWithToken,
-    _In_ ULONG SessionId,
-    _In_ PWSTR DesktopName,
+    _In_opt_ ULONG SessionId,
+    _In_opt_ PWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken,
     _In_ BOOLEAN CreateSuspendedProcess,
     _In_ BOOLEAN CreateUIAccessProcess
@@ -1966,8 +1979,42 @@ PPH_STRING PhpQueryRunFileParentDirectory(
     }
 }
 
-NTSTATUS PhpRunAsShellExecute(
-    _In_ HWND hWnd,
+BOOLEAN PhRunAsExecuteCommandPrompt(
+    _In_ HWND WindowHandle
+    )
+{
+    NTSTATUS status;
+    BOOLEAN elevated;
+    PPH_STRING parentDirectory;
+
+    elevated = !!PhGetOwnTokenAttributes().Elevated;
+    parentDirectory = PhpQueryRunFileParentDirectory(elevated);
+
+    if (PhShellExecuteEx(
+        WindowHandle,
+        L"cmd.exe",
+        NULL,
+        PhGetString(parentDirectory),
+        SW_SHOW,
+        PH_SHELL_EXECUTE_DEFAULT,
+        0,
+        NULL
+        ))
+    {
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    PhClearReference(&parentDirectory);
+
+    return NT_SUCCESS(status);
+}
+
+NTSTATUS PhRunAsShellExecute(
+    _In_ HWND WindowHandle,
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
     _In_ BOOLEAN Elevated
@@ -1979,7 +2026,7 @@ NTSTATUS PhpRunAsShellExecute(
     parentDirectory = PhpQueryRunFileParentDirectory(Elevated);
 
     if (PhShellExecuteEx(
-        hWnd,
+        WindowHandle,
         FileName,
         Parameters,
         PhGetString(parentDirectory),
@@ -2127,7 +2174,7 @@ NTSTATUS PhpRunFileProgram(
 
     if (isDirectory || !PhDoesFileExistWin32(PhGetString(fullFileName)))
     {
-        status = PhpRunAsShellExecute(
+        status = PhRunAsShellExecute(
             Context->WindowHandle,
             PhGetString(commandString),
             NULL,
@@ -2139,7 +2186,7 @@ NTSTATUS PhpRunFileProgram(
         // holding the ctrl + shift keys and selecting the OK button. (dmex)
         (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
     {
-        status = PhpRunAsShellExecute(
+        status = PhRunAsShellExecute(
             Context->WindowHandle,
             PhGetString(fullFileName),
             PhGetString(argumentsString),
@@ -2148,7 +2195,7 @@ NTSTATUS PhpRunFileProgram(
     }
     else
     {
-        status = PhpRunAsShellExecute(
+        status = PhRunAsShellExecute(
             Context->WindowHandle,
             PhGetString(fullFileName),
             PhGetString(argumentsString),
@@ -2157,7 +2204,7 @@ NTSTATUS PhpRunFileProgram(
 
         if (WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
         {
-            status = PhpRunAsShellExecute(
+            status = PhRunAsShellExecute(
                 Context->WindowHandle,
                 PhGetString(fullFileName),
                 PhGetString(argumentsString),
