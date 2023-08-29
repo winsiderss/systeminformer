@@ -834,8 +834,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGuardGrantSuppressedCallAccess(
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID VirtualAddress,
-    _In_ ULONG Flags
+    _In_ PVOID VirtualAddress
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDisableXfgOnTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
     );
 
 _IRQL_requires_max_(APC_LEVEL)

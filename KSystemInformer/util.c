@@ -1344,21 +1344,17 @@ Exit:
 }
 
 /**
- * \brief Grants a call target in a process permission to be called by setting
- * CFG flags for that page.
+ * \brief Sets CFG call target information for a process.
  *
- * \details The process must already have the relevant mitigations enabled for
- * the CFG flags, else this call will fail. See RtlpGuardGrantSuppressedCallAccess.
- *
- * \param ProcessHandle Handle to the process to configure CFG for.
- * \param VirtualAddress Virtual address of the call target.
- * \param Flags CFG flags to configure.
+ * \param[in] ProcessHandle Handle to the process to configure CFG for.
+ * \param[in] VirtualAddress Virtual address to configure CFG for.
+ * \param[in] Flags CFG call target flags (CFG_CALL_TARGET_).
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGuardGrantSuppressedCallAccess(
+NTSTATUS KphpSetCfgCallTargetInformation(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID VirtualAddress,
     _In_ ULONG Flags
@@ -1371,10 +1367,10 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
 
     PAGED_CODE_PASSIVE();
 
-    memoryRange.VirtualAddress = (PVOID)((ULONG_PTR)VirtualAddress & ~(PAGE_SIZE - 1));
+    memoryRange.VirtualAddress = PAGE_ALIGN(VirtualAddress);
     memoryRange.NumberOfBytes = PAGE_SIZE;
 
-    targetInfo.Offset = ((ULONG_PTR)VirtualAddress & (PAGE_SIZE - 1));
+    targetInfo.Offset = BYTE_OFFSET(VirtualAddress);
     targetInfo.Flags = Flags;
 
     numberOfEntriesProcessed = 0;
@@ -1390,6 +1386,58 @@ NTSTATUS KphGuardGrantSuppressedCallAccess(
                                          &memoryRange,
                                          &targetListInfo,
                                          sizeof(targetListInfo));
+}
+
+/**
+ * \brief Grants a suppressed call access to a target.
+ *
+ * \param[in] ProcessHandle Handle to the process to configure CFG for.
+ * \param[in] VirtualAddress Virtual address of the target.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGuardGrantSuppressedCallAccess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
+    )
+{
+    ULONG flags;
+
+    PAGED_CODE_PASSIVE();
+
+    flags = CFG_CALL_TARGET_CONVERT_EXPORT_SUPPRESSED_TO_VALID;
+
+    return KphpSetCfgCallTargetInformation(ProcessHandle,
+                                           VirtualAddress,
+                                           flags);
+}
+
+/**
+ * \brief Disables XFG on a target.
+ *
+ * \param[in] ProcessHandle Handle to the process to configure CFG for.
+ * \param[in] VirtualAddress Virtual address of the target.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDisableXfgOnTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
+    )
+{
+    ULONG flags;
+
+    PAGED_CODE_PASSIVE();
+
+    flags = CFG_CALL_TARGET_CONVERT_XFG_TO_CFG;
+
+    return KphpSetCfgCallTargetInformation(ProcessHandle,
+                                           VirtualAddress,
+                                           flags);
 }
 
 /**
