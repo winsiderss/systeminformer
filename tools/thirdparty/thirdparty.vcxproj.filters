@@ -779,6 +779,7 @@
     <ClInclude Include="yyjson\yyjson.h">
       <Filter>yyjson</Filter>
     </ClInclude>
+    <ClInclude Include="jsonc\json_pointer_private.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="capstone\arch\AArch64\AArch64GenAsmWriter.inc">

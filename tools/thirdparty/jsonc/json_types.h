@@ -45,7 +45,6 @@ typedef int json_bool;
  * @brief The core type for all type of JSON objects handled by json-c
  */
 typedef struct json_object json_object;
-typedef struct json_object* json_object_ptr;
 
 /**
  * Type of custom user delete functions.  See json_object_set_serializer.
@@ -55,7 +54,7 @@ typedef void(json_object_delete_fn)(struct json_object *jso, void *userdata);
 /**
  * Type of a custom serialization function.  See json_object_set_serializer.
  */
-typedef int(json_object_to_json_string_fn)(struct json_object *jso, struct printbuf *pb, int level,
+typedef size_t(json_object_to_json_string_fn)(struct json_object *jso, struct printbuf *pb, int level,
                                            int flags);
 
 /* supported object types */

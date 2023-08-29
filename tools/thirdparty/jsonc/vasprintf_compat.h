@@ -1,13 +1,6 @@
 #ifndef __vasprintf_compat_h
 #define __vasprintf_compat_h
 
-#pragma warning(push)
-#pragma warning(disable: 4996)
-
-#ifndef WIN32
-#define WIN32
-#endif
-
 /**
  * @file
  * @brief Do not use, json-c internal, may be changed or removed at any time.
@@ -70,7 +63,5 @@ static int vasprintf(char **buf, const char *fmt, va_list ap)
     return chars;
 }
 #endif /* !HAVE_VASPRINTF */
-
-#pragma warning(pop)
 
 #endif /* __vasprintf_compat_h */

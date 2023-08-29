@@ -1,3 +1,43 @@
+dmex:
+* Changes for size_t
+* Changes for __cdecl
+* Changes for get_random
+
+
+0.17 (up to commit 077661f, 2023-08-08)
+========================================
+
+Deprecated and removed features:
+--------------------------------
+* None
+
+New features
+------------
+* json_patch: add first implementation only with patch application
+* Add --disable-static and --disable-dynamic options to the cmake-configure script.
+* Add -DBUILD_APPS=NO option to disable app build
+* Minimum cmake version is now 3.9
+
+Significant changes and bug fixes
+---------------------------------
+* When serializing with JSON_C_TO_STRING_PRETTY set, keep the opening and
+  closing curly or square braces on same line for empty objects or arrays.
+* Disable locale handling when targeting a uClibc system due to problems
+  with its duplocale() function.
+* When parsing with JSON_TOKENER_STRICT set, integer overflow/underflow
+  now result in a json_tokener_error_parse_number.  Without that flag
+  values are capped at INT64_MIN/UINT64_MAX.
+* Fix memory leak with emtpy strings in json_object_set_string
+* json_object_from_fd_ex: fail if file is too large (>=INT_MAX bytes)
+* Add back json_number_chars, but only because it's part of the public API.
+* Entirely drop mode bits from open(O_RDONLY) to avoid warnings on certain
+  platforms.
+* Specify dependent libraries, including -lbsd, in a more consistent way so
+  linking against a static json-c works better
+* Fix a variety of build problems and add & improve tests
+* Update RFC reference to https://www.rfc-editor.org/rfc/rfc8259
+
+***
 
 0.16 (up to commit 66dcdf5, 2022-04-13)
 ========================================
@@ -6,7 +46,7 @@ Deprecated and removed features:
 --------------------------------
 * JSON_C_OBJECT_KEY_IS_CONSTANT is deprecated in favor of
   JSON_C_OBJECT_ADD_CONSTANT_KEY
-* Direct access to lh_table and lh_entry structure members is deprecated.  
+* Direct access to lh_table and lh_entry structure members is deprecated.
   Use access functions instead, lh_table_head(), lh_entry_next(), etc...
 * Drop REFCOUNT_DEBUG code.
 
@@ -35,7 +75,7 @@ Significant changes and bug fixes
 
 Optimizations
 --------------
-* Speed up parsing by replacing ctype functions with simplified, faster 
+* Speed up parsing by replacing ctype functions with simplified, faster
   non-locale-sensitive ones in json_tokener and json_object_to_json_string.
 * Neither vertical tab nor formfeed are considered whitespace per the JSON spec
 * json_object: speed up creation of objects, calloc() -> malloc() + set fields
@@ -68,9 +108,9 @@ New features
   to be parsed even when `JSON_TOKENER_STRICT` is set.
 * Add `json_object_new_array_ext(int)` and `array_list_new_2(int)` to allow
    arrays to be allocated with the exact size needed, when known.
-* Add `json_object_array_shrink()` (and `array_list_shrink()`) and use it in 
+* Add `json_object_array_shrink()` (and `array_list_shrink()`) and use it in
    json_tokener to minimize the amount of memory used.
-* Add a json_parse binary, for use in testing changes (not installed, but 
+* Add a json_parse binary, for use in testing changes (not installed, but
    available in the apps directory).
 
 Build changes
@@ -79,11 +119,11 @@ Build changes
 * #508/#634 - Always enable -fPIC to allow use of the json-c static library in
    other libraries
 * Build both static and shared libraries at the same time.
-* #626 - Restore compatibility with cmake 2.8 
+* #626 - Restore compatibility with cmake 2.8
 * #471 - Always create directories with mode 0755, regardless of umask.
 * #606/#604 - Improve support for OSes like AIX and IBM i, as well as for
    MINGW32 and old versions of MSVC
-* #451/#617 - Add a DISABLE_THREAD_LOCAL_STORAGE cmake option to disable 
+* #451/#617 - Add a DISABLE_THREAD_LOCAL_STORAGE cmake option to disable
    the use of thread-local storage.
 
 Significant changes and bug fixes

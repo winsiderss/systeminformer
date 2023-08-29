@@ -456,6 +456,7 @@
     <ClInclude Include="jsonc\json_object_iterator.h" />
     <ClInclude Include="jsonc\json_object_private.h" />
     <ClInclude Include="jsonc\json_pointer.h" />
+    <ClInclude Include="jsonc\json_pointer_private.h" />
     <ClInclude Include="jsonc\json_tokener.h" />
     <ClInclude Include="jsonc\json_types.h" />
     <ClInclude Include="jsonc\json_util.h" />

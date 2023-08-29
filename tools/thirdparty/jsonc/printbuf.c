@@ -15,6 +15,7 @@
 
 #include "config.h"
 
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +32,7 @@
 #include "snprintf_compat.h"
 #include "vasprintf_compat.h"
 
-static int printbuf_extend(struct printbuf *p, int min_size);
+static int printbuf_extend(struct printbuf *p, size_t min_size);
 
 struct printbuf *printbuf_new(void)
 {
@@ -56,19 +57,24 @@ struct printbuf *printbuf_new(void)
  *
  * If the current size is large enough, nothing is changed.
  *
+ * If extension failed, errno is set to indicate the error.
+ *
  * Note: this does not check the available space!  The caller
  *  is responsible for performing those calculations.
  */
-static int printbuf_extend(struct printbuf *p, int min_size)
+static int printbuf_extend(struct printbuf *p, size_t min_size)
 {
     char *t;
-    int new_size;
+    size_t new_size;
 
     if (p->size >= min_size)
         return 0;
     /* Prevent signed integer overflows with large buffers. */
     if (min_size > INT_MAX - 8)
+    {
+        errno = EFBIG;
         return -1;
+    }
     if (p->size > INT_MAX / 2)
         new_size = min_size + 8;
     else {
@@ -77,7 +83,7 @@ static int printbuf_extend(struct printbuf *p, int min_size)
             new_size = min_size + 8;
     }
 #ifdef PRINTBUF_DEBUG
-    MC_DEBUG("printbuf_memappend: realloc "
+    MC_DEBUG("printbuf_extend: realloc "
              "bpos=%d min_size=%d old_size=%d new_size=%d\n",
              p->bpos, min_size, p->size, new_size);
 #endif /* PRINTBUF_DEBUG */
@@ -88,11 +94,14 @@ static int printbuf_extend(struct printbuf *p, int min_size)
     return 0;
 }
 
-int printbuf_memappend(struct printbuf *p, const char *buf, int size)
+size_t printbuf_memappend(struct printbuf *p, const char *buf, size_t size)
 {
     /* Prevent signed integer overflows with large buffers. */
     if (size < 0 || size > INT_MAX - p->bpos - 1)
+    {
+        errno = EFBIG;
         return -1;
+    }
     if (p->size <= p->bpos + size + 1)
     {
         if (printbuf_extend(p, p->bpos + size + 1) < 0)
@@ -104,30 +113,18 @@ int printbuf_memappend(struct printbuf *p, const char *buf, int size)
     return size;
 }
 
-// modified by dmex
-void printbuf_memappend_fast(struct printbuf* p, const char* bufptr, size_t bufsize)
+int printbuf_memset(struct printbuf *pb, size_t offset, int charvalue, size_t len)
 {
-    if ((p->size - p->bpos) > (int)bufsize)
-    {
-        memcpy(p->buf + p->bpos, (bufptr), (int)bufsize);
-        p->bpos += (int)bufsize;
-        p->buf[p->bpos] = '\0';
-    }
-    else
-    {
-        printbuf_memappend(p, (bufptr), (int)bufsize);
-    }
-}
-
-int printbuf_memset(struct printbuf *pb, int offset, int charvalue, int len)
-{
-    int size_needed;
+    size_t size_needed;
 
     if (offset == -1)
         offset = pb->bpos;
     /* Prevent signed integer overflows with large buffers. */
     if (len < 0 || offset < -1 || len > INT_MAX - offset)
+    {
+        errno = EFBIG;
         return -1;
+    }
     size_needed = offset + len;
     if (pb->size < size_needed)
     {
@@ -144,11 +141,11 @@ int printbuf_memset(struct printbuf *pb, int offset, int charvalue, int len)
     return 0;
 }
 
-int sprintbuf(struct printbuf *p, const char *msg, ...)
+size_t sprintbuf(struct printbuf *p, const char *msg, ...)
 {
     va_list ap;
     char *t;
-    int size;
+    size_t size;
     char buf[128];
 
     /* use stack buffer first */
