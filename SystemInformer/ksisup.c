@@ -496,7 +496,7 @@ NTSTATUS KsiInitializeCallbackThread(
         PhShowKsiMessageEx(
             CallbackContext,
             TD_ERROR_ICON,
-            STATUS_NO_SUCH_FILE,
+            0,
             FALSE,
             L"Unable to load kernel driver",
             L"The kernel driver was not found."
@@ -639,6 +639,34 @@ VOID PhInitializeKsi(
             FALSE,
             L"Unable to load kernel driver",
             L"The last System Informer update requires a reboot."
+            );
+        return;
+    }
+
+    if (PhIsExecutingInWow64())
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not supported under Wow64, use the native "
+            "binary instead."
+            );
+        return;
+    }
+
+    if (USER_SHARED_DATA->NativeProcessorArchitecture != PROCESSOR_ARCHITECTURE_AMD64 &&
+        USER_SHARED_DATA->NativeProcessorArchitecture != PROCESSOR_ARCHITECTURE_ARM64)
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not supported on this architecture."
             );
         return;
     }
