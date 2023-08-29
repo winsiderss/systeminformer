@@ -1840,7 +1840,6 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
     NTSTATUS status;
     HANDLE processHandle;
     PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
-    ULONG flags;
 
     PAGED_CODE_PASSIVE();
 
@@ -1883,38 +1882,34 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
         goto Exit;
     }
 
-    //
-    // TODO(jxy-s) investigate any needed support for XFG
-    //
-    // TODO(jxy-s) KphNtDllRtlSetBits will point to the wrong routine when the
-    // target process is running as ARM64EC. We need to point at the correct
-    // ARM64EC (x64) export. For now this is okay since we shouldn't get here
-    // for a non-native binary.
-    //
-    flags = 0;
-    if (policyInfo.ControlFlowGuardPolicy.EnableControlFlowGuard)
+    if (policyInfo.ControlFlowGuardPolicy.EnableXfg)
     {
-        flags |= CFG_CALL_TARGET_VALID;
-        if (policyInfo.ControlFlowGuardPolicy.EnableExportSuppression)
+        status = KphDisableXfgOnTarget(processHandle, KphNtDllRtlSetBits);
+        if (!NT_SUCCESS(status))
         {
-            flags |= CFG_CALL_TARGET_CONVERT_EXPORT_SUPPRESSED_TO_VALID;
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          TRACKING,
+                          "KphDisableXfgOnTarget failed (0x%08lx): %!STATUS!",
+                          policyInfo.ControlFlowGuardPolicy.Flags,
+                          status);
+
+            goto Exit;
         }
     }
 
-    if (flags)
+    if (policyInfo.ControlFlowGuardPolicy.EnableExportSuppression)
     {
         status = KphGuardGrantSuppressedCallAccess(processHandle,
-                                                   KphNtDllRtlSetBits,
-                                                   flags);
+                                                   KphNtDllRtlSetBits);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
                           TRACKING,
                           "KphGuardGrantSuppressedCallAccess failed "
-                          "(0x%08lx, 0x%08lx): %!STATUS!",
+                          "(0x%08lx): %!STATUS!",
                           policyInfo.ControlFlowGuardPolicy.Flags,
-                          flags,
                           status);
+
             goto Exit;
         }
     }
