@@ -1985,16 +1985,18 @@ BOOLEAN PhRunAsExecuteCommandPrompt(
 {
     NTSTATUS status;
     BOOLEAN elevated;
-    PPH_STRING parentDirectory;
+    PPH_STRING commandFileName;
+    PPH_STRING commandDirectory;
 
     elevated = !!PhGetOwnTokenAttributes().Elevated;
-    parentDirectory = PhpQueryRunFileParentDirectory(elevated);
+    commandFileName = PhGetSystemDirectoryWin32Z(L"\\cmd.exe");
+    commandDirectory = PhpQueryRunFileParentDirectory(elevated);
 
     if (PhShellExecuteEx(
         WindowHandle,
-        L"cmd.exe",
+        PhGetString(commandFileName),
         NULL,
-        PhGetString(parentDirectory),
+        PhGetString(commandDirectory),
         SW_SHOW,
         PH_SHELL_EXECUTE_DEFAULT,
         0,
@@ -2008,7 +2010,8 @@ BOOLEAN PhRunAsExecuteCommandPrompt(
         status = PhGetLastWin32ErrorAsNtStatus();
     }
 
-    PhClearReference(&parentDirectory);
+    PhClearReference(&commandDirectory);
+    PhClearReference(&commandFileName);
 
     return NT_SUCCESS(status);
 }
