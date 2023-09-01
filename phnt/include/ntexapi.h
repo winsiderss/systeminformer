@@ -2076,7 +2076,7 @@ typedef enum _EVENT_TRACE_INFORMATION_CLASS
     EventTraceProcessorTraceConfigurationInformation,
     EventTraceProcessorTraceEventListInformation,
     EventTraceCoverageSamplerInformation, // EVENT_TRACE_COVERAGE_SAMPLER_INFORMATION
-    EventTraceUnifiedStackCachingInformation, // sicne 21H1
+    EventTraceUnifiedStackCachingInformation, // since 21H1
     MaxEventTraceInfoClass
 } EVENT_TRACE_INFORMATION_CLASS;
 
@@ -2591,7 +2591,7 @@ typedef struct _ETW_STACK_CACHING_CONFIG
 #define WMI_LOG_TYPE_UDP_FAIL                       (EVENT_TRACE_GROUP_UDPIP | EVENT_TRACE_TYPE_CONNFAIL)
 
 //
-// Netowrk events with IPV6
+// Network events with IPV6
 //
 #define WMI_LOG_TYPE_TCPIP_SEND_IPV6                (EVENT_TRACE_GROUP_TCPIP | 0x1A)
 #define WMI_LOG_TYPE_TCPIP_RECEIVE_IPV6             (EVENT_TRACE_GROUP_TCPIP | 0x1B)
