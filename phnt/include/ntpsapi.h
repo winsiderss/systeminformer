@@ -257,7 +257,7 @@ typedef enum _THREADINFOCLASS
     ThreadTebInformation, // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
     ThreadCSwitchMon,
     ThreadCSwitchPmu,
-    ThreadWow64Context, // qs: WOW64_CONTEX, ARM_NT_CONTEXT since 20H1
+    ThreadWow64Context, // qs: WOW64_CONTEXT, ARM_NT_CONTEXT since 20H1
     ThreadGroupInformation, // qs: GROUP_AFFINITY // 30
     ThreadUmsInformation, // q: THREAD_UMS_INFORMATION
     ThreadCounterProfiling, // q: BOOLEAN; s: THREAD_PROFILING_INFORMATION?
