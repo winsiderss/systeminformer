@@ -2452,7 +2452,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
             PhImageListDestroy(context->ImageListHandle);
 
-            PhDeleteApplicationWindowIcon(hwndDlg);
+            PhDestroyWindowIcon(hwndDlg);
             PhDeleteStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON));
 
             PhFree(context);
@@ -3359,7 +3359,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
 
             PhImageListDestroy(context->ImageListHandle);
 
-            PhDeleteApplicationWindowIcon(WindowHandle);
+            PhDestroyWindowIcon(WindowHandle);
 
             PhDereferenceObject(context);
         }
