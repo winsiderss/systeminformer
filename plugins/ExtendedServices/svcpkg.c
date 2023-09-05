@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
@@ -306,15 +306,15 @@ BOOLEAN EspUpdatePackageProperties(
 }
 
 INT_PTR CALLBACK EspPackageServiceDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PPACKAGE_SERVICE_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
         PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
@@ -322,32 +322,32 @@ INT_PTR CALLBACK EspPackageServiceDlgProc(
         context = PhAllocateZero(sizeof(PACKAGE_SERVICE_CONTEXT));
         context->ServiceItem = serviceItem;
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
+            context->WindowHandle = WindowHandle;
 
             EspUpdatePackageProperties(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            PhSetDialogFocus(hwndDlg, GetDlgItem(GetParent(hwndDlg), IDCANCEL));
+            PhSetDialogFocus(WindowHandle, GetDlgItem(GetParent(WindowHandle), IDCANCEL));
         }
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -358,17 +358,17 @@ INT_PTR CALLBACK EspPackageServiceDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_CANCELBTN));
+                SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, (LPARAM)GetDlgItem(WindowHandle, IDC_CANCELBTN));
                 return TRUE;
             }
         }
         break;
     //case WM_CTLCOLORBTN:
-    //    return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    //    return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     //case WM_CTLCOLORDLG:
-    //    return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    //    return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     //case WM_CTLCOLORSTATIC:
-    //    return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    //    return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

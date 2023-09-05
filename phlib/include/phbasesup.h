@@ -4328,6 +4328,13 @@ PhNtStatusToDosError(
     );
 
 PHLIBAPI
+ULONG
+NTAPI
+PhNtStatusToServiceStatus(
+    _In_ NTSTATUS Status
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhDosErrorToNtStatus(

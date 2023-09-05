@@ -2228,13 +2228,12 @@ NTSTATUS RunAsCreateProcessThread(
     )
 {
     PPH_STRING command = Parameter;
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     SERVICE_STATUS_PROCESS serviceStatus = { 0 };
     SC_HANDLE serviceHandle = NULL;
     HANDLE processHandle = NULL;
     STARTUPINFOEX startupInfo;
     PPH_STRING commandLine = NULL;
-    ULONG bytesNeeded = 0;
     PPH_STRING filePathString;
 
     if (filePathString = PhSearchFilePath(command->Buffer, L".exe"))
@@ -2247,23 +2246,11 @@ NTSTATUS RunAsCreateProcessThread(
     startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
     startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
 
-    if (!(serviceHandle = PhOpenService(L"TrustedInstaller", SERVICE_QUERY_STATUS | SERVICE_START)))
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    if (!NT_SUCCESS(status = PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS | SERVICE_START, L"TrustedInstaller")))
         goto CleanupExit;
-    }
 
-    if (!QueryServiceStatusEx(
-        serviceHandle,
-        SC_STATUS_PROCESS_INFO,
-        (PBYTE)&serviceStatus,
-        sizeof(SERVICE_STATUS_PROCESS),
-        &bytesNeeded
-        ))
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    if (!NT_SUCCESS(status = PhQueryServiceStatus(serviceHandle, &serviceStatus)))
         goto CleanupExit;
-    }
 
     if (serviceStatus.dwCurrentState == SERVICE_RUNNING)
     {
@@ -2277,13 +2264,9 @@ NTSTATUS RunAsCreateProcessThread(
 
         do
         {
-            if (QueryServiceStatusEx(
-                serviceHandle,
-                SC_STATUS_PROCESS_INFO,
-                (PBYTE)&serviceStatus,
-                sizeof(SERVICE_STATUS_PROCESS),
-                &bytesNeeded
-                ))
+            status = PhQueryServiceStatus(serviceHandle, &serviceStatus);
+
+            if (NT_SUCCESS(status))
             {
                 if (serviceStatus.dwCurrentState == SERVICE_RUNNING)
                 {

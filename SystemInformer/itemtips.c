@@ -776,7 +776,7 @@ PPH_STRING PhGetServiceTooltipText(
 
     PhInitializeStringBuilder(&stringBuilder, 200);
 
-    if (serviceHandle = PhOpenService(Service->Name->Buffer, SERVICE_QUERY_CONFIG))
+    if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(Service->Name))))
     {
         PPH_STRING fileName;
         PPH_STRING description;

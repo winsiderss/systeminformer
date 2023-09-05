@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
@@ -692,15 +692,15 @@ VOID EspFreeListViewDiskDriveEntries(
 }
 
 INT_PTR CALLBACK EspPnPServiceDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PPNP_SERVICE_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
         PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
@@ -708,24 +708,24 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
         context = PhAllocateZero(sizeof(PNP_SERVICE_CONTEXT));
         context->ServiceItem = serviceItem;
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
             LONG dpiValue;
 
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_LIST);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -737,7 +737,7 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
-            dpiValue = PhGetWindowDpi(hwndDlg);
+            dpiValue = PhGetWindowDpi(WindowHandle);
             context->ImageList = PhImageListCreate(
                 PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
                 PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)
@@ -748,7 +748,7 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
 
             if (context->ServiceItem->Type & SERVICE_DRIVER)
             {
-                PhSetDialogItemText(hwndDlg, IDC_MESSAGE, L"This service has registered the following PnP devices:");
+                PhSetDialogItemText(WindowHandle, IDC_MESSAGE, L"This service has registered the following PnP devices:");
 
                 if (!EspEnumerateDriverPnpDevices(context))
                 {
@@ -757,21 +757,19 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             }
             else
             {
-                PhSetDialogItemText(hwndDlg, IDC_MESSAGE, L"This service type doesn't support PnP devices.");
+                PhSetDialogItemText(WindowHandle, IDC_MESSAGE, L"This service type doesn't support PnP devices.");
                 ShowWindow(context->ListViewHandle, SW_HIDE);
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
             EspFreeListViewDiskDriveEntries(context);
-        }
-        break;
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhFree(context);
         }
         break;
@@ -787,7 +785,7 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)context->ListViewHandle);
+                SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, (LPARAM)context->ListViewHandle);
                 return TRUE;
             case NM_RCLICK:
                 {
@@ -795,7 +793,7 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
 
                     if (deviceInstance = PhGetSelectedListViewItemParam(context->ListViewHandle))
                     {
-                        EspShowDeviceInstanceMenu(hwndDlg, deviceInstance);
+                        EspShowDeviceInstanceMenu(WindowHandle, deviceInstance);
 
                         EspFreeListViewDiskDriveEntries(context);
                         ListView_DeleteAllItems(context->ListViewHandle);
@@ -813,7 +811,7 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
 
                     if (deviceInstance = PhGetSelectedListViewItemParam(context->ListViewHandle))
                     {
-                        HardwareDeviceShowProperties(hwndDlg, deviceInstance);
+                        HardwareDeviceShowProperties(WindowHandle, deviceInstance);
                     }
                 }
                 break;
@@ -821,11 +819,11 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
