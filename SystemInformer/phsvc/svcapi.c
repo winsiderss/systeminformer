@@ -556,7 +556,6 @@ NTSTATUS PhSvcApiControlService(
     NTSTATUS status;
     PPH_STRING serviceName;
     SC_HANDLE serviceHandle;
-    SERVICE_STATUS serviceStatus;
 
     if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ControlService.i.ServiceName, FALSE, &serviceName)))
     {
@@ -565,83 +564,63 @@ NTSTATUS PhSvcApiControlService(
         switch (Payload->u.ControlService.i.Command)
         {
         case PhSvcControlServiceStart:
-            if (serviceHandle = PhOpenService(
-                serviceName->Buffer,
-                SERVICE_START
-                ))
+            if (NT_SUCCESS(status = PhOpenService(
+                &serviceHandle,
+                SERVICE_START,
+                PhGetString(serviceName)
+                )))
             {
-                if (!StartService(serviceHandle, 0, NULL))
-                    status = PhGetLastWin32ErrorAsNtStatus();
+                status = PhStartService(serviceHandle, 0, NULL);
 
-                CloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                status = PhGetLastWin32ErrorAsNtStatus();
+                PhCloseServiceHandle(serviceHandle);
             }
             break;
         case PhSvcControlServiceContinue:
-            if (serviceHandle = PhOpenService(
-                serviceName->Buffer,
-                SERVICE_PAUSE_CONTINUE
-                ))
+            if (NT_SUCCESS(status = PhOpenService(
+                &serviceHandle,
+                SERVICE_PAUSE_CONTINUE,
+                PhGetString(serviceName)
+                )))
             {
-                if (!ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
-                    status = PhGetLastWin32ErrorAsNtStatus();
+                status = PhContinueService(serviceHandle);
 
-                CloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                status = PhGetLastWin32ErrorAsNtStatus();
+                PhCloseServiceHandle(serviceHandle);
             }
             break;
         case PhSvcControlServicePause:
-            if (serviceHandle = PhOpenService(
-                serviceName->Buffer,
-                SERVICE_PAUSE_CONTINUE
-                ))
+            if (NT_SUCCESS(status = PhOpenService(
+                &serviceHandle,
+                SERVICE_PAUSE_CONTINUE,
+                PhGetString(serviceName)
+                )))
             {
-                if (!ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
-                    status = PhGetLastWin32ErrorAsNtStatus();
+                status = PhPauseService(serviceHandle);
 
-                CloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                status = PhGetLastWin32ErrorAsNtStatus();
+                PhCloseServiceHandle(serviceHandle);
             }
             break;
         case PhSvcControlServiceStop:
-            if (serviceHandle = PhOpenService(
-                serviceName->Buffer,
-                SERVICE_STOP
-                ))
+            if (NT_SUCCESS(status = PhOpenService(
+                &serviceHandle,
+                SERVICE_STOP,
+                PhGetString(serviceName)
+                )))
             {
-                if (!ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
-                    status = PhGetLastWin32ErrorAsNtStatus();
+                status = PhStopService(serviceHandle);
 
-                CloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                status = PhGetLastWin32ErrorAsNtStatus();
+                PhCloseServiceHandle(serviceHandle);
             }
             break;
         case PhSvcControlServiceDelete:
-            if (serviceHandle = PhOpenService(
-                serviceName->Buffer,
-                DELETE
-                ))
+            if (NT_SUCCESS(status = PhOpenService(
+                &serviceHandle,
+                DELETE,
+                PhGetString(serviceName)
+                )))
             {
-                if (!DeleteService(serviceHandle))
-                    status = PhGetLastWin32ErrorAsNtStatus();
+                status = PhDeleteService(serviceHandle);
 
-                CloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                status = PhGetLastWin32ErrorAsNtStatus();
+                PhCloseServiceHandle(serviceHandle);
             }
             break;
         default:
@@ -704,14 +683,14 @@ NTSTATUS PhSvcApiCreateService(
             ))
         {
             Payload->u.CreateService.o.TagId = tagId;
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
         else
         {
             status = PhGetLastWin32ErrorAsNtStatus();
         }
 
-        CloseServiceHandle(scManagerHandle);
+        PhCloseServiceHandle(scManagerHandle);
     }
     else
     {
@@ -766,9 +745,11 @@ NTSTATUS PhSvcApiChangeServiceConfig(
     if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.DisplayName, TRUE, &displayName)))
         goto CleanupExit;
 
-    if (serviceHandle = PhOpenService(serviceName->Buffer, SERVICE_CHANGE_CONFIG))
+    status = PhOpenService(&serviceHandle, SERVICE_CHANGE_CONFIG, PhGetString(serviceName));
+
+    if (NT_SUCCESS(status))
     {
-        if (ChangeServiceConfig(
+        status = PhChangeServiceConfig(
             serviceHandle,
             Payload->u.ChangeServiceConfig.i.ServiceType,
             Payload->u.ChangeServiceConfig.i.StartType,
@@ -780,20 +761,14 @@ NTSTATUS PhSvcApiChangeServiceConfig(
             PhGetString(serviceStartName),
             PhGetString(password),
             PhGetString(displayName)
-            ))
+            );
+
+        if (NT_SUCCESS(status))
         {
             Payload->u.ChangeServiceConfig.o.TagId = tagId;
         }
-        else
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-        }
 
-        CloseServiceHandle(serviceHandle);
-    }
-    else
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+        PhCloseServiceHandle(serviceHandle);
     }
 
 CleanupExit:
@@ -933,7 +908,7 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
     NTSTATUS status;
     PPH_STRING serviceName = NULL;
     PVOID info = NULL;
-    SC_HANDLE serviceHandle = NULL;
+    SC_HANDLE serviceHandle;
     PH_RELATIVE_STRINGREF packedData;
     PVOID unpackedInfo = NULL;
     ACCESS_MASK desiredAccess = SERVICE_CHANGE_CONFIG;
@@ -1070,25 +1045,21 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
     {
         assert(unpackedInfo);
 
-        if (!(serviceHandle = PhOpenService(serviceName->Buffer, desiredAccess)))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-            goto CleanupExit;
-        }
+        status = PhOpenService(&serviceHandle, desiredAccess, PhGetString(serviceName));
 
-        if (!ChangeServiceConfig2(
-            serviceHandle,
-            Payload->u.ChangeServiceConfig2.i.InfoLevel,
-            unpackedInfo
-            ))
+        if (NT_SUCCESS(status))
         {
-            status = PhGetLastWin32ErrorAsNtStatus();
+            status = PhChangeServiceConfig2(
+                serviceHandle,
+                Payload->u.ChangeServiceConfig2.i.InfoLevel,
+                unpackedInfo
+                );
+
+            PhCloseServiceHandle(serviceHandle);
         }
     }
 
 CleanupExit:
-    if (serviceHandle)
-        CloseServiceHandle(serviceHandle);
     if (info)
         PhFree(info);
     if (serviceName)
@@ -1149,7 +1120,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
     tcpRow.dwRemotePort = Payload->u.SetTcpEntry.i.RemotePort;
     result = localSetTcpEntry(&tcpRow);
 
-    return NTSTATUS_FROM_WIN32(result);
+    return PhDosErrorToNtStatus(result);
 }
 
 NTSTATUS PhSvcApiControlThread(
@@ -1371,7 +1342,9 @@ NTSTATUS PhSvcApiSetServiceSecurity(
                 desiredAccess |= ACCESS_SYSTEM_SECURITY;
             }
 
-            if (serviceHandle = PhOpenService(serviceName->Buffer, desiredAccess))
+            status = PhOpenService(&serviceHandle, desiredAccess, PhGetString(serviceName));
+
+            if (NT_SUCCESS(status))
             {
                 status = PhSetSeObjectSecurity(
                     serviceHandle,
@@ -1379,11 +1352,7 @@ NTSTATUS PhSvcApiSetServiceSecurity(
                     Payload->u.SetServiceSecurity.i.SecurityInformation,
                     securityDescriptor
                     );
-                CloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                status = PhGetLastWin32ErrorAsNtStatus();
+                PhCloseServiceHandle(serviceHandle);
             }
 
             PhFree(securityDescriptor);

@@ -1187,6 +1187,9 @@ VOID PhpInitializeSettings(
     PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
     PhEnableDeferredLayout = !!PhGetIntegerSetting(L"EnableDeferredLayout");
+    PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
+    PhEnableServiceNonPollNotify = !!PhGetIntegerSetting(L"EnableServiceNonPollNotify");
+    PhServiceNonPollFlushInterval = PhGetIntegerSetting(L"NonPollFlushInterval");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {

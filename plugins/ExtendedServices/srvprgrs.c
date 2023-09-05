@@ -6,6 +6,7 @@
  * Authors:
  *
  *     wj32    2010
+ *     dmex    2016-2023
  *
  */
 
@@ -20,57 +21,56 @@ typedef struct _RESTART_SERVICE_CONTEXT
 } RESTART_SERVICE_CONTEXT, *PRESTART_SERVICE_CONTEXT;
 
 INT_PTR CALLBACK EspRestartServiceDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PRESTART_SERVICE_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PRESTART_SERVICE_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
             // TODO: Use the progress information.
-            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
-            SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
+            PhSetWindowStyle(GetDlgItem(WindowHandle, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
+            SendMessage(GetDlgItem(WindowHandle, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
-            PhSetDialogItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(L"Attempting to stop %s...", context->ServiceItem->Name->Buffer)->Buffer);
+            PhSetDialogItemText(WindowHandle, IDC_MESSAGE, PhaFormatString(L"Attempting to stop %s...", context->ServiceItem->Name->Buffer)->Buffer);
 
-            if (PhUiStopService(hwndDlg, context->ServiceItem))
+            if (PhUiStopService(WindowHandle, context->ServiceItem))
             {
-                PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 250, NULL);
+                PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 250, NULL);
             }
             else
             {
-                EndDialog(hwndDlg, IDCANCEL);
+                EndDialog(WindowHandle, IDCANCEL);
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
-            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
+            PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -79,9 +79,9 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
             {
             case IDCANCEL:
                 {
-                    PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
+                    PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
 
-                    EndDialog(hwndDlg, IDCANCEL);
+                    EndDialog(WindowHandle, IDCANCEL);
                 }
                 break;
             }
@@ -91,31 +91,31 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
         {
             if (wParam == PH_WINDOW_TIMER_DEFAULT && !context->DisableTimer)
             {
-                SERVICE_STATUS serviceStatus;
+                SERVICE_STATUS_PROCESS serviceStatus;
 
-                if (QueryServiceStatus(context->ServiceHandle, &serviceStatus))
+                if (NT_SUCCESS(PhQueryServiceStatus(context->ServiceHandle, &serviceStatus)))
                 {
                     if (!context->Starting && serviceStatus.dwCurrentState == SERVICE_STOPPED)
                     {
                         // The service is stopped, so start the service now.
 
-                        PhSetDialogItemText(hwndDlg, IDC_MESSAGE,
+                        PhSetDialogItemText(WindowHandle, IDC_MESSAGE,
                             PhaFormatString(L"Attempting to start %s...", context->ServiceItem->Name->Buffer)->Buffer);
                         context->DisableTimer = TRUE;
 
-                        if (PhUiStartService(hwndDlg, context->ServiceItem))
+                        if (PhUiStartService(WindowHandle, context->ServiceItem))
                         {
                             context->DisableTimer = FALSE;
                             context->Starting = TRUE;
                         }
                         else
                         {
-                            EndDialog(hwndDlg, IDCANCEL);
+                            EndDialog(WindowHandle, IDCANCEL);
                         }
                     }
                     else if (context->Starting && serviceStatus.dwCurrentState == SERVICE_RUNNING)
                     {
-                        EndDialog(hwndDlg, IDOK);
+                        EndDialog(WindowHandle, IDOK);
                     }
                 }
             }
@@ -127,7 +127,7 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
 }
 
 VOID EsRestartServiceWithProgress(
-    _In_ HWND hWnd,
+    _In_ HWND ParentWindowHandle,
     _In_ PPH_SERVICE_ITEM ServiceItem,
     _In_ SC_HANDLE ServiceHandle
     )
@@ -142,7 +142,7 @@ VOID EsRestartServiceWithProgress(
     PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_SRVPROGRESS),
-        hWnd,
+        ParentWindowHandle,
         EspRestartServiceDlgProc,
         &context
         );

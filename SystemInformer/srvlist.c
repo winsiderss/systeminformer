@@ -306,21 +306,21 @@ VOID PhUpdateServiceNode(
     )
 {
     memset(ServiceNode->TextCache, 0, sizeof(PH_STRINGREF) * PHSVTLC_MAXIMUM);
+
     PhClearReference(&ServiceNode->TooltipText);
 
     ServiceNode->ValidMask = 0;
     PhInvalidateTreeNewNode(&ServiceNode->Node, TN_CACHE_ICON);
-    TreeNew_NodesStructured(ServiceTreeListHandle);
+    TreeNew_InvalidateNode(ServiceTreeListHandle, &ServiceNode->Node);
 }
 
 VOID PhTickServiceNodes(
     VOID
     )
 {
-    if (ServiceTreeListSortOrder != NoSortOrder && ServiceTreeListSortColumn >= PHSVTLC_MAXIMUM)
+    if (ServiceTreeListSortOrder != NoSortOrder)
     {
-        // Sorting is on, but it's not one of our columns. Force a rebuild. (If it was one of our
-        // columns, the restructure would have been handled in PhUpdateServiceNode.)
+        // Force a rebuild to sort the items.
         TreeNew_NodesStructured(ServiceTreeListHandle);
     }
 
@@ -331,14 +331,14 @@ static VOID PhpUpdateServiceNodeConfig(
     _Inout_ PPH_SERVICE_NODE ServiceNode
     )
 {
-    if (!(ServiceNode->ValidMask & PHSN_CONFIG))
+    if (!FlagOn(ServiceNode->ValidMask, PHSN_CONFIG))
     {
         SC_HANDLE serviceHandle;
         LPQUERY_SERVICE_CONFIG serviceConfig;
 
-        if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+        if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(ServiceNode->ServiceItem->Name))))
         {
-            if (serviceConfig = PhGetServiceConfig(serviceHandle))
+            if (NT_SUCCESS(PhGetServiceConfig(serviceHandle, &serviceConfig)))
             {
                 if (serviceConfig->lpBinaryPathName)
                     PhMoveReference(&ServiceNode->BinaryPath, PhCreateString(serviceConfig->lpBinaryPathName));
@@ -348,10 +348,10 @@ static VOID PhpUpdateServiceNodeConfig(
                 PhFree(serviceConfig);
             }
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
-        ServiceNode->ValidMask |= PHSN_CONFIG;
+        SetFlag(ServiceNode->ValidMask, PHSN_CONFIG);
     }
 }
 
@@ -359,19 +359,14 @@ static VOID PhpUpdateServiceNodeDescription(
     _Inout_ PPH_SERVICE_NODE ServiceNode
     )
 {
-    if (!(ServiceNode->ValidMask & PHSN_DESCRIPTION))
+    if (!FlagOn(ServiceNode->ValidMask, PHSN_DESCRIPTION))
     {
         HANDLE keyHandle;
-        PPH_STRING keyName;
 
-        keyName = PhGetServiceKeyName(&ServiceNode->ServiceItem->Name->sr);
-
-        if (NT_SUCCESS(PhOpenKey(
+        if (NT_SUCCESS(PhOpenServiceKey(
             &keyHandle,
             KEY_QUERY_VALUE,
-            PH_KEY_LOCAL_MACHINE,
-            &keyName->sr,
-            0
+            &ServiceNode->ServiceItem->Name->sr
             )))
         {
             PPH_STRING descriptionString;
@@ -390,9 +385,7 @@ static VOID PhpUpdateServiceNodeDescription(
             NtClose(keyHandle);
         }
 
-        PhDereferenceObject(keyName);
-
-        ServiceNode->ValidMask |= PHSN_DESCRIPTION;
+        SetFlag(ServiceNode->ValidMask, PHSN_DESCRIPTION);
     }
 
     // NOTE: Querying the service description via RPC is extremely slow. (dmex)
@@ -409,19 +402,14 @@ static VOID PhpUpdateServiceNodeKey(
     _Inout_ PPH_SERVICE_NODE ServiceNode
     )
 {
-    if (!(ServiceNode->ValidMask & PHSN_KEY))
+    if (!FlagOn(ServiceNode->ValidMask, PHSN_KEY))
     {
         HANDLE keyHandle;
-        PPH_STRING keyName;
 
-        keyName = PhGetServiceKeyName(&ServiceNode->ServiceItem->Name->sr);
-
-        if (NT_SUCCESS(PhOpenKey(
+        if (NT_SUCCESS(PhOpenServiceKey(
             &keyHandle,
             KEY_QUERY_VALUE,
-            PH_KEY_LOCAL_MACHINE,
-            &keyName->sr,
-            0
+            &ServiceNode->ServiceItem->Name->sr
             )))
         {
             LARGE_INTEGER lastWriteTime;
@@ -444,9 +432,7 @@ static VOID PhpUpdateServiceNodeKey(
             NtClose(keyHandle);
         }
 
-        PhDereferenceObject(keyName);
-
-        ServiceNode->ValidMask |= PHSN_KEY;
+        SetFlag(ServiceNode->ValidMask, PHSN_KEY);
     }
 }
 
@@ -683,12 +669,10 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 break;
             case PHSVTLC_PID:
                 {
-                    if (serviceItem->ProcessId)
-                        PhPrintUInt32(serviceItem->ProcessIdString, HandleToUlong(serviceItem->ProcessId));
-                    else
-                        serviceItem->ProcessIdString[0] = UNICODE_NULL;
-
-                    PhInitializeStringRefLongHint(&getCellText->Text, serviceItem->ProcessIdString);
+                    if (PH_IS_REAL_PROCESS_ID(serviceItem->ProcessId))
+                    {
+                        PhInitializeStringRefLongHint(&getCellText->Text, serviceItem->ProcessIdString);
+                    }
                 }
                 break;
             case PHSVTLC_DISPLAYNAME:
@@ -805,10 +789,10 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             }
             else
             {
-                if (node->ServiceItem->Type == SERVICE_KERNEL_DRIVER || node->ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
-                    getNodeIcon->Icon = (HICON)(ULONG_PTR)1;// ServiceCogIcon;
+                if (FlagOn(node->ServiceItem->Type, SERVICE_DRIVER))
+                    getNodeIcon->Icon = (HICON)(ULONG_PTR)1; // ServiceCogIcon
                 else
-                    getNodeIcon->Icon = (HICON)(ULONG_PTR)0;//ServiceApplicationIcon;
+                    getNodeIcon->Icon = (HICON)(ULONG_PTR)0; // ServiceApplicationIcon
             }
 
             //getNodeIcon->Flags = TN_CACHE;

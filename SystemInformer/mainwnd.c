@@ -1841,28 +1841,38 @@ VOID PhMwpOnCommand(
         break;
     case ID_SERVICE_OPENKEY:
         {
-            static PH_STRINGREF hklm = PH_STRINGREF_INIT(L"HKLM\\");
-
             PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
 
             if (serviceItem)
             {
                 HANDLE keyHandle;
-                PPH_STRING serviceKeyName = PH_AUTO(PhGetServiceKeyName(&serviceItem->Name->sr));
 
-                if (NT_SUCCESS(PhOpenKey(
+                if (NT_SUCCESS(PhOpenServiceKey(
                     &keyHandle,
                     KEY_READ,
-                    PH_KEY_LOCAL_MACHINE,
-                    &serviceKeyName->sr,
-                    0
+                    &serviceItem->Name->sr
                     )))
                 {
                     PPH_STRING hklmServiceKeyName;
 
-                    hklmServiceKeyName = PH_AUTO(PhConcatStringRef2(&hklm, &serviceKeyName->sr));
-                    PhShellOpenKey2(WindowHandle, hklmServiceKeyName);
+                    if (NT_SUCCESS(PhQueryObjectName(keyHandle, &hklmServiceKeyName)))
+                    {
+                        PhMoveReference(&hklmServiceKeyName, PhFormatNativeKeyName(hklmServiceKeyName));
+
+                        PhShellOpenKey2(WindowHandle, hklmServiceKeyName);
+
+                        PhDereferenceObject(hklmServiceKeyName);
+                    }
+                    else
+                    {
+                        PhShowError(WindowHandle, L"%s", L"The service does not exist.");
+                    }
+
                     NtClose(keyHandle);
+                }
+                else
+                {
+                    PhShowError(WindowHandle, L"%s", L"The service does not exist.");
                 }
             }
         }
@@ -1872,7 +1882,7 @@ VOID PhMwpOnCommand(
             PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
             SC_HANDLE serviceHandle;
 
-            if (serviceItem && (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG)))
+            if (serviceItem && NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name))))
             {
                 PPH_STRING fileName;
 
@@ -2313,7 +2323,6 @@ VOID PhMwpLoadSettings(
 #else
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
 #endif
-    PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
     PhEnableNetworkBoundConnections = !!PhGetIntegerSetting(L"EnableNetworkBoundConnections");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");

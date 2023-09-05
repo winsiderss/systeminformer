@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2020
+ *     dmex    2020-2023
  *
  */
 
@@ -18,77 +18,15 @@ typedef struct _SERVICE_LIST_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } SERVICE_LIST_CONTEXT, *PSERVICE_LIST_CONTEXT;
 
-_Success_(return)
-BOOLEAN EsEnumDependentServices(
-    _In_ SC_HANDLE ServiceHandle,
-    _Out_ PULONG Count,
-    _Out_ LPENUM_SERVICE_STATUS* Services
-    )
-{
-    BOOLEAN result;
-    PVOID buffer;
-    ULONG bufferSize;
-    ULONG returnLength;
-    ULONG servicesReturned;
-
-    bufferSize = 0x800;
-    buffer = PhAllocate(bufferSize);
-
-    result = !!EnumDependentServices(
-        ServiceHandle,
-        SERVICE_STATE_ALL,
-        buffer,
-        bufferSize,
-        &returnLength,
-        &servicesReturned
-        );
-
-    if (!result)
-    {
-        if (GetLastError() == ERROR_MORE_DATA)
-        {
-            PhFree(buffer);
-            bufferSize = returnLength;
-            buffer = PhAllocate(bufferSize);
-
-            result = !!EnumDependentServices(
-                ServiceHandle,
-                SERVICE_STATE_ALL,
-                buffer,
-                bufferSize,
-                &returnLength,
-                &servicesReturned
-                );
-        }
-
-        if (!result)
-        {
-            PhFree(buffer);
-            return FALSE;
-        }
-    }
-
-    if (Count)
-    {
-        *Count = servicesReturned;
-    }
-    if (Services)
-    {
-        *Services = buffer;
-    }
-
-    return result;
-}
-
 VOID EspLayoutServiceListControl(
-    _In_ HWND hwndDlg,
+    _In_ HWND WindowHandle,
     _In_ HWND ServiceListHandle
     )
 {
     RECT rect;
 
-    GetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect);
-    MapWindowPoints(NULL, hwndDlg, (POINT *)&rect, 2);
+    GetWindowRect(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), &rect);
+    MapWindowPoints(NULL, WindowHandle, (POINT *)&rect, 2);
 
     MoveWindow(
         ServiceListHandle,
@@ -101,30 +39,30 @@ VOID EspLayoutServiceListControl(
 }
 
 INT_PTR CALLBACK EspServiceDependenciesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PSERVICE_LIST_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocate(sizeof(SERVICE_LIST_CONTEXT));
         memset(context, 0, sizeof(SERVICE_LIST_CONTEXT));
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -132,25 +70,25 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
             PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
             HWND serviceListHandle;
             SC_HANDLE serviceHandle;
-            ULONG win32Result = ERROR_SUCCESS;
-            BOOLEAN success = FALSE;
+            NTSTATUS status;
 
-            PhSetDialogItemText(hwndDlg, IDC_MESSAGE, L"This service depends on the following services:");
+            PhSetDialogItemText(WindowHandle, IDC_MESSAGE, L"This service depends on the following services:");
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), NULL, PH_ANCHOR_ALL);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), NULL, PH_ANCHOR_ALL);
 
-            if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+            if (NT_SUCCESS(status = PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name))))
             {
                 LPQUERY_SERVICE_CONFIG serviceConfig;
 
-                if (serviceConfig = PhGetServiceConfig(serviceHandle))
+                status = PhGetServiceConfig(serviceHandle, &serviceConfig);
+
+                if (NT_SUCCESS(status))
                 {
                     PWSTR dependency;
                     PPH_LIST serviceList;
 
                     serviceList = PH_AUTO(PhCreateList(8));
-                    success = TRUE;
 
                     if (serviceConfig->lpDependencies)
                     {
@@ -172,50 +110,40 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
 
                         services = PhAllocateCopy(serviceList->Items, sizeof(PPH_SERVICE_ITEM) * serviceList->Count);
 
-                        serviceListHandle = PhCreateServiceListControl(hwndDlg, services, serviceList->Count);
+                        serviceListHandle = PhCreateServiceListControl(WindowHandle, services, serviceList->Count);
                         context->ServiceListHandle = serviceListHandle;
-                        EspLayoutServiceListControl(hwndDlg, serviceListHandle);
+                        EspLayoutServiceListControl(WindowHandle, serviceListHandle);
                         ShowWindow(serviceListHandle, SW_SHOW);
                     }
 
                     PhFree(serviceConfig);
                 }
-                else
-                {
-                    win32Result = GetLastError();
-                }
 
-                CloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                win32Result = GetLastError();
+                PhCloseServiceHandle(serviceHandle);
             }
 
-            if (!success)
+            if (!NT_SUCCESS(status))
             {
-                PPH_STRING errorMessage = PhGetWin32Message(win32Result);
+                PPH_STRING errorMessage = PhGetNtMessage(status);
 
-                PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(
+                PhSetDialogItemText(WindowHandle, IDC_SERVICES_LAYOUT, PhaConcatStrings2(
                     L"Unable to enumerate dependencies: ",
                     PhGetStringOrDefault(errorMessage, L"Unknown error.")
                     )->Buffer);
 
-                ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
+                ShowWindow(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), SW_SHOW);
                 PhClearReference(&errorMessage);
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhDeleteLayoutManager(&context->LayoutManager);
-        }
-        break;
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhFree(context);
         }
         break;
@@ -224,7 +152,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
 
             if (context->ServiceListHandle)
-                EspLayoutServiceListControl(hwndDlg, context->ServiceListHandle);
+                EspLayoutServiceListControl(WindowHandle, context->ServiceListHandle);
         }
         break;
     }
@@ -233,30 +161,30 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
 }
 
 INT_PTR CALLBACK EspServiceDependentsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PSERVICE_LIST_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocate(sizeof(SERVICE_LIST_CONTEXT));
         memset(context, 0, sizeof(SERVICE_LIST_CONTEXT));
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -264,30 +192,36 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
             PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
             HWND serviceListHandle;
             SC_HANDLE serviceHandle;
-            ULONG win32Result = ERROR_SUCCESS;
-            BOOLEAN success = FALSE;
+            NTSTATUS status;
 
-            PhSetDialogItemText(hwndDlg, IDC_MESSAGE, L"The following services depend on this service:");
+            PhSetDialogItemText(WindowHandle, IDC_MESSAGE, L"The following services depend on this service:");
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), NULL, PH_ANCHOR_ALL);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), NULL, PH_ANCHOR_ALL);
 
-            if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_ENUMERATE_DEPENDENTS))
+            status = PhOpenService(
+                &serviceHandle,
+                SERVICE_ENUMERATE_DEPENDENTS,
+                PhGetString(serviceItem->Name)
+                );
+
+            if (NT_SUCCESS(status))
             {
                 ULONG numberOfDependentServices;
                 LPENUM_SERVICE_STATUS dependentServices;
 
-                if (EsEnumDependentServices(
+                status = PhEnumDependentServices(
                     serviceHandle,
-                    &numberOfDependentServices,
-                    &dependentServices
-                    ))
+                    &dependentServices,
+                    &numberOfDependentServices
+                    );
+
+                if (NT_SUCCESS(status))
                 {
                     PPH_SERVICE_ITEM dependentService;
                     PPH_LIST serviceList;
 
                     serviceList = PH_AUTO(PhCreateList(8));
-                    success = TRUE;
 
                     for (ULONG i = 0; i < numberOfDependentServices; i++)
                     {
@@ -301,50 +235,40 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
 
                         services = PhAllocateCopy(serviceList->Items, sizeof(PPH_SERVICE_ITEM) * serviceList->Count);
 
-                        serviceListHandle = PhCreateServiceListControl(hwndDlg, services, serviceList->Count);
+                        serviceListHandle = PhCreateServiceListControl(WindowHandle, services, serviceList->Count);
                         context->ServiceListHandle = serviceListHandle;
-                        EspLayoutServiceListControl(hwndDlg, serviceListHandle);
+                        EspLayoutServiceListControl(WindowHandle, serviceListHandle);
                         ShowWindow(serviceListHandle, SW_SHOW);
                     }
 
                     PhFree(dependentServices);
                 }
-                else
-                {
-                    win32Result = GetLastError();
-                }
 
-                CloseServiceHandle(serviceHandle);
-            }
-            else
-            {
-                win32Result = GetLastError();
+                PhCloseServiceHandle(serviceHandle);
             }
 
-            if (!success)
+            if (!NT_SUCCESS(status))
             {
-                PPH_STRING errorMessage = PhGetWin32Message(win32Result);
+                PPH_STRING errorMessage = PhGetNtMessage(status);
 
-                PhSetDialogItemText(hwndDlg, IDC_SERVICES_LAYOUT, PhaConcatStrings2(
+                PhSetDialogItemText(WindowHandle, IDC_SERVICES_LAYOUT, PhaConcatStrings2(
                     L"Unable to enumerate dependents: ",
                     PhGetStringOrDefault(errorMessage, L"Unknown error.")
                     )->Buffer);
 
-                ShowWindow(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), SW_SHOW);
+                ShowWindow(GetDlgItem(WindowHandle, IDC_SERVICES_LAYOUT), SW_SHOW);
                 PhClearReference(&errorMessage);
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhDeleteLayoutManager(&context->LayoutManager);
-        }
-        break;
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhFree(context);
         }
         break;
@@ -353,7 +277,7 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
 
             if (context->ServiceListHandle)
-                EspLayoutServiceListControl(hwndDlg, context->ServiceListHandle);
+                EspLayoutServiceListControl(WindowHandle, context->ServiceListHandle);
         }
         break;
     }

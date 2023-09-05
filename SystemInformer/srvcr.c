@@ -80,8 +80,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                 break;
             case IDOK:
                 {
-                    NTSTATUS status = STATUS_SUCCESS;
-                    BOOLEAN success = FALSE;
+                    NTSTATUS status;
                     SC_HANDLE serviceHandle;
                     PPH_STRING serviceName;
                     PPH_STRING serviceDisplayName;
@@ -92,30 +91,43 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                     ULONG serviceStartType;
                     ULONG serviceErrorControl;
                     PPH_STRING serviceBinaryPath;
+                    PPH_STRING serviceBinaryEscaped;
 
                     serviceName = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME)));
                     serviceDisplayName = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_DISPLAYNAME)));
-
                     serviceTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
                     serviceStartTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
                     serviceErrorControlString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
+                    serviceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
+
                     serviceType = PhGetServiceTypeInteger(&serviceTypeString->sr);
                     serviceStartType = PhGetServiceStartTypeInteger(&serviceStartTypeString->sr);
                     serviceErrorControl = PhGetServiceErrorControlInteger(&serviceErrorControlString->sr);
 
-                    serviceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
+                    if (PhIsNullOrEmptyString(serviceBinaryPath))
+                    {
+                        PhShowError2(hwndDlg, L"Unable to create the service.", L"%s", L"The binary path is empty.");
+                        break;
+                    }
+
+                    serviceBinaryEscaped = PH_AUTO(PhCommandLineQuoteSpaces(&serviceBinaryPath->sr));
+
+                    if (!PhIsNullOrEmptyString(serviceBinaryEscaped))
+                    {
+                        PhMoveReference(&serviceBinaryPath, serviceBinaryEscaped);
+                    }
 
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
                         status = PhCreateService(
                             &serviceHandle,
-                            serviceName->Buffer,
-                            serviceDisplayName->Buffer,
+                            PhGetString(serviceName),
+                            PhGetString(serviceDisplayName),
                             SERVICE_CHANGE_CONFIG,
                             serviceType,
                             serviceStartType,
                             serviceErrorControl,
-                            serviceBinaryPath->Buffer,
+                            PhGetString(serviceBinaryPath),
                             NULL,
                             L""
                             );
@@ -124,7 +136,6 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                         {
                             EndDialog(hwndDlg, IDOK);
                             PhCloseServiceHandle(serviceHandle);
-                            success = TRUE;
                         }
                     }
                     else
@@ -149,18 +160,17 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                             if (NT_SUCCESS(status))
                             {
                                 EndDialog(hwndDlg, IDOK);
-                                success = TRUE;
                             }
                         }
                         else
                         {
                             // User cancelled elevation.
-                            success = TRUE;
+                            status = STATUS_SUCCESS;
                         }
                     }
 
-                    if (!success)
-                        PhShowStatus(hwndDlg, L"Unable to create the service", status, 0);
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to create the service.", status, 0);
                 }
                 break;
             case IDC_BROWSE:

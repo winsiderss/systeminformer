@@ -15,9 +15,7 @@
 #include <svcsup.h>
 #include <mapldr.h>
 
-#define SIP(String, Integer) \
-    { (String), (PVOID)(Integer) }
-
+#define SIP(String, Integer) { (String), (PVOID)(Integer) }
 #define SREF(String) ((PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String)))
 static PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
 
@@ -98,94 +96,6 @@ CONST PPH_STRINGREF PhServiceErrorControlStrings[4] =
     SREF(L"Critical"),
 };
 
-_Success_(return != NULL)
-PVOID PhEnumServices(
-    _In_ SC_HANDLE ScManagerHandle,
-    _In_opt_ ULONG Type,
-    _In_opt_ ULONG State,
-    _Out_ PULONG Count
-    )
-{
-    static ULONG initialBufferSize = 0x8000;
-    BOOL result;
-    PVOID buffer;
-    ULONG bufferSize;
-    ULONG returnLength;
-    ULONG servicesReturned;
-
-    if (!Type)
-    {
-        if (WindowsVersion >= WINDOWS_10_RS1)
-        {
-            Type = SERVICE_TYPE_ALL;
-        }
-        else if (WindowsVersion >= WINDOWS_10)
-        {
-            Type = SERVICE_WIN32 |
-                SERVICE_ADAPTER |
-                SERVICE_DRIVER |
-                SERVICE_INTERACTIVE_PROCESS |
-                SERVICE_USER_SERVICE |
-                SERVICE_USERSERVICE_INSTANCE;
-        }
-        else
-        {
-            Type = SERVICE_DRIVER | SERVICE_WIN32;
-        }
-    }
-
-    if (!State)
-        State = SERVICE_STATE_ALL;
-
-    bufferSize = initialBufferSize;
-    buffer = PhAllocate(bufferSize);
-
-    if (!(result = EnumServicesStatusEx(
-        ScManagerHandle,
-        SC_ENUM_PROCESS_INFO,
-        Type,
-        State,
-        (PBYTE)buffer,
-        bufferSize,
-        &returnLength,
-        &servicesReturned,
-        NULL,
-        NULL
-        )))
-    {
-        if (GetLastError() == ERROR_MORE_DATA)
-        {
-            PhFree(buffer);
-            bufferSize += returnLength;
-            buffer = PhAllocate(bufferSize);
-
-            result = EnumServicesStatusEx(
-                ScManagerHandle,
-                SC_ENUM_PROCESS_INFO,
-                Type,
-                State,
-                (PBYTE)buffer,
-                bufferSize,
-                &returnLength,
-                &servicesReturned,
-                NULL,
-                NULL
-                );
-        }
-
-        if (!result)
-        {
-            PhFree(buffer);
-            return NULL;
-        }
-    }
-
-    if (bufferSize <= 0x20000) initialBufferSize = bufferSize;
-    *Count = servicesReturned;
-
-    return buffer;
-}
-
 SC_HANDLE PhGetServiceManagerHandle(
     VOID
     )
@@ -224,7 +134,7 @@ SC_HANDLE PhGetServiceManagerHandle(
             else
             {
                 // Someone already placed a handle in the cache. Close our handle and use their handle.
-                CloseServiceHandle(newServiceManagerHandle);
+                PhCloseServiceHandle(newServiceManagerHandle);
             }
         }
     }
@@ -232,16 +142,229 @@ SC_HANDLE PhGetServiceManagerHandle(
     return serviceManagerHandle;
 }
 
-SC_HANDLE PhOpenService(
-    _In_ PWSTR ServiceName,
-    _In_ ACCESS_MASK DesiredAccess
+NTSTATUS PhEnumServices(
+    _Out_ LPENUM_SERVICE_STATUS_PROCESS* Services,
+    _Out_ PULONG NumberOfServices
     )
 {
+    static ULONG initialBufferSize = 0x8000;
+    NTSTATUS status;
+    SC_HANDLE scManagerHandle;
+    ULONG type;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+    ULONG servicesReturned;
+
+    if (WindowsVersion >= WINDOWS_10_RS1)
+    {
+        type = SERVICE_TYPE_ALL;
+    }
+    else if (WindowsVersion >= WINDOWS_10)
+    {
+        type = SERVICE_WIN32 |
+            SERVICE_ADAPTER |
+            SERVICE_DRIVER |
+            SERVICE_INTERACTIVE_PROCESS |
+            SERVICE_USER_SERVICE |
+            SERVICE_USERSERVICE_INSTANCE;
+    }
+    else
+    {
+        type = SERVICE_DRIVER | SERVICE_WIN32;
+    }
+
+    scManagerHandle = PhGetServiceManagerHandle();
+    bufferSize = initialBufferSize;
+    buffer = PhAllocate(bufferSize);
+
+    if (EnumServicesStatusEx(
+        scManagerHandle,
+        SC_ENUM_PROCESS_INFO,
+        type,
+        SERVICE_STATE_ALL,
+        (PBYTE)buffer,
+        bufferSize,
+        &returnLength,
+        &servicesReturned,
+        NULL,
+        NULL
+        ))
+    {
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    if (status == STATUS_MORE_ENTRIES)
+    {
+        PhFree(buffer);
+        bufferSize += returnLength;
+        buffer = PhAllocate(bufferSize);
+
+        if (EnumServicesStatusEx(
+            scManagerHandle,
+            SC_ENUM_PROCESS_INFO,
+            type,
+            SERVICE_STATE_ALL,
+            (PBYTE)buffer,
+            bufferSize,
+            &returnLength,
+            &servicesReturned,
+            NULL,
+            NULL
+            ))
+        {
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    if (bufferSize <= 0x20000) initialBufferSize = bufferSize;
+    *Services = buffer;
+    *NumberOfServices = servicesReturned;
+
+    return status;
+}
+
+NTSTATUS PhEnumDependentServices(
+    _In_ SC_HANDLE ServiceHandle,
+    _Out_ LPENUM_SERVICE_STATUS* DependentServices,
+    _Out_ PULONG NumberOfDependentServices
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+    ULONG servicesReturned;
+
+    bufferSize = 0x800;
+    buffer = PhAllocate(bufferSize);
+
+    if (EnumDependentServices(
+        ServiceHandle,
+        SERVICE_STATE_ALL,
+        buffer,
+        bufferSize,
+        &returnLength,
+        &servicesReturned
+        ))
+    {
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    if (status == STATUS_MORE_ENTRIES)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize);
+
+        if (EnumDependentServices(
+            ServiceHandle,
+            SERVICE_STATE_ALL,
+            buffer,
+            bufferSize,
+            &returnLength,
+            &servicesReturned
+            ))
+        {
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *DependentServices = buffer;
+    *NumberOfDependentServices = servicesReturned;
+
+    return status;
+}
+
+NTSTATUS PhOpenService(
+    _Out_ PSC_HANDLE ServiceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PWSTR ServiceName
+    )
+{
+    NTSTATUS status;
     SC_HANDLE serviceHandle;
 
-    serviceHandle = OpenService(PhGetServiceManagerHandle(), ServiceName, DesiredAccess);
+    if (serviceHandle = OpenService(PhGetServiceManagerHandle(), ServiceName, DesiredAccess))
+    {
+        *ServiceHandle = serviceHandle;
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
 
-    return serviceHandle;
+    return status;
+}
+
+NTSTATUS PhOpenServiceKey(
+    _Out_ PHANDLE KeyHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HANDLE servicesKeyHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhOpenKey(&servicesKeyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &servicesKeyName, 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (servicesKeyHandle)
+    {
+        return PhOpenKey(KeyHandle, DesiredAccess, servicesKeyHandle, ServiceName, 0);
+    }
+    else
+    {
+        NTSTATUS status;
+        PPH_STRING keyName;
+
+        keyName = PhGetServiceKeyName(ServiceName);
+
+        status = PhOpenKey(
+            KeyHandle,
+            DesiredAccess,
+            PH_KEY_LOCAL_MACHINE,
+            &keyName->sr,
+            0
+            );
+
+        PhDereferenceObject(keyName);
+
+        return status;
+    }
 }
 
 VOID PhCloseServiceHandle(
@@ -252,7 +375,7 @@ VOID PhCloseServiceHandle(
 }
 
 NTSTATUS PhCreateService(
-    _Out_ SC_HANDLE* ServiceHandle,
+    _Out_ PSC_HANDLE ServiceHandle,
     _In_ PCWSTR ServiceName,
     _In_opt_ PCWSTR DisplayName,
     _In_ ULONG DesiredAccess,
@@ -265,29 +388,281 @@ NTSTATUS PhCreateService(
     )
 {
     NTSTATUS status;
-    SC_HANDLE serviceManagerHandle;
+    SC_HANDLE scManagerHandle;
+    SC_HANDLE serviceHandle;
 
-    if (!(serviceManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
-        return PhGetLastWin32ErrorAsNtStatus();
+    if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
+    {
+        if (serviceHandle = CreateService(
+            scManagerHandle,
+            ServiceName,
+            DisplayName,
+            DesiredAccess,
+            ServiceType,
+            StartType,
+            ErrorControl,
+            BinaryPathName,
+            NULL,
+            NULL,
+            NULL,
+            UserName,
+            Password
+            ))
+        {
+            *ServiceHandle = serviceHandle;
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+        }
 
-    *ServiceHandle = CreateService(
-        serviceManagerHandle,
-        ServiceName,
-        DisplayName,
-        DesiredAccess,
+        PhCloseServiceHandle(scManagerHandle);
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
+
+    return status;
+}
+
+NTSTATUS PhChangeServiceConfig(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PCWSTR BinaryPathName,
+    _In_opt_ PCWSTR LoadOrderGroup,
+    _Out_opt_ PULONG TagId,
+    _In_opt_ PCWSTR Dependencies,
+    _In_opt_ PCWSTR ServiceStartName,
+    _In_opt_ PCWSTR Password,
+    _In_opt_ PCWSTR DisplayName
+    )
+{
+    NTSTATUS status;
+
+    if (ChangeServiceConfig(
+        ServiceHandle,
         ServiceType,
         StartType,
         ErrorControl,
         BinaryPathName,
-        NULL,
-        NULL,
-        NULL,
-        UserName,
-        Password
-        );
-    status = PhGetLastWin32ErrorAsNtStatus();
+        LoadOrderGroup,
+        TagId,
+        Dependencies,
+        ServiceStartName,
+        Password,
+        DisplayName
+        ))
+    {
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
 
-    CloseServiceHandle(serviceManagerHandle);
+    return status;
+}
+
+NTSTATUS PhChangeServiceConfig2(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG ServiceConfigLevel,
+    _In_opt_ PVOID Buffer
+    )
+{
+    NTSTATUS status;
+
+    if (ChangeServiceConfig2(ServiceHandle, ServiceConfigLevel, Buffer))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhEnumDependentServices2(
+    _In_ SC_HANDLE ServiceHandle,
+    _Out_writes_bytes_opt_(BufferLength) LPENUM_SERVICE_STATUSW Buffer,
+    _In_ ULONG BufferLength,
+    _Out_ PULONG ReturnLength,
+    _Out_ PULONG NumberOfServices
+    )
+{
+    NTSTATUS status;
+
+    if (EnumDependentServices(ServiceHandle, SERVICE_STATE_ALL, Buffer, BufferLength, ReturnLength, NumberOfServices))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhQueryServiceConfig(
+    _In_ SC_HANDLE ServiceHandle,
+    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength = 0;
+
+    if (QueryServiceConfig(ServiceHandle, Buffer, BufferLength, &returnLength))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    if (ReturnLength)
+        *ReturnLength = returnLength;
+
+    return status;
+}
+
+NTSTATUS PhQueryServiceConfig2(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG ServiceConfigLevel,
+    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength = 0;
+
+    if (QueryServiceConfig2(ServiceHandle, ServiceConfigLevel, (PBYTE)Buffer, BufferLength, &returnLength))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    if (ReturnLength)
+        *ReturnLength = returnLength;
+
+    return status;
+}
+
+NTSTATUS PhGetServiceObjectSecurity(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+
+    if (QueryServiceObjectSecurity(ServiceHandle, SecurityInformation, NULL, 0, &bufferSize))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    if (status == STATUS_BUFFER_TOO_SMALL && bufferSize)
+    {
+        buffer = PhAllocate(bufferSize);
+        memset(buffer, 0, bufferSize);
+
+        if (QueryServiceObjectSecurity(ServiceHandle, SecurityInformation, buffer, bufferSize, &bufferSize))
+            status = STATUS_SUCCESS;
+        else
+            status = PhGetLastWin32ErrorAsNtStatus();
+
+        if (NT_SUCCESS(status))
+        {
+            *SecurityDescriptor = buffer;
+        }
+        else
+        {
+            PhFree(buffer);
+        }
+    }
+
+    if (NT_SUCCESS(status) && !bufferSize)
+    {
+        status = STATUS_INVALID_SECURITY_DESCR;
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetServiceObjectSecurity(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+
+    if (SetServiceObjectSecurity(ServiceHandle, SecurityInformation, SecurityDescriptor))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhQueryServiceStatus(
+    _In_ SC_HANDLE ServiceHandle,
+    _Inout_ LPSERVICE_STATUS_PROCESS ServiceStatus
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength = 0;
+
+    memset(ServiceStatus, 0, sizeof(SERVICE_STATUS_PROCESS));
+
+    if (QueryServiceStatusEx(ServiceHandle, SC_STATUS_PROCESS_INFO, (PBYTE)ServiceStatus, sizeof(SERVICE_STATUS_PROCESS), &returnLength))
+        status = STATUS_SUCCESS;
+    else
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    return status;
+}
+
+NTSTATUS PhQueryServiceVariableSize(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG InfoLevel,
+    _Out_ PVOID* ServiceConfig
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = PhQueryServiceConfig2(
+        ServiceHandle,
+        InfoLevel,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = PhQueryServiceConfig2(
+            ServiceHandle,
+            InfoLevel,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            PhFree(buffer);
+            return status;
+        }
+    }
+
+    *ServiceConfig = buffer;
 
     return status;
 }
@@ -367,65 +742,47 @@ NTSTATUS PhStopService(
     return status;
 }
 
-PVOID PhGetServiceConfig(
-    _In_ SC_HANDLE ServiceHandle
-    )
-{
-    PVOID buffer;
-    ULONG bufferSize = 0x200;
-
-    buffer = PhAllocate(bufferSize);
-
-    if (!QueryServiceConfig(ServiceHandle, buffer, bufferSize, &bufferSize))
-    {
-        PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
-
-        if (!QueryServiceConfig(ServiceHandle, buffer, bufferSize, &bufferSize))
-        {
-            PhFree(buffer);
-            return NULL;
-        }
-    }
-
-    return buffer;
-}
-
-PVOID PhQueryServiceVariableSize(
+NTSTATUS PhGetServiceConfig(
     _In_ SC_HANDLE ServiceHandle,
-    _In_ ULONG InfoLevel
+    _Out_ LPQUERY_SERVICE_CONFIG* ServiceConfig
     )
 {
+    NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize = 0x100;
+    ULONG bufferSize;
 
+    bufferSize = 0x200;
     buffer = PhAllocate(bufferSize);
 
-    if (!QueryServiceConfig2(
+    status = PhQueryServiceConfig(
         ServiceHandle,
-        InfoLevel,
-        (BYTE *)buffer,
+        buffer,
         bufferSize,
         &bufferSize
-        ))
+        );
+
+    if (!NT_SUCCESS(status))
     {
         PhFree(buffer);
         buffer = PhAllocate(bufferSize);
 
-        if (!QueryServiceConfig2(
+        status = PhQueryServiceConfig(
             ServiceHandle,
-            InfoLevel,
-            (BYTE *)buffer,
+            buffer,
             bufferSize,
             &bufferSize
-            ))
+            );
+
+        if (!NT_SUCCESS(status))
         {
             PhFree(buffer);
-            return NULL;
+            return status;
         }
     }
 
-    return buffer;
+    *ServiceConfig = buffer;
+
+    return status;
 }
 
 PPH_STRING PhGetServiceDescription(
@@ -435,9 +792,7 @@ PPH_STRING PhGetServiceDescription(
     PPH_STRING description = NULL;
     LPSERVICE_DESCRIPTION serviceDescription;
 
-    serviceDescription = PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_DESCRIPTION);
-
-    if (serviceDescription)
+    if (NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_DESCRIPTION, &serviceDescription)))
     {
         if (serviceDescription->lpDescription)
             description = PhCreateString(serviceDescription->lpDescription);
@@ -459,15 +814,14 @@ BOOLEAN PhGetServiceDelayedAutoStart(
     )
 {
     SERVICE_DELAYED_AUTO_START_INFO delayedAutoStartInfo;
-    ULONG returnLength;
 
-    if (QueryServiceConfig2(
+    if (NT_SUCCESS(PhQueryServiceConfig2(
         ServiceHandle,
         SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
-        (BYTE *)&delayedAutoStartInfo,
+        &delayedAutoStartInfo,
         sizeof(SERVICE_DELAYED_AUTO_START_INFO),
-        &returnLength
-        ))
+        NULL
+        )))
     {
         *DelayedAutoStart = !!delayedAutoStartInfo.fDelayedAutostart;
         return TRUE;
@@ -487,11 +841,51 @@ BOOLEAN PhSetServiceDelayedAutoStart(
 
     delayedAutoStartInfo.fDelayedAutostart = DelayedAutoStart;
 
-    return !!ChangeServiceConfig2(
+    return NT_SUCCESS(PhChangeServiceConfig2(
         ServiceHandle,
         SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
         &delayedAutoStartInfo
-        );
+        ));
+}
+
+BOOLEAN PhGetServiceTriggerInfo(
+    _In_ SC_HANDLE ServiceHandle,
+    _Out_opt_ PSERVICE_TRIGGER_INFO* ServiceTriggerInfo
+    )
+{
+    PVOID buffer;
+    ULONG bufferSize;
+    SERVICE_TRIGGER_INFO triggerInfo;
+
+    if (PhQueryServiceConfig2(
+        ServiceHandle,
+        SERVICE_CONFIG_TRIGGER_INFO,
+        &triggerInfo,
+        sizeof(SERVICE_TRIGGER_INFO),
+        &bufferSize
+        ) == STATUS_BUFFER_TOO_SMALL)
+    {
+        if (!ServiceTriggerInfo)
+            return TRUE;
+
+        buffer = PhAllocate(bufferSize);
+
+        if (NT_SUCCESS(PhQueryServiceConfig2(
+            ServiceHandle,
+            SERVICE_CONFIG_TRIGGER_INFO,
+            buffer,
+            bufferSize,
+            &bufferSize
+            )))
+        {
+            *ServiceTriggerInfo = buffer;
+            return TRUE;
+        }
+
+        PhFree(buffer);
+    }
+
+    return FALSE;
 }
 
 PPH_STRINGREF PhGetServiceStateString(
@@ -742,6 +1136,54 @@ PPH_STRING PhGetServiceKeyName(
     return PhConcatStringRef2(&servicesKeyName, ServiceName);
 }
 
+PPH_STRING PhGetServiceParametersKeyName(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"\\Parameters");
+
+    return PhConcatStringRef3(&servicesKeyName, ServiceName, &parametersKeyName);
+}
+
+PPH_STRING PhGetServiceConfigFileName(
+    _In_ ULONG ServiceType,
+    _In_ PWSTR ServicePathName,
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    PPH_STRING fileName = NULL;
+
+    PhGetServiceDllParameter(ServiceType, ServiceName, &fileName);
+
+    if (PhIsNullOrEmptyString(fileName))
+    {
+        if (ServicePathName[0])
+        {
+            PPH_STRING commandLine = PhCreateString(ServicePathName);
+
+            if (FlagOn(ServiceType, SERVICE_WIN32))
+            {
+                PH_STRINGREF dummyFileName;
+                PH_STRINGREF dummyArguments;
+
+                PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
+
+                if (!fileName)
+                    PhSwapReference(&fileName, commandLine);
+            }
+            else
+            {
+                PhMoveReference(&fileName, PhGetFileName(commandLine));
+            }
+
+            PhDereferenceObject(commandLine);
+        }
+    }
+
+    return fileName;
+}
+
 PPH_STRING PhGetServiceHandleFileName(
     _In_ SC_HANDLE ServiceHandle,
     _In_ PPH_STRINGREF ServiceName
@@ -750,36 +1192,13 @@ PPH_STRING PhGetServiceHandleFileName(
     PPH_STRING fileName = NULL;
     LPQUERY_SERVICE_CONFIG config;
 
-    if (config = PhGetServiceConfig(ServiceHandle))
+    if (NT_SUCCESS(PhGetServiceConfig(ServiceHandle, &config)))
     {
-        PhGetServiceDllParameter(config->dwServiceType, ServiceName, &fileName);
-
-        if (!fileName)
-        {
-            PPH_STRING commandLine;
-
-            if (config->lpBinaryPathName[0])
-            {
-                commandLine = PhCreateString(config->lpBinaryPathName);
-
-                if (config->dwServiceType & SERVICE_WIN32)
-                {
-                    PH_STRINGREF dummyFileName;
-                    PH_STRINGREF dummyArguments;
-
-                    PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
-
-                    if (!fileName)
-                        PhSwapReference(&fileName, commandLine);
-                }
-                else
-                {
-                    fileName = PhGetFileName(commandLine);
-                }
-
-                PhDereferenceObject(commandLine);
-            }
-        }
+        fileName = PhGetServiceConfigFileName(
+            config->dwServiceType,
+            config->lpBinaryPathName,
+            ServiceName
+            );
 
         PhFree(config);
     }
@@ -794,16 +1213,11 @@ PPH_STRING PhGetServiceFileName(
     PPH_STRING serviceDllString = NULL;
     NTSTATUS status;
     HANDLE keyHandle;
-    PPH_STRING keyName;
 
-    keyName = PhGetServiceKeyName(ServiceName);
-
-    status = PhOpenKey(
+    status = PhOpenServiceKey(
         &keyHandle,
         KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName->sr,
-        0
+        ServiceName
         );
 
     if (NT_SUCCESS(status))
@@ -825,12 +1239,12 @@ PPH_STRING PhGetServiceFileName(
         NtClose(keyHandle);
     }
 
-    PhDereferenceObject(keyName);
-
     if (NT_SUCCESS(status))
     {
         return serviceDllString;
     }
+
+    PhClearReference(&serviceDllString);
 
     return NULL;
 }
@@ -885,13 +1299,11 @@ NTSTATUS PhGetServiceDllParameter(
     _Out_ PPH_STRING *ServiceDll
     )
 {
-    static PH_STRINGREF parameters = PH_STRINGREF_INIT(L"\\Parameters");
     NTSTATUS status;
     PPH_STRING serviceDllString;
-    PPH_STRING serviceKeyName;
     PPH_STRING keyName;
 
-    if (ServiceType & SERVICE_USERSERVICE_INSTANCE)
+    if (FlagOn(ServiceType, SERVICE_USERSERVICE_INSTANCE))
     {
         PH_STRINGREF hostServiceName;
         PH_STRINGREF userSessionLuid;
@@ -903,19 +1315,16 @@ NTSTATUS PhGetServiceDllParameter(
 
         if (PhSplitStringRefAtLastChar(ServiceName, L'_', &hostServiceName, &userSessionLuid))
         {
-            serviceKeyName = PhGetServiceKeyName(&hostServiceName);
-            keyName = PhConcatStringRef2(&serviceKeyName->sr, &parameters);
+            keyName = PhGetServiceParametersKeyName(&hostServiceName);
         }
         else
         {
-            serviceKeyName = PhGetServiceKeyName(ServiceName);
-            keyName = PhConcatStringRef2(&serviceKeyName->sr, &parameters);
+            keyName = PhGetServiceParametersKeyName(ServiceName);
         }
     }
     else
     {
-        serviceKeyName = PhGetServiceKeyName(ServiceName);
-        keyName = PhConcatStringRef2(&serviceKeyName->sr, &parameters);
+        keyName = PhGetServiceParametersKeyName(ServiceName);
     }
 
     status = PhpGetServiceDllName(
@@ -924,7 +1333,6 @@ NTSTATUS PhGetServiceDllParameter(
         );
 
     PhDereferenceObject(keyName);
-    PhDereferenceObject(serviceKeyName);
 
     if (NT_SUCCESS(status))
     {
@@ -962,26 +1370,63 @@ PPH_STRING PhGetServiceAppUserModelId(
     )
 {
     PPH_STRING serviceAppUserModelId = NULL;
-    PPH_STRING serviceKeyName;
     HANDLE keyHandle;
 
-    serviceKeyName = PhGetServiceKeyName(ServiceName);
-
-    if (NT_SUCCESS(PhOpenKey(
+    if (NT_SUCCESS(PhOpenServiceKey(
         &keyHandle,
         KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &serviceKeyName->sr,
-        0
+        ServiceName
         )))
     {
         serviceAppUserModelId = PhQueryRegistryStringZ(keyHandle, L"AppUserModelId");
+
         NtClose(keyHandle);
     }
 
-    PhDereferenceObject(serviceKeyName);
-
     return serviceAppUserModelId;
+}
+
+ULONG PhGetServiceBootFlags(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    ULONG serviceBootFlags = 0;
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenServiceKey(
+        &keyHandle,
+        KEY_READ,
+        ServiceName
+        )))
+    {
+        serviceBootFlags = PhQueryRegistryUlongZ(keyHandle, L"BootFlags");
+
+        NtClose(keyHandle);
+    }
+
+    if (serviceBootFlags == ULONG_MAX)
+    {
+        PPH_STRING serviceKeyName;
+
+        serviceKeyName = PhGetServiceParametersKeyName(ServiceName);
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ,
+            PH_KEY_LOCAL_MACHINE,
+            &serviceKeyName->sr,
+            0
+            )))
+        {
+            serviceBootFlags = PhQueryRegistryUlongZ(keyHandle, L"BootFlags");
+
+            NtClose(keyHandle);
+        }
+
+        PhDereferenceObject(serviceKeyName);
+    }
+
+    return serviceBootFlags;
 }
 
 PPH_STRING PhGetServicePackageFullName(
@@ -989,24 +1434,18 @@ PPH_STRING PhGetServicePackageFullName(
     )
 {
     PPH_STRING servicePackageName = NULL;
-    PPH_STRING serviceKeyName;
     HANDLE keyHandle;
 
-    serviceKeyName = PhGetServiceKeyName(ServiceName);
-
-    if (NT_SUCCESS(PhOpenKey(
+    if (NT_SUCCESS(PhOpenServiceKey(
         &keyHandle,
         KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &serviceKeyName->sr,
-        0
+        ServiceName
         )))
     {
         servicePackageName = PhQueryRegistryStringZ(keyHandle, L"PackageFullName");
+
         NtClose(keyHandle);
     }
-
-    PhDereferenceObject(serviceKeyName);
 
     return servicePackageName;
 }

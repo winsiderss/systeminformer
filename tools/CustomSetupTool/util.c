@@ -222,45 +222,27 @@ BOOLEAN SetupUninstallDriver(
     BOOLEAN success = TRUE;
     SC_HANDLE serviceHandle;
 
-    if (serviceHandle = PhOpenService(
-        PhIsNullOrEmptyString(Context->SetupServiceName) ? L"KSystemInformer" : PhGetString(Context->SetupServiceName),
-        SERVICE_QUERY_STATUS | SERVICE_STOP
-        ))
+    if (NT_SUCCESS(PhOpenService(
+        &serviceHandle,
+        SERVICE_QUERY_STATUS | SERVICE_STOP,
+        PhIsNullOrEmptyString(Context->SetupServiceName) ? L"KSystemInformer" : PhGetString(Context->SetupServiceName)
+        )))
     {
-        ULONG statusLength = 0;
-        SERVICE_STATUS_PROCESS status;
+        SERVICE_STATUS_PROCESS serviceStatus;
 
-        memset(&status, 0, sizeof(SERVICE_STATUS_PROCESS));
-
-        if (QueryServiceStatusEx(
-            serviceHandle,
-            SC_STATUS_PROCESS_INFO,
-            (PBYTE)&status,
-            sizeof(SERVICE_STATUS_PROCESS),
-            &statusLength
-            ))
+        if (NT_SUCCESS(PhQueryServiceStatus(serviceHandle, &serviceStatus)))
         {
-            if (status.dwCurrentState != SERVICE_STOPPED)
+            if (serviceStatus.dwCurrentState != SERVICE_STOPPED)
             {
                 ULONG attempts = 60;
 
                 do
                 {
-                    SERVICE_STATUS serviceStatus;
+                    PhStopService(serviceHandle);
 
-                    memset(&serviceStatus, 0, sizeof(SERVICE_STATUS));
-
-                    ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
-
-                    if (QueryServiceStatusEx(
-                        serviceHandle,
-                        SC_STATUS_PROCESS_INFO,
-                        (PBYTE)&status,
-                        sizeof(SERVICE_STATUS_PROCESS),
-                        &statusLength
-                        ))
+                    if (NT_SUCCESS(PhQueryServiceStatus(serviceHandle, &serviceStatus)))
                     {
-                        if (status.dwCurrentState == SERVICE_STOPPED)
+                        if (serviceStatus.dwCurrentState == SERVICE_STOPPED)
                         {
                             break;
                         }
@@ -272,21 +254,24 @@ BOOLEAN SetupUninstallDriver(
             }
         }
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
-    if (serviceHandle = PhOpenService(
-        PhIsNullOrEmptyString(Context->SetupServiceName) ? L"KSystemInformer" : PhGetString(Context->SetupServiceName),
-        DELETE
-        ))
+    if (NT_SUCCESS(PhOpenService(
+        &serviceHandle,
+        DELETE,
+        PhIsNullOrEmptyString(Context->SetupServiceName) ? L"KSystemInformer" : PhGetString(Context->SetupServiceName)
+        )))
     {
-        if (!DeleteService(serviceHandle))
+        NTSTATUS status;
+
+        if (!NT_SUCCESS(status = PhDeleteService(serviceHandle)))
         {
             success = FALSE;
-            Context->ErrorCode = GetLastError();
+            Context->ErrorCode = PhNtStatusToDosError(status);
         }
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     return success;

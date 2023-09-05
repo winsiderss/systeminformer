@@ -513,7 +513,17 @@ PhSetApplicationWindowIconEx(
 PHAPPAPI
 VOID
 NTAPI
-PhDeleteApplicationWindowIcon(
+PhSetWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_opt_ HICON SmallIcon,
+    _In_opt_ HICON LargeIcon,
+    _In_ BOOLEAN CleanupIcon
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDestroyWindowIcon(
     _In_ HWND WindowHandle
     );
 
