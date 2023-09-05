@@ -18,19 +18,8 @@
 #include <extmgri.h>
 #include <procprv.h>
 #include <phsettings.h>
+#include <apiimport.h>
 #include <mapldr.h>
-
-typedef ULONG (WINAPI *_SubscribeServiceChangeNotifications)(
-    _In_ SC_HANDLE hService,
-    _In_ SC_EVENT_TYPE eEventType,
-    _In_ PSC_NOTIFICATION_CALLBACK pCallback,
-    _In_opt_ PVOID pCallbackContext,
-    _Out_ PSC_NOTIFICATION_REGISTRATION* pSubscription
-    );
-
-typedef VOID (WINAPI *_UnsubscribeServiceChangeNotifications)(
-    _In_ PSC_NOTIFICATION_REGISTRATION pSubscription
-    );
 
 typedef struct _PHP_SERVICE_NAME_ENTRY
 {
@@ -58,22 +47,20 @@ typedef struct _PHP_SERVICE_NOTIFY_CONTEXT
         struct
         {
             BOOLEAN IsServiceManager : 1;
-            BOOLEAN JustAddedNotifyRegistration : 1;
             BOOLEAN NonPollDisabled : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN Spare : 6;
         };
     };
     PHP_SERVICE_NOTIFY_STATE State;
     SERVICE_NOTIFY Buffer;
-    PSC_NOTIFICATION_REGISTRATION NotifyRegistration;
 } PHP_SERVICE_NOTIFY_CONTEXT, *PPHP_SERVICE_NOTIFY_CONTEXT;
 
 typedef struct _PH_SERVICE_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
     ULONG Stage;
-    SC_HANDLE ServiceManagerHandle;
     PPH_SERVICE_ITEM ServiceItem;
+    PPH_STRING FileName;
 } PH_SERVICE_QUERY_DATA, *PPH_SERVICE_QUERY_DATA;
 
 typedef struct _PH_SERVICE_QUERY_S1_DATA
@@ -105,27 +92,30 @@ ULONG NTAPI PhpServiceHashtableHashFunction(
     _In_ PVOID Entry
     );
 
-VOID PhpAddProcessItemService(
+VOID PhAddProcessItemService(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
-VOID PhpRemoveProcessItemService(
+VOID PhRemoveProcessItemService(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
-VOID PhpSubscribeServiceChangeNotifications(
-    _In_ SC_HANDLE ScManagerHandle,
+VOID PhSubscribeServiceChangeNotifications(
     _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
-VOID PhpInitializeServiceNonPoll(
+VOID PhInitializeServiceNonPoll(
     VOID
     );
 
-VOID PhpWorkaroundWindows10ServiceTypeBug(
-    _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServiceEntry
+VOID PhCreateServiceNotifyCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ SC_HANDLE ServiceHandle
+    );
+VOID PhDestroyServiceNotifyCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
 PPH_OBJECT_TYPE PhServiceItemType = NULL;
@@ -133,13 +123,15 @@ PPH_HASHTABLE PhServiceHashtable = NULL;
 PH_QUEUED_LOCK PhServiceHashtableLock = PH_QUEUED_LOCK_INIT;
 
 BOOLEAN PhEnableServiceNonPoll = FALSE;
-static BOOLEAN PhpNonPollInitialized = FALSE;
-static BOOLEAN PhpNonPollActive = FALSE;
-static volatile LONG PhpNonPollGate = 0;
-static HANDLE PhpNonPollEventHandle = NULL;
+BOOLEAN PhEnableServiceNonPollNotify = FALSE;
+ULONG PhServiceNonPollFlushInterval = 10;
+static BOOLEAN PhNonPollActive = FALSE;
+static volatile LONG PhNonPollGate = 0;
+static HANDLE PhNonPollEventHandle = NULL;
 static LIST_ENTRY PhpNonPollServiceListHead = { &PhpNonPollServiceListHead, &PhpNonPollServiceListHead };
 static LIST_ENTRY PhpNonPollServicePendingListHead = { &PhpNonPollServicePendingListHead, &PhpNonPollServicePendingListHead };
 static SLIST_HEADER PhpServiceQueryDataListHead;
+static _NotifyServiceStatusChangeW NotifyServiceStatusChange_I = NULL;
 static _SubscribeServiceChangeNotifications SubscribeServiceChangeNotifications_I = NULL;
 static _UnsubscribeServiceChangeNotifications UnsubscribeServiceChangeNotifications_I = NULL;
 
@@ -157,15 +149,9 @@ BOOLEAN PhServiceProviderInitialization(
 
     RtlInitializeSListHead(&PhpServiceQueryDataListHead);
 
-    if (WindowsVersion >= WINDOWS_8)
+    if (PhEnableServiceNonPoll)
     {
-        PVOID sechostHandle;
-
-        if (sechostHandle = PhLoadLibrary(L"sechost.dll"))
-        {
-            SubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "SubscribeServiceChangeNotifications", 0);
-            UnsubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "UnsubscribeServiceChangeNotifications", 0);
-        }
+        PhInitializeServiceNonPoll();
     }
 
     return TRUE;
@@ -193,6 +179,11 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
         serviceItem->Flags = Information->ServiceStatusProcess.dwServiceFlags;
         serviceItem->ProcessId = UlongToHandle(Information->ServiceStatusProcess.dwProcessId);
+
+        if (PH_IS_REAL_PROCESS_ID(serviceItem->ProcessId))
+        {
+            PhPrintUInt32(serviceItem->ProcessIdString, HandleToUlong(serviceItem->ProcessId));
+        }
     }
 
     PhEmCallObjectOperation(EmServiceItemType, serviceItem, EmObjectCreate);
@@ -285,7 +276,9 @@ VOID PhpResetServiceNonPollGate(
     )
 {
     if (PhEnableServiceNonPoll)
-        InterlockedExchange(&PhpNonPollGate, 1);
+    {
+        InterlockedExchange(&PhNonPollGate, TRUE);
+    }
 }
 
 VOID PhMarkNeedsConfigUpdateServiceItem(
@@ -302,6 +295,9 @@ VOID PhpRemoveServiceItem(
     )
 {
     PhRemoveEntryHashtable(PhServiceHashtable, &ServiceItem);
+
+    PhDestroyServiceNotifyCallback(ServiceItem);
+
     PhDereferenceObject(ServiceItem);
 }
 
@@ -314,7 +310,7 @@ PH_SERVICE_CHANGE PhGetServiceChange(
         Data->OldService.State == SERVICE_STOPPED ||
         Data->OldService.State == SERVICE_START_PENDING
         ) &&
-        Data->Service->State == SERVICE_RUNNING
+        Data->ServiceItem->State == SERVICE_RUNNING
         )
     {
         return ServiceStarted;
@@ -325,7 +321,7 @@ PH_SERVICE_CHANGE PhGetServiceChange(
         Data->OldService.State == SERVICE_PAUSED ||
         Data->OldService.State == SERVICE_CONTINUE_PENDING
         ) &&
-        Data->Service->State == SERVICE_RUNNING
+        Data->ServiceItem->State == SERVICE_RUNNING
         )
     {
         return ServiceContinued;
@@ -336,7 +332,7 @@ PH_SERVICE_CHANGE PhGetServiceChange(
         Data->OldService.State == SERVICE_RUNNING ||
         Data->OldService.State == SERVICE_PAUSE_PENDING
         ) &&
-        Data->Service->State == SERVICE_PAUSED
+        Data->ServiceItem->State == SERVICE_PAUSED
         )
     {
         return ServicePaused;
@@ -347,7 +343,7 @@ PH_SERVICE_CHANGE PhGetServiceChange(
         Data->OldService.State == SERVICE_RUNNING ||
         Data->OldService.State == SERVICE_STOP_PENDING
         ) &&
-        Data->Service->State == SERVICE_STOPPED
+        Data->ServiceItem->State == SERVICE_STOPPED
         )
     {
         return ServiceStopped;
@@ -383,14 +379,14 @@ VOID PhUpdateProcessItemServices(
             (*serviceItem)->ProcessId == ProcessItem->ProcessId
             )
         {
-            PhpAddProcessItemService(ProcessItem, *serviceItem);
+            PhAddProcessItemService(ProcessItem, *serviceItem);
         }
     }
 
     PhReleaseQueuedLockShared(&PhServiceHashtableLock);
 }
 
-VOID PhpAddProcessItemService(
+VOID PhAddProcessItemService(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -409,10 +405,10 @@ VOID PhpAddProcessItemService(
     PhReleaseQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
     ServiceItem->PendingProcess = FALSE;
-    ProcessItem->JustProcessed = 1;
+    InterlockedExchange(&ProcessItem->JustProcessed, TRUE);
 }
 
-VOID PhpRemoveProcessItemService(
+VOID PhRemoveProcessItemService(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -432,68 +428,10 @@ VOID PhpRemoveProcessItemService(
 
     PhReleaseQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
-    ProcessItem->JustProcessed = 1;
+    InterlockedExchange(&ProcessItem->JustProcessed, TRUE);
 }
 
-VOID PhpUpdateServiceItemConfig(
-    _In_ SC_HANDLE ScManagerHandle,
-    _In_ PPH_SERVICE_ITEM ServiceItem
-    )
-{
-    SC_HANDLE serviceHandle;
-
-    serviceHandle = OpenService(ScManagerHandle, PhGetString(ServiceItem->Name), SERVICE_QUERY_CONFIG);
-
-    if (serviceHandle)
-    {
-        LPQUERY_SERVICE_CONFIG config;
-        SERVICE_DELAYED_AUTO_START_INFO delayedAutoStartInfo;
-        ULONG returnLength;
-        PSERVICE_TRIGGER_INFO triggerInfo;
-
-        if (config = PhGetServiceConfig(serviceHandle))
-        {
-            ServiceItem->StartType = config->dwStartType;
-            ServiceItem->ErrorControl = config->dwErrorControl;
-
-            if (PhEnableServiceQueryStage2) // HACK
-            {
-                ServiceItem->FileName = PhGetServiceHandleFileName(serviceHandle, &ServiceItem->Name->sr);
-            }
-
-            PhFree(config);
-        }
-
-        if (QueryServiceConfig2(
-            serviceHandle,
-            SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
-            (BYTE *)&delayedAutoStartInfo,
-            sizeof(SERVICE_DELAYED_AUTO_START_INFO),
-            &returnLength
-            ))
-        {
-            ServiceItem->DelayedStart = delayedAutoStartInfo.fDelayedAutostart;
-        }
-        else
-        {
-            ServiceItem->DelayedStart = FALSE;
-        }
-
-        if (triggerInfo = PhQueryServiceVariableSize(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO))
-        {
-            ServiceItem->HasTriggers = triggerInfo->cTriggers != 0;
-            PhFree(triggerInfo);
-        }
-        else
-        {
-            ServiceItem->HasTriggers = FALSE;
-        }
-
-        CloseServiceHandle(serviceHandle);
-    }
-}
-
-static BOOLEAN PhpCompareServiceNameEntry(
+static BOOLEAN PhCompareServiceNameEntry(
     _In_ PPHP_SERVICE_NAME_ENTRY Value1,
     _In_ PPHP_SERVICE_NAME_ENTRY Value2
     )
@@ -501,52 +439,49 @@ static BOOLEAN PhpCompareServiceNameEntry(
     return PhEqualStringRef(&Value1->Name, &Value2->Name, TRUE);
 }
 
-static ULONG PhpHashServiceNameEntry(
+static ULONG PhHashServiceNameEntry(
     _In_ PPHP_SERVICE_NAME_ENTRY Value
     )
 {
     return PhHashStringRefEx(&Value->Name, TRUE, PH_STRING_HASH_X65599);
 }
 
-VOID PhpServiceQueryStage1(
+VOID PhServiceQueryStage1(
     _Inout_ PPH_SERVICE_QUERY_S1_DATA Data
     )
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
-    //SC_HANDLE serviceManagerHandle = Data->Header.ServiceManagerHandle;
+    PPH_STRING fileName = Data->Header.FileName;
 
-    if (serviceItem->FileName)
+    if (fileName)
     {
-        if (!(serviceItem->Type & SERVICE_DRIVER)) // Skip icons for driver services (dmex)
+        if (!FlagOn(serviceItem->Type, SERVICE_DRIVER)) // Skip icons for kernel drivers (dmex)
         {
-            Data->IconEntry = PhImageListExtractIcon(serviceItem->FileName, FALSE, 0, NULL, PhSystemDpi);
+            Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, 0, NULL, PhSystemDpi);
         }
 
         // Version info.
-        //PhInitializeImageVersionInfo(&Data->VersionInfo, Data->FileName->Buffer);
+        //PhInitializeImageVersionInfo(&Data->VersionInfo, fileName->Buffer);
     }
-
-    PhpResetServiceNonPollGate(); // HACK (dmex)
 }
 
-VOID PhpServiceQueryStage2(
+VOID PhServiceQueryStage2(
     _Inout_ PPH_SERVICE_QUERY_S2_DATA Data
     )
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
+    PPH_STRING fileName = Data->Header.FileName;
 
-    if (!PhIsNullOrEmptyString(serviceItem->FileName))
+    if (fileName)
     {
         Data->VerifyResult = PhVerifyFileCached(
-            serviceItem->FileName,
+            fileName,
             NULL,
             &Data->VerifySignerName,
             FALSE,
             FALSE
             );
     }
-
-    PhpResetServiceNonPollGate(); // HACK (dmex)
 }
 
 NTSTATUS PhpServiceQueryStage1Worker(
@@ -555,7 +490,7 @@ NTSTATUS PhpServiceQueryStage1Worker(
 {
     PPH_SERVICE_QUERY_S1_DATA data = Parameter;
 
-    PhpServiceQueryStage1(data);
+    PhServiceQueryStage1(data);
 
     RtlInterlockedPushEntrySList(&PhpServiceQueryDataListHead, &data->Header.ListEntry);
 
@@ -566,25 +501,19 @@ NTSTATUS PhpServiceQueryStage2Worker(
     _In_ PVOID Parameter
     )
 {
-    PPH_SERVICE_QUERY_S2_DATA data;
-    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
+    PPH_SERVICE_QUERY_S2_DATA data = Parameter;
 
-    data = PhAllocateZero(sizeof(PH_SERVICE_QUERY_S2_DATA));
-    data->Header.Stage = 2;
-    data->Header.ServiceItem = serviceItem;
-
-    PhpServiceQueryStage2(data);
+    PhServiceQueryStage2(data);
 
     RtlInterlockedPushEntrySList(&PhpServiceQueryDataListHead, &data->Header.ListEntry);
 
     return STATUS_SUCCESS;
 }
 
-VOID PhpQueueServiceQueryStage1(
+VOID PhQueueServiceQueryStage1(
     _Inout_ PPH_SERVICE_QUERY_S1_DATA Data
     )
 {
-    PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
     PhInitializeWorkQueueEnvironment(&environment);
@@ -592,28 +521,39 @@ VOID PhpQueueServiceQueryStage1(
     environment.IoPriority = IoPriorityLow;
     environment.PagePriority = MEMORY_PRIORITY_LOW;
 
-    PhReferenceObject(serviceItem);
-
     PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpServiceQueryStage1Worker, Data, NULL, &environment);
 }
 
 VOID PhQueueServiceQueryStage2(
-    _In_ PPH_SERVICE_ITEM ServiceItem
+    _Inout_ PPH_SERVICE_QUERY_S2_DATA Data
     )
 {
     PH_WORK_QUEUE_ENVIRONMENT environment;
-
-    if (!PhEnableServiceQueryStage2)
-        return;
-
-    PhReferenceObject(ServiceItem);
 
     PhInitializeWorkQueueEnvironment(&environment);
     environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
     environment.IoPriority = IoPriorityVeryLow;
     environment.PagePriority = MEMORY_PRIORITY_VERY_LOW;
 
-    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpServiceQueryStage2Worker, ServiceItem, NULL, &environment);
+    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpServiceQueryStage2Worker, Data, NULL, &environment);
+}
+
+VOID PhCreateQueueServiceQueryStage2(
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ PPH_STRING FileName
+    )
+{
+    PPH_SERVICE_QUERY_S2_DATA data;
+
+    ServiceItem->VerifyResult = 0;
+    PhClearReference(&ServiceItem->VerifySignerName);
+
+    data = PhAllocateZero(sizeof(PH_SERVICE_QUERY_S2_DATA));
+    data->Header.Stage = 2;
+    PhSetReference(&data->Header.ServiceItem, ServiceItem);
+    PhSetReference(&data->Header.FileName, FileName);
+
+    PhQueueServiceQueryStage2(data);
 }
 
 VOID PhpFillServiceItemStage1(
@@ -621,12 +561,17 @@ VOID PhpFillServiceItemStage1(
     )
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
+    PPH_STRING fileName = Data->Header.FileName;
 
     serviceItem->IconEntry = Data->IconEntry;
     //memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
 
     // Note: Queue stage 2 processing after filling stage1 process data.
-    PhQueueServiceQueryStage2(serviceItem);
+
+    if (PhEnableServiceQueryStage2)
+    {
+        PhCreateQueueServiceQueryStage2(serviceItem, fileName);
+    }
 }
 
 VOID PhpFillServiceItemStage2(
@@ -636,7 +581,7 @@ VOID PhpFillServiceItemStage2(
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
 
     serviceItem->VerifyResult = Data->VerifyResult;
-    serviceItem->VerifySignerName = Data->VerifySignerName;
+    PhMoveReference(&serviceItem->VerifySignerName, Data->VerifySignerName);
 }
 
 VOID PhFlushServiceQueryData(
@@ -646,8 +591,8 @@ VOID PhFlushServiceQueryData(
     PSLIST_ENTRY entry;
     PPH_SERVICE_QUERY_DATA data;
 
-    if (!RtlFirstEntrySList(&PhpServiceQueryDataListHead))
-        return;
+    //if (!RtlFirstEntrySList(&PhpServiceQueryDataListHead))
+    //    return;
 
     entry = RtlInterlockedFlushSList(&PhpServiceQueryDataListHead);
 
@@ -665,18 +610,92 @@ VOID PhFlushServiceQueryData(
             PhpFillServiceItemStage2((PPH_SERVICE_QUERY_S2_DATA)data);
         }
 
-        data->ServiceItem->JustProcessed = TRUE;
+        InterlockedExchange(&data->ServiceItem->JustProcessed, TRUE);
 
+        if (data->FileName) PhDereferenceObject(data->FileName);
         PhDereferenceObject(data->ServiceItem);
         PhFree(data);
     }
+}
+
+VOID PhUpdateServiceItemConfig(
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ BOOLEAN CreateServiceNotifyCallback
+    )
+{
+    NTSTATUS status;
+    SC_HANDLE serviceHandle;
+    LPQUERY_SERVICE_CONFIG config;
+    BOOLEAN delayedAutoStartInfo;
+
+    status = PhOpenService(
+        &serviceHandle,
+        SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG,
+        PhGetString(ServiceItem->Name)
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenService(
+            &serviceHandle,
+            SERVICE_QUERY_CONFIG,
+            PhGetString(ServiceItem->Name)
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return;
+
+    if (NT_SUCCESS(PhGetServiceConfig(serviceHandle, &config)))
+    {
+        ServiceItem->StartType = config->dwStartType;
+        ServiceItem->ErrorControl = config->dwErrorControl;
+
+        {
+            PPH_STRING fileName;
+
+            fileName = PhGetServiceConfigFileName(
+                config->dwServiceType,
+                config->lpBinaryPathName,
+                &ServiceItem->Name->sr
+                );
+
+            if (fileName && ServiceItem->FileName && !PhEqualStringRef(&fileName->sr, &ServiceItem->FileName->sr, TRUE))
+            {
+                if (PhEnableServiceQueryStage2)
+                {
+                    PhCreateQueueServiceQueryStage2(ServiceItem, fileName);
+                }
+            }
+
+            PhMoveReference(&ServiceItem->FileName, fileName);
+        }
+
+        PhFree(config);
+    }
+
+    if (PhGetServiceDelayedAutoStart(serviceHandle, &delayedAutoStartInfo))
+        ServiceItem->DelayedStart = delayedAutoStartInfo;
+    else
+        ServiceItem->DelayedStart = FALSE;
+
+    if (PhGetServiceTriggerInfo(serviceHandle, NULL))
+        ServiceItem->HasTriggers = TRUE;
+    else
+        ServiceItem->HasTriggers = FALSE;
+
+    if (CreateServiceNotifyCallback)
+    {
+        PhCreateServiceNotifyCallback(ServiceItem, serviceHandle);
+    }
+
+    PhCloseServiceHandle(serviceHandle);
 }
 
 VOID PhServiceProviderUpdate(
     _In_ PVOID Object
     )
 {
-    static SC_HANDLE scManagerHandle = NULL;
     static ULONG runCount = 0;
     static PPH_HASH_ENTRY nameHashSet[256];
     static PPHP_SERVICE_NAME_ENTRY nameEntries = NULL;
@@ -690,33 +709,27 @@ VOID PhServiceProviderUpdate(
     // We always execute the first run, and we only initialize non-polling after the first run.
     if (PhEnableServiceNonPoll && runCount != 0)
     {
-        if (!PhpNonPollInitialized)
+        if (PhNonPollActive)
         {
-            PhpInitializeServiceNonPoll();
-            PhpNonPollInitialized = TRUE;
-        }
-
-        if (PhpNonPollActive)
-        {
-            if (InterlockedExchange(&PhpNonPollGate, 0) == 0)
+            if (InterlockedExchange(&PhNonPollGate, 0) == 0)
             {
+                // The SCM doesn't generate notifications for drivers. So flush service
+                // information once in a while so we can detect driver events. (dmex)
+                if (runCount % PhServiceNonPollFlushInterval == 0)
+                    goto UpdateStart;
+
+                // Go through the queued services query data.
+                PhFlushServiceQueryData();
+
                 // Non-poll gate is closed; skip all processing.
                 goto UpdateEnd;
             }
         }
     }
 
-    if (!scManagerHandle)
-    {
-        scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
+UpdateStart:
 
-        if (!scManagerHandle)
-            return;
-    }
-
-    services = PhEnumServices(scManagerHandle, 0, 0, &numberOfServices);
-
-    if (!services)
+    if (!NT_SUCCESS(PhEnumServices(&services, &numberOfServices)))
         return;
 
     // Build a hash set containing the service names.
@@ -746,13 +759,15 @@ VOID PhServiceProviderUpdate(
         entry->ServiceEntry = &services[i];
 
         if (WindowsVersion >= WINDOWS_10_RS2)
-            PhpWorkaroundWindows10ServiceTypeBug(entry->ServiceEntry);
+        {
+            PhServiceWorkaroundWindowsServiceTypeBug(entry->ServiceEntry);
+        }
 
         PhAddEntryHashSet(
             nameHashSet,
             PH_HASH_SET_SIZE(nameHashSet),
             &entry->HashEntry,
-            PhpHashServiceNameEntry(entry)
+            PhHashServiceNameEntry(entry)
             );
     }
 
@@ -778,7 +793,7 @@ VOID PhServiceProviderUpdate(
             hashEntry = PhFindEntryHashSet(
                 nameHashSet,
                 PH_HASH_SET_SIZE(nameHashSet),
-                PhpHashServiceNameEntry(&lookupNameEntry)
+                PhHashServiceNameEntry(&lookupNameEntry)
                 );
 
             for (; hashEntry; hashEntry = hashEntry->Next)
@@ -787,7 +802,7 @@ VOID PhServiceProviderUpdate(
 
                 nameEntry = CONTAINING_RECORD(hashEntry, PHP_SERVICE_NAME_ENTRY, HashEntry);
 
-                if (PhpCompareServiceNameEntry(&lookupNameEntry, nameEntry))
+                if (PhCompareServiceNameEntry(&lookupNameEntry, nameEntry))
                 {
                     found = TRUE;
                     break;
@@ -805,7 +820,7 @@ VOID PhServiceProviderUpdate(
 
                     if (processItem)
                     {
-                        PhpRemoveProcessItemService(processItem, *serviceItem);
+                        PhRemoveProcessItemService(processItem, *serviceItem);
                         PhDereferenceObject(processItem);
                     }
                 }
@@ -852,27 +867,16 @@ VOID PhServiceProviderUpdate(
                 // Create the service item and fill in basic information.
 
                 serviceItem = PhCreateServiceItem(serviceEntry);
-                PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
-
-                if (!PhEnableServiceNonPoll)
-                {
-                    PhpSubscribeServiceChangeNotifications(scManagerHandle, serviceItem);
-                }
+                PhUpdateServiceItemConfig(serviceItem, TRUE);
 
                 // Add the service to its process, if appropriate.
-                if (
-                    (
-                    serviceItem->State == SERVICE_RUNNING ||
-                    serviceItem->State == SERVICE_PAUSED
-                    ) &&
-                    serviceItem->ProcessId
-                    )
+                if (serviceItem->ProcessId)
                 {
                     PPH_PROCESS_ITEM processItem;
 
                     if (processItem = PhReferenceProcessItem(serviceItem->ProcessId))
                     {
-                        PhpAddProcessItemService(processItem, serviceItem);
+                        PhAddProcessItemService(processItem, serviceItem);
                         PhDereferenceObject(processItem);
                     }
                     else
@@ -893,9 +897,10 @@ VOID PhServiceProviderUpdate(
 
                     memset(&data, 0, sizeof(PH_SERVICE_QUERY_S1_DATA));
                     data.Header.Stage = 1;
-                    data.Header.ServiceManagerHandle = scManagerHandle;
                     data.Header.ServiceItem = serviceItem;
-                    PhpServiceQueryStage1(&data);
+                    data.Header.FileName = serviceItem->FileName;
+
+                    PhServiceQueryStage1(&data);
                     PhpFillServiceItemStage1(&data);
                 }
                 else
@@ -904,10 +909,10 @@ VOID PhServiceProviderUpdate(
 
                     data = PhAllocateZero(sizeof(PH_SERVICE_QUERY_S1_DATA));
                     data->Header.Stage = 1;
-                    data->Header.ServiceManagerHandle = scManagerHandle;
-                    data->Header.ServiceItem = serviceItem;
+                    PhSetReference(&data->Header.ServiceItem, serviceItem);
+                    PhSetReference(&data->Header.FileName, serviceItem->FileName);
 
-                    PhpQueueServiceQueryStage1(data);
+                    PhQueueServiceQueryStage1(data);
                 }
 
                 // Add the service item to the hashtable.
@@ -934,7 +939,7 @@ VOID PhServiceProviderUpdate(
 
                     // The service has been "modified".
 
-                    serviceModifiedData.Service = serviceItem;
+                    serviceModifiedData.ServiceItem = serviceItem;
                     memset(&serviceModifiedData.OldService, 0, sizeof(PH_SERVICE_ITEM));
                     serviceModifiedData.OldService.Type = serviceItem->Type;
                     serviceModifiedData.OldService.State = serviceItem->State;
@@ -947,7 +952,7 @@ VOID PhServiceProviderUpdate(
                     serviceItem->ControlsAccepted = serviceEntry->ServiceStatusProcess.dwControlsAccepted;
                     serviceItem->ProcessId = UlongToHandle(serviceEntry->ServiceStatusProcess.dwProcessId);
 
-                    if (serviceItem->ProcessId)
+                    if (PH_IS_REAL_PROCESS_ID(serviceItem->ProcessId))
                         PhPrintUInt32(serviceItem->ProcessIdString, HandleToUlong(serviceItem->ProcessId));
                     else
                         serviceItem->ProcessIdString[0] = UNICODE_NULL;
@@ -971,9 +976,9 @@ VOID PhServiceProviderUpdate(
                         if (processItem)
                         {
                             if (serviceChange == ServiceStarted)
-                                PhpAddProcessItemService(processItem, serviceItem);
+                                PhAddProcessItemService(processItem, serviceItem);
                             else
-                                PhpRemoveProcessItemService(processItem, serviceItem);
+                                PhRemoveProcessItemService(processItem, serviceItem);
 
                             PhDereferenceObject(processItem);
                         }
@@ -998,13 +1003,13 @@ VOID PhServiceProviderUpdate(
 
                         if (processItem = PhReferenceProcessItem(serviceModifiedData.OldService.ProcessId))
                         {
-                            PhpRemoveProcessItemService(processItem, serviceItem);
+                            PhRemoveProcessItemService(processItem, serviceItem);
                             PhDereferenceObject(processItem);
                         }
 
                         if (processItem = PhReferenceProcessItem(serviceItem->ProcessId))
                         {
-                            PhpAddProcessItemService(processItem, serviceItem);
+                            PhAddProcessItemService(processItem, serviceItem);
                             PhDereferenceObject(processItem);
                         }
                         else
@@ -1016,12 +1021,11 @@ VOID PhServiceProviderUpdate(
                     // Do a config update if necessary.
                     if (serviceItem->NeedsConfigUpdate)
                     {
-                        PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
+                        PhUpdateServiceItemConfig(serviceItem, FALSE);
                         serviceItem->NeedsConfigUpdate = FALSE;
                     }
 
-                    if (serviceItem->JustProcessed) // HACK (dmex)
-                        serviceItem->JustProcessed = FALSE;
+                    InterlockedExchange(&serviceItem->JustProcessed, FALSE);
 
                     // Raise the service modified event.
                     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent), &serviceModifiedData);
@@ -1036,18 +1040,16 @@ UpdateEnd:
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), NULL);
     runCount++;
 }
-
-VOID CALLBACK PhpServiceNonPollScNotifyCallback(
+VOID CALLBACK PhServiceNotifyNonPollCallback(
     _In_ PVOID pParameter
     )
 {
-    PSERVICE_NOTIFY notifyBuffer = pParameter;
+    PSERVICE_NOTIFYW notifyBuffer = pParameter;
     PPHP_SERVICE_NOTIFY_CONTEXT notifyContext = notifyBuffer->pContext;
 
     if (notifyBuffer->dwNotificationStatus == ERROR_SUCCESS)
     {
-        if ((notifyBuffer->dwNotificationTriggered & (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED)) &&
-            notifyBuffer->pszServiceNames)
+        if (FlagOn(notifyBuffer->dwNotificationTriggered, SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED) && notifyBuffer->pszServiceNames)
         {
             PWSTR name;
             SIZE_T nameLength;
@@ -1061,7 +1063,7 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
                 if (nameLength == 0)
                     break;
 
-                if (name[0] == OBJ_NAME_ALTPATH_SEPARATOR)
+                if (name[0] == L'/')
                 {
                     PPHP_SERVICE_NOTIFY_CONTEXT newNotifyContext;
 
@@ -1098,156 +1100,57 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
         InsertTailList(&PhpNonPollServicePendingListHead, &notifyContext->ListEntry);
     }
 
-    PhpNonPollGate = 1;
-    NtSetEvent(PhpNonPollEventHandle, NULL);
+    PhpResetServiceNonPollGate();
+    NtSetEvent(PhNonPollEventHandle, NULL);
 }
 
-VOID PhpDestroyServiceNotifyContext(
+VOID PhDestroyServiceNotifyContext(
     _In_ PPHP_SERVICE_NOTIFY_CONTEXT NotifyContext
     )
 {
-    if (UnsubscribeServiceChangeNotifications_I && NotifyContext->NotifyRegistration)
-        UnsubscribeServiceChangeNotifications_I(NotifyContext->NotifyRegistration);
-
     if (NotifyContext->Buffer.pszServiceNames)
         LocalFree(NotifyContext->Buffer.pszServiceNames);
 
-    if (NotifyContext->ServiceHandle)
-        CloseServiceHandle(NotifyContext->ServiceHandle);
-
+    PhCloseServiceHandle(NotifyContext->ServiceHandle);
     PhClearReference(&NotifyContext->ServiceName);
     PhFree(NotifyContext);
 }
 
-VOID CALLBACK PhpServicePropertyChangeNotifyCallback(
-    _In_ ULONG ServiceNotifyFlags,
-    _In_opt_ PVOID Context
-    )
-{
-    PPHP_SERVICE_NOTIFY_CONTEXT notifyContext = Context;
-    PPH_SERVICE_ITEM serviceItem;
-
-    // Note: Ignore deleted nofications since NonPoll handles these elsewhere and our
-    // notify context gets destroyed before services.exe invokes this callback. (dmex)
-    if (ServiceNotifyFlags == SERVICE_NOTIFY_DELETED)
-    {
-        // Note: We can handle delete notifications only when NonPoll is disabled. (dmex)
-        if (notifyContext && notifyContext->NonPollDisabled)
-        {
-            PhpDestroyServiceNotifyContext(notifyContext);
-        }
-        return;
-    }
-
-    if (!notifyContext)
-        return;
-
-    if (notifyContext->JustAddedNotifyRegistration)
-    {
-        notifyContext->JustAddedNotifyRegistration = FALSE;
-        return;
-    }
-
-    if (!PhIsNullOrEmptyString(notifyContext->ServiceName))
-    {
-        if (serviceItem = PhReferenceServiceItem(notifyContext->ServiceName->Buffer))
-        {
-            PhMarkNeedsConfigUpdateServiceItem(serviceItem);
-
-            PhDereferenceObject(serviceItem);
-        }
-    }
-}
-
-VOID PhpSubscribeServiceChangeNotifications(
-    _In_ SC_HANDLE ScManagerHandle,
-    _In_ PPH_SERVICE_ITEM ServiceItem
-    )
-{
-    PSC_NOTIFICATION_REGISTRATION serviceNotifyRegistration;
-    PPHP_SERVICE_NOTIFY_CONTEXT notifyContext;
-    SC_HANDLE serviceHandle;
-
-    if (!SubscribeServiceChangeNotifications_I)
-        return;
-
-    serviceHandle = OpenService(
-        ScManagerHandle,
-        PhGetStringOrEmpty(ServiceItem->Name),
-        SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG
-        );
-
-    if (!serviceHandle)
-        return;
-
-    notifyContext = PhAllocateZero(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
-    notifyContext->ServiceName = PhReferenceObject(ServiceItem->Name);
-    notifyContext->JustAddedNotifyRegistration = TRUE;
-    notifyContext->NonPollDisabled = TRUE;
-
-    if (SubscribeServiceChangeNotifications_I(
-        serviceHandle,
-        SC_EVENT_PROPERTY_CHANGE,
-        PhpServicePropertyChangeNotifyCallback,
-        notifyContext,
-        &serviceNotifyRegistration
-        ) == ERROR_SUCCESS)
-    {
-        notifyContext->NotifyRegistration = serviceNotifyRegistration;
-    }
-    else
-    {
-        PhDereferenceObject(notifyContext->ServiceName);
-        PhFree(notifyContext);
-    }
-
-    CloseServiceHandle(serviceHandle);
-}
-
-NTSTATUS PhpServiceNonPollThreadStart(
+NTSTATUS PhServiceNonPollThreadStart(
     _In_ PVOID Parameter
     )
 {
     ULONG result;
-    SC_HANDLE scManagerHandle;
     LPENUM_SERVICE_STATUS_PROCESS services;
     ULONG numberOfServices;
     ULONG i;
     PLIST_ENTRY listEntry;
     PPHP_SERVICE_NOTIFY_CONTEXT notifyContext;
 
-    if (!NT_SUCCESS(NtCreateEvent(&PhpNonPollEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
+    if (!NT_SUCCESS(NtCreateEvent(&PhNonPollEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
     {
-        PhpNonPollActive = FALSE;
-        PhpNonPollGate = 1;
-        return STATUS_UNSUCCESSFUL;
-    }
-
-    if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE)))
-    {
-        PhpNonPollActive = FALSE;
-        PhpNonPollGate = 1;
+        PhNonPollActive = FALSE;
+        PhpResetServiceNonPollGate();
         return STATUS_UNSUCCESSFUL;
     }
 
     while (TRUE)
     {
-        if (!(services = PhEnumServices(scManagerHandle, 0, 0, &numberOfServices)))
+        InitializeListHead(&PhpNonPollServiceListHead);
+        InitializeListHead(&PhpNonPollServicePendingListHead);
+
+        if (!NT_SUCCESS(PhEnumServices(&services, &numberOfServices)))
             goto ErrorExit;
 
         for (i = 0; i < numberOfServices; i++)
         {
             SC_HANDLE serviceHandle;
 
-            if (!(serviceHandle = OpenService(scManagerHandle, services[i].lpServiceName, SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG)))
-                serviceHandle = OpenService(scManagerHandle, services[i].lpServiceName, SERVICE_QUERY_STATUS);
-
-            if (serviceHandle)
+            if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS, services[i].lpServiceName)))
             {
                 notifyContext = PhAllocateZero(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
                 notifyContext->ServiceHandle = serviceHandle;
                 notifyContext->State = SnNotify;
-                notifyContext->ServiceName = PhCreateString(services[i].lpServiceName);
                 InsertTailList(&PhpNonPollServicePendingListHead, &notifyContext->ListEntry);
             }
         }
@@ -1255,7 +1158,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
         PhFree(services);
 
         notifyContext = PhAllocateZero(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
-        notifyContext->ServiceHandle = scManagerHandle;
+        notifyContext->ServiceHandle = PhGetServiceManagerHandle();
         notifyContext->IsServiceManager = TRUE;
         notifyContext->State = SnNotify;
         InsertTailList(&PhpNonPollServicePendingListHead, &notifyContext->ListEntry);
@@ -1273,103 +1176,60 @@ NTSTATUS PhpServiceNonPollThreadStart(
 
                 switch (notifyContext->State)
                 {
+                case SnAdding:
+                    if (!NT_SUCCESS(PhOpenService(&notifyContext->ServiceHandle, SERVICE_QUERY_STATUS, PhGetString(notifyContext->ServiceName))))
+                    {
+                        RemoveEntryList(&notifyContext->ListEntry);
+                        PhDestroyServiceNotifyContext(notifyContext);
+                        continue;
+                    }
+
+                    PhClearReference(&notifyContext->ServiceName);
+                    notifyContext->State = SnNotify;
+                    goto NotifyCase;
                 case SnRemoving:
                     RemoveEntryList(&notifyContext->ListEntry);
-                    PhpDestroyServiceNotifyContext(notifyContext);
+                    PhDestroyServiceNotifyContext(notifyContext);
                     break;
-                case SnAdding:
-                    {
-                        notifyContext->ServiceHandle = OpenService(
-                            scManagerHandle,
-                            notifyContext->ServiceName->Buffer,
-                            SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG
-                            );
-
-                        if (!notifyContext->ServiceHandle)
-                        {
-                            notifyContext->ServiceHandle = OpenService(
-                                scManagerHandle,
-                                notifyContext->ServiceName->Buffer,
-                                SERVICE_QUERY_STATUS
-                                );
-                        }
-
-                        if (!notifyContext->ServiceHandle)
-                        {
-                            RemoveEntryList(&notifyContext->ListEntry);
-                            PhpDestroyServiceNotifyContext(notifyContext);
-                            continue;
-                        }
-
-                        notifyContext->State = SnNotify;
-                    }
-                    __fallthrough;
                 case SnNotify:
+NotifyCase:
+                    memset(&notifyContext->Buffer, 0, sizeof(SERVICE_NOTIFY));
+                    notifyContext->Buffer.dwVersion = SERVICE_NOTIFY_STATUS_CHANGE;
+                    notifyContext->Buffer.pfnNotifyCallback = PhServiceNotifyNonPollCallback;
+                    notifyContext->Buffer.pContext = notifyContext;
+                    result = NotifyServiceStatusChange_I(
+                        notifyContext->ServiceHandle,
+                        notifyContext->IsServiceManager
+                        ? (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED)
+                        : (SERVICE_NOTIFY_STOPPED | SERVICE_NOTIFY_START_PENDING | SERVICE_NOTIFY_STOP_PENDING |
+                        SERVICE_NOTIFY_RUNNING | SERVICE_NOTIFY_CONTINUE_PENDING | SERVICE_NOTIFY_PAUSE_PENDING |
+                        SERVICE_NOTIFY_PAUSED | SERVICE_NOTIFY_DELETE_PENDING),
+                        &notifyContext->Buffer
+                        );
+
+                    switch (result)
                     {
-                        if (notifyContext->NotifyRegistration)
-                        {
-                            if (UnsubscribeServiceChangeNotifications_I)
-                                UnsubscribeServiceChangeNotifications_I(notifyContext->NotifyRegistration);
-
-                            notifyContext->JustAddedNotifyRegistration = FALSE;
-                            notifyContext->NotifyRegistration = NULL;
-                        }
-
-                        if (SubscribeServiceChangeNotifications_I && !notifyContext->IsServiceManager)
-                        {
-                            PSC_NOTIFICATION_REGISTRATION serviceNotifyRegistration;
-
-                            if (SubscribeServiceChangeNotifications_I(
-                                notifyContext->ServiceHandle,
-                                SC_EVENT_PROPERTY_CHANGE, // TODO: SC_EVENT_STATUS_CHANGE (dmex)
-                                PhpServicePropertyChangeNotifyCallback,
-                                notifyContext,
-                                &serviceNotifyRegistration
-                                ) == ERROR_SUCCESS)
-                            {
-                                notifyContext->JustAddedNotifyRegistration = TRUE;
-                                notifyContext->NotifyRegistration = serviceNotifyRegistration;
-                            }
-                        }
-
-                        memset(&notifyContext->Buffer, 0, sizeof(SERVICE_NOTIFY));
-                        notifyContext->Buffer.dwVersion = SERVICE_NOTIFY_STATUS_CHANGE;
-                        notifyContext->Buffer.pfnNotifyCallback = PhpServiceNonPollScNotifyCallback;
-                        notifyContext->Buffer.pContext = notifyContext;
-
-                        result = NotifyServiceStatusChange(
-                            notifyContext->ServiceHandle,
-                            notifyContext->IsServiceManager
-                            ? (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED)
-                            : (SERVICE_NOTIFY_STOPPED | SERVICE_NOTIFY_START_PENDING | SERVICE_NOTIFY_STOP_PENDING |
-                            SERVICE_NOTIFY_RUNNING | SERVICE_NOTIFY_CONTINUE_PENDING | SERVICE_NOTIFY_PAUSE_PENDING |
-                            SERVICE_NOTIFY_PAUSED | SERVICE_NOTIFY_DELETE_PENDING),
-                            &notifyContext->Buffer
-                            );
-
-                        switch (result)
-                        {
-                        case ERROR_SUCCESS:
-                            notifyContext->State = SnNone;
-                            RemoveEntryList(&notifyContext->ListEntry);
-                            InsertTailList(&PhpNonPollServiceListHead, &notifyContext->ListEntry);
-                            break;
-                        case ERROR_SERVICE_NOTIFY_CLIENT_LAGGING:
-                            // We are lagging behind. Re-open the handle to the SCM as soon as possible. (wj32)
-                            lagging = TRUE;
-                            break;
-                        case ERROR_SERVICE_MARKED_FOR_DELETE:
-                        default:
-                            RemoveEntryList(&notifyContext->ListEntry);
-                            PhpDestroyServiceNotifyContext(notifyContext);
-                            break;
-                        }
+                    case ERROR_SUCCESS:
+                        notifyContext->State = SnNone;
+                        RemoveEntryList(&notifyContext->ListEntry);
+                        InsertTailList(&PhpNonPollServiceListHead, &notifyContext->ListEntry);
+                        break;
+                    case ERROR_SERVICE_NOTIFY_CLIENT_LAGGING:
+                        // We are lagging behind. Re-open the handle to the SCM as soon as possible.
+                        lagging = TRUE;
+                        break;
+                    case ERROR_SERVICE_MARKED_FOR_DELETE:
+                    default:
+                        RemoveEntryList(&notifyContext->ListEntry);
+                        PhDestroyServiceNotifyContext(notifyContext);
+                        break;
                     }
+
                     break;
                 }
             }
 
-            while (NtWaitForSingleObject(PhpNonPollEventHandle, TRUE, NULL) != STATUS_WAIT_0)
+            while (NtWaitForSingleObject(PhNonPollEventHandle, TRUE, NULL) != STATUS_WAIT_0)
                 NOTHING;
 
             if (lagging)
@@ -1385,7 +1245,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
         {
             notifyContext = CONTAINING_RECORD(listEntry, PHP_SERVICE_NOTIFY_CONTEXT, ListEntry);
             listEntry = listEntry->Flink;
-            PhpDestroyServiceNotifyContext(notifyContext);
+            PhDestroyServiceNotifyContext(notifyContext);
         }
 
         listEntry = PhpNonPollServicePendingListHead.Flink;
@@ -1394,51 +1254,191 @@ NTSTATUS PhpServiceNonPollThreadStart(
         {
             notifyContext = CONTAINING_RECORD(listEntry, PHP_SERVICE_NOTIFY_CONTEXT, ListEntry);
             listEntry = listEntry->Flink;
-            PhpDestroyServiceNotifyContext(notifyContext);
+            PhDestroyServiceNotifyContext(notifyContext);
         }
     }
 
-    NtClose(PhpNonPollEventHandle);
-
-    CloseServiceHandle(scManagerHandle);
-
+    PhNonPollActive = FALSE;
+    PhpResetServiceNonPollGate();
+    NtClose(PhNonPollEventHandle);
     return STATUS_SUCCESS;
 
 ErrorExit:
-    PhpNonPollActive = FALSE;
-    PhpNonPollGate = 1;
-    NtClose(PhpNonPollEventHandle);
+    PhNonPollActive = FALSE;
+    PhpResetServiceNonPollGate();
+    NtClose(PhNonPollEventHandle);
     return STATUS_UNSUCCESSFUL;
 }
 
-VOID PhpInitializeServiceNonPoll(
-    VOID
+VOID CALLBACK PhServiceNotifyPropertyChangeCallback(
+    _In_ ULONG ServiceNotifyFlags,
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
-    PhpNonPollActive = TRUE;
-    PhpNonPollGate = 1; // initially the gate should be open since we only just initialized everything (wj32)
-
-    if (WindowsVersion >= WINDOWS_8)
+    if (ServiceItem->NotifyCreatedPropertyRegistration)
     {
-        PVOID sechostHandle;
+        ServiceItem->NotifyCreatedPropertyRegistration = FALSE;
+        return;
+    }
 
-        if (sechostHandle = PhLoadLibrary(L"sechost.dll"))
+    PhMarkNeedsConfigUpdateServiceItem(ServiceItem);
+}
+
+VOID CALLBACK PhServiceNotifyStatusChangeCallback(
+    _In_ ULONG ServiceNotifyFlags,
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    if (ServiceItem->NotifyCreatedStatusRegistration)
+    {
+        ServiceItem->NotifyCreatedStatusRegistration = FALSE;
+        return;
+    }
+
+    PhMarkNeedsConfigUpdateServiceItem(ServiceItem);
+}
+
+VOID CALLBACK PhServiceNotifyDatabaseChangeCallback(
+    _In_ ULONG ServiceNotifyFlags,
+    _In_ PVOID Context
+    )
+{
+    static BOOLEAN NotifyCreatedDatabaseRegistration = TRUE;
+
+    if (NotifyCreatedDatabaseRegistration)
+    {
+        NotifyCreatedDatabaseRegistration = FALSE;
+        return;
+    }
+
+    PhpResetServiceNonPollGate();
+}
+
+VOID PhCreateServiceNotifyCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    PSC_NOTIFICATION_REGISTRATION servicePropertyRegistration;
+    PSC_NOTIFICATION_REGISTRATION serviceStatusRegistration;
+
+    if (!SubscribeServiceChangeNotifications_I)
+        return;
+
+    //if (FlagOn(ServiceItem->Type, SERVICE_DRIVER))
+    //    return;
+
+    if (!ServiceItem->NotifyCreatedPropertyRegistration)
+    {
+        ServiceItem->NotifyCreatedPropertyRegistration = TRUE;
+
+        PhReferenceObject(ServiceItem);
+
+        if (SubscribeServiceChangeNotifications_I(
+            ServiceHandle,
+            SC_EVENT_PROPERTY_CHANGE,
+            PhServiceNotifyPropertyChangeCallback,
+            ServiceItem,
+            &servicePropertyRegistration
+            ) == ERROR_SUCCESS)
         {
-            SubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "SubscribeServiceChangeNotifications", 0);
-            UnsubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "UnsubscribeServiceChangeNotifications", 0);
+            ServiceItem->NotifyPropertyRegistration = servicePropertyRegistration;
+        }
+        else
+        {
+            PhDereferenceObject(ServiceItem);
         }
     }
 
-    PhCreateThread2(PhpServiceNonPollThreadStart, NULL);
+    if (!ServiceItem->NotifyCreatedStatusRegistration)
+    {
+        ServiceItem->NotifyCreatedStatusRegistration = TRUE;
+
+        PhReferenceObject(ServiceItem);
+
+        if (SubscribeServiceChangeNotifications_I(
+            ServiceHandle,
+            SC_EVENT_STATUS_CHANGE,
+            PhServiceNotifyStatusChangeCallback,
+            ServiceItem,
+            &serviceStatusRegistration
+            ) == ERROR_SUCCESS)
+        {
+            ServiceItem->NotifyStatusRegistration = serviceStatusRegistration;
+        }
+        else
+        {
+            PhDereferenceObject(ServiceItem);
+        }
+    }
 }
 
-VOID PhpWorkaroundWindows10ServiceTypeBug(
-    _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServiceEntry
+VOID PhDestroyServiceNotifyCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
-    // https://github.com/winsiderss/systeminformer/issues/120 (dmex)
-    if (ServiceEntry->ServiceStatusProcess.dwServiceType == SERVICE_WIN32)
-        ServiceEntry->ServiceStatusProcess.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
-    if (ServiceEntry->ServiceStatusProcess.dwServiceType == (SERVICE_WIN32 | SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE))
-        ServiceEntry->ServiceStatusProcess.dwServiceType = SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE;
+    if (!UnsubscribeServiceChangeNotifications_I)
+        return;
+
+    if (ServiceItem->NotifyStatusRegistration)
+    {
+        UnsubscribeServiceChangeNotifications_I(ServiceItem->NotifyStatusRegistration);
+        ServiceItem->NotifyStatusRegistration = NULL;
+        PhDereferenceObject(ServiceItem);
+    }
+
+    if (ServiceItem->NotifyPropertyRegistration)
+    {
+        UnsubscribeServiceChangeNotifications_I(ServiceItem->NotifyPropertyRegistration);
+        ServiceItem->NotifyPropertyRegistration = NULL;
+        PhDereferenceObject(ServiceItem);
+    }
+}
+
+VOID PhCreateServiceDatabaseNotifyCallback(
+    VOID
+    )
+{
+    PSC_NOTIFICATION_REGISTRATION serviceNotifyRegistration;
+
+    if (!SubscribeServiceChangeNotifications_I)
+        return;
+
+    SubscribeServiceChangeNotifications_I(
+        PhGetServiceManagerHandle(),
+        SC_EVENT_DATABASE_CHANGE,
+        PhServiceNotifyDatabaseChangeCallback,
+        NULL,
+        &serviceNotifyRegistration
+        );
+}
+
+VOID PhInitializeServiceNonPoll(
+    VOID
+    )
+{
+    PVOID baseAddress;
+
+    if (baseAddress = PhLoadLibrary(L"sechost.dll"))
+    {
+        if (PhEnableServiceNonPollNotify && WindowsVersion >= WINDOWS_8)
+        {
+            SubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(baseAddress, "SubscribeServiceChangeNotifications", 0);
+            UnsubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(baseAddress, "UnsubscribeServiceChangeNotifications", 0);
+        }
+        else
+        {
+            NotifyServiceStatusChange_I = PhGetDllBaseProcedureAddress(baseAddress, "NotifyServiceStatusChangeW", 0);
+        }
+    }
+
+    PhNonPollActive = TRUE;
+    InterlockedExchange(&PhNonPollGate, 1); // initially the gate should be open since we only just initialized everything (wj32)
+
+    if (NotifyServiceStatusChange_I)
+    {
+        PhCreateThread2(PhServiceNonPollThreadStart, NULL);
+    }
+
+    PhCreateServiceDatabaseNotifyCallback();
 }

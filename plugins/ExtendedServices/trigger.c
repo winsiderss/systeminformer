@@ -49,15 +49,15 @@ typedef struct _ETW_PUBLISHER_ENTRY
 } ETW_PUBLISHER_ENTRY, *PETW_PUBLISHER_ENTRY;
 
 INT_PTR CALLBACK EspServiceTriggerDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK ValueDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -585,7 +585,7 @@ VOID EsLoadServiceTriggerInfo(
 
     EspClearTriggerInfoList(Context->InfoList);
 
-    if (triggerInfo = PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_TRIGGER_INFO))
+    if (NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo)))
     {
         for (i = 0; i < triggerInfo->cTriggers; i++)
         {
@@ -619,11 +619,11 @@ VOID EsLoadServiceTriggerInfo(
 _Success_(return)
 BOOLEAN EsSaveServiceTriggerInfo(
     _In_ PES_TRIGGER_CONTEXT Context,
-    _Out_opt_ PULONG Win32Result
+    _Out_opt_ PNTSTATUS NtResult
     )
 {
     BOOLEAN result = TRUE;
-    ULONG status = ERROR_SUCCESS;
+    NTSTATUS status;
     PH_AUTO_POOL autoPool;
     SC_HANDLE serviceHandle;
     SERVICE_TRIGGER_INFO triggerInfo;
@@ -672,7 +672,7 @@ BOOLEAN EsSaveServiceTriggerInfo(
 
                     if (data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
                     {
-                        dataItem->cbData = (ULONG)data->String->Length + 2; // include null terminator
+                        dataItem->cbData = (ULONG)data->String->Length + sizeof(UNICODE_NULL); // include null terminator
                         dataItem->pData = (PBYTE)data->String->Buffer;
                     }
                     else if (data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
@@ -695,38 +695,37 @@ BOOLEAN EsSaveServiceTriggerInfo(
         }
     }
 
-    if (serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_CHANGE_CONFIG))
+    status = PhOpenService(&serviceHandle, SERVICE_CHANGE_CONFIG, PhGetString(Context->ServiceItem->Name));
+
+    if (NT_SUCCESS(status))
     {
-        if (!ChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo))
+        status = PhChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo);
+
+        if (!NT_SUCCESS(status))
         {
             result = FALSE;
-            status = GetLastError();
         }
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
     else
     {
         result = FALSE;
-        status = GetLastError();
 
-        if (status == ERROR_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
+        if (status == STATUS_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
         {
             // Elevate using phsvc.
             if (PhUiConnectToPhSvc(Context->WindowHandle, FALSE))
             {
-                NTSTATUS statusconfig;
-
                 result = TRUE;
 
-                if (!NT_SUCCESS(statusconfig = PhSvcCallChangeServiceConfig2(
-                    Context->ServiceItem->Name->Buffer,
+                if (!NT_SUCCESS(status = PhSvcCallChangeServiceConfig2(
+                    PhGetString(Context->ServiceItem->Name),
                     SERVICE_CONFIG_TRIGGER_INFO,
                     &triggerInfo
                     )))
                 {
                     result = FALSE;
-                    status = PhNtStatusToDosError(statusconfig);
                 }
 
                 PhUiDisconnectFromPhSvc();
@@ -734,15 +733,15 @@ BOOLEAN EsSaveServiceTriggerInfo(
             else
             {
                 // User cancelled elevation.
-                status = ERROR_CANCELLED;
+                status = STATUS_CANCELLED;
             }
         }
     }
 
     PhDeleteAutoPool(&autoPool);
 
-    if (Win32Result)
-        *Win32Result = status;
+    if (NtResult)
+        *NtResult = status;
 
     return result;
 }
@@ -924,7 +923,7 @@ static int __cdecl EtwPublisherByNameCompareFunction(
 }
 
 VOID EspFixServiceTriggerControls(
-    _In_ HWND hwndDlg,
+    _In_ HWND WindowHandle,
     _In_ PES_TRIGGER_CONTEXT Context
     )
 {
@@ -935,8 +934,8 @@ VOID EspFixServiceTriggerControls(
     ULONG type;
     PPH_STRING selectedSubTypeString;
 
-    typeComboBox = GetDlgItem(hwndDlg, IDC_TYPE);
-    subTypeComboBox = GetDlgItem(hwndDlg, IDC_SUBTYPE);
+    typeComboBox = GetDlgItem(WindowHandle, IDC_TYPE);
+    subTypeComboBox = GetDlgItem(WindowHandle, IDC_SUBTYPE);
 
     selectedTypeString = PhGetWindowText(typeComboBox);
     type = EspTriggerTypeStringToInteger(selectedTypeString->Buffer);
@@ -1003,16 +1002,16 @@ VOID EspFixServiceTriggerControls(
 
     if (PhEqualString2(selectedSubTypeString, L"Custom", FALSE))
     {
-        EnableWindow(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM), TRUE);
-        PhSetDialogItemText(hwndDlg, IDC_SUBTYPECUSTOM, Context->LastCustomSubType->Buffer);
+        EnableWindow(GetDlgItem(WindowHandle, IDC_SUBTYPECUSTOM), TRUE);
+        PhSetDialogItemText(WindowHandle, IDC_SUBTYPECUSTOM, Context->LastCustomSubType->Buffer);
     }
     else
     {
-        if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM)))
+        if (IsWindowEnabled(GetDlgItem(WindowHandle, IDC_SUBTYPECUSTOM)))
         {
-            EnableWindow(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM), FALSE);
-            PhMoveReference(&Context->LastCustomSubType, PhGetWindowText(GetDlgItem(hwndDlg, IDC_SUBTYPECUSTOM)));
-            PhSetDialogItemText(hwndDlg, IDC_SUBTYPECUSTOM, L"");
+            EnableWindow(GetDlgItem(WindowHandle, IDC_SUBTYPECUSTOM), FALSE);
+            PhMoveReference(&Context->LastCustomSubType, PhGetWindowText(GetDlgItem(WindowHandle, IDC_SUBTYPECUSTOM)));
+            PhSetDialogItemText(WindowHandle, IDC_SUBTYPECUSTOM, L"");
         }
     }
 
@@ -1142,31 +1141,28 @@ VOID EspFormatTriggerData(
 }
 
 INT_PTR CALLBACK EspServiceTriggerDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PES_TRIGGER_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PES_TRIGGER_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -1182,8 +1178,8 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
             else
                 context->LastCustomSubType = PhReferenceEmptyString();
 
-            typeComboBox = GetDlgItem(hwndDlg, IDC_TYPE);
-            actionComboBox = GetDlgItem(hwndDlg, IDC_ACTION);
+            typeComboBox = GetDlgItem(WindowHandle, IDC_TYPE);
+            actionComboBox = GetDlgItem(WindowHandle, IDC_ACTION);
 
             for (i = 0; i < sizeof(TypeEntries) / sizeof(TYPE_ENTRY); i++)
             {
@@ -1199,7 +1195,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
             ComboBox_AddString(actionComboBox, L"Stop");
             ComboBox_SetCurSel(actionComboBox, context->EditingInfo->Action == SERVICE_TRIGGER_ACTION_SERVICE_START ? 0 : 1);
 
-            EspFixServiceTriggerControls(hwndDlg, context);
+            EspFixServiceTriggerControls(WindowHandle, context);
 
             if (context->EditingInfo->Type != SERVICE_TRIGGER_TYPE_CUSTOM)
             {
@@ -1212,7 +1208,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         IsEqualGUID(SubTypeEntries[i].Guid, context->EditingInfo->Subtype)
                         )
                     {
-                        PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_SUBTYPE), SubTypeEntries[i].Name, FALSE);
+                        PhSelectComboBoxString(GetDlgItem(WindowHandle, IDC_SUBTYPE), SubTypeEntries[i].Name, FALSE);
                         break;
                     }
                 }
@@ -1225,15 +1221,15 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                     // Try to select the publisher name in the subtype list. (wj32)
                     publisherName = PhGetEtwPublisherName(context->EditingInfo->Subtype);
-                    PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_SUBTYPE), publisherName->Buffer, FALSE);
+                    PhSelectComboBoxString(GetDlgItem(WindowHandle, IDC_SUBTYPE), publisherName->Buffer, FALSE);
                     PhDereferenceObject(publisherName);
                 }
             }
 
             // Call a second time since the state of the custom subtype text box may have changed.
-            EspFixServiceTriggerControls(hwndDlg, context);
+            EspFixServiceTriggerControls(WindowHandle, context);
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            lvHandle = GetDlgItem(WindowHandle, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 280, L"Data");
@@ -1254,14 +1250,15 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                 }
             }
 
-            EnableWindow(GetDlgItem(hwndDlg, IDC_EDIT), FALSE);
-            EnableWindow(GetDlgItem(hwndDlg, IDC_DELETE), FALSE);
+            EnableWindow(GetDlgItem(WindowHandle, IDC_EDIT), FALSE);
+            EnableWindow(GetDlgItem(WindowHandle, IDC_DELETE), FALSE);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhClearReference(&context->LastCustomSubType);
         }
         break;
@@ -1272,26 +1269,26 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
             case IDC_TYPE:
                 if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                 {
-                    EspFixServiceTriggerControls(hwndDlg, context);
+                    EspFixServiceTriggerControls(WindowHandle, context);
                 }
                 break;
             case IDC_SUBTYPE:
                 if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                 {
-                    EspFixServiceTriggerControls(hwndDlg, context);
+                    EspFixServiceTriggerControls(WindowHandle, context);
                 }
                 break;
             case IDC_NEW:
                 {
                     HWND lvHandle;
 
-                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+                    lvHandle = GetDlgItem(WindowHandle, IDC_LIST);
                     context->EditingValue = PhReferenceEmptyString();
 
                     if (PhDialogBox(
                         PluginInstance->DllBase,
                         MAKEINTRESOURCE(IDD_VALUE),
-                        hwndDlg,
+                        WindowHandle,
                         ValueDlgProc,
                         context
                         ) == IDOK)
@@ -1324,7 +1321,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     PES_TRIGGER_DATA data;
                     ULONG index;
 
-                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+                    lvHandle = GetDlgItem(WindowHandle, IDC_LIST);
                     lvItemIndex = PhFindListViewItemByFlags(lvHandle, INT_ERROR, LVNI_SELECTED);
 
                     if (
@@ -1341,7 +1338,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                             if (PhDialogBox(
                                 PluginInstance->DllBase,
                                 MAKEINTRESOURCE(IDD_VALUE),
-                                hwndDlg,
+                                WindowHandle,
                                 ValueDlgProc,
                                 context
                                 ) == IDOK)
@@ -1367,7 +1364,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     PES_TRIGGER_DATA data;
                     ULONG index;
 
-                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+                    lvHandle = GetDlgItem(WindowHandle, IDC_LIST);
                     lvItemIndex = PhFindListViewItemByFlags(lvHandle, INT_ERROR, LVNI_SELECTED);
 
                     if (lvItemIndex != INT_ERROR && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data))
@@ -1384,7 +1381,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                 }
                 break;
             case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
+                EndDialog(WindowHandle, IDCANCEL);
                 break;
             case IDOK:
                 {
@@ -1397,10 +1394,10 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                     PhInitializeAutoPool(&autoPool);
 
-                    typeString = PhaGetDlgItemText(hwndDlg, IDC_TYPE);
-                    subTypeString = PhaGetDlgItemText(hwndDlg, IDC_SUBTYPE);
-                    customSubTypeString = PhaGetDlgItemText(hwndDlg, IDC_SUBTYPECUSTOM);
-                    actionString = PhaGetDlgItemText(hwndDlg, IDC_ACTION);
+                    typeString = PhaGetDlgItemText(WindowHandle, IDC_TYPE);
+                    subTypeString = PhaGetDlgItemText(WindowHandle, IDC_SUBTYPE);
+                    customSubTypeString = PhaGetDlgItemText(WindowHandle, IDC_SUBTYPECUSTOM);
+                    actionString = PhaGetDlgItemText(WindowHandle, IDC_ACTION);
 
                     for (i = 0; i < sizeof(TypeEntries) / sizeof(TYPE_ENTRY); i++)
                     {
@@ -1432,7 +1429,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         {
                             if (!EspLookupEtwPublisherGuid(&subTypeString->sr, &context->EditingInfo->SubtypeBuffer))
                             {
-                                PhShowError(hwndDlg, L"%s", L"Unable to find the ETW publisher GUID.");
+                                PhShowError(WindowHandle, L"%s", L"Unable to find the ETW publisher GUID.");
                                 goto DoNotClose;
                             }
 
@@ -1462,7 +1459,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         }
                         else
                         {
-                            PhShowError(hwndDlg, L"%s", L"The custom subtype is invalid. Please ensure that the string is a valid GUID: \"{x-x-x-x-x}\".");
+                            PhShowError(WindowHandle, L"%s", L"The custom subtype is invalid. Please ensure that the string is a valid GUID: \"{x-x-x-x-x}\".");
                             goto DoNotClose;
                         }
                     }
@@ -1483,7 +1480,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     {
                         // This trigger has data items, but the trigger type doesn't allow them.
                         if (PhShowMessage(
-                            hwndDlg,
+                            WindowHandle,
                             MB_OKCANCEL | MB_ICONWARNING,
                             L"The trigger type \"%s\" does not allow data items to be configured. "
                             L"If you continue, they will be removed.",
@@ -1501,7 +1498,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         PhClearReference(&context->EditingInfo->DataList);
                     }
 
-                    EndDialog(hwndDlg, IDOK);
+                    EndDialog(WindowHandle, IDOK);
 
 DoNotClose:
                     PhDeleteAutoPool(&autoPool);
@@ -1515,7 +1512,7 @@ DoNotClose:
             LPNMHDR header = (LPNMHDR)lParam;
             HWND lvHandle;
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            lvHandle = GetDlgItem(WindowHandle, IDC_LIST);
 
             switch (header->code)
             {
@@ -1525,16 +1522,16 @@ DoNotClose:
                     {
                         if (ListView_GetSelectedCount(lvHandle) == 1)
                         {
-                            PES_TRIGGER_DATA data = PhGetSelectedListViewItemParam(GetDlgItem(hwndDlg, IDC_LIST));
+                            PES_TRIGGER_DATA data = PhGetSelectedListViewItemParam(GetDlgItem(WindowHandle, IDC_LIST));
 
                             // Editing binary data is not supported.
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_EDIT), data && data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING);
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_DELETE), TRUE);
+                            EnableWindow(GetDlgItem(WindowHandle, IDC_EDIT), data && data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING);
+                            EnableWindow(GetDlgItem(WindowHandle, IDC_DELETE), TRUE);
                         }
                         else
                         {
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_EDIT), FALSE);
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_DELETE), FALSE);
+                            EnableWindow(GetDlgItem(WindowHandle, IDC_EDIT), FALSE);
+                            EnableWindow(GetDlgItem(WindowHandle, IDC_DELETE), FALSE);
                         }
                     }
                 }
@@ -1543,7 +1540,7 @@ DoNotClose:
                 {
                     if (header->hwndFrom == lvHandle)
                     {
-                        SendMessage(hwndDlg, WM_COMMAND, IDC_EDIT, 0);
+                        SendMessage(WindowHandle, WM_COMMAND, IDC_EDIT, 0);
                     }
                 }
                 break;
@@ -1556,39 +1553,41 @@ DoNotClose:
 }
 
 INT_PTR CALLBACK ValueDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PES_TRIGGER_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PES_TRIGGER_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            PhSetDialogItemText(hwndDlg, IDC_VALUES, context->EditingValue->Buffer);
-            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_VALUES));
-            Edit_SetSel(GetDlgItem(hwndDlg, IDC_VALUES), 0, -1);
+            PhSetDialogItemText(WindowHandle, IDC_VALUES, context->EditingValue->Buffer);
+            PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDC_VALUES));
+            Edit_SetSel(GetDlgItem(WindowHandle, IDC_VALUES), 0, -1);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -1596,11 +1595,11 @@ INT_PTR CALLBACK ValueDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
+                EndDialog(WindowHandle, IDCANCEL);
                 break;
             case IDOK:
-                PhMoveReference(&context->EditingValue, PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUES)));
-                EndDialog(hwndDlg, IDOK);
+                PhMoveReference(&context->EditingValue, PhGetWindowText(GetDlgItem(WindowHandle, IDC_VALUES)));
+                EndDialog(WindowHandle, IDOK);
                 break;
             }
         }

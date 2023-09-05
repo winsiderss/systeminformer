@@ -13,6 +13,7 @@
 #include <ph.h>
 #include <appresolver.h>
 #include <secedit.h>
+#include <svcsup.h>
 #include <lsasup.h>
 
 #include <aclui.h>
@@ -486,10 +487,15 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
     {
         if (this->GetObjectSecurity)
         {
+            PH_STD_OBJECT_SECURITY objectSecurity;
+
+            objectSecurity.ObjectContext = this;
+            objectSecurity.Context = this->Context;
+
             status = this->GetObjectSecurity(
                 &securityDescriptor,
                 RequestedInformation,
-                this
+                &objectSecurity
                 );
         }
         else
@@ -526,10 +532,15 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
 
     if (this->SetObjectSecurity)
     {
+        PH_STD_OBJECT_SECURITY objectSecurity;
+
+        objectSecurity.ObjectContext = this;
+        objectSecurity.Context = this->Context;
+
         status = this->SetObjectSecurity(
             SecurityDescriptor,
             SecurityInformation,
-            this
+            &objectSecurity
             );
     }
     else
@@ -1304,8 +1315,8 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
 
     if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
     {
-        status = PhGetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
-        CloseServiceHandle(handle);
+        status = PhGetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        PhCloseServiceHandle(handle);
     }
     else if (PhEqualString2(this->ObjectType, L"File", TRUE))
     {
@@ -1501,8 +1512,8 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
 
     if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
     {
-        status = PhSetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
-        CloseServiceHandle(handle);
+        status = PhSetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        PhCloseServiceHandle(handle);
     }
     else if (PhEqualString2(this->ObjectType, L"File", TRUE))
     {

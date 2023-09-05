@@ -1,11 +1,26 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_SRVPRV_H
 #define PH_SRVPRV_H
 
 extern PPH_OBJECT_TYPE PhServiceItemType;
 extern BOOLEAN PhEnableServiceNonPoll;
+extern BOOLEAN PhEnableServiceNonPollNotify;
+extern ULONG PhServiceNonPollFlushInterval;
 
 // begin_phapppub
 typedef enum _VERIFY_RESULT VERIFY_RESULT;
+typedef struct _PH_IMAGELIST_ITEM* PPH_IMAGELIST_ITEM;
 
 typedef struct _PH_SERVICE_ITEM
 {
@@ -14,7 +29,8 @@ typedef struct _PH_SERVICE_ITEM
     PPH_STRING DisplayName;
     PPH_STRING FileName; // only available after first update
 
-    struct _PH_IMAGELIST_ITEM* IconEntry;
+    PPH_IMAGELIST_ITEM IconEntry;
+    volatile LONG JustProcessed;
 
     // State
     ULONG Type;
@@ -27,6 +43,7 @@ typedef struct _PH_SERVICE_ITEM
     ULONG StartType;
     ULONG ErrorControl;
 
+    // Signature
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
 
@@ -42,8 +59,20 @@ typedef struct _PH_SERVICE_ITEM
             BOOLEAN HasTriggers : 1;
             BOOLEAN PendingProcess : 1;
             BOOLEAN NeedsConfigUpdate : 1;
-            BOOLEAN JustProcessed : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN Spare : 4;
+        };
+    };
+
+    PSC_NOTIFICATION_REGISTRATION NotifyPropertyRegistration;
+    PSC_NOTIFICATION_REGISTRATION NotifyStatusRegistration;
+    union
+    {
+        BOOLEAN NotifyFlags;
+        struct
+        {
+            BOOLEAN NotifyCreatedPropertyRegistration : 1;
+            BOOLEAN NotifyCreatedStatusRegistration : 1;
+            BOOLEAN NotifySpare : 6;
         };
     };
 // begin_phapppub
@@ -53,7 +82,7 @@ typedef struct _PH_SERVICE_ITEM
 // begin_phapppub
 typedef struct _PH_SERVICE_MODIFIED_DATA
 {
-    PPH_SERVICE_ITEM Service;
+    PPH_SERVICE_ITEM ServiceItem;
     PH_SERVICE_ITEM OldService;
 } PH_SERVICE_MODIFIED_DATA, *PPH_SERVICE_MODIFIED_DATA;
 
@@ -98,10 +127,6 @@ PhGetServiceChange(
 
 VOID PhUpdateProcessItemServices(
     _In_ PPH_PROCESS_ITEM ProcessItem
-    );
-
-VOID PhQueueServiceQueryStage2( // HACK
-    _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
 VOID PhServiceProviderUpdate(

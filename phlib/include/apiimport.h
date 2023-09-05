@@ -239,6 +239,24 @@ typedef BOOLEAN (WINAPI* _WinStationQueryInformationW)(
     _Out_ PULONG pReturnLength
     );
 
+typedef ULONG (WINAPI *_NotifyServiceStatusChangeW)(
+    _In_ SC_HANDLE hService,
+    _In_ DWORD dwNotifyMask,
+    _In_ PSERVICE_NOTIFYW pNotifyBuffer
+    );
+
+typedef ULONG (WINAPI* _SubscribeServiceChangeNotifications)(
+    _In_ SC_HANDLE hService,
+    _In_ SC_EVENT_TYPE eEventType,
+    _In_ PSC_NOTIFICATION_CALLBACK pCallback,
+    _In_opt_ PVOID pCallbackContext,
+    _Out_ PSC_NOTIFICATION_REGISTRATION* pSubscription
+    );
+
+typedef VOID (WINAPI* _UnsubscribeServiceChangeNotifications)(
+    _In_ PSC_NOTIFICATION_REGISTRATION pSubscription
+    );
+
 #define PH_DECLARE_IMPORT(Name) _##Name Name##_Import(VOID)
 
 PH_DECLARE_IMPORT(NtQueryInformationEnlistment);

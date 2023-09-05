@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -20,14 +20,11 @@ PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION MiListSectionMenuInitializingCallbackRegistration;
 
 VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-
-    if (!menuItem)
-        return;
 
     switch (menuItem->Id)
     {
@@ -61,25 +58,22 @@ VOID NTAPI MenuItemCallback(
         {
             PPH_SERVICE_ITEM serviceItem = menuItem->Context;
             SC_HANDLE serviceHandle;
-            ULONG win32Result = ERROR_SUCCESS;
+            NTSTATUS status;
 
-            if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_STATUS))
+            status = PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS, PhGetString(serviceItem->Name));
+
+            if (NT_SUCCESS(status))
             {
                 EsRestartServiceWithProgress(menuItem->OwnerWindow, serviceItem, serviceHandle);
-                CloseServiceHandle(serviceHandle);
+                PhCloseServiceHandle(serviceHandle);
             }
             else
-            {
-                win32Result = GetLastError();
-            }
-
-            if (win32Result != ERROR_SUCCESS)
             {
                 PhShowStatus(
                     menuItem->OwnerWindow,
                     PhaFormatString(L"Unable to restart %s", serviceItem->Name->Buffer)->Buffer,
-                    0,
-                    win32Result
+                    status,
+                    0
                     );
             }
         }
@@ -255,18 +249,13 @@ VOID NTAPI ProcessMenuInitializingCallback(
 }
 
 VOID NTAPI ServicePropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_OBJECT_PROPERTIES objectProperties = Parameter;
+    PPH_SERVICE_ITEM serviceItem = objectProperties->Parameter;
     PROPSHEETPAGE propSheetPage;
-    PPH_SERVICE_ITEM serviceItem;
-
-    if (!objectProperties)
-        return;
-
-    serviceItem = objectProperties->Parameter;
 
     // Recovery
     if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
@@ -378,16 +367,13 @@ VOID NTAPI ServicePropertiesInitializingCallback(
 }
 
 VOID NTAPI ServiceMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM menuItem;
     ULONG indexOfMenuItem;
-
-    if (!menuInfo)
-        return;
 
     if (
         menuInfo->u.Service.NumberOfServices == 1 &&
@@ -412,15 +398,12 @@ VOID NTAPI ServiceMenuInitializingCallback(
 }
 
 VOID MiListSectionMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
-
-    if (!menuInfo)
-        return;
 
     processItem = menuInfo->u.MiListSection.ProcessGroup->Representative;
 

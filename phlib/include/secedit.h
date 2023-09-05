@@ -69,7 +69,7 @@ PhEditSecurityEx(
 
 typedef struct _PH_STD_OBJECT_SECURITY
 {
-    PWSTR ObjectType;
+    PVOID ObjectContext;
     PVOID Context;
 } PH_STD_OBJECT_SECURITY, *PPH_STD_OBJECT_SECURITY;
 

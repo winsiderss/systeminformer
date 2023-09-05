@@ -505,7 +505,7 @@ VOID PhMwpOnServiceModified(
     PH_SERVICE_CHANGE serviceChange;
     UCHAR logEntryType;
 
-    PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
+    PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->ServiceItem));
 
     serviceChange = PhGetServiceChange(ServiceModifiedData);
 
@@ -530,13 +530,13 @@ VOID PhMwpOnServiceModified(
     }
 
     if (logEntryType != 0)
-        PhLogServiceEntry(logEntryType, ServiceModifiedData->Service->Name, ServiceModifiedData->Service->DisplayName);
+        PhLogServiceEntry(logEntryType, ServiceModifiedData->ServiceItem->Name, ServiceModifiedData->ServiceItem->DisplayName);
 
     if (PhMwpNotifyIconNotifyMask & (PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP | PH_NOTIFY_SERVICE_MODIFIED))
     {
         PPH_SERVICE_ITEM serviceItem;
 
-        serviceItem = ServiceModifiedData->Service;
+        serviceItem = ServiceModifiedData->ServiceItem;
 
         if (serviceChange == ServiceStarted && (PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_START))
         {

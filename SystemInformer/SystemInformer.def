@@ -716,9 +716,10 @@ EXPORTS
     PhStdSetObjectSecurity
 
 ; svcsup
-    PhEnumServices
+    PhChangeServiceConfig2
+    PhCloseServiceHandle
+    PhEnumDependentServices
     PhGetServiceConfig
-    PhGetServiceDelayedAutoStart
     PhGetServiceDescription
     PhGetServiceDllParameter
     PhGetServiceErrorControlInteger
@@ -731,8 +732,10 @@ EXPORTS
     PhGetServiceTypeString
     PhGetThreadServiceTag
     PhOpenService
+    PhQueryServiceConfig
+    PhQueryServiceConfig2
+    PhQueryServiceStatus
     PhQueryServiceVariableSize
-    PhSetServiceDelayedAutoStart
 
 ; symprv
     PhCreateSymbolProvider

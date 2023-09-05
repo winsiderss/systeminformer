@@ -68,7 +68,9 @@ NTSTATUS KphConnect(
 
     // Try to start the service, if it exists.
 
-    if (serviceHandle = PhOpenService(PhGetStringRefZ(Config->ServiceName), SERVICE_START))
+    status = PhOpenService(&serviceHandle, SERVICE_START, PhGetStringRefZ(Config->ServiceName));
+
+    if (NT_SUCCESS(status))
     {
         status = PhStartService(serviceHandle, 0, NULL);
 
@@ -569,7 +571,7 @@ NTSTATUS KphServiceStop(
     _In_ PKPH_CONFIG_PARAMETERS Config
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status;
 
     //KphCommsStop();
 
@@ -581,15 +583,13 @@ NTSTATUS KphServiceStop(
     {
         SC_HANDLE serviceHandle;
 
-        if (serviceHandle = PhOpenService(PhGetStringRefZ(Config->ServiceName), SERVICE_STOP))
+        status = PhOpenService(&serviceHandle, SERVICE_STOP, PhGetStringRefZ(Config->ServiceName));
+
+        if (NT_SUCCESS(status))
         {
             status = PhStopService(serviceHandle);
 
             PhCloseServiceHandle(serviceHandle);
-        }
-        else
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
         }
     }
 
