@@ -169,6 +169,9 @@ PDEVICE_TREE DeviceTreeCreate(
             if (DeviceTreeShouldIncludeDeviceItem(item))
                 PhAddItemList(tree->Roots, DeviceTreeCreateNode(item, tree->Nodes));
         }
+
+        if (PhGetIntegerSetting(SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME))
+            qsort(tree->Roots->Items, tree->Roots->Count, sizeof(PVOID), DeviceListSortByNameFunction);
     }
 
     tree->Tree = PhReferenceObject(Tree);
