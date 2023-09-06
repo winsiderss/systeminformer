@@ -168,22 +168,6 @@ PVOID PhLoadLibrary(
     return NULL;
 }
 
-PVOID PhLoadLibraryUtf8Ex(
-    _In_ PCSTR FileName,
-    _In_ HANDLE FileHandle,
-    _In_ ULONG Flags
-    )
-{
-    PPH_STRING fileName;
-    PVOID baseAddress;
-
-    fileName = PhConvertUtf8ToUtf16((PSTR)FileName);
-    baseAddress = PhLoadLibrary(PhGetString(fileName));
-    PhDereferenceObject(fileName);
-
-    return baseAddress;
-}
-
 BOOLEAN PhFreeLibrary(
     _In_ PVOID BaseAddress
     )
@@ -1219,6 +1203,44 @@ NTSTATUS PhLoaderEntryImageRvaToVa(
     return STATUS_SUCCESS;
 }
 
+VOID PhLoaderEntryGrantSuppressedCall(
+    _In_ PVOID ExportAddress
+    )
+{
+#if (PH_NATIVE_LOADER_FLOWGUARD)
+    static BOOLEAN PhLoaderEntryCacheInitialized = FALSE;
+    static BOOLEAN (NTAPI* LdrControlFlowGuardEnforced_I)(VOID) = NULL;
+    static PPH_HASHTABLE PhLoaderEntryCacheHashtable = NULL;
+
+    if (!PhLoaderEntryCacheInitialized && PhInstanceHandle) // delay initialize (dmex)
+    {
+        PhLoaderEntryCacheInitialized = TRUE;
+
+        if (!LdrControlFlowGuardEnforced_I && WindowsVersion >= WINDOWS_10)
+        {
+            LdrControlFlowGuardEnforced_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrControlFlowGuardEnforced", 0);
+        }
+
+        if (LdrControlFlowGuardEnforced_I && LdrControlFlowGuardEnforced_I())
+        {
+            PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), (PVOID)SIZE_T_MAX); // initialize imports (dmex)
+
+            PhLoaderEntryCacheHashtable = PhCreateSimpleHashtable(10);
+        }
+
+        return;
+    }
+
+    if (PhLoaderEntryCacheHashtable && !PhFindItemSimpleHashtable(PhLoaderEntryCacheHashtable, ExportAddress))
+    {
+        if (NT_SUCCESS(PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), ExportAddress)))
+        {
+            PhAddItemSimpleHashtable(PhLoaderEntryCacheHashtable, ExportAddress, UlongToPtr(TRUE));
+        }
+    }
+#endif
+}
+
 static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
@@ -1318,34 +1340,44 @@ PVOID PhGetLoaderEntryImageExportFunction(
         ((ULONG_PTR)exportAddress < (ULONG_PTR)PTR_ADD_OFFSET(ExportDirectory, DataDirectory->Size))
         )
     {
-        PPH_STRING dllForwarderString;
+        WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
+        PH_STRINGREF dllForwarderRef;
         PH_STRINGREF dllNameRef;
         PH_STRINGREF dllProcedureRef;
 
         // This is a forwarder RVA.
 
-        dllForwarderString = PhZeroExtendToUtf16((PSTR)exportAddress);
+        PhZeroExtendToUtf16Buffer((PSTR)exportAddress, strlen((PSTR)exportAddress), dllForwarderName);
+        PhInitializeStringRefLongHint(&dllForwarderRef, dllForwarderName);
 
-        if (PhSplitStringRefAtChar(&dllForwarderString->sr, L'.', &dllNameRef, &dllProcedureRef))
+        if (PhSplitStringRefAtChar(&dllForwarderRef, L'.', &dllNameRef, &dllProcedureRef))
         {
             PVOID libraryDllBase;
+            WCHAR libraryName[DOS_MAX_PATH_LENGTH] = L"";
 
-            if (!(libraryDllBase = PhGetLoaderEntryDllBase(NULL, &dllNameRef)))
+            if (memcpy_s(libraryName, sizeof(libraryName), dllNameRef.Buffer, dllNameRef.Length))
             {
-                PPH_STRING libraryName;
-
-                libraryName = PhCreateString2(&dllNameRef);
-                libraryDllBase = PhLoadLibrary(libraryName->Buffer);
-                PhDereferenceObject(libraryName);
+                return NULL;
             }
+
+            libraryDllBase = PhLoadLibrary(libraryName);
 
             if (libraryDllBase)
             {
-                PPH_BYTES libraryFunctionString;
+                CHAR libraryFunctionName[DOS_MAX_PATH_LENGTH] = "";
 
-                libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
+                if (!PhConvertUtf16ToUtf8Buffer(
+                    libraryFunctionName,
+                    sizeof(libraryFunctionName),
+                    NULL,
+                    dllProcedureRef.Buffer,
+                    dllProcedureRef.Length
+                    ))
+                {
+                    return NULL;
+                }
 
-                if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
+                if (libraryFunctionName[0] == '#') // This is a forwarder RVA with an ordinal import.
                 {
                     LONG64 importOrdinal;
 
@@ -1354,19 +1386,17 @@ PVOID PhGetLoaderEntryImageExportFunction(
                     if (PhStringToInteger64(&dllProcedureRef, 10, &importOrdinal))
                         exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, NULL, (USHORT)importOrdinal);
                     else
-                        exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionString->Buffer, 0);
+                        exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
                 }
                 else
                 {
-                    exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionString->Buffer, 0);
+                    exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
                 }
-
-                PhDereferenceObject(libraryFunctionString);
             }
         }
-
-        PhDereferenceObject(dllForwarderString);
     }
+
+    PhLoaderEntryGrantSuppressedCall(exportAddress);
 
     return exportAddress;
 }
@@ -1412,34 +1442,44 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                 ((ULONG_PTR)exportAddress < (ULONG_PTR)PTR_ADD_OFFSET(exportDirectory, dataDirectory->Size))
                 )
             {
-                PPH_STRING dllForwarderString;
+                WCHAR dllForwarderName[DOS_MAX_PATH_LENGTH] = L"";
+                PH_STRINGREF dllForwarderRef;
                 PH_STRINGREF dllNameRef;
                 PH_STRINGREF dllProcedureRef;
 
                 // This is a forwarder RVA.
 
-                dllForwarderString = PhZeroExtendToUtf16((PSTR)exportAddress);
+                PhZeroExtendToUtf16Buffer((PSTR)exportAddress, strlen((PSTR)exportAddress), dllForwarderName);
+                PhInitializeStringRefLongHint(&dllForwarderRef, dllForwarderName);
 
-                if (PhSplitStringRefAtChar(&dllForwarderString->sr, L'.', &dllNameRef, &dllProcedureRef))
+                if (PhSplitStringRefAtChar(&dllForwarderRef, L'.', &dllNameRef, &dllProcedureRef))
                 {
                     PVOID libraryDllBase;
+                    WCHAR libraryName[DOS_MAX_PATH_LENGTH] = L"";
 
-                    if (!(libraryDllBase = PhGetLoaderEntryDllBase(NULL, &dllNameRef)))
+                    if (memcpy_s(libraryName, sizeof(libraryName), dllNameRef.Buffer, dllNameRef.Length))
                     {
-                        PPH_STRING libraryName;
-
-                        libraryName = PhCreateString2(&dllNameRef);
-                        libraryDllBase = PhLoadLibrary(libraryName->Buffer);
-                        PhDereferenceObject(libraryName);
+                        return NULL;
                     }
+
+                    libraryDllBase = PhLoadLibrary(libraryName);
 
                     if (libraryDllBase)
                     {
-                        PPH_BYTES libraryFunctionString;
+                        CHAR libraryFunctionName[DOS_MAX_PATH_LENGTH] = "";
 
-                        libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
+                        if (!PhConvertUtf16ToUtf8Buffer(
+                            libraryFunctionName,
+                            sizeof(libraryFunctionName),
+                            NULL,
+                            dllProcedureRef.Buffer,
+                            dllProcedureRef.Length
+                            ))
+                        {
+                            return NULL;
+                        }
 
-                        if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
+                        if (libraryFunctionName[0] == '#') // This is a forwarder RVA with an ordinal import.
                         {
                             LONG64 importOrdinal;
 
@@ -1448,18 +1488,14 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                             if (PhStringToInteger64(&dllProcedureRef, 10, &importOrdinal))
                                 exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, NULL, (USHORT)importOrdinal);
                             else
-                                exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionString->Buffer, 0);
+                                exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
                         }
                         else
                         {
-                            exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionString->Buffer, 0);
+                            exportAddress = PhGetDllBaseProcedureAddress(libraryDllBase, libraryFunctionName, 0);
                         }
-
-                        PhDereferenceObject(libraryFunctionString);
                     }
                 }
-
-                PhDereferenceObject(dllForwarderString);
             }
 
             return exportAddress;
@@ -1569,12 +1605,130 @@ NTSTATUS PhLoaderEntryDetourImportProcedure(
     return status;
 }
 
+VOID PhLoaderEntrySnapShowErrorMessage(
+    _In_ PVOID BaseAddress,
+    _In_ PSTR ImportName,
+    _In_ PIMAGE_THUNK_DATA OriginalThunk
+    )
+{
+    PPH_STRING fileName;
+
+    if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
+    {
+        PhMoveReference(&fileName, PhGetFileName(fileName));
+        PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+        if (IMAGE_SNAP_BY_ORDINAL(OriginalThunk->u1.Ordinal))
+        {
+            PhShowError(
+                NULL,
+                L"Unable to load plugin.\r\nName: %s\r\nOrdinal: %u\r\nModule: %hs",
+                PhGetStringOrEmpty(fileName),
+                IMAGE_ORDINAL(OriginalThunk->u1.Ordinal),
+                ImportName
+                );
+        }
+        else
+        {
+            PIMAGE_IMPORT_BY_NAME importByName;
+
+            importByName = PTR_ADD_OFFSET(BaseAddress, OriginalThunk->u1.AddressOfData);
+
+            PhShowError(
+                NULL,
+                L"Unable to load plugin.\r\nName: %s\r\nFunction: %hs\r\nModule: %hs",
+                PhGetStringOrEmpty(fileName),
+                importByName->Name,
+                ImportName
+                );
+        }
+
+        PhDereferenceObject(fileName);
+    }
+}
+
+NTSTATUS PhLoaderEntrySnapImportThunk(
+    _In_ PVOID BaseAddress,
+    _In_ PVOID ImportBaseAddress,
+    _In_ PIMAGE_THUNK_DATA OriginalThunk,
+    _In_ PIMAGE_THUNK_DATA ImportThunk
+    )
+{
+    if (IMAGE_SNAP_BY_ORDINAL(OriginalThunk->u1.Ordinal))
+    {
+        USHORT procedureOrdinal;
+        PVOID procedureAddress;
+
+        procedureOrdinal = IMAGE_ORDINAL(OriginalThunk->u1.Ordinal);
+        procedureAddress = PhGetDllBaseProcedureAddress(ImportBaseAddress, NULL, procedureOrdinal);
+
+        if (procedureAddress)
+        {
+            ImportThunk->u1.Function = (ULONG_PTR)procedureAddress;
+            return STATUS_SUCCESS;
+        }
+    }
+    else
+    {
+        PIMAGE_IMPORT_BY_NAME importByName;
+        PVOID procedureAddress;
+
+        importByName = PTR_ADD_OFFSET(BaseAddress, OriginalThunk->u1.AddressOfData);
+        procedureAddress = PhGetDllBaseProcedureAddressWithHint(ImportBaseAddress, importByName->Name, importByName->Hint);
+
+        if (procedureAddress)
+        {
+            ImportThunk->u1.Function = (ULONG_PTR)procedureAddress;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return STATUS_ORDINAL_NOT_FOUND;
+}
+
+#if (PH_NATIVE_LOADER_WORKQUEUE)
+typedef struct _PH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT
+{
+    PVOID BaseAddress;
+    PVOID ImportBaseAddress;
+    PIMAGE_THUNK_DATA OriginalThunkData;
+    PIMAGE_THUNK_DATA ImportThunkData;
+} PH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT, *PPH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT;
+
+VOID CALLBACK LoaderEntryImageImportThunkWorkQueueCallback(
+    _Inout_ PTP_CALLBACK_INSTANCE Instance,
+    _Inout_opt_ PVOID Context,
+    _Inout_ PTP_WORK Work
+    )
+{
+    PPH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT context = (PPH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT)Context;
+    NTSTATUS status;
+
+    status = PhLoaderEntrySnapImportThunk(
+        context->BaseAddress,
+        context->ImportBaseAddress,
+        context->OriginalThunkData,
+        context->ImportThunkData
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+#ifdef DEBUG
+        PhLoaderEntrySnapShowErrorMessage(context->BaseAddress, "ThunkWorkQueue", context->OriginalThunkData);
+#endif
+        PhRaiseStatus(status);
+    }
+
+    PhFree(context);
+}
+#endif
+
 NTSTATUS PhLoaderEntrySnapImportDirectory(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_IMPORT_DESCRIPTOR ImportDirectory
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     PSTR importName;
     PIMAGE_THUNK_DATA importThunk;
     PIMAGE_THUNK_DATA originalThunk;
@@ -1590,105 +1744,98 @@ NTSTATUS PhLoaderEntrySnapImportDirectory(
     }
     else
     {
-        PPH_STRING importNameSr;
+        WCHAR dllImportName[DOS_MAX_PATH_LENGTH] = L"";
 
-        importNameSr = PhZeroExtendToUtf16(importName);
+        PhZeroExtendToUtf16Buffer(importName, strlen(importName), dllImportName);
 
-        if (!(importBaseAddress = PhGetLoaderEntryDllBase(NULL, &importNameSr->sr)))
+        if (!(importBaseAddress = PhLoadLibrary(dllImportName)))
         {
-            if (!(importBaseAddress = PhLoadLibrary(importNameSr->Buffer)))
-            {
-                status = PhGetLastWin32ErrorAsNtStatus();
-            }
+            return PhGetLastWin32ErrorAsNtStatus();
         }
-
-        PhDereferenceObject(importNameSr);
     }
+
+    if (!importBaseAddress)
+    {
+        return STATUS_PROCEDURE_NOT_FOUND;
+    }
+
+#if (PH_NATIVE_LOADER_WORKQUEUE)
+    PTP_POOL loaderThreadpool;
+    TP_CALLBACK_ENVIRON loaderThreadpoolEnvironment;
+    PTP_CLEANUP_GROUP loaderThreadpoolCleanupGroup;
+
+    status = TpAllocPool(&loaderThreadpool, NULL);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = TpAllocCleanupGroup(&loaderThreadpoolCleanupGroup);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if (!importBaseAddress)
-    {
-        status = STATUS_UNSUCCESSFUL;
+    status = TpSetPoolMinThreads(loaderThreadpool, 1); // NtCurrentPeb()->ProcessParameters->LoaderThreads
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
-    for (; originalThunk->u1.AddressOfData; originalThunk++, importThunk++) // while (originalThunk->u1.AddressOfData)
+    TpSetPoolMaxThreads(loaderThreadpool, PhGetActiveProcessorCount(ALL_PROCESSOR_GROUPS));
+
+    TpInitializeCallbackEnviron(&loaderThreadpoolEnvironment);
+    TpSetCallbackThreadpool(&loaderThreadpoolEnvironment, loaderThreadpool);
+    TpSetCallbackCleanupGroup(&loaderThreadpoolEnvironment, loaderThreadpoolCleanupGroup, NULL);
+#endif
+
+    while (originalThunk->u1.AddressOfData)
     {
-        if (IMAGE_SNAP_BY_ORDINAL(originalThunk->u1.Ordinal))
+#if (PH_NATIVE_LOADER_WORKQUEUE)
+        PPH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT context;
+        PTP_WORK loaderThreadpoolWork;
+
+        context = PhAllocateZero(sizeof(PH_LOADER_IMPORT_THUNK_WORKQUEUE_CONTEXT));
+        context->BaseAddress = BaseAddress;
+        context->ImportBaseAddress = importBaseAddress;
+        context->OriginalThunkData = originalThunk;
+        context->ImportThunkData = importThunk;
+
+        status = TpAllocWork(
+            &loaderThreadpoolWork,
+            LoaderEntryImageImportThunkWorkQueueCallback,
+            context,
+            &loaderThreadpoolEnvironment
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        TpPostWork(loaderThreadpoolWork);
+#else
+        status = PhLoaderEntrySnapImportThunk(
+            BaseAddress,
+            importBaseAddress,
+            originalThunk,
+            importThunk
+            );
+
+        if (!NT_SUCCESS(status))
         {
-            USHORT procedureOrdinal;
-            PVOID procedureAddress;
-
-            procedureOrdinal = IMAGE_ORDINAL(originalThunk->u1.Ordinal);
-            procedureAddress = PhGetDllBaseProcedureAddress(importBaseAddress, NULL, procedureOrdinal);
-
-            if (!procedureAddress)
-            {
 #ifdef DEBUG
-                PPH_STRING fileName;
-
-                if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
-                {
-                    PhMoveReference(&fileName, PhGetFileName(fileName));
-                    PhMoveReference(&fileName, PhGetBaseName(fileName));
-
-                    PhShowError(
-                        NULL,
-                        L"Unable to load plugin.\r\nName: %s\r\nOrdinal: %u\r\nModule: %hs",
-                        PhGetStringOrEmpty(fileName),
-                        procedureOrdinal,
-                        importName
-                        );
-
-                    PhDereferenceObject(fileName);
-                }
+            PhLoaderEntrySnapShowErrorMessage(BaseAddress, importName, originalThunk);
 #endif
-                status = STATUS_ORDINAL_NOT_FOUND;
-                goto CleanupExit;
-            }
-
-            importThunk->u1.Function = (ULONG_PTR)procedureAddress;
+            break;
         }
-        else
-        {
-            PIMAGE_IMPORT_BY_NAME importByName;
-            PVOID procedureAddress;
-
-            importByName = PTR_ADD_OFFSET(BaseAddress, originalThunk->u1.AddressOfData);
-            procedureAddress = PhGetDllBaseProcedureAddressWithHint(importBaseAddress, importByName->Name, importByName->Hint);
-
-            if (!procedureAddress)
-            {
-#ifdef DEBUG
-                PPH_STRING fileName;
-
-                if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), BaseAddress, &fileName)))
-                {
-                    PhMoveReference(&fileName, PhGetFileName(fileName));
-                    PhMoveReference(&fileName, PhGetBaseName(fileName));
-
-                    PhShowError(
-                        NULL,
-                        L"Unable to load plugin.\r\nName: %s\r\nFunction: %hs\r\nModule: %hs",
-                        PhGetStringOrEmpty(fileName),
-                        importByName->Name,
-                        importName
-                        );
-
-                    PhDereferenceObject(fileName);
-                }
 #endif
-                status = STATUS_PROCEDURE_NOT_FOUND;
-                goto CleanupExit;
-            }
-
-            importThunk->u1.Function = (ULONG_PTR)procedureAddress;
-        }
+        originalThunk++;
+        importThunk++;
     }
 
+#if (PH_NATIVE_LOADER_WORKQUEUE)
 CleanupExit:
+    TpReleaseCleanupGroupMembers(loaderThreadpoolCleanupGroup, FALSE, NULL);
+    TpReleaseCleanupGroup(loaderThreadpoolCleanupGroup);
+    TpReleasePool(loaderThreadpool);
+#endif
+
     return status;
 }
 
@@ -1937,24 +2084,19 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
             }
             else
             {
-                PPH_STRING importNameSr;
+                WCHAR dllImportName[DOS_MAX_PATH_LENGTH] = L"";
 
-                importNameSr = PhZeroExtendToUtf16(importName);
+                PhZeroExtendToUtf16Buffer(importName, strlen(importName), dllImportName);
 
-                if (!(importBaseAddress = PhGetLoaderEntryDllBase(NULL, &importNameSr->sr)))
+                if (importBaseAddress = PhLoadLibrary(dllImportName))
                 {
-                    if (importBaseAddress = PhLoadLibrary(importNameSr->Buffer))
-                    {
-                        importNeedsFree = TRUE;
-                        status = STATUS_SUCCESS;
-                    }
-                    else
-                    {
-                        status = PhGetLastWin32ErrorAsNtStatus();
-                    }
+                    importNeedsFree = TRUE;
+                    status = STATUS_SUCCESS;
                 }
-
-                PhDereferenceObject(importNameSr);
+                else
+                {
+                    status = PhGetLastWin32ErrorAsNtStatus();
+                }
             }
 
             if (!NT_SUCCESS(status))
@@ -1968,26 +2110,15 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
             while (importNameTable->u1.AddressOfData)
             {
-                if (IMAGE_SNAP_BY_ORDINAL(importNameTable->u1.Ordinal))
-                {
-                    USHORT procedureOrdinal;
-                    PVOID procedureAddress;
+                status = PhLoaderEntrySnapImportThunk(
+                    BaseAddress,
+                    importBaseAddress,
+                    importNameTable,
+                    importAddressTable
+                    );
 
-                    procedureOrdinal = IMAGE_ORDINAL(importNameTable->u1.Ordinal);
-                    procedureAddress = PhGetDllBaseProcedureAddress(importBaseAddress, NULL, procedureOrdinal);
-
-                    importAddressTable->u1.Function = (ULONG_PTR)procedureAddress;
-                }
-                else
-                {
-                    PIMAGE_IMPORT_BY_NAME importByName;
-                    PVOID procedureAddress;
-
-                    importByName = PTR_ADD_OFFSET(BaseAddress, importNameTable->u1.AddressOfData);
-                    procedureAddress = PhGetDllBaseProcedureAddressWithHint(importBaseAddress, importByName->Name, importByName->Hint);
-
-                    importAddressTable->u1.Function = (ULONG_PTR)procedureAddress;
-                }
+                if (!NT_SUCCESS(status))
+                    break;
 
                 importAddressTable++;
                 importNameTable++;
@@ -2048,7 +2179,7 @@ NTSTATUS PhpLoaderEntryQuerySectionInformation(
 
     if (section.SubSystemType != IMAGE_SUBSYSTEM_WINDOWS_GUI)
         return STATUS_INVALID_IMPORT_OF_NON_DLL;
-    if (!(section.ImageCharacteristics & (IMAGE_FILE_DLL | IMAGE_FILE_EXECUTABLE_IMAGE)))
+    if (!FlagOn(section.ImageCharacteristics, IMAGE_FILE_DLL | IMAGE_FILE_EXECUTABLE_IMAGE))
         return STATUS_INVALID_IMPORT_OF_NON_DLL;
 
 #ifdef _WIN64
@@ -2092,7 +2223,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (imageNtHeader->FileHeader.Characteristics & IMAGE_FILE_RELOCS_STRIPPED)
+    if (FlagOn(imageNtHeader->FileHeader.Characteristics, IMAGE_FILE_RELOCS_STRIPPED))
         return STATUS_SUCCESS;
 
     for (ULONG i = 0; i < imageNtHeader->FileHeader.NumberOfSections; i++)
@@ -2165,15 +2296,15 @@ NTSTATUS PhLoaderEntryRelocateImage(
         sectionHeaderAddress = PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress);
         sectionHeaderSize = sectionHeader->SizeOfRawData;
 
-        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_READ)
+        if (FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_READ))
             sectionProtection = PAGE_READONLY;
-        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_WRITE)
+        if (FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_WRITE))
             sectionProtection = PAGE_WRITECOPY;
-        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+        if (FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_EXECUTE))
             sectionProtection = PAGE_EXECUTE;
-        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_READ && sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+        if (FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_READ) && FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_EXECUTE))
             sectionProtection = PAGE_EXECUTE_READ;
-        if (sectionHeader->Characteristics & IMAGE_SCN_MEM_WRITE && sectionHeader->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+        if (FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_WRITE) && FlagOn(sectionHeader->Characteristics, IMAGE_SCN_MEM_EXECUTE))
             sectionProtection = PAGE_EXECUTE_READWRITE;
 
         status = NtProtectVirtualMemory(
