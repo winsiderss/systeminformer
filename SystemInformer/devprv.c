@@ -2971,7 +2971,7 @@ PPH_STRINGREF PhpDevSysPowerStateString(
         PH_STRINGREF_INIT(L"S1"),  // PowerSystemSleep1
         PH_STRINGREF_INIT(L"S2"),  // PowerSystemSleep2
         PH_STRINGREF_INIT(L"S3"),  // PowerSystemSleep3
-        PH_STRINGREF_INIT(L"S4"),  // PowerSystemHybernate 
+        PH_STRINGREF_INIT(L"S4"),  // PowerSystemHybernate
         PH_STRINGREF_INIT(L"S5"),  // PowerSystemShutdown
         PH_STRINGREF_INIT(L"Max"), // PowerSystemMaximum
     };
@@ -3837,7 +3837,7 @@ VOID PhpCheckDeviceTree(
 
         item = Tree->DeviceList->Items[i];
 
-        // ensure children terminate 
+        // ensure children terminate
         other = item->Child;
         count = 0;
         while (other)
@@ -3872,7 +3872,7 @@ VOID PhpCheckDeviceTree(
 
         item = Tree->DeviceInterfaceList->Items[i];
 
-        // ensure children terminate 
+        // ensure children terminate
         other = item->Child;
         count = 0;
         while (other)
@@ -4038,7 +4038,7 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
     return tree;
 }
 
-VOID PhpPublishDeviceTree(
+PPH_DEVICE_TREE PhpPublishDeviceTree(
     VOID
     )
 {
@@ -4051,17 +4051,21 @@ VOID PhpPublishDeviceTree(
     PhpDeviceTree = newTree;
     PhReleaseFastLockExclusive(&PhpDeviceTreeLock);
 
-    PhDereferenceObject(oldTree);
+    PhClearReference(&oldTree);
+
+    return PhReferenceObject(newTree);
 }
 
 VOID PhpDeviceNotify(
     _In_ PLIST_ENTRY List
     )
 {
+    PPH_DEVICE_TREE deviceTree;
+
     // We process device notifications in blocks so that bursts of device changes
     // don't each trigger a new tree each time.
 
-    PhpPublishDeviceTree();
+    deviceTree = PhpPublishDeviceTree();
 
     while (!IsListEmpty(List))
     {
@@ -4073,6 +4077,8 @@ VOID PhpDeviceNotify(
 
         PhDereferenceObject(entry);
     }
+
+    PhDereferenceObject(deviceTree);
 }
 
 _Function_class_(PUSER_THREAD_START_ROUTINE)
@@ -4183,8 +4189,6 @@ BOOLEAN PhpDeviceProviderInitialization(
     PhDeviceNotifyType = PhCreateObjectType(L"DeviceNotify", 0, PhpDeviceNotifyDeleteProcedure);
     PhpDeviceInfoType = PhCreateObjectType(L"DeviceInfo", 0, PhpDeviceInfoDeleteProcedure);
 
-    PhpDeviceTree = PhpCreateDeviceTree();
-
     InitializeListHead(&PhpDeviceNotifyList);
     if (!NT_SUCCESS(status = NtCreateEvent(&PhpDeviceNotifyEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE)))
         return FALSE;
@@ -4251,12 +4255,12 @@ PPH_DEVICE_TREE PhReferenceDeviceTreeEx(
 {
     PPH_DEVICE_TREE deviceTree;
 
-    if (ForceRefresh)
-        PhpPublishDeviceTree();
-
     PhAcquireFastLockShared(&PhpDeviceTreeLock);
     PhSetReference(&deviceTree, PhpDeviceTree);
     PhReleaseFastLockShared(&PhpDeviceTreeLock);
+
+    if (ForceRefresh || !deviceTree)
+        PhMoveReference(&deviceTree, PhpPublishDeviceTree());
 
     return deviceTree;
 }
