@@ -22,16 +22,18 @@ PAGED_FILE();
 #define CID_TABLE_L2 ((ULONG_PTR)2)
 #define CID_TABLE_POINTER_MASK ~CID_TABLE_LEVEL_MASK
 
+#define CID_LIMIT (1 << 24)
+
 #define CID_L0_COUNT (PAGE_SIZE / sizeof(CID_TABLE_ENTRY))
-#define CID_L1_COUNT (PAGE_SIZE / sizeof(CID_TABLE_ENTRY))
-#define CID_L2_COUNT ((1 << 24) / (CID_L0_COUNT * CID_L1_COUNT))
+#define CID_L1_COUNT (PAGE_SIZE / sizeof(PCID_TABLE_ENTRY))
+#define CID_L2_COUNT (CID_LIMIT / (CID_L0_COUNT * CID_L1_COUNT))
 
 #define CID_MAX_L0 CID_L0_COUNT
 #define CID_MAX_L1 (CID_L1_COUNT * CID_L0_COUNT)
 #define CID_MAX_L2 (CID_L2_COUNT * CID_L1_COUNT * CID_L0_COUNT)
 
 #define CID_MAX CID_MAX_L2
-C_ASSERT(CID_MAX > 0);
+C_ASSERT(CID_MAX == CID_LIMIT);
 
 #define CidToId(x) ((ULONG_PTR)x / 4)
 
@@ -132,8 +134,8 @@ VOID CidAssignObject(
  */
 _IRQL_requires_max_(APC_LEVEL)
 _When_(Level == CID_TABLE_L0, _Return_allocatesMem_size_(CID_L0_COUNT * sizeof(CID_TABLE_ENTRY)))
-_When_(Level == CID_TABLE_L1, _Return_allocatesMem_size_(CID_L1_COUNT * sizeof(CID_TABLE_ENTRY)))
-_When_(Level == CID_TABLE_L2, _Return_allocatesMem_size_(CID_L2_COUNT * sizeof(CID_TABLE_ENTRY)))
+_When_(Level == CID_TABLE_L1, _Return_allocatesMem_size_(CID_L1_COUNT * sizeof(PCID_TABLE_ENTRY)))
+_When_(Level == CID_TABLE_L2, _Return_allocatesMem_size_(CID_L2_COUNT * sizeof(PCID_TABLE_ENTRY)))
 PVOID CidAllocateTable(
     _In_ ULONG_PTR Level
     )
@@ -149,12 +151,12 @@ PVOID CidAllocateTable(
         }
         case CID_TABLE_L1:
         {
-            return KphAllocatePaged(CID_L1_COUNT * sizeof(CID_TABLE_ENTRY),
+            return KphAllocatePaged(CID_L1_COUNT * sizeof(PCID_TABLE_ENTRY),
                                     KPH_TAG_CID_TABLE);
         }
         case CID_TABLE_L2:
         {
-            return KphAllocatePaged(CID_L2_COUNT * sizeof(CID_TABLE_ENTRY),
+            return KphAllocatePaged(CID_L2_COUNT * sizeof(PCID_TABLE_ENTRY),
                                     KPH_TAG_CID_TABLE);
         }
         default:
@@ -408,8 +410,9 @@ PCID_TABLE_ENTRY CidExpandTableFor(
         //
         // We can't, as of now, service CIDs over the maximum. It is extremely
         // unlikely we'll ever get here. The system is likely to run out of
-        // memory before this happens.
-        // One alternative would be to overflow these into a hash table.
+        // memory before this happens. It also should be impossible given the
+        // limit enforced by handle tables for PspCidTable. Unless Microsoft
+        // changes it, the limit is 1 << 24.
         //
         NT_ASSERT(FALSE);
         return NULL;
