@@ -1892,69 +1892,69 @@ VOID CALLBACK EtFwEventCallback(
     entry.RuleName = ruleName;
     entry.RuleDescription = ruleDescription;
 
-    if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_PROTOCOL_SET)
+    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_IP_PROTOCOL_SET))
     {
         entry.IpProtocol = FwEvent->header.ipProtocol;
     }
 
-    if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_SCOPE_ID_SET)
+    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_SCOPE_ID_SET))
     {
         entry.ScopeId = FwEvent->header.scopeId;
     }
 
-    if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_IP_VERSION_SET)
+    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_IP_VERSION_SET))
     {
         if (FwEvent->header.ipVersion == FWP_IP_VERSION_V4)
         {
-            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET)
+            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET))
             {
                 entry.LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                 entry.LocalEndpoint.Address.Ipv4 = _byteswap_ulong(FwEvent->header.localAddrV4);
             }
 
-            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET)
+            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET))
             {
                 entry.LocalEndpoint.Port = FwEvent->header.localPort;
             }
 
-            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET)
+            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET))
             {
                 entry.RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
                 entry.RemoteEndpoint.Address.Ipv4 = _byteswap_ulong(FwEvent->header.remoteAddrV4);
             }
 
-            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET)
+            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET))
             {
                 entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
             }
         }
         else if (FwEvent->header.ipVersion == FWP_IP_VERSION_V6)
         {
-            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET)
+            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET))
             {
                 entry.LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
                 memcpy(entry.LocalEndpoint.Address.Ipv6, FwEvent->header.localAddrV6.byteArray16, 16);
             }
 
-            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET)
+            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET))
             {
                 entry.LocalEndpoint.Port = FwEvent->header.localPort;
             }
 
-            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET)
+            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET))
             {
                 entry.RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
                 memcpy(entry.RemoteEndpoint.Address.Ipv6, FwEvent->header.remoteAddrV6.byteArray16, 16);
             }
 
-            if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET)
+            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET))
             {
                 entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
             }
         }
     }
 
-    if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_APP_ID_SET)
+    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_APP_ID_SET))
     {
         if (FwEvent->header.appId.data && FwEvent->header.appId.size > sizeof(UNICODE_NULL))
         {
@@ -1977,7 +1977,7 @@ VOID CALLBACK EtFwEventCallback(
         }
     }
 
-    if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_USER_ID_SET)
+    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_USER_ID_SET))
     {
         //if (entry.ProcessItem && PhEqualSid(FwEvent->header.userId, entry.ProcessItem->Sid))
         if (FwEvent->header.userId)
@@ -2092,7 +2092,9 @@ ULONG EtFwMonitorEnumEvents(
 {
     ULONG status;
     HANDLE enumHandle;
-    FWPM_NET_EVENT_ENUM_TEMPLATE enumTemplate = { 0 };
+    FWPM_NET_EVENT_ENUM_TEMPLATE enumTemplate;
+
+    memset(&enumTemplate, 0, sizeof(FWPM_NET_EVENT_ENUM_TEMPLATE));
 
     status = FwpmNetEventCreateEnumHandle(
         EtFwEngineHandle,
@@ -2102,12 +2104,13 @@ ULONG EtFwMonitorEnumEvents(
 
     if (status == ERROR_SUCCESS)
     {
-        UINT32 count = 0;
-        FWPM_NET_EVENT** events;
-
         while (TRUE)
         {
-            status = FwpmNetEventEnum(EtFwEngineHandle, enumHandle, 20, &events, &count);
+            #define FWPM_NET_EVENTS_COUNT 100
+            UINT32 count = 0;
+            FWPM_NET_EVENT** events;
+
+            status = FwpmNetEventEnum(EtFwEngineHandle, enumHandle, FWPM_NET_EVENTS_COUNT, &events, &count);
 
             if (status != ERROR_SUCCESS || count == 0)
                 break;
@@ -2123,7 +2126,10 @@ ULONG EtFwMonitorEnumEvents(
                 EtFwEventCallback(NULL, events[i]);
             }
 
-            FwpmFreeMemory(events);
+            FwpmFreeMemory((PVOID*)&events); // Note: Fixes crash on Win10-17763 (dmex)
+
+            if (count < FWPM_NET_EVENTS_COUNT)
+                break;
         }
 
         FwpmNetEventDestroyEnumHandle(EtFwEngineHandle, enumHandle);
