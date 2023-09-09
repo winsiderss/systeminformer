@@ -1102,6 +1102,93 @@ LdrUpdatePackageSearchPath(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+
+// public
+#define ENCLAVE_TYPE_SGX  0x00000001ul
+#define ENCLAVE_TYPE_SGX2 0x00000002ul
+#define ENCLAVE_TYPE_VBS  0x00000003ul
+
+// rev
+#define ENCLAVE_STATE_NONE        0x00000000ul
+#define ENCLAVE_STATE_CREATED     0x00000001ul
+#define ENCLAVE_STATE_INITIALIZED 0x00000002ul
+
+// rev
+typedef struct _LDR_SOFTWARE_ENCLAVE
+{
+  LIST_ENTRY Links; // ntdll!LdrpEnclaveList
+  RTL_CRITICAL_SECTION CriticalSection;
+  ULONG EnclaveType; // ENCLAVE_TYPE_*
+  LONG ReferenceCount;
+  ULONG EnclaveState; // ENCLAVE_STATE_*
+  PVOID BaseAddress;
+  SIZE_T Size;
+  PVOID PreviousBaseAddress;
+  LIST_ENTRY Modules; // LDR_DATA_TABLE_ENTRY.InLoadOrderLinks
+  PLDR_DATA_TABLE_ENTRY MainModule;
+  PLDR_DATA_TABLE_ENTRY BCryptModule;
+  PLDR_DATA_TABLE_ENTRY BcryptPrimitivesModule;
+} LDR_SOFTWARE_ENCLAVE, *PLDR_SOFTWARE_ENCLAVE;
+
+// rev from CreateEnclave
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrCreateEnclave(
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PVOID* BaseAddress,
+    _In_ ULONG Reserved,
+    _In_ SIZE_T Size,
+    _In_ SIZE_T InitialCommitment,
+    _In_ ULONG EnclaveType,
+    _In_reads_bytes_(EnclaveInformationLength) PVOID EnclaveInformation,
+    _In_ ULONG EnclaveInformationLength,
+    _Out_ PULONG EnclaveError
+    );
+
+// rev from InitializeEnclave
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrInitializeEnclave(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_reads_bytes_(EnclaveInformationLength) PVOID EnclaveInformation,
+    _In_ ULONG EnclaveInformationLength,
+    _Out_ PULONG EnclaveError
+    );
+
+// rev from DeleteEnclave
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrDeleteEnclave(
+    _In_ PVOID BaseAddress
+    );
+
+// rev from CallEnclave
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrCallEnclave(
+    _In_ PENCLAVE_ROUTINE Routine,
+    _In_ ULONG Flags, // ENCLAVE_CALL_FLAG_*
+    _Inout_ PVOID* RoutineParamReturn
+    );
+
+// rev from LoadEnclaveImage
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrLoadEnclaveModule(
+    _In_ PVOID BaseAddress,
+    _In_opt_ PWSTR DllPath,
+    _In_ PUNICODE_STRING DllName
+    );
+
+#endif
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif
