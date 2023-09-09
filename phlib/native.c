@@ -17756,3 +17756,190 @@ BOOLEAN PhIsAppExecutionAliasTarget(
 
     return FALSE;
 }
+
+NTSTATUS PhEnumProcessEnclaves(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID LdrpEnclaveList,
+    _In_ PPH_ENUM_PROCESS_ENCLAVES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    LIST_ENTRY enclaveList;
+    LDR_SOFTWARE_ENCLAVE enclave;
+
+    status = NtReadVirtualMemory(
+        ProcessHandle,
+        LdrpEnclaveList,
+        &enclaveList,
+        sizeof(LIST_ENTRY),
+        NULL
+        );
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (PLIST_ENTRY link = enclaveList.Flink;
+         link != LdrpEnclaveList;
+         link = enclave.Links.Flink)
+    {
+        PVOID enclaveAddress;
+
+        enclaveAddress = CONTAINING_RECORD(link, LDR_SOFTWARE_ENCLAVE, Links);
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            link,
+            &enclave,
+            sizeof(enclave),
+            NULL
+            );
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (!Callback(ProcessHandle, enclaveAddress, &enclave, Context))
+            break;
+    }
+
+    return status;
+}
+
+NTSTATUS PhEnumProcessEnclaveModules(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID EnclaveAddress,
+    _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
+    _In_ PPH_ENUM_PROCESS_ENCLAVE_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PVOID listHead;
+    LDR_DATA_TABLE_ENTRY entry;
+    ULONG entrySize;
+
+    status = STATUS_SUCCESS;
+
+    if (WindowsVersion >= WINDOWS_8)
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
+    else
+        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
+
+    listHead = PTR_ADD_OFFSET(EnclaveAddress, FIELD_OFFSET(LDR_SOFTWARE_ENCLAVE, Modules));
+
+    for (PLIST_ENTRY link = Enclave->Modules.Flink;
+         link != listHead;
+         link = entry.InLoadOrderLinks.Flink)
+    {
+        PVOID entryAddress;
+
+        entryAddress = CONTAINING_RECORD(link, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            entryAddress,
+            &entry,
+            entrySize,
+            NULL
+            );
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (!Callback(ProcessHandle, Enclave, entryAddress, &entry, Context))
+            break;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcesstLdrTableEntryNames(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID EntryAddress,
+    _In_opt_ PLDR_DATA_TABLE_ENTRY Entry,
+    _Out_ PPH_STRING* Name,
+    _Out_ PPH_STRING* FileName
+    )
+{
+    NTSTATUS status;
+    PPH_STRING name;
+    PPH_STRING fileName;
+    PLDR_DATA_TABLE_ENTRY entry;
+    LDR_DATA_TABLE_ENTRY entryData;
+    PWSTR fullDllName;
+    ULONG_PTR index;
+
+    *Name = NULL;
+    *FileName = NULL;
+
+    name = NULL;
+    fileName = NULL;
+
+    if (Entry)
+    {
+        entry = Entry;
+    }
+    else
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            EntryAddress,
+            &entryData,
+            sizeof(entryData),
+            NULL
+            );
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        entry = &entryData;
+    }
+
+    if (entry->DllBase)
+        PhGetProcessMappedFileName(ProcessHandle, entry->DllBase, &fileName);
+
+    if (!fileName)
+    {
+        fullDllName = PhAllocate(entry->FullDllName.Length + sizeof(UNICODE_NULL));
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            entry->FullDllName.Buffer,
+            fullDllName,
+            entry->FullDllName.Length,
+            NULL
+            );
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        fileName = PhCreateStringEx(
+            fullDllName,
+            entry->FullDllName.Length / sizeof(WCHAR)
+            );
+    }
+
+    index = PhFindLastCharInStringRef(
+        &fileName->sr,
+        OBJ_NAME_ALTPATH_SEPARATOR,
+        FALSE
+        );
+    if (index != SIZE_MAX)
+    {
+        name = PhCreateStringEx(
+            &fileName->Buffer[index + 1],
+            fileName->Length - (index * sizeof(WCHAR))
+            );
+    }
+    else
+    {
+        name = PhReferenceObject(fileName);
+    }
+
+    *Name = name;
+    name = NULL;
+
+    *FileName = fileName;
+    fileName = NULL;
+
+CleanupExit:
+
+    PhClearReference(&name);
+    PhClearReference(&fileName);
+
+    return STATUS_SUCCESS;
+}
