@@ -1111,18 +1111,18 @@ LdrUpdatePackageSearchPath(
 // rev
 typedef struct _LDR_SOFTWARE_ENCLAVE
 {
-  LIST_ENTRY Links; // ntdll!LdrpEnclaveList
-  RTL_CRITICAL_SECTION CriticalSection;
-  ULONG EnclaveType; // ENCLAVE_TYPE_*
-  LONG ReferenceCount;
-  ULONG EnclaveState; // ENCLAVE_STATE_*
-  PVOID BaseAddress;
-  SIZE_T Size;
-  PVOID PreviousBaseAddress;
-  LIST_ENTRY Modules; // LDR_DATA_TABLE_ENTRY.InLoadOrderLinks
-  PLDR_DATA_TABLE_ENTRY MainModule;
-  PLDR_DATA_TABLE_ENTRY BCryptModule;
-  PLDR_DATA_TABLE_ENTRY BcryptPrimitivesModule;
+    LIST_ENTRY Links; // ntdll!LdrpEnclaveList
+    RTL_CRITICAL_SECTION CriticalSection;
+    ULONG EnclaveType; // ENCLAVE_TYPE_*
+    LONG ReferenceCount;
+    ULONG EnclaveState; // ENCLAVE_STATE_*
+    PVOID BaseAddress;
+    SIZE_T Size;
+    PVOID PreviousBaseAddress;
+    LIST_ENTRY Modules; // LDR_DATA_TABLE_ENTRY.InLoadOrderLinks
+    PLDR_DATA_TABLE_ENTRY MainModule;
+    PLDR_DATA_TABLE_ENTRY BCryptModule;
+    PLDR_DATA_TABLE_ENTRY BcryptPrimitivesModule;
 } LDR_SOFTWARE_ENCLAVE, *PLDR_SOFTWARE_ENCLAVE;
 
 // rev from CreateEnclave
