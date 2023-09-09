@@ -3382,6 +3382,53 @@ PhIsAppExecutionAliasTarget(
     _In_ PPH_STRING FileName
     );
 
+typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_ENCLAVES_CALLBACK)(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID EnclaveAddress,
+    _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumProcessEnclaves(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID LdrpEnclaveList,
+    _In_ PPH_ENUM_PROCESS_ENCLAVES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_ENCLAVE_MODULES_CALLBACK)(
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
+    _In_ PVOID EntryAddress,
+    _In_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumProcessEnclaveModules(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID EnclaveAddress,
+    _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
+    _In_ PPH_ENUM_PROCESS_ENCLAVE_MODULES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcesstLdrTableEntryNames(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID EntryAddress,
+    _In_opt_ PLDR_DATA_TABLE_ENTRY Entry,
+    _Out_ PPH_STRING* Name,
+    _Out_ PPH_STRING* FileName
+    );
+
 EXTERN_C_END
 
 #endif
