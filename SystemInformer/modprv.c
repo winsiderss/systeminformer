@@ -21,6 +21,10 @@
 #include <procprv.h>
 #include <phsettings.h>
 
+#include <symprv.h>
+#include <appsup.h>
+#include <mapldr.h>
+
 typedef struct _PH_MODULE_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
@@ -188,6 +192,38 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     case 4:
         moduleProvider->ImageCoherencyScanLevel = PhImageCoherencySharedOriginal;
         break;
+    }
+
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"ntdll.dll");
+        PPH_SYMBOL_PROVIDER symbolProvider;
+        PLDR_DATA_TABLE_ENTRY entry;
+        PH_SYMBOL_INFORMATION symbolInfo;
+
+        symbolProvider = PhCreateSymbolProvider(ProcessId);
+        PhLoadSymbolProviderOptions(symbolProvider);
+
+        if (entry = PhFindLoaderEntry(NULL, NULL, &ntdllFileName))
+        {
+            PH_STRINGREF fullName;
+            PPH_STRING fileName;
+
+            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
+
+            if (fileName = PhDosPathNameToNtPathName(&fullName))
+            {
+                PhLoadModuleSymbolProvider(symbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
+                PhDereferenceObject(fileName);
+            }
+        }
+
+        if (PhGetSymbolFromName(symbolProvider, L"LdrpEnclaveList", &symbolInfo))
+        {
+            moduleProvider->LdrpEnclaveList = (PVOID)symbolInfo.Address;
+        }
+
+        PhDereferenceObject(symbolProvider);
     }
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
