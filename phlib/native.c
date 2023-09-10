@@ -14200,13 +14200,13 @@ NTSTATUS PhGetMachineTypeAttributes(
     )
 {
     NTSTATUS status;
-    HANDLE input = NULL;
+    HANDLE input[1] = { 0 };
     SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION output[6] = { 0 };
     ULONG returnLength;
 
     status = NtQuerySystemInformationEx(
         SystemSupportedProcessorArchitectures2,
-        &input,
+        input,
         sizeof(input),
         output,
         sizeof(output),
@@ -14215,7 +14215,9 @@ NTSTATUS PhGetMachineTypeAttributes(
 
     if (NT_SUCCESS(status))
     {
-        MACHINE_ATTRIBUTES attributes = 0;
+        MACHINE_ATTRIBUTES attributes;
+
+        memset(&attributes, 0, sizeof(MACHINE_ATTRIBUTES));
 
         for (ULONG i = 0; i < returnLength / sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION); i++)
         {
@@ -16887,11 +16889,11 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
         return STATUS_PROCEDURE_NOT_FOUND;
 
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
-    cfgCallTargetRangeInfo.VirtualAddress = (PVOID)((ULONG_PTR)VirtualAddress & ~PAGE_MASK);
+    cfgCallTargetRangeInfo.VirtualAddress = PAGE_ALIGN(VirtualAddress);
     cfgCallTargetRangeInfo.NumberOfBytes = PAGE_SIZE;
 
     memset(&cfgCallTargetInfo, 0, sizeof(CFG_CALL_TARGET_INFO));
-    cfgCallTargetInfo.Offset = (ULONG_PTR)((ULONG_PTR)VirtualAddress & PAGE_MASK);
+    cfgCallTargetInfo.Offset = BYTE_OFFSET(VirtualAddress);
     cfgCallTargetInfo.Flags = CFG_CALL_TARGET_VALID;
 
     memset(&cfgCallTargetListInfo, 0, sizeof(CFG_CALL_TARGET_LIST_INFORMATION));
@@ -16931,11 +16933,11 @@ NTSTATUS PhDisableXfgOnTarget(
         return STATUS_PROCEDURE_NOT_FOUND;
 
     memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
-    cfgCallTargetRangeInfo.VirtualAddress = (PVOID)((ULONG_PTR)VirtualAddress & ~PAGE_MASK);
+    cfgCallTargetRangeInfo.VirtualAddress = PAGE_ALIGN(VirtualAddress);
     cfgCallTargetRangeInfo.NumberOfBytes = PAGE_SIZE;
 
     memset(&cfgCallTargetInfo, 0, sizeof(CFG_CALL_TARGET_INFO));
-    cfgCallTargetInfo.Offset = ((ULONG_PTR)VirtualAddress & PAGE_MASK);
+    cfgCallTargetInfo.Offset = BYTE_OFFSET(VirtualAddress);
     cfgCallTargetInfo.Flags = CFG_CALL_TARGET_CONVERT_XFG_TO_CFG;
 
     memset(&cfgCallTargetListInfo, 0, sizeof(CFG_CALL_TARGET_LIST_INFORMATION));
@@ -17465,8 +17467,8 @@ NTSTATUS PhEnumVirtualMemoryAttributes(
     if (!NT_SUCCESS(status))
         return status;
 
-    numberOfPages = ((SIZE_T)((ULONG_PTR)BaseAddress & PAGE_MASK) + Size + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
-    virtualAddress = (ULONG_PTR)BaseAddress & ~PAGE_MASK;
+    numberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, Size);
+    virtualAddress = (ULONG_PTR)PAGE_ALIGN(BaseAddress);
 
     if (!numberOfPages)
     {
@@ -17583,8 +17585,11 @@ BOOLEAN PhIsDebuggerPresent(
  * Queries information about the volume associated with a given file, directory, storage device, or volume.
  *
  * \param ProcessHandle A handle to a process.
- * \param DesiredAccess The desired access to the token.
- * \param TokenHandle A variable which receives a handle to the token.
+ * \param FileHandle A handle to the volume.
+ * \param FsInformationClass Type of information to be returned about the volume.
+ * \param FsInformation A pointer to a caller-allocated buffer.
+ * \param FsInformationLength Size in bytes of the buffer pointed to by FsInformation.
+ * \param IoStatusBlock A pointer to an IO_STATUS_BLOCK structure that receives the final completion status and information about the query operation.
  */
 NTSTATUS PhQueryVolumeInformationFile(
     _In_opt_ HANDLE ProcessHandle,
