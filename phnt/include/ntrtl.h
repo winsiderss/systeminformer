@@ -3619,6 +3619,15 @@ RtlGuardCheckLongJumpTarget(
 
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
+NTSYSAPI
+VOID
+NTAPI
+RtlValidateUserCallTarget(
+    _In_ PVOID Address,
+    _Out_ PULONG Flags
+    );
+#endif
 // Memory
 
 _Must_inspect_result_
