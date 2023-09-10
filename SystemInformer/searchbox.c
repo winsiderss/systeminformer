@@ -808,7 +808,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     ULONG textBufferLength;
                     WCHAR textBuffer[0x100];
 
-                    if (PhGetWindowTextToBuffer(hWnd, 0, textBuffer, RTL_NUMBER_OF(textBuffer), &textBufferLength) != ERROR_SUCCESS)
+                    if (!NT_SUCCESS(PhGetWindowTextToBuffer(hWnd, 0, textBuffer, RTL_NUMBER_OF(textBuffer), &textBufferLength)))
                     {
                         break;
                     }
