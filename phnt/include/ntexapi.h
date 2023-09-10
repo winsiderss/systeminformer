@@ -6387,7 +6387,7 @@ typedef struct _KUSER_SHARED_DATA
     //
     // A bitmask of enclave features supported on this system.
     //
-    // N.B. This field must be accessed via the RtlIsEnclareFeaturePresent API for an
+    // N.B. This field must be accessed via the RtlIsEnclaveFeaturePresent API for an
     //      accurate result.
     //
 
