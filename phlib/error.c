@@ -95,6 +95,7 @@ NTSTATUS PhDosErrorToNtStatus(
     case ERROR_NONE_MAPPED: return STATUS_NONE_MAPPED;
     case ERROR_INTERNAL_ERROR: return STATUS_INTERNAL_ERROR;
     case ERROR_SERVICES_FAILED_AUTOSTART: return STATUS_SERVICES_FAILED_AUTOSTART;
+    case ERROR_SERVICE_DISABLED: return NTSTATUS_FROM_WIN32(DosError);
     default:
         {
             assert(FALSE); // Update the table. (dmex)
