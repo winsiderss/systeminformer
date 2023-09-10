@@ -350,6 +350,14 @@ PhSetProcessItemPriorityBoost(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ BOOLEAN PriorityBoost
     );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhSetProcessItemThrottlingState(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN ThrottlingState
+    );
 // end_phapppub
 
 PHAPPAPI
