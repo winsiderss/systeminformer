@@ -14246,14 +14246,14 @@ NTSTATUS PhGetProcessArchitecture(
     )
 {
     NTSTATUS status;
-    USHORT architecture = IMAGE_FILE_MACHINE_UNKNOWN;
+    HANDLE input[1] = { ProcessHandle };
     SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION output[6];
     ULONG returnLength;
 
     status = NtQuerySystemInformationEx(
         SystemSupportedProcessorArchitectures2,
-        &ProcessHandle,
-        sizeof(ProcessHandle),
+        input,
+        sizeof(input),
         output,
         sizeof(output),
         &returnLength
@@ -14261,22 +14261,16 @@ NTSTATUS PhGetProcessArchitecture(
 
     if (NT_SUCCESS(status))
     {
-        status = STATUS_NOT_FOUND;
-
         for (ULONG i = 0; i < returnLength / sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION); i++)
         {
             if (output[i].Process)
             {
-                architecture = (USHORT)output[i].Machine;
-                status = STATUS_SUCCESS;
-                break;
+                *ProcessArchitecture = (USHORT)output[i].Machine;
+                return STATUS_SUCCESS;
             }
         }
-    }
 
-    if (NT_SUCCESS(status))
-    {
-        *ProcessArchitecture = architecture;
+        status = STATUS_NOT_FOUND;
     }
 
     return status;
