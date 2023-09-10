@@ -1060,7 +1060,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
                     {
-                        PhInitializeStringRefLongHint(&getCellText->Text, L"Dynamic");
+                        PhInitializeStringRef(&getCellText->Text, L"Dynamic");
                     }
                     else if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                     {
@@ -1101,7 +1101,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                             break;
                         }
 
-                        PhInitializeStringRefLongHint(&getCellText->Text, string);
+                        PhInitializeStringRef(&getCellText->Text, string);
                     }
                     else
                     {

@@ -70,7 +70,7 @@ typedef enum _PH_SYSINFO_SECTION_MESSAGE
     SysInfoGraphGetDrawInfo, // PPH_GRAPH_DRAW_INFO Parameter1
     SysInfoGraphGetTooltipText, // PPH_SYSINFO_GRAPH_GET_TOOLTIP_TEXT Parameter1
     SysInfoGraphDrawPanel, // PPH_SYSINFO_DRAW_PANEL Parameter1
-    SysInfoDpiChanged,
+    SysInfoDpiChanged, // ULONG Parameter1
     MaxSysInfoMessage
 } PH_SYSINFO_SECTION_MESSAGE;
 

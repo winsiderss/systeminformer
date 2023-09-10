@@ -178,8 +178,7 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                     ULONG sessionId = PtrToUlong(PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT));
                     ULONG virtualKey;
                     ULONG modifiers;
-                    WCHAR computerName[64];
-                    ULONG computerNameLength = 64;
+                    PPH_STRING computerName;
 
                     virtualKey = VK_MULTIPLY;
                     PhFindIntegerSiKeyValuePairs(
@@ -198,9 +197,9 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_ALT)) == BST_CHECKED)
                         modifiers |= KBDALT;
 
-                    if (GetComputerName(computerName, &computerNameLength))
+                    if (computerName = PhGetActiveComputerName())
                     {
-                        if (WinStationShadow(NULL, computerName, sessionId, (UCHAR)virtualKey, (USHORT)modifiers))
+                        if (WinStationShadow(NULL, PhGetString(computerName), sessionId, (UCHAR)virtualKey, (USHORT)modifiers))
                         {
                             PH_INTEGER_PAIR hotkey;
 
@@ -214,6 +213,8 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
                         {
                             PhShowStatus(hwndDlg, L"Unable to remote control the session", 0, GetLastError());
                         }
+
+                        PhDereferenceObject(computerName);
                     }
                     else
                     {

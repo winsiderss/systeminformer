@@ -898,30 +898,42 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, memoryItem->BaseAddressString);
                 break;
             case PHMMTLC_TYPE:
-                if (memoryItem->State & MEM_FREE)
                 {
-                    if (memoryItem->RegionType == UnusableRegion)
-                        PhInitializeStringRef(&getCellText->Text, L"Free (Unusable)");
-                    else
-                        PhInitializeStringRef(&getCellText->Text, L"Free");
-                }
-                else if (node->IsAllocationBase)
-                {
-                    PhInitializeStringRefLongHint(&getCellText->Text, PhGetMemoryTypeString(memoryItem->Type));
-                }
-                else
-                {
-                    PH_FORMAT format[3];
-                    SIZE_T returnLength;
-
-                    PhInitFormatS(&format[0], PhGetMemoryTypeString(memoryItem->Type));
-                    PhInitFormatS(&format[1], L": ");
-                    PhInitFormatS(&format[2], PhGetMemoryStateString(memoryItem->State));
-
-                    if (PhFormatToBuffer(format, 3, node->TypeText, sizeof(node->TypeText), &returnLength))
+                    if (FlagOn(memoryItem->State, MEM_FREE))
                     {
-                        getCellText->Text.Buffer = node->TypeText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        if (memoryItem->RegionType == UnusableRegion)
+                            PhInitializeStringRef(&getCellText->Text, L"Free (Unusable)");
+                        else
+                            PhInitializeStringRef(&getCellText->Text, L"Free");
+                    }
+                    else if (node->IsAllocationBase)
+                    {
+                        PPH_STRINGREF string;
+
+                        if (string = PhGetMemoryTypeString(memoryItem->Type))
+                        {
+                            getCellText->Text.Length = string->Length;
+                            getCellText->Text.Buffer = string->Buffer;
+                        }
+                        else
+                        {
+                            PhInitializeEmptyStringRef(&getCellText->Text);
+                        }
+                    }
+                    else
+                    {
+                        PH_FORMAT format[3];
+                        SIZE_T returnLength;
+
+                        PhInitFormatSR(&format[0], *PhGetMemoryTypeString(memoryItem->Type));
+                        PhInitFormatS(&format[1], L": ");
+                        PhInitFormatSR(&format[2], *PhGetMemoryStateString(memoryItem->State));
+
+                        if (PhFormatToBuffer(format, 3, node->TypeText, sizeof(node->TypeText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->TypeText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
                     }
                 }
                 break;

@@ -188,16 +188,16 @@ VOID NTAPI ProcessMenuInitializingCallback(
                 {
                     PhSetEnabledEMenuItem(startMenuItem, FALSE);
                     PhSetEnabledEMenuItem(continueMenuItem, FALSE);
-                    PhSetEnabledEMenuItem(pauseMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                    PhSetEnabledEMenuItem(stopMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                    PhSetEnabledEMenuItem(pauseMenuItem, FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE));
+                    PhSetEnabledEMenuItem(stopMenuItem, FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_STOP));
                 }
                 break;
             case SERVICE_PAUSED:
                 {
                     PhSetEnabledEMenuItem(startMenuItem, FALSE);
-                    PhSetEnabledEMenuItem(continueMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                    PhSetEnabledEMenuItem(continueMenuItem, FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE));
                     PhSetEnabledEMenuItem(pauseMenuItem, FALSE);
-                    PhSetEnabledEMenuItem(stopMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                    PhSetEnabledEMenuItem(stopMenuItem, FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_STOP));
                 }
                 break;
             case SERVICE_STOPPED:
@@ -220,7 +220,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
                 break;
             }
 
-            if (!(serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE))
+            if (!FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE))
             {
                 PhDestroyEMenuItem(continueMenuItem);
                 PhDestroyEMenuItem(pauseMenuItem);
@@ -265,7 +265,7 @@ VOID NTAPI ServicePropertiesInitializingCallback(
         propSheetPage.hInstance = PluginInstance->DllBase;
         propSheetPage.lParam = (LPARAM)serviceItem;
 
-        if (!(serviceItem->Flags & SERVICE_RUNS_IN_SYSTEM_PROCESS))
+        if (!FlagOn(serviceItem->Flags, SERVICE_RUNS_IN_SYSTEM_PROCESS))
         {
             propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVRECOVERY);
             propSheetPage.pfnDlgProc = EspServiceRecoveryDlgProc;
@@ -496,16 +496,16 @@ VOID MiListSectionMenuInitializingCallback(
                 {
                     PhSetEnabledEMenuItem(startMenuItem, FALSE);
                     PhSetEnabledEMenuItem(continueMenuItem, FALSE);
-                    PhSetEnabledEMenuItem(pauseMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                    PhSetEnabledEMenuItem(stopMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                    PhSetEnabledEMenuItem(pauseMenuItem, FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE));
+                    PhSetEnabledEMenuItem(stopMenuItem, FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_STOP));
                 }
                 break;
             case SERVICE_PAUSED:
                 {
                     PhSetEnabledEMenuItem(startMenuItem, FALSE);
-                    PhSetEnabledEMenuItem(continueMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                    PhSetEnabledEMenuItem(continueMenuItem, FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE));
                     PhSetEnabledEMenuItem(pauseMenuItem, FALSE);
-                    PhSetEnabledEMenuItem(stopMenuItem, serviceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                    PhSetEnabledEMenuItem(stopMenuItem, FlagOn(serviceItem->ControlsAccepted, SERVICE_ACCEPT_STOP));
                 }
                 break;
             case SERVICE_STOPPED:

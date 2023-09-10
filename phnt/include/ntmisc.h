@@ -54,64 +54,65 @@ NtTraceEvent(
     _In_ PVOID Fields
     );
 
-typedef enum _TRACE_CONTROL_INFORMATION_CLASS
+// rev
+typedef enum _ETWTRACECONTROLCODE
 {
-    TraceControlStartLogger = 1, // inout WMI_LOGGER_INFORMATION
-    TraceControlStopLogger = 2, // inout WMI_LOGGER_INFORMATION
-    TraceControlQueryLogger = 3, // inout WMI_LOGGER_INFORMATION
-    TraceControlUpdateLogger = 4, // inout WMI_LOGGER_INFORMATION
-    TraceControlFlushLogger = 5, // inout WMI_LOGGER_INFORMATION
-    TraceControlIncrementLoggerFile = 6, // inout WMI_LOGGER_INFORMATION
-    TraceControlRealtimeTransition = 7, // inout WMI_LOGGER_INFORMATION
-    // unused
-    TraceControlRealtimeConnect = 11,
-    TraceControlActivityIdCreate = 12,
-    TraceControlWdiDispatchControl = 13,
-    TraceControlRealtimeDisconnectConsumerByHandle = 14, // in HANDLE
-    TraceControlRegisterGuidsCode = 15,
-    TraceControlReceiveNotification = 16,
-    TraceControlSendDataBlock = 17, // ETW_ENABLE_NOTIFICATION_PACKET
-    TraceControlSendReplyDataBlock = 18,
-    TraceControlReceiveReplyDataBlock = 19,
-    TraceControlWdiUpdateSem = 20,
-    TraceControlEnumTraceGuidList = 21, // out GUID[]
-    TraceControlGetTraceGuidInfo = 22, // in GUID, out TRACE_GUID_INFO
-    TraceControlEnumerateTraceGuids = 23,
-    TraceControlRegisterSecurityProv = 24,
-    TraceControlQueryReferenceTime = 25, // in ULONG, out ETW_REF_CLOCK
-    TraceControlTrackProviderBinary = 26, // in HANDLE
-    TraceControlAddNotificationEvent = 27,
-    TraceControlUpdateDisallowList = 28,
-    TraceControlSetEnableAllKeywordsCode = 29,
-    TraceControlSetProviderTraitsCode = 30,
-    TraceControlUseDescriptorTypeCode = 31,
-    TraceControlEnumTraceGroupList = 32,
-    TraceControlGetTraceGroupInfo = 33,
-    TraceControlGetDisallowList = 34,
-    TraceControlSetCompressionSettings = 35,
-    TraceControlGetCompressionSettings = 36,
-    TraceControlUpdatePeriodicCaptureState = 37,
-    TraceControlGetPrivateSessionTraceHandle = 38,
-    TraceControlRegisterPrivateSession = 39,
-    TraceControlQuerySessionDemuxObject = 40,
-    TraceControlSetProviderBinaryTracking = 41,
-    TraceControlMaxLoggers = 42, // out ULONG
-    TraceControlMaxPmcCounter = 43, // out ULONG
-    TraceControlQueryUsedProcessorCount = 44, // ULONG // since WIN11
-    TraceControlGetPmcOwnership = 45,
-    TraceControlGetPmcSessions = 46,
-} TRACE_CONTROL_INFORMATION_CLASS;
+    EtwStartLoggerCode = 1, // inout WMI_LOGGER_INFORMATION
+    EtwStopLoggerCode = 2, // inout WMI_LOGGER_INFORMATION
+    EtwQueryLoggerCode = 3, // inout WMI_LOGGER_INFORMATION
+    EtwUpdateLoggerCode = 4, // inout WMI_LOGGER_INFORMATION
+    EtwFlushLoggerCode = 5, // inout WMI_LOGGER_INFORMATION
+    EtwIncrementLoggerFile = 6, // inout WMI_LOGGER_INFORMATION
+    EtwRealtimeTransition = 7, // inout WMI_LOGGER_INFORMATION
+    // reserved
+    EtwRealtimeConnectCode = 11,
+    EtwActivityIdCreate = 12,
+    EtwWdiScenarioCode = 13,
+    EtwRealtimeDisconnectCode = 14, // in HANDLE
+    EtwRegisterGuidsCode = 15,
+    EtwReceiveNotification = 16,
+    EtwSendDataBlock = 17, // ETW_ENABLE_NOTIFICATION_PACKET
+    EtwSendReplyDataBlock = 18,
+    EtwReceiveReplyDataBlock = 19,
+    EtwWdiSemUpdate = 20,
+    EtwEnumTraceGuidList = 21, // out GUID[]
+    EtwGetTraceGuidInfo = 22, // in GUID, out TRACE_GUID_INFO
+    EtwEnumerateTraceGuids = 23,
+    EtwRegisterSecurityProv = 24,
+    EtwReferenceTimeCode = 25, // in ULONG, out ETW_REF_CLOCK
+    EtwTrackBinaryCode = 26, // in HANDLE
+    EtwAddNotificationEvent = 27,
+    EtwUpdateDisallowList = 28,
+    EtwSetEnableAllKeywordsCode = 29,
+    EtwSetProviderTraitsCode = 30,
+    EtwUseDescriptorTypeCode = 31,
+    EtwEnumTraceGroupList = 32,
+    EtwGetTraceGroupInfo = 33,
+    EtwGetDisallowList = 34,
+    EtwSetCompressionSettings = 35,
+    EtwGetCompressionSettings = 36,
+    EtwUpdatePeriodicCaptureState = 37,
+    EtwGetPrivateSessionTraceHandle = 38,
+    EtwRegisterPrivateSession = 39,
+    EtwQuerySessionDemuxObject = 40,
+    EtwSetProviderBinaryTracking = 41,
+    EtwMaxLoggers = 42, // out ULONG
+    EtwMaxPmcCounter = 43, // out ULONG
+    EtwQueryUsedProcessorCount = 44, // ULONG // since WIN11
+    EtwGetPmcOwnership = 45,
+    EtwGetPmcSessions = 46,
+} ETWTRACECONTROLCODE;
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtTraceControl(
-    _In_ TRACE_CONTROL_INFORMATION_CLASS TraceInformationClass,
+    _In_ ETWTRACECONTROLCODE TraceControlCode,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
-    _Out_writes_bytes_opt_(TraceInformationLength) PVOID TraceInformation,
-    _In_ ULONG TraceInformationLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
     _Out_ PULONG ReturnLength
     );
 #endif

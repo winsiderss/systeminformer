@@ -1102,11 +1102,9 @@ VOID PhMwpOnCommand(
     case ID_TOOLS_STARTTASKMANAGER:
         {
             extern BOOLEAN PhpIsDefaultTaskManager(VOID); // options.c (dmex)
-            PPH_STRING systemDirectory;
             PPH_STRING taskmgrFileName;
 
-            systemDirectory = PH_AUTO(PhGetSystemDirectory());
-            taskmgrFileName = PH_AUTO(PhConcatStringRefZ(&systemDirectory->sr, L"\\taskmgr.exe"));
+            taskmgrFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\taskmgr.exe"));
 
             if (!PhpIsDefaultTaskManager() && PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {

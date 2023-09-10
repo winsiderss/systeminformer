@@ -475,7 +475,7 @@ static VOID PhStopStopwatch(
     _Inout_ PSTOPWATCH Stopwatch
     )
 {
-    NtQueryPerformanceCounter(&Stopwatch->EndCounter, NULL);
+    PhQueryPerformanceCounter(&Stopwatch->EndCounter);
 }
 
 static ULONG PhGetMillisecondsStopwatch(

@@ -1197,8 +1197,8 @@ VOID PhpInitializeSettings(
 
         sampleCount = (PhGetSystemMetrics(SM_CXVIRTUALSCREEN, 0) + 1) / 2;
 
-        if (sampleCount > 2048)
-            sampleCount = 2048;
+        if (sampleCount > 4096)
+            sampleCount = 4096;
 
         PhSetIntegerSetting(L"SampleCount", sampleCount);
     }
@@ -1461,7 +1461,7 @@ VOID PhpEnablePrivileges(
         &tokenHandle
         )))
     {
-        LUID_AND_ATTRIBUTES privileges[] =
+        const LUID_AND_ATTRIBUTES privileges[] =
         {
             { RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE), SE_PRIVILEGE_ENABLED },
             { RtlConvertUlongToLuid(SE_INC_BASE_PRIORITY_PRIVILEGE), SE_PRIVILEGE_ENABLED },

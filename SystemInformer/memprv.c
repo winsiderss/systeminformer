@@ -84,32 +84,48 @@ VOID PhGetMemoryProtectionString(
     *string = UNICODE_NULL;
 }
 
-PWSTR PhGetMemoryStateString(
+PPH_STRINGREF PhGetMemoryStateString(
     _In_ ULONG State
     )
 {
-    if (State & MEM_COMMIT)
-        return L"Commit";
-    else if (State & MEM_RESERVE)
-        return L"Reserved";
-    else if (State & MEM_FREE)
-        return L"Free";
+    static PH_STRINGREF MemoryStateString[] =
+    {
+        PH_STRINGREF_INIT(L"Unknown"),
+        PH_STRINGREF_INIT(L"Commit"),
+        PH_STRINGREF_INIT(L"Reserved"),
+        PH_STRINGREF_INIT(L"Free"),
+    };
+
+    if (FlagOn(State, MEM_COMMIT))
+        return &MemoryStateString[1];
+    else if (FlagOn(State, MEM_RESERVE))
+        return &MemoryStateString[2];
+    else if (FlagOn(State, MEM_FREE))
+        return &MemoryStateString[3];
     else
-        return L"Unknown";
+        return &MemoryStateString[0];
 }
 
-PWSTR PhGetMemoryTypeString(
+PPH_STRINGREF PhGetMemoryTypeString(
     _In_ ULONG Type
     )
 {
-    if (Type & MEM_PRIVATE)
-        return L"Private";
-    else if (Type & MEM_MAPPED)
-        return L"Mapped";
-    else if (Type & MEM_IMAGE)
-        return L"Image";
+    static PH_STRINGREF MemoryTypeString[] =
+    {
+        PH_STRINGREF_INIT(L"Unknown"),
+        PH_STRINGREF_INIT(L"Private"),
+        PH_STRINGREF_INIT(L"Mapped"),
+        PH_STRINGREF_INIT(L"Image"),
+    };
+
+    if (FlagOn(Type, MEM_PRIVATE))
+        return &MemoryTypeString[1];
+    else if (FlagOn(Type, MEM_MAPPED))
+        return &MemoryTypeString[2];
+    else if (FlagOn(Type, MEM_IMAGE))
+        return &MemoryTypeString[3];
     else
-        return L"Unknown";
+        return &MemoryTypeString[0];
 }
 
 PPH_STRINGREF PhGetSigningLevelString(
@@ -245,7 +261,6 @@ PPH_STRING PhGetMemoryRegionTypeExString(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-_Ret_notnull_
 PPH_MEMORY_ITEM PhCreateMemoryItem(
     VOID
     )

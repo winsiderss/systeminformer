@@ -489,11 +489,11 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhTraceControl(
-    _In_ TRACE_CONTROL_INFORMATION_CLASS TraceInformationClass,
+    _In_ ETWTRACECONTROLCODE TraceInformationClass,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
-    _Out_opt_ PVOID* TraceInformation,
-    _Out_opt_ PULONG TraceInformationLength
+    _Out_opt_ PVOID* OutputBuffer,
+    _Out_opt_ PULONG OutputBufferLength
     );
 
 PHLIBAPI

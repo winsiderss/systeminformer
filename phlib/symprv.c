@@ -2057,11 +2057,11 @@ NTSTATUS PhWalkThreadStack(
     // Make sure this isn't a kernel-mode thread.
     if (!isSystemThread)
     {
-        PVOID startAddress;
+        ULONG_PTR startAddress;
 
         if (NT_SUCCESS(PhGetThreadStartAddress(ThreadHandle, &startAddress)))
         {
-            if ((ULONG_PTR)startAddress > PhSystemBasicInformation.MaximumUserModeAddress)
+            if (startAddress > PhSystemBasicInformation.MaximumUserModeAddress)
                 isSystemThread = TRUE;
         }
     }

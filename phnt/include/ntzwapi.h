@@ -623,9 +623,9 @@ NTSTATUS
 NTAPI
 ZwCallEnclave(
     _In_ PENCLAVE_ROUTINE Routine,
-    _In_ PVOID Parameter,
-    _In_ BOOLEAN WaitForThread,
-    _Out_opt_ PVOID *ReturnValue
+    _In_ PVOID Reserved,              // reserved for dispatch (RtlEnclaveCallDispatch)
+    _In_ ULONG Flags,                 // ENCLAVE_CALL_FLAG_*
+    _Inout_ PVOID* RoutineParamReturn // input routine parameter, output routine return value
     );
 
 NTSYSCALLAPI
@@ -4103,8 +4103,8 @@ ZwSetInformationVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
     _In_ ULONG_PTR NumberOfEntries,
-    _In_reads_ (NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
-    _In_reads_bytes_ (VmInformationLength) PVOID VmInformation,
+    _In_reads_(NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
+    _In_reads_bytes_(VmInformationLength) PVOID VmInformation,
     _In_ ULONG VmInformationLength
     );
 
@@ -4423,7 +4423,7 @@ NTSTATUS
 NTAPI
 ZwTerminateEnclave(
     _In_ PVOID BaseAddress,
-    _In_ BOOLEAN WaitForThread
+    _In_ ULONG Flags // TERMINATE_ENCLAVE_FLAG_*
     );
 
 NTSYSCALLAPI
@@ -4475,11 +4475,11 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwTraceControl(
-    _In_ TRACE_CONTROL_INFORMATION_CLASS TraceInformationClass,
+    _In_ ETWTRACECONTROLCODE TraceControlCode,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
-    _Out_writes_bytes_opt_(TraceInformationLength) PVOID TraceInformation,
-    _In_ ULONG TraceInformationLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
     _Out_ PULONG ReturnLength
     );
 

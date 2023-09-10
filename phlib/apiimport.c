@@ -67,7 +67,6 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransaction);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryInformationTransactionManager);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryDefaultLocale);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryDefaultUILanguage);
-PH_DEFINE_IMPORT(L"ntdll.dll", NtTraceControl);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryOpenSubKeysEx);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtSetInformationVirtualMemory);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateProcessStateChange);
@@ -94,7 +93,6 @@ PH_DEFINE_IMPORT(L"userenv.dll", DestroyEnvironmentBlock);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
-PH_DEFINE_IMPORT(L"user32.dll", MessageBeep);
 PH_DEFINE_IMPORT(L"user32.dll", SetWindowDisplayAffinity);
 
 PH_DEFINE_IMPORT(L"winsta.dll", WinStationQueryInformationW);
