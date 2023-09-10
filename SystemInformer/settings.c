@@ -252,6 +252,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"TreeListEnableHeaderTotals", L"1");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"WmiProviderEnableHiddenMenu", L"0");
+    PhpAddIntegerSetting(L"WmiProviderEnableTooltipSupport", L"0");
     PhpAddStringSetting(L"WmiProviderTreeListColumns", L"");
     PhpAddStringSetting(L"WmiProviderTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerSetting(L"WmiProviderTreeListFlags", L"0");
