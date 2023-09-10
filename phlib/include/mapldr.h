@@ -154,8 +154,8 @@ PhLoadIndirectString(
     _In_ PPH_STRINGREF SourceString
     );
 
-PHLIBAPI
 _Success_(return != NULL)
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetDllFileName(
