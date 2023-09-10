@@ -7195,71 +7195,24 @@ CleanupExit:
 //}
 
 PPH_STRING PhCreateCacheFile(
+    _In_ BOOLEAN PortableDirectory,
     _In_ PPH_STRING FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
-    static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
     static PH_STRINGREF settingsDirectory = PH_STRINGREF_INIT(L"cache");
-    PPH_STRING fileName;
-    PPH_STRING settingsFileName;
     PPH_STRING cacheDirectory;
     PPH_STRING cacheFilePath;
     PH_STRINGREF randomAlphaStringRef;
     WCHAR randomAlphaString[32] = L"";
 
-    fileName = PhGetApplicationFileName();
-    settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
-
-    if (PhDoesFileExist(&settingsFileName->sr))
-    {
-        HANDLE fileHandle;
-        PPH_STRING applicationDirectory;
-        PPH_STRING applicationFileName;
-
-        PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
-        randomAlphaStringRef.Buffer = randomAlphaString;
-        randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
-
-        applicationDirectory = PhGetApplicationDirectory();
-        applicationFileName = PhConcatStringRef3(
-            &applicationDirectory->sr,
-            &PhNtPathSeperatorString,
-            &randomAlphaStringRef
-            );
-
-        if (NT_SUCCESS(PhCreateFile(
-            &fileHandle,
-            &applicationFileName->sr,
-            FILE_GENERIC_WRITE | DELETE,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_DELETE,
-            FILE_OPEN_IF,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
-            )))
-        {
-            cacheDirectory = PhConcatStringRef2(&applicationDirectory->sr, &settingsDirectory);
-            NtClose(fileHandle);
-        }
-        else
-        {
-            cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
-        }
-
-        PhDereferenceObject(applicationFileName);
-        PhDereferenceObject(applicationDirectory);
-    }
+    if (PortableDirectory)
+        cacheDirectory = PhGetApplicationDirectoryFileName(&settingsDirectory, TRUE);
     else
-    {
         cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
 
-        if (PhIsNullOrEmptyString(cacheDirectory))
-        {
-            PhDereferenceObject(settingsFileName);
-            PhDereferenceObject(fileName);
-            return NULL;
-        }
-    }
+    if (PhIsNullOrEmptyString(cacheDirectory))
+        return NULL;
 
     PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
     randomAlphaStringRef.Buffer = randomAlphaString;
@@ -7279,12 +7232,10 @@ PPH_STRING PhCreateCacheFile(
 
     if (!NT_SUCCESS(PhCreateDirectoryFullPath(&cacheFilePath->sr)))
     {
-        PhClearReference(&cacheFilePath);
+        PhDereferenceObject(cacheFilePath);
+        PhDereferenceObject(cacheDirectory);
+        return NULL;
     }
-
-    PhDereferenceObject(cacheDirectory);
-    PhDereferenceObject(settingsFileName);
-    PhDereferenceObject(fileName);
 
     if (NativeFileName)
     {
@@ -7304,6 +7255,8 @@ PPH_STRING PhCreateCacheFile(
             PhMoveReference(&cacheFilePath, cacheFileName);
         }
     }
+
+    PhDereferenceObject(cacheDirectory);
 
     return cacheFilePath;
 }
@@ -7333,16 +7286,9 @@ VOID PhDeleteCacheFile(
 {
     if (NativeFileName)
     {
-        PH_STRINGREF directoryPart;
-
         if (PhDoesFileExist(&FileName->sr))
         {
-            PhDeleteFile(&FileName->sr);
-        }
-
-        if (PhGetBasePath(&FileName->sr, &directoryPart, NULL))
-        {
-            PhDeleteDirectory(&directoryPart);
+            PhDeleteDirectoryFullPath(&FileName->sr);
         }
     }
     else
@@ -7371,63 +7317,16 @@ VOID PhDeleteCacheFile(
 }
 
 VOID PhClearCacheDirectory(
-    VOID
+    _In_ BOOLEAN PortableDirectory
     )
 {
-    static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
     static PH_STRINGREF settingsDirectory = PH_STRINGREF_INIT(L"cache");
-    PPH_STRING fileName;
-    PPH_STRING settingsFileName;
     PPH_STRING cacheDirectory;
 
-    fileName = PhGetApplicationFileName();
-    settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
-
-    if (PhDoesFileExist(&settingsFileName->sr))
-    {
-        HANDLE fileHandle;
-        PPH_STRING applicationDirectory;
-        PPH_STRING applicationFileName;
-        PH_STRINGREF randomAlphaStringRef;
-        WCHAR randomAlphaString[32] = L"";
-
-        applicationDirectory = PhGetApplicationDirectory();
-
-        PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
-        randomAlphaStringRef.Buffer = randomAlphaString;
-        randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
-
-        applicationFileName = PhConcatStringRef3(
-            &applicationDirectory->sr,
-            &PhNtPathSeperatorString,
-            &randomAlphaStringRef
-            );
-
-        if (NT_SUCCESS(PhCreateFile(
-            &fileHandle,
-            &applicationFileName->sr,
-            FILE_GENERIC_WRITE | DELETE,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_DELETE,
-            FILE_OPEN_IF,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
-            )))
-        {
-            cacheDirectory = PhConcatStringRef2(&applicationDirectory->sr, &settingsDirectory);
-            NtClose(fileHandle);
-        }
-        else
-        {
-            cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
-        }
-
-        PhDereferenceObject(applicationFileName);
-        PhDereferenceObject(applicationDirectory);
-    }
+    if (PortableDirectory)
+        cacheDirectory = PhGetApplicationDirectoryFileName(&settingsDirectory, TRUE);
     else
-    {
         cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
-    }
 
     if (cacheDirectory)
     {
@@ -7435,9 +7334,6 @@ VOID PhClearCacheDirectory(
 
         PhDereferenceObject(cacheDirectory);
     }
-
-    PhDereferenceObject(settingsFileName);
-    PhDereferenceObject(fileName);
 }
 
 HANDLE PhGetNamespaceHandle(
@@ -8293,10 +8189,7 @@ HRESULT PhCreateProcessAsInteractiveUser(
     {
         PVOID baseAddress;
 
-        if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"wdc.dll")))
-            baseAddress = PhLoadLibrary(L"wdc.dll");
-
-        if (baseAddress)
+        if (baseAddress = PhLoadLibrary(L"wdc.dll"))
         {
             WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(baseAddress, "WdcRunTaskAsInteractiveUser", 0);
         }

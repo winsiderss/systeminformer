@@ -1708,6 +1708,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhCreateCacheFile(
+    _In_ BOOLEAN PortableDirectory,
     _In_ PPH_STRING FileName,
     _In_ BOOLEAN NativeFileName
     );
@@ -1724,7 +1725,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhClearCacheDirectory(
-    VOID
+    _In_ BOOLEAN PortableDirectory
     );
 
 PHLIBAPI

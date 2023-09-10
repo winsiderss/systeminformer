@@ -64,12 +64,11 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
         PhEndInitOnce(&UpdateContextTypeInitOnce);
     }
 
-    context = PhCreateObject(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
-    memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
-
+    context = PhCreateObjectZero(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
     context->CurrentVersionString = PhGetPhVersion();
     context->StartupCheck = StartupCheck;
     context->Cleanup = TRUE;
+    context->PortableMode = !!ProcessHacker_IsPortableMode();
 
     return context;
 }
@@ -257,18 +256,18 @@ PPH_STRING UpdateVersionString(
     ULONG buildVersion;
     ULONG revisionVersion;
     SIZE_T returnLength;
-    PH_FORMAT format[7];
+    PH_FORMAT format[8];
     WCHAR formatBuffer[260];
 
     PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
-
-    PhInitFormatU(&format[0], majorVersion);
-    PhInitFormatC(&format[1], L'.');
-    PhInitFormatU(&format[2], minorVersion);
-    PhInitFormatC(&format[3], L'.');
-    PhInitFormatU(&format[4], buildVersion);
-    PhInitFormatC(&format[5], L'.');
-    PhInitFormatU(&format[6], revisionVersion);
+    PhInitFormatSR(&format[0], versionHeader);
+    PhInitFormatU(&format[1], majorVersion);
+    PhInitFormatC(&format[2], L'.');
+    PhInitFormatU(&format[3], minorVersion);
+    PhInitFormatC(&format[4], L'.');
+    PhInitFormatU(&format[5], buildVersion);
+    PhInitFormatC(&format[6], L'.');
+    PhInitFormatU(&format[7], revisionVersion);
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
     {
@@ -277,7 +276,7 @@ PPH_STRING UpdateVersionString(
         stringFormat.Buffer = formatBuffer;
         stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
 
-        return PhConcatStringRef2(&versionHeader, &stringFormat);
+        return PhCreateString2(&stringFormat);
     }
     else
     {
@@ -374,7 +373,7 @@ BOOLEAN QueryUpdateData(
     BOOLEAN success = FALSE;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_BYTES jsonString = NULL;
-    PVOID jsonObject = NULL;
+    PVOID jsonObject;
 
     if (!PhHttpSocketCreate(&httpContext, NULL))
     {
@@ -454,7 +453,10 @@ BOOLEAN QueryUpdateData(
     Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
     Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
 
-#ifdef FORCE_LATEST_VERSION
+#if defined(FORCE_FUTURE_VERSION)
+    Context->CurrentVersion = ParseVersionString(PhCreateString(L"9999.9999.9999.9999"));
+    Context->LatestVersion = ParseVersionString(Context->CurrentVersionString);
+#elif defined(FORCE_LATEST_VERSION)
     Context->CurrentVersion = ParseVersionString(PhCreateString(L"0.0.0.0"));
     Context->LatestVersion = ParseVersionString(Context->CurrentVersionString);
 #else
@@ -533,7 +535,7 @@ NTSTATUS UpdateCheckSilentThread(
 
     PhDelayExecution(5 * 1000);
 
-    PhClearCacheDirectory();
+    PhClearCacheDirectory(context->PortableMode);
 
     // Query latest update information from the server.
     if (!QueryUpdateDataWithFailover(context))
@@ -616,6 +618,7 @@ CleanupExit:
 }
 
 PPH_STRING UpdateParseDownloadFileName(
+    _In_ PPH_UPDATER_CONTEXT Context,
     _In_ PPH_STRING DownloadUrlPath
     )
 {
@@ -628,7 +631,7 @@ PPH_STRING UpdateParseDownloadFileName(
         return NULL;
 
     downloadFileName = PhCreateString2(&namePart);
-    localfileName = PhCreateCacheFile(downloadFileName, FALSE);
+    localfileName = PhCreateCacheFile(Context->PortableMode, downloadFileName, FALSE);
     PhDereferenceObject(downloadFileName);
 
     return localfileName;
@@ -744,7 +747,7 @@ NTSTATUS UpdateDownloadThread(
         NTSTATUS status;
 
         // Create temporary path.
-        context->SetupFilePath = UpdateParseDownloadFileName(downloadUrlPath);
+        context->SetupFilePath = UpdateParseDownloadFileName(context, downloadUrlPath);
 
         if (PhIsNullOrEmptyString(context->SetupFilePath))
         {

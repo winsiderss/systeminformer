@@ -309,20 +309,21 @@ VOID NetworkToolsGeoDbFlushCache(
     VOID
     );
 
-typedef struct _PH_UPDATER_CONTEXT
+typedef struct _NETWORK_GEODB_UPDATE_CONTEXT
 {
     HWND DialogHandle;
     HWND ParentWindowHandle;
     WNDPROC DefaultWindowProc;
     ULONG ErrorCode;
-} PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
+    BOOLEAN PortableMode;
+} NETWORK_GEODB_UPDATE_CONTEXT, *PNETWORK_GEODB_UPDATE_CONTEXT;
 
 BOOLEAN GeoLiteCheckUpdatePlatformSupported(
     VOID
     );
 
 NTSTATUS GeoLiteUpdateThread(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     );
 
 VOID ShowGeoLiteUpdateDialog(
@@ -334,19 +335,19 @@ VOID ShowGeoLiteUpdateDialog(
 extern PH_EVENT InitializedEvent;
 
 VOID ShowDbCheckForUpdatesDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     );
 
 VOID ShowDbCheckingForUpdatesDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     );
 
 VOID ShowDbInstallRestartDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     );
 
 VOID ShowDbUpdateFailedDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     );
 
 // ports.c
