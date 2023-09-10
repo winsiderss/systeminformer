@@ -893,7 +893,7 @@ INT_PTR CALLBACK TracertDlgProc(
             EnableWindow(GetDlgItem(hwndDlg, IDC_REFRESH), FALSE);
 
             PhReferenceObject(context);
-            PhCreateThread2(NetworkTracertThreadStart, (PVOID)context);
+            PhCreateThread2(NetworkTracertThreadStart, context);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
@@ -946,7 +946,7 @@ INT_PTR CALLBACK TracertDlgProc(
                     ClearTracertTree(context);
 
                     PhReferenceObject(context);
-                    PhCreateThread2(NetworkTracertThreadStart, (PVOID)context);
+                    PhCreateThread2(NetworkTracertThreadStart, context);
                 }
                 break;
             case TRACERT_SHOWCONTEXTMENU:

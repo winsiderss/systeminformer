@@ -90,11 +90,7 @@ VOID NTAPI LoadCallback(
     )
 {
     GeoDbDatabaseType = !!PhGetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE);
-
-    if (PhGetOwnTokenAttributes().Elevated)
-    {
-        NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
-    }
+    NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -407,6 +403,13 @@ VOID NTAPI NetworkMenuInitializingCallback(
     }
 }
 
+PNETWORK_EXTENSION GetNetworkItemExtension(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    return PhPluginGetObjectExtension(PluginInstance, NetworkItem, EmNetworkItemType);
+}
+
 LONG NTAPI NetworkServiceSortFunction(
     _In_ PVOID Node1,
     _In_ PVOID Node2,
@@ -417,8 +420,8 @@ LONG NTAPI NetworkServiceSortFunction(
 {
     PPH_NETWORK_NODE node1 = Node1;
     PPH_NETWORK_NODE node2 = Node2;
-    PNETWORK_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->NetworkItem, EmNetworkItemType);
-    PNETWORK_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->NetworkItem, EmNetworkItemType);
+    PNETWORK_EXTENSION extension1 = GetNetworkItemExtension(node1->NetworkItem);
+    PNETWORK_EXTENSION extension2 = GetNetworkItemExtension(node2->NetworkItem);
 
     switch (SubId)
     {
@@ -579,7 +582,7 @@ VOID NTAPI NetworkNodeCreateCallback(
     )
 {
     PPH_NETWORK_NODE networkNode = Object;
-    PNETWORK_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, networkNode->NetworkItem, EmNetworkItemType);
+    PNETWORK_EXTENSION extension = GetNetworkItemExtension(networkNode->NetworkItem);
 
     if (!extension->CountryValid)
     {
@@ -732,7 +735,7 @@ VOID NTAPI TreeNewMessageCallback(
             {
                 PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
                 PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)getCellText->Node;
-                PNETWORK_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, networkNode->NetworkItem, EmNetworkItemType);
+                PNETWORK_EXTENSION extension = GetNetworkItemExtension(networkNode->NetworkItem);
 
                 UpdateNetworkNode(message->SubId, networkNode, extension);
 
@@ -789,7 +792,7 @@ VOID NTAPI TreeNewMessageCallback(
         {
             PPH_TREENEW_CUSTOM_DRAW customDraw = message->Parameter1;
             PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)customDraw->Node;
-            PNETWORK_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, networkNode->NetworkItem, EmNetworkItemType);
+            PNETWORK_EXTENSION extension = GetNetworkItemExtension(networkNode->NetworkItem);
             HDC hdc = customDraw->Dc;
             RECT rect = customDraw->CellRect;
 
@@ -886,6 +889,8 @@ VOID ProcessesUpdatedCallback(
         if (extension->NetworkItem->ProtocolType == PH_TCP4_NETWORK_PROTOCOL)
         {
             MIB_TCPROW tcpRow;
+            TCP_ESTATS_DATA_RW_v0 dataRw;
+            TCP_ESTATS_PATH_RW_v0 pathRw;
             TCP_ESTATS_DATA_ROD_v0 dataRod;
             TCP_ESTATS_PATH_ROD_v0 pathRod;
 
@@ -894,9 +899,9 @@ VOID ProcessesUpdatedCallback(
             if (GetPerTcpConnectionEStats(
                 &tcpRow,
                 TcpConnectionEstatsData,
-                NULL,
+                (PUCHAR)&dataRw,
                 0,
-                0,
+                sizeof(TCP_ESTATS_DATA_RW_v0),
                 NULL,
                 0,
                 0,
@@ -905,16 +910,19 @@ VOID ProcessesUpdatedCallback(
                 sizeof(TCP_ESTATS_DATA_ROD_v0)
                 ) == ERROR_SUCCESS)
             {
-                extension->NumberOfBytesIn = dataRod.DataBytesIn;
-                extension->NumberOfBytesOut = dataRod.DataBytesOut;
+                if (dataRw.EnableCollection)
+                {
+                    extension->NumberOfBytesIn = dataRod.DataBytesIn;
+                    extension->NumberOfBytesOut = dataRod.DataBytesOut;
+                }
             }
 
             if (GetPerTcpConnectionEStats(
                 &tcpRow,
                 TcpConnectionEstatsPath,
-                NULL,
+                (PUCHAR)&pathRw,
                 0,
-                0,
+                sizeof(TCP_ESTATS_PATH_RW_v0),
                 NULL,
                 0,
                 0,
@@ -923,16 +931,21 @@ VOID ProcessesUpdatedCallback(
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
                 ) == ERROR_SUCCESS)
             {
-                extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
-                extension->SampleRtt = pathRod.SampleRtt;
+                if (pathRw.EnableCollection)
+                {
+                    extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
+                    extension->SampleRtt = pathRod.SampleRtt;
 
-                if (extension->SampleRtt == ULONG_MAX) // HACK
-                    extension->SampleRtt = 0;
+                    if (extension->SampleRtt == ULONG_MAX) // HACK
+                        extension->SampleRtt = 0;
+                }
             }
         }
         else if (extension->NetworkItem->ProtocolType == PH_TCP6_NETWORK_PROTOCOL)
         {
             MIB_TCP6ROW tcp6Row;
+            TCP_ESTATS_DATA_RW_v0 dataRw;
+            TCP_ESTATS_PATH_RW_v0 pathRw;
             TCP_ESTATS_DATA_ROD_v0 dataRod;
             TCP_ESTATS_PATH_ROD_v0 pathRod;
 
@@ -941,9 +954,9 @@ VOID ProcessesUpdatedCallback(
             if (GetPerTcp6ConnectionEStats(
                 &tcp6Row,
                 TcpConnectionEstatsData,
-                NULL,
+                (PUCHAR)&dataRw,
                 0,
-                0,
+                sizeof(TCP_ESTATS_DATA_RW_v0),
                 NULL,
                 0,
                 0,
@@ -952,16 +965,19 @@ VOID ProcessesUpdatedCallback(
                 sizeof(TCP_ESTATS_DATA_ROD_v0)
                 ) == ERROR_SUCCESS)
             {
-                extension->NumberOfBytesIn = dataRod.DataBytesIn;
-                extension->NumberOfBytesOut = dataRod.DataBytesOut;
+                if (dataRw.EnableCollection)
+                {
+                    extension->NumberOfBytesIn = dataRod.DataBytesIn;
+                    extension->NumberOfBytesOut = dataRod.DataBytesOut;
+                }
             }
 
             if (GetPerTcp6ConnectionEStats(
                 &tcp6Row,
                 TcpConnectionEstatsPath,
-                NULL,
+                (PUCHAR)&pathRw,
                 0,
-                0,
+                sizeof(TCP_ESTATS_PATH_RW_v0),
                 NULL,
                 0,
                 0,
@@ -970,11 +986,14 @@ VOID ProcessesUpdatedCallback(
                 sizeof(TCP_ESTATS_PATH_ROD_v0)
                 ) == ERROR_SUCCESS)
             {
-                extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
-                extension->SampleRtt = pathRod.SampleRtt;
+                if (pathRw.EnableCollection)
+                {
+                    extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
+                    extension->SampleRtt = pathRod.SampleRtt;
 
-                if (extension->SampleRtt == ULONG_MAX) // HACK
-                    extension->SampleRtt = 0;
+                    if (extension->SampleRtt == ULONG_MAX)
+                        extension->SampleRtt = 0;
+                }
             }
         }
     }
