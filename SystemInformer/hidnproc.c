@@ -985,90 +985,91 @@ NTSTATUS PhpEnumHiddenProcessesCsrHandles(
     return status;
 }
 
+typedef struct _PH_ENUM_NEXT_PROCESS_CONTEXT
+{
+    PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback;
+    PVOID Context;
+} PH_ENUM_NEXT_PROCESS_CONTEXT, *PPH_ENUM_NEXT_PROCESS_CONTEXT;
+
+NTSTATUS NTAPI PhpEnumNextProcessHandles(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID Context
+    )
+{
+    PPH_ENUM_NEXT_PROCESS_CONTEXT context = Context;
+    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+    NTSTATUS status;
+    PVOID processes = NULL;
+
+    status = PhGetProcessExtendedBasicInformation(ProcessHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhEnumProcesses(&processes);
+
+        if (NT_SUCCESS(status))
+        {
+            if (!PhFindProcessInformation(processes, basicInfo.BasicInfo.UniqueProcessId))
+            {
+                PH_HIDDEN_PROCESS_ENTRY entry;
+                PPH_STRING fileName;
+
+                entry.ProcessId = basicInfo.BasicInfo.UniqueProcessId;
+
+                if (NT_SUCCESS(PhGetProcessImageFileName(ProcessHandle, &fileName)))
+                {
+                    entry.FileName = fileName;
+                    entry.FileNameWin32 = PhGetFileName(fileName);
+                    entry.Type = HiddenProcess;
+
+                    if (basicInfo.IsProcessDeleting)
+                        entry.Type = TerminatedProcess;
+
+                    if (!context->Callback(&entry, Context))
+                        goto CleanupExit;
+
+                    PhDereferenceObject(entry.FileNameWin32);
+                    PhDereferenceObject(entry.FileName);
+                }
+                else
+                {
+                    entry.FileName = NULL;
+                    entry.FileNameWin32 = NULL;
+                    entry.Type = UnknownProcess;
+
+                    if (!context->Callback(&entry, Context))
+                        goto CleanupExit;
+                }
+            }
+        }
+    }
+
+CleanupExit:
+    if (processes)
+    {
+        PhFree(processes);
+    }
+
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS PhpEnumHiddenProcessHandles(
     _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
     NTSTATUS status;
-    HANDLE processHandle;
+    PH_ENUM_NEXT_PROCESS_CONTEXT context;
 
-    if (!NT_SUCCESS(status = NtGetNextProcess(
+    context.Callback = Callback;
+    context.Context = Context;
+
+    status = PhEnumNextProcess(
         NULL,
         PROCESS_QUERY_LIMITED_INFORMATION,
-        0,
-        0,
-        &processHandle
-        )))
-        return status;
-
-    while (TRUE)
-    {
-        PVOID processes;
-        HANDLE enumProcessHandle;
-        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
-
-        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
-        {
-            if (NT_SUCCESS(PhEnumProcesses(&processes)))
-            {
-                if (!PhFindProcessInformation(processes, basicInfo.BasicInfo.UniqueProcessId))
-                {
-                    PH_HIDDEN_PROCESS_ENTRY entry;
-                    PPH_STRING fileName;
-
-                    entry.ProcessId = basicInfo.BasicInfo.UniqueProcessId;
-
-                    if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
-                    {
-                        entry.FileName = fileName;
-                        entry.FileNameWin32 = PhGetFileName(fileName);
-                        entry.Type = HiddenProcess;
-
-                        if (basicInfo.IsProcessDeleting)
-                            entry.Type = TerminatedProcess;
-
-                        if (!Callback(&entry, Context))
-                            break;
-
-                        PhDereferenceObject(entry.FileNameWin32);
-                        PhDereferenceObject(entry.FileName);
-                    }
-                    else
-                    {
-                        entry.FileName = NULL;
-                        entry.FileNameWin32 = NULL;
-                        entry.Type = UnknownProcess;
-
-                        if (!Callback(&entry, Context))
-                            break;
-                    }
-                }
-
-                PhFree(processes);
-            }
-        }
-
-        if (NT_SUCCESS(status = NtGetNextProcess(
-            processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            0,
-            0,
-            &enumProcessHandle
-            )))
-        {
-            NtClose(processHandle);
-            processHandle = enumProcessHandle;
-        }
-        else
-        {
-            NtClose(processHandle);
-            break;
-        }
-    }
-
-    if (status == STATUS_NO_MORE_ENTRIES)
-        status = STATUS_SUCCESS; // HACK
+        PhpEnumNextProcessHandles,
+        &context
+        );
 
     return status;
 }
@@ -1234,7 +1235,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
     ULONG traceGuidListLength = 0;
 
     status = PhTraceControl(
-        TraceControlEnumTraceGuidList,
+        EtwEnumTraceGuidList,
         NULL,
         0,
         &traceGuidList,
@@ -1249,7 +1250,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
             PTRACE_GUID_INFO traceGuidInfo;
 
             status = PhTraceControl(
-                TraceControlGetTraceGuidInfo,
+                EtwGetTraceGuidInfo,
                 &providerGuid,
                 sizeof(GUID),
                 &traceGuidInfo,

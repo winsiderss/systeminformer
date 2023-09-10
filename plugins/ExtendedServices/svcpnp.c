@@ -142,7 +142,7 @@ BOOLEAN HardwareDeviceShowProperties(
     _In_ PPH_STRING DeviceInstance
     )
 {
-    HMODULE devMgrHandle;
+    PVOID devMgrHandle;
 
     // https://msdn.microsoft.com/en-us/library/ff548181.aspx
     VOID (WINAPI* DeviceProperties_RunDLL_I)(

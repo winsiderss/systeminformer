@@ -56,15 +56,6 @@ typedef NTSTATUS (NTAPI *_NtQueryDefaultUILanguage)(
     _Out_ LANGID* DefaultUILanguageId
     );
 
-typedef NTSTATUS (NTAPI *_NtTraceControl)(
-    _In_ TRACE_CONTROL_INFORMATION_CLASS TraceInformationClass,
-    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
-    _In_ ULONG InputBufferLength,
-    _Out_writes_bytes_opt_(TraceInformationLength) PVOID TraceInformation,
-    _In_ ULONG TraceInformationLength,
-    _Out_ PULONG ReturnLength
-    );
-
 typedef NTSTATUS (NTAPI *_NtQueryOpenSubKeysEx)(
     _In_ POBJECT_ATTRIBUTES TargetKey,
     _In_ ULONG BufferLength,
@@ -189,6 +180,16 @@ typedef LONG (WINAPI* _DnsQuery_W)(
     _Outptr_opt_result_maybenull_ PVOID* Reserved
     );
 
+typedef LONG (WINAPI* _DnsQueryEx)(
+    _In_ PVOID pQueryRequest,
+    _Inout_ PVOID pQueryResults,
+    _Inout_opt_ PVOID pCancelHandle
+    );
+
+typedef LONG (WINAPI* _DnsCancelQuery)(
+    _In_ PVOID pCancelHandle
+    );
+
 typedef struct _DNS_MESSAGE_BUFFER* PDNS_MESSAGE_BUFFER;
 
 typedef LONG (WINAPI* _DnsExtractRecordsFromMessage_W)(
@@ -219,10 +220,6 @@ typedef BOOL (WINAPI* _CreateEnvironmentBlock)(
 
 typedef BOOL (WINAPI* _DestroyEnvironmentBlock)(
     _In_ PVOID Environment
-    );
-
-typedef BOOL (WINAPI* _MessageBeep)(
-    _In_ UINT uType
     );
 
 typedef BOOL (WINAPI* _SetWindowDisplayAffinity)(
@@ -265,7 +262,6 @@ PH_DECLARE_IMPORT(NtQueryInformationTransaction);
 PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
 PH_DECLARE_IMPORT(NtQueryDefaultLocale);
 PH_DECLARE_IMPORT(NtQueryDefaultUILanguage);
-PH_DECLARE_IMPORT(NtTraceControl);
 PH_DECLARE_IMPORT(NtQueryOpenSubKeysEx);
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(NtCreateProcessStateChange);
@@ -281,11 +277,6 @@ PH_DECLARE_IMPORT(RtlDeriveCapabilitySidsFromName);
 PH_DECLARE_IMPORT(ConvertSecurityDescriptorToStringSecurityDescriptorW);
 PH_DECLARE_IMPORT(ConvertStringSecurityDescriptorToSecurityDescriptorW);
 
-PH_DECLARE_IMPORT(DnsQuery_W);
-PH_DECLARE_IMPORT(DnsExtractRecordsFromMessage_W);
-PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
-PH_DECLARE_IMPORT(DnsFree);
-
 PH_DECLARE_IMPORT(SHAutoComplete);
 
 PH_DECLARE_IMPORT(PssCaptureSnapshot);
@@ -297,7 +288,6 @@ PH_DECLARE_IMPORT(DestroyEnvironmentBlock);
 PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
 PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 
-PH_DECLARE_IMPORT(MessageBeep);
 PH_DECLARE_IMPORT(SetWindowDisplayAffinity);
 
 PH_DECLARE_IMPORT(WinStationQueryInformationW);

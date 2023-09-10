@@ -47,7 +47,7 @@ typedef enum _ETP_TRAY_ICON_GUID
 } ETP_TRAY_ICON_GUID;
 
 VOID EtpGpuIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -55,14 +55,14 @@ VOID EtpGpuIconUpdateCallback(
     );
 
 BOOLEAN EtpGpuIconMessageCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
     );
 
 VOID EtpDiskIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -70,14 +70,14 @@ VOID EtpDiskIconUpdateCallback(
     );
 
 BOOLEAN EtpDiskIconMessageCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
     );
 
 VOID EtpNetworkIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -85,14 +85,14 @@ VOID EtpNetworkIconUpdateCallback(
     );
 
 BOOLEAN EtpNetworkIconMessageCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
     );
 
 VOID EtpGpuTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -100,7 +100,7 @@ VOID EtpGpuTextIconUpdateCallback(
     );
 
 VOID EtpDiskTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -108,7 +108,7 @@ VOID EtpDiskTextIconUpdateCallback(
     );
 
 VOID EtpNetworkTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -325,7 +325,7 @@ VOID EtRegisterNotifyIcons(
     if (EtGpuSupported)
     {
         data.UpdateCallback = EtpGpuTemperatureIconUpdateCallback;
-            data.MessageCallback = EtpGpuIconMessageCallback;
+        data.MessageCallback = EtpGpuIconMessageCallback;
         Pointers->RegisterTrayIcon(
             PluginInstance,
             ETP_TRAY_ICON_ID_GPUTEMP,
@@ -337,7 +337,7 @@ VOID EtRegisterNotifyIcons(
             );
 
         data.UpdateCallback = EtpGpuTemperatureTextIconUpdateCallback;
-            data.MessageCallback = EtpGpuIconMessageCallback;
+        data.MessageCallback = EtpGpuIconMessageCallback;
         Pointers->RegisterTrayIcon(
             PluginInstance,
             ETP_TRAY_ICON_ID_GPUTEMPTEXT,
@@ -351,7 +351,7 @@ VOID EtRegisterNotifyIcons(
 }
 
 VOID EtpGpuIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -450,7 +450,7 @@ VOID EtpGpuIconUpdateCallback(
 }
 
 BOOLEAN EtpGpuIconMessageCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
@@ -471,7 +471,7 @@ BOOLEAN EtpGpuIconMessageCallback(
 }
 
 VOID EtpDiskIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -588,7 +588,7 @@ VOID EtpDiskIconUpdateCallback(
 }
 
 BOOLEAN EtpDiskIconMessageCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
@@ -609,7 +609,7 @@ BOOLEAN EtpDiskIconMessageCallback(
 }
 
 VOID EtpNetworkIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -726,7 +726,7 @@ VOID EtpNetworkIconUpdateCallback(
 }
 
 BOOLEAN EtpNetworkIconMessageCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
     _In_opt_ PVOID Context
@@ -749,7 +749,7 @@ BOOLEAN EtpNetworkIconMessageCallback(
 // Text
 
 VOID EtpGpuTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -831,7 +831,7 @@ VOID EtpGpuTextIconUpdateCallback(
 }
 
 VOID EtpDiskTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -915,7 +915,7 @@ VOID EtpDiskTextIconUpdateCallback(
 }
 
 VOID EtpNetworkTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -1001,7 +1001,7 @@ VOID EtpNetworkTextIconUpdateCallback(
 // GPU Memory
 
 VOID EtpGpuMemoryIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,
@@ -1081,7 +1081,7 @@ VOID EtpGpuMemoryIconUpdateCallback(
 }
 
 VOID EtpGpuMemoryTextIconUpdateCallback(
-    _In_ struct _PH_NF_ICON *Icon,
+    _In_ PPH_NF_ICON Icon,
     _Out_ PVOID *NewIconOrBitmap,
     _Out_ PULONG Flags,
     _Out_ PPH_STRING *NewText,

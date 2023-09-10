@@ -79,7 +79,6 @@
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-// private
 typedef enum _MEMORY_INFORMATION_CLASS
 {
     MemoryBasicInformation, // q: MEMORY_BASIC_INFORMATION
@@ -656,7 +655,19 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
     VmRemoveFromWorkingSetInformation,
     MaxVmInfoClass
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
+#else
+#define VmPrefetchInformation 0x0
+#define VmPagePriorityInformation 0x1
+#define VmCfgCallTargetInformation 0x2
+#define VmPageDirtyStateInformation 0x3
+#define VmImageHotPatchInformation 0x4
+#define VmPhysicalContiguityInformation 0x5
+#define VmVirtualMachinePrepopulateInformation 0x6
+#define VmRemoveFromWorkingSetInformation 0x7
+#define MaxVmInfoClass 0x8
+#endif
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef struct _MEMORY_RANGE_ENTRY
 {
     PVOID VirtualAddress;
@@ -1122,6 +1133,7 @@ NtFlushWriteBuffer(
 
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 // Enclave support
 
 NTSYSCALLAPI
@@ -1195,6 +1207,8 @@ NtCallEnclave(
     _In_ ULONG Flags,                 // ENCLAVE_CALL_FLAG_*
     _Inout_ PVOID* RoutineParamReturn // input routine parameter, output routine return value
     );
+#endif
+
 #endif
 
 #endif

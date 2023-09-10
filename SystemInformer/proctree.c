@@ -1542,7 +1542,7 @@ static VOID PhpUpdateProcessNodePriorityBoost(
             }
         }
 
-        ProcessNode->ValidMask |= PHPN_PRIORITYBOOST;
+        SetFlag(ProcessNode->ValidMask, PHPN_PRIORITYBOOST);
     }
 }
 

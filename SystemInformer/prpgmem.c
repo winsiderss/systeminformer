@@ -201,17 +201,18 @@ BOOLEAN PhpMemoryTreeFilterCallback(
     PPH_MEMORY_CONTEXT memoryContext = Context;
     PPH_MEMORY_NODE memoryNode = (PPH_MEMORY_NODE)Node;
     PPH_MEMORY_ITEM memoryItem = memoryNode->MemoryItem;
+    PPH_STRINGREF string;
     PPH_STRING useText;
-    PWSTR tempString;
 
-    if (memoryContext->ListContext.HideFreeRegions && memoryItem->State & MEM_FREE)
+    if (memoryContext->ListContext.HideFreeRegions && FlagOn(memoryItem->State, MEM_FREE))
         return FALSE;
-    if (memoryContext->ListContext.HideGuardRegions && memoryItem->Protect & PAGE_GUARD)
+    if (memoryContext->ListContext.HideGuardRegions && FlagOn(memoryItem->Protect, PAGE_GUARD))
         return FALSE;
 
-    if (memoryContext->ListContext.HideReservedRegions &&
-        (memoryItem->Type & MEM_PRIVATE || memoryItem->Type & MEM_MAPPED || memoryItem->Type & MEM_IMAGE) &&
-        memoryItem->State & MEM_RESERVE &&
+    if (
+        memoryContext->ListContext.HideReservedRegions &&
+        (FlagOn(memoryItem->Type, MEM_PRIVATE) || FlagOn(memoryItem->Type, MEM_MAPPED) || FlagOn(memoryItem->Type, MEM_IMAGE)) &&
+        FlagOn(memoryItem->State, MEM_RESERVE) &&
         memoryItem->AllocationBaseItem // Ignore root nodes
         )
     {
@@ -255,24 +256,24 @@ BOOLEAN PhpMemoryTreeFilterCallback(
             return TRUE;
     }
 
+    string = PhGetMemoryTypeString(memoryItem->Type);
+    if (string && string->Length)
+    {
+        if (PhWordMatchStringRef(&memoryContext->SearchboxText->sr, string))
+            return TRUE;
+    }
+
+    string = PhGetMemoryStateString(memoryItem->State);
+    if (string && string->Length)
+    {
+        if (PhWordMatchStringRef(&memoryContext->SearchboxText->sr, string))
+            return TRUE;
+    }
+
     useText = PH_AUTO(PhGetMemoryRegionUseText(memoryItem));
     if (!PhIsNullOrEmptyString(useText))
     {
         if (PhWordMatchStringRef(&memoryContext->SearchboxText->sr, &useText->sr))
-            return TRUE;
-    }
-
-    tempString = PhGetMemoryTypeString(memoryItem->Type);
-    if (tempString[0])
-    {
-        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, tempString))
-            return TRUE;
-    }
-
-    tempString = PhGetMemoryStateString(memoryItem->State);
-    if (tempString[0])
-    {
-        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, tempString))
             return TRUE;
     }
 

@@ -17,7 +17,9 @@
 extern "C" {
 #endif
 
+PHLIBAPI
 BOOLEAN
+NTAPI
 PhBaseInitialization(
     VOID
     );
@@ -25,7 +27,6 @@ PhBaseInitialization(
 // Threads
 
 #ifdef DEBUG
-struct _PH_AUTO_POOL;
 typedef struct _PH_AUTO_POOL *PPH_AUTO_POOL;
 
 typedef struct _PHP_BASE_THREAD_DBG
@@ -86,6 +87,7 @@ PhCreateThread2(
     );
 
 // Misc. system
+
 PHLIBAPI
 VOID
 NTAPI

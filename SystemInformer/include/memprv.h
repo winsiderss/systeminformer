@@ -162,11 +162,11 @@ VOID PhGetMemoryProtectionString(
     _Inout_z_ PWSTR String
     );
 
-PWSTR PhGetMemoryStateString(
+PPH_STRINGREF PhGetMemoryStateString(
     _In_ ULONG State
     );
 
-PWSTR PhGetMemoryTypeString(
+PPH_STRINGREF PhGetMemoryTypeString(
     _In_ ULONG Type
     );
 
@@ -178,7 +178,6 @@ PPH_STRING PhGetMemoryRegionTypeExString(
     _In_ PPH_MEMORY_ITEM MemoryItem
     );
 
-_Ret_notnull_
 PPH_MEMORY_ITEM PhCreateMemoryItem(
     VOID
     );

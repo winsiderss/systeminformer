@@ -2174,7 +2174,7 @@ ULONG EtFwMonitorInitialize(
         );
 
     if (!(baseAddress = PhLoadLibrary(L"fwpuclnt.dll")))
-        return GetLastError();
+        return ERROR_MOD_NOT_FOUND;
 
     FwpmEngineOpen = PhGetProcedureAddress(baseAddress, "FwpmEngineOpen0", 0);
     FwpmEngineClose = PhGetProcedureAddress(baseAddress, "FwpmEngineClose0", 0);

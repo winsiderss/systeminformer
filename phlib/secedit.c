@@ -1318,14 +1318,9 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
         status = PhGetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
         PhCloseServiceHandle(handle);
     }
-    else if (PhEqualString2(this->ObjectType, L"File", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"File", TRUE) || PhEqualString2(this->ObjectType, L"FileObject", TRUE))
     {
         status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
-        NtClose(handle);
-    }
-    else if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
-    {
-        status = PhGetSeObjectSecurity(handle, SE_FILE_OBJECT, SecurityInformation, SecurityDescriptor);
         NtClose(handle);
     }
     else if (
@@ -1515,14 +1510,9 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
         status = PhSetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
         PhCloseServiceHandle(handle);
     }
-    else if (PhEqualString2(this->ObjectType, L"File", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"File", TRUE) || PhEqualString2(this->ObjectType, L"FileObject", TRUE))
     {
         status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        NtClose(handle);
-    }
-    else if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
-    {
-        status = PhSetSeObjectSecurity(handle, SE_FILE_OBJECT, SecurityInformation, SecurityDescriptor);
         NtClose(handle);
     }
     else if (

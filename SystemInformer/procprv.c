@@ -1882,7 +1882,7 @@ VOID PhFlushProcessQueryData(
             PhpFillProcessItemStage2((PPH_PROCESS_QUERY_S2_DATA)data);
         }
 
-        data->ProcessItem->JustProcessed = TRUE;
+        InterlockedExchange(&data->ProcessItem->JustProcessed, TRUE);
 
         PhDereferenceObject(data->ProcessItem);
         PhFree(data);

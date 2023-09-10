@@ -4684,10 +4684,8 @@ VOID PhTnpProcessSearchKey(
         // The search string has become too long. Fail the search.
         if (!Context->SearchFailed)
         {
-            if (MessageBeep_Import())
-            {
-                MessageBeep_Import()(MB_OK);
-            }
+            MessageBeep(MB_OK);
+
             Context->SearchFailed = TRUE;
             return;
         }
@@ -4752,10 +4750,7 @@ VOID PhTnpProcessSearchKey(
         // elsewhere (see PhTnpProcessNodeKey).
         if (searchEvent.String.Buffer[0] != L' ')
         {
-            if (MessageBeep_Import())
-            {
-                MessageBeep_Import()(MB_OK);
-            }
+            MessageBeep(MB_OK);
         }
 
         Context->SearchFailed = TRUE;

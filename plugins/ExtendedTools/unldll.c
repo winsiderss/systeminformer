@@ -37,33 +37,34 @@ VOID EtShowUnloadedDllsDialog(
 {
     NTSTATUS status;
     PUNLOADED_DLLS_CONTEXT context;
-
-    context = PhAllocateZero(sizeof(UNLOADED_DLLS_CONTEXT));
-    context->ParentWindowHandle = ParentWindowHandle;
-    context->ProcessId = ProcessItem->ProcessId;
-    context->IsWow64 = !!ProcessItem->IsWow64;
+    HANDLE queryHandle;
 
     status = PhOpenProcess(
-        &context->QueryHandle,
+        &queryHandle,
         PROCESS_QUERY_INFORMATION,
-        context->ProcessId
+        ProcessItem->ProcessId
         );
 
     if (!NT_SUCCESS(status))
     {
         status = PhOpenProcess(
-            &context->QueryHandle,
+            &queryHandle,
             PROCESS_QUERY_LIMITED_INFORMATION,
-            context->ProcessId
+            ProcessItem->ProcessId
             );
     }
 
     if (!NT_SUCCESS(status))
     {
         PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
-        PhFree(context);
         return;
     }
+
+    context = PhAllocateZero(sizeof(UNLOADED_DLLS_CONTEXT));
+    context->ParentWindowHandle = ParentWindowHandle;
+    context->ProcessId = ProcessItem->ProcessId;
+    context->IsWow64 = !!ProcessItem->IsWow64;
+    context->QueryHandle = queryHandle;
 
     PhDialogBox(
         PluginInstance->DllBase,

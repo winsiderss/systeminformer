@@ -39,9 +39,12 @@ typedef PTOOLSTATUS_TAB_INFO (NTAPI *PTOOLSTATUS_REGISTER_TAB_INFO)(
 #define TOOLSTATUS_GRAPH_ENABLED 0x1
 #define TOOLSTATUS_GRAPH_UNAVAILABLE 0x2
 
+typedef struct _PH_TOOLBAR_GRAPH* PPH_TOOLBAR_GRAPH;
+typedef struct _PH_PLUGIN* PPH_PLUGIN;
+
 #define TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(ToolStatusGraphCallbackName) \
 VOID ToolStatusGraphCallbackName( \
-    _In_ struct _PH_TOOLBAR_GRAPH *Graph, \
+    _In_ PPH_TOOLBAR_GRAPH Graph, \
     _In_ HWND GraphHandle, \
     _In_ PPH_GRAPH_STATE GraphState, \
     _In_ LPNMHDR Header, \
@@ -49,7 +52,7 @@ VOID ToolStatusGraphCallbackName( \
     )
 
 typedef VOID (NTAPI *PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK)(
-    _In_ struct _PH_TOOLBAR_GRAPH *Graph,
+    _In_ PPH_TOOLBAR_GRAPH Graph,
     _In_ HWND GraphHandle,
     _In_ PPH_GRAPH_STATE GraphState,
     _In_ LPNMHDR Header,
@@ -57,7 +60,7 @@ typedef VOID (NTAPI *PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK)(
     );
 
 typedef VOID (NTAPI *PTOOLSTATUS_REGISTER_TOOLBAR_GRAPH)(
-    _In_ struct _PH_PLUGIN *Plugin,
+    _In_ PPH_PLUGIN Plugin,
     _In_ ULONG Id,
     _In_ PWSTR Text,
     _In_ ULONG Flags,

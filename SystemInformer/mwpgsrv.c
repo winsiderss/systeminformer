@@ -208,7 +208,7 @@ BOOLEAN PhMwpDriverServiceTreeFilter(
 {
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
 
-    if (serviceNode->ServiceItem->Type & SERVICE_DRIVER)
+    if (FlagOn(serviceNode->ServiceItem->Type, SERVICE_DRIVER))
         return FALSE;
 
     return TRUE;
@@ -289,20 +289,16 @@ VOID PhMwpInitializeServiceMenu(
             {
                 PhEnableEMenuItem(Menu, ID_SERVICE_START, FALSE);
                 PhEnableEMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
-                PhEnableEMenuItem(Menu, ID_SERVICE_PAUSE,
-                    Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                PhEnableEMenuItem(Menu, ID_SERVICE_STOP,
-                    Services[0]->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                PhEnableEMenuItem(Menu, ID_SERVICE_PAUSE, FlagOn(Services[0]->ControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE));
+                PhEnableEMenuItem(Menu, ID_SERVICE_STOP, FlagOn(Services[0]->ControlsAccepted, SERVICE_ACCEPT_STOP));
             }
             break;
         case SERVICE_PAUSED:
             {
                 PhEnableEMenuItem(Menu, ID_SERVICE_START, FALSE);
-                PhEnableEMenuItem(Menu, ID_SERVICE_CONTINUE,
-                    Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_CONTINUE, FlagOn(Services[0]->ControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE));
                 PhEnableEMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
-                PhEnableEMenuItem(Menu, ID_SERVICE_STOP,
-                    Services[0]->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                PhEnableEMenuItem(Menu, ID_SERVICE_STOP, FlagOn(Services[0]->ControlsAccepted, SERVICE_ACCEPT_STOP));
             }
             break;
         case SERVICE_STOPPED:
@@ -325,7 +321,7 @@ VOID PhMwpInitializeServiceMenu(
             break;
         }
 
-        if (!(Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE))
+        if (!FlagOn(Services[0]->ControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE))
         {
             PPH_EMENU_ITEM item;
 
@@ -463,7 +459,7 @@ VOID PhMwpOnServiceAdded(
     {
         PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_CREATE, ServiceItem->Name, ServiceItem->DisplayName);
 
-        if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
+        if (FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_CREATE))
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_CREATE, ServiceItem))
             {
@@ -532,13 +528,13 @@ VOID PhMwpOnServiceModified(
     if (logEntryType != 0)
         PhLogServiceEntry(logEntryType, ServiceModifiedData->ServiceItem->Name, ServiceModifiedData->ServiceItem->DisplayName);
 
-    if (PhMwpNotifyIconNotifyMask & (PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP | PH_NOTIFY_SERVICE_MODIFIED))
+    if (FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP | PH_NOTIFY_SERVICE_MODIFIED))
     {
         PPH_SERVICE_ITEM serviceItem;
 
         serviceItem = ServiceModifiedData->ServiceItem;
 
-        if (serviceChange == ServiceStarted && (PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_START))
+        if (serviceChange == ServiceStarted && FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_START))
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_START, serviceItem))
             {
@@ -567,7 +563,7 @@ VOID PhMwpOnServiceModified(
                 }
             }
         }
-        else if (serviceChange == ServiceStopped && (PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_STOP))
+        else if (serviceChange == ServiceStopped && FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_STOP))
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_STOP, serviceItem))
             {
@@ -636,7 +632,7 @@ VOID PhMwpOnServiceRemoved(
 {
     PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
 
-    if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_DELETE)
+    if (FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_DELETE))
     {
         if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_DELETE, ServiceItem))
         {

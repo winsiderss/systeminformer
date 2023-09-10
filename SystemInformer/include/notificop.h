@@ -41,7 +41,6 @@ typedef struct _PH_NF_BITMAP
     LONG Width;
     LONG Height;
     LONG TaskbarDpi;
-    HFONT FontHandle;
 } PH_NF_BITMAP, *PPH_NF_BITMAP;
 
 HICON PhNfpGetBlackIcon(
