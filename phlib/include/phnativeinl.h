@@ -810,14 +810,14 @@ FORCEINLINE
 NTSTATUS
 PhGetThreadStartAddress(
     _In_ HANDLE ThreadHandle,
-    _Out_ PVOID *StartAddress
+    _Out_ PULONG_PTR StartAddress
     )
 {
     return NtQueryInformationThread(
         ThreadHandle,
         ThreadQuerySetWin32StartAddress,
         StartAddress,
-        sizeof(PVOID),
+        sizeof(ULONG_PTR),
         NULL
         );
 }
