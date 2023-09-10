@@ -36,7 +36,8 @@ PH_NF_BITMAP PhNfpDefaultBitmapContext = { 0 };
 PH_NF_BITMAP PhNfpBlackBitmapContext = { 0 };
 HBITMAP PhNfpBlackBitmap = NULL;
 HICON PhNfpBlackIcon = NULL;
-HFONT PhNfpTrayIconFont = NULL;
+HICON PhNfAppTrayIcon = NULL;
+HFONT PhNfTrayIconFont = NULL;
 GUID PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_MAXIMUM];
 
 static POINT IconClickLocation;
@@ -633,7 +634,7 @@ VOID PhNfSetVisibleIcon(
 #endif
 }
 
-BOOLEAN PhNfShowBalloonTip(
+BOOLEAN PhNfpShowBalloonTip(
     _In_ PWSTR Title,
     _In_ PWSTR Text,
     _In_ ULONG Timeout
@@ -664,17 +665,43 @@ BOOLEAN PhNfShowBalloonTip(
 
     if (PhNfPersistTrayIconPositionEnabled)
     {
-        notifyIcon.uFlags |= NIF_GUID;
+        SetFlag(notifyIcon.uFlags, NIF_GUID);
         notifyIcon.guidItem = registeredIcon->IconGuid;
     }
 
     wcsncpy_s(notifyIcon.szInfoTitle, RTL_NUMBER_OF(notifyIcon.szInfoTitle), Title, _TRUNCATE);
     wcsncpy_s(notifyIcon.szInfo, RTL_NUMBER_OF(notifyIcon.szInfo), Text, _TRUNCATE);
     notifyIcon.uTimeout = Timeout;
-    notifyIcon.dwInfoFlags = NIIF_INFO;
+
+    if (PhGetIntegerSetting(L"IconBalloonShowIcon") || WindowsVersion < WINDOWS_11)
+        SetFlag(notifyIcon.dwInfoFlags, NIIF_INFO);
+    if (PhGetIntegerSetting(L"IconBalloonMuteSound"))
+        SetFlag(notifyIcon.dwInfoFlags, NIIF_NOSOUND);
 
     PhShellNotifyIcon(NIM_MODIFY, &notifyIcon);
 
+    return TRUE;
+}
+
+BOOLEAN PhNfShowBalloonTip(
+    _In_ PWSTR Title,
+    _In_ PWSTR Text,
+    _In_ ULONG Timeout
+    )
+{
+#ifndef PH_NF_ENABLE_WORKQUEUE
+    return PhNfpShowBalloonTip(Title, Text, Timeout);
+#else
+    PPH_NF_WORKQUEUE_DATA data;
+
+    data = PhAllocateZero(sizeof(PH_NF_WORKQUEUE_DATA));
+    data->ShowBalloon = TRUE;
+    data->BalloonTitle = Title ? PhCreateString(Title) : NULL;
+    data->BalloonText = Text ? PhCreateString(Text) : NULL;
+    data->BalloonTimeout = Timeout;
+
+    RtlInterlockedPushEntrySList(&PhpTrayIconWorkQueueListHead, &data->ListEntry);
+#endif
     return TRUE;
 }
 
@@ -790,77 +817,28 @@ VOID PhNfNotifyMiniInfoPinned(
     }
 }
 
-//VOID PhpNfCreateTransparentHdc(
-//    _Inout_ PRECT Rect,
-//    _Out_ HDC *Hdc,
-//    _Out_ HDC *MaskDc,
-//    _Out_ HBITMAP *Bitmap,
-//    _Out_ HBITMAP *MaskBitmap,
-//    _Out_ HBITMAP *OldBitmap,
-//    _Out_ HBITMAP *OldMaskBitmap
-//    )
-//{
-//    HDC hdc;
-//    HDC bufferDc;
-//    HDC bufferMaskDc;
-//    HBITMAP bufferBitmap;
-//    HBITMAP bufferMaskBitmap;
-//    HBITMAP oldBufferBitmap;
-//    HBITMAP oldBufferMaskBitmap;
-//
-//    hdc = GetDC(NULL);
-//    bufferDc = CreateCompatibleDC(hdc);
-//    bufferBitmap = CreateCompatibleBitmap(hdc, Rect->right, Rect->bottom);
-//    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
-//
-//    bufferMaskDc = CreateCompatibleDC(hdc);
-//    bufferMaskBitmap = CreateBitmap(Rect->right, Rect->bottom, 1, 1, NULL);
-//    oldBufferMaskBitmap = SelectBitmap(bufferMaskDc, bufferMaskBitmap);
-//
-//    *Hdc = bufferDc;
-//    *MaskDc = bufferMaskDc;
-//    *Bitmap = bufferBitmap;
-//    *MaskBitmap = bufferMaskBitmap;
-//    *OldBitmap = oldBufferBitmap;
-//    *OldMaskBitmap = oldBufferMaskBitmap;
-//}
-//
-//HICON PhpNfTransparentHdcToIcon(
-//    _Inout_ PRECT Rect,
-//    _In_ HDC Hdc,
-//    _In_ HDC MaskDc,
-//    _In_ HBITMAP Bitmap,
-//    _In_ HBITMAP MaskBitmap,
-//    _In_ HBITMAP OldBitmap,
-//    _In_ HBITMAP OldMaskBitmap
-//    )
-//{
-//    HICON iconHandle;
-//    ICONINFO iconInfo;
-//
-//    SetBkColor(Hdc, RGB(0, 0, 0)); // Set transparent color and draw the mask
-//    BitBlt(MaskDc, 0, 0, Rect->right, Rect->bottom, Hdc, 0, 0, SRCCOPY);
-//
-//    SelectBitmap(Hdc, Bitmap);
-//    SelectBitmap(MaskDc, MaskBitmap);
-//
-//    DeleteDC(Hdc);
-//    DeleteDC(MaskDc);
-//    ReleaseDC(NULL, Hdc);
-//
-//    iconInfo.fIcon = TRUE;
-//    iconInfo.xHotspot = 0;
-//    iconInfo.yHotspot = 0;
-//    iconInfo.hbmMask = MaskBitmap;
-//    iconInfo.hbmColor = Bitmap;
-//
-//    iconHandle = CreateIconIndirect(&iconInfo); // Create transparent icon
-//
-//    DeleteBitmap(MaskBitmap);
-//    DeleteBitmap(Bitmap);
-//
-//    return iconHandle;
-//}
+HICON PhNfGetApplicationIcon(
+    _In_opt_ LONG DpiValue
+    )
+{
+    if (DpiValue != 0 && PhNfAppTrayIcon)
+    {
+        DestroyIcon(PhNfAppTrayIcon);
+        PhNfAppTrayIcon = NULL;
+    }
+
+    if (!PhNfAppTrayIcon)
+    {
+        if (DpiValue == 0)
+        {
+            DpiValue = PhGetTaskbarDpi();
+        }
+
+        PhNfAppTrayIcon = PhGetApplicationIconEx(FALSE, DpiValue);
+    }
+
+    return PhNfAppTrayIcon;
+}
 
 HICON PhNfpGetBlackIcon(
     VOID
@@ -895,20 +873,20 @@ HFONT PhNfGetTrayIconFont(
     _In_opt_ LONG DpiValue
     )
 {
-    if (DpiValue != 0 && PhNfpTrayIconFont)
+    if (DpiValue != 0 && PhNfTrayIconFont)
     {
-        DeleteFont(PhNfpTrayIconFont);
-        PhNfpTrayIconFont = NULL;
+        DeleteFont(PhNfTrayIconFont);
+        PhNfTrayIconFont = NULL;
     }
 
-    if (!PhNfpTrayIconFont)
+    if (!PhNfTrayIconFont)
     {
         if (DpiValue == 0)
         {
             DpiValue = PhGetTaskbarDpi();
         }
 
-        PhNfpTrayIconFont = CreateFont(
+        PhNfTrayIconFont = CreateFont(
             PhGetDpi(-11, DpiValue),
             0,
             0,
@@ -926,7 +904,7 @@ HFONT PhNfGetTrayIconFont(
             );
     }
 
-    return PhNfpTrayIconFont;
+    return PhNfTrayIconFont;
 }
 
 BOOLEAN PhNfpAddNotifyIcon(
@@ -947,7 +925,7 @@ BOOLEAN PhNfpAddNotifyIcon(
 
     if (PhNfPersistTrayIconPositionEnabled)
     {
-        notifyIcon.uFlags |= NIF_GUID;
+        SetFlag(notifyIcon.uFlags, NIF_GUID);
         notifyIcon.guidItem = Icon->IconGuid;
     }
 
@@ -956,10 +934,11 @@ BOOLEAN PhNfpAddNotifyIcon(
         PhGetStringOrDefault(Icon->TextCache, PhApplicationName),
         _TRUNCATE
         );
-    notifyIcon.hIcon = PhNfpGetBlackIcon();
+    //notifyIcon.hIcon = PhNfpGetBlackIcon();
+    notifyIcon.hIcon = PhGetApplicationIcon(TRUE); // Fixes GH#1845 (dmex)
 
-    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (Icon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
-        notifyIcon.uFlags |= NIF_SHOWTIP;
+    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || FlagOn(Icon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
+        SetFlag(notifyIcon.uFlags, NIF_SHOWTIP);
 
     PhShellNotifyIcon(NIM_ADD, &notifyIcon);
     notifyIcon.uVersion = NOTIFYICON_VERSION_4;
@@ -981,7 +960,7 @@ BOOLEAN PhNfpRemoveNotifyIcon(
 
     if (PhNfPersistTrayIconPositionEnabled)
     {
-        notifyIcon.uFlags |= NIF_GUID;
+        SetFlag(notifyIcon.uFlags, NIF_GUID);
         notifyIcon.guidItem = Icon->IconGuid;
     }
 
@@ -1013,21 +992,17 @@ BOOLEAN PhNfpModifyNotifyIcon(
 
     if (PhNfPersistTrayIconPositionEnabled)
     {
-        notifyIcon.uFlags |= NIF_GUID;
+        SetFlag(notifyIcon.uFlags, NIF_GUID);
         notifyIcon.guidItem = Icon->IconGuid;
     }
 
-    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || BooleanFlagOn(Icon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
-        notifyIcon.uFlags |= NIF_SHOWTIP;
+    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || FlagOn(Icon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
+        SetFlag(notifyIcon.uFlags, NIF_SHOWTIP);
 
-    if (Flags & NIF_TIP)
+    if (FlagOn(Flags, NIF_TIP))
     {
         PhSwapReference(&Icon->TextCache, Text);
-        wcsncpy_s(
-            notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip),
-            PhGetStringOrDefault(Text, PhApplicationName),
-            _TRUNCATE
-            );
+        wcsncpy_s(notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip), PhGetStringOrDefault(Text, PhApplicationName), _TRUNCATE);
     }
 
     if (!PhShellNotifyIcon(NIM_MODIFY, &notifyIcon))
@@ -1092,6 +1067,17 @@ VOID PhNfTrayIconFlushWorkQueueData(
         if (data->Delete)
         {
             PhNfpRemoveNotifyIcon(data->Icon);
+        }
+
+        if (data->ShowBalloon)
+        {
+            PhNfpShowBalloonTip(
+                PhGetString(data->BalloonTitle),
+                PhGetString(data->BalloonText),
+                data->BalloonTimeout
+                );
+            PhClearReference(&data->BalloonTitle);
+            PhClearReference(&data->BalloonText);
         }
 
         PhFree(data);
@@ -1213,27 +1199,27 @@ VOID PhNfpUpdateRegisteredIcon(
 
     if (newIconOrBitmap)
     {
-        if (updateFlags & PH_NF_UPDATE_IS_BITMAP)
+        if (FlagOn(updateFlags, PH_NF_UPDATE_IS_BITMAP))
             newIcon = PhNfBitmapToIcon(newIconOrBitmap);
         else
             newIcon = newIconOrBitmap;
 
-        flags |= NIF_ICON;
+        SetFlag(flags, NIF_ICON);
     }
 
     if (newText)
-        flags |= NIF_TIP;
+        SetFlag(flags, NIF_TIP);
 
     if (flags != 0)
         PhNfpModifyNotifyIcon(Icon, flags, newText, newIcon);
 
-    if (newIcon && (updateFlags & PH_NF_UPDATE_IS_BITMAP))
+    if (newIcon && FlagOn(updateFlags, PH_NF_UPDATE_IS_BITMAP))
         DestroyIcon(newIcon);
 
-    if (newIconOrBitmap && (updateFlags & PH_NF_UPDATE_DESTROY_RESOURCE))
+    if (newIconOrBitmap && FlagOn(updateFlags, PH_NF_UPDATE_DESTROY_RESOURCE))
     {
-        if (updateFlags & PH_NF_UPDATE_IS_BITMAP)
-            DeleteObject(newIconOrBitmap);
+        if (FlagOn(updateFlags, PH_NF_UPDATE_IS_BITMAP))
+            DeleteBitmap(newIconOrBitmap);
         else
             DestroyIcon(newIconOrBitmap);
     }
@@ -1274,11 +1260,8 @@ VOID PhNfpBeginBitmap2(
         Context->Height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
 
         // Re-initialize fonts with updated DPI (only when there's an existing handle). (dmex)
-
-        if (PhNfpTrayIconFont)
-        {
-            PhNfGetTrayIconFont(dpiValue);
-        }
+        //PhNfGetTrayIconFont(dpiValue);
+        //PhNfGetApplicationIcon(dpiValue);
     }
 
     // Cleanup existing resources when the DPI changes so we're able to re-initialize with updated DPI. (dmex)
@@ -2178,7 +2161,7 @@ VOID PhNfpPlainIconUpdateCallback(
         string = PhCreateString2(&text);
     }
 
-    *NewIconOrBitmap = PhGetApplicationIcon(TRUE);
+    *NewIconOrBitmap = PhNfGetApplicationIcon(0);
     *NewText = PhReferenceObject(string);
     *Flags = 0;
 }
@@ -2196,7 +2179,7 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
     {
         Data->SectionName = NULL;
 
-        if (!BooleanFlagOn(RegisteredIcon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
+        if (!FlagOn(RegisteredIcon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
         {
             if (RegisteredIcon->MessageCallback)
             {
