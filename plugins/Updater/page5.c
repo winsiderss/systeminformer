@@ -179,7 +179,7 @@ VOID ShowNewerVersionDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
@@ -189,7 +189,7 @@ VOID ShowNewerVersionDialog(
     config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"You're running a pre-release build.";
     config.pszContent = PhaFormatString(
-        L"Pre-release build: v%s\r\n",
+        L"Pre-release build: v%s\r\n\r\n<A HREF=\"changelog.txt\">View changelog</A>",
         PhGetStringOrEmpty(Context->CurrentVersionString)
         )->Buffer;
 
