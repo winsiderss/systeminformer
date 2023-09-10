@@ -62,6 +62,7 @@ typedef enum _TRACE_CONTROL_INFORMATION_CLASS
     TraceControlUpdateLogger = 4, // inout WMI_LOGGER_INFORMATION
     TraceControlFlushLogger = 5, // inout WMI_LOGGER_INFORMATION
     TraceControlIncrementLoggerFile = 6, // inout WMI_LOGGER_INFORMATION
+    TraceControlRealtimeTransition = 7, // inout WMI_LOGGER_INFORMATION
     // unused
     TraceControlRealtimeConnect = 11,
     TraceControlActivityIdCreate = 12,
