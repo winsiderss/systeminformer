@@ -590,6 +590,7 @@ PhGetWindowTextEx(
     );
 
 PHLIBAPI
+NTSTATUS
 NTAPI
 PhGetWindowTextToBuffer(
     _In_ HWND WindowHandle,
