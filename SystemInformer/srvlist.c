@@ -418,16 +418,6 @@ static VOID PhpUpdateServiceNodeKey(
             {
                 ServiceNode->KeyLastWriteTime = lastWriteTime;
             }
-            else
-            {
-                PKEY_BASIC_INFORMATION buffer;
-
-                if (NT_SUCCESS(PhQueryKey(keyHandle, KeyBasicInformation, &buffer)))
-                {
-                    ServiceNode->KeyLastWriteTime = buffer->LastWriteTime;
-                    PhFree(buffer);
-                }
-            }
 
             NtClose(keyHandle);
         }

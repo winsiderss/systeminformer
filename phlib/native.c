@@ -10436,8 +10436,24 @@ NTSTATUS PhQueryKeyLastWriteTime(
         *LastWriteTime = basicInfo.LastWriteTime;
         return STATUS_SUCCESS;
     }
+    else
+    {
+        PKEY_BASIC_INFORMATION buffer;
 
-    return STATUS_UNSUCCESSFUL;
+        status = PhQueryKey(
+            KeyHandle,
+            KeyBasicInformation,
+            &buffer
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            memcpy(LastWriteTime, &buffer->LastWriteTime, sizeof(LARGE_INTEGER));
+            PhFree(buffer);
+        }
+    }
+
+    return status;
 }
 
 /**
