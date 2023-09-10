@@ -2652,6 +2652,24 @@ BOOLEAN PhGetPhysicallyInstalledSystemMemory(
 }
 
 _Success_(return)
+BOOLEAN PhGetThreadWin32Thread(
+    _In_ HANDLE ThreadId
+    )
+{
+    GUITHREADINFO info;
+
+    memset(&info, 0, sizeof(GUITHREADINFO));
+    info.cbSize = sizeof(GUITHREADINFO);
+
+    if (GetGUIThreadInfo(HandleToUlong(ThreadId), &info))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Success_(return)
 BOOLEAN PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
     _Out_ HWND *WindowHandle
