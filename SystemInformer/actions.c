@@ -322,7 +322,7 @@ BOOLEAN PhpStartPhSvcProcess(
             L"-phsvc",
             SW_HIDE,
             PH_SHELL_EXECUTE_ADMIN,
-            PH_SHELL_APP_PROPAGATE_PARAMETERS,
+            0,
             0,
             NULL
             ))
@@ -336,7 +336,6 @@ BOOLEAN PhpStartPhSvcProcess(
             static PH_STRINGREF relativeFileNames[] =
             {
                 PH_STRINGREF_INIT(L"\\x86\\"),
-                PH_STRINGREF_INIT(L"\\..\\x86\\"),
 #ifdef DEBUG
                 PH_STRINGREF_INIT(L"\\..\\Debug32\\"),
                 PH_STRINGREF_INIT(L"\\..\\Release32\\")
@@ -377,7 +376,7 @@ BOOLEAN PhpStartPhSvcProcess(
                         L"-phsvc",
                         SW_HIDE,
                         PH_SHELL_EXECUTE_DEFAULT,
-                        PH_SHELL_APP_PROPAGATE_PARAMETERS,
+                        0,
                         0,
                         NULL
                         ))
