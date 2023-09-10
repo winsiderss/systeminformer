@@ -358,6 +358,8 @@ EXPORTS
     PhUpdateDosDevicePrefixes
     PhUpdateMupDevicePrefixes
     PhWaitForNamedPipe
+    PhSetProcessPowerThrottlingState
+    PhSetProcessPriority
     PhSetProcessPriorityBoost
     PhSetThreadBasePriority
     PhSetThreadIoPriority
@@ -472,6 +474,11 @@ EXPORTS
     PhShowStatus
     PhStringToGuid
     PhSystemTimeToLargeInteger
+    PhTaskbarListCreate
+    PhTaskbarListDestroy
+    PhTaskbarListSetProgressValue
+    PhTaskbarListSetProgressState
+    PhTaskbarListSetOverlayIcon
     PhUpdateHash
     PhWaitForMultipleObjectsAndPump
 
@@ -649,14 +656,6 @@ EXPORTS
     PhSidToStringSid
 
 ; mapimg
-    PhGetMappedImageCfg
-    PhGetMappedImageCfgEntry
-    PhGetMappedImageLoadConfig32
-    PhGetMappedImageLoadConfig64
-    PhGetMappedImageExports
-    PhGetMappedImageExportFunction
-    PhMappedImageRvaToVa
-    PhInitializeMappedImage
     PhLoadMappedImage
     PhLoadMappedImageEx
     PhUnloadMappedImage
@@ -720,6 +719,7 @@ EXPORTS
     PhCloseServiceHandle
     PhEnumDependentServices
     PhGetServiceConfig
+    PhGetServiceConfigFileName
     PhGetServiceDescription
     PhGetServiceDllParameter
     PhGetServiceErrorControlInteger
@@ -732,6 +732,7 @@ EXPORTS
     PhGetServiceTypeString
     PhGetThreadServiceTag
     PhOpenService
+    PhOpenServiceKey
     PhQueryServiceConfig
     PhQueryServiceConfig2
     PhQueryServiceStatus
