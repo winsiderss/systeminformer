@@ -27,9 +27,15 @@ typedef struct _PH_NF_WORKQUEUE_DATA
         {
             ULONG Add : 1;
             ULONG Delete : 1;
-            ULONG Spare : 30;
+            ULONG Update : 1;
+            ULONG ShowBalloon : 1;
+            ULONG Spare : 28;
         };
     };
+
+    PPH_STRING BalloonTitle;
+    PPH_STRING BalloonText;
+    ULONG BalloonTimeout;
 } PH_NF_WORKQUEUE_DATA, *PPH_NF_WORKQUEUE_DATA;
 
 typedef struct _PH_NF_BITMAP
@@ -42,6 +48,10 @@ typedef struct _PH_NF_BITMAP
     LONG Height;
     LONG TaskbarDpi;
 } PH_NF_BITMAP, *PPH_NF_BITMAP;
+
+HICON PhNfGetApplicationIcon(
+    _In_opt_ LONG DpiValue
+    );
 
 HICON PhNfpGetBlackIcon(
     VOID
