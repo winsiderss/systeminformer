@@ -99,8 +99,10 @@ VOID ProcessThreadStackControl(
     _In_ PPH_PLUGIN_THREAD_STACK_CONTROL Control
     );
 
+typedef struct _CLR_PROCESS_SUPPORT *PCLR_PROCESS_SUPPORT;
+
 VOID PredictAddressesFromClrData(
-    _In_ struct _CLR_PROCESS_SUPPORT *Support,
+    _In_ PCLR_PROCESS_SUPPORT Support,
     _In_ HANDLE ThreadId,
     _In_ PVOID PcAddress,
     _In_ PVOID FrameAddress,

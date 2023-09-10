@@ -284,7 +284,7 @@ VOID ProcessThreadStackControl(
 }
 
 VOID PredictAddressesFromClrData(
-    _In_ struct _CLR_PROCESS_SUPPORT *Support,
+    _In_ PCLR_PROCESS_SUPPORT Support,
     _In_ HANDLE ThreadId,
     _In_ PVOID PcAddress,
     _In_ PVOID FrameAddress,
