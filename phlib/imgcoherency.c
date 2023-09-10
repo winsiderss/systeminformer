@@ -1457,14 +1457,14 @@ NTSTATUS PhGetProcessModuleImageCoherency(
 /**
  * \brief Checks the image pages for tampering.
  *
- * \details Checkout out or blog for more info: 
+ * \details Checkout out or blog for more info:
  * https://windows-internals.com/understanding-a-new-mitigation-module-tampering-protection/
  *
  * \param[in] ProcessHandle - Handle to the process where the module is mapped.
- * \param[in] BaseAddress - Base address of the image pages to check. 
- * \param[in] SizeOfImage - Size of the image to check. 
+ * \param[in] BaseAddress - Base address of the image pages to check.
+ * \param[in] SizeOfImage - Size of the image to check.
  * \param[out] NumberOfPages - Number of pages checked.
- * \param[out] NumberOfTamperedPages - Number of tampered pages. 
+ * \param[out] NumberOfTamperedPages - Number of tampered pages.
  *
  * \return Successful or errant status.
  */
@@ -1485,8 +1485,8 @@ NTSTATUS PhCheckImagePagesForTampering(
     *NumberOfPages = 0;
     *NumberOfTamperedPages = 0;
 
-    numberOfPages = ((SIZE_T)((ULONG_PTR)BaseAddress & PAGE_MASK) + SizeOfImage + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
-    virtualAddress = (ULONG_PTR)BaseAddress & ~PAGE_MASK;
+    numberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, SizeOfImage);
+    virtualAddress = (ULONG_PTR)PAGE_ALIGN(BaseAddress);
 
     if (!numberOfPages)
         return STATUS_INVALID_PARAMETER;
