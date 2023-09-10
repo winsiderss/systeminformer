@@ -12,6 +12,7 @@
 
 #include <phapp.h>
 
+#include <settings.h>
 #include <svcsup.h>
 #include <verify.h>
 
@@ -764,7 +765,10 @@ VOID PhpFillWmiProviderHost(
     _Inout_ PPH_STRING_BUILDER Providers
     )
 {
-    PhQueryWmiHostProcessString(Process, Providers);
+    if (PhGetIntegerSetting(L"WmiProviderEnableTooltipSupport"))
+    {
+        PhQueryWmiHostProcessString(Process, Providers);
+    }
 }
 
 PPH_STRING PhGetServiceTooltipText(
