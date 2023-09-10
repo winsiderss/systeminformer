@@ -929,15 +929,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         if (memoryItem->RegionType != UnknownRegion)
             continue;
 
-        if ((memoryItem->Type & (MEM_MAPPED | MEM_IMAGE)) && memoryItem->AllocationBaseItem == memoryItem)
+        if (FlagOn(memoryItem->Type, MEM_MAPPED | MEM_IMAGE) && memoryItem->AllocationBaseItem == memoryItem)
         {
             MEMORY_IMAGE_INFORMATION imageInfo;
             PPH_STRING fileName;
 
-            if (NT_SUCCESS(PhGetProcessMappedImageInformation(ProcessHandle, memoryItem->BaseAddress, &imageInfo)))
+            if (FlagOn(memoryItem->Type, MEM_IMAGE))
             {
-                memoryItem->u.MappedFile.SigningLevelValid = TRUE;
-                memoryItem->u.MappedFile.SigningLevel = (SE_SIGNING_LEVEL)imageInfo.ImageSigningLevel;
+                if (NT_SUCCESS(PhGetProcessMappedImageInformation(ProcessHandle, memoryItem->BaseAddress, &imageInfo)))
+                {
+                    memoryItem->u.MappedFile.SigningLevelValid = TRUE;
+                    memoryItem->u.MappedFile.SigningLevel = (SE_SIGNING_LEVEL)imageInfo.ImageSigningLevel;
+                }
             }
 
             if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, memoryItem->BaseAddress, &fileName)))
@@ -953,7 +956,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             }
         }
 
-        if (memoryItem->State & MEM_COMMIT && memoryItem->Valid && !memoryItem->Bad)
+        if (FlagOn(memoryItem->State, MEM_COMMIT) && memoryItem->Valid && !memoryItem->Bad)
         {
             UCHAR buffer[HEAP_SEGMENT_MAX_SIZE];
 
