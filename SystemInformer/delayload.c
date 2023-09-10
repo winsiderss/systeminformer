@@ -125,17 +125,17 @@ PVOID WINAPI __delayLoadHelper2(
     importTable = PTR_ADD_OFFSET(PhInstanceHandle, DelayloadDescriptor->ImportAddressTableRVA);
     importNameTable = PTR_ADD_OFFSET(PhInstanceHandle, DelayloadDescriptor->ImportNameTableRVA);
 
-    if (!(moduleHandle = *importHandle))
+    if (!(moduleHandle = InterlockedCompareExchangePointer(importHandle, NULL, NULL)))
     {
-        PPH_STRING importDllNameString = PhZeroExtendToUtf16(importDllName);
+        WCHAR importDllNameBuffer[DOS_MAX_PATH_LENGTH] = L"";
 
-        if (!(moduleHandle = PhLoadLibrary(importDllNameString->Buffer)))
+        PhZeroExtendToUtf16Buffer(importDllName, strlen(importDllName), importDllNameBuffer);
+
+        if (!(moduleHandle = PhLoadLibrary(importDllNameBuffer)))
         {
-            PhDereferenceObject(importDllNameString);
             return NULL;
         }
 
-        PhDereferenceObject(importDllNameString);
         importNeedsFree = TRUE;
     }
 
