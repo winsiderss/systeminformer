@@ -2229,7 +2229,7 @@ VOID ThemeWindowRenderGroupBoxControl(
 
     dpiValue = PhGetWindowDpi(WindowHandle);
 
-    if (PhGetWindowTextToBuffer(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, text, RTL_NUMBER_OF(text), &returnLength) == ERROR_SUCCESS)
+    if (NT_SUCCESS(PhGetWindowTextToBuffer(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, text, RTL_NUMBER_OF(text), &returnLength)))
     {
         SIZE nameSize = { 0 };
         RECT bufferRect;

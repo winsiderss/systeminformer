@@ -959,7 +959,7 @@ ULONG PhGetWindowTextEx(
     }
 }
 
-ULONG PhGetWindowTextToBuffer(
+NTSTATUS PhGetWindowTextToBuffer(
     _In_ HWND WindowHandle,
     _In_ ULONG Flags,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
@@ -967,7 +967,7 @@ ULONG PhGetWindowTextToBuffer(
     _Out_opt_ PULONG ReturnLength
     )
 {
-    ULONG status = ERROR_SUCCESS;
+    NTSTATUS status;
     ULONG length;
 
     if (Flags & PH_GET_WINDOW_TEXT_INTERNAL)
@@ -976,7 +976,9 @@ ULONG PhGetWindowTextToBuffer(
         length = GetWindowText(WindowHandle, Buffer, BufferLength);
 
     if (length == 0)
-        status = GetLastError();
+        status = PhGetLastWin32ErrorAsNtStatus();
+    else
+        status = STATUS_SUCCESS;
 
     if (ReturnLength)
         *ReturnLength = length;
