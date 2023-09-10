@@ -478,7 +478,7 @@ VOID
 NTAPI
 PhGenerateRandomAlphaString(
     _Out_writes_z_(Count) PWSTR Buffer,
-    _In_ ULONG Count
+    _In_ SIZE_T Count
     );
 
 PHLIBAPI
