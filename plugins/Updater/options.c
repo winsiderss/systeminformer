@@ -176,21 +176,54 @@ BOOLEAN PhpUpdaterExtractCoAuthorName(
     return TRUE;
 }
 
+PPH_STRING PhUpdaterCreateUserAgentString(
+    VOID
+    )
+{
+    PH_FORMAT format[8];
+    SIZE_T returnLength;
+    ULONG majorVersion;
+    ULONG minorVersion;
+    ULONG buildVersion;
+    ULONG revisionVersion;
+    WCHAR formatBuffer[260];
+
+    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhInitFormatS(&format[0], L"SystemInformer_");
+    PhInitFormatU(&format[1], majorVersion);
+    PhInitFormatC(&format[2], L'.');
+    PhInitFormatU(&format[3], minorVersion);
+    PhInitFormatC(&format[4], L'.');
+    PhInitFormatU(&format[5], buildVersion);
+    PhInitFormatC(&format[6], L'.');
+    PhInitFormatU(&format[7], revisionVersion);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+    {
+        PH_STRINGREF stringFormat;
+
+        stringFormat.Buffer = formatBuffer;
+        stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
+
+        return PhCreateString2(&stringFormat);
+    }
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
+}
+
 PPH_LIST PhpUpdaterQueryCommitHistory(
     VOID
     )
 {
     PPH_LIST results = NULL;
     PPH_BYTES jsonString = NULL;
-    PPH_STRING versionString = NULL;
-    PPH_STRING userAgentString = NULL;
+    PPH_STRING userAgentString;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PVOID jsonRootObject = NULL;
     ULONG i;
     ULONG arrayLength;
 
-    versionString = PhGetPhVersion();
-    userAgentString = PhConcatStrings2(L"SystemInformer_", versionString->Buffer);
+    userAgentString = PhUpdaterCreateUserAgentString();
 
     if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
         goto CleanupExit;
@@ -320,7 +353,6 @@ CleanupExit:
         PhFreeJsonObject(jsonRootObject);
 
     PhClearReference(&jsonString);
-    PhClearReference(&versionString);
     PhClearReference(&userAgentString);
 
     return results;

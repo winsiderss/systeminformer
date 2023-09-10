@@ -14,8 +14,6 @@
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
 PH_EVENT InitializedEvent = PH_EVENT_INIT;
-PPH_OBJECT_TYPE UpdateContextType = NULL;
-PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
 BOOLEAN UpdateDatabaseType = FALSE;
 
 // Note: We're using the built-in tar.exe on Windows 10/11 for extracting the database
@@ -42,47 +40,58 @@ BOOLEAN GeoLiteCheckUpdatePlatformSupported(
     return supported;
 }
 
-VOID UpdateContextDeleteProcedure(
+VOID GeoLiteUpdateContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
 {
-    //PPH_UPDATER_CONTEXT context = Object;
+    //PNETWORK_GEODB_UPDATE_CONTEXT context = Object;
 }
 
-PPH_UPDATER_CONTEXT CreateUpdateContext(
+PNETWORK_GEODB_UPDATE_CONTEXT GeoLiteCreateUpdateContext(
     VOID
     )
 {
-    PPH_UPDATER_CONTEXT context;
+    static PPH_OBJECT_TYPE UpdateContextType = NULL;
+    static PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
+    PNETWORK_GEODB_UPDATE_CONTEXT context;
 
     if (PhBeginInitOnce(&UpdateContextTypeInitOnce))
     {
-        UpdateContextType = PhCreateObjectType(L"GeoLiteContextObjectType", 0, UpdateContextDeleteProcedure);
+        UpdateContextType = PhCreateObjectType(L"NetworkToolsUpdateContextObjectType", 0, GeoLiteUpdateContextDeleteProcedure);
         PhEndInitOnce(&UpdateContextTypeInitOnce);
     }
 
-    context = PhCreateObject(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
-    memset(context, 0, sizeof(PH_UPDATER_CONTEXT));
+    context = PhCreateObjectZero(sizeof(NETWORK_GEODB_UPDATE_CONTEXT), UpdateContextType);
+    context->PortableMode = !!ProcessHacker_IsPortableMode();
 
     return context;
 }
 
-PPH_STRING CreateUserAgentString(
+PPH_STRING GeoLiteCreateUserAgentString(
     VOID
     )
 {
-    PPH_STRING userAgentString;
-    PPH_STRING versionString;
+    PH_FORMAT format[8];
+    ULONG majorVersion;
+    ULONG minorVersion;
+    ULONG buildVersion;
+    ULONG revisionVersion;
 
-    versionString = PhGetPhVersion();
-    userAgentString = PhConcatStrings2(L"SystemInformer_", PhGetString(versionString));
-    PhDereferenceObject(versionString);
+    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhInitFormatS(&format[0], L"SystemInformer_");
+    PhInitFormatU(&format[1], majorVersion);
+    PhInitFormatC(&format[2], L'.');
+    PhInitFormatU(&format[3], minorVersion);
+    PhInitFormatC(&format[4], L'.');
+    PhInitFormatU(&format[5], buildVersion);
+    PhInitFormatC(&format[6], L'.');
+    PhInitFormatU(&format[7], revisionVersion);
 
-    return userAgentString;
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
-PWSTR CreateDatabaseName(
+PWSTR GeoLiteCreateDatabaseName(
     _In_ PWSTR Format
     )
 {
@@ -112,7 +121,7 @@ NTSTATUS ExtractUpdateToFile(
     PhInitFormatSR(&format[2], CompressedFileName->sr);
     PhInitFormatS(&format[3], L"\" --directory=\"");
     PhInitFormatSR(&format[4], WorkingDirectory->sr);
-    PhInitFormatS(&format[5], CreateDatabaseName(L"\" --strip-components=1 */GeoLite2-%s.mmdb"));
+    PhInitFormatS(&format[5], GeoLiteCreateDatabaseName(L"\" --strip-components=1 */GeoLite2-%s.mmdb"));
     commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
 
     status = PhCreateProcessRedirection(
@@ -129,7 +138,7 @@ NTSTATUS ExtractUpdateToFile(
 
 _Success_(return)
 BOOLEAN DownloadUpdateToFile(
-    _In_ PPH_UPDATER_CONTEXT Context,
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context,
     _Out_ PPH_STRING* UpdateFileName
     )
 {
@@ -157,7 +166,7 @@ BOOLEAN DownloadUpdateToFile(
 
         httpRequestString = PhFormatString(
             L"/app/geoip_download?edition_id=%s&license_key=%s&suffix=tar.gz",
-            CreateDatabaseName(L"GeoLite2-%s"),
+            GeoLiteCreateDatabaseName(L"GeoLite2-%s"),
             PhGetString(apikeyString)
             );
 
@@ -167,7 +176,7 @@ BOOLEAN DownloadUpdateToFile(
     SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
     {
-        PPH_STRING userAgentString = CreateUserAgentString();
+        PPH_STRING userAgentString = GeoLiteCreateUserAgentString();
 
         if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
         {
@@ -244,7 +253,7 @@ BOOLEAN DownloadUpdateToFile(
     // Update status message.
 
     SendMessage(Context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)CreateDatabaseName(L"Downloading GeoLite2-%s..."));
+    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)GeoLiteCreateDatabaseName(L"Downloading GeoLite2-%s..."));
 
     // Extract the content hash from the request headers.
 
@@ -279,7 +288,7 @@ BOOLEAN DownloadUpdateToFile(
 
     PhSkipStringRef(&httpHeaderFileName->sr, 21 * sizeof(WCHAR));
 
-    if (!PhStartsWithString2(httpHeaderFileName, CreateDatabaseName(L"GeoLite2-%s"), TRUE))
+    if (!PhStartsWithString2(httpHeaderFileName, GeoLiteCreateDatabaseName(L"GeoLite2-%s"), TRUE))
     {
         Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;
@@ -293,7 +302,7 @@ BOOLEAN DownloadUpdateToFile(
 
     // Create temporary file in the cache directory.
 
-    PhMoveReference(&httpHeaderFileName, PhCreateCacheFile(httpHeaderFileName, FALSE));
+    PhMoveReference(&httpHeaderFileName, PhCreateCacheFile(Context->PortableMode, httpHeaderFileName, FALSE));
 
     if (PhIsNullOrEmptyString(httpHeaderFileName))
     {
@@ -462,7 +471,7 @@ CleanupExit:
 }
 
 BOOLEAN MoveUpdateToFile(
-    _In_ PPH_UPDATER_CONTEXT Context,
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context,
     _In_ PPH_STRING UpdateFileName
     )
 {
@@ -526,7 +535,7 @@ CleanupExit:
 }
 
 NTSTATUS GeoLiteUpdateThread(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     )
 {
     BOOLEAN success = FALSE;
@@ -546,12 +555,12 @@ NTSTATUS GeoLiteUpdateThread(
 
     cacheDirectory = PhGetBaseDirectory(compressedFileName);
 
-    if (!NT_SUCCESS(ExtractUpdateToFile(cacheDirectory, compressedFileName, CreateDatabaseName(L"\\GeoLite2-%s.mmdb"))))
+    if (!NT_SUCCESS(ExtractUpdateToFile(cacheDirectory, compressedFileName, GeoLiteCreateDatabaseName(L"\\GeoLite2-%s.mmdb"))))
         goto CleanupExit;
 
     // Check the update file was extracted.
 
-    updateFileName = PhConcatStringRefZ(&cacheDirectory->sr, CreateDatabaseName(L"\\GeoLite2-%s.mmdb"));
+    updateFileName = PhConcatStringRefZ(&cacheDirectory->sr, GeoLiteCreateDatabaseName(L"\\GeoLite2-%s.mmdb"));
 
     if (!PhDoesFileExistWin32(PhGetString(updateFileName)))
     {
@@ -592,7 +601,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     _In_ LPARAM lParam
     )
 {
-    PPH_UPDATER_CONTEXT context;
+    PNETWORK_GEODB_UPDATE_CONTEXT context;
     WNDPROC oldWndProc;
 
     if (!(context = PhGetWindowContext(hwndDlg, UCHAR_MAX)))
@@ -643,7 +652,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -677,12 +686,12 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     )
 {
     PH_AUTO_POOL autoPool;
-    PPH_UPDATER_CONTEXT context;
+    PNETWORK_GEODB_UPDATE_CONTEXT context;
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
 
     PhInitializeAutoPool(&autoPool);
 
-    context = CreateUpdateContext();
+    context = GeoLiteCreateUpdateContext();
     context->ParentWindowHandle = Parameter;
 
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;

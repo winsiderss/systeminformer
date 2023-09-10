@@ -51,6 +51,7 @@
 
 #ifdef _DEBUG
 //#define FORCE_UPDATE_CHECK
+//#define FORCE_FUTURE_VERSION
 //#define FORCE_LATEST_VERSION
 //#define FORCE_ELEVATION_CHECK
 //
@@ -92,12 +93,12 @@ typedef struct _PH_UPDATER_CONTEXT
         {
             BOOLEAN StartupCheck : 1;
             BOOLEAN HaveData : 1;
-            BOOLEAN FixedWindowStyles : 1;
             BOOLEAN Cancel : 1;
             BOOLEAN DirectoryElevationRequired : 1;
             BOOLEAN Cleanup : 1;
             BOOLEAN ProgressMarquee : 1;
             BOOLEAN ProgressTimer : 1;
+            BOOLEAN PortableMode : 1;
         };
     };
 
