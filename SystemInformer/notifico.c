@@ -14,7 +14,6 @@
 #include <phsettings.h>
 
 #include <shellapi.h>
-#include <malloc.h>
 
 #include <mainwnd.h>
 #include <phplug.h>

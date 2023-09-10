@@ -19,6 +19,7 @@
 #include <wchar.h>
 #include <assert.h>
 #include <stdio.h>
+#include <malloc.h>
 
 // Memory
 

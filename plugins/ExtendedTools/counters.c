@@ -10,7 +10,6 @@
  */
 
 #include "exttools.h"
-#include <malloc.h>
 #include <perflib.h>
 
 typedef struct _ET_GPU_TOTAL_COUNTER

@@ -14,7 +14,6 @@
 #include "etwsys.h"
 #include "gpusys.h"
 #include <toolstatusintf.h>
-#include <malloc.h>
 
 typedef enum _ETP_TRAY_ICON_ID
 {
