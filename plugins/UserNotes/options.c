@@ -78,6 +78,7 @@ VOID OptionsDeleteDbObject(
     Object->AffinityMask = 0;
     Object->PagePriorityPlusOne = 0;
     Object->Boost = FALSE;
+    Object->Efficiency = FALSE;
     DeleteDbObjectForProcessIfUnused(Object);
 }
 
@@ -149,6 +150,11 @@ BOOLEAN OptionsEnumDbCallback(
         PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 9, value);
     }
 
+    if (Object->Efficiency)
+    {
+        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 10, L"True");
+    }
+
     return TRUE;
 }
 
@@ -167,7 +173,7 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             HWND listview = GetDlgItem(hwndDlg, IDC_DBLIST);
 
-            PhSetListViewStyle(listview, FALSE, TRUE);
+            PhSetListViewStyle(listview, TRUE, TRUE);
             PhSetControlTheme(listview, L"explorer");
             PhAddListViewColumn(listview, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(listview, 1, 1, 1, LVCFMT_LEFT, 100, L"Type");
@@ -178,7 +184,8 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhAddListViewColumn(listview, 6, 6, 6, LVCFMT_LEFT, 80, L"BackColor");
             PhAddListViewColumn(listview, 7, 7, 7, LVCFMT_LEFT, 80, L"Collapse");
             PhAddListViewColumn(listview, 8, 8, 8, LVCFMT_LEFT, 80, L"Affinity");
-            PhAddListViewColumn(listview, 8, 8, 8, LVCFMT_LEFT, 80, L"Page priority");
+            PhAddListViewColumn(listview, 9, 9, 9, LVCFMT_LEFT, 80, L"Page priority");
+            PhAddListViewColumn(listview, 10, 10, 10, LVCFMT_LEFT, 80, L"Efficiency");
             PhSetExtendedListView(listview);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_OPTIONS_DB_COLUMNS, listview);
 
@@ -188,8 +195,9 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_COLLAPSE_SERVICES_CHECK), IsCollapseServicesOnStartEnabled());
 
             {
-                DB_ENUM_CONTEXT enumContext = { 0 };
+                DB_ENUM_CONTEXT enumContext;
 
+                memset(&enumContext, 0, sizeof(enumContext));
                 enumContext.Count = 0;
                 enumContext.ListViewHandle = listview;
 
@@ -255,8 +263,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Delete", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"&Copy", NULL, NULL), ULONG_MAX);
-                    PhInsertCopyListViewEMenuItem(menu, 2, listviewHandle);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, listviewHandle);
 
                     item = PhShowEMenu(
                         menu,
@@ -292,7 +300,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                                     SaveDb();
                                 }
                                 break;
-                            case 2:
+                            case PHAPP_IDC_COPY:
                                 PhCopyListView(listviewHandle);
                                 break;
                             }

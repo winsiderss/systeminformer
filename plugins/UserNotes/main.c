@@ -58,7 +58,8 @@ BOOLEAN MatchDbObjectIntent(
         (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse == TRUE) &&
         (!(Intent & INTENT_PROCESS_AFFINITY) || Object->AffinityMask != 0) &&
         (!(Intent & INTENT_PROCESS_PAGEPRIORITY) || Object->PagePriorityPlusOne != 0) &&
-        (!(Intent & INTENT_PROCESS_BOOST) || Object->Boost == TRUE);
+        (!(Intent & INTENT_PROCESS_BOOST) || Object->Boost == TRUE) &&
+        (!(Intent & INTENT_PROCESS_EFFICIENCY) || Object->Efficiency == TRUE);
 }
 
 PDB_OBJECT FindDbObjectForProcess(
@@ -101,11 +102,26 @@ VOID DeleteDbObjectForProcessIfUnused(
         Object->Collapse == FALSE &&
         Object->AffinityMask == 0 &&
         Object->PagePriorityPlusOne == 0 &&
-        Object->Boost == FALSE
+        Object->Boost == FALSE &&
+        Object->Efficiency == FALSE
         )
     {
         DeleteDbObject(Object);
     }
+}
+
+PPROCESS_EXTENSION GetProcessObjectExtension(
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    return PhPluginGetObjectExtension(PluginInstance, ProcessItem, EmProcessItemType);
+}
+
+PSERVICE_EXTENSION GetServiceObjectExtension(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    return PhPluginGetObjectExtension(PluginInstance, ServiceItem, EmServiceItemType);
 }
 
 NTSTATUS GetProcessAffinity(
@@ -358,12 +374,12 @@ PPH_STRING ShowFileDialog(
         {
             if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
-                if (!(mappedImage.NtHeaders32->FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE) || mappedImage.NtHeaders32->FileHeader.Characteristics & IMAGE_FILE_DLL)
+                if (!FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders32->FileHeader.Characteristics, IMAGE_FILE_DLL))
                     status = STATUS_INVALID_IMAGE_NOT_MZ;
             }
             else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
             {
-                if (!(mappedImage.NtHeaders32->FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE) || mappedImage.NtHeaders32->FileHeader.Characteristics & IMAGE_FILE_DLL)
+                if (!FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_EXECUTABLE_IMAGE) || FlagOn(mappedImage.NtHeaders->FileHeader.Characteristics, IMAGE_FILE_DLL))
                     status = STATUS_INVALID_IMAGE_NOT_MZ;
             }
 
@@ -1206,8 +1222,6 @@ VOID NTAPI MenuItemCallback(
             // Show the affinity dialog (with our values).
             if (PhShowProcessAffinityDialog2(menuItem->OwnerWindow, processItem, &affinityMask))
             {
-                PDB_OBJECT object;
-
                 LockDb();
 
                 if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
@@ -1451,19 +1465,7 @@ VOID NTAPI MenuItemCallback(
 
             if (NT_SUCCESS(status))
             {
-                HANDLE processHandle;
-
-                status = PhOpenProcess(
-                    &processHandle,
-                    PROCESS_SET_INFORMATION,
-                    processItem->ProcessId
-                    );
-
-                if (NT_SUCCESS(status))
-                {
-                    status = PhSetProcessPriorityBoost(processHandle, !priorityBoostDisabled);
-                    NtClose(processHandle);
-                }
+                status = PhSetProcessItemPriorityBoost(processItem, !priorityBoostDisabled);
             }
 
             if (!NT_SUCCESS(status))
@@ -1494,7 +1496,7 @@ VOID NTAPI MenuItemCallback(
                 if (NT_SUCCESS(status))
                 {
                     object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                    object->Boost = TRUE; // intentional
+                    object->Boost = TRUE;
                 }
                 else
                 {
@@ -1530,11 +1532,136 @@ VOID NTAPI MenuItemCallback(
                     if (NT_SUCCESS(status))
                     {
                         object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-                        object->Boost = TRUE; // intentional
+                        object->Boost = TRUE;
                     }
                     else
                     {
                         PhShowStatus(menuItem->OwnerWindow, L"Unable to query process boost.", status, 0);
+                    }
+                }
+
+                UnlockDb();
+                SaveDb();
+            }
+        }
+        break;
+    case PROCESS_EFFICIENCY_ID:
+        {
+            NTSTATUS status = STATUS_ACCESS_DENIED;
+            BOOLEAN efficiencyModeEnabled = FALSE;
+
+            if (processItem->QueryHandle)
+            {
+                POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+                status = PhGetProcessPowerThrottlingState(processItem->QueryHandle, &powerThrottlingState);
+
+                if (NT_SUCCESS(status))
+                {
+                    if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED) &&
+                        FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED))
+                    {
+                        efficiencyModeEnabled = TRUE;
+                    }
+                }
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhSetProcessItemThrottlingState(processItem, efficiencyModeEnabled);
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(menuItem->OwnerWindow, L"Unable to query process efficiency mode.", status, 0);
+            }
+        }
+        break;
+    case PROCESS_EFFICIENCY_SAVE_ID:
+        {
+            LockDb();
+
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Efficiency)
+            {
+                object->Efficiency = FALSE;
+                DeleteDbObjectForProcessIfUnused(object);
+            }
+            else
+            {
+                NTSTATUS status = STATUS_ACCESS_DENIED;
+                BOOLEAN efficiencyModeEnabled = FALSE;
+
+                if (processItem->QueryHandle)
+                {
+                    POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+                    status = PhGetProcessPowerThrottlingState(processItem->QueryHandle, &powerThrottlingState);
+
+                    if (NT_SUCCESS(status))
+                    {
+                        if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED) &&
+                            FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED))
+                        {
+                            efficiencyModeEnabled = TRUE;
+                        }
+                    }
+                }
+
+                if (NT_SUCCESS(status))
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                    object->Efficiency = TRUE;
+                }
+                else
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query process efficiency mode.", status, 0);
+                }
+            }
+
+            UnlockDb();
+            SaveDb();
+        }
+        break;
+    case PROCESS_EFFICIENCY_SAVE_FOR_THIS_COMMAND_LINE_ID:
+        {
+            if (processItem->CommandLine)
+            {
+                LockDb();
+
+                if ((object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->Efficiency)
+                {
+                    object->Efficiency = FALSE;
+                    DeleteDbObjectForProcessIfUnused(object);
+                }
+                else
+                {
+                    NTSTATUS status = STATUS_ACCESS_DENIED;
+                    BOOLEAN efficiencyModeEnabled = FALSE;
+
+                    if (processItem->QueryHandle)
+                    {
+                        POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+                        status = PhGetProcessPowerThrottlingState(processItem->QueryHandle, &powerThrottlingState);
+
+                        if (NT_SUCCESS(status))
+                        {
+                            if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED) &&
+                                FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED))
+                            {
+                                efficiencyModeEnabled = TRUE;
+                            }
+                        }
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
+                        object->Efficiency = TRUE;
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query process efficiency mode.", status, 0);
                     }
                 }
 
@@ -1802,7 +1929,7 @@ VOID TreeNewMessageCallback(
                     {
                         PPROCESS_EXTENSION extension;
 
-                        extension = PhPluginGetObjectExtension(PluginInstance, node->ProcessItem, EmProcessItemType);
+                        extension = GetProcessObjectExtension(node->ProcessItem);
                         UpdateProcessComment(node, extension);
                         getCellText->Text = PhGetStringRef(extension->Comment);
                     }
@@ -1821,7 +1948,7 @@ VOID TreeNewMessageCallback(
                     {
                         PSERVICE_EXTENSION extension;
 
-                        extension = PhPluginGetObjectExtension(PluginInstance, node->ServiceItem, EmServiceItemType);
+                        extension = GetServiceObjectExtension(node->ServiceItem);
                         UpdateServiceComment(node, extension);
                         getCellText->Text = PhGetStringRef(extension->Comment);
                     }
@@ -1864,8 +1991,10 @@ VOID AddSavePriorityMenuItemsAndHook(
     )
 {
     PPH_EMENU_ITEM affinityMenuItem;
-    PPH_EMENU_ITEM boostMenuItem;
+    PPH_EMENU_ITEM boostMenuItem = NULL;
     PPH_EMENU_ITEM boostPluginMenuItem;
+    PPH_EMENU_ITEM efficiencyMenuItem;
+    PPH_EMENU_ITEM efficiencyPluginMenuItem;
     PPH_EMENU_ITEM priorityMenuItem;
     PPH_EMENU_ITEM ioPriorityMenuItem;
     PPH_EMENU_ITEM pagePriorityMenuItem;
@@ -1930,6 +2059,43 @@ VOID AddSavePriorityMenuItemsAndHook(
             if (NT_SUCCESS(PhGetProcessPriorityBoost(ProcessItem->QueryHandle, &priorityBoostDisabled)) && !priorityBoostDisabled)
             {
                 boostPluginMenuItem->Flags |= PH_EMENU_CHECKED;
+            }
+        }
+    }
+
+    // Efficiency
+    if (boostMenuItem)
+    {
+        efficiencyMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Efficiency", NULL);
+        PhInsertEMenuItem(efficiencyMenuItem, efficiencyPluginMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_EFFICIENCY_ID, L"Set &efficiency mode", NULL), ULONG_MAX);
+        PhInsertEMenuItem(efficiencyMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(efficiencyMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_EFFICIENCY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
+        PhInsertEMenuItem(efficiencyMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_EFFICIENCY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), ULONG_MAX);
+        PhInsertEMenuItem(MenuInfo->Menu, efficiencyMenuItem, PhIndexOfEMenuItem(MenuInfo->Menu, boostMenuItem) + 1);
+
+        if (!ProcessItem->CommandLine)
+            PhSetDisabledEMenuItem(saveForCommandLineMenuItem);
+
+        LockDb();
+
+        if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && object->Efficiency)
+            SetFlag(saveMenuItem->Flags, PH_EMENU_CHECKED);
+        if (ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) && object->Efficiency)
+            SetFlag(saveForCommandLineMenuItem->Flags, PH_EMENU_CHECKED);
+
+        UnlockDb();
+
+        if (ProcessItem->QueryHandle)
+        {
+            POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+            if (NT_SUCCESS(PhGetProcessPowerThrottlingState(ProcessItem->QueryHandle, &powerThrottlingState)))
+            {
+                if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED) &&
+                    FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED))
+                {
+                    SetFlag(efficiencyPluginMenuItem->Flags, PH_EMENU_CHECKED);
+                }
             }
         }
     }
@@ -2068,8 +2234,8 @@ static LONG NTAPI ProcessCommentSortFunction(
 {
     PPH_PROCESS_NODE node1 = Node1;
     PPH_PROCESS_NODE node2 = Node2;
-    PPROCESS_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ProcessItem, EmProcessItemType);
-    PPROCESS_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ProcessItem, EmProcessItemType);
+    PPROCESS_EXTENSION extension1 = GetProcessObjectExtension(node1->ProcessItem);
+    PPROCESS_EXTENSION extension2 = GetProcessObjectExtension(node2->ProcessItem);
 
     UpdateProcessComment(node1, extension1);
     UpdateProcessComment(node2, extension2);
@@ -2153,8 +2319,8 @@ LONG NTAPI ServiceCommentSortFunction(
 {
     PPH_SERVICE_NODE node1 = Node1;
     PPH_SERVICE_NODE node2 = Node2;
-    PSERVICE_EXTENSION extension1 = PhPluginGetObjectExtension(PluginInstance, node1->ServiceItem, EmServiceItemType);
-    PSERVICE_EXTENSION extension2 = PhPluginGetObjectExtension(PluginInstance, node2->ServiceItem, EmServiceItemType);
+    PSERVICE_EXTENSION extension1 = GetServiceObjectExtension(node1->ServiceItem);
+    PSERVICE_EXTENSION extension2 = GetServiceObjectExtension(node2->ServiceItem);
 
     UpdateServiceComment(node1, extension1);
     UpdateServiceComment(node2, extension2);
@@ -2204,7 +2370,7 @@ VOID ProcessModifiedCallback(
     PPH_PROCESS_ITEM processItem = Parameter;
     PPROCESS_EXTENSION extension;
 
-    extension = PhPluginGetObjectExtension(PluginInstance, processItem, EmProcessItemType);
+    extension = GetProcessObjectExtension(processItem);
     extension->Valid = FALSE;
 }
 
@@ -2313,6 +2479,32 @@ VOID ProcessesUpdatedCallback(
                         if (!NT_SUCCESS(PhSetProcessItemPriorityBoost(processItem, object->Boost)))
                         {
                             extension->SkipBoostPriority = TRUE;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_EFFICIENCY))
+        {
+            if (object->Efficiency && !extension->SkipEfficiency)
+            {
+                POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+                BOOLEAN efficiencyModeEnabled = FALSE;
+
+                if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessPowerThrottlingState(processItem->QueryHandle, &powerThrottlingState)))
+                {
+                    if (FlagOn(powerThrottlingState.ControlMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED) &&
+                        FlagOn(powerThrottlingState.StateMask, POWER_THROTTLING_PROCESS_EXECUTION_SPEED))
+                    {
+                        efficiencyModeEnabled = TRUE;
+                    }
+
+                    if (efficiencyModeEnabled != object->Efficiency)
+                    {
+                        if (!NT_SUCCESS(PhSetProcessItemThrottlingState(processItem, efficiencyModeEnabled)))
+                        {
+                            extension->SkipEfficiency = TRUE;
                         }
                     }
                 }
