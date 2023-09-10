@@ -51,10 +51,6 @@ static WCHAR PhpFormatDecimalSeparator = L'.';
 static WCHAR PhpFormatThousandSeparator = L',';
 static _locale_t PhpFormatUserLocale = NULL;
 
-// We previously used an internal CRT routine named _cfltcvt_l for floating-point
-// conversion (which also handled the locale) but this was changed in newer versions
-// of the CRT and was no longer available. We're now using the high-performance std::to_chars
-// but it doesn't handle the users locale so we'll fixup the locale here. (dmex)
 VOID PhpFormatDoubleToUtf8Locale(
     _In_ DOUBLE Value,
     _In_ ULONG Type,
