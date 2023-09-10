@@ -434,6 +434,7 @@
     <ClCompile Include="netlist.c" />
     <ClCompile Include="netprv.c" />
     <ClCompile Include="notifico.c" />
+    <ClCompile Include="notiftoast.cpp" />
     <ClCompile Include="ntobjprp.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="pagfiles.c" />
