@@ -1855,11 +1855,30 @@ NTSTATUS PhRunAsServiceStart(
         &tokenHandle
         )))
     {
-        PhSetTokenPrivilege2(tokenHandle, SE_ASSIGNPRIMARYTOKEN_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-        PhSetTokenPrivilege2(tokenHandle, SE_INCREASE_QUOTA_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-        PhSetTokenPrivilege2(tokenHandle, SE_BACKUP_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-        PhSetTokenPrivilege2(tokenHandle, SE_RESTORE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-        PhSetTokenPrivilege2(tokenHandle, SE_IMPERSONATE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+        const LUID_AND_ATTRIBUTES privileges[] =
+        {
+            { RtlConvertUlongToLuid(SE_ASSIGNPRIMARYTOKEN_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_INCREASE_QUOTA_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_BACKUP_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_RESTORE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+            { RtlConvertUlongToLuid(SE_IMPERSONATE_PRIVILEGE), SE_PRIVILEGE_ENABLED },
+        };
+        UCHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(privileges)];
+        PTOKEN_PRIVILEGES tokenPrivileges;
+
+        tokenPrivileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
+        tokenPrivileges->PrivilegeCount = RTL_NUMBER_OF(privileges);
+        memcpy(tokenPrivileges->Privileges, privileges, sizeof(privileges));
+
+        NtAdjustPrivilegesToken(
+            tokenHandle,
+            FALSE,
+            tokenPrivileges,
+            0,
+            NULL,
+            NULL
+            );
+
         NtClose(tokenHandle);
     }
 
