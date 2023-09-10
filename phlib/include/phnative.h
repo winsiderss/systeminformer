@@ -2508,6 +2508,13 @@ PhDeleteDirectoryWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhDeleteDirectoryFullPath(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreatePipe(
     _Out_ PHANDLE PipeReadHandle,
     _Out_ PHANDLE PipeWriteHandle
