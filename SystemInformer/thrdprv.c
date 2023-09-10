@@ -867,7 +867,7 @@ VOID PhpThreadProviderUpdate(
 
         if (!threadItem)
         {
-            PVOID startAddress = NULL;
+            ULONG_PTR startAddress = 0;
 
             threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
             threadItem->CreateTime = thread->CreateTime;
