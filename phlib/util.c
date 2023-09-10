@@ -8733,3 +8733,85 @@ VOID PhDevFreeObjects(
         DevFreeObjects_I(ObjectCount, Objects);
     }
 }
+
+HRESULT PhTaskbarListCreate(
+    _Out_ PHANDLE TaskbarHandle
+    )
+{
+    HRESULT status;
+    ITaskbarList3* taskbarListClass;
+
+    status = PhGetClassObject(
+        L"explorerframe.dll",
+        &CLSID_TaskbarList,
+        &IID_ITaskbarList3,
+        &taskbarListClass
+        );
+
+    if (HR_SUCCESS(status))
+    {
+        status = ITaskbarList3_HrInit(taskbarListClass);
+
+        if (HR_FAILED(status))
+        {
+            ITaskbarList3_Release(taskbarListClass);
+            taskbarListClass = NULL;
+        }
+    }
+
+    if (HR_SUCCESS(status))
+    {
+        *TaskbarHandle = taskbarListClass;
+    }
+
+    return status;
+}
+
+VOID PhTaskbarListDestroy(
+    _In_ HANDLE TaskbarHandle
+    )
+{
+    ITaskbarList3_Release((ITaskbarList3*)TaskbarHandle);
+}
+
+VOID PhTaskbarListSetProgressValue(
+    _In_ HANDLE TaskbarHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONGLONG Completed,
+    _In_ ULONGLONG Total
+    )
+{
+    ITaskbarList3_SetProgressValue((ITaskbarList3*)TaskbarHandle, WindowHandle, Completed, Total);
+}
+
+VOID PhTaskbarListSetProgressState(
+    _In_ HANDLE TaskbarHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags
+    )
+{
+    static CONST PH_FLAG_MAPPING PhTaskbarListFlagMappings[] =
+    {
+        { PH_TBLF_NOPROGRESS, TBPF_NOPROGRESS },
+        { PH_TBLF_INDETERMINATE, TBPF_INDETERMINATE },
+        { PH_TBLF_NORMAL, TBPF_NORMAL },
+        { PH_TBLF_ERROR, TBPF_ERROR },
+        { PH_TBLF_PAUSED, TBPF_PAUSED },
+    };
+    ULONG flags;
+
+    flags = 0;
+    PhMapFlags1(&flags, Flags, PhTaskbarListFlagMappings, RTL_NUMBER_OF(PhTaskbarListFlagMappings));
+
+    ITaskbarList3_SetProgressState((ITaskbarList3*)TaskbarHandle, WindowHandle, flags);
+}
+
+VOID PhTaskbarListSetOverlayIcon(
+    _In_ HANDLE TaskbarHandle,
+    _In_ HWND WindowHandle,
+    _In_opt_ HICON IconHandle,
+    _In_opt_ PCWSTR IconDescription
+    )
+{
+    ITaskbarList3_SetOverlayIcon((ITaskbarList3*)TaskbarHandle, WindowHandle, IconHandle, IconDescription);
+}
