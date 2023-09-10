@@ -27,18 +27,18 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\r\n"
     "#include ""../../SystemInformer/include/phappres.h""\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\r\n"
     "\0"
@@ -70,12 +70,12 @@ BEGIN
         BLOCK "000004b0"
         BEGIN
             VALUE "CompanyName", "System Informer"
-            VALUE "FileDescription", "System Informer"
+            VALUE "FileDescription", "PE Viewer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "peview.exe"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "peview.exe"
-            VALUE "ProductName", "System Informer"
+            VALUE "ProductName", "PE Viewer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
