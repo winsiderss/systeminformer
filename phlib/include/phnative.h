@@ -2017,6 +2017,7 @@ PhGetExistingPathPrefixWin32(
 #define PH_MODULE_TYPE_KERNEL_MODULE 4
 #define PH_MODULE_TYPE_MAPPED_IMAGE 5
 #define PH_MODULE_TYPE_ELF_MAPPED_IMAGE 6
+#define PH_MODULE_TYPE_ENCLAVE_MODULE 7
 
 typedef struct _PH_MODULE_INFO
 {
@@ -2035,6 +2036,10 @@ typedef struct _PH_MODULE_INFO
     USHORT LoadReason; // -1 if N/A
     USHORT Reserved;
     LARGE_INTEGER LoadTime; // 0 if N/A
+
+    ULONG EnclaveType;
+    PVOID EnclaveBaseAddress;
+    SIZE_T EnclaveSize;
 } PH_MODULE_INFO, *PPH_MODULE_INFO;
 
 /**
@@ -3421,10 +3426,9 @@ PhEnumProcessEnclaveModules(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetProcesstLdrTableEntryNames(
+PhGetProcessLdrTableEntryNames(
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID EntryAddress,
-    _In_opt_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _Out_ PPH_STRING* Name,
     _Out_ PPH_STRING* FileName
     );

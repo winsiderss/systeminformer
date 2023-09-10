@@ -9548,6 +9548,8 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         PhAddEntryHashtable(context->BaseAddressHashtable, &Module->DllBase);
     }
 
+    RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
+
     moduleInfo.Type = context->Type;
     moduleInfo.BaseAddress = Module->DllBase;
     moduleInfo.Size = Module->SizeOfImage;
@@ -9607,6 +9609,8 @@ VOID PhpRtlModulesToGenericModules(
         {
             PhAddEntryHashtable(BaseAddressHashtable, &module->ImageBase);
         }
+
+        RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
 
         if ((ULONG_PTR)module->ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
@@ -9675,6 +9679,8 @@ VOID PhpRtlModulesExToGenericModules(
             PhAddEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase);
         }
 
+        RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
+
         if ((ULONG_PTR)module->BaseInfo.ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
         else
@@ -9717,6 +9723,8 @@ BOOLEAN PhpCallbackMappedFileOrImage(
 {
     PH_MODULE_INFO moduleInfo;
     BOOLEAN cont;
+
+    RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
 
     moduleInfo.Type = Type;
     moduleInfo.BaseAddress = AllocationBase;
@@ -17814,14 +17822,8 @@ NTSTATUS PhEnumProcessEnclaveModules(
     NTSTATUS status;
     PVOID listHead;
     LDR_DATA_TABLE_ENTRY entry;
-    ULONG entrySize;
 
     status = STATUS_SUCCESS;
-
-    if (WindowsVersion >= WINDOWS_8)
-        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN8;
-    else
-        entrySize = LDR_DATA_TABLE_ENTRY_SIZE_WIN7;
 
     listHead = PTR_ADD_OFFSET(EnclaveAddress, FIELD_OFFSET(LDR_SOFTWARE_ENCLAVE, Modules));
 
@@ -17837,7 +17839,7 @@ NTSTATUS PhEnumProcessEnclaveModules(
             ProcessHandle,
             entryAddress,
             &entry,
-            entrySize,
+            sizeof(entry),
             NULL
             );
         if (!NT_SUCCESS(status))
@@ -17850,10 +17852,9 @@ NTSTATUS PhEnumProcessEnclaveModules(
     return status;
 }
 
-NTSTATUS PhGetProcesstLdrTableEntryNames(
+NTSTATUS PhGetProcessLdrTableEntryNames(
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID EntryAddress,
-    _In_opt_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _Out_ PPH_STRING* Name,
     _Out_ PPH_STRING* FileName
     )
@@ -17861,8 +17862,6 @@ NTSTATUS PhGetProcesstLdrTableEntryNames(
     NTSTATUS status;
     PPH_STRING name;
     PPH_STRING fileName;
-    PLDR_DATA_TABLE_ENTRY entry;
-    LDR_DATA_TABLE_ENTRY entryData;
     PWSTR fullDllName;
     ULONG_PTR index;
 
@@ -17871,51 +17870,32 @@ NTSTATUS PhGetProcesstLdrTableEntryNames(
 
     name = NULL;
     fileName = NULL;
+    fullDllName = NULL;
 
-    if (Entry)
-    {
-        entry = Entry;
-    }
-    else
-    {
-        status = NtReadVirtualMemory(
-            ProcessHandle,
-            EntryAddress,
-            &entryData,
-            sizeof(entryData),
-            NULL
-            );
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        entry = &entryData;
-    }
-
-    if (entry->DllBase)
-        PhGetProcessMappedFileName(ProcessHandle, entry->DllBase, &fileName);
+    if (Entry->DllBase)
+        PhGetProcessMappedFileName(ProcessHandle, Entry->DllBase, &fileName);
 
     if (!fileName)
     {
-        fullDllName = PhAllocate(entry->FullDllName.Length + sizeof(UNICODE_NULL));
+
+        fullDllName = PhAllocate(Entry->FullDllName.Length);
+
         status = NtReadVirtualMemory(
             ProcessHandle,
-            entry->FullDllName.Buffer,
+            Entry->FullDllName.Buffer,
             fullDllName,
-            entry->FullDllName.Length,
+            Entry->FullDllName.Length,
             NULL
             );
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        fileName = PhCreateStringEx(
-            fullDllName,
-            entry->FullDllName.Length / sizeof(WCHAR)
-            );
+        fileName = PhCreateStringEx(fullDllName, Entry->FullDllName.Length);
     }
 
     index = PhFindLastCharInStringRef(
         &fileName->sr,
-        OBJ_NAME_ALTPATH_SEPARATOR,
+        OBJ_NAME_PATH_SEPARATOR,
         FALSE
         );
     if (index != SIZE_MAX)
@@ -17937,6 +17917,9 @@ NTSTATUS PhGetProcesstLdrTableEntryNames(
     fileName = NULL;
 
 CleanupExit:
+
+    if (fullDllName)
+        PhFree(fullDllName);
 
     PhClearReference(&name);
     PhClearReference(&fileName);

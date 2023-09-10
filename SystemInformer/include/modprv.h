@@ -30,6 +30,9 @@ typedef struct _PH_MODULE_ITEM
     PPH_STRING Name;
     PPH_STRING FileName;
     PH_IMAGE_VERSION_INFO VersionInfo;
+    ULONG EnclaveType;
+    PVOID EnclaveBaseAddress;
+    SIZE_T EnclaveSize;
 
     union
     {
@@ -63,6 +66,7 @@ typedef struct _PH_MODULE_ITEM
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR ParentBaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR EntryPointAddressString[PH_PTR_STR_LEN_1];
+    WCHAR EnclaveBaseAddressString[PH_PTR_STR_LEN_1];
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER
@@ -106,6 +110,13 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
 PPH_MODULE_ITEM PhCreateModuleItem(
     VOID
+    );
+
+PPH_MODULE_ITEM PhReferenceModuleItemEx(
+    _In_ PPH_MODULE_PROVIDER ModuleProvider,
+    _In_ PVOID BaseAddress,
+    _In_ PVOID EnclaveBaseAddress,
+    _In_opt_ PPH_STRING FileName
     );
 
 PPH_MODULE_ITEM PhReferenceModuleItem(

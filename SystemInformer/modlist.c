@@ -114,6 +114,10 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_SERVICE, FALSE, L"Service", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ENCLAVE_TYPE, FALSE, L"Enclave type", 40, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_BASE_ADDRESS, FALSE, L"Enclave base address", 80, PH_ALIGN_RIGHT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_SIZE, FALSE, L"Enclave size", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
@@ -422,6 +426,7 @@ VOID PhpDestroyModuleNode(
     PhClearReference(&ModuleNode->FileSizeText);
     PhClearReference(&ModuleNode->ImageCoherencyText);
     PhClearReference(&ModuleNode->ServiceText);
+    PhClearReference(&ModuleNode->EnclaveSizeText);
 
     PhDereferenceObject(ModuleNode->ModuleItem);
 
@@ -488,12 +493,14 @@ VOID PhInvalidateAllModuleBaseAddressNodes(
             PhPrintPointerPadZeros(moduleNode->ModuleItem->BaseAddressString, moduleNode->ModuleItem->BaseAddress);
             PhPrintPointerPadZeros(moduleNode->ModuleItem->EntryPointAddressString, moduleNode->ModuleItem->EntryPoint);
             PhPrintPointerPadZeros(moduleNode->ModuleItem->ParentBaseAddressString, moduleNode->ModuleItem->ParentBaseAddress);
+            PhPrintPointerPadZeros(moduleNode->ModuleItem->EnclaveBaseAddressString, moduleNode->ModuleItem->EnclaveBaseAddress);
         }
         else
         {
             PhPrintPointer(moduleNode->ModuleItem->BaseAddressString, moduleNode->ModuleItem->BaseAddress);
             PhPrintPointer(moduleNode->ModuleItem->EntryPointAddressString, moduleNode->ModuleItem->EntryPoint);
             PhPrintPointer(moduleNode->ModuleItem->ParentBaseAddressString, moduleNode->ModuleItem->ParentBaseAddress);
+            PhPrintPointer(moduleNode->ModuleItem->EnclaveBaseAddressString, moduleNode->ModuleItem->EnclaveBaseAddress);
         }
 
         memset(moduleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
@@ -552,6 +559,10 @@ VOID PhTickModuleNodes(
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \
         sortResult = uintptrcmp((ULONG_PTR)moduleItem1->BaseAddress, (ULONG_PTR)moduleItem2->BaseAddress); \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)moduleItem1->EnclaveBaseAddress, (ULONG_PTR)moduleItem2->EnclaveBaseAddress); \
+    if (sortResult == 0) \
+        sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE); \
     \
     return PhModifySort(sortResult, ((PPH_MODULE_LIST_CONTEXT)_context)->TreeNewSortOrder); \
 }
@@ -565,6 +576,10 @@ LONG PhpModuleTreeNewPostSortFunction(
 {
     if (Result == 0)
         Result = uintptrcmp((ULONG_PTR)((PPH_MODULE_NODE)Node1)->ModuleItem->BaseAddress, (ULONG_PTR)((PPH_MODULE_NODE)Node2)->ModuleItem->BaseAddress);
+    if (Result == 0)
+        Result = uintptrcmp((ULONG_PTR)((PPH_MODULE_NODE)Node1)->ModuleItem->EnclaveBaseAddress, (ULONG_PTR)((PPH_MODULE_NODE)Node2)->ModuleItem->EnclaveBaseAddress);
+    if (Result == 0)
+        Result = PhCompareStringWithNull(((PPH_MODULE_NODE)Node1)->ModuleItem->FileName, ((PPH_MODULE_NODE)Node2)->ModuleItem->FileName, TRUE);
 
     return PhModifySort(Result, SortOrder);
 }
@@ -752,6 +767,24 @@ BEGIN_SORT_FUNCTION(ServiceName)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(EnclaveType)
+{
+    sortResult = uintcmp(moduleItem1->EnclaveType, moduleItem2->EnclaveType);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(EnclaveBaseAddress)
+{
+    sortResult = uintptrcmp((ULONG_PTR)moduleItem1->EnclaveBaseAddress, (ULONG_PTR)moduleItem2->EnclaveBaseAddress);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(EnclaveSize)
+{
+    sortResult = uintptrcmp((ULONG_PTR)moduleItem1->EnclaveSize, (ULONG_PTR)moduleItem2->EnclaveSize);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -817,6 +850,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(LoadTime), // Timeline
                     SORT_FUNCTION(OriginalName),
                     SORT_FUNCTION(ServiceName),
+                    SORT_FUNCTION(EnclaveType),
+                    SORT_FUNCTION(EnclaveBaseAddress),
+                    SORT_FUNCTION(EnclaveSize),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -927,6 +963,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         break;
                     case PH_MODULE_TYPE_KERNEL_MODULE:
                         typeString = L"Kernel module";
+                        break;
+                    case PH_MODULE_TYPE_ENCLAVE_MODULE:
+                        typeString = L"Enclave module";
                         break;
                     default:
                         typeString = L"Unknown";
@@ -1171,6 +1210,46 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     else
                     {
                         PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
+                break;
+            case PHMOTLC_ENCLAVE_TYPE:
+                {
+                    if (moduleItem->EnclaveBaseAddress)
+                    {
+                        PWSTR enclaveTypeString;
+
+                        switch (moduleItem->EnclaveType)
+                        {
+                        case ENCLAVE_TYPE_SGX:
+                            enclaveTypeString = L"SGX";
+                            break;
+                        case ENCLAVE_TYPE_SGX2:
+                            enclaveTypeString = L"SGX2";
+                            break;
+                        case ENCLAVE_TYPE_VBS:
+                            enclaveTypeString = L"VBS";
+                            break;
+                        default:
+                            enclaveTypeString = L"Unknown";
+                            break;
+                        }
+
+                        PhInitializeStringRefLongHint(&getCellText->Text, enclaveTypeString);
+                    }
+                }
+                break;
+            case PHMOTLC_ENCLAVE_BASE_ADDRESS:
+                if (moduleItem->EnclaveBaseAddress)
+                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->EnclaveBaseAddressString);
+                break;
+            case PHMOTLC_ENCLAVE_SIZE:
+                {
+                    if (moduleItem->EnclaveBaseAddress)
+                    {
+                        if (!node->EnclaveSizeText)
+                            node->EnclaveSizeText = PhFormatSize(moduleItem->EnclaveSize, ULONG_MAX);
+                        getCellText->Text = PhGetStringRef(node->EnclaveSizeText);
                     }
                 }
                 break;
