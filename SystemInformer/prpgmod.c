@@ -352,6 +352,31 @@ BOOLEAN PhpModulesTreeFilterCallback(
         break;
     }
 
+    if (moduleItem->EnclaveBaseAddress)
+    {
+        if (moduleItem->EnclaveBaseAddressString[0])
+        {
+            if (PhWordMatchStringLongHintZ(Context->SearchboxText, moduleItem->EnclaveBaseAddressString))
+                return TRUE;
+        }
+
+        switch (moduleItem->EnclaveType)
+        {
+        case ENCLAVE_TYPE_SGX:
+            if (PhWordMatchStringZ(Context->SearchboxText, L"SGX"))
+                return TRUE;
+            break;
+        case ENCLAVE_TYPE_SGX2:
+            if (PhWordMatchStringZ(Context->SearchboxText, L"SGX2"))
+                return TRUE;
+            break;
+        case ENCLAVE_TYPE_VBS:
+            if (PhWordMatchStringZ(Context->SearchboxText, L"VBS"))
+                return TRUE;
+            break;
+        }
+    }
+
     return FALSE;
 }
 

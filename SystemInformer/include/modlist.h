@@ -45,8 +45,11 @@
 #define PHMOTLC_TIMELINE 22
 #define PHMOTLC_ORIGINALNAME 23
 #define PHMOTLC_SERVICE 24
+#define PHMOTLC_ENCLAVE_TYPE 25
+#define PHMOTLC_ENCLAVE_BASE_ADDRESS 26
+#define PHMOTLC_ENCLAVE_SIZE 27
 
-#define PHMOTLC_MAXIMUM 25
+#define PHMOTLC_MAXIMUM 28
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
@@ -73,6 +76,7 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING FileSizeText;
     PPH_STRING ImageCoherencyText;
     PPH_STRING ServiceText;
+    PPH_STRING EnclaveSizeText;
 
     struct _PH_MODULE_NODE *Parent;
     PPH_LIST Children;

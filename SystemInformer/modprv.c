@@ -320,23 +320,38 @@ BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    return
-        (*(PPH_MODULE_ITEM *)Entry1)->BaseAddress ==
-        (*(PPH_MODULE_ITEM *)Entry2)->BaseAddress;
+    PPH_MODULE_ITEM entry1 = *(PPH_MODULE_ITEM *)Entry1;
+    PPH_MODULE_ITEM entry2 = *(PPH_MODULE_ITEM *)Entry2;
+
+    if (entry1->FileName && entry2->FileName)
+    {
+        return ((entry1->BaseAddress == entry2->BaseAddress) &&
+                (entry1->EnclaveBaseAddress == entry2->EnclaveBaseAddress) &&
+                PhEqualString(entry1->FileName, entry2->FileName, TRUE));
+    }
+    else
+    {
+        return ((entry1->BaseAddress == entry2->BaseAddress) &&
+                (entry1->EnclaveBaseAddress == entry2->EnclaveBaseAddress));
+    }
 }
 
 ULONG NTAPI PhpModuleHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    PVOID baseAddress = (*(PPH_MODULE_ITEM *)Entry)->BaseAddress;
+    PPH_MODULE_ITEM entry = *(PPH_MODULE_ITEM *)Entry;
+    ULONG baseAddressHash = PhHashIntPtr((ULONG_PTR)entry->BaseAddress);
+    ULONG enclaveBaseAddressHash = PhHashIntPtr((ULONG_PTR)entry->EnclaveBaseAddress);
 
-    return PhHashIntPtr((ULONG_PTR)baseAddress);
+    return baseAddressHash ^ (enclaveBaseAddressHash << 1);
 }
 
-PPH_MODULE_ITEM PhReferenceModuleItem(
+PPH_MODULE_ITEM PhReferenceModuleItemEx(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
-    _In_ PVOID BaseAddress
+    _In_ PVOID BaseAddress,
+    _In_ PVOID EnclaveBaseAddress,
+    _In_opt_ PPH_STRING FileName
     )
 {
     PH_MODULE_ITEM lookupModuleItem;
@@ -345,6 +360,8 @@ PPH_MODULE_ITEM PhReferenceModuleItem(
     PPH_MODULE_ITEM moduleItem;
 
     lookupModuleItem.BaseAddress = BaseAddress;
+    lookupModuleItem.EnclaveBaseAddress = EnclaveBaseAddress;
+    lookupModuleItem.FileName = FileName;
 
     PhAcquireFastLockShared(&ModuleProvider->ModuleHashtableLock);
 
@@ -366,6 +383,19 @@ PPH_MODULE_ITEM PhReferenceModuleItem(
     PhReleaseFastLockShared(&ModuleProvider->ModuleHashtableLock);
 
     return moduleItem;
+}
+
+PPH_MODULE_ITEM PhReferenceModuleItem(
+    _In_ PPH_MODULE_PROVIDER ModuleProvider,
+    _In_ PVOID BaseAddress
+    )
+{
+    return PhReferenceModuleItemEx(
+        ModuleProvider,
+        BaseAddress,
+        NULL,
+        NULL
+        );
 }
 
 VOID PhDereferenceAllModuleItems(
@@ -516,6 +546,103 @@ static BOOLEAN NTAPI EnumModulesCallback(
     return TRUE;
 }
 
+static VOID PhpAddEnclaveModule(
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
+    _In_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_ USHORT LoadOrderIndex,
+    _Inout_ PPH_LIST Modules
+    )
+{
+    PPH_MODULE_INFO info;
+
+    info = PhAllocateZero(sizeof(PH_MODULE_INFO));
+
+    if (!NT_SUCCESS(PhGetProcessLdrTableEntryNames(
+        ProcessHandle,
+        Entry,
+        &info->Name,
+        &info->FileName
+        )))
+    {
+        info->Name = PhReferenceEmptyString();
+        info->FileName = PhReferenceEmptyString();
+    }
+
+    info->Type = PH_MODULE_TYPE_ENCLAVE_MODULE;
+    info->BaseAddress = Entry->DllBase;
+    info->ParentBaseAddress = Entry->ParentDllBase;
+    info->OriginalBaseAddress = (PVOID)Entry->OriginalBase;
+    info->Size = Entry->SizeOfImage;
+    info->EntryPoint = Entry->EntryPoint;
+    info->Flags = Entry->Flags;
+    info->LoadOrderIndex = LoadOrderIndex;
+    info->LoadCount = USHRT_MAX;
+    info->LoadReason = (USHORT)Entry->LoadReason;
+    info->LoadTime = Entry->LoadTime;
+
+    info->EnclaveType = Enclave->EnclaveType;
+    info->EnclaveBaseAddress = Enclave->BaseAddress;
+    info->EnclaveSize = Enclave->Size;
+
+    PhAddItemList(Modules, info);
+}
+
+typedef struct _PHP_ENUM_ENCLAVE_MODULES_CONTEXT
+{
+    PPH_LIST Modules;
+    USHORT LoadOrderIndex;
+} PHP_ENUM_ENCLAVE_MODULES_CONTEXT, *PPHP_ENUM_ENCLAVE_MODULES_CONTEXT;
+
+static BOOLEAN NTAPI EnumEnclaveModulesCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
+    _In_ PVOID EntryAddress,
+    _In_ PLDR_DATA_TABLE_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_ENUM_ENCLAVE_MODULES_CONTEXT context;
+
+    assert(Context);
+    context = (PPHP_ENUM_ENCLAVE_MODULES_CONTEXT)Context;
+
+    PhpAddEnclaveModule(
+        ProcessHandle,
+        Enclave,
+        Entry,
+        context->LoadOrderIndex++,
+        context->Modules
+        );
+
+    return TRUE;
+}
+
+static BOOLEAN NTAPI EnumEnclavesCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID EnclaveAddress,
+    _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
+    _In_opt_ PVOID Context
+    )
+{
+    PHP_ENUM_ENCLAVE_MODULES_CONTEXT context;
+
+    assert(Context);
+
+    context.Modules = (PPH_LIST)Context;
+    context.LoadOrderIndex = 0;
+
+    PhEnumProcessEnclaveModules(
+        ProcessHandle,
+        EnclaveAddress,
+        Enclave,
+        EnumEnclaveModulesCallback,
+        &context
+        );
+
+    return TRUE;
+}
+
 VOID PhModuleProviderUpdate(
     _In_ PVOID Object
     )
@@ -540,6 +667,16 @@ VOID PhModuleProviderUpdate(
         modules
         );
 
+    if (moduleProvider->LdrpEnclaveList)
+    {
+        PhEnumProcessEnclaves(
+            moduleProvider->ProcessHandle,
+            moduleProvider->LdrpEnclaveList,
+            EnumEnclavesCallback,
+            modules
+            );
+    }
+
     // Look for removed modules.
     {
         PPH_LIST modulesToRemove = NULL;
@@ -556,6 +693,7 @@ VOID PhModuleProviderUpdate(
                 PPH_MODULE_INFO module = modules->Items[i];
 
                 if ((*moduleItem)->BaseAddress == module->BaseAddress &&
+                    (*moduleItem)->EnclaveBaseAddress == module->EnclaveBaseAddress &&
                     PhEqualString((*moduleItem)->FileName, module->FileName, TRUE))
                 {
                     found = TRUE;
@@ -625,7 +763,12 @@ VOID PhModuleProviderUpdate(
         PPH_MODULE_INFO module = modules->Items[i];
         PPH_MODULE_ITEM moduleItem;
 
-        moduleItem = PhReferenceModuleItem(moduleProvider, module->BaseAddress);
+        moduleItem = PhReferenceModuleItemEx(
+            moduleProvider,
+            module->BaseAddress,
+            module->EnclaveBaseAddress,
+            module->FileName
+            );
 
         if (!moduleItem)
         {
@@ -646,6 +789,9 @@ VOID PhModuleProviderUpdate(
             moduleItem->Name = module->Name;
             moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
+            moduleItem->EnclaveType = module->EnclaveType;
+            moduleItem->EnclaveBaseAddress = module->EnclaveBaseAddress;
+            moduleItem->EnclaveSize = module->EnclaveSize;
 
             if (module->OriginalBaseAddress && module->OriginalBaseAddress != module->BaseAddress)
                 moduleItem->ImageNotAtBase = TRUE;
@@ -655,12 +801,14 @@ VOID PhModuleProviderUpdate(
                 PhPrintPointerPadZeros(moduleItem->BaseAddressString, moduleItem->BaseAddress);
                 PhPrintPointerPadZeros(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
                 PhPrintPointerPadZeros(moduleItem->ParentBaseAddressString, moduleItem->ParentBaseAddress);
+                PhPrintPointerPadZeros(moduleItem->EnclaveBaseAddressString, moduleItem->EnclaveBaseAddress);
             }
             else
             {
                 PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
                 PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
                 PhPrintPointer(moduleItem->ParentBaseAddressString, moduleItem->ParentBaseAddress);
+                PhPrintPointer(moduleItem->EnclaveBaseAddressString, moduleItem->EnclaveBaseAddress);
             }
 
             PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, PhEnableVersionShortText);
@@ -702,6 +850,7 @@ VOID PhModuleProviderUpdate(
             if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
+                moduleItem->Type == PH_MODULE_TYPE_ENCLAVE_MODULE ||
                 (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE &&
                  (KphLevel() == KphLevelMax)))
             {
