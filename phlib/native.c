@@ -12104,6 +12104,20 @@ NTSTATUS PhDeleteDirectoryWin32(
     return status;
 }
 
+NTSTATUS PhDeleteDirectoryFullPath(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    PH_STRINGREF directoryPart;
+
+    if (PhGetBasePath(FileName, &directoryPart, NULL))
+    {
+        return PhDeleteDirectory(&directoryPart);
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
 NTSTATUS PhCopyFileWin32(
     _In_ PWSTR OldFileName,
     _In_ PWSTR NewFileName,
