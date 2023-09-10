@@ -35,6 +35,7 @@ typedef struct _DB_OBJECT
     KAFFINITY AffinityMask;
     ULONG PagePriorityPlusOne;
     BOOLEAN Boost;
+    BOOLEAN Efficiency;
 } DB_OBJECT, *PDB_OBJECT;
 
 VOID InitializeDb(
