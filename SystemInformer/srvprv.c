@@ -349,6 +349,8 @@ PH_SERVICE_CHANGE PhGetServiceChange(
         return ServiceStopped;
     }
 
+    // TODO: ServiceModified (dmex)
+
     return ULONG_MAX;
 }
 

@@ -88,10 +88,12 @@ typedef struct _PH_SERVICE_MODIFIED_DATA
 
 typedef enum _PH_SERVICE_CHANGE
 {
+    ServiceNone,
     ServiceStarted,
     ServiceContinued,
     ServicePaused,
-    ServiceStopped
+    ServiceStopped,
+    ServiceModified,
 } PH_SERVICE_CHANGE, *PPH_SERVICE_CHANGE;
 // end_phapppub
 

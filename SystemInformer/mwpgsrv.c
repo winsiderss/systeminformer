@@ -519,9 +519,11 @@ VOID PhMwpOnServiceModified(
     case ServicePaused:
         logEntryType = PH_LOG_ENTRY_SERVICE_PAUSE;
         break;
+    case ServiceModified:
+        logEntryType = PH_LOG_ENTRY_SERVICE_MODIFIED;
+        break;
     default:
-        // HACK: We can't use JustProcessed here, so use the RunId instead. (dmex)
-        logEntryType = (RunId && RunId > 2) ? PH_LOG_ENTRY_SERVICE_MODIFIED : 0;
+        logEntryType = 0;
         break;
     }
 
@@ -592,7 +594,7 @@ VOID PhMwpOnServiceModified(
                 }
             }
         }
-        else if (serviceChange == -1 && PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_MODIFIED && (RunId && RunId > 2))
+        else if (serviceChange == ServiceModified && FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_MODIFIED))
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_MODIFIED, serviceItem))
             {
