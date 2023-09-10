@@ -874,3 +874,44 @@ NTSTATUS PhSetProcessItemPriorityBoost(
 
     return status;
 }
+
+// Note: Workaround for UserNotes plugin dialog overrides (dmex)
+NTSTATUS PhSetProcessItemThrottlingState(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN ThrottlingState
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        ProcessItem->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ThrottlingState)
+        {
+            PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_NORMAL);
+
+            status = PhSetProcessPowerThrottlingState(processHandle, 0, 0);
+        }
+        else
+        {
+            // Taskmgr sets the process priority to idle before enabling 'Eco mode'. (dmex)
+            PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_IDLE);
+
+            status = PhSetProcessPowerThrottlingState(
+                processHandle,
+                POWER_THROTTLING_PROCESS_EXECUTION_SPEED,
+                POWER_THROTTLING_PROCESS_EXECUTION_SPEED
+                );
+        }
+
+        NtClose(processHandle);
+    }
+
+    return status;
+}
