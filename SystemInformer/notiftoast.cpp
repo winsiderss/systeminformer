@@ -10,6 +10,7 @@
  */
 
 #include <notiftoast.h>
+#include <mapldr.h>
 
 #include <wrl.h>
 #include <roapi.h>
@@ -555,6 +556,7 @@ _Must_inspect_result_
 HRESULT PhInitializeToastRuntime()
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    HRESULT res;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -585,7 +587,12 @@ HRESULT PhInitializeToastRuntime()
         return E_NOTIMPL;
     }
 
-    return g_RoInitialize(RO_INIT_MULTITHREADED);
+    res = g_RoInitialize(RO_INIT_MULTITHREADED);
+    if (res == RPC_E_CHANGED_MODE)
+        res = g_RoInitialize(RO_INIT_SINGLETHREADED);
+    if (res == S_FALSE) // already initialized
+        res = S_OK;
+    return res;
 }
 
 /*!
