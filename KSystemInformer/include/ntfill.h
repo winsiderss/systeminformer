@@ -1157,8 +1157,6 @@ MiGetVadEndAddress(
     return MiGetVadShortEndAddress(&Vad->Core);
 }
 
-#define VmCfgCallTargetInformation 2
-
 // CI
 
 #ifndef ALGIDDEF
