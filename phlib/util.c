@@ -1224,6 +1224,8 @@ VOID PhGenerateClass5Guid(
 }
 
 // rev from Windows SDK\\ComputerHardwareIds.exe (dmex)
+// https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/computerhardwareids
+// https://learn.microsoft.com/en-us/windows-hardware/drivers/install/specifying-hardware-ids-for-a-computer
 VOID PhGenerateHardwareIDGuid(
     _In_reads_bytes_(BufferSize) PVOID Buffer,
     _In_ ULONG BufferSize,
