@@ -36,6 +36,7 @@
 #include <settings.h>
 #include <srvlist.h>
 #include <srvprv.h>
+#include <notiftoast.h>
 
 #include <mainwndp.h>
 
@@ -3975,12 +3976,86 @@ VOID PhShowIconContextMenu(
     PhDestroyEMenu(menu);
 }
 
+VOID NTAPI PhpToastCallback(
+    _In_ HRESULT Result,
+    _In_ PH_TOAST_REASON Reason,
+    _In_ PVOID Context
+    )
+{
+    if (Reason == PhToastReasonActivated)
+        PhShowDetailsForIconNotification();
+}
+
+BOOLEAN PhpShowToastNotification(
+    _In_ PWSTR Title,
+    _In_ PWSTR Text,
+    _In_ ULONG Timeout
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING iconFileName = NULL;
+    BOOLEAN result;
+    PPH_STRING toastXml;
+
+    if (!PhGetIntegerSetting(L"ToastNotifyEnabled"))
+        return FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_STRING applicationDir;
+
+        if (applicationDir = PhGetApplicationDirectoryWin32())
+        {
+            iconFileName = PhConcatStringRefZ(&applicationDir->sr, L"icon.png");
+            if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
+                PhClearReference(&iconFileName);
+            PhDereferenceObject(applicationDir);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!iconFileName)
+        return FALSE;
+
+    if (PhInitializeToastRuntime() != S_OK)
+        return FALSE;
+
+    toastXml = PhFormatString(
+        L"<toast>\r\n"
+        L"    <visual>\r\n"
+        L"       <binding template=\"ToastImageAndText02\">\r\n"
+        L"            <image id=\"1\" src=\"%s\" alt=\"red graphic\"/>\r\n"
+        L"            <text id=\"1\">%ls</text>\r\n"
+        L"            <text id=\"2\">%ls</text>\r\n"
+        L"        </binding>\r\n"
+        L"    </visual>\r\n"
+        L"</toast>",
+        PhGetString(iconFileName),
+        Title,
+        Text
+        );
+
+    result = SUCCEEDED(PhShowToast(
+        L"System Informer",
+        PhGetString(toastXml),
+        Timeout * 1000,
+        PhpToastCallback,
+        NULL
+        ));
+
+    PhDereferenceObject(toastXml);
+
+    return result;
+}
+
 VOID PhShowIconNotification(
     _In_ PWSTR Title,
     _In_ PWSTR Text
     )
 {
-    PhNfShowBalloonTip(Title, Text, 10);
+    if (!PhpShowToastNotification(Title, Text, 10))
+        PhNfShowBalloonTip(Title, Text, 10);
 }
 
 VOID PhShowDetailsForIconNotification(

@@ -118,6 +118,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"IconBalloonShowIcon", L"0");
     PhpAddIntegerSetting(L"IconBalloonMuteSound", L"0");
+    PhpAddIntegerSetting(L"ToastNotifyEnabled", L"0");
     PhpAddStringSetting(L"IconTrayGuids", L"");
     PhpAddIntegerSetting(L"IconTrayPersistGuidEnabled", L"0");
     PhpAddIntegerSetting(L"IconTrayLazyStartDelay", L"1");

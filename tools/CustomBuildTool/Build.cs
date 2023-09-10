@@ -480,6 +480,39 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool CopyIconFile(BuildFlags Flags)
+        {
+            try
+            {
+                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                {
+                    if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Debug32"))
+                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Debug32\\icon.png");
+                    if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Debug64"))
+                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Debug64\\icon.png");
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\DebugARM64"))
+                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\DebugARM64\\icon.png");
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
+                {
+                    if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
+                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Release32\\icon.png");
+                    if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
+                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Release64\\icon.png");
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\ReleaseARM64"))
+                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\ReleaseARM64\\icon.png");
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
         public static bool BuildPublicHeaderFiles()
         {
             Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
