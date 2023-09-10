@@ -2143,11 +2143,11 @@ CleanupExit:
 }
 
 NTSTATUS PhTraceControl(
-    _In_ TRACE_CONTROL_INFORMATION_CLASS TraceInformationClass,
+    _In_ ETWTRACECONTROLCODE TraceInformationClass,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
-    _Out_opt_ PVOID *TraceInformation,
-    _Out_opt_ PULONG TraceInformationLength
+    _Out_opt_ PVOID *OutputBuffer,
+    _Out_opt_ PULONG OutputBufferLength
     )
 {
     NTSTATUS status;
@@ -2155,10 +2155,7 @@ NTSTATUS PhTraceControl(
     ULONG bufferLength = 0;
     ULONG returnLength = 0;
 
-    if (!NtTraceControl_Import())
-        return STATUS_UNSUCCESSFUL;
-
-    status = NtTraceControl_Import()(
+    status = NtTraceControl(
         TraceInformationClass,
         InputBuffer,
         InputBufferLength,
@@ -2173,7 +2170,7 @@ NTSTATUS PhTraceControl(
         bufferLength = returnLength;
         buffer = PhAllocate(bufferLength);
 
-        status = NtTraceControl_Import()(
+        status = NtTraceControl(
             TraceInformationClass,
             InputBuffer,
             InputBufferLength,
@@ -2185,10 +2182,10 @@ NTSTATUS PhTraceControl(
 
     if (NT_SUCCESS(status))
     {
-        if (TraceInformation)
-            *TraceInformation = buffer;
-        if (TraceInformationLength)
-            *TraceInformationLength = bufferLength;
+        if (OutputBuffer)
+            *OutputBuffer = buffer;
+        if (OutputBufferLength)
+            *OutputBufferLength = bufferLength;
     }
     else
     {
