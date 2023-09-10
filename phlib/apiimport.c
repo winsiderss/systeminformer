@@ -83,11 +83,6 @@ PH_DEFINE_IMPORT(L"ntdll.dll", RtlDeriveCapabilitySidsFromName);
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertSecurityDescriptorToStringSecurityDescriptorW);
 PH_DEFINE_IMPORT(L"advapi32.dll", ConvertStringSecurityDescriptorToSecurityDescriptorW);
 
-PH_DEFINE_IMPORT(L"dnsapi.dll", DnsQuery_W);
-PH_DEFINE_IMPORT(L"dnsapi.dll", DnsExtractRecordsFromMessage_W);
-PH_DEFINE_IMPORT(L"dnsapi.dll", DnsWriteQuestionToBuffer_W);
-PH_DEFINE_IMPORT(L"dnsapi.dll", DnsFree);
-
 PH_DEFINE_IMPORT(L"shlwapi.dll", SHAutoComplete);
 
 PH_DEFINE_IMPORT(L"kernel32.dll", PssCaptureSnapshot);
