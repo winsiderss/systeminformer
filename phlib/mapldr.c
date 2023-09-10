@@ -1748,15 +1748,12 @@ NTSTATUS PhLoaderEntrySnapImportDirectory(
 
         PhZeroExtendToUtf16Buffer(importName, strlen(importName), dllImportName);
 
-        if (!(importBaseAddress = PhLoadLibrary(dllImportName)))
-        {
-            return PhGetLastWin32ErrorAsNtStatus();
-        }
+        importBaseAddress = PhLoadLibrary(dllImportName);
     }
 
     if (!importBaseAddress)
     {
-        return STATUS_PROCEDURE_NOT_FOUND;
+        return STATUS_DLL_NOT_FOUND;
     }
 
 #if (PH_NATIVE_LOADER_WORKQUEUE)
