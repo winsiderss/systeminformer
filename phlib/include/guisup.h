@@ -1431,6 +1431,14 @@ _Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhGetThreadWin32Thread(
+    _In_ HANDLE ThreadId
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
     _Out_ HWND *WindowHandle
