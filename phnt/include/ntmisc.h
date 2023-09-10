@@ -62,7 +62,6 @@ typedef enum _TRACE_CONTROL_INFORMATION_CLASS
     TraceControlUpdateLogger = 4, // inout WMI_LOGGER_INFORMATION
     TraceControlFlushLogger = 5, // inout WMI_LOGGER_INFORMATION
     TraceControlIncrementLoggerFile = 6, // inout WMI_LOGGER_INFORMATION
-    TraceControlUnknown = 7,
     // unused
     TraceControlRealtimeConnect = 11,
     TraceControlActivityIdCreate = 12,
@@ -78,7 +77,7 @@ typedef enum _TRACE_CONTROL_INFORMATION_CLASS
     TraceControlGetTraceGuidInfo = 22, // in GUID, out TRACE_GUID_INFO
     TraceControlEnumerateTraceGuids = 23,
     TraceControlRegisterSecurityProv = 24,
-    TraceControlQueryReferenceTime = 25,
+    TraceControlQueryReferenceTime = 25, // in ULONG, out ETW_REF_CLOCK
     TraceControlTrackProviderBinary = 26, // in HANDLE
     TraceControlAddNotificationEvent = 27,
     TraceControlUpdateDisallowList = 28,
@@ -99,6 +98,7 @@ typedef enum _TRACE_CONTROL_INFORMATION_CLASS
     TraceControlMaxPmcCounter = 43, // out ULONG
     TraceControlQueryUsedProcessorCount = 44, // ULONG // since WIN11
     TraceControlGetPmcOwnership = 45,
+    TraceControlGetPmcSessions = 46,
 } TRACE_CONTROL_INFORMATION_CLASS;
 
 #if (PHNT_VERSION >= PHNT_VISTA)
