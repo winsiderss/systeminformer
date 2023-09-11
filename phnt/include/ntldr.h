@@ -1120,7 +1120,7 @@ typedef struct _LDR_SOFTWARE_ENCLAVE
     SIZE_T Size;
     PVOID PreviousBaseAddress;
     LIST_ENTRY Modules; // LDR_DATA_TABLE_ENTRY.InLoadOrderLinks
-    PLDR_DATA_TABLE_ENTRY MainModule;
+    PLDR_DATA_TABLE_ENTRY PrimaryModule;
     PLDR_DATA_TABLE_ENTRY BCryptModule;
     PLDR_DATA_TABLE_ENTRY BCryptPrimitivesModule;
 } LDR_SOFTWARE_ENCLAVE, *PLDR_SOFTWARE_ENCLAVE;
