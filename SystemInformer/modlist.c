@@ -1062,7 +1062,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     {
                         PhInitializeStringRef(&getCellText->Text, L"Dynamic");
                     }
-                    else if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+                    else if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
+                             moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
+                             moduleItem->Type == PH_MODULE_TYPE_ENCLAVE_MODULE)
                     {
                         PWSTR string = L"N/A";
 
@@ -1090,7 +1092,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                             string = L"As data";
                             break;
                         case LoadReasonEnclavePrimary:
-                            string = L"Enclave";
+                            string = L"Enclave primary";
                             break;
                         case LoadReasonEnclaveDependency:
                             string = L"Enclave dependency";
