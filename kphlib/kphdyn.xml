@@ -54,13 +54,13 @@ dt nt!_CONTROL_AREA ControlAreaLock
 -->
 <dyn>
     <!-- Windows 11 -->
-    <data name="10.0.22000.556 - 10.0.22621.2215">
+    <data name="10.0.22000.556 - 10.0.22621.2283">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="22000"  name="BuildNumberMin"/>
         <field value="556"    name="RevisionMin"/>
         <field value="22621"  name="BuildNumberMax"/>
-        <field value="2215"   name="RevisionMax"/>
+        <field value="2283"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
