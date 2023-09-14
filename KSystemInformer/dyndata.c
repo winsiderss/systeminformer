@@ -59,25 +59,25 @@ NTSTATUS KphpSetDynamicConfigiration(
     if ((Configuration->MajorVersion != KphKernelVersion.MajorVersion) ||
         (Configuration->MinorVersion != KphKernelVersion.MinorVersion))
     {
-        return STATUS_NOT_SUPPORTED;
+        return STATUS_INVALID_KERNEL_INFO_VERSION;
     }
 
     if ((KphKernelVersion.BuildNumber < Configuration->BuildNumberMin) ||
         (KphKernelVersion.BuildNumber > Configuration->BuildNumberMax))
     {
-        return STATUS_NOT_SUPPORTED;
+        return STATUS_INVALID_KERNEL_INFO_VERSION;
     }
 
     if ((KphKernelVersion.BuildNumber == Configuration->BuildNumberMin) &&
         (KphKernelVersion.Revision < Configuration->RevisionMin))
     {
-        return STATUS_NOT_SUPPORTED;
+        return STATUS_INVALID_KERNEL_INFO_VERSION;
     }
 
     if ((KphKernelVersion.BuildNumber == Configuration->BuildNumberMax) &&
         (KphKernelVersion.Revision > Configuration->RevisionMax))
     {
-        return STATUS_NOT_SUPPORTED;
+        return STATUS_INVALID_KERNEL_INFO_VERSION;
     }
 
     KphTracePrint(TRACE_LEVEL_INFORMATION,
