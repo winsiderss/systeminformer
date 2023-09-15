@@ -286,6 +286,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kphapi.h" />
+    <ClInclude Include="include\kphdyndata.h" />
     <ClInclude Include="include\kphmsg.h" />
     <ClInclude Include="include\kphlibbase.h" />
     <ClInclude Include="include\kphmsgdefs.h" />
@@ -293,6 +294,7 @@
     <ClInclude Include="include\kphdyn.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="kphdyndata.c" />
     <ClCompile Include="kphmsg.c" />
     <ClCompile Include="kphmsgdyn.c" />
     <ClCompile Include="kphdyn.c" />

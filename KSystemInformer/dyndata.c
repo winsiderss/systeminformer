@@ -13,7 +13,7 @@
 #include <kph.h>
 #define _DYNDATA_PRIVATE
 #include <dyndata.h>
-#include <kphdyn.h>
+#include <kphdyndata.h>
 
 #include <trace.h>
 
@@ -28,7 +28,6 @@ static UNICODE_STRING KphpDisableImageLoadProtectionValueName = RTL_CONSTANT_STR
 typedef struct _KPH_ACTIVE_DYNDATA
 {
     ULONG Version;
-    ULONG Index;
     USHORT MajorVersion;
     USHORT MinorVersion;
     USHORT BuildNumberMin;
@@ -46,39 +45,13 @@ static KPH_ACTIVE_DYNDATA KphpActiveDynData = { 0 };
  *
  * \param[in] Configuration The configuration to set.
  *
- * \return Successful status or an errant one.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphpSetDynamicConfigiration(
+VOID KphpSetDynamicConfigiration(
     _In_ PKPH_DYN_CONFIGURATION Configuration
     )
 {
     PAGED_CODE_PASSIVE();
-
-    if ((Configuration->MajorVersion != KphKernelVersion.MajorVersion) ||
-        (Configuration->MinorVersion != KphKernelVersion.MinorVersion))
-    {
-        return STATUS_INVALID_KERNEL_INFO_VERSION;
-    }
-
-    if ((KphKernelVersion.BuildNumber < Configuration->BuildNumberMin) ||
-        (KphKernelVersion.BuildNumber > Configuration->BuildNumberMax))
-    {
-        return STATUS_INVALID_KERNEL_INFO_VERSION;
-    }
-
-    if ((KphKernelVersion.BuildNumber == Configuration->BuildNumberMin) &&
-        (KphKernelVersion.Revision < Configuration->RevisionMin))
-    {
-        return STATUS_INVALID_KERNEL_INFO_VERSION;
-    }
-
-    if ((KphKernelVersion.BuildNumber == Configuration->BuildNumberMax) &&
-        (KphKernelVersion.Revision > Configuration->RevisionMax))
-    {
-        return STATUS_INVALID_KERNEL_INFO_VERSION;
-    }
 
     KphTracePrint(TRACE_LEVEL_INFORMATION,
                   GENERAL,
@@ -166,8 +139,6 @@ NTSTATUS KphpSetDynamicConfigiration(
     KPH_LOAD_DYNITEM(MmSectionControlArea);
     KPH_LOAD_DYNITEM(MmControlAreaListHead);
     KPH_LOAD_DYNITEM(MmControlAreaLock);
-
-    return STATUS_SUCCESS;
 }
 
 /**
@@ -394,6 +365,7 @@ NTSTATUS KphDynamicDataInitialization(
     NTSTATUS status;
     HANDLE keyHandle;
     PKPH_DYNDATA dynData;
+    PKPH_DYN_CONFIGURATION config;
 
     PAGED_CODE_PASSIVE();
 
@@ -458,34 +430,31 @@ NTSTATUS KphDynamicDataInitialization(
         goto Exit;
     }
 
-    for (ULONG i = 0; i < dynData->Count; i++)
-    {
-        PKPH_DYN_CONFIGURATION config;
-
-        config = &dynData->Configs[i];
-
-        status = KphpSetDynamicConfigiration(config);
-        if (NT_SUCCESS(status))
-        {
-            KphpActiveDynData.Version = dynData->Version;
-            KphpActiveDynData.Index = i;
-            KphpActiveDynData.MajorVersion = config->MajorVersion;
-            KphpActiveDynData.MinorVersion = config->MinorVersion;
-            KphpActiveDynData.BuildNumberMin = config->BuildNumberMin;
-            KphpActiveDynData.RevisionMin = config->RevisionMin;
-            KphpActiveDynData.BuildNumberMax = config->BuildNumberMax;
-            KphpActiveDynData.RevisionMax = config->RevisionMax;
-            break;
-        }
-    }
-
+    status = KphDynDataGetConfiguration(dynData,
+                                        KphKernelVersion.MajorVersion,
+                                        KphKernelVersion.MinorVersion,
+                                        KphKernelVersion.BuildNumber,
+                                        KphKernelVersion.Revision,
+                                        &config);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
-                      "KphpSetDynamicConfigiration failed: %!STATUS!",
+                      "KphDynDataGetConfiguration failed: %!STATUS!",
                       status);
+
+        goto Exit;
     }
+
+    KphpSetDynamicConfigiration(config);
+
+    KphpActiveDynData.Version = dynData->Version;
+    KphpActiveDynData.MajorVersion = config->MajorVersion;
+    KphpActiveDynData.MinorVersion = config->MinorVersion;
+    KphpActiveDynData.BuildNumberMin = config->BuildNumberMin;
+    KphpActiveDynData.RevisionMin = config->RevisionMin;
+    KphpActiveDynData.BuildNumberMax = config->BuildNumberMax;
+    KphpActiveDynData.RevisionMax = config->RevisionMax;
 
 Exit:
 
