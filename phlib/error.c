@@ -61,6 +61,9 @@ NTSTATUS PhDosErrorToNtStatus(
     _In_ ULONG DosError
     )
 {
+    if (NT_CUSTOMER(DosError))
+        return DosError;
+
     switch (DosError)
     {
     case ERROR_SUCCESS: return STATUS_SUCCESS;

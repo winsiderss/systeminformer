@@ -519,7 +519,9 @@ PPH_STRING PhGetNtMessage(
 {
     PPH_STRING message;
 
-    if (!NT_NTWIN32(Status))
+    if (NT_CUSTOMER(Status))
+        message = PhGetMessage(PhGetLoaderEntryDllBase(NULL, NULL), 0xb, PhGetUserDefaultLangID(), (ULONG)Status);
+    else if (!NT_NTWIN32(Status))
         message = PhGetMessage(PhGetLoaderEntryDllBaseZ(L"ntdll.dll"), 0xb, PhGetUserDefaultLangID(), (ULONG)Status);
     else
         message = PhGetWin32Message(PhNtStatusToDosError(Status));

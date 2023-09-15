@@ -1,46 +1,49 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="kphmsg.c">
-      <Filter>SourceFiles</Filter>
-    </ClCompile>
-    <ClCompile Include="kphmsgdyn.c">
-      <Filter>SourceFiles</Filter>
-    </ClCompile>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{82b195b6-02b5-4bd3-b6be-ef713fcec8aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{1d7a73eb-3cee-4ae3-82bc-0846578dc715}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kphmsg.h">
-      <Filter>HeaderFiles</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kphmsgdefs.h">
-      <Filter>HeaderFiles</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kphmsgbase.h">
-      <Filter>HeaderFiles</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphmsgdyn.h">
-      <Filter>HeaderFiles</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphapi.h">
-      <Filter>HeaderFiles</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kphdyn.h">
-      <Filter>HeaderFiles</Filter>
-    </ClInclude>
-    <ClInclude Include="kphdyn.c">
-      <Filter>SourceFiles</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphlibbase.h">
-      <Filter>HeaderFiles</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphdyn.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphmsgdefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphdyndata.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="HeaderFiles">
-      <UniqueIdentifier>{82b195b6-02b5-4bd3-b6be-ef713fcec8aa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="SourceFiles">
-      <UniqueIdentifier>{1d7a73eb-3cee-4ae3-82bc-0846578dc715}</UniqueIdentifier>
-    </Filter>
+    <ClCompile Include="kphmsgdyn.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kphmsg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kphdyn.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kphdyndata.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="kphdyn.xml" />

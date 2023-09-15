@@ -27,6 +27,9 @@
     <ClInclude Include="include\kphmsgdefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\kphdyndata.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kphmsgdyn.c">
@@ -36,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="kphdyn.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kphdyndata.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
