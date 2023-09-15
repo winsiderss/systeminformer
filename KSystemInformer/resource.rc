@@ -1,6 +1,7 @@
 #pragma code_page(65001)
 
 #include <windows.h>
+#include <sistatus.rc>
 
 #define VER_COMMA 3,2,0,0
 #define VER_STR "3.2\0"

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sistatus.h>
+
 #ifdef _KERNEL_MODE
 #include <fltKernel.h>
 #include <ntintsafe.h>
