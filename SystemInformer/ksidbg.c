@@ -43,26 +43,116 @@ static PH_STRINGREF KsiDebugRawSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.bi
 
 static KPH_INFORMER_SETTINGS KsiDebugInformerSettings =
 {
-    .ProcessCreate              = TRUE,
-    .ProcessExit                = TRUE,
-    .ThreadCreate               = TRUE,
-    .ThreadExecute              = TRUE,
-    .ThreadExit                 = TRUE,
-    .ImageLoad                  = TRUE,
-    .DebugPrint                 = FALSE,
-    .ProcessHandlePreCreate     = TRUE,
-    .ProcessHandlePostCreate    = TRUE,
-    .ProcessHandlePreDuplicate  = TRUE,
-    .ProcessHandlePostDuplicate = TRUE,
-    .ThreadHandlePreCreate      = TRUE,
-    .ThreadHandlePostCreate     = TRUE,
-    .ThreadHandlePreDuplicate   = TRUE,
-    .ThreadHandlePostDuplicate  = TRUE,
-    .DesktopHandlePreCreate     = TRUE,
-    .DesktopHandlePostCreate    = TRUE,
-    .DesktopHandlePreDuplicate  = TRUE,
-    .DesktopHandlePostDuplicate = TRUE,
-    .EnableStackTraces          = FALSE,
+    .ProcessCreate                  = TRUE,
+    .ProcessExit                    = TRUE,
+    .ThreadCreate                   = TRUE,
+    .ThreadExecute                  = TRUE,
+    .ThreadExit                     = TRUE,
+    .ImageLoad                      = TRUE,
+    .DebugPrint                     = FALSE,
+    .ProcessHandlePreCreate         = TRUE,
+    .ProcessHandlePostCreate        = TRUE,
+    .ProcessHandlePreDuplicate      = TRUE,
+    .ProcessHandlePostDuplicate     = TRUE,
+    .ThreadHandlePreCreate          = TRUE,
+    .ThreadHandlePostCreate         = TRUE,
+    .ThreadHandlePreDuplicate       = TRUE,
+    .ThreadHandlePostDuplicate      = TRUE,
+    .DesktopHandlePreCreate         = TRUE,
+    .DesktopHandlePostCreate        = TRUE,
+    .DesktopHandlePreDuplicate      = TRUE,
+    .DesktopHandlePostDuplicate     = TRUE,
+    .EnableStackTraces              = FALSE,
+    .FileEnablePagingIo             = TRUE,
+    .FileEnableSyncPagingIo         = TRUE,
+    .FileEnableIoControlBuffers     = FALSE,
+    .FileEnableFsControlBuffers     = FALSE,
+    .FilePreCreate                  = TRUE,
+    .FilePostCreate                 = TRUE,
+    .FilePreCreateNamedPipe         = TRUE,
+    .FilePostCreateNamedPipe        = TRUE,
+    .FilePreClose                   = TRUE,
+    .FilePostClose                  = TRUE,
+    .FilePreRead                    = TRUE,
+    .FilePostRead                   = TRUE,
+    .FilePreWrite                   = TRUE,
+    .FilePostWrite                  = TRUE,
+    .FilePreQueryInformation        = TRUE,
+    .FilePostQueryInformation       = TRUE,
+    .FilePreSetInformation          = TRUE,
+    .FilePostSetInformation         = TRUE,
+    .FilePreQueryEa                 = TRUE,
+    .FilePostQueryEa                = TRUE,
+    .FilePreSetEa                   = TRUE,
+    .FilePostSetEa                  = TRUE,
+    .FilePreFlushBuffers            = TRUE,
+    .FilePostFlushBuffers           = TRUE,
+    .FilePreQueryVolumeInformation  = TRUE,
+    .FilePostQueryVolumeInformation = TRUE,
+    .FilePreSetVolumeInformation    = TRUE,
+    .FilePostSetVolumeInformation   = TRUE,
+    .FilePreDirectoryControl        = TRUE,
+    .FilePostDirectoryControl       = TRUE,
+    .FilePreFileSystemControl       = TRUE,
+    .FilePostFileSystemControl      = TRUE,
+    .FilePreDeviceControl           = TRUE,
+    .FilePostDeviceControl          = TRUE,
+    .FilePreInternalDeviceControl   = TRUE,
+    .FilePostInternalDeviceControl  = TRUE,
+    .FilePreShutdown                = TRUE,
+    .FilePostShutdown               = TRUE,
+    .FilePreLockControl             = TRUE,
+    .FilePostLockControl            = TRUE,
+    .FilePreCleanup                 = TRUE,
+    .FilePostCleanup                = TRUE,
+    .FilePreCreateMailslot          = TRUE,
+    .FilePostCreateMailslot         = TRUE,
+    .FilePreQuerySecurity           = TRUE,
+    .FilePostQuerySecurity          = TRUE,
+    .FilePreSetSecurity             = TRUE,
+    .FilePostSetSecurity            = TRUE,
+    .FilePrePower                   = TRUE,
+    .FilePostPower                  = TRUE,
+    .FilePreSystemControl           = TRUE,
+    .FilePostSystemControl          = TRUE,
+    .FilePreDeviceChange            = TRUE,
+    .FilePostDeviceChange           = TRUE,
+    .FilePreQueryQuota              = TRUE,
+    .FilePostQueryQuota             = TRUE,
+    .FilePreSetQuota                = TRUE,
+    .FilePostSetQuota               = TRUE,
+    .FilePrePnp                     = TRUE,
+    .FilePostPnp                    = TRUE,
+    .FilePreAcquireForSectionSync   = TRUE,
+    .FilePostAcquireForSectionSync  = TRUE,
+    .FilePreReleaseForSectionSync   = TRUE,
+    .FilePostReleaseForSectionSync  = TRUE,
+    .FilePreAcquireForModWrite      = TRUE,
+    .FilePostAcquireForModWrite     = TRUE,
+    .FilePreReleaseForModWrite      = TRUE,
+    .FilePostReleaseForModWrite     = TRUE,
+    .FilePreAcquireForCcFlush       = TRUE,
+    .FilePostAcquireForCcFlush      = TRUE,
+    .FilePreReleaseForCcFlush       = TRUE,
+    .FilePostReleaseForCcFlush      = TRUE,
+    .FilePreQueryOpen               = TRUE,
+    .FilePostQueryOpen              = TRUE,
+    .FilePreFastIoCheckIfPossible   = TRUE,
+    .FilePostFastIoCheckIfPossible  = TRUE,
+    .FilePreNetworkQueryOpen        = TRUE,
+    .FilePostNetworkQueryOpen       = TRUE,
+    .FilePreMdlRead                 = TRUE,
+    .FilePostMdlRead                = TRUE,
+    .FilePreMdlReadComplete         = TRUE,
+    .FilePostMdlReadComplete        = TRUE,
+    .FilePrePrepareMdlWrite         = TRUE,
+    .FilePostPrepareMdlWrite        = TRUE,
+    .FilePreMdlWriteComplete        = TRUE,
+    .FilePostMdlWriteComplete       = TRUE,
+    .FilePreVolumeMount             = TRUE,
+    .FilePostVolumeMount            = TRUE,
+    .FilePreVolumeDismount          = TRUE,
+    .FilePostVolumeDismount         = TRUE,
 };
 
 PPH_STRING KsiDebugLogProcessCreate(
@@ -472,28 +562,200 @@ PPH_STRING KsiDebugLogRequiredStateFailure(
         );
 }
 
+PPH_STRING KsiDebugLogFileCommon(
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    UNICODE_STRING fileName;
+    PPH_STRING result;
+
+    KphMsgDynGetUnicodeString(Message, KphMsgFieldFileName, &fileName);
+
+    if (FlagOn(Message->Kernel.File.FltFlags, FLTFL_CALLBACK_DATA_POST_OPERATION))
+    {
+        PPH_STRING statusMessage;
+
+        statusMessage = PhGetStatusMessage(0, Message->Kernel.File.Post.IoStatus.Status);
+
+        result = PhFormatString(
+            L"%04x:%04x %lu %p %llu \"%wZ\" %llu %llu %ls (0x%08x)",
+            HandleToUlong(Message->Kernel.File.ClientId.UniqueProcess),
+            HandleToUlong(Message->Kernel.File.ClientId.UniqueThread),
+            (ULONG)Message->Kernel.File.Irql,
+            Message->Kernel.File.FileObject,
+            Message->Kernel.File.Sequence,
+            &fileName,
+            (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.File.Post.PreTimeStamp.QuadPart),
+            Message->Kernel.File.Post.PreSequence,
+            PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
+            Message->Kernel.File.Post.IoStatus.Status
+            );
+
+        PhClearReference(&statusMessage);
+    }
+    else
+    {
+        result = PhFormatString(
+            L"%04x:%04x %lu %p %llu \"%wZ\"",
+            HandleToUlong(Message->Kernel.File.ClientId.UniqueProcess),
+            HandleToUlong(Message->Kernel.File.ClientId.UniqueThread),
+            (ULONG)Message->Kernel.File.Irql,
+            Message->Kernel.File.FileObject,
+            Message->Kernel.File.Sequence,
+            &fileName
+            );
+    }
+
+    if (Message->Kernel.File.IsPagingFile)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", paging file"));
+
+    if (Message->Kernel.File.IsSystemPagingFile)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", system paging file"));
+
+    if (Message->Kernel.File.OriginRemote)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", remote origin"));
+
+    if (Message->Kernel.File.IgnoringSharing)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", ignoring sharing"));
+
+    if (Message->Kernel.File.InStackFileObject)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", in stack file object"));
+
+    if (Message->Kernel.File.DeletePending)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", delete pending"));
+
+    if (!Message->Kernel.File.SharedRead && !Message->Kernel.File.SharedWrite && !Message->Kernel.File.SharedDelete)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", opened exclusively"));
+
+    if (Message->Kernel.File.Busy)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", busy"));
+
+    if (Message->Kernel.File.Waiters)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", waiters"));
+
+    if (Message->Kernel.File.OplockKeyContext.Version)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", oplock key"));
+
+    if (Message->Kernel.File.Transaction)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", transaction"));
+
+    if (Message->Kernel.File.DataSectionObject)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", data section"));
+
+    if (Message->Kernel.File.ImageSectionObject)
+        PhMoveReference(&result, PhConcatStringRefZ(&result->sr, L", image section"));
+
+    return result;
+}
+
 static SI_DEBUG_LOG_DEF KsiDebugLogDefs[] =
 {
-    { PH_STRINGREF_INIT(L"ProcessCreate  "), KsiDebugLogProcessCreate },
-    { PH_STRINGREF_INIT(L"ProcessExit    "), KsiDebugLogProcessExit },
-    { PH_STRINGREF_INIT(L"ThreadCreate   "), KsiDebugLogThreadCreate },
-    { PH_STRINGREF_INIT(L"ThreadExecute  "), KsiDebugLogThreadExecute },
-    { PH_STRINGREF_INIT(L"ThreadExit     "), KsiDebugLogThreadExit },
-    { PH_STRINGREF_INIT(L"ImageLoad      "), KsiDebugLogImageLoad },
-    { PH_STRINGREF_INIT(L"DebugPrint     "), KsiDebugLogDebugPrint },
-    { PH_STRINGREF_INIT(L"ProcHPreCreate "), KsiDebugLogProcessHandlePreCreate },
-    { PH_STRINGREF_INIT(L"ProcHPostCreate"), KsiDebugLogProcessHandlePostCreate },
-    { PH_STRINGREF_INIT(L"ProcHPreDupe   "), KsiDebugLogProcessHandlePreDuplicate },
-    { PH_STRINGREF_INIT(L"ProcHPostDupe  "), KsiDebugLogProcessHandlePostDuplicate },
-    { PH_STRINGREF_INIT(L"ThrdHPreCreate "), KsiDebugLogThreadHandlePreCreate },
-    { PH_STRINGREF_INIT(L"ThrdHPostCreate"), KsiDebugLogThreadHandlePostCreate },
-    { PH_STRINGREF_INIT(L"ThrdHPreDupe   "), KsiDebugLogThreadHandlePreDuplicate },
-    { PH_STRINGREF_INIT(L"ThrdHPostDupe  "), KsiDebugLogThreadHandlePostDuplicate },
-    { PH_STRINGREF_INIT(L"DskpHPreCreate "), KsiDebugLogDesktopHandlePreCreate },
-    { PH_STRINGREF_INIT(L"DskpHPostCreate"), KsiDebugLogDesktopHandlePostCreate },
-    { PH_STRINGREF_INIT(L"DskpHPreDupe   "), KsiDebugLogDesktopHandlePreDuplicate },
-    { PH_STRINGREF_INIT(L"DsktpHPostDupe "), KsiDebugLogDesktopHandlePostDuplicate },
-    { PH_STRINGREF_INIT(L"ReqStateFailure"), KsiDebugLogRequiredStateFailure },
+    { PH_STRINGREF_INIT(L"ProcessCreate       "), KsiDebugLogProcessCreate },
+    { PH_STRINGREF_INIT(L"ProcessExit         "), KsiDebugLogProcessExit },
+    { PH_STRINGREF_INIT(L"ThreadCreate        "), KsiDebugLogThreadCreate },
+    { PH_STRINGREF_INIT(L"ThreadExecute       "), KsiDebugLogThreadExecute },
+    { PH_STRINGREF_INIT(L"ThreadExit          "), KsiDebugLogThreadExit },
+    { PH_STRINGREF_INIT(L"ImageLoad           "), KsiDebugLogImageLoad },
+    { PH_STRINGREF_INIT(L"DebugPrint          "), KsiDebugLogDebugPrint },
+    { PH_STRINGREF_INIT(L"ProcHandlePreCreate "), KsiDebugLogProcessHandlePreCreate },
+    { PH_STRINGREF_INIT(L"ProcHandlePostCreate"), KsiDebugLogProcessHandlePostCreate },
+    { PH_STRINGREF_INIT(L"ProcHandlePreDupe   "), KsiDebugLogProcessHandlePreDuplicate },
+    { PH_STRINGREF_INIT(L"ProcHandlePostDupe  "), KsiDebugLogProcessHandlePostDuplicate },
+    { PH_STRINGREF_INIT(L"ThrdHandlePreCreate "), KsiDebugLogThreadHandlePreCreate },
+    { PH_STRINGREF_INIT(L"ThrdHandlePostCreate"), KsiDebugLogThreadHandlePostCreate },
+    { PH_STRINGREF_INIT(L"ThrdHandlePreDupe   "), KsiDebugLogThreadHandlePreDuplicate },
+    { PH_STRINGREF_INIT(L"ThrdHandlePostDupe  "), KsiDebugLogThreadHandlePostDuplicate },
+    { PH_STRINGREF_INIT(L"DskpHandlePreCreate "), KsiDebugLogDesktopHandlePreCreate },
+    { PH_STRINGREF_INIT(L"DskpHandlePostCreate"), KsiDebugLogDesktopHandlePostCreate },
+    { PH_STRINGREF_INIT(L"DskpHandlePreDupe   "), KsiDebugLogDesktopHandlePreDuplicate },
+    { PH_STRINGREF_INIT(L"DskpHandlePostDupe  "), KsiDebugLogDesktopHandlePostDuplicate },
+    { PH_STRINGREF_INIT(L"ReqiredStateFailure "), KsiDebugLogRequiredStateFailure },
+    { PH_STRINGREF_INIT(L"PreCreate           "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostCreate          "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreCreateNamedPipe  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostCreateNamedPipe "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreClose            "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostClose           "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreRead             "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostRead            "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreWrite            "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostWrite           "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreQueryInfo        "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostQueryInfo       "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreSetInfo          "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostSetInfo         "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreQueryEa          "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostQueryEa         "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreSetEa            "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostSetEa           "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreFlushBuffs       "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostFlushBuffs      "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreQueryVolumeInfo  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostQueryVolumeInfo "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreSetVolumeInfo    "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostSetVolumeInfo   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreDirControl       "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostDirControl      "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreFileSystemCtrl   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostFileSystemCtrl  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreDeviceCtrl       "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostDeviceCtrl      "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreItrnlDeviceCtrl  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PosItrnlDeviceCtrl  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreShutdown         "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostShutdown        "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreLockCtrl         "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostLockCtrl        "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreCleanup          "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostCleanup         "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreCreateMailslot   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostCreateMailslot  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreQuerySecurity    "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostQuerySecurity   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreSetSecurity      "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostSetSecurity     "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PrePower            "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostPower           "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreSystemCtrl       "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostSystemCtrl      "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreDeviceChange     "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostDeviceChange    "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreQueryQuota       "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostQueryQuota      "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreSetQuota         "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostSetQuota        "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PrePnp              "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostPnp             "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreAcqForSecSync    "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostAcqForSecSync   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreRelForSecSync    "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostRelForSecSync   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreAcqForModWrite   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostAcqForModWrite  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreRelForModWrite   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostRelForModWrite  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreAcqForCcFlush    "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostAcqForCcFlush   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreRelForCcFlush    "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostRelForCcFlush   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreQueryOpen        "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostQueryOpen       "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreFastIoCheck      "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostFastIoCheck     "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreNetworkQueryOpen "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostNetworkQueryOpen"), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreMdlRead          "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostMdlRead         "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreMdlReadComplete  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostMdlReadComplete "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PrePrepareMdlWrite  "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostPrepareMdlWrite "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreMdlWriteComplete "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostMdlWriteComplete"), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreVolumeMount      "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostVolumeMount     "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PreVolumeDismount   "), KsiDebugLogFileCommon },
+    { PH_STRINGREF_INIT(L"PostVolumeDismount  "), KsiDebugLogFileCommon },
 };
 C_ASSERT((RTL_NUMBER_OF(KsiDebugLogDefs) + (MaxKphMsgClientAllowed + 1)) == MaxKphMsg);
 
@@ -562,7 +824,11 @@ VOID KsiDebugLogMessageLog(
     assert(index < RTL_NUMBER_OF(KsiDebugLogDefs));
 
     time = KsiDebugLogGetTimeString(Message);
-    log = KsiDebugLogDefs[index].GetLogString(Message);
+
+    if (KsiDebugLogDefs[index].GetLogString)
+        log = KsiDebugLogDefs[index].GetLogString(Message);
+    else
+        log = PhReferenceEmptyString();
 
     PhInitFormatC(&format[0], L'[');
     PhInitFormatSR(&format[1], time->sr);

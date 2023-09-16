@@ -532,19 +532,39 @@ VOID KphpCommsCallbackUnhandled(
     PPH_FREE_LIST freelist;
     PKPH_MESSAGE msg;
 
-    if (Message->Header.MessageId != KphMsgProcessCreate)
+    if (Message->Header.MessageId == KphMsgProcessCreate)
     {
-        return;
+        freelist = KphGetMessageFreeList();
+
+        msg = PhAllocateFromFreeList(freelist);
+        KphMsgInit(msg, KphMsgProcessCreate);
+        msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
+        KphCommsReplyMessage(ReplyToken, msg);
+
+        PhFreeToFreeList(freelist, msg);
     }
+    else if (Message->Header.MessageId == KphMsgFilePreCreate)
+    {
+        freelist = KphGetMessageFreeList();
 
-    freelist = KphGetMessageFreeList();
+        msg = PhAllocateFromFreeList(freelist);
+        KphMsgInit(msg, KphMsgFilePreCreate);
+        msg->Reply.File.Pre.Create.Status = STATUS_SUCCESS;
+        KphCommsReplyMessage(ReplyToken, msg);
 
-    msg = PhAllocateFromFreeList(freelist);
-    KphMsgInit(msg, KphMsgProcessCreate);
-    msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
-    KphCommsReplyMessage(ReplyToken, msg);
+        PhFreeToFreeList(freelist, msg);
+    }
+    else if (Message->Header.MessageId == KphMsgFilePostCreate)
+    {
+        freelist = KphGetMessageFreeList();
 
-    PhFreeToFreeList(freelist, msg);
+        msg = PhAllocateFromFreeList(freelist);
+        KphMsgInit(msg, KphMsgFilePostCreate);
+        msg->Reply.File.Post.Create.Status = STATUS_SUCCESS;
+        KphCommsReplyMessage(ReplyToken, msg);
+
+        PhFreeToFreeList(freelist, msg);
+    }
 }
 
 /**

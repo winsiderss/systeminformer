@@ -21,6 +21,12 @@ typedef struct _KPHM_STACK_TRACE
     PVOID* Frames;
 } KPHM_STACK_TRACE, *PKPHM_STACK_TRACE;
 
+typedef struct _KPHM_SIZED_BUFFER
+{
+    USHORT Size;
+    PBYTE Buffer;
+} KPHM_SIZED_BUFFER, *PKPHM_SIZED_BUFFER;
+
 VOID KphMsgDynClear(
     _Inout_ PKPH_MESSAGE Message
     );

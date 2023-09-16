@@ -5,12 +5,13 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
 #include <comms.h>
+#include <informer_filep.h>
 
 #include <trace.h>
 
@@ -20,7 +21,9 @@ static const UNICODE_STRING KphpAltitudeName = RTL_CONSTANT_STRING(L"Altitude");
 static const UNICODE_STRING KphpFlagsName = RTL_CONSTANT_STRING(L"Flags");
 static const DWORD KphpFlagsValue = 0;
 KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
 PFLT_FILTER KphFltFilter = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
 
@@ -78,13 +81,74 @@ NTSTATUS FLTAPI KphpFltInstanceQueryTeardownCallback(
     return STATUS_SUCCESS;
 }
 
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const FLT_OPERATION_REGISTRATION KphpFltOperationRegistration[] =
+{
+{ IRP_MJ_CREATE,                              0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_CREATE_NAMED_PIPE,                   0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_CLOSE,                               0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_READ,                                0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_WRITE,                               0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_QUERY_INFORMATION,                   0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_SET_INFORMATION,                     0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_QUERY_EA,                            0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_SET_EA,                              0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_FLUSH_BUFFERS,                       0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_QUERY_VOLUME_INFORMATION,            0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_SET_VOLUME_INFORMATION,              0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_DIRECTORY_CONTROL,                   0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_FILE_SYSTEM_CONTROL,                 0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_DEVICE_CONTROL,                      0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_INTERNAL_DEVICE_CONTROL,             0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_SHUTDOWN,                            0, KphpFltPreOp, NULL,          0 },
+{ IRP_MJ_LOCK_CONTROL,                        0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_CLEANUP,                             0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_CREATE_MAILSLOT,                     0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_QUERY_SECURITY,                      0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_SET_SECURITY,                        0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_POWER,                               0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_SYSTEM_CONTROL,                      0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_DEVICE_CHANGE,                       0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_QUERY_QUOTA,                         0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_SET_QUOTA,                           0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_PNP,                                 0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_ACQUIRE_FOR_SECTION_SYNCHRONIZATION, 0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_RELEASE_FOR_SECTION_SYNCHRONIZATION, 0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_ACQUIRE_FOR_MOD_WRITE,               0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_RELEASE_FOR_MOD_WRITE,               0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_ACQUIRE_FOR_CC_FLUSH,                0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_RELEASE_FOR_CC_FLUSH,                0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_QUERY_OPEN,                          0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_FAST_IO_CHECK_IF_POSSIBLE,           0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_NETWORK_QUERY_OPEN,                  0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_MDL_READ,                            0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_MDL_READ_COMPLETE,                   0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_PREPARE_MDL_WRITE,                   0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_MDL_WRITE_COMPLETE,                  0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_VOLUME_MOUNT,                        0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_VOLUME_DISMOUNT,                     0, KphpFltPreOp, KphpFltPostOp, 0 },
+{ IRP_MJ_OPERATION_END }
+};
+static const FLT_CONTEXT_REGISTRATION KphpFltContextRegistration[] =
+{
+    {
+        FLT_STREAMHANDLE_CONTEXT,
+        0,
+        NULL,
+        FLT_VARIABLE_SIZED_CONTEXTS,
+        KPH_TAG_FLT_STREAMHANDLE_CONTEXT
+    },
+    { FLT_CONTEXT_END }
+};
 static const FLT_REGISTRATION KphpFltRegistration =
 {
     sizeof(FLT_REGISTRATION),
     FLT_REGISTRATION_VERSION,
-    0,
-    NULL,
-    NULL,
+    (FLTFL_REGISTRATION_SUPPORT_NPFS_MSFS |
+     FLTFL_REGISTRATION_SUPPORT_DAX_VOLUME |
+     FLTFL_REGISTRATION_SUPPORT_WCOS),
+    KphpFltContextRegistration,
+    KphpFltOperationRegistration,
     KphpFltFilterUnloadCallback,
     NULL,
     KphpFltInstanceQueryTeardownCallback,
@@ -95,6 +159,7 @@ static const FLT_REGISTRATION KphpFltRegistration =
     NULL,
     NULL
 };
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 /**
  * \brief Registers the driver with the mini-filter.
@@ -382,7 +447,9 @@ VOID KphFltUnregister(
     }
 
     FltUnregisterFilter(KphFltFilter);
-    KphFltFilter = NULL;
+
+    KphpFltCleanupFileNameCache();
+    KphpFltCleanupFileOp();
 }
 
 /**
@@ -399,6 +466,9 @@ NTSTATUS KphFltInformerStart(
     PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphFltFilter);
+
+    KphpFltInitializeFileOp();
+    KphpFltInitializeFileNameCache();
 
     return FltStartFiltering(KphFltFilter);
 }

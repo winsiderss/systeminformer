@@ -120,6 +120,12 @@
     <ClCompile Include="kphtoken.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="informer_fileop.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_filenc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
@@ -146,6 +152,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cid_table.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\informer_filep.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
