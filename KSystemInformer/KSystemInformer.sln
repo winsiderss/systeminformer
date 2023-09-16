@@ -5,22 +5,13 @@ VisualStudioVersion = 17.7.34024.191
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KSystemInformer", "KSystemInformer.vcxproj", "{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}"
 	ProjectSection(ProjectDependencies) = postProject
-		{722F606F-4167-447B-A666-E7DF996FB44B} = {722F606F-4167-447B-A666-E7DF996FB44B}
 		{B1863396-A667-42DB-97AC-C5E033CEE321} = {B1863396-A667-42DB-97AC-C5E033CEE321}
 		{B385D394-19CC-48BC-827E-AF9ADCE559E0} = {B385D394-19CC-48BC-827E-AF9ADCE559E0}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kphlib", "..\kphlib\kphlib_km.vcxproj", "{B1863396-A667-42DB-97AC-C5E033CEE321}"
-	ProjectSection(ProjectDependencies) = postProject
-		{722F606F-4167-447B-A666-E7DF996FB44B} = {722F606F-4167-447B-A666-E7DF996FB44B}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ksidll", "ksidll.vcxproj", "{B385D394-19CC-48BC-827E-AF9ADCE559E0}"
-	ProjectSection(ProjectDependencies) = postProject
-		{722F606F-4167-447B-A666-E7DF996FB44B} = {722F606F-4167-447B-A666-E7DF996FB44B}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sistatus", "..\sistatus\sistatus.vcxproj", "{722F606F-4167-447B-A666-E7DF996FB44B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,14 +57,6 @@ Global
 		{B385D394-19CC-48BC-827E-AF9ADCE559E0}.Release|x64.ActiveCfg = Release|x64
 		{B385D394-19CC-48BC-827E-AF9ADCE559E0}.Release|x64.Build.0 = Release|x64
 		{B385D394-19CC-48BC-827E-AF9ADCE559E0}.Release|x64.Deploy.0 = Release|x64
-		{722F606F-4167-447B-A666-E7DF996FB44B}.Debug|ARM64.ActiveCfg = Debug|ARM64
-		{722F606F-4167-447B-A666-E7DF996FB44B}.Debug|ARM64.Build.0 = Debug|ARM64
-		{722F606F-4167-447B-A666-E7DF996FB44B}.Debug|x64.ActiveCfg = Debug|x64
-		{722F606F-4167-447B-A666-E7DF996FB44B}.Debug|x64.Build.0 = Debug|x64
-		{722F606F-4167-447B-A666-E7DF996FB44B}.Release|ARM64.ActiveCfg = Release|ARM64
-		{722F606F-4167-447B-A666-E7DF996FB44B}.Release|ARM64.Build.0 = Release|ARM64
-		{722F606F-4167-447B-A666-E7DF996FB44B}.Release|x64.ActiveCfg = Release|x64
-		{722F606F-4167-447B-A666-E7DF996FB44B}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
