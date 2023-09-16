@@ -7,6 +7,9 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{1d7a73eb-3cee-4ae3-82bc-0846578dc715}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{2a9e0704-3950-492f-9cf5-ce4b10a57b22}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kphmsg.h">
@@ -30,6 +33,9 @@
     <ClInclude Include="include\kphdyndata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\sistatus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kphmsgdyn.c">
@@ -47,5 +53,18 @@
   </ItemGroup>
   <ItemGroup>
     <Xml Include="kphdyn.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <MessageCompile Include="sistatus.mc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\sistatus_MSG00001.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="include\sistatus.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
