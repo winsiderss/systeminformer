@@ -50,6 +50,8 @@ static KPH_MESSAGE_TIMEOUTS KphpMessageTimeouts =
     .AsyncTimeout = KPH_TIMEOUT(3000),
     .DefaultTimeout = KPH_TIMEOUT(3000),
     .ProcessCreateTimeout = KPH_TIMEOUT(3000),
+    .FilePreCreateTimeout = KPH_TIMEOUT(3000),
+    .FilePostCreateTimeout = KPH_TIMEOUT(3000),
 };
 
 /**
@@ -821,6 +823,8 @@ VOID KphGetMessageTimeouts(
     KPH_GET_MESSAGE_TIMEOUT(AsyncTimeout);
     KPH_GET_MESSAGE_TIMEOUT(DefaultTimeout);
     KPH_GET_MESSAGE_TIMEOUT(ProcessCreateTimeout);
+    KPH_GET_MESSAGE_TIMEOUT(FilePreCreateTimeout);
+    KPH_GET_MESSAGE_TIMEOUT(FilePostCreateTimeout);
 }
 
 /**
@@ -846,7 +850,9 @@ NTSTATUS KphSetMessageTimeouts(
 
     if (!KPH_VALIDATE_MESSAGE_TIMEOUT(AsyncTimeout) ||
         !KPH_VALIDATE_MESSAGE_TIMEOUT(DefaultTimeout) ||
-        !KPH_VALIDATE_MESSAGE_TIMEOUT(ProcessCreateTimeout))
+        !KPH_VALIDATE_MESSAGE_TIMEOUT(ProcessCreateTimeout) ||
+        !KPH_VALIDATE_MESSAGE_TIMEOUT(FilePreCreateTimeout) ||
+        !KPH_VALIDATE_MESSAGE_TIMEOUT(FilePostCreateTimeout))
     {
         return STATUS_INVALID_PARAMETER;
     }
@@ -857,6 +863,8 @@ NTSTATUS KphSetMessageTimeouts(
     KPH_SET_MESSAGE_TIMEOUT(AsyncTimeout);
     KPH_SET_MESSAGE_TIMEOUT(DefaultTimeout);
     KPH_SET_MESSAGE_TIMEOUT(ProcessCreateTimeout);
+    KPH_SET_MESSAGE_TIMEOUT(FilePreCreateTimeout);
+    KPH_SET_MESSAGE_TIMEOUT(FilePostCreateTimeout);
 
     return STATUS_SUCCESS;
 }
@@ -880,6 +888,14 @@ PLARGE_INTEGER KphpGetTimeoutForMessage(
         case KphMsgProcessCreate:
         {
             return &KphpMessageTimeouts.ProcessCreateTimeout;
+        }
+        case KphMsgFilePreCreate:
+        {
+            return &KphpMessageTimeouts.FilePreCreateTimeout;
+        }
+        case KphMsgFilePostCreate:
+        {
+            return &KphpMessageTimeouts.FilePostCreateTimeout;
         }
         default:
         {

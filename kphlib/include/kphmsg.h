@@ -89,6 +89,92 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgDesktopHandlePreDuplicate,
     KphMsgDesktopHandlePostDuplicate,
     KphMsgRequiredStateFailure,
+    KphMsgFilePreCreate,
+    KphMsgFilePostCreate,
+    KphMsgFilePreCreateNamedPipe,
+    KphMsgFilePostCreateNamedPipe,
+    KphMsgFilePreClose,
+    KphMsgFilePostClose,
+    KphMsgFilePreRead,
+    KphMsgFilePostRead,
+    KphMsgFilePreWrite,
+    KphMsgFilePostWrite,
+    KphMsgFilePreQueryInformation,
+    KphMsgFilePostQueryInformation,
+    KphMsgFilePreSetInformation,
+    KphMsgFilePostSetInformation,
+    KphMsgFilePreQueryEa,
+    KphMsgFilePostQueryEa,
+    KphMsgFilePreSetEa,
+    KphMsgFilePostSetEa,
+    KphMsgFilePreFlushBuffers,
+    KphMsgFilePostFlushBuffers,
+    KphMsgFilePreQueryVolumeInformation,
+    KphMsgFilePostQueryVolumeInformation,
+    KphMsgFilePreSetVolumeInformation,
+    KphMsgFilePostSetVolumeInformation,
+    KphMsgFilePreDirectoryControl,
+    KphMsgFilePostDirectoryControl,
+    KphMsgFilePreFileSystemControl,
+    KphMsgFilePostFileSystemControl,
+    KphMsgFilePreDeviceControl,
+    KphMsgFilePostDeviceControl,
+    KphMsgFilePreInternalDeviceControl,
+    KphMsgFilePostInternalDeviceControl,
+    KphMsgFilePreShutdown,
+    KphMsgFilePostShutdown,
+    KphMsgFilePreLockControl,
+    KphMsgFilePostLockControl,
+    KphMsgFilePreCleanup,
+    KphMsgFilePostCleanup,
+    KphMsgFilePreCreateMailslot,
+    KphMsgFilePostCreateMailslot,
+    KphMsgFilePreQuerySecurity,
+    KphMsgFilePostQuerySecurity,
+    KphMsgFilePreSetSecurity,
+    KphMsgFilePostSetSecurity,
+    KphMsgFilePrePower,
+    KphMsgFilePostPower,
+    KphMsgFilePreSystemControl,
+    KphMsgFilePostSystemControl,
+    KphMsgFilePreDeviceChange,
+    KphMsgFilePostDeviceChange,
+    KphMsgFilePreQueryQuota,
+    KphMsgFilePostQueryQuota,
+    KphMsgFilePreSetQuota,
+    KphMsgFilePostSetQuota,
+    KphMsgFilePrePnp,
+    KphMsgFilePostPnp,
+    KphMsgFilePreAcquireForSectionSync,
+    KphMsgFilePostAcquireForSectionSync,
+    KphMsgFilePreReleaseForSectionSync,
+    KphMsgFilePostReleaseForSectionSync,
+    KphMsgFilePreAcquireForModWrite,
+    KphMsgFilePostAcquireForModWrite,
+    KphMsgFilePreReleaseForModWrite,
+    KphMsgFilePostReleaseForModWrite,
+    KphMsgFilePreAcquireForCcFlush,
+    KphMsgFilePostAcquireForCcFlush,
+    KphMsgFilePreReleaseForCcFlush,
+    KphMsgFilePostReleaseForCcFlush,
+    KphMsgFilePreQueryOpen,
+    KphMsgFilePostQueryOpen,
+    KphMsgFilePreFastIoCheckIfPossible,
+    KphMsgFilePostFastIoCheckIfPossible,
+    KphMsgFilePreNetworkQueryOpen,
+    KphMsgFilePostNetworkQueryOpen,
+    KphMsgFilePreMdlRead,
+    KphMsgFilePostMdlRead,
+    KphMsgFilePreMdlReadComplete,
+    KphMsgFilePostMdlReadComplete,
+    KphMsgFilePrePrepareMdlWrite,
+    KphMsgFilePostPrepareMdlWrite,
+    KphMsgFilePreMdlWriteComplete,
+    KphMsgFilePostMdlWriteComplete,
+    KphMsgFilePreVolumeMount,
+    KphMsgFilePostVolumeMount,
+    KphMsgFilePreVolumeDismount,
+    KphMsgFilePostVolumeDismount,
 
     MaxKphMsg
 } KPH_MESSAGE_ID, *PKPH_MESSAGE_ID;
@@ -105,6 +191,10 @@ typedef enum _KPH_MESSAGE_FIELD_ID
     KphMsgFieldOutput,
     KphMsgFieldObjectName,
     KphMsgFieldStackTrace,
+    KphMsgFieldDestinationFileName,
+    KphMsgFieldEaBuffer,
+    KphMsgFieldInformationBuffer,
+    KphMsgFieldInput,
 
     MaxKphMsgField
 } KPH_MESSAGE_FIELD_ID, *PKPH_MESSAGE_FIELD_ID;
@@ -119,6 +209,7 @@ typedef enum _KPH_MESSAGE_TYPE_ID
     KphMsgTypeUnicodeString,
     KphMsgTypeAnsiString,
     KphMsgTypeStackTrace,
+    KphMsgTypeSizedBuffer,
 
     MaxKphMsgType
 } KPH_MESSAGE_TYPE_ID, *PKPH_MESSAGE_TYPE_ID;
@@ -217,6 +308,7 @@ typedef struct _KPH_MESSAGE
             KPHM_DESKTOP_HANDLE_PRE_DUPLICATE DesktopHandlePreDuplicate;
             KPHM_DESKTOP_HANDLE_POST_DUPLICATE DesktopHandlePostDuplicate;
             KPHM_REQUIRED_STATE_FAILURE RequiredStateFailure;
+            KPHM_FILE File;
         } Kernel;
 
         //
@@ -225,6 +317,7 @@ typedef struct _KPH_MESSAGE
         union
         {
             KPHM_PROCESS_CREATE_REPLY ProcessCreate;
+            KPHM_FILE_REPLY File;
         } Reply;
     };
 
@@ -235,7 +328,7 @@ typedef struct _KPH_MESSAGE
     {
         UCHAR Count;
         KPH_MESSAGE_DYNAMIC_TABLE_ENTRY Entries[8];
-        CHAR Buffer[0x1000 - 356];
+        CHAR Buffer[0x1000 - 340];
     } _Dyn;
 } KPH_MESSAGE, *PKPH_MESSAGE;
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
@@ -252,9 +345,9 @@ typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 C_ASSERT(sizeof(KPH_MESSAGE) <= 0xffff);
 #ifdef _WIN64
 C_ASSERT(sizeof(KPH_MESSAGE) == 0x1000);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 256);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 356);
-C_ASSERT(KPH_MESSAGE_MIN_SIZE == 356);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 240);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 340);
+C_ASSERT(KPH_MESSAGE_MIN_SIZE == 340);
 C_ASSERT(KPH_MESSAGE_MIN_SIZE == FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer));
 #else
 // not supported

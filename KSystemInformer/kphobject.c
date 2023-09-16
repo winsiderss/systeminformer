@@ -18,7 +18,7 @@
 //
 // N.B. If more object types are added the array must be expanded.
 //
-static KPH_OBJECT_TYPE KphpObjectTypes[12] = { 0 };
+static KPH_OBJECT_TYPE KphpObjectTypes[13] = { 0 };
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
 static volatile LONG KphpObjectTypeCount = 0;
 

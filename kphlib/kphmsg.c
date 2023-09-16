@@ -13,7 +13,7 @@
 #include <kphlibbase.h>
 #include <kphmsg.h>
 
-#define KPH_MESSAGE_VERSION 2
+#define KPH_MESSAGE_VERSION 3
 
 /**
  * Gets the current system time (UTC).

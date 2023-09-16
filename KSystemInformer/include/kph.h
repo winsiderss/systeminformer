@@ -34,10 +34,20 @@
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
 #define NPAGED_CODE_PASSIVE()                                                 \
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#define NPAGED_CODE_APC_MAX()                                                 \
+    NT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL)
 #define NPAGED_CODE_DISPATCH_MAX()                                            \
     NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL)
 #define NPAGED_CODE_DISPATCH_MIN()                                            \
     NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL)
+
+//
+// N.B. This decorates code to indicate that the code supports up to APC_LEVEL
+// but is in a non-paged segment since it can be called in a paging I/O path.
+// Code in this path should also only allocate from non-paged pool to avoid
+// deadlocks.
+//
+#define NPAGED_CODE_APC_MAX_FOR_PAGING_IO() NPAGED_CODE_APC_MAX()
 
 #define PAGED_FILE()                                                          \
     __pragma(bss_seg("PAGEBBS"))                                              \
@@ -76,6 +86,14 @@ ULONG64 InterlockedExchangeU64(
     )
 {
     return (ULONG64)InterlockedExchange64((LONG64*)Target, (LONG64)Value);
+}
+
+FORCEINLINE
+ULONG64 InterlockedIncrementU64(
+    _Inout_ _Interlocked_operand_ volatile ULONG64* Target
+    )
+{
+    return (ULONG64)InterlockedIncrement64((LONG64*)Target);
 }
 
 FORCEINLINE

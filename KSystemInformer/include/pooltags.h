@@ -69,6 +69,10 @@
 
 #define KPH_TAG_INFORMER_OB_NAME                '0IpK'
 #define KPH_TAG_PROCESS_CREATE_APC              '1IpK'
+#define KPH_TAG_FLT_STREAMHANDLE_CONTEXT        '2IpK'
+#define KPH_TAG_FLT_FILE_NAME                   '3IpK'
+#define KPH_TAG_FLT_CACHED_FILE_NAME            '4IpK'
+#define KPH_TAG_FLT_COMPLETION_CONTEXT          '5IpK'
 
 // cid_tracking
 
