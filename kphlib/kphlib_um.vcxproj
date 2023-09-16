@@ -286,7 +286,7 @@
   </ItemGroup>
   <!-- sistatus
     Compiling of the message file is only done in the kernelmode side of KPHLIB
-    so that the WDK is not a requirement for those only the usermode parts. If
+    so that the WDK is not a requirement only building the usermode parts. If
     changes are made to sistatus.mc, you must build the kernel parts for the
     header and resources to be regenerated.
   -->
