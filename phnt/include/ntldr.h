@@ -1105,8 +1105,9 @@ LdrUpdatePackageSearchPath(
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 
 // rev
-#define ENCLAVE_STATE_CREATED     0x00000001ul
-#define ENCLAVE_STATE_INITIALIZED 0x00000002ul
+#define ENCLAVE_STATE_CREATED         0x00000000ul // LdrpCreateSoftwareEnclave initial state
+#define ENCLAVE_STATE_INITIALIZED     0x00000001ul // ZwInitializeEnclave successful (LdrInitializeEnclave)
+#define ENCLAVE_STATE_INITIALIZED_VBS 0x00000002ul // only for ENCLAVE_TYPE_VBS (LdrInitializeEnclave)
 
 // rev
 typedef struct _LDR_SOFTWARE_ENCLAVE
