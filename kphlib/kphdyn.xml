@@ -147,13 +147,13 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <!-- Windows Server 2022 -->
-    <data name="10.0.20348.587 - 10.0.20348.1906">
+    <data name="10.0.20348.587 - 10.0.20348.1970">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="20348"  name="BuildNumberMin"/>
         <field value="587"    name="RevisionMin"/>
         <field value="20348"  name="BuildNumberMax"/>
-        <field value="1906"   name="RevisionMax"/>
+        <field value="1970"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
@@ -194,13 +194,13 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <!-- Windows 10 -->
-    <data name="10.0.19041.1586 - 10.0.19041.3393">
+    <data name="10.0.19041.1586 - 10.0.19041.3448">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="19041"  name="BuildNumberMin"/>
         <field value="1586"   name="RevisionMin"/>
         <field value="19041"  name="BuildNumberMax"/>
-        <field value="3393"   name="RevisionMax"/>
+        <field value="3448"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
