@@ -15,6 +15,8 @@
 #include <kphcomms.h>
 #include <settings.h>
 #include <json.h>
+#include <phappres.h>
+#include <sistatus.h>
 
 #include <ksisup.h>
 
@@ -139,6 +141,7 @@ VOID PhpShowKsiMessage(
     PPH_STRING errorMessage;
     PH_STRING_BUILDER stringBuilder;
     PPH_STRING messageString;
+    ULONG processState;
 
     if (!Force && !PhGetIntegerSetting(L"EnableKphWarnings") || PhStartupParameters.PhSvc)
         return;
@@ -157,16 +160,46 @@ VOID PhpShowKsiMessage(
             errorMessage = PhGetStatusMessage(0, Status);
 
         PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(errorMessage, L"Unknown error."));
+        PhAppendFormatStringBuilder(&stringBuilder, L" (0x%08x)", Status);
         PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
     }
 
-    PhAppendStringBuilder2(&stringBuilder, L"Kernel version: ");
+    PhAppendFormatStringBuilder(
+        &stringBuilder,
+        L"%ls %ls\r\n",
+        WindowsVersionName,
+        WindowsVersionString
+        );
+
+    PhAppendStringBuilder2(&stringBuilder, L"Windows Kernel ");
     PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(kernelVersion, L"Unknown"));
     PhAppendStringBuilder2(&stringBuilder, L"\r\n");
 
-    PhAppendStringBuilder2(&stringBuilder, L"State mask: ");
-    PhAppendFormatStringBuilder(&stringBuilder, L"0x%08x", KphGetCurrentProcessState());
-    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+#if (PHAPP_VERSION_REVISION != 0)
+    PhAppendFormatStringBuilder(
+        &stringBuilder,
+        L"System Informer %lu.%lu.%lu (%hs)\r\n",
+        PHAPP_VERSION_MAJOR,
+        PHAPP_VERSION_MINOR,
+        PHAPP_VERSION_REVISION,
+        PHAPP_VERSION_COMMIT
+        );
+#else
+    PhAppendFormatStringBuilder(
+        &stringBuilder,
+        L"System Informer %lu.%lu\r\n",
+        PHAPP_VERSION_MAJOR,
+        PHAPP_VERSION_MINOR
+        );
+#endif
+
+    processState = KphGetCurrentProcessState();
+    if (processState != 0)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Process State ");
+        PhAppendFormatStringBuilder(&stringBuilder, L"0x%08x", processState);
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+    }
 
     if (Force && !PhGetIntegerSetting(L"EnableKphWarnings"))
     {
@@ -476,6 +509,19 @@ NTSTATUS KsiInitializeCallbackThread(
                         );
                 }
             }
+        }
+        else if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
+        {
+            PhShowKsiMessageEx(
+                CallbackContext,
+                TD_ERROR_ICON,
+                0,
+                FALSE,
+                L"Unable to load kernel driver",
+                L"The kernel driver is not yet supported on this kernel "
+                L"version. Request support by submitting a GitHub issue with "
+                L"the Windows Kernel version."
+                );
         }
         else
         {

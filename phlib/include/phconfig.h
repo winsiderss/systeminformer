@@ -24,6 +24,8 @@ extern _User_set_ PWSTR PhApplicationName;
 extern PVOID PhHeapHandle;
 extern RTL_OSVERSIONINFOEXW PhOsVersion;
 extern ULONG WindowsVersion;
+extern PWSTR WindowsVersionString;
+extern PWSTR WindowsVersionName;
 
 #define WINDOWS_ANCIENT 0
 #define WINDOWS_XP 51 // August, 2001
