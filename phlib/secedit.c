@@ -1196,18 +1196,15 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     PACCESS_MASK accessRights;
     TRUSTEE trustee;
 
-    status = RtlGetDaclSecurityDescriptor(
+    status = PhGetDaclSecurityDescriptorNotNull(
         SecurityDescriptor,
         &present,
-        &dacl,
-        &defaulted
+        &defaulted,
+        &dacl
         );
 
     if (!NT_SUCCESS(status))
         return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
-    // Note: RtlGetDaclSecurityDescriptor returns success for security descriptors with a NULL dacl. (dmex)
-    if (NT_SUCCESS(status) && !dacl)
-        return HRESULT_FROM_WIN32(PhNtStatusToDosError(STATUS_INVALID_SECURITY_DESCR));
 
     accessRights = (PACCESS_MASK)LocalAlloc(LPTR, sizeof(PACCESS_MASK) + sizeof(ACCESS_MASK));
 
@@ -1546,16 +1543,12 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
         BOOLEAN defaulted = FALSE;
         PACL dacl = NULL;
 
-        status = RtlGetDaclSecurityDescriptor(
+        status = PhGetDaclSecurityDescriptorNotNull(
             SecurityDescriptor,
             &present,
-            &dacl,
-            &defaulted
+            &defaulted,
+            &dacl
             );
-
-        // Note: RtlGetDaclSecurityDescriptor returns success for security descriptors with a NULL dacl. (dmex)
-        if (NT_SUCCESS(status) && !dacl)
-            status = STATUS_INVALID_SECURITY_DESCR;
 
         if (NT_SUCCESS(status))
         {
