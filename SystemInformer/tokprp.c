@@ -51,16 +51,10 @@ typedef enum _PH_PROCESS_TOKEN_INDEX
 typedef struct _PHP_TOKEN_PAGE_LISTVIEW_ITEM
 {
     PH_PROCESS_TOKEN_CATEGORY ItemCategory;
-    union
-    {
-        PSID_AND_ATTRIBUTES TokenGroup;
-        PLUID_AND_ATTRIBUTES TokenPrivilege;
-        struct
-        {
-            PH_PROCESS_TOKEN_FLAG ItemFlag;
-            BOOLEAN ItemFlagState;
-        };
-    };
+    PSID_AND_ATTRIBUTES TokenGroup;
+    PLUID_AND_ATTRIBUTES TokenPrivilege;
+    PH_PROCESS_TOKEN_FLAG ItemFlag;
+    BOOLEAN ItemFlagState;
 } PHP_TOKEN_PAGE_LISTVIEW_ITEM, *PPHP_TOKEN_PAGE_LISTVIEW_ITEM;
 
 typedef struct _PHP_TOKEN_USER_RESOLVE_CONTEXT
@@ -115,6 +109,32 @@ typedef struct _TOKEN_PAGE_CONTEXT
     PH_TOKEN_ATTRIBUTE_TREE_CONTEXT AuthzTreeContext;
     PH_TOKEN_ATTRIBUTE_TREE_CONTEXT AppPolicyTreeContext;
 } TOKEN_PAGE_CONTEXT, *PTOKEN_PAGE_CONTEXT;
+
+static PH_KEY_VALUE_PAIR PhElevationTypePairs[] =
+{
+    SIP(SREF(L"Unknown"), 0),
+    SIP(SREF(L"No (Default)"), TokenElevationTypeDefault),
+    SIP(SREF(L"No (Full)"), TokenElevationTypeFull),
+    SIP(SREF(L"No (Limited)"), TokenElevationTypeLimited),
+    SIP(SREF(L"Yes"), 0),
+    SIP(SREF(L"Yes (Default)"), TokenElevationTypeDefault),
+    SIP(SREF(L"Yes (Full)"), TokenElevationTypeFull),
+    SIP(SREF(L"Yes (Limited)"), TokenElevationTypeLimited),
+};
+
+static PH_KEY_VALUE_PAIR PhImpersonationLevelPairs[] =
+{
+    SIP(L"Anonymous", SecurityAnonymous),
+    SIP(L"Identification", SecurityIdentification),
+    SIP(L"Impersonation", SecurityImpersonation),
+    SIP(L"Delegation", SecurityDelegation),
+};
+
+static PH_KEY_VALUE_PAIR PhTokenTypePairs[] =
+{
+    SIP(L"Primary", TokenPrimary),
+    SIP(L"Impersonation", TokenImpersonation),
+};
 
 CONST PH_ACCESS_ENTRY PhpGroupDescriptionEntries[6] =
 {
@@ -366,25 +386,25 @@ PPH_STRING PhGetGroupAttributesString(
 {
     PPH_STRING string;
 
-    if (Attributes & (SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
-        if (Attributes & SE_GROUP_ENABLED)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED))
             string = PhCreateString(L"Enabled (as a group)");
         else
             string = PhReferenceEmptyString();
     }
     else
     {
-        if (Attributes & SE_GROUP_ENABLED)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED))
         {
-            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
                 string = PhCreateString(L"Enabled");
             else
                 string = PhCreateString(L"Enabled (modified)");
         }
         else
         {
-            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
                 string = PhCreateString(L"Disabled (modified)");
             else
                 string = PhCreateString(L"Disabled");
@@ -403,22 +423,22 @@ COLORREF PhGetGroupAttributesColorDark(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & (SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
-        if (!(Attributes & SE_GROUP_ENABLED))
+        if (!FlagOn(Attributes, SE_GROUP_ENABLED))
             return RGB(0, 26, 0);
     }
 
-    if (Attributes & SE_GROUP_ENABLED)
+    if (FlagOn(Attributes, SE_GROUP_ENABLED))
     {
-        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
             return RGB(0, 26, 0);
         else
             return RGB(0, 102, 0);
     }
     else
     {
-        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
             return RGB(122, 77, 84);
         else
             return RGB(43, 12, 15);
@@ -429,16 +449,21 @@ COLORREF PhGetPrivilegeAttributesColorDark(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & SE_PRIVILEGE_ENABLED)
+    if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        return RGB(0xc0, 0xc0, 0xc0);
+    }
+
+    if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return RGB(0, 26, 0);
         else
             return RGB(0, 102, 0);
     }
     else
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return RGB(122, 77, 84);
         else
             return RGB(43, 12, 15);
@@ -459,22 +484,22 @@ COLORREF PhGetGroupAttributesColor(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & (SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
-        if (!(Attributes & SE_GROUP_ENABLED))
+        if (!FlagOn(Attributes, SE_GROUP_ENABLED))
             return RGB(0xe0, 0xf0, 0xe0);
     }
 
-    if (Attributes & SE_GROUP_ENABLED)
+    if (FlagOn(Attributes, SE_GROUP_ENABLED))
     {
-        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
             return RGB(0xe0, 0xf0, 0xe0);
         else
             return RGB(0xc0, 0xf0, 0xc0);
     }
     else
     {
-        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
             return RGB(0xf0, 0xc0, 0xc0);
         else
             return RGB(0xf0, 0xe0, 0xe0);
@@ -485,16 +510,21 @@ COLORREF PhGetPrivilegeAttributesColor(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & SE_PRIVILEGE_ENABLED)
+    if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        return RGB(0xc0, 0xc0, 0xc0);
+    }
+
+    if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return RGB(0xe0, 0xf0, 0xe0);
         else
             return RGB(0xc0, 0xf0, 0xc0);
     }
     else
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return RGB(0xf0, 0xc0, 0xc0);
         else
             return RGB(0xf0, 0xe0, 0xe0);
@@ -543,45 +573,86 @@ PWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & SE_PRIVILEGE_ENABLED)
+    if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        return L"Removed";
+    }
+
+    if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return L"Enabled";
         else
             return L"Enabled (modified)";
     }
     else
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return L"Disabled (modified)";
         else
             return L"Disabled";
     }
 }
 
-PH_STRINGREF PhGetElevationTypeStringRef(
+_Success_(return)
+BOOLEAN PhGetElevationTypeString(
     _In_ BOOLEAN IsElevated,
-    _In_ TOKEN_ELEVATION_TYPE ElevationType
+    _In_ TOKEN_ELEVATION_TYPE ElevationType,
+    _Out_ PPH_STRINGREF* ElevationTypeString
     )
 {
-    static PH_STRINGREF Types[] =
+    PPH_STRINGREF string;
+
+    if (PhFindStringSiKeyValuePairs(
+        PhElevationTypePairs,
+        sizeof(PhElevationTypePairs),
+        (ULONG)ElevationType + (IsElevated ? 4 : 0),
+        (PWSTR*)&string
+        ))
     {
-        { 0, NULL },
-        PH_STRINGREF_INIT(L"No (Default)"),
-        PH_STRINGREF_INIT(L"No (Full)"),
-        PH_STRINGREF_INIT(L"No (Limited)"),
-        PH_STRINGREF_INIT(L"Yes"),
-        PH_STRINGREF_INIT(L"Yes (Default)"),
-        PH_STRINGREF_INIT(L"Yes (Full)"),
-        PH_STRINGREF_INIT(L"Yes (Limited)")
-    };
+        *ElevationTypeString = string;
+        return TRUE;
+    }
 
-    ULONG index = (ULONG)ElevationType + (IsElevated ? 4 : 0);
+    return FALSE;
+}
 
-    if (index < RTL_NUMBER_OF(Types))
-        return Types[index];
+_Success_(return)
+BOOLEAN PhGetImpersonationLevelString(
+    _In_ SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+    _Out_ PWSTR* ImpersonationLevelString
+    )
+{
+    if (PhFindStringSiKeyValuePairs(
+        PhImpersonationLevelPairs,
+        sizeof(PhImpersonationLevelPairs),
+        ImpersonationLevel,
+        ImpersonationLevelString
+        ))
+    {
+        return TRUE;
+    }
 
-    return Types[0];
+    return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhGetTokenTypeString(
+    _In_ TOKEN_TYPE TokenType,
+    _Out_ PWSTR* TokenTypeString
+    )
+{
+    if (PhFindStringSiKeyValuePairs(
+        PhTokenTypePairs,
+        sizeof(PhTokenTypePairs),
+        TokenType,
+        TokenTypeString
+        ))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 VOID PhpTokenPageFreeListViewEntries(
@@ -981,6 +1052,85 @@ static VOID PhpTokenSetImageList(
     ListView_SetImageList(TokenPageContext->ListViewHandle, TokenPageContext->ListViewImageList, LVSIL_SMALL);
 }
 
+INT PhpGetTokenPrivilegeSortingIndex(
+    _In_ ULONG Attributes
+    )
+{
+    if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
+        return 4;
+    else
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
+        {
+            if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
+                return 0;
+            else
+                return 1;
+        }
+        else
+        {
+            if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
+                return 2;
+            else
+                return 3;
+        }
+    }
+}
+
+INT PhpGetTokenGroupSortingIndex(
+    _In_ ULONG Attributes
+    )
+{
+    if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    {
+        if (!FlagOn(Attributes, SE_GROUP_ENABLED))
+            return 0;
+    }
+
+    if (FlagOn(Attributes, SE_GROUP_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
+            return 1;
+        else
+            return 2;
+    }
+    else
+    {
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
+            return 3;
+        else
+            return 4;
+    }
+}
+
+INT NTAPI PhpTokenStatusColumnCompareFunction(
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_TOKEN_PAGE_LISTVIEW_ITEM item1 = Item1;
+    PPHP_TOKEN_PAGE_LISTVIEW_ITEM item2 = Item2;
+    ULONG value1;
+    ULONG value2;
+
+    if (item1->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+        value1 = PhpGetTokenPrivilegeSortingIndex(item1->TokenPrivilege->Attributes);
+    else if (item1->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+        value1 = PhpGetTokenGroupSortingIndex(item1->TokenGroup->Attributes);
+    else
+        value1 = 0;
+
+    if (item2->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+        value2 = PhpGetTokenPrivilegeSortingIndex(item2->TokenPrivilege->Attributes);
+    else if (item2->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+        value2 = PhpGetTokenGroupSortingIndex(item2->TokenGroup->Attributes);
+    else
+        value2 = 0;
+
+    return uintcmp(value1, value2);
+}
+
 INT_PTR CALLBACK PhpTokenPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1018,6 +1168,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Type");
 
             PhSetExtendedListView(tokenPageContext->ListViewHandle);
+            ExtendedListView_SetCompareFunction(tokenPageContext->ListViewHandle, 1, PhpTokenStatusColumnCompareFunction);
             ExtendedListView_SetItemColorFunction(tokenPageContext->ListViewHandle, PhpTokenGroupColorFunction);
             ListView_EnableGroupView(tokenPageContext->ListViewHandle, TRUE);
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS, L"Dangerous Flags");
@@ -1027,7 +1178,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
             PhLoadListViewGroupStatesFromSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(L"TokenGroupsListViewSort", tokenPageContext->ListViewHandle);
-
             PhpTokenSetImageList(hwndDlg, tokenPageContext);
 
             PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
@@ -1041,10 +1191,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
             {
                 PH_TOKEN_USER tokenUser;
                 PPH_STRING stringUserSid;
-                ULONG sessionId;
-                BOOLEAN isElevated;
-                TOKEN_ELEVATION_TYPE elevationType;
-                PH_STRINGREF tokenElevated;
+                ULONG tokenSessionId = ULONG_MAX;
+                BOOLEAN tokenElevation = FALSE;
+                TOKEN_ELEVATION_TYPE tokenElevationType = 0;
+                PPH_STRINGREF tokenElevationTypeString;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 PH_TOKEN_APPCONTAINER tokenAppContainer;
@@ -1077,17 +1227,19 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     }
                 }
 
-                if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
-                    PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
+                PhGetTokenSessionId(tokenHandle, &tokenSessionId);
+                PhGetTokenElevation(tokenHandle, &tokenElevation);
+                PhGetTokenElevationType(tokenHandle, &tokenElevationType);
 
-                if (!NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
-                    isElevated = FALSE;
-                if (!NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                    elevationType = 0;
+                if (tokenSessionId != ULONG_MAX)
+                    PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, tokenSessionId, FALSE);
+                else
+                    PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
 
-                tokenElevated = PhGetElevationTypeStringRef(isElevated, elevationType);
-
-                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated.Length ? tokenElevated.Buffer : L"Unknown");
+                if (PhGetElevationTypeString(tokenElevation, tokenElevationType, &tokenElevationTypeString))
+                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringRefZ(tokenElevationTypeString));
+                else
+                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, L"Unknown");
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -1302,21 +1454,27 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             switch (GET_WM_COMMAND_ID(wParam, lParam))
                             {
                             case ID_PRIVILEGE_ENABLE:
-                                newAttributes |= SE_PRIVILEGE_ENABLED;
+                                {
+                                    SetFlag(newAttributes, SE_PRIVILEGE_ENABLED);
+                                }
                                 break;
                             case ID_PRIVILEGE_DISABLE:
-                                newAttributes &= ~SE_PRIVILEGE_ENABLED;
+                                {
+                                    ClearFlag(newAttributes, SE_PRIVILEGE_ENABLED);
+                                }
                                 break;
                             case ID_PRIVILEGE_RESET:
                                 {
-                                    if (newAttributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
-                                        newAttributes |= SE_PRIVILEGE_ENABLED;
+                                    if (FlagOn(newAttributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
+                                        SetFlag(newAttributes, SE_PRIVILEGE_ENABLED);
                                     else
-                                        newAttributes &= ~SE_PRIVILEGE_ENABLED;
+                                        ClearFlag(newAttributes, SE_PRIVILEGE_ENABLED);
                                 }
                                 break;
                             case ID_PRIVILEGE_REMOVE:
-                                newAttributes = SE_PRIVILEGE_REMOVED;
+                                {
+                                    newAttributes = SE_PRIVILEGE_REMOVED;
+                                }
                                 break;
                             }
 
@@ -1895,7 +2053,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     PH_PROCESS_TOKEN_CATEGORY currentCategory = listviewItems[0]->ItemCategory;
                     ULONG i;
 
-                    for (i = 1; i < numberOfItems; i++)
+                    for (i = 0; i < numberOfItems; i++)
                     {
                         if (listviewItems[i]->ItemCategory != currentCategory)
                         {
@@ -2145,7 +2303,9 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PPH_STRING tokenOwnerName = NULL;
             PPH_STRING tokenPrimaryGroupName = NULL;
             ULONG tokenSessionId = ULONG_MAX;
-            PH_STRINGREF tokenElevated = { 0 };
+            BOOLEAN tokenElevation = FALSE;
+            TOKEN_ELEVATION_TYPE tokenElevationType = 0;
+            PPH_STRINGREF tokenElevationTypeString;
             BOOLEAN hasLinkedToken = FALSE;
             PWSTR tokenVirtualization = L"N/A";
             PWSTR tokenUIAccess = L"Unknown";
@@ -2164,8 +2324,6 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 PH_TOKEN_USER tokenUser;
                 PH_TOKEN_OWNER tokenOwner;
                 PTOKEN_PRIMARY_GROUP tokenPrimaryGroup;
-                TOKEN_ELEVATION_TYPE elevationType;
-                BOOLEAN isElevated;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 BOOLEAN isUIAccessEnabled;
@@ -2183,22 +2341,17 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 if (NT_SUCCESS(PhGetTokenPrimaryGroup(tokenHandle, &tokenPrimaryGroup)))
                 {
-                    tokenPrimaryGroupName = PH_AUTO(PhGetSidFullName(
-                        tokenPrimaryGroup->PrimaryGroup, TRUE, NULL));
+                    tokenPrimaryGroupName = PH_AUTO(PhGetSidFullName(tokenPrimaryGroup->PrimaryGroup, TRUE, NULL));
                     PhFree(tokenPrimaryGroup);
                 }
 
                 PhGetTokenSessionId(tokenHandle, &tokenSessionId);
+                PhGetTokenElevation(tokenHandle, &tokenElevation);
 
-                if (!NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
-                    isElevated = FALSE;
-
-                if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                    hasLinkedToken = elevationType != TokenElevationTypeDefault;
-                else
-                    elevationType = 0;
-
-                tokenElevated = PhGetElevationTypeStringRef(isElevated, elevationType);
+                if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &tokenElevationType)))
+                {
+                    hasLinkedToken = tokenElevationType != TokenElevationTypeDefault;
+                }
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -2257,14 +2410,17 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             else
                 PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
 
-            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated.Length ? tokenElevated.Buffer : L"Unknown");
+            if (PhGetElevationTypeString(tokenElevation, tokenElevationType, &tokenElevationTypeString))
+                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringRefZ(tokenElevationTypeString));
+            else
+                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, L"Unknown");
+
             PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
             PhSetDialogItemText(hwndDlg, IDC_UIACCESS, tokenUIAccess);
             PhSetDialogItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
             PhSetDialogItemText(hwndDlg, IDC_SOURCELUID, tokenSourceLuid);
 
-            if (!hasLinkedToken)
-                ShowWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), SW_HIDE);
+            EnableWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), !!hasLinkedToken);
 
             if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
@@ -2413,38 +2569,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 
                 if (NT_SUCCESS(PhGetTokenStatistics(tokenHandle, &statistics)))
                 {
-                    switch (statistics.TokenType)
-                    {
-                    case TokenPrimary:
-                        tokenType = L"Primary";
-                        break;
-                    case TokenImpersonation:
-                        tokenType = L"Impersonation";
-                        break;
-                    }
-
-                    if (statistics.TokenType == TokenImpersonation)
-                    {
-                        switch (statistics.ImpersonationLevel)
-                        {
-                        case SecurityAnonymous:
-                            tokenImpersonationLevel = L"Anonymous";
-                            break;
-                        case SecurityIdentification:
-                            tokenImpersonationLevel = L"Identification";
-                            break;
-                        case SecurityImpersonation:
-                            tokenImpersonationLevel = L"Impersonation";
-                            break;
-                        case SecurityDelegation:
-                            tokenImpersonationLevel = L"Delegation";
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        tokenImpersonationLevel = L"N/A";
-                    }
+                    PhGetTokenTypeString(statistics.TokenType, &tokenType);
+                    PhGetImpersonationLevelString(statistics.ImpersonationLevel, &tokenImpersonationLevel);
 
                     PhPrintPointer(tokenLuid, UlongToPtr(statistics.TokenId.LowPart));
                     PhPrintPointer(authenticationLuid, UlongToPtr(statistics.AuthenticationId.LowPart));
@@ -2551,7 +2677,6 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PhSetListViewSubItem(context->ListViewHandle, 5, 1, tokenOriginLogonSession);
             PhSetListViewSubItem(context->ListViewHandle, 6, 1, PhGetStringOrDefault(memoryUsed, L"Unknown"));
             PhSetListViewSubItem(context->ListViewHandle, 7, 1, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
-
             PhSetListViewSubItem(context->ListViewHandle, 8, 1, PhGetStringOrDefault(tokenNamedObjectPathString, L"Unknown"));
             PhSetListViewSubItem(context->ListViewHandle, 9, 1, PhGetStringOrDefault(tokenSecurityDescriptorString, L"Unknown"));
 
