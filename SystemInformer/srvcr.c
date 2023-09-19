@@ -110,11 +110,14 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                         break;
                     }
 
-                    serviceBinaryEscaped = PH_AUTO(PhCommandLineQuoteSpaces(&serviceBinaryPath->sr));
-
-                    if (!PhIsNullOrEmptyString(serviceBinaryEscaped))
+                    if (!FlagOn(serviceType, SERVICE_DRIVER))
                     {
-                        PhMoveReference(&serviceBinaryPath, serviceBinaryEscaped);
+                        serviceBinaryEscaped = PH_AUTO(PhCommandLineQuoteSpaces(&serviceBinaryPath->sr));
+
+                        if (!PhIsNullOrEmptyString(serviceBinaryEscaped))
+                        {
+                            serviceBinaryPath = serviceBinaryEscaped;
+                        }
                     }
 
                     if (PhGetOwnTokenAttributes().Elevated)
@@ -123,7 +126,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                             &serviceHandle,
                             PhGetString(serviceName),
                             PhGetString(serviceDisplayName),
-                            SERVICE_CHANGE_CONFIG,
+                            SERVICE_QUERY_CONFIG,
                             serviceType,
                             serviceStartType,
                             serviceErrorControl,
@@ -143,12 +146,12 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                         if (PhUiConnectToPhSvc(hwndDlg, FALSE))
                         {
                             status = PhSvcCallCreateService(
-                                serviceName->Buffer,
-                                serviceDisplayName->Buffer,
+                                PhGetString(serviceName),
+                                PhGetString(serviceDisplayName),
                                 serviceType,
                                 serviceStartType,
                                 serviceErrorControl,
-                                serviceBinaryPath->Buffer,
+                                PhGetString(serviceBinaryPath),
                                 NULL,
                                 NULL,
                                 NULL,
