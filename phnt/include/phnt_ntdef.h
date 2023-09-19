@@ -53,6 +53,8 @@ typedef CLONG *PCLONG;
 
 typedef PCSTR PCSZ;
 
+typedef PVOID* PPVOID;
+
 // Specific
 
 typedef UCHAR KIRQL, *PKIRQL;
