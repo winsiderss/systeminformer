@@ -143,11 +143,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
 {
     LIST_ENTRY InLoadOrderLinks;
     LIST_ENTRY InMemoryOrderLinks;
-    union
-    {
-        LIST_ENTRY InInitializationOrderLinks;
-        LIST_ENTRY InProgressLinks;
-    };
+    LIST_ENTRY InInitializationOrderLinks;
     PVOID DllBase;
     PLDR_INIT_ROUTINE EntryPoint;
     ULONG SizeOfImage;
@@ -847,7 +843,7 @@ LdrUnloadAlternateResourceModuleEx(
 
 typedef struct _RTL_PROCESS_MODULE_INFORMATION
 {
-    HANDLE Section;
+    PVOID Section;
     PVOID MappedBase;
     PVOID ImageBase;
     ULONG ImageSize;
