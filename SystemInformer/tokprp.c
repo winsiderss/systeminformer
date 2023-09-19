@@ -836,6 +836,62 @@ BOOLEAN PhpUpdateTokenGroups(
     return TRUE;
 }
 
+NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
+    _In_ PPOLICY_PRIVILEGE_DEFINITION Privileges,
+    _In_ ULONG NumberOfPrivileges,
+    _In_opt_ PVOID Context
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext = Context;
+    INT lvItemIndex;
+
+    if (!tokenPageContext->Privileges)
+        return STATUS_UNSUCCESSFUL;
+
+    for (ULONG i = 0; i < NumberOfPrivileges; i++)
+    {
+        PPH_STRING privilegeName;
+        PPH_STRING privilegeDisplayName;
+        PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
+
+        for (ULONG j = 0; j < tokenPageContext->Privileges->PrivilegeCount; j++)
+        {
+            if (RtlIsEqualLuid(&tokenPageContext->Privileges->Privileges[j].Luid, &Privileges[i].LocalValue))
+            {
+                continue;
+            }
+        }
+
+        privilegeName = PhCreateStringFromUnicodeString(&Privileges[i].Name);
+        privilegeDisplayName = NULL;
+        PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
+
+        lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
+        lvitem->ItemCategory = PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES;
+        lvitem->TokenPrivilege = PhAllocateZero(sizeof(LUID_AND_ATTRIBUTES));
+        lvitem->TokenPrivilege->Luid = Privileges[i].LocalValue;
+        lvitem->TokenPrivilege->Attributes = SE_PRIVILEGE_REMOVED;
+
+        // Name
+        lvItemIndex = PhAddListViewGroupItem(
+            tokenPageContext->ListViewHandle,
+            PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES,
+            MAXINT,
+            PhGetString(privilegeName),
+            lvitem
+            );
+        // Status
+        PhSetListViewSubItem(tokenPageContext->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetPrivilegeAttributesString(lvitem->TokenPrivilege->Attributes));
+        // Description
+        PhSetListViewSubItem(tokenPageContext->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetStringOrEmpty(privilegeDisplayName));
+
+        if (privilegeDisplayName) PhDereferenceObject(privilegeDisplayName);
+        PhDereferenceObject(privilegeName);
+    }
+
+    return STATUS_SUCCESS;
+}
+
 BOOLEAN PhpUpdateTokenPrivileges(
     _In_ HWND hwndDlg,
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
@@ -891,6 +947,11 @@ BOOLEAN PhpUpdateTokenPrivileges(
         PhFree(TokenPageContext->Privileges);
 
     TokenPageContext->Privileges = privileges;
+
+    if (PhGetIntegerSetting(L"EnableTokenRemovedPrivileges"))
+    {
+        PhEnumeratePrivileges(PhpEnumeratePrivilegesCallback, TokenPageContext);
+    }
 
     return TRUE;
 }
@@ -2050,6 +2111,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (numberOfItems != 0)
                 {
                     BOOLEAN hasMixedCategories = FALSE;
+                    BOOLEAN hasRemovedItems = FALSE;
                     PH_PROCESS_TOKEN_CATEGORY currentCategory = listviewItems[0]->ItemCategory;
                     ULONG i;
 
@@ -2059,6 +2121,18 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         {
                             hasMixedCategories = TRUE;
                             break;
+                        }
+                    }
+
+                    if (currentCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+                    {
+                        for (i = 0; i < numberOfItems; i++)
+                        {
+                            if (FlagOn(listviewItems[i]->TokenPrivilege->Attributes, SE_PRIVILEGE_REMOVED))
+                            {
+                                hasRemovedItems = TRUE;
+                                break;
+                            }
                         }
                     }
 
@@ -2075,6 +2149,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_RESET, L"Re&set", NULL, NULL), ULONG_MAX);
                                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_REMOVE, L"&Remove", NULL, NULL), ULONG_MAX);
                                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+
+                                if (hasRemovedItems)
+                                {
+                                    PhSetFlagsAllEMenuItems(menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                }
                             }
                             break;
                         case PH_PROCESS_TOKEN_CATEGORY_GROUPS:
