@@ -623,6 +623,14 @@ PhGetTokenPrimaryGroup(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetTokenDefaultDacl(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_DEFAULT_DACL* DefaultDacl
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetTokenGroups(
     _In_ HANDLE TokenHandle,
     _Out_ PTOKEN_GROUPS *Groups

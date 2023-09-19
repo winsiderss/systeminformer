@@ -3050,6 +3050,43 @@ NTSTATUS PhGetTokenPrimaryGroup(
 }
 
 /**
+ * Gets a token's discretionary access control list (DACL).
+ *
+ * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
+ * \param DefaultDacl A pointer to an ACL structure assigned by default to any objects created
+ * by the user. You must free the structure using PhFree() when you no longer need it.
+ */
+NTSTATUS PhGetTokenDefaultDacl(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_DEFAULT_DACL* DefaultDacl
+    )
+{
+    NTSTATUS status;
+    PTOKEN_DEFAULT_DACL defaultDacl;
+
+    status = PhQueryTokenVariableSize(
+        TokenHandle,
+        TokenDefaultDacl,
+        &defaultDacl
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (defaultDacl->DefaultDacl)
+        {
+            *DefaultDacl = defaultDacl;
+        }
+        else
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+            PhFree(defaultDacl);
+        }
+    }
+
+    return status;
+}
+
+/**
  * Gets a token's groups.
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.

@@ -1378,17 +1378,12 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
     }
     else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
     {
-        PTOKEN_DEFAULT_DACL defaultDacl = NULL;
+        PTOKEN_DEFAULT_DACL defaultDacl;
 
-        status = PhQueryTokenVariableSize(
+        status = PhGetTokenDefaultDacl(
             handle,
-            TokenDefaultDacl,
             &defaultDacl
             );
-
-        // Note: NtQueryInformationToken returns success for processes with a NULL DefaultDacl. (dmex)
-        if (NT_SUCCESS(status) && !defaultDacl->DefaultDacl)
-            status = STATUS_INVALID_SECURITY_DESCR;
 
         if (NT_SUCCESS(status))
         {
@@ -1408,10 +1403,9 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
                 RtlLengthSecurityDescriptor(securityDescriptor)
                 );
             PhFree(securityDescriptor);
-        }
 
-        if (defaultDacl)
             PhFree(defaultDacl);
+        }
 
         NtClose(handle);
     }
