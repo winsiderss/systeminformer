@@ -113,7 +113,7 @@ typedef struct _PEB
     PAPI_SET_NAMESPACE ApiSetMap;
     ULONG TlsExpansionCounter;
     PVOID TlsBitmap;
-    ULONG TlsBitmapBits[2];
+    ULONG TlsBitmapBits[2]; // TLS_MINIMUM_AVAILABLE
 
     PVOID ReadOnlySharedMemoryBase;
     PSILO_USER_SHARED_DATA SharedData; // HotpatchInformation
@@ -155,7 +155,7 @@ typedef struct _PEB
     PVOID PostProcessInitRoutine;
 
     PVOID TlsExpansionBitmap;
-    ULONG TlsExpansionBitmapBits[32];
+    ULONG TlsExpansionBitmapBits[32]; // TLS_EXPANSION_SLOTS
 
     ULONG SessionId;
 
@@ -259,12 +259,27 @@ typedef struct _TEB_ACTIVE_FRAME_CONTEXT
     PSTR FrameName;
 } TEB_ACTIVE_FRAME_CONTEXT, *PTEB_ACTIVE_FRAME_CONTEXT;
 
+typedef struct _TEB_ACTIVE_FRAME_CONTEXT_EX
+{
+    TEB_ACTIVE_FRAME_CONTEXT BasicContext;
+    PSTR SourceLocation;
+} TEB_ACTIVE_FRAME_CONTEXT_EX, *PTEB_ACTIVE_FRAME_CONTEXT_EX;
+
 typedef struct _TEB_ACTIVE_FRAME
 {
     ULONG Flags;
     struct _TEB_ACTIVE_FRAME *Previous;
     PTEB_ACTIVE_FRAME_CONTEXT Context;
 } TEB_ACTIVE_FRAME, *PTEB_ACTIVE_FRAME;
+
+typedef struct _TEB_ACTIVE_FRAME_EX
+{
+    TEB_ACTIVE_FRAME BasicFrame;
+    PVOID ExtensionIdentifier;
+} TEB_ACTIVE_FRAME_EX, *PTEB_ACTIVE_FRAME_EX;
+
+#define STATIC_UNICODE_BUFFER_LENGTH 261
+#define WIN32_CLIENT_INFO_LENGTH 62
 
 typedef struct _TEB
 {
@@ -324,7 +339,8 @@ typedef struct _TEB
     ULONG GdiClientPID;
     ULONG GdiClientTID;
     PVOID GdiThreadLocalInfo;
-    ULONG_PTR Win32ClientInfo[62];
+    ULONG_PTR Win32ClientInfo[WIN32_CLIENT_INFO_LENGTH];
+
     PVOID glDispatchTable[233];
     ULONG_PTR glReserved1[29];
     PVOID glReserved2;
@@ -336,10 +352,10 @@ typedef struct _TEB
 
     NTSTATUS LastStatusValue;
     UNICODE_STRING StaticUnicodeString;
-    WCHAR StaticUnicodeBuffer[261];
+    WCHAR StaticUnicodeBuffer[STATIC_UNICODE_BUFFER_LENGTH];
 
     PVOID DeallocationStack;
-    PVOID TlsSlots[64];
+    PVOID TlsSlots[TLS_MINIMUM_AVAILABLE];
     LIST_ENTRY TlsLinks;
 
     PVOID Vdm;
