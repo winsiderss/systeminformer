@@ -2440,6 +2440,14 @@ PhQueryAttributesFileWin32(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryAttributesFile(
+    _In_ PPH_STRINGREF FileName,
+    _Out_ PFILE_BASIC_INFORMATION FileInformation
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhDoesFileExistWin32(
