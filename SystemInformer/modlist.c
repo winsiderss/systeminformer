@@ -543,7 +543,6 @@ VOID PhTickModuleNodes(
 }
 
 #define SORT_FUNCTION(Column) PhpModuleTreeNewCompare##Column
-
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpModuleTreeNewCompare##Column( \
     _In_ void *_context, \
     _In_ const void *_elem1, \
@@ -921,9 +920,12 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->BaseAddressString);
                 break;
             case PHMOTLC_SIZE:
-                if (!node->SizeText)
-                    node->SizeText = PhFormatSize(moduleItem->Size, ULONG_MAX);
-                getCellText->Text = PhGetStringRef(node->SizeText);
+                {
+                    if (!node->SizeText)
+                        node->SizeText = PhFormatSize(moduleItem->Size, ULONG_MAX);
+
+                    getCellText->Text = PhGetStringRef(node->SizeText);
+                }
                 break;
             case PHMOTLC_DESCRIPTION:
                 getCellText->Text = PhGetStringRef(moduleItem->VersionInfo.FileDescription);
@@ -944,35 +946,17 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_TYPE:
                 {
-                    PWSTR typeString;
+                    PPH_STRINGREF string;
 
-                    switch (moduleItem->Type)
+                    if (string = PhGetModuleTypeName(moduleItem->Type))
                     {
-                    case PH_MODULE_TYPE_MODULE:
-                        typeString = L"DLL";
-                        break;
-                    case PH_MODULE_TYPE_MAPPED_FILE:
-                        typeString = L"Mapped file";
-                        break;
-                    case PH_MODULE_TYPE_MAPPED_IMAGE:
-                    case PH_MODULE_TYPE_ELF_MAPPED_IMAGE:
-                        typeString = L"Mapped image";
-                        break;
-                    case PH_MODULE_TYPE_WOW64_MODULE:
-                        typeString = L"WOW64 DLL";
-                        break;
-                    case PH_MODULE_TYPE_KERNEL_MODULE:
-                        typeString = L"Kernel module";
-                        break;
-                    case PH_MODULE_TYPE_ENCLAVE_MODULE:
-                        typeString = L"Enclave module";
-                        break;
-                    default:
-                        typeString = L"Unknown";
-                        break;
+                        getCellText->Text.Buffer = string->Buffer;
+                        getCellText->Text.Length = string->Length;
                     }
-
-                    PhInitializeStringRefLongHint(&getCellText->Text, typeString);
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PHMOTLC_LOADCOUNT:
@@ -1010,8 +994,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
                 break;
             case PHMOTLC_ASLR:
-                if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
-                    PhInitializeStringRef(&getCellText->Text, L"ASLR");
+                {
+                    if (FlagOn(moduleItem->ImageDllCharacteristics, IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE))
+                        PhInitializeStringRef(&getCellText->Text, L"ASLR");
+                }
                 break;
             case PHMOTLC_TIMESTAMP:
                 {
@@ -1032,12 +1018,14 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_CFGUARD:
-                if (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_GUARD_CF)
                 {
-                    if (moduleItem->GuardFlags & IMAGE_GUARD_XFG_ENABLED)
-                        PhInitializeStringRef(&getCellText->Text, L"XF Guard");
-                    else
-                        PhInitializeStringRef(&getCellText->Text, L"CF Guard");
+                    if (FlagOn(moduleItem->ImageDllCharacteristics, IMAGE_DLLCHARACTERISTICS_GUARD_CF))
+                    {
+                        if (FlagOn(moduleItem->GuardFlags, IMAGE_GUARD_XFG_ENABLED))
+                            PhInitializeStringRef(&getCellText->Text, L"XF Guard");
+                        else
+                            PhInitializeStringRef(&getCellText->Text, L"CF Guard");
+                    }
                 }
                 break;
             case PHMOTLC_LOADTIME:
@@ -1066,44 +1054,17 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                              moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                              moduleItem->Type == PH_MODULE_TYPE_ENCLAVE_MODULE)
                     {
-                        PWSTR string = L"N/A";
+                        PPH_STRINGREF string;
 
-                        switch (moduleItem->LoadReason)
+                        if (string = PhGetModuleLoadReasonTypeName(moduleItem->LoadReason))
                         {
-                        case LoadReasonStaticDependency:
-                            string = L"Static dependency";
-                            break;
-                        case LoadReasonStaticForwarderDependency:
-                            string = L"Static forwarder dependency";
-                            break;
-                        case LoadReasonDynamicForwarderDependency:
-                            string = L"Dynamic forwarder dependency";
-                            break;
-                        case LoadReasonDelayloadDependency:
-                            string = L"Delay load dependency";
-                            break;
-                        case LoadReasonDynamicLoad:
-                            string = L"Dynamic";
-                            break;
-                        case LoadReasonAsImageLoad:
-                            string = L"As image";
-                            break;
-                        case LoadReasonAsDataLoad:
-                            string = L"As data";
-                            break;
-                        case LoadReasonEnclavePrimary:
-                            string = L"Enclave primary";
-                            break;
-                        case LoadReasonEnclaveDependency:
-                            string = L"Enclave dependency";
-                            break;
-                        default:
-                            if (WindowsVersion >= WINDOWS_8)
-                                string = L"Unknown";
-                            break;
+                            getCellText->Text.Buffer = string->Buffer;
+                            getCellText->Text.Length = string->Length;
                         }
-
-                        PhInitializeStringRef(&getCellText->Text, string);
+                        else
+                        {
+                            PhInitializeEmptyStringRef(&getCellText->Text);
+                        }
                     }
                     else
                     {
@@ -1112,33 +1073,43 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 }
                 break;
             case PHMOTLC_FILEMODIFIEDTIME:
-                if (moduleItem->FileLastWriteTime.QuadPart != 0)
                 {
-                    SYSTEMTIME systemTime;
+                    if (moduleItem->FileLastWriteTime.QuadPart != 0)
+                    {
+                        SYSTEMTIME systemTime;
 
-                    PhLargeIntegerToLocalSystemTime(&systemTime, &moduleItem->FileLastWriteTime);
-                    PhMoveReference(&node->FileModifiedTimeText, PhFormatDateTime(&systemTime));
-                    getCellText->Text = node->FileModifiedTimeText->sr;
+                        PhLargeIntegerToLocalSystemTime(&systemTime, &moduleItem->FileLastWriteTime);
+                        PhMoveReference(&node->FileModifiedTimeText, PhFormatDateTime(&systemTime));
+                        getCellText->Text = node->FileModifiedTimeText->sr;
+                    }
                 }
                 break;
             case PHMOTLC_FILESIZE:
-                if (moduleItem->FileEndOfFile.QuadPart != -1)
                 {
-                    PhMoveReference(&node->FileSizeText, PhFormatSize(moduleItem->FileEndOfFile.QuadPart, ULONG_MAX));
-                    getCellText->Text = node->FileSizeText->sr;
+                    if (moduleItem->FileEndOfFile.QuadPart != -1)
+                    {
+                        PhMoveReference(&node->FileSizeText, PhFormatSize(moduleItem->FileEndOfFile.QuadPart, ULONG_MAX));
+                        getCellText->Text = node->FileSizeText->sr;
+                    }
                 }
                 break;
             case PHMOTLC_ENTRYPOINT:
-                if (moduleItem->EntryPoint != 0)
-                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->EntryPointAddressString);
+                {
+                    if (moduleItem->EntryPoint != 0)
+                        PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->EntryPointAddressString);
+                }
                 break;
             case PHMOTLC_PARENTBASEADDRESS:
-                if (moduleItem->ParentBaseAddress != 0)
-                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->ParentBaseAddressString);
+                {
+                    if (moduleItem->ParentBaseAddress != 0)
+                        PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->ParentBaseAddressString);
+                }
                 break;
             case PHMOTLC_CET:
-                if (moduleItem->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
-                    PhInitializeStringRef(&getCellText->Text, L"CET");
+                {
+                    if (FlagOn(moduleItem->ImageDllCharacteristicsEx, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT))
+                        PhInitializeStringRef(&getCellText->Text, L"CET");
+                }
                 break;
             case PHMOTLC_COHERENCY:
                 {
@@ -1219,31 +1190,25 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->EnclaveBaseAddress)
                     {
-                        PWSTR enclaveTypeString;
+                        PPH_STRINGREF string;
 
-                        switch (moduleItem->EnclaveType)
+                        if (string = PhGetModuleEnclaveTypeName(moduleItem->EnclaveType))
                         {
-                        case ENCLAVE_TYPE_SGX:
-                            enclaveTypeString = L"SGX";
-                            break;
-                        case ENCLAVE_TYPE_SGX2:
-                            enclaveTypeString = L"SGX2";
-                            break;
-                        case ENCLAVE_TYPE_VBS:
-                            enclaveTypeString = L"VBS";
-                            break;
-                        default:
-                            enclaveTypeString = L"Unknown";
-                            break;
+                            getCellText->Text.Buffer = string->Buffer;
+                            getCellText->Text.Length = string->Length;
                         }
-
-                        PhInitializeStringRefLongHint(&getCellText->Text, enclaveTypeString);
+                        else
+                        {
+                            PhInitializeEmptyStringRef(&getCellText->Text);
+                        }
                     }
                 }
                 break;
             case PHMOTLC_ENCLAVE_BASE_ADDRESS:
-                if (moduleItem->EnclaveBaseAddress)
-                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->EnclaveBaseAddressString);
+                {
+                    if (moduleItem->EnclaveBaseAddress)
+                        PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->EnclaveBaseAddressString);
+                }
                 break;
             case PHMOTLC_ENCLAVE_SIZE:
                 {
@@ -1284,9 +1249,9 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             }
             else if (PhEnableImageCoherencySupport && context->HighlightLowImageCoherency && PhShouldShowModuleCoherency(moduleItem, TRUE))
                 getNodeColor->BackColor = PhCsColorLowImageCoherency;
-            else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
+            else if (context->HighlightDotNetModules && FlagOn(moduleItem->Flags, LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;
-            else if (context->HighlightImmersiveModules && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
+            else if (context->HighlightImmersiveModules && FlagOn(moduleItem->ImageDllCharacteristics, IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
                 getNodeColor->BackColor = PhCsColorImmersiveProcesses;
             else if (context->HighlightRelocatedModules && moduleItem->ImageNotAtBase)
                 getNodeColor->BackColor = PhCsColorRelocatedModules;
