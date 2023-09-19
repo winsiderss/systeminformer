@@ -27,7 +27,7 @@ typedef struct _PH_SERVICE_ITEM
     PH_STRINGREF Key; // points to Name
     PPH_STRING Name;
     PPH_STRING DisplayName;
-    PPH_STRING FileName; // only available after first update
+    PPH_STRING FileName;
 
     PPH_IMAGELIST_ITEM IconEntry;
     volatile LONG JustProcessed;
