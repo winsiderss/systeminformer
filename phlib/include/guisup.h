@@ -1865,6 +1865,48 @@ PhGetCurrentThreadDesktopName(
     VOID
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhRecentListCreate(
+    _Out_ PHANDLE RecentHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhRecentListDestroy(
+    _In_ HANDLE RecentHandle
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhRecentListAddString(
+    _In_ HANDLE RecentHandle,
+    _In_ PCWSTR String
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhRecentListAddCommand(
+    _In_ PPH_STRINGREF Command
+    );
+
+typedef BOOLEAN (NTAPI* PPH_ENUM_MRULIST_CALLBACK)(
+    _In_ PPH_STRINGREF Command,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhEnumerateRecentList(
+    _In_ PPH_ENUM_MRULIST_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
 #ifndef DBT_DEVICEARRIVAL
 #define DBT_DEVICEARRIVAL        0x8000  // system detected a new device
 #define DBT_DEVICEREMOVECOMPLETE 0x8004  // device is gone
