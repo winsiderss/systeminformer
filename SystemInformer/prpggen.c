@@ -26,9 +26,6 @@
 #include <procprv.h>
 #include <settings.h>
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
-#define SREF(String) ((PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String)))
-
 static PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
 {
     SIP(L"None", PsProtectedTypeNone),

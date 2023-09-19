@@ -22,8 +22,6 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
     _In_ LPARAM lParam
     );
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
-
 static PH_KEY_VALUE_PAIR PhpConnectStatePairs[] =
 {
     SIP(L"Active", State_Active),

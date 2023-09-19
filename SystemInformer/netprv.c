@@ -50,9 +50,6 @@ typedef struct _PHP_RESOLVE_CACHE_ITEM
     PPH_STRING HostString;
 } PHP_RESOLVE_CACHE_ITEM, *PPHP_RESOLVE_CACHE_ITEM;
 
-#define SREF(String) \
-    (PH_STRINGREF)PH_STRINGREF_INIT((String))
-
 VOID NTAPI PhpNetworkItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

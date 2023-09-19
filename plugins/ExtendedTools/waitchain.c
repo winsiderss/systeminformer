@@ -196,8 +196,6 @@ PVOID EtWaitChainContextCreate(
     return PhCreateObjectZero(sizeof(WCT_CONTEXT), EtWaitChainContextType);
 }
 
-#define SIP(String, Integer) { (String), (PVOID)((Integer)) }
-#define SREF(String) ((PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String)))
 static PH_STRINGREF WaitChainUnknownString = PH_STRINGREF_INIT(L"Unknown");
 
 static PH_KEY_VALUE_PAIR WaitChainObjectTypePairs[] =
