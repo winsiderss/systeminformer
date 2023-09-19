@@ -451,7 +451,7 @@ COLORREF PhGetPrivilegeAttributesColorDark(
 {
     if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        return RGB(0xc0, 0xc0, 0xc0);
+        return RGB(0, 0, 0);
     }
 
     if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
