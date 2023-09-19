@@ -115,7 +115,7 @@ PPH_MODULE_ITEM PhCreateModuleItem(
 PPH_MODULE_ITEM PhReferenceModuleItemEx(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
     _In_ PVOID BaseAddress,
-    _In_ PVOID EnclaveBaseAddress,
+    _In_opt_ PVOID EnclaveBaseAddress,
     _In_opt_ PPH_STRING FileName
     );
 
@@ -130,6 +130,18 @@ VOID PhDereferenceAllModuleItems(
 
 VOID PhModuleProviderUpdate(
     _In_ PVOID Object
+    );
+
+PPH_STRINGREF PhGetModuleTypeName(
+    _In_ ULONG ModuleType
+    );
+
+PPH_STRINGREF PhGetModuleLoadReasonTypeName(
+    _In_ USHORT LoadReason
+    );
+
+PPH_STRINGREF PhGetModuleEnclaveTypeName(
+    _In_ ULONG EnclaveType
     );
 
 #endif
