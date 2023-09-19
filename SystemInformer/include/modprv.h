@@ -100,7 +100,6 @@ typedef struct _PH_MODULE_PROVIDER
         };
     };
     UCHAR ImageCoherencyScanLevel;
-    PVOID LdrpEnclaveList;
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 // end_phapppub
 

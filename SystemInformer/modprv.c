@@ -62,6 +62,55 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
 
 PPH_OBJECT_TYPE PhModuleProviderType = NULL;
 PPH_OBJECT_TYPE PhModuleItemType = NULL;
+static PVOID PhpLdrpEnclaveList = NULL;
+
+PLIST_ENTRY PhpGetLdrEnclaveList(
+    VOID
+    )
+{
+    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"ntdll.dll");
+    static PLIST_ENTRY ldrpEnclaveList = NULL;
+
+    PPH_SYMBOL_PROVIDER symbolProvider;
+    PLDR_DATA_TABLE_ENTRY entry;
+    PH_SYMBOL_INFORMATION symbolInfo;
+
+    ldrpEnclaveList = NULL;
+
+    symbolProvider = PhCreateSymbolProvider(NULL);
+    PhLoadSymbolProviderOptions(symbolProvider);
+
+    if (entry = PhFindLoaderEntry(NULL, NULL, &ntdllFileName))
+    {
+        PH_STRINGREF fullName;
+        PPH_STRING fileName;
+
+        PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
+
+        if (fileName = PhDosPathNameToNtPathName(&fullName))
+        {
+            PhLoadModuleSymbolProvider(symbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
+            PhDereferenceObject(fileName);
+        }
+    }
+
+    if (PhGetSymbolFromName(symbolProvider, L"LdrpEnclaveList", &symbolInfo))
+    {
+        ldrpEnclaveList = (PLIST_ENTRY)symbolInfo.Address;
+    }
+
+    PhDereferenceObject(symbolProvider);
+
+    return ldrpEnclaveList;
+}
+
+NTSTATUS NTAPI PhpInitLdrEnclaveListAddress(
+    _In_ PVOID ThreadParameter
+    )
+{
+    PhpLdrpEnclaveList = PhpGetLdrEnclaveList();
+    return STATUS_SUCCESS;
+}
 
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
     _In_ HANDLE ProcessId
@@ -76,6 +125,12 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     {
         PhModuleProviderType = PhCreateObjectType(L"ModuleProvider", 0, PhpModuleProviderDeleteProcedure);
         PhModuleItemType = PhCreateObjectType(L"ModuleItem", 0, PhpModuleItemDeleteProcedure);
+
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            PhCreateThread2(PhpInitLdrEnclaveListAddress, NULL);
+        }
+
         PhEndInitOnce(&initOnce);
     }
 
@@ -192,38 +247,6 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     case 4:
         moduleProvider->ImageCoherencyScanLevel = PhImageCoherencySharedOriginal;
         break;
-    }
-
-    if (WindowsVersion >= WINDOWS_10)
-    {
-        static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"ntdll.dll");
-        PPH_SYMBOL_PROVIDER symbolProvider;
-        PLDR_DATA_TABLE_ENTRY entry;
-        PH_SYMBOL_INFORMATION symbolInfo;
-
-        symbolProvider = PhCreateSymbolProvider(ProcessId);
-        PhLoadSymbolProviderOptions(symbolProvider);
-
-        if (entry = PhFindLoaderEntry(NULL, NULL, &ntdllFileName))
-        {
-            PH_STRINGREF fullName;
-            PPH_STRING fileName;
-
-            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
-
-            if (fileName = PhDosPathNameToNtPathName(&fullName))
-            {
-                PhLoadModuleSymbolProvider(symbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
-                PhDereferenceObject(fileName);
-            }
-        }
-
-        if (PhGetSymbolFromName(symbolProvider, L"LdrpEnclaveList", &symbolInfo))
-        {
-            moduleProvider->LdrpEnclaveList = (PVOID)symbolInfo.Address;
-        }
-
-        PhDereferenceObject(symbolProvider);
     }
 
     RtlInitializeSListHead(&moduleProvider->QueryListHead);
@@ -667,11 +690,11 @@ VOID PhModuleProviderUpdate(
         modules
         );
 
-    if (moduleProvider->LdrpEnclaveList)
+    if (PhpLdrpEnclaveList)
     {
         PhEnumProcessEnclaves(
             moduleProvider->ProcessHandle,
-            moduleProvider->LdrpEnclaveList,
+            PhpLdrpEnclaveList,
             EnumEnclavesCallback,
             modules
             );
