@@ -77,6 +77,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
     PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
     PhpAddIntegerSetting(L"EnableThreadStackLineInformation", L"1");
+    PhpAddIntegerSetting(L"EnableTokenRemovedPrivileges", L"0");
     PhpAddIntegerSetting(L"EnableTooltipSupport", L"1");
     PhpAddIntegerSetting(L"EnableUpdateDefaultFirmwareBootEntry", L"1");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"1");
