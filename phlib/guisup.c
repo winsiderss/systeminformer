@@ -78,6 +78,10 @@ static _GetDpiForSystem GetDpiForSystem_I = NULL; // win10rs1+
 //static _GetDpiForSession GetDpiForSession_I = NULL; // ordinal 2713
 static _GetSystemMetricsForDpi GetSystemMetricsForDpi_I = NULL;
 static _SystemParametersInfoForDpi SystemParametersInfoForDpi_I = NULL;
+static _CreateMRUList CreateMRUList_I = NULL;
+static _AddMRUString AddMRUString_I = NULL;
+static _EnumMRUList EnumMRUList_I = NULL;
+static _FreeMRUList FreeMRUList_I = NULL;
 
 VOID PhGuiSupportInitialization(
     VOID
@@ -4216,4 +4220,165 @@ PPH_STRING PhGetCurrentThreadDesktopName(
         PhDereferenceObject(string);
         return PhCreateString(L"Default");
     }
+}
+
+BOOLEAN PhpInitializeMRUList(VOID)
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID comctl32ModuleHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (comctl32ModuleHandle = PhLoadLibrary(L"comctl32.dll"))
+        {
+            CreateMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "CreateMRUListW", 0);
+            AddMRUString_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "AddMRUStringW", 0);
+            EnumMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "EnumMRUListW", 0);
+            FreeMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "FreeMRUList", 0);
+
+            if (!(CreateMRUList_I && AddMRUString_I && EnumMRUList_I && FreeMRUList_I))
+            {
+                PhFreeLibrary(comctl32ModuleHandle);
+                comctl32ModuleHandle = NULL;
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (comctl32ModuleHandle)
+        return TRUE;
+
+    return FALSE;
+}
+
+BOOLEAN PhRecentListCreate(
+    _Out_ PHANDLE RecentHandle
+    )
+{
+    HANDLE handle;
+    MRUINFO info;
+
+    if (!PhpInitializeMRUList())
+        return FALSE;
+
+    memset(&info, 0, sizeof(MRUINFO));
+    info.cbSize = sizeof(MRUINFO);
+    info.uMaxItems = UINT_MAX;
+    info.hKey = HKEY_CURRENT_USER;
+    info.lpszSubKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU";
+
+    if (handle = CreateMRUList_I(&info))
+    {
+        *RecentHandle = handle;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PhRecentListDestroy(
+    _In_ HANDLE RecentHandle
+    )
+{
+    if (!PhpInitializeMRUList())
+        return;
+
+    if (RecentHandle)
+    {
+        FreeMRUList_I(RecentHandle);
+    }
+}
+
+BOOLEAN PhRecentListAddString(
+    _In_ HANDLE RecentHandle,
+    _In_ PCWSTR String
+    )
+{
+    if (!PhpInitializeMRUList())
+        return FALSE;
+
+    return AddMRUString_I(RecentHandle, String) != INT_ERROR;
+}
+
+BOOLEAN PhRecentListAddCommand(
+    _In_ PPH_STRINGREF Command
+    )
+{
+    static PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
+    BOOLEAN status;
+    HANDLE listHandle;
+    PPH_STRING command;
+
+    if (!PhpInitializeMRUList())
+        return FALSE;
+    if (!PhRecentListCreate(&listHandle))
+        return FALSE;
+
+    command = PhConcatStringRef2(Command, &prefixSr);
+
+    status = PhRecentListAddString(listHandle, PhGetString(command));
+
+    PhDereferenceObject(command);
+
+    PhRecentListDestroy(listHandle);
+
+    return status;
+}
+
+VOID PhEnumerateRecentList(
+    _In_ PPH_ENUM_MRULIST_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    HANDLE listHandle;
+    INT listCount;
+
+    if (!PhpInitializeMRUList())
+        return;
+    if (!PhRecentListCreate(&listHandle))
+        return;
+
+    listCount = EnumMRUList_I(
+        listHandle,
+        MAXINT,
+        NULL,
+        0
+        );
+
+    for (INT i = 0; i < listCount; i++)
+    {
+        PH_STRINGREF string;
+        SIZE_T returnLength;
+        WCHAR buffer[DOS_MAX_PATH_LENGTH] = L"";
+
+        returnLength = EnumMRUList_I(
+            listHandle,
+            i,
+            buffer,
+            RTL_NUMBER_OF(buffer)
+            );
+
+        if (returnLength >= RTL_NUMBER_OF(buffer))
+            continue;
+        if (returnLength < sizeof(UNICODE_NULL))
+            continue;
+
+        buffer[returnLength] = UNICODE_NULL;
+
+        string.Buffer = buffer;
+        string.Length = returnLength * sizeof(WCHAR);
+
+        // trim \\1 (dmex)
+        if (string.Buffer[returnLength - 1] == L'1' && string.Buffer[returnLength - 2] == L'\\')
+        {
+            string.Buffer[returnLength - 2] = UNICODE_NULL;
+            string.Length -= 4;
+        }
+
+        if (!Callback(&string, Context))
+            break;
+    }
+
+    FreeMRUList_I(listHandle);
 }

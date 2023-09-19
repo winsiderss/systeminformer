@@ -133,6 +133,42 @@ typedef BOOL (WINAPI* _SystemParametersInfoForDpi)(
     _In_ UINT dpi
     );
 
+// Comctl32
+
+typedef INT32 (CALLBACK *MRUSTRINGCMPPROC)(PCWSTR String1, PCWSTR String2);
+typedef INT32 (CALLBACK *MRUINARYCMPPROC)(PVOID String1, PVOID String2, ULONG Length);
+
+#define MRU_STRING 0x0000
+#define MRU_BINARY 0x0001
+#define MRU_CACHEWRITE 0x0002
+
+typedef struct _MRUINFO
+{
+    ULONG cbSize;
+    UINT uMaxItems;
+    UINT uFlags;
+    HANDLE hKey;
+    PCWSTR lpszSubKey;
+    MRUSTRINGCMPPROC lpfnCompare;
+} MRUINFO, *PMRUINFO;
+
+typedef HANDLE (WINAPI* _CreateMRUList)(
+    _In_ PMRUINFO lpmi
+    );
+typedef INT32 (WINAPI* _AddMRUString)(
+    _In_ HANDLE hMRU,
+    _In_ PCWSTR szString
+    );
+typedef INT32 (WINAPI* _EnumMRUList)(
+    _In_ HANDLE hMRU,
+    _In_ INT nItem,
+    _Out_ PVOID lpData,
+    _In_ UINT uLen
+    );
+typedef INT32 (WINAPI* _FreeMRUList)(
+    _In_ HANDLE hMRU
+    );
+
 // Icons
 
 typedef struct _PHP_ICON_ENTRY

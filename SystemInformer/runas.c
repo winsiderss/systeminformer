@@ -88,40 +88,6 @@ typedef struct _PH_RUNAS_DESKTOP_ITEM
     PPH_STRING DesktopName;
 } PH_RUNAS_DESKTOP_ITEM, *PPH_RUNAS_DESKTOP_ITEM;
 
-typedef INT (CALLBACK *MRUSTRINGCMPPROC)(PCWSTR pString1, PCWSTR pString2);
-typedef INT (CALLBACK *MRUINARYCMPPROC)(LPCVOID pString1, LPCVOID pString2, ULONG length);
-
-#define MRU_STRING 0x0000 // list will contain strings.
-#define MRU_BINARY 0x0001 // list will contain binary data.
-#define MRU_CACHEWRITE 0x0002 // only save list order to reg. is FreeMRUList.
-
-typedef struct _MRUINFO
-{
-    ULONG cbSize;
-    UINT uMaxItems;
-    UINT uFlags;
-    HKEY hKey;
-    LPCTSTR lpszSubKey;
-    MRUSTRINGCMPPROC lpfnCompare;
-} MRUINFO, *PMRUINFO;
-
-static HANDLE (WINAPI *CreateMRUList_I)(
-    _In_ PMRUINFO lpmi
-    );
-static INT (WINAPI *AddMRUString_I)(
-    _In_ HANDLE hMRU,
-    _In_ PWSTR szString
-    );
-static INT (WINAPI *EnumMRUList_I)(
-    _In_ HANDLE hMRU,
-    _In_ INT nItem,
-    _Out_ PVOID lpData,
-    _In_ UINT uLen
-    );
-static INT (WINAPI *FreeMRUList_I)(
-    _In_ HANDLE hMRU
-    );
-
 INT_PTR CALLBACK PhpRunAsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -335,120 +301,24 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     return desktopInfo;
 }
 
-BOOLEAN PhpInitializeMRUList(VOID)
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID comctl32ModuleHandle = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        if (comctl32ModuleHandle = PhLoadLibrary(L"comctl32.dll"))
-        {
-            CreateMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "CreateMRUListW", 0);
-            AddMRUString_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "AddMRUStringW", 0);
-            EnumMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "EnumMRUListW", 0);
-            FreeMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "FreeMRUList", 0);
-
-            if (!(CreateMRUList_I && AddMRUString_I && EnumMRUList_I && FreeMRUList_I))
-            {
-                PhFreeLibrary(comctl32ModuleHandle);
-                comctl32ModuleHandle = NULL;
-            }
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (comctl32ModuleHandle)
-        return TRUE;
-
-    return FALSE;
-}
-
-static HANDLE PhpCreateRunMRUList(
-    VOID
-    )
-{
-    MRUINFO info;
-
-    if (!CreateMRUList_I)
-        return NULL;
-
-    memset(&info, 0, sizeof(MRUINFO));
-    info.cbSize = sizeof(MRUINFO);
-    info.uMaxItems = UINT_MAX;
-    info.hKey = HKEY_CURRENT_USER;
-    info.lpszSubKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU";
-
-    return CreateMRUList_I(&info);
-}
-
-static VOID PhpAddRunMRUListEntry(
-    _In_ PPH_STRING CommandLine
-    )
-{
-    static PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
-    HANDLE listHandle;
-    PPH_STRING commandString;
-
-    if (!(listHandle = PhpCreateRunMRUList()))
-        return;
-
-    commandString = PhConcatStringRef2(&CommandLine->sr, &prefixSr);
-    AddMRUString_I(listHandle, commandString->Buffer);
-    PhDereferenceObject(commandString);
-
-    FreeMRUList_I(listHandle);
-}
-
-static VOID PhpAddProgramsToComboBox(
+static VOID PhpFreeRecentProgramsComboBox(
     _In_ HWND ComboBoxHandle
     )
 {
-    HANDLE listHandle;
-    INT listCount;
+    INT total;
 
-    if (!PhpInitializeMRUList())
-        return;
-    if (!(listHandle = PhpCreateRunMRUList()))
+    if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
         return;
 
-    listCount = EnumMRUList_I(
-        listHandle,
-        MAXINT,
-        NULL,
-        0
-        );
-
-    for (INT i = 0; i < listCount; i++)
+    for (INT i = 0; i < total; i++)
     {
-        INT returnLength;
-        WCHAR buffer[MAX_PATH] = L"";
-
-        returnLength = EnumMRUList_I(
-            listHandle,
-            i,
-            buffer,
-            RTL_NUMBER_OF(buffer)
-            );
-
-        if (returnLength >= RTL_NUMBER_OF(buffer))
-            continue;
-        if (returnLength < sizeof(UNICODE_NULL))
-            continue;
-
-        buffer[returnLength] = UNICODE_NULL;
-
-        if (buffer[returnLength - 1] == L'1' && buffer[returnLength - 2] == L'\\')
-            buffer[returnLength - 2] = UNICODE_NULL; // trim \\1 (dmex)
-
-        ComboBox_AddString(ComboBoxHandle, buffer);
+        ComboBox_DeleteString(ComboBoxHandle, i);
     }
 
-    FreeMRUList_I(listHandle);
+    ComboBox_ResetContent(ComboBoxHandle);
 }
 
-VOID PhpFreeProgramsComboBox(
+static VOID PhpFreeProgramsComboBox(
     _In_ HWND ComboBoxHandle
     )
 {
@@ -480,14 +350,31 @@ static VOID PhpFreeAccountsComboBox(
     ComboBox_ResetContent(ComboBoxHandle);
 }
 
+BOOLEAN PhpEnumerateRecentProgramsToComboBox(
+    _In_ PPH_STRINGREF Command,
+    _In_opt_ PVOID Context
+    )
+{
+    ComboBox_AddString(Context, PhGetStringRefZ(Command));
+    return TRUE;
+}
+
 NTSTATUS PhpEnumerateAccountsToComboBox(
     _In_ PPH_STRING AccountName,
     _In_opt_ PVOID Context
     )
 {
     ComboBox_AddString(Context, PhGetString(AccountName));
-
     return STATUS_SUCCESS;
+}
+
+static VOID PhpAddProgramsToComboBox(
+    _In_ HWND ComboBoxHandle
+    )
+{
+    PhpFreeRecentProgramsComboBox(ComboBoxHandle);
+
+    PhEnumerateRecentList(PhpEnumerateRecentProgramsToComboBox, ComboBoxHandle);
 }
 
 static VOID PhpAddAccountsToComboBox(
@@ -751,6 +638,70 @@ VOID SetDefaultProgramEntry(
     ComboBox_SetCurSel(ComboBoxHandle, 0);
 }
 
+VOID SetDefaultUserEntry(
+    _In_ PRUNAS_DIALOG_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ HWND ComboBoxHandle
+    )
+{
+    if (!Context->ProcessId)
+    {
+        PPH_STRING runAsUserName = PhaGetStringSetting(L"RunAsUserName");
+        INT runAsUserNameIndex = CB_ERR;
+
+        // Fire the user name changed event so we can fix the logon type.
+        if (!PhIsNullOrEmptyString(runAsUserName))
+        {
+            runAsUserNameIndex = ComboBox_FindString(
+                ComboBoxHandle,
+                0,
+                PhGetString(runAsUserName)
+                );
+        }
+
+        if (runAsUserNameIndex != CB_ERR)
+            ComboBox_SetCurSel(ComboBoxHandle, runAsUserNameIndex);
+        else
+            ComboBox_SetCurSel(ComboBoxHandle, 0);
+
+        SendMessage(WindowHandle, WM_COMMAND, MAKEWPARAM(IDC_USERNAME, CBN_EDITCHANGE), 0);
+    }
+    else
+    {
+        HANDLE processHandle;
+        HANDLE tokenHandle;
+        PPH_STRING userName;
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            Context->ProcessId
+            )))
+        {
+            if (NT_SUCCESS(PhOpenProcessToken(
+                processHandle,
+                TOKEN_QUERY,
+                &tokenHandle
+                )))
+            {
+                if (userName = PhGetTokenUserString(tokenHandle, TRUE))
+                {
+                    PhSetWindowText(ComboBoxHandle, userName->Buffer);
+                    PhDereferenceObject(userName);
+                }
+
+                NtClose(tokenHandle);
+            }
+
+            NtClose(processHandle);
+        }
+
+        EnableWindow(Context->UserComboBoxWindowHandle, FALSE);
+        EnableWindow(Context->PasswordEditWindowHandle, FALSE);
+        EnableWindow(Context->TypeComboBoxWindowHandle, FALSE);
+    }
+}
+
 VOID SetDefaultSessionEntry(
     _In_ HWND ComboBoxHandle
     )
@@ -873,65 +824,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             PhpAddDesktopsToComboBox(context->DesktopEditWindowHandle);
 
             SetDefaultProgramEntry(context->ProgramComboBoxWindowHandle);
+            SetDefaultUserEntry(context, hwndDlg, context->UserComboBoxWindowHandle);
             SetDefaultSessionEntry(context->SessionEditWindowHandle);
             SetDefaultDesktopEntry(context, context->DesktopEditWindowHandle);
-
-            if (!context->ProcessId)
-            {
-                PPH_STRING runAsUserName = PhaGetStringSetting(L"RunAsUserName");
-                INT runAsUserNameIndex = CB_ERR;
-
-                // Fire the user name changed event so we can fix the logon type.
-                if (!PhIsNullOrEmptyString(runAsUserName))
-                {
-                    runAsUserNameIndex = ComboBox_FindString(
-                        context->UserComboBoxWindowHandle,
-                        0,
-                        PhGetString(runAsUserName)
-                        );
-                }
-
-                if (runAsUserNameIndex != CB_ERR)
-                    ComboBox_SetCurSel(context->UserComboBoxWindowHandle, runAsUserNameIndex);
-                else
-                    ComboBox_SetCurSel(context->UserComboBoxWindowHandle, 0);
-
-                SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_USERNAME, CBN_EDITCHANGE), 0);
-            }
-            else
-            {
-                HANDLE processHandle;
-                HANDLE tokenHandle;
-                PPH_STRING userName;
-
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_QUERY_LIMITED_INFORMATION,
-                    context->ProcessId
-                    )))
-                {
-                    if (NT_SUCCESS(PhOpenProcessToken(
-                        processHandle,
-                        TOKEN_QUERY,
-                        &tokenHandle
-                        )))
-                    {
-                        if (userName = PhGetTokenUserString(tokenHandle, TRUE))
-                        {
-                            PhSetWindowText(context->UserComboBoxWindowHandle, userName->Buffer);
-                            PhDereferenceObject(userName);
-                        }
-
-                        NtClose(tokenHandle);
-                    }
-
-                    NtClose(processHandle);
-                }
-
-                EnableWindow(context->UserComboBoxWindowHandle, FALSE);
-                EnableWindow(context->PasswordEditWindowHandle, FALSE);
-                EnableWindow(context->TypeComboBoxWindowHandle, FALSE);
-            }
 
             PhSetDialogFocus(hwndDlg, context->ProgramComboBoxWindowHandle);
             Edit_SetSel(context->ProgramComboBoxWindowHandle, -1, -1);
@@ -1374,8 +1269,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     }
                     else if (status != STATUS_TIMEOUT)
                     {
-                        PhpAddRunMRUListEntry(program);
-
+                        PhRecentListAddString(hwndDlg, PhGetString(program));
                         //PhSetStringSetting2(L"RunAsProgram", &program->sr);
                         PhSetStringSetting2(L"RunAsUserName", &username->sr);
                         EndDialog(hwndDlg, IDOK);
@@ -2191,7 +2085,7 @@ NTSTATUS PhpRunFileProgram(
 
     if (NT_SUCCESS(PhQueryAttributesFileWin32(PhGetString(fullFileName), &basicInfo)))
     {
-        isDirectory = !!(basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+        isDirectory = !!FlagOn(basicInfo.FileAttributes, FILE_ATTRIBUTE_DIRECTORY);
     }
 
     if (isDirectory || !PhDoesFileExistWin32(PhGetString(fullFileName)))
@@ -2525,7 +2419,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                         if (NT_SUCCESS(status))
                         {
-                            PhpAddRunMRUListEntry(commandString);
+                            PhRecentListAddCommand(&commandString->sr);
 
                             EndDialog(hwndDlg, IDOK);
                         }
@@ -2615,7 +2509,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     {
                         ULONG_PTR buttonStyle = PhGetWindowStyle(customDraw->hdr.hwndFrom);
 
-                        if ((buttonStyle & BS_CHECKBOX) == BS_CHECKBOX)
+                        if (FlagOn(buttonStyle, BS_CHECKBOX) == BS_CHECKBOX)
                         {
                             switch (customDraw->dwDrawStage)
                             {
@@ -3491,7 +3385,7 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
 
                             if (HR_SUCCESS(status))
                             {
-                                PhpAddRunMRUListEntry(commandString);
+                                PhRecentListAddCommand(&commandString->sr);
 
                                 EndDialog(WindowHandle, IDOK);
                             }
