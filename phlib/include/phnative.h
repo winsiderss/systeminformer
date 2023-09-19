@@ -967,6 +967,45 @@ PhFreeUnicodeString(
 #endif
 }
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetDaclSecurityDescriptorNotNull(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _Out_ PBOOLEAN DaclPresent,
+    _Out_ PBOOLEAN DaclDefaulted,
+    _Outptr_result_maybenull_ PACL* Dacl
+    )
+{
+    NTSTATUS status;
+    BOOLEAN present = FALSE;
+    BOOLEAN defaulted = FALSE;
+    PACL dacl = NULL;
+
+    status = RtlGetDaclSecurityDescriptor(
+        SecurityDescriptor,
+        &present,
+        &dacl,
+        &defaulted
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (dacl)
+        {
+            *DaclPresent = present;
+            *DaclDefaulted = defaulted;
+            *Dacl = dacl;
+        }
+        else
+        {
+            status = STATUS_INVALID_SECURITY_DESCR;
+        }
+    }
+
+    return status;
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
