@@ -123,8 +123,6 @@ VOID PhpSplitUserName(
     _Out_opt_ PPH_STRING* UserPart
     );
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
-
 static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
 {
     SIP(L"Batch", LOGON32_LOGON_BATCH),

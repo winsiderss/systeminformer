@@ -15,8 +15,6 @@
 #include <svcsup.h>
 #include <mapldr.h>
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
-#define SREF(String) ((PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String)))
 static PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
 
 static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =

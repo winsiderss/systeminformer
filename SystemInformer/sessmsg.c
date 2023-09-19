@@ -11,12 +11,8 @@
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <lsasup.h>
-
 #include <winsta.h>
-
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
 static PH_KEY_VALUE_PAIR PhpMessageBoxIconPairs[] =
 {
