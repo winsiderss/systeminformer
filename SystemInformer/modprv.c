@@ -69,8 +69,7 @@ PLIST_ENTRY PhpGetLdrEnclaveList(
     )
 {
     static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"ntdll.dll");
-    static PLIST_ENTRY ldrpEnclaveList = NULL;
-
+    PLIST_ENTRY ldrpEnclaveList;
     PPH_SYMBOL_PROVIDER symbolProvider;
     PLDR_DATA_TABLE_ENTRY entry;
     PH_SYMBOL_INFORMATION symbolInfo;
