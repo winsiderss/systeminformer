@@ -32,11 +32,7 @@
 #include <phapp.h>
 #include <apiimport.h>
 #include <hidnproc.h>
-
-#include <evntcons.h>
-
 #include <kphuser.h>
-
 #include <mainwnd.h>
 #include <procprv.h>
 #include <settings.h>
@@ -1085,24 +1081,21 @@ NTSTATUS PhpEnumHiddenSubKeyHandles(
     UNICODE_STRING subkeyName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    if (!NtQueryOpenSubKeysEx_Import())
-        return STATUS_UNSUCCESSFUL;
-
     bufferSize = 0x200;
     buffer = PhAllocate(bufferSize);
 
+    RtlInitUnicodeString(&subkeyName, L"\\REGISTRY");
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &subkeyName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
     while (TRUE)
     {
-        RtlInitUnicodeString(&subkeyName, L"\\REGISTRY");
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &subkeyName,
-            OBJ_CASE_INSENSITIVE,
-            NULL,
-            NULL
-            );
-
-        status = NtQueryOpenSubKeysEx_Import()(
+        status = NtQueryOpenSubKeysEx(
             &objectAttributes,
             bufferSize,
             buffer,
@@ -1217,13 +1210,13 @@ NTSTATUS PhpEnumHiddenSubKeyHandles(
 }
 
 #define PH_FIRST_ETW_GUID(TraceGuid) \
-    (((PTRACE_GUID_INFO)(TraceGuid))->InstanceCount ? \
-    ((PTRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET(TraceGuid, \
-    sizeof(TRACE_GUID_INFO))) : NULL)
+    (((PETW_TRACE_GUID_INFO)(TraceGuid))->InstanceCount ? \
+    ((PETW_TRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET(TraceGuid, \
+    sizeof(ETW_TRACE_GUID_INFO))) : NULL)
 #define PH_NEXT_ETW_GUID(TraceGuid) \
-    (((PTRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset ? \
-    (PTRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET((TraceGuid), \
-    ((PTRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset) : NULL)
+    (((PETW_TRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset ? \
+    (PETW_TRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET((TraceGuid), \
+    ((PETW_TRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset) : NULL)
 
 NTSTATUS PhpEnumEtwGuidHandles(
     _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
@@ -1247,7 +1240,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
         for (ULONG i = 0; i < traceGuidListLength / sizeof(GUID); i++)
         {
             GUID providerGuid = traceGuidList[i];
-            PTRACE_GUID_INFO traceGuidInfo;
+            PETW_TRACE_GUID_INFO traceGuidInfo;
 
             status = PhTraceControl(
                 EtwGetTraceGuidInfo,
@@ -1259,7 +1252,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
 
             if (NT_SUCCESS(status))
             {
-                PTRACE_PROVIDER_INSTANCE_INFO instance;
+                PETW_TRACE_PROVIDER_INSTANCE_INFO instance;
                 HANDLE processHandle;
                 PVOID processes;
 

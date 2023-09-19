@@ -47,22 +47,6 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationTransactionManager)(
     _Out_opt_ PULONG ReturnLength
     );
 
-typedef NTSTATUS (NTAPI *_NtQueryDefaultLocale)(
-    _In_ BOOLEAN UserProfile,
-    _Out_ PLCID DefaultLocaleId
-    );
-
-typedef NTSTATUS (NTAPI *_NtQueryDefaultUILanguage)(
-    _Out_ LANGID* DefaultUILanguageId
-    );
-
-typedef NTSTATUS (NTAPI *_NtQueryOpenSubKeysEx)(
-    _In_ POBJECT_ATTRIBUTES TargetKey,
-    _In_ ULONG BufferLength,
-    _Out_writes_bytes_opt_(BufferLength) PVOID Buffer,
-    _Out_ PULONG RequiredSize
-    );
-
 typedef NTSTATUS (NTAPI* _NtSetInformationVirtualMemory)(
     _In_ HANDLE ProcessHandle,
     _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
@@ -260,9 +244,6 @@ PH_DECLARE_IMPORT(NtQueryInformationEnlistment);
 PH_DECLARE_IMPORT(NtQueryInformationResourceManager);
 PH_DECLARE_IMPORT(NtQueryInformationTransaction);
 PH_DECLARE_IMPORT(NtQueryInformationTransactionManager);
-PH_DECLARE_IMPORT(NtQueryDefaultLocale);
-PH_DECLARE_IMPORT(NtQueryDefaultUILanguage);
-PH_DECLARE_IMPORT(NtQueryOpenSubKeysEx);
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(NtCreateProcessStateChange);
 PH_DECLARE_IMPORT(NtChangeProcessState);
