@@ -350,7 +350,7 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
 PPH_MODULE_ITEM PhReferenceModuleItemEx(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
     _In_ PVOID BaseAddress,
-    _In_ PVOID EnclaveBaseAddress,
+    _In_opt_ PVOID EnclaveBaseAddress,
     _In_opt_ PPH_STRING FileName
     )
 {
