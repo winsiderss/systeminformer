@@ -1211,7 +1211,7 @@ VOID PhpFillProcessItem(
                 ProcessItem->ElevationType = elevationType;
             }
 
-            if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+            if (NT_SUCCESS(PhGetTokenElevation(tokenHandle, &isElevated)))
             {
                 ProcessItem->IsElevated = isElevated;
             }
@@ -2578,7 +2578,7 @@ VOID PhProcessProviderUpdate(
 
                     // Elevation
 
-                    //if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                    //if (NT_SUCCESS(PhGetTokenElevation(tokenHandle, &isElevated)))
                     //{
                     //    if (processItem->IsElevated != isElevated)
                     //    {

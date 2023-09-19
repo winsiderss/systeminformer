@@ -85,7 +85,7 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
         {
             PH_TOKEN_USER tokenUser;
 
-            PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
+            PhGetTokenElevation(attributes.TokenHandle, &elevated);
             PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
 
             if (NT_SUCCESS(PhGetTokenUser(attributes.TokenHandle, &tokenUser)))

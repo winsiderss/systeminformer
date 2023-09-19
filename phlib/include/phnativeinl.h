@@ -1237,13 +1237,13 @@ PhGetTokenElevationType(
  * Gets whether a token is elevated.
  *
  * \param TokenHandle A handle to a token. The handle must have TOKEN_QUERY access.
- * \param Elevated A variable which receives a boolean indicating whether the token is elevated.
+ * \param TokenIsElevated A variable which receives a boolean indicating whether the token is elevated.
  */
 FORCEINLINE
 NTSTATUS
-PhGetTokenIsElevated(
+PhGetTokenElevation(
     _In_ HANDLE TokenHandle,
-    _Out_ PBOOLEAN Elevated
+    _Out_ PBOOLEAN TokenIsElevated
     )
 {
     NTSTATUS status;
@@ -1260,7 +1260,7 @@ PhGetTokenIsElevated(
 
     if (NT_SUCCESS(status))
     {
-        *Elevated = !!elevation.TokenIsElevated;
+        *TokenIsElevated = !!elevation.TokenIsElevated;
     }
 
     return status;
