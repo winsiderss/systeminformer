@@ -1018,62 +1018,6 @@ VOID PhNetworkProviderUpdate(
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent), NULL);
 }
 
-PH_STRINGREF PhGetProtocolTypeName(
-    _In_ ULONG ProtocolType
-    )
-{
-    switch (ProtocolType)
-    {
-    case PH_TCP4_NETWORK_PROTOCOL:
-        return SREF(L"TCP");
-    case PH_TCP6_NETWORK_PROTOCOL:
-        return SREF(L"TCP6");
-    case PH_UDP4_NETWORK_PROTOCOL:
-        return SREF(L"UDP");
-    case PH_UDP6_NETWORK_PROTOCOL:
-        return SREF(L"UDP6");
-    default:
-        return SREF(L"Unknown");
-    }
-}
-
-PH_STRINGREF PhGetTcpStateName(
-    _In_ ULONG State
-    )
-{
-    switch (State)
-    {
-    case MIB_TCP_STATE_CLOSED:
-        return SREF(L"Closed");
-    case MIB_TCP_STATE_LISTEN:
-        return SREF(L"Listen");
-    case MIB_TCP_STATE_SYN_SENT:
-        return SREF(L"SYN sent");
-    case MIB_TCP_STATE_SYN_RCVD:
-        return SREF(L"SYN received");
-    case MIB_TCP_STATE_ESTAB:
-        return SREF(L"Established");
-    case MIB_TCP_STATE_FIN_WAIT1:
-        return SREF(L"FIN wait 1");
-    case MIB_TCP_STATE_FIN_WAIT2:
-        return SREF(L"FIN wait 2");
-    case MIB_TCP_STATE_CLOSE_WAIT:
-        return SREF(L"Close wait");
-    case MIB_TCP_STATE_CLOSING:
-        return SREF(L"Closing");
-    case MIB_TCP_STATE_LAST_ACK:
-        return SREF(L"Last ACK");
-    case MIB_TCP_STATE_TIME_WAIT:
-        return SREF(L"Time wait");
-    case MIB_TCP_STATE_DELETE_TCB:
-        return SREF(L"Delete TCB");
-    case MIB_TCP_STATE_RESERVED: // HACK
-        return SREF(L"Bound");
-    default:
-        return SREF(L"Unknown");
-    }
-}
-
 BOOLEAN PhGetNetworkConnections(
     _Out_ PPH_NETWORK_CONNECTION *Connections,
     _Out_ PULONG NumberOfConnections
@@ -1369,4 +1313,69 @@ BOOLEAN PhGetNetworkConnections(
     *Connections = connections;
 
     return TRUE;
+}
+
+static PH_KEY_VALUE_PAIR PhProtocolTypeStrings[] =
+{
+    SIP(SREF(L"TCP"), PH_TCP4_NETWORK_PROTOCOL),
+    SIP(SREF(L"TCP6"), PH_TCP6_NETWORK_PROTOCOL),
+    SIP(SREF(L"UDP"), PH_UDP4_NETWORK_PROTOCOL),
+    SIP(SREF(L"UDP6"), PH_UDP6_NETWORK_PROTOCOL),
+};
+
+static PH_KEY_VALUE_PAIR PhTcpStateStrings[] =
+{
+    SIP(SREF(L"Closed"), MIB_TCP_STATE_CLOSED),
+    SIP(SREF(L"Listen"), MIB_TCP_STATE_LISTEN),
+    SIP(SREF(L"SYN sent"), MIB_TCP_STATE_SYN_SENT),
+    SIP(SREF(L"SYN received"), MIB_TCP_STATE_SYN_RCVD),
+    SIP(SREF(L"Established"), MIB_TCP_STATE_ESTAB),
+    SIP(SREF(L"FIN wait 1"), MIB_TCP_STATE_FIN_WAIT1),
+    SIP(SREF(L"FIN wait 2"), MIB_TCP_STATE_FIN_WAIT2),
+    SIP(SREF(L"Close wait"), MIB_TCP_STATE_CLOSE_WAIT),
+    SIP(SREF(L"Closing"), MIB_TCP_STATE_CLOSING),
+    SIP(SREF(L"Last ACK"), MIB_TCP_STATE_LAST_ACK),
+    SIP(SREF(L"Time wait"), MIB_TCP_STATE_TIME_WAIT),
+    SIP(SREF(L"Delete TCB"), MIB_TCP_STATE_DELETE_TCB),
+    SIP(SREF(L"Bound"), MIB_TCP_STATE_RESERVED),
+};
+
+PPH_STRINGREF PhGetProtocolTypeName(
+    _In_ ULONG ProtocolType
+    )
+{
+    static PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
+    PPH_STRINGREF string;
+
+    if (PhFindStringSiKeyValuePairs(
+        PhProtocolTypeStrings,
+        sizeof(PhProtocolTypeStrings),
+        ProtocolType,
+        (PWSTR*)&string
+        ))
+    {
+        return string;
+    }
+
+    return &unknown;
+}
+
+PPH_STRINGREF PhGetTcpStateName(
+    _In_ ULONG State
+    )
+{
+    static PH_STRINGREF unknown = PH_STRINGREF_INIT(L"Unknown");
+    PPH_STRINGREF string;
+
+    if (PhFindStringSiKeyValuePairs(
+        PhTcpStateStrings,
+        sizeof(PhTcpStateStrings),
+        State,
+        (PWSTR*)&string
+        ))
+    {
+        return string;
+    }
+
+    return &unknown;
 }

@@ -608,7 +608,9 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 }
                 break;
             case PHNETLC_LOCALPORT:
-                PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalPortString);
+                {
+                    PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalPortString);
+                }
                 break;
             case PHNETLC_REMOTEADDRESS:
                 {
@@ -632,26 +634,40 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 }
                 break;
             case PHNETLC_REMOTEPORT:
-                PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemotePortString);
+                {
+                    PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemotePortString);
+                }
                 break;
             case PHNETLC_PROTOCOL:
                 {
-                    PH_STRINGREF protocolType;
+                    PPH_STRINGREF protocolType;
 
-                    protocolType = PhGetProtocolTypeName(networkItem->ProtocolType);
-                    getCellText->Text.Buffer = protocolType.Buffer;
-                    getCellText->Text.Length = protocolType.Length;
+                    if (protocolType = PhGetProtocolTypeName(networkItem->ProtocolType))
+                    {
+                        getCellText->Text.Buffer = protocolType->Buffer;
+                        getCellText->Text.Length = protocolType->Length;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PHNETLC_STATE:
                 {
-                    if (networkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE)
+                    if (FlagOn(networkItem->ProtocolType, PH_TCP_PROTOCOL_TYPE))
                     {
-                        PH_STRINGREF stateName;
+                        PPH_STRINGREF stateName;
 
-                        stateName = PhGetTcpStateName(networkItem->State);
-                        getCellText->Text.Buffer = stateName.Buffer;
-                        getCellText->Text.Length = stateName.Length;
+                        if (stateName = PhGetTcpStateName(networkItem->State))
+                        {
+                            getCellText->Text.Buffer = stateName->Buffer;
+                            getCellText->Text.Length = stateName->Length;
+                        }
+                        else
+                        {
+                            PhInitializeEmptyStringRef(&getCellText->Text);
+                        }
                     }
                     else
                     {
