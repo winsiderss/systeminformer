@@ -7338,13 +7338,13 @@ HANDLE PhGetNamespaceHandle(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static UNICODE_STRING namespacePathUs = RTL_CONSTANT_STRING(L"\\BaseNamedObjects\\SystemInformer");
-    static HANDLE directory = NULL;
+    static HANDLE directoryHandle = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
         UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
         PSID administratorsSid = PhSeAdministratorsSid();
+        UNICODE_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
         PSECURITY_DESCRIPTOR securityDescriptor;
         ULONG sdAllocationLength;
@@ -7371,19 +7371,16 @@ HANDLE PhGetNamespaceHandle(
         RtlAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, (PSID)&PhSeInteractiveSid);
         RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
+        RtlInitUnicodeString(&objectName, L"\\BaseNamedObjects\\SystemInformer");
         InitializeObjectAttributes(
             &objectAttributes,
-            &namespacePathUs,
+            &objectName,
             OBJ_OPENIF | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
             NULL,
             securityDescriptor
             );
 
-        NtCreateDirectoryObject(
-            &directory,
-            MAXIMUM_ALLOWED,
-            &objectAttributes
-            );
+        NtCreateDirectoryObject(&directoryHandle, MAXIMUM_ALLOWED, &objectAttributes);
 
 #ifdef DEBUG
         assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
@@ -7392,7 +7389,7 @@ HANDLE PhGetNamespaceHandle(
         PhEndInitOnce(&initOnce);
     }
 
-    return directory;
+    return directoryHandle;
 }
 
 HWND PhHungWindowFromGhostWindow(
