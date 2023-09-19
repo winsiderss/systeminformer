@@ -3806,3 +3806,4 @@ BOOLEAN PhDuplicateProcessInformation(
 
     *ProcessInformation = PhAllocateCopy(PhProcessInformation, infoLength);
     return TRUE;
+}
