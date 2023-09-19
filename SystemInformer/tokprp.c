@@ -116,10 +116,10 @@ static PH_KEY_VALUE_PAIR PhElevationTypePairs[] =
     SIP(SREF(L"No (Default)"), TokenElevationTypeDefault),
     SIP(SREF(L"No (Full)"), TokenElevationTypeFull),
     SIP(SREF(L"No (Limited)"), TokenElevationTypeLimited),
-    SIP(SREF(L"Yes"), 0),
-    SIP(SREF(L"Yes (Default)"), TokenElevationTypeDefault),
-    SIP(SREF(L"Yes (Full)"), TokenElevationTypeFull),
-    SIP(SREF(L"Yes (Limited)"), TokenElevationTypeLimited),
+    SIP(SREF(L"Yes"), 4),
+    SIP(SREF(L"Yes (Default)"), 4 + TokenElevationTypeDefault),
+    SIP(SREF(L"Yes (Full)"), 4 + TokenElevationTypeFull),
+    SIP(SREF(L"Yes (Limited)"), 4 + TokenElevationTypeLimited),
 };
 
 static PH_KEY_VALUE_PAIR PhImpersonationLevelPairs[] =
@@ -606,7 +606,7 @@ BOOLEAN PhGetElevationTypeString(
     if (PhFindStringSiKeyValuePairs(
         PhElevationTypePairs,
         sizeof(PhElevationTypePairs),
-        (ULONG)ElevationType + (IsElevated ? 4 : 0),
+        (IsElevated ? 4 : 0) + (ULONG)ElevationType,
         (PWSTR*)&string
         ))
     {

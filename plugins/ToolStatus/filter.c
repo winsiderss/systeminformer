@@ -702,19 +702,25 @@ BOOLEAN NetworkTreeFilterCallback(
     }
 
     {
-        PH_STRINGREF protocolType = PhGetProtocolTypeName(networkNode->NetworkItem->ProtocolType);
+        PPH_STRINGREF protocolType;
 
-        if (PhWordMatchStringRef(&SearchboxText->sr, &protocolType))
-            return TRUE;
+        if (protocolType = PhGetProtocolTypeName(networkNode->NetworkItem->ProtocolType))
+        {
+            if (PhWordMatchStringRef(&SearchboxText->sr, protocolType))
+                return TRUE;
+        }
     }
 
     {
-        if (networkNode->NetworkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE)
+        if (FlagOn(networkNode->NetworkItem->ProtocolType, PH_TCP_PROTOCOL_TYPE))
         {
-            PH_STRINGREF stateName = PhGetTcpStateName(networkNode->NetworkItem->State);
+            PPH_STRINGREF stateName;
 
-            if (PhWordMatchStringRef(&SearchboxText->sr, &stateName))
-                return TRUE;
+            if (stateName = PhGetTcpStateName(networkNode->NetworkItem->State))
+            {
+                if (PhWordMatchStringRef(&SearchboxText->sr, stateName))
+                    return TRUE;
+            }
         }
     }
 
