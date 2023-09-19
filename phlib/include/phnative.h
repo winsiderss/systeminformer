@@ -1230,6 +1230,14 @@ PhGetFileHandleName(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileNetworkPhysicalName(
+    _In_ HANDLE FileHandle,
+    _Out_ PPH_STRING* FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetFileAllInformation(
     _In_ HANDLE FileHandle,
     _Out_ PFILE_ALL_INFORMATION *FileInformation

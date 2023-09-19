@@ -4632,6 +4632,54 @@ NTSTATUS PhGetFileHandleName(
     return status;
 }
 
+NTSTATUS PhGetFileNetworkPhysicalName(
+    _In_ HANDLE FileHandle,
+    _Out_ PPH_STRING* FileName
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK ioStatusBlock;
+    ULONG bufferLength;
+    PFILE_NETWORK_PHYSICAL_NAME_INFORMATION buffer;
+
+    bufferLength = UFIELD_OFFSET(FILE_NETWORK_PHYSICAL_NAME_INFORMATION, FileName[DOS_MAX_PATH_LENGTH]) + sizeof(UNICODE_NULL);
+    buffer = PhAllocate(bufferLength);
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &ioStatusBlock,
+        buffer,
+        bufferLength,
+        FileNetworkPhysicalNameInformation
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        bufferLength = sizeof(FILE_NETWORK_PHYSICAL_NAME_INFORMATION) + buffer->FileNameLength;
+        PhFree(buffer);
+        buffer = PhAllocate(bufferLength);
+
+        status = NtQueryInformationFile(
+            FileHandle,
+            &ioStatusBlock,
+            buffer,
+            bufferLength,
+            FileNetworkPhysicalNameInformation
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *FileName = PhCreateStringEx(buffer->FileName, buffer->FileNameLength);
+    PhFree(buffer);
+
+    return status;
+}
+
 NTSTATUS PhGetFileAllInformation(
     _In_ HANDLE FileHandle,
     _Out_ PFILE_ALL_INFORMATION *FileInformation
