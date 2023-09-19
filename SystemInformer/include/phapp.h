@@ -787,9 +787,11 @@ PWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
     );
 
-PH_STRINGREF PhGetElevationTypeStringRef(
+_Success_(return)
+BOOLEAN PhGetElevationTypeString(
     _In_ BOOLEAN IsElevated,
-    _In_ TOKEN_ELEVATION_TYPE ElevationType
+    _In_ TOKEN_ELEVATION_TYPE ElevationType,
+    _Out_ PPH_STRINGREF* ElevationTypeString
     );
 
 VOID PhShowTokenProperties(
