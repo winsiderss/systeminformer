@@ -2558,6 +2558,73 @@ RtlCleanUpTEBLangLists(
 
 #if (PHNT_VERSION >= PHNT_WIN7)
 
+// rev from GetThreadPreferredUILanguages
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetThreadPreferredUILanguages(
+    _In_ ULONG Flags, // MUI_LANGUAGE_NAME
+    _Out_ PULONG NumberOfLanguages,
+    _Out_writes_opt_(*ReturnLength) PZZWSTR Languages,
+    _Inout_ PULONG ReturnLength
+    );
+
+// rev from GetProcessPreferredUILanguages
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetProcessPreferredUILanguages(
+    _In_ ULONG Flags, // MUI_LANGUAGE_NAME
+    _Out_ PULONG NumberOfLanguages,
+    _Out_writes_opt_(*ReturnLength) PZZWSTR Languages,
+    _Inout_ PULONG ReturnLength
+    );
+
+// rev from GetSystemPreferredUILanguages
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetSystemPreferredUILanguages(
+    _In_ ULONG Flags, // MUI_LANGUAGE_NAME
+    _In_ PCWSTR LocaleName,
+    _Out_ PULONG NumberOfLanguages,
+    _Out_writes_opt_(*ReturnLength) PZZWSTR Languages,
+    _Inout_ PULONG ReturnLength
+    );
+
+// rev from GetSystemDefaultUILanguage
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlpGetSystemDefaultUILanguage(
+    _Out_ LANGID DefaultUILanguageId,
+    _Inout_ PLCID Lcid
+    );
+
+// rev from GetUserPreferredUILanguages
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetUserPreferredUILanguages(
+    _In_ ULONG Flags, // MUI_LANGUAGE_NAME
+    _In_ PCWSTR LocaleName,
+    _Out_ PULONG NumberOfLanguages,
+    _Out_writes_opt_(*ReturnLength) PZZWSTR Languages,
+    _Inout_ PULONG ReturnLength
+    );
+
+// rev from GetUILanguageInfo
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetUILanguageInfo(
+    _In_ ULONG Flags,
+    _In_ PCZZWSTR Languages,
+    _Out_writes_opt_(*NumberOfFallbackLanguages) PZZWSTR FallbackLanguages,
+    _Inout_opt_ PULONG NumberOfFallbackLanguages,
+    _Out_ PULONG Attributes
+    );
+
 // rev
 NTSYSAPI
 NTSTATUS
