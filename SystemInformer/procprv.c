@@ -3789,3 +3789,20 @@ HIMAGELIST PhGetProcessSmallImageList(
 {
     return PhProcessSmallImageList;
 }
+
+BOOLEAN PhDuplicateProcessInformation(
+    _Out_ PPVOID ProcessInformation
+    )
+{
+    SIZE_T infoLength;
+
+    if (!PhProcessInformation)
+        return FALSE;
+
+    infoLength = RtlSizeHeap(PhHeapHandle, 0, PhProcessInformation);
+
+    if (!infoLength)
+        return FALSE;
+
+    *ProcessInformation = PhAllocateCopy(PhProcessInformation, infoLength);
+    return TRUE;

@@ -515,6 +515,14 @@ NTAPI
 PhGetProcessSmallImageList(
     VOID
     );
+
+// Note: Can only be called from same thread as process provider. (dmex)
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhDuplicateProcessInformation(
+    _Out_ PPVOID ProcessInformation
+    );
 // end_phapppub
 
 #endif
