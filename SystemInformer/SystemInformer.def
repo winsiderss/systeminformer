@@ -272,10 +272,6 @@ EXPORTS
     PhEnumProcessEnvironmentVariables
     PhEnumProcesses
     PhEnumProcessesEx
-    PhEnumProcessModules
-    PhEnumProcessModules32
-    PhEnumProcessModules32Ex
-    PhEnumProcessModulesEx
     PhEnumReparsePointInformation
     PhFindProcessInformation
     PhFindProcessInformationByImageName
