@@ -253,7 +253,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     // Since Windows 8, we no longer get the correct process/thread IDs in the
     // event headers for disk events. We need to update our process information since
     // etwmon uses our EtThreadIdToProcessId function. (wj32)
-    if (EtWindowsVersion >= WINDOWS_8)
+    if (EtWindowsVersion >= WINDOWS_8 && EtEtwEnabled)
         EtpUpdateProcessInformation();
 
     // ETW is extremely lazy when it comes to flushing buffers, so we must do it manually. (wj32)
@@ -433,7 +433,10 @@ VOID EtpUpdateProcessInformation(
         EtpProcessInformation = NULL;
     }
 
-    PhEnumProcesses(&EtpProcessInformation);
+    if (!PhDuplicateProcessInformation(&EtpProcessInformation))
+    {
+        PhEnumProcesses(&EtpProcessInformation);
+    }
 
     PhReleaseQueuedLockExclusive(&EtpProcessInformationLock);
 }
