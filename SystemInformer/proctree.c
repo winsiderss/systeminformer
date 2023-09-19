@@ -3072,7 +3072,19 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 #endif
                 break;
             case PHPRTLC_ELEVATION:
-                getCellText->Text = PhGetElevationTypeStringRef(!!processItem->IsElevated, processItem->ElevationType);
+                {
+                    PPH_STRINGREF elevationType;
+
+                    if (PhGetElevationTypeString(!!processItem->IsElevated, processItem->ElevationType, &elevationType))
+                    {
+                        getCellText->Text.Buffer = elevationType->Buffer;
+                        getCellText->Text.Length = elevationType->Length;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             case PHPRTLC_WINDOWTITLE:
                 PhpUpdateProcessNodeWindow(node);
