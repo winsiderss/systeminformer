@@ -358,7 +358,7 @@ PPH_DEVICE_PROPERTY
 NTAPI
 PhGetDeviceProperty(
     _In_ PPH_DEVICE_ITEM Item,
-    _In_ PH_DEVICE_PROPERTY_CLASS Class 
+    _In_ PH_DEVICE_PROPERTY_CLASS Class
     );
 
 PHAPPAPI
@@ -396,9 +396,29 @@ _Success_(return != NULL)
 _Must_inspect_result_
 PPH_DEVICE_ITEM
 NTAPI
+PhLookupDeviceItemByHash(
+    _In_ PPH_DEVICE_TREE Tree,
+    _In_ ULONG InstanceIdHash
+    );
+
+PHAPPAPI
+_Success_(return != NULL)
+_Must_inspect_result_
+PPH_DEVICE_ITEM
+NTAPI
 PhLookupDeviceItem(
     _In_ PPH_DEVICE_TREE Tree,
     _In_ PPH_STRINGREF InstanceId
+    );
+
+PHAPPAPI
+_Success_(return != NULL)
+_Must_inspect_result_
+PPH_DEVICE_ITEM
+NTAPI
+PhReferenceDeviceItemByHash(
+    _In_ PPH_DEVICE_TREE Tree,
+    _In_ ULONG InstanceIdHash
     );
 
 PHAPPAPI

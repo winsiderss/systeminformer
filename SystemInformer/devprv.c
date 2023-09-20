@@ -831,7 +831,7 @@ BOOLEAN PhpGetDevicePropertyString(
     BOOL result;
     DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
     ULONG requiredLength = 0;
-    PVOID buffer = NULL;
+    PPH_STRING string;
 
     *String = NULL;
 
@@ -851,37 +851,28 @@ BOOLEAN PhpGetDevicePropertyString(
         ((devicePropertyType != DEVPROP_TYPE_STRING) &&
          (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
     {
-        goto Exit;
+        return FALSE;
     }
 
-    buffer = PhAllocate(requiredLength);
+    string = PhCreateStringEx(NULL, requiredLength - sizeof(UNICODE_NULL));
 
-    result = SetupDiGetDevicePropertyW(
+    if (SetupDiGetDevicePropertyW(
         DeviceInfoSet,
         DeviceInfoData,
         DeviceProperty,
         &devicePropertyType,
-        buffer,
+        (PBYTE)string->Buffer,
         requiredLength,
         &requiredLength,
         0
-        );
-    if (!result)
+        ))
     {
-        goto Exit;
+        *String = string;
+        return TRUE;
     }
 
-    if (requiredLength < sizeof(UNICODE_NULL))
-        *String = PhReferenceEmptyString();
-    else
-        *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
-
-Exit:
-
-    if (buffer)
-        PhFree(buffer);
-
-    return !!result;
+    PhDereferenceObject(string);
+    return FALSE;
 }
 
 BOOLEAN PhpGetDeviceInterfacePropertyString(
@@ -894,7 +885,7 @@ BOOLEAN PhpGetDeviceInterfacePropertyString(
     BOOL result;
     DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
     ULONG requiredLength = 0;
-    PVOID buffer = NULL;
+    PPH_STRING string;
 
     *String = NULL;
 
@@ -914,37 +905,29 @@ BOOLEAN PhpGetDeviceInterfacePropertyString(
         ((devicePropertyType != DEVPROP_TYPE_STRING) &&
          (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
     {
-        goto Exit;
+        return FALSE;
     }
 
-    buffer = PhAllocate(requiredLength);
+    string = PhCreateStringEx(NULL, requiredLength - sizeof(UNICODE_NULL));
 
-    result = SetupDiGetDeviceInterfacePropertyW(
+    if (SetupDiGetDeviceInterfacePropertyW(
         DeviceInfoSet,
         DeviceInterfaceData,
         DeviceProperty,
         &devicePropertyType,
-        buffer,
+        (PBYTE)string->Buffer,
         requiredLength,
         &requiredLength,
         0
-        );
-    if (!result)
+        ))
     {
-        goto Exit;
+        *String = string;
+        return TRUE;
     }
 
-    if (requiredLength < sizeof(UNICODE_NULL))
-        *String = PhReferenceEmptyString();
-    else
-        *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
+    PhDereferenceObject(string);
 
-Exit:
-
-    if (buffer)
-        PhFree(buffer);
-
-    return !!result;
+    return FALSE;
 }
 
 BOOLEAN PhpGetClassPropertyString(
@@ -957,7 +940,7 @@ BOOLEAN PhpGetClassPropertyString(
     BOOL result;
     DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
     ULONG requiredLength = 0;
-    PVOID buffer = NULL;
+    PPH_STRING string;
 
     *String = NULL;
 
@@ -976,36 +959,27 @@ BOOLEAN PhpGetClassPropertyString(
         ((devicePropertyType != DEVPROP_TYPE_STRING) &&
          (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
     {
-        goto Exit;
+        return FALSE;
     }
 
-    buffer = PhAllocate(requiredLength);
+    string = PhCreateStringEx(NULL, requiredLength - sizeof(UNICODE_NULL));
 
-    result = SetupDiGetClassPropertyW(
+    if (SetupDiGetClassPropertyW(
         ClassGuid,
         DeviceProperty,
         &devicePropertyType,
-        buffer,
+        (PBYTE)string->Buffer,
         requiredLength,
         &requiredLength,
         Flags
-        );
-    if (!result)
+        ))
     {
-        goto Exit;
+        *String = string;
+        return TRUE;
     }
 
-    if (requiredLength < sizeof(UNICODE_NULL))
-        *String = PhReferenceEmptyString();
-    else
-        *String = PhCreateStringEx(buffer, requiredLength - sizeof(UNICODE_NULL));
-
-Exit:
-
-    if (buffer)
-        PhFree(buffer);
-
-    return !!result;
+    PhDereferenceObject(string);
+    return FALSE;
 }
 
 BOOLEAN PhpGetDevicePropertyStringList(
@@ -3437,18 +3411,15 @@ static int __cdecl PhpDeviceItemSearchFunction(
 
 _Success_(return != NULL)
 _Must_inspect_result_
-PPH_DEVICE_ITEM PhLookupDeviceItem(
+PPH_DEVICE_ITEM PhLookupDeviceItemByHash(
     _In_ PPH_DEVICE_TREE Tree,
-    _In_ PPH_STRINGREF InstanceId
+    _In_ ULONG InstanceIdHash
     )
 {
-    ULONG hash;
     PPH_DEVICE_ITEM* deviceItem;
 
-    hash = PhpGenerateInstanceIdHash(InstanceId);
-
     deviceItem = bsearch(
-        UlongToPtr(hash),
+        UlongToPtr(InstanceIdHash),
         Tree->DeviceList->Items,
         Tree->DeviceList->Count,
         sizeof(PVOID),
@@ -3456,6 +3427,30 @@ PPH_DEVICE_ITEM PhLookupDeviceItem(
         );
 
     return deviceItem ? *deviceItem : NULL;
+}
+
+_Success_(return != NULL)
+_Must_inspect_result_
+PPH_DEVICE_ITEM PhLookupDeviceItem(
+    _In_ PPH_DEVICE_TREE Tree,
+    _In_ PPH_STRINGREF InstanceId
+    )
+{
+    return PhLookupDeviceItemByHash(Tree, PhpGenerateInstanceIdHash(InstanceId));
+}
+
+_Success_(return != NULL)
+_Must_inspect_result_
+PPH_DEVICE_ITEM PhReferenceDeviceItemByHash(
+    _In_ PPH_DEVICE_TREE Tree,
+    _In_ ULONG InstanceIdHash
+    )
+{
+    PPH_DEVICE_ITEM deviceItem;
+
+    PhSetReference(&deviceItem, PhLookupDeviceItemByHash(Tree, InstanceIdHash));
+
+    return deviceItem;
 }
 
 _Success_(return != NULL)
