@@ -854,6 +854,12 @@ BOOLEAN PhpGetDevicePropertyString(
         return FALSE;
     }
 
+    if (requiredLength < sizeof(UNICODE_NULL))
+    {
+        *String = PhReferenceEmptyString();
+        return TRUE;
+    }
+
     string = PhCreateStringEx(NULL, requiredLength - sizeof(UNICODE_NULL));
 
     if (SetupDiGetDevicePropertyW(
@@ -908,6 +914,12 @@ BOOLEAN PhpGetDeviceInterfacePropertyString(
         return FALSE;
     }
 
+    if (requiredLength < sizeof(UNICODE_NULL))
+    {
+        *String = PhReferenceEmptyString();
+        return TRUE;
+    }
+
     string = PhCreateStringEx(NULL, requiredLength - sizeof(UNICODE_NULL));
 
     if (SetupDiGetDeviceInterfacePropertyW(
@@ -960,6 +972,12 @@ BOOLEAN PhpGetClassPropertyString(
          (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
     {
         return FALSE;
+    }
+
+    if (requiredLength < sizeof(UNICODE_NULL))
+    {
+        *String = PhReferenceEmptyString();
+        return TRUE;
     }
 
     string = PhCreateStringEx(NULL, requiredLength - sizeof(UNICODE_NULL));
