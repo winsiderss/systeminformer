@@ -176,7 +176,7 @@ BOOLEAN DeviceTreeIsJustArrivedDeviceItem(
     // convert to milliseconds
     elapsed.QuadPart /= 10000;
 
-    // consider devices that arrived in that last 10 seconds has "just arrived"
+    // consider devices that arrived in that last 10 seconds as "just arrived"
     if (elapsed.QuadPart < (10 * 1000))
     {
         return TRUE;
