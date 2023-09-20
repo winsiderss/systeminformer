@@ -78,6 +78,52 @@ static int __cdecl DeviceListSortByNameFunction(
     return PhCompareStringWithNull(lhs->AsString, rhs->AsString, TRUE);
 }
 
+static int __cdecl DeviceNodeSortFunction(
+    const void* Left,
+    const void* Right
+    )
+{
+    PDEVICE_NODE lhsItem;
+    PDEVICE_NODE rhsItem;
+
+    lhsItem = *(PDEVICE_NODE*)Left;
+    rhsItem = *(PDEVICE_NODE*)Right;
+
+    return uintcmp(lhsItem->DeviceItem->InstanceIdHash, rhsItem->DeviceItem->InstanceIdHash);
+}
+
+static int __cdecl DeviceNodeSearchFunction(
+    const void* Hash,
+    const void* Item
+    )
+{
+    PDEVICE_NODE item;
+
+    item = *(PDEVICE_NODE*)Item;
+
+    return uintcmp(PtrToUlong(Hash), item->DeviceItem->InstanceIdHash);
+}
+
+_Success_(return != NULL)
+_Must_inspect_result_
+PDEVICE_NODE DeviceTreeLookupNode(
+    _In_ PDEVICE_TREE Tree,
+    _In_ ULONG InstanceIdHash
+    )
+{
+    PDEVICE_NODE* deviceItem;
+
+    deviceItem = bsearch(
+        UlongToPtr(InstanceIdHash),
+        Tree->Nodes->Items,
+        Tree->Nodes->Count,
+        sizeof(PVOID),
+        DeviceNodeSearchFunction
+        );
+
+    return deviceItem ? *deviceItem : NULL;
+}
+
 BOOLEAN DeviceTreeShouldIncludeDeviceItem(
     _In_ PPH_DEVICE_ITEM DeviceItem
     )
@@ -174,6 +220,8 @@ PDEVICE_TREE DeviceTreeCreate(
             qsort(tree->Roots->Items, tree->Roots->Count, sizeof(PVOID), DeviceListSortByNameFunction);
     }
 
+    qsort(tree->Nodes->Items, tree->Nodes->Count, sizeof(PVOID), DeviceNodeSortFunction);
+
     tree->Tree = PhReferenceObject(Tree);
     return tree;
 }
@@ -225,7 +273,7 @@ PDEVICE_TREE DeviceTreeCreateIfNecessary(
 
 VOID NTAPI DeviceTreePublish(
     _In_opt_ PDEVICE_TREE Tree
-    )
+)
 {
     PDEVICE_TREE oldTree;
 
@@ -239,6 +287,20 @@ VOID NTAPI DeviceTreePublish(
     DeviceFilterList.AllocatedCount = DeviceTree->Nodes->AllocatedCount;
     DeviceFilterList.Count = DeviceTree->Nodes->Count;
     DeviceFilterList.Items = DeviceTree->Nodes->Items;
+
+    if (oldTree)
+    {
+        for (ULONG i = 0; i < DeviceTree->Nodes->Count; i++)
+        {
+            PDEVICE_NODE node = DeviceTree->Nodes->Items[i];
+            PDEVICE_NODE old = DeviceTreeLookupNode(oldTree, node->DeviceItem->InstanceIdHash);
+
+            if (old)
+            {
+                node->Node.Selected = old->Node.Selected;
+            }
+        }
+    }
 
     TreeNew_SetRedraw(DeviceTreeHandle, TRUE);
 
