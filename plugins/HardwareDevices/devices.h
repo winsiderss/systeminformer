@@ -52,6 +52,8 @@
 #define SETTING_NAME_DEVICE_GENERAL_COLUMNS (PLUGIN_NAME L".DeviceGeneralColumns")
 #define SETTING_NAME_DEVICE_PROPERTIES_COLUMNS (PLUGIN_NAME L".DevicePropertiesColumns")
 #define SETTING_NAME_DEVICE_INTERFACES_COLUMNS (PLUGIN_NAME L".DeviceInterfacesColumns")
+#define SETTING_NAME_DEVICE_ARRIVED_COLOR (PLUGIN_NAME L".ColorDeviceArrived")
+#define SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION (PLUGIN_NAME L".DeviceHighlightingDuration")
 
 #include <phdk.h>
 #include <phappresource.h>

@@ -673,6 +673,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_DEVICE_GENERAL_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_DEVICE_INTERFACES_COLUMNS, L"" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_ARRIVED_COLOR, L"00ff7f" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION, L"bb8" }, // 3000ms
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
