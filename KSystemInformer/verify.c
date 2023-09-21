@@ -15,27 +15,52 @@
 
 #include <trace.h>
 
-KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const BYTE KphpTrustedPublicKey[] =
+typedef enum _KPH_KEY_TYPE
 {
-    0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
-    0x7C, 0x32, 0xAB, 0xA6, 0x40, 0x79, 0x9C, 0x00,
-    0x67, 0xE2, 0x54, 0x7E, 0x0E, 0x4F, 0x55, 0x4A,
-    0xE1, 0x78, 0xC2, 0x62, 0x9A, 0x96, 0x81, 0x63,
-    0xCD, 0x4E, 0x3A, 0x28, 0x52, 0xB2, 0x4D, 0x28,
-    0x6A, 0x96, 0xE5, 0x7D, 0x1B, 0xCB, 0x9B, 0x27,
-    0xC8, 0xFD, 0x53, 0xDC, 0x00, 0x0D, 0x96, 0x62,
-    0xA2, 0x55, 0x38, 0x71, 0xF0, 0x0F, 0xCC, 0x8F,
-    0x84, 0xF4, 0x2B, 0x60, 0x38, 0xA6, 0xE7, 0x37,
+    KphKeyTypeTest,
+    KphKeyTypeProd,
+} KPH_KEY_TYPE, *PKPH_KEY_TYPE;
+
+#define KPH_KEY_MATERIAL_SIZE ((ULONG)72)
+
+typedef struct _KPH_KEY
+{
+    KPH_KEY_TYPE Type;
+    BYTE Material[KPH_KEY_MATERIAL_SIZE];
+} KPH_KEY, *PKPH_KEY;
+typedef const KPH_KEY* PCKPH_KEY;
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const KPH_KEY KphpPublicKeys[] =
+{
+    {
+        KphKeyTypeProd,
+        {
+            0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
+            0x7C, 0x32, 0xAB, 0xA6, 0x40, 0x79, 0x9C, 0x00,
+            0x67, 0xE2, 0x54, 0x7E, 0x0E, 0x4F, 0x55, 0x4A,
+            0xE1, 0x78, 0xC2, 0x62, 0x9A, 0x96, 0x81, 0x63,
+            0xCD, 0x4E, 0x3A, 0x28, 0x52, 0xB2, 0x4D, 0x28,
+            0x6A, 0x96, 0xE5, 0x7D, 0x1B, 0xCB, 0x9B, 0x27,
+            0xC8, 0xFD, 0x53, 0xDC, 0x00, 0x0D, 0x96, 0x62,
+            0xA2, 0x55, 0x38, 0x71, 0xF0, 0x0F, 0xCC, 0x8F,
+            0x84, 0xF4, 0x2B, 0x60, 0x38, 0xA6, 0xE7, 0x37,
+        }
+    }
 };
 KPH_PROTECTED_DATA_SECTION_RO_POP();
+
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static BCRYPT_ALG_HANDLE KphpBCryptSigningProvider = NULL;
+static BCRYPT_KEY_HANDLE KphpPublicKeyHandles[ARRAYSIZE(KphpPublicKeys)] = { 0 };
+static ULONG KphpPublicKeyHandlesCount = 0;
+C_ASSERT(ARRAYSIZE(KphpPublicKeyHandles) == ARRAYSIZE(KphpPublicKeys));
+KPH_PROTECTED_DATA_SECTION_POP();
+
 
 PAGED_FILE();
 
 static UNICODE_STRING KphpSigExtension = RTL_CONSTANT_STRING(L".sig");
-
-static BCRYPT_ALG_HANDLE KphpBCryptSigningProvider = NULL;
-static BCRYPT_KEY_HANDLE KphpTrustedPublicKeyHandle = NULL;
 
 /**
  * \brief Initializes verification infrastructure.
@@ -49,6 +74,7 @@ NTSTATUS KphInitializeVerify(
     )
 {
     NTSTATUS status;
+    BOOLEAN testSigning;
 
     PAGED_CODE_PASSIVE();
 
@@ -67,22 +93,38 @@ NTSTATUS KphInitializeVerify(
         return status;
     }
 
-    status = BCryptImportKeyPair(KphpBCryptSigningProvider,
-                                 NULL,
-                                 BCRYPT_ECCPUBLIC_BLOB,
-                                 &KphpTrustedPublicKeyHandle,
-                                 (PUCHAR)KphpTrustedPublicKey,
-                                 sizeof(KphpTrustedPublicKey),
-                                 0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      VERIFY,
-                      "BCryptImportKeyPair failed: %!STATUS!",
-                      status);
+    testSigning = KphTestSigningEnabled();
 
-        KphpTrustedPublicKeyHandle = NULL;
-        return status;
+    for (ULONG i = 0; i < ARRAYSIZE(KphpPublicKeys); i++)
+    {
+        PCKPH_KEY key;
+        BCRYPT_KEY_HANDLE keyHandle;
+
+        key = &KphpPublicKeys[i];
+
+        if (!testSigning && (key->Type == KphKeyTypeTest))
+        {
+            continue;
+        }
+
+        status = BCryptImportKeyPair(KphpBCryptSigningProvider,
+                                     NULL,
+                                     BCRYPT_ECCPUBLIC_BLOB,
+                                     &keyHandle,
+                                     (PUCHAR)key->Material,
+                                     KPH_KEY_MATERIAL_SIZE,
+                                     0);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          VERIFY,
+                          "BCryptImportKeyPair failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        KphpPublicKeyHandles[KphpPublicKeyHandlesCount++] = keyHandle;
     }
 
     return status;
@@ -98,17 +140,62 @@ VOID KphCleanupVerify(
 {
     PAGED_CODE_PASSIVE();
 
-    if (KphpTrustedPublicKeyHandle)
+    for (ULONG i = 0; i < KphpPublicKeyHandlesCount; i++)
     {
-        BCryptDestroyKey(KphpTrustedPublicKeyHandle);
-        KphpTrustedPublicKeyHandle = NULL;
+        BCryptDestroyKey(KphpPublicKeyHandles[i]);
     }
 
     if (KphpBCryptSigningProvider)
     {
         BCryptCloseAlgorithmProvider(KphpBCryptSigningProvider, 0);
-        KphpBCryptSigningProvider = NULL;
     }
+}
+
+/**
+ * \brief Verifies that the specified signature matches the specified hash by
+ * using one of the known public keys.
+ *
+ * \param[in] Hash The hash to verify.
+ * \param[in] Signature The signature to check.
+ * \param[in] SignatureLength The length of the signature.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpVerifyHash(
+    _In_ PKPH_HASH Hash,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+
+    PAGED_CODE_PASSIVE();
+
+    status = STATUS_UNSUCCESSFUL;
+
+    for (ULONG i = 0; i < KphpPublicKeyHandlesCount; i++)
+    {
+        status = BCryptVerifySignature(KphpPublicKeyHandles[i],
+                                       NULL,
+                                       Hash->Buffer,
+                                       Hash->Size,
+                                       Signature,
+                                       SignatureLength,
+                                       0);
+        if (NT_SUCCESS(status))
+        {
+            return status;
+        }
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  VERIFY,
+                  "BCryptVerifySignature failed: %!STATUS!",
+                  status);
+
+    return status;
 }
 
 /**
@@ -135,8 +222,6 @@ NTSTATUS KphVerifyBuffer(
 
     PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphpTrustedPublicKeyHandle);
-
     status = KphHashBuffer(Buffer, BufferLength, CALG_SHA_256, &hash);
     if (!NT_SUCCESS(status))
     {
@@ -148,18 +233,12 @@ NTSTATUS KphVerifyBuffer(
         goto Exit;
     }
 
-    status = BCryptVerifySignature(KphpTrustedPublicKeyHandle,
-                                   NULL,
-                                   hash.Buffer,
-                                   hash.Size,
-                                   Signature,
-                                   SignatureLength,
-                                   0);
+    status = KphpVerifyHash(&hash, Signature, SignatureLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       VERIFY,
-                      "BCryptVerifySignature failed: %!STATUS!",
+                      "KphpVerifyHash failed: %!STATUS!",
                       status);
 
         goto Exit;
@@ -194,8 +273,6 @@ NTSTATUS KphVerifyFile(
     BYTE signature[MINCRYPT_MAX_HASH_LEN];
 
     PAGED_CODE_PASSIVE();
-
-    NT_ASSERT(KphpTrustedPublicKeyHandle);
 
     signatureFileHandle = NULL;
     RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
@@ -317,18 +394,12 @@ NTSTATUS KphVerifyFile(
         goto Exit;
     }
 
-    status = BCryptVerifySignature(KphpTrustedPublicKeyHandle,
-                                   NULL,
-                                   hash.Buffer,
-                                   hash.Size,
-                                   signature,
-                                   (ULONG)ioStatusBlock.Information,
-                                   0);
+    status = KphpVerifyHash(&hash, signature, (ULONG)ioStatusBlock.Information);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       VERIFY,
-                      "BCryptVerifySignature failed: %!STATUS!",
+                      "KphpVerifyHash failed: %!STATUS!",
                       status);
 
         goto Exit;
@@ -428,7 +499,7 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     PAGED_CODE();
 
-    if (KphSuppressProtections())
+    if (KphProtectionsSuppressed())
     {
         //
         // This ultimately permits low state callers into the driver. But still

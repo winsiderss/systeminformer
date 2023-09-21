@@ -22,7 +22,8 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 static BYTE KphpProtectedSection = 0;
 RTL_OSVERSIONINFOEXW KphOsVersionInfo = { 0 };
 KPH_FILE_VERSION KphKernelVersion = { 0 };
-BOOLEAN KphIgnoreProtectionSuppression = FALSE;
+BOOLEAN KphIgnoreProtectionsSuppressed = FALSE;
+BOOLEAN KphIgnoreTestSigningEnabled = FALSE;
 SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo = { 0 };
 KPH_PROTECTED_DATA_SECTION_POP();
@@ -176,6 +177,11 @@ NTSTATUS DriverEntry(
                                              NULL)))
     {
         RtlZeroMemory(&KphCodeIntegrityInfo, sizeof(KphCodeIntegrityInfo));
+    }
+
+    if (KphInDeveloperMode())
+    {
+        KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "Developer Mode");
     }
 
     status = KphInitializeAlloc(RegistryPath);
