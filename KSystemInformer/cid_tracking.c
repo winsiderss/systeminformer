@@ -1966,7 +1966,7 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
         ACCESS_MASK processAllowedMask;
         ACCESS_MASK threadAllowedMask;
 
-        if (KphSuppressProtections())
+        if (KphProtectionsSuppressed())
         {
             //
             // Allow all access, but still exercise the code by registering.

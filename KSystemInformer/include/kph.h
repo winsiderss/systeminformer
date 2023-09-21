@@ -139,20 +139,16 @@ extern PDRIVER_OBJECT KphDriverObject;
 extern RTL_OSVERSIONINFOEXW KphOsVersionInfo;
 extern KPH_FILE_VERSION KphKernelVersion;
 extern KPH_INFORMER_SETTINGS KphInformerSettings;
-extern BOOLEAN KphIgnoreProtectionSuppression;
+extern BOOLEAN KphIgnoreProtectionsSuppressed;
+extern BOOLEAN KphIgnoreTestSigningEnabled;
 extern SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo;
 extern SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo;
 
 FORCEINLINE
-BOOLEAN KphSuppressProtections(
+BOOLEAN KphInDeveloperMode(
     VOID
     )
 {
-    if (KphIgnoreProtectionSuppression)
-    {
-        return FALSE;
-    }
-
     if (KphSecureBootInfo.SecureBootCapable &&
         KphSecureBootInfo.SecureBootEnabled)
     {
@@ -171,6 +167,32 @@ BOOLEAN KphSuppressProtections(
     }
 
     return TRUE;
+}
+
+FORCEINLINE
+BOOLEAN KphProtectionsSuppressed(
+    VOID
+    )
+{
+    if (KphIgnoreProtectionsSuppressed)
+    {
+        return FALSE;
+    }
+
+    return KphInDeveloperMode();
+}
+
+FORCEINLINE
+BOOLEAN KphTestSigningEnabled(
+    VOID
+    )
+{
+    if (KphIgnoreTestSigningEnabled)
+    {
+        return FALSE;
+    }
+
+    return KphInDeveloperMode();
 }
 
 // alloc
