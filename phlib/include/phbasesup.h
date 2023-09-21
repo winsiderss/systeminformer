@@ -86,6 +86,14 @@ PhCreateThread2(
     _In_opt_ PVOID Parameter
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueueUserWorkItem(
+    _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
+    _In_opt_ PVOID Argument
+    );
+
 // Misc. system
 
 PHLIBAPI
