@@ -423,6 +423,51 @@ NTSTATUS PhCreateThread2(
     return status;
 }
 
+VOID PhpBaseThreadQueueStart(
+    _Inout_ PTP_CALLBACK_INSTANCE Instance,
+    _Inout_opt_ PVOID Context
+    )
+{
+    PHP_BASE_THREAD_CONTEXT context;
+
+    context = *(PPHP_BASE_THREAD_CONTEXT)Context;
+    PhFreeToFreeList(&PhpBaseThreadContextFreeList, Context);
+
+    context.StartAddress(context.Parameter);
+}
+
+NTSTATUS PhQueueUserWorkItem(
+    _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
+    _In_opt_ PVOID Parameter
+    )
+{
+    NTSTATUS status;
+    PPHP_BASE_THREAD_CONTEXT context;
+    TP_CALLBACK_ENVIRON environment;
+
+    context = PhAllocateFromFreeList(&PhpBaseThreadContextFreeList);
+    context->StartAddress = StartRoutine;
+    context->Parameter = Parameter;
+
+    TpInitializeCallbackEnviron(&environment);
+    TpSetCallbackLongFunction(&environment);
+    TpSetCallbackPriority(&environment, TP_CALLBACK_PRIORITY_LOW);
+
+    status = TpSimpleTryPost(PhpBaseThreadQueueStart, context, &environment);
+
+    if (NT_SUCCESS(status))
+    {
+        PHLIB_INC_STATISTIC(BaseThreadsCreated);
+    }
+    else
+    {
+        PHLIB_INC_STATISTIC(BaseThreadsCreateFailed);
+        PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
+    }
+
+    return status;
+}
+
 /**
  * Gets the current interrupt-time count.
  */
