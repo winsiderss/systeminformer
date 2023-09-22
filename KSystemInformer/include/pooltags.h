@@ -13,8 +13,8 @@
 
 // alloc
 
-#define KPH_TAG_PAGED_LOOKASIDE_OBJECT          '0AcK'
-#define KPH_TAG_NPAGED_LOOKASIDE_OBJECT         '1AcK'
+#define KPH_TAG_PAGED_LOOKASIDE_OBJECT          '0ApK'
+#define KPH_TAG_NPAGED_LOOKASIDE_OBJECT         '1ApK'
 
 // comms
 
@@ -84,8 +84,8 @@
 
 // alpc
 
-#define KPH_TAG_ALPC_NAME_QUERY                 '0ApK'
-#define KPH_TAG_ALPC_QUERY                      '1ApK'
+#define KPH_TAG_ALPC_NAME_QUERY                 '0apK'
+#define KPH_TAG_ALPC_QUERY                      '1apK'
 
 // file
 
@@ -94,6 +94,6 @@
 
 // socket
 
-#define KPH_TAG_SOCKET                           '0spK'
-#define KPH_TAG_TLS                              '1spK'
-#define KPH_TAG_TLS_BUFFER                       '2spK'
+#define KPH_TAG_SOCKET                          '0spK'
+#define KPH_TAG_TLS                             '1spK'
+#define KPH_TAG_TLS_BUFFER                      '2spK'
