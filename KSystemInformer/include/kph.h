@@ -1569,6 +1569,44 @@ KsiInsertQueueApc(
     _In_ KPRIORITY PriorityBoost
     );
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+_Function_class_(KSI_WORK_QUEUE_ROUTINE)
+VOID
+KSI_WORK_QUEUE_ROUTINE(
+    _In_opt_ PVOID Parameter
+    );
+typedef KSI_WORK_QUEUE_ROUTINE *PKSI_WORK_QUEUE_ROUTINE;
+
+typedef struct _KSI_WORK_QUEUE_ITEM
+{
+    WORK_QUEUE_ITEM WorkItem;
+    PDRIVER_OBJECT DriverObject;
+    PKSI_WORK_QUEUE_ROUTINE Routine;
+    PVOID Parameter;
+} KSI_WORK_QUEUE_ITEM, *PKSI_WORK_QUEUE_ITEM;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KSISYSAPI
+VOID
+KSIAPI
+KsiInitializeWorkItem(
+    _Out_ PKSI_WORK_QUEUE_ITEM WorkItem,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PKSI_WORK_QUEUE_ROUTINE Routine,
+    _In_opt_ PVOID Parameter
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KSISYSAPI
+VOID
+KSIAPI
+KsiQueueWorkItem(
+    _Inout_ PKSI_WORK_QUEUE_ITEM WorkItem,
+    _In_ WORK_QUEUE_TYPE QueueType
+    );
+
 // system
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

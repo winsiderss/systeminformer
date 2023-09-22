@@ -3,3 +3,5 @@ EXPORTS
     DllInitialize       PRIVATE
     KsiInitializeApc
     KsiInsertQueueApc
+    KsiInitializeWorkItem
+    KsiQueueWorkItem
