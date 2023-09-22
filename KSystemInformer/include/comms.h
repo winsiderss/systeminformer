@@ -72,6 +72,16 @@ VOID KphCommsStop(
     );
 
 _IRQL_requires_max_(APC_LEVEL)
+VOID KphGetMessageTimeouts(
+    _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS KphSetMessageTimeouts(
+    _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
 _Return_allocatesMem_
 PKPH_MESSAGE KphAllocateMessage(
     VOID
@@ -93,15 +103,10 @@ VOID KphFreeNPagedMessage(
     _In_freesMem_ PKPH_MESSAGE Message
     );
 
-#define KPH_COMMS_SHORT_TIMEOUT (1000)
-#define KPH_COMMS_DEFAULT_TIMEOUT (3 * 1000)
-#define KPH_COMMS_LONG_TIMEOUT (10 * 1000)
-
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphCommsSendMessage(
     _In_ PKPH_MESSAGE Message,
-    _Out_opt_ PKPH_MESSAGE Reply,
-    _In_ ULONG TimeoutMs
+    _Out_opt_ PKPH_MESSAGE Reply
     );
 
 _IRQL_requires_max_(APC_LEVEL)

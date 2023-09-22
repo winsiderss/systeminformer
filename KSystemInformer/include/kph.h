@@ -119,6 +119,8 @@ if ((string)->Buffer)\
     (string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer));\
 }
 
+#define KPH_TIMEOUT(ms) { .QuadPart = (-10000ll * (ms)) }
+
 typedef struct _KPH_SIZED_BUFFER
 {
     ULONG Size;
