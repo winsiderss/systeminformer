@@ -175,6 +175,68 @@ BOOLEAN KsiInsertQueueApc(
     return result;
 }
 
+//
+// This is an extension of the work queue functionality in Windows to enable a
+// driver to be unloaded while there are outstanding queued work items on the
+// system with which reference it. This is an alternative to IoQueueWorkItem
+// which requires a device object. In comparison, this extension only relies on
+// a driver object.
+//
+// N.B. While this library guarantees the driver will not be unmapped, it does
+// not prevent DriverUnload from being invoked. Drivers using this library may
+// check DIRVER_OBJECT.Flags for DRVO_UNLOAD_INVOKED to know if the system has
+// or is about to invoke DriverUnload. If applicable the driver should act
+// accordingly in their routines.
+//
+
+_Function_class_(WORKER_THREAD_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+VOID KsipWorkItemRoutine(
+    _In_ PVOID Parameter
+    )
+{
+    PKSI_WORK_QUEUE_ITEM workItem;
+    PDRIVER_OBJECT driverObject;
+    PKSI_WORK_QUEUE_ROUTINE routine;
+
+    workItem = Parameter;
+    driverObject = workItem->DriverObject;
+    routine = workItem->Routine;
+
+    routine(workItem->Parameter);
+
+    ObDereferenceObjectDeferDelete(driverObject);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KsiInitializeWorkItem(
+    _Out_ PKSI_WORK_QUEUE_ITEM WorkItem,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PKSI_WORK_QUEUE_ROUTINE Routine,
+    _In_opt_ PVOID Parameter
+    )
+{
+    WorkItem->DriverObject = DriverObject;
+    WorkItem->Routine = Routine;
+    WorkItem->Parameter = Parameter;
+
+#pragma warning(suppress: 4996)
+    ExInitializeWorkItem(&WorkItem->WorkItem, KsipWorkItemRoutine, WorkItem);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KsiQueueWorkItem(
+    _Inout_ PKSI_WORK_QUEUE_ITEM WorkItem,
+    _In_ WORK_QUEUE_TYPE QueueType
+    )
+{
+    ObReferenceObject(WorkItem->DriverObject);
+
+#pragma warning(suppress: 4996)
+    ExQueueWorkItem(&WorkItem->WorkItem, QueueType);
+}
+
 NTSTATUS DllInitialize(
     _In_ PUNICODE_STRING RegistryPath
     )
