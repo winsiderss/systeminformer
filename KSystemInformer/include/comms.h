@@ -23,12 +23,12 @@ KPHM_HANDLER (
     );
 typedef KPHM_HANDLER *PKPHM_HANDLER;
 
-#define KPHM_DEFINE_HANDLER(__Name__)\
-_Function_class_(KPHM_HANDLER)\
-_IRQL_requires_max_(PASSIVE_LEVEL) \
-_Must_inspect_result_ \
-NTSTATUS __Name__( \
-    _Inout_ PKPH_MESSAGE Message \
+#define KPHM_DEFINE_HANDLER(__Name__)                                         \
+_Function_class_(KPHM_HANDLER)                                                \
+_IRQL_requires_max_(PASSIVE_LEVEL)                                            \
+_Must_inspect_result_                                                         \
+NTSTATUS __Name__(                                                            \
+    _Inout_ PKPH_MESSAGE Message                                              \
     )
 
 typedef
@@ -42,12 +42,12 @@ KPHM_REQUIRED_STATE (
     );
 typedef KPHM_REQUIRED_STATE *PKPHM_REQUIRED_STATE;
 
-#define KPHM_DEFINE_REQUIRED_STATE(__Name__)\
-_Function_class_(KPHM_REQUIRED_STATE)\
-_IRQL_requires_max_(PASSIVE_LEVEL) \
-_Must_inspect_result_ \
-KPH_PROCESS_STATE __Name__( \
-    _In_ PCKPH_MESSAGE Message \
+#define KPHM_DEFINE_REQUIRED_STATE(__Name__)                                  \
+_Function_class_(KPHM_REQUIRED_STATE)                                         \
+_IRQL_requires_max_(PASSIVE_LEVEL)                                            \
+_Must_inspect_result_                                                         \
+KPH_PROCESS_STATE __Name__(                                                   \
+    _In_ PCKPH_MESSAGE Message                                                \
     )
 
 typedef struct _KPH_MESSAGE_HANDLER

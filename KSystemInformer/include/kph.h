@@ -29,31 +29,31 @@
 
 #define KSIAPI NTAPI
 
-#define PAGED_CODE_PASSIVE()\
-    PAGED_CODE()\
+#define PAGED_CODE_PASSIVE()                                                  \
+    PAGED_CODE()                                                              \
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
-#define NPAGED_CODE_PASSIVE()\
+#define NPAGED_CODE_PASSIVE()                                                 \
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
-#define NPAGED_CODE_DISPATCH_MAX()\
+#define NPAGED_CODE_DISPATCH_MAX()                                            \
     NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL)
-#define NPAGED_CODE_DISPATCH_MIN()\
+#define NPAGED_CODE_DISPATCH_MIN()                                            \
     NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL)
 
-#define PAGED_FILE() \
-    __pragma(bss_seg("PAGEBBS"))\
-    __pragma(code_seg("PAGE"))\
-    __pragma(data_seg("PAGEDATA"))\
+#define PAGED_FILE()                                                          \
+    __pragma(bss_seg("PAGEBBS"))                                              \
+    __pragma(code_seg("PAGE"))                                                \
+    __pragma(data_seg("PAGEDATA"))                                            \
     __pragma(const_seg("PAGERO"))
 
-#define KPH_PROTECTED_DATA_SECTION_PUSH() \
-    __pragma(data_seg(push))\
+#define KPH_PROTECTED_DATA_SECTION_PUSH()                                     \
+    __pragma(data_seg(push))                                                  \
     __pragma(data_seg("KSIDATA"))
-#define KPH_PROTECTED_DATA_SECTION_POP() \
+#define KPH_PROTECTED_DATA_SECTION_POP()                                      \
     __pragma(data_seg(pop))
-#define KPH_PROTECTED_DATA_SECTION_RO_PUSH() \
-    __pragma(const_seg(push))\
+#define KPH_PROTECTED_DATA_SECTION_RO_PUSH()                                  \
+    __pragma(const_seg(push))                                                 \
     __pragma(const_seg("KSIRO"))
-#define KPH_PROTECTED_DATA_SECTION_RO_POP() \
+#define KPH_PROTECTED_DATA_SECTION_RO_POP()                                   \
     __pragma(const_seg(pop))
 
 #define _Outptr_allocatesMem_ _Outptr_result_nullonfailure_ __drv_allocatesMem(Mem)
@@ -72,7 +72,7 @@
 #define InterlockedExchangeAddULongPtr(target, value) (ULONG_PTR)InterlockedExchangeAddSizeT((SIZE_T*)target, (SIZE_T)value)
 #define InterlockedIncrementSSizeT(target) (SSIZE_T)InterlockedIncrementSizeT((SIZE_T*)target)
 #define InterlockedDecrementSSizeT(target) (SSIZE_T)InterlockedDecrementSizeT((SIZE_T*)target)
-#define InterlockedCompareExchangeSizeT(target, value, expected)\
+#define InterlockedCompareExchangeSizeT(target, value, expected) \
     (SIZE_T)InterlockedCompareExchangePointer((PVOID*)Target, (PVOID)Value, (PVOID)expected)
 
 FORCEINLINE
@@ -103,19 +103,19 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
     return expected;
 }
 
-#define ProbeOutputType(pointer, type)\
-_Pragma("warning(suppress : 6001)")\
+#define ProbeOutputType(pointer, type)                                        \
+_Pragma("warning(suppress : 6001)")                                           \
 ProbeForWrite(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
-#define ProbeInputType(pointer, type)\
-_Pragma("warning(suppress : 6001)")\
+#define ProbeInputType(pointer, type)                                         \
+_Pragma("warning(suppress : 6001)")                                           \
 ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
-#define RebaseUnicodeString(string, oldBase, newBase)\
-if ((string)->Buffer)\
-{\
+#define RebaseUnicodeString(string, oldBase, newBase)                         \
+if ((string)->Buffer)                                                         \
+{                                                                             \
     (string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer));\
 }
 
@@ -387,7 +387,7 @@ NTSTATUS KphLocateKernelImage(
 
 #define IsKernelHandle(Handle) ((LONG_PTR)(Handle) < 0)
 #define MakeKernelHandle(Handle) ((HANDLE)((ULONG_PTR)(Handle) | KERNEL_HANDLE_BIT))
-#define IsPseudoHandle(Handle) (((ULONG_PTR)(Handle) <= (ULONG_PTR)-1) &&\
+#define IsPseudoHandle(Handle) (((ULONG_PTR)(Handle) <= (ULONG_PTR)-1) && \
                                 ((ULONG_PTR)(Handle) >= (ULONG_PTR)-6))
 
 _Acquires_lock_(Process)
@@ -1160,13 +1160,13 @@ KphGetObjectType(
 
 // cid_tracking
 
-#define KPH_PROTECTED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS |\
-                                    PROCESS_TERMINATE |\
+#define KPH_PROTECTED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS                  |\
+                                    PROCESS_TERMINATE                        |\
                                     PROCESS_SUSPEND_RESUME)
-#define KPH_PROTECTED_THREAD_MASK (KPH_THREAD_READ_ACCESS |\
-                                   THREAD_TERMINATE |\
-                                   THREAD_SUSPEND_RESUME |\
-                                   THREAD_RESUME)
+#define KPH_PROTECTED_THREAD_MASK  (KPH_THREAD_READ_ACCESS                   |\
+                                    THREAD_TERMINATE                         |\
+                                    THREAD_SUSPEND_RESUME                    |\
+                                    THREAD_RESUME)
 
 typedef struct _KPH_PROCESS_CONTEXT
 {

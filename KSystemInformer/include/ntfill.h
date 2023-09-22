@@ -1737,7 +1737,7 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 #define SP_PROT_DTLS_SERVER             0x00010000
 #define SP_PROT_DTLS_CLIENT             0x00020000
 #define SP_PROT_DTLS                    (SP_PROT_DTLS_SERVER | \
-                                         SP_PROT_DTLS_CLIENT )
+                                         SP_PROT_DTLS_CLIENT)
 
 #define SP_PROT_DTLS1_0_SERVER          SP_PROT_DTLS_SERVER
 #define SP_PROT_DTLS1_0_CLIENT          SP_PROT_DTLS_CLIENT
@@ -1790,10 +1790,10 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 
 #define SP_PROT_X_CLIENTS               (SP_PROT_CLIENTS | \
                                          SP_PROT_TLS1_X_CLIENT | \
-                                         SP_PROT_DTLS1_X_CLIENT )
+                                         SP_PROT_DTLS1_X_CLIENT)
 #define SP_PROT_X_SERVERS               (SP_PROT_SERVERS | \
                                          SP_PROT_TLS1_X_SERVER | \
-                                         SP_PROT_DTLS1_X_SERVER )
+                                         SP_PROT_DTLS1_X_SERVER)
 
 #define SCH_CRED_NO_SYSTEM_MAPPER                    0x00000002
 #define SCH_CRED_NO_SERVERNAME_CHECK                 0x00000004
