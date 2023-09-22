@@ -249,7 +249,7 @@ VOID KphpCreateProcessNotifyInformer(
             KphCaptureStackInMessage(msg);
         }
 
-        status = KphCommsSendMessage(msg, reply, KPH_COMMS_DEFAULT_TIMEOUT);
+        status = KphCommsSendMessage(msg, reply);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_ERROR,

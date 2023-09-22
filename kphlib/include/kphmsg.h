@@ -52,6 +52,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgQueryInformationThread,
     KphMsgQuerySection,
     KphMsgCompareObjects,
+    KphMsgGetMessageTimeouts,
+    KphMsgSetMessageTimeouts,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -172,6 +174,8 @@ typedef struct _KPH_MESSAGE
             KPHM_QUERY_INFORMATION_THREAD QueryInformationThread;
             KPHM_QUERY_SECTION QuerySection;
             KPHM_COMPARE_OBJECTS CompareObjects;
+            KPHM_GET_MESSAGE_TIMEOUTS GetMessageTimeouts;
+            KPHM_SET_MESSAGE_TIMEOUTS SetMessageTimeouts;
         } User;
 
         //

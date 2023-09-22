@@ -250,7 +250,7 @@ NTAPI
 KphQueryObjectSectionMappingsInfo(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
-    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info 
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info
     );
 
 PHLIBAPI
@@ -331,7 +331,7 @@ PHLIBAPI
 KPH_LEVEL
 NTAPI
 KphLevelEx(
-    BOOLEAN Cached 
+    _In_ BOOLEAN Cached
     );
 
 PHLIBAPI
@@ -482,7 +482,7 @@ NTSTATUS
 NTAPI
 KphQuerySectionMappingsInfo(
     _In_ HANDLE SectionHandle,
-    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info 
+    _Out_ PKPH_SECTION_MAPPINGS_INFORMATION* Info
     );
 
 PHLIBAPI
@@ -492,6 +492,20 @@ KphCompareObjects(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE FirstObjectHandle,
     _In_ HANDLE SecondObjectHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphGetMessageTimeouts(
+    _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphSetMessageTimeouts(
+    _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
     );
 
 EXTERN_C_END
