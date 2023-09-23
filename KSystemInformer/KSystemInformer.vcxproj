@@ -238,6 +238,7 @@
   <ItemGroup>
     <ClCompile Include="alloc.c" />
     <ClCompile Include="alpc.c" />
+    <ClCompile Include="back_trace.c" />
     <ClCompile Include="cid_table.c" />
     <ClCompile Include="cid_tracking.c" />
     <ClCompile Include="comms.c" />
