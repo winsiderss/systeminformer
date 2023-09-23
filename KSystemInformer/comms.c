@@ -177,6 +177,47 @@ VOID KphCommsSendNPagedMessageAsync(
     KphReleaseRundown(&KphpCommsRundown);
 }
 
+/**
+ * \brief Captures the current stack and adds it to the message.
+ *
+ * \param[in,out] Message The message to populate with the current stack.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCaptureStackInMessage(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    NTSTATUS status;
+    PVOID frames[150];
+    KPH_STACK_TRACE stack;
+    ULONG flags;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    flags = (KPH_STACK_BACK_TRACE_USER_MODE | KPH_STACK_BACK_TRACE_SKIP_KPH);
+
+    stack.Count = (USHORT)KphCaptureStackBackTrace(0,
+                                                   ARRAYSIZE(frames),
+                                                   frames,
+                                                   NULL,
+                                                   flags);
+    if (stack.Count == 0)
+    {
+        return;
+    }
+
+    stack.Frames = frames;
+
+    status = KphMsgDynAddStackTrace(Message, KphMsgFieldStackTrace, &stack);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_WARNING,
+                      COMMS,
+                      "KphMsgDynAddStackTrace failed: %!STATUS!",
+                      status);
+    }
+}
+
 
 PAGED_FILE();
 
@@ -1539,45 +1580,4 @@ NTSTATUS KphCommsSendMessage(
     KphReleaseRundown(&KphpCommsRundown);
 
     return status;
-}
-
-/**
- * \brief Captures the current stack and adds it to the message.
- *
- * \param[in,out] Message The message to populate with the current stack.
- */
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphCaptureStackInMessage(
-    _Inout_ PKPH_MESSAGE Message
-    )
-{
-    NTSTATUS status;
-    PVOID frames[150];
-    KPH_STACK_TRACE stack;
-    ULONG flags;
-
-    PAGED_CODE();
-
-    flags = (KPH_STACK_BACK_TRACE_USER_MODE | KPH_STACK_BACK_TRACE_SKIP_KPH);
-
-    stack.Count = (USHORT)KphCaptureStackBackTrace(0,
-                                                   ARRAYSIZE(frames),
-                                                   frames,
-                                                   NULL,
-                                                   flags);
-    if (stack.Count == 0)
-    {
-        return;
-    }
-
-    stack.Frames = frames;
-
-    status = KphMsgDynAddStackTrace(Message, KphMsgFieldStackTrace, &stack);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_WARNING,
-                      COMMS,
-                      "KphMsgDynAddStackTrace failed: %!STATUS!",
-                      status);
-    }
 }

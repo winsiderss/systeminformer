@@ -119,7 +119,7 @@ VOID KphCommsSendNPagedMessageAsync(
     _In_aliasesMem_ PKPH_MESSAGE Message
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphCaptureStackInMessage(
     _Inout_ PKPH_MESSAGE Message
     );
