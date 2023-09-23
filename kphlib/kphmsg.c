@@ -50,9 +50,6 @@ VOID KphMsgInit(
     Message->Header.MessageId = MessageId;
     Message->Header.Size = KPH_MESSAGE_MIN_SIZE;
     KphMsgQuerySystemTime(&Message->Header.TimeStamp);
-
-    Message->_Dyn.Count = 0;
-    RtlZeroMemory(&Message->_Dyn.Entries, sizeof(Message->_Dyn.Entries));
 }
 
 /**
