@@ -113,7 +113,7 @@ PKPH_MESSAGE KphAllocateNPagedMessage(
 /**
  * \brief Frees a non-paged message.
  *
- * \param[in] Message Message to free.
+ * \param[in] Message The message to free.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphFreeNPagedMessage(
@@ -129,9 +129,9 @@ VOID KphFreeNPagedMessage(
 /**
  * \brief Sends a non-paged message asynchronously.
  *
- * \param[in] Message Message to send asynchronously. The call assumes ownership
- * over the message. The caller should *not* free the message after it is
- * passed to this function.
+ * \param[in] Message The message to send asynchronously. The call assumes
+ * ownership over the message. The caller should *not* free the message after
+ * it is passed to this function.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphCommsSendNPagedMessageAsync(
