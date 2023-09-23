@@ -228,7 +228,7 @@ typedef struct _KPH_MESSAGE
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 
 //
-// ABI breaking asserts. KPH_MESSAGE_VESRSION must be updated.
+// ABI breaking asserts. KPH_MESSAGE_VERSION must be updated.
 // const int size = sizeof(KPH_MESSAGE);
 // const int offset = FIELD_OFFSET(KPH_MESSAGE, _Dyn);
 //

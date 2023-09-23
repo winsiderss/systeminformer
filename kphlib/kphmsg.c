@@ -13,7 +13,7 @@
 #include <kphlibbase.h>
 #include <kphmsg.h>
 
-#define KPH_MESSAGE_VESRSION 2
+#define KPH_MESSAGE_VERSION 2
 
 /**
  * Gets the current system time (UTC).
@@ -46,7 +46,7 @@ VOID KphMsgInit(
     )
 {
     RtlZeroMemory(Message, KPH_MESSAGE_MIN_SIZE);
-    Message->Header.Version = KPH_MESSAGE_VESRSION;
+    Message->Header.Version = KPH_MESSAGE_VERSION;
     Message->Header.MessageId = MessageId;
     Message->Header.Size = KPH_MESSAGE_MIN_SIZE;
     KphMsgQuerySystemTime(&Message->Header.TimeStamp);
@@ -70,7 +70,7 @@ NTSTATUS KphMsgValidate(
         return STATUS_INVALID_MESSAGE;
     }
 
-    if (Message->Header.Version != KPH_MESSAGE_VESRSION)
+    if (Message->Header.Version != KPH_MESSAGE_VERSION)
     {
         return STATUS_REVISION_MISMATCH;
     }
