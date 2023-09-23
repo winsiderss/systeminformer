@@ -1032,16 +1032,7 @@ NTSTATUS KphpGetKernelFileName(
 
     RtlZeroMemory(&info, sizeof(info));
 
-    info.TargetModuleAddress = KphGetSystemRoutineAddress(L"ObCloseHandle");
-    if (!info.TargetModuleAddress)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      UTIL,
-                      L"KphGetSystemRoutineAddress failed");
-
-        return STATUS_NOT_FOUND;
-    }
-
+    info.TargetModuleAddress = (PVOID)ObCloseHandle;
     status = ZwQuerySystemInformation(SystemSingleModuleInformation,
                                       &info,
                                       sizeof(info),
