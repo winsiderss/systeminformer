@@ -371,12 +371,6 @@ PVOID KphGetRoutineAddress(
     _In_z_ PCSTR RoutineName
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSTATUS KphLocateKernelImage(
-    _Out_ PVOID* ImageBase,
-    _Out_ PSIZE_T ImageSize
-    );
-
 // object
 
 #ifdef _X86_
@@ -597,16 +591,6 @@ NTSTATUS KphOpenThread(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphOpenThreadToken(
-    _In_ HANDLE ThreadHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ BOOLEAN OpenAsSelf,
-    _Out_ PHANDLE TokenHandle,
-    _In_ KPROCESSOR_MODE AccessMode
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -762,18 +746,6 @@ NTSTATUS KphMapViewInSystem(
 _IRQL_always_function_max_(PASSIVE_LEVEL)
 VOID KphUnmapViewInSystem(
     _In_ PVOID MappedBase
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetProcessModules(
-    _In_ PEPROCESS Process,
-    _Outptr_allocatesMem_ PRTL_PROCESS_MODULES *Modules
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeProcessModules(
-    _In_freesMem_ PRTL_PROCESS_MODULES Modules
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -35,7 +35,7 @@ BOOLEAN KphAcquireRundown(
 }
 
 /**
- * \brief Releases rundown previously accquired by KphAcquireRundown.
+ * \brief Releases rundown previously acquired by KphAcquireRundown.
  *
  * \param[in,out] Rundown The rundown object to release.
  */
