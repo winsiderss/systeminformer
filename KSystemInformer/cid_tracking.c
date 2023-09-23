@@ -1006,6 +1006,7 @@ VOID KphCidCleanup(
 
     CidTableDelete(&KphpCidTable);
 
+    KphDereferenceObject(KphpCidApcLookaside);
     KphDereferenceObject(KphpThreadContextLookaside);
     KphDereferenceObject(KphpProcessContextLookaside);
 }
