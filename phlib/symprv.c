@@ -2083,12 +2083,12 @@ NTSTATUS PhWalkThreadStack(
 
         if (NT_SUCCESS(KphCaptureStackBackTraceThread(
             ThreadHandle,
-            1,
+            0,
             sizeof(stack) / sizeof(PVOID),
             stack,
             &capturedFrames,
             NULL,
-            0
+            KPH_STACK_BACK_TRACE_SKIP_KPH
             )))
         {
             PH_THREAD_STACK_FRAME threadStackFrame;

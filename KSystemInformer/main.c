@@ -273,10 +273,20 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
+    status = KphInitializeStackBackTrace();
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Failed to initialize stack back trace: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
     KphpProtectSections();
 
     KphInitializeProtection();
-    KphInitializeStackBackTrace();
 
     status = KphInitializeSigning();
     if (!NT_SUCCESS(status))

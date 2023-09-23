@@ -1554,10 +1554,17 @@ VOID KphCaptureStackInMessage(
     NTSTATUS status;
     PVOID frames[150];
     KPH_STACK_TRACE stack;
+    ULONG flags;
 
     PAGED_CODE();
 
-    stack.Count = (USHORT)KphCaptureStack(frames, ARRAYSIZE(frames));
+    flags = (KPH_STACK_BACK_TRACE_USER_MODE | KPH_STACK_BACK_TRACE_SKIP_KPH);
+
+    stack.Count = (USHORT)KphCaptureStackBackTrace(0,
+                                                   ARRAYSIZE(frames),
+                                                   frames,
+                                                   NULL,
+                                                   flags);
     if (stack.Count == 0)
     {
         return;

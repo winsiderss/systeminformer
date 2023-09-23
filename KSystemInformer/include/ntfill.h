@@ -735,11 +735,10 @@ PsGetProcessImageFileName(
 #define RTL_MAX_DRIVE_LETTERS 32
 #endif
 
-// Sensible limit that may or may not correspond to the actual Windows value.
-#define MAX_STACK_DEPTH 256
-
 #define RTL_WALK_USER_MODE_STACK 0x00000001
-#define RTL_WALK_VALID_FLAGS 0x00000001
+#define RTL_WALK_VALID_FLAGS     0x00000001
+
+#define RTL_STACK_WALKING_MODE_FRAMES_TO_SKIP_SHIFT 8
 
 NTKERNELAPI
 PIMAGE_NT_HEADERS

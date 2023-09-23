@@ -201,6 +201,9 @@ KphOpenThreadProcess(
     _Out_ PHANDLE ProcessHandle
     );
 
+#define KPH_STACK_BACK_TRACE_USER_MODE 0x00000001ul
+#define KPH_STACK_BACK_TRACE_SKIP_KPH  0x00000002ul
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -208,9 +211,9 @@ KphCaptureStackBackTraceThread(
     _In_ HANDLE ThreadHandle,
     _In_ ULONG FramesToSkip,
     _In_ ULONG FramesToCapture,
-    _Out_writes_(FramesToCapture) PVOID *BackTrace,
-    _Inout_opt_ PULONG CapturedFrames,
-    _Inout_opt_ PULONG BackTraceHash,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Out_ PULONG CapturedFrames,
+    _Out_opt_ PULONG BackTraceHash,
     _In_ ULONG Flags
     );
 

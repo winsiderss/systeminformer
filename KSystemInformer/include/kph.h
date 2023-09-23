@@ -615,46 +615,17 @@ NTSTATUS KphOpenThreadProcess(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphInitializeStackBackTrace(
-    VOID
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Success_(return != 0)
-ULONG KphCaptureStackBackTrace(
-    _In_ ULONG FramesToSkip,
-    _In_ ULONG FramesToCapture,
-    _In_opt_ ULONG Flags,
-    _Out_writes_(FramesToCapture) PVOID *BackTrace,
-    _Out_opt_ PULONG BackTraceHash
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphCaptureStackBackTraceThread(
-    _In_ PETHREAD Thread,
-    _In_ ULONG FramesToSkip,
-    _In_ ULONG FramesToCapture,
-    _Out_writes_(FramesToCapture) PVOID *BackTrace,
-    _Out_opt_ PULONG CapturedFrames,
-    _Out_opt_ PULONG BackTraceHash,
-    _In_ KPROCESSOR_MODE AccessMode,
-    _In_ ULONG Flags,
-    _In_opt_ PLARGE_INTEGER Timeout
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     _In_ HANDLE ThreadHandle,
     _In_ ULONG FramesToSkip,
     _In_ ULONG FramesToCapture,
-    _Out_writes_(FramesToCapture) PVOID *BackTrace,
-    _Out_opt_ PULONG CapturedFrames,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Out_ PULONG CapturedFrames,
     _Out_opt_ PULONG BackTraceHash,
-    _In_ KPROCESSOR_MODE AccessMode,
     _In_ ULONG Flags,
-    _In_opt_ PLARGE_INTEGER Timeout
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -682,12 +653,6 @@ NTSTATUS KphQueryInformationThread(
 
 typedef EX_RUNDOWN_REF KPH_RUNDOWN;
 typedef KPH_RUNDOWN* PKPH_RUNDOWN;
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-ULONG KphCaptureStack(
-    _Out_ PVOID* Frames,
-    _In_ ULONG Count
-    );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
@@ -1800,4 +1765,38 @@ NTSTATUS KphSocketTlsRecv(
     _In_ KPH_TLS_HANDLE Tls,
     _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
     _Inout_ PULONG Length
+    );
+
+// back_trace.c
+
+#define KPH_STACK_BACK_TRACE_USER_MODE 0x00000001ul
+#define KPH_STACK_BACK_TRACE_SKIP_KPH  0x00000002ul
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphInitializeStackBackTrace(
+    VOID
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != 0)
+ULONG KphCaptureStackBackTrace(
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCaptureStackBackTraceThread(
+    _In_ PETHREAD Thread,
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Out_ PULONG CapturedFrames,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags,
+    _In_opt_ PLARGE_INTEGER Timeout
     );

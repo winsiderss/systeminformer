@@ -483,9 +483,9 @@ NTSTATUS KSIAPI KphpCommsCaptureStackBackTraceThread(
                                                          msg->BackTrace,
                                                          msg->CapturedFrames,
                                                          msg->BackTraceHash,
-                                                         UserMode,
-                                                         KPH_STACK_TRACE_CAPTURE_USER_STACK,
-                                                         msg->Timeout);
+                                                         msg->Flags,
+                                                         msg->Timeout,
+                                                         UserMode);
 
     return STATUS_SUCCESS;
 }
