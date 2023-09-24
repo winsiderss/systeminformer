@@ -593,11 +593,6 @@ C_ASSERT(FIELD_OFFSET(TEB32, ReservedForCrt) == 0xfe8);
 C_ASSERT(FIELD_OFFSET(TEB32, EffectiveContainerId) == 0xff0);
 C_ASSERT(sizeof(TEB32) == 0x1000);
 
-// Get the 32-bit TEB without doing a memory reference
-// modified from public SDK /10.0.10240.0/um/minwin/wow64t.h (dmex)
-#define WOW64_GET_TEB32(teb64) ((PTEB32)PTR_ADD_OFFSET((teb64), ALIGN_UP_BY(sizeof(TEB), PAGE_SIZE)))
-#define WOW64_TEB32_POINTER_ADDRESS(teb64) (PVOID)&((teb64)->NtTib.ExceptionList)
-
 // Conversion
 
 FORCEINLINE VOID UStr32ToUStr(
@@ -621,6 +616,37 @@ FORCEINLINE VOID UStrToUStr32(
 }
 
 // The Wow64Info structure follows the PEB32/TEB32 structures and is shared between 32-bit and 64-bit modules inside a Wow64 process.
+// from SDK/10.0.10240.0/um/minwin/wow64t.h (dmex)
+//
+// Page size on x86 NT
+//
+#define PAGE_SIZE_X86NT 0x1000
+#define PAGE_SHIFT_X86NT 12L
+#define WOW64_SPLITS_PER_PAGE (PAGE_SIZE_X86NT / PAGE_SIZE_X86NT)
+
+//
+// Convert the number of native pages to sub x86-pages
+//
+#define Wow64GetNumberOfX86Pages(NativePages) \
+    (NativePages * (PAGE_SIZE_X86NT >> PAGE_SHIFT_X86NT))
+
+//
+// Macro to round to the nearest page size
+//
+#define WOW64_ROUND_TO_PAGES(Size) \
+    (((ULONG_PTR)(Size) + PAGE_SIZE_X86NT - 1) & ~(PAGE_SIZE_X86NT - 1))
+
+//
+// Get number of native pages
+//
+#define WOW64_BYTES_TO_PAGES(Size) \
+    (((ULONG)(Size) >> WOW64_ROUND_TO_PAGES) + (((ULONG)(Size) & (PAGE_SIZE_X86NT - 1)) != 0))
+
+//
+// Get the 32-bit TEB without doing a memory reference.
+//
+#define WOW64_GET_TEB32(teb64) ((PTEB32)(PVOID)RtlOffsetToPointer((teb64), WOW64_ROUND_TO_PAGES(sizeof(TEB))))
+#define WOW64_TEB32_POINTER_ADDRESS(teb64) (PVOID)&((teb64)->NtTib.ExceptionList)
 
 typedef union _WOW64_EXECUTE_OPTIONS
 {
@@ -657,5 +683,94 @@ typedef struct _PEB32_WITH_WOW64INFO
     PEB32 Peb32;
     WOW64INFO Wow64Info;
 } PEB32_WITH_WOW64INFO, *PPEB32_WITH_WOW64INFO;
+
+FORCEINLINE
+TEB32*
+POINTER_UNSIGNED
+Wow64CurrentGuestTeb(
+    VOID
+    )
+{
+    TEB* POINTER_UNSIGNED Teb;
+    TEB32* POINTER_UNSIGNED Teb32;
+
+    Teb = NtCurrentTeb();
+
+    if (Teb->WowTebOffset == 0)
+    {
+        //
+        // Not running under or over WoW, so there is no "guest teb"
+        //
+
+        return NULL;
+    }
+
+    if (Teb->WowTebOffset < 0)
+    {
+        //
+        // Was called while running under WoW. The current teb is the guest
+        // teb.
+        //
+
+        Teb32 = (PTEB32)Teb;
+
+        RTL_ASSERT(&Teb32->WowTebOffset == &Teb->WowTebOffset);
+    }
+    else
+    {
+        //
+        // Called by the WoW Host, so calculate the position of the guest teb
+        // relative to the current (host) teb.
+        //
+
+        Teb32 = (PTEB32)RtlOffsetToPointer(Teb, Teb->WowTebOffset);
+    }
+
+    RTL_ASSERT(Teb32->NtTib.Self == PtrToUlong(Teb32));
+
+    return Teb32;
+}
+
+FORCEINLINE
+VOID*
+POINTER_UNSIGNED
+Wow64CurrentNativeTeb(
+    VOID
+    )
+{
+    TEB* POINTER_UNSIGNED Teb;
+    VOID* POINTER_UNSIGNED HostTeb;
+
+    Teb = NtCurrentTeb();
+
+    if (Teb->WowTebOffset >= 0)
+    {
+        //
+        // Not running under WoW, so it it either not running on WoW at all, or
+        // it is the host. Return the current teb as native teb.
+        //
+
+        HostTeb = (PVOID)Teb;
+    }
+    else
+    {
+        //
+        // Called while runnign under WoW Host, so calculate the position of the
+        // host teb relative to the current (guest) teb.
+        //
+
+        HostTeb = (PVOID)RtlOffsetToPointer(Teb, Teb->WowTebOffset);
+    }
+
+    RTL_ASSERT((((PTEB32)HostTeb)->NtTib.Self == PtrToUlong(HostTeb)) || ((ULONG_PTR)((PTEB)HostTeb)->NtTib.Self == (ULONG_PTR)HostTeb));
+
+    return HostTeb;
+}
+
+#define NtCurrentTeb32() (Wow64CurrentGuestTeb())
+#define NtCurrentPeb32()  ((PPEB32)(UlongToPtr((NtCurrentTeb32()->ProcessEnvironmentBlock))))
+
+#define Wow64GetNativeTebField(teb, field) (((ULONG)(teb) == ((PTEB32)(teb))->NtTib.Self) ? (((PTEB32)(teb))->##field) : (((PTEB)(teb))->##field) )
+#define Wow64SetNativeTebField(teb, field, value) { if ((ULONG)(teb) == ((PTEB32)(teb))->NtTib.Self) {(((PTEB32)(teb))->##field) = (value);} else {(((PTEB)(teb))->##field) = (value);} }
 
 #endif
