@@ -122,7 +122,7 @@ static NTSTATUS PhEditSecurityAdvancedThread(
  * \param CloseObject An optional procedure for closing the object.
  * \param Context A user-defined value to pass to the callback functions.
  */
-HPROPSHEETPAGE PhCreateSecurityPage(
+PVOID PhCreateSecurityPage(
     _In_ PWSTR ObjectName,
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
@@ -131,7 +131,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     )
 {
     ISecurityInformation *info;
-    HPROPSHEETPAGE page;
+    PVOID page;
 
     info = PhSecurityInformation_Create(
         NULL,
@@ -1288,7 +1288,7 @@ NTSTATUS PhpGetObjectSecurityWithTimeout(
  * \remarks This function may be used for the \a GetObjectSecurity callback in
  * PhCreateSecurityPage() or PhEditSecurity().
  */
-_Callback_ NTSTATUS PhStdGetObjectSecurity(
+NTSTATUS PhStdGetObjectSecurity(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_opt_ PVOID Context
@@ -1474,7 +1474,7 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
  * \remarks This function may be used for the \a SetObjectSecurity callback in
  * PhCreateSecurityPage() or PhEditSecurity().
  */
-_Callback_ NTSTATUS PhStdSetObjectSecurity(
+NTSTATUS PhStdSetObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_opt_ PVOID Context
@@ -1653,7 +1653,7 @@ NTSTATUS PhSetSeObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
-    ULONG win32Result = NO_ERROR;
+    ULONG win32Result;
     SECURITY_INFORMATION securityInformation = 0;
     BOOLEAN present = FALSE;
     BOOLEAN defaulted = FALSE;
@@ -1662,28 +1662,28 @@ NTSTATUS PhSetSeObjectSecurity(
     PACL dacl = NULL;
     PACL sacl = NULL;
 
-    if (SecurityInformation & OWNER_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, OWNER_SECURITY_INFORMATION))
     {
         if (NT_SUCCESS(RtlGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &defaulted)))
-            securityInformation |= OWNER_SECURITY_INFORMATION;
+            SetFlag(securityInformation, OWNER_SECURITY_INFORMATION);
     }
 
-    if (SecurityInformation & GROUP_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, GROUP_SECURITY_INFORMATION))
     {
         if (NT_SUCCESS(RtlGetGroupSecurityDescriptor(SecurityDescriptor, &group, &defaulted)))
-            securityInformation |= GROUP_SECURITY_INFORMATION;
+            SetFlag(securityInformation, GROUP_SECURITY_INFORMATION);
     }
 
-    if (SecurityInformation & DACL_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION))
     {
         if (NT_SUCCESS(RtlGetDaclSecurityDescriptor(SecurityDescriptor, &present, &dacl, &defaulted)) && present)
-            securityInformation |= DACL_SECURITY_INFORMATION;
+            SetFlag(securityInformation, DACL_SECURITY_INFORMATION);
     }
 
-    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION))
     {
         if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(SecurityDescriptor, &present, &sacl, &defaulted)) && present)
-            securityInformation |= SACL_SECURITY_INFORMATION;
+            SetFlag(securityInformation, SACL_SECURITY_INFORMATION);
     }
 
     if (ObjectType == SE_FILE_OBJECT) // probably works with other types but haven't checked (dmex)
@@ -1693,20 +1693,20 @@ NTSTATUS PhSetSeObjectSecurity(
 
         if (NT_SUCCESS(RtlGetControlSecurityDescriptor(SecurityDescriptor, &control, &revision)))
         {
-            if (SecurityInformation & DACL_SECURITY_INFORMATION)
+            if (FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION))
             {
-                if (control & SE_DACL_PROTECTED)
-                    securityInformation |= PROTECTED_DACL_SECURITY_INFORMATION;
+                if (FlagOn(control, SE_DACL_PROTECTED))
+                    SetFlag(securityInformation, PROTECTED_DACL_SECURITY_INFORMATION);
                 else
-                    securityInformation |= UNPROTECTED_DACL_SECURITY_INFORMATION;
+                    SetFlag(securityInformation, UNPROTECTED_DACL_SECURITY_INFORMATION);
             }
 
-            if (SecurityInformation & SACL_SECURITY_INFORMATION)
+            if (FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION))
             {
-                if (control & SE_SACL_PROTECTED)
-                    securityInformation |= PROTECTED_SACL_SECURITY_INFORMATION;
+                if (FlagOn(control, SE_SACL_PROTECTED))
+                    SetFlag(securityInformation, PROTECTED_SACL_SECURITY_INFORMATION);
                 else
-                    securityInformation |= UNPROTECTED_SACL_SECURITY_INFORMATION;
+                    SetFlag(securityInformation, UNPROTECTED_SACL_SECURITY_INFORMATION);
             }
         }
     }
