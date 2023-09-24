@@ -73,6 +73,16 @@ PhGetJsonValueAsUInt64(
     _In_ PSTR Key
     );
 
+FORCEINLINE
+ULONG
+PhGetJsonValueAsUlong(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    return (ULONG)PhGetJsonValueAsUInt64(Object, Key);
+}
+
 PHLIBAPI
 ULONG
 NTAPI
