@@ -684,6 +684,7 @@ typedef struct _PEB32_WITH_WOW64INFO
     WOW64INFO Wow64Info;
 } PEB32_WITH_WOW64INFO, *PPEB32_WITH_WOW64INFO;
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #ifdef _M_X64
 
 FORCEINLINE
@@ -775,6 +776,7 @@ Wow64CurrentNativeTeb(
 #define Wow64GetNativeTebField(teb, field) (((ULONG)(teb) == ((PTEB32)(teb))->NtTib.Self) ? (((PTEB32)(teb))->##field) : (((PTEB)(teb))->##field) )
 #define Wow64SetNativeTebField(teb, field, value) { if ((ULONG)(teb) == ((PTEB32)(teb))->NtTib.Self) {(((PTEB32)(teb))->##field) = (value);} else {(((PTEB)(teb))->##field) = (value);} }
 
+#endif
 #endif
 
 #endif
