@@ -652,6 +652,7 @@ EXPORTS
 ; mapimg
     PhLoadMappedImage
     PhLoadMappedImageEx
+    PhLoadMappedImageHeaderPageSize
     PhUnloadMappedImage
 
 ; provider
