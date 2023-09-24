@@ -899,6 +899,7 @@ RtlDeleteCriticalSection(
     );
 
 NTSYSAPI
+_Acquires_exclusive_lock_(*CriticalSection)
 NTSTATUS
 NTAPI
 RtlEnterCriticalSection(
@@ -906,6 +907,7 @@ RtlEnterCriticalSection(
     );
 
 NTSYSAPI
+_Releases_exclusive_lock_(*CriticalSection)
 NTSTATUS
 NTAPI
 RtlLeaveCriticalSection(
@@ -913,6 +915,7 @@ RtlLeaveCriticalSection(
     );
 
 NTSYSAPI
+_When_(return != 0, _Acquires_exclusive_lock_(*CriticalSection))
 LOGICAL
 NTAPI
 RtlTryEnterCriticalSection(
@@ -1050,6 +1053,7 @@ RtlInitializeSRWLock(
     );
 
 // winbase:AcquireSRWLockExclusive
+_Acquires_exclusive_lock_(*SRWLock)
 NTSYSAPI
 VOID
 NTAPI
@@ -1058,6 +1062,7 @@ RtlAcquireSRWLockExclusive(
     );
 
 // winbase:AcquireSRWLockShared
+_Acquires_shared_lock_(*SRWLock)
 NTSYSAPI
 VOID
 NTAPI
@@ -1066,6 +1071,7 @@ RtlAcquireSRWLockShared(
     );
 
 // winbase:ReleaseSRWLockExclusive
+_Releases_exclusive_lock_(*SRWLock)
 NTSYSAPI
 VOID
 NTAPI
@@ -1074,6 +1080,7 @@ RtlReleaseSRWLockExclusive(
     );
 
 // winbase:ReleaseSRWLockShared
+_Releases_shared_lock_(*SRWLock)
 NTSYSAPI
 VOID
 NTAPI
@@ -1082,6 +1089,7 @@ RtlReleaseSRWLockShared(
     );
 
 // winbase:TryAcquireSRWLockExclusive
+_When_(return != 0, _Acquires_exclusive_lock_(*SRWLock))
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1090,6 +1098,7 @@ RtlTryAcquireSRWLockExclusive(
     );
 
 // winbase:TryAcquireSRWLockShared
+_When_(return != 0, _Acquires_shared_lock_(*SRWLock))
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1214,8 +1223,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWaitOnAddress(
-    _In_ volatile VOID *Address,
-    _In_ PVOID CompareAddress,
+    _In_reads_bytes_(AddressSize) volatile VOID *Address,
+    _In_reads_bytes_(AddressSize) PVOID CompareAddress,
     _In_ SIZE_T AddressSize,
     _In_opt_ PLARGE_INTEGER Timeout
     );
@@ -1527,24 +1536,12 @@ RtlCreateUnicodeStringFromAsciiz(
     _In_ PCSTR SourceString
     );
 
-#ifdef PHNT_INLINE_FREE_UNICODE_STRING
-FORCEINLINE
-VOID
-NTAPI
-RtlFreeUnicodeString(
-    _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
-    )
-{
-    HeapFree(NtCurrentPeb()->ProcessHeap, 0, UnicodeString->Buffer);
-}
-#else
 NTSYSAPI
 VOID
 NTAPI
 RtlFreeUnicodeString(
     _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
     );
-#endif
 
 #define RTL_DUPLICATE_UNICODE_STRING_NULL_TERMINATE (0x00000001)
 #define RTL_DUPLICATE_UNICODE_STRING_ALLOCATE_NULL_STRING (0x00000002)
@@ -2632,7 +2629,8 @@ NTAPI
 RtlGetLocaleFileMappingAddress(
     _Out_ PVOID *BaseAddress,
     _Out_ PLCID DefaultLocaleId,
-    _Out_ PLARGE_INTEGER DefaultCasingTableSize
+    _Out_ PLARGE_INTEGER DefaultCasingTableSize,
+    _Out_opt_ PULONG CurrentNLSVersion
     );
 
 #endif
@@ -3695,6 +3693,7 @@ RtlValidateUserCallTarget(
     _Out_ PULONG Flags
     );
 #endif
+
 // Memory
 
 _Must_inspect_result_
@@ -5311,11 +5310,7 @@ RtlUnlockMemoryZone(
 
 #endif
 
-// end_private
-
 // Memory block lookaside lists
-
-// begin_private
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
@@ -8095,6 +8090,19 @@ RtlCreateTimer(
 NTSYSAPI
 NTSTATUS
 NTAPI
+RtlSetTimer(
+    _In_ HANDLE TimerQueueHandle,
+    _Out_ PHANDLE Handle,
+    _In_ WAITORTIMERCALLBACKFUNC Function,
+    _In_opt_ PVOID Context,
+    _In_ ULONG DueTime,
+    _In_ ULONG Period,
+    _In_ ULONG Flags
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 RtlUpdateTimer(
     _In_ HANDLE TimerQueueHandle,
     _In_ HANDLE TimerHandle,
@@ -9755,6 +9763,30 @@ RtlUnsubscribeFromFeatureUsageNotifications(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+
+#ifndef _RTL_RUN_ONCE_DEF
+#define _RTL_RUN_ONCE_DEF
+//
+// Run once initializer
+//
+#define RTL_RUN_ONCE_INIT {0}
+//
+// Run once flags
+//
+#define RTL_RUN_ONCE_CHECK_ONLY     0x00000001UL
+#define RTL_RUN_ONCE_ASYNC          0x00000002UL
+#define RTL_RUN_ONCE_INIT_FAILED    0x00000004UL
+//
+// The context stored in the run once structure must
+// leave the following number of low order bits unused.
+//
+#define RTL_RUN_ONCE_CTX_RESERVED_BITS 2
+
+typedef union _RTL_RUN_ONCE
+{
+    PVOID Ptr;
+} RTL_RUN_ONCE, *PRTL_RUN_ONCE;
+#endif
 
 NTSYSAPI
 VOID
