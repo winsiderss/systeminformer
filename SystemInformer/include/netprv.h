@@ -17,6 +17,13 @@ extern PPH_OBJECT_TYPE PhNetworkItemType;
 extern BOOLEAN PhEnableNetworkProviderResolve;
 extern BOOLEAN PhEnableNetworkBoundConnections;
 
+typedef enum _PH_NETWORK_PROVIDER_FLAG
+{
+    PH_NETWORK_PROVIDER_FLAG_HOSTNAME = 0x1,
+} PH_NETWORK_PROVIDER_FLAG;
+
+extern ULONG PhNetworkProviderFlagsMask;
+
 // begin_phapppub
 #define PH_NETWORK_OWNER_INFO_SIZE 16
 
@@ -55,7 +62,8 @@ typedef struct _PH_NETWORK_ITEM
         {
             ULONG UnknownProcess : 1;
             ULONG SubsystemProcess : 1;
-            ULONG Spare : 28;
+            ULONG Spare : 27;
+            ULONG InvalidateHostname : 1;
             ULONG LocalHostnameResolved : 1;
             ULONG RemoteHostnameResolved : 1;
         };
@@ -83,7 +91,28 @@ PhReferenceNetworkItem(
     _In_ PPH_IP_ENDPOINT RemoteEndpoint,
     _In_ HANDLE ProcessId
     );
+
+PHAPPAPI
+VOID
+NTAPI
+PhEnumNetworkItems(
+    _Out_opt_ PPH_NETWORK_ITEM** NetworkItems,
+    _Out_ PULONG NumberOfNetworkItems
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhEnumNetworkItemsByProcessId(
+    _In_opt_ HANDLE ProcessId,
+    _Out_opt_ PPH_NETWORK_ITEM** NetworkItems,
+    _Out_ PULONG NumberOfNetworkItems
+    );
 // end_phapppub
+
+VOID PhFlushNetworkItemResolveCache(
+    VOID
+    );
 
 //PPH_STRING PhGetHostNameFromAddress(
 //    _In_ PPH_IP_ADDRESS Address

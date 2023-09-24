@@ -11,6 +11,7 @@
  */
 
 #include <phapp.h>
+#include <phuisup.h>
 #include <netlist.h>
 
 #include <cpysave.h>
@@ -110,49 +111,76 @@ ULONG PhpNetworkNodeHashtableHashFunction(
 }
 
 VOID PhInitializeNetworkTreeList(
-    _In_ HWND hwnd
+    _In_ HWND TreeNewHandle
     )
 {
-    NetworkTreeListHandle = hwnd;
+    NetworkTreeListHandle = TreeNewHandle;
     PhSetControlTheme(NetworkTreeListHandle, L"explorer");
     SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
-    TreeNew_SetCallback(hwnd, PhpNetworkTreeNewCallback, NULL);
-    TreeNew_SetImageList(hwnd, PhProcessSmallImageList);
+    TreeNew_SetCallback(TreeNewHandle, PhpNetworkTreeNewCallback, NULL);
+    TreeNew_SetImageList(TreeNewHandle, PhProcessSmallImageList);
 
-    TreeNew_SetRedraw(hwnd, FALSE);
+    TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
     // Default columns
-    PhAddTreeNewColumn(hwnd, PHNETLC_PROCESS, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALADDRESS, TRUE, L"Local address", 120, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_RIGHT, 3, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEADDRESS, TRUE, L"Remote address", 120, PH_ALIGN_LEFT, 4, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 6, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 7, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_OWNER, TRUE, L"Owner", 80, PH_ALIGN_LEFT, 8, 0);
-    PhAddTreeNewColumnEx(hwnd, PHNETLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
-    PhAddTreeNewColumn(hwnd, PHNETLC_LOCALHOSTNAME, FALSE, L"Local hostname", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(hwnd, PHNETLC_REMOTEHOSTNAME, FALSE, L"Remote hostname", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumnEx2(hwnd, PHNETLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_PROCESS, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_LOCALADDRESS, TRUE, L"Local address", 120, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_RIGHT, 3, DT_RIGHT);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_REMOTEADDRESS, TRUE, L"Remote address", 120, PH_ALIGN_LEFT, 4, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 6, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_OWNER, TRUE, L"Owner", 80, PH_ALIGN_LEFT, 8, 0);
+    PhAddTreeNewColumnEx(TreeNewHandle, PHNETLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_LOCALHOSTNAME, FALSE, L"Local hostname", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHNETLC_REMOTEHOSTNAME, FALSE, L"Remote hostname", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PHNETLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
 
-    TreeNew_SetRedraw(hwnd, TRUE);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
-    TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
+    TreeNew_SetSort(TreeNewHandle, 0, AscendingSortOrder);
 
-    PhCmInitializeManager(&NetworkTreeListCm, hwnd, PHNETLC_MAXIMUM, PhpNetworkTreeNewPostSortFunction);
+    PhCmInitializeManager(&NetworkTreeListCm, TreeNewHandle, PHNETLC_MAXIMUM, PhpNetworkTreeNewPostSortFunction);
 
     if (PhPluginsEnabled)
     {
         PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
-        treeNewInfo.TreeNewHandle = hwnd;
+        treeNewInfo.TreeNewHandle = TreeNewHandle;
         treeNewInfo.CmData = &NetworkTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing), &treeNewInfo);
     }
 
-    PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, NetworkNodeList);
+    PhInitializeTreeNewFilterSupport(&FilterSupport, TreeNewHandle, NetworkNodeList);
+}
+
+VOID PhLoadSettingsNetworkTreeUpdateMask(
+    VOID
+    )
+{
+    PH_TREENEW_COLUMN column;
+    BOOLEAN current;
+
+    current = BooleanFlagOn(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME);
+
+    if (
+        (TreeNew_GetColumn(NetworkTreeListHandle, PHNETLC_LOCALHOSTNAME, &column) && column.Visible) ||
+        (TreeNew_GetColumn(NetworkTreeListHandle, PHNETLC_REMOTEHOSTNAME, &column) && column.Visible)
+        )
+    {
+        SetFlag(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME);
+    }
+    else
+    {
+        ClearFlag(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME);
+    }
+
+    if (NextUniqueId != 0 && current != BooleanFlagOn(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME))
+    {
+        PhInvalidateAllNetworkNodesHostnames();
+    }
 }
 
 VOID PhLoadSettingsNetworkTreeList(
@@ -167,6 +195,13 @@ VOID PhLoadSettingsNetworkTreeList(
     PhCmLoadSettingsEx(NetworkTreeListHandle, &NetworkTreeListCm, 0, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
+
+    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    {
+        SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+    }
+
+    PhLoadSettingsNetworkTreeUpdateMask();
 }
 
 VOID PhSaveSettingsNetworkTreeList(
@@ -183,7 +218,17 @@ VOID PhSaveSettingsNetworkTreeList(
     PhDereferenceObject(sortSettings);
 }
 
-struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportNetworkTreeList(
+VOID PhReloadSettingsNetworkTreeList(
+    VOID
+    )
+{
+    SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL,
+        PhGetIntegerSetting(L"EnableInstantTooltips") ? 0 : -1);
+
+    PhLoadSettingsNetworkTreeUpdateMask();
+}
+
+PPH_TN_FILTER_SUPPORT PhGetFilterSupportNetworkTreeList(
     VOID
     )
 {
@@ -810,9 +855,27 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            data.Selection = PhShowEMenu(
+                data.Menu,
+                hwnd,
+                PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                data.MouseEvent->ScreenLocation.x,
+                data.MouseEvent->ScreenLocation.y
+                );
+
             PhHandleTreeNewColumnMenu(&data);
+
+            if (data.Selection)
+            {
+                if (data.Selection->Id == PH_TN_COLUMN_MENU_HIDE_COLUMN_ID ||
+                    data.Selection->Id == PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID)
+                {
+                    // TODO: Reset flags for enabled/disabled columns. (dmex)
+                    PhReloadSettingsNetworkTreeList();
+                }
+            }
+
             PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
@@ -980,6 +1043,53 @@ VOID PhSelectAndEnsureVisibleNetworkNode(
     TreeNew_EnsureVisible(NetworkTreeListHandle, &NetworkNode->Node);
 }
 
+VOID PhInvalidateAllNetworkNodes(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < NetworkNodeList->Count; i++)
+    {
+        PPH_NETWORK_NODE node = NetworkNodeList->Items[i];
+
+        memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PHNETLC_MAXIMUM);
+        PhInvalidateTreeNewNode(&node->Node, TN_CACHE_COLOR);
+    }
+
+    InvalidateRect(NetworkTreeListHandle, NULL, FALSE);
+}
+
+VOID PhInvalidateAllNetworkNodesHostnames(
+    VOID
+    )
+{
+    PhFlushNetworkItemResolveCache();
+
+    for (ULONG i = 0; i < NetworkNodeList->Count; i++)
+    {
+        PPH_NETWORK_NODE node = NetworkNodeList->Items[i];
+
+        node->NetworkItem->InvalidateHostname = TRUE;
+
+        memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PHNETLC_MAXIMUM);
+        PhInvalidateTreeNewNode(&node->Node, TN_CACHE_COLOR);
+    }
+
+    //PPH_NETWORK_ITEM* networkItems;
+    //ULONG numberOfNetworkItems;
+    //
+    //PhEnumNetworkItems(&networkItems, &numberOfNetworkItems);
+    //
+    //for (ULONG j = 0; j < numberOfNetworkItems; j++)
+    //{
+    //    PPH_NETWORK_ITEM networkItem = networkItems[j];
+    //
+    //    networkItem->InvalidateHostname = TRUE;
+    //}
+    //
+    //PhDereferenceObjects(networkItems, numberOfNetworkItems);
+    //PhFree(networkItems);
+}
+
 VOID PhCopyNetworkList(
     VOID
     )
@@ -1012,4 +1122,16 @@ VOID PhWriteNetworkList(
     }
 
     PhDereferenceObject(lines);
+}
+
+PPH_LIST PhDuplicateNetworkNodeList(
+    VOID
+    )
+{
+    PPH_LIST newList;
+
+    newList = PhCreateList(NetworkNodeList->Count);
+    PhInsertItemsList(newList, 0, NetworkNodeList->Items, NetworkNodeList->Count);
+
+    return newList;
 }

@@ -60,7 +60,7 @@ VOID PhNetworkTreeListInitialization(
     );
 
 VOID PhInitializeNetworkTreeList(
-    _In_ HWND hwnd
+    _In_ HWND TreeNewHandle
     );
 
 VOID PhLoadSettingsNetworkTreeList(
@@ -73,7 +73,7 @@ VOID PhSaveSettingsNetworkTreeList(
 
 // begin_phapppub
 PHAPPAPI
-struct _PH_TN_FILTER_SUPPORT *
+PPH_TN_FILTER_SUPPORT
 NTAPI
 PhGetFilterSupportNetworkTreeList(
     VOID
@@ -123,6 +123,14 @@ VOID PhSelectAndEnsureVisibleNetworkNode(
     _In_ PPH_NETWORK_NODE NetworkNode
     );
 
+VOID PhInvalidateAllNetworkNodes(
+    VOID
+    );
+
+VOID PhInvalidateAllNetworkNodesHostnames(
+    VOID
+    );
+
 VOID PhCopyNetworkList(
     VOID
     );
@@ -130,6 +138,10 @@ VOID PhCopyNetworkList(
 VOID PhWriteNetworkList(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ ULONG Mode
+    );
+
+PPH_LIST PhDuplicateNetworkNodeList(
+    VOID
     );
 
 #endif
