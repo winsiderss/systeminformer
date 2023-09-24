@@ -3206,11 +3206,6 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
     else
     {
         context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (WindowMessage == WM_DESTROY)
-        {
-            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (!context)
@@ -3264,6 +3259,8 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhSaveWindowPlacementToSetting(L"RunAsPackageWindowPosition", L"RunAsPackageWindowSize", WindowHandle);
 
             PhRunAsPackageDeleteTree(context);
