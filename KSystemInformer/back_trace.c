@@ -33,6 +33,43 @@ static PVOID KphpKsiImageBase = NULL;
 static PVOID KphpKsiImageEnd = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
+//
+// Sentinel value inserted into the stack back trace when part of the stack
+// couldn't be captured for some reason.
+//
+#define KPH_STACK_SENTINEL_FRAME ((PVOID)(ULONG_PTR)0xbad)
+
+/**
+ * \brief Tries to add a sentinel frame to the stack back trace.
+ *
+ * \param[in] FramesToCapture The number of frames to capture.
+ * \param[out] BackTrace Buffer to store the back trace in.
+ * \param[in,out] Frames On input, the number of frames captured so far. If a
+ * sentinel frame is added, this is incremented.
+ * \param[in] Flags A combination of KPH_STACK_BACK_TRACE_* flags.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphpTryAddSentinelFrame(
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Inout_ PULONG Frames,
+    _In_ ULONG Flags
+    )
+{
+    NPAGED_CODE_DISPATCH_MAX();
+
+    if (FlagOn(Flags, KPH_STACK_BACK_TRACE_NO_SENTINEL))
+    {
+        return;
+    }
+
+    if (*Frames < FramesToCapture)
+    {
+        BackTrace[*Frames] = KPH_STACK_SENTINEL_FRAME;
+        (*Frames)++;
+    }
+}
+
 /**
  * \brief Captures a stack back trace.
  *
@@ -110,6 +147,7 @@ ContinueCapture:
     thread = KphGetCurrentThreadContext();
     if (!thread)
     {
+        KphpTryAddSentinelFrame(FramesToCapture, BackTrace, &frames, Flags);
         goto Exit;
     }
 
@@ -128,6 +166,7 @@ ContinueCapture:
                       KphGetThreadImageName(thread),
                       HandleToULong(thread->ClientId.UniqueProcess));
 
+        KphpTryAddSentinelFrame(FramesToCapture, BackTrace, &frames, Flags);
         goto Exit;
     }
 
@@ -141,7 +180,7 @@ ContinueCapture:
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        NOTHING;
+        KphpTryAddSentinelFrame(FramesToCapture, BackTrace, &frames, Flags);
     }
 
     thread->CapturingUserModeStack = FALSE;
@@ -156,7 +195,6 @@ Exit:
 
         for (ULONG i = 0; i < frames; i++)
         {
-#pragma prefast(suppress : 6385) // frames are always written
             *BackTraceHash += PtrToUlong(BackTrace[i]);
         }
     }
