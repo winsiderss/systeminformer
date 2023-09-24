@@ -190,10 +190,7 @@ PhGetProcessPeb(
     NTSTATUS status;
     PROCESS_BASIC_INFORMATION basicInfo;
 
-    status = PhGetProcessBasicInformation(
-        ProcessHandle,
-        &basicInfo
-        );
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
 
     if (NT_SUCCESS(status))
     {
@@ -1846,6 +1843,31 @@ PhGetProcessIsCetEnabled(
     {
         *IsCetEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStack;
         *IsCetStrictModeEnabled = !!policyInfo.UserShadowStackPolicy.EnableUserShadowStackStrictMode;
+    }
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetSystemHypervisorSharedPageInformation(
+    _Out_ PPVOID HypervisorSharedUserVa
+    )
+{
+    NTSTATUS status;
+    SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION HypervisorSharedPageInfo;
+
+    status = NtQuerySystemInformation(
+        SystemHypervisorSharedPageInformation,
+        &HypervisorSharedPageInfo,
+        sizeof(SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *HypervisorSharedUserVa = HypervisorSharedPageInfo.HypervisorSharedUserVa;
     }
 
     return status;

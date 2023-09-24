@@ -551,29 +551,18 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
     // HYPERVISOR_SHARED_DATA
     if (WindowsVersion >= WINDOWS_10_RS4)
     {
-        static PVOID HypervisorSharedDataVa = NULL;
-        static PH_INITONCE HypervisorSharedDataInitOnce = PH_INITONCE_INIT;
+        static PVOID hypervisorSharedUserVa = NULL;
+        static PH_INITONCE hypervisorSharedUserInitOnce = PH_INITONCE_INIT;
 
-        if (PhBeginInitOnce(&HypervisorSharedDataInitOnce))
+        if (PhBeginInitOnce(&hypervisorSharedUserInitOnce))
         {
-            SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION hypervSharedPageInfo;
-
-            if (NT_SUCCESS(NtQuerySystemInformation(
-                SystemHypervisorSharedPageInformation,
-                &hypervSharedPageInfo,
-                sizeof(SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION),
-                NULL
-                )))
-            {
-                HypervisorSharedDataVa = hypervSharedPageInfo.HypervisorSharedUserVa;
-            }
-
-            PhEndInitOnce(&HypervisorSharedDataInitOnce);
+            PhGetSystemHypervisorSharedPageInformation(&hypervisorSharedUserVa);
+            PhEndInitOnce(&hypervisorSharedUserInitOnce);
         }
 
-        if (HypervisorSharedDataVa)
+        if (hypervisorSharedUserVa)
         {
-            PhpSetMemoryRegionType(List, HypervisorSharedDataVa, TRUE, HypervisorSharedDataRegion);
+            PhpSetMemoryRegionType(List, hypervisorSharedUserVa, TRUE, HypervisorSharedDataRegion);
         }
     }
 
