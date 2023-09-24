@@ -56,10 +56,13 @@ ULONG KphCaptureStackBackTrace(
 {
     ULONG frames;
     ULONG skip;
+    PKPH_THREAD_CONTEXT thread;
 
     NPAGED_CODE_DISPATCH_MAX();
 
     FramesToSkip += 1;
+
+    thread = NULL;
 
     skip = (FramesToSkip << RTL_STACK_WALKING_MODE_FRAMES_TO_SKIP_SHIFT);
 
@@ -98,20 +101,52 @@ ULONG KphCaptureStackBackTrace(
 
 ContinueCapture:
 
-    if (FlagOn(Flags, KPH_STACK_BACK_TRACE_USER_MODE) &&
-        (KeGetCurrentIrql() < DISPATCH_LEVEL))
+    if (!FlagOn(Flags, KPH_STACK_BACK_TRACE_USER_MODE) ||
+        (KeGetCurrentIrql() == DISPATCH_LEVEL))
     {
-        __try
-        {
-            frames += RtlWalkFrameChain(&BackTrace[frames],
-                                        FramesToCapture - frames,
-                                        RTL_WALK_USER_MODE_STACK);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            NOTHING;
-        }
+        goto Exit;
     }
+
+    thread = KphGetCurrentThreadContext();
+    if (!thread)
+    {
+        goto Exit;
+    }
+
+    //
+    // N.B. This path can become accidentally recursive if the user mode stack
+    // needs to be paged in and another kernel callback lands here again. In
+    // that case skip the capture.
+    //
+    if (thread->CapturingUserModeStack)
+    {
+        KphTracePrint(TRACE_LEVEL_WARNING,
+                      GENERAL,
+                      "Skipping user mode stack capture for "
+                      "thread %lu in process %wZ (%lu)",
+                      HandleToULong(thread->ClientId.UniqueThread),
+                      KphGetThreadImageName(thread),
+                      HandleToULong(thread->ClientId.UniqueProcess));
+
+        goto Exit;
+    }
+
+    thread->CapturingUserModeStack = TRUE;
+
+    __try
+    {
+        frames += RtlWalkFrameChain(&BackTrace[frames],
+                                    FramesToCapture - frames,
+                                    RTL_WALK_USER_MODE_STACK);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        NOTHING;
+    }
+
+    thread->CapturingUserModeStack = FALSE;
+
+Exit:
 
     NT_ASSERT(frames <= FramesToCapture);
 
@@ -124,6 +159,11 @@ ContinueCapture:
 #pragma prefast(suppress : 6385) // frames are always written
             *BackTraceHash += PtrToUlong(BackTrace[i]);
         }
+    }
+
+    if (thread)
+    {
+        KphDereferenceObject(thread);
     }
 
     return frames;

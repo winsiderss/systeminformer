@@ -1195,7 +1195,8 @@ typedef struct _KPH_THREAD_CONTEXT
             ULONG IsCreatingProcess : 1;
             ULONG InitApcQueued : 1;
             ULONG InitApcExecuted : 1;
-            ULONG Reserved : 25;
+            ULONG CapturingUserModeStack : 1;
+            ULONG Reserved : 24;
         };
     };
 
