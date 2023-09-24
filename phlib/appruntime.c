@@ -636,16 +636,20 @@ CleanupExit:
     // Note: Load messages after reverting impersonation otherwise the kernel32.dll message table doesn't get mapped.
     // Errors will be from the process token missing the "userSystemId" capability or limited process token privileges. (dmex)
 
-    if (systemIdPublisherStatus == S_OK)
+    if (HR_SUCCESS(systemIdPublisherStatus))
     {
         *SystemIdForPublisher = systemIdForPublisherString;
     }
     else
     {
-        if (HRESULT_FACILITY(systemIdPublisherStatus) == FACILITY_NT_BIT >> NT_FACILITY_SHIFT)
+        //if (HRESULT_FACILITY(systemIdPublisherStatus) == FACILITY_NT_BIT >> NT_FACILITY_SHIFT)
+        //{
+        //    ClearFlag(systemIdPublisherStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
+        //}
+
+        if (HRESULT_NTSTATUS(systemIdForUserStatus))
         {
-            ClearFlag(systemIdPublisherStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
-            *SystemIdForPublisher = PhGetStatusMessage(systemIdPublisherStatus, 0);
+            *SystemIdForPublisher = PhGetStatusMessage(PhNtStatusFromHResult(systemIdPublisherStatus), 0);
         }
 
         if (PhIsNullOrEmptyString(*SystemIdForPublisher))
@@ -654,16 +658,20 @@ CleanupExit:
         }
     }
 
-    if (systemIdForUserStatus == S_OK)
+    if (HR_SUCCESS(systemIdForUserStatus))
     {
         *SystemIdForUser = systemIdForUserString;
     }
     else
     {
-        if (HRESULT_FACILITY(systemIdForUserStatus) == FACILITY_NT_BIT >> NT_FACILITY_SHIFT)
+        //if (HRESULT_FACILITY(systemIdForUserStatus) == FACILITY_NT_BIT >> NT_FACILITY_SHIFT)
+        //{
+        //    ClearFlag(systemIdForUserStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
+        //}
+
+        if (HRESULT_NTSTATUS(systemIdForUserStatus))
         {
-            ClearFlag(systemIdForUserStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
-            *SystemIdForUser = PhGetStatusMessage(systemIdForUserStatus, 0);
+            *SystemIdForUser = PhGetStatusMessage(PhNtStatusFromHResult(systemIdForUserStatus), 0);
         }
 
         if (PhIsNullOrEmptyString(*SystemIdForUser))

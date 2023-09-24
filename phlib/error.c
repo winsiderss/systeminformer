@@ -133,3 +133,29 @@ BOOLEAN PhNtStatusFileNotFound(
     default: return FALSE;
     }
 }
+
+/**
+ * Determines whether a HRESULT value was converted from a NTSTATUS and returns the original error code.
+ */
+NTSTATUS PhNtStatusFromHResult(
+    _In_ HRESULT Result
+    )
+{
+    if (HRESULT_CUSTOMER(Result))
+    {
+        NOTHING;
+    }
+    else if (HRESULT_NTSTATUS(Result)) // if (FlagOn(Result, FACILITY_NT_BIT))
+    {
+        ClearFlag(Result, FACILITY_NT_BIT); // reverse HRESULT_FROM_NT (dmex)
+    }
+    else if (
+        HRESULT_FACILITY(Result) == FACILITY_WIN32 ||
+        HRESULT_FACILITY(Result) == FACILITY_WINDOWS
+        )
+    {
+        Result = PhDosErrorToNtStatus(HRESULT_CODE(Result));
+    }
+
+    return Result;
+}
