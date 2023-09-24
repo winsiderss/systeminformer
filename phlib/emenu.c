@@ -13,7 +13,6 @@
 #include <ph.h>
 #include <emenu.h>
 #include <guisup.h>
-#include <mapldr.h>
 
 static const PH_FLAG_MAPPING EMenuTypeMappings[] =
 {
