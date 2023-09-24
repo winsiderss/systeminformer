@@ -8002,29 +8002,55 @@ ULONGLONG PhReadTimeStampCounter(
 }
 
 // rev from QueryPerformanceCounter (dmex)
+/**
+ * Retrieves the current value of the performance counter, which is a high resolution (<1us) time stamp that can be used for time-interval measurements.
+ *
+ * \param PerformanceCounter A pointer to a variable that receives the current performance-counter value, in counts.
+ *
+ * \return Successful or errant status.
+ *
+ * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
+ */
 BOOLEAN PhQueryPerformanceCounter(
     _Out_ PLARGE_INTEGER PerformanceCounter
     )
 {
-    if (RtlQueryPerformanceCounter(PerformanceCounter))
-        return TRUE;
-
+#if (PH_WIN32_PERFCOUNTER)
+    return !!QueryPerformanceCounter(PerformanceCounter);
+#elif (PH_NATIVE_PERFCOUNTER)
     return NT_SUCCESS(NtQueryPerformanceCounter(PerformanceCounter, NULL));
+#else
+    return !!RtlQueryPerformanceCounter(PerformanceCounter);
+#endif
 }
 
 // rev from QueryPerformanceFrequency (dmex)
+/**
+ * Retrieves the frequency of the performance counter.
+ * The frequency of the performance counter is fixed at system boot and is consistent across all processors.
+ * Therefore, the frequency need only be queried upon application initialization, and the result can be cached.
+ *
+ * \param PerformanceFrequency A pointer to a variable that receives the current performance-counter frequency, in counts per second.
+ *
+ * \return Successful or errant status.
+ *
+ * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero.
+ */
 BOOLEAN PhQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     )
 {
+#if (PH_WIN32_PERFCOUNTER)
+    return !!QueryPerformanceFrequency(PerformanceFrequency);
+#elif (PH_NATIVE_PERFCOUNTER)
     LARGE_INTEGER performanceCounter;
-
-    if (RtlQueryPerformanceFrequency(PerformanceFrequency))
-        return TRUE;
-
     return NT_SUCCESS(NtQueryPerformanceCounter(&performanceCounter, PerformanceFrequency));
+#else
+    return !!RtlQueryPerformanceFrequency(PerformanceFrequency);
+#endif
 }
 
+// rev from lucasg https://lucasg.github.io/2017/10/15/Api-set-resolution/ (dmex)
 PPH_STRING PhApiSetResolveToHost(
     _In_ PPH_STRINGREF ApiSetName
     )
