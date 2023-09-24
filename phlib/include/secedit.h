@@ -17,8 +17,6 @@ EXTERN_C_START
 
 extern BOOLEAN PhEnableSecurityAdvancedDialog;
 
-typedef struct _PSP *HPROPSHEETPAGE;
-
 // secedit
 
 typedef struct _PH_ACCESS_ENTRY
@@ -31,7 +29,7 @@ typedef struct _PH_ACCESS_ENTRY
 } PH_ACCESS_ENTRY, *PPH_ACCESS_ENTRY;
 
 PHLIBAPI
-HPROPSHEETPAGE
+PVOID
 NTAPI
 PhCreateSecurityPage(
     _In_ PWSTR ObjectName,
@@ -80,25 +78,25 @@ FORCEINLINE ACCESS_MASK PhGetAccessForGetSecurity(
     ACCESS_MASK access = 0;
 
     if (
-        (SecurityInformation & OWNER_SECURITY_INFORMATION) ||
-        (SecurityInformation & GROUP_SECURITY_INFORMATION) ||
-        (SecurityInformation & DACL_SECURITY_INFORMATION) ||
-        (SecurityInformation & LABEL_SECURITY_INFORMATION) ||
-        (SecurityInformation & ATTRIBUTE_SECURITY_INFORMATION) ||
-        (SecurityInformation & SCOPE_SECURITY_INFORMATION)
+        FlagOn(SecurityInformation, OWNER_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, GROUP_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, LABEL_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, ATTRIBUTE_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, SCOPE_SECURITY_INFORMATION)
         )
     {
-        access |= READ_CONTROL;
+        SetFlag(access, READ_CONTROL);
     }
 
-    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION))
     {
-        access |= ACCESS_SYSTEM_SECURITY;
+        SetFlag(access, ACCESS_SYSTEM_SECURITY);
     }
 
-    if (SecurityInformation & BACKUP_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, BACKUP_SECURITY_INFORMATION))
     {
-        access |= READ_CONTROL | ACCESS_SYSTEM_SECURITY;
+        SetFlag(access, READ_CONTROL | ACCESS_SYSTEM_SECURITY);
     }
 
     return access;
@@ -111,44 +109,44 @@ FORCEINLINE ACCESS_MASK PhGetAccessForSetSecurity(
     ACCESS_MASK access = 0;
 
     if (
-        (SecurityInformation & OWNER_SECURITY_INFORMATION) ||
-        (SecurityInformation & GROUP_SECURITY_INFORMATION) ||
-        (SecurityInformation & LABEL_SECURITY_INFORMATION)
+        FlagOn(SecurityInformation, OWNER_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, GROUP_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, LABEL_SECURITY_INFORMATION)
         )
     {
-        access |= WRITE_OWNER;
+        SetFlag(access, WRITE_OWNER);
     }
 
     if (
-        (SecurityInformation & DACL_SECURITY_INFORMATION) ||
-        (SecurityInformation & ATTRIBUTE_SECURITY_INFORMATION) ||
-        (SecurityInformation & PROTECTED_DACL_SECURITY_INFORMATION) ||
-        (SecurityInformation & UNPROTECTED_DACL_SECURITY_INFORMATION)
+        FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, ATTRIBUTE_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, PROTECTED_DACL_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, UNPROTECTED_DACL_SECURITY_INFORMATION)
         )
     {
-        access |= WRITE_DAC;
+        SetFlag(access, WRITE_DAC);
     }
 
     if (
-        (SecurityInformation & SACL_SECURITY_INFORMATION) ||
-        (SecurityInformation & SCOPE_SECURITY_INFORMATION) ||
-        (SecurityInformation & PROTECTED_SACL_SECURITY_INFORMATION) ||
-        (SecurityInformation & UNPROTECTED_SACL_SECURITY_INFORMATION)
+        FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, SCOPE_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, PROTECTED_SACL_SECURITY_INFORMATION) ||
+        FlagOn(SecurityInformation, UNPROTECTED_SACL_SECURITY_INFORMATION)
         )
     {
-        access |= ACCESS_SYSTEM_SECURITY;
+        SetFlag(access, ACCESS_SYSTEM_SECURITY);
     }
 
-    if (SecurityInformation & BACKUP_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, BACKUP_SECURITY_INFORMATION))
     {
-        access |= WRITE_DAC | WRITE_OWNER | ACCESS_SYSTEM_SECURITY;
+        SetFlag(access, WRITE_DAC | WRITE_OWNER | ACCESS_SYSTEM_SECURITY);
     }
 
     return access;
 }
 
 PHLIBAPI
-_Callback_ NTSTATUS
+NTSTATUS
 NTAPI
 PhStdGetObjectSecurity(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
@@ -157,7 +155,7 @@ PhStdGetObjectSecurity(
     );
 
 PHLIBAPI
-_Callback_ NTSTATUS
+NTSTATUS
 NTAPI
 PhStdSetObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
