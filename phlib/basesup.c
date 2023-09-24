@@ -5951,7 +5951,7 @@ VOID PhInitializeFreeList(
     _In_ ULONG MaximumCount
     )
 {
-    RtlInitializeSListHead(&FreeList->ListHead);
+    PhInitializeSListHead(&FreeList->ListHead);
     FreeList->Count = 0;
     FreeList->MaximumCount = MaximumCount;
     FreeList->Size = Size;

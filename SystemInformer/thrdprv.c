@@ -140,7 +140,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
             threadProvider->ProcessHandle = threadProvider->SymbolProvider->ProcessHandle;
     }
 
-    RtlInitializeSListHead(&threadProvider->QueryListHead);
+    PhInitializeSListHead(&threadProvider->QueryListHead);
     PhInitializeQueuedLock(&threadProvider->LoadSymbolsLock);
 
     threadProvider->RunId = 1;

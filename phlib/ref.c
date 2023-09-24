@@ -46,7 +46,7 @@ BOOLEAN PhRefInitialization(
     InitializeListHead(&PhDbgObjectListHead);
 #endif
 
-    RtlInitializeSListHead(&PhObjectDeferDeleteListHead);
+    PhInitializeSListHead(&PhObjectDeferDeleteListHead);
     PhInitializeFreeList(
         &PhObjectSmallFreeList,
         PhAddObjectHeaderSize(PH_OBJECT_SMALL_OBJECT_SIZE),

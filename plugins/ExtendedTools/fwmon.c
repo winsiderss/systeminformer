@@ -2112,8 +2112,8 @@ ULONG EtFwMonitorInitialize(
     EtFwIgnoreAllow = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_ALLOW);
 
     PhInitializeFreeList(&EtFwPacketFreeList, sizeof(FW_EVENT_PACKET), 64);
-    RtlInitializeSListHead(&EtFwPacketListHead);
-    RtlInitializeSListHead(&EtFwQueryListHead);
+    PhInitializeSListHead(&EtFwPacketListHead);
+    PhInitializeSListHead(&EtFwQueryListHead);
 
     EtFwObjectType = PhCreateObjectType(L"FwObject", 0, FwObjectTypeDeleteProcedure);
     EtFwResolveCacheHashtable = PhCreateHashtable(

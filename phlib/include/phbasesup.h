@@ -310,6 +310,45 @@ PhAllocateZeroSafe(
     return NULL;
 }
 
+// Singly linked list
+
+// rev from RtlInitializeSListHead (dmex)
+FORCEINLINE
+VOID
+NTAPI
+PhInitializeSListHead(
+    _Out_ PSLIST_HEADER ListHead
+    )
+{
+#if (PHNT_NATIVE_SLIST)
+    RtlInitializeSListHead(ListHead);
+#else
+    if (IS_ALIGNED(ListHead, MEMORY_ALLOCATION_ALIGNMENT))
+        memset(ListHead, 0, sizeof(SLIST_HEADER));
+    else
+        PhRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
+#endif
+}
+
+// rev from RtlQueryDepthSList (dmex)
+FORCEINLINE
+USHORT
+NTAPI
+PhQueryDepthSList(
+    _In_ PSLIST_HEADER ListHead
+    )
+{
+#if (PHNT_NATIVE_SLIST)
+    return RtlQueryDepthSList(ListHead);
+#else
+#ifdef _WIN64
+    return (USHORT)ListHead->HeaderX64.Depth;
+#else
+    return ListHead->Depth;
+#endif
+#endif
+}
+
 // Event
 
 #define PH_EVENT_SET 0x1
