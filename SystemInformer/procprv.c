@@ -242,7 +242,7 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhEnableProcessExtension = WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64();
 
-    RtlInitializeSListHead(&PhProcessQueryDataListHead);
+    PhInitializeSListHead(&PhProcessQueryDataListHead);
 
     RtlInitUnicodeString(&PhDpcsProcessInformation->ImageName, L"DPCs");
     PhDpcsProcessInformation->UniqueProcessId = DPCS_PROCESS_ID;

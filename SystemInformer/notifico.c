@@ -60,7 +60,7 @@ VOID PhNfLoadStage1(
 
     PhNfpPointers.BeginBitmap = PhNfpBeginBitmap;
 #ifdef PH_NF_ENABLE_WORKQUEUE
-    RtlInitializeSListHead(&PhpTrayIconWorkQueueListHead);
+    PhInitializeSListHead(&PhpTrayIconWorkQueueListHead);
 #endif
 }
 

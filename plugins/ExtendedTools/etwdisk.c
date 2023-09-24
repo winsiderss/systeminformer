@@ -74,7 +74,7 @@ VOID EtInitializeDiskInformation(
         );
 
     PhInitializeFreeList(&EtDiskPacketFreeList, sizeof(ETP_DISK_PACKET), 64);
-    RtlInitializeSListHead(&EtDiskPacketListHead);
+    PhInitializeSListHead(&EtDiskPacketListHead);
     EtFileNameHashtable = PhCreateSimpleHashtable(128);
 
     PhQueryPerformanceCounter(&performanceCounter);

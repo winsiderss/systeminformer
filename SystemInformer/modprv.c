@@ -248,7 +248,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         break;
     }
 
-    RtlInitializeSListHead(&moduleProvider->QueryListHead);
+    PhInitializeSListHead(&moduleProvider->QueryListHead);
 
     PhEmCallObjectOperation(EmModuleProviderType, moduleProvider, EmObjectCreate);
 

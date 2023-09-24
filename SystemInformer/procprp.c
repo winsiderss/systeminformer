@@ -44,7 +44,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
         PhpProcessPropContextType = PhCreateObjectType(L"ProcessPropContext", 0, PhpProcessPropContextDeleteProcedure);
         PhpProcessPropPageContextType = PhCreateObjectType(L"ProcessPropPageContext", 0, PhpProcessPropPageContextDeleteProcedure);
         PhpProcessPropPageWaitContextType = PhCreateObjectType(L"ProcessPropPageWaitContext", 0, PhpProcessPropPageWaitContextDeleteProcedure);
-        RtlInitializeSListHead(&WaitContextQueryListHead);
+        PhInitializeSListHead(&WaitContextQueryListHead);
         PhEndInitOnce(&initOnce);
     }
 
@@ -589,7 +589,7 @@ VOID PhpFlushProcessPropSheetWaitContextData(
     PPH_PROCESS_WAITPROPCONTEXT data;
     PROCESS_BASIC_INFORMATION basicInfo;
 
-    //if (!RtlQueryDepthSList(&WaitContextQueryListHead))
+    //if (!PhQueryDepthSList(&WaitContextQueryListHead))
     //    return;
     //if (!RtlFirstEntrySList(&WaitContextQueryListHead))
     //    return;

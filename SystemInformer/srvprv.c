@@ -147,7 +147,7 @@ BOOLEAN PhServiceProviderInitialization(
         40
         );
 
-    RtlInitializeSListHead(&PhpServiceQueryDataListHead);
+    PhInitializeSListHead(&PhpServiceQueryDataListHead);
 
     if (PhEnableServiceNonPoll)
     {

@@ -109,7 +109,7 @@ BOOLEAN PhNetworkProviderInitialization(
         40
         );
 
-    RtlInitializeSListHead(&PhNetworkItemQueryListHead);
+    PhInitializeSListHead(&PhNetworkItemQueryListHead);
 
     PhpResolveCacheHashtable = PhCreateHashtable(
         sizeof(PPHP_RESOLVE_CACHE_ITEM),
