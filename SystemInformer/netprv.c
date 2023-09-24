@@ -88,6 +88,7 @@ SLIST_HEADER PhNetworkItemQueryListHead;
 
 BOOLEAN PhEnableNetworkProviderResolve = TRUE;
 BOOLEAN PhEnableNetworkBoundConnections = TRUE;
+ULONG PhNetworkProviderFlagsMask = 0;
 static PPH_HASHTABLE PhpResolveCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
@@ -225,6 +226,115 @@ PPH_NETWORK_ITEM PhReferenceNetworkItem(
     PhReleaseQueuedLockShared(&PhNetworkHashtableLock);
 
     return networkItem;
+}
+
+/**
+ * Enumerates the network items.
+ *
+ * \param NetworkItems A variable which receives an array of pointers to network items. You must
+ * free the buffer with PhFree() when you no longer need it.
+ * \param NumberOfNetworkItems A variable which receives the number of network items returned in
+ * \a ProcessItems.
+ */
+VOID PhEnumNetworkItems(
+    _Out_opt_ PPH_NETWORK_ITEM **NetworkItems,
+    _Out_ PULONG NumberOfNetworkItems
+    )
+{
+    PPH_NETWORK_ITEM* networkItems;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_NETWORK_ITEM* networkItem;
+    ULONG numberOfNetworkItems;
+    ULONG count = 0;
+
+    PhAcquireQueuedLockShared(&PhNetworkHashtableLock);
+
+    PhBeginEnumHashtable(PhNetworkHashtable, &enumContext);
+
+    while (networkItem = PhNextEnumHashtable(&enumContext))
+    {
+        count++;
+    }
+
+    if (count == 0)
+    {
+        PhReleaseQueuedLockShared(&PhNetworkHashtableLock);
+
+        if (NetworkItems) *NetworkItems = NULL;
+        *NumberOfNetworkItems = count;
+        return;
+    }
+
+    numberOfNetworkItems = count;
+    networkItems = PhAllocate(sizeof(PPH_NETWORK_ITEM) * numberOfNetworkItems);
+    count = 0;
+
+    PhBeginEnumHashtable(PhNetworkHashtable, &enumContext);
+
+    while (networkItem = PhNextEnumHashtable(&enumContext))
+    {
+        PhReferenceObject((*networkItem));
+        networkItems[count++] = (*networkItem);
+    }
+
+    PhReleaseQueuedLockShared(&PhNetworkHashtableLock);
+
+    *NetworkItems = networkItems;
+    *NumberOfNetworkItems = numberOfNetworkItems;
+}
+
+VOID PhEnumNetworkItemsByProcessId(
+    _In_opt_ HANDLE ProcessId,
+    _Out_opt_ PPH_NETWORK_ITEM** NetworkItems,
+    _Out_ PULONG NumberOfNetworkItems
+    )
+{
+    PPH_NETWORK_ITEM* networkItems;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_NETWORK_ITEM* networkItem;
+    ULONG numberOfNetworkItems;
+    ULONG count = 0;
+
+    PhAcquireQueuedLockShared(&PhNetworkHashtableLock);
+
+    PhBeginEnumHashtable(PhNetworkHashtable, &enumContext);
+
+    while (networkItem = PhNextEnumHashtable(&enumContext))
+    {
+        if ((*networkItem)->ProcessId == ProcessId)
+        {
+            count++;
+        }
+    }
+
+    if (count == 0)
+    {
+        PhReleaseQueuedLockShared(&PhNetworkHashtableLock);
+
+        if (NetworkItems) *NetworkItems = NULL;
+        *NumberOfNetworkItems = count;
+        return;
+    }
+
+    numberOfNetworkItems = count;
+    networkItems = PhAllocate(sizeof(PPH_NETWORK_ITEM) * numberOfNetworkItems);
+    count = 0;
+
+    PhBeginEnumHashtable(PhNetworkHashtable, &enumContext);
+
+    while (networkItem = PhNextEnumHashtable(&enumContext))
+    {
+        if ((*networkItem)->ProcessId == ProcessId)
+        {
+            PhReferenceObject((*networkItem));
+            networkItems[count++] = (*networkItem);
+        }
+    }
+
+    PhReleaseQueuedLockShared(&PhNetworkHashtableLock);
+
+    *NetworkItems = networkItems;
+    *NumberOfNetworkItems = numberOfNetworkItems;
 }
 
 VOID PhpRemoveNetworkItem(
@@ -532,6 +642,41 @@ PPH_STRING PhGetHostNameFromAddressEx(
     return dnsHostNameString;
 }
 
+VOID PhFlushNetworkItemResolveCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPHP_RESOLVE_CACHE_ITEM* entry;
+
+    if (!PhpResolveCacheHashtable)
+        return;
+
+    PhAcquireQueuedLockExclusive(&PhpResolveCacheHashtableLock);
+
+    PhBeginEnumHashtable(PhpResolveCacheHashtable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        if ((*entry)->HostString)
+        {
+            PhDereferenceObject((*entry)->HostString);
+        }
+
+        PhFree((*entry));
+    }
+
+    PhDereferenceObject(PhpResolveCacheHashtable);
+    PhpResolveCacheHashtable = PhCreateHashtable(
+        sizeof(PPHP_RESOLVE_CACHE_ITEM),
+        PhpResolveCacheHashtableEqualFunction,
+        PhpResolveCacheHashtableHashFunction,
+        20
+        );
+
+    PhReleaseQueuedLockExclusive(&PhpResolveCacheHashtableLock);
+}
+
 NTSTATUS PhpNetworkItemQueryWorker(
     _In_ PVOID Parameter
     )
@@ -620,6 +765,89 @@ VOID PhpQueueNetworkItemQuery(
     PhQueueItemWorkQueue(&PhNetworkProviderWorkQueue, PhpNetworkItemQueryWorker, data);
 }
 
+VOID PhNetworkItemResolveHostname(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    PPHP_RESOLVE_CACHE_ITEM cacheItem;
+
+    if (!FlagOn(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME))
+        return;
+
+    // Local
+
+    if (!PhIsNullIpAddress(&NetworkItem->LocalEndpoint.Address))
+    {
+        PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
+        cacheItem = PhpLookupResolveCacheItem(&NetworkItem->LocalEndpoint.Address);
+        PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
+
+        if (cacheItem)
+        {
+            PhReferenceObject(cacheItem->HostString);
+            NetworkItem->LocalHostString = cacheItem->HostString;
+            NetworkItem->LocalHostnameResolved = TRUE;
+        }
+        else
+        {
+            PhpQueueNetworkItemQuery(NetworkItem, FALSE);
+        }
+    }
+    else
+    {
+        NetworkItem->LocalHostnameResolved = TRUE;
+    }
+
+    // Remote
+
+    if (!PhIsNullIpAddress(&NetworkItem->RemoteEndpoint.Address))
+    {
+        PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
+        cacheItem = PhpLookupResolveCacheItem(&NetworkItem->RemoteEndpoint.Address);
+        PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
+
+        if (cacheItem)
+        {
+            PhReferenceObject(cacheItem->HostString);
+            NetworkItem->RemoteHostString = cacheItem->HostString;
+            NetworkItem->RemoteHostnameResolved = TRUE;
+        }
+        else
+        {
+            PhpQueueNetworkItemQuery(NetworkItem, TRUE);
+        }
+    }
+    else
+    {
+        NetworkItem->RemoteHostnameResolved = TRUE;
+    }
+}
+
+VOID PhNetworkItemInvalidateHostname(
+    _In_ PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    if (!FlagOn(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME))
+        return;
+
+    if (NetworkItem->LocalHostString)
+    {
+        PhDereferenceObject(NetworkItem->LocalHostString);
+        NetworkItem->LocalHostString = NULL;
+    }
+
+    if (NetworkItem->RemoteHostString)
+    {
+        PhDereferenceObject(NetworkItem->RemoteHostString);
+        NetworkItem->RemoteHostString = NULL;
+    }
+
+    NetworkItem->LocalHostnameResolved = FALSE;
+    NetworkItem->RemoteHostnameResolved = FALSE;
+
+    PhNetworkItemResolveHostname(NetworkItem);
+}
+
 VOID PhpUpdateNetworkItemOwner(
     _In_ PPH_NETWORK_ITEM NetworkItem,
     _In_ ULONGLONG ServiceTag
@@ -643,6 +871,8 @@ VOID PhFlushNetworkQueryData(
     PSLIST_ENTRY entry;
     PPH_NETWORK_ITEM_QUERY_DATA data;
 
+    if (!FlagOn(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME))
+        return;
     //if (!RtlFirstEntrySList(&PhNetworkItemQueryListHead))
     //    return;
 
@@ -675,6 +905,7 @@ VOID PhNetworkProviderUpdate(
     _In_ PVOID Object
     )
 {
+    static ULONG runCount = 0;
     PPH_NETWORK_CONNECTION connections;
     ULONG numberOfConnections;
     ULONG i;
@@ -767,7 +998,6 @@ VOID PhNetworkProviderUpdate(
 
         if (!networkItem)
         {
-            PPHP_RESOLVE_CACHE_ITEM cacheItem;
             PPH_PROCESS_ITEM processItem;
 
             // Network item not found, create it.
@@ -869,52 +1099,7 @@ VOID PhNetworkProviderUpdate(
                 PhPrintUInt32(networkItem->RemotePortString, networkItem->RemoteEndpoint.Port);
 
             // Get host names.
-
-            // Local
-            if (!PhIsNullIpAddress(&networkItem->LocalEndpoint.Address))
-            {
-                PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
-                cacheItem = PhpLookupResolveCacheItem(&networkItem->LocalEndpoint.Address);
-                PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
-
-                if (cacheItem)
-                {
-                    PhReferenceObject(cacheItem->HostString);
-                    networkItem->LocalHostString = cacheItem->HostString;
-                    networkItem->LocalHostnameResolved = TRUE;
-                }
-                else
-                {
-                    PhpQueueNetworkItemQuery(networkItem, FALSE);
-                }
-            }
-            else
-            {
-                networkItem->LocalHostnameResolved = TRUE;
-            }
-
-            // Remote
-            if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
-            {
-                PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
-                cacheItem = PhpLookupResolveCacheItem(&networkItem->RemoteEndpoint.Address);
-                PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
-
-                if (cacheItem)
-                {
-                    PhReferenceObject(cacheItem->HostString);
-                    networkItem->RemoteHostString = cacheItem->HostString;
-                    networkItem->RemoteHostnameResolved = TRUE;
-                }
-                else
-                {
-                    PhpQueueNetworkItemQuery(networkItem, TRUE);
-                }
-            }
-            else
-            {
-                networkItem->RemoteHostnameResolved = TRUE;
-            }
+            PhNetworkItemResolveHostname(networkItem);
 
             // Get process information.
             if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
@@ -1003,6 +1188,15 @@ VOID PhNetworkProviderUpdate(
                 }
             }
 
+            if (networkItem->InvalidateHostname)
+            {
+                networkItem->InvalidateHostname = FALSE;
+
+                PhNetworkItemInvalidateHostname(networkItem);
+
+                modified = TRUE;
+            }
+
             if (modified)
             {
                 // Raise the network item modified event.
@@ -1016,6 +1210,7 @@ VOID PhNetworkProviderUpdate(
     PhFree(connections);
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent), NULL);
+    runCount++;
 }
 
 BOOLEAN PhGetNetworkConnections(
