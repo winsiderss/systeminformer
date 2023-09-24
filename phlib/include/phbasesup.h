@@ -4333,6 +4333,9 @@ PhFormatDoubleToUtf8(
 
 // error
 
+#define HRESULT_CUSTOMER(hr) (((hr) >> 29) & 0x1)
+#define HRESULT_NTSTATUS(hr) (((hr) >> 28) & 0x1)
+
 PHLIBAPI
 ULONG
 NTAPI
@@ -4359,6 +4362,13 @@ BOOLEAN
 NTAPI
 PhNtStatusFileNotFound(
     _In_ NTSTATUS Status
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhNtStatusFromHResult(
+    _In_ HRESULT Result
     );
 
 FORCEINLINE
