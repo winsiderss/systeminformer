@@ -2067,7 +2067,7 @@ typedef enum _EVENT_TRACE_INFORMATION_CLASS
     EventTraceProfileEventListInformation, // EVENT_TRACE_PROFILE_EVENT_INFORMATION
     EventTraceProfileCounterListInformation, // EVENT_TRACE_PROFILE_COUNTER_INFORMATION
     EventTraceStackCachingInformation, // EVENT_TRACE_STACK_CACHING_INFORMATION
-    EventTraceObjectTypeFilterInformation, // EVENT_TRACE_TAG_FILTER_INFORMATION
+    EventTraceObjectTypeFilterInformation, // EVENT_TRACE_OBJECT_TYPE_FILTER_INFORMATION
     EventTraceSoftRestartInformation, // EVENT_TRACE_SOFT_RESTART_INFORMATION
     EventTraceLastBranchConfigurationInformation, // REDSTONE3
     EventTraceLastBranchEventListInformation,
@@ -6654,8 +6654,6 @@ NtGetTickCount(
 #endif
 }
 
-#define RtlGetTickCount NtGetTickCount
-
 // Locale
 
 NTSYSCALLAPI
@@ -6722,16 +6720,6 @@ NtIsUILanguageComitted(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtInitializeNlsFiles(
-    _Out_ PVOID *BaseAddress,
-    _Out_ PLCID DefaultLocaleId,
-    _Out_ PLARGE_INTEGER DefaultCasingTableSize
-    );
-#else
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -6741,7 +6729,6 @@ NtInitializeNlsFiles(
     _Out_ PLARGE_INTEGER DefaultCasingTableSize,
     _Out_opt_ PULONG CurrentNLSVersion
     );
-#endif
 
 NTSYSCALLAPI
 NTSTATUS
