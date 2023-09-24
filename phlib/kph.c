@@ -145,7 +145,7 @@ NTSTATUS KphConnect(
         SERVICE_ERROR_IGNORE,
         PhGetStringRefZ(Config->FileName),
         PhGetStringRefZ(Config->ObjectName),
-        L""
+        NULL
         );
 
     if (!NT_SUCCESS(status))
@@ -466,7 +466,7 @@ VOID KphSetServiceSecurity(
         );
     RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
 
-    SetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
+    PhSetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
 
 #ifdef DEBUG
     assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
