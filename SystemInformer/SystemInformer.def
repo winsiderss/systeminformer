@@ -382,9 +382,7 @@ EXPORTS
     PhEscapeStringForMenuPrefix
     PhExpandEnvironmentStrings
     PhFinalHash
-    PhFindIntegerSiKeyValuePairs
     PhFindLoaderEntry
-    PhFindStringSiKeyValuePairs
     PhFormatDate
     PhFormatDateTime
     PhFormatDecimal

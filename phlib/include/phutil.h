@@ -344,38 +344,115 @@ PhShowConfirmMessage(
     _In_ BOOLEAN Warning
     );
 
-PHLIBAPI
+
+/**
+ * Finds an integer in an array of string-integer pairs.
+ *
+ * \param KeyValuePairs The array.
+ * \param SizeOfKeyValuePairs The size of the array, in bytes.
+ * \param String The string to search for.
+ * \param Integer A variable which receives the found integer.
+ *
+ * \return TRUE if the string was found, otherwise FALSE.
+ *
+ * \remarks The search is case-sensitive.
+ */
 _Success_(return)
+FORCEINLINE
 BOOLEAN
-NTAPI
 PhFindIntegerSiKeyValuePairs(
     _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ PWSTR String,
     _Out_ PULONG Integer
-    );
+    )
+{
+    for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    {
+        if (PhEqualStringZ((PWSTR)KeyValuePairs[i].Key, String, TRUE))
+        {
+            *Integer = PtrToUlong(KeyValuePairs[i].Value);
+            return TRUE;
+        }
+    }
 
-PHLIBAPI
-_Success_(return)
-BOOLEAN
-NTAPI
-PhFindStringSiKeyValuePairs(
-    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
-    _In_ ULONG SizeOfKeyValuePairs,
-    _In_ ULONG Integer,
-    _Out_ PWSTR *String
-    );
+    return FALSE;
+}
 
-PHLIBAPI
 _Success_(return)
+FORCEINLINE
 BOOLEAN
-NTAPI
 PhFindIntegerSiKeyValuePairsStringRef(
     _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
     _In_ ULONG SizeOfKeyValuePairs,
     _In_ PPH_STRINGREF String,
     _Out_ PULONG Integer
-    );
+    )
+{
+    for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    {
+        if (PhEqualStringRef((PPH_STRINGREF)KeyValuePairs[i].Key, String, TRUE))
+        {
+            *Integer = PtrToUlong(KeyValuePairs[i].Value);
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/**
+ * Finds a string in an array of string-integer pairs.
+ *
+ * \param KeyValuePairs The array.
+ * \param SizeOfKeyValuePairs The size of the array, in bytes.
+ * \param Integer The integer to search for.
+ * \param String A variable which receives the found string.
+ *
+ * \return TRUE if the integer was found, otherwise FALSE.
+ */
+_Success_(return)
+FORCEINLINE
+BOOLEAN
+PhFindStringSiKeyValuePairs(
+    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ ULONG Integer,
+    _Out_ PWSTR *String
+    )
+{
+    for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    {
+        if (PtrToUlong(KeyValuePairs[i].Value) == Integer)
+        {
+            *String = (PWSTR)KeyValuePairs[i].Key;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+FORCEINLINE
+BOOLEAN
+PhFindStringRefSiKeyValuePairs(
+    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ ULONG Integer,
+    _Out_ PPH_STRINGREF* String
+    )
+{
+    for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    {
+        if (PtrToUlong(KeyValuePairs[i].Value) == Integer)
+        {
+            *String = (PPH_STRINGREF)KeyValuePairs[i].Key;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
 
 #define GUID_VERSION_MAC 1
 #define GUID_VERSION_DCE 2
