@@ -341,8 +341,10 @@ PhQueryDepthSList(
 #if (PHNT_NATIVE_SLIST)
     return RtlQueryDepthSList(ListHead);
 #else
-#ifdef _WIN64
+#ifdef _M_X64
     return (USHORT)ListHead->HeaderX64.Depth;
+#elif _M_ARM64
+    return (USHORT)ListHead->HeaderArm64.Depth;
 #else
     return ListHead->Depth;
 #endif
