@@ -1631,12 +1631,10 @@ PhEnumProcessesEx(
     _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass
     );
 
-_Function_class_(PH_ENUM_NEXT_PROCESS)
-typedef NTSTATUS (NTAPI PH_ENUM_NEXT_PROCESS)(
+typedef NTSTATUS (NTAPI *PPH_ENUM_NEXT_PROCESS)(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID Context
     );
-typedef PH_ENUM_NEXT_PROCESS* PPH_ENUM_NEXT_PROCESS;
 
 PHLIBAPI
 NTSTATUS
@@ -1648,12 +1646,10 @@ PhEnumNextProcess(
     _In_opt_ PVOID Context
     );
 
-_Function_class_(PH_ENUM_NEXT_THREAD)
-typedef NTSTATUS (NTAPI PH_ENUM_NEXT_THREAD)(
+typedef NTSTATUS (NTAPI *PPH_ENUM_NEXT_THREAD)(
     _In_ HANDLE ThreadHandle,
     _In_opt_ PVOID Context
     );
-typedef PH_ENUM_NEXT_THREAD* PPH_ENUM_NEXT_THREAD;
 
 PHLIBAPI
 NTSTATUS
@@ -2080,8 +2076,8 @@ typedef struct _PH_MODULE_INFO
     PVOID BaseAddress;
     PVOID ParentBaseAddress;
     PVOID OriginalBaseAddress;
-    ULONG Size;
     PVOID EntryPoint;
+    ULONG Size;
     ULONG Flags;
     PPH_STRING Name;
     PPH_STRING FileName;
@@ -3338,31 +3334,27 @@ PhDeviceIoControlFile(
     _Out_opt_ PULONG ReturnLength
     );
 
-_Function_class_(PH_ENUM_MEMORY_CALLBACK)
-typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_CALLBACK)(
+typedef NTSTATUS (NTAPI *PPH_ENUM_MEMORY_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PMEMORY_BASIC_INFORMATION BasicInformation,
     _In_opt_ PVOID Context
     );
 
-_Function_class_(PH_ENUM_MEMORY_BULK_CALLBACK)
-typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_BULK_CALLBACK)(
+typedef NTSTATUS (NTAPI *PPH_ENUM_MEMORY_BULK_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PMEMORY_BASIC_INFORMATION BasicInfo,
     _In_ SIZE_T Count,
     _In_opt_ PVOID Context
     );
 
-_Function_class_(PH_ENUM_MEMORY_PAGE_CALLBACK)
-typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_PAGE_CALLBACK)(
+typedef NTSTATUS (NTAPI *PPH_ENUM_MEMORY_PAGE_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG_PTR NumberOfEntries,
     _In_ PMEMORY_WORKING_SET_BLOCK Blocks,
     _In_opt_ PVOID Context
     );
 
-_Function_class_(PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)
-typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)(
+typedef NTSTATUS (NTAPI *PPH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _In_ SIZE_T SizeOfImage,
@@ -3370,11 +3362,6 @@ typedef NTSTATUS (NTAPI PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)(
     _In_ PMEMORY_WORKING_SET_EX_INFORMATION Blocks,
     _In_opt_ PVOID Context
     );
-
-typedef PH_ENUM_MEMORY_CALLBACK* PPH_ENUM_MEMORY_CALLBACK;
-typedef PH_ENUM_MEMORY_BULK_CALLBACK* PPH_ENUM_MEMORY_BULK_CALLBACK;
-typedef PH_ENUM_MEMORY_PAGE_CALLBACK* PPH_ENUM_MEMORY_PAGE_CALLBACK;
-typedef PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK* PPH_ENUM_MEMORY_ATTRIBUTE_CALLBACK;
 
 PHLIBAPI
 NTSTATUS
