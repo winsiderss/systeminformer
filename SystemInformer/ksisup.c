@@ -22,6 +22,21 @@
 
 #ifdef DEBUG
 //#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
+
+extern // ksidbg.c
+VOID KsiDebugLogMessage(
+    _In_ PCKPH_MESSAGE Message
+    );
+
+extern // ksidbg.c
+VOID KsiDebugLogInitialize(
+    VOID
+    );
+
+extern // ksidbg.c
+VOID KsiDebugLogDestroy(
+    VOID
+    );
 #endif
 
 BOOLEAN KsiEnableLoadNative = FALSE;
@@ -411,6 +426,10 @@ BOOLEAN KsiCommsCallback(
     _In_ PCKPH_MESSAGE Message
     )
 {
+#ifdef DEBUG
+    KsiDebugLogMessage(Message);
+#endif
+
     if (Message->Header.MessageId != KphMsgRequiredStateFailure)
     {
         return FALSE;
@@ -561,6 +580,10 @@ CleanupExit:
     {
         SendMessage(CallbackContext, TDM_CLICK_BUTTON, IDOK, 0);
     }
+
+#ifdef DEBUG
+    KsiDebugLogInitialize();
+#endif
 
     return STATUS_SUCCESS;
 }
@@ -743,6 +766,10 @@ NTSTATUS PhDestroyKsi(
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
     status = KphServiceStop(&config);
+
+#ifdef DEBUG
+    KsiDebugLogDestroy();
+#endif
 
     return status;
 }
