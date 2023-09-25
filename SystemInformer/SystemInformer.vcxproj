@@ -408,6 +408,7 @@
     <ClCompile Include="itemtips.c" />
     <ClCompile Include="jobprp.c" />
     <ClCompile Include="kdump.c" />
+    <ClCompile Include="ksidbg.c" />
     <ClCompile Include="memmod.c" />
     <ClCompile Include="ksisup.c" />
     <ClCompile Include="ksyscall.c" />

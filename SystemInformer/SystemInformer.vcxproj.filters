@@ -333,6 +333,9 @@
     <ClCompile Include="notiftoast.cpp">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="ksidbg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
