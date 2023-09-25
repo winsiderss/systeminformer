@@ -204,7 +204,7 @@ NTSTATUS KphpMsgDynLookupDynData(
  * \brief Clears the dynamic data table, effectively "freeing" the dynamic data
  * buffer to be populated with other information.
  *
- * \param Message Message to clear the dynamic data table of.
+ * \param Message The message to clear the dynamic data table of.
  */
 VOID KphMsgDynClear(
     _Inout_ PKPH_MESSAGE Message
@@ -216,9 +216,9 @@ VOID KphMsgDynClear(
 }
 
 /**
- * \brief Adds a unicode string to the dynamic data.
+ * \brief Adds a Unicode string to the dynamic data.
  *
- * \param[in,out] Message Message to populate dynamic data of.
+ * \param[in,out] Message The message to populate dynamic data of.
  * \param[in] FieldId Field identifier for the data.
  * \param[in] String Unicode string to copy into the dynamic data.
  *
@@ -265,16 +265,15 @@ NTSTATUS KphMsgDynAddUnicodeString(
 }
 
 /**
- * \brief Retrieves a unicode string from the dynamic data of a message.
+ * \brief Retrieves a Unicode string from the dynamic data of a message.
  *
- * \param[in] Message Message to retrieve the unicode string from.
+ * \param[in] Message The message to retrieve the Unicode string from.
  * \param[in] FieldId Field identifier for the data.
  * \param[out] String If found populated with a reference to the string data in the
  * dynamic data buffer.
  *
  * \return Successful or errant status.
  */
-_Must_inspect_result_
 NTSTATUS KphMsgDynGetUnicodeString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -290,6 +289,9 @@ NTSTATUS KphMsgDynGetUnicodeString(
                                      (PVOID*)&data);
     if (!NT_SUCCESS(status))
     {
+        String->Length = 0;
+        String->MaximumLength = 0;
+        String->Buffer = NULL;
         return status;
     }
 
@@ -302,7 +304,7 @@ NTSTATUS KphMsgDynGetUnicodeString(
 /**
  * \brief Adds an ANSI string to the dynamic data buffer.
  *
- * \param[in,out] Message Message to add the string to.
+ * \param[in,out] Message The message to add the string to.
  * \param[in] FieldId Field identifier for the string.
  * \param[in] String ANSI string to copy into the dynamic data buffer.
  *
@@ -351,14 +353,13 @@ NTSTATUS KphMsgDynAddAnsiString(
 /**
  * \brief Retrieves an ANSI string from the message.
  *
- * \param[in] Message Message to retrieve the string from.
+ * \param[in] Message The message to retrieve the string from.
  * \param[in] FieldId Field identifier of the string.
  * \param[out] String If found populated with a reference to the string data in the
  * dynamic data buffer.
  *
  * \return Successful or errant status.
  */
-_Must_inspect_result_
 NTSTATUS KphMsgDynGetAnsiString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -374,6 +375,9 @@ NTSTATUS KphMsgDynGetAnsiString(
                                      (PVOID*)&data);
     if (!NT_SUCCESS(status))
     {
+        String->Length = 0;
+        String->MaximumLength = 0;
+        String->Buffer = NULL;
         return status;
     }
 
@@ -386,7 +390,7 @@ NTSTATUS KphMsgDynGetAnsiString(
 /**
  * \brief Adds a stack trace to the dynamic data buffer.
  *
- * \param[in,out] Message Message to add the stack trace to.
+ * \param[in,out] Message The message to add the stack trace to.
  * \param[in] FieldId Field identifier for the stack trace.
  * \param[in] StackTrace Stack trace to copy into the dynamic data buffer.
  *
@@ -432,14 +436,13 @@ NTSTATUS KphMsgDynAddStackTrace(
 /**
  * \brief Retrieves a stack trace from the message.
  *
- * \param[in] Message Message to retrieve the stack trace from.
+ * \param[in] Message The message to retrieve the stack trace from.
  * \param[in] FieldId Field identifier of the stack trace.
  * \param[out] StackTrace If found populated with a reference to the stack
  * trace data in the dynamic data buffer.
  *
  * \return Successful or errant status.
  */
-_Must_inspect_result_
 NTSTATUS KphMsgDynGetStackTrace(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -455,6 +458,8 @@ NTSTATUS KphMsgDynGetStackTrace(
                                      (PVOID*)&data);
     if (!NT_SUCCESS(status))
     {
+        StackTrace->Frames = NULL;
+        StackTrace->Count = 0;
         return status;
     }
 

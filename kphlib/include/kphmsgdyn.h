@@ -32,7 +32,6 @@ NTSTATUS KphMsgDynAddUnicodeString(
     _In_ PCUNICODE_STRING String
     );
 
-_Must_inspect_result_
 NTSTATUS KphMsgDynGetUnicodeString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -46,7 +45,6 @@ NTSTATUS KphMsgDynAddAnsiString(
     _In_ PCANSI_STRING String
     );
 
-_Must_inspect_result_
 NTSTATUS KphMsgDynGetAnsiString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
@@ -60,7 +58,6 @@ NTSTATUS KphMsgDynAddStackTrace(
     _In_ PKPH_STACK_TRACE StackTrace
     );
 
-_Must_inspect_result_
 NTSTATUS KphMsgDynGetStackTrace(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
