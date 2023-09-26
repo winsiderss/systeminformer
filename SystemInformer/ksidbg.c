@@ -611,7 +611,8 @@ VOID KsiDebugLogMessageRaw(
         return;
 
     PhAcquireFastLockExclusive(&KsiDebugRawFileStreamLock);
-    PhWriteFileStream(KsiDebugRawFileStream, (PVOID)Message, Message->Header.Size);
+    // Ignore Message->Header.Size here and write the entire message block for consistent alignment.
+    PhWriteFileStream(KsiDebugRawFileStream, (PVOID)Message, sizeof(KPH_MESSAGE));
     PhReleaseFastLockExclusive(&KsiDebugRawFileStreamLock);
 }
 
