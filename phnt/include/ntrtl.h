@@ -1357,7 +1357,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlFreeUTF8String(
-    _Inout_ _At_(utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
+    _Inout_ _At_(Utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
     );
 #endif
 
@@ -10029,7 +10029,7 @@ RtlFreeAnsiString(
 FORCEINLINE
 VOID
 RtlFreeUTF8String(
-    _Inout_ _At_(utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
+    _Inout_ _At_(Utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
     )
 {
     if (Utf8String->Buffer)
@@ -10047,7 +10047,7 @@ RtlFreeSid(
     )
 {
     RtlFreeHeap(RtlProcessHeap(), 0, Sid);
-    return Sid;
+    return NULL;
 }
 
 //#define RtlDeleteBoundaryDescriptor(BoundaryDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, (BoundaryDescriptor))
