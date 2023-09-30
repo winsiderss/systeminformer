@@ -1968,6 +1968,49 @@ NtNotifyChangeSession(
     );
 #endif
 
+// I/O Ring
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateIoRing(
+    _Out_ PHANDLE IoRingHandle,
+    _In_ ULONG CreateParametersLength,
+    _In_ PVOID CreateParameters,
+    _In_ ULONG OutputParametersLength,
+    _Out_ PVOID OutputParameters
+	);
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSubmitIoRing(
+    _In_ HANDLE IoRingHandle,
+    _In_ ULONG Flags,
+    _In_opt_ ULONG WaitOperations,
+    _In_opt_ PLARGE_INTEGER Timeout
+	);
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryIoRingCapabilities(
+	_In_ SIZE_T IoRingCapabilitiesLength,
+	_Out_ PVOID IoRingCapabilities
+	);
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationIoRing(
+	_In_ HANDLE IoRingHandle,
+	_In_ ULONG IoRingInformationClass,
+	_In_ ULONG IoRingInformationLength,
+	_In_ PVOID IoRingInformation
+	);
+#endif
+
 // Other types
 
 typedef enum _INTERFACE_TYPE
