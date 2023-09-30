@@ -3823,7 +3823,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyEnvironment(
-    _In_ PVOID Environment
+    _In_ _Post_invalid_ PVOID Environment
     );
 
 NTSYSAPI
@@ -9973,4 +9973,126 @@ RtlWow64ChangeThreadState(
     );
 #endif
 
+#endif // _NTRTL_H
+
+/*
+ * RTL forward symbol typedefs
+ *
+ * This file is part of System Informer.
+ */
+#ifndef _NTRTL_FWD_H
+#define _NTRTL_FWD_H
+
+// begin_forwarders
+#ifndef PHNT_INLINE_NAME_FORWARDERS
+#define RtlGetNativeSystemInformation NtQuerySystemInformation
+#define RtlGetTickCount NtGetTickCount
+#define RtlGuardRestoreContext RtlRestoreContext
+#define RtlRandom RtlRandomEx
+#define RtlOpenImageFileOptionsKey LdrOpenImageFileOptionsKey
+#define RtlQueryImageFileExecutionOptions LdrQueryImageFileExecutionOptionsEx
+#define RtlQueryImageFileKeyOption LdrQueryImageFileKeyOption
+#define RtlSetTimer RtlCreateTimer
+#define RtlRestoreLastWin32Error RtlSetLastWin32Error
 #endif
+
+#ifndef PHNT_INLINE_FREE_FORWARDERS
+//#define RtlFreeUnicodeString(UnicodeString) {if ((UnicodeString)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (UnicodeString)->Buffer); memset(UnicodeString, 0, sizeof(UNICODE_STRING));}
+FORCEINLINE
+VOID
+RtlFreeUnicodeString(
+    _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
+    )
+{
+    if (UnicodeString->Buffer)
+    {
+        RtlFreeHeap(RtlProcessHeap(), 0, UnicodeString->Buffer);
+        memset(UnicodeString, 0, sizeof(UNICODE_STRING));
+    }
+}
+
+//#define RtlFreeAnsiString(UnicodeString) {if ((AnsiString)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (AnsiString)->Buffer); memset(AnsiString, 0, sizeof(ANSI_STRING));}
+FORCEINLINE
+VOID
+RtlFreeAnsiString(
+    _Inout_ _At_(AnsiString->Buffer, _Frees_ptr_opt_) PANSI_STRING AnsiString
+    )
+{
+    if (AnsiString->Buffer)
+    {
+        RtlFreeHeap(RtlProcessHeap(), 0, AnsiString->Buffer);
+        memset(AnsiString, 0, sizeof(ANSI_STRING));
+    }
+}
+
+//#define RtlFreeUTF8String(Utf8String) {if ((Utf8String)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (Utf8String)->Buffer); memset(Utf8String, 0, sizeof(UTF8_STRING));}
+FORCEINLINE
+VOID
+RtlFreeUTF8String(
+    _Inout_ _At_(utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
+    )
+{
+    if (Utf8String->Buffer)
+    {
+        RtlFreeHeap(RtlProcessHeap(), 0, Utf8String->Buffer);
+        memset(Utf8String, 0, sizeof(UTF8_STRING));
+    }
+}
+
+//#define RtlFreeSid(Sid) RtlFreeHeap(RtlProcessHeap(), 0, (Sid))
+FORCEINLINE
+PVOID
+RtlFreeSid(
+    _In_ _Post_invalid_ PSID Sid
+    )
+{
+    RtlFreeHeap(RtlProcessHeap(), 0, Sid);
+    return Sid;
+}
+
+//#define RtlDeleteBoundaryDescriptor(BoundaryDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, (BoundaryDescriptor))
+FORCEINLINE
+VOID
+RtlDeleteBoundaryDescriptor(
+    _In_ _Post_invalid_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
+    )
+{
+    RtlFreeHeap(RtlProcessHeap(), 0, BoundaryDescriptor);
+}
+
+//#define RtlDeleteSecurityObject(ObjectDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, *(ObjectDescriptor))
+FORCEINLINE
+NTSTATUS
+RtlDeleteSecurityObject(
+    _Inout_ PSECURITY_DESCRIPTOR *ObjectDescriptor
+    )
+{
+    RtlFreeHeap(RtlProcessHeap(), 0, *ObjectDescriptor);
+    return STATUS_SUCCESS;
+}
+
+//#define RtlDestroyEnvironment(Environment) RtlFreeHeap(RtlProcessHeap(), 0, (Environment))
+FORCEINLINE
+NTSTATUS
+RtlDestroyEnvironment(
+    _In_ _Post_invalid_ PVOID Environment
+    )
+{
+    RtlFreeHeap(RtlProcessHeap(), 0, Environment);
+    return STATUS_SUCCESS;
+}
+
+//#define RtlDestroyProcessParameters(ProcessParameters) RtlFreeHeap(RtlProcessHeap(), 0, (ProcessParameters))
+FORCEINLINE
+NTSTATUS
+RtlDestroyProcessParameters(
+    _In_ _Post_invalid_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters
+    )
+{
+    RtlFreeHeap(RtlProcessHeap(), 0, ProcessParameters);
+    return STATUS_SUCCESS;
+}
+#endif
+// end_forwarders
+
+#endif // _NTRTL_FWD_H
