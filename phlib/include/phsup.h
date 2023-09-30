@@ -18,6 +18,7 @@
 #include <intrin.h>
 #include <wchar.h>
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <malloc.h>
 
