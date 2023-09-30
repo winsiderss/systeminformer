@@ -17958,7 +17958,6 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
 
     if (!fileName)
     {
-
         fullDllName = PhAllocate(Entry->FullDllName.Length);
 
         status = NtReadVirtualMemory(
