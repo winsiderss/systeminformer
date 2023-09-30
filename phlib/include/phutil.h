@@ -433,6 +433,7 @@ PhFindStringSiKeyValuePairs(
     return FALSE;
 }
 
+_Success_(return)
 FORCEINLINE
 BOOLEAN
 PhFindStringRefSiKeyValuePairs(

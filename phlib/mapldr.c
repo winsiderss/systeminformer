@@ -523,7 +523,7 @@ NTSTATUS PhGetProcedureAddressRemote(
 
     if (!context.DllBase)
     {
-        status = STATUS_UNSUCCESSFUL;
+        status = STATUS_DLL_NOT_FOUND;
         goto CleanupExit;
     }
 
