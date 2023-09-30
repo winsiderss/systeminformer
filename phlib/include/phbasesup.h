@@ -4374,8 +4374,8 @@ PhFormatDoubleToUtf8(
 
 // error
 
-#define HRESULT_CUSTOMER(hr) (((hr) >> 29) & 0x1)
-#define HRESULT_NTSTATUS(hr) (((hr) >> 28) & 0x1)
+#define HRESULT_CUSTOMER(hr) (((ULONG)(hr) >> 29) & 0x1)
+#define HRESULT_NTSTATUS(hr) (((ULONG)(hr) >> 28) & 0x1)
 
 PHLIBAPI
 ULONG
