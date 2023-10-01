@@ -1980,7 +1980,7 @@ NtCreateIoRing(
     _In_ PVOID CreateParameters,
     _In_ ULONG OutputParametersLength,
     _Out_ PVOID OutputParameters
-	);
+    );
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1990,25 +1990,25 @@ NtSubmitIoRing(
     _In_ ULONG Flags,
     _In_opt_ ULONG WaitOperations,
     _In_opt_ PLARGE_INTEGER Timeout
-	);
+    );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryIoRingCapabilities(
-	_In_ SIZE_T IoRingCapabilitiesLength,
-	_Out_ PVOID IoRingCapabilities
-	);
+    _In_ SIZE_T IoRingCapabilitiesLength,
+    _Out_ PVOID IoRingCapabilities
+    );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetInformationIoRing(
-	_In_ HANDLE IoRingHandle,
-	_In_ ULONG IoRingInformationClass,
-	_In_ ULONG IoRingInformationLength,
-	_In_ PVOID IoRingInformation
-	);
+    _In_ HANDLE IoRingHandle,
+    _In_ ULONG IoRingInformationClass,
+    _In_ ULONG IoRingInformationLength,
+    _In_ PVOID IoRingInformation
+    );
 #endif
 
 // Other types
