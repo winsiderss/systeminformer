@@ -575,7 +575,7 @@ EtwNotificationRegister(
 NTSYSAPI
 ULONG
 NTAPI
-EtwNotificationUnregister (
+EtwNotificationUnregister(
     _In_ REGHANDLE RegHandle,
     _Out_opt_ PVOID * Context
     );
