@@ -1739,6 +1739,14 @@ RtlUnicodeStringToAnsiString(
     _In_ PUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
+    
+// rev
+NTSYSAPI
+ULONG
+NTAPI
+RtlUnicodeStringToAnsiSize(
+    _In_ PUNICODE_STRING SourceString
+    );
 
 #if (PHNT_VERSION >= PHNT_20H1)
 NTSYSAPI
@@ -2991,6 +2999,14 @@ RtlSetThreadIsCritical(
     _In_ BOOLEAN NewValue,
     _Out_opt_ PBOOLEAN OldValue,
     _In_ BOOLEAN CheckFlag
+    );
+
+// rev
+NTSYSAPI
+PVOID
+NTAPI
+RtlSetThreadSubProcessTag(
+    _In_ PVOID SubProcessTag
     );
 
 // rev
@@ -7598,6 +7614,19 @@ RtlAddScopedPolicyIDAce(
     _In_ ULONG AccessMask,
     _In_ PSID Sid
     );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddProcessTrustLabelAce(
+    _Inout_ PACL Acl,
+    _In_ ULONG AceRevision,
+    _In_ ULONG AceFlags,
+    _In_ PSID ProcessTrustLabelSid,
+    _In_ UCHAR AceType, // SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE
+    _In_ ACCESS_MASK AccessMask
+    );
 #endif
 
 // Named pipes
@@ -9385,6 +9414,17 @@ RtlIsMultiUsersInSessionSku(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetSessionProperties(
+    _In_ ULONG SessionId,
+    _Out_ PULONG SharedUserSessionId
+    );
+#endif
+
 // private
 typedef enum _RTL_BSD_ITEM_TYPE
 {
@@ -10061,15 +10101,15 @@ RtlDeleteBoundaryDescriptor(
 }
 
 //#define RtlDeleteSecurityObject(ObjectDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, *(ObjectDescriptor))
-FORCEINLINE
-NTSTATUS
-RtlDeleteSecurityObject(
-    _Inout_ PSECURITY_DESCRIPTOR *ObjectDescriptor
-    )
-{
-    RtlFreeHeap(RtlProcessHeap(), 0, *ObjectDescriptor);
-    return STATUS_SUCCESS;
-}
+//FORCEINLINE
+//NTSTATUS
+//RtlDeleteSecurityObject(
+//    _Inout_ PSECURITY_DESCRIPTOR *ObjectDescriptor
+//    )
+//{
+//    RtlFreeHeap(RtlProcessHeap(), 0, *ObjectDescriptor);
+//    return STATUS_SUCCESS;
+//}
 
 //#define RtlDestroyEnvironment(Environment) RtlFreeHeap(RtlProcessHeap(), 0, (Environment))
 FORCEINLINE
