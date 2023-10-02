@@ -2114,12 +2114,91 @@ typedef struct _REPARSE_DATA_BUFFER
         } MountPointReparseBuffer;
         struct
         {
+            ULONG StringCount;
+            WCHAR StringList[1];
+        } AppExecLinkReparseBuffer;
+        struct
+        {
             UCHAR DataBuffer[1];
         } GenericReparseBuffer;
     };
 } REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
 
 #define REPARSE_DATA_BUFFER_HEADER_SIZE UFIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
+
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+// Reparse structure for FSCTL_SET_REPARSE_POINT_EX
+
+typedef struct _REPARSE_DATA_BUFFER_EX
+{
+    ULONG Flags;
+
+    //
+    //  This is the existing reparse tag on the file if any,  if the
+    //  caller wants to replace the reparse tag too.
+    //
+    //    - To set the reparse data  along with the reparse tag that
+    //      could be different,  pass the current reparse tag of the
+    //      file.
+    //
+    //    - To update the reparse data while having the same reparse
+    //      tag,  the caller should give the existing reparse tag in
+    //      this ExistingReparseTag field.
+    //
+    //    - To set the reparse tag along with reparse data on a file
+    //      that doesn't have a reparse tag yet, set this to zero.
+    //
+    //  If the ExistingReparseTag  does not match the reparse tag on
+    //  the file,  the FSCTL_SET_REPARSE_POINT_EX  would  fail  with
+    //  STATUS_IO_REPARSE_TAG_MISMATCH. NOTE: If a file doesn't have
+    //  a reparse tag, ExistingReparseTag should be 0.
+    //
+
+    ULONG ExistingReparseTag;
+
+    //  For non-Microsoft reparse tags, this is the existing reparse
+    //  guid on the file if any,  if the caller wants to replace the
+    //  reparse tag and / or guid along with the data.
+    //
+    //  If ExistingReparseTag is 0, the file is not expected to have
+    //  any reparse tags, so ExistingReparseGuid is ignored. And for
+    //  non-Microsoft tags ExistingReparseGuid should match the guid
+    //  in the file if ExistingReparseTag is non zero.
+
+    GUID ExistingReparseGuid;
+
+    //
+    //  Reserved
+    //
+    ULONGLONG Reserved;
+
+    //
+    //  Reparse data to set
+    //
+    union
+    {
+        REPARSE_DATA_BUFFER ReparseDataBuffer;
+        REPARSE_GUID_DATA_BUFFER ReparseGuidDataBuffer;
+    };
+} REPARSE_DATA_BUFFER_EX, *PREPARSE_DATA_BUFFER_EX;
+
+//  REPARSE_DATA_BUFFER_EX Flags
+//
+//  REPARSE_DATA_EX_FLAG_GIVEN_TAG_OR_NONE - Forces the FSCTL to set the
+//  reparse tag if the file has no tag or the tag on the file is same as
+//  the one in  ExistingReparseTag.   NOTE: If the ExistingReparseTag is
+//  not a Microsoft tag then the ExistingReparseGuid should match if the
+//  file has the ExistingReparseTag.
+//
+#define REPARSE_DATA_EX_FLAG_GIVEN_TAG_OR_NONE              (0x00000001)
+
+#define REPARSE_GUID_DATA_BUFFER_EX_HEADER_SIZE \
+    UFIELD_OFFSET(REPARSE_DATA_BUFFER_EX, ReparseGuidDataBuffer.GenericReparseBuffer)
+
+#define REPARSE_DATA_BUFFER_EX_HEADER_SIZE \
+    UFIELD_OFFSET(REPARSE_DATA_BUFFER_EX, ReparseDataBuffer.GenericReparseBuffer)
+
+#endif // PHNT_REDSTONE
 
 // Named pipe FS control definitions
 
