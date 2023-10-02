@@ -2365,7 +2365,7 @@ NtCreateThreadEx(
 #define JobObjectSiloBasicInformation 36 // SILOOBJECT_BASIC_INFORMATION
 #define JobObjectSiloRootDirectory 37 // SILOOBJECT_ROOT_DIRECTORY
 #define JobObjectServerSiloBasicInformation 38 // SERVERSILO_BASIC_INFORMATION
-#define JobObjectServerSiloUserSharedData 39 // SILO_USER_SHARED_DATA
+#define JobObjectServerSiloUserSharedData 39 // SILO_USER_SHARED_DATA // NtQueryInformationJobObject(NULL, 39, Buffer, sizeof(SILO_USER_SHARED_DATA), 0);
 #define JobObjectServerSiloInitialize 40 // SERVERSILO_INIT_INFORMATION
 #define JobObjectServerSiloRunningState 41
 #define JobObjectIoAttribution 42 // JOBOBJECT_IO_ATTRIBUTION_INFORMATION
