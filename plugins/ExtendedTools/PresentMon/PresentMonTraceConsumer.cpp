@@ -652,7 +652,7 @@ void HandleDxgkPresentHistoryInfo(EVENT_HEADER const& hdr, uint64_t token)
 
     eventIter->second->ReadyTime = eventIter->second->ReadyTime == 0
         ? hdr.TimeStamp.QuadPart
-        : min(eventIter->second->ReadyTime, (ULONGLONG)hdr.TimeStamp.QuadPart);
+        : __min(eventIter->second->ReadyTime, (uint64_t) hdr.TimeStamp.QuadPart);
 
     // Neither Composed Composition Atlas or Win7 Flip has DWM events indicating intent
     // to present this frame.

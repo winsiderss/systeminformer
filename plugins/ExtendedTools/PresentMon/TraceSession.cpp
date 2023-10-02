@@ -112,7 +112,7 @@ struct FilteredProvider {
             AddKeyword((uint64_t)T::Keyword);
         }
 
-        maxLevel_ = max(maxLevel_, T::Level);
+        maxLevel_ = __max(maxLevel_, T::Level);
     }
 
     ULONG Enable(
