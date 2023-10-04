@@ -37,6 +37,7 @@ typedef struct _KPH_CONFIG_PARAMETERS
     _In_ PPH_STRINGREF ObjectName;
     _In_ PPH_STRINGREF PortName;
     _In_ PPH_STRINGREF Altitude;
+    _In_ PPH_STRINGREF DynData;
 
     union
     {

@@ -86,10 +86,5 @@ EXT PUNICODE_STRING KphDynAltitude DYNPTRDEFAULT;
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphDynamicDataInitialization(
-    _In_ PUNICODE_STRING RegistryPath
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphDynamicDataCleanup(
     VOID
     );

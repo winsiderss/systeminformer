@@ -488,6 +488,7 @@ NTSTATUS KsiInitializeCallbackThread(
         config.ObjectName = &objectName->sr;
         config.PortName = &portName->sr;
         config.Altitude = &altitudeName->sr;
+        config.DynData = NULL;
         config.EnableNativeLoad = KsiEnableLoadNative;
         config.EnableFilterLoad = KsiEnableLoadFilter;
         config.DisableImageLoadProtection = disableImageLoadProtection;

@@ -92,7 +92,6 @@ VOID KphpDriverCleanup(
     KphFltUnregister();
     KphCidCleanup();
     KphCleanupSigning();
-    KphDynamicDataCleanup();
     KphCleanupHashing();
     KphCleanupVerify();
     KphCleanupSocket();
@@ -263,7 +262,7 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
-    status = KphDynamicDataInitialization(RegistryPath);
+    status = KphDynamicDataInitialization();
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
