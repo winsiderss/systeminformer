@@ -86,7 +86,6 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
     USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
-
 }} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
 typedef struct _KPH_DYNDATA
@@ -94,7 +93,6 @@ typedef struct _KPH_DYNDATA
     ULONG Version;
     ULONG Count;
     KPH_DYN_CONFIGURATION Configs[ANYSIZE_ARRAY];
-
 }} KPH_DYNDATA, *PKPH_DYNDATA;
 
 #include <poppack.h>";
@@ -196,19 +194,26 @@ typedef struct _KPH_DYNDATA
             }
         }
 
-        public static void Execute()
+        public static void Execute(string OutDir)
         {
             string manifestFile = "kphlib\\kphdyn.xml";
             string headerFile = "kphlib\\include\\kphdyn.h";
             string sourceFile = "kphlib\\kphdyn.c";
+            string configFile = $"{OutDir}\\ksidyn.bin";
 
-            LoadConfig(manifestFile, out string config, out string sig);
+            GenerateConfig(manifestFile, out byte[] config);
 
-            string header = GenerateHeader();
-            string source = GenerateSource(config, sig);
+            File.WriteAllText(headerFile, GenerateHeader());
+            Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
+            File.WriteAllText(sourceFile, GenerateSource(BytesToString(config)));
+            Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
 
-            File.WriteAllText(headerFile, header);
-            File.WriteAllText(sourceFile, source);
+            if (File.Exists(configFile))
+                File.Delete(configFile);
+            Directory.CreateDirectory(OutDir);
+            File.WriteAllBytes(configFile, config);
+            Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
+            Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile);
         }
 
         private static string GenerateHeader()
@@ -226,16 +231,13 @@ typedef struct _KPH_DYNDATA
             sb.AppendLine("#ifdef _WIN64");
             sb.AppendLine("extern CONST BYTE KphDynData[];");
             sb.AppendLine("extern CONST ULONG KphDynDataLength;");
-            sb.AppendLine("extern CONST BYTE KphDynDataSig[];");
-            sb.AppendLine("extern CONST ULONG KphDynDataSigLength;");
             sb.AppendLine("#endif");
 
             return sb.ToString();
         }
 
         private static string GenerateSource(
-            string Config,
-            string Sig
+            string Config
             )
         {
             StringBuilder sb = new StringBuilder(16348);
@@ -251,22 +253,14 @@ typedef struct _KPH_DYNDATA
             sb.AppendLine("};");
             sb.AppendLine();
             sb.AppendLine("CONST ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
-            sb.AppendLine();
-            sb.AppendLine("CONST BYTE KphDynDataSig[] =");
-            sb.AppendLine("{");
-            sb.Append(Sig);
-            sb.AppendLine("};");
-            sb.AppendLine();
-            sb.AppendLine("CONST ULONG KphDynDataSigLength = ARRAYSIZE(KphDynDataSig);");
             sb.AppendLine("#endif");
 
             return sb.ToString();
         }
 
-        private static void LoadConfig(
+        private static void GenerateConfig(
             string ManifestFile,
-            out string ConfigData,
-            out string SigData
+            out byte[] ConfigBytes
             )
         {
             var xml = new XmlDocument();
@@ -280,7 +274,7 @@ typedef struct _KPH_DYNDATA
                 var config = new DynConfig();
                 var configName = data.Attributes.GetNamedItem("name").Value;
 
-                Program.PrintColorMessage(configName, ConsoleColor.Cyan);
+                //Program.PrintColorMessage(configName, ConsoleColor.Cyan);
 
                 foreach (XmlNode field in data.SelectNodes("field"))
                 {
@@ -309,12 +303,9 @@ typedef struct _KPH_DYNDATA
                 throw new Exception("Dynamic configuration is invalid!");
             }
 
-            string tempName = $"{Build.BuildWorkingFolder}\\tools\\CustomBuildTool\\bin\\Release\\" + Guid.NewGuid();
-            string configFile = $"{tempName}.bin";
-            string sigFile = $"{tempName}.sig";
 
-            using (var file = new FileStream(configFile, FileMode.CreateNew))
-            using (var writer = new BinaryWriter(file))
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
             {
                 //
                 // Write the version and count first, then the blocks.
@@ -323,20 +314,8 @@ typedef struct _KPH_DYNDATA
                 writer.Write(Version);
                 writer.Write((uint)configs.Count);
                 writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(configs)));
-            }
 
-            if (Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile))
-            {
-                ConfigData = BytesToString(configFile);
-                SigData = BytesToString(sigFile);
-
-                Win32.DeleteFile(configFile);
-                Win32.DeleteFile(sigFile);
-            }
-            else
-            {
-                ConfigData = string.Empty;
-                SigData = string.Empty;
+                ConfigBytes = stream.ToArray();
             }
         }
 
@@ -378,11 +357,9 @@ typedef struct _KPH_DYNDATA
             return valid;
         }
 
-        private static string BytesToString(string Path)
+        private static string BytesToString(byte[] Buffer)
         {
-            var file = File.ReadAllBytes(Path);
-
-            using (MemoryStream stream = new MemoryStream(file, false))
+            using (MemoryStream stream = new MemoryStream(Buffer, false))
             {
                 StringBuilder hex = new StringBuilder(64);
                 StringBuilder sb = new StringBuilder(8192);

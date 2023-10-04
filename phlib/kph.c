@@ -13,7 +13,6 @@
 #include <ph.h>
 #include <svcsup.h>
 #include <kphuser.h>
-#include <kphdyndata.h>
 
 //static PH_INITONCE KphMessageInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST KphMessageFreeList;
@@ -33,46 +32,6 @@ NTSTATUS KphInitialize(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS KphValidateDynamicConfiguration(
-    VOID
-    )
-{
-#ifdef _WIN64
-    NTSTATUS status;
-    PPH_STRING fileName;
-    PVOID versionInfo;
-    VS_FIXEDFILEINFO* fileInfo;
-
-    status = STATUS_NO_SUCH_FILE;
-
-    if (fileName = PhGetKernelFileName2())
-    {
-        if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
-        {
-            if (fileInfo = PhGetFileVersionFixedInfo(versionInfo))
-            {
-                status = KphDynDataGetConfiguration(
-                    (PKPH_DYNDATA)KphDynData,
-                    HIWORD(fileInfo->dwFileVersionMS),
-                    LOWORD(fileInfo->dwFileVersionMS),
-                    HIWORD(fileInfo->dwFileVersionLS),
-                    LOWORD(fileInfo->dwFileVersionLS),
-                    NULL
-                    );
-            }
-
-            PhFree(versionInfo);
-        }
-
-        PhDereferenceObject(fileName);
-    }
-
-    return status;
-#else
-    return STATUS_NOT_SUPPORTED;
-#endif
-}
-
 NTSTATUS KphConnect(
     _In_ PKPH_CONFIG_PARAMETERS Config
     )
@@ -89,11 +48,6 @@ NTSTATUS KphConnect(
     status = KphCommsStart(Config->PortName, Config->Callback);
 
     if (NT_SUCCESS(status) || (status == STATUS_ALREADY_INITIALIZED))
-        return status;
-
-    status = KphValidateDynamicConfiguration();
-
-    if (!NT_SUCCESS(status))
         return status;
 
     // Load the driver, and try again.
@@ -253,20 +207,9 @@ NTSTATUS KphSetParameters(
     status = PhSetValueKeyZ(
         parametersKeyHandle,
         L"DynData",
-        REG_BINARY,
-        (PVOID)KphDynData,
-        KphDynDataLength
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    status = PhSetValueKeyZ(
-        parametersKeyHandle,
-        L"DynDataSig",
-        REG_BINARY,
-        (PVOID)KphDynDataSig,
-        KphDynDataSigLength
+        REG_SZ,
+        Config->DynData->Buffer,
+        (ULONG)Config->DynData->Length + sizeof(UNICODE_NULL)
         );
 
     if (!NT_SUCCESS(status))
@@ -553,8 +496,7 @@ NTSTATUS KsiLoadUnloadService(
 
                 if (NT_SUCCESS(PhCreateKey(&parametersKeyHandle, KEY_WRITE, serviceKeyHandle, &parametersKeyName, 0, 0, NULL)))
                 {
-                    PhSetValueKeyZ(parametersKeyHandle, L"DynData", REG_BINARY, (PVOID)KphDynData, KphDynDataLength);
-                    PhSetValueKeyZ(parametersKeyHandle, L"DynDataSig", REG_BINARY, (PVOID)KphDynDataSig, KphDynDataSigLength);
+                    PhSetValueKeyZ(parametersKeyHandle, L"DynData", REG_SZ, Config->DynData->Buffer, (ULONG)Config->DynData->Length + sizeof(UNICODE_NULL));
                     PhSetValueKeyZ(parametersKeyHandle, L"KphPortName", REG_SZ, Config->PortName->Buffer, (ULONG)Config->PortName->Length + sizeof(UNICODE_NULL));
                     PhSetValueKeyZ(parametersKeyHandle, L"KphAltitude", REG_SZ, Config->Altitude->Buffer, (ULONG)Config->Altitude->Length + sizeof(UNICODE_NULL));
                     PhSetValueKeyZ(parametersKeyHandle, L"DisableImageLoadProtection", REG_DWORD, &(ULONG){ Config->DisableImageLoadProtection }, sizeof(ULONG));

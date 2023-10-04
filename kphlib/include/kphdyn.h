@@ -68,7 +68,6 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
     USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
-
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
 typedef struct _KPH_DYNDATA
@@ -76,7 +75,6 @@ typedef struct _KPH_DYNDATA
     ULONG Version;
     ULONG Count;
     KPH_DYN_CONFIGURATION Configs[ANYSIZE_ARRAY];
-
 } KPH_DYNDATA, *PKPH_DYNDATA;
 
 #include <poppack.h>
@@ -84,6 +82,4 @@ typedef struct _KPH_DYNDATA
 #ifdef _WIN64
 extern CONST BYTE KphDynData[];
 extern CONST ULONG KphDynDataLength;
-extern CONST BYTE KphDynDataSig[];
-extern CONST ULONG KphDynDataSigLength;
 #endif
