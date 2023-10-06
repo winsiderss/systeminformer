@@ -18,8 +18,8 @@ namespace CustomBuildTool
 
         static Github()
         {
-            BaseUrl = Win32.GetEnvironmentVariable("%APPVEYOR_GITHUB_MIRROR_API%");
-            BaseToken = Win32.GetEnvironmentVariable("%APPVEYOR_GITHUB_MIRROR_KEY%");
+            BaseUrl = Win32.GetEnvironmentVariable("%GITHUB_MIRROR_API%");
+            BaseToken = Win32.GetEnvironmentVariable("%GITHUB_MIRROR_KEY%");
         }
 
         public static GithubReleasesResponse CreateRelease(string Version)

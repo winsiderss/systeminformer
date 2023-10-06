@@ -893,49 +893,6 @@ namespace CustomBuildTool
         //}
     }
 
-    public static class AppVeyor
-    {
-        public static bool UpdateBuildVersion(string BuildVersion)
-        {
-            try
-            {
-                string AppVeyorFilePath = Win32.SearchFile("appveyor.exe");
-
-                if (!string.IsNullOrWhiteSpace(AppVeyorFilePath) && !string.IsNullOrWhiteSpace(BuildVersion))
-                {
-                    Win32.ShellExecute("appveyor", $"UpdateBuild -Version \"{BuildVersion}\" ");
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[UpdateBuildVersion] {ex}", ConsoleColor.Red);
-            }
-
-            return false;
-        }
-
-        public static bool UploadFile(string FileName)
-        {
-            try
-            {
-                string AppVeyorFilePath = Win32.SearchFile("appveyor.exe");
-
-                if (!string.IsNullOrWhiteSpace(AppVeyorFilePath) && !string.IsNullOrWhiteSpace(FileName))
-                {
-                    Win32.ShellExecute("appveyor", $"PushArtifact \"{FileName}\" ");
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[UploadFile] {ex}", ConsoleColor.Red);
-            }
-
-            return false;
-        }
-    }
-
     public class BuildUpdateRequest
     {
         [JsonPropertyName("build_id")] public string BuildId { get; set; }
