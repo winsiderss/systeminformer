@@ -194,7 +194,6 @@ namespace CustomBuildTool
             else if (ProgramArgs.ContainsKey("-nightly-build"))
             {
                 Build.SetupBuildEnvironment(true);
-                Build.BuildNightly = true;
 
                 if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
@@ -216,7 +215,6 @@ namespace CustomBuildTool
             else if (ProgramArgs.ContainsKey("-nightly-package"))
             {
                 Build.SetupBuildEnvironment(true);
-                Build.BuildNightly = true;
 
                 if (!Build.CopyTextFiles(true))
                     Environment.Exit(1);
@@ -228,7 +226,6 @@ namespace CustomBuildTool
             else if (ProgramArgs.ContainsKey("-nightly-deploy"))
             {
                 Build.SetupBuildEnvironment(true);
-                Build.BuildNightly = true;
 
                 if (!Build.BuildPdbZip(false))
                     Environment.Exit(1);
