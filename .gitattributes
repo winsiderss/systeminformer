@@ -76,4 +76,3 @@
 .gitignore      export-ignore
 .gitmodules     export-ignore
 .github         export-ignore
-appveyor.yml    export-ignore

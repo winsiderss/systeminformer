@@ -191,8 +191,9 @@ namespace CustomBuildTool
 
                 Build.ShowBuildStats();
             }
-            else if (ProgramArgs.ContainsKey("-appveyor"))
+            else if (ProgramArgs.ContainsKey("-nightly"))
             {
+                Build.BuildNightly = true;
                 Build.SetupBuildEnvironment(true);
 
                 if (!Build.BuildSolution("SystemInformer.sln",
