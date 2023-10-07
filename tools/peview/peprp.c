@@ -982,29 +982,29 @@ VOID PvpSetPeImageSize(
         }
     }
 
-    if (PvMappedImage.Size != lastRawDataOffset)
+    if (PvMappedImage.ViewSize != lastRawDataOffset)
     {
-        BOOLEAN success = FALSE;
-        PIMAGE_DATA_DIRECTORY dataDirectory;
-
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(
-            &PvMappedImage,
-            IMAGE_DIRECTORY_ENTRY_SECURITY,
-            &dataDirectory
-            )))
-        {
-            if ((lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
-                (lastRawDataOffset == dataDirectory->VirtualAddress))
-            {
-                success = TRUE;
-            }
-        }
-
-        if (success)
-        {
-            string = PhFormatSize(PvMappedImage.Size, ULONG_MAX);
-        }
-        else
+        //BOOLEAN success = FALSE;
+        //PIMAGE_DATA_DIRECTORY dataDirectory;
+        //
+        //if (NT_SUCCESS(PhGetMappedImageDataEntry(
+        //    &PvMappedImage,
+        //    IMAGE_DIRECTORY_ENTRY_SECURITY,
+        //    &dataDirectory
+        //    )))
+        //{
+        //    if ((lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
+        //        (lastRawDataOffset == dataDirectory->VirtualAddress))
+        //    {
+        //        success = TRUE;
+        //    }
+        //}
+        //
+        //if (success)
+        //{
+        //    string = PhFormatSize(PvMappedImage.Size, ULONG_MAX);
+        //}
+        //else
         {
             WCHAR pointer[PH_PTR_STR_LEN_1];
 
