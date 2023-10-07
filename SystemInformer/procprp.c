@@ -248,6 +248,8 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             PhRemoveWindowContext(hwnd, 0xF);
 
             PhDeleteLayoutManager(&propSheetContext->LayoutManager);
+            PhRemoveWindowContext(hwnd, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhFree(propSheetContext);
         }
         break;
