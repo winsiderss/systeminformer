@@ -726,6 +726,50 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool ResignFiles()
+        {
+            var files = new List<string>();
+            foreach (string sigFile in Directory.EnumerateFiles("bin", "*.sig", SearchOption.AllDirectories))
+            {
+                var file = Path.ChangeExtension(sigFile, ".dll");
+
+                if (File.Exists(file))
+                    files.Add(file);
+
+                file = Path.ChangeExtension(sigFile, ".exe");
+
+                if (File.Exists(file))
+                    files.Add(file);
+            }
+
+            if (BuildNightly && !File.Exists(Verify.GetPath("kph.key")))
+            {
+                string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
+
+                if (!string.IsNullOrWhiteSpace(kphKey))
+                {
+                    Verify.Decrypt(Verify.GetPath("kph.s"), Verify.GetPath("kph.key"), kphKey);
+                }
+
+                if (!File.Exists(Verify.GetPath("kph.key")))
+                {
+                    Program.PrintColorMessage("[SKIPPED] kph.key not found.", ConsoleColor.Yellow);
+                    return true;
+                }
+            }
+
+            if (File.Exists(Verify.GetPath("kph.key")))
+            {
+                foreach (string file in files)
+                {
+                    if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), file, false))
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         public static bool BuildSdk(BuildFlags Flags)
         {
             try
