@@ -355,7 +355,7 @@ NTSTATUS WepResolveSymbolFunction(
     if (PhBeginInitOnce(&context->Context->SymbolProviderInitOnce))
     {
         PhLoadSymbolProviderOptions(context->Context->SymbolProvider);
-        PhLoadModulesForVirtualSymbolProvider(context->Context->SymbolProvider, context->Context->ClientId.UniqueProcess);
+        PhLoadModulesForVirtualSymbolProvider(context->Context->SymbolProvider, context->Context->ClientId.UniqueProcess, NULL);
         PhEndInitOnce(&context->Context->SymbolProviderInitOnce);
     }
 

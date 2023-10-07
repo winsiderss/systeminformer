@@ -247,7 +247,11 @@ static NTSTATUS PhpLimitedSymbolProviderLookupFunction(
     if (PhBeginInitOnce(&result->Context->SymbolProviderInitOnce))
     {
         PhLoadSymbolProviderOptions(result->Context->SymbolProvider);
-        PhLoadModulesForVirtualSymbolProvider(result->Context->SymbolProvider, result->Context->ProcessItem->ProcessId);
+        PhLoadModulesForVirtualSymbolProvider(
+            result->Context->SymbolProvider,
+            result->Context->ProcessItem->ProcessId,
+            NULL
+            );
 
         for (ULONG i = 0; i < result->Context->ImageAddressList->Count; i++)
         {
