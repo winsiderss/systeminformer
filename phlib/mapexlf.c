@@ -19,7 +19,7 @@ NTSTATUS PhInitializeMappedWslImage(
     )
 {
     MappedWslImage->ViewBase = ViewBase;
-    MappedWslImage->Size = Size;
+    MappedWslImage->ViewSize = Size;
     MappedWslImage->Header = (PELF_IMAGE_HEADER)ViewBase;
 
     __try
@@ -28,7 +28,7 @@ NTSTATUS PhInitializeMappedWslImage(
             MappedWslImage->Header,
             sizeof(ELF_IMAGE_HEADER),
             MappedWslImage->ViewBase,
-            MappedWslImage->Size,
+            MappedWslImage->ViewSize,
             1
             );
     }
@@ -54,7 +54,7 @@ NTSTATUS PhInitializeMappedWslImage(
                 MappedWslImage->Headers64,
                 sizeof(ELF64_IMAGE_SECTION_HEADER),
                 MappedWslImage->ViewBase,
-                MappedWslImage->Size,
+                MappedWslImage->ViewSize,
                 1
                 );
         }

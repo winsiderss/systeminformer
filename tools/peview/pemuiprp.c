@@ -204,7 +204,9 @@ VOID PvPeGetMuiInfo(
 
                         if (PhEqualStringRef2(&string, MUI_TYPE, TRUE))
                         {
-                            PvAddMuiResourceInfo(ListViewHandle, entry.Data);
+                            PVOID resourceData = PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, NULL);
+
+                            PvAddMuiResourceInfo(ListViewHandle, resourceData);
                         }
                     }
                 }

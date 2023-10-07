@@ -272,7 +272,7 @@ VOID PvpPeResourceSaveToFile(
         if (UlongToPtr(entry.Offset) != ResourceNode->RvaStart)
             continue;
 
-        if (entry.Data && entry.Size)
+        if (entry.Size)
         {
             NTSTATUS status;
             HANDLE fileHandle;
@@ -291,6 +291,8 @@ VOID PvpPeResourceSaveToFile(
             {
                 IO_STATUS_BLOCK isb;
 
+                PVOID resourceData = PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, NULL);
+
                 __try
                 {
                     status = NtWriteFile(
@@ -299,7 +301,7 @@ VOID PvpPeResourceSaveToFile(
                         NULL,
                         NULL,
                         &isb,
-                        entry.Data,
+                        resourceData,
                         entry.Size,
                         NULL,
                         NULL
@@ -381,6 +383,8 @@ VOID PvpPeEnumMappedImageResources(
                 resourceNode->NameString = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
             }
 
+            // Language
+
             if (IS_INTRESOURCE(entry.Language))
             {
                 if ((ULONG)entry.Language)
@@ -414,32 +418,46 @@ VOID PvpPeEnumMappedImageResources(
                 resourceNode->LcidString = PhCreateStringEx(resourceString->NameString, resourceString->Length * sizeof(WCHAR));
             }
 
-            if (entry.Data && entry.Size)
+            // Hash
+
+            if (entry.Size)
             {
-                resourceNode->HashString = PvHashBuffer(entry.Data, entry.Size);
+                PVOID resourceData = PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, NULL);
+
+                if (resourceData)
+                {
+                    resourceNode->HashString = PvHashBuffer(resourceData, entry.Size);
+                }
             }
 
-            if (entry.Data && entry.Size)
-            {
-                __try
-                {
-                    DOUBLE imageResourceEntropy;
+            // Entropy
 
-                    if (PhCalculateEntropy(
-                        entry.Data,
-                        entry.Size,
-                        &imageResourceEntropy,
-                        NULL
-                        ))
-                    {
-                        resourceNode->ResourcesEntropy = imageResourceEntropy;
-                        resourceNode->EntropyString = PhFormatEntropy(imageResourceEntropy, 2, 0, 0);
-                    }
-                }
-                __except (EXCEPTION_EXECUTE_HANDLER)
+            if (entry.Size)
+            {
+                PVOID resourceData = PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, NULL);
+
+                if (resourceData)
                 {
-                    //resourceNode->EntropyString = PhGetNtMessage(GetExceptionCode());
-                    resourceNode->EntropyString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                    __try
+                    {
+                        DOUBLE imageResourceEntropy;
+
+                        if (PhCalculateEntropy(
+                            resourceData,
+                            entry.Size,
+                            &imageResourceEntropy,
+                            NULL
+                            ))
+                        {
+                            resourceNode->ResourcesEntropy = imageResourceEntropy;
+                            resourceNode->EntropyString = PhFormatEntropy(imageResourceEntropy, 2, 0, 0);
+                        }
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        //resourceNode->EntropyString = PhGetNtMessage(GetExceptionCode());
+                        resourceNode->EntropyString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                    }
                 }
             }
 
@@ -464,7 +482,7 @@ VOID PvpPeEnumAlternateMappedImageResources(
         PPH_STRING muiFileName;
         PH_MAPPED_IMAGE muiMappedImage;
 
-        if (NT_SUCCESS(PhLoadLibraryAsImageResourceWin32(&FileName->sr, &baseAddress)))
+        if (NT_SUCCESS(PhLoadLibraryAsImageResource(&FileName->sr, FALSE, &baseAddress)))
         {
             if (NT_SUCCESS(LdrLoadAlternateResourceModule(baseAddress, &muiBaseAddress, NULL, 0)))
             {

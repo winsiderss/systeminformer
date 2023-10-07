@@ -137,7 +137,7 @@ VOID PvPeProperties(
             PhDereferenceObject(fileName);
         }
 
-        PhLoadModulesForVirtualSymbolProvider(PvSymbolProvider, NtCurrentProcessId());
+        PhLoadModulesForVirtualSymbolProvider(PvSymbolProvider, NtCurrentProcessId(), NtCurrentProcess());
     }
 
     if (propContext = PvCreatePropContext(PvFileName))
@@ -256,6 +256,7 @@ VOID PvPeProperties(
                     sizeof(IMAGE_COR20_HEADER),
                     PvMappedImage.ViewBase,
                     PvMappedImage.Size,
+                    PvMappedImage.ViewSize,
                     4
                     );
             }
@@ -1013,15 +1014,15 @@ VOID PvpSetPeImageSize(
             string = PhFormatString(
                 L"%s (incorrect, %s) (overlay, %s - %s)",
                 PhaFormatSize(lastRawDataOffset, ULONG_MAX)->Buffer,
-                PhaFormatSize(PvMappedImage.Size, ULONG_MAX)->Buffer,
+                PhaFormatSize(PvMappedImage.ViewSize, ULONG_MAX)->Buffer,
                 pointer,
-                PhaFormatSize(PvMappedImage.Size - lastRawDataOffset, ULONG_MAX)->Buffer
+                PhaFormatSize(PvMappedImage.ViewSize - lastRawDataOffset, ULONG_MAX)->Buffer
                 );
         }
     }
     else
     {
-        string = PhFormatSize(PvMappedImage.Size, ULONG_MAX);
+        string = PhFormatSize(PvMappedImage.ViewSize, ULONG_MAX);
     }
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_IMAGESIZE, 1, string->Buffer);
@@ -1042,7 +1043,7 @@ VOID PvCalculateImageEntropy(
 
     memset(counts, 0, sizeof(counts));
 
-    while (offset < PvMappedImage.Size)
+    while (offset < PvMappedImage.ViewSize)
     {
         BYTE value = *(PBYTE)PTR_ADD_OFFSET(PvMappedImage.ViewBase, offset++);
 
@@ -1052,13 +1053,13 @@ VOID PvCalculateImageEntropy(
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(counts); i++)
     {
-        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)PvMappedImage.Size;
+        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)PvMappedImage.ViewSize;
 
         if (value > 0.0)
             imageEntropy -= value * log2(value);
     }
 
-    imageMeanValue = (DOUBLE)imageSumValue / (DOUBLE)PvMappedImage.Size; // 127.5 = random
+    imageMeanValue = (DOUBLE)imageSumValue / (DOUBLE)PvMappedImage.ViewSize; // 127.5 = random
 
     //offset = 0;
     //while (offset < PvMappedImage.Size)

@@ -16,15 +16,6 @@
 EXTERN_C_START
 
 PHLIBAPI
-PLDR_DATA_TABLE_ENTRY
-NTAPI
-PhFindLoaderEntry(
-    _In_opt_ PVOID DllBase,
-    _In_opt_ PPH_STRINGREF FullDllName,
-    _In_opt_ PPH_STRINGREF BaseDllName
-    );
-
-PHLIBAPI
 PVOID
 NTAPI
 PhLoadLibrary(
@@ -43,14 +34,7 @@ NTSTATUS
 NTAPI
 PhLoadLibraryAsImageResource(
     _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PVOID *BaseAddress
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhLoadLibraryAsImageResourceWin32(
-    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName,
     _Out_opt_ PVOID *BaseAddress
     );
 
@@ -162,6 +146,39 @@ PhGetDllFileName(
     _In_ PVOID DllBase,
     _Out_opt_ PULONG IndexOfFileName
     );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetLoaderEntryData(
+    _In_ PPH_STRINGREF BaseDllName,
+    _Out_opt_ PVOID* DllBase,
+    _Out_opt_ ULONG* SizeOfImage,
+    _Out_opt_ PPH_STRING* FullName
+    );
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhGetLoaderEntryDataZ(
+    _In_ PWSTR BaseDllName,
+    _Out_opt_ PVOID* DllBase,
+    _Out_opt_ ULONG* SizeOfImage,
+    _Out_opt_ PPH_STRING* FullName
+    )
+{
+    PH_STRINGREF baseDllName;
+
+    PhInitializeStringRef(&baseDllName, BaseDllName);
+
+    return PhGetLoaderEntryData(
+        &baseDllName,
+        DllBase,
+        SizeOfImage,
+        FullName
+        );
+}
 
 PHLIBAPI
 PVOID

@@ -1264,14 +1264,6 @@ NTSTATUS PhGetProcessCommandLine(
     _Out_ PPH_STRING *CommandLine
     )
 {
-#ifdef _DEBUG
-    if (ProcessHandle == NtCurrentProcess())
-    {
-        *CommandLine = PhCreateStringFromUnicodeString(&NtCurrentPeb()->ProcessParameters->CommandLine);
-        return STATUS_SUCCESS;
-    }
-#endif
-
     if (WindowsVersion >= WINDOWS_8_1)
     {
         NTSTATUS status;
@@ -17757,12 +17749,6 @@ NTSTATUS PhGetDeviceType(
     return status;
 }
 
-typedef struct _AppExecLinkReparseBuffer
-{
-    ULONG StringCount;
-    WCHAR StringList[1];
-} AppExecLinkReparseBuffer, *PAppExecLinkReparseBuffer;
-
 BOOLEAN PhIsAppExecutionAliasTarget(
     _In_ PPH_STRING FileName
     )
@@ -17810,13 +17796,11 @@ BOOLEAN PhIsAppExecutionAliasTarget(
             reparseBuffer->ReparseTag == IO_REPARSE_TAG_APPEXECLINK
             )
         {
-            PAppExecLinkReparseBuffer appexeclink;
             PWSTR string;
 
-            appexeclink = (PAppExecLinkReparseBuffer)reparseBuffer->GenericReparseBuffer.DataBuffer;
-            string = (PWSTR)appexeclink->StringList;
+            string = (PWSTR)reparseBuffer->AppExecLinkReparseBuffer.StringList;
 
-            for (ULONG i = 0; i < appexeclink->StringCount; i++)
+            for (ULONG i = 0; i < reparseBuffer->AppExecLinkReparseBuffer.StringCount; i++)
             {
                 if (i == 2 && PhDoesFileExistWin32(string))
                 {
@@ -17848,7 +17832,7 @@ BOOLEAN PhIsAppExecutionAliasTarget(
 
 NTSTATUS PhEnumProcessEnclaves(
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID LdrpEnclaveList,
+    _In_ PVOID LdrEnclaveList,
     _In_ PPH_ENUM_PROCESS_ENCLAVES_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
@@ -17859,7 +17843,7 @@ NTSTATUS PhEnumProcessEnclaves(
 
     status = NtReadVirtualMemory(
         ProcessHandle,
-        LdrpEnclaveList,
+        LdrEnclaveList,
         &enclaveList,
         sizeof(LIST_ENTRY),
         NULL
@@ -17868,7 +17852,7 @@ NTSTATUS PhEnumProcessEnclaves(
         return status;
 
     for (PLIST_ENTRY link = enclaveList.Flink;
-         link != LdrpEnclaveList;
+         link != LdrEnclaveList;
          link = enclave.Links.Flink)
     {
         PVOID enclaveAddress;

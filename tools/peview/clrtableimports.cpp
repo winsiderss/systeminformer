@@ -370,7 +370,7 @@ HRESULT PvGetClrImageMetaDataTables(
 
     status = metaDataDispenser->OpenScopeOnMemory(
         PvMappedImage.ViewBase,
-        static_cast<ULONG>(PvMappedImage.Size),
+        static_cast<ULONG>(PvMappedImage.ViewSize),
         ofReadOnly,
         IID_IMetaDataImport,
         reinterpret_cast<IUnknown**>(&metaDataImport)

@@ -91,12 +91,13 @@ typedef struct _PH_MODULE_PROVIDER
         struct
         {
             BOOLEAN HaveFirst : 1;
-            BOOLEAN ControlFlowGuardEnabled : 1;
+            BOOLEAN IsHandleValid : 1;
             BOOLEAN IsSubsystemProcess : 1;
+            BOOLEAN ControlFlowGuardEnabled : 1;
             BOOLEAN CetEnabled : 1;
             BOOLEAN CetStrictModeEnabled : 1;
             BOOLEAN ZeroPadAddresses : 1;
-            BOOLEAN Spare : 2;
+            BOOLEAN Spare : 1;
         };
     };
     UCHAR ImageCoherencyScanLevel;

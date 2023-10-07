@@ -2087,7 +2087,7 @@ PVOID PhGetFileVersionInfoEx(
     PVOID imageBaseAddress;
     PVOID versionInfo;
 
-    if (!NT_SUCCESS(PhLoadLibraryAsImageResource(FileName, &imageBaseAddress)))
+    if (!NT_SUCCESS(PhLoadLibraryAsImageResource(FileName, TRUE, &imageBaseAddress)))
         return NULL;
 
     if (PhLoadResourceCopy(

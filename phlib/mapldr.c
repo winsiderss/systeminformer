@@ -264,48 +264,37 @@ NTSTATUS PhLoadLibraryAsResource(
 
 NTSTATUS PhLoadLibraryAsImageResource(
     _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName,
     _Out_opt_ PVOID *BaseAddress
     )
 {
     NTSTATUS status;
     HANDLE fileHandle;
 
-    status = PhCreateFile(
-        &fileHandle,
-        FileName,
-        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    status = PhLoadLibraryAsResource(fileHandle, BaseAddress);
-    NtClose(fileHandle);
-
-    return status;
-}
-
-NTSTATUS PhLoadLibraryAsImageResourceWin32(
-    _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PVOID *BaseAddress
-    )
-{
-    NTSTATUS status;
-    HANDLE fileHandle;
-
-    status = PhCreateFileWin32(
-        &fileHandle,
-        FileName->Buffer,
-        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
+    if (NativeFileName)
+    {
+        status = PhCreateFile(
+            &fileHandle,
+            FileName,
+            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+    }
+    else
+    {
+        status = PhCreateFileWin32(
+            &fileHandle,
+            FileName->Buffer,
+            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return status;
@@ -821,7 +810,7 @@ PPH_STRING PhLoadIndirectString(
             }
         }
 
-        if (NT_SUCCESS(PhLoadLibraryAsImageResourceWin32(&libraryString->sr, &libraryModule)))
+        if (NT_SUCCESS(PhLoadLibraryAsImageResource(&libraryString->sr, FALSE, &libraryModule)))
         {
             indirectString = PhLoadString(libraryModule, -index);
             PhFreeLibraryAsImageResource(libraryModule);
@@ -883,21 +872,78 @@ PPH_STRING PhGetDllFileName(
     return fileName;
 }
 
+_Success_(return)
+BOOLEAN PhGetLoaderEntryData(
+    _In_ PPH_STRINGREF BaseDllName,
+    _Out_opt_ PVOID* DllBase,
+    _Out_opt_ ULONG* SizeOfImage,
+    _Out_opt_ PPH_STRING* FullName
+    )
+{
+    BOOLEAN result = FALSE;
+    PLDR_DATA_TABLE_ENTRY entry;
+
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    entry = PhFindLoaderEntry(NULL, NULL, BaseDllName);
+
+    if (entry)
+    {
+        if (DllBase)
+        {
+            *DllBase = entry->DllBase;
+            result = TRUE;
+        }
+
+        if (SizeOfImage)
+        {
+            *SizeOfImage = entry->SizeOfImage;
+            result = TRUE;
+        }
+
+        if (FullName)
+        {
+            PH_STRINGREF fullName;
+            PPH_STRING fileName;
+
+            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
+
+            if (fileName = PhDosPathNameToNtPathName(&fullName))
+            {
+                *FullName = fileName;
+                result = TRUE;
+            }
+            else
+            {
+                result = FALSE;
+            }
+        }
+    }
+
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    return result;
+}
+
 PVOID PhGetLoaderEntryAddressDllBase(
     _In_ PVOID Address
     )
 {
-    PLDR_DATA_TABLE_ENTRY ldrEntry;
-    PPEB peb = NtCurrentPeb();
+    PLDR_DATA_TABLE_ENTRY entry;
+    PVOID baseAddress;
 
-    RtlEnterCriticalSection(peb->LoaderLock);
-    ldrEntry = PhFindLoaderEntryAddress(Address);
-    RtlLeaveCriticalSection(peb->LoaderLock);
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
 
-    if (ldrEntry)
-        return ldrEntry->DllBase;
+    entry = PhFindLoaderEntryAddress(Address);
+
+    if (entry)
+        baseAddress = entry->DllBase;
     else
-        return NULL;
+        baseAddress = NULL;
+
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    return baseAddress;
 }
 
 PVOID PhGetLoaderEntryDllBase(
@@ -905,28 +951,30 @@ PVOID PhGetLoaderEntryDllBase(
     _In_opt_ PPH_STRINGREF BaseDllName
     )
 {
-    PLDR_DATA_TABLE_ENTRY ldrEntry;
-    PPEB peb = NtCurrentPeb();
+    PLDR_DATA_TABLE_ENTRY entry;
+    PVOID baseAddress;
 
-    RtlEnterCriticalSection(peb->LoaderLock);
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
 
     if (WindowsVersion >= WINDOWS_8 && !FullDllName && BaseDllName)
     {
         ULONG baseNameHash = PhHashStringRefEx(BaseDllName, TRUE, PH_STRING_HASH_X65599);
 
-        ldrEntry = PhFindLoaderEntryNameHash(baseNameHash);
+        entry = PhFindLoaderEntryNameHash(baseNameHash);
     }
     else
     {
-        ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
+        entry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
     }
 
-    RtlLeaveCriticalSection(peb->LoaderLock);
-
-    if (ldrEntry)
-        return ldrEntry->DllBase;
+    if (entry)
+        baseAddress = entry->DllBase;
     else
-        return NULL;
+        baseAddress = NULL;
+
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    return baseAddress;
 }
 
 PVOID PhGetDllBaseProcedureAddress(
