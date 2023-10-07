@@ -67,7 +67,7 @@
 #undef WIN32_NO_STATUS
 #include <ntstatus.h>
 #include <winioctl.h>
-#include <wmistr.h>
+#include <evntrace.h>
 
 typedef double DOUBLE;
 typedef GUID *PGUID;
