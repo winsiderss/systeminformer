@@ -216,6 +216,8 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(true);
 
+                if (!Build.ResignFiles())
+                    Environment.Exit(1);
                 if (!Build.CopyTextFiles(true))
                     Environment.Exit(1);
                 if (!Build.BuildBinZip())
