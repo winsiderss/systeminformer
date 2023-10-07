@@ -398,7 +398,7 @@ NTAPI
 LdrLockLoaderLock(
     _In_ ULONG Flags,
     _Out_opt_ ULONG *Disposition,
-    _Out_ PVOID *Cookie
+    _Out_opt_ PVOID *Cookie
     );
 
 #define LDR_UNLOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS 0x00000001
@@ -408,7 +408,7 @@ NTSTATUS
 NTAPI
 LdrUnlockLoaderLock(
     _In_ ULONG Flags,
-    _In_ PVOID Cookie
+    _In_opt_ PVOID Cookie
     );
 
 NTSYSAPI
