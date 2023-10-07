@@ -415,9 +415,11 @@ VOID PhpSymbolProviderCompleteInitialization(
     PVOID symsrvHandle;
     HANDLE keyHandle;
 
-    if (PhFindLoaderEntry(NULL, NULL, &dbgcoreFileName) &&
-        PhFindLoaderEntry(NULL, NULL, &dbghelpFileName) &&
-        PhFindLoaderEntry(NULL, NULL, &symsrvFileName))
+    if (
+        PhGetDllHandle(PhGetStringRefZ(&dbgcoreFileName)) &&
+        PhGetDllHandle(PhGetStringRefZ(&dbghelpFileName)) &&
+        PhGetDllHandle(PhGetStringRefZ(&symsrvFileName))
+        )
     {
         return;
     }
@@ -1209,119 +1211,161 @@ BOOLEAN PhLoadFileNameSymbolProvider(
         return FALSE;
 }
 
-typedef struct _PHP_LOAD_PROCESS_SYMBOLS_CONTEXT
+typedef struct _PH_LOAD_SYMBOLS_CONTEXT
 {
-    HANDLE LoadingSymbolsForProcessId;
     PPH_SYMBOL_PROVIDER SymbolProvider;
-} PHP_LOAD_PROCESS_SYMBOLS_CONTEXT, *PPHP_LOAD_PROCESS_SYMBOLS_CONTEXT;
+} PH_LOAD_SYMBOLS_CONTEXT, *PPH_LOAD_SYMBOLS_CONTEXT;
 
 static BOOLEAN NTAPI PhpSymbolProviderEnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PVOID Context
     )
 {
-    PPHP_LOAD_PROCESS_SYMBOLS_CONTEXT context = Context;
+    PPH_LOAD_SYMBOLS_CONTEXT context = Context;
 
-    // If we're loading kernel module symbols for a process other than
-    // System, ignore modules which are in user space. This may happen
-    // in Windows 7. (wj32)
-    if (
-        context->LoadingSymbolsForProcessId == SYSTEM_PROCESS_ID &&
-        (ULONG_PTR)Module->BaseAddress <= PhSystemBasicInformation.MaximumUserModeAddress
-        )
-        return TRUE;
-
-    PhLoadModuleSymbolProvider(context->SymbolProvider, Module->FileName,
-        (ULONG64)Module->BaseAddress, Module->Size);
+    PhLoadModuleSymbolProvider(
+        context->SymbolProvider,
+        Module->FileName,
+        (ULONG64)Module->BaseAddress,
+        Module->Size
+        );
 
     return TRUE;
 }
 
-VOID PhLoadModulesForVirtualSymbolProvider(
+VOID PhLoadSymbolProviderModules(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_opt_ HANDLE ProcessId
+    _In_ HANDLE ProcessId
     )
 {
-    PHP_LOAD_PROCESS_SYMBOLS_CONTEXT context;
+    PH_LOAD_SYMBOLS_CONTEXT context;
 
-    memset(&context, 0, sizeof(PHP_LOAD_PROCESS_SYMBOLS_CONTEXT));
+    memset(&context, 0, sizeof(PH_LOAD_SYMBOLS_CONTEXT));
     context.SymbolProvider = SymbolProvider;
 
-    if (ProcessId)
+    // Load symbols for process modules.
+    if (ProcessId != SYSTEM_IDLE_PROCESS_ID && SymbolProvider->IsRealHandle)
     {
-        HANDLE processHandle = NULL;
-
-        if (SymbolProvider->IsRealHandle)
-        {
-            processHandle = SymbolProvider->ProcessHandle;
-        }
-        else
-        {
-            PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId);
-        }
-
-        if (processHandle)
-        {
-            // Load symbols for the process.
-            context.LoadingSymbolsForProcessId = ProcessId;
-            PhEnumGenericModules(
-                ProcessId,
-                processHandle,
-                PH_ENUM_GENERIC_MAPPED_IMAGES,
-                PhpSymbolProviderEnumModulesCallback,
-                &context
-                );
-        }
-
-        if (!SymbolProvider->IsRealHandle && processHandle)
-        {
-            NtClose(processHandle);
-        }
+        PhEnumGenericModules(
+            ProcessId,
+            SymbolProvider->ProcessHandle,
+            PH_ENUM_GENERIC_MAPPED_IMAGES,
+            PhpSymbolProviderEnumModulesCallback,
+            &context
+            );
     }
 
     // Load symbols for kernel modules.
-    context.LoadingSymbolsForProcessId = SYSTEM_PROCESS_ID;
-    PhEnumGenericModules(
-        SYSTEM_PROCESS_ID,
-        NULL,
-        0,
-        PhpSymbolProviderEnumModulesCallback,
-        &context
-        );
+    {
+        PhEnumGenericModules(
+            SYSTEM_PROCESS_ID,
+            NULL,
+            0,
+            PhpSymbolProviderEnumModulesCallback,
+            &context
+            );
+    }
+
+    // Load symbols for ntdll.dll and kernel32.dll.
+    {
+        static PH_STRINGREF fileNames[] =
+        {
+            PH_STRINGREF_INIT(L"ntdll.dll"),
+            PH_STRINGREF_INIT(L"kernel32.dll"),
+        };
+
+        for (ULONG i = 0; i < RTL_NUMBER_OF(fileNames); i++)
+        {
+            PVOID baseAddress;
+            ULONG sizeOfImage;
+            PPH_STRING fileName;
+
+            if (PhGetLoaderEntryData(&fileNames[i], &baseAddress, &sizeOfImage, &fileName))
+            {
+                PhLoadModuleSymbolProvider(SymbolProvider, fileName, (ULONG64)baseAddress, sizeOfImage);
+                PhDereferenceObject(fileName);
+            }
+        }
+    }
+}
+
+VOID PhLoadModulesForVirtualSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_opt_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle
+    )
+{
+    PH_LOAD_SYMBOLS_CONTEXT context;
+    HANDLE processHandle = NULL;
+    BOOLEAN closeHandle = FALSE;
+
+    memset(&context, 0, sizeof(PH_LOAD_SYMBOLS_CONTEXT));
+    context.SymbolProvider = SymbolProvider;
+
+    if (SymbolProvider->IsRealHandle)
+    {
+        processHandle = SymbolProvider->ProcessHandle;
+    }
+    else if (ProcessHandle)
+    {
+        processHandle = ProcessHandle;
+    }
+    else
+    {
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId)))
+        {
+            closeHandle = TRUE;
+        }
+    }
+
+    // Load symbols for process modules.
+    if (ProcessId != SYSTEM_IDLE_PROCESS_ID && processHandle)
+    {
+        PhEnumGenericModules(
+            ProcessId,
+            processHandle,
+            PH_ENUM_GENERIC_MAPPED_IMAGES,
+            PhpSymbolProviderEnumModulesCallback,
+            &context
+            );
+    }
+
+    // Load symbols for kernel modules.
+    {
+        PhEnumGenericModules(
+            SYSTEM_PROCESS_ID,
+            NULL,
+            0,
+            PhpSymbolProviderEnumModulesCallback,
+            &context
+            );
+    }
 
     // Load symbols for ntdll.dll and kernel32.dll (dmex)
     {
-        static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"ntdll.dll");
-        static PH_STRINGREF kernel32FileName = PH_STRINGREF_INIT(L"kernel32.dll");
-        PLDR_DATA_TABLE_ENTRY entry;
-
-        if (entry = PhFindLoaderEntry(NULL, NULL, &ntdllFileName))
+        static PH_STRINGREF fileNames[] =
         {
-            PH_STRINGREF fullName;
+            PH_STRINGREF_INIT(L"ntdll.dll"),
+            PH_STRINGREF_INIT(L"kernel32.dll"),
+        };
+
+        for (ULONG i = 0; i < RTL_NUMBER_OF(fileNames); i++)
+        {
+            PVOID baseAddress;
+            ULONG sizeOfImage;
             PPH_STRING fileName;
 
-            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
-
-            if (fileName = PhDosPathNameToNtPathName(&fullName))
+            if (PhGetLoaderEntryData(&fileNames[i], &baseAddress, &sizeOfImage, &fileName))
             {
-                PhLoadModuleSymbolProvider(SymbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
+                PhLoadModuleSymbolProvider(SymbolProvider, fileName, (ULONG64)baseAddress, sizeOfImage);
                 PhDereferenceObject(fileName);
             }
         }
+    }
 
-        if (entry = PhFindLoaderEntry(NULL, NULL, &kernel32FileName))
-        {
-            PH_STRINGREF fullName;
-            PPH_STRING fileName;
-
-            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
-
-            if (fileName = PhDosPathNameToNtPathName(&fullName))
-            {
-                PhLoadModuleSymbolProvider(SymbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
-                PhDereferenceObject(fileName);
-            }
-        }
+    if (closeHandle && processHandle)
+    {
+        NtClose(processHandle);
     }
 }
 

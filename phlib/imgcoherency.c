@@ -517,7 +517,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
             //
             // Calculate the remaining view from the VA
             //
-            remainingView = (SIZE_T)PTR_SUB_OFFSET(Context->MappedImage.Size,
+            remainingView = (SIZE_T)PTR_SUB_OFFSET(Context->MappedImage.ViewSize,
                                                    PTR_SUB_OFFSET(fileBytes,
                                                                   Context->MappedImage.ViewBase));
         }

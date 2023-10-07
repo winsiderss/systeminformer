@@ -223,7 +223,7 @@ PPH_STRING PvpQueryModuleOrdinalName(
                                             moduleSymbolProvider,
                                             exportFileName,
                                             (ULONG64)mappedImage.ViewBase,
-                                            (ULONG)mappedImage.Size
+                                            (ULONG)mappedImage.ViewSize
                                             ))
                                         {
                                             // Try find the export name using symbols.

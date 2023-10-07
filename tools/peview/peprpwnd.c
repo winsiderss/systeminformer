@@ -274,7 +274,7 @@ VOID PvAddTreeViewSections(
                 PvImageCor20Header,
                 sizeof(IMAGE_COR20_HEADER),
                 PvMappedImage.ViewBase,
-                PvMappedImage.Size,
+                PvMappedImage.ViewSize,
                 4
                 );
         }
@@ -793,7 +793,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                     PhDereferenceObject(fileName);
                 }
 
-                PhLoadModulesForVirtualSymbolProvider(PvSymbolProvider, NtCurrentProcessId());
+                PhLoadModulesForVirtualSymbolProvider(PvSymbolProvider, NtCurrentProcessId(), NtCurrentProcess());
             }
 
             PvAddTreeViewSections();

@@ -14,35 +14,37 @@
 #include <ph.h>
 #include <mapimg.h>
 
-VOID PhpMappedImageProbe(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PVOID Address,
-    _In_ SIZE_T Length
-    );
-
-ULONG PhpLookupMappedImageExportName(
-    _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
-    _In_ PSTR Name
-    );
-
 NTSTATUS PhInitializeMappedImage(
     _Out_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PVOID ViewBase,
-    _In_ SIZE_T Size
+    _In_ SIZE_T ViewSize
     )
 {
     PIMAGE_DOS_HEADER dosHeader;
-    ULONG ntHeadersOffset;
-    SIZE_T ntHeadersSize;
+    PIMAGE_NT_HEADERS ntHeaders;
+    ULONG_PTR dosHeaderOffset;
+    ULONG_PTR ntHeadersOffset;
 
     MappedImage->ViewBase = ViewBase;
-    MappedImage->Size = Size;
+    MappedImage->ViewSize = ViewSize;
 
-    dosHeader = (PIMAGE_DOS_HEADER)ViewBase;
+    if (ViewSize < sizeof(IMAGE_DOS_HEADER))
+        return STATUS_INVALID_VIEW_SIZE;
+
+    // Get a pointer to the base address and probe it.
+
+    dosHeaderOffset = (ULONG_PTR)ViewBase;
+
+    if (dosHeaderOffset == 0 || dosHeaderOffset == SIZE_MAX)
+        return STATUS_INVALID_PARAMETER;
+
+    // Get a pointer to the dos headers and probe it.
+
+    dosHeader = (PIMAGE_DOS_HEADER)dosHeaderOffset;
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, dosHeader, sizeof(IMAGE_DOS_HEADER));
+        PhMappedImageProbe(MappedImage, dosHeader, sizeof(IMAGE_DOS_HEADER));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -54,27 +56,31 @@ NTSTATUS PhInitializeMappedImage(
     if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE)
         return STATUS_INVALID_IMAGE_NOT_MZ;
 
-    // Get a pointer to the NT headers and probe it.
+    // Get a pointer to the nt headers and probe it.
 
-    ntHeadersOffset = (ULONG)dosHeader->e_lfanew;
+    ntHeadersOffset = (ULONG_PTR)dosHeader->e_lfanew;
 
-    if (ntHeadersOffset == 0)
-        return STATUS_INVALID_IMAGE_FORMAT;
-    if (ntHeadersOffset >= LONG_MAX || ntHeadersOffset >= Size)
+    if (ntHeadersOffset >= ViewSize || ntHeadersOffset >= RTL_IMAGE_MAX_DOS_HEADER)
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    MappedImage->NtHeaders = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(ViewBase, ntHeadersOffset);
+    // Get a pointer to the optional headers and probe it.
 
-    ntHeadersSize = UInt32Add32To64(UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader), MappedImage->NtHeaders->FileHeader.SizeOfOptionalHeader) +
-        UInt32x32To64(MappedImage->NtHeaders->FileHeader.NumberOfSections, sizeof(IMAGE_SECTION_HEADER));
-
-    if (ntHeadersSize > UInt32x32To64(1024, 1024)) // 1 MB
-        return STATUS_INVALID_IMAGE_FORMAT;
+    ntHeaders = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(dosHeader, ntHeadersOffset);
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, MappedImage->NtHeaders, UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader));
-        PhpMappedImageProbe(MappedImage, MappedImage->NtHeaders, ntHeadersSize);
+        PhMappedImageProbe(
+            MappedImage,
+            ntHeaders,
+            UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader)
+            );
+        PhMappedImageProbe(
+            MappedImage,
+            ntHeaders,
+            UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+            ntHeaders->FileHeader.SizeOfOptionalHeader +
+            ntHeaders->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER)
+            );
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -83,10 +89,10 @@ NTSTATUS PhInitializeMappedImage(
 
     // Check the signature and verify the magic.
 
-    if (MappedImage->NtHeaders->Signature != IMAGE_NT_SIGNATURE)
+    if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    MappedImage->Magic = MappedImage->NtHeaders->OptionalHeader.Magic;
+    MappedImage->Magic = ntHeaders->OptionalHeader.Magic;
 
     if (
         MappedImage->Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC &&
@@ -96,8 +102,9 @@ NTSTATUS PhInitializeMappedImage(
 
     // Get a pointer to the first section.
 
-    MappedImage->NumberOfSections = MappedImage->NtHeaders->FileHeader.NumberOfSections;
-    MappedImage->Sections = IMAGE_FIRST_SECTION(MappedImage->NtHeaders);
+    MappedImage->NtHeaders = ntHeaders;
+    MappedImage->NumberOfSections = ntHeaders->FileHeader.NumberOfSections;
+    MappedImage->Sections = IMAGE_FIRST_SECTION(ntHeaders);
 
     return STATUS_SUCCESS;
 }
@@ -110,13 +117,13 @@ NTSTATUS PhLoadMappedImage(
 {
     NTSTATUS status;
     PVOID viewBase;
-    SIZE_T size;
+    SIZE_T viewSize;
 
     status = PhMapViewOfEntireFile(
         FileName,
         FileHandle,
         &viewBase,
-        &size
+        &viewSize
         );
 
     if (NT_SUCCESS(status))
@@ -124,7 +131,7 @@ NTSTATUS PhLoadMappedImage(
         status = PhInitializeMappedImage(
             MappedImage,
             viewBase,
-            size
+            viewSize
             );
 
         if (!NT_SUCCESS(status))
@@ -144,20 +151,20 @@ NTSTATUS PhLoadMappedImageEx(
 {
     NTSTATUS status;
     PVOID viewBase;
-    SIZE_T size;
+    SIZE_T viewSize;
 
     status = PhMapViewOfEntireFileEx(
         FileName,
         FileHandle,
         &viewBase,
-        &size
+        &viewSize
         );
 
     if (NT_SUCCESS(status))
     {
         MappedImage->Signature = *(PUSHORT)viewBase;
         MappedImage->ViewBase = viewBase;
-        MappedImage->Size = size;
+        MappedImage->ViewSize = viewSize;
 
         switch (MappedImage->Signature)
         {
@@ -166,7 +173,7 @@ NTSTATUS PhLoadMappedImageEx(
                 status = PhInitializeMappedImage(
                     MappedImage,
                     viewBase,
-                    size
+                    viewSize
                     );
             }
             break;
@@ -175,7 +182,7 @@ NTSTATUS PhLoadMappedImageEx(
                 status = PhInitializeMappedWslImage(
                     MappedImage,
                     viewBase,
-                    size
+                    viewSize
                     );
             }
             break;
@@ -279,22 +286,25 @@ NTSTATUS PhUnloadMappedImage(
     _Inout_ PPH_MAPPED_IMAGE MappedImage
     )
 {
-    return NtUnmapViewOfSection(
-        NtCurrentProcess(),
-        MappedImage->ViewBase
-        );
+    if (MappedImage->ViewBase)
+    {
+        NtUnmapViewOfSection(NtCurrentProcess(), MappedImage->ViewBase);
+        MappedImage->ViewBase = NULL;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS PhMapViewOfEntireFile(
     _In_opt_ PWSTR FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PVOID *ViewBase,
-    _Out_ PSIZE_T Size
+    _Out_ PSIZE_T ViewSize
     )
 {
     NTSTATUS status;
     BOOLEAN openedFile = FALSE;
-    LARGE_INTEGER size;
+    LARGE_INTEGER fileSize;
     HANDLE sectionHandle;
     SIZE_T viewSize;
     PVOID viewBase;
@@ -323,7 +333,7 @@ NTSTATUS PhMapViewOfEntireFile(
 
     // Get the file size and create the section.
 
-    status = PhGetFileSize(FileHandle, &size);
+    status = PhGetFileSize(FileHandle, &fileSize);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -332,7 +342,7 @@ NTSTATUS PhMapViewOfEntireFile(
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ,
         NULL,
-        &size,
+        &fileSize,
         PAGE_READONLY,
         SEC_COMMIT,
         FileHandle
@@ -343,7 +353,7 @@ NTSTATUS PhMapViewOfEntireFile(
 
     // Map the section.
 
-    viewSize = (SIZE_T)size.QuadPart;
+    viewSize = (SIZE_T)fileSize.QuadPart;
     viewBase = NULL;
 
     status = NtMapViewOfSection(
@@ -365,7 +375,7 @@ NTSTATUS PhMapViewOfEntireFile(
         goto CleanupExit;
 
     *ViewBase = viewBase;
-    *Size = (SIZE_T)size.QuadPart;
+    *ViewSize = (SIZE_T)fileSize.QuadPart;
 
 CleanupExit:
     if (openedFile)
@@ -378,12 +388,12 @@ NTSTATUS PhMapViewOfEntireFileEx(
     _In_opt_ PPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PVOID *ViewBase,
-    _Out_ PSIZE_T Size
+    _Out_ PSIZE_T ViewSize
     )
 {
     NTSTATUS status;
     BOOLEAN openedFile = FALSE;
-    LARGE_INTEGER size;
+    LARGE_INTEGER fileSize;
     HANDLE sectionHandle;
     SIZE_T viewSize;
     PVOID viewBase;
@@ -412,7 +422,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
 
     // Get the file size and create the section.
 
-    status = PhGetFileSize(FileHandle, &size);
+    status = PhGetFileSize(FileHandle, &fileSize);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -421,7 +431,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
         &sectionHandle,
         SECTION_QUERY | SECTION_MAP_READ,
         NULL,
-        &size,
+        &fileSize,
         PAGE_READONLY,
         SEC_COMMIT,
         FileHandle
@@ -432,7 +442,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
 
     // Map the section.
 
-    viewSize = (SIZE_T)size.QuadPart;
+    viewSize = (SIZE_T)fileSize.QuadPart;
     viewBase = NULL;
 
     status = NtMapViewOfSection(
@@ -454,22 +464,13 @@ NTSTATUS PhMapViewOfEntireFileEx(
         goto CleanupExit;
 
     *ViewBase = viewBase;
-    *Size = (SIZE_T)size.QuadPart;
+    *ViewSize = (SIZE_T)fileSize.QuadPart;
 
 CleanupExit:
     if (openedFile)
         NtClose(FileHandle);
 
     return status;
-}
-
-VOID PhpMappedImageProbe(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PVOID Address,
-    _In_ SIZE_T Length
-    )
-{
-    PhProbeAddress(Address, Length, MappedImage->ViewBase, MappedImage->Size, 1);
 }
 
 VOID PhMappedImagePrefetch(
@@ -479,7 +480,7 @@ VOID PhMappedImagePrefetch(
     MEMORY_RANGE_ENTRY prefetchMemoryRange[1];
 
     memset(prefetchMemoryRange, 0, sizeof(prefetchMemoryRange));
-    prefetchMemoryRange[0].NumberOfBytes = MappedImage->Size;
+    prefetchMemoryRange[0].NumberOfBytes = MappedImage->ViewSize;
     prefetchMemoryRange[0].VirtualAddress = MappedImage->ViewBase;
 
     PhPrefetchVirtualMemory(NtCurrentProcess(), RTL_NUMBER_OF(prefetchMemoryRange), prefetchMemoryRange);
@@ -506,8 +507,6 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
     return NULL;
 }
 
-_Must_inspect_result_
-_Ret_maybenull_
 _Success_(return != NULL)
 PVOID PhMappedImageRvaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
@@ -534,8 +533,6 @@ PVOID PhMappedImageRvaToVa(
         ));
 }
 
-_Must_inspect_result_
-_Ret_maybenull_
 _Success_(return != NULL)
 PVOID PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
@@ -571,6 +568,32 @@ PVOID PhMappedImageVaToVa(
         PTR_SUB_OFFSET(rva, section->VirtualAddress),
         section->PointerToRawData
         ));
+}
+
+_Success_(return != NULL)
+PVOID PhMappedImageRvaToFileOffset(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Rva,
+    _Out_opt_ PIMAGE_SECTION_HEADER *Section
+    )
+{
+    PIMAGE_SECTION_HEADER section;
+
+    if (Rva == 0)
+        return NULL;
+
+    section = PhMappedImageRvaToSection(MappedImage, Rva);
+
+    if (!section)
+        return NULL;
+
+    if (Section)
+        *Section = section;
+
+    return PTR_ADD_OFFSET(
+        PTR_SUB_OFFSET(Rva, section->VirtualAddress),
+        section->PointerToRawData
+        );
 }
 
 BOOLEAN PhGetMappedImageSectionName(
@@ -701,7 +724,7 @@ FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, loadConfig, ProbeLength);
+        PhMappedImageProbe(MappedImage, loadConfig, ProbeLength);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -742,29 +765,184 @@ NTSTATUS PhGetMappedImageLoadConfig64(
 NTSTATUS PhLoadRemoteMappedImage(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
-    _In_ SIZE_T Size,
+    _In_ SIZE_T ViewSize,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
-    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, Size, NtReadVirtualMemory, RemoteMappedImage);
+    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, ViewSize, NtReadVirtualMemory, RemoteMappedImage);
+}
+
+NTSTATUS PhLoadRemoteMappedImagePageSize(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID ViewBase,
+    _In_ SIZE_T ViewSize,
+    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DOS_HEADER dosHeader;
+    PIMAGE_NT_HEADERS ntHeaders;
+    ULONG_PTR dosHeaderOffset;
+    ULONG_PTR ntHeadersOffset;
+    SIZE_T ntHeadersSize;
+
+    RemoteMappedImage->ViewBase = ViewBase;
+    RemoteMappedImage->ViewSize = ViewSize;
+
+    if (ViewSize < PAGE_SIZE)
+        return STATUS_NO_MEMORY;
+
+    // Get a pointer to the base address and probe it.
+
+    dosHeaderOffset = (ULONG_PTR)ViewBase;
+
+    if (dosHeaderOffset == 0 || dosHeaderOffset == SIZE_MAX)
+        return STATUS_INVALID_PARAMETER;
+
+    // Read one page and validate both headers.
+
+    dosHeader = PhAllocate(PAGE_SIZE);
+    memset(dosHeader, 0, PAGE_SIZE);
+
+    status = ReadVirtualMemoryCallback(
+        ProcessHandle,
+        ViewBase,
+        dosHeader,
+        PAGE_SIZE,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Check the initial MZ.
+
+    if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+    {
+        status = STATUS_INVALID_IMAGE_NOT_MZ;
+        goto CleanupExit;
+    }
+
+    // Get a pointer to the IMAGE_NT_HEADERS and probe it.
+
+    ntHeadersOffset = (ULONG_PTR)dosHeader->e_lfanew;
+
+    if (ntHeadersOffset == 0 || ntHeadersOffset >= ViewSize || ntHeadersOffset >= RTL_IMAGE_MAX_DOS_HEADER)
+    {
+        status = STATUS_INVALID_IMAGE_NOT_MZ;
+        goto CleanupExit;
+    }
+
+    if (ntHeadersOffset + sizeof(IMAGE_NT_HEADERS) >= PAGE_SIZE)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    ntHeaders = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(dosHeader, ntHeadersOffset);
+
+    // Check the signature and verify the magic.
+
+    if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
+    {
+        status = STATUS_INVALID_IMAGE_FORMAT;
+        goto CleanupExit;
+    }
+
+    if (
+        ntHeaders->FileHeader.SizeOfOptionalHeader != sizeof(IMAGE_OPTIONAL_HEADER32) &&
+        ntHeaders->FileHeader.SizeOfOptionalHeader != sizeof(IMAGE_OPTIONAL_HEADER64)
+        )
+    {
+        status = STATUS_BAD_FILE_TYPE;
+        goto CleanupExit;
+    }
+
+    RemoteMappedImage->Magic = ntHeaders->OptionalHeader.Magic;
+
+    if (
+        RemoteMappedImage->Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC &&
+        RemoteMappedImage->Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC
+        )
+    {
+        status = STATUS_INVALID_IMAGE_FORMAT;
+        goto CleanupExit;
+    }
+
+    RemoteMappedImage->NumberOfSections = ntHeaders->FileHeader.NumberOfSections;
+
+    if (RemoteMappedImage->NumberOfSections >= SCHAR_MAX)
+    {
+        status = STATUS_INVALID_IMAGE_FORMAT;
+        goto CleanupExit;
+    }
+
+    // Get the total size and verify in the whole thing.
+
+    ntHeadersSize = UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+        ntHeaders->FileHeader.SizeOfOptionalHeader +
+        RemoteMappedImage->NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+
+    if (ntHeadersSize + ntHeadersOffset + sizeof(IMAGE_NT_HEADERS) >= PAGE_SIZE)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    RemoteMappedImage->ProcessHandle = ProcessHandle;
+    RemoteMappedImage->NtHeaders = ntHeaders;
+    RemoteMappedImage->Sections = IMAGE_FIRST_SECTION(RemoteMappedImage->NtHeaders);
+    RemoteMappedImage->PageCache = dosHeader;
+
+CleanupExit:
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(dosHeader);
+    }
+
+    return status;
 }
 
 NTSTATUS PhLoadRemoteMappedImageEx(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID ViewBase,
-    _In_ SIZE_T Size,
+    _In_ SIZE_T ViewSize,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
     NTSTATUS status;
     IMAGE_DOS_HEADER dosHeader;
-    ULONG ntHeadersOffset;
     IMAGE_NT_HEADERS ntHeaders;
+    ULONG_PTR dosHeaderOffset;
+    ULONG_PTR ntHeadersOffset;
     SIZE_T ntHeadersSize;
-    PIMAGE_NT_HEADERS ntHeadersOut;
+
+    status = PhLoadRemoteMappedImagePageSize(
+        ProcessHandle,
+        ViewBase,
+        ViewSize,
+        ReadVirtualMemoryCallback,
+        RemoteMappedImage
+        );
+
+    if (NT_SUCCESS(status) || status != STATUS_NO_MEMORY)
+        return status;
 
     RemoteMappedImage->ViewBase = ViewBase;
+    RemoteMappedImage->ViewSize = ViewSize;
+
+    if (ViewSize < sizeof(IMAGE_DOS_HEADER))
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    // Get a pointer to the base address and probe it.
+
+    dosHeaderOffset = (ULONG_PTR)ViewBase;
+
+    if (dosHeaderOffset == 0 || dosHeaderOffset == SIZE_MAX)
+        return STATUS_INVALID_PARAMETER;
 
     status = ReadVirtualMemoryCallback(
         ProcessHandle,
@@ -782,11 +960,11 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     if (dosHeader.e_magic != IMAGE_DOS_SIGNATURE)
         return STATUS_INVALID_IMAGE_NOT_MZ;
 
-    // Get a pointer to the NT headers and read it in for some basic information.
+    // Get a pointer to the IMAGE_NT_HEADERS and probe it.
 
-    ntHeadersOffset = (ULONG)dosHeader.e_lfanew;
+    ntHeadersOffset = (ULONG_PTR)dosHeader.e_lfanew;
 
-    if (ntHeadersOffset == 0 || ntHeadersOffset >= LONG_MAX || ntHeadersOffset >= Size)
+    if (ntHeadersOffset == 0 || ntHeadersOffset >= ViewSize || ntHeadersOffset >= RTL_IMAGE_MAX_DOS_HEADER)
         return STATUS_INVALID_IMAGE_FORMAT;
 
     status = ReadVirtualMemoryCallback(
@@ -805,6 +983,14 @@ NTSTATUS PhLoadRemoteMappedImageEx(
     if (ntHeaders.Signature != IMAGE_NT_SIGNATURE)
         return STATUS_INVALID_IMAGE_FORMAT;
 
+    if (
+        ntHeaders.FileHeader.SizeOfOptionalHeader != sizeof(IMAGE_OPTIONAL_HEADER32) &&
+        ntHeaders.FileHeader.SizeOfOptionalHeader != sizeof(IMAGE_OPTIONAL_HEADER64)
+        )
+    {
+        return STATUS_BAD_FILE_TYPE;
+    }
+
     RemoteMappedImage->Magic = ntHeaders.OptionalHeader.Magic;
 
     if (
@@ -813,33 +999,40 @@ NTSTATUS PhLoadRemoteMappedImageEx(
         )
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    // Get the real size and read in the whole thing.
-
     RemoteMappedImage->NumberOfSections = ntHeaders.FileHeader.NumberOfSections;
 
-    ntHeadersSize = UInt32Add32To64(UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader), ntHeaders.FileHeader.SizeOfOptionalHeader) +
-        UInt32x32To64(RemoteMappedImage->NumberOfSections, sizeof(IMAGE_SECTION_HEADER));
+    if (RemoteMappedImage->NumberOfSections >= SCHAR_MAX)
+    {
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    // Get the real size and read in the whole thing.
+
+    ntHeadersSize = UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+        ntHeaders.FileHeader.SizeOfOptionalHeader +
+        RemoteMappedImage->NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
 
     if (ntHeadersSize > UInt32x32To64(1024, 1024)) // 1 MB
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    ntHeadersOut = PhAllocateZero(ntHeadersSize);
+    RemoteMappedImage->NtHeaders = PhAllocateZero(ntHeadersSize);
 
     status = ReadVirtualMemoryCallback(
         ProcessHandle,
         PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
-        ntHeadersOut,
+        RemoteMappedImage->NtHeaders,
         ntHeadersSize,
         NULL
         );
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(ntHeadersOut);
+        PhFree(RemoteMappedImage->NtHeaders);
+        RemoteMappedImage->NtHeaders = NULL;
         return status;
     }
 
-    RemoteMappedImage->NtHeaders = ntHeadersOut;
+    RemoteMappedImage->ProcessHandle = ProcessHandle;
     RemoteMappedImage->Sections = IMAGE_FIRST_SECTION(RemoteMappedImage->NtHeaders);
 
     return STATUS_SUCCESS;
@@ -849,14 +1042,57 @@ NTSTATUS PhUnloadRemoteMappedImage(
     _Inout_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
-    PhFree(RemoteMappedImage->NtHeaders);
+    if (RemoteMappedImage->PageCache)
+        PhFree(RemoteMappedImage->PageCache);
+    else
+        PhFree(RemoteMappedImage->NtHeaders);
 
     return STATUS_SUCCESS;
 }
 
-_Success_(return)
-BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
-    _In_ HANDLE ProcessHandle,
+NTSTATUS PhGetRemoteMappedImageDataEntry(
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _In_ ULONG Index,
+    _Out_ PIMAGE_DATA_DIRECTORY* Entry
+    )
+{
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+
+    if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PIMAGE_OPTIONAL_HEADER32 optionalHeader;
+
+        optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&RemoteMappedImage->NtHeaders32->OptionalHeader;
+
+        if (Index >= optionalHeader->NumberOfRvaAndSizes)
+            return STATUS_INVALID_PARAMETER_2;
+
+        dataDirectory = &optionalHeader->DataDirectory[Index];
+    }
+    else if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PIMAGE_OPTIONAL_HEADER64 optionalHeader;
+
+        optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&RemoteMappedImage->NtHeaders->OptionalHeader;
+
+        if (Index >= optionalHeader->NumberOfRvaAndSizes)
+            return STATUS_INVALID_PARAMETER_2;
+
+        dataDirectory = &optionalHeader->DataDirectory[Index];
+    }
+    else
+    {
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    if (!(dataDirectory->VirtualAddress && dataDirectory->Size))
+        return STATUS_UNSUCCESSFUL;
+
+    *Entry = dataDirectory;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetRemoteMappedImageDirectoryEntry(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _In_ ULONG Index,
@@ -869,41 +1105,26 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
     PVOID dataBuffer;
     ULONG dataLength;
 
-    if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-    {
-        PIMAGE_OPTIONAL_HEADER32 optionalHeader;
+    status = PhGetRemoteMappedImageDataEntry(
+        RemoteMappedImage,
+        Index,
+        &dataDirectory
+        );
 
-        optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&RemoteMappedImage->NtHeaders32->OptionalHeader;
+    if (!NT_SUCCESS(status))
+        return status;
 
-        if (Index >= optionalHeader->NumberOfRvaAndSizes)
-            return FALSE;
-
-        dataDirectory = &optionalHeader->DataDirectory[Index];
-    }
-    else if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-    {
-        PIMAGE_OPTIONAL_HEADER64 optionalHeader;
-
-        optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&RemoteMappedImage->NtHeaders->OptionalHeader;
-
-        if (Index >= optionalHeader->NumberOfRvaAndSizes)
-            return FALSE;
-
-        dataDirectory = &optionalHeader->DataDirectory[Index];
-    }
-    else
-    {
-        return FALSE;
-    }
-
-    if (!(dataDirectory->VirtualAddress && dataDirectory->Size))
-        return FALSE;
+    if (dataDirectory->Size > 16 * 1024 * 1024) // 16 MB
+        return STATUS_FAIL_CHECK;
 
     dataLength = dataDirectory->Size;
-    dataBuffer = PhAllocateZero(dataLength);
+    dataBuffer = PhAllocateZeroSafe(dataLength);
+
+    if (!dataBuffer)
+        return STATUS_NO_MEMORY;
 
     status = ReadVirtualMemoryCallback(
-        ProcessHandle,
+        RemoteMappedImage->ProcessHandle,
         PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, dataDirectory->VirtualAddress),
         dataBuffer,
         dataLength,
@@ -913,7 +1134,7 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
     if (!NT_SUCCESS(status))
     {
         PhFree(dataBuffer);
-        return FALSE;
+        return status;
     }
 
     if (DataBuffer)
@@ -921,46 +1142,43 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
     if (DataLength)
         *DataLength = dataLength;
 
-    return TRUE;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN PhGetRemoteMappedImageDebugEntryByType(
-    _In_ HANDLE ProcessHandle,
+NTSTATUS PhGetRemoteMappedImageDebugEntryByType(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
-    _Out_opt_ ULONG* DataLength,
-    _Out_ PVOID* DataBuffer
+    _Out_opt_ PULONG DataLength,
+    _Out_ PPVOID DataBuffer
     )
 {
-    return PhGetRemoteMappedImageDebugEntryByTypeEx(ProcessHandle, RemoteMappedImage, Type, NtReadVirtualMemory, DataLength, DataBuffer);
+    return PhGetRemoteMappedImageDebugEntryByTypeEx(RemoteMappedImage, Type, NtReadVirtualMemory, DataLength, DataBuffer);
 }
 
-_Success_(return)
-BOOLEAN PhGetRemoteMappedImageDebugEntryByTypeEx(
-    _In_ HANDLE ProcessHandle,
+NTSTATUS PhGetRemoteMappedImageDebugEntryByTypeEx(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
-    _Out_opt_ ULONG* DataLength,
-    _Out_ PVOID* DataBuffer
+    _Out_opt_ PULONG DataLength,
+    _Out_ PPVOID DataBuffer
     )
 {
+    NTSTATUS status;
     PIMAGE_DEBUG_DIRECTORY debugDirectory;
     ULONG debugDirectoryLength;
-    BOOLEAN result = FALSE;
 
-    if (!PhGetRemoteMappedImageDirectoryEntry(
-        ProcessHandle,
+    status = PhGetRemoteMappedImageDirectoryEntry(
         RemoteMappedImage,
         ReadVirtualMemoryCallback,
         IMAGE_DIRECTORY_ENTRY_DEBUG,
         &debugDirectory,
         &debugDirectoryLength
-        ))
-    {
-        return FALSE;
-    }
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = STATUS_NOT_FOUND;
 
     for (ULONG i = 0; i < debugDirectoryLength / sizeof(IMAGE_DEBUG_DIRECTORY); i++)
     {
@@ -968,22 +1186,38 @@ BOOLEAN PhGetRemoteMappedImageDebugEntryByTypeEx(
 
         if (entry->Type == Type)
         {
-            PVOID dataBuffer = PhAllocateZero(entry->SizeOfData);
+            PVOID dataBuffer;
+            ULONG dataLength;
+
+            if (entry->SizeOfData > 16 * 1024 * 1024) // 16 MB
+            {
+                status = STATUS_FAIL_CHECK;
+                break;
+            }
+
+            dataLength = entry->SizeOfData;
+            dataBuffer = PhAllocateZeroSafe(dataLength);
+
+            if (!dataBuffer)
+            {
+                status = STATUS_NO_MEMORY;
+                break;
+            }
 
             if (NT_SUCCESS(ReadVirtualMemoryCallback(
-                ProcessHandle,
+                RemoteMappedImage->ProcessHandle,
                 PTR_ADD_OFFSET(RemoteMappedImage->ViewBase, entry->AddressOfRawData),
                 dataBuffer,
-                entry->SizeOfData,
+                dataLength,
                 NULL
                 )))
             {
                 if (DataLength)
-                    *DataLength = entry->SizeOfData;
+                    *DataLength = dataLength;
 
                 *DataBuffer = dataBuffer;
 
-                result = TRUE;
+                status = STATUS_SUCCESS;
             }
             else
             {
@@ -996,51 +1230,47 @@ BOOLEAN PhGetRemoteMappedImageDebugEntryByTypeEx(
 
     PhFree(debugDirectory);
 
-    return result;
+    return status;
 }
 
-_Success_(return)
-BOOLEAN PhGetRemoteMappedImageGuardFlags(
-    _In_ HANDLE ProcessHandle,
+NTSTATUS PhGetRemoteMappedImageGuardFlags(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _Out_ PULONG GuardFlags
     )
 {
-    return PhGetRemoteMappedImageGuardFlagsEx(ProcessHandle, RemoteMappedImage, NtReadVirtualMemory, GuardFlags);
+    return PhGetRemoteMappedImageGuardFlagsEx(RemoteMappedImage, NtReadVirtualMemory, GuardFlags);
 }
 
-_Success_(return)
-BOOLEAN PhGetRemoteMappedImageGuardFlagsEx(
-    _In_ HANDLE ProcessHandle,
+NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
     _Out_ PULONG GuardFlags
     )
 {
-    BOOLEAN result = FALSE;
+    NTSTATUS status;
+    ULONG guardFlags = ULONG_MAX;
 
     if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY32 config32 = NULL;
 
-        if (!PhGetRemoteMappedImageDirectoryEntry(
-            ProcessHandle,
+        status = PhGetRemoteMappedImageDirectoryEntry(
             RemoteMappedImage,
             ReadVirtualMemoryCallback,
             IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
             &config32,
             NULL
-            ))
-        {
-            return FALSE;
-        }
+            );
 
-        if (config32)
+        if (NT_SUCCESS(status))
         {
             if (RTL_CONTAINS_FIELD(config32, config32->Size, GuardFlags))
             {
-                *GuardFlags = config32->GuardFlags;
-                result = TRUE;
+                guardFlags = config32->GuardFlags;
+            }
+            else
+            {
+                status = STATUS_NOT_FOUND;
             }
 
             PhFree(config32);
@@ -1050,31 +1280,42 @@ BOOLEAN PhGetRemoteMappedImageGuardFlagsEx(
     {
         PIMAGE_LOAD_CONFIG_DIRECTORY64 config64 = NULL;
 
-        if (!PhGetRemoteMappedImageDirectoryEntry(
-            ProcessHandle,
+        status = PhGetRemoteMappedImageDirectoryEntry(
             RemoteMappedImage,
             ReadVirtualMemoryCallback,
             IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
             &config64,
             NULL
-            ))
-        {
-            return FALSE;
-        }
+            );
 
-        if (config64)
+        if (NT_SUCCESS(status))
         {
             if (RTL_CONTAINS_FIELD(config64, config64->Size, GuardFlags))
             {
-                *GuardFlags = config64->GuardFlags;
-                result = TRUE;
+                guardFlags = config64->GuardFlags;
+            }
+            else
+            {
+                status = STATUS_NOT_FOUND;
             }
 
             PhFree(config64);
         }
     }
 
-    return result;
+    if (NT_SUCCESS(status))
+    {
+        if (guardFlags != ULONG_MAX)
+        {
+            *GuardFlags = guardFlags;
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+    }
+
+    return status;
 }
 
 NTSTATUS PhpFixupExportDirectoryForARM64EC(
@@ -1275,7 +1516,7 @@ NTSTATUS PhGetMappedImageExportsEx(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, exportDirectory, sizeof(IMAGE_EXPORT_DIRECTORY));
+        PhMappedImageProbe(MappedImage, exportDirectory, sizeof(IMAGE_EXPORT_DIRECTORY));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -1313,7 +1554,7 @@ NTSTATUS PhGetMappedImageExportsEx(
 
     __try
     {
-        PhpMappedImageProbe(
+        PhMappedImageProbe(
             MappedImage,
             Exports->AddressTable,
             exportDirectory->NumberOfFunctions * sizeof(ULONG)
@@ -1321,7 +1562,7 @@ NTSTATUS PhGetMappedImageExportsEx(
 
         if (Exports->NamePointerTable)
         {
-            PhpMappedImageProbe(
+            PhMappedImageProbe(
                 MappedImage,
                 Exports->NamePointerTable,
                 exportDirectory->NumberOfNames * sizeof(ULONG)
@@ -1330,7 +1571,7 @@ NTSTATUS PhGetMappedImageExportsEx(
 
         if (Exports->OrdinalTable)
         {
-            PhpMappedImageProbe(
+            PhMappedImageProbe(
                 MappedImage,
                 Exports->OrdinalTable,  // ordinal list for named exports
                 exportDirectory->NumberOfNames * sizeof(USHORT)
@@ -1412,6 +1653,52 @@ NTSTATUS PhGetMappedImageExportEntry(
     return STATUS_SUCCESS;
 }
 
+ULONG PhLookupMappedImageExportName(
+    _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_ PSTR Name
+    )
+{
+    LONG low;
+    LONG high;
+    LONG i;
+
+    if (Exports->ExportDirectory->NumberOfNames == 0)
+        return ULONG_MAX;
+
+    low = 0;
+    high = Exports->ExportDirectory->NumberOfNames - 1;
+
+    do
+    {
+        PSTR name;
+        INT comparison;
+
+        i = (low + high) / 2;
+
+        name = PhMappedImageRvaToVa(
+            Exports->MappedImage,
+            Exports->NamePointerTable[i],
+            NULL
+            );
+
+        if (!name)
+            return ULONG_MAX;
+
+        // TODO: Probe the name.
+
+        comparison = strcmp(Name, name);
+
+        if (comparison == 0)
+            return i;
+        else if (comparison < 0)
+            high = i - 1;
+        else
+            low = i + 1;
+    } while (low <= high);
+
+    return ULONG_MAX;
+}
+
 NTSTATUS PhGetMappedImageExportFunction(
     _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
     _In_opt_ PSTR Name,
@@ -1425,7 +1712,7 @@ NTSTATUS PhGetMappedImageExportFunction(
     {
         ULONG index;
 
-        index = PhpLookupMappedImageExportName(Exports, Name);
+        index = PhLookupMappedImageExportName(Exports, Name);
 
         if (index == ULONG_MAX)
             return STATUS_PROCEDURE_NOT_FOUND;
@@ -1483,7 +1770,7 @@ NTSTATUS PhGetMappedImageExportFunctionRemote(
     {
         ULONG index;
 
-        index = PhpLookupMappedImageExportName(Exports, Name);
+        index = PhLookupMappedImageExportName(Exports, Name);
 
         if (index == ULONG_MAX)
             return STATUS_PROCEDURE_NOT_FOUND;
@@ -1512,52 +1799,6 @@ NTSTATUS PhGetMappedImageExportFunctionRemote(
     }
 
     return STATUS_SUCCESS;
-}
-
-ULONG PhpLookupMappedImageExportName(
-    _In_ PPH_MAPPED_IMAGE_EXPORTS Exports,
-    _In_ PSTR Name
-    )
-{
-    LONG low;
-    LONG high;
-    LONG i;
-
-    if (Exports->ExportDirectory->NumberOfNames == 0)
-        return ULONG_MAX;
-
-    low = 0;
-    high = Exports->ExportDirectory->NumberOfNames - 1;
-
-    do
-    {
-        PSTR name;
-        INT comparison;
-
-        i = (low + high) / 2;
-
-        name = PhMappedImageRvaToVa(
-            Exports->MappedImage,
-            Exports->NamePointerTable[i],
-            NULL
-            );
-
-        if (!name)
-            return ULONG_MAX;
-
-        // TODO: Probe the name.
-
-        comparison = strcmp(Name, name);
-
-        if (comparison == 0)
-            return i;
-        else if (comparison < 0)
-            high = i - 1;
-        else
-            low = i + 1;
-    } while (low <= high);
-
-    return ULONG_MAX;
 }
 
 NTSTATUS PhGetMappedImageImports(
@@ -1600,7 +1841,7 @@ NTSTATUS PhGetMappedImageImports(
     {
         while (TRUE)
         {
-            PhpMappedImageProbe(MappedImage, descriptor, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+            PhMappedImageProbe(MappedImage, descriptor, sizeof(IMAGE_IMPORT_DESCRIPTOR));
 
             if (descriptor->OriginalFirstThunk == 0 && descriptor->FirstThunk == 0)
                 break;
@@ -1633,7 +1874,7 @@ NTSTATUS PhGetMappedImageImportDll(
     ImportDll->MappedImage = Imports->MappedImage;
     ImportDll->Flags = Imports->Flags;
 
-    if (!(ImportDll->Flags & PH_MAPPED_IMAGE_DELAY_IMPORTS))
+    if (!FlagOn(ImportDll->Flags, PH_MAPPED_IMAGE_DELAY_IMPORTS))
     {
         ImportDll->Descriptor = &Imports->DescriptorTable[Index];
 
@@ -1669,17 +1910,22 @@ NTSTATUS PhGetMappedImageImportDll(
     {
         ImportDll->DelayDescriptor = &Imports->DelayDescriptorTable[Index];
 
-        // Backwards compatible support for legacy V1 delay imports. (dmex)
-        if (ImportDll->DelayDescriptor->Attributes.RvaBased == 0)
-        {
-            ImportDll->Flags |= PH_MAPPED_IMAGE_DELAY_IMPORTS_V1;
-        }
-
-        if (!(ImportDll->Flags & PH_MAPPED_IMAGE_DELAY_IMPORTS_V1))
+        if (ImportDll->DelayDescriptor->Attributes.RvaBased)
         {
             ImportDll->Name = PhMappedImageRvaToVa(
                 ImportDll->MappedImage,
                 ImportDll->DelayDescriptor->DllNameRVA,
+                NULL
+                );
+
+            if (!ImportDll->Name)
+                return STATUS_INVALID_PARAMETER;
+
+            // TODO: Probe the name.
+
+            ImportDll->LookupTable = PhMappedImageRvaToVa(
+                ImportDll->MappedImage,
+                ImportDll->DelayDescriptor->ImportNameTableRVA,
                 NULL
                 );
         }
@@ -1690,23 +1936,12 @@ NTSTATUS PhGetMappedImageImportDll(
                 ImportDll->DelayDescriptor->DllNameRVA,
                 NULL
                 );
-        }
 
-        if (!ImportDll->Name)
-            return STATUS_INVALID_PARAMETER;
+            if (!ImportDll->Name)
+                return STATUS_INVALID_PARAMETER;
 
-        // TODO: Probe the name.
+            // TODO: Probe the name.
 
-        if (!(ImportDll->Flags & PH_MAPPED_IMAGE_DELAY_IMPORTS_V1))
-        {
-            ImportDll->LookupTable = PhMappedImageRvaToVa(
-                ImportDll->MappedImage,
-                ImportDll->DelayDescriptor->ImportNameTableRVA,
-                NULL
-                );
-        }
-        else
-        {
             ImportDll->LookupTable = PhMappedImageVaToVa(
                 ImportDll->MappedImage,
                 ImportDll->DelayDescriptor->ImportNameTableRVA,
@@ -1732,7 +1967,7 @@ NTSTATUS PhGetMappedImageImportDll(
         {
             while (TRUE)
             {
-                PhpMappedImageProbe(ImportDll->MappedImage, entry, sizeof(IMAGE_THUNK_DATA32));
+                PhMappedImageProbe(ImportDll->MappedImage, entry, sizeof(IMAGE_THUNK_DATA32));
 
                 if (entry->u1.AddressOfData == 0)
                     break;
@@ -1756,7 +1991,7 @@ NTSTATUS PhGetMappedImageImportDll(
         {
             while (TRUE)
             {
-                PhpMappedImageProbe(ImportDll->MappedImage, entry, sizeof(IMAGE_THUNK_DATA64));
+                PhMappedImageProbe(ImportDll->MappedImage, entry, sizeof(IMAGE_THUNK_DATA64));
 
                 if (entry->u1.AddressOfData == 0)
                     break;
@@ -1793,11 +2028,7 @@ NTSTATUS PhGetMappedImageImportEntry(
 
     if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        IMAGE_THUNK_DATA32 entry;
-
-        entry = ((PIMAGE_THUNK_DATA32)ImportDll->LookupTable)[Index];
-
-        // Is this entry using an ordinal?
+        IMAGE_THUNK_DATA32 entry= ((PIMAGE_THUNK_DATA32)ImportDll->LookupTable)[Index];
 
         if (IMAGE_SNAP_BY_ORDINAL32(entry.u1.Ordinal))
         {
@@ -1808,31 +2039,19 @@ NTSTATUS PhGetMappedImageImportEntry(
         }
         else
         {
-            if (!(ImportDll->Flags & PH_MAPPED_IMAGE_DELAY_IMPORTS_V1))
+            if (FlagOn(ImportDll->Flags, PH_MAPPED_IMAGE_DELAY_IMPORTS) && !ImportDll->DelayDescriptor->Attributes.RvaBased)
             {
-                importByName = PhMappedImageRvaToVa(
-                    ImportDll->MappedImage,
-                    entry.u1.AddressOfData,
-                    NULL
-                    );
+                importByName = PhMappedImageVaToVa(ImportDll->MappedImage, entry.u1.AddressOfData, NULL);
             }
             else
             {
-                importByName = PhMappedImageVaToVa(
-                    ImportDll->MappedImage,
-                    entry.u1.AddressOfData,
-                    NULL
-                    );
+                importByName = PhMappedImageRvaToVa(ImportDll->MappedImage, entry.u1.AddressOfData, NULL);
             }
         }
     }
     else if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
-        IMAGE_THUNK_DATA64 entry;
-
-        entry = ((PIMAGE_THUNK_DATA64)ImportDll->LookupTable)[Index];
-
-        // Is this entry using an ordinal?
+        IMAGE_THUNK_DATA64 entry = ((PIMAGE_THUNK_DATA64)ImportDll->LookupTable)[Index];
 
         if (IMAGE_SNAP_BY_ORDINAL64(entry.u1.Ordinal))
         {
@@ -1843,21 +2062,13 @@ NTSTATUS PhGetMappedImageImportEntry(
         }
         else
         {
-            if (!(ImportDll->Flags & PH_MAPPED_IMAGE_DELAY_IMPORTS_V1))
+            if (FlagOn(ImportDll->Flags, PH_MAPPED_IMAGE_DELAY_IMPORTS) && !ImportDll->DelayDescriptor->Attributes.RvaBased)
             {
-                importByName = PhMappedImageRvaToVa(
-                    ImportDll->MappedImage,
-                    (ULONG)entry.u1.AddressOfData,
-                    NULL
-                    );
+                importByName = PhMappedImageVaToVa(ImportDll->MappedImage, entry.u1.AddressOfData, NULL);
             }
             else
             {
-                importByName = PhMappedImageVaToVa(
-                    ImportDll->MappedImage,
-                    entry.u1.AddressOfData,
-                    NULL
-                    );
+                importByName = PhMappedImageRvaToVa(ImportDll->MappedImage, (ULONG)entry.u1.AddressOfData, NULL);
             }
         }
     }
@@ -1871,7 +2082,7 @@ NTSTATUS PhGetMappedImageImportEntry(
 
     __try
     {
-        PhpMappedImageProbe(ImportDll->MappedImage, importByName, sizeof(IMAGE_IMPORT_BY_NAME));
+        PhMappedImageProbe(ImportDll->MappedImage, importByName, sizeof(IMAGE_IMPORT_BY_NAME));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -1966,7 +2177,7 @@ NTSTATUS PhGetMappedImageDelayImports(
     {
         while (TRUE)
         {
-            PhpMappedImageProbe(MappedImage, descriptor, sizeof(PIMAGE_DELAYLOAD_DESCRIPTOR));
+            PhMappedImageProbe(MappedImage, descriptor, sizeof(PIMAGE_DELAYLOAD_DESCRIPTOR));
 
             if (descriptor->ImportAddressTableRVA == 0 && descriptor->ImportNameTableRVA == 0)
                 break;
@@ -2010,7 +2221,7 @@ ULONG PhCheckSumMappedImage(
     USHORT partialSum;
     PUSHORT adjust;
 
-    partialSum = PhCheckSum(0, (PUSHORT)MappedImage->ViewBase, (ULONG)(MappedImage->Size + 1) / 2);
+    partialSum = PhCheckSum(0, (PUSHORT)MappedImage->ViewBase, (ULONG)(MappedImage->ViewSize + 1) / 2);
 
     // This is actually the same for 32-bit and 64-bit executables.
     adjust = (PUSHORT)&MappedImage->NtHeaders->OptionalHeader.CheckSum;
@@ -2021,7 +2232,7 @@ ULONG PhCheckSumMappedImage(
     partialSum -= partialSum < adjust[1];
     partialSum -= adjust[1];
 
-    checkSum = partialSum + (ULONG)MappedImage->Size;
+    checkSum = partialSum + (ULONG)MappedImage->ViewSize;
 
     return checkSum;
 }
@@ -2065,7 +2276,7 @@ NTSTATUS PhGetMappedImageCfg64(
     {
         __try
         {
-            PhpMappedImageProbe(
+            PhMappedImageProbe(
                 MappedImage,
                 CfgConfig->GuardFunctionTable,
                 (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardFunctionEntries)
@@ -2093,7 +2304,7 @@ NTSTATUS PhGetMappedImageCfg64(
         {
             __try
             {
-                PhpMappedImageProbe(
+                PhMappedImageProbe(
                     MappedImage,
                     CfgConfig->GuardAdressIatTable,
                     (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries)
@@ -2122,7 +2333,7 @@ NTSTATUS PhGetMappedImageCfg64(
         {
             __try
             {
-                PhpMappedImageProbe(
+                PhMappedImageProbe(
                     MappedImage,
                     CfgConfig->GuardLongJumpTable,
                     (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardLongJumpEntries)
@@ -2177,7 +2388,7 @@ NTSTATUS PhGetMappedImageCfg32(
     {
         __try
         {
-            PhpMappedImageProbe(
+            PhMappedImageProbe(
                 MappedImage,
                 CfgConfig->GuardFunctionTable,
                 (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardFunctionEntries)
@@ -2205,7 +2416,7 @@ NTSTATUS PhGetMappedImageCfg32(
         {
             __try
             {
-                PhpMappedImageProbe(
+                PhMappedImageProbe(
                     MappedImage,
                     CfgConfig->GuardAdressIatTable,
                     (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardAdressIatEntries)
@@ -2234,7 +2445,7 @@ NTSTATUS PhGetMappedImageCfg32(
         {
             __try
             {
-                PhpMappedImageProbe(
+                PhMappedImageProbe(
                     MappedImage,
                     CfgConfig->GuardLongJumpTable,
                     (SIZE_T)(CfgConfig->EntrySize * CfgConfig->NumberOfGuardLongJumpEntries)
@@ -2308,6 +2519,7 @@ NTSTATUS PhGetMappedImageCfgEntry(
     Entry->Rva = cfgMappedEntry->Rva;
 
     // Optional header after the rva entry
+
     if (CfgConfig->EntrySize > RTL_FIELD_SIZE(IMAGE_CFG_ENTRY, Rva))
     {
         Entry->SuppressedCall = cfgMappedEntry->SuppressedCall;
@@ -2368,7 +2580,7 @@ NTSTATUS PhGetMappedImageResources(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+        PhMappedImageProbe(MappedImage, resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2458,7 +2670,7 @@ NTSTATUS PhGetMappedImageResources(
                     entry.Offset = resourceData->OffsetToData;
                     entry.Size = resourceData->Size;
                     entry.CodePage = resourceData->CodePage;
-                    entry.Data = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL); __analysis_assume(entry.Data);
+                    //entry.Data = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
 
                     PhAddItemArray(&resourceArray, &entry);
                 }
@@ -2518,7 +2730,7 @@ NTSTATUS PhGetMappedImageResource(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+        PhMappedImageProbe(MappedImage, resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2663,7 +2875,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, tlsDirectory, sizeof(IMAGE_TLS_DIRECTORY32));
+        PhMappedImageProbe(MappedImage, tlsDirectory, sizeof(IMAGE_TLS_DIRECTORY32));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2719,7 +2931,7 @@ NTSTATUS PhGetMappedImageTlsCallbackDirectory64(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, tlsDirectory, sizeof(IMAGE_TLS_DIRECTORY64));
+        PhMappedImageProbe(MappedImage, tlsDirectory, sizeof(IMAGE_TLS_DIRECTORY64));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2887,7 +3099,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, richHeaderChecksum, sizeof(PRODITEM));
+        PhMappedImageProbe(MappedImage, richHeaderChecksum, sizeof(PRODITEM));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2927,7 +3139,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, richHeaderStart, sizeof(PRODITEM));
+        PhMappedImageProbe(MappedImage, richHeaderStart, sizeof(PRODITEM));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2938,7 +3150,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, richHeaderEnd, sizeof(PRODITEM));
+        PhMappedImageProbe(MappedImage, richHeaderEnd, sizeof(PRODITEM));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -2999,7 +3211,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             // We already probed above so this isn't really needed but probe again just to be sure.
             __try
             {
-                PhpMappedImageProbe(MappedImage, richHeaderStart, richHeaderContentLength);
+                PhMappedImageProbe(MappedImage, richHeaderStart, richHeaderContentLength);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -3075,7 +3287,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
 
             __try
             {
-                PhpMappedImageProbe(MappedImage, entry, sizeof(PRODITEM));
+                PhMappedImageProbe(MappedImage, entry, sizeof(PRODITEM));
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -3103,7 +3315,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
 
             __try
             {
-                PhpMappedImageProbe(MappedImage, item, sizeof(PRODITEM));
+                PhMappedImageProbe(MappedImage, item, sizeof(PRODITEM));
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -3206,7 +3418,7 @@ NTSTATUS PhGetMappedImageProdIdExtents(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, richHeaderChecksum, sizeof(PRODITEM));
+        PhMappedImageProbe(MappedImage, richHeaderChecksum, sizeof(PRODITEM));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3245,7 +3457,7 @@ NTSTATUS PhGetMappedImageProdIdExtents(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, richHeaderStart, sizeof(PRODITEM));
+        PhMappedImageProbe(MappedImage, richHeaderStart, sizeof(PRODITEM));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3256,7 +3468,7 @@ NTSTATUS PhGetMappedImageProdIdExtents(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, richHeaderEnd, sizeof(PRODITEM));
+        PhMappedImageProbe(MappedImage, richHeaderEnd, sizeof(PRODITEM));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3331,7 +3543,7 @@ NTSTATUS PhGetMappedImageDebug(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, debugDirectory, sizeof(IMAGE_DEBUG_DIRECTORY));
+        PhMappedImageProbe(MappedImage, debugDirectory, sizeof(IMAGE_DEBUG_DIRECTORY));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3352,7 +3564,7 @@ NTSTATUS PhGetMappedImageDebug(
 
         __try
         {
-            PhpMappedImageProbe(MappedImage, item, sizeof(IMAGE_DEBUG_DIRECTORY));
+            PhMappedImageProbe(MappedImage, item, sizeof(IMAGE_DEBUG_DIRECTORY));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -3416,7 +3628,7 @@ NTSTATUS PhGetMappedImageDebugEntryByType(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, debugDirectory, sizeof(IMAGE_DEBUG_DIRECTORY));
+        PhMappedImageProbe(MappedImage, debugDirectory, sizeof(IMAGE_DEBUG_DIRECTORY));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3431,7 +3643,7 @@ NTSTATUS PhGetMappedImageDebugEntryByType(
 
         __try
         {
-            PhpMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_DIRECTORY));
+            PhMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_DIRECTORY));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -3476,7 +3688,7 @@ NTSTATUS PhGetMappedImageEhCont32(
     {
         __try
         {
-            PhpMappedImageProbe(
+            PhMappedImageProbe(
                 MappedImage,
                 EhContConfig->EhContTable,
                 (SIZE_T)(EhContConfig->NumberOfEhContEntries * EhContConfig->EntrySize)
@@ -3516,7 +3728,7 @@ NTSTATUS PhGetMappedImageEhCont64(
     {
         __try
         {
-            PhpMappedImageProbe(
+            PhMappedImageProbe(
                 MappedImage,
                 EhContConfig->EhContTable,
                 (SIZE_T)(EhContConfig->NumberOfEhContEntries * EhContConfig->EntrySize)
@@ -3570,7 +3782,7 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+        PhMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3590,7 +3802,7 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
     {
         __try
         {
-            PhpMappedImageProbe(MappedImage, debugPogoEntry, sizeof(IMAGE_DEBUG_POGO_ENTRY));
+            PhMappedImageProbe(MappedImage, debugPogoEntry, sizeof(IMAGE_DEBUG_POGO_ENTRY));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -3644,7 +3856,7 @@ NTSTATUS PhGetMappedImagePogo(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+        PhMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3668,7 +3880,7 @@ NTSTATUS PhGetMappedImagePogo(
     {
         __try
         {
-            PhpMappedImageProbe(MappedImage, debugPogoEntry, sizeof(IMAGE_DEBUG_POGO_ENTRY));
+            PhMappedImageProbe(MappedImage, debugPogoEntry, sizeof(IMAGE_DEBUG_POGO_ENTRY));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -3699,7 +3911,7 @@ NTSTATUS PhGetMappedImagePogo(
             memset(entry.Name, ANSI_NULL, sizeof(entry.Name));
             entry.Rva = debugPogoEntry->Rva;
             entry.Size = debugPogoEntry->Size;
-            entry.Data = PhMappedImageRvaToVa(MappedImage, debugPogoEntry->Rva, NULL); __analysis_assume(entry.Data);
+            entry.Data = PhMappedImageRvaToVa(MappedImage, debugPogoEntry->Rva, NULL);
 
             PhCopyStringZFromUtf8(
                 debugPogoEntry->Name,
@@ -3755,7 +3967,7 @@ NTSTATUS PhGetMappedImageRelocations(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+        PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3778,8 +3990,8 @@ NTSTATUS PhGetMappedImageRelocations(
     {
         __try
         {
-            PhpMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
-            PhpMappedImageProbe(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
+            PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+            PhMappedImageProbe(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -3835,7 +4047,7 @@ NTSTATUS PhGetMappedImageRelocations(
                 else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                     entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders32->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
 
-                entry.MappedImageVa = PhMappedImageRvaToVa(MappedImage, UInt32Add32To64(entry.BlockRva, entry.Record.Offset), NULL); __analysis_assume(entry.MappedImageVa);
+                entry.MappedImageVa = PhMappedImageRvaToVa(MappedImage, UInt32Add32To64(entry.BlockRva, entry.Record.Offset), NULL);
             }
 
             PhAddItemArray(&relocationArray, &entry);
@@ -3943,7 +4155,7 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, table, sizeof(IMAGE_DYNAMIC_RELOCATION_TABLE));
+        PhMappedImageProbe(MappedImage, table, sizeof(IMAGE_DYNAMIC_RELOCATION_TABLE));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -3953,7 +4165,7 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
     reloc = PTR_ADD_OFFSET(table, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION_TABLE, Size));
     __try
     {
-        PhpMappedImageProbe(MappedImage, reloc, table->Size);
+        PhMappedImageProbe(MappedImage, reloc, table->Size);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -4312,7 +4524,6 @@ VOID PhpFillDynamicRelocations(
                             UInt32Add32To64(entry.FuncOverride.BlockRva, entry.FuncOverride.Record.Offset),
                             NULL
                             );
-                        __analysis_assume(entry.MappedImageVa);
 
                         PhAddItemArray(Array, &entry);
                     }
@@ -4370,7 +4581,6 @@ VOID PhpFillDynamicRelocations(
                     UInt32Add32To64(entry.Other.BlockRva, entry.Other.Record.Offset),
                     NULL
                     );
-                __analysis_assume(entry.MappedImageVa);
 
                 PhAddItemArray(Array, &entry);
             }
@@ -4599,7 +4809,7 @@ NTSTATUS PhGetMappedImageExceptions(
 
             __try
             {
-                PhpMappedImageProbe(MappedImage, exceptionHandlerTable, UInt32x32To64(exceptionTotal, sizeof(ULONG)));
+                PhMappedImageProbe(MappedImage, exceptionHandlerTable, UInt32x32To64(exceptionTotal, sizeof(ULONG)));
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -4650,7 +4860,7 @@ NTSTATUS PhGetMappedImageExceptions(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, exceptionDirectory, dataDirectory->Size);
+        PhMappedImageProbe(MappedImage, exceptionDirectory, dataDirectory->Size);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -4763,7 +4973,7 @@ NTSTATUS PhGetMappedImageVolatileMetadata(
 
     __try
     {
-        PhpMappedImageProbe(MappedImage, metadata, sizeof(IMAGE_VOLATILE_METADATA));
+        PhMappedImageProbe(MappedImage, metadata, sizeof(IMAGE_VOLATILE_METADATA));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -4804,7 +5014,7 @@ NTSTATUS PhGetMappedImageVolatileMetadata(
 
                 __try
                 {
-                    PhpMappedImageProbe(MappedImage, entry, sizeof(IMAGE_VOLATILE_RVA_METADATA));
+                    PhMappedImageProbe(MappedImage, entry, sizeof(IMAGE_VOLATILE_RVA_METADATA));
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
@@ -4851,7 +5061,7 @@ NTSTATUS PhGetMappedImageVolatileMetadata(
 
                 __try
                 {
-                    PhpMappedImageProbe(MappedImage, entry, sizeof(IMAGE_VOLATILE_RANGE_METADATA));
+                    PhMappedImageProbe(MappedImage, entry, sizeof(IMAGE_VOLATILE_RANGE_METADATA));
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
@@ -4978,13 +5188,13 @@ PPH_STRING PhGetMappedImageAuthenticodeHash(
 
         // Certificate data -> End of file
         imageHashBlock[3].Offset = UInt32Add32To64(imageSecurityAddress, imageSecuritySize);
-        imageHashBlock[3].Length = MappedImage->Size - imageHashBlock[3].Offset;
+        imageHashBlock[3].Length = MappedImage->ViewSize - imageHashBlock[3].Offset;
     }
     else
     {
         // Security directory -> End of file
         imageHashBlock[2].Offset = UInt32Add32To64(imageSecurityOffset, sizeof(IMAGE_DATA_DIRECTORY));
-        imageHashBlock[2].Length = MappedImage->Size - imageHashBlock[2].Offset;
+        imageHashBlock[2].Length = MappedImage->ViewSize - imageHashBlock[2].Offset;
     }
 
     PhInitializeHash(&hashContext, Algorithm);
@@ -5078,7 +5288,7 @@ PPH_STRING PhGetMappedImageAuthenticodeLegacy(
 
     offset += directorySize;
 
-    while (offset < MappedImage->Size)
+    while (offset < MappedImage->ViewSize)
     {
         PhUpdateHash(&hashContext, PTR_ADD_OFFSET(MappedImage->ViewBase, offset), sizeof(BYTE));
         offset++;
@@ -5179,7 +5389,7 @@ BOOLEAN PhGetMappedImageEntropy(
     {
         status = PhCalculateEntropy(
             MappedImage->ViewBase,
-            MappedImage->Size,
+            MappedImage->ViewSize,
             ImageEntropy,
             ImageVariance
             );

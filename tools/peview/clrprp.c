@@ -106,7 +106,7 @@ PSTORAGESIGNATURE PvpPeGetClrMetaDataHeader(
         {
             __try
             {
-                PhProbeAddress(metaData, PvImageCor20Header->MetaData.Size, PvMappedImage.ViewBase, PvMappedImage.Size, 4);
+                PhProbeAddress(metaData, PvImageCor20Header->MetaData.Size, PvMappedImage.ViewBase, PvMappedImage.ViewSize, 4);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {

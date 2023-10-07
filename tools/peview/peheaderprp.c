@@ -577,9 +577,8 @@ VOID PvSetPeImageOverlayHeaderProperties(
         }
     }
 
-    if (PvMappedImage.Size != lastRawDataOffset)
+    if (PvMappedImage.ViewSize != lastRawDataOffset)
     {
-        PIMAGE_DATA_DIRECTORY dataDirectory;
         ULONG64 imageOverlayDataLength;
         PVOID imageOverlayData;
         WCHAR value[PH_PTR_STR_LEN_1];
@@ -587,22 +586,7 @@ VOID PvSetPeImageOverlayHeaderProperties(
         PPH_STRING string;
         PPH_STRING hashString;
 
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(
-            &PvMappedImage,
-            IMAGE_DIRECTORY_ENTRY_SECURITY,
-            &dataDirectory
-            )))
-        {
-            if (
-                (lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
-                (lastRawDataOffset == dataDirectory->VirtualAddress)
-                )
-            {
-                return;
-            }
-        }
-
-        imageOverlayDataLength = PvMappedImage.Size - lastRawDataOffset;
+        imageOverlayDataLength = PvMappedImage.ViewSize - lastRawDataOffset;
         imageOverlayData = PTR_ADD_OFFSET(PvMappedImage.ViewBase, lastRawDataOffset);
 
         PhPrintPointer(value, (PVOID)lastRawDataOffset);

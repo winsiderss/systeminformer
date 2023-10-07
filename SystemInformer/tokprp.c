@@ -4556,26 +4556,19 @@ NTSTATUS PhGetAppModelPolicy(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PH_STRINGREF kernelBaseName = PH_STRINGREF_INIT(L"kernelbase.dll");
-        PLDR_DATA_TABLE_ENTRY entry;
         PPH_SYMBOL_PROVIDER symbolProvider;
         PH_SYMBOL_INFORMATION symbolInfo;
+        PVOID baseAddress;
+        ULONG sizeOfImage;
+        PPH_STRING fileName;
 
         symbolProvider = PhCreateSymbolProvider(NULL);
         PhLoadSymbolProviderOptions(symbolProvider);
 
-        if (entry = PhFindLoaderEntry(NULL, NULL, &kernelBaseName))
+        if (PhGetLoaderEntryDataZ(L"kernelbase.dll", &baseAddress, &sizeOfImage, &fileName))
         {
-            PH_STRINGREF fullName;
-            PPH_STRING fileName;
-
-            PhUnicodeStringToStringRef(&entry->FullDllName, &fullName);
-
-            if (fileName = PhDosPathNameToNtPathName(&fullName))
-            {
-                PhLoadModuleSymbolProvider(symbolProvider, fileName, (ULONG64)entry->DllBase, entry->SizeOfImage);
-                PhDereferenceObject(fileName);
-            }
+            PhLoadModuleSymbolProvider(symbolProvider, fileName, (ULONG64)baseAddress, sizeOfImage);
+            PhDereferenceObject(fileName);
         }
 
         if (PhGetSymbolFromName(symbolProvider, L"GetAppModelPolicy", &symbolInfo))

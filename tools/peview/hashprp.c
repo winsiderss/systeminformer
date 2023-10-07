@@ -1167,12 +1167,12 @@ NTSTATUS PvPeFileHashThread(
 
     if (PhIsNullOrEmptyString(ssdeepHashString))
     {
-        fuzzy_hash_buffer(PvMappedImage.ViewBase, PvMappedImage.Size, &ssdeepHashString);
+        fuzzy_hash_buffer(PvMappedImage.ViewBase, PvMappedImage.ViewSize, &ssdeepHashString);
     }
 
     if (PhIsNullOrEmptyString(tlshHashString))
     {
-        PvGetTlshBufferHash(PvMappedImage.ViewBase, PvMappedImage.Size, &tlshHashString);
+        PvGetTlshBufferHash(PvMappedImage.ViewBase, PvMappedImage.ViewSize, &tlshHashString);
     }
 
     // Authentihash (Authenticode)
