@@ -255,7 +255,6 @@ VOID PvPeProperties(
                     PvImageCor20Header,
                     sizeof(IMAGE_COR20_HEADER),
                     PvMappedImage.ViewBase,
-                    PvMappedImage.Size,
                     PvMappedImage.ViewSize,
                     4
                     );

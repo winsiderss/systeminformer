@@ -1492,7 +1492,8 @@ NTSTATUS PhpRefreshThreadStackThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    PhLoadSymbolsThreadProvider(threadStackContext->ThreadProvider);
+    PhLoadSymbolProviderOptions(threadStackContext->SymbolProvider);
+    PhLoadSymbolProviderModules(threadStackContext->SymbolProvider, threadStackContext->ProcessId);
 
     clientId.UniqueProcess = threadStackContext->ProcessId;
     clientId.UniqueThread = threadStackContext->ThreadId;
