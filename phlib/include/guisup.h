@@ -1882,14 +1882,6 @@ PhRecentListDestroy(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhRecentListAddString(
-    _In_ HANDLE RecentHandle,
-    _In_ PCWSTR String
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
 PhRecentListAddCommand(
     _In_ PPH_STRINGREF Command
     );

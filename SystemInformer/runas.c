@@ -1267,7 +1267,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     }
                     else if (status != STATUS_TIMEOUT)
                     {
-                        PhRecentListAddString(hwndDlg, PhGetString(program));
+                        PhRecentListAddCommand(&program->sr);
                         //PhSetStringSetting2(L"RunAsProgram", &program->sr);
                         PhSetStringSetting2(L"RunAsUserName", &username->sr);
                         EndDialog(hwndDlg, IDOK);
