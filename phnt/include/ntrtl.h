@@ -10,6 +10,16 @@
 #define RtlOffsetToPointer(Base, Offset) ((PCHAR)(((PCHAR)(Base)) + ((ULONG_PTR)(Offset))))
 #define RtlPointerToOffset(Base, Pointer) ((ULONG)(((PCHAR)(Pointer)) - ((PCHAR)(Base))))
 
+#define RTL_PTR_ADD(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Value)))
+#define RTL_PTR_SUBTRACT(Pointer, Value) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Value)))
+
+#define RTL_MILLISEC_TO_100NANOSEC(m) ((m) * 10000ui64)
+#define RTL_SEC_TO_100NANOSEC(s) ((s) * 10000000ui64)
+#define RTL_SEC_TO_MILLISEC(s) ((s) * 1000ui64)
+
+#define RTL_MEG (1024UL * 1024UL)
+#define RTL_IMAGE_MAX_DOS_HEADER (256UL * RTL_MEG)
+
 // Linked lists
 
 FORCEINLINE VOID InitializeListHead(
@@ -898,24 +908,24 @@ RtlDeleteCriticalSection(
     _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
-NTSYSAPI
 _Acquires_exclusive_lock_(*CriticalSection)
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlEnterCriticalSection(
     _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
-NTSYSAPI
 _Releases_exclusive_lock_(*CriticalSection)
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlLeaveCriticalSection(
     _Inout_ PRTL_CRITICAL_SECTION CriticalSection
     );
 
-NTSYSAPI
 _When_(return != 0, _Acquires_exclusive_lock_(*CriticalSection))
+NTSYSAPI
 LOGICAL
 NTAPI
 RtlTryEnterCriticalSection(
@@ -1246,6 +1256,27 @@ RtlWakeAddressSingle(
 #endif
 
 // end_rev
+
+FORCEINLINE
+VOID
+RtlCopyVolatileMemory(
+    _Out_writes_bytes_(Size) VOID *Destination,
+    _In_reads_bytes_(Size) volatile const VOID *Source,
+    _In_ SIZE_T Size
+    )
+{
+    RtlCopyMemory(Destination, (const VOID *)Source, Size);
+    BarrierAfterRead();
+}
+
+FORCEINLINE
+HANDLE
+RtlReadHandleNoFence(
+    _In_reads_bytes_(sizeof(HANDLE)) volatile CONST HANDLE *Address
+    )
+{
+    return (HANDLE)ReadPointerNoFence((PVOID *)Address);
+}
 
 // Strings
 
@@ -1739,7 +1770,7 @@ RtlUnicodeStringToAnsiString(
     _In_ PUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
-    
+
 // rev
 NTSYSAPI
 ULONG
@@ -2652,19 +2683,41 @@ RtlGetCurrentPeb(
     VOID
     );
 
+#ifndef PHNT_INLINE_PEB_LOCK
 NTSYSAPI
-VOID
+NTSTATUS
 NTAPI
 RtlAcquirePebLock(
     VOID
     );
 
 NTSYSAPI
-VOID
+NTSTATUS
 NTAPI
 RtlReleasePebLock(
     VOID
     );
+#else
+FORCEINLINE
+NTSTATUS
+NTAPI
+RtlAcquirePebLock(
+    VOID
+    )
+{
+    return RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock)
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+RtlReleasePebLock(
+    VOID
+    )
+{
+    return RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock)
+}
+#endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 // private
@@ -2676,6 +2729,7 @@ RtlTryAcquirePebLock(
     );
 #endif
 
+#if (PHNT_VERSION < PHNT_VISTA)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2691,6 +2745,7 @@ RtlFreeToPeb(
     _In_ PVOID Block,
     _In_ ULONG Size
     );
+#endif
 
 // Processes
 
@@ -3590,7 +3645,7 @@ NTSTATUS
 NTAPI
 RtlQueryInformationActivationContext(
     _In_ ULONG Flags,
-    _In_ PACTIVATION_CONTEXT ActivationContext,
+    _In_opt_ PACTIVATION_CONTEXT ActivationContext,
     _In_opt_ PACTIVATION_CONTEXT_QUERY_INDEX SubInstanceIndex,
     _In_ ACTIVATION_CONTEXT_INFO_CLASS ActivationContextInformationClass,
     _Out_writes_bytes_(ActivationContextInformationLength) PVOID ActivationContextInformation,
@@ -3598,6 +3653,29 @@ RtlQueryInformationActivationContext(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
+#ifdef PHNT_INLINE_ACTIVE_ACTIVATION_CONTEXT
+// private
+FORCEINLINE
+NTSTATUS
+NTAPI
+RtlQueryInformationActiveActivationContext(
+    _In_ ACTIVATION_CONTEXT_INFO_CLASS ActivationContextInformationClass,
+    _Out_writes_bytes_(ActivationContextInformationLength) PVOID ActivationContextInformation,
+    _In_ SIZE_T ActivationContextInformationLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    return RtlQueryInformationActivationContext(
+        RTL_QUERY_INFORMATION_ACTIVATION_CONTEXT_FLAG_USE_ACTIVE_ACTIVATION_CONTEXT,
+        NULL,
+        0,
+        ActivationContextInformationClass,
+        ActivationContextInformation,
+        ActivationContextInformationLength,
+        ReturnLength
+        );
+}
+#else
 // private
 NTSYSAPI
 NTSTATUS
@@ -3608,6 +3686,7 @@ RtlQueryInformationActiveActivationContext(
     _In_ SIZE_T ActivationContextInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
     );
+#endif
 
 // Images
 
@@ -3882,8 +3961,8 @@ RtlQueryEnvironmentVariable(
     _In_opt_ PVOID Environment,
     _In_reads_(NameLength) PCWSTR Name,
     _In_ SIZE_T NameLength,
-    _Out_writes_(ValueLength) PWSTR Value,
-    _In_ SIZE_T ValueLength,
+    _Out_writes_opt_(ValueLength) PWSTR Value,
+    _In_opt_ SIZE_T ValueLength,
     _Out_ PSIZE_T ReturnLength
     );
 #endif
