@@ -3025,10 +3025,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_VERIFICATIONSTATUS:
-                getCellText->Text = PhVerifyResultToStringRef(processItem->VerifyResult);
+                if (PhEnableProcessQueryStage2)
+                    getCellText->Text = PhVerifyResultToStringRef(processItem->VerifyResult);
+                else
+                    PhInitializeStringRef(&getCellText->Text, L"Image digital signature support disabled.");
                 break;
             case PHPRTLC_VERIFIEDSIGNER:
-                getCellText->Text = PhGetStringRef(processItem->VerifySignerName);
+                if (PhEnableProcessQueryStage2)
+                    getCellText->Text = PhGetStringRef(processItem->VerifySignerName);
+                else
+                    PhInitializeStringRef(&getCellText->Text, L"Image digital signature support disabled.");
                 break;
             case PHPRTLC_ASLR:
                 PhpUpdateProcessNodeImage(node);

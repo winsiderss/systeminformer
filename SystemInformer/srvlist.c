@@ -753,10 +753,16 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 }
                 break;
             case PHSVTLC_VERIFICATIONSTATUS:
-                getCellText->Text = PhVerifyResultToStringRef(serviceItem->VerifyResult);
+                if (PhEnableServiceQueryStage2)
+                    getCellText->Text = PhVerifyResultToStringRef(serviceItem->VerifyResult);
+                else
+                    PhInitializeStringRef(&getCellText->Text, L"Service digital signature support disabled.");
                 break;
             case PHSVTLC_VERIFIEDSIGNER:
-                getCellText->Text = PhGetStringRef(serviceItem->VerifySignerName);
+                if (PhEnableServiceQueryStage2)
+                    getCellText->Text = PhGetStringRef(serviceItem->VerifySignerName);
+                else
+                    PhInitializeStringRef(&getCellText->Text, L"Service digital signature support disabled.");
                 break;
             case PHSVTLC_FILENAME:
                 getCellText->Text = PhGetStringRef(serviceItem->FileName);
