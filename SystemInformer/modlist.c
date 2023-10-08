@@ -980,18 +980,24 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_VERIFICATIONSTATUS:
                 {
-                    if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
+                    if (PhEnableProcessQueryStage2)
                     {
-                        getCellText->Text = PhVerifyResultToStringRef(moduleItem->VerifyResult);
+                        if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
+                            getCellText->Text = PhVerifyResultToStringRef(moduleItem->VerifyResult);
+                        else
+                            PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                     else
                     {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        PhInitializeStringRef(&getCellText->Text, L"Image digital signature support disabled.");
                     }
                 }
                 break;
             case PHMOTLC_VERIFIEDSIGNER:
-                getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
+                if (PhEnableProcessQueryStage2)
+                    getCellText->Text = PhGetStringRef(moduleItem->VerifySignerName);
+                else
+                    PhInitializeStringRef(&getCellText->Text, L"Image digital signature support disabled.");
                 break;
             case PHMOTLC_ASLR:
                 {
