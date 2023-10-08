@@ -209,6 +209,7 @@ namespace CustomBuildTool
 
             if (!string.IsNullOrWhiteSpace(currentGitDir) && !string.IsNullOrWhiteSpace(currentGitPath))
             {
+                Win32.ShellExecute(currentGitPath, $"{currentGitDir} fetch --unshallow");
                 BuildBranch = Win32.ShellExecute(currentGitPath, $"{currentGitDir} rev-parse --abbrev-ref HEAD").Trim();
                 BuildCommit = Win32.ShellExecute(currentGitPath, $"{currentGitDir} rev-parse HEAD").Trim();
                 BuildCount = Win32.ShellExecute(currentGitPath, $"{currentGitDir} rev-list --count {BuildBranch}").Trim();
