@@ -12,6 +12,60 @@
 #include "setup.h"
 #include "..\thirdparty\miniz\miniz.h"
 
+BOOLEAN SetupUseExistingKsi(
+    _In_ PPH_STRING FileName,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    BOOLEAN result;
+    PPH_STRING oldFile;
+    PH_HASH_CONTEXT hashContext;
+    BYTE inputHash[256 / 8];
+    BYTE oldHash[256/ 8];
+
+    oldFile = PhConcatStringRefZ(&FileName->sr, L"-old");
+    if (!PhDoesFileExistWin32(PhGetString(oldFile)))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+    PhUpdateHash(&hashContext, Buffer, BufferLength);
+    if (!PhFinalHash(&hashContext, inputHash, ARRAYSIZE(inputHash), NULL))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    if (!SetupHashFile(oldFile, oldHash))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    if (!RtlEqualMemory(inputHash, oldHash, ARRAYSIZE(inputHash)))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(oldFile), PhGetString(FileName), TRUE)))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    result = TRUE;
+
+CleanupExit:
+
+    PhClearReference(&oldFile);
+
+    return result;
+}
+
 BOOLEAN SetupUpdateKsi(
     _Inout_ PPH_SETUP_CONTEXT Context,
     _In_ PPH_STRING FileName,
@@ -21,7 +75,7 @@ BOOLEAN SetupUpdateKsi(
 {
     BOOLEAN result;
     PH_HASH_CONTEXT hashContext;
-    BYTE inputHash[256/ 8];
+    BYTE inputHash[256 / 8];
     BYTE existingHash[256/ 8];
     PPH_STRING oldFile = NULL;
 
@@ -50,7 +104,7 @@ BOOLEAN SetupUpdateKsi(
     oldFile = PhConcatStringRefZ(&FileName->sr, L"-old");
 
     PhDeleteFileWin32(PhGetString(oldFile));
-    if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(FileName), PhGetString(oldFile), FALSE)))
+    if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(FileName), PhGetString(oldFile), TRUE)))
     {
         result = FALSE;
         goto CleanupExit;
@@ -68,8 +122,7 @@ BOOLEAN SetupUpdateKsi(
 
 CleanupExit:
 
-    if (oldFile)
-        PhDereferenceObject(oldFile);
+    PhClearReference(&oldFile);
 
     return result;
 }
@@ -271,25 +324,27 @@ BOOLEAN SetupExtractBuild(
 
         {
             ULONG attempts = 5;
-            BOOLEAN updateKsiAttempt = FALSE;
+            BOOLEAN updateKsiAttempt;
 
             do
             {
-                if (!SetupOverwriteFile(extractPath, buffer, zipFileBufferLength))
+                updateKsiAttempt = FALSE;
+
+                if (PhEndsWithString2(extractPath, L"\\ksi.dll", FALSE))
                 {
-                    if (!PhEndsWithString2(extractPath, L"\\ksi.dll", FALSE) ||
-                        !SetupUpdateKsi(Context, extractPath, buffer, zipFileBufferLength))
-                    {
-                        updateKsiAttempt = TRUE;
-                    }
-                    else
-                    {
+                    if (SetupUseExistingKsi(extractPath, buffer, zipFileBufferLength))
                         break;
-                    }
+                    if (SetupOverwriteFile(extractPath, buffer, zipFileBufferLength))
+                        break;
+                    if (SetupUpdateKsi(Context, extractPath, buffer, zipFileBufferLength))
+                        break;
+
+                    updateKsiAttempt = TRUE;
                 }
                 else
                 {
-                    break;
+                    if (SetupOverwriteFile(extractPath, buffer, zipFileBufferLength))
+                        break;
                 }
 
                 PhDelayExecution(1000); // Wait 1 second and try again
