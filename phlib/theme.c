@@ -424,7 +424,7 @@ VOID PhInitializeThemeWindowFrame(
             }
         }
 
-        if (WindowsVersion >= WINDOWS_11_22H1)
+        if (WindowsVersion >= WINDOWS_11_22H2)
         {
             PhSetWindowThemeAttribute(WindowHandle, DWMWA_SYSTEMBACKDROP_TYPE, &(ULONG){ 1 }, sizeof(ULONG));
         }
