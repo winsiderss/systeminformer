@@ -424,13 +424,13 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
     </data>
-    <data name="10.0.17763.2746 - 10.0.17763.4851">
+    <data name="10.0.17763.2746 - 10.0.17763.4974">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="17763"  name="BuildNumberMin"/>
         <field value="2746"   name="RevisionMin"/>
         <field value="17763"  name="BuildNumberMax"/>
-        <field value="4851"   name="RevisionMax"/>
+        <field value="4974"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x418"  name="EpObjectTable"/>
