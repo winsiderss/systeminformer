@@ -199,8 +199,8 @@ VOID PhInitializeWindowsVersion(
         }
         else if (buildVersion >= 22621)
         {
-            WindowsVersion = WINDOWS_11_22H1;
-            WindowsVersionName = L"Windows 11 22H1";
+            WindowsVersion = WINDOWS_11_22H2;
+            WindowsVersionName = L"Windows 11 22H2";
         }
         else if (buildVersion >= 22000)
         {

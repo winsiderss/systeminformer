@@ -6521,7 +6521,7 @@ NTSTATUS PhSetProcessPriority(
 {
     NTSTATUS status;
 
-    if (WindowsVersion >= WINDOWS_11_22H1)
+    if (WindowsVersion >= WINDOWS_11_22H2)
     {
         PROCESS_PRIORITY_CLASS_EX processPriorityClassEx;
 
@@ -12345,7 +12345,7 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
     ULONG alignSize;
     ULONG blockSize;
 
-    if (WindowsVersion < WINDOWS_11_22H1)
+    if (WindowsVersion < WINDOWS_11_22H2)
         return STATUS_NOT_SUPPORTED;
 
     status = PhCreateFileWin32ExAlt(
@@ -12491,7 +12491,7 @@ NTSTATUS PhCopyFileChunkWin32(
     LARGE_INTEGER destinationOffset = { 0 };
     LARGE_INTEGER fileSize;
 
-    if (WindowsVersion < WINDOWS_11_22H1)
+    if (WindowsVersion < WINDOWS_11_22H2)
         return STATUS_NOT_SUPPORTED;
 
     status = PhCreateFileWin32ExAlt(

@@ -1641,7 +1641,7 @@ PDNS_RECORD PhDnsQuery3(
         goto CleanupExit;
 
     memset(&dnsQueryRequest, 0, sizeof(dnsQueryRequest));
-    dnsQueryRequest.Version = WindowsVersion < WINDOWS_11_22H1 ? DNS_QUERY_REQUEST_VERSION1 : DNS_QUERY_REQUEST_VERSION3;
+    dnsQueryRequest.Version = WindowsVersion < WINDOWS_11_22H2 ? DNS_QUERY_REQUEST_VERSION1 : DNS_QUERY_REQUEST_VERSION3;
     dnsQueryRequest.QueryName = DnsQueryMessage;
     dnsQueryRequest.QueryType = DnsQueryMessageType;
     dnsQueryRequest.QueryOptions = (ULONG64)DnsQueryMessageOptions;

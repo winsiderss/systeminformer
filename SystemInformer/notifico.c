@@ -551,7 +551,7 @@ VOID PhNfForwardMessage(
         break;
     case NIN_POPUPOPEN:
         {
-            if (WindowsVersion >= WINDOWS_11_22H1)
+            if (WindowsVersion >= WINDOWS_11_22H2)
             {
                 // NIN_POPUPOPEN is sent when the user hovers the cursor over an icon BUT Windows 11 either blocks the notification
                 // or ignores the hover time and displays the popup instantly. We try and workaround the missing hover time by using
@@ -2263,7 +2263,7 @@ VOID PhNfpIconDisablePopupHoverWin11Workaround(
     VOID
     )
 {
-    if (WindowsVersion >= WINDOWS_11_22H1)
+    if (WindowsVersion >= WINDOWS_11_22H2)
     {
         PopupIconIndex = ULONG_MAX;
         PopupRegisteredIcon = NULL;
