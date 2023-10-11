@@ -38,6 +38,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
     PhpAddIntegerSetting(L"EnableDeferredLayout", L"1");
     PhpAddIntegerSetting(L"EnableDeviceSupport", L"1");
+    PhpAddIntegerSetting(L"EnableDeviceNotifySupport", L"1");
     PhpAddIntegerSetting(L"EnableImageCoherencySupport", L"0");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableHeapReflection", L"0");
