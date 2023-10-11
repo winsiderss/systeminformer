@@ -481,7 +481,7 @@ VOID PhInvalidateAllMemoryBaseAddressNodes(
             PhPrintPointer(memoryNode->MemoryItem->BaseAddressString, memoryNode->MemoryItem->BaseAddress);
 
         memset(memoryNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMMTLC_MAXIMUM);
-        TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
+        //TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
     }
 
     for (i = 0; i < Context->RegionNodeList->Count; i++)
@@ -494,7 +494,7 @@ VOID PhInvalidateAllMemoryBaseAddressNodes(
             PhPrintPointer(memoryNode->MemoryItem->BaseAddressString, memoryNode->MemoryItem->BaseAddress);
 
         memset(memoryNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMMTLC_MAXIMUM);
-        TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
+        //TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
     }
 
     InvalidateRect(Context->TreeNewHandle, NULL, FALSE);

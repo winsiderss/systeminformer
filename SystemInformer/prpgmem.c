@@ -924,6 +924,36 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE)
                         {
+                            ULONG id = ULONG_MAX;
+
+                            switch (selectedItem->Id)
+                            {
+                            case PH_MEMORY_FILTER_MENU_HIDE_FREE:
+                                id = PH_MEMORY_FLAGS_FREE_OPTION;
+                                break;
+                            case PH_MEMORY_FILTER_MENU_HIDE_RESERVED:
+                                id = PH_MEMORY_FLAGS_RESERVED_OPTION;
+                                break;
+                            case PH_MEMORY_FILTER_MENU_HIDE_GUARD:
+                                id = PH_MEMORY_FLAGS_GUARD_OPTION;
+                                break;
+                            case PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE:
+                                id = PH_MEMORY_FLAGS_PRIVATE_OPTION;
+                                break;
+                            case PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM:
+                                id = PH_MEMORY_FLAGS_SYSTEM_OPTION;
+                                break;
+                            case PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG:
+                                id = PH_MEMORY_FLAGS_CFG_OPTION;
+                                break;
+                            case PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE:
+                                id = PH_MEMORY_FLAGS_EXECUTE_OPTION;
+                                break;
+                            }
+
+                            if (id != ULONG_MAX)
+                                break;
+
                             PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
                             PhSaveSettingsMemoryList(&memoryContext->ListContext);
 
@@ -932,7 +962,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_ZERO_PAD_ADDRESSES)
                         {
-                            PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
+                            PhSetOptionsMemoryList(&memoryContext->ListContext, PH_MEMORY_FLAGS_ZERO_PAD_ADDRESSES);
                             PhSaveSettingsMemoryList(&memoryContext->ListContext);
 
                             PhInvalidateAllMemoryBaseAddressNodes(&memoryContext->ListContext);
