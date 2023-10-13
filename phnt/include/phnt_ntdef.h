@@ -210,6 +210,7 @@ typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
 #define OBJ_PROTECT_CLOSE                   0x00000001L
 #define OBJ_INHERIT                         0x00000002L
 #define OBJ_AUDIT_OBJECT_CLOSE              0x00000004L
+#define OBJ_NO_RIGHTS_UPGRADE               0x00000008L
 #define OBJ_PERMANENT                       0x00000010L
 #define OBJ_EXCLUSIVE                       0x00000020L
 #define OBJ_CASE_INSENSITIVE                0x00000040L
