@@ -420,8 +420,8 @@ typedef enum _SECTION_INFORMATION_CLASS
 {
     SectionBasicInformation, // q; SECTION_BASIC_INFORMATION
     SectionImageInformation, // q; SECTION_IMAGE_INFORMATION
-    SectionRelocationInformation, // q; PVOID RelocationAddress // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
-    SectionOriginalBaseInformation, // PVOID BaseAddress
+    SectionRelocationInformation, // q; ULONG_PTR RelocationDelta // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
+    SectionOriginalBaseInformation, // q; PVOID BaseAddress // since REDSTONE
     SectionInternalImageInformation, // SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
     MaxSectionInfoClass
 } SECTION_INFORMATION_CLASS;
