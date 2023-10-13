@@ -80,7 +80,7 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenVirtualizationAllowed, // q; s: ULONG (requires SeCreateTokenPrivilege)
     TokenVirtualizationEnabled, // q; s: ULONG
     TokenIntegrityLevel, // q; s: TOKEN_MANDATORY_LABEL
-    TokenUIAccess, // q; s: ULONG
+    TokenUIAccess, // q; s: ULONG (requires SeTcbPrivilege)
     TokenMandatoryPolicy, // q; s: TOKEN_MANDATORY_POLICY (requires SeTcbPrivilege)
     TokenLogonSid, // q: TOKEN_GROUPS
     TokenIsAppContainer, // q: ULONG // since WIN8
@@ -93,13 +93,13 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenRestrictedDeviceClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     TokenDeviceGroups, // q: TOKEN_GROUPS
     TokenRestrictedDeviceGroups, // q: TOKEN_GROUPS
-    TokenSecurityAttributes, // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION
+    TokenSecurityAttributes, // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION (requires SeTcbPrivilege)
     TokenIsRestricted, // q: ULONG // 40
     TokenProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL // since WINBLUE
-    TokenPrivateNameSpace, // q; s: ULONG // since THRESHOLD
+    TokenPrivateNameSpace, // q; s: ULONG  (requires SeTcbPrivilege) // since THRESHOLD
     TokenSingletonAttributes, // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION // since REDSTONE
     TokenBnoIsolation, // q: TOKEN_BNO_ISOLATION_INFORMATION // since REDSTONE2
-    TokenChildProcessFlags, // s: ULONG // since REDSTONE3
+    TokenChildProcessFlags, // s: ULONG  (requires SeTcbPrivilege) // since REDSTONE3
     TokenIsLessPrivilegedAppContainer, // q: ULONG // since REDSTONE5
     TokenIsSandboxed, // q: ULONG // since 19H1
     TokenIsAppSilo, // q: ULONG // since WIN11 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
