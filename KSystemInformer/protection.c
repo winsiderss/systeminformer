@@ -145,28 +145,6 @@ VOID KSIAPI KphpFreeImageLoadApc(
 }
 
 /**
- * \brief Initializes the protection infrastructure.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphInitializeProtection(
-    VOID
-    )
-{
-    KPH_OBJECT_TYPE_INFO typeInfo;
-
-    PAGED_CODE_PASSIVE();
-
-    typeInfo.Allocate = KphpAllocateImageLoadApc;
-    typeInfo.Initialize = KphpInitializeImageLoadApc;
-    typeInfo.Delete = KphpDeleteImageLoadApc;
-    typeInfo.Free = KphpFreeImageLoadApc;
-
-    KphCreateObjectType(&KphpImageLoadApcTypeName,
-                        &typeInfo,
-                        &KphpImageLoadApcType);
-}
-
-/**
  * \brief Checks if object protections should be suppressed.
  *
  * \param[in] Actor The actor process.
@@ -230,7 +208,7 @@ BOOLEAN KphpShouldSuppressObjectProtections(
 _Function_class_(KPH_ENUM_PROCESS_HANDLES_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-BOOLEAN KSIAPI KphEnumProcessHandlesForProtection(
+BOOLEAN KSIAPI KphpEnumProcessHandlesForProtection(
     _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
     _In_ HANDLE Handle,
     _In_opt_ PVOID Parameter
@@ -348,7 +326,7 @@ BOOLEAN KSIAPI KphEnumProcessHandlesForProtection(
 _Function_class_(KPH_ENUM_PROCESS_CONTEXTS_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-BOOLEAN KSIAPI KphEnumProcessContextsForProtection(
+BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
     _In_ PKPH_PROCESS_CONTEXT Process,
     _In_opt_ PVOID Parameter
     )
@@ -370,7 +348,7 @@ BOOLEAN KSIAPI KphEnumProcessContextsForProtection(
     parameter->ProcessEnum = Process;
 
     status = KphEnumerateProcessHandlesEx(Process->EProcess,
-                                          KphEnumProcessHandlesForProtection,
+                                          KphpEnumProcessHandlesForProtection,
                                           parameter);
     if (status == STATUS_NOINTERFACE)
     {
@@ -520,7 +498,7 @@ NTSTATUS KphStartProtectingProcess(
     context.Status = STATUS_SUCCESS;
     context.Process = Process;
 
-    KphEnumerateProcessContexts(KphEnumProcessContextsForProtection, &context);
+    KphEnumerateProcessContexts(KphpEnumProcessContextsForProtection, &context);
 
     status = context.Status;
 
@@ -782,7 +760,6 @@ Exit:
     {
         KphDereferenceObject(actor);
     }
-
 }
 
 /**
@@ -1308,7 +1285,6 @@ Exit:
     {
         KphFreeNameFileObject(fileName);
     }
-
 }
 
 /**
@@ -1527,5 +1503,26 @@ VOID KphApplyImageProtections(
 Exit:
 
     KphReleaseRWLock(&Process->ProtectionLock);
+}
 
+/**
+ * \brief Initializes the protection infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeProtection(
+    VOID
+    )
+{
+    KPH_OBJECT_TYPE_INFO typeInfo;
+
+    PAGED_CODE_PASSIVE();
+
+    typeInfo.Allocate = KphpAllocateImageLoadApc;
+    typeInfo.Initialize = KphpInitializeImageLoadApc;
+    typeInfo.Delete = KphpDeleteImageLoadApc;
+    typeInfo.Free = KphpFreeImageLoadApc;
+
+    KphCreateObjectType(&KphpImageLoadApcTypeName,
+                        &typeInfo,
+                        &KphpImageLoadApcType);
 }
