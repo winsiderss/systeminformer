@@ -54,6 +54,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgCompareObjects,
     KphMsgGetMessageTimeouts,
     KphMsgSetMessageTimeouts,
+    KphMsgAcquireDriverUnloadProtection,
+    KphMsgReleaseDriverUnloadProtection,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -176,6 +178,8 @@ typedef struct _KPH_MESSAGE
             KPHM_COMPARE_OBJECTS CompareObjects;
             KPHM_GET_MESSAGE_TIMEOUTS GetMessageTimeouts;
             KPHM_SET_MESSAGE_TIMEOUTS SetMessageTimeouts;
+            KPHM_ACQUIRE_DRIVER_UNLOAD_PROTECTION AcquireDriverUnloadProtection;
+            KPHM_RELEASE_DRIVER_UNLOAD_PROTECTION ReleaseDriverUnloadProtection;
         } User;
 
         //

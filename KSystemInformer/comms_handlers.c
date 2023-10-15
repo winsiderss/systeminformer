@@ -12,6 +12,8 @@
 #include <kph.h>
 #include <comms.h>
 
+#include <trace.h>
+
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerSettings);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformerSettings);
 KPHM_DEFINE_HANDLER(KphpCommsOpenProcess);
@@ -42,6 +44,8 @@ KPHM_DEFINE_HANDLER(KphpCommsQuerySection);
 KPHM_DEFINE_HANDLER(KphpCommsCompareObjects);
 KPHM_DEFINE_HANDLER(KphpCommsGetMessageTimeouts);
 KPHM_DEFINE_HANDLER(KphpCommsSetMessageTimeouts);
+KPHM_DEFINE_HANDLER(KphpCommsAcquireDriverUnloadProtection);
+KPHM_DEFINE_HANDLER(KphpCommsReleaseDriverUnloadProtection);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -58,37 +62,39 @@ KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 
 const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 {
-{ InvalidKphMsg,                     NULL,                                 NULL },
-{ KphMsgGetInformerSettings,         KphpCommsGetInformerSettings,         KphpCommsRequireLow },
-{ KphMsgSetInformerSettings,         KphpCommsSetInformerSettings,         KphpCommsRequireLow },
-{ KphMsgOpenProcess,                 KphpCommsOpenProcess,                 KphpCommsOpenProcessRequires },
-{ KphMsgOpenProcessToken,            KphpCommsOpenProcessToken,            KphpCommsOpenProcessTokenRequires },
-{ KphMsgOpenProcessJob,              KphpCommsOpenProcessJob,              KphpCommsOpenProcessJobRequires },
-{ KphMsgTerminateProcess,            KphpCommsTerminateProcess,            KphpCommsRequireMaximum },
-{ KphMsgReadVirtualMemoryUnsafe,     KphpCommsReadVirtualMemoryUnsafe,     KphpCommsRequireMaximum },
-{ KphMsgOpenThread,                  KphpCommsOpenThread,                  KphpCommsOpenThreadRequires },
-{ KphMsgOpenThreadProcess,           KphpCommsOpenThreadProcess,           KphpCommsOpenThreadProcessRequires },
-{ KphMsgCaptureStackBackTraceThread, KphpCommsCaptureStackBackTraceThread, KphpCommsRequireMedium },
-{ KphMsgEnumerateProcessHandles,     KphpCommsEnumerateProcessHandles,     KphpCommsRequireMedium },
-{ KphMsgQueryInformationObject,      KphpCommsQueryInformationObject,      KphpCommsRequireMedium },
-{ KphMsgSetInformationObject,        KphpCommsSetInformationObject,        KphpCommsRequireMaximum },
-{ KphMsgOpenDriver,                  KphpCommsOpenDriver,                  KphpCommsRequireMaximum },
-{ KphMsgQueryInformationDriver,      KphpCommsQueryInformationDriver,      KphpCommsRequireMaximum },
-{ KphMsgQueryInformationProcess,     KphpCommsQueryInformationProcess,     KphpCommsQueryInformationProcessRequires },
-{ KphMsgSetInformationProcess,       KphpCommsSetInformationProcess,       KphpCommsRequireMaximum },
-{ KphMsgSetInformationThread,        KphpCommsSetInformationThread,        KphpCommsRequireMaximum },
-{ KphMsgSystemControl,               KphpCommsSystemControl,               KphpCommsRequireMaximum },
-{ KphMsgAlpcQueryInformation,        KphpCommsAlpcQueryInformation,        KphpCommsRequireMedium },
-{ KphMsgQueryInformationFile,        KphpCommsQueryInformationFile,        KphpCommsRequireMedium },
-{ KphMsgQueryVolumeInformationFile,  KphpCommsQueryVolumeInformationFile,  KphpCommsRequireMedium },
-{ KphMsgDuplicateObject,             KphpCommsDuplicateObject,             KphpCommsRequireMaximum },
-{ KphMsgQueryPerformanceCounter,     KphpCommsQueryPerformanceCounter,     KphpCommsRequireLow },
-{ KphMsgCreateFile,                  KphpCommsCreateFile,                  KphpCommsCreateFileRequires },
-{ KphMsgQueryInformationThread,      KphpCommsQueryInformationThread,      KphpCommsRequireMedium },
-{ KphMsgQuerySection,                KphpCommsQuerySection,                KphpCommsRequireMedium },
-{ KphMsgCompareObjects,              KphpCommsCompareObjects,              KphpCommsRequireMedium },
-{ KphMsgGetMessageTimeouts,          KphpCommsGetMessageTimeouts,          KphpCommsRequireLow },
-{ KphMsgSetMessageTimeouts,          KphpCommsSetMessageTimeouts,          KphpCommsRequireLow },
+{ InvalidKphMsg,                       NULL,                                   NULL },
+{ KphMsgGetInformerSettings,           KphpCommsGetInformerSettings,           KphpCommsRequireLow },
+{ KphMsgSetInformerSettings,           KphpCommsSetInformerSettings,           KphpCommsRequireLow },
+{ KphMsgOpenProcess,                   KphpCommsOpenProcess,                   KphpCommsOpenProcessRequires },
+{ KphMsgOpenProcessToken,              KphpCommsOpenProcessToken,              KphpCommsOpenProcessTokenRequires },
+{ KphMsgOpenProcessJob,                KphpCommsOpenProcessJob,                KphpCommsOpenProcessJobRequires },
+{ KphMsgTerminateProcess,              KphpCommsTerminateProcess,              KphpCommsRequireMaximum },
+{ KphMsgReadVirtualMemoryUnsafe,       KphpCommsReadVirtualMemoryUnsafe,       KphpCommsRequireMaximum },
+{ KphMsgOpenThread,                    KphpCommsOpenThread,                    KphpCommsOpenThreadRequires },
+{ KphMsgOpenThreadProcess,             KphpCommsOpenThreadProcess,             KphpCommsOpenThreadProcessRequires },
+{ KphMsgCaptureStackBackTraceThread,   KphpCommsCaptureStackBackTraceThread,   KphpCommsRequireMedium },
+{ KphMsgEnumerateProcessHandles,       KphpCommsEnumerateProcessHandles,       KphpCommsRequireMedium },
+{ KphMsgQueryInformationObject,        KphpCommsQueryInformationObject,        KphpCommsRequireMedium },
+{ KphMsgSetInformationObject,          KphpCommsSetInformationObject,          KphpCommsRequireMaximum },
+{ KphMsgOpenDriver,                    KphpCommsOpenDriver,                    KphpCommsRequireMaximum },
+{ KphMsgQueryInformationDriver,        KphpCommsQueryInformationDriver,        KphpCommsRequireMaximum },
+{ KphMsgQueryInformationProcess,       KphpCommsQueryInformationProcess,       KphpCommsQueryInformationProcessRequires },
+{ KphMsgSetInformationProcess,         KphpCommsSetInformationProcess,         KphpCommsRequireMaximum },
+{ KphMsgSetInformationThread,          KphpCommsSetInformationThread,          KphpCommsRequireMaximum },
+{ KphMsgSystemControl,                 KphpCommsSystemControl,                 KphpCommsRequireMaximum },
+{ KphMsgAlpcQueryInformation,          KphpCommsAlpcQueryInformation,          KphpCommsRequireMedium },
+{ KphMsgQueryInformationFile,          KphpCommsQueryInformationFile,          KphpCommsRequireMedium },
+{ KphMsgQueryVolumeInformationFile,    KphpCommsQueryVolumeInformationFile,    KphpCommsRequireMedium },
+{ KphMsgDuplicateObject,               KphpCommsDuplicateObject,               KphpCommsRequireMaximum },
+{ KphMsgQueryPerformanceCounter,       KphpCommsQueryPerformanceCounter,       KphpCommsRequireLow },
+{ KphMsgCreateFile,                    KphpCommsCreateFile,                    KphpCommsCreateFileRequires },
+{ KphMsgQueryInformationThread,        KphpCommsQueryInformationThread,        KphpCommsRequireMedium },
+{ KphMsgQuerySection,                  KphpCommsQuerySection,                  KphpCommsRequireMedium },
+{ KphMsgCompareObjects,                KphpCommsCompareObjects,                KphpCommsRequireMedium },
+{ KphMsgGetMessageTimeouts,            KphpCommsGetMessageTimeouts,            KphpCommsRequireLow },
+{ KphMsgSetMessageTimeouts,            KphpCommsSetMessageTimeouts,            KphpCommsRequireLow },
+{ KphMsgAcquireDriverUnloadProtection, KphpCommsAcquireDriverUnloadProtection, KphpCommsRequireMaximum },
+{ KphMsgReleaseDriverUnloadProtection, KphpCommsReleaseDriverUnloadProtection, KphpCommsRequireMaximum },
 };
 
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
@@ -1148,6 +1154,88 @@ NTSTATUS KSIAPI KphpCommsSetMessageTimeouts(
     msg = &Message->User.SetMessageTimeouts;
 
     msg->Status = KphSetMessageTimeouts(&msg->Timeouts);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsAcquireDriverUnloadProtection(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_ACQUIRE_DRIVER_UNLOAD_PROTECTION msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgAcquireDriverUnloadProtection);
+
+    msg = &Message->User.AcquireDriverUnloadProtection;
+
+    msg->Status = KphAcquireReference(&Client->DriverUnloadProtectionRef,
+                                      &msg->ClientPreviousCount);
+    if (NT_SUCCESS(msg->Status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Client %wZ (%lu) "
+                      "acquired driver unload protection (%ld)",
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId),
+                      msg->ClientPreviousCount + 1);
+
+        if (msg->ClientPreviousCount == 0)
+        {
+            msg->Status = KphAcquireDriverUnloadProtection(&msg->PreviousCount);
+        }
+        else
+        {
+            msg->PreviousCount = KphGetDriverUnloadProtectionCount();
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsReleaseDriverUnloadProtection(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_RELEASE_DRIVER_UNLOAD_PROTECTION msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgReleaseDriverUnloadProtection);
+
+    msg = &Message->User.ReleaseDriverUnloadProtection;
+
+    msg->Status = KphReleaseReference(&Client->DriverUnloadProtectionRef,
+                                      &msg->ClientPreviousCount);
+    if (NT_SUCCESS(msg->Status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Client %wZ (%lu) "
+                      "released driver unload protection (%ld)",
+                      &Client->Process->ImageName,
+                      HandleToULong(Client->Process->ProcessId),
+                      msg->ClientPreviousCount - 1);
+
+        if (msg->ClientPreviousCount == 1)
+        {
+            msg->Status = KphReleaseDriverUnloadProtection(&msg->PreviousCount);
+        }
+        else
+        {
+            msg->PreviousCount = KphGetDriverUnloadProtectionCount();
+        }
+    }
 
     return STATUS_SUCCESS;
 }
