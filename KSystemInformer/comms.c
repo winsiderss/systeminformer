@@ -48,15 +48,6 @@ typedef struct _KPHM_QUEUE_ITEM
     PKPH_MESSAGE Message;
 } KPHM_QUEUE_ITEM, *PKPHM_QUEUE_ITEM;
 
-typedef struct _KPH_CLIENT
-{
-    LIST_ENTRY Entry;
-    PKPH_PROCESS_CONTEXT Process;
-    PFLT_PORT Port;
-} KPH_CLIENT, *PKPH_CLIENT;
-
-typedef const KPH_CLIENT* PCKPH_CLIENT;
-
 /**
  * \brief Allocates a message queue item.
  *
@@ -644,7 +635,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     NT_ASSERT(handler->RequiredState);
 
     processState = KphGetProcessState(client->Process);
-    requiredState = handler->RequiredState(msg);
+    requiredState = handler->RequiredState(client, msg);
 
     if ((processState & requiredState) != requiredState)
     {
@@ -664,7 +655,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
         goto Exit;
     }
 
-    status = handler->Handler(msg);
+    status = handler->Handler(client, msg);
     if (!NT_SUCCESS(status))
     {
         goto Exit;
