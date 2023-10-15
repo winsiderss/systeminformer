@@ -12,6 +12,13 @@
 #pragma once
 #include <kphmsg.h>
 
+typedef struct _KPH_CLIENT
+{
+    LIST_ENTRY Entry;
+    PKPH_PROCESS_CONTEXT Process;
+    PFLT_PORT Port;
+} KPH_CLIENT, *PKPH_CLIENT;
+
 typedef
 _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -19,6 +26,7 @@ _Must_inspect_result_
 NTSTATUS
 KSIAPI
 KPHM_HANDLER (
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     );
 typedef KPHM_HANDLER *PKPHM_HANDLER;
@@ -28,6 +36,7 @@ _Function_class_(KPHM_HANDLER)                                                \
 _IRQL_requires_max_(PASSIVE_LEVEL)                                            \
 _Must_inspect_result_                                                         \
 NTSTATUS __Name__(                                                            \
+    _In_ PKPH_CLIENT Client,                                                  \
     _Inout_ PKPH_MESSAGE Message                                              \
     )
 
@@ -38,6 +47,7 @@ _Must_inspect_result_
 KPH_PROCESS_STATE
 KSIAPI
 KPHM_REQUIRED_STATE (
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     );
 typedef KPHM_REQUIRED_STATE *PKPHM_REQUIRED_STATE;
@@ -47,6 +57,7 @@ _Function_class_(KPHM_REQUIRED_STATE)                                         \
 _IRQL_requires_max_(PASSIVE_LEVEL)                                            \
 _Must_inspect_result_                                                         \
 KPH_PROCESS_STATE __Name__(                                                   \
+    _In_ PKPH_CLIENT Client,                                                  \
     _In_ PCKPH_MESSAGE Message                                                \
     )
 

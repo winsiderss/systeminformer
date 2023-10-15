@@ -101,12 +101,14 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsRequireMaximum(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
 
+    UNREFERENCED_PARAMETER(Client);
     UNREFERENCED_PARAMETER(Message);
 
     return KPH_PROCESS_STATE_MAXIMUM;
@@ -116,12 +118,14 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsRequireMedium(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
 
+    UNREFERENCED_PARAMETER(Client);
     UNREFERENCED_PARAMETER(Message);
 
     return KPH_PROCESS_STATE_MEDIUM;
@@ -131,12 +135,14 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsRequireLow(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
 
+    UNREFERENCED_PARAMETER(Client);
     UNREFERENCED_PARAMETER(Message);
 
     return KPH_PROCESS_STATE_LOW;
@@ -146,6 +152,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsGetInformerSettings(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -154,6 +161,8 @@ NTSTATUS KSIAPI KphpCommsGetInformerSettings(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerSettings);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.GetInformerSettings;
 
@@ -167,6 +176,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsSetInformerSettings(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -175,6 +185,8 @@ NTSTATUS KSIAPI KphpCommsSetInformerSettings(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformerSettings);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.SetInformerSettings;
 
@@ -189,6 +201,7 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessRequires(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
@@ -197,6 +210,8 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessRequires(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcess);
+
+    UNREFERENCED_PARAMETER(Client);
 
     desiredAccess = Message->User.OpenProcess.DesiredAccess;
 
@@ -212,6 +227,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsOpenProcess(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -220,6 +236,8 @@ NTSTATUS KSIAPI KphpCommsOpenProcess(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcess);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.OpenProcess;
 
@@ -235,6 +253,7 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessTokenRequires(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
@@ -243,6 +262,8 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessTokenRequires(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcessToken);
+
+    UNREFERENCED_PARAMETER(Client);
 
     desiredAccess = Message->User.OpenProcessToken.DesiredAccess;
 
@@ -258,6 +279,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsOpenProcessToken(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -266,6 +288,8 @@ NTSTATUS KSIAPI KphpCommsOpenProcessToken(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcessToken);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.OpenProcessToken;
 
@@ -281,6 +305,7 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessJobRequires(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
@@ -289,6 +314,8 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenProcessJobRequires(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcessJob);
+
+    UNREFERENCED_PARAMETER(Client);
 
     desiredAccess = Message->User.OpenProcessJob.DesiredAccess;
 
@@ -304,6 +331,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsOpenProcessJob(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -312,6 +340,8 @@ NTSTATUS KSIAPI KphpCommsOpenProcessJob(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenProcessJob);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.OpenProcessJob;
 
@@ -327,6 +357,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsTerminateProcess(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -335,6 +366,8 @@ NTSTATUS KSIAPI KphpCommsTerminateProcess(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgTerminateProcess);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.TerminateProcess;
 
@@ -349,6 +382,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsReadVirtualMemoryUnsafe(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -357,6 +391,8 @@ NTSTATUS KSIAPI KphpCommsReadVirtualMemoryUnsafe(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgReadVirtualMemoryUnsafe);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.ReadVirtualMemoryUnsafe;
 
@@ -374,6 +410,7 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsOpenThreadRequires(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
@@ -382,6 +419,8 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenThreadRequires(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenThread);
+
+    UNREFERENCED_PARAMETER(Client);
 
     desiredAccess = Message->User.OpenThread.DesiredAccess;
 
@@ -397,6 +436,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsOpenThread(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -405,6 +445,8 @@ NTSTATUS KSIAPI KphpCommsOpenThread(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenThread);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.OpenThread;
 
@@ -420,6 +462,7 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsOpenThreadProcessRequires(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
@@ -428,6 +471,8 @@ KPH_PROCESS_STATE KSIAPI KphpCommsOpenThreadProcessRequires(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenThreadProcess);
+
+    UNREFERENCED_PARAMETER(Client);
 
     desiredAccess = Message->User.OpenThreadProcess.DesiredAccess;
 
@@ -443,6 +488,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsOpenThreadProcess(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -451,6 +497,8 @@ NTSTATUS KSIAPI KphpCommsOpenThreadProcess(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenThreadProcess);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.OpenThreadProcess;
 
@@ -466,6 +514,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsCaptureStackBackTraceThread(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -474,6 +523,8 @@ NTSTATUS KSIAPI KphpCommsCaptureStackBackTraceThread(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgCaptureStackBackTraceThread);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.CaptureStackBackTraceThread;
 
@@ -494,6 +545,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsEnumerateProcessHandles(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -502,6 +554,8 @@ NTSTATUS KSIAPI KphpCommsEnumerateProcessHandles(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgEnumerateProcessHandles);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.EnumerateProcessHandles;
 
@@ -518,6 +572,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsQueryInformationObject(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -526,6 +581,8 @@ NTSTATUS KSIAPI KphpCommsQueryInformationObject(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationObject);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.QueryInformationObject;
 
@@ -544,6 +601,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsSetInformationObject(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -552,6 +610,8 @@ NTSTATUS KSIAPI KphpCommsSetInformationObject(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformationObject);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.SetInformationObject;
 
@@ -569,6 +629,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsOpenDriver(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -577,6 +638,8 @@ NTSTATUS KSIAPI KphpCommsOpenDriver(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgOpenDriver);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.OpenDriver;
 
@@ -592,6 +655,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsQueryInformationDriver(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -600,6 +664,8 @@ NTSTATUS KSIAPI KphpCommsQueryInformationDriver(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationDriver);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.QueryInformationDriver;
 
@@ -617,12 +683,15 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsQueryInformationProcessRequires(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationProcess);
+
+    UNREFERENCED_PARAMETER(Client);
 
     switch (Message->User.QueryInformationProcess.ProcessInformationClass)
     {
@@ -645,6 +714,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsQueryInformationProcess(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -653,6 +723,8 @@ NTSTATUS KSIAPI KphpCommsQueryInformationProcess(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationProcess);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.QueryInformationProcess;
 
@@ -670,6 +742,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsSetInformationProcess(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -678,6 +751,8 @@ NTSTATUS KSIAPI KphpCommsSetInformationProcess(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformationProcess);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.SetInformationProcess;
 
@@ -694,6 +769,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsSetInformationThread(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -702,6 +778,8 @@ NTSTATUS KSIAPI KphpCommsSetInformationThread(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetInformationThread);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.SetInformationThread;
 
@@ -718,6 +796,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsSystemControl(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -726,6 +805,8 @@ NTSTATUS KSIAPI KphpCommsSystemControl(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSystemControl);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.SystemControl;
 
@@ -741,6 +822,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsAlpcQueryInformation(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -749,6 +831,8 @@ NTSTATUS KSIAPI KphpCommsAlpcQueryInformation(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgAlpcQueryInformation);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.AlpcQueryInformation;
 
@@ -767,6 +851,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsQueryInformationFile(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -775,6 +860,8 @@ NTSTATUS KSIAPI KphpCommsQueryInformationFile(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationFile);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.QueryInformationFile;
 
@@ -793,6 +880,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsQueryVolumeInformationFile(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -801,6 +889,8 @@ NTSTATUS KSIAPI KphpCommsQueryVolumeInformationFile(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryVolumeInformationFile);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.QueryVolumeInformationFile;
 
@@ -819,6 +909,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsDuplicateObject(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -827,6 +918,8 @@ NTSTATUS KSIAPI KphpCommsDuplicateObject(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgDuplicateObject);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.DuplicateObject;
 
@@ -843,6 +936,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsQueryPerformanceCounter(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -851,6 +945,8 @@ NTSTATUS KSIAPI KphpCommsQueryPerformanceCounter(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryPerformanceCounter);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.QueryPerformanceCounter;
 
@@ -863,6 +959,7 @@ _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 KPH_PROCESS_STATE KSIAPI KphpCommsCreateFileRequires(
+    _In_ PKPH_CLIENT Client,
     _In_ PCKPH_MESSAGE Message
     )
 {
@@ -872,6 +969,8 @@ KPH_PROCESS_STATE KSIAPI KphpCommsCreateFileRequires(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgCreateFile);
+
+    UNREFERENCED_PARAMETER(Client);
 
     desiredAccess = Message->User.CreateFile.DesiredAccess;
 
@@ -894,6 +993,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsCreateFile(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -902,6 +1002,8 @@ NTSTATUS KSIAPI KphpCommsCreateFile(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgCreateFile);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.CreateFile;
 
@@ -926,6 +1028,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsQueryInformationThread(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -934,6 +1037,8 @@ NTSTATUS KSIAPI KphpCommsQueryInformationThread(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationThread);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.QueryInformationThread;
 
@@ -951,6 +1056,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsQuerySection(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -959,6 +1065,8 @@ NTSTATUS KSIAPI KphpCommsQuerySection(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgQuerySection);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.QuerySection;
 
@@ -976,6 +1084,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsCompareObjects(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -984,6 +1093,8 @@ NTSTATUS KSIAPI KphpCommsCompareObjects(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgCompareObjects);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.CompareObjects;
 
@@ -999,6 +1110,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsGetMessageTimeouts(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -1007,6 +1119,8 @@ NTSTATUS KSIAPI KphpCommsGetMessageTimeouts(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetMessageTimeouts);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.GetMessageTimeouts;
 
@@ -1019,6 +1133,7 @@ _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpCommsSetMessageTimeouts(
+    _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
@@ -1027,6 +1142,8 @@ NTSTATUS KSIAPI KphpCommsSetMessageTimeouts(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetMessageTimeouts);
+
+    UNREFERENCED_PARAMETER(Client);
 
     msg = &Message->User.SetMessageTimeouts;
 
