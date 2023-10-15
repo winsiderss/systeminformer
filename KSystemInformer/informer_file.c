@@ -70,6 +70,11 @@ NTSTATUS FLTAPI KphpFltInstanceQueryTeardownCallback(
                   INFORMER,
                   "Filter query teardown invoked");
 
+    if (KphIsDriverUnloadProtected())
+    {
+        return STATUS_FLT_DO_NOT_DETACH;
+    }
+
     return STATUS_SUCCESS;
 }
 

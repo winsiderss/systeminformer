@@ -1449,6 +1449,31 @@ VOID KphApplyImageProtections(
     _In_ PIMAGE_INFO_EX ImageInfo
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphAcquireDriverUnloadProtection(
+    _Out_opt_ PLONG PreviousCount
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphReleaseDriverUnloadProtection(
+    _Out_opt_ PLONG PreviousCount
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+LONG KphGetDriverUnloadProtectionCount(
+    VOID
+    );
+
+FORCEINLINE
+BOOLEAN KphIsDriverUnloadProtected(
+    VOID
+    )
+{
+    return (KphGetDriverUnloadProtectionCount() > 0);
+}
+
 // verify
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
