@@ -164,6 +164,114 @@ VOID KphReleaseRWLock(
 }
 
 /**
+ * \brief Acquires a reference to a reference object.
+ *
+ * \details KPH_REFERENCE provides underflow and overflow guarantees. For this
+ * reason, KPH_REFERENCE may not be suitable for all applications since it is
+ * more expensive than a simple reference count.
+ *
+ * \param[in,out] Reference The reference object to acquire.
+ * \param[out] PreviousCount Optionally set to the previous reference count.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphAcquireReference(
+    _Inout_ PKPH_REFERENCE Reference,
+    _Out_opt_ PLONG PreviousCount
+    )
+{
+    PAGED_CODE();
+
+    for (;;)
+    {
+        LONG count;
+
+        count = Reference->Count;
+        MemoryBarrier();
+
+        if (count == LONG_MAX)
+        {
+            if (PreviousCount)
+            {
+                *PreviousCount = LONG_MAX;
+            }
+
+            return STATUS_INTEGER_OVERFLOW;
+        }
+
+        if (InterlockedCompareExchange(&Reference->Count,
+                                       count + 1,
+                                       count) != count)
+        {
+            continue;
+        }
+
+        if (PreviousCount)
+        {
+            *PreviousCount = count;
+        }
+
+        return STATUS_SUCCESS;
+    }
+}
+
+/**
+ * \brief Releases a reference to a reference object.
+ *
+ * \details KPH_REFERENCE provides underflow and overflow guarantees. For this
+ * reason, KPH_REFERENCE may not be suitable for all applications since it is
+ * more expensive than a simple reference count.
+ *
+ * \param[in,out] Reference The reference object to release.
+ * \param[out] PreviousCount Optionally set to the previous reference count.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphReleaseReference(
+    _Inout_ PKPH_REFERENCE Reference,
+    _Out_opt_ PLONG PreviousCount
+    )
+{
+    PAGED_CODE();
+
+    for (;;)
+    {
+        LONG count;
+
+        count = Reference->Count;
+        MemoryBarrier();
+
+        if (count == 0)
+        {
+            if (PreviousCount)
+            {
+                *PreviousCount = 0;
+            }
+
+            return STATUS_INTEGER_OVERFLOW;
+        }
+
+        if (InterlockedCompareExchange(&Reference->Count,
+                                       count - 1,
+                                       count) != count)
+        {
+            continue;
+        }
+
+        if (PreviousCount)
+        {
+            *PreviousCount = count;
+        }
+
+        return STATUS_SUCCESS;
+    }
+}
+
+/**
  * \brief Checks if an address range lies within a kernel module.
  *
  * \param[in] Address The beginning of the address range.
