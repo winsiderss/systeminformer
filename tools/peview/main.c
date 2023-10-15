@@ -42,7 +42,7 @@ NTSTATUS PvpConnectKph(
         return status;
 
     // TODO: get the current configured port name from the main binary, settings aren't shared.
-    //if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KphPortName")))
+    //if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
         PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
 
     status = KphCommsStart(&portName->sr, NULL);

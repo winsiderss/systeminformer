@@ -173,7 +173,7 @@ INT WINAPI wWinMain(
         }
     }
 
-    if (PhGetIntegerSetting(L"EnableKph") &&
+    if (PhGetIntegerSetting(L"KsiEnable") &&
         !PhStartupParameters.NoKph &&
         !PhStartupParameters.ShowOptions &&
         !PhIsExecutingInWow64())
@@ -250,7 +250,7 @@ INT WINAPI wWinMain(
         PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }
 
-    if (PhGetIntegerSetting(L"EnableKph") &&
+    if (PhGetIntegerSetting(L"KsiEnable") &&
         !PhStartupParameters.NoKph &&
         !PhIsExecutingInWow64())
     {
@@ -272,7 +272,7 @@ INT WINAPI wWinMain(
     PhEnableTerminationPolicy(FALSE);
 
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
-        PhGetIntegerSetting(L"EnableKph") &&
+        PhGetIntegerSetting(L"KsiEnable") &&
         PhGetIntegerSetting(L"KsiUnloadOnExitTest") &&
         !PhStartupParameters.NewInstance &&
         !PhStartupParameters.NoKph &&

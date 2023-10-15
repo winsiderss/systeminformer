@@ -43,8 +43,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableHeapReflection", L"0");
     PhpAddIntegerSetting(L"EnableHeapMemoryTagging", L"0");
-    PhpAddIntegerSetting(L"EnableKph", L"0");
-    PhpAddIntegerSetting(L"EnableKphWarnings", L"1");
+    PhpAddIntegerSetting(L"KsiEnable", L"0");
+    PhpAddIntegerSetting(L"KsiEnableWarnings", L"1");
     PhpAddIntegerSetting(L"EnableLastProcessShutdown", L"0");
     PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
     PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
@@ -337,16 +337,16 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorTemperature", L"0000ff");
     PhpAddIntegerSetting(L"ColorFanRpm", L"ff0077");
 
-    PhpAddStringSetting(L"KphServiceName", L"");
-    PhpAddStringSetting(L"KphObjectName", L"");
-    PhpAddStringSetting(L"KphPortName", L"");
-    PhpAddStringSetting(L"KphAltitude", L"385400");
-    PhpAddIntegerSetting(L"KphDisableImageLoadProtection", L"0");
+    PhpAddStringSetting(L"KsiServiceName", L"");
+    PhpAddStringSetting(L"KsiObjectName", L"");
+    PhpAddStringSetting(L"KsiPortName", L"");
+    PhpAddStringSetting(L"KsiAltitude", L"385400");
+    PhpAddIntegerSetting(L"KsiDisableImageLoadProtection", L"0");
     PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadNative", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadFilter", L"0");
     PhpAddIntegerSetting(L"KsiUnloadOnExitTest", L"0");
-    PhpAddIntegerSetting(L"KphRandomizedPoolTag", L"0");
+    PhpAddIntegerSetting(L"KsiRandomizedPoolTag", L"0");
 }
 
 VOID PhUpdateCachedSettings(

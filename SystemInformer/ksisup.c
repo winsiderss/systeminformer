@@ -82,7 +82,7 @@ VOID PhShowKsiStatus(
 {
     KPH_PROCESS_STATE processState;
 
-    if (!PhGetIntegerSetting(L"EnableKphWarnings") || PhStartupParameters.PhSvc)
+    if (!PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
         return;
 
     processState = KphGetCurrentProcessState();
@@ -135,7 +135,7 @@ VOID PhShowKsiStatus(
             PhGetString(infoString)
             ))
         {
-            PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
+            PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
 
         PhDereferenceObject(infoString);
@@ -158,7 +158,7 @@ VOID PhpShowKsiMessage(
     PPH_STRING messageString;
     ULONG processState;
 
-    if (!Force && !PhGetIntegerSetting(L"EnableKphWarnings") || PhStartupParameters.PhSvc)
+    if (!Force && !PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
         return;
 
     errorMessage = NULL;
@@ -216,7 +216,7 @@ VOID PhpShowKsiMessage(
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
     }
 
-    if (Force && !PhGetIntegerSetting(L"EnableKphWarnings"))
+    if (Force && !PhGetIntegerSetting(L"KsiEnableWarnings"))
     {
         PhAppendStringBuilder2(&stringBuilder, L"Driver warnings are disabled.");
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
@@ -247,7 +247,7 @@ VOID PhpShowKsiMessage(
             PhGetString(messageString)
             ))
         {
-            PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
+            PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
     }
 
@@ -410,7 +410,7 @@ PPH_STRING PhGetKsiServiceName(
 {
     PPH_STRING string;
 
-    string = PhGetStringSetting(L"KphServiceName");
+    string = PhGetStringSetting(L"KsiServiceName");
 
     if (PhIsNullOrEmptyString(string))
     {
@@ -474,14 +474,14 @@ NTSTATUS KsiInitializeCallbackThread(
         BOOLEAN disableImageLoadProtection = FALSE;
         BOOLEAN randomizedPoolTag = FALSE;
 
-        if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KphObjectName")))
+        if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KsiObjectName")))
             PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
-        if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KphPortName")))
+        if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
             PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
-        if (PhIsNullOrEmptyString(altitudeName = PhGetStringSetting(L"KphAltitude")))
+        if (PhIsNullOrEmptyString(altitudeName = PhGetStringSetting(L"KsiAltitude")))
             PhMoveReference(&altitudeName, PhCreateString(KPH_ALTITUDE_NAME));
-        disableImageLoadProtection = !!PhGetIntegerSetting(L"KphDisableImageLoadProtection");
-        randomizedPoolTag = !!PhGetIntegerSetting(L"KphRandomizedPoolTag");
+        disableImageLoadProtection = !!PhGetIntegerSetting(L"KsiDisableImageLoadProtection");
+        randomizedPoolTag = !!PhGetIntegerSetting(L"KsiRandomizedPoolTag");
 
         config.FileName = &ksiFileName->sr;
         config.ServiceName = &ksiServiceName->sr;
