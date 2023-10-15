@@ -17,6 +17,7 @@ typedef struct _KPH_CLIENT
     LIST_ENTRY Entry;
     PKPH_PROCESS_CONTEXT Process;
     PFLT_PORT Port;
+    KPH_REFERENCE DriverUnloadProtectionRef;
 } KPH_CLIENT, *PKPH_CLIENT;
 
 typedef

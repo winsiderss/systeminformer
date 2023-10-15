@@ -270,11 +270,30 @@ VOID KSIAPI KphpDeleteClientObject(
     _Inout_ PVOID Object
     )
 {
+    NTSTATUS status;
     PKPH_CLIENT client;
 
     PAGED_CODE();
 
     client = Object;
+
+    if (client->DriverUnloadProtectionRef.Count)
+    {
+        //
+        // The client is being destroyed while it has acquired driver unload
+        // protection. The communication handlers only acquire or release the
+        // protection once for each client, so we only need to call this once
+        // here.
+        //
+        status = KphReleaseDriverUnloadProtection(NULL);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          COMMS,
+                          "KphReleaseDriverUnloadProtection failed: %!STATUS!",
+                          status);
+        }
+    }
 
     KphDereferenceObject(client->Process);
 
