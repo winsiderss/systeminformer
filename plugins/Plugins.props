@@ -144,7 +144,7 @@
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
         <ClCompile>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
@@ -157,7 +157,7 @@
             <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
             <SpectreMitigation>Spectre</SpectreMitigation>
             <IntelJCCErratum>true</IntelJCCErratum>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <CETCompat>true</CETCompat>
@@ -172,7 +172,7 @@
             <SpectreMitigation>Spectre</SpectreMitigation>
             <IntelJCCErratum>true</IntelJCCErratum>
             <GuardEHContMetadata>true</GuardEHContMetadata>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /guard:xfg %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <CETCompat>true</CETCompat>
