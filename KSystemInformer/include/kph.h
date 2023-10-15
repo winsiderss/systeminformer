@@ -690,6 +690,25 @@ VOID KphReleaseRWLock(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock
     );
 
+typedef struct _KPH_REFERENCE
+{
+    volatile LONG Count;
+} KPH_REFERENCE, *PKPH_REFERENCE;
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphAcquireReference(
+    _Inout_ PKPH_REFERENCE Reference,
+    _Out_opt_ PLONG PreviousCount
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphReleaseReference(
+    _Inout_ PKPH_REFERENCE Reference,
+    _Out_opt_ PLONG PreviousCount
+    );
+
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphValidateAddressForSystemModules(
