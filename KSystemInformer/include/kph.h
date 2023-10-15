@@ -69,15 +69,55 @@
 #define MAX_PATH 260
 #endif
 
-#define InterlockedExchangeAddULongPtr(target, value) (ULONG_PTR)InterlockedExchangeAddSizeT((SIZE_T*)target, (SIZE_T)value)
-#define InterlockedIncrementSSizeT(target) (SSIZE_T)InterlockedIncrementSizeT((SIZE_T*)target)
-#define InterlockedDecrementSSizeT(target) (SSIZE_T)InterlockedDecrementSizeT((SIZE_T*)target)
-#define InterlockedCompareExchangeSizeT(target, value, expected) \
-    (SIZE_T)InterlockedCompareExchangePointer((PVOID*)Target, (PVOID)Value, (PVOID)expected)
+FORCEINLINE
+ULONG64 InterlockedExchangeU64(
+    _Inout_ _Interlocked_operand_ volatile ULONG64* Target,
+    _In_ ULONG64 Value
+    )
+{
+    return (ULONG64)InterlockedExchange64((LONG64*)Target, (LONG64)Value);
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedExchangeAddULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Value
+    )
+{
+    return (ULONG_PTR)InterlockedExchangeAddSizeT((SIZE_T*)Target, (SIZE_T)Value);
+}
+
+FORCEINLINE
+SSIZE_T InterlockedIncrementSSizeT(
+    _Inout_ _Interlocked_operand_ volatile SSIZE_T* Target
+    )
+{
+    return (SSIZE_T)InterlockedIncrementSizeT((SIZE_T*)Target);
+}
+
+FORCEINLINE
+SSIZE_T InterlockedDecrementSSizeT(
+    _Inout_ _Interlocked_operand_ volatile SSIZE_T* Target
+    )
+{
+    return (SSIZE_T)InterlockedDecrementSizeT((SIZE_T*)Target);
+}
+
+FORCEINLINE
+SIZE_T InterlockedCompareExchangeSizeT(
+    _Inout_ _Interlocked_operand_ volatile SIZE_T* Target,
+    _In_ SIZE_T Value,
+    _In_ SIZE_T Expected
+    )
+{
+    return (SIZE_T)InterlockedCompareExchangePointer((PVOID*)Target,
+                                                     (PVOID)Value,
+                                                     (PVOID)Expected);
+}
 
 FORCEINLINE
 SIZE_T InterlockedExchangeIfGreaterSizeT(
-    _In_ volatile SIZE_T* Target,
+    _Inout_ _Interlocked_operand_ volatile SIZE_T* Target,
     _In_ SIZE_T Value
     )
 {
@@ -86,6 +126,7 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
     for (;;)
     {
         expected = *Target;
+        MemoryBarrier();
 
         if (Value <= expected)
         {
