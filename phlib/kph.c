@@ -1908,3 +1908,95 @@ NTSTATUS KphSetMessageTimeouts(
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
 }
+
+NTSTATUS KphAcquireDriverUnloadProtection(
+    _Out_opt_ PLONG PreviousCount,
+    _Out_opt_ PLONG ClientPreviousCount
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    if (PreviousCount)
+        *PreviousCount = 0;
+
+    if (ClientPreviousCount)
+        *ClientPreviousCount = 0;
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgAcquireDriverUnloadProtection);
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.AcquireDriverUnloadProtection.Status;
+
+        if (NT_SUCCESS(status))
+        {
+            if (PreviousCount)
+                *PreviousCount = msg->User.AcquireDriverUnloadProtection.PreviousCount;
+
+            if (ClientPreviousCount)
+                *ClientPreviousCount = msg->User.AcquireDriverUnloadProtection.ClientPreviousCount;
+        }
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphReleaseDriverUnloadProtection(
+    _Out_opt_ PLONG PreviousCount,
+    _Out_opt_ PLONG ClientPreviousCount
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgReleaseDriverUnloadProtection);
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.ReleaseDriverUnloadProtection.Status;
+
+        if (NT_SUCCESS(status))
+        {
+            if (PreviousCount)
+                *PreviousCount = msg->User.ReleaseDriverUnloadProtection.PreviousCount;
+
+            if (ClientPreviousCount)
+                *ClientPreviousCount = msg->User.ReleaseDriverUnloadProtection.ClientPreviousCount;
+        }
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphGetConnectedClientCount(
+    _Out_ PULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgGetConnectedClientCount);
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        *Count = msg->User.GetConnectedClientCount.Count;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
