@@ -9698,6 +9698,14 @@ NTAPI
 RtlSetPortableOperatingSystem(
     _In_ BOOLEAN IsPortable
     );
+
+// rev
+NTSYSAPI
+ULONG
+NTAPI
+RtlSetProxiedProcessId(
+    _In_ ULONG ProxiedProcessId
+    );
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
