@@ -26,6 +26,7 @@ static PAGED_LOOKASIDE_LIST KphpMessageLookaside;
 static NPAGED_LOOKASIDE_LIST KphpNPagedMessageLookaside;
 static KPH_RWLOCK KphpConnectedClientLock;
 static LIST_ENTRY KphpConnectedClientList;
+static ULONG KphpConnectedClientCount = 0;
 static NPAGED_LOOKASIDE_LIST KphpMessageQueueItemLookaside;
 static KQUEUE KphpMessageQueue;
 static PKTHREAD* KphpMessageQueueThreads = NULL;
@@ -412,6 +413,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     KphReferenceObject(client);
     KphAcquireRWLockExclusive(&KphpConnectedClientLock);
     InsertTailList(&KphpConnectedClientList, &client->Entry);
+    KphpConnectedClientCount++;
     KphReleaseRWLock(&KphpConnectedClientLock);
 
     KphTracePrint(TRACE_LEVEL_INFORMATION,
@@ -460,6 +462,7 @@ VOID FLTAPI KphpCommsDisconnectNotifyCallback(
 
     KphAcquireRWLockExclusive(&KphpConnectedClientLock);
     RemoveEntryList(&client->Entry);
+    KphpConnectedClientCount--;
     KphReleaseRWLock(&KphpConnectedClientLock);
 
     KphTracePrint(TRACE_LEVEL_INFORMATION,
@@ -773,6 +776,27 @@ NTSTATUS KphpBuildCommsSecurityDescriptor(
 Exit:
 
     return status;
+}
+
+/**
+ * \brief Gets the number of connected clients.
+ *
+ * \return Number of connected clients.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+ULONG KphGetConnectedClientCount(
+    VOID
+    )
+{
+    ULONG count;
+
+    PAGED_CODE();
+
+    KphAcquireRWLockShared(&KphpConnectedClientLock);
+    count = KphpConnectedClientCount;
+    KphReleaseRWLock(&KphpConnectedClientLock);
+
+    return count;
 }
 
 /**
