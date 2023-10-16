@@ -56,6 +56,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgSetMessageTimeouts,
     KphMsgAcquireDriverUnloadProtection,
     KphMsgReleaseDriverUnloadProtection,
+    KphMsgGetConnectedClientCount,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -180,6 +181,7 @@ typedef struct _KPH_MESSAGE
             KPHM_SET_MESSAGE_TIMEOUTS SetMessageTimeouts;
             KPHM_ACQUIRE_DRIVER_UNLOAD_PROTECTION AcquireDriverUnloadProtection;
             KPHM_RELEASE_DRIVER_UNLOAD_PROTECTION ReleaseDriverUnloadProtection;
+            KPHM_GET_CONNECTED_CLIENT_COUNT GetConnectedClientCount;
         } User;
 
         //

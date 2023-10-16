@@ -84,6 +84,11 @@ VOID KphCommsStop(
     );
 
 _IRQL_requires_max_(APC_LEVEL)
+ULONG KphGetConnectedClientCount(
+    VOID
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
 VOID KphGetMessageTimeouts(
     _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
     );
