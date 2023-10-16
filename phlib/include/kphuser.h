@@ -512,6 +512,29 @@ KphSetMessageTimeouts(
     _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphAcquireDriverUnloadProtection(
+    _Out_opt_ PLONG PreviousCount,
+    _Out_opt_ PLONG ClientPreviousCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphReleaseDriverUnloadProtection(
+    _Out_opt_ PLONG PreviousCount,
+    _Out_opt_ PLONG ClientPreviousCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphGetConnectedClientCount(
+    _Out_ PULONG Count
+    );
+
 EXTERN_C_END
 
 #endif

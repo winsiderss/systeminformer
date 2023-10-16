@@ -24,7 +24,7 @@ PhInitializeKsi(
     );
 
 NTSTATUS
-PhDestroyKsi(
+PhCleanupKsi(
     VOID
     );
 

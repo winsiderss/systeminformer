@@ -528,6 +528,9 @@ NTSTATUS KsiInitializeCallbackThread(
                         );
                 }
             }
+
+            if (level == KphLevelMax && PhGetIntegerSetting(L"KsiEnableUnloadProtection"))
+                KphAcquireDriverUnloadProtection(NULL, NULL);
         }
         else if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
         {
@@ -749,16 +752,44 @@ VOID PhInitializeKsi(
         KsiInitializeCallbackThread(NULL);
 }
 
-NTSTATUS PhDestroyKsi(
+NTSTATUS PhCleanupKsi(
     VOID
     )
 {
     NTSTATUS status;
     PPH_STRING ksiServiceName;
     KPH_CONFIG_PARAMETERS config = { 0 };
+    BOOLEAN shouldUnload;
 
     if (!KphCommsIsConnected())
         return STATUS_SUCCESS;
+
+    if (PhGetIntegerSetting(L"KsiEnableUnloadProtection"))
+        KphReleaseDriverUnloadProtection(NULL, NULL);
+
+    if (PhGetIntegerSetting(L"KsiUnloadOnExit"))
+    {
+        ULONG clientCount;
+
+        if (!NT_SUCCESS(status = KphGetConnectedClientCount(&clientCount)))
+            return status;
+
+        shouldUnload = (clientCount == 1);
+    }
+    else
+    {
+        shouldUnload = FALSE;
+    }
+
+    KphCommsStop();
+
+#ifdef DEBUG
+    KsiDebugLogDestroy();
+#endif
+
+    if (!shouldUnload)
+        return STATUS_SUCCESS;
+
     if (!(ksiServiceName = PhGetKsiServiceName()))
         return STATUS_UNSUCCESSFUL;
 
@@ -766,10 +797,6 @@ NTSTATUS PhDestroyKsi(
     config.EnableNativeLoad = KsiEnableLoadNative;
     config.EnableFilterLoad = KsiEnableLoadFilter;
     status = KphServiceStop(&config);
-
-#ifdef DEBUG
-    KsiDebugLogDestroy();
-#endif
 
     return status;
 }
