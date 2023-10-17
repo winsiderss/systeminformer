@@ -112,7 +112,7 @@ VOID NTAPI PhpDeviceProviderCallbackHandler(
     PhDereferenceObject(tree);
 }
 
-VOID PhMwpInitializesDeviceNotifications(
+VOID PhMwpInitializeDeviceNotifications(
     VOID
     )
 {
