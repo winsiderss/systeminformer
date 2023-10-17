@@ -580,7 +580,7 @@ NTSTATUS PhMwpLoadStage1Worker(
     // N.B. Devices tab is handled by the HardwareDevices plug-in. The provider is managed internally
     // such that we can handle notifications and dispatch them to other plug-ins. Here we initialize
     // only the device notifications. (jxy-s).
-    PhMwpInitializesDeviceNotifications();
+    PhMwpInitializeDeviceNotifications();
 
     DelayedLoadCompleted = TRUE;
     //PostMessage((HWND)Parameter, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
