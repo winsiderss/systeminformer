@@ -13,16 +13,22 @@ namespace CustomBuildTool
 {
     public static class BuildConfig
     {
-        public static readonly BuildFile[] Build_Release_Files =
+        /// <summary>
+        /// Container for files uploaded to Github.
+        /// </summary>
+        public static readonly BuildUploadFile[] Build_Release_Files =
         {
-            new BuildFile("\\systeminformer-build-setup.exe", true), // nightly
-            new BuildFile("\\systeminformer-build-bin.zip", true), // nightly
-            new BuildFile("\\systeminformer-build-src.zip", false),
-            new BuildFile("\\systeminformer-build-sdk.zip", false),
-            new BuildFile("\\systeminformer-build-pdb.zip", true), // nightly
-            //new BuildFile("\\systeminformer-build-checksums.txt", false),
+            new BuildUploadFile("\\systeminformer-build-setup.exe", true), // nightly
+            new BuildUploadFile("\\systeminformer-build-bin.zip", true), // nightly
+            new BuildUploadFile("\\systeminformer-build-src.zip", false),
+            new BuildUploadFile("\\systeminformer-build-sdk.zip", false),
+            new BuildUploadFile("\\systeminformer-build-pdb.zip", true), // nightly
+            //new BuildUploadFile("\\systeminformer-build-checksums.txt", false),
         };
 
+        /// <summary>
+        /// Debug headers copied into the SDK directory.
+        /// </summary>
         public static readonly string[] Build_Sdk_Directories =
         {
             "sdk",
@@ -33,11 +39,12 @@ namespace CustomBuildTool
             "sdk\\lib\\amd64",
             "sdk\\lib\\i386",
             "sdk\\lib\\arm64",
-            //"sdk\\samples\\SamplePlugin",
-            //"sdk\\samples\\SamplePlugin\\bin\\Release32"
         };
 
-        public static readonly string[] Build_Phnt_Headers =
+        /// <summary>
+        /// Native headers copied into the SDK directory.
+        /// </summary>
+        public static readonly string[] Build_Native_Headers =
         {
             "ntbcd.h",
             "ntd3dkmt.h",
@@ -65,6 +72,7 @@ namespace CustomBuildTool
             "ntsxs.h",
             "nttmapi.h",
             "nttp.h",
+            "ntwmi.h",
             "ntwow64.h",
             "ntxcapi.h",
             "ntzwapi.h",
@@ -75,7 +83,10 @@ namespace CustomBuildTool
             "winsta.h"
         };
 
-        public static readonly string[] Build_Phlib_Headers =
+        /// <summary>
+        /// Application headers copied into the SDK directory.
+        /// </summary>
+        public static readonly string[] Build_App_Headers =
         {
             "appresolver.h",
             "circbuf.h",
@@ -120,8 +131,11 @@ namespace CustomBuildTool
             "verify.h",
             "workqueue.h"
         };
-        
-        public static readonly string[] Build_Kphlib_Headers =
+
+        /// <summary>
+        /// Kernel headers copied into the SDK directory.
+        /// </summary>
+        public static readonly string[] Build_Ksilib_Headers =
         {
             "kphapi.h",
             "kphmsg.h",
@@ -129,12 +143,15 @@ namespace CustomBuildTool
         };
     }
 
-    public readonly struct BuildFile
+    /// <summary>
+    /// Container for files uploaded to Github.
+    /// </summary>
+    public readonly struct BuildUploadFile
     {
         public readonly string FileName;
         public readonly bool UploadNightly;
 
-        public BuildFile(string Filename, bool UploadNightly)
+        public BuildUploadFile(string Filename, bool UploadNightly)
         {
             this.FileName = Filename;
             this.UploadNightly = UploadNightly;

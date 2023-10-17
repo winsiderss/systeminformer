@@ -11,101 +11,98 @@
 
 namespace CustomBuildTool
 {
-    public unsafe static class VisualStudio
+    public static unsafe class VisualStudio
     {
-        private static List<VisualStudioInstance> VisualStudioInstanceList;
+        private static readonly List<VisualStudioInstance> VisualStudioInstanceList;
 
         static VisualStudio()
         {
-            if (VisualStudioInstanceList == null)
+            VisualStudioInstanceList = new List<VisualStudioInstance>();
+
+            if (NativeLibrary.TryLoad(GetLibraryPath(), out IntPtr baseAddress))
             {
-                VisualStudioInstanceList = new List<VisualStudioInstance>();
-
-                if (NativeLibrary.TryLoad(GetLibraryPath(), out IntPtr baseAddress))
+                if (NativeLibrary.TryGetExport(baseAddress, "GetSetupConfiguration", out IntPtr ExportAddressPtr))
                 {
-                    if (NativeLibrary.TryGetExport(baseAddress, "GetSetupConfiguration", out IntPtr ExportAddressPtr))
-                    {
-                        var GetSetupConfiguration_I = (delegate* unmanaged[Stdcall]<IntPtr*, IntPtr, uint>)ExportAddressPtr;
-                        IntPtr SetupConfigurationInterfacePtr;
-                        IntPtr SetupConfiguration2InterfacePtr;
-                        IntPtr EnumSetupInstancesInterfacePtr;
-                        IntPtr SetupInstancePtr;
-                        IntPtr SetupInstance2Ptr;
-                        uint instancesFetched;
+                    var GetSetupConfiguration_I = (delegate* unmanaged[Stdcall]<IntPtr*, IntPtr, uint>)ExportAddressPtr;
+                    IntPtr SetupConfigurationInterfacePtr;
+                    IntPtr SetupConfiguration2InterfacePtr;
+                    IntPtr EnumSetupInstancesInterfacePtr;
+                    IntPtr SetupInstancePtr;
+                    IntPtr SetupInstance2Ptr;
+                    uint instancesFetched;
 
-                        if (GetSetupConfiguration_I(
-                            &SetupConfigurationInterfacePtr,
-                            IntPtr.Zero
+                    if (GetSetupConfiguration_I(
+                        &SetupConfigurationInterfacePtr,
+                        IntPtr.Zero
+                        ) == NativeMethods.HRESULT_S_OK)
+                    {
+                        var setupInterface = *(ISetupConfigurationVTable**)SetupConfigurationInterfacePtr;
+
+                        if (setupInterface->QueryInterface(
+                            SetupConfigurationInterfacePtr,
+                            IID_ISetupConfiguration2,
+                            &SetupConfiguration2InterfacePtr
                             ) == NativeMethods.HRESULT_S_OK)
                         {
-                            var setupInterface = *(ISetupConfigurationVTable**)SetupConfigurationInterfacePtr;
+                            var setupConfiguration = *(ISetupConfiguration2VTable**)SetupConfiguration2InterfacePtr;
 
-                            if (setupInterface->QueryInterface(
-                                SetupConfigurationInterfacePtr,
-                                IID_ISetupConfiguration2,
-                                &SetupConfiguration2InterfacePtr
+                            if (setupConfiguration->EnumAllInstances(
+                                SetupConfiguration2InterfacePtr,
+                                &EnumSetupInstancesInterfacePtr
                                 ) == NativeMethods.HRESULT_S_OK)
                             {
-                                var setupConfiguration = *(ISetupConfiguration2VTable**)SetupConfiguration2InterfacePtr;
+                                var enumSetupInstances = *(IEnumSetupInstancesVTable**)EnumSetupInstancesInterfacePtr;
 
-                                if (setupConfiguration->EnumAllInstances(
-                                    SetupConfiguration2InterfacePtr,
-                                    &EnumSetupInstancesInterfacePtr
-                                    ) == NativeMethods.HRESULT_S_OK)
+                                while (true)
                                 {
-                                    var enumSetupInstances = *(IEnumSetupInstancesVTable**)EnumSetupInstancesInterfacePtr;
+                                    if (enumSetupInstances->Next(EnumSetupInstancesInterfacePtr, 1, &SetupInstancePtr, &instancesFetched) != NativeMethods.HRESULT_S_OK)
+                                        break;
+                                    if (instancesFetched == 0)
+                                        break;
 
-                                    while (true)
+                                    var setupInstance = *(ISetupInstanceVTable**)SetupInstancePtr;
+
+                                    if (setupInstance->QueryInterface(
+                                        SetupInstancePtr,
+                                        IID_ISetupInstance2,
+                                        &SetupInstance2Ptr
+                                        ) == NativeMethods.HRESULT_S_OK)
                                     {
-                                        if (enumSetupInstances->Next(EnumSetupInstancesInterfacePtr, 1, &SetupInstancePtr, &instancesFetched) != NativeMethods.HRESULT_S_OK)
-                                            break;
-                                        if (instancesFetched == 0)
-                                            break;
-
-                                        var setupInstance = *(ISetupInstanceVTable**)SetupInstancePtr;
-
-                                        if (setupInstance->QueryInterface(
-                                            SetupInstancePtr,
-                                            IID_ISetupInstance2,
-                                            &SetupInstance2Ptr
-                                            ) == NativeMethods.HRESULT_S_OK)
-                                        {
-                                            var setupInstance2 = *(ISetupInstance2VTable**)SetupInstance2Ptr;
-                                            VisualStudioInstanceList.Add(new VisualStudioInstance(setupInstance2, SetupInstance2Ptr));
-                                            setupInstance2->Release(SetupInstance2Ptr);
-                                        }
-
-                                        setupInstance->Release(SetupInstancePtr);
+                                        var setupInstance2 = *(ISetupInstance2VTable**)SetupInstance2Ptr;
+                                        VisualStudioInstanceList.Add(new VisualStudioInstance(setupInstance2, SetupInstance2Ptr));
+                                        setupInstance2->Release(SetupInstance2Ptr);
                                     }
 
-                                    enumSetupInstances->Release(EnumSetupInstancesInterfacePtr);
+                                    setupInstance->Release(SetupInstancePtr);
                                 }
 
-                                setupConfiguration->Release(SetupConfigurationInterfacePtr);
+                                enumSetupInstances->Release(EnumSetupInstancesInterfacePtr);
                             }
 
-                            setupInterface->Release(SetupConfigurationInterfacePtr);
+                            setupConfiguration->Release(SetupConfigurationInterfacePtr);
                         }
-                    }
 
-                    NativeLibrary.Free(baseAddress);
+                        setupInterface->Release(SetupConfigurationInterfacePtr);
+                    }
                 }
 
-                VisualStudioInstanceList.Sort((p1, p2) =>
-                {
-                    if (Version.TryParse(p1.InstallationVersion, out Version version1) && Version.TryParse(p2.InstallationVersion, out Version version2))
-                    {
-                        if (version1 < version2)
-                            return 1;
-                        else if (version1 > version2)
-                            return -1;
-
-                        return version1.CompareTo(version2);
-                    }
-
-                    return 1;
-                });
+                NativeLibrary.Free(baseAddress);
             }
+
+            VisualStudioInstanceList.Sort((p1, p2) =>
+            {
+                if (Version.TryParse(p1.InstallationVersion, out Version version1) && Version.TryParse(p2.InstallationVersion, out Version version2))
+                {
+                    if (version1 < version2)
+                        return 1;
+                    else if (version1 > version2)
+                        return -1;
+
+                    return version1.CompareTo(version2);
+                }
+
+                return 1;
+            });
         }
 
         public static VisualStudioInstance GetVisualStudioInstance()
@@ -146,6 +143,14 @@ namespace CustomBuildTool
             else
                 path = "C:\\ProgramData\\Microsoft\\VisualStudio\\Setup\\x86\\Microsoft.VisualStudio.Setup.Configuration.Native.dll";
 
+            if (!File.Exists(path))
+            {
+                if (Environment.Is64BitProcess)
+                    path = "C:\\ProgramData\\Microsoft\\VisualStudio\\Setup\\x64\\Microsoft.VisualStudio.Setup.Configuration.NativeMethods.dll";
+                else
+                    path = "C:\\ProgramData\\Microsoft\\VisualStudio\\Setup\\x86\\Microsoft.VisualStudio.Setup.Configuration.NativeMethods.dll";
+            }
+
             return path;
         }
     }
@@ -174,7 +179,7 @@ namespace CustomBuildTool
             IntPtr DisplayNamePtr;
             IntPtr SetupPackagesArrayPtr;
             IntPtr SetupPackagePtr;
-            uint State;
+            uint SetupPackageState;
 
             //if (FromInstance->GetInstanceId(SetupInstancePtr, out IntPtr InstancePtr) == NativeMethods.HRESULT_S_OK && InstancePtr != IntPtr.Zero)
             //{
@@ -201,9 +206,9 @@ namespace CustomBuildTool
                 this.DisplayName = Marshal.PtrToStringBSTR(DisplayNamePtr);
             }
 
-            if (FromInstance->GetState(SetupInstancePtr, &State) == NativeMethods.HRESULT_S_OK)
+            if (FromInstance->GetState(SetupInstancePtr, &SetupPackageState) == NativeMethods.HRESULT_S_OK)
             {
-                this.State = (InstanceState)State;
+                this.State = (InstanceState)SetupPackageState;
             }
 
             this.Packages = new List<VisualStudioPackage>();
@@ -235,8 +240,8 @@ namespace CustomBuildTool
 
             // https://learn.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-community
 
-            this.HasARM64BuildToolsComponents = 
-                this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase)) && 
+            this.HasARM64BuildToolsComponents =
+                this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase)) &&
                 this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", StringComparison.OrdinalIgnoreCase));
         }
 
@@ -380,7 +385,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is VisualStudioInstance instance)
-                return this.Name.CompareTo(instance.Name);
+                return string.Compare(this.Name, instance.Name, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -390,7 +395,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return this.Name.CompareTo(obj.Name);
+            return string.Compare(this.Name, obj.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -426,7 +431,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is VisualStudioPackage package)
-                return this.Id.CompareTo(package.Id);
+                return string.Compare(this.Id, package.Id, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -436,7 +441,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return this.Id.CompareTo(obj.Id);
+            return string.Compare(this.Id, obj.Id, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -451,176 +456,4 @@ namespace CustomBuildTool
         Complete = 4294967295u
     }
 
-    public static unsafe partial class NativeMethods
-    {
-        public const uint HRESULT_S_OK = 0u;
-        public const uint HRESULT_S_FALSE = 1u;
-
-        public static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(unchecked((int)0x80000002));
-        public static readonly IntPtr HKEY_CURRENT_USER = new IntPtr(unchecked((int)0x80000001));
-        public static readonly uint KEY_READ = 0x20019u;
-
-        [LibraryImport("advapi32.dll", StringMarshalling = StringMarshalling.Utf16)]
-        public static partial uint RegOpenKeyExW(IntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, IntPtr* KeyHandle);
-
-        [LibraryImport("advapi32.dll", StringMarshalling = StringMarshalling.Utf16)]
-        public static partial uint RegQueryValueExW(IntPtr KeyHandle, string ValueName, IntPtr Reserved, int* DataType, IntPtr DataBuffer, int* DataLength);
-
-        [LibraryImport("advapi32.dll")]
-        public static partial uint RegCloseKey(IntPtr KeyHandle);
-
-        [LibraryImport("oleaut32.dll")]
-        public static partial uint SafeArrayGetLBound(IntPtr psa, uint nDim, out uint lLBound);
-
-        [LibraryImport("oleaut32.dll")]
-        public static partial uint SafeArrayGetUBound(IntPtr psa, uint nDim, out uint lUBound);
-
-        [LibraryImport("oleaut32.dll")]
-        public static partial uint SafeArrayGetElement(IntPtr psa, uint* rgIndices, IntPtr* pv);
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupHelperVTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // ISetupHelper
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr, uint*, uint> ParseVersion;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr, uint*, uint*, uint> ParseVersionRange;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupConfigurationVTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // STDMETHOD(EnumInstances)(_Out_ IEnumSetupInstances **ppEnumInstances) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> EnumInstances;
-        // STDMETHOD(GetInstanceForCurrentProcess)(_Out_ ISetupInstance ** ppInstance) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstanceForCurrentProcess;
-        // STDMETHOD(GetInstanceForPath)(_In_z_ LPCWSTR wzPath, _Out_ ISetupInstance **ppInstance) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr, IntPtr*, uint> GetInstanceForPath;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupConfiguration2VTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // STDMETHOD(EnumAllInstances)(_Out_ IEnumSetupInstances **ppEnumInstances) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> EnumAllInstances;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct IEnumSetupInstancesVTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // STDMETHOD(Next)(_In_ ULONG celt, _Out_writes_to_(celt, *pceltFetched) ISetupInstance** rgelt, _Out_opt_ _Deref_out_range_(0, celt) ULONG* pceltFetched) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, uint*, uint> Next;
-        // STDMETHOD(Skip)(_In_ ULONG celt) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, uint> Skip;
-        // STDMETHOD(Reset)(void) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Reset;
-        // STDMETHOD(Clone)(_Deref_out_opt_ IEnumSetupInstances **ppenum) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> Clone;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupInstanceVTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // ISetupInstance
-        // STDMETHOD(GetInstanceId)(_Out_ BSTR *pbstrInstanceId) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstanceId;
-        // STDMETHOD(GetInstallDate)(_Out_ LPFILETIME pInstallDate) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, long*, uint> GetInstallDate;
-        // STDMETHOD(GetInstallationName)(_Out_ BSTR *pbstrInstallationName) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstallationName;
-        // STDMETHOD(GetInstallationPath)(_Out_ BSTR *pbstrInstallationPath) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstallationPath;
-        // STDMETHOD(GetInstallationVersion)(_Out_ BSTR *pbstrInstallationVersion) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstallationVersion;
-        // STDMETHOD(GetDisplayName)(_In_ LCID lcid, _Out_ BSTR *pbstrDisplayName) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, uint> GetDisplayName;
-        // STDMETHOD(GetDescription)(_In_ LCID lcid, _Out_ BSTR *pbstrDescription) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, uint> GetDescription;
-        // STDMETHOD(ResolvePath)(_In_opt_z_ LPCOLESTR pwszRelativePath, _Out_ BSTR* pbstrAbsolutePath) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr, IntPtr*, uint> ResolvePath;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupInstance2VTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // ISetupInstance
-        // STDMETHOD(GetInstanceId)(_Out_ BSTR *pbstrInstanceId) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstanceId;
-        // STDMETHOD(GetInstallDate)(_Out_ LPFILETIME pInstallDate) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, long*, uint> GetInstallDate;
-        // STDMETHOD(GetInstallationName)(_Out_ BSTR *pbstrInstallationName) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstallationName;
-        // STDMETHOD(GetInstallationPath)(_Out_ BSTR *pbstrInstallationPath) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstallationPath;
-        // STDMETHOD(GetInstallationVersion)(_Out_ BSTR *pbstrInstallationVersion) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetInstallationVersion;
-        // STDMETHOD(GetDisplayName)(_In_ LCID lcid, _Out_ BSTR *pbstrDisplayName) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, uint> GetDisplayName;
-        // STDMETHOD(GetDescription)(_In_ LCID lcid, _Out_ BSTR *pbstrDescription) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, uint> GetDescription;
-        // STDMETHOD(ResolvePath)(_In_opt_z_ LPCOLESTR pwszRelativePath, _Out_ BSTR* pbstrAbsolutePath) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr, IntPtr*, uint> ResolvePath;
-        // ISetupInstance2
-        // STDMETHOD(GetState)(_Out_ InstanceState *pState) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint*, uint> GetState;
-        // STDMETHOD(GetPackages)(_Out_ LPSAFEARRAY *ppsaPackages) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetPackages;
-        // STDMETHOD(GetProduct)(_Outptr_result_maybenull_ ISetupPackageReference **ppPackage) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetProduct;
-        // STDMETHOD(GetProductPath)(_Outptr_result_maybenull_ BSTR *pbstrProductPath) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetProductPath;
-        // STDMETHOD(GetErrors)(_Outptr_result_maybenull_ ISetupErrorState** ppErrorState) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetErrors;
-        // STDMETHOD(IsLaunchable)(_Out_ VARIANT_BOOL* pfIsLaunchable) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, short*, uint> IsLaunchable;
-        // STDMETHOD(IsComplete)(_Out_ VARIANT_BOOL* pfIsComplete) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, short*, uint> IsComplete;
-        // STDMETHOD(GetProperties)(_Outptr_result_maybenull_ ISetupPropertyStore** ppProperties) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetProperties;
-        // STDMETHOD(GetEnginePath)(_Outptr_result_maybenull_ BSTR* pbstrEnginePath) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetEnginePath;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupPackageReferenceVTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // ISetupPackageReference
-        // STDMETHOD(GetId)(_Out_ BSTR* pbstrId) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetId;
-        // STDMETHOD(GetVersion)(_Out_ BSTR* pbstrVersion) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetVersion;
-        // STDMETHOD(GetChip)(_Out_ BSTR* pbstrChip) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetChip;
-        // STDMETHOD(GetLanguage)(_Out_ BSTR* pbstrLanguage) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetLanguage;
-        // STDMETHOD(GetBranch)(_Out_ BSTR* pbstrBranch) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetBranch;
-        // STDMETHOD(GetType)(_Out_ BSTR* pbstrType) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetPackageType;
-        // STDMETHOD(GetUniqueId)(_Out_ BSTR* pbstrUniqueId) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, uint> GetUniqueId;
-        // STDMETHOD(GetIsExtension)(_Out_ BSTR* pfIsExtension) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ushort*, uint> GetIsExtension;
-    }
 }

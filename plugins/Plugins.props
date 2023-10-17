@@ -44,7 +44,7 @@
         <BuildLog>
             <Path>$(IntDir)$(MSBuildProjectName).log</Path>
         </BuildLog>
-        <PostBuildEvent>
+        <PostBuildEvent Condition="'$(ExternalCompilerOptions)'==''">
             <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
         </PostBuildEvent>
         <ResourceCompile>

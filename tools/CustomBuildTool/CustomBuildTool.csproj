@@ -6,7 +6,7 @@
     <RuntimeIdentifiers>win7-x86;win7-x64</RuntimeIdentifiers>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0</Version>
+    <Version>4.0.0.0</Version>
     <CodePage>65001</CodePage>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -17,6 +17,8 @@
     <DebugSymbols>true</DebugSymbols>
     <FileAlignment>4096</FileAlignment>
     <Determinisitc>true</Determinisitc>
+    <EmbedAllSources>false</EmbedAllSources>
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <PublishTrimmed>true</PublishTrimmed>
     <EventSourceSupport>false</EventSourceSupport>
@@ -26,6 +28,13 @@
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
     <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/winsiderss/systeminformer.git</RepositoryUrl>
+    <PackageProjectUrl>https://systeminformer.sourceforge.io/</PackageProjectUrl>
+    <Copyright>Copyright (c) Winsider Seminars &amp; Solutions, Inc.  All rights reserved.</Copyright>
+    <ApplicationIcon>..\..\SystemInformer\SystemInformer.ico</ApplicationIcon>
+    <Nullable>warnings</Nullable>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <PlatformTarget>x86</PlatformTarget>
@@ -61,13 +70,17 @@
     <Using Include="System.IO.Compression" />
     <Using Include="System.Net" />
     <Using Include="System.Net.Http.Headers" />
+    <Using Include="System.Net.Security" />
+    <Using Include="System.Reflection" />
     <Using Include="System.Runtime.CompilerServices" />
     <Using Include="System.Runtime.InteropServices" />
+    <Using Include="System.Security.Authentication" />
     <Using Include="System.Security.Cryptography" />
     <Using Include="System.Security.Cryptography.X509Certificates" />
     <Using Include="System.Text" />
     <Using Include="System.Text.Json" />
     <Using Include="System.Text.Json.Serialization" />
+    <Using Include="System.Text.Json.Serialization.Metadata" />
     <Using Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>

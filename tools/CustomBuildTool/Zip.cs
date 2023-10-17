@@ -13,28 +13,6 @@ namespace CustomBuildTool
 {
     public static class Zip
     {
-        // https://github.com/phofman/zip/blob/master/src/ZipFile.cs
-        private static string[] GetEntryNames(string[] names, string sourceFolder, bool includeBaseName)
-        {
-            if (names == null || names.Length == 0)
-                return Array.Empty<string>();
-
-            if (includeBaseName)
-                sourceFolder = Path.GetDirectoryName(sourceFolder);
-
-            int length = string.IsNullOrWhiteSpace(sourceFolder) ? 0 : sourceFolder.Length;
-            if (length > 0 && sourceFolder != null && sourceFolder[length - 1] != Path.DirectorySeparatorChar && sourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
-                length++;
-
-            var result = new string[names.Length];
-            for (int i = 0; i < names.Length; i++)
-            {
-                result[i] = names[i].Substring(length);
-            }
-
-            return result;
-        }
-
         public static void CreateCompressedFolder(string sourceDirectoryName, string destinationArchiveFileName)
         {
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
@@ -165,5 +143,46 @@ namespace CustomBuildTool
                 }
             }
         }
+
+#region License
+        // https://github.com/phofman/zip/blob/master/src/ZipFile.cs
+        /*
+            Copyright (c) 2015, Pawel Hofman (CodeTitans)
+            All Rights Reserved.
+
+            Licensed under MIT License
+            For more information please visit:
+
+            https://github.com/phofman/zip/blob/master/LICENSE
+                or
+            http://opensource.org/licenses/MIT
+
+
+            For latest source code, documentation, samples
+            and more information please visit:
+
+            https://github.com/phofman/zip
+        */
+        private static string[] GetEntryNames(string[] names, string sourceFolder, bool includeBaseName)
+        {
+            if (names == null || names.Length == 0)
+                return Array.Empty<string>();
+
+            if (includeBaseName)
+                sourceFolder = Path.GetDirectoryName(sourceFolder);
+
+            int length = string.IsNullOrWhiteSpace(sourceFolder) ? 0 : sourceFolder.Length;
+            if (length > 0 && sourceFolder != null && sourceFolder[length - 1] != Path.DirectorySeparatorChar && sourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
+                length++;
+
+            var result = new string[names.Length];
+            for (int i = 0; i < names.Length; i++)
+            {
+                result[i] = names[i].Substring(length);
+            }
+
+            return result;
+        }
+#endregion
     }
 }

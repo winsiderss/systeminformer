@@ -12,13 +12,31 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Generate the Plugin SDK headers.
+    /// </summary>
     public static class HeaderGen
     {
-        private static readonly string Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
-        private static readonly string Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
+        private const string Header =
+@"#ifndef _PH_PHAPPPUB_H
+#define _PH_PHAPPPUB_H
 
-        private static readonly string BaseDirectory = "SystemInformer\\include";
-        private static readonly string OutputFile = "..\\sdk\\phapppub.h";
+// This file was automatically generated. Do not edit.
+
+#ifdef __cplusplus
+extern ""C"" {
+#endif
+";
+        private const string Footer =
+@"
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+";
+        private const string BaseDirectory = "SystemInformer\\include";
+        private const string OutputFile = "..\\sdk\\phapppub.h";
 
         private static readonly string[] Modes = new[] { "phapppub" };
         private static readonly string[] Files = new[]
@@ -138,11 +156,7 @@ namespace CustomBuildTool
                 string file = BaseDirectory + Path.DirectorySeparatorChar + name;
                 List<string> lines = File.ReadAllLines(file).ToList();
 
-                headerFiles.Add(name, new HeaderFile
-                {
-                    Name = name,
-                    Lines = lines
-                });
+                headerFiles.Add(name, new HeaderFile(name, lines));
             }
 
             foreach (HeaderFile h in headerFiles.Values)
@@ -217,9 +231,17 @@ namespace CustomBuildTool
 
     public class HeaderFile : IEquatable<HeaderFile>
     {
-        public string Name;
+        public readonly string Name;
         public List<string> Lines;
         public List<HeaderFile> Dependencies;
+
+        public HeaderFile() { }
+
+        public HeaderFile(string Name, List<string> Lines)
+        {
+            this.Name = Name;
+            this.Lines = Lines;
+        }
 
         public override string ToString()
         {
@@ -233,9 +255,6 @@ namespace CustomBuildTool
 
         public override bool Equals(object obj)
         {
-            if (obj == null)
-                return false;
-
             if (obj is not HeaderFile file)
                 return false;
 
@@ -244,6 +263,9 @@ namespace CustomBuildTool
 
         public bool Equals(HeaderFile other)
         {
+            if (other == null)
+                return false;
+
             return this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
         }
     }

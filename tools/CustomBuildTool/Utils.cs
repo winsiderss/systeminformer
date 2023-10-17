@@ -11,527 +11,132 @@
 
 namespace CustomBuildTool
 {
-    public static class Win32
-    {
-        public static void CreateDirectory(string FileName)
-        {
-            if (!Directory.Exists(FileName))
-            {
-                Directory.CreateDirectory(FileName);
-            }
-        }
-
-        public static int CreateProcess(string FileName, string Arguments, out string outputstring, bool FixNewLines = true)
-        {
-            int exitcode = int.MaxValue;
-            StringBuilder output = new StringBuilder();
-            StringBuilder error = new StringBuilder();
-
-            try
-            {
-                using (Process process = new Process())
-                {
-                    process.StartInfo.FileName = FileName;
-                    process.StartInfo.Arguments = Arguments;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.StartInfo.StandardErrorEncoding = Encoding.UTF8;
-                    process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-
-                    using (AutoResetEvent outputWaitHandle = new AutoResetEvent(false))
-                    using (AutoResetEvent errorWaitHandle = new AutoResetEvent(false))
-                    {
-                        process.OutputDataReceived += (sender, e) =>
-                        {
-                            if (e.Data == null)
-                            {
-                                outputWaitHandle.Set();
-                            }
-                            else
-                            {
-                                output.AppendLine(e.Data);
-                            }
-                        };
-                        process.ErrorDataReceived += (sender, e) =>
-                        {
-                            if (e.Data == null)
-                            {
-                                errorWaitHandle.Set();
-                            }
-                            else
-                            {
-                                error.AppendLine(e.Data);
-                            }
-                        };
-
-                        process.Start();
-                        process.BeginOutputReadLine();
-                        process.BeginErrorReadLine();
-                        process.WaitForExit();
-
-                        if (outputWaitHandle.WaitOne() && errorWaitHandle.WaitOne())
-                        {
-                            exitcode = process.ExitCode;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[CreateProcess] {ex}", ConsoleColor.Red);
-            }
-
-            outputstring = output.ToString() + error.ToString();
-
-            if (FixNewLines)
-            {
-                //outputstring = outputstring.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
-                outputstring = outputstring.Replace("\r\n", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
-            }
-
-            return exitcode;
-        }
-
-        public static void CreateEmptyFile(string FileName)
-        {
-            Win32.DeleteFile(FileName);
-
-            File.Create(FileName).Dispose();
-        }
-
-        public static bool DeleteFile(string FileName)
-        {
-            try
-            {
-                if (File.Exists(FileName))
-                    File.Delete(FileName);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[DeleteFile] {ex}", ConsoleColor.Red);
-            }
-
-            return false;
-        }
-
-        public static string ShellExecute(string FileName, string Arguments, bool FixNewLines = true)
-        {
-            CreateProcess(FileName, Arguments, out string outputstring, FixNewLines);
-
-            return outputstring;
-        }
-
-        public static string SearchFile(string FileName)
-        {
-            try
-            {
-                if (File.Exists(FileName))
-                    return Path.GetFullPath(FileName);
-
-                string values = Environment.GetEnvironmentVariable("PATH");
-
-                foreach (string path in values.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    string whereResult = Path.Combine(path, FileName);
-
-                    if (File.Exists(whereResult))
-                        return whereResult;
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[SearchFile] {ex}", ConsoleColor.Yellow);
-            }
-
-            return null;
-        }
-
-        public static void CopyIfNewer(string SourceFile, string DestinationFile)
-        {
-            if (!File.Exists(SourceFile))
-                return;
-
-            if (SourceFile.EndsWith(".sys", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!File.Exists(DestinationFile))
-                {
-                    File.Copy(SourceFile, DestinationFile, true);
-                }
-                else
-                {
-                    FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo(SourceFile);
-                    FileVersionInfo newInfo = FileVersionInfo.GetVersionInfo(DestinationFile);
-                    var currentInfoVersion = new Version(currentInfo.FileVersion);
-                    var newInfoVersion = new Version(newInfo.FileVersion);
-
-                    if (
-                        currentInfoVersion > newInfoVersion ||
-                        File.GetLastWriteTime(SourceFile) > File.GetLastWriteTime(DestinationFile)
-                        )
-                    {
-                        File.Copy(SourceFile, DestinationFile, true);
-                    }
-                }
-            }
-            else
-            {
-                if (File.GetLastWriteTime(SourceFile) > File.GetLastWriteTime(DestinationFile))
-                    File.Copy(SourceFile, DestinationFile, true);
-            }
-        }
-
-        public static string GetEnvironmentVariable(string Name)
-        {
-            return Environment.ExpandEnvironmentVariables(Name).Replace(Name, string.Empty, StringComparison.OrdinalIgnoreCase);
-        }
-
-        public static string GetKernelVersion()
-        {
-            try
-            {
-                string filePath = GetEnvironmentVariable("%SystemRoot%\\System32\\ntoskrnl.exe");
-
-                if (!File.Exists(filePath))
-                    filePath = GetEnvironmentVariable("%SystemRoot%\\Sysnative\\ntoskrnl.exe");
-
-                if (File.Exists(filePath))
-                {
-                    FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(filePath);
-                    return versionInfo.FileVersion ?? string.Empty;
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[GetKernelVersion] {ex}", ConsoleColor.Red);
-            }
-
-            return string.Empty;
-        }
-
-        public static unsafe string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
-        {
-            string value = string.Empty;
-            IntPtr valueBuffer;
-            IntPtr keyHandle;
-
-            if (NativeMethods.RegOpenKeyExW(
-                LocalMachine ? NativeMethods.HKEY_LOCAL_MACHINE : NativeMethods.HKEY_CURRENT_USER,
-                KeyName,
-                0,
-                NativeMethods.KEY_READ,
-                &keyHandle
-                ) == 0)
-            {
-                int valueLength = 0;
-                int valueType = 0;
-
-                NativeMethods.RegQueryValueExW(
-                    keyHandle,
-                    ValueName,
-                    IntPtr.Zero,
-                    &valueType,
-                    IntPtr.Zero,
-                    &valueLength
-                    );
-
-                if (valueType == 1 || valueLength > 4)
-                {
-                    valueBuffer = Marshal.AllocHGlobal(valueLength);
-
-                    if (NativeMethods.RegQueryValueExW(
-                        keyHandle,
-                        ValueName,
-                        IntPtr.Zero,
-                        null,
-                        valueBuffer,
-                        &valueLength
-                        ) == 0)
-                    {
-                        value = Marshal.PtrToStringUni(valueBuffer, valueLength / 2 - 1);
-                    }
-
-                    Marshal.FreeHGlobal(valueBuffer);
-                }
-
-                _ = NativeMethods.RegCloseKey(keyHandle);
-            }
-
-            return string.IsNullOrWhiteSpace(value) ? DefaultValue : value;
-        }
-    }
-
-    public static class Verify
-    {
-        private static Aes GetRijndael(string Secret)
-        {
-            using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
-                Secret,
-                Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="),
-                10000,
-                HashAlgorithmName.SHA512))
-            {
-                Aes rijndael = Aes.Create();
-
-                rijndael.Key = rfc2898DeriveBytes.GetBytes(32);
-                rijndael.IV = rfc2898DeriveBytes.GetBytes(16);
-
-                return rijndael;
-            }
-        }
-
-        public static void Encrypt(string FileName, string outFileName, string Secret)
-        {
-            if (!File.Exists(FileName))
-            {
-                Program.PrintColorMessage($"Unable to encrypt file {Path.GetFileName(FileName)}: Does not exist.", ConsoleColor.Yellow);
-                return;
-            }
-
-            using (Aes rijndael = GetRijndael(Secret))
-            using (FileStream fileStream = File.OpenRead(FileName))
-            using (FileStream fileOutStream = File.Create(outFileName))
-            using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateEncryptor(), CryptoStreamMode.Write, true))
-            {
-                fileStream.CopyTo(cryptoStream);
-            }
-        }
-
-        public static bool Decrypt(string FileName, string outFileName, string Secret)
-        {
-            if (!File.Exists(FileName))
-            {
-                Program.PrintColorMessage($"Unable to decrypt file {Path.GetFileName(FileName)}: Does not exist.", ConsoleColor.Yellow);
-                return false;
-            }
-
-            try
-            {
-                using (Aes rijndael = GetRijndael(Secret))
-                using (FileStream fileStream = File.OpenRead(FileName))
-                using (FileStream fileOutStream = File.Create(outFileName))
-                using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
-                {
-                    fileStream.CopyTo(cryptoStream);
-                }
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private static Aes GetRijndaelLegacy(string Secret)
-        {
-#pragma warning disable SYSLIB0041 // Type or member is obsolete
-            using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
-                Secret,
-                Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="),
-                10000))
-            {
-                Aes rijndael = Aes.Create();
-
-                rijndael.Key = rfc2898DeriveBytes.GetBytes(32);
-                rijndael.IV = rfc2898DeriveBytes.GetBytes(16);
-
-                return rijndael;
-            }
-#pragma warning restore SYSLIB0041 // Type or member is obsolete
-        }
-
-        public static bool DecryptLegacy(string FileName, string outFileName, string Secret)
-        {
-            if (!File.Exists(FileName))
-            {
-                Program.PrintColorMessage($"Unable to decrypt legacy file {Path.GetFileName(FileName)}: Does not exist.", ConsoleColor.Yellow);
-                return false;
-            }
-
-            try
-            {
-                using (Aes rijndael = GetRijndaelLegacy(Secret))
-                using (FileStream fileStream = File.OpenRead(FileName))
-                using (FileStream fileOutStream = File.Create(outFileName))
-                using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
-                {
-                    fileStream.CopyTo(cryptoStream);
-                }
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public static string HashFile(string FileName)
-        {
-            if (!File.Exists(FileName))
-            {
-                Program.PrintColorMessage($"Unable to hash file {Path.GetFileName(FileName)}: Does not exist.", ConsoleColor.Yellow);
-                return string.Empty;
-            }
-
-            //using (HashAlgorithm algorithm = new SHA256CryptoServiceProvider())
-            //{
-            //    byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-            //    byte[] hashBytes = algorithm.ComputeHash(inputBytes);
-            //    return BitConverter.ToString(hashBytes).Replace("-", String.Empty);
-            //}
-
-            using (FileStream fileInStream = File.OpenRead(FileName))
-            using (BufferedStream bufferedStream = new BufferedStream(fileInStream, 0x1000))
-            using (SHA256 sha = SHA256.Create())
-            {
-                byte[] checksum = sha.ComputeHash(bufferedStream);
-
-                return BitConverter.ToString(checksum).Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase);
-            }
-        }
-
-        public static string GetPath(string FileName)
-        {
-            return $"{Build.BuildWorkingFolder}\\tools\\CustomSignTool\\Resources\\{FileName}";
-        }
-
-        public static string GetKeyTempPath(string FileName)
-        {
-            var filename = Path.ChangeExtension(FileName, ".key");
-            var basename = Path.GetFileName(filename);
-
-            return $"{Build.BuildWorkingFolder}\\tools\\CustomSignTool\\Resources\\{basename}";
-        }
-
-        public static string GetSignToolPath()
-        {
-            if (Environment.Is64BitOperatingSystem)
-                return $"{Build.BuildWorkingFolder}\\tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe";
-            return $"{Build.BuildWorkingFolder}\\tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
-        }
-
-        public static string CreateSignatureString(string KeyFile, string SignFile)
-        {
-            if (!File.Exists(GetSignToolPath()))
-            {
-                Program.PrintColorMessage($"[CreateSignature - SignTool not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                return null;
-            }
-
-            if (!File.Exists(KeyFile))
-            {
-                Program.PrintColorMessage($"[CreateSignature - Key not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                return null;
-            }
-
-            int errorcode = Win32.CreateProcess(
-                GetSignToolPath(),
-                $"sign -k {KeyFile} {SignFile} -h",
-                out string outstring
-                );
-
-            if (errorcode != 0)
-            {
-                Program.PrintColorMessage($"[CreateSignature] ({errorcode}) {outstring}", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                return null;
-            }
-
-            if (string.IsNullOrWhiteSpace(outstring))
-            {
-                Program.PrintColorMessage($"[CreateSignature - Empty]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                return null;
-            }
-
-            return outstring;
-        }
-
-        public static bool CreateSignatureFile(string KeyFile, string SignFile, bool FailIfExists = false)
-        {
-            string sigfile = Path.ChangeExtension(SignFile, ".sig");
-
-            if (FailIfExists)
-            {
-                if (File.Exists(sigfile) && new FileInfo(sigfile).Length != 0)
-                {
-                    Program.PrintColorMessage($"[CreateSignature - FailIfExists] ({sigfile})", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                    return false;
-                }
-            }
-
-            File.WriteAllText(sigfile, string.Empty);
-
-            if (!File.Exists(GetSignToolPath()))
-            {
-                Program.PrintColorMessage($"[CreateSignature - SignTool not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                return false;
-            }
-
-            if (!File.Exists(KeyFile))
-            {
-                Program.PrintColorMessage($"[CreateSignature - Key not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                return false;
-            }
-
-            int errorcode = Win32.CreateProcess(
-                GetSignToolPath(),
-                $"sign -k {KeyFile} {SignFile} -s {sigfile}",
-                out string outstring
-                );
-
-            if (errorcode != 0)
-            {
-                Program.PrintColorMessage($"[CreateSignature] ({errorcode}) {outstring}", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                return false;
-            }
-
-            if (!string.IsNullOrWhiteSpace(outstring))
-            {
-                Program.PrintColorMessage($"[CreateSignature - Empty]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                return false;
-            }
-
-            return true;
-        }
-    }
-
     public static class Utils
     {
-        private static readonly string[] MsBuildPathArray =
-        {
-            "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
-            "\\MSBuild\\Current\\Bin\\MSBuild.exe",
-            "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
-        };
-
+        public static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+        private static string GitFilePath;
         private static string MsBuildFilePath;
         private static string VsWhereFilePath;
 
-        public static string GetOutputDirectoryPath()
+        /// <summary>
+        /// Splits a string into key-value pairs.
+        /// </summary>
+        public static Dictionary<string, string> ParseArgs(string[] args)
         {
-            return $"{Build.BuildWorkingFolder}\\build\\output";
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            string argPending = null;
+
+            foreach (string s in args)
+            {
+                if (s.StartsWith("-", StringComparison.OrdinalIgnoreCase))
+                {
+                    dict.TryAdd(s, string.Empty);
+
+                    argPending = s;
+                }
+                else
+                {
+                    if (argPending != null)
+                    {
+                        dict[argPending] = s;
+                        argPending = null;
+                    }
+                    else
+                    {
+                        dict.TryAdd(string.Empty, s);
+                    }
+                }
+            }
+
+            return dict;
         }
 
-        public static void CreateOutputDirectory()
+        /// <summary>
+        /// Splits a string into a dictionary.
+        /// </summary>
+        public static Dictionary<string, string> ParseInput(string[] args)
         {
-            string folder = GetOutputDirectoryPath();
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            if (File.Exists(folder))
+            foreach (string s in args)
+            {
+                dict.TryAdd(s, string.Empty);
+            }
+
+            return dict;
+        }
+
+        public static void PrintColorMessage(string Message, ConsoleColor Color, bool Newline = true, BuildFlags Flags = BuildFlags.BuildVerbose)
+        {
+            if ((Flags & BuildFlags.BuildVerbose) != BuildFlags.BuildVerbose)
                 return;
 
-            try
-            {
-                Directory.CreateDirectory(folder);
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"Error creating output directory: {ex}", ConsoleColor.Red);
-            }
+            Console.ForegroundColor = Color;
+            if (Newline)
+                Console.WriteLine(Message);
+            else
+                Console.Write(Message);
+            Console.ResetColor();
         }
 
-        public static string GetVswhereFilePath()
+        public static string ExecuteVsWhereCommand(string Command)
+        {
+            string file = GetVswhereFilePath();
+
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                Program.PrintColorMessage("[ExecuteVsWhereCommand] VswhereFilePath is invalid.", ConsoleColor.Red);
+                return null;
+            }
+
+            string output = Win32.ShellExecute(file, Command, false);
+            output = output.Trim();
+            return output;
+        }
+
+        public static int ExecuteMsbuildCommand(string Command, out string OutputString)
+        {
+            string file = GetMsbuildFilePath();
+
+            if (string.IsNullOrWhiteSpace(file))
+            {
+                OutputString = "[ExecuteMsbuildCommand] MsbuildFilePath is invalid.";
+                return 3; // file not found.
+            }
+
+            int errorcode = Win32.CreateProcess(
+                file,
+                Command,
+                out OutputString
+                );
+
+            return errorcode;
+        }
+
+        public static string ExecuteGitCommand(string WorkingFolder, string Command)
+        {
+            string currentGitDirectory = GetGitWorkPath(WorkingFolder);
+
+            if (string.IsNullOrWhiteSpace(currentGitDirectory))
+            {
+                Program.PrintColorMessage("[ExecuteGitCommand] WorkingFolder is invalid.", ConsoleColor.Red);
+                return null;
+            }
+
+            string currentGitPath = GetGitFilePath();
+
+            if (string.IsNullOrWhiteSpace(currentGitPath))
+            {
+                Program.PrintColorMessage("[ExecuteGitCommand] GitFilePath is invalid.", ConsoleColor.Red);
+                return null;
+            }
+
+            string output = Win32.ShellExecute(currentGitPath, $"{currentGitDirectory} {Command}", false);
+            output = output.Trim();
+            return output;
+        }
+
+        private static string GetVswhereFilePath()
         {
             if (string.IsNullOrWhiteSpace(VsWhereFilePath))
             {
@@ -553,8 +158,9 @@ namespace CustomBuildTool
                     }
                 }
 
+                if (string.IsNullOrWhiteSpace(VsWhereFilePath))
                 {
-                    string file = Win32.SearchFile("vswhere.exe");
+                    string file = Win32.SearchPath("vswhere.exe");
 
                     if (File.Exists(file))
                     {
@@ -566,10 +172,17 @@ namespace CustomBuildTool
             return VsWhereFilePath;
         }
 
-        public static string GetMsbuildFilePath()
+        private static string GetMsbuildFilePath()
         {
             if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
+                string[] MsBuildPathArray =
+                {
+                    "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
+                    "\\MSBuild\\Current\\Bin\\MSBuild.exe",
+                    "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
+                };
+
                 VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
 
                 if (instance != null)
@@ -585,36 +198,30 @@ namespace CustomBuildTool
                         }
                     }
                 }
-            }
 
-            if (string.IsNullOrWhiteSpace(MsBuildFilePath))
-            {
-                string vswhere = GetVswhereFilePath();
-
-                if (string.IsNullOrWhiteSpace(vswhere))
-                    return null;
-
-                // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
-                string vswhereResult = Win32.ShellExecute(
-                    vswhere,
-                    "-latest " +
-                    "-prerelease " +
-                    "-products * " +
-                    "-requiresAny " +
-                    "-requires Microsoft.Component.MSBuild " +
-                    "-property installationPath "
-                    );
-
-                if (!string.IsNullOrWhiteSpace(vswhereResult))
+                if (string.IsNullOrWhiteSpace(MsBuildFilePath))
                 {
-                    foreach (string path in MsBuildPathArray)
-                    {
-                        string file = vswhereResult + path;
+                    // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
+                    string vswhereResult = ExecuteVsWhereCommand(
+                        "-latest " +
+                        "-prerelease " +
+                        "-products * " +
+                        "-requiresAny " +
+                        "-requires Microsoft.Component.MSBuild " +
+                        "-property installationPath "
+                        );
 
-                        if (File.Exists(file))
+                    if (!string.IsNullOrWhiteSpace(vswhereResult))
+                    {
+                        foreach (string path in MsBuildPathArray)
                         {
-                            MsBuildFilePath = file;
-                            break;
+                            string file = vswhereResult + path;
+
+                            if (File.Exists(file))
+                            {
+                                MsBuildFilePath = file;
+                                break;
+                            }
                         }
                     }
                 }
@@ -623,41 +230,51 @@ namespace CustomBuildTool
             return MsBuildFilePath;
         }
 
-        public static string GetGitFilePath()
+        private static string GetGitFilePath()
         {
-            string[] gitPathArray =
+            if (string.IsNullOrWhiteSpace(GitFilePath))
             {
-                "%ProgramFiles%\\Git\\bin\\git.exe",
-                "%ProgramFiles(x86)%\\Git\\bin\\git.exe",
-                "%ProgramW6432%\\Git\\bin\\git.exe"
-            };
+                string[] GitPathArray =
+                {
+                    "%ProgramFiles%\\Git\\bin\\git.exe",
+                    "%ProgramFiles(x86)%\\Git\\bin\\git.exe",
+                    "%ProgramW6432%\\Git\\bin\\git.exe"
+                };
 
-            foreach (string path in gitPathArray)
-            {
-                string file = Environment.ExpandEnvironmentVariables(path);
+                foreach (string path in GitPathArray)
+                {
+                    string file = Environment.ExpandEnvironmentVariables(path);
 
-                if (File.Exists(file))
-                    return file;
+                    if (File.Exists(file))
+                    {
+                        GitFilePath = file;
+                        break;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(GitFilePath))
+                {
+                    string file = Win32.SearchPath("git.exe");
+
+                    if (File.Exists(file))
+                    {
+                        GitFilePath = file;
+                    }
+                }
             }
 
-            {
-                string file = Win32.SearchFile("git.exe");
-
-                if (File.Exists(file))
-                    return file;
-            }
-
-            return null;
+            return GitFilePath;
         }
 
-        public static string GetGitWorkPath()
+        private static string GetGitWorkPath(string DirectoryPath)
         {
-            if (Directory.Exists($"{Build.BuildWorkingFolder}\\.git"))
-            {
-                return $"--git-dir=\"{Build.BuildWorkingFolder}\\.git\" --work-tree=\"{Build.BuildWorkingFolder}\" ";
-            }
+            if (string.IsNullOrWhiteSpace(DirectoryPath))
+                return null;
 
-            return string.Empty;
+            if (!Directory.Exists($"{DirectoryPath}\\.git"))
+                return null;
+
+            return $"--git-dir=\"{DirectoryPath}\\.git\" --work-tree=\"{DirectoryPath}\" ";
         }
 
         public static string GetWindowsSdkIncludePath()
@@ -693,7 +310,7 @@ namespace CustomBuildTool
                 }
             }
 
-            return string.Empty;
+            return null;
         }
 
         public static string GetWindowsSdkPath()
@@ -729,7 +346,7 @@ namespace CustomBuildTool
                 }
             }
 
-            return string.Empty;
+            return null;
         }
 
         public static string GetWindowsSdkVersion()
@@ -771,75 +388,92 @@ namespace CustomBuildTool
                 }
             }
 
-            return string.Empty;
+            return null;
         }
 
-        public static string GetVisualStudioVersion()
-        {
-            string msbuild = GetMsbuildFilePath();
+        //public static string GetVisualStudioVersion()
+        //{
+        //    string file = GetMsbuildFilePath();
+        //
+        //    if (string.IsNullOrWhiteSpace(file))
+        //        return null;
+        //
+        //    string directory = Path.GetDirectoryName(file);
+        //
+        //    if (string.IsNullOrWhiteSpace(directory))
+        //        return null;
+        //
+        //    DirectoryInfo info = new DirectoryInfo(directory);
+        //
+        //    while (info.Parent != null && info.Parent.Parent != null)
+        //    {
+        //        info = info.Parent;
+        //
+        //        if (File.Exists($"{info.FullName}\\Common7\\IDE\\devenv.exe"))
+        //        {
+        //            FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo($"{info.FullName}\\Common7\\IDE\\devenv.exe");
+        //            return currentInfo.ProductVersion ?? null;
+        //        }
+        //    }
+        //
+        //    return null;
+        //}
 
-            if (string.IsNullOrWhiteSpace(msbuild))
-                return string.Empty;
-
-            try
-            {
-                DirectoryInfo info = new DirectoryInfo(Path.GetDirectoryName(msbuild));
-
-                while (info.Parent != null && info.Parent.Parent != null)
-                {
-                    info = info.Parent;
-
-                    if (File.Exists($"{info.FullName}\\Common7\\IDE\\devenv.exe"))
-                    {
-                        FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo($"{info.FullName}\\Common7\\IDE\\devenv.exe");
-                        return currentInfo.ProductVersion;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"Unable to find devenv directory: {ex}", ConsoleColor.Red);
-            }
-
-            return string.Empty;
-        }
-
-        public static string GetMakeAppxPath()
+        private static string GetMakeMsixPath()
         {
             string windowsSdkPath = Utils.GetWindowsSdkPath();
 
             if (string.IsNullOrWhiteSpace(windowsSdkPath))
-                return string.Empty;
+                return null;
 
             string makeAppxPath = $"{windowsSdkPath}\\x64\\MakeAppx.exe";
 
-            if (string.IsNullOrWhiteSpace(makeAppxPath))
-                return string.Empty;
-
             if (!File.Exists(makeAppxPath))
-                return string.Empty;
+            {
+                string sdkRootPath = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "WdkBinRootVersioned", null);
+
+                if (string.IsNullOrWhiteSpace(sdkRootPath))
+                    return null;
+
+                makeAppxPath = Environment.ExpandEnvironmentVariables($"{sdkRootPath}\\x64\\MakeAppx.exe");
+
+                if (!File.Exists(makeAppxPath))
+                    return null;
+            }
 
             return makeAppxPath;
         }
 
-        public static string GetSignToolPath()
+        public static string ExecuteMsixCommand(string Command)
         {
-            string windowsSdkPath = Utils.GetWindowsSdkPath();
+            string currentMisxPath = GetMakeMsixPath();
 
-            if (string.IsNullOrWhiteSpace(windowsSdkPath))
-                return string.Empty;
+            if (string.IsNullOrWhiteSpace(currentMisxPath))
+            {
+                Program.PrintColorMessage("[ExecuteMsixCommand] File is invalid.", ConsoleColor.Red);
+                return null;
+            }
 
-            string signToolPath = $"{windowsSdkPath}\\x64\\SignTool.exe";
-
-            if (string.IsNullOrWhiteSpace(signToolPath))
-                return string.Empty;
-
-            if (!File.Exists(signToolPath))
-                return string.Empty;
-
-            return signToolPath;
+            string output = Win32.ShellExecute(currentMisxPath, Command, false);
+            output = output.Trim();
+            return output;
         }
 
+        //public static string GetSignToolPath()
+        //{
+        //    string windowsSdkPath = Utils.GetWindowsSdkPath();
+        //
+        //    if (string.IsNullOrWhiteSpace(windowsSdkPath))
+        //        return null;
+        //
+        //    string signToolPath = $"{windowsSdkPath}\\x64\\SignTool.exe";
+        //
+        //    if (!File.Exists(signToolPath))
+        //        return null;
+        //
+        //    return signToolPath;
+        //}
+        //
         //public static string GetMsbuildFilePath()
         //{
         //    VisualStudioInstance instance;
@@ -911,15 +545,38 @@ namespace CustomBuildTool
         [JsonPropertyName("setup_sig")] public string SetupSig { get; set; }
     }
 
-    public class GithubReleasesRequest
+    public class GithubCreateReleaseRequest
     {
+        /// <summary>
+        /// The name of the tag.
+        /// </summary>
         [JsonPropertyName("tag_name")] public string ReleaseTag { get; set; }
+        /// <summary>
+        /// Specifies the commitish value that determines where the Git tag is created from.
+        /// Can be any branch or commit SHA. Unused if the Git tag already exists. Default: the repository's default branch.
+        /// </summary>
         [JsonPropertyName("target_commitish")] public string Branch { get; set; }
+        /// <summary>
+        /// The name of the release.
+        /// </summary>
         [JsonPropertyName("name")] public string Name { get; set; }
+        /// <summary>
+        /// Text describing the contents of the tag.
+        /// </summary>
         [JsonPropertyName("body")] public string Description { get; set; }
-
+        /// <summary>
+        /// true to create a draft (unpublished) release, false to create a published one. Default: false
+        /// </summary>
         [JsonPropertyName("draft")] public bool Draft { get; set; }
+        /// <summary>
+        /// true to identify the release as a prerelease. false to identify the release as a full release. Default: false
+        /// </summary>
         [JsonPropertyName("prerelease")] public bool Prerelease { get; set; }
+        /// <summary>
+        /// Whether to automatically generate the name and body for this release.
+        /// If name is specified, the specified name will be used; otherwise, a name will be automatically generated.
+        /// If body is specified, the body will be pre-pended to the automatically generated notes.
+        /// </summary>
         [JsonPropertyName("generate_release_notes")] public bool GenerateReleaseNotes { get; set; }
 
         public override string ToString()
@@ -934,7 +591,7 @@ namespace CustomBuildTool
         [JsonPropertyName("upload_url")] public string UploadUrl { get; set; }
         [JsonPropertyName("html_url")] public string HtmlUrl { get; set; }
         [JsonPropertyName("assets")] public List<GithubAssetsResponse> Assets { get; set; }
-        [JsonIgnore] public string ReleaseId { get { return this.ID.ToString(); } }
+        [JsonIgnore] public string ReleaseId => this.ID.ToString();
 
         public override string ToString()
         {
@@ -965,6 +622,99 @@ namespace CustomBuildTool
         }
     }
 
+    public class AzureAccessToken
+    {
+        [JsonPropertyName("token_type")] public string Type { get; set; }
+        [JsonPropertyName("expires_in")] public long Expires { get; set; }
+        //[JsonPropertyName("ext_expires_in")] public long ExtExpires { get; set; }
+        [JsonPropertyName("access_token")] public string Handle { get; set; }
+
+        [JsonIgnore]
+        public DateTimeOffset ExpirationTime
+        {
+            get { return DateTimeOffset.Now.AddSeconds(this.Expires); }
+        }
+
+        public override string ToString()
+        {
+            return this.Handle;
+        }
+    }
+
+    public class AzureStorageAttributes
+    {
+        [JsonPropertyName("enabled")] public bool Enabled { get; set; }
+        [JsonPropertyName("created")] public long Created { get; set; }
+        [JsonPropertyName("updated")] public long Updated { get; set; }
+
+        [JsonIgnore]
+        public DateTimeOffset CreatedTime
+        {
+            get { return DateTimeOffset.FromUnixTimeSeconds(this.Created); }
+        }
+
+        [JsonIgnore]
+        public DateTimeOffset UpdatedTime
+        {
+            get { return DateTimeOffset.FromUnixTimeSeconds(this.Updated); }
+        }
+    }
+
+    public class AzureKeyVaultCertificate
+    {
+        [JsonPropertyName("id")] public string ID { get; set; }
+        [JsonPropertyName("kid")] public string Kid { get; set; }
+        [JsonPropertyName("sid")] public string Sid { get; set; }
+        [JsonPropertyName("x5t")] public string xt5 { get; set; }
+        [JsonPropertyName("cer")] public string Cer { get; set; }
+        [JsonPropertyName("attributes")] public AzureStorageAttributes Attributes { get; set; }
+        [JsonPropertyName("pending")] public AzureKeyVaultCertificatePolicy Pending { get; set; }
+    }
+
+    public class AzureKeyVaultCertificateAttributes
+    {
+        [JsonPropertyName("enabled")] public bool Enabled { get; set; }
+        [JsonPropertyName("nbf")] public long Nbf { get; set; }
+        [JsonPropertyName("exp")] public long Exp { get; set; }
+        [JsonPropertyName("created")] public long Created { get; set; }
+        [JsonPropertyName("updated")] public long Updated { get; set; }
+        [JsonPropertyName("recoveryLevel")] public string RecoveryLevel { get; set; }
+        [JsonPropertyName("recoverableDays")] public long RecoverableDays { get; set; }
+
+        [JsonIgnore]
+        public DateTimeOffset CreatedTime
+        {
+            get { return DateTimeOffset.FromUnixTimeSeconds(this.Created); }
+        }
+
+        [JsonIgnore]
+        public DateTimeOffset UpdatedTime
+        {
+            get { return DateTimeOffset.FromUnixTimeSeconds(this.Updated); }
+        }
+    }
+
+    public class AzureKeyVaultCertificatePolicy
+    {
+        [JsonPropertyName("id")] public string ID { get; set; }
+        [JsonPropertyName("key_props")] public object KeyProperties { get; set; }
+        [JsonPropertyName("secret_props")] public string SecretProperties { get; set; }
+        [JsonPropertyName("x509props")] public string CertProperties { get; set; }
+    }
+
+    public class AzureKeyVaultToken
+    {
+        [JsonPropertyName("value")] public string Value { get; set; }
+        [JsonPropertyName("id")] public string ID { get; set; }
+        [JsonPropertyName("attributes")] public AzureStorageAttributes Attributes { get; set; }
+        [JsonPropertyName("tags")] public Dictionary<string,string> Tags { get; set; }
+
+        public override string ToString()
+        {
+            return this.Value;
+        }
+    }
+
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
     [JsonSerializable(typeof(BuildUpdateRequest))]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
@@ -973,8 +723,8 @@ namespace CustomBuildTool
     }
 
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
-    [JsonSerializable(typeof(GithubReleasesRequest))]
-    public partial class GithubReleasesRequestContext : JsonSerializerContext
+    [JsonSerializable(typeof(GithubCreateReleaseRequest))]
+    public partial class GithubCreateReleaseRequestContext : JsonSerializerContext
     {
 
     }
@@ -993,7 +743,28 @@ namespace CustomBuildTool
 
     }
 
-    public static class Extextensions
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
+    [JsonSerializable(typeof(AzureAccessToken))]
+    public partial class AzureAccessTokenContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
+    [JsonSerializable(typeof(AzureKeyVaultCertificate))]
+    public partial class AzureKeyVaultCertificateContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
+    [JsonSerializable(typeof(AzureKeyVaultToken))]
+    public partial class AzureKeyVaultTokenContext : JsonSerializerContext
+    {
+
+    }
+
+    public static class Extensions
     {
         private const long OneKb = 1024;
         private const long OneMb = OneKb * 1024;
@@ -1011,11 +782,11 @@ namespace CustomBuildTool
             double asGb = Math.Round((double)value / OneGb, decimalPlaces);
             double asMb = Math.Round((double)value / OneMb, decimalPlaces);
             double asKb = Math.Round((double)value / OneKb, decimalPlaces);
-            string chosenValue = asTb > 1 ? string.Format("{0}Tb", asTb)
-                : asGb > 1 ? string.Format("{0}Gb", asGb)
-                : asMb > 1 ? string.Format("{0}Mb", asMb)
-                : asKb > 1 ? string.Format("{0}Kb", asKb)
-                : string.Format("{0}B", Math.Round((double)value, decimalPlaces));
+            string chosenValue = asTb > 1 ? $"{asTb}Tb"
+                : asGb > 1 ? $"{asGb}Gb"
+                : asMb > 1 ? $"{asMb}Mb"
+                : asKb > 1 ? $"{asKb}Kb"
+                : $"{Math.Round((double)value, decimalPlaces)}B";
             return chosenValue;
         }
     }
