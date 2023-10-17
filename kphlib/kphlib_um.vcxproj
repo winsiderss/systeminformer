@@ -219,7 +219,7 @@
       <IntelJCCErratum>true</IntelJCCErratum>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /guard:xfg %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg %(AdditionalOptions)</AdditionalOptions>
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
@@ -246,7 +246,7 @@
       <IntelJCCErratum>true</IntelJCCErratum>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /guard:xfg %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /guard:xfg %(AdditionalOptions)</AdditionalOptions>
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
@@ -272,7 +272,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
       <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>

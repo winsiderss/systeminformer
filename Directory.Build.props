@@ -1,0 +1,7 @@
+<Project>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <AdditionalOptions>/d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>
