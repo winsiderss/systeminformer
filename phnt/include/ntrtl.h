@@ -1257,6 +1257,7 @@ RtlWakeAddressSingle(
 
 // end_rev
 
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
 FORCEINLINE
 VOID
 RtlCopyVolatileMemory(
@@ -1268,6 +1269,7 @@ RtlCopyVolatileMemory(
     RtlCopyMemory(Destination, (const VOID *)Source, Size);
     BarrierAfterRead();
 }
+#endif
 
 FORCEINLINE
 HANDLE
