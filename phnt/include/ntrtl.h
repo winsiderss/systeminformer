@@ -1257,7 +1257,7 @@ RtlWakeAddressSingle(
 
 // end_rev
 
-#if PHNT_VERSION >= PHNT_WIN11_22H2
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
 FORCEINLINE
 VOID
 RtlCopyVolatileMemory(
