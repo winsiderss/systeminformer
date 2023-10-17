@@ -74,14 +74,13 @@ namespace CustomBuildTool
             {
                 Program.BuildNightlyDeploy();
             }
-            else if (ProgramArgs.ContainsKey("-msix-package"))
+            else if (ProgramArgs.ContainsKey("-msix"))
             {
                 Program.BuildStorePackage();
             }
             else
             {
-                Program.BuildBin();
-                //Program.BuildDebug();
+                Program.BuildDebug();
             }
         }
 
@@ -342,6 +341,8 @@ namespace CustomBuildTool
 
         private static void BuildStorePackage()
         {
+            Build.SetupBuildEnvironment(true);
+
             BuildFlags flags = BuildFlags.Build32bit |
                 BuildFlags.Build64bit | BuildFlags.BuildARM64 |
                 BuildFlags.BuildDebug | BuildFlags.BuildVerbose |
@@ -392,12 +393,50 @@ namespace CustomBuildTool
             if ((Flags & BuildFlags.BuildVerbose) != BuildFlags.BuildVerbose)
                 return;
 
-            Console.ForegroundColor = Color;
-            if (Newline)
-                Console.WriteLine(Message);
+            if (Build.BuildNightly)
+            {
+                switch (Color)
+                {
+                    case ConsoleColor.Black:
+                    case ConsoleColor.Blue:
+                    case ConsoleColor.DarkBlue:
+                    case ConsoleColor.DarkGreen:
+                    case ConsoleColor.DarkCyan:
+                    case ConsoleColor.DarkRed:
+                    case ConsoleColor.DarkMagenta:
+                    case ConsoleColor.DarkYellow:
+                    case ConsoleColor.Gray:
+                    case ConsoleColor.Cyan:
+                    case ConsoleColor.White:
+                        break;
+                    case ConsoleColor.DarkGray:
+                        Console.Write("##[command]");
+                        break;
+                    case ConsoleColor.Green:
+                        Console.Write("##[section]");
+                        break;
+                    case ConsoleColor.Red:
+                        Console.Write("##[error]");
+                        break;
+                    case ConsoleColor.Yellow:
+                        Console.Write("##[warning]");
+                        break;
+                }
+
+                if (Newline)
+                    Console.WriteLine(Message);
+                else
+                    Console.Write(Message);
+            }
             else
-                Console.Write(Message);
-            Console.ResetColor();
+            {
+                Console.ForegroundColor = Color;
+                if (Newline)
+                    Console.WriteLine(Message);
+                else
+                    Console.Write(Message);
+                Console.ResetColor();
+            }
         }
     }
 

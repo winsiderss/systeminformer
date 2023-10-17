@@ -782,8 +782,17 @@ namespace CustomBuildTool
             Program.PrintColorMessage(Build.BuildTimeStamp(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building build-setup.exe... ", ConsoleColor.Cyan, false);
 
-            if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildApi))
-                return false;
+            Build.BuildSourceLink(true);
+
+            try
+            {
+                if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildApi))
+                    return false;
+            }
+            finally
+            {
+                Build.BuildSourceLink(false);
+            }
 
             try
             {
@@ -1381,7 +1390,7 @@ namespace CustomBuildTool
         {
             // Create the package mapping file.
 
-            if (Flags.HasFlag(BuildFlags.Build32bit))
+            if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
             {
                 StringBuilder packageMap32 = new StringBuilder(0x100);
                 packageMap32.AppendLine("[Files]");
@@ -1413,7 +1422,7 @@ namespace CustomBuildTool
 
             // Create the package mapping file.
 
-            if (Flags.HasFlag(BuildFlags.Build64bit))
+            if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
             {
                 StringBuilder packageMap64 = new StringBuilder(0x100);
                 packageMap64.AppendLine("[Files]");
@@ -1466,7 +1475,7 @@ namespace CustomBuildTool
                         $"/p {Build.OutputDirectory}\\systeminformer-build-package-x32.appx"
                         );
 
-                    Program.PrintColorMessage(result, ConsoleColor.Red);
+                    Program.PrintColorMessage(result, ConsoleColor.DarkGray);
                 }
             }
 
@@ -1482,7 +1491,7 @@ namespace CustomBuildTool
                         $"/p {Build.OutputDirectory}\\systeminformer-build-package-x64.msix"
                         );
 
-                    Program.PrintColorMessage(result, ConsoleColor.Red);
+                    Program.PrintColorMessage(result, ConsoleColor.DarkGray);
                 }
             }
 
@@ -1509,7 +1518,17 @@ namespace CustomBuildTool
                     $"/p {Build.OutputDirectory}\\systeminformer-build-package.msixbundle"
                     );
 
-                Program.PrintColorMessage($"{result}", ConsoleColor.Red);
+                Program.PrintColorMessage($"{result}", ConsoleColor.DarkGray);
+            }
+            else
+            {
+                if (File.Exists($"{Build.OutputDirectory}\\systeminformer-build-package-x64.msix"))
+                {
+                    File.Move(
+                        $"{Build.OutputDirectory}\\systeminformer-build-package-x64.msix", 
+                        $"{Build.OutputDirectory}\\systeminformer-build-package.msix"
+                        );
+                }
             }
 
             Win32.DeleteFile("tools\\msix\\MsixManifest32.xml");
