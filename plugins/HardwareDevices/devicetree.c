@@ -47,6 +47,7 @@ static ULONG DeviceDisabledInterfaceColor = 0;
 static ULONG DeviceArrivedColor = 0;
 static ULONG DeviceHighlightingDuration = 0;
 
+static PPH_OBJECT_TYPE DeviceTreeType = NULL;
 static BOOLEAN DeviceTabCreated = FALSE;
 static HWND DeviceTreeHandle = NULL;
 static PH_CALLBACK_REGISTRATION DeviceNotifyRegistration = { 0 };
@@ -234,7 +235,7 @@ PDEVICE_TREE DeviceTreeCreate(
     _In_ PPH_DEVICE_TREE Tree
     )
 {
-    PDEVICE_TREE tree = PhAllocateZero(sizeof(DEVICE_TREE));
+    PDEVICE_TREE tree = PhCreateObject(sizeof(DEVICE_TREE), DeviceTreeType);
 
     tree->Nodes = PhCreateList(Tree->DeviceList->AllocatedCount);
     if (PhGetIntegerSetting(SETTING_NAME_DEVICE_SHOW_ROOT))
@@ -261,24 +262,23 @@ PDEVICE_TREE DeviceTreeCreate(
     return tree;
 }
 
-VOID DeviceTreeFree(
-    _In_opt_ PDEVICE_TREE Tree
+VOID DeviceTreeDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
     )
 {
-    if (!Tree)
-        return;
+    PDEVICE_TREE tree = Object;
 
-    for (ULONG i = 0; i < Tree->Nodes->Count; i++)
+    for (ULONG i = 0; i < tree->Nodes->Count; i++)
     {
-        PDEVICE_NODE node = Tree->Nodes->Items[i];
+        PDEVICE_NODE node = tree->Nodes->Items[i];
         PhDereferenceObject(node->Children);
         PhFree(node);
     }
 
-    PhDereferenceObject(Tree->Nodes);
-    PhDereferenceObject(Tree->Roots);
-    PhDereferenceObject(Tree->Tree);
-    PhFree(Tree);
+    PhDereferenceObject(tree->Nodes);
+    PhDereferenceObject(tree->Roots);
+    PhDereferenceObject(tree->Tree);
 }
 
 _Must_inspect_impl_
@@ -359,7 +359,7 @@ VOID NTAPI DeviceTreePublish(
     if (DeviceTreeFilterSupport.FilterList)
         PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
 
-    DeviceTreeFree(oldTree);
+    PhClearReference(&oldTree);
 }
 
 NTSTATUS NTAPI DeviceTreePublishThread(
@@ -676,6 +676,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
         return TRUE;
     case TreeNewContextMenu:
         {
+            PDEVICE_TREE activeTree;
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
             PPH_EMENU menu;
             PPH_EMENU subMenu;
@@ -695,6 +696,10 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_EMENU_ITEM properties;
             BOOLEAN republish;
             BOOLEAN invalidate;
+
+            // We muse reference the active tree here since a new tree could be
+            // published on the UI thread after we show the context menu.
+            activeTree = PhReferenceObject(DeviceTree);
 
             node = (PDEVICE_NODE)contextMenuEvent->Node;
 
@@ -888,6 +893,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 if (DeviceTreeFilterSupport.FilterList)
                     PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
             }
+
+            PhDereferenceObject(activeTree);
         }
         return TRUE;
     case TreeNewLeftDoubleClick:
@@ -1515,6 +1522,8 @@ VOID InitializeDevicesTab(
 {
     PH_MAIN_TAB_PAGE page;
     PPH_PLUGIN toolStatusPlugin;
+
+    DeviceTreeType = PhCreateObjectType(L"DevicesTree", 0, DeviceTreeDeleteProcedure);
 
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent),
