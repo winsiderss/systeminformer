@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- PackageReference is not officially supported for C/C++ projects. This hack should allow it. -->
+    <!-- See https://github.com/japj/CppWithNuGetPackageReference -->
+    <_NuGetTargetFallbackMoniker>$(_NuGetTargetFallbackMoniker);native,Version=v0.0</_NuGetTargetFallbackMoniker>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" />
+ </ItemGroup>
+</Project>

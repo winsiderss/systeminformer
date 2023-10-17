@@ -1088,7 +1088,7 @@ namespace CustomBuildTool
                 if (!string.IsNullOrWhiteSpace(BuildCount))
                     compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
-                commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet ");
+                commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet /restore ");
                 commandLine.Append("/p:Platform=Win32 /p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release "));
                 commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
                 commandLine.Append(Solution);
