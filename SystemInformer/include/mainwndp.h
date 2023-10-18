@@ -533,7 +533,7 @@ VOID PhMwpOnNetworkItemsUpdated(
 
 // Devices
 
-VOID PhMwpInitializesDeviceNotifications(
+VOID PhMwpInitializeDeviceNotifications(
     VOID
     );
 
