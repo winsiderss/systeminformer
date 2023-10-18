@@ -884,6 +884,13 @@ VOID KphFreeProcessImageName(
     _In_freesMem_ PUNICODE_STRING ImageName
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenParametersKey(
+    _In_ PUNICODE_STRING RegistryPath,
+    _Out_ PHANDLE KeyHandle
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
