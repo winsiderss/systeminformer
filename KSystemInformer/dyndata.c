@@ -142,67 +142,6 @@ VOID KphpSetDynamicConfigiration(
 }
 
 /**
- * \brief Opens the driver parameters key.
- *
- * \param[in] RegistryPath Registry path from the entry point.
- * \param[out] KeyHandle Handle to parameters key on success, null on failure.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphOpenParametersKey(
-    _In_ PUNICODE_STRING RegistryPath,
-    _Out_ PHANDLE KeyHandle
-    )
-{
-    NTSTATUS status;
-    WCHAR buffer[MAX_PATH];
-    UNICODE_STRING parametersKeyName;
-    OBJECT_ATTRIBUTES objectAttributes;
-
-    PAGED_CODE_PASSIVE();
-
-    *KeyHandle = NULL;
-
-    parametersKeyName.Buffer = buffer;
-    parametersKeyName.Length = 0;
-    parametersKeyName.MaximumLength = sizeof(buffer);
-
-    status = RtlAppendUnicodeStringToString(&parametersKeyName, RegistryPath);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = RtlAppendUnicodeToString(&parametersKeyName, L"\\Parameters");
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    InitializeObjectAttributes(&objectAttributes,
-                               &parametersKeyName,
-                               OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-                               NULL,
-                               NULL);
-
-    status = ZwOpenKey(KeyHandle, KEY_READ, &objectAttributes);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Unable to open Parameters key: %!STATUS!",
-                      status);
-
-        *KeyHandle = NULL;
-        return status;
-    }
-
-    return STATUS_SUCCESS;
-}
-
-/**
  * \brief Reads dynamic configuration from parameters.
  *
  * \param[in] KeyHandle Handle to the parameters registry key.
