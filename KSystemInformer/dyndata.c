@@ -138,8 +138,6 @@ VOID KphpSetDynamicConfigiration(
 /**
  * \brief Initializes the dynamic data from the driver parameters.
  *
- * \param[in] RegistryPath Registry path from the entry point.
- *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)

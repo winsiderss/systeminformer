@@ -259,6 +259,7 @@
     <ClCompile Include="kphobject.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="object.c" />
+    <ClCompile Include="parameters.c" />
     <ClCompile Include="process.c" />
     <ClCompile Include="protection.c" />
     <ClCompile Include="qrydrv.c" />

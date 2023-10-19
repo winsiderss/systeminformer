@@ -238,6 +238,22 @@ BOOLEAN KphTestSigningEnabled(
     return KphInDeveloperMode();
 }
 
+// parameters
+
+extern PUNICODE_STRING KphAltitude;
+extern PUNICODE_STRING KphPortName;
+extern KPH_PARAMETER_FLAGS KphParameterFlags;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupParameters(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeParameters(
+    _In_ PUNICODE_STRING RegistryPath
+    );
+
 // alloc
 
 //
@@ -279,7 +295,7 @@ BOOLEAN KphTestSigningEnabled(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphInitializeAlloc(
-    _In_ PUNICODE_STRING RegistryPath
+    VOID
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

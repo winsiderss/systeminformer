@@ -1276,7 +1276,7 @@ NTSTATUS KphCommsStart(
     PAGED_CODE_PASSIVE();
     NT_ASSERT(KphFltFilter);
     NT_ASSERT(!KphpFltServerPort);
-    NT_ASSERT(KphDynPortName);
+    NT_ASSERT(KphPortName);
 
     securityDescriptor = NULL;
 
@@ -1383,7 +1383,7 @@ NTSTATUS KphCommsStart(
     }
 
     InitializeObjectAttributes(&objectAttributes,
-                               KphDynPortName,
+                               KphPortName,
                                OBJ_KERNEL_HANDLE,
                                NULL,
                                securityDescriptor);

@@ -969,7 +969,7 @@ NTSTATUS KphObjectInformerStart(
 
     PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphDynAltitude);
+    NT_ASSERT(KphAltitude);
 
     RtlZeroMemory(operationRegistration, sizeof(operationRegistration));
 
@@ -990,9 +990,9 @@ NTSTATUS KphObjectInformerStart(
 
     callbackRegistration.Version = OB_FLT_REGISTRATION_VERSION;
     callbackRegistration.OperationRegistrationCount = ARRAYSIZE(operationRegistration);
-    callbackRegistration.Altitude.Buffer = KphDynAltitude->Buffer;
-    callbackRegistration.Altitude.Length = KphDynAltitude->Length;
-    callbackRegistration.Altitude.MaximumLength = KphDynAltitude->MaximumLength;
+    callbackRegistration.Altitude.Buffer = KphAltitude->Buffer;
+    callbackRegistration.Altitude.Length = KphAltitude->Length;
+    callbackRegistration.Altitude.MaximumLength = KphAltitude->MaximumLength;
     callbackRegistration.RegistrationContext = NULL;
     callbackRegistration.OperationRegistration = operationRegistration;
 
