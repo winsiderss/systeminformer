@@ -529,7 +529,7 @@ NTSTATUS KphQueryRegistryBinary(
         goto Exit;
     }
 
-    buffer = KphAllocatePaged(resultLength, KPH_TAG_DYNDATA);
+    buffer = KphAllocatePaged(resultLength, KPH_TAG_REG_BINARY);
     if (!buffer)
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
