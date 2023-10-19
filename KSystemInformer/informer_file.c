@@ -287,18 +287,15 @@ NTSTATUS KphFltRegister(
         goto Exit;
     }
 
-    //
-    // Our registry reading function for this parameter guarantees this.
-    //
-    NT_ASSERT(KphDynAltitude);
-    NT_ASSERT(KphDynAltitude->MaximumLength >= (KphDynAltitude->Length + sizeof(WCHAR)));
-    NT_ASSERT(KphDynAltitude->Buffer[KphDynAltitude->Length / sizeof(WCHAR)] == L'\0');
+    NT_ASSERT(KphAltitude);
+    NT_ASSERT(KphAltitude->MaximumLength >= (KphAltitude->Length + sizeof(WCHAR)));
+    NT_ASSERT(KphAltitude->Buffer[KphAltitude->Length / sizeof(WCHAR)] == L'\0');
     status = ZwSetValueKey(defaultInstanceKeyHandle,
                            (PUNICODE_STRING)&KphpAltitudeName,
                            0,
                            REG_SZ,
-                           KphDynAltitude->Buffer,
-                           KphDynAltitude->Length + sizeof(WCHAR));
+                           KphAltitude->Buffer,
+                           KphAltitude->Length + sizeof(WCHAR));
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,

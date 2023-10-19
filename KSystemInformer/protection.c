@@ -1042,7 +1042,7 @@ VOID KphpHandleUntrustedImageLoad(
     actor = NULL;
     apc = NULL;
 
-    if (KphDynDisableImageLoadProtection)
+    if (KphParameterFlags.DisableImageLoadProtection)
     {
         goto Exit;
     }

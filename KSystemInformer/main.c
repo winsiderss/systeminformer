@@ -95,6 +95,7 @@ VOID KphpDriverCleanup(
     KphCleanupHashing();
     KphCleanupVerify();
     KphCleanupSocket();
+    KphCleanupParameters();
 }
 
 /**
@@ -183,7 +184,9 @@ NTSTATUS DriverEntry(
         KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "Developer Mode");
     }
 
-    status = KphInitializeAlloc(RegistryPath);
+    KphInitializeParameters(RegistryPath);
+
+    status = KphInitializeAlloc();
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,

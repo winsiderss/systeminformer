@@ -440,4 +440,17 @@ typedef struct _KPH_MESSAGE_TIMEOUTS
     LARGE_INTEGER ProcessCreateTimeout;
 } KPH_MESSAGE_TIMEOUTS, *PKPH_MESSAGE_TIMEOUTS;
 
+// Parameters
+
+typedef union _KPH_PARAMETER_FLAGS
+{
+    ULONG Flags;
+    struct
+    {
+        ULONG DisableImageLoadProtection : 1;
+        ULONG RandomizedPoolTag : 1;
+        ULONG Reserved : 30;
+    };
+} KPH_PARAMETER_FLAGS, *PKPH_PARAMETER_FLAGS;
+
 #pragma warning(pop)
