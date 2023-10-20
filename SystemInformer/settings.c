@@ -341,14 +341,15 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"KsiServiceName", L"");
     PhpAddStringSetting(L"KsiObjectName", L"");
     PhpAddStringSetting(L"KsiPortName", L"");
-    PhpAddStringSetting(L"KsiAltitude", L"385210.5");
+    PhpAddStringSetting(L"KsiAltitude", L"");
     PhpAddIntegerSetting(L"KsiDisableImageLoadProtection", L"0");
     PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadNative", L"0");
     PhpAddIntegerSetting(L"KsiEnableLoadFilter", L"0");
-    PhpAddIntegerSetting(L"KsiUnloadOnExit", L"0");
+    PhpAddIntegerSetting(L"KsiUnloadOnExit", L"1");
     PhpAddIntegerSetting(L"KsiRandomizedPoolTag", L"0");
     PhpAddIntegerSetting(L"KsiEnableUnloadProtection", L"0");
+    PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");
 }
 
 VOID PhUpdateCachedSettings(

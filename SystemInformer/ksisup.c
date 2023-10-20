@@ -13,6 +13,7 @@
 #include <phapp.h>
 #include <kphuser.h>
 #include <kphcomms.h>
+#include <kphdyndata.h>
 #include <settings.h>
 #include <json.h>
 #include <phappres.h>
@@ -444,12 +445,144 @@ BOOLEAN KsiCommsCallback(
     return TRUE;
 }
 
+NTSTATUS KsiReadConfiguration(
+    _In_ PWSTR FileName,
+    _Out_ PBYTE* Data,
+    _Out_ PULONG Length
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fileName;
+    HANDLE fileHandle;
+
+    *Data = NULL;
+    *Length = 0;
+
+    status = STATUS_NO_SUCH_FILE;
+
+    fileName = PhGetApplicationDirectoryFileNameZ(FileName, TRUE);
+    if (fileName)
+    {
+        if (NT_SUCCESS(status = PhCreateFile(
+            &fileHandle,
+            &fileName->sr,
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            status = PhGetFileData(fileHandle, Data, Length);
+
+            NtClose(fileName);
+        }
+
+        PhDereferenceObject(fileName);
+    }
+
+    return status;
+}
+
+NTSTATUS KsiValidateDynamicConfiguration(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fileName;
+    PVOID versionInfo;
+    VS_FIXEDFILEINFO* fileInfo;
+
+    status = STATUS_NO_SUCH_FILE;
+
+    if (fileName = PhGetKernelFileName2())
+    {
+        if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
+        {
+            if (fileInfo = PhGetFileVersionFixedInfo(versionInfo))
+            {
+                status = KphDynDataGetConfiguration(
+                    (PKPH_DYNDATA)DynData,
+                    DynDataLength,
+                    HIWORD(fileInfo->dwFileVersionMS),
+                    LOWORD(fileInfo->dwFileVersionMS),
+                    HIWORD(fileInfo->dwFileVersionLS),
+                    LOWORD(fileInfo->dwFileVersionLS),
+                    NULL
+                    );
+            }
+
+            PhFree(versionInfo);
+        }
+
+        PhDereferenceObject(fileName);
+    }
+
+    return status;
+}
+
+NTSTATUS KsiGetDynData(
+    _Out_ PBYTE* DynData,
+    _Out_ PULONG DynDataLength,
+    _Out_ PBYTE* Signature,
+    _Out_ PULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    PBYTE data = NULL;
+    ULONG dataLength;
+    PBYTE sig = NULL;
+    ULONG sigLength;
+
+    // TODO download dynamic data from server
+
+    *DynData = NULL;
+    *DynDataLength = 0;
+    *Signature = NULL;
+    *SignatureLength = 0;
+
+    status = KsiReadConfiguration(L"ksidyn.bin", &data, &dataLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = KsiReadConfiguration(L"ksidyn.sig", &sig, &sigLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = KsiValidateDynamicConfiguration(data, dataLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    *DynDataLength = dataLength;
+    *DynData = data;
+    data = NULL;
+
+    *SignatureLength = sigLength;
+    *Signature = sig;
+    sig = NULL;
+
+    status = STATUS_SUCCESS;
+
+CleanupExit:
+    if (data)
+        PhFree(data);
+    if (sig)
+        PhFree(sig);
+
+    return status;
+}
+
 NTSTATUS KsiInitializeCallbackThread(
     _In_opt_ PVOID CallbackContext
     )
 {
     static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
     NTSTATUS status;
+    PBYTE dynData = NULL;
+    ULONG dynDataLength;
+    PBYTE signature = NULL;
+    ULONG signatureLength;
     PPH_STRING fileName = NULL;
     PPH_STRING ksiFileName = NULL;
     PPH_STRING ksiServiceName = NULL;
@@ -457,6 +590,49 @@ NTSTATUS KsiInitializeCallbackThread(
 #ifdef KSI_DEBUG_DELAY_SPLASHSCREEN
     if (CallbackContext) PhDelayExecution(1000);
 #endif
+
+    status = KsiGetDynData(&dynData, &dynDataLength, &signature, &signatureLength);
+
+    if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
+    {
+        PhShowKsiMessageEx(
+            CallbackContext,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not yet supported on this kernel "
+            L"version. Request support by submitting a GitHub issue with "
+            L"the Windows Kernel version."
+            );
+        goto CleanupExit;
+    }
+
+    if (status == STATUS_NO_SUCH_FILE)
+    {
+        PhShowKsiMessageEx(
+            CallbackContext,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The dynamic configuration was not found."
+            );
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowKsiMessageEx(
+            CallbackContext,
+            TD_ERROR_ICON,
+            status,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"Failed to access the dynamic configuration."
+            );
+        goto CleanupExit;
+    }
 
     if (!(ksiServiceName = PhGetKsiServiceName()))
         goto CleanupExit;
@@ -470,34 +646,40 @@ NTSTATUS KsiInitializeCallbackThread(
         KPH_CONFIG_PARAMETERS config = { 0 };
         PPH_STRING objectName = NULL;
         PPH_STRING portName = NULL;
-        PPH_STRING altitudeName = NULL;
-        BOOLEAN disableImageLoadProtection = FALSE;
-        BOOLEAN randomizedPoolTag = FALSE;
+        PPH_STRING altitude = NULL;
 
         if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KsiObjectName")))
             PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
+
         if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
-            PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
-        if (PhIsNullOrEmptyString(altitudeName = PhGetStringSetting(L"KsiAltitude")))
-            PhMoveReference(&altitudeName, PhCreateString(KPH_ALTITUDE_NAME));
-        disableImageLoadProtection = !!PhGetIntegerSetting(L"KsiDisableImageLoadProtection");
-        randomizedPoolTag = !!PhGetIntegerSetting(L"KsiRandomizedPoolTag");
+            PhClearReference(&portName);
+        if (PhIsNullOrEmptyString(altitude = PhGetStringSetting(L"KsiAltitude")))
+            PhClearReference(&altitude);
 
         config.FileName = &ksiFileName->sr;
         config.ServiceName = &ksiServiceName->sr;
         config.ObjectName = &objectName->sr;
-        config.PortName = &portName->sr;
-        config.Altitude = &altitudeName->sr;
-        config.DynData = NULL;
+        config.PortName = (portName ? &portName->sr : NULL);
+        config.Altitude = (altitude ? &altitude->sr : NULL);
+        config.Flags.Flags = 0;
+        config.Flags.DisableImageLoadProtection = !!PhGetIntegerSetting(L"KsiDisableImageLoadProtection");
+        config.Flags.RandomizedPoolTag = !!PhGetIntegerSetting(L"KsiRandomizedPoolTag");
+        config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(L"KsiDynDataNoEmbedded");
+        config.Callback = KsiCommsCallback;
+
         config.EnableNativeLoad = KsiEnableLoadNative;
         config.EnableFilterLoad = KsiEnableLoadFilter;
-        config.DisableImageLoadProtection = disableImageLoadProtection;
-        config.RandomizedPoolTag = randomizedPoolTag;
-        config.Callback = KsiCommsCallback;
+
         status = KphConnect(&config);
+
+        PhClearReference(&objectName);
+        PhClearReference(&portName);
+        PhClearReference(&altitude);
 
         if (NT_SUCCESS(status))
         {
+            KphActivateDynData(dynData, dynDataLength, signature, signatureLength);
+
             KPH_LEVEL level = KphLevelEx(FALSE);
 
             if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
@@ -533,19 +715,6 @@ NTSTATUS KsiInitializeCallbackThread(
             if (level == KphLevelMax && PhGetIntegerSetting(L"KsiEnableUnloadProtection"))
                 KphAcquireDriverUnloadProtection(NULL, NULL);
         }
-        else if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
-        {
-            PhShowKsiMessageEx(
-                CallbackContext,
-                TD_ERROR_ICON,
-                0,
-                FALSE,
-                L"Unable to load kernel driver",
-                L"The kernel driver is not yet supported on this kernel "
-                L"version. Request support by submitting a GitHub issue with "
-                L"the Windows Kernel version."
-                );
-        }
         else
         {
             PhShowKsiMessageEx(
@@ -579,6 +748,10 @@ CleanupExit:
         PhDereferenceObject(ksiFileName);
     if (fileName)
         PhDereferenceObject(fileName);
+    if (signature)
+        PhFree(signature);
+    if (dynData)
+        PhFree(dynData);
 
     if (CallbackContext)
     {

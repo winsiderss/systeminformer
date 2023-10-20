@@ -20,9 +20,8 @@
 EXTERN_C_START
 
 #define KPH_SERVICE_NAME __TEXT("KSystemInformer")
-#define KPH_OBJECT_NAME __TEXT("\\Driver\\KSystemInformer")
-#define KPH_PORT_NAME __TEXT("\\KSystemInformer")
-#define KPH_ALTITUDE_NAME __TEXT("385400")
+#define KPH_OBJECT_NAME  __TEXT("\\Driver\\KSystemInformer")
+#define KPH_PORT_NAME    __TEXT("\\KSystemInformer")
 
 #ifdef DEBUG
 #define KSI_COMMS_INIT_ASSERT() assert(KphCommsIsConnected())
@@ -35,24 +34,13 @@ typedef struct _KPH_CONFIG_PARAMETERS
     _In_ PPH_STRINGREF FileName;
     _In_ PPH_STRINGREF ServiceName;
     _In_ PPH_STRINGREF ObjectName;
-    _In_ PPH_STRINGREF PortName;
-    _In_ PPH_STRINGREF Altitude;
-    _In_ PPH_STRINGREF DynData;
-
-    union
-    {
-        BOOLEAN Flags;
-        struct
-        {
-            BOOLEAN EnableNativeLoad : 1;
-            BOOLEAN EnableFilterLoad : 1;
-            BOOLEAN DisableImageLoadProtection : 1;
-            BOOLEAN RandomizedPoolTag : 1;
-            BOOLEAN Spare : 4;
-        };
-    };
-
+    _In_opt_ PPH_STRINGREF PortName;
+    _In_opt_ PPH_STRINGREF Altitude;
+    _In_ KPH_PARAMETER_FLAGS Flags;
     _In_opt_ PKPH_COMMS_CALLBACK Callback;
+
+    _In_ BOOLEAN EnableNativeLoad;
+    _In_ BOOLEAN EnableFilterLoad;
 } KPH_CONFIG_PARAMETERS, *PKPH_CONFIG_PARAMETERS;
 
 PHLIBAPI
