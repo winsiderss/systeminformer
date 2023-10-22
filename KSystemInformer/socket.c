@@ -763,6 +763,7 @@ NTSTATUS KphpSecStatusToNtStatus(
             return STATUS_ENCRYPTION_FAILED;
         }
         case SEC_E_OUT_OF_SEQUENCE:
+        case SEC_E_MESSAGE_ALTERED:
         {
             return STATUS_REQUEST_OUT_OF_SEQUENCE;
         }
@@ -1126,10 +1127,8 @@ NTSTATUS KphSocketTlsCreate(
         );
     credentials.cTlsParameters = ARRAYSIZE(tlsParameters);
     credentials.pTlsParameters = tlsParameters;
-    //
-    // TODO(jxy-s) look into testing and supporting TLS 1.3
-    //
-    tlsParameters[0].grbitDisabledProtocols = (ULONG)~SP_PROT_TLS1_2;
+    tlsParameters[0].grbitDisabledProtocols = (ULONG)~(SP_PROT_TLS1_2 |
+                                                       SP_PROT_TLS1_3);
 
     secStatus = KphpSecAcquireCredentialsHandle(NULL,
                                                 &KphpSecurityPackageName,
