@@ -693,6 +693,14 @@ BOOLEAN KphEqualMemory(
     );
 #pragma deprecated(RtlEqualMemory)
 
+_Must_inspect_result_
+PVOID KphSearchMemory(
+    _In_reads_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_reads_bytes_(PatternLength) PVOID Pattern,
+    _In_ ULONG PatternLength
+    );
+
 typedef EX_RUNDOWN_REF KPH_RUNDOWN;
 typedef KPH_RUNDOWN* PKPH_RUNDOWN;
 
