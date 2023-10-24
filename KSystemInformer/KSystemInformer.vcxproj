@@ -247,6 +247,7 @@
     <ClCompile Include="dynimp.c" />
     <ClCompile Include="file.c" />
     <ClCompile Include="hash.c" />
+    <ClCompile Include="http.c" />
     <ClCompile Include="informer_debug.c" />
     <ClCompile Include="informer_file.c" />
     <ClCompile Include="informer_image.c" />

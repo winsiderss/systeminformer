@@ -1857,6 +1857,61 @@ NTSTATUS KphSocketTlsRecv(
     _Inout_ PULONG Length
     );
 
+// http
+
+typedef enum _KPH_HTTP_VERSION
+{
+    InvalidKphHttpVersion,
+    KphHttpVersion10,
+    KphHttpVersion11,
+    MaxKphHttpVersion,
+} KPH_HTTP_VERSION, *PKPH_HTTP_VERSION;
+
+typedef struct _KPH_HTTP_HEADER_ITEM
+{
+    ANSI_STRING Key;
+    ANSI_STRING Value;
+} KPH_HTTP_HEADER_ITEM, *PKPH_HTTP_HEADER_ITEM;
+
+typedef struct _KPH_HTTP_RESPONSE
+{
+    KPH_HTTP_VERSION Version;
+    USHORT StatusCode;
+    ANSI_STRING StatusMessage;
+    PVOID Body;
+    ULONG BodyLength;
+    ULONG HeaderItemCount;
+    KPH_HTTP_HEADER_ITEM HeaderItems[ANYSIZE_ARRAY];
+} KPH_HTTP_RESPONSE, *PKPH_HTTP_RESPONSE;
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphHttpFreeResponse(
+    _In_freesMem_ PKPH_HTTP_RESPONSE Response
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHttpParseResponse(
+    _In_ PVOID Buffer,
+    _In_ ULONG Length,
+    _Outptr_allocatesMem_ PKPH_HTTP_RESPONSE* Response
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHttpBuildRequest(
+    _In_ PANSI_STRING Method,
+    _In_ PANSI_STRING Host,
+    _In_ PANSI_STRING Path,
+    _In_ PANSI_STRING Parameters,
+    _In_opt_ PKPH_HTTP_HEADER_ITEM HeaderItems,
+    _In_ ULONG HeaderItemCount,
+    _In_opt_ PVOID Body,
+    _In_ ULONG BodyLength,
+    _Out_writes_bytes_to_opt_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length
+    );
+
 // back_trace
 
 #define KPH_STACK_BACK_TRACE_USER_MODE   0x00000001ul
