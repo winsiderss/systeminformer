@@ -603,6 +603,13 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         PPH_STRING fileNameWin32 = processItem->FileName ? PH_AUTO(PhGetFileName(processItem->FileName)) : NULL;
 
                         if (
+                            PhIsNullOrEmptyString(fileNameWin32) ||
+                            !PhDoesFileExistWin32(PhGetString(fileNameWin32))
+                            )
+                        {
+                            fileNameWin32 = processItem->FileNameWin32;
+                        }
+                        if (
                             !PhIsNullOrEmptyString(fileNameWin32) &&
                             PhDoesFileExistWin32(PhGetString(fileNameWin32))
                             )
