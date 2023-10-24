@@ -59,6 +59,8 @@ VOID CidAcquireObjectLock(
         PVOID locked;
 
         object = Entry->Object;
+        MemoryBarrier();
+
         if (object & ~CID_LOCKED_OBJECT_MASK)
         {
             continue;
@@ -93,6 +95,8 @@ VOID CidReleaseObjectLock(
     PAGED_CODE();
 
     object = Entry->Object;
+    MemoryBarrier();
+
     NT_ASSERT(object & ~CID_LOCKED_OBJECT_MASK);
 
     unlocked = (PVOID)(object & CID_LOCKED_OBJECT_MASK);
