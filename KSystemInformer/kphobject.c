@@ -20,6 +20,8 @@
 static volatile LONG KphpObjectTypeCount = 0;
 static KPH_OBJECT_TYPE KphpObjectTypes[9];
 
+#define KPH_ATOMIC_OBJECT_LOCKED_MASK (((ULONG_PTR)-1) - 1)
+
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
 
 /**
@@ -201,4 +203,139 @@ KphGetObjectType(
     }
 
     return &KphpObjectTypes[index];
+}
+
+/**
+ * \brief Acquires the atomic object reference lock.
+ *
+ * \param[in,out] ObjectRef The object reference to acquire the lock for.
+ */
+_Acquires_lock_(_Global_critical_region_)
+VOID KphpAtomicAcquireObjectLock(
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
+    PKPH_ATOMIC_OBJECT_REF ObjectRef
+    )
+{
+    KeEnterCriticalRegion();
+
+    for (;; YieldProcessor())
+    {
+        ULONG_PTR object;
+        PVOID expected;
+        PVOID locked;
+
+        object = ObjectRef->Object;
+        MemoryBarrier();
+
+        if (object & ~KPH_ATOMIC_OBJECT_LOCKED_MASK)
+        {
+            continue;
+        }
+
+        expected = (PVOID)object;
+        locked = (PVOID)((ULONG_PTR)expected | ~KPH_ATOMIC_OBJECT_LOCKED_MASK);
+
+        if (InterlockedCompareExchangePointer((PVOID*)&ObjectRef->Object,
+                                              locked,
+                                              expected) == expected)
+        {
+            break;
+        }
+    }
+}
+
+/**
+ * \brief Releases the atomic object reference lock.
+ *
+ * \param[in,out] ObjectRef The object reference to release the lock of.
+ */
+_Releases_lock_(_Global_critical_region_)
+VOID KphpAtomicReleaseObjectLock(
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_)
+    PKPH_ATOMIC_OBJECT_REF Entry
+    )
+{
+    ULONG_PTR object;
+    PVOID unlocked;
+
+    object = Entry->Object;
+    MemoryBarrier();
+
+    NT_ASSERT(object & ~KPH_ATOMIC_OBJECT_LOCKED_MASK);
+
+    unlocked = (PVOID)(object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
+
+    InterlockedExchangePointer((PVOID*)&Entry->Object, unlocked);
+
+    KeLeaveCriticalRegion();
+}
+
+/**
+ * \brief Retrieves an addition object reference to an atomically managed
+ * object reference.
+ *
+ * \details This mechanism provides a light weight and fast way to atomically
+ * managed a reference to an object. If an object is currently managed an
+ * additional reference to that object is acquired and must be eventually
+ * released by calling KphDereferenceObject.
+ *
+ * \param[in] ObjectRef The object reference to retrieve the object from.
+ *
+ * \return A referenced object, NULL if no object is managed.
+ */
+_Must_inspect_result_
+PVOID KphAtomicReferenceObject(
+    _In_ PKPH_ATOMIC_OBJECT_REF ObjectRef
+    )
+{
+    PVOID object;
+
+    KphpAtomicAcquireObjectLock(ObjectRef);
+
+    object = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
+    if (object)
+    {
+        KphReferenceObject(object);
+    }
+
+    KphpAtomicReleaseObjectLock(ObjectRef);
+
+    return object;
+}
+
+/**
+ * \brief Assigns an object to an atomically managed object reference.
+ *
+ * \details This mechanism provides a light weight and fast way to atomically
+ * managed a reference to an object. Any previously managed reference will be
+ * released. This function will acquire an additional reference to the object
+ * the caller should still release their reference.
+ *
+ * \param[in,out] ObjectRef The object reference to assign the object to.
+ * \param[in] Object The object to reference and assign.
+ */
+VOID KphAtomicAssignObjectReference(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_ PVOID Object
+    )
+{
+    ULONG_PTR object;
+    PVOID previous;
+
+    KphReferenceObject(Object);
+
+    KphpAtomicAcquireObjectLock(ObjectRef);
+
+    previous = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
+
+    object = ((ULONG_PTR)Object | ~KPH_ATOMIC_OBJECT_LOCKED_MASK);
+
+    InterlockedExchangePointer((PVOID*)&ObjectRef->Object, (PVOID)object);
+
+    KphpAtomicReleaseObjectLock(ObjectRef);
+
+    if (previous)
+    {
+        KphDereferenceObject(previous);
+    }
 }
