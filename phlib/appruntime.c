@@ -713,22 +713,23 @@ HRESULT PhGetProcessSystemIdentification(
     {
         PSYSTEM_PROCESS_INFORMATION process;
 
-        process = PhFindProcessInformation(processes, ProcessId);
-
-        for (ULONG i = 0; i < process->NumberOfThreads; i++)
+        if (process = PhFindProcessInformation(processes, ProcessId))
         {
-            HANDLE tempThreadHandle;
-
-            threadId = process->Threads[i].ClientId.UniqueThread;
-
-            if (NT_SUCCESS(PhOpenThread(
-                &tempThreadHandle,
-                THREAD_QUERY_LIMITED_INFORMATION,
-                threadId
-                )))
+            for (ULONG i = 0; i < process->NumberOfThreads; i++)
             {
-                threadHandle = tempThreadHandle;
-                break;
+                HANDLE tempThreadHandle;
+
+                threadId = process->Threads[i].ClientId.UniqueThread;
+
+                if (NT_SUCCESS(PhOpenThread(
+                    &tempThreadHandle,
+                    THREAD_QUERY_LIMITED_INFORMATION,
+                    threadId
+                    )))
+                {
+                    threadHandle = tempThreadHandle;
+                    break;
+                }
             }
         }
 
