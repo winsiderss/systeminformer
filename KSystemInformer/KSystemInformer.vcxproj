@@ -243,6 +243,7 @@
     <ClCompile Include="cid_tracking.c" />
     <ClCompile Include="comms.c" />
     <ClCompile Include="comms_handlers.c" />
+    <ClCompile Include="download.c" />
     <ClCompile Include="dyndata.c" />
     <ClCompile Include="dynimp.c" />
     <ClCompile Include="file.c" />
