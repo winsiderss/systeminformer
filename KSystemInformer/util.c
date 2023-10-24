@@ -104,6 +104,91 @@ BOOLEAN KphEqualMemory(
 }
 
 /**
+ * \brief Searches memory for a given pattern.
+ *
+ * \param[in] Buffer The memory to search.
+ * \param[in] BufferLength The length of the memory to search.
+ * \param[in] Pattern The pattern to search for.
+ * \param[in] PatternLength The length of the pattern to search for.
+ *
+ * \return Pointer to the beginning of the first found pattern, NULL if the
+ * pattern is not found.
+ */
+_Must_inspect_result_
+PVOID KphSearchMemory(
+    _In_reads_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_reads_bytes_(PatternLength) PVOID Pattern,
+    _In_ ULONG PatternLength
+    )
+{
+    PBYTE buffer;
+    PBYTE end;
+    PVOID found;
+
+    if (!BufferLength || !PatternLength)
+    {
+        return NULL;
+    }
+
+    if (PatternLength > BufferLength)
+    {
+        return NULL;
+    }
+
+    found = NULL;
+    buffer = Buffer;
+    end = Add2Ptr(Buffer, BufferLength - PatternLength);
+
+    //
+    // Move the loop into the switch to ensure optimal code generation.
+    //
+#define KPH_SEARCH_MEMORY_FOR for (; buffer <= end; buffer++)
+
+    //
+    // Optimization for a pattern size that fits into a register.
+    //
+#define KPH_SEARCH_MEMORY_SIZED(type)                                         \
+    case sizeof(type):                                                        \
+    {                                                                         \
+        KPH_SEARCH_MEMORY_FOR                                                 \
+        {                                                                     \
+            if (*(type*)buffer == *(type*)Pattern)                            \
+            {                                                                 \
+                found = buffer;                                               \
+                goto Exit;                                                    \
+            }                                                                 \
+        }                                                                     \
+        break;                                                                \
+    }
+
+    switch (PatternLength)
+    {
+        KPH_SEARCH_MEMORY_SIZED(UCHAR)
+        KPH_SEARCH_MEMORY_SIZED(USHORT)
+        KPH_SEARCH_MEMORY_SIZED(ULONG)
+        KPH_SEARCH_MEMORY_SIZED(ULONG64)
+        default:
+        {
+            KPH_SEARCH_MEMORY_FOR
+            {
+#pragma warning(suppress: 4995) // suppress deprecation warning
+                if (memcmp(buffer, Pattern, PatternLength) == 0)
+                {
+                    found = buffer;
+                    goto Exit;
+                }
+            }
+            break;
+        }
+    }
+
+Exit:
+
+    return found;
+}
+
+/**
  * \brief Acquires rundown. On successful return the caller should release
  * the rundown using KphReleaseRundown.
  *
