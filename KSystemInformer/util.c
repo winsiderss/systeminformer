@@ -63,6 +63,47 @@ INT KphCompareMemory(
 }
 
 /**
+ * \brief Compares two blocks of memory for equality.
+ *
+ * \param[in] Buffer1 Pointer to block of memory.
+ * \param[in] Buffer2 Pointer to block of memory.
+ * \param[in] Length Number of bytes to compare.
+ *
+ * \return TRUE if the contents of the buffers are equal, FALSE otherwise.
+ */
+_Must_inspect_result_
+BOOLEAN KphEqualMemory(
+    _In_reads_bytes_(Length) PVOID Buffer1,
+    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_ SIZE_T Length
+    )
+{
+    //
+    // Optimization for length that fits into a register.
+    //
+#define KPH_EQUAL_MEMORY_SIZED(type)                                          \
+    case sizeof(type):                                                        \
+    {                                                                         \
+        return (*(type*)Buffer1 == *(type*)Buffer2);                          \
+    }
+
+    switch (Length)
+    {
+        KPH_EQUAL_MEMORY_SIZED(UCHAR)
+        KPH_EQUAL_MEMORY_SIZED(USHORT)
+        KPH_EQUAL_MEMORY_SIZED(ULONG)
+        KPH_EQUAL_MEMORY_SIZED(ULONG64)
+        default:
+        {
+            break;
+        }
+    }
+
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return (memcmp(Buffer1, Buffer2, Length) == 0);
+}
+
+/**
  * \brief Acquires rundown. On successful return the caller should release
  * the rundown using KphReleaseRundown.
  *
