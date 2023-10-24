@@ -1213,6 +1213,23 @@ KphGetObjectType(
     _In_ PVOID Object
     );
 
+typedef struct _KPH_ATOMIC_OBJECT_REF
+{
+    volatile ULONG_PTR Object;
+} KPH_ATOMIC_OBJECT_REF, *PKPH_ATOMIC_OBJECT_REF;
+
+#define KPH_ATOMIC_OBJECT_REF_INIT { .Object = 0 }
+
+_Must_inspect_result_
+PVOID KphAtomicReferenceObject(
+    _In_ PKPH_ATOMIC_OBJECT_REF ObjectRef
+    );
+
+VOID KphAtomicAssignObjectReference(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_ PVOID Object
+    );
+
 // cid_tracking
 
 #define KPH_PROTECTED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS                  |\
