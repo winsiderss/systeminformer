@@ -1839,3 +1839,247 @@ NTSTATUS KphOpenParametersKey(
 
     return STATUS_SUCCESS;
 }
+
+static ANSI_STRING KphpUrlSchemeSeparator = RTL_CONSTANT_STRING("://");
+static ANSI_STRING KphpUrlPathSeparator = RTL_CONSTANT_STRING("/");
+static ANSI_STRING KphpUrlParametersSeparator = RTL_CONSTANT_STRING("?");
+static ANSI_STRING KphpUrlAnchorSeparator = RTL_CONSTANT_STRING("#");
+static ANSI_STRING KphpUrlPortSeparator = RTL_CONSTANT_STRING(":");
+
+/**
+ * \brief Parses a URL into its components.
+ *
+ * \details The output information references information in the input URL
+ * buffer. The parsed output information *must* outlive the input URL buffer.
+ *
+ * \param[in] Url The URL to parse.
+ * \param[out] UrlInfo The parsed URL information.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphParseUrlInformation(
+    _In_ PANSI_STRING Url,
+    _Out_ PKPH_URL_INFORMATION UrlInfo
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG remaining;
+    PVOID part;
+    ULONG_PTR length;
+
+    PAGED_CODE();
+
+    buffer = Url->Buffer;
+    remaining = Url->Length;
+
+    RtlZeroMemory(UrlInfo, sizeof(*UrlInfo));
+
+    //
+    // Extract any Scheme
+    //
+
+    part = KphSearchMemory(buffer,
+                           remaining,
+                           KphpUrlSchemeSeparator.Buffer,
+                           KphpUrlSchemeSeparator.Length);
+    if (part)
+    {
+        status = RtlULongPtrToUShort(PtrOffset(buffer, part),
+                                     &UrlInfo->Scheme.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Scheme.Buffer = buffer;
+        UrlInfo->Scheme.MaximumLength = UrlInfo->Scheme.Length;
+
+        buffer = Add2Ptr(part, KphpUrlSchemeSeparator.Length);
+        remaining -= (UrlInfo->Scheme.Length + KphpUrlSchemeSeparator.Length);
+    }
+
+    //
+    // Extract any Parameters
+    //
+
+    part = KphSearchMemory(buffer,
+                           remaining,
+                           KphpUrlParametersSeparator.Buffer,
+                           KphpUrlParametersSeparator.Length);
+    if (part)
+    {
+        length = ((ULONG_PTR)remaining - PtrOffset(buffer, part));
+
+        status = RtlULongPtrToUShort(length, &UrlInfo->Parameters.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Parameters.Buffer = part;
+        UrlInfo->Parameters.MaximumLength = UrlInfo->Parameters.Length;
+    }
+
+    //
+    // Extract any Anchor
+    //
+
+    part = KphSearchMemory(buffer,
+                           remaining,
+                           KphpUrlAnchorSeparator.Buffer,
+                           KphpUrlAnchorSeparator.Length);
+
+    if (part)
+    {
+        length = ((ULONG_PTR)remaining - PtrOffset(buffer, part));
+
+        status = RtlULongPtrToUShort(length, &UrlInfo->Anchor.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Anchor.Buffer = part;
+        UrlInfo->Anchor.MaximumLength = UrlInfo->Anchor.Length;
+
+        if (UrlInfo->Parameters.Buffer)
+        {
+            UrlInfo->Parameters.Length -= UrlInfo->Anchor.Length;
+            UrlInfo->Parameters.MaximumLength = UrlInfo->Parameters.Length;
+        }
+    }
+
+    //
+    // Extract any Authority
+    //
+
+    part = KphSearchMemory(buffer,
+                           remaining,
+                           KphpUrlPathSeparator.Buffer,
+                           KphpUrlPathSeparator.Length);
+    if (part)
+    {
+        status = RtlULongPtrToUShort(PtrOffset(buffer, part),
+                                     &UrlInfo->Authority.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Authority.Buffer = buffer;
+        UrlInfo->Authority.MaximumLength = UrlInfo->Authority.Length;
+
+        buffer = part;
+        remaining -= UrlInfo->Authority.Length;
+    }
+    else
+    {
+        UrlInfo->Authority.Buffer = buffer;
+
+        if (UrlInfo->Parameters.Buffer)
+        {
+            length = PtrOffset(UrlInfo->Authority.Buffer,
+                               UrlInfo->Parameters.Buffer);
+        }
+        else if (UrlInfo->Anchor.Buffer)
+        {
+            length = PtrOffset(UrlInfo->Authority.Buffer,
+                               UrlInfo->Anchor.Buffer);
+        }
+        else
+        {
+            length = remaining;
+        }
+
+        status = RtlULongPtrToUShort(length, &UrlInfo->Authority.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Authority.MaximumLength = UrlInfo->Authority.Length;
+
+        UrlInfo->Path = KphpUrlPathSeparator;
+    }
+
+    //
+    // Break Authority into parts, if any.
+    //
+
+    part = KphSearchMemory(UrlInfo->Authority.Buffer,
+                           UrlInfo->Authority.Length,
+                           KphpUrlPortSeparator.Buffer,
+                           KphpUrlPortSeparator.Length);
+    if (part)
+    {
+        status = RtlULongPtrToUShort(PtrOffset(UrlInfo->Authority.Buffer, part),
+                                     &UrlInfo->DomainName.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->DomainName.Buffer = UrlInfo->Authority.Buffer;
+        UrlInfo->DomainName.MaximumLength = UrlInfo->DomainName.Length;
+
+        UrlInfo->Port.Buffer = Add2Ptr(part, KphpUrlPortSeparator.Length);
+        UrlInfo->Port.Length = (UrlInfo->Authority.Length -
+                                UrlInfo->DomainName.Length -
+                                KphpUrlPortSeparator.Length);
+        UrlInfo->Port.MaximumLength = UrlInfo->Port.Length;
+    }
+    else
+    {
+        UrlInfo->DomainName = UrlInfo->Authority;
+    }
+
+    if (UrlInfo->Path.Buffer == KphpUrlPathSeparator.Buffer)
+    {
+        //
+        // There was no path specified, we're done.
+        //
+        status = STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    //
+    // Extract the Path
+    //
+
+    UrlInfo->Path.Buffer = buffer;
+
+    if (UrlInfo->Parameters.Buffer)
+    {
+        length = PtrOffset(UrlInfo->Path.Buffer, UrlInfo->Parameters.Buffer);
+    }
+    else if (UrlInfo->Anchor.Buffer)
+    {
+        length = PtrOffset(UrlInfo->Path.Buffer, UrlInfo->Anchor.Buffer);
+    }
+    else
+    {
+        length = remaining;
+    }
+
+    status = RtlULongPtrToUShort(length, &UrlInfo->Path.Length);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    UrlInfo->Path.MaximumLength = UrlInfo->Path.Length;
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (!NT_SUCCESS(status))
+    {
+        RtlZeroMemory(UrlInfo, sizeof(*UrlInfo));
+    }
+
+    return status;
+}

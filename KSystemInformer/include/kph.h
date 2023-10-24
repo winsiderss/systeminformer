@@ -916,6 +916,32 @@ NTSTATUS KphOpenParametersKey(
     _Out_ PHANDLE KeyHandle
     );
 
+typedef struct _KPH_URL_INFORMATION
+{
+    //
+    // http://www.example.com:8080/path/index.html?key=x&v=1#Something
+    // |--|   |-------------| |--||--------------||--------||--------|
+    // Scheme   Domain Name   Port     Path       Parameters  Anchor
+    //        |------------------|
+    //             Authority
+    //
+
+    ANSI_STRING Scheme;
+    ANSI_STRING Authority;
+    ANSI_STRING Path;
+    ANSI_STRING Parameters;
+    ANSI_STRING Anchor;
+    ANSI_STRING DomainName;
+    ANSI_STRING Port;
+} KPH_URL_INFORMATION, *PKPH_URL_INFORMATION;
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphParseUrlInformation(
+    _In_ PANSI_STRING Url,
+    _Out_ PKPH_URL_INFORMATION UrlInfo
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
