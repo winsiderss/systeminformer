@@ -1825,7 +1825,7 @@ NTSTATUS KphSocketTlsRecv(
     _Inout_ PULONG Length
     );
 
-// back_trace.c
+// back_trace
 
 #define KPH_STACK_BACK_TRACE_USER_MODE   0x00000001ul
 #define KPH_STACK_BACK_TRACE_SKIP_KPH    0x00000002ul
