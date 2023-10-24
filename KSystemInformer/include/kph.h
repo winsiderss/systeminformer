@@ -676,6 +676,15 @@ NTSTATUS KphQueryInformationThread(
 
 // util
 
+_Must_inspect_result_
+INT KphCompareMemory(
+    _In_reads_bytes_(Length) PVOID Buffer1,
+    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_ SIZE_T Length
+    );
+#pragma deprecated(memcmp)
+#pragma deprecated(RtlCompareMemory)
+
 typedef EX_RUNDOWN_REF KPH_RUNDOWN;
 typedef KPH_RUNDOWN* PKPH_RUNDOWN;
 

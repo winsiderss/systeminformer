@@ -16,6 +16,53 @@
 #include <trace.h>
 
 /**
+ * \brief Compares two blocks of memory.
+ *
+ * \param[in] Buffer1 Pointer to block of memory.
+ * \param[in] Buffer2 Pointer to block of memory.
+ * \param[in] Length Number of bytes to compare.
+ *
+ * \return 0 if the buffers are equal, less than 0 if the byte that does not
+ * match in the first buffer is less than the second, greater than 0 if the
+ * byte that does not match in the first buffer is greater than the second.
+ */
+_Must_inspect_result_
+INT KphCompareMemory(
+    _In_reads_bytes_(Length) PVOID Buffer1,
+    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_ SIZE_T Length
+    )
+{
+    //
+    // Optimization for length that fits into a register.
+    //
+#define KPH_COMPARE_MEMORY_SIZED(type)                                        \
+    case sizeof(type):                                                        \
+    {                                                                         \
+        if (*(type*)Buffer1 == *(type*)Buffer2)                               \
+        {                                                                     \
+            return 0;                                                         \
+        }                                                                     \
+        break;                                                                \
+    }
+
+    switch (Length)
+    {
+        KPH_COMPARE_MEMORY_SIZED(UCHAR)
+        KPH_COMPARE_MEMORY_SIZED(USHORT)
+        KPH_COMPARE_MEMORY_SIZED(ULONG)
+        KPH_COMPARE_MEMORY_SIZED(ULONG64)
+        default:
+        {
+            break;
+        }
+    }
+
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return memcmp(Buffer1, Buffer2, Length);
+}
+
+/**
  * \brief Acquires rundown. On successful return the caller should release
  * the rundown using KphReleaseRundown.
  *
