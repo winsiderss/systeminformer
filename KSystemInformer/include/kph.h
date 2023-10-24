@@ -1938,6 +1938,37 @@ NTSTATUS KphHttpBuildRequest(
     _Inout_ PULONG Length
     );
 
+// download
+// download
+
+typedef PVOID KPH_DOWNLOAD_HANDLE;
+typedef PVOID* PKPH_DOWNLOAD_HANDLE;
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDownloadBinary(
+    _In_ PANSI_STRING Url,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ ULONG MaxRedirects,
+    _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length,
+    _Outptr_allocatesMem_ PKPH_DOWNLOAD_HANDLE Handle
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDownloadBinaryContinue(
+    _In_ KPH_DOWNLOAD_HANDLE Handle,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphDownloadBinaryClose(
+    _In_ KPH_DOWNLOAD_HANDLE Handle
+    );
+
 // back_trace
 
 #define KPH_STACK_BACK_TRACE_USER_MODE   0x00000001ul
