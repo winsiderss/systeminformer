@@ -685,6 +685,14 @@ INT KphCompareMemory(
 #pragma deprecated(memcmp)
 #pragma deprecated(RtlCompareMemory)
 
+_Must_inspect_result_
+BOOLEAN KphEqualMemory(
+    _In_reads_bytes_(Length) PVOID Buffer1,
+    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_ SIZE_T Length
+    );
+#pragma deprecated(RtlEqualMemory)
+
 typedef EX_RUNDOWN_REF KPH_RUNDOWN;
 typedef KPH_RUNDOWN* PKPH_RUNDOWN;
 
