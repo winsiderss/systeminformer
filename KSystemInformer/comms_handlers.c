@@ -47,6 +47,7 @@ KPHM_DEFINE_HANDLER(KphpCommsSetMessageTimeouts);
 KPHM_DEFINE_HANDLER(KphpCommsAcquireDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsReleaseDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsGetConnectedClientCount);
+KPHM_DEFINE_HANDLER(KphpCommsActivateDynData);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -97,6 +98,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgAcquireDriverUnloadProtection, KphpCommsAcquireDriverUnloadProtection, KphpCommsRequireMaximum },
 { KphMsgReleaseDriverUnloadProtection, KphpCommsReleaseDriverUnloadProtection, KphpCommsRequireMaximum },
 { KphMsgGetConnectedClientCount,       KphpCommsGetConnectedClientCount,       KphpCommsRequireLow },
+{ KphMsgActivateDynData,               KphpCommsActivateDynData,               KphpCommsRequireLow },
 };
 
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
@@ -1263,4 +1265,32 @@ NTSTATUS KSIAPI KphpCommsGetConnectedClientCount(
     msg->Count = KphGetConnectedClientCount();
 
     return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsActivateDynData(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_ACTIVATE_DYNDATA msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgActivateDynData);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.ActivateDynData;
+
+    msg->Status = KphActivateDynData(msg->DynData,
+                                     msg->DynDataLength,
+                                     msg->Signature,
+                                     msg->SignatureLength,
+                                     UserMode);
+
+    return STATUS_SUCCESS;
+
 }

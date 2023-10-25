@@ -12,7 +12,6 @@
 #include <kph.h>
 #include <comms.h>
 #include <informer.h>
-#include <dyndata.h>
 #include <kphmsgdyn.h>
 
 #include <trace.h>

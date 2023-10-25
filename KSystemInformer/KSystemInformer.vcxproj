@@ -277,7 +277,6 @@
   <ItemGroup>
     <ClInclude Include="include\cid_table.h" />
     <ClInclude Include="include\comms.h" />
-    <ClInclude Include="include\dyndata.h" />
     <ClInclude Include="include\informer.h" />
     <ClInclude Include="include\kph.h" />
     <ClInclude Include="include\ntfill.h" />

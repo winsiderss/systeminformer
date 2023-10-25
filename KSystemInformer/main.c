@@ -11,7 +11,6 @@
  */
 
 #include <kph.h>
-#include <dyndata.h>
 #include <informer.h>
 
 #include <trace.h>
@@ -92,6 +91,7 @@ VOID KphpDriverCleanup(
     KphFltUnregister();
     KphCidCleanup();
     KphCleanupSigning();
+    KphCleanupDynData();
     KphCleanupHashing();
     KphCleanupVerify();
     KphCleanupSocket();
@@ -265,15 +265,7 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
-    status = KphDynamicDataInitialization();
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Dynamic data initialization failed: %!STATUS!",
-                      status);
-        goto Exit;
-    }
+    KphInitializeDynData();
 
     status = KphInitializeStackBackTrace();
     if (!NT_SUCCESS(status))

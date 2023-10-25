@@ -11,7 +11,6 @@
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
 
@@ -568,12 +567,14 @@ NTSTATUS KphQueryInformationProcess(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     PEPROCESS processObject;
     PKPH_PROCESS_CONTEXT process;
     ULONG returnLength;
 
     PAGED_CODE_PASSIVE();
 
+    dyn = NULL;
     processObject = NULL;
     process = NULL;
     returnLength = 0;
@@ -719,7 +720,7 @@ NTSTATUS KphQueryInformationProcess(
         }
         case KphProcessWSLProcessId:
         {
-            PULONG processId;
+            ULONG processId;
 
             if (process->SubsystemType != SubsystemInformationTypeWSL)
             {
@@ -731,16 +732,6 @@ NTSTATUS KphQueryInformationProcess(
                 goto Exit;
             }
 
-            if (!process->WSL.ValidProcessId)
-            {
-                KphTracePrint(TRACE_LEVEL_WARNING,
-                              GENERAL,
-                              "WSL process ID is not valid.");
-
-                status = STATUS_OBJECTID_NOT_FOUND;
-                goto Exit;
-            }
-
             if (!ProcessInformation ||
                 (ProcessInformationLength < sizeof(ULONG)))
             {
@@ -749,11 +740,19 @@ NTSTATUS KphQueryInformationProcess(
                 goto Exit;
             }
 
-            processId = ProcessInformation;
+            status = KphQueryInformationProcessContext(process,
+                                                       KphProcessContextWSLProcessId,
+                                                       &processId,
+                                                       sizeof(processId),
+                                                       NULL);
+            if (!NT_SUCCESS(status))
+            {
+                goto Exit;
+            }
 
             __try
             {
-                *processId = process->WSL.ProcessId;
+                *(PULONG)ProcessInformation = processId;
                 returnLength = sizeof(ULONG);
                 status = STATUS_SUCCESS;
             }
@@ -801,6 +800,11 @@ Exit:
     if (processObject)
     {
         ObDereferenceObject(processObject);
+    }
+
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
     }
 
     return status;

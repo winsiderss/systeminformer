@@ -11,9 +11,50 @@
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
+
+_Must_inspect_result_
+PVOID KphObpDecodeObject(
+    _In_ PKPH_DYN Dyn,
+    _In_ PVOID Object
+    )
+{
+#if (defined _M_X64) || (defined _M_ARM64)
+    if (Dyn->ObDecodeShift != ULONG_MAX)
+    {
+        return (PVOID)(((LONG_PTR)Object >> Dyn->ObDecodeShift) & ~(ULONG_PTR)0xf);
+    }
+    else
+    {
+        return NULL;
+    }
+#else
+    return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
+#endif
+}
+
+_Must_inspect_result_
+ULONG KphObpGetHandleAttributes(
+    _In_ PKPH_DYN Dyn,
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
+    )
+{
+#if (defined _M_X64) || (defined _M_ARM64)
+    if (Dyn->ObAttributesShift != ULONG_MAX)
+    {
+        return (ULONG)(HandleTableEntry->Value >> Dyn->ObAttributesShift) & 0x3;
+    }
+    else
+    {
+        return 0;
+    }
+#else
+    return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) |
+        ((HandleTableEntry->GrantedAccess & ObpAccessProtectCloseBit) ? OBJ_PROTECT_CLOSE : 0);
+#endif
+}
+
 
 PAGED_FILE();
 
@@ -21,6 +62,7 @@ static UNICODE_STRING KphpEtwRegistrationName = RTL_CONSTANT_STRING(L"EtwRegistr
 
 typedef struct _KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT
 {
+    PKPH_DYN Dyn;
     PVOID Buffer;
     PVOID BufferLimit;
     PVOID CurrentEntry;
@@ -33,6 +75,7 @@ typedef struct _KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT
  * process exit synchronization, the process should be released by calling
  * KphDereferenceProcessHandleTable.
  *
+ * \param[in] Dyn Dynamic configuration.
  * \param[in] Process A process object.
  * \param[out] HandleTable On success set to the process handle table.
  *
@@ -42,6 +85,7 @@ _Acquires_lock_(Process)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphReferenceProcessHandleTable(
+    _In_ PKPH_DYN Dyn,
     _In_ PEPROCESS Process,
     _Outptr_result_nullonfailure_ PHANDLE_TABLE* HandleTable
     )
@@ -56,7 +100,7 @@ NTSTATUS KphReferenceProcessHandleTable(
     //
     // Fail if we don't have an offset.
     //
-    if (KphDynEpObjectTable == ULONG_MAX)
+    if (Dyn->EpObjectTable == ULONG_MAX)
     {
         return STATUS_NOINTERFACE;
     }
@@ -75,7 +119,7 @@ NTSTATUS KphReferenceProcessHandleTable(
         return STATUS_TOO_LATE;
     }
 
-    handleTable = *(PHANDLE_TABLE *)Add2Ptr(Process, KphDynEpObjectTable);
+    handleTable = *(PHANDLE_TABLE*)Add2Ptr(Process, Dyn->EpObjectTable);
 
     if (!handleTable)
     {
@@ -112,11 +156,13 @@ VOID KphDereferenceProcessHandleTable(
 /**
  * \brief Unlocks a handle table entry.
  *
+ * \param[in] Dyn Dynamic configuration.
  * \param[in] HandleTable Handle table to unlock.
  * \param[in] HandleTableEntry Handle table entry to unlock.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpUnlockHandleTableEntry(
+    _In_ PKPH_DYN Dyn,
     _In_ PHANDLE_TABLE HandleTable,
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
@@ -125,7 +171,7 @@ VOID KphpUnlockHandleTableEntry(
 
     PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphDynHtHandleContentionEvent != ULONG_MAX);
+    NT_ASSERT(Dyn->HtHandleContentionEvent != ULONG_MAX);
 
     //
     // Set the unlocked bit.
@@ -135,7 +181,8 @@ VOID KphpUnlockHandleTableEntry(
     //
     // Allow waiters to wake up.
     //
-    handleContentionEvent = (PEX_PUSH_LOCK)Add2Ptr(HandleTable, KphDynHtHandleContentionEvent);
+    handleContentionEvent = (PEX_PUSH_LOCK)Add2Ptr(HandleTable,
+                                                   Dyn->HtHandleContentionEvent);
     if (*(PULONG_PTR)handleContentionEvent != 0)
     {
         ExfUnblockPushLock(handleContentionEvent, NULL);
@@ -144,6 +191,7 @@ VOID KphpUnlockHandleTableEntry(
 
 typedef struct _KPH_ENUM_PROC_HANDLE_EX_CONTEXT
 {
+    PKPH_DYN Dyn;
     PKPH_ENUM_PROCESS_HANDLES_CALLBACK Callback;
     PVOID Parameter;
 } KPH_ENUM_PROC_HANDLE_EX_CONTEXT, *PKPH_ENUM_PROC_HANDLE_EX_CONTEXT;
@@ -178,7 +226,7 @@ BOOLEAN NTAPI KphEnumerateProcessHandlesExCallback(
 
     result = context->Callback(HandleTableEntry, Handle, context->Parameter);
 
-    KphpUnlockHandleTableEntry(HandleTable, HandleTableEntry);
+    KphpUnlockHandleTableEntry(context->Dyn, HandleTable, HandleTableEntry);
 
     return result;
 }
@@ -200,22 +248,26 @@ NTSTATUS KphEnumerateProcessHandlesEx(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     KPH_ENUM_PROC_HANDLE_EX_CONTEXT context;
     PHANDLE_TABLE handleTable;
 
     PAGED_CODE_PASSIVE();
 
-    if ((KphDynHtHandleContentionEvent == ULONG_MAX) ||
-        (KphDynEpObjectTable == ULONG_MAX))
+    dyn = KphReferenceDynData();
+    if (!dyn ||
+        (dyn->HtHandleContentionEvent == ULONG_MAX) ||
+        (dyn->EpObjectTable == ULONG_MAX))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "KphEnumerateProcessHandlesEx not supported");
 
-        return STATUS_NOINTERFACE;
+        status = STATUS_NOINTERFACE;
+        goto Exit;
     }
 
-    status = KphReferenceProcessHandleTable(Process, &handleTable);
+    status = KphReferenceProcessHandleTable(dyn, Process, &handleTable);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -223,9 +275,10 @@ NTSTATUS KphEnumerateProcessHandlesEx(
                       "KphReferenceProcessHandleTable failed: %!STATUS!",
                       status);
 
-        return status;
+        goto Exit;
     }
 
+    context.Dyn = dyn;
     context.Callback = Callback;
     context.Parameter = Parameter;
 
@@ -236,7 +289,14 @@ NTSTATUS KphEnumerateProcessHandlesEx(
 
     KphDereferenceProcessHandleTable(Process);
 
-    return STATUS_SUCCESS;
+Exit:
+
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
+    }
+
+    return status;
 }
 
 /**
@@ -267,22 +327,27 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
 
     context = Context;
 
-    objectHeader = ObpDecodeObject(HandleTableEntry->Object);
+    objectHeader = KphObpDecodeObject(context->Dyn, HandleTableEntry->Object);
     handleInfo.Handle = Handle;
     handleInfo.Object = objectHeader ? &objectHeader->Body : NULL;
     handleInfo.GrantedAccess = ObpDecodeGrantedAccess(HandleTableEntry->GrantedAccess);
     handleInfo.ObjectTypeIndex = USHORT_MAX;
     handleInfo.Reserved1 = 0;
-    handleInfo.HandleAttributes = ObpGetHandleAttributes(HandleTableEntry);
+    handleInfo.HandleAttributes = KphObpGetHandleAttributes(context->Dyn,
+                                                            HandleTableEntry);
     handleInfo.Reserved2 = 0;
 
     if (handleInfo.Object)
     {
         objectType = ObGetObjectType(handleInfo.Object);
 
-        if (objectType && (KphDynOtIndex != ULONG_MAX))
+        if (objectType && (context->Dyn->OtIndex != ULONG_MAX))
         {
-            handleInfo.ObjectTypeIndex = (USHORT)(*(PUCHAR)Add2Ptr(objectType, KphDynOtIndex));
+            UCHAR typeIndex;
+
+            typeIndex = *(PUCHAR)Add2Ptr(objectType, context->Dyn->OtIndex);
+
+            handleInfo.ObjectTypeIndex = (USHORT)typeIndex;
         }
     }
 
@@ -355,14 +420,19 @@ NTSTATUS KphEnumerateProcessHandles(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     PEPROCESS process;
     KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT context;
 
     PAGED_CODE_PASSIVE();
 
+    dyn = NULL;
+    process = NULL;
+
     if (!Buffer)
     {
-        return STATUS_INVALID_PARAMETER_2;
+        status = STATUS_INVALID_PARAMETER_2;
+        goto Exit;
     }
 
     if (AccessMode != KernelMode)
@@ -378,8 +448,16 @@ NTSTATUS KphEnumerateProcessHandles(
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
-            return GetExceptionCode();
+            status = GetExceptionCode();
+            goto Exit;
         }
+    }
+
+    dyn = KphReferenceDynData();
+    if (!dyn)
+    {
+        status = STATUS_NOINTERFACE;
+        goto Exit;
     }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
@@ -395,9 +473,10 @@ NTSTATUS KphEnumerateProcessHandles(
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
-        return status;
+        goto Exit;
     }
 
+    context.Dyn = dyn;
     context.Buffer = Buffer;
     context.BufferLimit = Add2Ptr(Buffer, BufferLength);
     context.CurrentEntry = ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->Handles;
@@ -414,11 +493,8 @@ NTSTATUS KphEnumerateProcessHandles(
                       "KphEnumerateProcessHandlesEx failed: %!STATUS!",
                       status);
 
-        ObDereferenceObject(process);
-        return status;
+        goto Exit;
     }
-
-    ObDereferenceObject(process);
 
     if (BufferLength >= UFIELD_OFFSET(KPH_PROCESS_HANDLE_INFORMATION, Handles))
     {
@@ -430,7 +506,8 @@ NTSTATUS KphEnumerateProcessHandles(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                return GetExceptionCode();
+                status = GetExceptionCode();
+                goto Exit;
             }
         }
         else
@@ -448,7 +525,8 @@ NTSTATUS KphEnumerateProcessHandles(
                                 &returnLength);
         if (!NT_SUCCESS(status) || (returnLength > ULONG_MAX))
         {
-            return STATUS_INTEGER_OVERFLOW;
+            status = STATUS_INTEGER_OVERFLOW;
+            goto Exit;
         }
 
         if (AccessMode != KernelMode)
@@ -459,7 +537,8 @@ NTSTATUS KphEnumerateProcessHandles(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                return GetExceptionCode();
+                status = GetExceptionCode();
+                goto Exit;
             }
         }
         else
@@ -468,7 +547,21 @@ NTSTATUS KphEnumerateProcessHandles(
         }
     }
 
-    return context.Status;
+    status = context.Status;
+
+Exit:
+
+    if (process)
+    {
+        ObDereferenceObject(process);
+    }
+
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
+    }
+
+    return status;
 }
 
 /**
@@ -820,6 +913,7 @@ NTSTATUS KphQueryInformationObject(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     PEPROCESS process;
     KAPC_STATE apcState;
     PVOID object;
@@ -831,6 +925,7 @@ NTSTATUS KphQueryInformationObject(
 
     PAGED_CODE_PASSIVE();
 
+    dyn = NULL;
     process = NULL;
     returnLength = 0;
     object = NULL;
@@ -1193,9 +1288,11 @@ NTSTATUS KphQueryInformationObject(
             PVOID guidEntry;
             ETWREG_BASIC_INFORMATION basicInfo;
 
-            if ((KphDynEgeGuid == ULONG_MAX) ||
-                (KphDynEreGuidEntry == ULONG_MAX) ||
-                (KphDynOtName == ULONG_MAX))
+            dyn = KphReferenceDynData();
+            if (!dyn ||
+                (dyn->EgeGuid == ULONG_MAX) ||
+                (dyn->EreGuidEntry == ULONG_MAX) ||
+                (dyn->OtName == ULONG_MAX))
             {
                 status = STATUS_NOINTERFACE;
                 goto Exit;
@@ -1239,7 +1336,7 @@ NTSTATUS KphQueryInformationObject(
                 goto Exit;
             }
 
-            objectTypeName = (PUNICODE_STRING)Add2Ptr(objectType, KphDynOtName);
+            objectTypeName = (PUNICODE_STRING)Add2Ptr(objectType, dyn->OtName);
             if (!RtlEqualUnicodeString(objectTypeName,
                                        &KphpEtwRegistrationName,
                                        FALSE))
@@ -1248,11 +1345,11 @@ NTSTATUS KphQueryInformationObject(
                 goto Exit;
             }
 
-            guidEntry = *(PVOID*)Add2Ptr(object, KphDynEreGuidEntry);
+            guidEntry = *(PVOID*)Add2Ptr(object, dyn->EreGuidEntry);
             if (guidEntry)
             {
                 RtlCopyMemory(&basicInfo.Guid,
-                              Add2Ptr(guidEntry, KphDynEgeGuid),
+                              Add2Ptr(guidEntry, dyn->EgeGuid),
                               sizeof(GUID));
             }
             else
@@ -1982,6 +2079,11 @@ Exit:
     if (process)
     {
         ObDereferenceObject(process);
+    }
+
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
     }
 
     if (ReturnLength)

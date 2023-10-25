@@ -44,4 +44,12 @@ Language     = English
 System Informer dynamic data version is incompatible.
 .
 
+MessageId    = 0x0003
+Facility     = DynamicData
+Severity     = Error
+SymbolicName = STATUS_SI_DYNDATA_INVALID_LENGTH
+Language     = English
+System Informer dynamic data is an invalid length.
+.
+
 ;#endif

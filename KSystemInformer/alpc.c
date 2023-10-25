@@ -10,7 +10,6 @@
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
 
@@ -22,6 +21,7 @@ PAGED_FILE();
  * \brief References any communication ports associated with the input port.
  * The caller must dereference any returned objects by calling ObDereferenceObject.
  *
+ * \param[in] Dyn Dynamic configuration.
  * \param[in] Port The ALPC port to references the associated ports of.
  * \param[out] ConnectionPort Set to the connection port.
  * \param[out] ServerPort Set to the server port.
@@ -32,6 +32,7 @@ PAGED_FILE();
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpReferenceAlpcCommunicationPorts(
+    _In_ PKPH_DYN Dyn,
     _In_ PVOID Port,
     _Outptr_result_maybenull_ PVOID* ConnectionPort,
     _Outptr_result_maybenull_ PVOID* ServerPort,
@@ -57,31 +58,32 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
     serverPort = NULL;
     clientPort = NULL;
 
-    if ((KphDynAlpcCommunicationInfo == ULONG_MAX) ||
-        (KphDynAlpcHandleTable == ULONG_MAX) ||
-        (KphDynAlpcHandleTableLock == ULONG_MAX))
+    if ((Dyn->AlpcCommunicationInfo == ULONG_MAX) ||
+        (Dyn->AlpcHandleTable == ULONG_MAX) ||
+        (Dyn->AlpcHandleTableLock == ULONG_MAX))
     {
         status = STATUS_NOINTERFACE;
         goto Exit;
     }
 
-    communicationInfo = *(PVOID*)Add2Ptr(Port, KphDynAlpcCommunicationInfo);
+    communicationInfo = *(PVOID*)Add2Ptr(Port, Dyn->AlpcCommunicationInfo);
     if (!communicationInfo)
     {
         status = STATUS_NOT_FOUND;
         goto Exit;
     }
 
-    handleTable = Add2Ptr(communicationInfo, KphDynAlpcHandleTable);
-    handleTableLock = Add2Ptr(handleTable, KphDynAlpcHandleTableLock);
+    handleTable = Add2Ptr(communicationInfo, Dyn->AlpcHandleTable);
+    handleTableLock = Add2Ptr(handleTable, Dyn->AlpcHandleTableLock);
 
     typeMismatch = FALSE;
 
     FltAcquirePushLockShared(handleTableLock);
 
-    if (KphDynAlpcConnectionPort != ULONG_MAX)
+    if (Dyn->AlpcConnectionPort != ULONG_MAX)
     {
-        connectionPort = *(PVOID*)Add2Ptr(communicationInfo, KphDynAlpcConnectionPort);
+        connectionPort = *(PVOID*)Add2Ptr(communicationInfo,
+                                          Dyn->AlpcConnectionPort);
         if (connectionPort)
         {
             if (ObGetObjectType(connectionPort) != *AlpcPortObjectType)
@@ -96,9 +98,10 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
         }
     }
 
-    if (KphDynAlpcServerCommunicationPort != ULONG_MAX)
+    if (Dyn->AlpcServerCommunicationPort != ULONG_MAX)
     {
-        serverPort = *(PVOID*)Add2Ptr(communicationInfo, KphDynAlpcServerCommunicationPort);
+        serverPort = *(PVOID*)Add2Ptr(communicationInfo,
+                                      Dyn->AlpcServerCommunicationPort);
         if (serverPort)
         {
             if (ObGetObjectType(serverPort) != *AlpcPortObjectType)
@@ -113,9 +116,10 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
         }
     }
 
-    if (KphDynAlpcClientCommunicationPort != ULONG_MAX)
+    if (Dyn->AlpcClientCommunicationPort != ULONG_MAX)
     {
-        clientPort = *(PVOID*)Add2Ptr(communicationInfo, KphDynAlpcClientCommunicationPort);
+        clientPort = *(PVOID*)Add2Ptr(communicationInfo,
+                                      Dyn->AlpcClientCommunicationPort);
         if (clientPort)
         {
             if (ObGetObjectType(clientPort) != *AlpcPortObjectType)
@@ -169,6 +173,7 @@ Exit:
 /**
  * \brief Retrieves the basic information for an ALPC port.
  *
+ * \param[in] Dyn Dynamic configuration.
  * \param[in] Port The ALPC port to get the basic information of.
  * \param[out] Info Populated with the basic information.
  *
@@ -177,6 +182,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpAlpcBasicInfo(
+    _In_ PKPH_DYN Dyn,
     _In_ PVOID Port,
     _Out_ PKPH_ALPC_BASIC_INFORMATION Info
     )
@@ -188,8 +194,8 @@ NTSTATUS KphpAlpcBasicInfo(
 
     RtlZeroMemory(Info, sizeof(*Info));
 
-    if ((KphDynAlpcOwnerProcess == ULONG_MAX) ||
-        (KphDynAlpcPortObjectLock == ULONG_MAX))
+    if ((Dyn->AlpcOwnerProcess == ULONG_MAX) ||
+        (Dyn->AlpcPortObjectLock == ULONG_MAX))
     {
         return STATUS_NOINTERFACE;
     }
@@ -201,10 +207,10 @@ NTSTATUS KphpAlpcBasicInfo(
     // See: ntoskrnl!AlpcpPortQueryServerSessionInfo
     //
 
-    portObjectLock = Add2Ptr(Port, KphDynAlpcPortObjectLock);
+    portObjectLock = Add2Ptr(Port, Dyn->AlpcPortObjectLock);
     FltAcquirePushLockShared(portObjectLock);
 
-    process = *(PEPROCESS*)Add2Ptr(Port, KphDynAlpcOwnerProcess);
+    process = *(PEPROCESS*)Add2Ptr(Port, Dyn->AlpcOwnerProcess);
     if (process && (((ULONG_PTR)process & 1) == 0))
     {
         Info->OwnerProcessId = PsGetProcessId(process);
@@ -212,26 +218,26 @@ NTSTATUS KphpAlpcBasicInfo(
 
     FltReleasePushLock(portObjectLock);
 
-    if ((KphDynAlpcAttributes != ULONG_MAX) &&
-        (KphDynAlpcAttributesFlags != ULONG_MAX))
+    if ((Dyn->AlpcAttributes != ULONG_MAX) &&
+        (Dyn->AlpcAttributesFlags != ULONG_MAX))
     {
-        Info->Flags = *(PULONG)Add2Ptr(Add2Ptr(Port, KphDynAlpcAttributes),
-                                       KphDynAlpcAttributesFlags);
+        Info->Flags = *(PULONG)Add2Ptr(Add2Ptr(Port, Dyn->AlpcAttributes),
+                                       Dyn->AlpcAttributesFlags);
     }
 
-    if (KphDynAlpcPortContext != ULONG_MAX)
+    if (Dyn->AlpcPortContext != ULONG_MAX)
     {
-        Info->PortContext = *(PVOID*)Add2Ptr(Port, KphDynAlpcPortContext);
+        Info->PortContext = *(PVOID*)Add2Ptr(Port, Dyn->AlpcPortContext);
     }
 
-    if (KphDynAlpcSequenceNo != ULONG_MAX)
+    if (Dyn->AlpcSequenceNo != ULONG_MAX)
     {
-        Info->SequenceNo = *(PULONG)Add2Ptr(Port, KphDynAlpcSequenceNo);
+        Info->SequenceNo = *(PULONG)Add2Ptr(Port, Dyn->AlpcSequenceNo);
     }
 
-    if (KphDynAlpcState != ULONG_MAX)
+    if (Dyn->AlpcState != ULONG_MAX)
     {
-        Info->State = *(PULONG)Add2Ptr(Port, KphDynAlpcState);
+        Info->State = *(PULONG)Add2Ptr(Port, Dyn->AlpcState);
     }
 
     return STATUS_SUCCESS;
@@ -240,6 +246,7 @@ NTSTATUS KphpAlpcBasicInfo(
 /**
  * \brief Retrieves the communication information for an ALPC port.
  *
+ * \param[in] Dyn Dynamic configuration.
  * \param[in] Port The ALPC port to get the information of.
  * \param[out] Info Populated with the communication information.
  *
@@ -248,6 +255,7 @@ NTSTATUS KphpAlpcBasicInfo(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpAlpcCommunicationInfo(
+    _In_ PKPH_DYN Dyn,
     _In_ PVOID Port,
     _Out_ PKPH_ALPC_COMMUNICATION_INFORMATION Info
     )
@@ -261,7 +269,8 @@ NTSTATUS KphpAlpcCommunicationInfo(
 
     RtlZeroMemory(Info, sizeof(*Info));
 
-    status = KphpReferenceAlpcCommunicationPorts(Port,
+    status = KphpReferenceAlpcCommunicationPorts(Dyn,
+                                                 Port,
                                                  &connectionPort,
                                                  &serverPort,
                                                  &clientPort);
@@ -280,7 +289,9 @@ NTSTATUS KphpAlpcCommunicationInfo(
 
     if (connectionPort)
     {
-        status = KphpAlpcBasicInfo(connectionPort, &Info->ConnectionPort);
+        status = KphpAlpcBasicInfo(Dyn,
+                                   connectionPort,
+                                   &Info->ConnectionPort);
         if (!NT_SUCCESS(status))
         {
             goto Exit;
@@ -289,7 +300,9 @@ NTSTATUS KphpAlpcCommunicationInfo(
 
     if (serverPort)
     {
-        status = KphpAlpcBasicInfo(serverPort, &Info->ServerCommunicationPort);
+        status = KphpAlpcBasicInfo(Dyn,
+                                   serverPort,
+                                   &Info->ServerCommunicationPort);
         if (!NT_SUCCESS(status))
         {
             goto Exit;
@@ -298,7 +311,9 @@ NTSTATUS KphpAlpcCommunicationInfo(
 
     if (clientPort)
     {
-        status = KphpAlpcBasicInfo(clientPort, &Info->ClientCommunicationPort);
+        status = KphpAlpcBasicInfo(Dyn,
+                                   clientPort,
+                                   &Info->ClientCommunicationPort);
         if (!NT_SUCCESS(status))
         {
             goto Exit;
@@ -396,6 +411,7 @@ NTSTATUS KphpAlpcCopyPortName(
 /**
  * \brief Retrieves the names of the communication ports for a given ALPC port.
  *
+ * \param[in] Dyn Dynamic configuration.
  * \param[in] Port The port to retrieve the names of.
  * \param[out] Info Populated with the name information.
  * \param[in] InfoLength The length of the information buffer.
@@ -407,6 +423,7 @@ NTSTATUS KphpAlpcCopyPortName(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpAlpcCommunicationNamesInfo(
+    _In_ PKPH_DYN Dyn,
     _In_ PVOID Port,
     _Out_writes_bytes_opt_(InfoLength) PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION Info,
     _In_ ULONG InfoLength,
@@ -439,7 +456,8 @@ NTSTATUS KphpAlpcCommunicationNamesInfo(
         buffer = NULL;
     }
 
-    status = KphpReferenceAlpcCommunicationPorts(Port,
+    status = KphpReferenceAlpcCommunicationPorts(Dyn,
+                                                 Port,
                                                  &connectionPort,
                                                  &serverPort,
                                                  &clientPort);
@@ -567,6 +585,7 @@ NTSTATUS KphAlpcQueryInformation(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     PEPROCESS process;
     KAPC_STATE apcState;
     PVOID port;
@@ -576,6 +595,7 @@ NTSTATUS KphAlpcQueryInformation(
 
     PAGED_CODE_PASSIVE();
 
+    dyn = NULL;
     process = NULL;
     port = NULL;
     returnLength = 0;
@@ -658,6 +678,13 @@ NTSTATUS KphAlpcQueryInformation(
         {
             KPH_ALPC_BASIC_INFORMATION info;
 
+            dyn = KphReferenceDynData();
+            if (!dyn)
+            {
+                status = STATUS_NOINTERFACE;
+                goto Exit;
+            }
+
             if (!AlpcInformation || (AlpcInformationLength < sizeof(info)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
@@ -665,7 +692,7 @@ NTSTATUS KphAlpcQueryInformation(
                 goto Exit;
             }
 
-            status = KphpAlpcBasicInfo(port, &info);
+            status = KphpAlpcBasicInfo(dyn, port, &info);
             if (!NT_SUCCESS(status))
             {
                 KphTracePrint(TRACE_LEVEL_ERROR,
@@ -692,6 +719,13 @@ NTSTATUS KphAlpcQueryInformation(
         {
             KPH_ALPC_COMMUNICATION_INFORMATION info;
 
+            dyn = KphReferenceDynData();
+            if (!dyn)
+            {
+                status = STATUS_NOINTERFACE;
+                goto Exit;
+            }
+
             if (!AlpcInformation || (AlpcInformationLength < sizeof(info)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
@@ -699,7 +733,7 @@ NTSTATUS KphAlpcQueryInformation(
                 goto Exit;
             }
 
-            status = KphpAlpcCommunicationInfo(port, &info);
+            status = KphpAlpcCommunicationInfo(dyn, port, &info);
             if (!NT_SUCCESS(status))
             {
                 KphTracePrint(TRACE_LEVEL_ERROR,
@@ -727,6 +761,13 @@ NTSTATUS KphAlpcQueryInformation(
             ULONG allocatedSize;
             PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION info;
 
+            dyn = KphReferenceDynData();
+            if (!dyn)
+            {
+                status = STATUS_NOINTERFACE;
+                goto Exit;
+            }
+
             allocatedSize = AlpcInformationLength;
             if (allocatedSize < sizeof(KPH_ALPC_COMMUNICATION_NAMES_INFORMATION))
             {
@@ -749,7 +790,8 @@ NTSTATUS KphAlpcQueryInformation(
             }
 
             info = buffer;
-            status = KphpAlpcCommunicationNamesInfo(port,
+            status = KphpAlpcCommunicationNamesInfo(dyn,
+                                                    port,
                                                     info,
                                                     AlpcInformationLength,
                                                     &returnLength);
@@ -812,6 +854,11 @@ Exit:
     if (process)
     {
         ObDereferenceObject(process);
+    }
+
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
     }
 
     if (ReturnLength)
