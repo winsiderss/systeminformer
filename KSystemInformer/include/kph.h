@@ -1227,7 +1227,7 @@ PVOID KphAtomicReferenceObject(
 
 VOID KphAtomicAssignObjectReference(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
-    _In_ PVOID Object
+    _In_opt_ PVOID Object
     );
 
 // cid_tracking

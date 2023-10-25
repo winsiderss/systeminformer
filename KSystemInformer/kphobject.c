@@ -308,21 +308,25 @@ PVOID KphAtomicReferenceObject(
  *
  * \details This mechanism provides a light weight and fast way to atomically
  * managed a reference to an object. Any previously managed reference will be
- * released. This function will acquire an additional reference to the object
- * the caller should still release their reference.
+ * released. If an object is provided, this function will acquire an additional
+ * reference to the object, the caller should still release their reference.
  *
  * \param[in,out] ObjectRef The object reference to assign the object to.
- * \param[in] Object The object to reference and assign.
+ * \param[in] Object Optional object to reference and assign, if NULL the
+ * managed reference will be cleared.
  */
 VOID KphAtomicAssignObjectReference(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
-    _In_ PVOID Object
+    _In_opt_ PVOID Object
     )
 {
     ULONG_PTR object;
     PVOID previous;
 
-    KphReferenceObject(Object);
+    if (Object)
+    {
+        KphReferenceObject(Object);
+    }
 
     KphpAtomicAcquireObjectLock(ObjectRef);
 
