@@ -124,7 +124,6 @@ PVOID KphSearchMemory(
 {
     PBYTE buffer;
     PBYTE end;
-    PVOID found;
 
     if (!BufferLength || !PatternLength)
     {
@@ -136,7 +135,6 @@ PVOID KphSearchMemory(
         return NULL;
     }
 
-    found = NULL;
     buffer = Buffer;
     end = Add2Ptr(Buffer, BufferLength - PatternLength);
 
@@ -155,8 +153,7 @@ PVOID KphSearchMemory(
         {                                                                     \
             if (*(type*)buffer == *(type*)Pattern)                            \
             {                                                                 \
-                found = buffer;                                               \
-                goto Exit;                                                    \
+                return buffer;                                                \
             }                                                                 \
         }                                                                     \
         break;                                                                \
@@ -175,17 +172,14 @@ PVOID KphSearchMemory(
 #pragma warning(suppress: 4995) // suppress deprecation warning
                 if (memcmp(buffer, Pattern, PatternLength) == 0)
                 {
-                    found = buffer;
-                    goto Exit;
+                    return buffer;
                 }
             }
             break;
         }
     }
 
-Exit:
-
-    return found;
+    return NULL;
 }
 
 /**
