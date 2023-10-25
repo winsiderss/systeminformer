@@ -412,6 +412,10 @@ VOID KphFreeToNPagedLookasideObject(
 
 // dynimp
 
+extern PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX KphDynPsSetLoadImageNotifyRoutineEx;
+extern PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2 KphDynPsSetCreateProcessNotifyRoutineEx2;
+extern PMM_PROTECT_DRIVER_SECTION KphDynMmProtectDriverSection;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDynamicImport(
     VOID
@@ -428,6 +432,86 @@ PVOID KphGetRoutineAddress(
     _In_z_ PCSTR RoutineName
     );
 
+// dyndata
+
+typedef struct _KPH_DYN
+{
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT BuildNumberMin;
+    USHORT RevisionMin;
+    USHORT BuildNumberMax;
+    USHORT RevisionMax;
+
+    ULONG EgeGuid;
+    ULONG EpObjectTable;
+    ULONG EreGuidEntry;
+    ULONG HtHandleContentionEvent;
+    ULONG OtName;
+    ULONG OtIndex;
+    ULONG ObDecodeShift;
+    ULONG ObAttributesShift;
+    ULONG AlpcCommunicationInfo;
+    ULONG AlpcOwnerProcess;
+    ULONG AlpcConnectionPort;
+    ULONG AlpcServerCommunicationPort;
+    ULONG AlpcClientCommunicationPort;
+    ULONG AlpcHandleTable;
+    ULONG AlpcHandleTableLock;
+    ULONG AlpcAttributes;
+    ULONG AlpcAttributesFlags;
+    ULONG AlpcPortContext;
+    ULONG AlpcPortObjectLock;
+    ULONG AlpcSequenceNo;
+    ULONG AlpcState;
+    ULONG KtReadOperationCount;
+    ULONG KtWriteOperationCount;
+    ULONG KtOtherOperationCount;
+    ULONG KtReadTransferCount;
+    ULONG KtWriteTransferCount;
+    ULONG KtOtherTransferCount;
+    ULONG LxPicoProc;
+    ULONG LxPicoProcInfo;
+    ULONG LxPicoProcInfoPID;
+    ULONG LxPicoThrdInfo;
+    ULONG LxPicoThrdInfoTID;
+    ULONG MmSectionControlArea;
+    ULONG MmControlAreaListHead;
+    ULONG MmControlAreaLock;
+
+    PCI_FREE_POLICY_INFO CiFreePolicyInfo;
+    PCI_VERIFY_HASH_IN_CATALOG CiVerifyHashInCatalog;
+    PCI_CHECK_SIGNED_FILE CiCheckSignedFile;
+    PCI_VERIFY_HASH_IN_CATALOG_EX CiVerifyHashInCatalogEx;
+    PCI_CHECK_SIGNED_FILE_EX CiCheckSignedFileEx;
+    PLXP_THREAD_GET_CURRENT LxpThreadGetCurrent;
+} KPH_DYN, *PKPH_DYN;
+
+_Must_inspect_result_
+PKPH_DYN KphReferenceDynData(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphActivateDynData(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeDynData(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupDynData(
+    VOID
+    );
+
 // object
 
 #ifdef _X86_
@@ -441,10 +525,23 @@ PVOID KphGetRoutineAddress(
 #define IsPseudoHandle(Handle) (((ULONG_PTR)(Handle) <= (ULONG_PTR)-1) && \
                                 ((ULONG_PTR)(Handle) >= (ULONG_PTR)-6))
 
+_Must_inspect_result_
+PVOID KphObpDecodeObject(
+    _In_ PKPH_DYN Dyn,
+    _In_ PVOID Object
+    );
+
+_Must_inspect_result_
+ULONG KphObpGetHandleAttributes(
+    _In_ PKPH_DYN Dyn,
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
+    );
+
 _Acquires_lock_(Process)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphReferenceProcessHandleTable(
+    _In_ PKPH_DYN Dyn,
     _In_ PEPROCESS Process,
     _Outptr_result_nullonfailure_ PHANDLE_TABLE* HandleTable
     );
@@ -875,8 +972,10 @@ BOOLEAN KphSinglePrivilegeCheck(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KphProcessIsLsass(
-    _In_ PEPROCESS Process
+_Must_inspect_result_
+NTSTATUS KphProcessIsLsass(
+    _In_ PEPROCESS Process,
+    _Out_ PBOOLEAN IsLsass
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1080,6 +1179,7 @@ VOID KphFreeAuthenticodeInfo(
 
 typedef struct _KPH_SIGNING_INFO
 {
+    PKPH_DYN Dyn;
     KPH_AUTHENTICODE_INFO Authenticode;
     MINCRYPT_POLICY_INFO PolicyInfo;
     LARGE_INTEGER SigningTime;
@@ -1325,11 +1425,26 @@ typedef struct _KPH_PROCESS_CONTEXT
     {
         BOOLEAN ValidProcessId;
         ULONG ProcessId;
-
     } WSL;
 } KPH_PROCESS_CONTEXT, *PKPH_PROCESS_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphProcessContextType;
+
+typedef enum _KPH_PROCESS_CONTEXT_INFORMATION_CLASS
+{
+    KphProcessContextIsLsass,      // q: BOOLEAN
+    KphProcessContextWSLProcessId, // q: ULONG
+} KPH_PROCESS_CONTEXT_INFORMATION_CLASS, *PKPH_PROCESS_CONTEXT_INFORMATION_CLASS;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryInformationProcessContext(
+    _In_ PKPH_PROCESS_CONTEXT Process,
+    _In_ KPH_PROCESS_CONTEXT_INFORMATION_CLASS InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
+    _In_ ULONG InformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
 
 typedef struct _KPH_THREAD_CONTEXT
 {
@@ -1350,10 +1465,8 @@ typedef struct _KPH_THREAD_CONTEXT
             ULONG ExitNotification : 1;
             ULONG InThreadList : 1;
             ULONG IsCreatingProcess : 1;
-            ULONG InitApcQueued : 1;
-            ULONG InitApcExecuted : 1;
             ULONG CapturingUserModeStack : 1;
-            ULONG Reserved : 24;
+            ULONG Reserved : 26;
         };
     };
 
@@ -1373,11 +1486,25 @@ typedef struct _KPH_THREAD_CONTEXT
     {
         BOOLEAN ValidThreadId;
         ULONG ThreadId;
-
     } WSL;
 } KPH_THREAD_CONTEXT, *PKPH_THREAD_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphThreadContextType;
+
+typedef enum _KPH_THREAD_CONTEXT_INFORMATION_CLASS
+{
+    KphThreadContextWSLThreadId,  // q: ULONG
+} KPH_THREAD_CONTEXT_INFORMATION_CLASS, *PKPH_THREAD_CONTEXT_INFORMATION_CLASS;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryInformationThreadContext(
+    _In_ PKPH_THREAD_CONTEXT Thread,
+    _In_ KPH_THREAD_CONTEXT_INFORMATION_CLASS InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
+    _In_ ULONG InformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

@@ -309,6 +309,15 @@ typedef struct _KPHM_GET_CONNECTED_CLIENT_COUNT
     ULONG Count;
 } KPHM_GET_CONNECTED_CLIENT_COUNT, *PKPHM_GET_CONNECTED_CLIENT_COUNT;
 
+typedef struct _KPHM_ACTIVATE_DYNDATA
+{
+    NTSTATUS Status;
+    PBYTE DynData;
+    ULONG DynDataLength;
+    PBYTE Signature;
+    ULONG SignatureLength;
+} KPHM_ACTIVATE_DYNDATA, *PKPHM_ACTIVATE_DYNDATA;
+
 //
 // KPH -> PH
 //

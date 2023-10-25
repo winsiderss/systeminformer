@@ -536,6 +536,16 @@ KphGetConnectedClientCount(
     _Out_ PULONG Count
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphActivateDynData(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    );
+
 EXTERN_C_END
 
 #endif

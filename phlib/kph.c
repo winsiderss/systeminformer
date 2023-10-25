@@ -1942,3 +1942,32 @@ NTSTATUS KphGetConnectedClientCount(
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
 }
+
+NTSTATUS KphActivateDynData(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgActivateDynData);
+    msg->User.ActivateDynData.DynData = DynData;
+    msg->User.ActivateDynData.DynDataLength = DynDataLength;
+    msg->User.ActivateDynData.Signature = Signature;
+    msg->User.ActivateDynData.SignatureLength = SignatureLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.ActivateDynData.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}

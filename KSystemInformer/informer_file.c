@@ -10,7 +10,6 @@
  */
 
 #include <kph.h>
-#include <dyndata.h>
 #include <comms.h>
 
 #include <trace.h>

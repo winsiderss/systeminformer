@@ -18,7 +18,7 @@
 //
 
 static volatile LONG KphpObjectTypeCount = 0;
-static KPH_OBJECT_TYPE KphpObjectTypes[9];
+static KPH_OBJECT_TYPE KphpObjectTypes[11];
 
 #define KPH_ATOMIC_OBJECT_LOCKED_MASK (((ULONG_PTR)-1) - 1)
 

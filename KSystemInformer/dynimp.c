@@ -11,9 +11,15 @@
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
+
+KPH_PROTECTED_DATA_SECTION_PUSH();
+PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX KphDynPsSetLoadImageNotifyRoutineEx = NULL;
+PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2 KphDynPsSetCreateProcessNotifyRoutineEx2 = NULL;
+PMM_PROTECT_DRIVER_SECTION KphDynMmProtectDriverSection = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+
 
 PAGED_FILE();
 

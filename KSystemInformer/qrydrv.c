@@ -11,7 +11,6 @@
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
 

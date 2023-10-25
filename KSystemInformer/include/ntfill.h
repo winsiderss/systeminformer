@@ -8,8 +8,6 @@
  */
 
 #pragma once
-extern ULONG KphDynObDecodeShift;
-extern ULONG KphDynObAttributesShift;
 
 typedef struct _CLIENT_ID32
 {
@@ -204,8 +202,7 @@ KeTestAlertThread (
 // GrantedAccess in the table entry is the low 25 bits
 #define OBJ_GRANTED_ACCESS_MASK 0x01ffffff
 
-#define ObpDecodeGrantedAccess(Access) \
-    ((Access) & OBJ_GRANTED_ACCESS_MASK)
+#define ObpDecodeGrantedAccess(Access) ((Access) & OBJ_GRANTED_ACCESS_MASK)
 
 FORCEINLINE
 VOID
@@ -218,49 +215,6 @@ ObpSetGrantedAccess(
     // Preserve the high bits and only set the low 25 bits.
     //
     *GrantedAccess = (Access | (*GrantedAccess & ~OBJ_GRANTED_ACCESS_MASK));
-}
-
-FORCEINLINE
-_Must_inspect_result_
-PVOID
-ObpDecodeObject(
-    _In_ PVOID Object
-    )
-{
-#if (defined _M_X64) || (defined _M_ARM64)
-    if (KphDynObDecodeShift != ULONG_MAX)
-    {
-        return (PVOID)(((LONG_PTR)Object >> KphDynObDecodeShift) & ~(ULONG_PTR)0xf);
-    }
-    else
-    {
-        return NULL;
-    }
-#else
-    return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
-#endif
-}
-
-FORCEINLINE
-_Must_inspect_result_
-ULONG
-ObpGetHandleAttributes(
-    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
-    )
-{
-#if (defined _M_X64) || (defined _M_ARM64)
-    if (KphDynObAttributesShift != ULONG_MAX)
-    {
-        return (ULONG)(HandleTableEntry->Value >> KphDynObAttributesShift) & 0x3;
-    }
-    else
-    {
-        return 0;
-    }
-#else
-    return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) |
-        ((HandleTableEntry->GrantedAccess & ObpAccessProtectCloseBit) ? OBJ_PROTECT_CLOSE : 0);
-#endif
 }
 
 typedef struct _OBJECT_CREATE_INFORMATION OBJECT_CREATE_INFORMATION, *POBJECT_CREATE_INFORMATION;

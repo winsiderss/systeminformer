@@ -11,7 +11,6 @@
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
 
@@ -36,6 +35,7 @@ NTSTATUS KphpQuerySectionMappings(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     ULONG returnLength;
     PVOID controlArea;
     PLIST_ENTRY listHead;
@@ -47,15 +47,18 @@ NTSTATUS KphpQuerySectionMappings(
     oldIrql = 0;
     returnLength = 0;
 
-    if ((KphDynMmSectionControlArea == ULONG_MAX) ||
-        (KphDynMmControlAreaListHead == ULONG_MAX) ||
-        (KphDynMmControlAreaLock == ULONG_MAX))
+    dyn = KphReferenceDynData();
+
+    if (!dyn ||
+        (dyn->MmSectionControlArea == ULONG_MAX) ||
+        (dyn->MmControlAreaListHead == ULONG_MAX) ||
+        (dyn->MmControlAreaLock == ULONG_MAX))
     {
         status = STATUS_NOINTERFACE;
         goto Exit;
     }
 
-    controlArea = *(PVOID*)Add2Ptr(SectionObject, KphDynMmSectionControlArea);
+    controlArea = *(PVOID*)Add2Ptr(SectionObject, dyn->MmSectionControlArea);
     if ((ULONG_PTR)controlArea & 3)
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -77,10 +80,10 @@ NTSTATUS KphpQuerySectionMappings(
         goto Exit;
     }
 
-    lock = Add2Ptr(controlArea, KphDynMmControlAreaLock);
+    lock = Add2Ptr(controlArea, dyn->MmControlAreaLock);
     oldIrql = ExAcquireSpinLockShared(lock);
 
-    listHead = Add2Ptr(controlArea, KphDynMmControlAreaListHead);
+    listHead = Add2Ptr(controlArea, dyn->MmControlAreaListHead);
 
     //
     // Links are shared in a union with AweContext pointer. Ensure that both
@@ -174,6 +177,7 @@ Exit:
 
     return status;
 }
+
 
 PAGED_FILE();
 
