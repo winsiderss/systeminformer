@@ -74,9 +74,9 @@ extern "C" {
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #include <phnt_ntdef.h>
 #include <ntnls.h>
-#include <ntkeapi.h>
 #endif
 
+#include <ntkeapi.h>
 #include <ntldr.h>
 #include <ntexapi.h>
 
