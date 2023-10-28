@@ -113,7 +113,7 @@ NTSTATUS KphpWskIoCreate(
     Io->Irp = IoAllocateIrp(1, FALSE);
     if (!Io->Irp)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, SOCKET, "IoAllocateIrp failed");
+        KphTracePrint(TRACE_LEVEL_VERBOSE, SOCKET, "IoAllocateIrp failed");
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
@@ -242,7 +242,7 @@ VOID KphSocketClose(
                                         (PLARGE_INTEGER)&KphpSocketCloseTimeout);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "WskCloseSocket failed: %!STATUS!",
                       status);
@@ -293,7 +293,7 @@ NTSTATUS KphSocketConnect(
     status = KphpWskIoCreate(&socket->Io);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "KphpWskIoCreate failed: %!STATUS!",
                       status);
@@ -316,7 +316,7 @@ NTSTATUS KphSocketConnect(
     status = KphpWskIoWaitForCompletion(&socket->Io, status, Timeout);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "WskSocketConnect failed: %!STATUS!",
                       status);
@@ -374,7 +374,7 @@ NTSTATUS KphSocketSend(
     wskBuffer.Mdl = IoAllocateMdl(Buffer, Length, FALSE, FALSE, NULL);
     if (!wskBuffer.Mdl)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, SOCKET, "IoAllocateMdl failed");
+        KphTracePrint(TRACE_LEVEL_VERBOSE, SOCKET, "IoAllocateMdl failed");
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
@@ -399,7 +399,7 @@ NTSTATUS KphSocketSend(
     status = KphpWskIoWaitForCompletion(&socket->Io, status, Timeout);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "WskSend failed: %!STATUS!",
                       status);
@@ -456,7 +456,7 @@ NTSTATUS KphSocketRecv(
     wskBuffer.Mdl = IoAllocateMdl(Buffer, *Length, FALSE, FALSE, NULL);
     if (!wskBuffer.Mdl)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, SOCKET, "IoAllocateMdl failed");
+        KphTracePrint(TRACE_LEVEL_VERBOSE, SOCKET, "IoAllocateMdl failed");
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
@@ -485,7 +485,7 @@ NTSTATUS KphSocketRecv(
     }
     else
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "WskReceive failed: %!STATUS!",
                       status);
@@ -530,7 +530,7 @@ NTSTATUS KphInitializeSocket(
     status = WskRegister(&wskClient, &KphpWskRegistration);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "WskRegister failed: %!STATUS!",
                       status);
@@ -545,7 +545,7 @@ NTSTATUS KphInitializeSocket(
                                    &KphpWskProvider);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "WskCaptureProviderNPI failed: %!STATUS!",
                       status);
@@ -558,7 +558,7 @@ NTSTATUS KphInitializeSocket(
     KphpSecFnTable = InitSecurityInterfaceW();
     if (!KphpSecFnTable)
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "InitSecurityInterfaceW failed");
     }
@@ -621,7 +621,7 @@ NTSTATUS KphGetAddressInfo(
     status = KphpWskIoCreate(&io);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "KphpWskIoCreate failed: %!STATUS!",
                       status);
@@ -642,7 +642,7 @@ NTSTATUS KphGetAddressInfo(
     status = KphpWskIoWaitForCompletion(&io, status, Timeout);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "WskGetAddressInfo failed: %!STATUS!",
                       status);
@@ -1105,7 +1105,7 @@ NTSTATUS KphSocketTlsCreate(
     tls = KphAllocatePaged(sizeof(KPH_TLS), KPH_TAG_TLS);
     if (!tls)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "Failed to allocate TLS object");
 
@@ -1142,7 +1142,7 @@ NTSTATUS KphSocketTlsCreate(
                                                 NULL);
     if (secStatus != SEC_E_OK)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "KphpSecAcquireCredentialsHandle failed: %!HRESULT!",
                       secStatus);
@@ -1199,7 +1199,7 @@ NTSTATUS KphpSocketTlsReallocateBuffer(
 
     if (Length > MAXUSHORT)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "Requested TLS buffer size (%lu) is too large",
                       Length);
@@ -1251,7 +1251,7 @@ NTSTATUS KphpSocketTlsHandshakeFinalize(
                                               &Tls->StreamSizes);
     if (secStatus != SEC_E_OK)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "KphpSecQueryContextAttributes failed: %!HRESULT!",
                       secStatus);
@@ -1266,7 +1266,7 @@ NTSTATUS KphpSocketTlsHandshakeFinalize(
     status = RtlULongAdd(length, Tls->StreamSizes.cbHeader, &length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "RtlULongAdd failed: %!STATUS!",
                       status);
@@ -1277,7 +1277,7 @@ NTSTATUS KphpSocketTlsHandshakeFinalize(
     status = RtlULongAdd(length, Tls->StreamSizes.cbMaximumMessage, &length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "RtlULongAdd failed: %!STATUS!",
                       status);
@@ -1288,7 +1288,7 @@ NTSTATUS KphpSocketTlsHandshakeFinalize(
     status = RtlULongAdd(length, Tls->StreamSizes.cbTrailer, &length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "RtlULongAdd failed: %!STATUS!",
                       status);
@@ -1299,7 +1299,7 @@ NTSTATUS KphpSocketTlsHandshakeFinalize(
     status = KphpSocketTlsReallocateBuffer(Tls, length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "KphpSocketTlsReallocateBuffer failed: %!STATUS!",
                       status);
@@ -1350,7 +1350,7 @@ NTSTATUS KphpSocketTlsHandshakeExtra(
     status = RtlULongSub(*Received, Extra->cbBuffer, &offset);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "RtlULongSub failed: %!STATUS!",
                       status);
@@ -1371,7 +1371,7 @@ NTSTATUS KphpSocketTlsHandshakeExtra(
     status = RtlULongAdd(offset, Extra->cbBuffer, &end);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "RtlULongAdd failed: %!STATUS!",
                       status);
@@ -1381,7 +1381,7 @@ NTSTATUS KphpSocketTlsHandshakeExtra(
 
     if (end > Tls->Length)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "Unexpected buffer overflow.");
 
@@ -1433,7 +1433,7 @@ NTSTATUS KphpSocketTlsHandshakeRecv(
         status = RtlULongAdd(Tls->Length, PAGE_SIZE, &length);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "RtlULongAdd failed: %!STATUS!",
                           status);
@@ -1444,7 +1444,7 @@ NTSTATUS KphpSocketTlsHandshakeRecv(
         status = KphpSocketTlsReallocateBuffer(Tls, length);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "KphpSocketTlsReallocateBuffer failed: %!STATUS!",
                           status);
@@ -1462,7 +1462,7 @@ NTSTATUS KphpSocketTlsHandshakeRecv(
                            &length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "KphSocketRecv failed: %!STATUS!",
                       status);
@@ -1537,7 +1537,7 @@ NTSTATUS KphSocketTlsHandshake(
     status = KphpSocketTlsReallocateBuffer(tls, PAGE_SIZE * 2);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "KphpSocketTlsReallocateBuffer failed: %!STATUS!",
                       status);
@@ -1599,7 +1599,7 @@ NTSTATUS KphSocketTlsHandshake(
                                                  &received);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               SOCKET,
                               "KphpSocketTlsHandshakeExtra failed: %!STATUS!",
                               status);
@@ -1630,7 +1630,7 @@ NTSTATUS KphSocketTlsHandshake(
             status = KphpSocketTlsHandshakeFinalize(Tls);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               SOCKET,
                               "KphpSocketTlsHandshakeFinalize failed: %!STATUS!",
                               status);
@@ -1642,7 +1642,7 @@ NTSTATUS KphSocketTlsHandshake(
 
         if (secStatus == SEC_I_INCOMPLETE_CREDENTIALS)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "Server requested client authentication, "
                           "client authentication is not supported.");
@@ -1660,7 +1660,7 @@ NTSTATUS KphSocketTlsHandshake(
                                    outBuffers[0].cbBuffer);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               SOCKET,
                               "KphSocketSend failed: %!STATUS!",
                               status);
@@ -1673,7 +1673,7 @@ NTSTATUS KphSocketTlsHandshake(
 
         if (secStatus != SEC_E_INCOMPLETE_MESSAGE)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "TSL handshake failed: %!HRESULT!",
                           secStatus);
@@ -1690,7 +1690,7 @@ NTSTATUS KphSocketTlsHandshake(
         status = KphpSocketTlsHandshakeRecv(Socket, Timeout, tls, &received);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "KphpSocketTlsHandshakeRecv failed: %!STATUS!",
                           status);
@@ -1773,7 +1773,7 @@ VOID KphSocketTlsShutdown(
     secStatus = KphpSecApplyControlToken(&tls->ContextHandle, &inDesc);
     if (secStatus != SEC_E_OK)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SOCKET,
                       "KphpSecApplyControlToken failed %!HRESULT!",
                       secStatus);
@@ -1824,7 +1824,7 @@ VOID KphSocketTlsShutdown(
                                    outBuffers[0].cbBuffer);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               SOCKET,
                               "KphSocketSend failed: %!STATUS!",
                               status);
@@ -1936,7 +1936,7 @@ NTSTATUS KphSocketTlsSend(
         secStatus = KphpSecEncryptMessage(&tls->ContextHandle, 0, &desc, 0);
         if (secStatus != SEC_E_OK)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "KphpSecEncryptMessage failed: %!HRESULT!",
                           secStatus);
@@ -1953,7 +1953,7 @@ NTSTATUS KphSocketTlsSend(
         status = KphSocketSend(Socket, Timeout, tls->Buffer, length);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "KphSocketSend failed: %!STATUS!",
                           status);
@@ -2085,7 +2085,7 @@ NTSTATUS KphSocketTlsRecv(
                     (buffers[1].BufferType != SECBUFFER_DATA) ||
                     (buffers[2].BufferType != SECBUFFER_STREAM_TRAILER))
                 {
-                    KphTracePrint(TRACE_LEVEL_ERROR,
+                    KphTracePrint(TRACE_LEVEL_VERBOSE,
                                   SOCKET,
                                   "Unexpected buffer types: %lu %lu %lu",
                                   buffers[0].BufferType,
@@ -2106,7 +2106,7 @@ NTSTATUS KphSocketTlsRecv(
                                          &tls->Recv.Used);
                     if (!NT_SUCCESS(status))
                     {
-                        KphTracePrint(TRACE_LEVEL_ERROR,
+                        KphTracePrint(TRACE_LEVEL_VERBOSE,
                                       SOCKET,
                                       "RtlULongSub failed: %!STATUS!",
                                       status);
@@ -2129,7 +2129,7 @@ NTSTATUS KphSocketTlsRecv(
 
             if (secStatus != SEC_E_INCOMPLETE_MESSAGE)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               SOCKET,
                               "KphpSecDecryptMessage failed: %!HRESULT!",
                               secStatus);
@@ -2149,7 +2149,7 @@ NTSTATUS KphSocketTlsRecv(
                                &received);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "KphSocketRecv failed: %!STATUS!",
                           status);
@@ -2165,7 +2165,7 @@ NTSTATUS KphSocketTlsRecv(
                 break;
             }
 
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SOCKET,
                           "Unexpected incomplete message");
 

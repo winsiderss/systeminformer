@@ -105,7 +105,7 @@ NTSTATUS KphInitializeKnownDll(
                                &objectAttributes);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "ZwOpenSection failed: %!STATUS!",
                           status);
@@ -122,7 +122,7 @@ NTSTATUS KphInitializeKnownDll(
                                 NULL);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "ZwQuerySection failed: %!STATUS!",
                           status);
@@ -145,7 +145,7 @@ NTSTATUS KphInitializeKnownDll(
                                            NULL);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "ObReferenceObjectByHandle failed: %!STATUS!",
                           status);
@@ -160,7 +160,7 @@ NTSTATUS KphInitializeKnownDll(
                                         &viewSize);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "MmMapViewInSystemSpace failed: %!STATUS!",
                           status);
@@ -181,7 +181,7 @@ NTSTATUS KphInitializeKnownDll(
                                                          export->Name);
             if (!exportAddress)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Failed to find %hs in %wZ",
                               export->Name,

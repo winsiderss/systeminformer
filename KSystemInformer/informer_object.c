@@ -55,7 +55,7 @@ VOID KphpPopulateObjectNameInMessage(
         buffer = KphAllocatePaged(length, KPH_TAG_INFORMER_OB_NAME);
         if (!buffer)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate buffer for object name");
 
@@ -69,7 +69,7 @@ VOID KphpPopulateObjectNameInMessage(
 
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ObQueryNameString failed: %!STATUS!",
                       status);
@@ -82,7 +82,7 @@ VOID KphpPopulateObjectNameInMessage(
                                        &info->Name);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "KphMsgDynAddUnicodeString failed: %!STATUS!",
                       status);
@@ -130,7 +130,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleCreate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -191,7 +191,7 @@ VOID KphpObPostProcessHandleCreate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -253,7 +253,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleDuplicate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -318,7 +318,7 @@ VOID KphpObPostProcessHandleDuplicate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -380,7 +380,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleCreate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -441,7 +441,7 @@ VOID KphpObPostThreadHandleCreate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -503,7 +503,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleDuplicate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -568,7 +568,7 @@ VOID KphpObPostThreadHandleDuplicate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -628,7 +628,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleCreate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -689,7 +689,7 @@ VOID KphpObPostDesktopHandleCreate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -749,7 +749,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleDuplicate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -814,7 +814,7 @@ VOID KphpObPostDesktopHandleDuplicate(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
@@ -1001,7 +1001,7 @@ NTSTATUS KphObjectInformerStart(
                                  &KphpObRegistrationHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ObRegisterCallbacks failed: %!STATUS!",
                       status);

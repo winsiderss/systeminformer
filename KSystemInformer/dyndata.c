@@ -204,7 +204,7 @@ NTSTATUS KphpActivateDynData(
                                  SignatureLength);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphVerifyBuffer failed: %!STATUS!",
                           status);
@@ -222,7 +222,7 @@ NTSTATUS KphpActivateDynData(
                                         &config);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphDynDataGetConfiguration failed: %!STATUS!",
                       status);
@@ -233,7 +233,7 @@ NTSTATUS KphpActivateDynData(
     status = KphCreateObject(KphDynDataType, sizeof(KPH_DYN), &dyn, config);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphCreateObject failed: %!STATUS!",
                       status);
@@ -388,7 +388,7 @@ VOID KphInitializeDynData(
 
     if (KphParameterFlags.DynDataNoEmbedded)
     {
-        KphTracePrint(TRACE_LEVEL_INFORMATION,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Embedded Dynamic Configuration disabled");
     }
@@ -399,7 +399,7 @@ VOID KphInitializeDynData(
                                      NULL,
                                      0);
 
-        KphTracePrint(TRACE_LEVEL_INFORMATION,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Embedded Dynamic Configuration: %!STATUS!",
                       status);

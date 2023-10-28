@@ -162,7 +162,7 @@ ContinueCapture:
     //
     if (thread->CapturingUserModeStack)
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Skipping user mode stack capture for "
                       "thread %lu in process %wZ (%lu)",
@@ -439,7 +439,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
                          &backTraceSize);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "RtlULongAdd failed: %!STATUS!",
                       status);
@@ -453,7 +453,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
                              Thread);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphCreateObject failed: %!STATUS!",
                       status);
@@ -473,7 +473,9 @@ NTSTATUS KphCaptureStackBackTraceThread(
     KphReferenceObject(backTrace);
     if (!KsiInsertQueueApc(&backTrace->Apc, NULL, NULL, IO_NO_INCREMENT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "KsiInsertQueueApc failed");
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KsiInsertQueueApc failed");
 
         KphDereferenceObject(backTrace);
         status = STATUS_UNSUCCESSFUL;
@@ -549,7 +551,7 @@ NTSTATUS KphInitializeStackBackTrace(
                                       NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ZwQuerySystemInformation failed: %!STATUS!",
                       status);
@@ -569,7 +571,7 @@ NTSTATUS KphInitializeStackBackTrace(
                                       NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ZwQuerySystemInformation failed: %!STATUS!",
                       status);

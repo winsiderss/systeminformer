@@ -51,7 +51,7 @@ VOID KphpDebugPrintFlush(
         msg = KphAllocateNPagedMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             continue;
@@ -71,7 +71,7 @@ VOID KphpDebugPrintFlush(
         status = KphMsgDynAddAnsiString(msg, KphMsgFieldOutput, &output);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_WARNING,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "KphMsgDynAddAnsiString failed: %!STATUS!",
                           status);
@@ -149,7 +149,7 @@ VOID KphpDebugPrintCallback(
 
     if (KphpDbgPrintSlotNext >= KphpDbgPrintSlotCount)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Out of debug print slots!");
         goto Exit;
@@ -167,7 +167,7 @@ VOID KphpDebugPrintCallback(
 
     if (slot->Length != Output->Length)
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Truncated debug print line");
     }
@@ -208,7 +208,7 @@ NTSTATUS KphDebugInformerStart(
                                           KPH_TAG_DBG_SLOTS);
     if (!KphpDbgPrintSlots)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate slots for debug print callback");
 
@@ -230,7 +230,7 @@ NTSTATUS KphDebugInformerStart(
     status = DbgSetDebugPrintCallback(KphpDebugPrintCallback, TRUE);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to register debug print callback: %!STATUS!",
                       status);
