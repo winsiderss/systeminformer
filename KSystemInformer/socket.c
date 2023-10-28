@@ -15,21 +15,6 @@
 
 #include <trace.h>
 
-static WSK_REGISTRATION KphpWskRegistration;
-static WSK_PROVIDER_NPI KphpWskProvider;
-static WSK_CLIENT_DISPATCH KphpWskDispatch = { MAKE_WSK_VERSION(1, 0), 0, NULL };
-static BOOLEAN KphpWskRegistered = FALSE;
-static BOOLEAN KphpWskProviderCaptured = FALSE;
-static UNICODE_STRING KphpSecurityPackageName = RTL_CONSTANT_STRING(SCHANNEL_NAME_W);
-static LARGE_INTEGER KphpSocketCloseTimeout = { .QuadPart = -30000000ll }; // 3 seconds
-KPH_PROTECTED_DATA_SECTION_PUSH();
-//
-// Not all the functions we need are exported, however they should all be
-// available through the dispatch table.
-//
-static PSecurityFunctionTableW KphpSecFnTable = NULL;
-KPH_PROTECTED_DATA_SECTION_POP();
-
 typedef struct _KPH_WSK_IO
 {
     PIRP Irp;
@@ -60,6 +45,23 @@ typedef struct _KPH_TLS
     ULONG Length;
     KPH_TLS_RECV Recv;
 } KPH_TLS, *PKPH_TLS;
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const WSK_CLIENT_DISPATCH KphpWskDispatch = { MAKE_WSK_VERSION(1, 0), 0, NULL };
+static const UNICODE_STRING KphpSecurityPackageName = RTL_CONSTANT_STRING(SCHANNEL_NAME_W);
+static const LARGE_INTEGER KphpSocketCloseTimeout = { .QuadPart = -30000000ll }; // 3 seconds
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
+//
+// Not all the functions we need are exported, however they should all be
+// available through the dispatch table.
+//
+static PSecurityFunctionTableW KphpSecFnTable = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+static WSK_REGISTRATION KphpWskRegistration;
+static WSK_PROVIDER_NPI KphpWskProvider;
+static BOOLEAN KphpWskRegistered = FALSE;
+static BOOLEAN KphpWskProviderCaptured = FALSE;
 
 /**
  * \brief WSK I/O completion routine.
@@ -237,7 +239,7 @@ VOID KphSocketClose(
                                                  socket->Io.Irp);
     status = KphpWskIoWaitForCompletion(&socket->Io,
                                         status,
-                                        &KphpSocketCloseTimeout);
+                                        (PLARGE_INTEGER)&KphpSocketCloseTimeout);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -504,7 +506,6 @@ Exit:
     return status;
 }
 
-
 PAGED_FILE();
 
 /**
@@ -603,8 +604,8 @@ VOID KphCleanupSocket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetAddressInfo(
-    _In_ PUNICODE_STRING NodeName,
-    _In_opt_ PUNICODE_STRING ServiceName,
+    _In_ PCUNICODE_STRING NodeName,
+    _In_opt_ PCUNICODE_STRING ServiceName,
     _In_opt_ PADDRINFOEXW Hints,
     _In_opt_ PLARGE_INTEGER Timeout,
     _Outptr_allocatesMem_ PADDRINFOEXW* AddressInfo
@@ -629,8 +630,8 @@ NTSTATUS KphGetAddressInfo(
     }
 
     status = KphpWskProvider.Dispatch->WskGetAddressInfo(KphpWskProvider.Client,
-                                                         NodeName,
-                                                         ServiceName,
+                                                         (PUNICODE_STRING)NodeName,
+                                                         (PUNICODE_STRING)ServiceName,
                                                          0,
                                                          NULL,
                                                          Hints,
@@ -1131,7 +1132,7 @@ NTSTATUS KphSocketTlsCreate(
                                                        SP_PROT_TLS1_3);
 
     secStatus = KphpSecAcquireCredentialsHandle(NULL,
-                                                &KphpSecurityPackageName,
+                                                (PUNICODE_STRING)&KphpSecurityPackageName,
                                                 SECPKG_CRED_OUTBOUND,
                                                 NULL,
                                                 &credentials,
@@ -1499,7 +1500,7 @@ NTSTATUS KphSocketTlsHandshake(
     _In_ KPH_SOCKET_HANDLE Socket,
     _In_opt_ PLARGE_INTEGER Timeout,
     _In_ KPH_TLS_HANDLE Tls,
-    _In_ PUNICODE_STRING TargetName
+    _In_ PCUNICODE_STRING TargetName
     )
 {
     NTSTATUS status;
@@ -1546,6 +1547,8 @@ NTSTATUS KphSocketTlsHandshake(
 
     for (ULONG received = 0;;)
     {
+        PUNICODE_STRING targetName;
+
         inBuffers[0].BufferType = SECBUFFER_TOKEN;
         inBuffers[0].pvBuffer = tls->Buffer;
         inBuffers[0].cbBuffer = received;
@@ -1571,9 +1574,11 @@ NTSTATUS KphSocketTlsHandshake(
             ISC_REQ_STREAM
             );
 
+        targetName = context ? NULL : (PUNICODE_STRING)TargetName;
+
         secStatus = KphpSecInitializeSecurityContext(&tls->CredentialsHandle,
                                                      context,
-                                                     context ? NULL : TargetName,
+                                                     targetName,
                                                      flags,
                                                      0,
                                                      SECURITY_NETWORK_DREP,
@@ -1814,7 +1819,7 @@ VOID KphSocketTlsShutdown(
             (outBuffers[0].BufferType != SECBUFFER_MISSING))
         {
             status = KphSocketSend(Socket,
-                                   &KphpSocketCloseTimeout,
+                                   (PLARGE_INTEGER)&KphpSocketCloseTimeout,
                                    outBuffers[0].pvBuffer,
                                    outBuffers[0].cbBuffer);
             if (!NT_SUCCESS(status))

@@ -37,14 +37,16 @@ typedef struct _KPH_IMAGE_LOAD_APC_INIT
     PFILE_OBJECT FileObject;
 } KPH_IMAGE_LOAD_APC_INIT, *PKPH_IMAGE_LOAD_APC_INIT;
 
-static UNICODE_STRING KphpImageLoadApcTypeName = RTL_CONSTANT_STRING(L"KphImageLoadApc");
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpImageLoadApcTypeName = RTL_CONSTANT_STRING(L"KphImageLoadApc");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphpImageLoadApcType = NULL;
-
-
-PAGED_FILE();
-
+KPH_PROTECTED_DATA_SECTION_POP();
 static KPH_REFERENCE KphpDriverUnloadProtectionRef = { 0 };
 static PVOID KphpDriverUnloadPreviousRoutine = NULL;
+
+PAGED_FILE();
 
 /**
  * \brief Allocates an image load APC object.

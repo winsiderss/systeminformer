@@ -26,29 +26,27 @@ typedef struct _KPH_PARAMETER
 } KPH_PARAMETER, *PKPH_PARAMETER;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static UNICODE_STRING KphpDefaultAltitude = RTL_CONSTANT_STRING(L"385210.5");
-static UNICODE_STRING KphpDefaultPortName = RTL_CONSTANT_STRING(L"\\KSystemInformer");
+static const UNICODE_STRING KphpDefaultAltitude = RTL_CONSTANT_STRING(L"385210.5");
+static const UNICODE_STRING KphpDefaultPortName = RTL_CONSTANT_STRING(L"\\KSystemInformer");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
-
 KPH_PROTECTED_DATA_SECTION_PUSH();
 PUNICODE_STRING KphAltitude = NULL;
 PUNICODE_STRING KphPortName = NULL;
 KPH_PARAMETER_FLAGS KphParameterFlags = { .Flags = 0 };
 C_ASSERT(sizeof(KPH_PARAMETER_FLAGS) == sizeof(ULONG));
-
 static KPH_PARAMETER KphpParameters[] =
 {
     {
         RTL_CONSTANT_STRING(L"Altitude"),
         KphParameterTypeString,
         &KphAltitude,
-        &KphpDefaultAltitude
+        (PVOID)&KphpDefaultAltitude
     },
     {
         RTL_CONSTANT_STRING(L"PortName"),
         KphParameterTypeString,
         &KphPortName,
-        &KphpDefaultPortName
+        (PVOID)&KphpDefaultPortName
     },
     {
         RTL_CONSTANT_STRING(L"Flags"),
@@ -58,7 +56,6 @@ static KPH_PARAMETER KphpParameters[] =
     },
 };
 KPH_PROTECTED_DATA_SECTION_POP();
-
 
 PAGED_FILE();
 
@@ -100,7 +97,7 @@ VOID KphCleanupParameters(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphInitializeParameters(
-    _In_ PUNICODE_STRING RegistryPath
+    _In_ PCUNICODE_STRING RegistryPath
     )
 {
     NTSTATUS status;

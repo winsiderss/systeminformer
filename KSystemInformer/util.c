@@ -14,6 +14,15 @@
 
 #include <trace.h>
 
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaCommandPort");
+static const ANSI_STRING KphpUrlSchemeSeparator = RTL_CONSTANT_STRING("://");
+static const ANSI_STRING KphpUrlPathSeparator = RTL_CONSTANT_STRING("/");
+static const ANSI_STRING KphpUrlParametersSeparator = RTL_CONSTANT_STRING("?");
+static const ANSI_STRING KphpUrlAnchorSeparator = RTL_CONSTANT_STRING("#");
+static const ANSI_STRING KphpUrlPortSeparator = RTL_CONSTANT_STRING(":");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+
 /**
  * \brief Compares two blocks of memory.
  *
@@ -215,10 +224,7 @@ VOID KphReleaseRundown(
     ExReleaseRundownProtection(Rundown);
 }
 
-
 PAGED_FILE();
-
-static UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaCommandPort");
 
 /**
  * \brief Initializes rundown object.
@@ -522,7 +528,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryRegistryString(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Outptr_allocatesMem_ PUNICODE_STRING* String
     )
 {
@@ -538,7 +544,7 @@ NTSTATUS KphQueryRegistryString(
     info = NULL;
 
     status = ZwQueryValueKey(KeyHandle,
-                             ValueName,
+                             (PUNICODE_STRING)ValueName,
                              KeyValuePartialInformation,
                              NULL,
                              0,
@@ -562,7 +568,7 @@ NTSTATUS KphQueryRegistryString(
     }
 
     status = ZwQueryValueKey(KeyHandle,
-                             ValueName,
+                             (PUNICODE_STRING)ValueName,
                              KeyValuePartialInformation,
                              info,
                              resultLength,
@@ -662,7 +668,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryRegistryBinary(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Outptr_allocatesMem_ PBYTE* Buffer,
     _Out_ PULONG Length
     )
@@ -679,7 +685,7 @@ NTSTATUS KphQueryRegistryBinary(
     buffer = NULL;
 
     status = ZwQueryValueKey(KeyHandle,
-                             ValueName,
+                             (PUNICODE_STRING)ValueName,
                              KeyValuePartialInformation,
                              NULL,
                              0,
@@ -703,7 +709,7 @@ NTSTATUS KphQueryRegistryBinary(
     }
 
     status = ZwQueryValueKey(KeyHandle,
-                             ValueName,
+                             (PUNICODE_STRING)ValueName,
                              KeyValuePartialInformation,
                              buffer,
                              resultLength,
@@ -765,7 +771,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryRegistryULong(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Out_ PULONG Value
     )
 {
@@ -779,7 +785,7 @@ NTSTATUS KphQueryRegistryULong(
     *Value = 0;
 
     status = ZwQueryValueKey(KeyHandle,
-                             ValueName,
+                             (PUNICODE_STRING)ValueName,
                              KeyValuePartialInformation,
                              buffer,
                              ARRAYSIZE(buffer),
@@ -1154,7 +1160,7 @@ NTSTATUS KphpGetLsassProcessId(
     KeStackAttachProcess(PsInitialSystemProcess, &apcState);
 
     status = ZwAlpcConnectPort(&portHandle,
-                               &KphpLsaPortName,
+                               (PUNICODE_STRING)&KphpLsaPortName,
                                NULL,
                                NULL,
                                0,
@@ -1355,7 +1361,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetFileVersion(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_ PKPH_FILE_VERSION Version
     )
 {
@@ -1382,7 +1388,7 @@ NTSTATUS KphGetFileVersion(
     fileHandle = NULL;
 
     InitializeObjectAttributes(&objectAttributes,
-                               FileName,
+                               (PUNICODE_STRING)FileName,
                                OBJ_KERNEL_HANDLE,
                                NULL,
                                NULL);
@@ -1691,7 +1697,7 @@ NTSTATUS KphDisableXfgOnTarget(
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetFileNameFinalComponent(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_ PUNICODE_STRING FinalComponent
     )
 {
@@ -1787,7 +1793,7 @@ VOID KphFreeProcessImageName(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphOpenParametersKey(
-    _In_ PUNICODE_STRING RegistryPath,
+    _In_ PCUNICODE_STRING RegistryPath,
     _Out_ PHANDLE KeyHandle
     )
 {
@@ -1836,12 +1842,6 @@ NTSTATUS KphOpenParametersKey(
 
     return STATUS_SUCCESS;
 }
-
-static ANSI_STRING KphpUrlSchemeSeparator = RTL_CONSTANT_STRING("://");
-static ANSI_STRING KphpUrlPathSeparator = RTL_CONSTANT_STRING("/");
-static ANSI_STRING KphpUrlParametersSeparator = RTL_CONSTANT_STRING("?");
-static ANSI_STRING KphpUrlAnchorSeparator = RTL_CONSTANT_STRING("#");
-static ANSI_STRING KphpUrlPortSeparator = RTL_CONSTANT_STRING(":");
 
 /**
  * \brief Parses a URL into its components.

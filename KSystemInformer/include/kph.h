@@ -251,7 +251,7 @@ VOID KphCleanupParameters(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphInitializeParameters(
-    _In_ PUNICODE_STRING RegistryPath
+    _In_ PCUNICODE_STRING RegistryPath
     );
 
 // alloc
@@ -899,7 +899,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryRegistryString(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Outptr_allocatesMem_ PUNICODE_STRING* String
     );
 
@@ -912,7 +912,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryRegistryBinary(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Outptr_allocatesMem_ PBYTE* Buffer,
     _Out_ PULONG Length
     );
@@ -926,7 +926,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryRegistryULong(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Out_ PULONG Value
     );
 
@@ -981,7 +981,7 @@ NTSTATUS KphProcessIsLsass(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetFileVersion(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_ PKPH_FILE_VERSION Version
     );
 
@@ -1008,7 +1008,7 @@ NTSTATUS KphDisableXfgOnTarget(
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetFileNameFinalComponent(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_ PUNICODE_STRING FinalComponent
     );
 
@@ -1027,7 +1027,7 @@ VOID KphFreeProcessImageName(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphOpenParametersKey(
-    _In_ PUNICODE_STRING RegistryPath,
+    _In_ PCUNICODE_STRING RegistryPath,
     _Out_ PHANDLE KeyHandle
     );
 
@@ -1151,7 +1151,7 @@ NTSTATUS KphHashFile(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHashFileByName(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _In_ ALG_ID AlgorithmId,
     _Out_ PKPH_HASH Hash
     );
@@ -1166,7 +1166,7 @@ NTSTATUS KphGetAuthenticodeInfo(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetAuthenticodeInfoByFileName(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
     );
 
@@ -1218,7 +1218,7 @@ NTSTATUS KphGetSigningInfo(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetSigningInfoByFileName(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_allocatesMem_ PKPH_SIGNING_INFO Info
     );
 
@@ -1297,35 +1297,30 @@ typedef struct _KPH_OBJECT_TYPE
     KPH_OBJECT_TYPE_INFO TypeInfo;
 } KPH_OBJECT_TYPE, *PKPH_OBJECT_TYPE;
 
-VOID
-KphCreateObjectType(
-    _In_ PUNICODE_STRING TypeName,
+VOID KphCreateObjectType(
+    _In_ PCUNICODE_STRING TypeName,
     _In_ PKPH_OBJECT_TYPE_INFO TypeInfo,
     _Outptr_ PKPH_OBJECT_TYPE* ObjectType
     );
 
 _Must_inspect_result_
-NTSTATUS
-KphCreateObject(
+NTSTATUS KphCreateObject(
     _In_ PKPH_OBJECT_TYPE ObjectType,
     _In_ ULONG ObjectBodySize,
     _Outptr_result_nullonfailure_ PVOID* Object,
     _In_opt_ PVOID Parameter
     );
 
-VOID
-KphReferenceObject(
+VOID KphReferenceObject(
     _In_ PVOID Object
     );
 
-VOID
-KphDereferenceObject(
+VOID KphDereferenceObject(
     _In_ PVOID Object
     );
 
 _Must_inspect_result_
-PKPH_OBJECT_TYPE
-KphGetObjectType(
+PKPH_OBJECT_TYPE KphGetObjectType(
     _In_ PVOID Object
     );
 
@@ -1723,7 +1718,7 @@ NTSTATUS KphVerifyBuffer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyFile(
-    _In_ PUNICODE_STRING FileName
+    _In_ PCUNICODE_STRING FileName
     );
 
 _IRQL_requires_max_(APC_LEVEL)
@@ -1954,8 +1949,8 @@ VOID KphCleanupSocket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetAddressInfo(
-    _In_ PUNICODE_STRING NodeName,
-    _In_opt_ PUNICODE_STRING ServiceName,
+    _In_ PCUNICODE_STRING NodeName,
+    _In_opt_ PCUNICODE_STRING ServiceName,
     _In_opt_ PADDRINFOEXW Hints,
     _In_opt_ PLARGE_INTEGER Timeout,
     _Outptr_allocatesMem_ PADDRINFOEXW* AddressInfo
@@ -2020,7 +2015,7 @@ NTSTATUS KphSocketTlsHandshake(
     _In_ KPH_SOCKET_HANDLE Socket,
     _In_opt_ PLARGE_INTEGER Timeout,
     _In_ KPH_TLS_HANDLE Tls,
-    _In_ PUNICODE_STRING TargetName
+    _In_ PCUNICODE_STRING TargetName
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2064,6 +2059,7 @@ typedef struct _KPH_HTTP_HEADER_ITEM
     ANSI_STRING Key;
     ANSI_STRING Value;
 } KPH_HTTP_HEADER_ITEM, *PKPH_HTTP_HEADER_ITEM;
+typedef const KPH_HTTP_HEADER_ITEM* PCKPH_HTTP_HEADER_ITEM;
 
 typedef struct _KPH_HTTP_RESPONSE
 {
@@ -2092,11 +2088,11 @@ NTSTATUS KphHttpParseResponse(
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHttpBuildRequest(
-    _In_ PANSI_STRING Method,
-    _In_ PANSI_STRING Host,
-    _In_ PANSI_STRING Path,
-    _In_ PANSI_STRING Parameters,
-    _In_opt_ PKPH_HTTP_HEADER_ITEM HeaderItems,
+    _In_ const ANSI_STRING* Method,
+    _In_ const ANSI_STRING* Host,
+    _In_ const ANSI_STRING* Path,
+    _In_ const ANSI_STRING* Parameters,
+    _In_opt_ PCKPH_HTTP_HEADER_ITEM HeaderItems,
     _In_ ULONG HeaderItemCount,
     _In_opt_ PVOID Body,
     _In_ ULONG BodyLength,

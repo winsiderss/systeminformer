@@ -14,11 +14,6 @@
 
 #include <trace.h>
 
-static BOOLEAN KphpCidTrackingInitialized = FALSE;
-static CID_TABLE KphpCidTable;
-static volatile LONG KphpCidPopulated = 0;
-static KEVENT KphpCidPopulatedEvent;
-
 typedef struct _KPH_CID_APC
 {
     KSI_KAPC Apc;
@@ -27,20 +22,24 @@ typedef struct _KPH_CID_APC
     PKPH_THREAD_CONTEXT Thread;
 } KPH_CID_APC, *PKPH_CID_APC;
 
-static PKPH_NPAGED_LOOKASIDE_OBJECT KphpCidApcLookaside = NULL;
-static UNICODE_STRING KphpCidApcTypeName = RTL_CONSTANT_STRING(L"KphCidApc");
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphpCidApcType = NULL;
-static LARGE_INTEGER KphpCidApcTimeout = KPH_TIMEOUT(3 * 1000);
-
-static UNICODE_STRING KphpProcessContextTypeName = RTL_CONSTANT_STRING(L"KphProcessContext");
-static UNICODE_STRING KphpThreadContextTypeName = RTL_CONSTANT_STRING(L"KphThreadContext");
-
-static PKPH_PAGED_LOOKASIDE_OBJECT KphpProcessContextLookaside = NULL;
-static PKPH_PAGED_LOOKASIDE_OBJECT KphpThreadContextLookaside = NULL;
-
 PKPH_OBJECT_TYPE KphProcessContextType = NULL;
 PKPH_OBJECT_TYPE KphThreadContextType = NULL;
-
+static PKPH_NPAGED_LOOKASIDE_OBJECT KphpCidApcLookaside = NULL;
+static PKPH_PAGED_LOOKASIDE_OBJECT KphpProcessContextLookaside = NULL;
+static PKPH_PAGED_LOOKASIDE_OBJECT KphpThreadContextLookaside = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpCidApcTypeName = RTL_CONSTANT_STRING(L"KphCidApc");
+static const UNICODE_STRING KphpProcessContextTypeName = RTL_CONSTANT_STRING(L"KphProcessContext");
+static const UNICODE_STRING KphpThreadContextTypeName = RTL_CONSTANT_STRING(L"KphThreadContext");
+static const LARGE_INTEGER KphpCidApcTimeout = KPH_TIMEOUT(3 * 1000);
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+static BOOLEAN KphpCidTrackingInitialized = FALSE;
+static CID_TABLE KphpCidTable;
+static volatile LONG KphpCidPopulated = 0;
+static KEVENT KphpCidPopulatedEvent;
 static BOOLEAN KphpLsassIsKnown = FALSE;
 
 PAGED_FILE();
@@ -780,7 +779,7 @@ VOID KphpInitializeThreadContextDynData(
                                    Executive,
                                    KernelMode,
                                    FALSE,
-                                   &KphpCidApcTimeout);
+                                   (PLARGE_INTEGER)&KphpCidApcTimeout);
     if (status != STATUS_SUCCESS)
     {
         NT_ASSERT(status == STATUS_TIMEOUT);

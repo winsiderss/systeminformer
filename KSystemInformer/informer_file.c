@@ -14,14 +14,15 @@
 
 #include <trace.h>
 
-PFLT_FILTER KphFltFilter = NULL;
-
-PAGED_FILE();
-
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpDefaultInstaceName = RTL_CONSTANT_STRING(L"DefaultInstance");
 static const UNICODE_STRING KphpAltitudeName = RTL_CONSTANT_STRING(L"Altitude");
 static const UNICODE_STRING KphpFlagsName = RTL_CONSTANT_STRING(L"Flags");
 static const DWORD KphpFlagsValue = 0;
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+PFLT_FILTER KphFltFilter = NULL;
+
+PAGED_FILE();
 
 /**
  * \brief Invoked when the mini-filter driver is asked to unload.

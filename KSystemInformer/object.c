@@ -14,6 +14,20 @@
 
 #include <trace.h>
 
+typedef struct _KPH_ENUMERATE_PROCESS_HANDLES_CONTEXT
+{
+    PKPH_DYN Dyn;
+    PVOID Buffer;
+    PVOID BufferLimit;
+    PVOID CurrentEntry;
+    ULONG Count;
+    NTSTATUS Status;
+} KPH_ENUMERATE_PROCESS_HANDLES_CONTEXT, *PKPH_ENUMERATE_PROCESS_HANDLES_CONTEXT;
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpEtwRegistrationName = RTL_CONSTANT_STRING(L"EtwRegistration");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+
 _Must_inspect_result_
 PVOID KphObpDecodeObject(
     _In_ PKPH_DYN Dyn,
@@ -55,20 +69,7 @@ ULONG KphObpGetHandleAttributes(
 #endif
 }
 
-
 PAGED_FILE();
-
-static UNICODE_STRING KphpEtwRegistrationName = RTL_CONSTANT_STRING(L"EtwRegistration");
-
-typedef struct _KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT
-{
-    PKPH_DYN Dyn;
-    PVOID Buffer;
-    PVOID BufferLimit;
-    PVOID CurrentEntry;
-    ULONG Count;
-    NTSTATUS Status;
-} KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT, *PKPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT;
 
 /**
  * \brief Gets a pointer to the handle table of a process. On success, acquires
@@ -317,7 +318,7 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
     _In_ PVOID Context
     )
 {
-    PKPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT context;
+    PKPH_ENUMERATE_PROCESS_HANDLES_CONTEXT context;
     KPH_PROCESS_HANDLE handleInfo;
     POBJECT_HEADER objectHeader;
     POBJECT_TYPE objectType;
@@ -422,7 +423,7 @@ NTSTATUS KphEnumerateProcessHandles(
     NTSTATUS status;
     PKPH_DYN dyn;
     PEPROCESS process;
-    KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT context;
+    KPH_ENUMERATE_PROCESS_HANDLES_CONTEXT context;
 
     PAGED_CODE_PASSIVE();
 

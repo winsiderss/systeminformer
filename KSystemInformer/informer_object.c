@@ -15,9 +15,11 @@
 
 #include <trace.h>
 
-PAGED_FILE();
-
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PVOID KphpObRegistrationHandle = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+
+PAGED_FILE();
 
 /**
  * \brief Populates object name in a message for registered object callbacks.
@@ -1023,6 +1025,5 @@ VOID KphObjectInformerStop(
     if (KphpObRegistrationHandle)
     {
         ObUnRegisterCallbacks(KphpObRegistrationHandle);
-        KphpObRegistrationHandle = NULL;
     }
 }

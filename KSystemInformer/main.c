@@ -15,10 +15,12 @@
 
 #include <trace.h>
 
-PDRIVER_OBJECT KphDriverObject = NULL;
-KPH_INFORMER_SETTINGS KphInformerSettings = { 0 };
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const BYTE KphpProtectedSectionReadOnly = 0;
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static BYTE KphpProtectedSection = 0;
+PDRIVER_OBJECT KphDriverObject = NULL;
 RTL_OSVERSIONINFOEXW KphOsVersionInfo = { 0 };
 KPH_FILE_VERSION KphKernelVersion = { 0 };
 BOOLEAN KphIgnoreProtectionsSuppressed = FALSE;
@@ -26,9 +28,7 @@ BOOLEAN KphIgnoreTestSigningEnabled = FALSE;
 SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo = { 0 };
 KPH_PROTECTED_DATA_SECTION_POP();
-KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const BYTE KphpProtectedSectionReadOnly = 0;
-KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_INFORMER_SETTINGS KphInformerSettings = { 0 };
 
 PAGED_FILE();
 
@@ -278,8 +278,6 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
-    KphpProtectSections();
-
     KphInitializeProtection();
 
     status = KphInitializeSigning();
@@ -384,6 +382,8 @@ NTSTATUS DriverEntry(
                       status);
         goto Exit;
     }
+
+    KphpProtectSections();
 
 Exit:
 

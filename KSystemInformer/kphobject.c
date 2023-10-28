@@ -13,16 +13,14 @@
 
 #include <trace.h>
 
+#define KPH_ATOMIC_OBJECT_LOCKED_MASK (((ULONG_PTR)-1) - 1)
+
 //
 // N.B. If more object types are added the array must be expanded.
 //
-
-static volatile LONG KphpObjectTypeCount = 0;
-static KPH_OBJECT_TYPE KphpObjectTypes[11];
-
-#define KPH_ATOMIC_OBJECT_LOCKED_MASK (((ULONG_PTR)-1) - 1)
-
+static KPH_OBJECT_TYPE KphpObjectTypes[11] = { 0 };
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
+static volatile LONG KphpObjectTypeCount = 0;
 
 /**
  * \brief Creates an object type.
@@ -32,9 +30,8 @@ C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
  * \param[in] TypeInfo The information for the type being created.
  * \param[out] ObjectType Set to a pointer to the object type on success.
  */
-VOID
-KphCreateObjectType(
-    _In_ PUNICODE_STRING TypeName,
+VOID KphCreateObjectType(
+    _In_ PCUNICODE_STRING TypeName,
     _In_ PKPH_OBJECT_TYPE_INFO TypeInfo,
     _Outptr_ PKPH_OBJECT_TYPE* ObjectType
     )
@@ -78,8 +75,7 @@ KphCreateObjectType(
  * \return Successful or errant status.
  */
 _Must_inspect_result_
-NTSTATUS
-KphCreateObject(
+NTSTATUS KphCreateObject(
     _In_ PKPH_OBJECT_TYPE ObjectType,
     _In_ ULONG ObjectBodySize,
     _Outptr_result_nullonfailure_ PVOID* Object,
@@ -128,8 +124,7 @@ KphCreateObject(
  *
  * \param[in] Object The object to reference.
  */
-VOID
-KphReferenceObject(
+VOID KphReferenceObject(
     _In_ PVOID Object
     )
 {
@@ -145,8 +140,7 @@ KphReferenceObject(
  *
  * \param[in] Object The object to dereference.
  */
-VOID
-KphDereferenceObject(
+VOID KphDereferenceObject(
     _In_ PVOID Object
     )
 {
@@ -184,8 +178,7 @@ KphDereferenceObject(
  * \return Pointer to the type of object.
  */
 _Must_inspect_result_
-PKPH_OBJECT_TYPE
-KphGetObjectType(
+PKPH_OBJECT_TYPE KphGetObjectType(
     _In_ PVOID Object
     )
 {

@@ -47,8 +47,8 @@ static const KPH_KEY KphpPublicKeys[] =
         }
     }
 };
+static const UNICODE_STRING KphpSigExtension = RTL_CONSTANT_STRING(L".sig");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
-
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static BCRYPT_ALG_HANDLE KphpBCryptSigningProvider = NULL;
 static BCRYPT_KEY_HANDLE KphpPublicKeyHandles[ARRAYSIZE(KphpPublicKeys)] = { 0 };
@@ -56,10 +56,7 @@ static ULONG KphpPublicKeyHandlesCount = 0;
 C_ASSERT(ARRAYSIZE(KphpPublicKeyHandles) == ARRAYSIZE(KphpPublicKeys));
 KPH_PROTECTED_DATA_SECTION_POP();
 
-
 PAGED_FILE();
-
-static UNICODE_STRING KphpSigExtension = RTL_CONSTANT_STRING(L".sig");
 
 /**
  * \brief Initializes verification infrastructure.
@@ -260,7 +257,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyFile(
-    _In_ PUNICODE_STRING FileName
+    _In_ PCUNICODE_STRING FileName
     )
 {
     NTSTATUS status;
