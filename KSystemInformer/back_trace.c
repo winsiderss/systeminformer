@@ -26,11 +26,15 @@ typedef struct _KPH_STACK_BACK_TRACE_OBJECT
     PVOID BackTrace[ANYSIZE_ARRAY];
 } KPH_STACK_BACK_TRACE_OBJECT, *PKPH_STACK_BACK_TRACE_OBJECT;
 
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpStackBackTraceTypeName = RTL_CONSTANT_STRING(L"KphStackBackTrace");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PVOID KphpSelfImageBase = NULL;
 static PVOID KphpSelfImageEnd = NULL;
 static PVOID KphpKsiImageBase = NULL;
 static PVOID KphpKsiImageEnd = NULL;
+static PKPH_OBJECT_TYPE KphpStackBackTraceType = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 //
@@ -207,11 +211,7 @@ Exit:
     return frames;
 }
 
-
 PAGED_FILE();
-
-static UNICODE_STRING KphpStackBackTraceTypeName = RTL_CONSTANT_STRING(L"KphStackBackTrace");
-static PKPH_OBJECT_TYPE KphpStackBackTraceType = NULL;
 
 /**
  * \brief Captures the current stack back trace into a back trace object.

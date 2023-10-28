@@ -19,13 +19,16 @@ typedef struct _KPH_SIGNING_INFRASTRUCTURE
     volatile SIZE_T CatalogsAreLoadedCalls;
 } KPH_SIGNING_INFRASTRUCTURE, *PKPH_SIGNING_INFRASTRUCTURE;
 
-static UNICODE_STRING KphpSigningInfraName = RTL_CONSTANT_STRING(L"KphSigningInfrastructure");
-static PKPH_OBJECT_TYPE KphpSigningInfraType = NULL;
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpSigningInfraName = RTL_CONSTANT_STRING(L"KphSigningInfrastructure");
+static const UNICODE_STRING KphpHalFileName = RTL_CONSTANT_STRING(L"\\SystemRoot\\System32\\hal.dll");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_SIGNING_INFRASTRUCTURE KphpSigningInfra = NULL;
+static PKPH_OBJECT_TYPE KphpSigningInfraType = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
-
-static UNICODE_STRING KphpHalFileName = RTL_CONSTANT_STRING(L"\\SystemRoot\\System32\\hal.dll");
 
 /**
  * \brief Allocates signing infrastructure object.
@@ -556,7 +559,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetSigningInfoByFileName(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_allocatesMem_ PKPH_SIGNING_INFO Info
     )
 {

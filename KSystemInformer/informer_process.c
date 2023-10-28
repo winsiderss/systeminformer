@@ -15,15 +15,17 @@
 
 #include <trace.h>
 
-static PKPH_NPAGED_LOOKASIDE_OBJECT KphpProcesCreateApcLookaside = NULL;
-
-PAGED_FILE();
-
 typedef struct _KPH_PROCESS_CREATE_APC
 {
     KSI_KAPC Apc;
     PKPH_THREAD_CONTEXT Actor;
 } KPH_PROCESS_CREATE_APC, *PKPH_PROCESS_CREATE_APC;
+
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static PKPH_NPAGED_LOOKASIDE_OBJECT KphpProcesCreateApcLookaside = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+
+PAGED_FILE();
 
 /**
  * \brief Allocates the process create APC which is used to track when a thread

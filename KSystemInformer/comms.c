@@ -16,11 +16,26 @@
 
 #include <trace.h>
 
+typedef struct _KPHM_QUEUE_ITEM
+{
+    LIST_ENTRY Entry;
+    BOOLEAN NonPaged;
+    PEPROCESS TargetClientProcess;
+    PKPH_MESSAGE Message;
+} KPHM_QUEUE_ITEM, *PKPHM_QUEUE_ITEM;
+
 #define KPH_COMMS_MIN_QUEUE_THREADS 2
 #define KPH_COMMS_MAX_QUEUE_THREADS 64
 
-static KPH_RUNDOWN KphpCommsRundown;
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpClientObjectName = RTL_CONSTANT_STRING(L"KphClient");
+static const LARGE_INTEGER KphpMessageMinTimeout = KPH_TIMEOUT(300);
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PFLT_PORT KphpFltServerPort = NULL;
+static PKPH_OBJECT_TYPE KphpClientObjectType = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+static KPH_RUNDOWN KphpCommsRundown;
 static PAGED_LOOKASIDE_LIST KphpMessageLookaside;
 static NPAGED_LOOKASIDE_LIST KphpNPagedMessageLookaside;
 static KPH_RWLOCK KphpConnectedClientLock;
@@ -30,23 +45,12 @@ static NPAGED_LOOKASIDE_LIST KphpMessageQueueItemLookaside;
 static KQUEUE KphpMessageQueue;
 static PKTHREAD* KphpMessageQueueThreads = NULL;
 static ULONG KphpMessageQueueThreadsCount = 0;
-static UNICODE_STRING KphpClientObjectName = RTL_CONSTANT_STRING(L"KphClient");
-static PKPH_OBJECT_TYPE KphpClientObjectType = NULL;
-static LARGE_INTEGER KphpMessageMinTimeout = KPH_TIMEOUT(300);
 static KPH_MESSAGE_TIMEOUTS KphpMessageTimeouts =
 {
     .AsyncTimeout = KPH_TIMEOUT(3000),
     .DefaultTimeout = KPH_TIMEOUT(3000),
     .ProcessCreateTimeout = KPH_TIMEOUT(3000),
 };
-
-typedef struct _KPHM_QUEUE_ITEM
-{
-    LIST_ENTRY Entry;
-    BOOLEAN NonPaged;
-    PEPROCESS TargetClientProcess;
-    PKPH_MESSAGE Message;
-} KPHM_QUEUE_ITEM, *PKPHM_QUEUE_ITEM;
 
 /**
  * \brief Allocates a message queue item.
@@ -208,7 +212,6 @@ VOID KphCaptureStackInMessage(
                       status);
     }
 }
-
 
 PAGED_FILE();
 
@@ -1526,8 +1529,6 @@ VOID KphCommsStop(
     KphDeletePagedLookaside(&KphpMessageLookaside);
 
     KphDeleteRWLock(&KphpConnectedClientLock);
-
-    KphpFltServerPort = NULL;
 }
 
 /**

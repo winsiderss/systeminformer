@@ -14,6 +14,11 @@
 
 #include <trace.h>
 
+#define KPH_STACK_COPY_BYTES 0x200
+#define KPH_POOL_COPY_BYTES 0x10000
+#define KPH_MAPPED_COPY_PAGES 14
+#define KPH_POOL_COPY_THRESHOLD 0x3ff
+
 /**
  * \brief Queries information on mappings for a given section object.
  *
@@ -178,13 +183,7 @@ Exit:
     return status;
 }
 
-
 PAGED_FILE();
-
-#define KPH_STACK_COPY_BYTES 0x200
-#define KPH_POOL_COPY_BYTES 0x10000
-#define KPH_MAPPED_COPY_PAGES 14
-#define KPH_POOL_COPY_THRESHOLD 0x3ff
 
 /**
  * \brief Copies out the bad address from a virtual memory flavored exception.

@@ -13,38 +13,38 @@
 
 #include <trace.h>
 
-PAGED_FILE();
-
 typedef struct _KPH_HTTP_RESPONSE_CODE_ENTRY
 {
     ANSI_STRING Text;
     USHORT StatusCode;
 } KPH_HTTP_RESPONSE_CODE_ENTRY, *PKPH_HTTP_RESPONSE_CODE_ENTRY;
+typedef const KPH_HTTP_RESPONSE_CODE_ENTRY* PCKPH_HTTP_RESPONSE_CODE_ENTRY;
 
 typedef struct _KPH_HTTP_VERSION_ENTRY
 {
     ANSI_STRING Text;
     KPH_HTTP_VERSION Version;
 } KPH_HTTP_VERSION_ENTRY, *PKPH_HTTP_VERSION_ENTRY;
+typedef const KPH_HTTP_VERSION_ENTRY* PCKPH_HTTP_VERSION_ENTRY;
 
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 //
 // Supported HTTP Protocol Versions
 // We do not yet support HTTP/2.0 or HTTP/3.0. The processing of the protocol
 // streams will introduce significant complexity and is left for future work.
 //
-static KPH_HTTP_VERSION_ENTRY KphpHttpVersions[] =
+static const KPH_HTTP_VERSION_ENTRY KphpHttpVersions[] =
 {
     { RTL_CONSTANT_STRING("HTTP/1.0"), KphHttpVersion10 },
     { RTL_CONSTANT_STRING("HTTP/1.1"), KphHttpVersion11 },
 };
-
 //
 // Known and Supported HTTP Response Codes
 // We are explicit about the status codes to help ensure we're consuming valid
 // information. The preceding space is intentional for efficient parsing by
 // aligning to 4-bytes.
 //
-static KPH_HTTP_RESPONSE_CODE_ENTRY KphpHttpResponseCodes[] =
+static const KPH_HTTP_RESPONSE_CODE_ENTRY KphpHttpResponseCodes[] =
 {
 { RTL_CONSTANT_STRING(" 100"), 100 }, // Continue
 { RTL_CONSTANT_STRING(" 101"), 101 }, // Switching Protocols
@@ -110,19 +110,20 @@ static KPH_HTTP_RESPONSE_CODE_ENTRY KphpHttpResponseCodes[] =
 { RTL_CONSTANT_STRING(" 510"), 510 }, // Not Extended
 { RTL_CONSTANT_STRING(" 511"), 511 }, // Network Authentication Required
 };
-
 //
 // HTTP Line Ending
 // The specification is explicit about CRLF being the standard.
 //
-static ANSI_STRING KphpHttpHeaderLineEnding = RTL_CONSTANT_STRING("\r\n");
-
+static const ANSI_STRING KphpHttpHeaderLineEnding = RTL_CONSTANT_STRING("\r\n");
 //
 // HTTP Header Separator
 // The specification is not explicit about the header separator, but it is
 // common practice to use a colon and single space.
 //
-static ANSI_STRING KphpHttpHeaderItemSeparator = RTL_CONSTANT_STRING(": ");
+static const ANSI_STRING KphpHttpHeaderItemSeparator = RTL_CONSTANT_STRING(": ");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+
+PAGED_FILE();
 
 /**
  * \brief Trims whitespace from the beginning and end of a string.
@@ -230,7 +231,7 @@ NTSTATUS KphpHttpParseResponseStatusLine(
 
     for (ULONG i = 0; i < ARRAYSIZE(KphpHttpVersions); i++)
     {
-        PKPH_HTTP_VERSION_ENTRY versionEntry;
+        PCKPH_HTTP_VERSION_ENTRY versionEntry;
 
         versionEntry = &KphpHttpVersions[i];
 
@@ -261,7 +262,7 @@ NTSTATUS KphpHttpParseResponseStatusLine(
 
     for (ULONG i = 0; i < ARRAYSIZE(KphpHttpResponseCodes); i++)
     {
-        PKPH_HTTP_RESPONSE_CODE_ENTRY codeEntry;
+        PCKPH_HTTP_RESPONSE_CODE_ENTRY codeEntry;
 
         codeEntry = &KphpHttpResponseCodes[i];
 
@@ -744,11 +745,11 @@ Exit:
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHttpBuildRequest(
-    _In_ PANSI_STRING Method,
-    _In_ PANSI_STRING Host,
-    _In_ PANSI_STRING Path,
-    _In_ PANSI_STRING Parameters,
-    _In_opt_ PKPH_HTTP_HEADER_ITEM HeaderItems,
+    _In_ const ANSI_STRING* Method,
+    _In_ const ANSI_STRING* Host,
+    _In_ const ANSI_STRING* Path,
+    _In_ const ANSI_STRING* Parameters,
+    _In_opt_ PCKPH_HTTP_HEADER_ITEM HeaderItems,
     _In_ ULONG HeaderItemCount,
     _In_opt_ PVOID Body,
     _In_ ULONG BodyLength,
@@ -797,7 +798,7 @@ NTSTATUS KphHttpBuildRequest(
     {
         for (ULONG i = 0; i < HeaderItemCount; i++)
         {
-            PKPH_HTTP_HEADER_ITEM item;
+            PCKPH_HTTP_HEADER_ITEM item;
 
             item = &HeaderItems[i];
 

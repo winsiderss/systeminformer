@@ -21,14 +21,16 @@ typedef struct _KPH_DOWNLOAD_CONTEXT
     KPH_TLS_HANDLE Tls;
 } KPH_DOWNLOAD_CONTEXT, *PKPH_DOWNLOAD_CONTEXT;
 
-static UNICODE_STRING KphpDownloadPort = RTL_CONSTANT_STRING(L"443");
-static ANSI_STRING KphpDownloadHttpMethod = RTL_CONSTANT_STRING("GET");
-static ANSI_STRING KphpDownloadHeaderLocation = RTL_CONSTANT_STRING("Location");
-static KPH_HTTP_HEADER_ITEM KphpDownloadHeaders[] =
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpDownloadPort = RTL_CONSTANT_STRING(L"443");
+static const ANSI_STRING KphpDownloadHttpMethod = RTL_CONSTANT_STRING("GET");
+static const ANSI_STRING KphpDownloadHeaderLocation = RTL_CONSTANT_STRING("Location");
+static const KPH_HTTP_HEADER_ITEM KphpDownloadHeaders[] =
 {
 { RTL_CONSTANT_STRING("Accept"),     RTL_CONSTANT_STRING("application/octet-stream") },
 { RTL_CONSTANT_STRING("Connection"), RTL_CONSTANT_STRING("close") },
 };
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 /**
  * \brief Closes the download context, shutting down TLS and closing the socket

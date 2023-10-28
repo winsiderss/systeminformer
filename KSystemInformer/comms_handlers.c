@@ -61,7 +61,6 @@ KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsCreateFileRequires);
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-
 const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 {
 { InvalidKphMsg,                       NULL,                                   NULL },
@@ -100,9 +99,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgGetConnectedClientCount,       KphpCommsGetConnectedClientCount,       KphpCommsRequireLow },
 { KphMsgActivateDynData,               KphpCommsActivateDynData,               KphpCommsRequireLow },
 };
-
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
-
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 PAGED_FILE();

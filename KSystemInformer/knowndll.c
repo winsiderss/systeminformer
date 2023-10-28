@@ -13,13 +13,6 @@
 
 #include <trace.h>
 
-KPH_PROTECTED_DATA_SECTION_PUSH();
-PVOID KphNtDllBaseAddress = NULL;
-PVOID KphNtDllRtlSetBits = NULL;
-KPH_PROTECTED_DATA_SECTION_POP();
-
-PAGED_FILE();
-
 typedef struct _KPH_KNOWN_DLL_EXPORT
 {
     PCHAR Name;
@@ -33,12 +26,14 @@ typedef struct _KPH_KNOWN_DLL_INFORMATION
     PKPH_KNOWN_DLL_EXPORT Exports;
 } KPH_KNOWN_DLL_INFORMATION, *PKPH_KNOWN_DLL_INFORMATION;
 
+KPH_PROTECTED_DATA_SECTION_PUSH();
+PVOID KphNtDllBaseAddress = NULL;
+PVOID KphNtDllRtlSetBits = NULL;
 static KPH_KNOWN_DLL_EXPORT KphpNtDllExports[] =
 {
     { "RtlSetBits", &KphNtDllRtlSetBits },
     { NULL, NULL }
 };
-
 static KPH_KNOWN_DLL_INFORMATION KphpKnownDllInformation[] =
 {
     {
@@ -47,6 +42,9 @@ static KPH_KNOWN_DLL_INFORMATION KphpKnownDllInformation[] =
         KphpNtDllExports
     }
 };
+KPH_PROTECTED_DATA_SECTION_POP();
+
+PAGED_FILE();
 
 /**
  * \brief Populates known DLL information.

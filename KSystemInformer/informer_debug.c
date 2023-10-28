@@ -30,7 +30,7 @@ static BOOLEAN KphpDbgPrintInitialized = FALSE;
 static KSPIN_LOCK KphpDbgPrintLock;
 static ULONG KphpDbgPrintSlotNext = 0;
 static ULONG KphpDbgPrintSlotCount = 0;
-static PKPH_DBG_PRINT_SLOT KphpDbgPrintSlots;
+static PKPH_DBG_PRINT_SLOT KphpDbgPrintSlots = NULL;
 
 /**
  * \brief Flushes the debug print slots to the communication port.

@@ -20,13 +20,17 @@ typedef struct _KPH_HASHING_INFRASTRUCTURE
     BCRYPT_ALG_HANDLE BCryptSha256Provider;
 } KPH_HASHING_INFRASTRUCTURE, *PKPH_HASHING_INFRASTRUCTURE;
 
-static UNICODE_STRING KphpHashingInfraName = RTL_CONSTANT_STRING(L"KphHashingInfrastructure");
-static PKPH_OBJECT_TYPE KphpHashingInfraType = NULL;
+#define KPH_HASHING_BUFFER_SIZE (16 * 1024)
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpHashingInfraName = RTL_CONSTANT_STRING(L"KphHashingInfrastructure");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_HASHING_INFRASTRUCTURE KphpHashingInfra = NULL;
+static PKPH_OBJECT_TYPE KphpHashingInfraType = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
-
-#define KPH_HASHING_BUFFER_SIZE (16 * 1024)
 
 /**
  * \brief Allocates hashing infrastructure object.
@@ -596,7 +600,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHashFileByName(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _In_ ALG_ID AlgorithmId,
     _Out_ PKPH_HASH Hash
     )
@@ -611,7 +615,7 @@ NTSTATUS KphHashFileByName(
     RtlZeroMemory(Hash, sizeof(*Hash));
 
     InitializeObjectAttributes(&objectAttributes,
-                               FileName,
+                               (PUNICODE_STRING)FileName,
                                OBJ_KERNEL_HANDLE,
                                NULL,
                                NULL);
@@ -1038,7 +1042,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetAuthenticodeInfoByFileName(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
     )
 {
@@ -1052,7 +1056,7 @@ NTSTATUS KphGetAuthenticodeInfoByFileName(
     RtlZeroMemory(Info, sizeof(*Info));
 
     InitializeObjectAttributes(&objectAttributes,
-                               FileName,
+                               (PUNICODE_STRING)FileName,
                                OBJ_KERNEL_HANDLE,
                                NULL,
                                NULL);

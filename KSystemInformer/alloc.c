@@ -13,21 +13,21 @@
 
 #include <trace.h>
 
-static PKPH_OBJECT_TYPE KphpPagedLookasideObjectType = NULL;
-static UNICODE_STRING KphpPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphPagedLookaside");
-
-static PKPH_OBJECT_TYPE KphpNPagedLookasideObjectType = NULL;
-static UNICODE_STRING KphpNPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphNPagedLookaside");
-
-KPH_PROTECTED_DATA_SECTION_PUSH();
-static ULONG KphpRandomPoolTag = 0;
-KPH_PROTECTED_DATA_SECTION_POP();
-
 typedef struct _KPH_LOOKASIDE_INIT
 {
     SIZE_T Size;
     ULONG Tag;
 } KPH_LOOKASIDE_INIT, *PKPH_LOOKASIDE_INIT;
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphPagedLookaside");
+static const UNICODE_STRING KphpNPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphNPagedLookaside");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static PKPH_OBJECT_TYPE KphpPagedLookasideObjectType = NULL;
+static PKPH_OBJECT_TYPE KphpNPagedLookasideObjectType = NULL;
+static ULONG KphpRandomPoolTag = 0;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 /**
  * \brief Allocates non-page-able memory.
@@ -333,7 +333,6 @@ VOID KphFreeToNPagedLookasideObject(
 
     KphFreeToNPagedLookaside((PNPAGED_LOOKASIDE_LIST)Lookaside, Memory);
 }
-
 
 PAGED_FILE();
 

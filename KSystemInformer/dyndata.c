@@ -21,9 +21,13 @@ typedef union _KPH_DYN_ATOMIC
     KPH_ATOMIC_OBJECT_REF Atomic;
 } KPH_DYN_ATOMIC, *PKPH_DYN_ATOMIC;
 
-static KPH_DYN_ATOMIC KphpDynData = { .Atomic = KPH_ATOMIC_OBJECT_REF_INIT };
-static UNICODE_STRING KphpDynDataTypeName = RTL_CONSTANT_STRING(L"KphDynData");
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpDynDataTypeName = RTL_CONSTANT_STRING(L"KphDynData");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphDynDataType = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+static KPH_DYN_ATOMIC KphpDynData = { .Atomic = KPH_ATOMIC_OBJECT_REF_INIT };
 
 /**
  * \brief Reference the dynamic configuration.
@@ -50,7 +54,6 @@ VOID KSIAPI KphpFreeDynData(
 {
     KphFree(Object, KPH_TAG_DYNDATA);
 }
-
 
 PAGED_FILE();
 
