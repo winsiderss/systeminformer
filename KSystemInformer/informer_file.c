@@ -135,7 +135,7 @@ NTSTATUS KphFltRegister(
                                &returnLength);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ObQueryNameString failed: %!STATUS!",
                       status);
@@ -146,7 +146,7 @@ NTSTATUS KphFltRegister(
     {
         if (i == 1)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Driver object name is invalid");
 
@@ -177,7 +177,7 @@ NTSTATUS KphFltRegister(
     status = RtlAppendUnicodeStringToString(&keyName, RegistryPath);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "RtlAppendUnicodeStringToString failed: %!STATUS!",
                       status);
@@ -188,7 +188,7 @@ NTSTATUS KphFltRegister(
     status = RtlAppendUnicodeToString(&keyName, L"\\Instances");
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "RtlAppendUnicodeToString failed: %!STATUS!",
                       status);
@@ -211,7 +211,7 @@ NTSTATUS KphFltRegister(
                          NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ZwCreateKey failed: %!STATUS!",
                       status);
@@ -233,7 +233,7 @@ NTSTATUS KphFltRegister(
                            objectInfo->Name.Length + sizeof(WCHAR));
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ZwSetValueKey failed: %!STATUS!",
                       status);
@@ -244,7 +244,7 @@ NTSTATUS KphFltRegister(
     status = RtlAppendUnicodeToString(&keyName, L"\\");
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "RtlAppendUnicodeToString failed: %!STATUS!",
                       status);
@@ -255,7 +255,7 @@ NTSTATUS KphFltRegister(
     status = RtlAppendUnicodeStringToString(&keyName, &objectInfo->Name);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "RtlAppendUnicodeStringToString failed: %!STATUS!",
                       status);
@@ -278,7 +278,7 @@ NTSTATUS KphFltRegister(
                          NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ZwCreateKey failed: %!STATUS!",
                       status);
@@ -298,7 +298,7 @@ NTSTATUS KphFltRegister(
                            KphAltitude->Length + sizeof(WCHAR));
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ZwSetValueKey failed: %!STATUS!",
                       status);
@@ -314,7 +314,7 @@ NTSTATUS KphFltRegister(
                            sizeof(KphpFlagsValue));
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ZwSetValueKey failed: %!STATUS!",
                       status);
@@ -327,7 +327,7 @@ NTSTATUS KphFltRegister(
                                &KphFltFilter);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "FltRegisterFilter failed: %!STATUS!",
                       status);
@@ -339,7 +339,7 @@ NTSTATUS KphFltRegister(
     status = KphCommsStart();
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "KphCommsStart failed: %!STATUS!",
                       status);

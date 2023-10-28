@@ -89,7 +89,7 @@ PVOID KphpGetRoutineAddressByModuleList(
     {
         KeLeaveCriticalRegion();
 
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Failed to acquire PsLoadedModuleResource to "
                       "get routine %ls!%hs",
@@ -124,7 +124,7 @@ PVOID KphpGetRoutineAddressByModuleList(
 
     if (!routine)
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Failed to find routine %ls!%hs",
                       ModuleName,

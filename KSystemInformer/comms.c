@@ -139,7 +139,7 @@ VOID KphCommsSendNPagedMessageAsync(
 
     if (!KphAcquireRundown(&KphpCommsRundown))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
                       "Failed to acquire rundown, dropping message (%lu - %!TIME!)",
                       (ULONG)Message->Header.MessageId,
@@ -152,7 +152,7 @@ VOID KphCommsSendNPagedMessageAsync(
     item = KphpAllocateMessageQueueItem();
     if (!item)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
                       "Failed to allocate queue item, dropping message (%lu - %!TIME!)",
                       (ULONG)Message->Header.MessageId,
@@ -206,7 +206,7 @@ VOID KphCaptureStackInMessage(
     status = KphMsgDynAddStackTrace(Message, KphMsgFieldStackTrace, &stack);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "KphMsgDynAddStackTrace failed: %!STATUS!",
                       status);
@@ -291,7 +291,7 @@ VOID KSIAPI KphpDeleteClientObject(
         status = KphReleaseDriverUnloadProtection(NULL);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           COMMS,
                           "KphReleaseDriverUnloadProtection failed: %!STATUS!",
                           status);
@@ -361,7 +361,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
 
     if (!KphSinglePrivilegeCheck(SeDebugPrivilege, UserMode))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "KphSinglePrivilegeCheck failed %lu",
                       HandleToULong(PsGetCurrentProcessId()));
@@ -373,7 +373,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
     process = KphGetCurrentProcessContext();
     if (!process)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "Untracked process %lu",
                       HandleToULong(PsGetCurrentProcessId()));
@@ -402,7 +402,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
                              process);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "Failed to allocate client object");
 
@@ -497,7 +497,7 @@ VOID KphpSendRequiredStateFailure(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
         return;
@@ -574,7 +574,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
         OutputBuffer ||
         (OutputBufferLength > 0))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "Client message input invalid");
 
@@ -585,7 +585,9 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, COMMS, "Failed to allocate message");
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      COMMS,
+                      "Failed to allocate message");
 
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
@@ -605,7 +607,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     status = KphMsgValidate(msg);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "KphMsgValidate failed: %!STATUS!",
                       status);
@@ -635,7 +637,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
         (msg->Header.MessageId >= MaxKphMsgClient) ||
         ((ULONG)msg->Header.MessageId >= KphCommsMessageHandlerCount))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
                       "Client message ID invalid: %lu",
                       (ULONG)msg->Header.MessageId);
@@ -766,7 +768,7 @@ NTSTATUS KphpBuildCommsSecurityDescriptor(
                                                FLT_PORT_ALL_ACCESS);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "FltBuildDefaultSecurityDescriptor failed: %!STATUS!",
                       status);
@@ -921,7 +923,7 @@ NTSTATUS KphpFltSendMessage(
     status = FltObjectReference(KphFltFilter);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "FltObjectReference failed: %!STATUS!",
                       status);
@@ -972,7 +974,7 @@ VOID KphpCommsSendMessageAsync(
 
     if (!KphAcquireRundown(&KphpCommsRundown))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
                       "Failed to acquire rundown, dropping message (%lu - %!TIME!)",
                       (ULONG)Message->Header.MessageId,
@@ -985,7 +987,7 @@ VOID KphpCommsSendMessageAsync(
     item = KphpAllocateMessageQueueItem();
     if (!item)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_WARNING,
                       COMMS,
                       "Failed to allocate queue item, dropping message (%lu - %!TIME!)",
                       (ULONG)Message->Header.MessageId,
@@ -1096,7 +1098,7 @@ NTSTATUS KphpCommsSendMessage(
             // client will not be permitted to reply but will still have
             // visibility.
             //
-            KphTracePrint(TRACE_LEVEL_INFORMATION,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           COMMS,
                           "Bottleneck protection, forcing asynchronous send "
                           "(%lu - %!TIME!) to client: %wZ (%lu)",
@@ -1111,7 +1113,7 @@ NTSTATUS KphpCommsSendMessage(
             async = KphAllocateMessage();
             if (!async)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               COMMS,
                               "Failed to allocate message");
 
@@ -1162,7 +1164,7 @@ NTSTATUS KphpCommsSendMessage(
             status2 = KphMsgValidate(reply);
             if (!NT_SUCCESS(status2))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_WARNING,
                               COMMS,
                               "Received invalid reply from client: %wZ (%lu)",
                               &client->Process->ImageName,
@@ -1215,7 +1217,7 @@ VOID KphpMessageQueueThread (
         if ((status == STATUS_TIMEOUT) ||
             (status == STATUS_USER_APC))
         {
-            KphTracePrint(TRACE_LEVEL_INFORMATION,
+            KphTracePrint(TRACE_LEVEL_ERROR,
                           COMMS,
                           "Unexpected queue status: %!STATUS!",
                           status);
@@ -1325,7 +1327,7 @@ NTSTATUS KphCommsStart(
                                                KPH_TAG_THREAD_POOL);
     if (!KphpMessageQueueThreads)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "Failed to allocate queue threads array");
 
@@ -1353,7 +1355,7 @@ NTSTATUS KphCommsStart(
                                       NULL);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           COMMS,
                           "PsCreateSystemThread failed: %!STATUS!",
                           status);
@@ -1376,7 +1378,7 @@ NTSTATUS KphCommsStart(
     status = KphpBuildCommsSecurityDescriptor(&securityDescriptor);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "KphpBuildCommsSecurityDescriptor failed: %!STATUS!",
                       status);
@@ -1400,7 +1402,7 @@ NTSTATUS KphCommsStart(
                                         LONG_MAX);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       COMMS,
                       "FltCreateCommunicationPort failed: %!STATUS!",
                       status);

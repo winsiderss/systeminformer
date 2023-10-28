@@ -66,7 +66,7 @@ NTSTATUS KphpQuerySectionMappings(
     controlArea = *(PVOID*)Add2Ptr(SectionObject, dyn->MmSectionControlArea);
     if ((ULONG_PTR)controlArea & 3)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Section remote mappings not supported.");
 
@@ -77,7 +77,7 @@ NTSTATUS KphpQuerySectionMappings(
     controlArea = (PVOID)((ULONG_PTR)controlArea & ~3);
     if (!controlArea)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Section control area is null.");
 
@@ -98,7 +98,7 @@ NTSTATUS KphpQuerySectionMappings(
         (listHead->Flink->Blink != listHead) ||
         (listHead->Blink->Flink != listHead))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Section unexpected control area links.");
 
@@ -117,7 +117,7 @@ NTSTATUS KphpQuerySectionMappings(
                              &returnLength);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "RtlULongAdd failed: %!STATUS!",
                           status);
@@ -580,7 +580,7 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
             {
                 KeLeaveCriticalRegion();
 
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Failed to acquire PsLoadedModuleResource");
 
@@ -755,7 +755,7 @@ NTSTATUS KphQuerySection(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);

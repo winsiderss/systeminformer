@@ -201,7 +201,7 @@ NTSTATUS KphpShouldSuppressObjectProtections(
                                                NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphQueryInformationProcessContext failed: %!STATUS!",
                       status);
@@ -376,7 +376,7 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
                                                  &suppress);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphpShouldSuppressObjectProtections failed: %!STATUS!",
                       status);
@@ -414,7 +414,7 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
 
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphEnumerateProcessHandlesEx failed: %!STATUS!",
                       status);
@@ -931,7 +931,7 @@ VOID NTAPI KphpImageLoadKernelNormalRoutine(
 
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "ZwUnmapViewOfSection failed (%wZ (%lu), %p): %!STATUS!",
                       &apc->Process->ImageName,
@@ -1043,7 +1043,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
                              &init);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphCreateObject failed: %!STATUS!",
                       status);
@@ -1068,7 +1068,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
 
     if (!KsiInsertQueueApc(&secondApc->Apc, secondApc, NULL, IO_NO_INCREMENT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KsiInsertQueueApc failed");
 
@@ -1142,7 +1142,10 @@ VOID KphpHandleUntrustedImageLoad(
     actor = KphGetCurrentThreadContext();
     if (!actor || !actor->ProcessContext)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, PROTECTION, "Insufficient tracking.");
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Insufficient tracking.");
+
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
@@ -1150,7 +1153,7 @@ VOID KphpHandleUntrustedImageLoad(
     status = KphCheckProcessApcNoopRoutine(actor->ProcessContext);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphCheckProcessApcNoopRoutine failed: %!STATUS!",
                       status);
@@ -1159,7 +1162,7 @@ VOID KphpHandleUntrustedImageLoad(
 
     if (ImageBase > MmHighestUserAddress)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, PROTECTION, "Invalid image base!");
+        KphTracePrint(TRACE_LEVEL_VERBOSE, PROTECTION, "Invalid image base!");
 
         //
         // This isn't an error, we just check for safety downstream.
@@ -1177,7 +1180,7 @@ VOID KphpHandleUntrustedImageLoad(
                              &init);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphCreateObject failed: %!STATUS!",
                       status);
@@ -1198,7 +1201,7 @@ VOID KphpHandleUntrustedImageLoad(
 
     if (!KsiInsertQueueApc(&apc->Apc, NULL, NULL, IO_NO_INCREMENT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KsiInsertQueueApc failed");
 
@@ -1480,7 +1483,7 @@ VOID KphpApplyImageProtectionsApcsDisabled(
                              &init);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphCreateObject failed: %!STATUS!",
                       status);
@@ -1504,7 +1507,7 @@ VOID KphpApplyImageProtectionsApcsDisabled(
 
     if (!KsiInsertQueueApc(&apc->Apc, apc, NULL, IO_NO_INCREMENT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KsiInsertQueueApc failed");
 
@@ -1624,7 +1627,7 @@ NTSTATUS KphAcquireDriverUnloadProtection(
                                  &previousCount);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphAcquireReference failed: %!STATUS!",
                       status);
@@ -1693,7 +1696,7 @@ NTSTATUS KphReleaseDriverUnloadProtection(
                                  &previousCount);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
                       "KphReleaseReference failed: %!STATUS!",
                       status);

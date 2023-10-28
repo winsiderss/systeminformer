@@ -276,7 +276,7 @@ NTSTATUS KphpAlpcCommunicationInfo(
                                                  &clientPort);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphpReferenceAlpcCommunicationPorts failed: %!STATUS!",
                       status);
@@ -463,7 +463,7 @@ NTSTATUS KphpAlpcCommunicationNamesInfo(
                                                  &clientPort);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphpReferenceAlpcCommunicationPorts failed: %!STATUS!",
                       status);
@@ -630,7 +630,7 @@ NTSTATUS KphAlpcQueryInformation(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -663,7 +663,7 @@ NTSTATUS KphAlpcQueryInformation(
     KeUnstackDetachProcess(&apcState);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -695,7 +695,7 @@ NTSTATUS KphAlpcQueryInformation(
             status = KphpAlpcBasicInfo(dyn, port, &info);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "KphpAlpcBasicInfo failed: %!STATUS!",
                               status);
@@ -736,7 +736,7 @@ NTSTATUS KphAlpcQueryInformation(
             status = KphpAlpcCommunicationInfo(dyn, port, &info);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "KphpAlpcCommunicationInfo failed: %!STATUS!",
                               status);
@@ -797,7 +797,7 @@ NTSTATUS KphAlpcQueryInformation(
                                                     &returnLength);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "KphpAlpcCommunicationNamesInfo failed: %!STATUS!",
                               status);

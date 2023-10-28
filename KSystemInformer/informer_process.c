@@ -124,7 +124,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     process = KphTrackProcessContext(Process);
     if (!process)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "Failed to track process %lu",
                       HandleToULong(ProcessId));
@@ -195,7 +195,7 @@ VOID KphpCreateProcessNotifyInformer(
         msg = KphAllocateMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
@@ -204,7 +204,7 @@ VOID KphpCreateProcessNotifyInformer(
         reply = KphAllocateMessage();
         if (!reply)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
@@ -224,7 +224,7 @@ VOID KphpCreateProcessNotifyInformer(
                                                Process->ImageFileName);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               INFORMER,
                               "KphMsgDynAddUnicodeString failed: %!STATUS!",
                               status);
@@ -238,7 +238,7 @@ VOID KphpCreateProcessNotifyInformer(
                                                CreateInfo->CommandLine);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               INFORMER,
                               "KphMsgDynAddUnicodeString failed: %!STATUS!",
                               status);
@@ -253,7 +253,7 @@ VOID KphpCreateProcessNotifyInformer(
         status = KphCommsSendMessage(msg, reply);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to send message (%lu): %!STATUS!",
                           (ULONG)msg->Header.MessageId,
@@ -277,7 +277,7 @@ VOID KphpCreateProcessNotifyInformer(
         msg = KphAllocateMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
@@ -431,13 +431,13 @@ VOID KphpPerformProcessCreationTracking(
     actor = KphGetCurrentThreadContext();
     if (!actor || !actor->ProcessContext)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "Insufficient tracking.");
+        KphTracePrint(TRACE_LEVEL_VERBOSE, TRACKING, "Insufficient tracking.");
         goto Exit;
     }
 
     if (actor->ProcessContext->IsSubsystemProcess)
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "Skipping for subsystem process.");
         goto Exit;
@@ -446,7 +446,7 @@ VOID KphpPerformProcessCreationTracking(
     status = KphCheckProcessApcNoopRoutine(actor->ProcessContext);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "KphCheckProcessApcNoopRoutine failed: %!STATUS!",
                       status);
@@ -456,7 +456,7 @@ VOID KphpPerformProcessCreationTracking(
     apc = KphpAllocateProcessCreateApc();
     if (!apc)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "Failed to allocate create process APC");
 
@@ -481,7 +481,7 @@ VOID KphpPerformProcessCreationTracking(
 
     if (!KsiInsertQueueApc(&apc->Apc, NULL, NULL, IO_NO_INCREMENT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "KsiInsertQueueApc failed");
+        KphTracePrint(TRACE_LEVEL_VERBOSE, TRACKING, "KsiInsertQueueApc failed");
 
         //
         // No choice other than to reset the actor state immediately.
@@ -566,7 +566,7 @@ NTSTATUS KphProcessInformerStart(
                                             KPH_TAG_PROCESS_CREATE_APC);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "KphCreateNPagedLookasideObject failed: %!STATUS!",
                       status);
@@ -582,7 +582,7 @@ NTSTATUS KphProcessInformerStart(
                                                           FALSE);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to register process notify routine: %!STATUS!",
                           status);
@@ -596,7 +596,7 @@ NTSTATUS KphProcessInformerStart(
                                                    FALSE);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to register process notify routine: %!STATUS!",
                           status);

@@ -218,7 +218,7 @@ NTSTATUS KphpHttpParseResponseStatusLine(
                           KphpHttpHeaderLineEnding.Length);
     if (!end)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Failed to find HTTP line ending.");
 
@@ -253,7 +253,7 @@ NTSTATUS KphpHttpParseResponseStatusLine(
 
     if (*Version == InvalidKphHttpVersion)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Unsupported HTTP version.");
 
@@ -284,7 +284,7 @@ NTSTATUS KphpHttpParseResponseStatusLine(
 
     if (*StatusCode == 0)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Failed to locate known HTTP status code.");
 
@@ -295,7 +295,7 @@ NTSTATUS KphpHttpParseResponseStatusLine(
                                  &StatusMessage->Length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "RtlULongPtrToUShort failed: %!STATUS!",
                       status);
@@ -308,7 +308,7 @@ NTSTATUS KphpHttpParseResponseStatusLine(
                                  &StatusMessage->Length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "RtlULongPtrToUShort failed: %!STATUS!",
                       status);
@@ -360,7 +360,7 @@ NTSTATUS KphpHttpParseResponseHeaderLine(
                           KphpHttpHeaderLineEnding.Length);
     if (!end)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Failed to find HTTP line ending.");
 
@@ -389,7 +389,7 @@ NTSTATUS KphpHttpParseResponseHeaderLine(
                                      &Item->Key.Length);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "RtlULongPtrToUShort failed: %!STATUS!",
                           status);
@@ -405,7 +405,7 @@ NTSTATUS KphpHttpParseResponseHeaderLine(
                                      &Item->Value.Length);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "RtlULongPtrToUShort failed: %!STATUS!",
                           status);
@@ -421,7 +421,7 @@ NTSTATUS KphpHttpParseResponseHeaderLine(
                                      &Item->Value.Length);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "RtlULongPtrToUShort failed: %!STATUS!",
                           status);
@@ -438,7 +438,7 @@ NTSTATUS KphpHttpParseResponseHeaderLine(
         status = RtlULongToUShort(Length, &Item->Key.Length);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "RtlULongToUShort failed: %!STATUS!",
                           status);
@@ -509,7 +509,7 @@ NTSTATUS KphpHttpParseResponseHeaders(
                                                  &parsedLength);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphpHttpParseResponseHeaderLine failed: %!STATUS!",
                           status);
@@ -613,7 +613,7 @@ NTSTATUS KphHttpParseResponse(
                                              &parsedLength);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphpHttpParseResponseStatusLine failed: %!STATUS!",
                       status);
@@ -638,7 +638,7 @@ NTSTATUS KphHttpParseResponse(
     {
         NT_ASSERT(!NT_SUCCESS(status));
 
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphpHttpParseResponseHeaders failed: %!STATUS!",
                       status);
@@ -659,7 +659,7 @@ NTSTATUS KphHttpParseResponse(
     response = KphAllocatePaged(needed, KPH_TAG_HTTP_RESPONSE);
     if (!response)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Failed to allocate response object.");
 
@@ -681,7 +681,7 @@ NTSTATUS KphHttpParseResponse(
                                           &parsedLength);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphpHttpParseResponseHeaders failed: %!STATUS!",
                       status);

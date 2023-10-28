@@ -72,7 +72,7 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
     thread = KphTrackThreadContext(Thread);
     if (!thread)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "Failed to track thread %lu in process %lu",
                       HandleToULong(ThreadId),
@@ -130,7 +130,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg = KphAllocateMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
@@ -152,7 +152,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg = KphAllocateMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
@@ -174,7 +174,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg = KphAllocateMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
@@ -318,7 +318,7 @@ NTSTATUS KphThreadInformerStart(
                                               (PVOID)KphpCreateThreadNotifyRoutine);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to register thread notify routine: %!STATUS!",
                       status);
@@ -329,7 +329,7 @@ NTSTATUS KphThreadInformerStart(
                                               (PVOID)KphpExecuteThreadNotifyRoutine);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to register thread notify routine: %!STATUS!",
                       status);

@@ -70,7 +70,7 @@ NTSTATUS KphSystemControl(
                                               NULL);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ZwQuerySystemInformation failed: %!STATUS!",
                               status);
@@ -80,7 +80,7 @@ NTSTATUS KphSystemControl(
 
             if (compressionInfo.CompressionPid == 0)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Compression PID is zero");
 
@@ -103,7 +103,7 @@ NTSTATUS KphSystemControl(
                                    &clientId);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ZwOpenProcess failed: %!STATUS!",
                               status);
@@ -122,7 +122,7 @@ NTSTATUS KphSystemControl(
                                              sizeof(quotaLimits));
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ZwSetInformationProcess failed: %!STATUS!",
                               status);

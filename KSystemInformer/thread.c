@@ -72,7 +72,7 @@ NTSTATUS KphOpenThread(
         status = PsLookupProcessThreadByCid(&clientId, NULL, &thread);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "PsLookupProcessThreadByCid failed: %!STATUS!",
                           status);
@@ -86,7 +86,7 @@ NTSTATUS KphOpenThread(
         status = PsLookupThreadByThreadId(clientId.UniqueThread, &thread);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "PsLookupThreadByThreadId failed: %!STATUS!",
                           status);
@@ -103,7 +103,7 @@ NTSTATUS KphOpenThread(
                                     AccessMode);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphDominationCheck failed: %!STATUS!",
                           status);
@@ -124,7 +124,7 @@ NTSTATUS KphOpenThread(
                                    &threadHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -206,7 +206,7 @@ NTSTATUS KphOpenThreadProcess(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -222,7 +222,7 @@ NTSTATUS KphOpenThreadProcess(
                                     AccessMode);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphDominationCheck failed: %!STATUS!",
                           status);
@@ -243,7 +243,7 @@ NTSTATUS KphOpenThreadProcess(
                                    &processHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -356,7 +356,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
                                      KPH_TAG_THREAD_BACK_TRACE);
         if (!backTrace)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "Failed to allocate back trace buffer.");
 
@@ -389,7 +389,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -408,7 +408,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
                                             (Timeout ? &timeout : NULL));
     if (!NT_SUCCESS(status) || (status == STATUS_TIMEOUT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphCaptureStackBackTraceThread failed: %!STATUS!",
                       status);
@@ -512,7 +512,7 @@ NTSTATUS KphSetInformationThread(
                                                  KPH_TAG_THREAD_INFO);
             if (!threadInformation)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Failed to allocate thread info buffer.");
 
@@ -547,7 +547,7 @@ NTSTATUS KphSetInformationThread(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -561,7 +561,7 @@ NTSTATUS KphSetInformationThread(
                                 AccessMode);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphDominationCheck failed: %!STATUS!",
                       status);
@@ -578,7 +578,7 @@ NTSTATUS KphSetInformationThread(
                                    &threadHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -754,7 +754,7 @@ NTSTATUS KphQueryInformationThread(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -766,7 +766,7 @@ NTSTATUS KphQueryInformationThread(
     thread = KphGetThreadContext(PsGetThreadId(threadObject));
     if (!thread)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphGetThreadContext returned null.");
 
@@ -842,7 +842,7 @@ NTSTATUS KphQueryInformationThread(
 
             if (thread->SubsystemType != SubsystemInformationTypeWSL)
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Invalid subsystem for WSL thread ID query.");
 

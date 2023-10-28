@@ -66,7 +66,7 @@ VOID KphpLoadImageNotifyInformer(
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
         return;
@@ -76,7 +76,7 @@ VOID KphpLoadImageNotifyInformer(
     status = KphGetNameFileObject(ImageInfo->FileObject, &fileName);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "KphGetNameFileObject failed: %!STATUS!",
                       status);
@@ -100,7 +100,7 @@ VOID KphpLoadImageNotifyInformer(
         status = KphMsgDynAddUnicodeString(msg, KphMsgFieldFileName, fileName);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_WARNING,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "KphMsgDynAddUnicodeString failed: %!STATUS!",
                           status);
@@ -180,7 +180,7 @@ NTSTATUS KphImageInformerStart(
                                     PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to register image notify routine: %!STATUS!",
                           status);
@@ -193,7 +193,7 @@ NTSTATUS KphImageInformerStart(
     status = PsSetLoadImageNotifyRoutine(KphpLoadImageNotifyRoutine);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to register image notify routine: %!STATUS!",
                       status);

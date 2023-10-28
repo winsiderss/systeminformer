@@ -295,7 +295,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
                                    &processHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -315,7 +315,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
     }
     else if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "ProcessSubsystemInformation failed: %!STATUS!",
                       status);
@@ -334,7 +334,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
     }
     else if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "ProcessBasicInformation failed: %!STATUS!",
                       status);
@@ -370,7 +370,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
                                            &process->FileObject);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "PsReferenceProcessFilePointer failed: %!STATUS!",
                       status);
@@ -386,7 +386,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
                                               &process->ImageName);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_WARNING,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
                           "KphGetFileNameFinalComponent failed: %!STATUS!",
                           status);
@@ -396,7 +396,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
     }
     else
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "SeLocateProcessImageName failed: %!STATUS!",
                       status);
@@ -414,7 +414,7 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         }
         else
         {
-            KphTracePrint(TRACE_LEVEL_WARNING,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
                           "KphGetProcessImageName failed: %!STATUS!",
                           status);
@@ -579,7 +579,7 @@ VOID KphpInitializeWSLThreadContext(
 
     if (!Dyn->LxpThreadGetCurrent(&picoContext))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "LxpThreadGetCurrent failed");
 
@@ -732,7 +732,7 @@ VOID KphpInitializeThreadContextDynData(
     status = KphCreateObject(KphpCidApcType, sizeof(KPH_CID_APC), &apc, NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "KphCreateObject failed: %!STATUS!",
                       status);
@@ -762,7 +762,9 @@ VOID KphpInitializeThreadContextDynData(
     KphReferenceObject(apc);
     if (!KsiInsertQueueApc(&apc->Apc, NULL, NULL, IO_NO_INCREMENT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "KsiInsertQueueApc failed");
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "KsiInsertQueueApc failed");
 
         KphDereferenceObject(apc);
         status = STATUS_UNSUCCESSFUL;
@@ -793,7 +795,7 @@ VOID KphpInitializeThreadContextDynData(
         !ThreadContext->ProcessContext ||
         !ThreadContext->ProcessContext->WSL.ValidProcessId)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "Failed to get all WSL information");
 
@@ -853,7 +855,7 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
                                    &threadHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "ObOpenObjectByPointer failed %!STATUS!",
                       status);
@@ -873,7 +875,7 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
     }
     else if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "ThreadSubsystemInformation failed %!STATUS!",
                       status);
@@ -1007,7 +1009,7 @@ NTSTATUS KphCidInitialize(
                                             KPH_TAG_CID_APC);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "KphCreateNPagedLookasideObject failed: %!STATUS!",
                       status);
@@ -1021,7 +1023,7 @@ NTSTATUS KphCidInitialize(
                                            KPH_TAG_PROCESS_CONTEXT);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "KphCreatePagedLookasideObject failed: %!STATUS!",
                       status);
@@ -1035,7 +1037,7 @@ NTSTATUS KphCidInitialize(
                                            KPH_TAG_THREAD_CONTEXT);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "KphCreatePagedLookasideObject failed: %!STATUS!",
                       status);
@@ -1309,7 +1311,7 @@ PVOID KphpTrackContext(
     status = KphCreateObject(ObjectType, ObjectBodySize, &object, Parameter);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "KphCreateObject (%lu) failed: %!STATUS!",
                       HandleToULong(Cid),
@@ -1454,7 +1456,7 @@ NTSTATUS KphCidPopulate(
     buffer = KphAllocatePaged(size, KPH_TAG_CID_POPULATE);
     if (!buffer)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "Failed to allocate buffer for process information.");
 
@@ -1476,7 +1478,7 @@ NTSTATUS KphCidPopulate(
         if ((status != STATUS_BUFFER_TOO_SMALL) &&
             (status != STATUS_INFO_LENGTH_MISMATCH))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
                           "ZwQuerySystemInformation failed: %!STATUS!",
                           status);
@@ -1486,7 +1488,7 @@ NTSTATUS KphCidPopulate(
 
         if (size == 0)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
                           "ZwQuerySystemInformation returned zero size!");
 
@@ -1498,7 +1500,7 @@ NTSTATUS KphCidPopulate(
         buffer = KphAllocatePaged(size, KPH_TAG_CID_POPULATE);
         if (!buffer)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
                           "Failed to allocate buffer for process information.");
 
@@ -1564,7 +1566,7 @@ NTSTATUS KphCidPopulate(
                                                 &processObject);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
                               "PsLookupProcessByProcessId failed: %!STATUS!",
                               status);
@@ -1580,7 +1582,7 @@ NTSTATUS KphCidPopulate(
                                            &timeout);
             if (status != STATUS_TIMEOUT)
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
                               "KeWaitForSingleObject(processObject) "
                               "reported: %!STATUS!",
@@ -1601,7 +1603,7 @@ NTSTATUS KphCidPopulate(
 
         if (!process)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
                           "KphpTrackContext failed (process %lu)",
                           HandleToULong(info->UniqueProcessId));
@@ -1629,7 +1631,7 @@ NTSTATUS KphCidPopulate(
                                               &threadObject);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
                               "PsLookupThreadByThreadId failed "
                               "(thread %lu in process %wZ (%lu))): %!STATUS!",
@@ -1643,7 +1645,7 @@ NTSTATUS KphCidPopulate(
 
             if (PsIsThreadTerminating(threadObject))
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
                               "PsIsThreadTerminating reported TRUE "
                               "(thread %lu in process %wZ (%lu)))",
@@ -1665,7 +1667,7 @@ NTSTATUS KphCidPopulate(
 
             if (!thread)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
                               "KphpTrackContext failed "
                               "(thread %lu in process %wZ (%lu))",
@@ -2053,7 +2055,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
                                    &processHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -2071,7 +2073,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "ZwQueryInformationProcess failed: %!STATUS!",
                       status);
@@ -2083,7 +2085,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
         status = KphDisableXfgOnTarget(processHandle, KphNtDllRtlSetBits);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
                           "KphDisableXfgOnTarget failed (0x%08lx): %!STATUS!",
                           policyInfo.ControlFlowGuardPolicy.Flags,
@@ -2099,7 +2101,7 @@ NTSTATUS KphCheckProcessApcNoopRoutine(
                                                    KphNtDllRtlSetBits);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           TRACKING,
                           "KphGuardGrantSuppressedCallAccess failed "
                           "(0x%08lx): %!STATUS!",
@@ -2181,7 +2183,7 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
                                            threadAllowedMask);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           PROTECTION,
                           "KphStartProtectingProcess failed: %!STATUS!",
                           status);
@@ -2339,7 +2341,7 @@ NTSTATUS KphQueryInformationProcessContext(
 
             if (!Process->WSL.ValidProcessId)
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "WSL process ID is not valid.");
 
@@ -2441,7 +2443,7 @@ NTSTATUS KphQueryInformationThreadContext(
 
             if (!Thread->WSL.ValidThreadId)
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "WSL thread ID is not valid.");
 

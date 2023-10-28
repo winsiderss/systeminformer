@@ -80,7 +80,7 @@ NTSTATUS KphInitializeVerify(
                                          0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       VERIFY,
                       "BCryptOpenAlgorithmProvider failed: %!STATUS!",
                       status);
@@ -112,7 +112,7 @@ NTSTATUS KphInitializeVerify(
                                      0);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           VERIFY,
                           "BCryptImportKeyPair failed: %!STATUS!",
                           status);

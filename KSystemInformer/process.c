@@ -75,7 +75,7 @@ NTSTATUS KphOpenProcess(
         status = PsLookupProcessThreadByCid(&clientId, &process, &thread);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "PsLookupProcessThreadByCid failed: %!STATUS!",
                           status);
@@ -92,7 +92,7 @@ NTSTATUS KphOpenProcess(
         status = PsLookupProcessByProcessId(clientId.UniqueProcess, &process);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "PsLookupProcessByProcessId failed: %!STATUS!",
                           status);
@@ -109,7 +109,7 @@ NTSTATUS KphOpenProcess(
                                     AccessMode);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphDominationCheck failed: %!STATUS!",
                           status);
@@ -130,7 +130,7 @@ NTSTATUS KphOpenProcess(
                                    &processHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -215,7 +215,7 @@ NTSTATUS KphOpenProcessToken(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -227,7 +227,7 @@ NTSTATUS KphOpenProcessToken(
     primaryToken = PsReferencePrimaryToken(process);
     if (!primaryToken)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "PsReferencePrimaryToken returned null");
 
@@ -242,7 +242,7 @@ NTSTATUS KphOpenProcessToken(
                                     AccessMode);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphDominationCheck failed: %!STATUS!",
                           status);
@@ -263,7 +263,7 @@ NTSTATUS KphOpenProcessToken(
                                    &tokenHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -352,7 +352,7 @@ NTSTATUS KphOpenProcessJob(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -375,7 +375,7 @@ NTSTATUS KphOpenProcessJob(
                                     AccessMode);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphDominationCheck failed: %!STATUS!",
                           status);
@@ -396,7 +396,7 @@ NTSTATUS KphOpenProcessJob(
                                    &jobHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -467,7 +467,7 @@ NTSTATUS KphTerminateProcess(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -481,7 +481,7 @@ NTSTATUS KphTerminateProcess(
                                 AccessMode);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphDominationCheck failed: %!STATUS!",
                       status);
@@ -491,7 +491,7 @@ NTSTATUS KphTerminateProcess(
 
     if (process == PsGetCurrentProcess())
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "Can not terminate self.");
+        KphTracePrint(TRACE_LEVEL_VERBOSE, GENERAL, "Can not terminate self.");
 
         status = STATUS_ACCESS_DENIED;
         goto Exit;
@@ -509,7 +509,7 @@ NTSTATUS KphTerminateProcess(
                                    &processHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -521,7 +521,7 @@ NTSTATUS KphTerminateProcess(
     status = ZwTerminateProcess(processHandle, ExitStatus);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ZwTerminateProcess failed: %!STATUS!",
                       status);
@@ -608,7 +608,7 @@ NTSTATUS KphQueryInformationProcess(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -620,7 +620,7 @@ NTSTATUS KphQueryInformationProcess(
     process = KphGetProcessContext(PsGetProcessId(processObject));
     if (!process)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphGetProcessContext return null.");
 
@@ -724,7 +724,7 @@ NTSTATUS KphQueryInformationProcess(
 
             if (process->SubsystemType != SubsystemInformationTypeWSL)
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Invalid subsystem for WSL process ID query.");
 
@@ -863,7 +863,7 @@ NTSTATUS KphSetInformationProcess(
                                                   KPH_TAG_PROCESS_INFO);
             if (!processInformation)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Failed to allocate process info buffer.");
 
@@ -898,7 +898,7 @@ NTSTATUS KphSetInformationProcess(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -933,7 +933,7 @@ NTSTATUS KphSetInformationProcess(
                                         AccessMode);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "KphDominationCheck failed: %!STATUS!",
                               status);
@@ -953,7 +953,7 @@ NTSTATUS KphSetInformationProcess(
                                    &processHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);

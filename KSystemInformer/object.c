@@ -112,7 +112,7 @@ NTSTATUS KphReferenceProcessHandleTable(
     status = PsAcquireProcessExitSynchronization(Process);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "PsAcquireProcessExitSynchronization failed: %!STATUS!",
                       status);
@@ -260,7 +260,7 @@ NTSTATUS KphEnumerateProcessHandlesEx(
         (dyn->HtHandleContentionEvent == ULONG_MAX) ||
         (dyn->EpObjectTable == ULONG_MAX))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphEnumerateProcessHandlesEx not supported");
 
@@ -271,7 +271,7 @@ NTSTATUS KphEnumerateProcessHandlesEx(
     status = KphReferenceProcessHandleTable(dyn, Process, &handleTable);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphReferenceProcessHandleTable failed: %!STATUS!",
                       status);
@@ -469,7 +469,7 @@ NTSTATUS KphEnumerateProcessHandles(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -489,7 +489,7 @@ NTSTATUS KphEnumerateProcessHandles(
                                           &context);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphEnumerateProcessHandlesEx failed: %!STATUS!",
                       status);
@@ -630,7 +630,7 @@ NTSTATUS KphQueryNameObject(
     }
     else
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphQueryNameObject: %!STATUS!",
                       status);
@@ -962,7 +962,7 @@ NTSTATUS KphQueryInformationObject(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -1038,7 +1038,7 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ObReferenceObjectByHandle failed: %!STATUS!",
                               status);
@@ -1317,7 +1317,7 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ObReferenceObjectByHandle failed: %!STATUS!",
                               status);
@@ -1329,7 +1329,7 @@ NTSTATUS KphQueryInformationObject(
             objectType = ObGetObjectType(object);
             if (!objectType)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ObGetObjectType returned null");
 
@@ -1405,7 +1405,7 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ObReferenceObjectByHandle failed: %!STATUS!",
                               status);
@@ -1556,7 +1556,7 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ObReferenceObjectByHandle failed: %!STATUS!",
                               status);
@@ -1678,7 +1678,7 @@ NTSTATUS KphQueryInformationObject(
             KeUnstackDetachProcess(&apcState);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ObReferenceObjectByHandle failed: %!STATUS!",
                               status);
@@ -1977,7 +1977,7 @@ NTSTATUS KphQueryInformationObject(
                                        KernelMode);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ObDuplicateObject failed: %!STATUS!",
                               status);
@@ -2169,7 +2169,7 @@ NTSTATUS KphSetInformationObject(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -2286,7 +2286,7 @@ NTSTATUS KphOpenNamedObject(
                                 &objectHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByName failed: %!STATUS!",
                       status);
@@ -2380,7 +2380,7 @@ NTSTATUS KphDuplicateObject(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -2410,7 +2410,7 @@ NTSTATUS KphDuplicateObject(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -2495,7 +2495,7 @@ NTSTATUS KphpCompareObjects(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -2513,7 +2513,7 @@ NTSTATUS KphpCompareObjects(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -2575,7 +2575,7 @@ NTSTATUS KphCompareObjects(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);

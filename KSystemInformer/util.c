@@ -475,7 +475,7 @@ NTSTATUS KphValidateAddressForSystemModules(
     {
         KeLeaveCriticalRegion();
 
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       "Failed to acquire PsLoadedModuleResource");
 
@@ -996,7 +996,7 @@ NTSTATUS KphGetNameFileObject(
     nameInfo = KphAllocatePaged(returnLength, KPH_TAG_FILE_OBJECT_NAME);
     if (!nameInfo)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       "Failed to allocate for file object name.");
 
@@ -1014,7 +1014,7 @@ NTSTATUS KphGetNameFileObject(
         nameInfo = KphAllocatePaged(returnLength, KPH_TAG_FILE_OBJECT_NAME);
         if (!nameInfo)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "Failed to allocate for file object name.");
 
@@ -1030,7 +1030,7 @@ NTSTATUS KphGetNameFileObject(
 
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       "KphQueryNameFileObject failed: %!STATUS!",
                       status);
@@ -1172,7 +1172,7 @@ NTSTATUS KphpGetLsassProcessId(
                                NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       "ZwAlpcConnectPort failed: %!STATUS!",
                       status);
@@ -1190,7 +1190,7 @@ NTSTATUS KphpGetLsassProcessId(
                                      KernelMode);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       "ZwAlpcQueryInformation failed: %!STATUS!",
                       status);
@@ -1288,7 +1288,7 @@ NTSTATUS KphpGetKernelFileName(
                                       NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       L"ZwQuerySystemInformation failed: %!STATUS!",
                       status);
@@ -1327,7 +1327,7 @@ NTSTATUS KphGetKernelVersion(
     status = KphpGetKernelFileName(&kernelFileName);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       "KphGetKernelFileName failed: %!STATUS!",
                       status);
@@ -1408,7 +1408,7 @@ NTSTATUS KphGetFileVersion(
                            KernelMode);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       "KphCreateFile failed: %!STATUS!",
                       status);
@@ -1424,7 +1424,7 @@ NTSTATUS KphGetFileVersion(
                                 &imageSize);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
                       "KphMapViewInSystem failed: %!STATUS!",
                       status);
@@ -1447,7 +1447,7 @@ NTSTATUS KphGetFileVersion(
                                    &resourceData);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "LdrFindResource_U failed: %!STATUS!",
                           status);
@@ -1461,7 +1461,7 @@ NTSTATUS KphGetFileVersion(
                                    &resourceLength);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "LdrAccessResource failed: %!STATUS!",
                           status);
@@ -1471,7 +1471,7 @@ NTSTATUS KphGetFileVersion(
 
         if (Add2Ptr(resourceBuffer, resourceLength) >= imageEnd)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "Resource buffer overflows mapping");
 
@@ -1481,7 +1481,7 @@ NTSTATUS KphGetFileVersion(
 
         if (resourceLength < sizeof(VS_VERSION_INFO_STRUCT))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "Resource length insufficient");
 
@@ -1493,7 +1493,7 @@ NTSTATUS KphGetFileVersion(
 
         if (Add2Ptr(resourceBuffer, versionInfo->Length) >= imageEnd)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "Version info overflows mapping");
 
@@ -1503,7 +1503,7 @@ NTSTATUS KphGetFileVersion(
 
         if (versionInfo->ValueLength < sizeof(VS_FIXEDFILEINFO))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "Value length insufficient");
 
@@ -1514,7 +1514,7 @@ NTSTATUS KphGetFileVersion(
         status = RtlInitUnicodeStringEx(&keyName, versionInfo->Key);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "RtlInitUnicodeStringEx failed: %!STATUS!",
                           status);
@@ -1527,7 +1527,7 @@ NTSTATUS KphGetFileVersion(
 
         if (Add2Ptr(fileInfo, sizeof(VS_FIXEDFILEINFO)) >= imageEnd)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "File version info overflows mapping");
 
@@ -1537,7 +1537,7 @@ NTSTATUS KphGetFileVersion(
 
         if (fileInfo->dwSignature != VS_FFI_SIGNATURE)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "Invalid file version information signature (0x%08x)",
                           fileInfo->dwSignature);
@@ -1548,7 +1548,7 @@ NTSTATUS KphGetFileVersion(
 
         if (fileInfo->dwStrucVersion != 0x10000)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           UTIL,
                           "Unknown file version information structure (0x%08x)",
                           fileInfo->dwStrucVersion);
@@ -1831,7 +1831,7 @@ NTSTATUS KphOpenParametersKey(
     status = ZwOpenKey(KeyHandle, KEY_READ, &objectAttributes);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Unable to open Parameters key: %!STATUS!",
                       status);
