@@ -1057,6 +1057,14 @@ NTSTATUS KphParseUrlInformation(
     _Out_ PKPH_URL_INFORMATION UrlInfo
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDominationCheck(
+    _In_ PEPROCESS Process,
+    _In_ PEPROCESS ProcessTarget,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1632,6 +1640,11 @@ PUNICODE_STRING KphGetThreadImageName(
     _In_ PKPH_THREAD_CONTEXT Thread
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+KPH_PROCESS_STATE KphGetProcessState(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    );
+
 // protection
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1719,19 +1732,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyFile(
     _In_ PCUNICODE_STRING FileName
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphDominationCheck(
-    _In_ PEPROCESS Process,
-    _In_ PEPROCESS ProcessTarget,
-    _In_ KPROCESSOR_MODE AccessMode
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-KPH_PROCESS_STATE KphGetProcessState(
-    _In_ PKPH_PROCESS_CONTEXT Process
     );
 
 // ksi.dll

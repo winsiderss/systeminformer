@@ -2080,3 +2080,67 @@ Exit:
 
     return status;
 }
+
+/**
+ * \brief Performs a domination check between a calling process and a target process.
+ *
+ * \details A process dominates the other when the protected level of the
+ * process exceeds the other. This domination check is not ideal, it is overly
+ * strict and lacks enough information from the kernel to fully understand the
+ * protected process state.
+ *
+ * \param[in] Process - Calling process.
+ * \param[in] ProcessTarget - Target process to check that the calling process
+ * dominates.
+ * \param[in] AccessMode - Access mode of the request, if KernelMode the
+ * domination check is bypassed.
+ *
+ * \return Appropriate status:
+ * STATUS_SUCCESS - The calling process dominates the target.
+ * STATUS_ACCESS_DENIED - The calling process does not dominate the target.
+*/
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDominationCheck(
+    _In_ PEPROCESS Process,
+    _In_ PEPROCESS ProcessTarget,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    PS_PROTECTION processProtection;
+    PS_PROTECTION targetProtection;
+
+    PAGED_CODE();
+
+    if (AccessMode == KernelMode)
+    {
+        //
+        // Give the kernel what it wants...
+        //
+        return STATUS_SUCCESS;
+    }
+
+    //
+    // Until Microsoft gives us more insight into protected process domination
+    // we'll do a very strict check here:
+    //
+
+    processProtection = PsGetProcessProtection(Process);
+    targetProtection = PsGetProcessProtection(ProcessTarget);
+
+    if ((targetProtection.Type != PsProtectedTypeNone) &&
+        (targetProtection.Type >= processProtection.Type))
+    {
+        //
+        // Calling process protection does not dominate the other, deny access.
+        // We could do our own domination check/mapping here with the signing
+        // level, but it won't be great and Microsoft might change it, so we'll
+        // do this strict check until Microsoft exports:
+        // PsTestProtectedProcessIncompatibility
+        // RtlProtectedAccess/RtlTestProtectedAccess
+        //
+        return STATUS_ACCESS_DENIED;
+    }
+
+    return STATUS_SUCCESS;
+}
