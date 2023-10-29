@@ -1709,14 +1709,26 @@ BOOLEAN KphIsDriverUnloadProtected(
 // verify
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphInitializeVerify(
-    VOID
+VOID KphVerifyCloseKey(
+    _In_ BCRYPT_KEY_HANDLE KeyHandle
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphCleanupVerify(
-    VOID
+_Must_inspect_result_
+NTSTATUS KphVerifyCreateKey(
+    _Out_ BCRYPT_KEY_HANDLE* KeyHandle,
+    _In_ PBYTE KeyMaterial,
+    _In_ ULONG KeyMaterialLength
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyBufferEx(
+    _In_opt_ BCRYPT_KEY_HANDLE KeyHandle,
+    _In_ PBYTE Buffer,
+    _In_ ULONG BufferLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1732,6 +1744,17 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyFile(
     _In_ PCUNICODE_STRING FileName
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphInitializeVerify(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupVerify(
+    VOID
     );
 
 // ksi.dll

@@ -59,98 +59,11 @@ KPH_PROTECTED_DATA_SECTION_POP();
 PAGED_FILE();
 
 /**
- * \brief Initializes verification infrastructure.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphInitializeVerify(
-    VOID
-    )
-{
-    NTSTATUS status;
-    BOOLEAN testSigning;
-
-    PAGED_CODE_PASSIVE();
-
-    status = BCryptOpenAlgorithmProvider(&KphpBCryptSigningProvider,
-                                         BCRYPT_ECDSA_P256_ALGORITHM,
-                                         NULL,
-                                         0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        KphpBCryptSigningProvider = NULL;
-        return status;
-    }
-
-    testSigning = KphTestSigningEnabled();
-
-    for (ULONG i = 0; i < ARRAYSIZE(KphpPublicKeys); i++)
-    {
-        PCKPH_KEY key;
-        BCRYPT_KEY_HANDLE keyHandle;
-
-        key = &KphpPublicKeys[i];
-
-        if (!testSigning && (key->Type == KphKeyTypeTest))
-        {
-            continue;
-        }
-
-        status = BCryptImportKeyPair(KphpBCryptSigningProvider,
-                                     NULL,
-                                     BCRYPT_ECCPUBLIC_BLOB,
-                                     &keyHandle,
-                                     (PUCHAR)key->Material,
-                                     KPH_KEY_MATERIAL_SIZE,
-                                     0);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          VERIFY,
-                          "BCryptImportKeyPair failed: %!STATUS!",
-                          status);
-
-            return status;
-        }
-
-        KphpPublicKeyHandles[KphpPublicKeyHandlesCount++] = keyHandle;
-    }
-
-    return status;
-}
-
-/**
- * \brief Cleans up verification infrastructure.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphCleanupVerify(
-    VOID
-    )
-{
-    PAGED_CODE_PASSIVE();
-
-    for (ULONG i = 0; i < KphpPublicKeyHandlesCount; i++)
-    {
-        BCryptDestroyKey(KphpPublicKeyHandles[i]);
-    }
-
-    if (KphpBCryptSigningProvider)
-    {
-        BCryptCloseAlgorithmProvider(KphpBCryptSigningProvider, 0);
-    }
-}
-
-/**
  * \brief Verifies that the specified signature matches the specified hash by
  * using one of the known public keys.
  *
+ * \param[in] KeyHandle The key handle to use for verification, if NULL the
+ * pinned keys are used to verify the signature.
  * \param[in] Hash The hash to verify.
  * \param[in] Signature The signature to check.
  * \param[in] SignatureLength The length of the signature.
@@ -160,6 +73,7 @@ VOID KphCleanupVerify(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpVerifyHash(
+    _In_opt_ BCRYPT_KEY_HANDLE KeyHandle,
     _In_ PKPH_HASH Hash,
     _In_ PBYTE Signature,
     _In_ ULONG SignatureLength
@@ -171,27 +85,138 @@ NTSTATUS KphpVerifyHash(
 
     status = STATUS_UNSUCCESSFUL;
 
-    for (ULONG i = 0; i < KphpPublicKeyHandlesCount; i++)
+    if (KeyHandle)
     {
-        status = BCryptVerifySignature(KphpPublicKeyHandles[i],
+        status = BCryptVerifySignature(KeyHandle,
                                        NULL,
                                        Hash->Buffer,
                                        Hash->Size,
                                        Signature,
                                        SignatureLength,
                                        0);
-        if (NT_SUCCESS(status))
+    }
+    else
+    {
+        for (ULONG i = 0; i < KphpPublicKeyHandlesCount; i++)
         {
-            return status;
+            status = BCryptVerifySignature(KphpPublicKeyHandles[i],
+                                           NULL,
+                                           Hash->Buffer,
+                                           Hash->Size,
+                                           Signature,
+                                           SignatureLength,
+                                           0);
+            if (NT_SUCCESS(status))
+            {
+                return status;
+            }
         }
     }
 
-    KphTracePrint(TRACE_LEVEL_VERBOSE,
-                  VERIFY,
-                  "BCryptVerifySignature failed: %!STATUS!",
-                  status);
+    return status;
+}
+
+/**
+ * \brief Closes a verification key handle.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphVerifyCloseKey(
+    _In_ BCRYPT_KEY_HANDLE KeyHandle
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    BCryptDestroyKey(KeyHandle);
+}
+
+/**
+ * \brief Creates a verification key handle.
+ *
+ * \param[out] KeyHandle The created key handle.
+ * \param[in] KeyMaterial The key material to use.
+ * \param[in] KeyMaterialLength The length of the key material.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyCreateKey(
+    _Out_ BCRYPT_KEY_HANDLE* KeyHandle,
+    _In_ PBYTE KeyMaterial,
+    _In_ ULONG KeyMaterialLength
+    )
+{
+    NTSTATUS status;
+
+    PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(KphpBCryptSigningProvider);
+
+    status = BCryptImportKeyPair(KphpBCryptSigningProvider,
+                                 NULL,
+                                 BCRYPT_ECCPUBLIC_BLOB,
+                                 KeyHandle,
+                                 (PUCHAR)KeyMaterial,
+                                 KeyMaterialLength,
+                                 0);
+    if (!NT_SUCCESS(status))
+    {
+        *KeyHandle = NULL;
+    }
 
     return status;
+}
+
+/**
+ * \brief Verifies a buffer matches the provided signature.
+ *
+ * \param[in] KeyHandle The key handle to use for verification, if NULL the
+ * pinned keys are used to verify the signature.
+ * \param[in] Buffer The buffer to verify.
+ * \param[in] BufferLength The length of the buffer.
+ * \param[in] Signature The signature to check.
+ * \param[in] SignatureLength The length of the signature.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyBufferEx(
+    _In_opt_ BCRYPT_KEY_HANDLE KeyHandle,
+    _In_ PBYTE Buffer,
+    _In_ ULONG BufferLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    KPH_HASH hash;
+
+    PAGED_CODE_PASSIVE();
+
+    status = KphHashBuffer(Buffer, BufferLength, CALG_SHA_256, &hash);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphHashBuffer failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    status = KphpVerifyHash(KeyHandle, &hash, Signature, SignatureLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphpVerifyHash failed: %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -213,38 +238,13 @@ NTSTATUS KphVerifyBuffer(
     _In_ ULONG SignatureLength
     )
 {
-    NTSTATUS status;
-    KPH_HASH hash;
-
     PAGED_CODE_PASSIVE();
 
-    status = KphHashBuffer(Buffer, BufferLength, CALG_SHA_256, &hash);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "KphHashBuffer failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = KphpVerifyHash(&hash, Signature, SignatureLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "KphpVerifyHash failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = STATUS_SUCCESS;
-
-Exit:
-
-    return status;
+    return KphVerifyBufferEx(NULL,
+                             Buffer,
+                             BufferLength,
+                             Signature,
+                             SignatureLength);
 }
 
 /**
@@ -390,7 +390,10 @@ NTSTATUS KphVerifyFile(
         goto Exit;
     }
 
-    status = KphpVerifyHash(&hash, signature, (ULONG)ioStatusBlock.Information);
+    status = KphpVerifyHash(NULL,
+                            &hash,
+                            signature,
+                            (ULONG)ioStatusBlock.Information);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -413,4 +416,89 @@ Exit:
     }
 
     return status;
+}
+
+/**
+ * \brief Initializes verification infrastructure.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphInitializeVerify(
+    VOID
+    )
+{
+    NTSTATUS status;
+    BOOLEAN testSigning;
+
+    PAGED_CODE_PASSIVE();
+
+    status = BCryptOpenAlgorithmProvider(&KphpBCryptSigningProvider,
+                                         BCRYPT_ECDSA_P256_ALGORITHM,
+                                         NULL,
+                                         0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
+                      status);
+
+        KphpBCryptSigningProvider = NULL;
+        return status;
+    }
+
+    testSigning = KphTestSigningEnabled();
+
+    for (ULONG i = 0; i < ARRAYSIZE(KphpPublicKeys); i++)
+    {
+        PCKPH_KEY key;
+        BCRYPT_KEY_HANDLE keyHandle;
+
+        key = &KphpPublicKeys[i];
+
+        if (!testSigning && (key->Type == KphKeyTypeTest))
+        {
+            continue;
+        }
+
+        status = KphVerifyCreateKey(&keyHandle,
+                                    (PBYTE)key->Material,
+                                    KPH_KEY_MATERIAL_SIZE);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          VERIFY,
+                          "KphVerifyCreateKey failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        KphpPublicKeyHandles[KphpPublicKeyHandlesCount++] = keyHandle;
+    }
+
+    return status;
+}
+
+/**
+ * \brief Cleans up verification infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupVerify(
+    VOID
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    for (ULONG i = 0; i < KphpPublicKeyHandlesCount; i++)
+    {
+        KphVerifyCloseKey(KphpPublicKeyHandles[i]);
+    }
+
+    if (KphpBCryptSigningProvider)
+    {
+        BCryptCloseAlgorithmProvider(KphpBCryptSigningProvider, 0);
+    }
 }
