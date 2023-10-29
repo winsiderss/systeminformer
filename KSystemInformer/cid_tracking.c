@@ -2223,6 +2223,88 @@ PUNICODE_STRING KphGetThreadImageName(
 }
 
 /**
+ * \brief Retrieves the process state mask from a process.
+ *
+ * \param[in] Process The process to get the state from.
+ *
+ * \return State mask describing what state the process is in.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+KPH_PROCESS_STATE KphGetProcessState(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    )
+{
+    KPH_PROCESS_STATE processState;
+
+    PAGED_CODE();
+
+    if (KphProtectionsSuppressed())
+    {
+        //
+        // This ultimately permits low state callers into the driver. But still
+        // check for verification. We still want to exercise the code below,
+        // regardless.
+        //
+        processState = ~KPH_PROCESS_VERIFIED_PROCESS;
+    }
+    else
+    {
+        processState = 0;
+    }
+
+    if (Process->SecurelyCreated)
+    {
+        processState |= KPH_PROCESS_SECURELY_CREATED;
+    }
+
+    if (Process->VerifiedProcess)
+    {
+        processState |= KPH_PROCESS_VERIFIED_PROCESS;
+    }
+
+    if (Process->Protected)
+    {
+        processState |= KPH_PROCESS_PROTECTED_PROCESS;
+    }
+
+    if (Process->NumberOfUntrustedImageLoads == 0)
+    {
+        processState |= KPH_PROCESS_NO_UNTRUSTED_IMAGES;
+    }
+
+    if (!PsIsProcessBeingDebugged(Process->EProcess))
+    {
+        processState |= KPH_PROCESS_NOT_BEING_DEBUGGED;
+    }
+
+    if (!Process->FileObject)
+    {
+        return processState;
+    }
+
+    processState |= KPH_PROCESS_HAS_FILE_OBJECT;
+
+    if (!IoGetTransactionParameterBlock(Process->FileObject))
+    {
+        processState |= KPH_PROCESS_NO_FILE_TRANSACTION;
+    }
+
+    if (!Process->FileObject->SectionObjectPointer)
+    {
+        return processState;
+    }
+
+    processState |= KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS;
+
+    if (!MmDoesFileHaveUserWritableReferences(Process->FileObject->SectionObjectPointer))
+    {
+        processState |= KPH_PROCESS_NO_USER_WRITABLE_REFERENCES;
+    }
+
+    return processState;
+}
+
+/**
  * \brief Queries information about a process context.
  *
  * \details Some information is not cached up front for one reason or another.
