@@ -90,10 +90,10 @@ VOID KphpDriverCleanup(
     KphProcessInformerStop();
     KphFltUnregister();
     KphCidCleanup();
-    KphCleanupSigning();
     KphCleanupDynData();
-    KphCleanupHashing();
+    KphCleanupSigning();
     KphCleanupVerify();
+    KphCleanupHashing();
     KphCleanupSocket();
     KphCleanupParameters();
 }
@@ -184,6 +184,8 @@ NTSTATUS DriverEntry(
         KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "Developer Mode");
     }
 
+    KphDynamicImport();
+
     KphInitializeParameters(RegistryPath);
 
     status = KphInitializeAlloc();
@@ -196,8 +198,6 @@ NTSTATUS DriverEntry(
 
         goto Exit;
     }
-
-    KphDynamicImport();
 
     status = KphInitializeKnownDll();
     if (!NT_SUCCESS(status))
@@ -243,17 +243,6 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
-    status = KphInitializeVerify();
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Failed to initialize signing: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
     status = KphInitializeHashing();
     if (!NT_SUCCESS(status))
     {
@@ -265,20 +254,16 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
-    KphInitializeDynData();
-
-    status = KphInitializeStackBackTrace();
+    status = KphInitializeVerify();
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
-                      "Failed to initialize stack back trace: %!STATUS!",
+                      "Failed to initialize verify: %!STATUS!",
                       status);
 
         goto Exit;
     }
-
-    KphInitializeProtection();
 
     status = KphInitializeSigning();
     if (!NT_SUCCESS(status))
@@ -286,6 +271,21 @@ NTSTATUS DriverEntry(
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Failed to initialize signing: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    KphInitializeDynData();
+
+    KphInitializeProtection();
+
+    status = KphInitializeStackBackTrace();
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Failed to initialize stack back trace: %!STATUS!",
                       status);
 
         goto Exit;
