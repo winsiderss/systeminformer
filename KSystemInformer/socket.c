@@ -49,7 +49,7 @@ typedef struct _KPH_TLS
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const WSK_CLIENT_DISPATCH KphpWskDispatch = { MAKE_WSK_VERSION(1, 0), 0, NULL };
 static const UNICODE_STRING KphpSecurityPackageName = RTL_CONSTANT_STRING(SCHANNEL_NAME_W);
-static const LARGE_INTEGER KphpSocketCloseTimeout = { .QuadPart = -30000000ll }; // 3 seconds
+static const LARGE_INTEGER KphpSocketCloseTimeout = KPH_TIMEOUT(3 * 1000);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 //
