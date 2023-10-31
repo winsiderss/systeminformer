@@ -476,14 +476,15 @@ NTSTATUS KphTerminateProcess(
         goto Exit;
     }
 
-    status = KphDominationCheck(PsGetCurrentProcess(),
-                                process,
-                                AccessMode);
+    status = KphDominationAndPrivilegeCheck(KPH_TOKEN_PRIVILEGE_TERMINATE,
+                                            PsGetCurrentThread(),
+                                            process,
+                                            AccessMode);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
-                      "KphDominationCheck failed: %!STATUS!",
+                      "KphDominationAndPrivilegeCheck failed: %!STATUS!",
                       status);
 
         goto Exit;

@@ -1067,6 +1067,15 @@ NTSTATUS KphDominationCheck(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDominationAndPrivilegeCheck(
+    _In_ ULONG Privileges,
+    _In_ PETHREAD Thread,
+    _In_ PEPROCESS ProcessTarget,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
