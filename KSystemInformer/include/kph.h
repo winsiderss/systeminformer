@@ -1230,6 +1230,12 @@ VOID KphAtomicAssignObjectReference(
     _In_opt_ PVOID Object
     );
 
+_Must_inspect_result_
+PVOID KphAtomicMoveObjectReference(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_opt_ PVOID Object
+    );
+
 // cid_tracking
 
 #define KPH_PROTECTED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS                  |\
