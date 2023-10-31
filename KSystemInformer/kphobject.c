@@ -304,6 +304,38 @@ PVOID KphAtomicReferenceObject(
 }
 
 /**
+ * \brief Stores an object to an atomically managed object reference.
+ *
+ * \details This mechanism provides a light weight and fast way to atomically
+ * managed a reference to an object.
+ *
+ * \param[in,out] ObjectRef The object reference to assign the object to.
+ * \param[in] Object Optional object to reference and assign.
+ *
+ * \return The previous object that was managed, NULL if no object was managed.
+ */
+PVOID KphpAtomicStoreObjectReference(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_opt_ PVOID Object
+    )
+{
+    ULONG_PTR object;
+    PVOID previous;
+
+    KphpAtomicAcquireObjectLock(ObjectRef);
+
+    previous = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
+
+    object = ((ULONG_PTR)Object | ~KPH_ATOMIC_OBJECT_LOCKED_MASK);
+
+    InterlockedExchangePointer((PVOID*)&ObjectRef->Object, (PVOID)object);
+
+    KphpAtomicReleaseObjectLock(ObjectRef);
+
+    return previous;
+}
+
+/**
  * \brief Assigns an object to an atomically managed object reference.
  *
  * \details This mechanism provides a light weight and fast way to atomically
@@ -320,7 +352,6 @@ VOID KphAtomicAssignObjectReference(
     _In_opt_ PVOID Object
     )
 {
-    ULONG_PTR object;
     PVOID previous;
 
     if (Object)
@@ -328,18 +359,33 @@ VOID KphAtomicAssignObjectReference(
         KphReferenceObject(Object);
     }
 
-    KphpAtomicAcquireObjectLock(ObjectRef);
-
-    previous = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
-
-    object = ((ULONG_PTR)Object | ~KPH_ATOMIC_OBJECT_LOCKED_MASK);
-
-    InterlockedExchangePointer((PVOID*)&ObjectRef->Object, (PVOID)object);
-
-    KphpAtomicReleaseObjectLock(ObjectRef);
+    previous = KphpAtomicStoreObjectReference(ObjectRef, Object);
 
     if (previous)
     {
         KphDereferenceObject(previous);
     }
+}
+
+/**
+ * \brief Moves an object to an atomically managed object reference.
+ *
+ * \details This mechanism provides a light weight and fast way to atomically
+ * managed a reference to an object. If any object is provided, this function
+ * will assume ownership over the reference, the caller should *not* release
+ * their reference. If an object is returned the ownership of it is transferred
+ * to the caller, the caller is responsible for eventually releasing it.
+ *
+ * \param[in,out] ObjectRef The object reference to move the object into.
+ * \param[in] Object Optional object move into the object reference.
+ *
+ * \return The previous object that was managed, NULL if no object was managed.
+ */
+_Must_inspect_result_
+PVOID KphAtomicMoveObjectReference(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_opt_ PVOID Object
+    )
+{
+    return KphpAtomicStoreObjectReference(ObjectRef, Object);
 }
