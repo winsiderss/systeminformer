@@ -1069,7 +1069,7 @@ VOID KphFreeNameFileObject(
 }
 
 /**
- * \brief Preforms a single privilege check on the supplied subject context.
+ * \brief Perform a single privilege check on the supplied subject context.
  *
  * \param[in] PrivilegeValue The privilege value to check.
  * \param[in] SubjectSecurityContext The subject context to check.
@@ -1099,7 +1099,7 @@ BOOLEAN KphSinglePrivilegeCheckEx(
 }
 
 /**
- * \brief Preforms a single privilege check on the current subject context.
+ * \brief Perform a single privilege check on the current subject context.
  *
  * \param[in] PrivilegeValue The privilege value to check.
  * \param[in] AccessMode The access mode used for the access check.
@@ -2082,22 +2082,21 @@ Exit:
 }
 
 /**
- * \brief Performs a domination check between a calling process and a target process.
+ * \brief Performs a domination check between a calling process and a target
+ * process.
  *
  * \details A process dominates the other when the protected level of the
  * process exceeds the other. This domination check is not ideal, it is overly
  * strict and lacks enough information from the kernel to fully understand the
  * protected process state.
  *
- * \param[in] Process - Calling process.
- * \param[in] ProcessTarget - Target process to check that the calling process
- * dominates.
- * \param[in] AccessMode - Access mode of the request, if KernelMode the
- * domination check is bypassed.
+ * \param[in] Process The calling process.
+ * \param[in] ProcessTarget Target process to check against the caller.
+ * \param[in] AccessMode Access mode of the request.
  *
  * \return Appropriate status:
- * STATUS_SUCCESS - The calling process dominates the target.
- * STATUS_ACCESS_DENIED - The calling process does not dominate the target.
+ * STATUS_SUCCESS The calling process dominates the target.
+ * STATUS_ACCESS_DENIED The calling process does not dominate the target.
 */
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
@@ -2143,4 +2142,67 @@ NTSTATUS KphDominationCheck(
     }
 
     return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Performs a domination and privilege check to verify that the calling
+ * thread has the required privilege to perform the action.
+ *
+ * \details This function replaces a call to KphDominationCheck in certain
+ * paths. It grants access to a protected process *only* if the calling thread
+ * or associated process has been granted permission to do so. Session tokens
+ * implement an expiring token validated using asymmetric keys. This involves
+ * verification coordinated between the driver, client, and server which
+ * requires end user authentication and may be audited or revoked at any time.
+ * This feature is a service similar to those provided by various security
+ * or system management focused products. System Informer provides this service
+ * to users in this same light. System Informer provides security and system
+ * management capabilities to users.
+ *
+ * \param[in] Privileges The specific privileges to be checked.
+ * \param[in] Thread The calling thread.
+ * \param[in] ProcessTarget Target process to check against the caller.
+ * \param[in] AccessMode Describes the access mode of the request.
+ *
+ * \return Appropriate status:
+ * STATUS_SUCCESS The calling thread or process is granted access.
+ * STATUS_ACCESS_DENIED The calling process does not dominate the target.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDominationAndPrivilegeCheck(
+    _In_ ULONG Privileges,
+    _In_ PETHREAD Thread,
+    _In_ PEPROCESS ProcessTarget,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    BOOLEAN granted;
+    PKPH_THREAD_CONTEXT thread;
+
+    PAGED_CODE();
+
+    if (AccessMode == KernelMode)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    granted = FALSE;
+
+    thread = KphGetThreadContext(PsGetThreadId(Thread));
+    if (thread)
+    {
+        granted = KphSessionTokenPrivilegeCheck(thread, Privileges);
+
+        KphDereferenceObject(thread);
+    }
+
+    if (granted)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return KphDominationCheck(PsGetThreadProcess(Thread),
+                              ProcessTarget,
+                              AccessMode);
 }
