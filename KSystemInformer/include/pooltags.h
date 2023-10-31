@@ -110,3 +110,8 @@
 // back_trace
 
 #define KPH_TAG_BACK_TRACE_OBJECT               '0BpK'
+
+// kphtoken
+
+#define KPH_TAG_SESSION_TOKEN_OBJECT            '0tpK'
+#define KPH_TAG_SESSION_TOKEN_SIGNATURE         '1tpK'

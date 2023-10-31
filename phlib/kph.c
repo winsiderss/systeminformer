@@ -1752,3 +1752,89 @@ NTSTATUS KphActivateDynData(
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
 }
+
+NTSTATUS KphRequestSessionAccessToken(
+    _Out_ PKPH_SESSION_ACCESS_TOKEN AccessToken,
+    _In_ PLARGE_INTEGER Expiry,
+    _In_ ULONG Privileges,
+    _In_ LONG Uses
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgRequestSessionAccessToken);
+    msg->User.RequestSessionAccessToken.Expiry = *Expiry;
+    msg->User.RequestSessionAccessToken.Privileges = Privileges;
+    msg->User.RequestSessionAccessToken.Uses = Uses;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        RtlCopyMemory(AccessToken,
+                      &msg->User.RequestSessionAccessToken.AccessToken,
+                      sizeof(KPH_SESSION_ACCESS_TOKEN));
+
+        status = msg->User.RequestSessionAccessToken.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphAssignProcessSessionToken(
+    _In_ HANDLE ProcessHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgAssignProcessSessionToken);
+    msg->User.AssignProcessSessionToken.ProcessHandle = ProcessHandle;
+    msg->User.AssignProcessSessionToken.Signature = Signature;
+    msg->User.AssignProcessSessionToken.SignatureLength = SignatureLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.AssignProcessSessionToken.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphAssignThreadSessionToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgAssignThreadSessionToken);
+    msg->User.AssignThreadSessionToken.ThreadHandle = ThreadHandle;
+    msg->User.AssignThreadSessionToken.Signature = Signature;
+    msg->User.AssignThreadSessionToken.SignatureLength = SignatureLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.AssignThreadSessionToken.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}

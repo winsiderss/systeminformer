@@ -26,7 +26,20 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 10;
+        private const UInt32 Version = 11;
+
+        private static readonly byte[] SessionTokenPublicKey = new byte[]
+        {
+            0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
+            0x04, 0x4d, 0x12, 0x40, 0x1c, 0xa4, 0x1b, 0xfd,
+            0x71, 0xbd, 0x0b, 0x4a, 0x6b, 0x4d, 0xe3, 0xc9,
+            0xac, 0xde, 0x26, 0x73, 0x84, 0xe7, 0xb9, 0xf8,
+            0x19, 0xd5, 0xd9, 0xb8, 0x7d, 0x7b, 0x7d, 0x0e,
+            0x24, 0x4d, 0x69, 0xc6, 0x89, 0xf4, 0x64, 0x4c,
+            0xa2, 0x9d, 0x29, 0xb3, 0x5c, 0x9b, 0x4e, 0xf5,
+            0x35, 0xaa, 0x87, 0xd3, 0xf1, 0xbb, 0x0a, 0xcd,
+            0x0c, 0x6c, 0x55, 0x56, 0x71, 0x8f, 0x79, 0x27,
+        };
 
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
@@ -37,6 +50,8 @@ $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
 
 #define KPH_DYN_LX_INVALID ((SHORT)-1)
 #define KPH_DYN_LX_V1      ((SHORT)1)
+
+#define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH { SessionTokenPublicKey.Length }
 
 #include <pshpack1.h>
 
@@ -91,6 +106,7 @@ typedef struct _KPH_DYN_CONFIGURATION
 typedef struct _KPH_DYNDATA
 {{
     ULONG Version;
+    BYTE SessionTokenPublicKey[KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH];
     ULONG Count;
     KPH_DYN_CONFIGURATION Configs[ANYSIZE_ARRAY];
 }} KPH_DYNDATA, *PKPH_DYNDATA;
@@ -308,10 +324,11 @@ typedef struct _KPH_DYNDATA
             using (var writer = new BinaryWriter(stream))
             {
                 //
-                // Write the version and count first, then the blocks.
-                // This conforms with KPH_DYNDATA defined above.
+                // Write the version, session token public key, and count first,
+                // then the blocks. This conforms with KPH_DYNDATA defined above.
                 //
                 writer.Write(Version);
+                writer.Write(SessionTokenPublicKey);
                 writer.Write((uint)configs.Count);
                 writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(configs)));
 

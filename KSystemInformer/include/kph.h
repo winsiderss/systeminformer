@@ -485,6 +485,8 @@ typedef struct _KPH_DYN
     PCI_VERIFY_HASH_IN_CATALOG_EX CiVerifyHashInCatalogEx;
     PCI_CHECK_SIGNED_FILE_EX CiCheckSignedFileEx;
     PLXP_THREAD_GET_CURRENT LxpThreadGetCurrent;
+
+    BCRYPT_KEY_HANDLE SessionTokenPublicKeyHandle;
 } KPH_DYN, *PKPH_DYN;
 
 _Must_inspect_result_
@@ -1365,6 +1367,12 @@ PVOID KphAtomicMoveObjectReference(
                                     THREAD_SUSPEND_RESUME                    |\
                                     THREAD_RESUME)
 
+typedef union _KPH_SESSION_TOKEN_ATOMIC
+{
+    struct _KPH_SESSION_TOKEN* Token;
+    KPH_ATOMIC_OBJECT_REF Atomic;
+} KPH_SESSION_TOKEN_ATOMIC, *PKPH_SESSION_TOKEN_ATOMIC;
+
 typedef struct _KPH_PROCESS_CONTEXT
 {
     PEPROCESS EProcess;
@@ -1377,6 +1385,8 @@ typedef struct _KPH_PROCESS_CONTEXT
     PFILE_OBJECT FileObject;
 
     volatile SIZE_T NumberOfImageLoads;
+
+    KPH_SESSION_TOKEN_ATOMIC SessionToken;
 
     union
     {
@@ -1458,6 +1468,9 @@ typedef struct _KPH_THREAD_CONTEXT
     CLIENT_ID ClientId;
     CLIENT_ID CreatorClientId;
 
+    KPH_SESSION_TOKEN_ATOMIC SessionToken;
+    KPH_SESSION_TOKEN_ATOMIC RequestSessionToken;
+
     union
     {
         volatile ULONG Flags;
@@ -1490,6 +1503,7 @@ typedef struct _KPH_THREAD_CONTEXT
         BOOLEAN ValidThreadId;
         ULONG ThreadId;
     } WSL;
+
 } KPH_THREAD_CONTEXT, *PKPH_THREAD_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphThreadContextType;
@@ -2187,4 +2201,51 @@ NTSTATUS KphCaptureStackBackTraceThread(
     _Out_opt_ PULONG BackTraceHash,
     _In_ ULONG Flags,
     _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+// session_token
+
+typedef struct _KPH_SESSION_TOKEN
+{
+    KPH_SESSION_ACCESS_TOKEN AccessToken;
+    volatile LONG UseCount;
+} KPH_SESSION_TOKEN, *PKPH_SESSION_TOKEN;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphRequestSessionAccessToken(
+    _Out_ PKPH_SESSION_ACCESS_TOKEN AccessToken,
+    _In_ PLARGE_INTEGER Expiry,
+    _In_ ULONG Privileges,
+    _In_ LONG Uses
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphAssignProcessSessionToken(
+    _In_ HANDLE ProcessHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphAssignThreadSessionToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphSessionTokenPrivilegeCheck(
+    _In_ PKPH_THREAD_CONTEXT Thread,
+    _In_ ULONG Privileges
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeSessionToken(
+    VOID
     );

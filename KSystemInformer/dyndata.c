@@ -15,6 +15,12 @@
 
 #include <trace.h>
 
+typedef struct _KPH_DYN_INIT
+{
+    PKPH_DYNDATA Data;
+    PKPH_DYN_CONFIGURATION Config;
+} KPH_DYN_INIT, *PKPH_DYN_INIT;
+
 typedef union _KPH_DYN_ATOMIC
 {
     PKPH_DYN Dyn;
@@ -32,7 +38,8 @@ static KPH_DYN_ATOMIC KphpDynData = { .Atomic = KPH_ATOMIC_OBJECT_REF_INIT };
 /**
  * \brief Reference the dynamic configuration.
  *
- * \return Pointer to the dynamic configuration, NULL if not activated.
+ * \return Pointer to the dynamic configuration, NULL if not activated. The
+ * caller must eventually dereference the object.
  */
 _Must_inspect_result_
 PKPH_DYN KphReferenceDynData(
@@ -40,19 +47,6 @@ PKPH_DYN KphReferenceDynData(
     )
 {
     return KphAtomicReferenceObject(&KphpDynData.Atomic);
-}
-
-/**
- * \brief Frees a dynamic configuration object.
- *
- * \param[in] Object Dynamic configuration object to free.
- */
-_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
-VOID KSIAPI KphpFreeDynData(
-    _In_freesMem_ PVOID Object
-    )
-{
-    KphFree(Object, KPH_TAG_DYNDATA);
 }
 
 PAGED_FILE();
@@ -80,7 +74,7 @@ PVOID KSIAPI KphpAllocateDynData(
  * \brief Initializes a dynamic configuration object.
  *
  * \param[in] Object Dynamic configuration object to initialize.
- * \param[in] Parameter Dynamic configuration to load into the object.
+ * \param[in] Parameter Initialization parameters for dynamic configuration.
  *
  * \return STATUS_SUCCESS
  */
@@ -92,17 +86,18 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     _In_opt_ PVOID Parameter
     )
 {
+    NTSTATUS status;
     PKPH_DYN dyn;
-    PKPH_DYN_CONFIGURATION config;
+    PKPH_DYN_INIT init;
 
     PAGED_CODE_PASSIVE();
 
     NT_ASSERT(Parameter);
 
     dyn = Object;
-    config = Parameter;
+    init = Parameter;
 
-#define KPH_LOAD_DYNITEM(x) dyn->##x = C_2sTo4(config->##x)
+#define KPH_LOAD_DYNITEM(x) dyn->##x = C_2sTo4(init->Config->##x)
 
     KPH_LOAD_DYNITEM(MajorVersion);
     KPH_LOAD_DYNITEM(MinorVersion);
@@ -120,20 +115,20 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM(ObDecodeShift);
     KPH_LOAD_DYNITEM(ObAttributesShift);
 
-    if (config->CiVersion == KPH_DYN_CI_V1)
+    if (init->Config->CiVersion == KPH_DYN_CI_V1)
     {
         dyn->CiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
         dyn->CiCheckSignedFile = (PCI_CHECK_SIGNED_FILE)KphGetRoutineAddress(L"ci.dll", "CiCheckSignedFile");
         dyn->CiVerifyHashInCatalog = (PCI_VERIFY_HASH_IN_CATALOG)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
     }
-    else if (config->CiVersion == KPH_DYN_CI_V2)
+    else if (init->Config->CiVersion == KPH_DYN_CI_V2)
     {
         dyn->CiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
         dyn->CiCheckSignedFileEx = (PCI_CHECK_SIGNED_FILE_EX)KphGetRoutineAddress(L"ci.dll", "CiCheckSignedFile");
         dyn->CiVerifyHashInCatalogEx = (PCI_VERIFY_HASH_IN_CATALOG_EX)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
     }
 
-    if (config->LxVersion == KPH_DYN_LX_V1)
+    if (init->Config->LxVersion == KPH_DYN_LX_V1)
     {
         dyn->LxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
     }
@@ -166,7 +161,59 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM(MmControlAreaListHead);
     KPH_LOAD_DYNITEM(MmControlAreaLock);
 
-    return STATUS_SUCCESS;
+    status = KphVerifyCreateKey(&dyn->SessionTokenPublicKeyHandle,
+                                init->Data->SessionTokenPublicKey,
+                                KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphVerifyCreateKey failed: %!STATUS!",
+                      status);
+
+        dyn->SessionTokenPublicKeyHandle = NULL;
+    }
+
+    return status;
+}
+
+/**
+ * \brief Deletes a dynamic configuration object.
+ *
+ * \param[in] Object Dynamic configuration object to delete.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpDeleteDynData(
+    _In_freesMem_ PVOID Object
+    )
+{
+    PKPH_DYN dyn;
+
+    PAGED_CODE_PASSIVE();
+
+    dyn = Object;
+
+    if (dyn->SessionTokenPublicKeyHandle)
+    {
+        KphVerifyCloseKey(dyn->SessionTokenPublicKeyHandle);
+    }
+}
+
+/**
+ * \brief Frees a dynamic configuration object.
+ *
+ * \param[in] Object Dynamic configuration object to free.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpFreeDynData(
+    _In_freesMem_ PVOID Object
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    KphFree(Object, KPH_TAG_DYNDATA);
 }
 
 /**
@@ -190,6 +237,7 @@ NTSTATUS KphpActivateDynData(
 {
     NTSTATUS status;
     PKPH_DYN dyn;
+    KPH_DYN_INIT init;
     PKPH_DYN_CONFIGURATION config;
 
     PAGED_CODE_PASSIVE();
@@ -230,7 +278,10 @@ NTSTATUS KphpActivateDynData(
         goto Exit;
     }
 
-    status = KphCreateObject(KphDynDataType, sizeof(KPH_DYN), &dyn, config);
+    init.Data = (PKPH_DYNDATA)DynData;
+    init.Config = config;
+
+    status = KphCreateObject(KphDynDataType, sizeof(KPH_DYN), &dyn, &init);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -381,7 +432,7 @@ VOID KphInitializeDynData(
 
     typeInfo.Allocate = KphpAllocateDynData;
     typeInfo.Initialize = KphpInitializeDynData;
-    typeInfo.Delete = NULL;
+    typeInfo.Delete = KphpDeleteDynData;
     typeInfo.Free = KphpFreeDynData;
 
     KphCreateObjectType(&KphpDynDataTypeName, &typeInfo, &KphDynDataType);

@@ -280,6 +280,8 @@ NTSTATUS DriverEntry(
 
     KphInitializeProtection();
 
+    KphInitializeSessionToken();
+
     status = KphInitializeStackBackTrace();
     if (!NT_SUCCESS(status))
     {

@@ -534,6 +534,34 @@ KphActivateDynData(
     _In_ ULONG SignatureLength
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphRequestSessionAccessToken(
+    _Out_ PKPH_SESSION_ACCESS_TOKEN AccessToken,
+    _In_ PLARGE_INTEGER Expiry,
+    _In_ ULONG Privileges,
+    _In_ LONG Uses
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphAssignProcessSessionToken(
+    _In_ HANDLE ProcessHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphAssignThreadSessionToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    );
+
 EXTERN_C_END
 
 #endif

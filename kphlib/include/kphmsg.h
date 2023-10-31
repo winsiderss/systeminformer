@@ -58,6 +58,9 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgReleaseDriverUnloadProtection,
     KphMsgGetConnectedClientCount,
     KphMsgActivateDynData,
+    KphMsgRequestSessionAccessToken,
+    KphMsgAssignProcessSessionToken,
+    KphMsgAssignThreadSessionToken,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -184,6 +187,9 @@ typedef struct _KPH_MESSAGE
             KPHM_RELEASE_DRIVER_UNLOAD_PROTECTION ReleaseDriverUnloadProtection;
             KPHM_GET_CONNECTED_CLIENT_COUNT GetConnectedClientCount;
             KPHM_ACTIVATE_DYNDATA ActivateDynData;
+            KPHM_REQUEST_SESSION_ACCESS_TOKEN RequestSessionAccessToken;
+            KPHM_ASSIGN_PROCESS_SESSION_TOKEN AssignProcessSessionToken;
+            KPHM_ASSIGN_THREAD_SESSION_TOKEN AssignThreadSessionToken;
         } User;
 
         //
@@ -241,11 +247,11 @@ typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 // const int offset = FIELD_OFFSET(KPH_MESSAGE, _Dyn);
 //
 #ifdef _WIN64
-C_ASSERT(sizeof(KPH_MESSAGE) == 3312);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 104);
+C_ASSERT(sizeof(KPH_MESSAGE) == 3320);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 112);
 #else
-C_ASSERT(sizeof(KPH_MESSAGE) == 3288);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 80);
+//C_ASSERT(sizeof(KPH_MESSAGE) == not supported);
+//C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == not supported);
 #endif
 
 #define KPH_MESSAGE_MIN_SIZE RTL_SIZEOF_THROUGH_FIELD(KPH_MESSAGE, _Dyn.Entries)

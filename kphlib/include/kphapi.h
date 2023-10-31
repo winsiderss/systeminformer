@@ -454,4 +454,21 @@ typedef union _KPH_PARAMETER_FLAGS
     };
 } KPH_PARAMETER_FLAGS, *PKPH_PARAMETER_FLAGS;
 
+// Session Token
+
+#define KPH_TOKEN_PRIVILEGE_TERMINATE 0x00000001ul
+#define KPH_TOKEN_VALID_PRIVILEGES    (KPH_TOKEN_PRIVILEGE_TERMINATE)
+
+#include <pshpack1.h>
+typedef struct _KPH_SESSION_ACCESS_TOKEN
+{
+    LARGE_INTEGER Expiry;
+    ULONG Privileges;
+    LONG Uses;
+    GUID Identifier;
+    BYTE Material[32];
+} KPH_SESSION_ACCESS_TOKEN, *PKPH_SESSION_ACCESS_TOKEN;
+C_ASSERT(sizeof(KPH_SESSION_ACCESS_TOKEN) == 64);
+#include <poppack.h>
+
 #pragma warning(pop)
