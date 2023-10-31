@@ -464,6 +464,8 @@ VOID KSIAPI KphpDeleteProcessContext(
 
     process = Object;
 
+    KphAtomicAssignObjectReference(&process->SessionToken.Atomic, NULL);
+
     if (process->IsLsass)
     {
         KphpLsassIsKnown = FALSE;
@@ -951,6 +953,9 @@ VOID KSIAPI KphpDeleteThreadContext(
     thread = Object;
 
     NT_ASSERT(!thread->InThreadList);
+
+    KphAtomicAssignObjectReference(&thread->RequestSessionToken.Atomic, NULL);
+    KphAtomicAssignObjectReference(&thread->SessionToken.Atomic, NULL);
 
     NT_ASSERT(thread->EThread);
     ObDereferenceObject(thread->EThread);

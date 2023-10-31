@@ -11,7 +11,7 @@
 
 #include <kphlibbase.h>
 
-#define KPH_DYN_CONFIGURATION_VERSION 10
+#define KPH_DYN_CONFIGURATION_VERSION 11
 
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
@@ -19,6 +19,8 @@
 
 #define KPH_DYN_LX_INVALID ((SHORT)-1)
 #define KPH_DYN_LX_V1      ((SHORT)1)
+
+#define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH 72
 
 #include <pshpack1.h>
 
@@ -73,6 +75,7 @@ typedef struct _KPH_DYN_CONFIGURATION
 typedef struct _KPH_DYNDATA
 {
     ULONG Version;
+    BYTE SessionTokenPublicKey[KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH];
     ULONG Count;
     KPH_DYN_CONFIGURATION Configs[ANYSIZE_ARRAY];
 } KPH_DYNDATA, *PKPH_DYNDATA;
