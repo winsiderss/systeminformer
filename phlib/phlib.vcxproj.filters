@@ -176,6 +176,9 @@
     <ClCompile Include="symprv_std.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hvsocketcontrol.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -371,6 +374,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phintrin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hvsocketcontrol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

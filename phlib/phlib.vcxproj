@@ -295,6 +295,7 @@
     <ClCompile Include="hexedit.c" />
     <ClCompile Include="hndlinfo.c" />
     <ClCompile Include="http.c" />
+    <ClCompile Include="hvsocketcontrol.c" />
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="filestream.c" />
     <ClCompile Include="imgcoherency.c" />
@@ -338,6 +339,7 @@
     <ClInclude Include="include\filestream.h" />
     <ClInclude Include="include\handle.h" />
     <ClInclude Include="include\hndlinfo.h" />
+    <ClInclude Include="include\hvsocketcontrol.h" />
     <ClInclude Include="include\json.h" />
     <ClInclude Include="include\kphcomms.h" />
     <ClInclude Include="include\lsasup.h" />
