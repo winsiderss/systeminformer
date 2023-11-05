@@ -33,6 +33,7 @@ EXTERN_C_START
 #include <iphlpapi.h>
 #include <mstcpip.h>
 #include <icmpapi.h>
+#include <hvsocket.h>
 
 EXTERN_C CONST DECLSPEC_SELECTANY IN_ADDR  inaddr_any             = { 0x00 };
 EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_any            = { 0x00 };
@@ -40,17 +41,19 @@ EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_v4mappedprefix = { 0x00, 0x00
 
 #define PH_IPV4_NETWORK_TYPE 0x1
 #define PH_IPV6_NETWORK_TYPE 0x2
+#define PH_HV_NETWORK_TYPE   0x3
 #define PH_NETWORK_TYPE_MASK 0x3
 
-#define PH_TCP_PROTOCOL_TYPE 0x10
-#define PH_UDP_PROTOCOL_TYPE 0x20
+#define PH_TCP_PROTOCOL_TYPE  0x10
+#define PH_UDP_PROTOCOL_TYPE  0x20
 #define PH_PROTOCOL_TYPE_MASK 0x30
 
-#define PH_NO_NETWORK_PROTOCOL 0x0
+#define PH_NO_NETWORK_PROTOCOL   0x0
 #define PH_TCP4_NETWORK_PROTOCOL (PH_IPV4_NETWORK_TYPE | PH_TCP_PROTOCOL_TYPE)
 #define PH_TCP6_NETWORK_PROTOCOL (PH_IPV6_NETWORK_TYPE | PH_TCP_PROTOCOL_TYPE)
 #define PH_UDP4_NETWORK_PROTOCOL (PH_IPV4_NETWORK_TYPE | PH_UDP_PROTOCOL_TYPE)
 #define PH_UDP6_NETWORK_PROTOCOL (PH_IPV6_NETWORK_TYPE | PH_UDP_PROTOCOL_TYPE)
+#define PH_HV_NETWORK_PROTOCOL   (PH_HV_NETWORK_TYPE)
 
 typedef struct _PH_IP_ADDRESS
 {
@@ -61,6 +64,7 @@ typedef struct _PH_IP_ADDRESS
         IN_ADDR InAddr;
         UCHAR Ipv6[16];
         IN6_ADDR In6Addr;
+        GUID HvAddr;
     };
 } PH_IP_ADDRESS, *PPH_IP_ADDRESS;
 
@@ -79,7 +83,7 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
         return IN4_ADDR_EQUAL(&Address1->InAddr, &Address2->InAddr);
         // return Address1->Ipv4 == Address2->Ipv4;
     }
-    else
+    else if (Address1->Type == PH_IPV6_NETWORK_TYPE)
     {
         return IN6_ADDR_EQUAL(&Address1->In6Addr, &Address2->In6Addr);
 //#ifdef _WIN64
@@ -93,6 +97,11 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
 //            *(PULONG)(Address1->Ipv6 + 8) == *(PULONG)(Address2->Ipv6 + 8) &&
 //            *(PULONG)(Address1->Ipv6 + 12) == *(PULONG)(Address2->Ipv6 + 12);
 //#endif
+    }
+    else
+    {
+        //return IsEqualGUID(&Address1->HvAddr, &Address2->HvAddr);
+        return !memcmp(&Address1->HvAddr, &Address2->HvAddr, sizeof(GUID));
     }
 }
 
@@ -111,12 +120,19 @@ FORCEINLINE ULONG PhHashIpAddress(
     {
         hash ^= Address->Ipv4;
     }
-    else
+    else if (Address->Type == PH_IPV6_NETWORK_TYPE)
     {
         hash += *(PULONG)(Address->Ipv6);
         hash ^= *(PULONG)(Address->Ipv6 + 4);
         hash += *(PULONG)(Address->Ipv6 + 8);
         hash ^= *(PULONG)(Address->Ipv6 + 12);
+    }
+    else
+    {
+        hash += Address->HvAddr.Data1;
+        hash ^= *(PULONG)(&Address->HvAddr.Data2);
+        hash ^= *(PULONG)(Address->HvAddr.Data4);
+        hash ^= *(PULONG)(Address->HvAddr.Data4 + 4);
     }
 
     return hash;
@@ -144,6 +160,11 @@ FORCEINLINE BOOLEAN PhIsNullIpAddress(
 //        return (*(PULONG)(Address->Ipv6) | *(PULONG)(Address->Ipv6 + 4) |
 //            *(PULONG)(Address->Ipv6 + 8) | *(PULONG)(Address->Ipv6 + 12)) == 0;
 //#endif
+    }
+    else if (Address->Type == PH_HV_NETWORK_TYPE)
+    {
+        //return IsEqualGUID(&Address->HvAddr, &HV_GUID_ZERO);
+        return !memcmp(&Address->HvAddr, &HV_GUID_ZERO, sizeof(GUID));
     }
     else
     {

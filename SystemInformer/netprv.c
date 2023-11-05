@@ -20,6 +20,7 @@
 #include <procprv.h>
 #include <svcsup.h>
 #include <workqueue.h>
+#include <hvsocketcontrol.h>
 
 typedef struct _PH_NETWORK_CONNECTION
 {
@@ -147,6 +148,10 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
 
     PhEmCallObjectOperation(EmNetworkItemType, networkItem, EmObjectDelete);
 
+    if (networkItem->LocalAddressString)
+        PhDereferenceObject(networkItem->LocalAddressString);
+    if (networkItem->RemoteAddressString)
+        PhDereferenceObject(networkItem->RemoteAddressString);
     if (networkItem->ProcessName)
         PhDereferenceObject(networkItem->ProcessName);
     if (networkItem->OwnerName)
@@ -1017,80 +1022,110 @@ VOID PhNetworkProviderUpdate(
 
             // Format various strings.
 
-            //if (!PhIsNullIpAddress(&networkItem->LocalEndpoint.Address))
+            switch (networkItem->LocalEndpoint.Address.Type)
             {
-                switch (networkItem->LocalEndpoint.Address.Type)
+            case PH_IPV4_NETWORK_TYPE:
                 {
-                case PH_IPV4_NETWORK_TYPE:
-                    {
-                        ULONG localAddressStringLength = RTL_NUMBER_OF(networkItem->LocalAddressString);
+                    WCHAR localAddressString[IP4_ADDRESS_STRING_LENGTH];
+                    ULONG localAddressStringLength = RTL_NUMBER_OF(localAddressString);
 
-                        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
-                            &networkItem->LocalEndpoint.Address.InAddr,
-                            0,
-                            networkItem->LocalAddressString,
-                            &localAddressStringLength
-                            )))
-                        {
-                            networkItem->LocalAddressStringLength = (localAddressStringLength - 1) * sizeof(WCHAR);
-                        }
-                    }
-                    break;
-                case PH_IPV6_NETWORK_TYPE:
+                    if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                        &networkItem->LocalEndpoint.Address.InAddr,
+                        0,
+                        localAddressString,
+                        &localAddressStringLength
+                        )))
                     {
-                        ULONG localAddressStringLength = RTL_NUMBER_OF(networkItem->LocalAddressString);
-
-                        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
-                            &networkItem->LocalEndpoint.Address.In6Addr,
-                            networkItem->LocalScopeId,
-                            0,
-                            networkItem->LocalAddressString,
-                            &localAddressStringLength
-                            )))
-                        {
-                            networkItem->LocalAddressStringLength = (localAddressStringLength - 1) * sizeof(WCHAR);
-                        }
+                        networkItem->LocalAddressString = PhCreateStringEx(
+                            localAddressString,
+                            (localAddressStringLength - 1) * sizeof(WCHAR)
+                            );
                     }
-                    break;
                 }
+                break;
+            case PH_IPV6_NETWORK_TYPE:
+                {
+                    WCHAR localAddressString[IP6_ADDRESS_STRING_LENGTH];
+                    ULONG localAddressStringLength = RTL_NUMBER_OF(localAddressString);
+
+                    if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                        &networkItem->LocalEndpoint.Address.In6Addr,
+                        networkItem->LocalScopeId,
+                        0,
+                        localAddressString,
+                        &localAddressStringLength
+                        )))
+                    {
+                        networkItem->LocalAddressString = PhCreateStringEx(
+                            localAddressString,
+                            (localAddressStringLength - 1) * sizeof(WCHAR)
+                            );
+                    }
+                }
+                break;
+            case PH_HV_NETWORK_TYPE:
+                {
+                    networkItem->LocalAddressString = PhFormatGuid(
+                        &networkItem->LocalEndpoint.Address.HvAddr
+                        );
+                }
+                break;
             }
 
-            if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
+            switch (networkItem->RemoteEndpoint.Address.Type)
             {
-                switch (networkItem->RemoteEndpoint.Address.Type)
+            case PH_IPV4_NETWORK_TYPE:
                 {
-                case PH_IPV4_NETWORK_TYPE:
+                    if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
                     {
-                        ULONG remoteAddressStringLength = RTL_NUMBER_OF(networkItem->RemoteAddressString);
+                        WCHAR remoteAddressString[IP4_ADDRESS_STRING_LENGTH];
+                        ULONG remoteAddressStringLength = RTL_NUMBER_OF(remoteAddressString);
 
                         if (NT_SUCCESS(RtlIpv4AddressToStringEx(
                             &networkItem->RemoteEndpoint.Address.InAddr,
                             0,
-                            networkItem->RemoteAddressString,
+                            remoteAddressString,
                             &remoteAddressStringLength
                             )))
                         {
-                            networkItem->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+                            networkItem->RemoteAddressString = PhCreateStringEx(
+                                remoteAddressString,
+                                (remoteAddressStringLength - 1) * sizeof(WCHAR)
+                                );
                         }
                     }
-                    break;
-                case PH_IPV6_NETWORK_TYPE:
+                }
+                break;
+            case PH_IPV6_NETWORK_TYPE:
+                {
+                    if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
                     {
-                        ULONG remoteAddressStringLength = RTL_NUMBER_OF(networkItem->RemoteAddressString);
+                        WCHAR remoteAddressString[IP6_ADDRESS_STRING_LENGTH];
+                        ULONG remoteAddressStringLength = RTL_NUMBER_OF(remoteAddressString);
 
                         if (NT_SUCCESS(RtlIpv6AddressToStringEx(
                             &networkItem->RemoteEndpoint.Address.In6Addr,
                             networkItem->RemoteScopeId,
                             0,
-                            networkItem->RemoteAddressString,
+                            remoteAddressString,
                             &remoteAddressStringLength
                             )))
                         {
-                            networkItem->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+                            networkItem->RemoteAddressString = PhCreateStringEx(
+                                remoteAddressString,
+                                (remoteAddressStringLength - 1) * sizeof(WCHAR)
+                                );
                         }
                     }
-                    break;
                 }
+                break;
+            case PH_HV_NETWORK_TYPE:
+                {
+                    networkItem->RemoteAddressString = PhFormatGuid(
+                        &networkItem->RemoteEndpoint.Address.HvAddr
+                        );
+                }
+                break;
             }
 
             if (networkItem->LocalEndpoint.Port != 0)
@@ -1213,6 +1248,229 @@ VOID PhNetworkProviderUpdate(
     runCount++;
 }
 
+#ifdef _WIN64
+PHVSOCKET_LISTENERS PhpGetHvSocketListeners(
+    _In_ HANDLE SystemHandle,
+    _In_ const GUID* VmId
+    )
+{
+    NTSTATUS status;
+    ULONG length;
+    PHVSOCKET_LISTENERS listeners;
+
+    length = PAGE_SIZE;
+    listeners = PhAllocate(length);
+
+    for (;;)
+    {
+        status = HvSocketGetListeners(SystemHandle, VmId, listeners, length, &length);
+        if (status != STATUS_BUFFER_TOO_SMALL)
+        {
+            break;
+        }
+
+        length *= 2;
+        listeners = PhReAllocate(listeners, length);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(listeners);
+        listeners = NULL;
+    }
+
+    return listeners;
+}
+
+PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
+    _In_ HANDLE SystemHandle,
+    _In_ const GUID* VmId
+    )
+{
+    NTSTATUS status;
+    ULONG length;
+    PHVSOCKET_CONNECTIONS connections;
+
+    length = PAGE_SIZE;
+    connections = PhAllocate(length);
+
+    for (;;)
+    {
+        status = HvSocketGetConnections(SystemHandle, VmId, connections, length, &length);
+        if (status != STATUS_BUFFER_TOO_SMALL)
+        {
+            break;
+        }
+
+        length *= 2;
+        connections = PhReAllocate(connections, length);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(connections);
+        connections = NULL;
+    }
+
+    return connections;
+}
+
+VOID PhpGetHvSocket(
+    _Out_ PHVSOCKET_LISTENERS* Listeners,
+    _Out_ PHVSOCKET_CONNECTIONS* Connections
+    )
+{
+    HANDLE systemHandle;
+    PHVSOCKET_LISTENERS listeners;
+    PHVSOCKET_CONNECTIONS connections;
+    ULONG listenersCount;
+    ULONG connectionsCount;
+    PPH_LIST listenersList;
+    PPH_LIST connectionsList;
+
+    if (!NT_SUCCESS(HvSocketOpenSystemControl(&systemHandle, NULL)))
+    {
+        *Listeners = NULL;
+        *Connections = NULL;
+        return;
+    }
+
+    listenersCount = 0;
+    connectionsCount = 0;
+    listenersList = PhCreateList(1);
+    connectionsList = PhCreateList(1);
+
+    listeners = PhpGetHvSocketListeners(systemHandle, &HV_GUID_ZERO);
+    connections = PhpGetHvSocketConnections(systemHandle, &HV_GUID_ZERO);
+
+    if (listeners)
+    {
+        for (ULONG i = 0; i < listeners->Count; i++)
+        {
+            PHVSOCKET_LISTENERS l;
+            PHVSOCKET_CONNECTIONS c;
+
+            if (IsEqualGUID(&listeners->Listener[i].VmId, &HV_GUID_ZERO))
+                continue;
+
+            l = PhpGetHvSocketListeners(systemHandle, &listeners->Listener[i].VmId);
+            if (l)
+            {
+                listenersCount += l->Count;
+                PhAddItemList(listenersList, l);
+            }
+
+            c = PhpGetHvSocketConnections(systemHandle, &listeners->Listener[i].VmId);
+            if (c)
+            {
+                connectionsCount += c->Count;
+                PhAddItemList(connectionsList, c);
+            }
+        }
+
+        listenersCount += listeners->Count;
+        PhAddItemList(listenersList, listeners);
+        listeners = NULL;
+    }
+
+    if (connections)
+    {
+        for (ULONG i = 0; i < connections->Count; i++)
+        {
+            PHVSOCKET_LISTENERS l;
+            PHVSOCKET_CONNECTIONS c;
+
+            if (IsEqualGUID(&connections->Connection[i].VmId, &HV_GUID_ZERO))
+                continue;
+
+            l = PhpGetHvSocketListeners(systemHandle, &connections->Connection[i].VmId);
+            if (l)
+            {
+                listenersCount += l->Count;
+                PhAddItemList(listenersList, l);
+            }
+
+            c = PhpGetHvSocketConnections(systemHandle, &connections->Connection[i].VmId);
+            if (c)
+            {
+                connectionsCount += c->Count;
+                PhAddItemList(connectionsList, c);
+            }
+        }
+
+        connectionsCount += connections->Count;
+        PhAddItemList(connectionsList, connections);
+        connections = NULL;
+    }
+
+    if (listenersCount)
+    {
+        listeners = PhAllocate(
+            RTL_SIZEOF_THROUGH_FIELD(HVSOCKET_LISTENERS, Listener) +
+            (sizeof(HVSOCKET_LISTENER) * listenersCount)
+            );
+        listeners->Count = 0;
+    }
+
+    for (ULONG i = 0; i < listenersList->Count; i++)
+    {
+        PHVSOCKET_LISTENERS l;
+
+        l = listenersList->Items[i];
+
+        if (listeners)
+        {
+            RtlCopyMemory(
+                &listeners->Listener[listeners->Count],
+                l->Listener,
+                sizeof(HVSOCKET_LISTENER) * l->Count
+                );
+
+            listeners->Count += l->Count;
+        }
+
+        PhFree(l);
+    }
+
+    if (connectionsCount)
+    {
+        connections = PhAllocate(
+            RTL_SIZEOF_THROUGH_FIELD(HVSOCKET_CONNECTIONS, Connection) +
+            (sizeof(HVSOCKET_CONNECTION) * connectionsCount)
+            );
+        connections->Count = 0;
+    }
+
+    for (ULONG i = 0; i < connectionsList->Count; i++)
+    {
+        PHVSOCKET_CONNECTIONS c;
+
+        c = connectionsList->Items[i];
+
+        if (connections)
+        {
+            RtlCopyMemory(
+                &connections->Connection[connections->Count],
+                c->Connection,
+                sizeof(HVSOCKET_CONNECTION) * c->Count
+                );
+
+            connections->Count += c->Count;
+        }
+
+        PhFree(c);
+    }
+
+    PhDereferenceObject(listenersList);
+    PhDereferenceObject(connectionsList);
+
+    *Listeners = listeners;
+    *Connections = connections;
+
+    NtClose(systemHandle);
+}
+#endif // _WIN64
+
 BOOLEAN PhGetNetworkConnections(
     _Out_ PPH_NETWORK_CONNECTION *Connections,
     _Out_ PULONG NumberOfConnections
@@ -1226,6 +1484,10 @@ BOOLEAN PhGetNetworkConnections(
     PMIB_UDP6TABLE_OWNER_MODULE udp6Table;
     PMIB_TCPTABLE2 boundTcpTable;
     PMIB_TCP6TABLE2 boundTcp6Table;
+#ifdef _WIN64
+    PHVSOCKET_LISTENERS hvListeners;
+    PHVSOCKET_CONNECTIONS hvConnections;
+#endif
     ULONG i;
     ULONG count = 0;
     ULONG index = 0;
@@ -1298,6 +1560,19 @@ BOOLEAN PhGetNetworkConnections(
         PhFree(table);
         udp6Table = NULL;
     }
+
+#ifdef _WIN64
+    // Hyper-V
+    PhpGetHvSocket(&hvListeners, &hvConnections);
+    if (hvListeners)
+    {
+        count += hvListeners->Count;
+    }
+    if (hvConnections)
+    {
+        count += hvConnections->Count;
+    }
+#endif
 
     if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5 && GetBoundTcpEndpointTable_I && GetBoundTcp6EndpointTable_I)
     {
@@ -1504,6 +1779,58 @@ BOOLEAN PhGetNetworkConnections(
         }
     }
 
+#ifdef _WIN64
+    if (hvListeners)
+    {
+        for (i = 0; i < hvListeners->Count; i++)
+        {
+            connections[index].ProtocolType = PH_HV_NETWORK_PROTOCOL;
+
+            connections[index].LocalEndpoint.Address.Type = PH_HV_NETWORK_TYPE;
+            connections[index].LocalEndpoint.Address.HvAddr = hvListeners->Listener[i].ServiceId;
+
+            if (hvListeners->Listener[i].Port <= 0x7FFFFFFF) // valid port range
+                connections[index].LocalEndpoint.Port = hvListeners->Listener[i].Port;
+
+            connections[index].RemoteEndpoint.Address.Type = PH_HV_NETWORK_TYPE;
+            connections[index].RemoteEndpoint.Address.HvAddr = hvListeners->Listener[i].VmId;
+
+            connections[index].ProcessId = UlongToHandle(hvListeners->Listener[i].ProcessId);
+
+            connections[index].State = 0; // HACK
+
+            index++;
+        }
+
+        PhFree(hvListeners);
+    }
+
+    if (hvConnections)
+    {
+        for (i = 0; i < hvConnections->Count; i++)
+        {
+            connections[index].ProtocolType = PH_HV_NETWORK_PROTOCOL;
+
+            connections[index].LocalEndpoint.Address.Type = PH_HV_NETWORK_TYPE;
+            connections[index].LocalEndpoint.Address.HvAddr = hvConnections->Connection[i].ServiceId;
+
+            if (hvConnections->Connection[i].Port <= 0x7FFFFFFF) // valid port range
+                connections[index].LocalEndpoint.Port = hvConnections->Connection[i].Port;
+
+            connections[index].RemoteEndpoint.Address.Type = PH_HV_NETWORK_TYPE;
+            connections[index].RemoteEndpoint.Address.HvAddr = hvConnections->Connection[i].VmId;
+
+            connections[index].ProcessId = UlongToHandle(hvConnections->Connection[i].ProcessId);
+
+            connections[index].State = 1; // HACK
+
+            index++;
+        }
+
+        PhFree(hvConnections);
+    }
+#endif
+
     *NumberOfConnections = count;
     *Connections = connections;
 
@@ -1516,6 +1843,7 @@ static PH_KEY_VALUE_PAIR PhProtocolTypeStrings[] =
     SIP(SREF(L"TCP6"), PH_TCP6_NETWORK_PROTOCOL),
     SIP(SREF(L"UDP"), PH_UDP4_NETWORK_PROTOCOL),
     SIP(SREF(L"UDP6"), PH_UDP6_NETWORK_PROTOCOL),
+    SIP(SREF(L"HYPERV"), PH_HV_NETWORK_PROTOCOL),
 };
 
 static PH_KEY_VALUE_PAIR PhTcpStateStrings[] =

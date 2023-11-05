@@ -153,7 +153,7 @@ FILTER_RESULT_TYPE ProcessTreeFilterMatchTypeCallback(
     //    if (PhWordMatchStringLongHintZ(SearchText, processNode->ProcessItem->SessionIdString))
     //        return Matched;
     //}
-    
+
     if (processNode->ProcessItem->LxssProcessIdString[0])
     {
         if (PhWordMatchStringLongHintZ(SearchText, processNode->ProcessItem->LxssProcessIdString))
@@ -665,9 +665,9 @@ BOOLEAN NetworkTreeFilterCallback(
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->LocalAddressString[0])
+    if (!PhIsNullOrEmptyString(networkNode->NetworkItem->LocalAddressString))
     {
-        if (PhWordMatchStringLongHintZ(SearchboxText, networkNode->NetworkItem->LocalAddressString))
+        if (PhWordMatchStringRef(&SearchboxText->sr, &networkNode->NetworkItem->LocalAddressString->sr))
             return TRUE;
     }
 
@@ -683,9 +683,9 @@ BOOLEAN NetworkTreeFilterCallback(
             return TRUE;
     }
 
-    if (networkNode->NetworkItem->RemoteAddressString[0])
+    if (!PhIsNullOrEmptyString(networkNode->NetworkItem->RemoteAddressString))
     {
-        if (PhWordMatchStringLongHintZ(SearchboxText, networkNode->NetworkItem->RemoteAddressString))
+        if (PhWordMatchStringRef(&SearchboxText->sr, &networkNode->NetworkItem->RemoteAddressString->sr))
             return TRUE;
     }
 
