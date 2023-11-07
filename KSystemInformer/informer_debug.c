@@ -23,7 +23,7 @@ typedef struct _KPH_DBG_PRINT_SLOT
     ULONG ComponentId;
     ULONG Level;
     USHORT Length;
-    CHAR Buffer[3 * 1024];
+    CHAR Buffer[FIELD_SIZE(KPH_MESSAGE, _Dyn.Buffer)];
 } KPH_DBG_PRINT_SLOT, *PKPH_DBG_PRINT_SLOT;
 
 static BOOLEAN KphpDbgPrintInitialized = FALSE;
@@ -42,6 +42,7 @@ VOID KphpDebugPrintFlush(
     for (ULONG i = 0; i < KphpDbgPrintSlotNext; i++)
     {
         NTSTATUS status;
+        USHORT remaining;
         ANSI_STRING output;
         PKPH_MESSAGE msg;
         PKPH_DBG_PRINT_SLOT slot;
@@ -64,7 +65,16 @@ VOID KphpDebugPrintFlush(
         msg->Kernel.DebugPrint.ComponentId = slot->ComponentId;
         msg->Kernel.DebugPrint.Level = slot->Level;
 
-        output.Length = slot->Length;
+        remaining = KphMsgDynRemaining(msg);
+
+        if (slot->Length > remaining)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "Truncated debug print line");
+        }
+
+        output.Length = min(slot->Length, remaining);
         output.MaximumLength = slot->Length;
         output.Buffer = slot->Buffer;
 
@@ -165,7 +175,7 @@ VOID KphpDebugPrintCallback(
     slot->Length = min(Output->Length, ARRAYSIZE(slot->Buffer));
     RtlCopyMemory(slot->Buffer, Output->Buffer, slot->Length);
 
-    if (slot->Length != Output->Length)
+    if (Output->Length > ARRAYSIZE(slot->Buffer))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
