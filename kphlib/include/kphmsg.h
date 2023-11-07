@@ -130,8 +130,8 @@ typedef struct _KPH_MESSAGE_DYNAMIC_TABLE_ENTRY
 {
     KPH_MESSAGE_FIELD_ID FieldId;
     KPH_MESSAGE_TYPE_ID TypeId;
-    ULONG Offset;
-    ULONG Size;
+    USHORT Offset;
+    USHORT Length;
 } KPH_MESSAGE_DYNAMIC_TABLE_ENTRY, *PKPH_MESSAGE_DYNAMIC_TABLE_ENTRY;
 
 typedef const KPH_MESSAGE_DYNAMIC_TABLE_ENTRY* PCKPH_MESSAGE_DYNAMIC_TABLE_ENTRY;
@@ -141,8 +141,8 @@ typedef struct _KPH_MESSAGE
     struct
     {
         USHORT Version;
+        USHORT Size;
         KPH_MESSAGE_ID MessageId;
-        ULONG Size;
         LARGE_INTEGER TimeStamp;
     } Header;
 
@@ -233,28 +233,32 @@ typedef struct _KPH_MESSAGE
     //
     struct
     {
-        USHORT Count;
+        UCHAR Count;
         KPH_MESSAGE_DYNAMIC_TABLE_ENTRY Entries[8];
-        CHAR Buffer[3 * 1024];
+        CHAR Buffer[0x1000 - 356];
     } _Dyn;
 } KPH_MESSAGE, *PKPH_MESSAGE;
-
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
+
+#define KPH_MESSAGE_MIN_SIZE RTL_SIZEOF_THROUGH_FIELD(KPH_MESSAGE, _Dyn.Entries)
 
 //
 // ABI breaking asserts. KPH_MESSAGE_VERSION must be updated.
-// const int size = sizeof(KPH_MESSAGE);
-// const int offset = FIELD_OFFSET(KPH_MESSAGE, _Dyn);
+// const int value = sizeof(KPH_MESSAGE);
+// const int value = FIELD_OFFSET(KPH_MESSAGE, _Dyn);
+// const int value = FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer);
+// const int value = KPH_MESSAGE_MIN_SIZE;
 //
+C_ASSERT(sizeof(KPH_MESSAGE) <= 0xffff);
 #ifdef _WIN64
-C_ASSERT(sizeof(KPH_MESSAGE) == 3320);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 112);
+C_ASSERT(sizeof(KPH_MESSAGE) == 0x1000);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 256);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 356);
+C_ASSERT(KPH_MESSAGE_MIN_SIZE == 356);
+C_ASSERT(KPH_MESSAGE_MIN_SIZE == FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer));
 #else
-//C_ASSERT(sizeof(KPH_MESSAGE) == not supported);
-//C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == not supported);
+// not supported
 #endif
-
-#define KPH_MESSAGE_MIN_SIZE RTL_SIZEOF_THROUGH_FIELD(KPH_MESSAGE, _Dyn.Entries)
 
 #pragma warning(pop)
 

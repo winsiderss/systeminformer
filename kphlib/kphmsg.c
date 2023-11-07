@@ -47,8 +47,8 @@ VOID KphMsgInit(
 {
     RtlZeroMemory(Message, KPH_MESSAGE_MIN_SIZE);
     Message->Header.Version = KPH_MESSAGE_VERSION;
-    Message->Header.MessageId = MessageId;
     Message->Header.Size = KPH_MESSAGE_MIN_SIZE;
+    Message->Header.MessageId = MessageId;
     KphMsgQuerySystemTime(&Message->Header.TimeStamp);
 }
 
@@ -64,12 +64,6 @@ NTSTATUS KphMsgValidate(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    if ((Message->Header.MessageId <= InvalidKphMsg) ||
-        (Message->Header.MessageId >= MaxKphMsg))
-    {
-        return STATUS_INVALID_MESSAGE;
-    }
-
     if (Message->Header.Version != KPH_MESSAGE_VERSION)
     {
         return STATUS_REVISION_MISMATCH;
@@ -77,6 +71,12 @@ NTSTATUS KphMsgValidate(
 
     if ((Message->Header.Size < KPH_MESSAGE_MIN_SIZE) ||
         (Message->Header.Size > sizeof(KPH_MESSAGE)))
+    {
+        return STATUS_INVALID_MESSAGE;
+    }
+
+    if ((Message->Header.MessageId <= InvalidKphMsg) ||
+        (Message->Header.MessageId >= MaxKphMsg))
     {
         return STATUS_INVALID_MESSAGE;
     }

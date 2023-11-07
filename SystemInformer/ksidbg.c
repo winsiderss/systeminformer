@@ -549,7 +549,7 @@ VOID KsiDebugLogMessageLog(
     PPH_STRING log;
     PH_FORMAT format[7];
     PPH_STRING line;
-    KPH_STACK_TRACE stack;
+    KPHM_STACK_TRACE stack;
 
     if (!KsiDebugLogFileStream || KsiDebugLogSkip(Message))
         return;

@@ -184,7 +184,7 @@ VOID KphCaptureStackInMessage(
 {
     NTSTATUS status;
     PVOID frames[150];
-    KPH_STACK_TRACE stack;
+    KPHM_STACK_TRACE stack;
     ULONG flags;
 
     NPAGED_CODE_DISPATCH_MAX();
