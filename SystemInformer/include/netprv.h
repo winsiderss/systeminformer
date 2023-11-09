@@ -42,11 +42,9 @@ typedef struct _PH_NETWORK_ITEM
 
     volatile LONG JustResolved;
 
-    ULONG LocalAddressStringLength;
-    ULONG RemoteAddressStringLength;
-    WCHAR LocalAddressString[INET6_ADDRSTRLEN];
+    PPH_STRING LocalAddressString;
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];
-    WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
+    PPH_STRING RemoteAddressString;
     WCHAR RemotePortString[PH_INT32_STR_LEN_1];
     PPH_STRING LocalHostString;
     PPH_STRING RemoteHostString;

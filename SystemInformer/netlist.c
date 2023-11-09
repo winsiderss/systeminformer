@@ -633,15 +633,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 break;
             case PHNETLC_LOCALADDRESS:
                 {
-                    if (networkItem->LocalAddressStringLength)
-                    {
-                        getCellText->Text.Buffer = networkItem->LocalAddressString;
-                        getCellText->Text.Length = networkItem->LocalAddressStringLength;
-                    }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
+                    getCellText->Text = PhGetStringRef(networkItem->LocalAddressString);
                 }
                 break;
             case PHNETLC_LOCALHOSTNAME:
@@ -659,15 +651,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 break;
             case PHNETLC_REMOTEADDRESS:
                 {
-                    if (networkItem->RemoteAddressStringLength)
-                    {
-                        getCellText->Text.Buffer = networkItem->RemoteAddressString;
-                        getCellText->Text.Length = networkItem->RemoteAddressStringLength;
-                    }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
+                    getCellText->Text = PhGetStringRef(networkItem->RemoteAddressString);
                 }
                 break;
             case PHNETLC_REMOTEHOSTNAME:
@@ -712,6 +696,17 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                         else
                         {
                             PhInitializeEmptyStringRef(&getCellText->Text);
+                        }
+                    }
+                    else if (networkItem->ProtocolType == PH_HV_NETWORK_PROTOCOL)
+                    {
+                        if (networkItem->State)
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"Connected");
+                        }
+                        else
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"Listen");
                         }
                     }
                     else

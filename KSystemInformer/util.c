@@ -16,6 +16,173 @@
 #include <trace.h>
 
 /**
+ * \brief Compares two blocks of memory.
+ *
+ * \param[in] Buffer1 Pointer to block of memory.
+ * \param[in] Buffer2 Pointer to block of memory.
+ * \param[in] Length Number of bytes to compare.
+ *
+ * \return 0 if the buffers are equal, less than 0 if the byte that does not
+ * match in the first buffer is less than the second, greater than 0 if the
+ * byte that does not match in the first buffer is greater than the second.
+ */
+_Must_inspect_result_
+INT KphCompareMemory(
+    _In_reads_bytes_(Length) PVOID Buffer1,
+    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_ SIZE_T Length
+    )
+{
+    //
+    // Optimization for length that fits into a register.
+    //
+#define KPH_COMPARE_MEMORY_SIZED(type)                                        \
+    case sizeof(type):                                                        \
+    {                                                                         \
+        if (*(type*)Buffer1 == *(type*)Buffer2)                               \
+        {                                                                     \
+            return 0;                                                         \
+        }                                                                     \
+        break;                                                                \
+    }
+
+    switch (Length)
+    {
+        KPH_COMPARE_MEMORY_SIZED(UCHAR)
+        KPH_COMPARE_MEMORY_SIZED(USHORT)
+        KPH_COMPARE_MEMORY_SIZED(ULONG)
+        KPH_COMPARE_MEMORY_SIZED(ULONG64)
+        default:
+        {
+            break;
+        }
+    }
+
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return memcmp(Buffer1, Buffer2, Length);
+}
+
+/**
+ * \brief Compares two blocks of memory for equality.
+ *
+ * \param[in] Buffer1 Pointer to block of memory.
+ * \param[in] Buffer2 Pointer to block of memory.
+ * \param[in] Length Number of bytes to compare.
+ *
+ * \return TRUE if the contents of the buffers are equal, FALSE otherwise.
+ */
+_Must_inspect_result_
+BOOLEAN KphEqualMemory(
+    _In_reads_bytes_(Length) PVOID Buffer1,
+    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_ SIZE_T Length
+    )
+{
+    //
+    // Optimization for length that fits into a register.
+    //
+#define KPH_EQUAL_MEMORY_SIZED(type)                                          \
+    case sizeof(type):                                                        \
+    {                                                                         \
+        return (*(type*)Buffer1 == *(type*)Buffer2);                          \
+    }
+
+    switch (Length)
+    {
+        KPH_EQUAL_MEMORY_SIZED(UCHAR)
+        KPH_EQUAL_MEMORY_SIZED(USHORT)
+        KPH_EQUAL_MEMORY_SIZED(ULONG)
+        KPH_EQUAL_MEMORY_SIZED(ULONG64)
+        default:
+        {
+            break;
+        }
+    }
+
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return (memcmp(Buffer1, Buffer2, Length) == 0);
+}
+
+/**
+ * \brief Searches memory for a given pattern.
+ *
+ * \param[in] Buffer The memory to search.
+ * \param[in] BufferLength The length of the memory to search.
+ * \param[in] Pattern The pattern to search for.
+ * \param[in] PatternLength The length of the pattern to search for.
+ *
+ * \return Pointer to the beginning of the first found pattern, NULL if the
+ * pattern is not found.
+ */
+_Must_inspect_result_
+PVOID KphSearchMemory(
+    _In_reads_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_reads_bytes_(PatternLength) PVOID Pattern,
+    _In_ ULONG PatternLength
+    )
+{
+    PBYTE buffer;
+    PBYTE end;
+
+    if (!BufferLength || !PatternLength)
+    {
+        return NULL;
+    }
+
+    if (PatternLength > BufferLength)
+    {
+        return NULL;
+    }
+
+    buffer = Buffer;
+    end = Add2Ptr(Buffer, BufferLength - PatternLength);
+
+    //
+    // Move the loop into the switch to ensure optimal code generation.
+    //
+#define KPH_SEARCH_MEMORY_FOR for (; buffer <= end; buffer++)
+
+    //
+    // Optimization for a pattern size that fits into a register.
+    //
+#define KPH_SEARCH_MEMORY_SIZED(type)                                         \
+    case sizeof(type):                                                        \
+    {                                                                         \
+        KPH_SEARCH_MEMORY_FOR                                                 \
+        {                                                                     \
+            if (*(type*)buffer == *(type*)Pattern)                            \
+            {                                                                 \
+                return buffer;                                                \
+            }                                                                 \
+        }                                                                     \
+        break;                                                                \
+    }
+
+    switch (PatternLength)
+    {
+        KPH_SEARCH_MEMORY_SIZED(UCHAR)
+        KPH_SEARCH_MEMORY_SIZED(USHORT)
+        KPH_SEARCH_MEMORY_SIZED(ULONG)
+        KPH_SEARCH_MEMORY_SIZED(ULONG64)
+        default:
+        {
+            KPH_SEARCH_MEMORY_FOR
+            {
+#pragma warning(suppress: 4995) // suppress deprecation warning
+                if (memcmp(buffer, Pattern, PatternLength) == 0)
+                {
+                    return buffer;
+                }
+            }
+            break;
+        }
+    }
+
+    return NULL;
+}
+
+/**
  * \brief Acquires rundown. On successful return the caller should release
  * the rundown using KphReleaseRundown.
  *
@@ -529,7 +696,7 @@ NTSTATUS KphQueryRegistryBinary(
         goto Exit;
     }
 
-    buffer = KphAllocatePaged(resultLength, KPH_TAG_DYNDATA);
+    buffer = KphAllocatePaged(resultLength, KPH_TAG_REG_BINARY);
     if (!buffer)
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -1604,4 +1771,309 @@ VOID KphFreeProcessImageName(
     PAGED_CODE();
 
     RtlFreeUnicodeString(ImageName);
+}
+
+/**
+ * \brief Opens the driver parameters key.
+ *
+ * \param[in] RegistryPath Registry path from the entry point.
+ * \param[out] KeyHandle Handle to parameters key on success, null on failure.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenParametersKey(
+    _In_ PUNICODE_STRING RegistryPath,
+    _Out_ PHANDLE KeyHandle
+    )
+{
+    NTSTATUS status;
+    WCHAR buffer[MAX_PATH];
+    UNICODE_STRING parametersKeyName;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    PAGED_CODE_PASSIVE();
+
+    *KeyHandle = NULL;
+
+    parametersKeyName.Buffer = buffer;
+    parametersKeyName.Length = 0;
+    parametersKeyName.MaximumLength = sizeof(buffer);
+
+    status = RtlAppendUnicodeStringToString(&parametersKeyName, RegistryPath);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    status = RtlAppendUnicodeToString(&parametersKeyName, L"\\Parameters");
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    InitializeObjectAttributes(&objectAttributes,
+                               &parametersKeyName,
+                               OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = ZwOpenKey(KeyHandle, KEY_READ, &objectAttributes);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Unable to open Parameters key: %!STATUS!",
+                      status);
+
+        *KeyHandle = NULL;
+        return status;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+static ANSI_STRING KphpUrlSchemeSeparator = RTL_CONSTANT_STRING("://");
+static ANSI_STRING KphpUrlPathSeparator = RTL_CONSTANT_STRING("/");
+static ANSI_STRING KphpUrlParametersSeparator = RTL_CONSTANT_STRING("?");
+static ANSI_STRING KphpUrlAnchorSeparator = RTL_CONSTANT_STRING("#");
+static ANSI_STRING KphpUrlPortSeparator = RTL_CONSTANT_STRING(":");
+
+/**
+ * \brief Parses a URL into its components.
+ *
+ * \details The output information references information in the input URL
+ * buffer. The parsed output information *must* outlive the input URL buffer.
+ *
+ * \param[in] Url The URL to parse.
+ * \param[out] UrlInfo The parsed URL information.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphParseUrlInformation(
+    _In_ PANSI_STRING Url,
+    _Out_ PKPH_URL_INFORMATION UrlInfo
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG remaining;
+    PVOID part;
+    ULONG_PTR length;
+
+    PAGED_CODE();
+
+    buffer = Url->Buffer;
+    remaining = Url->Length;
+
+    RtlZeroMemory(UrlInfo, sizeof(*UrlInfo));
+
+    //
+    // Extract any Scheme
+    //
+
+    part = KphSearchMemory(buffer,
+                           remaining,
+                           KphpUrlSchemeSeparator.Buffer,
+                           KphpUrlSchemeSeparator.Length);
+    if (part)
+    {
+        status = RtlULongPtrToUShort(PtrOffset(buffer, part),
+                                     &UrlInfo->Scheme.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Scheme.Buffer = buffer;
+        UrlInfo->Scheme.MaximumLength = UrlInfo->Scheme.Length;
+
+        buffer = Add2Ptr(part, KphpUrlSchemeSeparator.Length);
+        remaining -= (UrlInfo->Scheme.Length + KphpUrlSchemeSeparator.Length);
+    }
+
+    //
+    // Extract any Parameters
+    //
+
+    part = KphSearchMemory(buffer,
+                           remaining,
+                           KphpUrlParametersSeparator.Buffer,
+                           KphpUrlParametersSeparator.Length);
+    if (part)
+    {
+        length = ((ULONG_PTR)remaining - PtrOffset(buffer, part));
+
+        status = RtlULongPtrToUShort(length, &UrlInfo->Parameters.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Parameters.Buffer = part;
+        UrlInfo->Parameters.MaximumLength = UrlInfo->Parameters.Length;
+    }
+
+    //
+    // Extract any Anchor
+    //
+
+    part = KphSearchMemory(buffer,
+                           remaining,
+                           KphpUrlAnchorSeparator.Buffer,
+                           KphpUrlAnchorSeparator.Length);
+
+    if (part)
+    {
+        length = ((ULONG_PTR)remaining - PtrOffset(buffer, part));
+
+        status = RtlULongPtrToUShort(length, &UrlInfo->Anchor.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Anchor.Buffer = part;
+        UrlInfo->Anchor.MaximumLength = UrlInfo->Anchor.Length;
+
+        if (UrlInfo->Parameters.Buffer)
+        {
+            UrlInfo->Parameters.Length -= UrlInfo->Anchor.Length;
+            UrlInfo->Parameters.MaximumLength = UrlInfo->Parameters.Length;
+        }
+    }
+
+    //
+    // Extract any Authority
+    //
+
+    part = KphSearchMemory(buffer,
+                           remaining,
+                           KphpUrlPathSeparator.Buffer,
+                           KphpUrlPathSeparator.Length);
+    if (part)
+    {
+        status = RtlULongPtrToUShort(PtrOffset(buffer, part),
+                                     &UrlInfo->Authority.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Authority.Buffer = buffer;
+        UrlInfo->Authority.MaximumLength = UrlInfo->Authority.Length;
+
+        buffer = part;
+        remaining -= UrlInfo->Authority.Length;
+    }
+    else
+    {
+        UrlInfo->Authority.Buffer = buffer;
+
+        if (UrlInfo->Parameters.Buffer)
+        {
+            length = PtrOffset(UrlInfo->Authority.Buffer,
+                               UrlInfo->Parameters.Buffer);
+        }
+        else if (UrlInfo->Anchor.Buffer)
+        {
+            length = PtrOffset(UrlInfo->Authority.Buffer,
+                               UrlInfo->Anchor.Buffer);
+        }
+        else
+        {
+            length = remaining;
+        }
+
+        status = RtlULongPtrToUShort(length, &UrlInfo->Authority.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->Authority.MaximumLength = UrlInfo->Authority.Length;
+
+        UrlInfo->Path = KphpUrlPathSeparator;
+    }
+
+    //
+    // Break Authority into parts, if any.
+    //
+
+    part = KphSearchMemory(UrlInfo->Authority.Buffer,
+                           UrlInfo->Authority.Length,
+                           KphpUrlPortSeparator.Buffer,
+                           KphpUrlPortSeparator.Length);
+    if (part)
+    {
+        status = RtlULongPtrToUShort(PtrOffset(UrlInfo->Authority.Buffer, part),
+                                     &UrlInfo->DomainName.Length);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        UrlInfo->DomainName.Buffer = UrlInfo->Authority.Buffer;
+        UrlInfo->DomainName.MaximumLength = UrlInfo->DomainName.Length;
+
+        UrlInfo->Port.Buffer = Add2Ptr(part, KphpUrlPortSeparator.Length);
+        UrlInfo->Port.Length = (UrlInfo->Authority.Length -
+                                UrlInfo->DomainName.Length -
+                                KphpUrlPortSeparator.Length);
+        UrlInfo->Port.MaximumLength = UrlInfo->Port.Length;
+    }
+    else
+    {
+        UrlInfo->DomainName = UrlInfo->Authority;
+    }
+
+    if (UrlInfo->Path.Buffer == KphpUrlPathSeparator.Buffer)
+    {
+        //
+        // There was no path specified, we're done.
+        //
+        status = STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    //
+    // Extract the Path
+    //
+
+    UrlInfo->Path.Buffer = buffer;
+
+    if (UrlInfo->Parameters.Buffer)
+    {
+        length = PtrOffset(UrlInfo->Path.Buffer, UrlInfo->Parameters.Buffer);
+    }
+    else if (UrlInfo->Anchor.Buffer)
+    {
+        length = PtrOffset(UrlInfo->Path.Buffer, UrlInfo->Anchor.Buffer);
+    }
+    else
+    {
+        length = remaining;
+    }
+
+    status = RtlULongPtrToUShort(length, &UrlInfo->Path.Length);
+    if (!NT_SUCCESS(status))
+    {
+        goto Exit;
+    }
+
+    UrlInfo->Path.MaximumLength = UrlInfo->Path.Length;
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (!NT_SUCCESS(status))
+    {
+        RtlZeroMemory(UrlInfo, sizeof(*UrlInfo));
+    }
+
+    return status;
 }
