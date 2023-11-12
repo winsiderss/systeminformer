@@ -1027,6 +1027,10 @@ VOID KphpCommsSendMessageAsync(
  * \brief Sends a message to all connected clients. The last client to connect
  * is given authority for any reply.
  *
+ * \details Callers expecting a specific reply should check for the reply
+ * message identifier even on success. This function will return success with
+ * KphMsgUnhandled when no client handles the message.
+ *
  * \param[in] Message The message to send.
  * \param[out] Reply The reply from last client.
  * \param[in] Timeout The timeout for each client to receive the message, and if
@@ -1046,13 +1050,16 @@ NTSTATUS KphpCommsSendMessage(
     _In_opt_ PEPROCESS TargetClientProcess
     )
 {
-    NTSTATUS status;
-
     PAGED_CODE();
 
     NT_ASSERT(!TargetClientProcess || !Reply);
 
     NT_ASSERT(NT_SUCCESS(KphMsgValidate(Message)));
+
+    if (Reply)
+    {
+        KphMsgInit(Reply, KphMsgUnhandled);
+    }
 
     KphAcquireRWLockShared(&KphpConnectedClientLock);
 
@@ -1063,14 +1070,13 @@ NTSTATUS KphpCommsSendMessage(
         return STATUS_CONNECTION_DISCONNECTED;
     }
 
-    status = (Reply ? STATUS_UNSUCCESSFUL : STATUS_SUCCESS);
     for (PLIST_ENTRY entry = KphpConnectedClientList.Flink;
          entry != &KphpConnectedClientList;
          entry = entry->Flink)
     {
         PKPH_MESSAGE reply;
         ULONG replyLength;
-        NTSTATUS status2;
+        NTSTATUS status;
         PKPH_CLIENT client;
         KPH_PROCESS_STATE processState;
 
@@ -1084,13 +1090,12 @@ NTSTATUS KphpCommsSendMessage(
 
         //
         // Since we support multiple clients and only one client may be the
-        // authoritative reply. We choose to honor the reply of the last
-        // client to connect.
+        // authoritative reply. We choose to honor the first client to reply.
         //
-        if (entry == KphpConnectedClientList.Blink)
+        if (Reply && (Reply->Header.MessageId == KphMsgUnhandled))
         {
             reply = Reply;
-            replyLength = (Reply ? sizeof(*Reply) : 0);
+            replyLength = sizeof(KPH_MESSAGE);
         }
         else
         {
@@ -1151,59 +1156,64 @@ NTSTATUS KphpCommsSendMessage(
                       &client->Process->ImageName,
                       HandleToULong(client->Process->ProcessId));
 
-        status2 = KphpFltSendMessage(&client->Port,
-                                     Message,
-                                     Message->Header.Size,
-                                     reply,
-                                     (reply ? &replyLength : NULL),
-                                     Timeout);
-
-        if (!reply || !NT_SUCCESS(status2))
+        status = KphpFltSendMessage(&client->Port,
+                                    Message,
+                                    Message->Header.Size,
+                                    reply,
+                                    (reply ? &replyLength : NULL),
+                                    Timeout);
+        if (!reply)
         {
             continue;
         }
 
-        processState = KphGetProcessState(client->Process);
-        if ((processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
+        if (NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_CRITICAL,
-                          COMMS,
-                          "Untrusted client %wZ (%lu) (0x%08x)",
-                          &client->Process->ImageName,
-                          HandleToULong(client->Process->ProcessId),
-                          processState);
-
-            status2 = STATUS_REPLY_MESSAGE_MISMATCH;
-        }
-        else
-        {
-            status2 = KphMsgValidate(reply);
-            if (!NT_SUCCESS(status2))
+            processState = KphGetProcessState(client->Process);
+            if ((processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_CRITICAL,
                               COMMS,
-                              "Received invalid reply from client: %wZ (%lu)",
+                              "Untrusted client %wZ (%lu) (0x%08x)",
                               &client->Process->ImageName,
-                              HandleToULong(client->Process->ProcessId));
+                              HandleToULong(client->Process->ProcessId),
+                              processState);
+
+                status = STATUS_REPLY_MESSAGE_MISMATCH;
             }
             else
             {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              COMMS,
-                              "Received reply (%lu - %!TIME!) from client: %wZ (%lu)",
-                              (ULONG)reply->Header.MessageId,
-                              reply->Header.TimeStamp.QuadPart,
-                              &client->Process->ImageName,
-                              HandleToULong(client->Process->ProcessId));
+                status = KphMsgValidate(reply);
+                if (!NT_SUCCESS(status))
+                {
+                    KphTracePrint(TRACE_LEVEL_WARNING,
+                                  COMMS,
+                                  "Received invalid reply from client: %wZ (%lu)",
+                                  &client->Process->ImageName,
+                                  HandleToULong(client->Process->ProcessId));
+                }
+                else
+                {
+                    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                                  COMMS,
+                                  "Received reply (%lu - %!TIME!) from client: %wZ (%lu)",
+                                  (ULONG)reply->Header.MessageId,
+                                  reply->Header.TimeStamp.QuadPart,
+                                  &client->Process->ImageName,
+                                  HandleToULong(client->Process->ProcessId));
+                }
             }
         }
 
-        status = status2;
+        if (!NT_SUCCESS(status))
+        {
+            KphMsgInit(reply, KphMsgUnhandled);
+        }
     }
 
     KphReleaseRWLock(&KphpConnectedClientLock);
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -1604,12 +1614,17 @@ VOID KphCommsSendMessageAsync(
  * \brief Sends a message to all connected clients. The last client to connect
  * is given authority for any reply.
  *
+ * \details Callers expecting a specific reply should check for the reply
+ * message identifier even on success. This function will return success with
+ * KphMsgUnhandled when no client handles the message.
+ *
  * \param[in] Message The message to send.
  * \param[out] Reply Optional reply from last client.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphCommsSendMessage(
     _In_ PKPH_MESSAGE Message,
     _Out_opt_ PKPH_MESSAGE Reply

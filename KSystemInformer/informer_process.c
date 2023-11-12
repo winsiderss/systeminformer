@@ -262,7 +262,8 @@ VOID KphpCreateProcessNotifyInformer(
             goto Exit;
         }
 
-        if (NT_VERIFY(reply->Header.MessageId == KphMsgProcessCreate))
+        if ((reply->Header.MessageId == KphMsgProcessCreate) &&
+            (reply->Reply.ProcessCreate.CreationStatus != STATUS_SUCCESS))
         {
             CreateInfo->CreationStatus = reply->Reply.ProcessCreate.CreationStatus;
         }
