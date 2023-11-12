@@ -264,32 +264,38 @@ VOID KphpCreateThreadNotifyRoutine(
     NT_VERIFY(NT_SUCCESS(PsLookupThreadByThreadId(ThreadId, &threadObject)));
     NT_ASSERT(threadObject);
 
-    thread = KphpPerformThreadTracking(ProcessId,
-                                       ThreadId,
-                                       Create,
-                                       threadObject);
-
-    if (!thread)
-    {
-        goto Exit;
-    }
-
     if (Create)
     {
-        KphpCreateThreadNotifyInformer(thread,
-                                       ProcessId,
-                                       ThreadId,
-                                       KphThreadNotifyCreate);
+        thread = KphpPerformThreadTracking(ProcessId,
+                                           ThreadId,
+                                           TRUE,
+                                           threadObject);
+        if (thread)
+        {
+            KphpCreateThreadNotifyInformer(thread,
+                                           ProcessId,
+                                           ThreadId,
+                                           KphThreadNotifyCreate);
+        }
     }
     else
     {
-        KphpCreateThreadNotifyInformer(thread,
-                                       ProcessId,
-                                       ThreadId,
-                                       KphThreadNotifyExit);
-    }
+        thread = KphGetThreadContext(ThreadId);
+        if (thread)
+        {
+            KphpCreateThreadNotifyInformer(thread,
+                                           ProcessId,
+                                           ThreadId,
+                                           KphThreadNotifyExit);
 
-Exit:
+            KphDereferenceObject(thread);
+        }
+
+        thread = KphpPerformThreadTracking(ProcessId,
+                                           ThreadId,
+                                           FALSE,
+                                           threadObject);
+    }
 
     if (thread)
     {
