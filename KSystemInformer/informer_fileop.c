@@ -1642,7 +1642,7 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI KphpFltPostOp(
         goto Exit;
     }
 
-    if (NT_VERIFY(reply->Header.MessageId == KphMsgFilePostCreate) &&
+    if ((reply->Header.MessageId == KphMsgFilePostCreate) &&
         (reply->Reply.File.Post.Create.Status != STATUS_SUCCESS))
     {
         Data->IoStatus.Status = reply->Reply.File.Post.Create.Status;
@@ -1932,7 +1932,7 @@ FLT_PREOP_CALLBACK_STATUS KphpFltPreOpSend(
         goto Exit;
     }
 
-    if (NT_VERIFY(reply->Header.MessageId == KphMsgFilePreCreate) &&
+    if ((reply->Header.MessageId == KphMsgFilePreCreate) &&
         (reply->Reply.File.Pre.Create.Status != STATUS_SUCCESS))
     {
         Data->IoStatus.Status = reply->Reply.File.Pre.Create.Status;

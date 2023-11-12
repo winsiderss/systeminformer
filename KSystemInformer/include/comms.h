@@ -121,6 +121,7 @@ VOID KphFreeNPagedMessage(
     );
 
 _IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphCommsSendMessage(
     _In_ PKPH_MESSAGE Message,
     _Out_opt_ PKPH_MESSAGE Reply

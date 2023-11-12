@@ -75,10 +75,13 @@ NTSTATUS KphMsgValidate(
         return STATUS_INVALID_MESSAGE;
     }
 
-    if ((Message->Header.MessageId <= InvalidKphMsg) ||
-        (Message->Header.MessageId >= MaxKphMsg))
+    if (Message->Header.MessageId != KphMsgUnhandled)
     {
-        return STATUS_INVALID_MESSAGE;
+        if ((Message->Header.MessageId <= InvalidKphMsg) ||
+            (Message->Header.MessageId >= MaxKphMsg))
+        {
+            return STATUS_INVALID_MESSAGE;
+        }
     }
 
     return STATUS_SUCCESS;

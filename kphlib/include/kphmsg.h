@@ -66,7 +66,7 @@ typedef enum _KPH_MESSAGE_ID
     MaxKphMsgClientAllowed = 0x40000000,
 
     //
-    // KPH -> PH
+    // KPH <-> PH
     //
 
     KphMsgProcessCreate,
@@ -176,7 +176,9 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgFilePreVolumeDismount,
     KphMsgFilePostVolumeDismount,
 
-    MaxKphMsg
+    MaxKphMsg,
+
+    KphMsgUnhandled = 0xffffffff,
 } KPH_MESSAGE_ID, *PKPH_MESSAGE_ID;
 
 C_ASSERT(sizeof(KPH_MESSAGE_ID) == 4);
