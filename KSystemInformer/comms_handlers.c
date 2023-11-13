@@ -1136,11 +1136,9 @@ NTSTATUS KSIAPI KphpCommsGetMessageTimeouts(
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetMessageTimeouts);
 
-    UNREFERENCED_PARAMETER(Client);
-
     msg = &Message->User.GetMessageTimeouts;
 
-    KphGetMessageTimeouts(&msg->Timeouts);
+    KphGetMessageTimeouts(Client, &msg->Timeouts);
 
     return STATUS_SUCCESS;
 }
@@ -1159,11 +1157,9 @@ NTSTATUS KSIAPI KphpCommsSetMessageTimeouts(
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetMessageTimeouts);
 
-    UNREFERENCED_PARAMETER(Client);
-
     msg = &Message->User.SetMessageTimeouts;
 
-    msg->Status = KphSetMessageTimeouts(&msg->Timeouts);
+    msg->Status = KphSetMessageTimeouts(Client, &msg->Timeouts);
 
     return STATUS_SUCCESS;
 }
