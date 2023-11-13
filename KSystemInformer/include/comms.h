@@ -18,6 +18,7 @@ typedef struct _KPH_CLIENT
     PKPH_PROCESS_CONTEXT Process;
     PFLT_PORT Port;
     KPH_REFERENCE DriverUnloadProtectionRef;
+    KPH_MESSAGE_TIMEOUTS MessageTimeouts;
 } KPH_CLIENT, *PKPH_CLIENT;
 
 typedef
@@ -90,11 +91,13 @@ ULONG KphGetConnectedClientCount(
 
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphGetMessageTimeouts(
+    _In_ PKPH_CLIENT Client,
     _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphSetMessageTimeouts(
+    _In_ PKPH_CLIENT Client,
     _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
     );
 

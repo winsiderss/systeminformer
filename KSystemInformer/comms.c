@@ -30,6 +30,14 @@ typedef struct _KPHM_QUEUE_ITEM
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpClientObjectName = RTL_CONSTANT_STRING(L"KphClient");
 static const LARGE_INTEGER KphpMessageMinTimeout = KPH_TIMEOUT(300);
+static const KPH_MESSAGE_TIMEOUTS KphpDefaultMessageTimeouts =
+{
+    .AsyncTimeout = KPH_TIMEOUT(3000),
+    .DefaultTimeout = KPH_TIMEOUT(3000),
+    .ProcessCreateTimeout = KPH_TIMEOUT(3000),
+    .FilePreCreateTimeout = KPH_TIMEOUT(3000),
+    .FilePostCreateTimeout = KPH_TIMEOUT(3000),
+};
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PFLT_PORT KphpFltServerPort = NULL;
@@ -45,14 +53,6 @@ static NPAGED_LOOKASIDE_LIST KphpMessageQueueItemLookaside;
 static KQUEUE KphpMessageQueue;
 static PKTHREAD* KphpMessageQueueThreads = NULL;
 static ULONG KphpMessageQueueThreadsCount = 0;
-static KPH_MESSAGE_TIMEOUTS KphpMessageTimeouts =
-{
-    .AsyncTimeout = KPH_TIMEOUT(3000),
-    .DefaultTimeout = KPH_TIMEOUT(3000),
-    .ProcessCreateTimeout = KPH_TIMEOUT(3000),
-    .FilePreCreateTimeout = KPH_TIMEOUT(3000),
-    .FilePostCreateTimeout = KPH_TIMEOUT(3000),
-};
 
 /**
  * \brief Allocates a message queue item.
@@ -260,6 +260,10 @@ NTSTATUS KSIAPI KphpInitializeClientObject(
 
     client->Process = Parameter;
     KphReferenceObject(client->Process);
+
+    RtlCopyMemory(&client->MessageTimeouts,
+                  &KphpDefaultMessageTimeouts,
+                  sizeof(KPH_MESSAGE_TIMEOUTS));
 
     return STATUS_SUCCESS;
 }
@@ -808,17 +812,19 @@ ULONG KphGetConnectedClientCount(
 /**
  * \brief Gets the timeouts for messages.
  *
+ * \param[in] Client The client to get the timeouts from.
  * \param[out] Timeouts Receives the timeouts for messages.
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphGetMessageTimeouts(
+    _In_ PKPH_CLIENT Client,
     _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
     )
 {
     PAGED_CODE();
 
 #define KPH_GET_MESSAGE_TIMEOUT(t) \
-    Timeouts->##t.QuadPart = KphpMessageTimeouts.##t.QuadPart
+    Timeouts->##t.QuadPart = Client->MessageTimeouts.##t.QuadPart
 
     KPH_GET_MESSAGE_TIMEOUT(AsyncTimeout);
     KPH_GET_MESSAGE_TIMEOUT(DefaultTimeout);
@@ -830,12 +836,14 @@ VOID KphGetMessageTimeouts(
 /**
  * \brief Sets the timeouts for messages.
  *
+ * \param[in] Client The client to set the timeouts for.
  * \param[in] Timeouts The timeouts to apply.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphSetMessageTimeouts(
+    _In_ PKPH_CLIENT Client,
     _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
     )
 {
@@ -858,7 +866,7 @@ NTSTATUS KphSetMessageTimeouts(
     }
 
 #define KPH_SET_MESSAGE_TIMEOUT(t) \
-    KphpMessageTimeouts.##t.QuadPart = Timeouts->##t.QuadPart
+    Client->MessageTimeouts.##t.QuadPart = Timeouts->##t.QuadPart
 
     KPH_SET_MESSAGE_TIMEOUT(AsyncTimeout);
     KPH_SET_MESSAGE_TIMEOUT(DefaultTimeout);
@@ -872,34 +880,44 @@ NTSTATUS KphSetMessageTimeouts(
 /**
  * \brief Retrieves the timeout for a message.
  *
+ * \param[in] Client The client to get the timeout for.
  * \param[in] Message The message to retrieve the timeout for.
+ * \param[in] AsyncTimeout If TRUE the asynchronous timeout is returned, else
+ * the timeout appropriate for the message is returned.
  *
  * \return Timeout for the message.
  */
 _IRQL_requires_max_(APC_LEVEL)
-PLARGE_INTEGER KphpGetTimeoutForMessage(
-    _In_ PKPH_MESSAGE Message
+LARGE_INTEGER KphpGetTimeoutForMessage(
+    _In_ PKPH_CLIENT Client,
+    _In_ PKPH_MESSAGE Message,
+    _In_ BOOLEAN AsyncTimeout
     )
 {
     PAGED_CODE();
+
+    if (AsyncTimeout)
+    {
+        return Client->MessageTimeouts.AsyncTimeout;
+    }
 
     switch (Message->Header.MessageId)
     {
         case KphMsgProcessCreate:
         {
-            return &KphpMessageTimeouts.ProcessCreateTimeout;
+            return Client->MessageTimeouts.ProcessCreateTimeout;
         }
         case KphMsgFilePreCreate:
         {
-            return &KphpMessageTimeouts.FilePreCreateTimeout;
+            return Client->MessageTimeouts.FilePreCreateTimeout;
         }
         case KphMsgFilePostCreate:
         {
-            return &KphpMessageTimeouts.FilePostCreateTimeout;
+            return Client->MessageTimeouts.FilePostCreateTimeout;
         }
         default:
         {
-            return &KphpMessageTimeouts.DefaultTimeout;
+            return Client->MessageTimeouts.DefaultTimeout;
         }
     }
 }
@@ -1033,8 +1051,8 @@ VOID KphpCommsSendMessageAsync(
  *
  * \param[in] Message The message to send.
  * \param[out] Reply The reply from last client.
- * \param[in] Timeout The timeout for each client to receive the message, and if
- * appropriate, for the last client to reply.
+ * \param[in] FromAsyncQueue If TRUE the call is from the asynchronous message
+ * queue, otherwise FALSE.
  * \param[in] TargetClientProcess Optional target client process to send the
  * message to. If provided the message will only be sent to the target client
  * from the queue processing. Otherwise, the message will be sent to all
@@ -1046,7 +1064,7 @@ _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphpCommsSendMessage(
     _In_ PKPH_MESSAGE Message,
     _Out_opt_ PKPH_MESSAGE Reply,
-    _In_ PLARGE_INTEGER Timeout,
+    _In_ BOOLEAN FromAsyncQueue,
     _In_opt_ PEPROCESS TargetClientProcess
     )
 {
@@ -1079,6 +1097,7 @@ NTSTATUS KphpCommsSendMessage(
         NTSTATUS status;
         PKPH_CLIENT client;
         KPH_PROCESS_STATE processState;
+        LARGE_INTEGER timeout;
 
         client = CONTAINING_RECORD(entry, KPH_CLIENT, Entry);
 
@@ -1108,6 +1127,7 @@ NTSTATUS KphpCommsSendMessage(
             PKPH_MESSAGE async;
 
             NT_ASSERT(!TargetClientProcess);
+            NT_ASSERT(!FromAsyncQueue);
 
             //
             // This is a precaution to prevent a bottleneck. In this case the
@@ -1156,12 +1176,14 @@ NTSTATUS KphpCommsSendMessage(
                       &client->Process->ImageName,
                       HandleToULong(client->Process->ProcessId));
 
+        timeout = KphpGetTimeoutForMessage(client, Message, FromAsyncQueue);
+
         status = KphpFltSendMessage(&client->Port,
                                     Message,
                                     Message->Header.Size,
                                     reply,
                                     (reply ? &replyLength : NULL),
-                                    Timeout);
+                                    &timeout);
         if (!reply)
         {
             continue;
@@ -1268,7 +1290,7 @@ VOID KphpMessageQueueThread (
 
         status = KphpCommsSendMessage(item->Message,
                                       NULL,
-                                      &KphpMessageTimeouts.AsyncTimeout,
+                                      TRUE,
                                       item->TargetClientProcess);
         if (!NT_SUCCESS(status))
         {
@@ -1533,7 +1555,7 @@ VOID KphCommsStop(
 
             status = KphpCommsSendMessage(item->Message,
                                           NULL,
-                                          &KphpMessageTimeouts.AsyncTimeout,
+                                          TRUE,
                                           item->TargetClientProcess);
             if (!NT_SUCCESS(status))
             {
@@ -1639,10 +1661,7 @@ NTSTATUS KphCommsSendMessage(
         return STATUS_TOO_LATE;
     }
 
-    status = KphpCommsSendMessage(Message,
-                                  Reply,
-                                  KphpGetTimeoutForMessage(Message),
-                                  NULL);
+    status = KphpCommsSendMessage(Message, Reply, FALSE, NULL);
 
     KphReleaseRundown(&KphpCommsRundown);
 
