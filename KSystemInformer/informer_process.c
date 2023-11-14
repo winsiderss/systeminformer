@@ -10,6 +10,7 @@
  */
 
 #include <kph.h>
+#include <informer.h>
 #include <comms.h>
 #include <kphmsgdyn.h>
 
@@ -179,15 +180,17 @@ VOID KphpCreateProcessNotifyInformer(
     NTSTATUS status;
     PKPH_MESSAGE msg;
     PKPH_MESSAGE reply;
+    PKPH_PROCESS_CONTEXT actorProcess;
 
     PAGED_CODE_PASSIVE();
 
     msg = NULL;
     reply = NULL;
+    actorProcess = KphGetCurrentProcessContext();
 
     if (CreateInfo)
     {
-        if (!KphInformerSettings.ProcessCreate)
+        if (!KphInformerEnabled(ProcessCreate, actorProcess))
         {
             goto Exit;
         }
@@ -245,7 +248,7 @@ VOID KphpCreateProcessNotifyInformer(
             }
         }
 
-        if (KphInformerSettings.EnableStackTraces)
+        if (KphInformerEnabled(EnableStackTraces, actorProcess))
         {
             KphCaptureStackInMessage(msg);
         }
@@ -270,7 +273,7 @@ VOID KphpCreateProcessNotifyInformer(
     }
     else
     {
-        if (!KphInformerSettings.ProcessExit)
+        if (!KphInformerEnabled(ProcessExit, actorProcess))
         {
             goto Exit;
         }
@@ -289,7 +292,7 @@ VOID KphpCreateProcessNotifyInformer(
         msg->Kernel.ProcessExit.ExitingClientId.UniqueThread = PsGetCurrentThreadId();
         msg->Kernel.ProcessExit.ExitStatus = PsGetProcessExitStatus(Process->EProcess);
 
-        if (KphInformerSettings.EnableStackTraces)
+        if (KphInformerEnabled(EnableStackTraces, actorProcess))
         {
             KphCaptureStackInMessage(msg);
         }
@@ -308,6 +311,11 @@ Exit:
     if (msg)
     {
         KphFreeMessage(msg);
+    }
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
     }
 }
 

@@ -10,6 +10,7 @@
  */
 
 #include <kph.h>
+#include <informer.h>
 #include <comms.h>
 #include <kphmsgdyn.h>
 
@@ -142,11 +143,6 @@ VOID KphpDebugPrintCallback(
     PKPH_DBG_PRINT_SLOT slot;
 
     NPAGED_CODE_DISPATCH_MIN();
-
-    if (!KphInformerSettings.DebugPrint)
-    {
-        return;
-    }
 
     slot = NULL;
 

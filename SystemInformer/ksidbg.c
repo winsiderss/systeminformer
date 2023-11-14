@@ -41,6 +41,8 @@ static PH_FAST_LOCK KsiDebugRawFileStreamLock = PH_FAST_LOCK_INIT;
 static PPH_FILE_STREAM KsiDebugRawFileStream = NULL;
 static PH_STRINGREF KsiDebugRawSuffix = PH_STRINGREF_INIT(L"\\Desktop\\ksidbg.bin");
 
+static PH_STRINGREF KsiDebugProcFilter = PH_STRINGREF_INIT(L"");
+
 static KPH_INFORMER_SETTINGS KsiDebugInformerSettings =
 {
     .ProcessCreate                  = TRUE,
@@ -802,6 +804,75 @@ BOOLEAN KsiDebugLogSkip(
     return FALSE;
 }
 
+VOID KsiDebugFilterToProcInit(
+    VOID
+    )
+{
+    KPH_INFORMER_SETTINGS filter;
+
+    if (!KsiDebugProcFilter.Length)
+        return;
+
+    filter.Flags = MAXULONG64;
+    filter.Flags2 = MAXULONG64;
+    filter.ProcessCreate = FALSE;
+
+    KphSetInformerProcessFilter(NULL, &filter);
+}
+
+VOID KsiDebugFilterToProc(
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    BOOLEAN isTarget;
+    UNICODE_STRING fileName;
+    HANDLE processHandle;
+
+    if (!KsiDebugProcFilter.Length || Message->Header.MessageId != KphMsgProcessCreate)
+    {
+        return;
+    }
+
+    isTarget = FALSE;
+    if (NT_SUCCESS(KphMsgDynGetUnicodeString(Message, KphMsgFieldFileName, &fileName)))
+    {
+        PH_STRINGREF sr;
+
+        PhUnicodeStringToStringRef(&fileName, &sr);
+
+        if (PhEndsWithStringRef(&sr, &KsiDebugProcFilter, TRUE))
+            isTarget = TRUE;
+    }
+
+    if (NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        Message->Kernel.ProcessCreate.TargetProcessId
+        )))
+    {
+        KPH_INFORMER_SETTINGS filter;
+
+        // unnecessary, but here for testing
+        KphGetInformerProcessFilter(processHandle, &filter);
+
+        if (isTarget)
+        {
+            filter.Flags = 0;
+            filter.Flags2 = 0;
+        }
+        else
+        {
+            filter.Flags = MAXULONG64;
+            filter.Flags2 = MAXULONG64;
+            filter.ProcessCreate = FALSE;
+        }
+
+        KphSetInformerProcessFilter(processHandle, &filter);
+
+        NtClose(processHandle);
+    }
+}
+
 VOID KsiDebugLogMessageLog(
     _In_ PCKPH_MESSAGE Message
     )
@@ -812,6 +883,8 @@ VOID KsiDebugLogMessageLog(
     PH_FORMAT format[7];
     PPH_STRING line;
     KPHM_STACK_TRACE stack;
+
+    KsiDebugFilterToProc(Message);
 
     if (!KsiDebugLogFileStream || KsiDebugLogSkip(Message))
         return;
@@ -943,6 +1016,7 @@ VOID KsiDebugLogInitialize(
 
     if (KsiDebugLogFileStream || KsiDebugRawFileStream)
     {
+        KsiDebugFilterToProcInit();
         KphSetInformerSettings(&KsiDebugInformerSettings);
 
         if (KsiDebugInformerSettings.DebugPrint)

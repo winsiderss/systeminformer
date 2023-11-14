@@ -1838,3 +1838,53 @@ NTSTATUS KphAssignThreadSessionToken(
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
 }
+
+NTSTATUS KphGetInformerProcessFilter(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKPH_INFORMER_SETTINGS Filter
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgGetInformerProcessFilter);
+    msg->User.GetInformerProcessFilter.ProcessHandle = ProcessHandle;
+    msg->User.GetInformerProcessFilter.Filter = Filter;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.AssignThreadSessionToken.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphSetInformerProcessFilter(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ PKPH_INFORMER_SETTINGS Filter
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgSetInformerProcessFilter);
+    msg->User.GetInformerProcessFilter.ProcessHandle = ProcessHandle;
+    msg->User.GetInformerProcessFilter.Filter = Filter;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.AssignThreadSessionToken.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}

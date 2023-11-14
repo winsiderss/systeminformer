@@ -218,6 +218,77 @@ VOID KphCaptureStackInMessage(
 PAGED_FILE();
 
 /**
+ * \brief Checks if the informer is enabled for a given client.
+ *
+ * \param[in] Client The client to check.
+ * \param[in] Settings The settings to check.
+ *
+ * \return TRUE if the informer is enabled, FALSE otherwise.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpCommsInformerEnabled(
+    _In_ PKPH_CLIENT Client,
+    _In_ PCKPH_INFORMER_SETTINGS Settings
+    )
+{
+    PAGED_CODE();
+
+    if (FlagOn(Client->InformerSettings.Flags, Settings->Flags) ||
+        FlagOn(Client->InformerSettings.Flags2, Settings->Flags2))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
+ * \brief Checks if the informer is enabled for client communications.
+ *
+ * \details Checks if any of the connected clients have any of the passed
+ * informer settings enabled. This is usually used as a upstream check to
+ * avoid downstream work.
+ *
+ * \param[in] Settings The settings to check.
+ *
+ * \return TRUE if the informer is enabled, FALSE otherwise.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphCommsInformerEnabled(
+    _In_ PCKPH_INFORMER_SETTINGS Settings
+    )
+{
+    BOOLEAN enabled;
+
+    PAGED_CODE();
+
+    enabled = FALSE;
+
+    KphAcquireRWLockShared(&KphpConnectedClientLock);
+
+    for (PLIST_ENTRY entry = KphpConnectedClientList.Flink;
+         entry != &KphpConnectedClientList;
+         entry = entry->Flink)
+    {
+        PKPH_CLIENT client;
+
+        client = CONTAINING_RECORD(entry, KPH_CLIENT, Entry);
+
+        if (KphpCommsInformerEnabled(client, Settings))
+        {
+            enabled = TRUE;
+            break;
+        }
+    }
+
+    KphReleaseRWLock(&KphpConnectedClientLock);
+
+    return enabled;
+}
+
+/**
  * \brief Allocates a client object.
  *
  * \param[in] Size The size requested from the object infrastructure.
@@ -516,7 +587,7 @@ VOID KphpSendRequiredStateFailure(
     msg->Kernel.RequiredStateFailure.ClientState = ClientState;
     msg->Kernel.RequiredStateFailure.RequiredState = RequiredState;
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, NULL))
     {
         KphCaptureStackInMessage(msg);
     }
@@ -1092,10 +1163,11 @@ NTSTATUS KphpCommsSendMessage(
          entry != &KphpConnectedClientList;
          entry = entry->Flink)
     {
+        PKPH_CLIENT client;
+        PCKPH_INFORMER_SETTINGS informer;
         PKPH_MESSAGE reply;
         ULONG replyLength;
         NTSTATUS status;
-        PKPH_CLIENT client;
         KPH_PROCESS_STATE processState;
         LARGE_INTEGER timeout;
 
@@ -1104,6 +1176,18 @@ NTSTATUS KphpCommsSendMessage(
         if (TargetClientProcess &&
             (TargetClientProcess != client->Process->EProcess))
         {
+            continue;
+        }
+
+        informer = KphInformerForMessageId(Message->Header.MessageId);
+        if (informer && !KphpCommsInformerEnabled(client, informer))
+        {
+            //
+            // In some cases we can't check if the informer is enabled
+            // beforehand or the settings could have changed while draining
+            // the queue. Regardless, the client isn't interested in this
+            // message, so skip it.
+            //
             continue;
         }
 

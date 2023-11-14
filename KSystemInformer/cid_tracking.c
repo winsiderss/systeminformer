@@ -1286,6 +1286,8 @@ PVOID KphpTrackContext(
     NTSTATUS status;
     PCID_TABLE_ENTRY entry;
     PVOID object;
+    PVOID newObject;
+    BOOLEAN releaseLock;
 
     PAGED_CODE_PASSIVE();
 
@@ -1295,7 +1297,10 @@ PVOID KphpTrackContext(
         return NULL;
     }
 
+    newObject = NULL;
+
     CidAcquireObjectLock(entry);
+    releaseLock = TRUE;
 
     object = (PVOID)(entry->Object & CID_LOCKED_OBJECT_MASK);
 
@@ -1313,7 +1318,10 @@ PVOID KphpTrackContext(
         goto Exit;
     }
 
-    status = KphCreateObject(ObjectType, ObjectBodySize, &object, Parameter);
+    CidReleaseObjectLock(entry);
+    releaseLock = FALSE;
+
+    status = KphCreateObject(ObjectType, ObjectBodySize, &newObject, Parameter);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1326,16 +1334,48 @@ PVOID KphpTrackContext(
         goto Exit;
     }
 
-    //
-    // We reference in the table and return a reference to the caller.
-    // Object creation gives one reference, this is the caller reference.
-    //
-    KphReferenceObject(object);
-    CidAssignObject(entry, object);
+    CidAcquireObjectLock(entry);
+    releaseLock = TRUE;
+
+    object = (PVOID)(entry->Object & CID_LOCKED_OBJECT_MASK);
+
+    if (object)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE, TRACKING, "Race tracking context.");
+
+        if (KphGetObjectType(object) == ObjectType)
+        {
+            KphReferenceObject(object);
+        }
+        else
+        {
+            object = NULL;
+        }
+    }
+    else
+    {
+        object = newObject;
+        newObject = NULL;
+
+        //
+        // We reference in the table and return a reference to the caller.
+        // Object creation gives one reference, this is the caller reference.
+        //
+        KphReferenceObject(object);
+        CidAssignObject(entry, object);
+    }
 
 Exit:
 
-    CidReleaseObjectLock(entry);
+    if (releaseLock)
+    {
+        CidReleaseObjectLock(entry);
+    }
+
+    if (newObject)
+    {
+        KphDereferenceObject(newObject);
+    }
 
     return object;
 }

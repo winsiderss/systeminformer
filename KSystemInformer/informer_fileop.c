@@ -10,18 +10,33 @@
  */
 
 #include <kph.h>
+#include <informer.h>
 #include <comms.h>
 #include <kphmsgdyn.h>
 #include <informer_filep.h>
 
 #include <trace.h>
 
-#define KPH_FLT_PRE_ENABLED  ((UCHAR)0x01)
-#define KPH_FLT_POST_ENABLED ((UCHAR)0x02)
+typedef union _KPH_FLT_OPTIONS
+{
+    UCHAR Flags;
+    struct
+    {
+        UCHAR PreEnabled : 1;
+        UCHAR PostEnabled : 1;
+        UCHAR EnableStackTraces : 1;
+        UCHAR EnablePagingIo : 1;
+        UCHAR EnableSyncPagingIo : 1;
+        UCHAR EnableIoControlBuffers : 1;
+        UCHAR EnableFsControlBuffers : 1;
+        UCHAR Spare : 1;
+    };
+} KPH_FLT_OPTIONS, *PKPH_FLT_OPTIONS;
 
 typedef struct _KPH_FLT_COMPLETION_CONTEXT
 {
     PKPH_MESSAGE Message;
+    KPH_FLT_OPTIONS Options;
     PFLT_FILE_NAME_INFORMATION FileNameInfo;
     PFLT_FILE_NAME_INFORMATION DestFileNameInfo;
 } KPH_FLT_COMPLETION_CONTEXT, *PKPH_FLT_COMPLETION_CONTEXT;
@@ -31,38 +46,48 @@ static BOOLEAN KphpFltOpInitialized = FALSE;
 static NPAGED_LOOKASIDE_LIST KphpFltCompletionContextLookaside = { 0 };
 
 /**
- * \brief Gets the settings flags for a given major function.
+ * \brief Gets the options for the filter.
  *
- * \param[in] MajorFunction The major function to get the flags for.
+ * \param[in] Data The callback data for the operation.
  *
- * \return Combination of KPH_FLT_PRE_ENABLED and KPH_FLT_POST_ENABLED.
+ * \return Options for the filter.
  */
 _IRQL_requires_max_(APC_LEVEL)
-UCHAR KphpFltGetSettingsFlags(
-    _In_ UCHAR MajorFunction
+KPH_FLT_OPTIONS KphpFltGetOptions(
+    _In_ PFLT_CALLBACK_DATA Data
     )
 {
-    UCHAR flags;
+    KPH_FLT_OPTIONS options;
+    PKPH_PROCESS_CONTEXT process;
 
     NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
-    flags = 0;
+    options.Flags = 0;
+
+    if (Data->Thread)
+    {
+        process = KphGetProcessContext(PsGetThreadProcessId(Data->Thread));
+    }
+    else
+    {
+        process = KphGetProcessContext(PsGetProcessId(PsInitialSystemProcess));
+    }
 
 #define KPH_FLT_SETTING(majorFunction, name)                                  \
     case majorFunction:                                                       \
     {                                                                         \
-        if (KphInformerSettings.FilePre##name)                                \
+        if (KphInformerEnabled(FilePre##name, process))                       \
         {                                                                     \
-            SetFlag(flags, KPH_FLT_PRE_ENABLED);                              \
+            options.PreEnabled = TRUE;                                        \
         }                                                                     \
-        if (KphInformerSettings.FilePost##name)                               \
+        if (KphInformerEnabled(FilePost##name, process))                      \
         {                                                                     \
-            SetFlag(flags, KPH_FLT_POST_ENABLED);                             \
+            options.PostEnabled = TRUE;                                       \
         }                                                                     \
         break;                                                                \
     }
 
-    switch (MajorFunction)
+    switch (Data->Iopb->MajorFunction)
     {
         KPH_FLT_SETTING(IRP_MJ_CREATE, Create)
         KPH_FLT_SETTING(IRP_MJ_CREATE_NAMED_PIPE, CreateNamedPipe)
@@ -110,7 +135,21 @@ UCHAR KphpFltGetSettingsFlags(
         DEFAULT_UNREACHABLE;
     }
 
-    return flags;
+    if (options.PreEnabled || options.PostEnabled)
+    {
+        options.EnableStackTraces = KphInformerEnabled(EnableStackTraces, process);
+        options.EnablePagingIo = KphInformerEnabled(FileEnablePagingIo, process);
+        options.EnableSyncPagingIo = KphInformerEnabled(FileEnableSyncPagingIo, process);
+        options.EnableIoControlBuffers = KphInformerEnabled(FileEnableIoControlBuffers, process);
+        options.EnableFsControlBuffers = KphInformerEnabled(FileEnableFsControlBuffers, process);
+    }
+
+    if (process)
+    {
+        KphDereferenceObject(process);
+    }
+
+    return options;
 }
 
 /**
@@ -593,11 +632,6 @@ VOID KphpFltCopyFsControl(
 
     NT_ASSERT(Data->Iopb->MajorFunction == IRP_MJ_FILE_SYSTEM_CONTROL);
 
-    if (!KphInformerSettings.FileEnableFsControlBuffers)
-    {
-        return;
-    }
-
     method = METHOD_FROM_CTL_CODE(Data->Iopb->Parameters.FileSystemControl.Common.FsControlCode);
 
     switch (method)
@@ -758,11 +792,6 @@ VOID KphpFltCopyIoControl(
 
     NT_ASSERT((Data->Iopb->MajorFunction == IRP_MJ_DEVICE_CONTROL) ||
               (Data->Iopb->MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL));
-
-    if (!KphInformerSettings.FileEnableIoControlBuffers)
-    {
-        return;
-    }
 
     if (FLT_IS_FASTIO_OPERATION(Data))
     {
@@ -1009,11 +1038,13 @@ VOID KphpFltFillCommonMessage(
  *
  * \param[in,out] Message The message to fill.
  * \param[in] Data The callback data for the operation.
+ * \param[in] Options The options for the filter.
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphpFltFillPreOpMessage(
     _Inout_ PKPH_MESSAGE Message,
-    _In_ PFLT_CALLBACK_DATA Data
+    _In_ PFLT_CALLBACK_DATA Data,
+    _In_ PKPH_FLT_OPTIONS Options
     )
 {
     PMDL mdl;
@@ -1121,13 +1152,19 @@ VOID KphpFltFillPreOpMessage(
         }
         case IRP_MJ_FILE_SYSTEM_CONTROL:
         {
-            KphpFltCopyFsControl(Message, Data);
+            if (Options->EnableFsControlBuffers)
+            {
+                KphpFltCopyFsControl(Message, Data);
+            }
             return;
         }
         case IRP_MJ_DEVICE_CONTROL:
         case IRP_MJ_INTERNAL_DEVICE_CONTROL:
         {
-            KphpFltCopyIoControl(Message, Data);
+            if (Options->EnableIoControlBuffers)
+            {
+                KphpFltCopyIoControl(Message, Data);
+            }
             return;
         }
         case IRP_MJ_LOCK_CONTROL:
@@ -1177,11 +1214,13 @@ VOID KphpFltFillPreOpMessage(
  *
  * \param[in,out] Message The message to fill.
  * \param[in] Data The callback data for the operation.
+ * \param[in] Options The options for the filter.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphpFltFillPostOpMessage(
     _Inout_ PKPH_MESSAGE Message,
-    _In_ PFLT_CALLBACK_DATA Data
+    _In_ PFLT_CALLBACK_DATA Data,
+    _In_ PKPH_FLT_OPTIONS Options
     )
 {
     PMDL mdl;
@@ -1269,13 +1308,19 @@ VOID KphpFltFillPostOpMessage(
         }
         case IRP_MJ_FILE_SYSTEM_CONTROL:
         {
-            KphpFltCopyFsControl(Message, Data);
+            if (Options->EnableFsControlBuffers)
+            {
+                KphpFltCopyFsControl(Message, Data);
+            }
             return;
         }
         case IRP_MJ_DEVICE_CONTROL:
         case IRP_MJ_INTERNAL_DEVICE_CONTROL:
         {
-            KphpFltCopyIoControl(Message, Data);
+            if (Options->EnableIoControlBuffers)
+            {
+                KphpFltCopyIoControl(Message, Data);
+            }
             return;
         }
         case IRP_MJ_QUERY_SECURITY:
@@ -1603,9 +1648,9 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI KphpFltPostOp(
         KphpFltPostOpHandleNameTunneling(Data, context);
     }
 
-    KphpFltFillPostOpMessage(context->Message, Data);
+    KphpFltFillPostOpMessage(context->Message, Data, &context->Options);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (context->Options.EnableStackTraces)
     {
         KphCaptureStackInMessage(context->Message);
     }
@@ -1675,6 +1720,7 @@ Exit:
  *
  * \param[in] Data The callback data for the operation.
  * \param[in] FltObjects The related objects for the operation.
+ * \param[in] Options The options for the filter.
  * \param[in] FltFileName The file name information for the operation.
  * \param[in] FltDestFileName The destination file name information, if any.
  * \param[in] Sequence The sequence number for the pre operation.
@@ -1688,6 +1734,7 @@ _Must_inspect_result_
 NTSTATUS KphpFltPreOpCreateCompletionContext(
     _In_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ PKPH_FLT_OPTIONS Options,
     _In_ PKPH_FLT_FILE_NAME FltFileName,
     _In_ PKPH_FLT_FILE_NAME FltDestFileName,
     _In_ ULONG64 Sequence,
@@ -1712,6 +1759,8 @@ NTSTATUS KphpFltPreOpCreateCompletionContext(
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
+
+    context->Options.Flags = Options->Flags;
 
     //
     // Create the message for the post operation to finish filling in. We
@@ -1814,6 +1863,7 @@ Exit:
  *
  * \param[in,out] Data The callback data for the operation.
  * \param[in] FltObjects The related objects for the operation.
+ * \param[in] Options The options for the filter.
  * \param[in] FltFileName The file name information for the operation.
  * \param[in] FltDestFileName The destination file name information, if any.
  * \param[in] Sequence The sequence number for the operation.
@@ -1825,6 +1875,7 @@ _IRQL_requires_max_(APC_LEVEL)
 FLT_PREOP_CALLBACK_STATUS KphpFltPreOpSend(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ PKPH_FLT_OPTIONS Options,
     _In_ PKPH_FLT_FILE_NAME FltFileName,
     _In_ PKPH_FLT_FILE_NAME FltDestFileName,
     _In_ ULONG64 Sequence,
@@ -1895,9 +1946,9 @@ FLT_PREOP_CALLBACK_STATUS KphpFltPreOpSend(
         }
     }
 
-    KphpFltFillPreOpMessage(message, Data);
+    KphpFltFillPreOpMessage(message, Data, Options);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (Options->EnableStackTraces)
     {
         KphCaptureStackInMessage(message);
     }
@@ -1975,8 +2026,8 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
 {
     ULONG64 sequence;
     FLT_PREOP_CALLBACK_STATUS callbackStatus;
+    KPH_FLT_OPTIONS options;
     NTSTATUS status;
-    UCHAR settingsFlags;
     KPH_FLT_FILE_NAME fltFileName;
     KPH_FLT_FILE_NAME fltDestFileName;
     LARGE_INTEGER timeStamp;
@@ -1991,19 +2042,20 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
     KphpFltZeroFileName(&fltFileName);
     KphpFltZeroFileName(&fltDestFileName);
 
-    settingsFlags = KphpFltGetSettingsFlags(Data->Iopb->MajorFunction);
-    if (!FlagOn(settingsFlags, KPH_FLT_PRE_ENABLED | KPH_FLT_POST_ENABLED))
+    options = KphpFltGetOptions(Data);
+
+    if (!options.PreEnabled && !options.PostEnabled)
     {
         goto Exit;
     }
 
-    if (!KphInformerSettings.FileEnablePagingIo &&
+    if (!options.EnablePagingIo &&
         FlagOn(Data->Iopb->IrpFlags, IRP_PAGING_IO))
     {
         goto Exit;
     }
 
-    if (!KphInformerSettings.FileEnableSyncPagingIo &&
+    if (!options.EnableSyncPagingIo &&
         FlagOn(Data->Iopb->IrpFlags, IRP_SYNCHRONOUS_PAGING_IO))
     {
         goto Exit;
@@ -2051,10 +2103,11 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
         }
     }
 
-    if (FlagOn(settingsFlags, KPH_FLT_PRE_ENABLED))
+    if (options.PreEnabled)
     {
         callbackStatus = KphpFltPreOpSend(Data,
                                           FltObjects,
+                                          &options,
                                           &fltFileName,
                                           &fltDestFileName,
                                           sequence,
@@ -2077,12 +2130,13 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
         KeQuerySystemTime(&timeStamp);
     }
 
-    if (FlagOn(settingsFlags, KPH_FLT_POST_ENABLED))
+    if (options.PostEnabled)
     {
         PKPH_FLT_COMPLETION_CONTEXT context;
 
         status = KphpFltPreOpCreateCompletionContext(Data,
                                                      FltObjects,
+                                                     &options,
                                                      &fltFileName,
                                                      &fltDestFileName,
                                                      sequence,
