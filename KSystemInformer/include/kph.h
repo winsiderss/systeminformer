@@ -199,7 +199,6 @@ typedef struct _KPH_FILE_VERSION
 extern PDRIVER_OBJECT KphDriverObject;
 extern RTL_OSVERSIONINFOEXW KphOsVersionInfo;
 extern KPH_FILE_VERSION KphKernelVersion;
-extern KPH_INFORMER_SETTINGS KphInformerSettings;
 extern BOOLEAN KphIgnoreProtectionsSuppressed;
 extern BOOLEAN KphIgnoreTestSigningEnabled;
 extern SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo;
@@ -1414,6 +1413,7 @@ typedef struct _KPH_PROCESS_CONTEXT
     volatile SIZE_T NumberOfImageLoads;
 
     KPH_SESSION_TOKEN_ATOMIC SessionToken;
+    KPH_INFORMER_SETTINGS InformerFilter;
 
     union
     {

@@ -562,6 +562,22 @@ KphAssignThreadSessionToken(
     _In_ ULONG SignatureLength
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphGetInformerProcessFilter(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKPH_INFORMER_SETTINGS Filter
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphSetInformerProcessFilter(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ PKPH_INFORMER_SETTINGS Filter
+    );
+
 EXTERN_C_END
 
 #endif

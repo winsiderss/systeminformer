@@ -10,6 +10,7 @@
  */
 
 #include <kph.h>
+#include <informer.h>
 #include <comms.h>
 #include <kphmsgdyn.h>
 
@@ -97,6 +98,52 @@ Exit:
 }
 
 /**
+ * \brief Retrieves the process context for the pre-operation callback.
+ *
+ * \details Kernel handles receives the system process context.
+ *
+ * \return The process context for the pre-operation callback.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphpGetProcessContextForObPre(
+    _In_ POB_PRE_OPERATION_INFORMATION Info
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    if (!Info->KernelHandle)
+    {
+        return KphGetCurrentProcessContext();
+    }
+
+    return KphGetProcessContext(PsGetProcessId(PsInitialSystemProcess));
+}
+
+/**
+ * \brief Retrieves the process context for the post-operation callback.
+ *
+ * \details Kernel handles receives the system process context.
+ *
+ * \return The process context for the post-operation callback.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphpGetProcessContextForObPost(
+    _In_ POB_POST_OPERATION_INFORMATION Info
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    if (!Info->KernelHandle)
+    {
+        return KphGetCurrentProcessContext();
+    }
+
+    return KphGetProcessContext(PsGetProcessId(PsInitialSystemProcess));
+}
+
+/**
  * \brief Object manager pre-operation process handle create callback.
  *
  * \param[in] Context Not used.
@@ -111,6 +158,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleCreate(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -122,9 +170,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleCreate(
 
     KphApplyObProtections(Info);
 
-    if (!KphInformerSettings.ProcessHandlePreCreate)
+    actorProcess = KphpGetProcessContextForObPre(Info);
+
+    if (!KphInformerEnabled(ProcessHandlePreCreate, actorProcess))
     {
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -134,7 +184,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleCreate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgProcessHandlePreCreate);
@@ -151,12 +201,19 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleCreate(
     msg->Kernel.ProcessHandlePreCreate.ObjectProcessId =
         PsGetProcessId(Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 
     return OB_PREOP_SUCCESS;
 }
@@ -174,6 +231,7 @@ VOID KphpObPostProcessHandleCreate(
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -183,9 +241,11 @@ VOID KphpObPostProcessHandleCreate(
     NT_ASSERT(Info->ObjectType == *PsProcessType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
 
-    if (!KphInformerSettings.ProcessHandlePostCreate)
+    actorProcess = KphpGetProcessContextForObPost(Info);
+
+    if (!KphInformerEnabled(ProcessHandlePostCreate, actorProcess))
     {
-        return;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -195,7 +255,7 @@ VOID KphpObPostProcessHandleCreate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgProcessHandlePostCreate);
@@ -211,12 +271,19 @@ VOID KphpObPostProcessHandleCreate(
     msg->Kernel.ProcessHandlePostCreate.ObjectProcessId =
         PsGetProcessId(Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**
@@ -234,6 +301,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleDuplicate(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -245,9 +313,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleDuplicate(
 
     KphApplyObProtections(Info);
 
-    if (!KphInformerSettings.ProcessHandlePreDuplicate)
+    actorProcess = KphpGetProcessContextForObPre(Info);
+
+    if (!KphInformerEnabled(ProcessHandlePreDuplicate, actorProcess))
     {
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -257,7 +327,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleDuplicate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgProcessHandlePreDuplicate);
@@ -278,12 +348,19 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleDuplicate(
     msg->Kernel.ProcessHandlePreDuplicate.ObjectProcessId =
         PsGetProcessId(Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 
     return OB_PREOP_SUCCESS;
 }
@@ -301,6 +378,7 @@ VOID KphpObPostProcessHandleDuplicate(
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -310,9 +388,11 @@ VOID KphpObPostProcessHandleDuplicate(
     NT_ASSERT(Info->ObjectType == *PsProcessType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
 
-    if (!KphInformerSettings.ProcessHandlePostDuplicate)
+    actorProcess = KphpGetProcessContextForObPost(Info);;
+
+    if (!KphInformerEnabled(ProcessHandlePostDuplicate, actorProcess))
     {
-        return;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -322,7 +402,7 @@ VOID KphpObPostProcessHandleDuplicate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgProcessHandlePostDuplicate);
@@ -338,12 +418,19 @@ VOID KphpObPostProcessHandleDuplicate(
     msg->Kernel.ProcessHandlePostDuplicate.ObjectProcessId =
         PsGetProcessId(Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**
@@ -361,6 +448,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleCreate(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -372,9 +460,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleCreate(
     NT_ASSERT(Info->ObjectType == *PsThreadType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
 
-    if (!KphInformerSettings.ThreadHandlePreCreate)
+    actorProcess = KphpGetProcessContextForObPre(Info);
+
+    if (!KphInformerEnabled(ThreadHandlePreCreate, actorProcess))
     {
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -384,7 +474,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleCreate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgThreadHandlePreCreate);
@@ -401,12 +491,19 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleCreate(
     msg->Kernel.ThreadHandlePreCreate.ObjectThreadId =
         PsGetThreadId(Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 
     return OB_PREOP_SUCCESS;
 }
@@ -424,6 +521,7 @@ VOID KphpObPostThreadHandleCreate(
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -433,9 +531,11 @@ VOID KphpObPostThreadHandleCreate(
     NT_ASSERT(Info->ObjectType == *PsThreadType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
 
-    if (!KphInformerSettings.ThreadHandlePostCreate)
+    actorProcess = KphpGetProcessContextForObPost(Info);
+
+    if (!KphInformerEnabled(ThreadHandlePostCreate, actorProcess))
     {
-        return;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -445,7 +545,7 @@ VOID KphpObPostThreadHandleCreate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgThreadHandlePostCreate);
@@ -461,12 +561,19 @@ VOID KphpObPostThreadHandleCreate(
     msg->Kernel.ThreadHandlePostCreate.ObjectThreadId =
         PsGetThreadId(Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**
@@ -484,6 +591,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleDuplicate(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -495,9 +603,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleDuplicate(
     NT_ASSERT(Info->ObjectType == *PsThreadType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
 
-    if (!KphInformerSettings.ThreadHandlePreDuplicate)
+    actorProcess = KphpGetProcessContextForObPre(Info);
+
+    if (!KphInformerEnabled(ThreadHandlePreDuplicate, actorProcess))
     {
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -507,7 +617,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleDuplicate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgThreadHandlePreDuplicate);
@@ -528,12 +638,19 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleDuplicate(
     msg->Kernel.ThreadHandlePreDuplicate.ObjectThreadId =
         PsGetThreadId(Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 
     return OB_PREOP_SUCCESS;
 }
@@ -551,6 +668,7 @@ VOID KphpObPostThreadHandleDuplicate(
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -560,9 +678,11 @@ VOID KphpObPostThreadHandleDuplicate(
     NT_ASSERT(Info->ObjectType == *PsThreadType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
 
-    if (!KphInformerSettings.ThreadHandlePostDuplicate)
+    actorProcess = KphpGetProcessContextForObPost(Info);
+
+    if (!KphInformerEnabled(ThreadHandlePostDuplicate, actorProcess))
     {
-        return;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -572,7 +692,7 @@ VOID KphpObPostThreadHandleDuplicate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgThreadHandlePostDuplicate);
@@ -588,12 +708,19 @@ VOID KphpObPostThreadHandleDuplicate(
     msg->Kernel.ThreadHandlePostDuplicate.ObjectThreadId =
         PsGetThreadId(Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**
@@ -611,6 +738,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleCreate(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -620,9 +748,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleCreate(
     NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
 
-    if (!KphInformerSettings.DesktopHandlePreCreate)
+    actorProcess = KphpGetProcessContextForObPre(Info);
+
+    if (!KphInformerEnabled(DesktopHandlePreCreate, actorProcess))
     {
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -632,7 +762,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleCreate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgDesktopHandlePreCreate);
@@ -649,12 +779,19 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleCreate(
 
     KphpPopulateObjectNameInMessage(msg, Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 
     return OB_PREOP_SUCCESS;
 }
@@ -672,6 +809,7 @@ VOID KphpObPostDesktopHandleCreate(
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -681,9 +819,11 @@ VOID KphpObPostDesktopHandleCreate(
     NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
 
-    if (!KphInformerSettings.DesktopHandlePostCreate)
+    actorProcess = KphpGetProcessContextForObPost(Info);
+
+    if (!KphInformerEnabled(DesktopHandlePostCreate, actorProcess))
     {
-        return;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -693,7 +833,7 @@ VOID KphpObPostDesktopHandleCreate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgDesktopHandlePostCreate);
@@ -709,12 +849,19 @@ VOID KphpObPostDesktopHandleCreate(
 
     KphpPopulateObjectNameInMessage(msg, Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**
@@ -732,6 +879,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleDuplicate(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -741,9 +889,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleDuplicate(
     NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
 
-    if (!KphInformerSettings.DesktopHandlePreDuplicate)
+    actorProcess = KphpGetProcessContextForObPre(Info);
+
+    if (!KphInformerEnabled(DesktopHandlePreDuplicate, actorProcess))
     {
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -753,7 +903,7 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleDuplicate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return OB_PREOP_SUCCESS;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgDesktopHandlePreDuplicate);
@@ -774,12 +924,19 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleDuplicate(
 
     KphpPopulateObjectNameInMessage(msg, Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 
     return OB_PREOP_SUCCESS;
 }
@@ -797,6 +954,7 @@ VOID KphpObPostDesktopHandleDuplicate(
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
 
     PAGED_CODE_PASSIVE();
@@ -806,9 +964,11 @@ VOID KphpObPostDesktopHandleDuplicate(
     NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
     NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
 
-    if (!KphInformerSettings.DesktopHandlePostDuplicate)
+    actorProcess = KphpGetProcessContextForObPost(Info);
+
+    if (!KphInformerEnabled(DesktopHandlePostDuplicate, actorProcess))
     {
-        return;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -818,7 +978,7 @@ VOID KphpObPostDesktopHandleDuplicate(
                       INFORMER,
                       "Failed to allocate message");
 
-        return;
+        goto Exit;
     }
 
     KphMsgInit(msg, KphMsgDesktopHandlePostDuplicate);
@@ -834,12 +994,19 @@ VOID KphpObPostDesktopHandleDuplicate(
 
     KphpPopulateObjectNameInMessage(msg, Info->Object);
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled(EnableStackTraces, actorProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**

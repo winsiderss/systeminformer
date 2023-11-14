@@ -10,6 +10,7 @@
  */
 
 #include <kph.h>
+#include <informer.h>
 #include <comms.h>
 
 #include <trace.h>
@@ -115,14 +116,18 @@ VOID KphpCreateThreadNotifyInformer(
     )
 {
     PKPH_MESSAGE msg;
+    PKPH_PROCESS_CONTEXT actorProcess;
+    PKPH_PROCESS_CONTEXT targetProcess;
 
     PAGED_CODE_PASSIVE();
 
     msg = NULL;
+    actorProcess = KphGetCurrentProcessContext();
+    targetProcess = KphGetProcessContext(ProcessId);
 
     if (Type == KphThreadNotifyCreate)
     {
-        if (!KphInformerSettings.ThreadCreate)
+        if (!KphInformerEnabled2(ThreadCreate, actorProcess, targetProcess))
         {
             goto Exit;
         }
@@ -144,7 +149,7 @@ VOID KphpCreateThreadNotifyInformer(
     }
     else if (Type == KphThreadNotifyExecute)
     {
-        if (!KphInformerSettings.ThreadExecute)
+        if (!KphInformerEnabled2(ThreadExecute, actorProcess, targetProcess))
         {
             goto Exit;
         }
@@ -166,7 +171,7 @@ VOID KphpCreateThreadNotifyInformer(
     {
         NT_ASSERT(Type == KphThreadNotifyExit);
 
-        if (!KphInformerSettings.ThreadExit)
+        if (!KphInformerEnabled2(ThreadExit, actorProcess, targetProcess))
         {
             goto Exit;
         }
@@ -186,7 +191,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg->Kernel.ThreadExit.ExitStatus = PsGetThreadExitStatus(Thread->EThread);
     }
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled2(EnableStackTraces, actorProcess, targetProcess))
     {
         KphCaptureStackInMessage(msg);
     }
@@ -201,6 +206,15 @@ Exit:
         KphFreeMessage(msg);
     }
 
+    if (targetProcess)
+    {
+        KphDereferenceObject(targetProcess);
+    }
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**

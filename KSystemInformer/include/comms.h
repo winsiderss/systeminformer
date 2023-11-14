@@ -19,6 +19,7 @@ typedef struct _KPH_CLIENT
     PFLT_PORT Port;
     KPH_REFERENCE DriverUnloadProtectionRef;
     KPH_MESSAGE_TIMEOUTS MessageTimeouts;
+    KPH_INFORMER_SETTINGS InformerSettings;
 } KPH_CLIENT, *PKPH_CLIENT;
 
 typedef
@@ -82,6 +83,12 @@ NTSTATUS KphCommsStart(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphCommsStop(
     VOID
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphCommsInformerEnabled(
+    _In_ PCKPH_INFORMER_SETTINGS Settings
     );
 
 _IRQL_requires_max_(APC_LEVEL)

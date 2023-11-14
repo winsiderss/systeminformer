@@ -10,6 +10,7 @@
  */
 
 #include <kph.h>
+#include <informer.h>
 #include <comms.h>
 #include <kphmsgdyn.h>
 
@@ -52,15 +53,20 @@ VOID KphpLoadImageNotifyInformer(
     )
 {
     NTSTATUS status;
+    PKPH_PROCESS_CONTEXT targetProcess;
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
     PUNICODE_STRING fileName;
     BOOLEAN freeFileName;
 
     PAGED_CODE_PASSIVE();
 
-    if (!KphInformerSettings.ImageLoad)
+    actorProcess = KphGetCurrentProcessContext();
+    targetProcess = KphGetProcessContext(ProcessId);
+
+    if (!KphInformerEnabled2(ImageLoad, actorProcess, targetProcess))
     {
-        return;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
@@ -69,7 +75,7 @@ VOID KphpLoadImageNotifyInformer(
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
-        return;
+        goto Exit;
     }
 
     freeFileName = TRUE;
@@ -112,12 +118,24 @@ VOID KphpLoadImageNotifyInformer(
         }
     }
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled2(EnableStackTraces, actorProcess, targetProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (targetProcess)
+    {
+        KphDereferenceObject(targetProcess);
+    }
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**

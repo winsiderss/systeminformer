@@ -11,6 +11,7 @@
 
 #include <kph.h>
 #include <comms.h>
+#include <informer.h>
 
 #include <trace.h>
 
@@ -51,6 +52,8 @@ KPHM_DEFINE_HANDLER(KphpCommsActivateDynData);
 KPHM_DEFINE_HANDLER(KphpCommsRequestSessionAccessToken);
 KPHM_DEFINE_HANDLER(KphpCommsAssignProcessSessionToken);
 KPHM_DEFINE_HANDLER(KphpCommsAssignThreadSessionToken);
+KPHM_DEFINE_HANDLER(KphpCommsGetInformerProcessFilter);
+KPHM_DEFINE_HANDLER(KphpCommsSetInformerProcessFilter);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -104,6 +107,8 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgRequestSessionAccessToken,     KphpCommsRequestSessionAccessToken,     KphpCommsRequireMaximum },
 { KphMsgAssignProcessSessionToken,     KphpCommsAssignProcessSessionToken,     KphpCommsRequireMaximum },
 { KphMsgAssignThreadSessionToken,      KphpCommsAssignThreadSessionToken,      KphpCommsRequireMaximum },
+{ KphMsgGetInformerProcessFilter,      KphpCommsGetInformerProcessFilter,      KphpCommsRequireLow },
+{ KphMsgSetInformerProcessFilter,      KphpCommsSetInformerProcessFilter,      KphpCommsRequireLow },
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
@@ -175,12 +180,10 @@ NTSTATUS KSIAPI KphpCommsGetInformerSettings(
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerSettings);
 
-    UNREFERENCED_PARAMETER(Client);
-
     msg = &Message->User.GetInformerSettings;
 
-    msg->Settings.Flags = KphInformerSettings.Flags;
-    msg->Settings.Flags2 = KphInformerSettings.Flags2;
+    msg->Settings.Flags = Client->InformerSettings.Flags;
+    msg->Settings.Flags2 = Client->InformerSettings.Flags2;
 
     msg->Status = STATUS_SUCCESS;
 
@@ -205,8 +208,8 @@ NTSTATUS KSIAPI KphpCommsSetInformerSettings(
 
     msg = &Message->User.SetInformerSettings;
 
-    InterlockedExchangeU64(&KphInformerSettings.Flags, msg->Settings.Flags);
-    InterlockedExchangeU64(&KphInformerSettings.Flags2, msg->Settings.Flags2);
+    InterlockedExchangeU64(&Client->InformerSettings.Flags, msg->Settings.Flags);
+    InterlockedExchangeU64(&Client->InformerSettings.Flags2, msg->Settings.Flags2);
 
     msg->Status = STATUS_SUCCESS;
 
@@ -1369,6 +1372,56 @@ NTSTATUS KSIAPI KphpCommsAssignThreadSessionToken(
     msg->Status = KphAssignThreadSessionToken(msg->ThreadHandle,
                                               msg->Signature,
                                               msg->SignatureLength,
+                                              UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsGetInformerProcessFilter(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_GET_INFORMER_PROCESS_FILTER msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerProcessFilter);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.GetInformerProcessFilter;
+
+    msg->Status = KphGetInformerProcessFilter(msg->ProcessHandle,
+                                              msg->Filter,
+                                              UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsSetInformerProcessFilter(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_SET_INFORMER_PROCESS_FILTER msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgSetInformerProcessFilter);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.SetInformerProcessFilter;
+
+    msg->Status = KphSetInformerProcessFilter(msg->ProcessHandle,
+                                              msg->Filter,
                                               UserMode);
 
     return STATUS_SUCCESS;
