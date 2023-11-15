@@ -54,6 +54,7 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptionsIa32ListViewColumns", L"");
     PhpAddStringSetting(L"ImageExceptionsAmd64ListViewColumns", L"");
+    PhpAddStringSetting(L"ImageExceptionsArm64ListViewColumns", L"");
     PhpAddStringSetting(L"ImageHeadersListViewColumns", L"");
     PhpAddStringSetting(L"ImageHeadersListViewGroupStates", L"");
     PhpAddStringSetting(L"ImageLayoutTreeColumns", L"");

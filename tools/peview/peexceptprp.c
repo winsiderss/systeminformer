@@ -166,7 +166,77 @@ VOID PvEnumerateExceptionEntries(
     }
     else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
     {
-        /* Todo */
+        for (ULONG i = 0; i < exceptions.NumberOfEntries; i++)
+        {
+            PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64 entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(PH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64));
+            INT lvItemIndex;
+            PPH_STRING symbol;
+            PPH_STRING symbolName = NULL;
+            WCHAR value[PH_INT64_STR_LEN_1];
+
+            PhPrintUInt64(value, ++count);
+            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, entry);
+
+            PhPrintPointer(value, UlongToPtr(entry->BeginAddress));
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+
+            ULONG functionLength = entry->FunctionLength;
+            if (entry->Flag != 0)
+            {
+                PhPrintPointer(value, UlongToPtr(entry->UnwindData));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"✔️");
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(entry->FunctionLength << 2, ULONG_MAX)->Buffer);
+            }
+            else
+            {
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhFormatString(L".xdata @ 0x%x", UlongToPtr(entry->UnwindData))->Buffer);
+            }
+
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, entry->BeginAddress),
+                NULL,
+                NULL,
+                &symbolName,
+                NULL
+                );
+
+            if (symbolName)
+            {
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, symbolName->Buffer);
+                PhDereferenceObject(symbolName);
+            }
+
+            if (symbol) PhDereferenceObject(symbol);
+
+            if (entry->BeginAddress)
+            {
+                PIMAGE_SECTION_HEADER directorySection;
+
+                directorySection = PhMappedImageRvaToSection(
+                    &PvMappedImage,
+                    entry->BeginAddress
+                    );
+
+                if (directorySection)
+                {
+                    WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+
+                    if (PhGetMappedImageSectionName(
+                        directorySection,
+                        sectionName,
+                        RTL_NUMBER_OF(sectionName),
+                        NULL
+                        ))
+                    {
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, sectionName);
+                    }
+                }
+            }
+
+            printf("Flag: %u\n", entry->Flag);
+        }
     }
 
     //ExtendedListView_SortItems(ListViewHandle);
@@ -254,7 +324,15 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
             {
-                /* Todo */
+                PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"RVA (start)");
+                PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Data");
+                PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_CENTER,50, L"Packed");
+                PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
+                PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Symbol");
+                PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Section");
+                PhLoadListViewColumnsFromSetting(L"ImageExceptionsArm64ListViewColumns", context->ListViewHandle);
+
+                /* Todo add size comparison predicate */
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -284,7 +362,7 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
             {
-                /* Todo */
+                PhSaveListViewColumnsToSetting(L"ImageExceptionsArm64ListViewColumns", context->ListViewHandle);
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);
