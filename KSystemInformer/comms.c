@@ -235,7 +235,8 @@ BOOLEAN KphpCommsInformerEnabled(
     PAGED_CODE();
 
     if (FlagOn(Client->InformerSettings.Flags, Settings->Flags) ||
-        FlagOn(Client->InformerSettings.Flags2, Settings->Flags2))
+        FlagOn(Client->InformerSettings.Flags2, Settings->Flags2) ||
+        FlagOn(Client->InformerSettings.Flags3, Settings->Flags3))
     {
         return TRUE;
     }

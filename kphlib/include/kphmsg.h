@@ -178,6 +178,53 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgFilePreVolumeDismount,
     KphMsgFilePostVolumeDismount,
 
+    KphMsgRegPreDeleteKey,
+    KphMsgRegPostDeleteKey,
+    KphMsgRegPreSetValueKey,
+    KphMsgRegPostSetValueKey,
+    KphMsgRegPreDeleteValueKey,
+    KphMsgRegPostDeleteValueKey,
+    KphMsgRegPreSetInformationKey,
+    KphMsgRegPostSetInformationKey,
+    KphMsgRegPreRenameKey,
+    KphMsgRegPostRenameKey,
+    KphMsgRegPreEnumerateKey,
+    KphMsgRegPostEnumerateKey,
+    KphMsgRegPreEnumerateValueKey,
+    KphMsgRegPostEnumerateValueKey,
+    KphMsgRegPreQueryKey,
+    KphMsgRegPostQueryKey,
+    KphMsgRegPreQueryValueKey,
+    KphMsgRegPostQueryValueKey,
+    KphMsgRegPreQueryMultipleValueKey,
+    KphMsgRegPostQueryMultipleValueKey,
+    KphMsgRegPreKeyHandleClose,
+    KphMsgRegPostKeyHandleClose,
+    KphMsgRegPreCreateKey,
+    KphMsgRegPostCreateKey,
+    KphMsgRegPreOpenKey,
+    KphMsgRegPostOpenKey,
+    KphMsgRegPreFlushKey,
+    KphMsgRegPostFlushKey,
+    KphMsgRegPreLoadKey,
+    KphMsgRegPostLoadKey,
+    KphMsgRegPreUnLoadKey,
+    KphMsgRegPostUnLoadKey,
+    KphMsgRegPreQueryKeySecurity,
+    KphMsgRegPostQueryKeySecurity,
+    KphMsgRegPreSetKeySecurity,
+    KphMsgRegPostSetKeySecurity,
+    KphMsgRegPreRestoreKey,
+    KphMsgRegPostRestoreKey,
+    KphMsgRegPreSaveKey,
+    KphMsgRegPostSaveKey,
+    KphMsgRegPreReplaceKey,
+    KphMsgRegPostReplaceKey,
+    KphMsgRegPreQueryKeyName,
+    KphMsgRegPostQueryKeyName,
+    KphMsgRegPreSaveMergedKey,
+    KphMsgRegPostSaveMergedKey,
+
     MaxKphMsg,
 
     KphMsgUnhandled = 0xffffffff,
@@ -199,6 +246,13 @@ typedef enum _KPH_MESSAGE_FIELD_ID
     KphMsgFieldEaBuffer,
     KphMsgFieldInformationBuffer,
     KphMsgFieldInput,
+    KphMsgFieldValueName,
+    KphMsgFieldValueBuffer,
+    KphMsgFieldMultipleValueNames,
+    KphMsgFieldMultipleValueEntries,
+    KphMsgFieldNewName,
+    KphMsgFieldClass,
+    KphMsgFieldOtherObjectName,
 
     MaxKphMsgField
 } KPH_MESSAGE_FIELD_ID, *PKPH_MESSAGE_FIELD_ID;
@@ -315,6 +369,7 @@ typedef struct _KPH_MESSAGE
             KPHM_DESKTOP_HANDLE_POST_DUPLICATE DesktopHandlePostDuplicate;
             KPHM_REQUIRED_STATE_FAILURE RequiredStateFailure;
             KPHM_FILE File;
+            KPHM_REGISTRY Reg;
         } Kernel;
 
         //
