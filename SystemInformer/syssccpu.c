@@ -1843,12 +1843,14 @@ BOOLEAN PhInitializeHybridProcessorTypeCache(
         processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
         )
     {
-        //One logical processor per bit set in the core mask
-        ULONG_PTR mask = processorInfo->Processor.GroupMask[0].Mask;
-        while (mask)
+        for (USHORT j = 0; j < processorInfo->Processor.GroupCount; j++)
         {
-            mask &= (mask - 1); // Flip the least significant bit set to '1'
-            PhAddItemList(hybridProcessorTypeList, UlongToPtr(processorInfo->Processor.EfficiencyClass));
+            //One logical processor per bit set in the core mask
+            ULONG logicalProcessorsInGroup = PhCountBitsUlongPtr(processorInfo->Processor.GroupMask[j].Mask);
+            while (logicalProcessorsInGroup--)
+            {
+                PhAddItemList(hybridProcessorTypeList, UlongToPtr(processorInfo->Processor.EfficiencyClass));
+            }
         }
     }
     PhFree(logicalInformation);
