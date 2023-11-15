@@ -184,6 +184,7 @@ NTSTATUS KSIAPI KphpCommsGetInformerSettings(
 
     msg->Settings.Flags = Client->InformerSettings.Flags;
     msg->Settings.Flags2 = Client->InformerSettings.Flags2;
+    msg->Settings.Flags3 = Client->InformerSettings.Flags3;
 
     msg->Status = STATUS_SUCCESS;
 
@@ -210,6 +211,7 @@ NTSTATUS KSIAPI KphpCommsSetInformerSettings(
 
     InterlockedExchangeU64(&Client->InformerSettings.Flags, msg->Settings.Flags);
     InterlockedExchangeU64(&Client->InformerSettings.Flags2, msg->Settings.Flags2);
+    InterlockedExchangeU64(&Client->InformerSettings.Flags3, msg->Settings.Flags3);
 
     msg->Status = STATUS_SUCCESS;
 

@@ -137,6 +137,52 @@ const KPH_INFORMER_MAP_ENTRY KphpInformerMap[] =
     KPH_INFORMER_MAP_SETTING(FilePostVolumeMount),
     KPH_INFORMER_MAP_SETTING(FilePreVolumeDismount),
     KPH_INFORMER_MAP_SETTING(FilePostVolumeDismount),
+    KPH_INFORMER_MAP_SETTING(RegPreDeleteKey),
+    KPH_INFORMER_MAP_SETTING(RegPostDeleteKey),
+    KPH_INFORMER_MAP_SETTING(RegPreSetValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPostSetValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPreDeleteValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPostDeleteValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPreSetInformationKey),
+    KPH_INFORMER_MAP_SETTING(RegPostSetInformationKey),
+    KPH_INFORMER_MAP_SETTING(RegPreRenameKey),
+    KPH_INFORMER_MAP_SETTING(RegPostRenameKey),
+    KPH_INFORMER_MAP_SETTING(RegPreEnumerateKey),
+    KPH_INFORMER_MAP_SETTING(RegPostEnumerateKey),
+    KPH_INFORMER_MAP_SETTING(RegPreEnumerateValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPostEnumerateValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPreQueryKey),
+    KPH_INFORMER_MAP_SETTING(RegPostQueryKey),
+    KPH_INFORMER_MAP_SETTING(RegPreQueryValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPostQueryValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPreQueryMultipleValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPostQueryMultipleValueKey),
+    KPH_INFORMER_MAP_SETTING(RegPreKeyHandleClose),
+    KPH_INFORMER_MAP_SETTING(RegPostKeyHandleClose),
+    KPH_INFORMER_MAP_SETTING(RegPreCreateKey),
+    KPH_INFORMER_MAP_SETTING(RegPostCreateKey),
+    KPH_INFORMER_MAP_SETTING(RegPreOpenKey),
+    KPH_INFORMER_MAP_SETTING(RegPostOpenKey),
+    KPH_INFORMER_MAP_SETTING(RegPreFlushKey),
+    KPH_INFORMER_MAP_SETTING(RegPostFlushKey),
+    KPH_INFORMER_MAP_SETTING(RegPreLoadKey),
+    KPH_INFORMER_MAP_SETTING(RegPostLoadKey),
+    KPH_INFORMER_MAP_SETTING(RegPreUnLoadKey),
+    KPH_INFORMER_MAP_SETTING(RegPostUnLoadKey),
+    KPH_INFORMER_MAP_SETTING(RegPreQueryKeySecurity),
+    KPH_INFORMER_MAP_SETTING(RegPostQueryKeySecurity),
+    KPH_INFORMER_MAP_SETTING(RegPreSetKeySecurity),
+    KPH_INFORMER_MAP_SETTING(RegPostSetKeySecurity),
+    KPH_INFORMER_MAP_SETTING(RegPreRestoreKey),
+    KPH_INFORMER_MAP_SETTING(RegPostRestoreKey),
+    KPH_INFORMER_MAP_SETTING(RegPreSaveKey),
+    KPH_INFORMER_MAP_SETTING(RegPostSaveKey),
+    KPH_INFORMER_MAP_SETTING(RegPreReplaceKey),
+    KPH_INFORMER_MAP_SETTING(RegPostReplaceKey),
+    KPH_INFORMER_MAP_SETTING(RegPreQueryKeyName),
+    KPH_INFORMER_MAP_SETTING(RegPostQueryKeyName),
+    KPH_INFORMER_MAP_SETTING(RegPreSaveMergedKey),
+    KPH_INFORMER_MAP_SETTING(RegPostSaveMergedKey),
 };
 C_ASSERT((ARRAYSIZE(KphpInformerMap) + (MaxKphMsgClientAllowed + 1)) == MaxKphMsg);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
@@ -174,7 +220,8 @@ BOOLEAN KphpInformerProcessIsFiltered(
     PAGED_CODE();
 
     if (FlagOn(Process->InformerFilter.Flags, Settings->Flags) ||
-        FlagOn(Process->InformerFilter.Flags2, Settings->Flags2))
+        FlagOn(Process->InformerFilter.Flags2, Settings->Flags2) ||
+        FlagOn(Process->InformerFilter.Flags3, Settings->Flags3))
     {
         return TRUE;
     }
@@ -323,6 +370,7 @@ NTSTATUS KphGetInformerProcessFilter(
         {
             Filter->Flags = processContext->InformerFilter.Flags;
             Filter->Flags2 = processContext->InformerFilter.Flags2;
+            Filter->Flags3 = processContext->InformerFilter.Flags3;
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -334,6 +382,7 @@ NTSTATUS KphGetInformerProcessFilter(
     {
         Filter->Flags = processContext->InformerFilter.Flags;
         Filter->Flags2 = processContext->InformerFilter.Flags2;
+        Filter->Flags3 = processContext->InformerFilter.Flags3;
     }
 
     status = STATUS_SUCCESS;
@@ -378,6 +427,7 @@ BOOLEAN KSIAPI KphpSetInformerProcessFilter(
 
     InterlockedExchangeU64(&Process->InformerFilter.Flags, filter->Flags);
     InterlockedExchangeU64(&Process->InformerFilter.Flags2, filter->Flags2);
+    InterlockedExchangeU64(&Process->InformerFilter.Flags3, filter->Flags3);
 
     return FALSE;
 }

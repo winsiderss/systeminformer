@@ -257,6 +257,7 @@
     <ClCompile Include="informer_object.c" />
     <ClCompile Include="informer_process.c" />
     <ClCompile Include="informer.c" />
+    <ClCompile Include="informer_registry.c" />
     <ClCompile Include="informer_thread.c" />
     <ClCompile Include="knowndll.c" />
     <ClCompile Include="kphobject.c" />

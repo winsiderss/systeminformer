@@ -81,8 +81,9 @@ VOID KphpDriverCleanup(
 {
     PAGED_CODE_PASSIVE();
 
-    KphObjectInformerStop();
     KphDebugInformerStop();
+    KphRegistryInformerStop();
+    KphObjectInformerStop();
     KphImageInformerStop();
     KphCidMarkPopulated();
     KphThreadInformerStop();
@@ -364,22 +365,32 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
-    status = KphDebugInformerStart();
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Failed to start debug informer: %!STATUS!",
-                      status);
-        goto Exit;
-    }
-
     status = KphObjectInformerStart();
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Failed to start object informer: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
+    status = KphRegistryInformerStart();
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Failed to start registry informer: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
+    status = KphDebugInformerStart();
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Failed to start debug informer: %!STATUS!",
                       status);
         goto Exit;
     }

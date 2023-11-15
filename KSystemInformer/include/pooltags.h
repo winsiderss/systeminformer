@@ -73,6 +73,9 @@
 #define KPH_TAG_FLT_FILE_NAME                   '3IpK'
 #define KPH_TAG_FLT_CACHED_FILE_NAME            '4IpK'
 #define KPH_TAG_FLT_COMPLETION_CONTEXT          '5IpK'
+#define KPH_TAG_REG_CALL_CONTEXT                '6IpK'
+#define KPH_TAG_REG_OBJECT_NAME                 '7IpK'
+#define KPH_TAG_REG_VALUE_NAMES                 '8IpK'
 
 // cid_tracking
 

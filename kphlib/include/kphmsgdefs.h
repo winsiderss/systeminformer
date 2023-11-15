@@ -1369,4 +1369,297 @@ typedef struct _KPHM_FILE_REPLY
     };
 } KPHM_FILE_REPLY, *PKPHM_FILE_REPLY;
 
+typedef union _KPHM_REGISTRY_PARAMETERS
+{
+    struct
+    {
+        PUNICODE_STRING ValueName;
+        ULONG TitleIndex;
+        ULONG Type;
+        PVOID Data;
+        ULONG DataSize;
+    } SetValueKey;
+
+    struct
+    {
+        PUNICODE_STRING ValueName;
+    } DeleteValueKey;
+
+    struct
+    {
+        KEY_SET_INFORMATION_CLASS KeySetInformationClass;
+        PVOID KeySetInformation;
+        ULONG KeySetInformationLength;
+    } SetInformationKey;
+
+    struct
+    {
+        PUNICODE_STRING NewName;
+    } RenameKey;
+
+    struct
+    {
+        ULONG Index;
+        KEY_INFORMATION_CLASS KeyInformationClass;
+        PVOID KeyInformation;
+        ULONG Length;
+        PULONG ResultLength;
+    } EnumerateKey;
+
+    struct
+    {
+        ULONG Index;
+        KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass;
+        PVOID KeyValueInformation;
+        ULONG Length;
+        PULONG ResultLength;
+    } EnumerateValueKey;
+
+    struct
+    {
+        KEY_INFORMATION_CLASS KeyInformationClass;
+        PVOID KeyInformation;
+        ULONG Length;
+        PULONG ResultLength;
+    } QueryKey;
+
+    struct
+    {
+        PUNICODE_STRING ValueName;
+        KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass;
+        PVOID KeyValueInformation;
+        ULONG Length;
+        PULONG ResultLength;
+    } QueryValueKey;
+
+    struct
+    {
+        PKEY_VALUE_ENTRY ValueEntries;
+        ULONG EntryCount;
+        PVOID ValueBuffer;
+        PULONG BufferLength;
+        PULONG RequiredBufferLength;
+    } QueryMultipleValueKey;
+
+    struct
+    {
+        PUNICODE_STRING CompleteName;
+        PVOID RootObject;
+        PVOID ObjectType;
+        ULONG Options;
+        PUNICODE_STRING Class;
+        PVOID SecurityDescriptor;
+        PVOID SecurityQualityOfService;
+        ACCESS_MASK DesiredAccess;
+        ACCESS_MASK GrantedAccess;
+        PULONG Disposition;
+        PUNICODE_STRING RemainingName;
+        ULONG Wow64Flags;
+        ULONG Attributes;
+        UCHAR CheckAccessMode;
+    } CreateKey;
+
+    struct
+    {
+        PUNICODE_STRING CompleteName;
+        PVOID RootObject;
+        PVOID ObjectType;
+        ULONG Options;
+        PUNICODE_STRING Class;
+        PVOID SecurityDescriptor;
+        PVOID SecurityQualityOfService;
+        ACCESS_MASK DesiredAccess;
+        ACCESS_MASK GrantedAccess;
+        PULONG Disposition;
+        PUNICODE_STRING RemainingName;
+        ULONG Wow64Flags;
+        ULONG Attributes;
+        UCHAR CheckAccessMode;
+    } OpenKey;
+
+    struct
+    {
+        PVOID RootObject;
+        PUNICODE_STRING KeyName;
+        PUNICODE_STRING SourceFile;
+        ULONG Flags;
+        PVOID TrustClassObject;
+        PVOID UserEvent;
+        ACCESS_MASK DesiredAccess;
+        PHANDLE RootHandle;
+        PVOID FileAccessToken;
+    } LoadKey;
+
+    struct
+    {
+        PVOID UserEvent;
+    } UnLoadKey;
+
+    struct
+    {
+        PSECURITY_INFORMATION SecurityInformation;
+        PSECURITY_DESCRIPTOR SecurityDescriptor;
+        PULONG Length;
+    } QueryKeySecurity;
+
+    struct
+    {
+        PSECURITY_INFORMATION SecurityInformation;
+        PSECURITY_DESCRIPTOR SecurityDescriptor;
+    } SetKeySecurity;
+
+    struct
+    {
+        HANDLE FileHandle;
+        ULONG Flags;
+    } RestoreKey;
+
+    struct
+    {
+        HANDLE FileHandle;
+        ULONG Format;
+    } SaveKey;
+
+    struct
+    {
+        PUNICODE_STRING OldFileName;
+        PUNICODE_STRING NewFileName;
+    } ReplaceKey;
+
+    struct
+    {
+        POBJECT_NAME_INFORMATION ObjectNameInfo;
+        ULONG Length;
+        PULONG ReturnLength;
+    } QueryKeyName;
+
+    struct
+    {
+        HANDLE FileHandle;
+        PVOID HighKeyObject;
+        PVOID LowKeyObject;
+    } SaveMergedKey;
+} KPHM_REGISTRY_PARAMETERS, *PKPHM_REGISTRY_PARAMETERS;
+
+typedef struct _KPHM_REGISTRY
+{
+    CLIENT_ID ClientId;
+
+    union
+    {
+        USHORT Information;
+        struct
+        {
+            USHORT PostOperation : 1;
+            USHORT PreviousMode : 1;       // KernelMode == 0, UserMode == 1
+            USHORT Spare : 14;
+        };
+    };
+
+    PVOID Object;
+    ULONG_PTR ObjectId;   // CmCallbackGetKeyObjectIDEx
+    PVOID Transaction;    // CmGetBoundTransaction
+
+    ULONG64 Sequence;
+    KPHM_REGISTRY_PARAMETERS Parameters;
+
+    union
+    {
+        struct
+        {
+            union
+            {
+                struct
+                {
+                    ULONG BufferLength;
+                } QueryMultipleValueKey;
+
+                struct
+                {
+                    SECURITY_INFORMATION SecurityInformation;
+                    ULONG Length;
+                } QueryKeySecurity;
+
+                struct
+                {
+                    SECURITY_INFORMATION SecurityInformation;
+                } SetKeySecurity;
+
+                struct
+                {
+                    ULONG_PTR LowKeyObjectId;
+                    PVOID LowKeyTransaction;
+                } SaveMergedKey;
+            };
+        } Pre;
+
+        struct
+        {
+            ULONG64 PreSequence;
+            LARGE_INTEGER PreTimeStamp;
+            NTSTATUS Status;
+
+            union
+            {
+                struct
+                {
+                    ULONG ResultLength;
+                } EnumerateKey;
+
+                struct
+                {
+                    ULONG ResultLength;
+                } EnumerateValueKey;
+
+                struct
+                {
+                    ULONG ResultLength;
+                } QueryKey;
+
+                struct
+                {
+                    ULONG ResultLength;
+                } QueryValueKey;
+
+                struct
+                {
+                    ULONG BufferLength;
+                    ULONG RequiredBufferLength;
+                } QueryMultipleValueKey;
+
+                struct
+                {
+                    ULONG Disposition;
+                } CreateKey;
+
+                struct
+                {
+                    ULONG Disposition;
+                } OpenKey;
+
+                struct
+                {
+                    HANDLE RootHandle;
+                } LoadKey;
+
+                struct
+                {
+                    ULONG Length;
+                } QueryKeySecurity;
+
+                struct
+                {
+                    ULONG ReturnLength;
+                } QueryKeyName;
+
+                struct
+                {
+                    ULONG_PTR LowKeyObjectId;
+                    PVOID LowKeyTransaction;
+                } SaveMergedKey;
+            };
+        } Post;
+    };
+} KPHM_REGISTRY, *PKPHM_REGISTRY;
+
 #pragma warning(pop)
