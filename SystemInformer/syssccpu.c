@@ -1843,7 +1843,7 @@ BOOLEAN PhInitializeHybridProcessorTypeCache(
         processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
         )
     {
-        //One logical core per bit set in the core mask
+        //One logical processor per bit set in the core mask
         ULONG_PTR mask = processorInfo->Processor.GroupMask[0].Mask;
         while (mask)
         {
