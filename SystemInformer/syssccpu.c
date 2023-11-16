@@ -1822,10 +1822,84 @@ PPH_STRINGREF PhGetHybridProcessorType(
     return NULL;
 }
 #else
+
+#define ARM_CORETYPE_LITTLE 0
+#define ARM_CORETYPE_BIG 1
+
+_Success_(return)
+BOOLEAN PhInitializeHybridProcessorTypeCache(
+    _Out_ PPH_LIST *HybridProcessorTypeList
+    )
+{
+    ULONG bufferLength;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo;
+    PPH_LIST hybridProcessorTypeList = NULL;
+
+    if (!NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationProcessorCore, &logicalInformation, &bufferLength)))
+        return FALSE;
+
+    hybridProcessorTypeList = PhCreateList(PhSystemProcessorInformation.NumberOfProcessors);
+
+    for (
+        processorInfo = logicalInformation;
+        (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+        processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+        )
+    {
+        for (USHORT j = 0; j < processorInfo->Processor.GroupCount; j++)
+        {
+            //One logical processor per bit set in the core mask
+            ULONG logicalProcessorsInGroup = PhCountBitsUlongPtr(processorInfo->Processor.GroupMask[j].Mask);
+            while (logicalProcessorsInGroup--)
+            {
+                PhAddItemList(hybridProcessorTypeList, UlongToPtr(processorInfo->Processor.EfficiencyClass));
+            }
+        }
+    }
+    PhFree(logicalInformation);
+
+    *HybridProcessorTypeList = hybridProcessorTypeList;
+    return TRUE;
+}
+
 PPH_STRINGREF PhGetHybridProcessorType(
     _In_ ULONG ProcessorIndex
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_LIST hybridProcessorTypeList = NULL;
+
+    // Hybrid processors are not supported on earlier versions (dmex)
+    if (WindowsVersion < WINDOWS_10)
+        return NULL;
+    // Hybrid processors are not included with multiple groups (for now) (dmex)
+    if (PhSystemProcessorInformation.NumberOfProcessors >= MAXIMUM_PROC_PER_GROUP)
+        return NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeHybridProcessorTypeCache(&hybridProcessorTypeList);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!hybridProcessorTypeList || ProcessorIndex > hybridProcessorTypeList->Count)
+        return NULL;
+
+    switch (PtrToUlong(hybridProcessorTypeList->Items[ProcessorIndex]))
+    {
+    case ARM_CORETYPE_LITTLE:
+        {
+            static PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"LITTLE Core");
+            return &hybridECoreTypeSr;
+        }
+    case ARM_CORETYPE_BIG:
+        {
+            static PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"big Core");
+            return &hybridPCoreTypeSr;
+        }
+    }
+
     return NULL;
 }
 #endif
