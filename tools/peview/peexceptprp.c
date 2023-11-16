@@ -173,6 +173,7 @@ VOID PvEnumerateExceptionEntries(
             PPH_STRING symbol;
             PPH_STRING symbolName = NULL;
             WCHAR value[PH_INT64_STR_LEN_1];
+            IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA* exceptionData;
 
             PhPrintUInt64(value, ++count);
             lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, entry);
@@ -180,18 +181,20 @@ VOID PvEnumerateExceptionEntries(
             PhPrintPointer(value, UlongToPtr(entry->BeginAddress));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
 
-            ULONG functionLength = entry->FunctionLength;
-            if (entry->Flag != 0)
+            ULONG functionLength = entry->FunctionLength << 2;
+            if (entry->Flag != 0) //Packed Unwind Data
             {
                 PhPrintPointer(value, UlongToPtr(entry->UnwindData));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"✔️");
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(entry->FunctionLength << 2, ULONG_MAX)->Buffer);
             }
-            else
+            else // Exception Information RVA
             {
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhFormatString(L".xdata @ 0x%x", UlongToPtr(entry->UnwindData))->Buffer);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhFormatString(L".xdata @ 0x%x",entry->UnwindData)->Buffer);
+                exceptionData = (IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA*)PhMappedImageRvaToVa(&PvMappedImage, entry->UnwindData, NULL);
+                functionLength = exceptionData->FunctionLength << 2;
             }
+            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(functionLength, ULONG_MAX)->Buffer);
 
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
