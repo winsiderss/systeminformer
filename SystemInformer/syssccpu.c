@@ -1822,6 +1822,10 @@ PPH_STRINGREF PhGetHybridProcessorType(
     return NULL;
 }
 #else
+
+#define ARM_CORETYPE_LITTLE 0
+#define ARM_CORETYPE_BIG 1
+
 _Success_(return)
 BOOLEAN PhInitializeHybridProcessorTypeCache(
     _Out_ PPH_LIST *HybridProcessorTypeList
@@ -1884,12 +1888,12 @@ PPH_STRINGREF PhGetHybridProcessorType(
 
     switch (PtrToUlong(hybridProcessorTypeList->Items[ProcessorIndex]))
     {
-    case 0:
+    case ARM_CORETYPE_LITTLE:
         {
             static PH_STRINGREF hybridECoreTypeSr = PH_STRINGREF_INIT(L"LITTLE Core");
             return &hybridECoreTypeSr;
         }
-    case 1:
+    case ARM_CORETYPE_BIG:
         {
             static PH_STRINGREF hybridPCoreTypeSr = PH_STRINGREF_INIT(L"big Core");
             return &hybridPCoreTypeSr;
