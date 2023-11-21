@@ -21,6 +21,9 @@ VOID NTAPI HardwareDevicesDeviceChangeCallback(
 {
     PMSG message = Parameter;
 
+    if (message->message != WM_DEVICECHANGE)
+        return;
+
     switch (message->wParam)
     {
     case DBT_DEVICEARRIVAL: // Drive letter added
@@ -56,6 +59,7 @@ VOID NTAPI HardwareDevicesDeviceChangeCallback(
                 PhReleaseQueuedLockShared(&DiskDrivesListLock);
             }
         }
+        break;
     }
 }
 
