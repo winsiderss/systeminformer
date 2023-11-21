@@ -1304,11 +1304,16 @@ VOID KphpRegCopyObjectName(
     }
     else
     {
-        //
-        // TODO(jxy-s) improve KphQueryObjectName
-        //
+        status = KphQueryNameObject(Object, NULL, 0, &length);
+        if (status != STATUS_BUFFER_TOO_SMALL)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "KphQueryNameObject: %!STATUS!",
+                          status);
 
-        length = ((MAX_PATH * 2) + sizeof(OBJECT_NAME_INFORMATION));
+            goto Exit;
+        }
 
         nameInfo = KphAllocatePaged(length, KPH_TAG_REG_OBJECT_NAME);
         if (!nameInfo)
