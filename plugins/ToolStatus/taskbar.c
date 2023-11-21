@@ -14,7 +14,7 @@
 PH_TASKBAR_ICON TaskbarListIconType = TASKBAR_ICON_NONE;
 BOOLEAN TaskbarIsDirty = FALSE;
 BOOLEAN TaskbarMainWndExiting = FALSE;
-static ITaskbarList3* TaskbarListClass = NULL;
+static HANDLE TaskbarListClass = NULL;
 static HANDLE TaskbarThreadHandle = NULL;
 static HANDLE TaskbarEventHandle = NULL;
 
@@ -66,8 +66,8 @@ VOID NTAPI TaskbarUpdateGraphs(
         {
             if (TaskbarListClass)
             {
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
-                ITaskbarList3_Release(TaskbarListClass);
+                PhTaskbarListSetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
+                PhTaskbarListDestroy(TaskbarListClass);
                 TaskbarListClass = NULL;
             }
 
@@ -80,20 +80,16 @@ VOID NTAPI TaskbarUpdateGraphs(
 
         if (!TaskbarListClass)
         {
-            if (SUCCEEDED(PhGetClassObject(L"explorerframe.dll", &CLSID_TaskbarList, &IID_ITaskbarList3, &TaskbarListClass)))
+            if (!HR_SUCCESS(PhTaskbarListCreate(&TaskbarListClass)))
             {
-                if (!SUCCEEDED(ITaskbarList3_HrInit(TaskbarListClass)))
-                {
-                    ITaskbarList3_Release(TaskbarListClass);
-                    TaskbarListClass = NULL;
-                }
+                TaskbarListClass = NULL;
             }
         }
 
         if (TaskbarIsDirty)
         {
             if (TaskbarListClass)
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
+                PhTaskbarListSetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
             TaskbarIsDirty = FALSE;
         }
 
@@ -119,7 +115,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         if (overlayIcon)
         {
             if (TaskbarListClass)
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, overlayIcon, NULL);
+                PhTaskbarListSetOverlayIcon(TaskbarListClass, PhMainWndHandle, overlayIcon, NULL);
             DestroyIcon(overlayIcon);
         }
     }
