@@ -331,8 +331,8 @@ typedef struct _PH_ENVIRONMENT_VARIABLE
     PH_STRINGREF Value;
 } PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
 
-PHLIBAPI
 _Success_(return)
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhEnumProcessEnvironmentVariables(
@@ -341,6 +341,43 @@ PhEnumProcessEnvironmentVariables(
     _Inout_ PULONG EnumerationKey,
     _Out_ PPH_ENVIRONMENT_VARIABLE Variable
     );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryEnvironmentVariableStringRef(
+    _In_opt_ PVOID Environment,
+    _In_ PPH_STRINGREF Name,
+    _Inout_opt_ PPH_STRINGREF Value
+    );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhQueryEnvironmentVariableToBufferZ(
+    _In_opt_ PVOID Environment,
+    _In_ PWSTR Name,
+    _Out_writes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_ PSIZE_T ReturnLength
+    )
+{
+    NTSTATUS status;
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    status = RtlQueryEnvironmentVariable(
+        Environment,
+        name.Buffer,
+        name.Length / sizeof(WCHAR),
+        Buffer,
+        BufferLength,
+        ReturnLength
+        );
+
+    return status;
+}
 
 PHLIBAPI
 NTSTATUS
@@ -492,7 +529,7 @@ PhTraceControl(
     _In_ ETWTRACECONTROLCODE TraceInformationClass,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
-    _Out_opt_ PVOID* OutputBuffer,
+    _Out_writes_bytes_opt_(*OutputBufferLength) PVOID* OutputBuffer,
     _Out_opt_ PULONG OutputBufferLength
     );
 
