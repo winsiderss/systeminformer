@@ -116,8 +116,8 @@ typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
     } ComSurrogate;
 } PH_KNOWN_PROCESS_COMMAND_LINE, *PPH_KNOWN_PROCESS_COMMAND_LINE;
 
-PHAPPAPI
 _Success_(return)
+PHAPPAPI
 BOOLEAN
 NTAPI
 PhaGetProcessKnownCommandLine(

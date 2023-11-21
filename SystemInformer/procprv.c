@@ -1862,8 +1862,8 @@ VOID PhFlushProcessQueryData(
     PSLIST_ENTRY entry;
     PPH_PROCESS_QUERY_DATA data;
 
-    if (!RtlFirstEntrySList(&PhProcessQueryDataListHead))
-        return;
+    //if (!RtlFirstEntrySList(&PhProcessQueryDataListHead))
+    //    return;
 
     entry = RtlInterlockedFlushSList(&PhProcessQueryDataListHead);
 

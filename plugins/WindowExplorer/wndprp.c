@@ -569,29 +569,6 @@ static BOOLEAN WepIsWindowCloaked(
     return !!windowCloaked;
 }
 
-typedef enum _WINDOW_BAND
-{
-    ZBID_DEFAULT = 0,
-    ZBID_DESKTOP = 1,
-    ZBID_UIACCESS = 2,
-    ZBID_IMMERSIVE_IHM = 3,
-    ZBID_IMMERSIVE_NOTIFICATION = 4,
-    ZBID_IMMERSIVE_APPCHROME = 5,
-    ZBID_IMMERSIVE_MOGO = 6,
-    ZBID_IMMERSIVE_EDGY = 7,
-    ZBID_IMMERSIVE_INACTIVEMOBODY = 8,
-    ZBID_IMMERSIVE_INACTIVEDOCK = 9,
-    ZBID_IMMERSIVE_ACTIVEMOBODY = 10,
-    ZBID_IMMERSIVE_ACTIVEDOCK = 11,
-    ZBID_IMMERSIVE_BACKGROUND = 12,
-    ZBID_IMMERSIVE_SEARCH = 13,
-    ZBID_GENUINE_WINDOWS = 14,
-    ZBID_IMMERSIVE_RESTRICTED = 15,
-    ZBID_SYSTEM_TOOLS = 16,
-    ZBID_LOCK = 17,
-    ZBID_ABOVELOCK_UX = 18,
-} WINDOW_BAND;
-
 static ULONG WepGetWindowBand(
     _In_ HWND WindowHandle
     )
@@ -1983,6 +1960,8 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
                             break;
                         case PHAPP_IDC_DELETE:
                             {
+                                NTSTATUS status;
+
                                 if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
                                     hwndDlg,
                                     L"remove",
@@ -1996,9 +1975,9 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
 
                                 RemoveProp(context->WindowHandle, PhGetString(listviewItems[0]));
 
-                                ULONG status = GetLastError();
-                                if (status != ERROR_SUCCESS)
-                                    PhShowStatus(hwndDlg, L"Unable to remove the window property.", 0, status);
+                                status = PhGetLastWin32ErrorAsNtStatus();
+                                if (status != STATUS_CANCELLED)
+                                    PhShowStatus(hwndDlg, L"Unable to remove the window property.", status, 0);
 
                                 //WepRefreshWindowProps(context);
                                 PvRefreshChildWindows(hwndDlg);

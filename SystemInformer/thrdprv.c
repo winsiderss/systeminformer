@@ -482,7 +482,7 @@ NTSTATUS PhpThreadQueryWorker(
     newSymbolsLoading = _InterlockedIncrement(&data->ThreadProvider->SymbolsLoading);
 
     if (newSymbolsLoading == 1)
-        PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, (PVOID)TRUE);
+        PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, UlongToPtr(TRUE));
 
     if (data->ThreadProvider->SymbolsLoadedRunId == 0)
         PhLoadSymbolsThreadProvider(data->ThreadProvider);
