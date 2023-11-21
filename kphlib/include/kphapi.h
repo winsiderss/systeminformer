@@ -428,6 +428,7 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 DesktopHandlePreDuplicate : 1;
             ULONG64 DesktopHandlePostDuplicate : 1;
             ULONG64 EnableStackTraces : 1;
+            ULONG64 FileEnablePostFileNames : 1;
             ULONG64 FileEnablePagingIo : 1;
             ULONG64 FileEnableSyncPagingIo : 1;
             ULONG64 FileEnableIoControlBuffers : 1;
@@ -471,7 +472,6 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 FilePreCleanup : 1;
             ULONG64 FilePostCleanup : 1;
             ULONG64 FilePreCreateMailslot : 1;
-            ULONG64 FilePostCreateMailslot : 1;
         };
     };
     union
@@ -479,6 +479,7 @@ typedef struct _KPH_INFORMER_SETTINGS
         volatile ULONG64 Flags2;
         struct
         {
+            ULONG64 FilePostCreateMailslot : 1;
             ULONG64 FilePreQuerySecurity : 1;
             ULONG64 FilePostQuerySecurity : 1;
             ULONG64 FilePreSetSecurity : 1;
@@ -525,6 +526,8 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 FilePostVolumeMount : 1;
             ULONG64 FilePreVolumeDismount : 1;
             ULONG64 FilePostVolumeDismount : 1;
+            ULONG64 RegEnablePostObjectNames : 1;
+            ULONG64 RegEnablePostValueNames : 1;
             ULONG64 RegEnableValueBuffers : 1;
             ULONG64 RegPreDeleteKey : 1;
             ULONG64 RegPostDeleteKey : 1;
@@ -540,9 +543,6 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 RegPostEnumerateKey : 1;
             ULONG64 RegPreEnumerateValueKey : 1;
             ULONG64 RegPostEnumerateValueKey : 1;
-            ULONG64 RegPreQueryKey : 1;
-            ULONG64 RegPostQueryKey : 1;
-            ULONG64 RegPreQueryValueKey : 1;
         };
     };
     union
@@ -550,6 +550,9 @@ typedef struct _KPH_INFORMER_SETTINGS
         volatile ULONG64 Flags3;
         struct
         {
+            ULONG64 RegPreQueryKey : 1;
+            ULONG64 RegPostQueryKey : 1;
+            ULONG64 RegPreQueryValueKey : 1;
             ULONG64 RegPostQueryValueKey : 1;
             ULONG64 RegPreQueryMultipleValueKey : 1;
             ULONG64 RegPostQueryMultipleValueKey : 1;
@@ -579,7 +582,7 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 RegPostQueryKeyName : 1;
             ULONG64 RegPreSaveMergedKey : 1;
             ULONG64 RegPostSaveMergedKey : 1;
-            ULONG64 Reserved : 35;
+            ULONG64 Reserved : 32;
         };
     };
 } KPH_INFORMER_SETTINGS, *PKPH_INFORMER_SETTINGS;
