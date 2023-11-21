@@ -952,6 +952,20 @@ PhInitializeEmptyStringRef(
 }
 
 FORCEINLINE
+VOID
+NTAPI
+PhInitializeBufferStringRef(
+    _Out_ PPH_STRINGREF String,
+    _Writable_bytes_(Length) _When_(Length != 0, _Notnull_) PWCHAR Buffer,
+    _In_ USHORT Length
+    )
+{
+    memset(String, 0, sizeof(PH_STRINGREF));
+    String->Length = Length;
+    String->Buffer = Buffer;
+}
+
+FORCEINLINE
 BOOLEAN
 PhStringRefToUnicodeString(
     _In_ PPH_STRINGREF String,
