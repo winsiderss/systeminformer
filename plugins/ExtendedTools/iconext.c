@@ -149,6 +149,10 @@ VOID EtpGpuTemperatureTextIconUpdateCallback(
 
 BOOLEAN EtTrayIconTransparencyEnabled = FALSE;
 GUID EtpTrayIconGuids[ETP_TRAY_ICON_GUID_MAXIMUM];
+PH_CALLBACK_REGISTRATION EtpMainWindowMessageEventRegistration;
+TB_GRAPH_CONTEXT EtpToolbarGpuHistoryGraphContext = { 0 };
+TB_GRAPH_CONTEXT EtpToolbarDiskHistoryGraphContext = { 0 };
+TB_GRAPH_CONTEXT EtpToolbarNetworkHistoryGraphContext = { 0 };
 
 VOID EtLoadTrayIconGuids(
     VOID
@@ -1310,14 +1314,18 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarGpuHistoryGraphMessageCallba
     {
     case GCN_GETDRAWINFO:
         {
+            PTB_GRAPH_CONTEXT context = (PTB_GRAPH_CONTEXT)Context;
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
+            if (context->GraphDpi == 0)
+            {
+                context->GraphDpi = PhGetWindowDpi(GraphHandle);
+                context->GraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+            }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, context->GraphColor1, 0, context->GraphDpi);
 
             if (ProcessesUpdatedCount != 3)
                 break;
@@ -1395,14 +1403,19 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarDiskHistoryGraphMessageCallb
     {
     case GCN_GETDRAWINFO:
         {
+            PTB_GRAPH_CONTEXT context = (PTB_GRAPH_CONTEXT)Context;
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
+            if (context->GraphDpi == 0)
+            {
+                context->GraphDpi = PhGetWindowDpi(GraphHandle);
+                context->GraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
+                context->GraphColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+            }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, context->GraphColor1, context->GraphColor2, context->GraphDpi);
 
             if (ProcessesUpdatedCount != 3)
                 break;
@@ -1418,18 +1431,33 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarDiskHistoryGraphMessageCallb
                 ULONG i;
                 FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
-                for (i = 0; i < drawInfo->LineDataCount; i++)
+                if (EtEnableAvxSupport && drawInfo->LineDataCount > 64) // 128
                 {
                     FLOAT data1;
                     FLOAT data2;
 
-                    GraphState->Data1[i] = data1 =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, i);
-                    GraphState->Data2[i] = data2 =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, i);
+                    PhCopyConvertCircularBufferULONG(&EtDiskReadHistory, GraphState->Data1, drawInfo->LineDataCount);
+                    PhCopyConvertCircularBufferULONG(&EtDiskWriteHistory, GraphState->Data2, drawInfo->LineDataCount);
+
+                    data1 = PhMaxMemorySingles(GraphState->Data1, drawInfo->LineDataCount);
+                    data2 = PhMaxMemorySingles(GraphState->Data1, drawInfo->LineDataCount);
 
                     if (max < data1 + data2)
                         max = data1 + data2;
+                }
+                else
+                {
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT data1;
+                        FLOAT data2;
+
+                        GraphState->Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtDiskReadHistory, i);
+                        GraphState->Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtDiskWriteHistory, i);
+
+                        if (max < data1 + data2)
+                            max = data1 + data2;
+                    }
                 }
 
                 if (max != 0)
@@ -1519,14 +1547,19 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarNetworkHistoryGraphMessageCa
     {
     case GCN_GETDRAWINFO:
         {
+            PTB_GRAPH_CONTEXT context = (PTB_GRAPH_CONTEXT)Context;
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
+            if (context->GraphDpi == 0)
+            {
+                context->GraphDpi = PhGetWindowDpi(GraphHandle);
+                context->GraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
+                context->GraphColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+            }
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, context->GraphColor1, context->GraphColor2, context->GraphDpi);
 
             if (ProcessesUpdatedCount != 3)
                 break;
@@ -1542,18 +1575,33 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarNetworkHistoryGraphMessageCa
                 ULONG i;
                 FLOAT max = 1024 * 1024; // Minimum scaling of 1 MB
 
-                for (i = 0; i < drawInfo->LineDataCount; i++)
+                if (EtEnableAvxSupport && drawInfo->LineDataCount > 64) // 128
                 {
                     FLOAT data1;
                     FLOAT data2;
 
-                    GraphState->Data1[i] = data1 =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, i);
-                    GraphState->Data2[i] = data2 =
-                        (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, i);
+                    PhCopyConvertCircularBufferULONG(&EtNetworkReceiveHistory, GraphState->Data1, drawInfo->LineDataCount);
+                    PhCopyConvertCircularBufferULONG(&EtNetworkSendHistory, GraphState->Data2, drawInfo->LineDataCount);
+
+                    data1 = PhMaxMemorySingles(GraphState->Data1, drawInfo->LineDataCount);
+                    data2 = PhMaxMemorySingles(GraphState->Data1, drawInfo->LineDataCount);
 
                     if (max < data1 + data2)
                         max = data1 + data2;
+                }
+                else
+                {
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT data1;
+                        FLOAT data2;
+
+                        GraphState->Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, i);
+                        GraphState->Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, i);
+
+                        if (max < data1 + data2)
+                            max = data1 + data2;
+                    }
                 }
 
                 if (max != 0)
@@ -1637,6 +1685,32 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarNetworkHistoryGraphMessageCa
     }
 }
 
+VOID EtToolbarGraphsInitializeDpi(
+    VOID
+    )
+{
+    memset(&EtpToolbarGpuHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
+    memset(&EtpToolbarDiskHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
+    memset(&EtpToolbarNetworkHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
+}
+
+VOID NTAPI EtMainWindowMessageEventCallback(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
+    )
+{
+    PMSG message = Parameter;
+
+    switch (message->message)
+    {
+    case WM_DPICHANGED:
+        {
+            EtToolbarGraphsInitializeDpi();
+        }
+        break;
+    }
+}
+
 VOID EtRegisterToolbarGraphs(
     VOID
     )
@@ -1659,7 +1733,7 @@ VOID EtRegisterToolbarGraphs(
             5,
             L"GPU history",
             EtGpuEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
-            NULL,
+            &EtpToolbarGpuHistoryGraphContext,
             EtpToolbarGpuHistoryGraphMessageCallback
             );
 
@@ -1668,7 +1742,7 @@ VOID EtRegisterToolbarGraphs(
             6,
             L"Disk history",
             EtEtwEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
-            NULL,
+            &EtpToolbarDiskHistoryGraphContext,
             EtpToolbarDiskHistoryGraphMessageCallback
             );
 
@@ -1677,8 +1751,15 @@ VOID EtRegisterToolbarGraphs(
             7,
             L"Network history",
             EtEtwEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
-            NULL,
+            &EtpToolbarNetworkHistoryGraphContext,
             EtpToolbarNetworkHistoryGraphMessageCallback
             );
     }
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent),
+        EtMainWindowMessageEventCallback,
+        NULL,
+        &EtpMainWindowMessageEventRegistration
+        );
 }
