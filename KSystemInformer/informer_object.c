@@ -112,12 +112,12 @@ PKPH_PROCESS_CONTEXT KphpGetProcessContextForObPre(
 {
     PAGED_CODE_PASSIVE();
 
-    if (!Info->KernelHandle)
+    if (Info->KernelHandle)
     {
-        return KphGetCurrentProcessContext();
+        return KphGetSystemProcessContext();
     }
 
-    return KphGetProcessContext(PsGetProcessId(PsInitialSystemProcess));
+    return KphGetCurrentProcessContext();
 }
 
 /**
@@ -135,12 +135,12 @@ PKPH_PROCESS_CONTEXT KphpGetProcessContextForObPost(
 {
     PAGED_CODE_PASSIVE();
 
-    if (!Info->KernelHandle)
+    if (Info->KernelHandle)
     {
-        return KphGetCurrentProcessContext();
+        return KphGetSystemProcessContext();
     }
 
-    return KphGetProcessContext(PsGetProcessId(PsInitialSystemProcess));
+    return KphGetCurrentProcessContext();
 }
 
 /**

@@ -70,7 +70,7 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
     }
     else
     {
-        process = KphGetProcessContext(PsGetProcessId(PsInitialSystemProcess));
+        process = KphGetSystemProcessContext();
     }
 
 #define KPH_FLT_SETTING(majorFunction, name)                                  \

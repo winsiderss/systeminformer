@@ -121,7 +121,7 @@ KPH_REG_OPTIONS KphpRegGetOptions(
     }
     else
     {
-        process = KphGetProcessContext(PsGetProcessId(PsInitialSystemProcess));
+        process = KphGetSystemProcessContext();
     }
 
 #define KPH_REG_SETTING2(reg, name)                                           \

@@ -41,6 +41,7 @@ static CID_TABLE KphpCidTable;
 static volatile LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
 static BOOLEAN KphpLsassIsKnown = FALSE;
+static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
 
 PAGED_FILE();
 
@@ -421,6 +422,13 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
             NT_ASSERT(process->ImageName.Length == 0);
         }
+    }
+
+    if (process->EProcess == PsInitialSystemProcess)
+    {
+        NT_ASSERT(!KphpSystemProcessContext);
+        KphReferenceObject(process);
+        KphpSystemProcessContext = process;
     }
 
     if (!KphpLsassIsKnown)
@@ -1206,6 +1214,11 @@ VOID KphCidCleanup(
 
     CidEnumerateEx(&KphpCidTable, KphpCidCleanupCallback, NULL);
 
+    if (KphpSystemProcessContext)
+    {
+        KphDereferenceObject(KphpSystemProcessContext);
+    }
+
     CidTableDelete(&KphpCidTable);
 
     KphDereferenceObject(KphpCidApcLookaside);
@@ -1753,6 +1766,28 @@ Exit:
     }
 
     return status;
+}
+
+/**
+ * \brief Retrieves the system process context.
+ *
+ * \return Pointer to the system process context, null if not found. The caller
+ * *must* dereference the object when they are through with it.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphGetSystemProcessContext(
+    VOID
+    )
+{
+    PAGED_CODE();
+
+    if (KphpSystemProcessContext)
+    {
+        KphReferenceObject(KphpSystemProcessContext);
+    }
+
+    return KphpSystemProcessContext;
 }
 
 /**
