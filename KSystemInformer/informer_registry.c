@@ -25,8 +25,10 @@ typedef union _KPH_REG_OPTIONS
         UCHAR PreEnabled : 1;
         UCHAR PostEnabled : 1;
         UCHAR EnableStackTraces : 1;
+        UCHAR EnablePostObjectNames : 1;
+        UCHAR EnablePostValueNames : 1;
         UCHAR EnableValueBuffers : 1;
-        UCHAR Spare : 3;
+        UCHAR Spare : 1;
     };
 } KPH_REG_OPTIONS, *PKPH_REG_OPTIONS;
 
@@ -495,7 +497,8 @@ VOID KphpRegFillCommonMessage(
  * associated information for the object.
  *
  * \param[in,out] Message The message to populate.
- * \param[in] FieldId The object name field ID to populate.
+ * \param[in] FieldId The object name field ID to populate. Optional, when the
+ * identifier is InvalidKphMsgField the object name is not copied.
  * \param[in] InputObject The object to copy the information from.
  * \param[out] Object Receives a copy of the input object pointer.
  * \param[out] ObjectId Receives the object ID for the object.
@@ -589,17 +592,31 @@ Exit:
  *
  * \param[in,out] Message The message to populate.
  * \param[in] Object The object to copy the information from.
+ * \param[in] IncludeObjectName If TRUE the object name is included in the
+ * message, when FALSE the object name is not copied into the message.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpRegFillObjectInfo(
     _Inout_ PKPH_MESSAGE Message,
-    _In_ PVOID Object
+    _In_ PVOID Object,
+    _In_ BOOLEAN IncludeObjectName
     )
 {
+    KPH_MESSAGE_FIELD_ID fieldId;
+
     PAGED_CODE_PASSIVE();
 
+    if (IncludeObjectName)
+    {
+        fieldId = KphMsgFieldObjectName;
+    }
+    else
+    {
+        fieldId = InvalidKphMsgField;
+    }
+
     KphpRegCopyObjectInfo(Message,
-                          KphMsgFieldObjectName,
+                          fieldId,
                           Object,
                           &Message->Kernel.Reg.Object,
                           &Message->Kernel.Reg.ObjectId,
@@ -725,11 +742,14 @@ Exit:
  *
  * \param[in,out] Message The message to populate.
  * \param[in] CreateInfo The creation or open information.
+ * \param[in] IncludeObjectName If TRUE the object name is included in the
+ * message, when FALSE the object name is not copied into the message.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpRegFillCreateKeyObjectInfo(
     _Inout_ PKPH_MESSAGE Message,
-    _In_ PREG_CREATE_KEY_INFORMATION_V1 CreateInfo
+    _In_ PREG_CREATE_KEY_INFORMATION_V1 CreateInfo,
+    _In_ BOOLEAN IncludeObjectName
     )
 {
     NTSTATUS status;
@@ -738,6 +758,11 @@ VOID KphpRegFillCreateKeyObjectInfo(
     PAGED_CODE_PASSIVE();
 
     Message->Kernel.Reg.Transaction = CreateInfo->Transaction;
+
+    if (!IncludeObjectName)
+    {
+        return;
+    }
 
     if ((CreateInfo->CompleteName->Length >= sizeof(WCHAR)) &&
         (CreateInfo->CompleteName->Buffer[0] == L'\\'))
@@ -784,17 +809,25 @@ Exit:
  *
  * \param[in,out] Message The message to populate.
  * \param[in] LoadInfo The load key information.
+ * \param[in] IncludeObjectName If TRUE the object name is included in the
+ * message, when FALSE the object name is not copied into the message.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpRegFillLoadKeyObjectInfo(
     _Inout_ PKPH_MESSAGE Message,
-    _In_ PREG_LOAD_KEY_INFORMATION_V2 LoadInfo
+    _In_ PREG_LOAD_KEY_INFORMATION_V2 LoadInfo,
+    _In_ BOOLEAN IncludeObjectName
     )
 {
     NTSTATUS status;
     PUNICODE_STRING objectName;
 
     PAGED_CODE_PASSIVE();
+
+    if (!IncludeObjectName)
+    {
+        return;
+    }
 
     if (LoadInfo->Object)
     {
@@ -1400,8 +1433,13 @@ VOID KphpRegFillPostOpMessage(
 {
     NTSTATUS status;
     PKPH_REG_PRE_INFORMATION preInfo;
+    BOOLEAN enableObjectNames;
+    BOOLEAN enableValueNames;
 
     PAGED_CODE_PASSIVE();
+
+    enableObjectNames = Context->Options.EnablePostObjectNames;
+    enableValueNames = Context->Options.EnablePostValueNames;
 
     Message->Kernel.Reg.PostOperation = TRUE;
 
@@ -1430,19 +1468,27 @@ VOID KphpRegFillPostOpMessage(
     {
         case RegNtPostSetValueKey:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
-            KphpRegCopyValueName(Message, preInfo->SetValueKey.ValueName);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
+
+            if (enableValueNames)
+            {
+                KphpRegCopyValueName(Message, preInfo->SetValueKey.ValueName);
+            }
             break;
         }
         case RegNtPostDeleteValueKey:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
-            KphpRegCopyValueName(Message, preInfo->DeleteValueKey.ValueName);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
+
+            if (enableValueNames)
+            {
+                KphpRegCopyValueName(Message, preInfo->DeleteValueKey.ValueName);
+            }
             break;
         }
         case RegNtPostEnumerateKey:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
 
             if (!NT_SUCCESS(Message->Kernel.Reg.Post.Status))
             {
@@ -1450,6 +1496,7 @@ VOID KphpRegFillPostOpMessage(
             }
 
             KPH_REG_COPY_OUT_PARAM(EnumerateKey, ResultLength);
+
             KphpRegCopyBuffer(Message,
                               KphMsgFieldInformationBuffer,
                               preInfo->EnumerateKey.KeyInformation,
@@ -1458,7 +1505,7 @@ VOID KphpRegFillPostOpMessage(
         }
         case RegNtPostEnumerateValueKey:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
 
             if (!NT_SUCCESS(PostInfo->Common.Status))
             {
@@ -1466,6 +1513,7 @@ VOID KphpRegFillPostOpMessage(
             }
 
             KPH_REG_COPY_OUT_PARAM(EnumerateValueKey, ResultLength);
+
             if (Context->Options.EnableValueBuffers)
             {
                 KphpRegCopyBuffer(Message,
@@ -1477,7 +1525,7 @@ VOID KphpRegFillPostOpMessage(
         }
         case RegNtPostQueryKey:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
 
             if (!NT_SUCCESS(PostInfo->Common.Status))
             {
@@ -1485,6 +1533,7 @@ VOID KphpRegFillPostOpMessage(
             }
 
             KPH_REG_COPY_OUT_PARAM(QueryKey, ResultLength);
+
             KphpRegCopyBuffer(Message,
                               KphMsgFieldInformationBuffer,
                               preInfo->QueryKey.KeyInformation,
@@ -1493,8 +1542,12 @@ VOID KphpRegFillPostOpMessage(
         }
         case RegNtPostQueryValueKey:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
-            KphpRegCopyValueName(Message, preInfo->QueryValueKey.ValueName);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
+
+            if (enableValueNames)
+            {
+                KphpRegCopyValueName(Message, preInfo->QueryValueKey.ValueName);
+            }
 
             if (!NT_SUCCESS(PostInfo->Common.Status))
             {
@@ -1502,6 +1555,7 @@ VOID KphpRegFillPostOpMessage(
             }
 
             KPH_REG_COPY_OUT_PARAM(QueryValueKey, ResultLength);
+
             if (Context->Options.EnableValueBuffers)
             {
                 KphpRegCopyBuffer(Message,
@@ -1513,10 +1567,15 @@ VOID KphpRegFillPostOpMessage(
         }
         case RegNtPostQueryMultipleValueKey:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
-            KphpRegCopyMultipleValueNames(Message,
-                                          preInfo->QueryMultipleValueKey.ValueEntries,
-                                          preInfo->QueryMultipleValueKey.EntryCount);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
+
+            if (enableValueNames)
+            {
+                KphpRegCopyMultipleValueNames(Message,
+                                              preInfo->QueryMultipleValueKey.ValueEntries,
+                                              preInfo->QueryMultipleValueKey.EntryCount);
+            }
+
             KPH_REG_COPY_OUT_PARAM(QueryMultipleValueKey, RequiredBufferLength);
 
             if (!NT_SUCCESS(PostInfo->Common.Status))
@@ -1525,6 +1584,7 @@ VOID KphpRegFillPostOpMessage(
             }
 
             KPH_REG_COPY_OUT_PARAM(QueryMultipleValueKey, BufferLength);
+
             if (Context->Options.EnableValueBuffers)
             {
                 ULONG entriesLength;
@@ -1573,11 +1633,11 @@ VOID KphpRegFillPostOpMessage(
         {
             if (PostInfo->Common.Status == STATUS_SUCCESS)
             {
-                KphpRegFillObjectInfo(Message, PostInfo->Common.Object);
+                KphpRegFillObjectInfo(Message, PostInfo->Common.Object, enableObjectNames);
             }
             else
             {
-                KphpRegFillCreateKeyObjectInfo(Message, &preInfo->CreateKey);
+                KphpRegFillCreateKeyObjectInfo(Message, &preInfo->CreateKey, enableObjectNames);
             }
 
             if (NT_SUCCESS(PostInfo->Common.Status))
@@ -1590,11 +1650,11 @@ VOID KphpRegFillPostOpMessage(
         {
             if (PostInfo->Common.Status == STATUS_SUCCESS)
             {
-                KphpRegFillObjectInfo(Message, PostInfo->Common.Object);
+                KphpRegFillObjectInfo(Message, PostInfo->Common.Object, enableObjectNames);
             }
             else
             {
-                KphpRegFillCreateKeyObjectInfo(Message, &preInfo->OpenKey);
+                KphpRegFillCreateKeyObjectInfo(Message, &preInfo->OpenKey, enableObjectNames);
             }
 
             if (NT_SUCCESS(PostInfo->Common.Status))
@@ -1605,7 +1665,7 @@ VOID KphpRegFillPostOpMessage(
         }
         case RegNtPostLoadKey:
         {
-            KphpRegFillLoadKeyObjectInfo(Message, &preInfo->LoadKey);
+            KphpRegFillLoadKeyObjectInfo(Message, &preInfo->LoadKey, enableObjectNames);
 
             if (NT_SUCCESS(PostInfo->Common.Status))
             {
@@ -1615,7 +1675,7 @@ VOID KphpRegFillPostOpMessage(
         }
         case RegNtPostQueryKeySecurity:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
 
             if (NT_SUCCESS(PostInfo->Common.Status))
             {
@@ -1625,18 +1685,22 @@ VOID KphpRegFillPostOpMessage(
         }
         case RegNtPostReplaceKey:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
-            KphpRegCopyUnicodeString(Message,
-                                     KphMsgFieldFileName,
-                                     preInfo->ReplaceKey.NewFileName);
-            KphpRegCopyUnicodeString(Message,
-                                     KphMsgFieldDestinationFileName,
-                                     preInfo->ReplaceKey.OldFileName);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
+
+            if (enableObjectNames)
+            {
+                KphpRegCopyUnicodeString(Message,
+                                         KphMsgFieldFileName,
+                                         preInfo->ReplaceKey.NewFileName);
+                KphpRegCopyUnicodeString(Message,
+                                         KphMsgFieldDestinationFileName,
+                                         preInfo->ReplaceKey.OldFileName);
+            }
             break;
         }
         case RegNtPostQueryKeyName:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
 
             if (NT_SUCCESS(PostInfo->Common.Status))
             {
@@ -1646,21 +1710,37 @@ VOID KphpRegFillPostOpMessage(
         }
         case RegNtPostSaveMergedKey:
         {
-            KphpRegFillObjectInfo(Message, preInfo->SaveMergedKey.HighKeyObject);
+            KPH_MESSAGE_FIELD_ID fieldId;
+
+            KphpRegFillObjectInfo(Message, preInfo->SaveMergedKey.HighKeyObject, enableObjectNames);
+
+            if (enableObjectNames)
+            {
+                fieldId = KphMsgFieldOtherObjectName;
+            }
+            else
+            {
+                fieldId = InvalidKphMsgField;
+            }
+
             KphpRegCopyObjectInfo(Message,
-                                  KphMsgFieldOtherObjectName,
+                                  fieldId,
                                   preInfo->SaveMergedKey.LowKeyObject,
                                   NULL,
                                   &Message->Kernel.Reg.Post.SaveMergedKey.LowKeyObjectId,
                                   &Message->Kernel.Reg.Post.SaveMergedKey.LowKeyTransaction);
-            KphpRegCopyHandleName(Message,
-                                  KphMsgFieldFileName,
-                                  preInfo->SaveMergedKey.FileHandle);
+
+            if (enableObjectNames)
+            {
+                KphpRegCopyHandleName(Message,
+                                      KphMsgFieldFileName,
+                                      preInfo->SaveMergedKey.FileHandle);
+            }
             break;
         }
         default:
         {
-            KphpRegFillObjectInfo(Message, PostInfo->Object);
+            KphpRegFillObjectInfo(Message, PostInfo->Object, enableObjectNames);
             break;
         }
     }
@@ -1705,7 +1785,7 @@ VOID KphpRegFillPreOpMessage(
     {
         case RegNtPreSetValueKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyValueName(Message, PreInfo->SetValueKey.ValueName);
 
             if (Options->EnableValueBuffers)
@@ -1719,13 +1799,13 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreDeleteValueKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyValueName(Message, PreInfo->DeleteValueKey.ValueName);
             break;
         }
         case RegNtPreSetInformationKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyBuffer(Message,
                               KphMsgFieldInformationBuffer,
                               PreInfo->SetInformationKey.KeySetInformation,
@@ -1734,7 +1814,7 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreRenameKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyUnicodeString(Message,
                                      KphMsgFieldNewName,
                                      PreInfo->RenameKey.NewName);
@@ -1742,13 +1822,13 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreQueryValueKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyValueName(Message, PreInfo->QueryValueKey.ValueName);
             break;
         }
         case RegNtPreQueryMultipleValueKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyMultipleValueNames(Message,
                                           PreInfo->QueryMultipleValueKey.ValueEntries,
                                           PreInfo->QueryMultipleValueKey.EntryCount);
@@ -1757,7 +1837,7 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreCreateKeyEx:
         {
-            KphpRegFillCreateKeyObjectInfo(Message, &PreInfo->CreateKey);
+            KphpRegFillCreateKeyObjectInfo(Message, &PreInfo->CreateKey, TRUE);
             KphpRegCopyUnicodeString(Message,
                                      KphMsgFieldClass,
                                      PreInfo->CreateKey.Class);
@@ -1765,7 +1845,7 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreOpenKeyEx:
         {
-            KphpRegFillCreateKeyObjectInfo(Message, &PreInfo->OpenKey);
+            KphpRegFillCreateKeyObjectInfo(Message, &PreInfo->OpenKey, TRUE);
             KphpRegCopyUnicodeString(Message,
                                      KphMsgFieldClass,
                                      PreInfo->OpenKey.Class);
@@ -1773,7 +1853,7 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreLoadKey:
         {
-            KphpRegFillLoadKeyObjectInfo(Message, &PreInfo->LoadKey);
+            KphpRegFillLoadKeyObjectInfo(Message, &PreInfo->LoadKey, TRUE);
             KphpRegCopyUnicodeString(Message,
                                      KphMsgFieldFileName,
                                      PreInfo->LoadKey.SourceFile);
@@ -1781,20 +1861,20 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreQueryKeySecurity:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KPH_REG_COPY_IN_PARAM(QueryKeySecurity, SecurityInformation);
             KPH_REG_COPY_IN_PARAM(QueryKeySecurity, Length);
             break;
         }
         case RegNtPreSetKeySecurity:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KPH_REG_COPY_IN_PARAM(SetKeySecurity, SecurityInformation);
             break;
         }
         case RegNtPreRestoreKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyHandleName(Message,
                                   KphMsgFieldFileName,
                                   PreInfo->RestoreKey.FileHandle);
@@ -1802,7 +1882,7 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreSaveKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyHandleName(Message,
                                   KphMsgFieldFileName,
                                   PreInfo->SaveKey.FileHandle);
@@ -1810,7 +1890,7 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreReplaceKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             KphpRegCopyUnicodeString(Message,
                                      KphMsgFieldFileName,
                                      PreInfo->ReplaceKey.NewFileName);
@@ -1821,7 +1901,7 @@ VOID KphpRegFillPreOpMessage(
         }
         case RegNtPreSaveMergedKey:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->SaveMergedKey.HighKeyObject);
+            KphpRegFillObjectInfo(Message, PreInfo->SaveMergedKey.HighKeyObject, TRUE);
             KphpRegCopyObjectInfo(Message,
                                   KphMsgFieldOtherObjectName,
                                   PreInfo->SaveMergedKey.LowKeyObject,
@@ -1835,7 +1915,7 @@ VOID KphpRegFillPreOpMessage(
         }
         default:
         {
-            KphpRegFillObjectInfo(Message, PreInfo->Object);
+            KphpRegFillObjectInfo(Message, PreInfo->Object, TRUE);
             break;
         }
     }
@@ -1973,15 +2053,25 @@ NTSTATUS KphpRegPreOpSetCallContext(
     if (RegClass == RegNtPreKeyHandleClose)
     {
         PVOID object;
+        PUNICODE_STRING* objectNamePointer;
 
         object = PreInfo->KeyHandleClose.Object;
 
         context->Transaction = CmGetBoundTransaction(&KphpCmCookie, object);
 
+        if (Options->EnablePostObjectNames)
+        {
+            objectNamePointer = &context->ObjectName;
+        }
+        else
+        {
+            objectNamePointer = NULL;
+        }
+
         status = CmCallbackGetKeyObjectIDEx(&KphpCmCookie,
                                             object,
                                             &context->ObjectId,
-                                            &context->ObjectName,
+                                            objectNamePointer,
                                             0);
         if (!NT_SUCCESS(status))
         {

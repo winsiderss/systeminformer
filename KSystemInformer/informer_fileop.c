@@ -25,11 +25,11 @@ typedef union _KPH_FLT_OPTIONS
         UCHAR PreEnabled : 1;
         UCHAR PostEnabled : 1;
         UCHAR EnableStackTraces : 1;
+        UCHAR EnablePostFileNames : 1;
         UCHAR EnablePagingIo : 1;
         UCHAR EnableSyncPagingIo : 1;
         UCHAR EnableIoControlBuffers : 1;
         UCHAR EnableFsControlBuffers : 1;
-        UCHAR Spare : 1;
     };
 } KPH_FLT_OPTIONS, *PKPH_FLT_OPTIONS;
 
@@ -138,6 +138,7 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
     if (options.PreEnabled || options.PostEnabled)
     {
         options.EnableStackTraces = KphInformerEnabled(EnableStackTraces, process);
+        options.EnablePostFileNames = KphInformerEnabled(FileEnablePostFileNames, process);
         options.EnablePagingIo = KphInformerEnabled(FileEnablePagingIo, process);
         options.EnableSyncPagingIo = KphInformerEnabled(FileEnableSyncPagingIo, process);
         options.EnableIoControlBuffers = KphInformerEnabled(FileEnableIoControlBuffers, process);
@@ -1794,53 +1795,56 @@ NTSTATUS KphpFltPreOpCreateCompletionContext(
     context->Message->Kernel.File.Post.PreSequence = Sequence;
     context->Message->Kernel.File.Post.PreTimeStamp = *TimeStamp;
 
-    //
-    // Only if we have to will we fill in the file name information in the post
-    // operation (and resolve a possibly tunneled names there). In most cases
-    // we will copy the file name information into the post message here.
-    //
-    if (!KphpFltIsNameTunnelingPossible(Data))
+    if (Options->EnablePostFileNames)
     {
-        KphpFltCopyFileName(context->Message, KphMsgFieldFileName, FltFileName);
-        KphpFltCopyFileName(context->Message, KphMsgFieldDestinationFileName, FltDestFileName);
-    }
-    else if (Data->Iopb->MajorFunction == IRP_MJ_CREATE)
-    {
-        if ((FltFileName->Type == KphFltFileNameTypeNameInfo) &&
-            (FltFileName->NameInfo->Format == FLT_FILE_NAME_NORMALIZED))
-        {
-            context->FileNameInfo = FltFileName->NameInfo;
-            FltReferenceFileNameInformation(context->FileNameInfo);
-        }
-        else
+        //
+        // Only if we have to will we fill in the file name information in the post
+        // operation (and resolve a possibly tunneled names there). In most cases
+        // we will copy the file name information into the post message here.
+        //
+        if (!KphpFltIsNameTunnelingPossible(Data))
         {
             KphpFltCopyFileName(context->Message, KphMsgFieldFileName, FltFileName);
-        }
-    }
-    else
-    {
-        NT_ASSERT(Data->Iopb->MajorFunction == IRP_MJ_SET_INFORMATION);
-
-        if ((FltFileName->Type == KphFltFileNameTypeNameInfo) &&
-            (FltFileName->NameInfo->Format == FLT_FILE_NAME_NORMALIZED))
-        {
-            context->FileNameInfo = FltFileName->NameInfo;
-            FltReferenceFileNameInformation(context->FileNameInfo);
-        }
-        else
-        {
-            KphpFltCopyFileName(context->Message, KphMsgFieldFileName, FltFileName);
-        }
-
-        if ((FltDestFileName->Type == KphFltFileNameTypeNameInfo) &&
-            (FltDestFileName->NameInfo->Format == FLT_FILE_NAME_NORMALIZED))
-        {
-            context->DestFileNameInfo = FltDestFileName->NameInfo;
-            FltReferenceFileNameInformation(context->DestFileNameInfo);
-        }
-        else
-        {
             KphpFltCopyFileName(context->Message, KphMsgFieldDestinationFileName, FltDestFileName);
+        }
+        else if (Data->Iopb->MajorFunction == IRP_MJ_CREATE)
+        {
+            if ((FltFileName->Type == KphFltFileNameTypeNameInfo) &&
+                (FltFileName->NameInfo->Format == FLT_FILE_NAME_NORMALIZED))
+            {
+                context->FileNameInfo = FltFileName->NameInfo;
+                FltReferenceFileNameInformation(context->FileNameInfo);
+            }
+            else
+            {
+                KphpFltCopyFileName(context->Message, KphMsgFieldFileName, FltFileName);
+            }
+        }
+        else
+        {
+            NT_ASSERT(Data->Iopb->MajorFunction == IRP_MJ_SET_INFORMATION);
+
+            if ((FltFileName->Type == KphFltFileNameTypeNameInfo) &&
+                (FltFileName->NameInfo->Format == FLT_FILE_NAME_NORMALIZED))
+            {
+                context->FileNameInfo = FltFileName->NameInfo;
+                FltReferenceFileNameInformation(context->FileNameInfo);
+            }
+            else
+            {
+                KphpFltCopyFileName(context->Message, KphMsgFieldFileName, FltFileName);
+            }
+
+            if ((FltDestFileName->Type == KphFltFileNameTypeNameInfo) &&
+                (FltDestFileName->NameInfo->Format == FLT_FILE_NAME_NORMALIZED))
+            {
+                context->DestFileNameInfo = FltDestFileName->NameInfo;
+                FltReferenceFileNameInformation(context->DestFileNameInfo);
+            }
+            else
+            {
+                KphpFltCopyFileName(context->Message, KphMsgFieldDestinationFileName, FltDestFileName);
+            }
         }
     }
 
