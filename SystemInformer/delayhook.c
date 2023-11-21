@@ -1460,7 +1460,7 @@ BOOL WINAPI PhSystemParametersInfoHook(
 //{
 //    //HWND windowHandle = WindowFromDC(hdc);
 //
-//    if (!(PhTaskDialogThemeHookIndex && TlsGetValue(PhTaskDialogThemeHookIndex)))
+//    if (!(PhTaskDialogThemeHookIndex && PhTlsGetValue(PhTaskDialogThemeHookIndex)))
 //        goto CleanupExit;
 //
 //    if (RGB_FROM_COLOREF(RGB_FROM_COLOREF(color)) == RGB(0, 51, 153)) // TMT_TEXTCOLOR (TaskDialog InstructionPane)

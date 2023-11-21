@@ -3869,6 +3869,30 @@ PhCountBitsUlongPtr(
     _In_ ULONG_PTR Value
     );
 
+// Thread Local Storage (TLS)
+
+PHLIBAPI
+ULONG
+NTAPI
+PhTlsAlloc(
+    VOID
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhTlsGetValue(
+    _In_ ULONG Index
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhTlsSetValue(
+    _In_ ULONG Index,
+    _In_opt_ PVOID Value
+    );
+
 // Auto-dereference convenience functions
 
 FORCEINLINE

@@ -186,7 +186,7 @@ INT WINAPI wWinMain(
     dbg.StartAddress = wWinMain;
     dbg.Parameter = NULL;
     InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
-    TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
+    PhTlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
 
     PhInitializeAutoPool(&BaseAutoPool);
