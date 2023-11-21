@@ -791,6 +791,7 @@ VOID KphpFltReapFileNameCache(
 
     NT_ASSERT(FlagOn(Data->Flags, FLTFL_CALLBACK_DATA_POST_OPERATION));
     NT_ASSERT(Data->Iopb->MajorFunction == IRP_MJ_CLOSE);
+    DBG_UNREFERENCED_PARAMETER(Data);
 
     cacheEntry = NULL;
     previosIrql = ExAcquireSpinLockExclusive(&KphpFileNameCacheLock);
