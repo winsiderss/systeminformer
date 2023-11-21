@@ -982,11 +982,7 @@ PhFreeSid(
     _In_ _Post_invalid_ PSID Sid
     )
 {
-#if (PHNT_NATIVE_SID)
-    return !RtlFreeSid(Sid);
-#else
-    return !!RtlFreeHeap(RtlProcessHeap(), 0, Sid);
-#endif
+    return !!RtlFreeSid(Sid);
 }
 
 // rev from RtlFreeUnicodeString (dmex)
@@ -997,11 +993,20 @@ PhFreeUnicodeString(
     _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_ _Post_invalid_) PUNICODE_STRING UnicodeString
     )
 {
-#ifdef PHNT_INLINE_FREE_UNICODE_STRING
     RtlFreeUnicodeString(UnicodeString);
-#else
-    RtlFreeHeap(RtlProcessHeap(), 0, UnicodeString->Buffer);
-#endif
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhCreateSecurityDescriptor(
+    _Out_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ BYTE Revision
+    )
+{
+    memset(SecurityDescriptor, 0, sizeof(PISECURITY_DESCRIPTOR));
+    ((PISECURITY_DESCRIPTOR)SecurityDescriptor)->Revision = Revision;
+    return STATUS_SUCCESS;
 }
 
 FORCEINLINE
@@ -3486,7 +3491,7 @@ NTSTATUS
 NTAPI
 PhEnumProcessEnclaves(
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID LdrpEnclaveList,
+    _In_ PVOID LdrEnclaveList,
     _In_ PPH_ENUM_PROCESS_ENCLAVES_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
