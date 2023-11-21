@@ -1574,6 +1574,12 @@ VOID KphCidMarkPopulated(
 
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphGetSystemProcessContext(
+    VOID
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 PKPH_PROCESS_CONTEXT KphGetProcessContext(
     _In_ HANDLE ProcessId
     );
