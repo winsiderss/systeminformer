@@ -88,7 +88,9 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_HANDLES,
     PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES,
     PH_PROCESS_STATISTICS_INDEX_GDIHANDLES,
+    PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES,
     PH_PROCESS_STATISTICS_INDEX_USERHANDLES,
+    PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES,
 
     PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL,
     PH_PROCESS_STATISTICS_INDEX_PEAKPAGEDPOOL,
@@ -177,7 +179,9 @@ VOID PhpUpdateStatisticsAddListViewGroups(
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_HANDLES, L"Handles", (PVOID)PH_PROCESS_STATISTICS_INDEX_HANDLES);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES, L"Peak handles", (PVOID)PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_GDIHANDLES, L"GDI handles", (PVOID)PH_PROCESS_STATISTICS_INDEX_GDIHANDLES);
+    PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES, L"Peak GDI handles", (PVOID)PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_USERHANDLES, L"USER handles", (PVOID)PH_PROCESS_STATISTICS_INDEX_USERHANDLES);
+    PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_OTHER, PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES, L"Peak USER handles", (PVOID)PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES);
 
     if (WindowsVersion >= WINDOWS_10_RS3)
     {
@@ -300,6 +304,8 @@ VOID PhpUpdateProcessStatistics(
 
             PhMoveReference(&Context->GdiHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS), TRUE)); // GDI handles
             PhMoveReference(&Context->UserHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS), TRUE)); // USER handles
+            PhMoveReference(&Context->PeakGdiHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS_PEAK), TRUE)); // GDI handles (Peak)
+            PhMoveReference(&Context->PeakUserHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS_PEAK), TRUE)); // USER handles (Peak)
 
             if (NT_SUCCESS(PhGetProcessCycleTime(ProcessItem->QueryHandle, &cycleTime)))
             {
@@ -523,7 +529,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                     if (dispInfo->item.iSubItem == 1)
                     {
-                        if (dispInfo->item.mask & LVIF_TEXT)
+                        if (FlagOn(dispInfo->item.mask, LVIF_TEXT))
                         {
                             switch (PtrToUlong((PVOID)dispInfo->item.lParam))
                             {
@@ -1081,9 +1087,19 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->GdiHandles, L"N/A"), _TRUNCATE);
                                 }
                                 break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKGDIHANDLES:
+                                {
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakGdiHandles, L"N/A"), _TRUNCATE);
+                                }
+                                break;
                             case PH_PROCESS_STATISTICS_INDEX_USERHANDLES:
                                 {
                                     wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->UserHandles, L"N/A"), _TRUNCATE);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_PEAKUSERHANDLES:
+                                {
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->PeakUserHandles, L"N/A"), _TRUNCATE);
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
