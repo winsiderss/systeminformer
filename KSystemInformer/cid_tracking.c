@@ -116,6 +116,7 @@ PVOID KSIAPI KphpAllocateCidApc(
 
     NT_ASSERT(KphpCidApcLookaside);
     NT_ASSERT(Size <= KphpCidApcLookaside->L.Size);
+    DBG_UNREFERENCED_PARAMETER(Size);
 
     object = KphAllocateFromNPagedLookasideObject(KphpCidApcLookaside);
     if (object)
