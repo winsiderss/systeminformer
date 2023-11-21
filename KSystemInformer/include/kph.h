@@ -605,7 +605,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameObject(
     _In_ PVOID Object,
-    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _Out_writes_bytes_opt_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
     _In_ ULONG BufferLength,
     _Out_ PULONG ReturnLength
     );
@@ -614,7 +614,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameFileObject(
     _In_ PFILE_OBJECT FileObject,
-    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _Out_writes_bytes_opt_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
     _In_ ULONG BufferLength,
     _Out_ PULONG ReturnLength
     );

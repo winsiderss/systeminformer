@@ -580,7 +580,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameObject(
     _In_ PVOID Object,
-    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _Out_writes_bytes_opt_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
     _In_ ULONG BufferLength,
     _Out_ PULONG ReturnLength
     )
@@ -623,6 +623,7 @@ NTSTATUS KphQueryNameObject(
 
     if (NT_SUCCESS(status))
     {
+        NT_ASSERT(Buffer);
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphQueryNameObject: %wZ",
@@ -655,12 +656,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpExtractNameFileObject(
     _In_ PFILE_OBJECT FileObject,
-    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _Out_writes_bytes_opt_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
     _In_ ULONG BufferLength,
     _Out_ PULONG ReturnLength
     )
 {
-    ULONG returnLength;
+    NTSTATUS status;
     PCHAR objectName;
     ULONG usedLength;
     ULONG subNameLength;
@@ -670,30 +671,40 @@ NTSTATUS KphpExtractNameFileObject(
 
     if (FlagOn(FileObject->Flags, FO_CLEANUP_COMPLETE))
     {
+        *ReturnLength = 0;
+
         return STATUS_FILE_CLOSED;
     }
 
-    if (BufferLength < sizeof(OBJECT_NAME_INFORMATION))
+    if (Buffer)
     {
-        *ReturnLength = sizeof(OBJECT_NAME_INFORMATION);
+        if (BufferLength < sizeof(OBJECT_NAME_INFORMATION))
+        {
+            *ReturnLength = sizeof(OBJECT_NAME_INFORMATION);
 
-        return STATUS_BUFFER_TOO_SMALL;
+            return STATUS_BUFFER_TOO_SMALL;
+        }
+
+        //
+        // We will place the object name directly after the UNICODE_STRING
+        // structure in the buffer.
+        //
+        Buffer->Name.Length = 0;
+        Buffer->Name.MaximumLength = (USHORT)(BufferLength - sizeof(OBJECT_NAME_INFORMATION));
+        Buffer->Name.Buffer = (PWSTR)Add2Ptr(Buffer, sizeof(OBJECT_NAME_INFORMATION));
+
+        //
+        // Retain a local pointer to the object name so we can manipulate the
+        // pointer.
+        //
+        objectName = (PCHAR)Buffer->Name.Buffer;
+        usedLength = sizeof(OBJECT_NAME_INFORMATION);
     }
-
-    //
-    // We will place the object name directly after the UNICODE_STRING
-    // structure in the buffer.
-    //
-    Buffer->Name.Length = 0;
-    Buffer->Name.MaximumLength = (USHORT)(BufferLength - sizeof(OBJECT_NAME_INFORMATION));
-    Buffer->Name.Buffer = (PWSTR)Add2Ptr(Buffer, sizeof(OBJECT_NAME_INFORMATION));
-
-    //
-    // Retain a local pointer to the object name so we can manipulate the
-    // pointer.
-    //
-    objectName = (PCHAR)Buffer->Name.Buffer;
-    usedLength = sizeof(OBJECT_NAME_INFORMATION);
+    else
+    {
+        objectName = NULL;
+        usedLength = sizeof(OBJECT_NAME_INFORMATION);
+    }
 
     //
     // Check if the file object has an associated device (e.g.
@@ -703,32 +714,37 @@ NTSTATUS KphpExtractNameFileObject(
     //
     if (FileObject->DeviceObject)
     {
-        NTSTATUS status;
+        ULONG returnLength;
 
         status = ObQueryNameString(FileObject->DeviceObject,
                                    Buffer,
                                    BufferLength,
                                    &returnLength);
 
-        if (!NT_SUCCESS(status))
+        usedLength = returnLength;
+
+        if (NT_SUCCESS(status))
+        {
+            NT_ASSERT(objectName && Buffer);
+            //
+            // The UNICODE_STRING in the buffer is now filled in. We will
+            // append to the object name later, so we need to fix the
+            // object name pointer // by adding the length, in bytes, of
+            // the device name string we just got.
+            //
+            objectName += Buffer->Name.Length;
+        }
+        else
         {
             if (status == STATUS_INFO_LENGTH_MISMATCH)
             {
                 status = STATUS_BUFFER_TOO_SMALL;
             }
-
-            *ReturnLength = returnLength;
-
-            return status;
         }
-
-        //
-        // The UNICODE_STRING in the buffer is now filled in. We will append
-        // to the object name later, so we need to fix the object name pointer
-        // by adding the length, in bytes, of the device name string we just got.
-        //
-        objectName += Buffer->Name.Length;
-        usedLength += Buffer->Name.Length;
+    }
+    else
+    {
+        status = STATUS_SUCCESS;
     }
 
     //
@@ -737,9 +753,14 @@ NTSTATUS KphpExtractNameFileObject(
     //
     if (!FileObject->FileName.Buffer)
     {
+        if (!objectName || (usedLength > BufferLength))
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+        }
+
         *ReturnLength = usedLength;
 
-        return STATUS_SUCCESS;
+        return status;
     }
 
     //
@@ -769,7 +790,7 @@ NTSTATUS KphpExtractNameFileObject(
     //
     // Check if we have enough space to write the whole thing.
     //
-    if (usedLength > BufferLength)
+    if (!objectName || (usedLength > BufferLength))
     {
         *ReturnLength = usedLength;
 
@@ -823,7 +844,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameFileObject(
     _In_ PFILE_OBJECT FileObject,
-    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _Out_writes_bytes_opt_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
     _In_ ULONG BufferLength,
     _Out_ PULONG ReturnLength
     )
@@ -862,7 +883,7 @@ NTSTATUS KphQueryNameFileObject(
 
     *ReturnLength = sizeof(OBJECT_NAME_INFORMATION);
     *ReturnLength += fileNameInfo->Name.Length;
-    if (BufferLength < *ReturnLength)
+    if (!Buffer || (BufferLength < *ReturnLength))
     {
         status = STATUS_BUFFER_TOO_SMALL;
         goto Exit;
