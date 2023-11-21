@@ -126,7 +126,6 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
             PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, // Try to get a handle with query information + vm read access. (wj32)
             PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, // Try to get a handle with query limited information + vm read access. (wj32)
             PROCESS_QUERY_LIMITED_INFORMATION, // Try to get a handle with query limited information (required for WSL) (dmex)
-            MAXIMUM_ALLOWED
         };
 
         // It doesn't matter if we can't get a process handle.
