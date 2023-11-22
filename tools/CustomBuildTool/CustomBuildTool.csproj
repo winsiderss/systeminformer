@@ -2,8 +2,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <Platforms>x64;x86</Platforms>
-    <TargetFramework>net7.0</TargetFramework>
-    <RuntimeIdentifiers>win7-x86;win7-x64</RuntimeIdentifiers>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>4.0.0.0</Version>
@@ -38,13 +38,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <PlatformTarget>x86</PlatformTarget>
-    <RuntimeIdentifier>win7-x86</RuntimeIdentifier>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
     <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x64'">
     <PlatformTarget>x64</PlatformTarget>
-    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
     <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
   </PropertyGroup>
