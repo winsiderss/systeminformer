@@ -1383,6 +1383,83 @@ PVOID KphAtomicMoveObjectReference(
     _In_opt_ PVOID Object
     );
 
+// cid_table
+
+typedef struct _KPH_CID_TABLE_ENTRY
+{
+    KPH_ATOMIC_OBJECT_REF ObjectRef;
+} KPH_CID_TABLE_ENTRY, *PKPH_CID_TABLE_ENTRY;
+
+typedef struct _KPH_CID_TABLE
+{
+    KSPIN_LOCK Lock;
+    volatile ULONG_PTR Table;
+} KPH_CID_TABLE, *PKPH_CID_TABLE;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCidTableCreate(
+    _Out_ PKPH_CID_TABLE Table
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidTableDelete(
+    _In_ PKPH_CID_TABLE Table
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidAssignObject(
+    _Inout_ PKPH_CID_TABLE_ENTRY Entry,
+    _In_opt_ PVOID Object
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PVOID KphCidReferenceObject(
+    _In_ PKPH_CID_TABLE_ENTRY Entry
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_CID_TABLE_ENTRY KphCidGetEntry(
+    _In_ HANDLE Cid,
+    _Inout_ PKPH_CID_TABLE Table
+    );
+
+typedef
+_Function_class_(KPH_CID_ENUMERATE_CALLBACK)
+BOOLEAN
+KSIAPI
+KPH_CID_ENUMERATE_CALLBACK(
+    _In_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    );
+typedef KPH_CID_ENUMERATE_CALLBACK* PKPH_CID_ENUMERATE_CALLBACK;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidEnumerate(
+    _In_ PKPH_CID_TABLE Table,
+    _In_ PKPH_CID_ENUMERATE_CALLBACK Callback,
+    _In_opt_ PVOID Parameter
+    );
+
+typedef
+_Function_class_(KPH_CID_RUNDOWN_CALLBACK)
+VOID
+KSIAPI
+KPH_CID_RUNDOWN_CALLBACK(
+    _In_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    );
+typedef KPH_CID_RUNDOWN_CALLBACK* PKPH_CID_RUNDOWN_CALLBACK;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidRundown(
+    _In_ PKPH_CID_TABLE Table,
+    _In_ PKPH_CID_RUNDOWN_CALLBACK Callback,
+    _In_opt_ PVOID Parameter
+    );
+
 // cid_tracking
 
 #define KPH_PROTECTED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS                  |\

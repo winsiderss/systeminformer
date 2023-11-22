@@ -9,124 +9,64 @@
  *
  */
 
-#include <cid_table.h>
 #include <kph.h>
 
 #include <trace.h>
 
-PAGED_FILE();
+#define KPH_CID_TABLE_LEVEL_MASK ((ULONG_PTR)3)
+#define KPH_CID_TABLE_L0 ((ULONG_PTR)0)
+#define KPH_CID_TABLE_L1 ((ULONG_PTR)1)
+#define KPH_CID_TABLE_L2 ((ULONG_PTR)2)
+#define KPH_CID_TABLE_POINTER_MASK ~KPH_CID_TABLE_LEVEL_MASK
 
-#define CID_TABLE_LEVEL_MASK ((ULONG_PTR)3)
-#define CID_TABLE_L0 ((ULONG_PTR)0)
-#define CID_TABLE_L1 ((ULONG_PTR)1)
-#define CID_TABLE_L2 ((ULONG_PTR)2)
-#define CID_TABLE_POINTER_MASK ~CID_TABLE_LEVEL_MASK
+#define KPH_CID_LIMIT (1 << 24)
 
-#define CID_LIMIT (1 << 24)
+#define KPH_CID_L0_COUNT (PAGE_SIZE / sizeof(KPH_CID_TABLE_ENTRY))
+#define KPH_CID_L1_COUNT (PAGE_SIZE / sizeof(PKPH_CID_TABLE_ENTRY))
+#define KPH_CID_L2_COUNT (KPH_CID_LIMIT / (KPH_CID_L0_COUNT * KPH_CID_L1_COUNT))
 
-#define CID_L0_COUNT (PAGE_SIZE / sizeof(CID_TABLE_ENTRY))
-#define CID_L1_COUNT (PAGE_SIZE / sizeof(PCID_TABLE_ENTRY))
-#define CID_L2_COUNT (CID_LIMIT / (CID_L0_COUNT * CID_L1_COUNT))
+#define KPH_CID_MAX_L0 KPH_CID_L0_COUNT
+#define KPH_CID_MAX_L1 (KPH_CID_L1_COUNT * KPH_CID_L0_COUNT)
+#define KPH_CID_MAX_L2 (KPH_CID_L2_COUNT * KPH_CID_L1_COUNT * KPH_CID_L0_COUNT)
 
-#define CID_MAX_L0 CID_L0_COUNT
-#define CID_MAX_L1 (CID_L1_COUNT * CID_L0_COUNT)
-#define CID_MAX_L2 (CID_L2_COUNT * CID_L1_COUNT * CID_L0_COUNT)
+#define KPH_CID_MAX KPH_CID_MAX_L2
+C_ASSERT(KPH_CID_MAX == KPH_CID_LIMIT);
 
-#define CID_MAX CID_MAX_L2
-C_ASSERT(CID_MAX == CID_LIMIT);
-
-#define CidToId(x) ((ULONG_PTR)x / 4)
-
-/**
- * \brief Acquires the CID table entry object lock.
- *
- * \param[in] Entry The entry to acquire the object lock of.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Acquires_lock_(_Global_critical_region_)
-VOID CidAcquireObjectLock(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PCID_TABLE_ENTRY Entry
-    )
-{
-    PAGED_CODE();
-
-    KeEnterCriticalRegion();
-
-    for (;; YieldProcessor())
-    {
-        ULONG_PTR object;
-        PVOID expected;
-        PVOID locked;
-
-        object = Entry->Object;
-        MemoryBarrier();
-
-        if (object & ~CID_LOCKED_OBJECT_MASK)
-        {
-            continue;
-        }
-
-        expected = (PVOID)object;
-        locked = (PVOID)((ULONG_PTR)expected | ~CID_LOCKED_OBJECT_MASK);
-
-        if (InterlockedCompareExchangePointer((PVOID*)&Entry->Object,
-                                              locked,
-                                              expected) == expected)
-        {
-            break;
-        }
-    }
-}
-
-/**
- * \brief Releases the CID table entry object lock.
- *
- * \param[in] Entry The entry to release the object lock of.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Releases_lock_(_Global_critical_region_)
-VOID CidReleaseObjectLock(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PCID_TABLE_ENTRY Entry
-    )
-{
-    ULONG_PTR object;
-    PVOID unlocked;
-
-    PAGED_CODE();
-
-    object = Entry->Object;
-    MemoryBarrier();
-
-    NT_ASSERT(object & ~CID_LOCKED_OBJECT_MASK);
-
-    unlocked = (PVOID)(object & CID_LOCKED_OBJECT_MASK);
-
-    InterlockedExchangePointer((PVOID*)&Entry->Object, unlocked);
-
-    KeLeaveCriticalRegion();
-}
+#define KphpCidToId(x) ((ULONG_PTR)x / 4)
 
 /**
  * \brief Assigns an object to the table entry.
  *
  * \param[in,out] Entry The entry to assign to.
- * \param[in] Object The object pointer to assign.
+ * \param[in] Object Optional object pointer to assign into the table entry.
  */
-_IRQL_requires_max_(APC_LEVEL)
-VOID CidAssignObject(
-    _Inout_ _Requires_lock_held_(*_Curr_) PCID_TABLE_ENTRY Entry,
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidAssignObject(
+    _Inout_ PKPH_CID_TABLE_ENTRY Entry,
     _In_opt_ PVOID Object
     )
 {
-    ULONG_PTR object;
+    NPAGED_CODE_DISPATCH_MAX();
 
-    PAGED_CODE();
+    KphAtomicAssignObjectReference(&Entry->ObjectRef, Object);
+}
 
-    NT_ASSERT(((ULONG_PTR)Object & ~CID_LOCKED_OBJECT_MASK) == 0);
+/**
+ * \brief References the object in the table entry.
+ *
+ * \param[in,out] Entry The entry to reference the object of.
+ *
+ * \return Referenced object pointer, NULL if no object is assigned.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PVOID KphCidReferenceObject(
+    _In_ PKPH_CID_TABLE_ENTRY Entry
+    )
+{
+    NPAGED_CODE_DISPATCH_MAX();
 
-    object = ((ULONG_PTR)Object | ~CID_LOCKED_OBJECT_MASK);
-
-    InterlockedExchangePointer((PVOID*)&Entry->Object, (PVOID)object);
+    return KphAtomicReferenceObject(&Entry->ObjectRef);
 }
 
 /**
@@ -136,32 +76,32 @@ VOID CidAssignObject(
  *
  * \return Allocated table or null on allocation failure.
  */
-_IRQL_requires_max_(APC_LEVEL)
-_When_(Level == CID_TABLE_L0, _Return_allocatesMem_size_(CID_L0_COUNT * sizeof(CID_TABLE_ENTRY)))
-_When_(Level == CID_TABLE_L1, _Return_allocatesMem_size_(CID_L1_COUNT * sizeof(PCID_TABLE_ENTRY)))
-_When_(Level == CID_TABLE_L2, _Return_allocatesMem_size_(CID_L2_COUNT * sizeof(PCID_TABLE_ENTRY)))
-PVOID CidAllocateTable(
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_When_(Level == KPH_CID_TABLE_L0, _Return_allocatesMem_size_(KPH_CID_L0_COUNT * sizeof(KPH_CID_TABLE_ENTRY)))
+_When_(Level == KPH_CID_TABLE_L1, _Return_allocatesMem_size_(KPH_CID_L1_COUNT * sizeof(PKPH_CID_TABLE_ENTRY)))
+_When_(Level == KPH_CID_TABLE_L2, _Return_allocatesMem_size_(KPH_CID_L2_COUNT * sizeof(PKPH_CID_TABLE_ENTRY)))
+PVOID KphpCidAllocateTable(
     _In_ ULONG_PTR Level
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
     switch (Level)
     {
-        case CID_TABLE_L0:
+        case KPH_CID_TABLE_L0:
         {
-            return KphAllocatePaged(CID_L0_COUNT * sizeof(CID_TABLE_ENTRY),
-                                    KPH_TAG_CID_TABLE);
+            return KphAllocateNPaged(KPH_CID_L0_COUNT * sizeof(KPH_CID_TABLE_ENTRY),
+                                     KPH_TAG_CID_TABLE);
         }
-        case CID_TABLE_L1:
+        case KPH_CID_TABLE_L1:
         {
-            return KphAllocatePaged(CID_L1_COUNT * sizeof(PCID_TABLE_ENTRY),
-                                    KPH_TAG_CID_TABLE);
+            return KphAllocateNPaged(KPH_CID_L1_COUNT * sizeof(PKPH_CID_TABLE_ENTRY),
+                                     KPH_TAG_CID_TABLE);
         }
-        case CID_TABLE_L2:
+        case KPH_CID_TABLE_L2:
         {
-            return KphAllocatePaged(CID_L2_COUNT * sizeof(PCID_TABLE_ENTRY),
-                                    KPH_TAG_CID_TABLE);
+            return KphAllocateNPaged(KPH_CID_L2_COUNT * sizeof(PKPH_CID_TABLE_ENTRY),
+                                     KPH_TAG_CID_TABLE);
         }
         default:
         {
@@ -180,21 +120,21 @@ PVOID CidAllocateTable(
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
-NTSTATUS CidTableCreate(
-    _Out_ PCID_TABLE Table
+NTSTATUS KphCidTableCreate(
+    _Out_ PKPH_CID_TABLE Table
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
-    Table->Table = (ULONG_PTR)CidAllocateTable(CID_TABLE_L0);
+    Table->Table = (ULONG_PTR)KphpCidAllocateTable(KPH_CID_TABLE_L0);
     if (!Table->Table)
     {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    KphInitializeRWLock(&Table->Lock);
+    KeInitializeSpinLock(&Table->Lock);
 
     return STATUS_SUCCESS;
 }
@@ -204,31 +144,31 @@ NTSTATUS CidTableCreate(
  *
  * \param[in] Table The table to delete.
  */
-_IRQL_requires_max_(APC_LEVEL)
-VOID CidTableDelete(
-    _In_ PCID_TABLE Table
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidTableDelete(
+    _In_ PKPH_CID_TABLE Table
     )
 {
     ULONG_PTR tableCode;
-    PCID_TABLE_ENTRY tableL0;
-    PCID_TABLE_ENTRY* tableL1;
-    PCID_TABLE_ENTRY** tableL2;
+    PKPH_CID_TABLE_ENTRY tableL0;
+    PKPH_CID_TABLE_ENTRY* tableL1;
+    PKPH_CID_TABLE_ENTRY** tableL2;
 
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
     tableCode = Table->Table;
+    MemoryBarrier();
+
     if (!tableCode)
     {
         return;
     }
 
-    KphDeleteRWLock(&Table->Lock);
-
-    switch (tableCode & CID_TABLE_LEVEL_MASK)
+    switch (tableCode & KPH_CID_TABLE_LEVEL_MASK)
     {
         case 0:
         {
-            tableL0 = (PCID_TABLE_ENTRY)(tableCode & CID_TABLE_POINTER_MASK);
+            tableL0 = (PKPH_CID_TABLE_ENTRY)(tableCode & KPH_CID_TABLE_POINTER_MASK);
 
             NT_ASSERT(tableL0);
 
@@ -238,11 +178,11 @@ VOID CidTableDelete(
         }
         case 1:
         {
-            tableL1 = (PCID_TABLE_ENTRY*)(tableCode & CID_TABLE_POINTER_MASK);
+            tableL1 = (PKPH_CID_TABLE_ENTRY*)(tableCode & KPH_CID_TABLE_POINTER_MASK);
 
             NT_ASSERT(tableL1);
 
-            for (ULONG i = 0; i < CID_L1_COUNT; i++)
+            for (ULONG i = 0; i < KPH_CID_L1_COUNT; i++)
             {
 #pragma prefast(suppress : 6001) // memory is initialized
                 if (tableL1[i])
@@ -257,11 +197,11 @@ VOID CidTableDelete(
         }
         case 2:
         {
-            tableL2 = (PCID_TABLE_ENTRY**)(tableCode & CID_TABLE_POINTER_MASK);
+            tableL2 = (PKPH_CID_TABLE_ENTRY**)(tableCode & KPH_CID_TABLE_POINTER_MASK);
 
             NT_ASSERT(tableL2);
 
-            for (ULONG i = 0; i < CID_L2_COUNT; i++)
+            for (ULONG i = 0; i < KPH_CID_L2_COUNT; i++)
             {
                 tableL1 = tableL2[i];
                 if (!tableL1)
@@ -269,7 +209,7 @@ VOID CidTableDelete(
                     continue;
                 }
 
-                for (ULONG j = 0; j < CID_L1_COUNT; j++)
+                for (ULONG j = 0; j < KPH_CID_L1_COUNT; j++)
                 {
 #pragma prefast(suppress : 6001) // memory is initialized
                     if (tableL1[j])
@@ -302,21 +242,21 @@ VOID CidTableDelete(
  * \return Pointer to the CID table entry, null if the table hasn't been
  * expanded enough.
  */
-_IRQL_requires_max_(APC_LEVEL)
-PCID_TABLE_ENTRY CidLookupEntry(
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PKPH_CID_TABLE_ENTRY KphpCidLookupEntry(
     _In_ HANDLE Cid,
-    _In_ PCID_TABLE Table
+    _In_ PKPH_CID_TABLE Table
     )
 {
     ULONG_PTR table;
-    PCID_TABLE_ENTRY tableL0;
-    PCID_TABLE_ENTRY* tableL1;
-    PCID_TABLE_ENTRY** tableL2;
+    PKPH_CID_TABLE_ENTRY tableL0;
+    PKPH_CID_TABLE_ENTRY* tableL1;
+    PKPH_CID_TABLE_ENTRY** tableL2;
     ULONG_PTR id;
 
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
-    id = CidToId(Cid);
+    id = KphpCidToId(Cid);
 
     //
     // N.B. Capture the volatile table pointer. This is a lock-free lookup.
@@ -324,56 +264,56 @@ PCID_TABLE_ENTRY CidLookupEntry(
     table = Table->Table;
     MemoryBarrier();
 
-    switch (table & CID_TABLE_LEVEL_MASK)
+    switch (table & KPH_CID_TABLE_LEVEL_MASK)
     {
-        case CID_TABLE_L0:
+        case KPH_CID_TABLE_L0:
         {
-            if (id >= CID_MAX_L0)
+            if (id >= KPH_CID_MAX_L0)
             {
                 return NULL;
             }
 
-            tableL0 = (PCID_TABLE_ENTRY)(table & CID_TABLE_POINTER_MASK);
+            tableL0 = (PKPH_CID_TABLE_ENTRY)(table & KPH_CID_TABLE_POINTER_MASK);
 
             return &tableL0[id];
         }
-        case CID_TABLE_L1:
+        case KPH_CID_TABLE_L1:
         {
-            if (id >= CID_MAX_L1)
+            if (id >= KPH_CID_MAX_L1)
             {
                 return NULL;
             }
 
-            tableL1 = (PCID_TABLE_ENTRY*)(table & CID_TABLE_POINTER_MASK);
-            tableL0 = tableL1[id / CID_MAX_L0];
+            tableL1 = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL0 = tableL1[id / KPH_CID_MAX_L0];
             if (!tableL0)
             {
                 return NULL;
             }
 
-            return &tableL0[id % CID_MAX_L0];
+            return &tableL0[id % KPH_CID_MAX_L0];
         }
-        case CID_TABLE_L2:
+        case KPH_CID_TABLE_L2:
         {
-            if (id >= CID_MAX_L2)
+            if (id >= KPH_CID_MAX_L2)
             {
                 return NULL;
             }
 
-            tableL2 = (PCID_TABLE_ENTRY**)(table & CID_TABLE_POINTER_MASK);
-            tableL1 = tableL2[id / CID_MAX_L1];
+            tableL2 = (PKPH_CID_TABLE_ENTRY**)(table & KPH_CID_TABLE_POINTER_MASK);
+            tableL1 = tableL2[id / KPH_CID_MAX_L1];
             if (!tableL1)
             {
                 return NULL;
             }
 
-            tableL0 = tableL1[(id % CID_MAX_L1) / CID_MAX_L0];
+            tableL0 = tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0];
             if (!tableL0)
             {
                 return NULL;
             }
 
-            return &tableL0[(id % CID_MAX_L1) % CID_MAX_L0];
+            return &tableL0[(id % KPH_CID_MAX_L1) % KPH_CID_MAX_L0];
         }
         default:
         {
@@ -391,25 +331,26 @@ PCID_TABLE_ENTRY CidLookupEntry(
  *
  * \return Pointer to the table entry for the CID, null on allocation failure.
  */
-_IRQL_requires_max_(APC_LEVEL)
-PCID_TABLE_ENTRY CidExpandTableFor(
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
     _In_ HANDLE Cid,
-    _Inout_ PCID_TABLE Table
+    _Inout_ PKPH_CID_TABLE Table
     )
 {
-    PCID_TABLE_ENTRY entry;
+    PKPH_CID_TABLE_ENTRY entry;
     ULONG_PTR table;
     ULONG_PTR level;
-    PCID_TABLE_ENTRY tableL0;
-    PCID_TABLE_ENTRY* tableL1;
-    PCID_TABLE_ENTRY** tableL2;
+    PKPH_CID_TABLE_ENTRY tableL0;
+    PKPH_CID_TABLE_ENTRY* tableL1;
+    PKPH_CID_TABLE_ENTRY** tableL2;
     ULONG_PTR id;
+    KIRQL oldIrql;
 
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
-    id = CidToId(Cid);
+    id = KphpCidToId(Cid);
 
-    if (id >= CID_MAX)
+    if (id >= KPH_CID_MAX)
     {
         //
         // We can't, as of now, service CIDs over the maximum. It is extremely
@@ -422,12 +363,12 @@ PCID_TABLE_ENTRY CidExpandTableFor(
         return NULL;
     }
 
-    KphAcquireRWLockExclusive(&Table->Lock);
+    KeAcquireSpinLock(&Table->Lock, &oldIrql);
 
     //
     // See if another thread beat us.
     //
-    entry = CidLookupEntry(Cid, Table);
+    entry = KphpCidLookupEntry(Cid, Table);
     if (entry)
     {
         //
@@ -443,25 +384,25 @@ PCID_TABLE_ENTRY CidExpandTableFor(
     table = Table->Table;
     MemoryBarrier();
 
-    level = (table & CID_TABLE_LEVEL_MASK);
+    level = (table & KPH_CID_TABLE_LEVEL_MASK);
 
-    if (level == CID_TABLE_L0)
+    if (level == KPH_CID_TABLE_L0)
     {
         //
         // If we're here then we *must* be migrating to level 1.
         //
-        NT_ASSERT(id >= CID_MAX_L0);
+        NT_ASSERT(id >= KPH_CID_MAX_L0);
 
-        tableL1 = CidAllocateTable(CID_TABLE_L1);
+        tableL1 = KphpCidAllocateTable(KPH_CID_TABLE_L1);
         if (!tableL1)
         {
             entry = NULL;
             goto Exit;
         }
 
-        tableL1[0] = (PCID_TABLE_ENTRY)(table & CID_TABLE_POINTER_MASK);
-        table = ((ULONG_PTR)tableL1 | CID_TABLE_L1);
-        level = CID_TABLE_L1;
+        tableL1[0] = (PKPH_CID_TABLE_ENTRY)(table & KPH_CID_TABLE_POINTER_MASK);
+        table = ((ULONG_PTR)tableL1 | KPH_CID_TABLE_L1);
+        level = KPH_CID_TABLE_L1;
         InterlockedExchangePointer((PVOID*)&Table->Table, (PVOID)table);
 
         //
@@ -469,40 +410,40 @@ PCID_TABLE_ENTRY CidExpandTableFor(
         //
     }
 
-    if (level == CID_TABLE_L1)
+    if (level == KPH_CID_TABLE_L1)
     {
-        if (id < CID_MAX_L1)
+        if (id < KPH_CID_MAX_L1)
         {
             //
             // Allocate a new block in the level 1 table.
             //
-            tableL1 = (PCID_TABLE_ENTRY*)(table & CID_TABLE_POINTER_MASK);
-            NT_ASSERT(!tableL1[id / CID_MAX_L0]);
-            tableL1[id / CID_MAX_L0] = CidAllocateTable(CID_TABLE_L0);
-            tableL0 = tableL1[id / CID_MAX_L0];
+            tableL1 = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
+            NT_ASSERT(!tableL1[id / KPH_CID_MAX_L0]);
+            tableL1[id / KPH_CID_MAX_L0] = KphpCidAllocateTable(KPH_CID_TABLE_L0);
+            tableL0 = tableL1[id / KPH_CID_MAX_L0];
             if (!tableL0)
             {
                 entry = NULL;
                 goto Exit;
             }
 
-            entry = &tableL0[id % CID_MAX_L0];
+            entry = &tableL0[id % KPH_CID_MAX_L0];
             goto Exit;
         }
 
         //
         // We have to migrate to a level 2 table.
         //
-        tableL2 = CidAllocateTable(CID_TABLE_L2);
+        tableL2 = KphpCidAllocateTable(KPH_CID_TABLE_L2);
         if (!tableL2)
         {
             entry = NULL;
             goto Exit;
         }
 
-        tableL2[0] = (PCID_TABLE_ENTRY*)(table & CID_TABLE_POINTER_MASK);
-        table = ((ULONG_PTR)tableL2 | CID_TABLE_L2);
-        level = CID_TABLE_L2;
+        tableL2[0] = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
+        table = ((ULONG_PTR)tableL2 | KPH_CID_TABLE_L2);
+        level = KPH_CID_TABLE_L2;
         InterlockedExchangePointer((PVOID*)&Table->Table, (PVOID)table);
 
         //
@@ -510,19 +451,19 @@ PCID_TABLE_ENTRY CidExpandTableFor(
         //
     }
 
-    NT_ASSERT(level == CID_TABLE_L2);
-    NT_ASSERT(id < CID_MAX_L2);
+    NT_ASSERT(level == KPH_CID_TABLE_L2);
+    NT_ASSERT(id < KPH_CID_MAX_L2);
 
     //
     // Allocate new block(s) in the level 2 table.
     //
 
-    tableL2 = (PCID_TABLE_ENTRY**)(table & CID_TABLE_POINTER_MASK);
-    tableL1 = tableL2[id / CID_MAX_L1];
+    tableL2 = (PKPH_CID_TABLE_ENTRY**)(table & KPH_CID_TABLE_POINTER_MASK);
+    tableL1 = tableL2[id / KPH_CID_MAX_L1];
     if (!tableL1)
     {
-        tableL2[id / CID_MAX_L1] = CidAllocateTable(CID_TABLE_L1);
-        tableL1 = tableL2[id / CID_MAX_L1];
+        tableL2[id / KPH_CID_MAX_L1] = KphpCidAllocateTable(KPH_CID_TABLE_L1);
+        tableL1 = tableL2[id / KPH_CID_MAX_L1];
         if (!tableL1)
         {
             entry = NULL;
@@ -530,20 +471,20 @@ PCID_TABLE_ENTRY CidExpandTableFor(
         }
     }
 
-    NT_ASSERT(!tableL1[(id % CID_MAX_L1) / CID_MAX_L0]);
-    tableL1[(id % CID_MAX_L1) / CID_MAX_L0] = CidAllocateTable(CID_TABLE_L0);
-    tableL0 = tableL1[(id % CID_MAX_L1) / CID_MAX_L0];
+    NT_ASSERT(!tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0]);
+    tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0] = KphpCidAllocateTable(KPH_CID_TABLE_L0);
+    tableL0 = tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0];
     if (!tableL0)
     {
         entry = NULL;
         goto Exit;
     }
 
-    entry = &tableL0[(id % CID_MAX_L1) % CID_MAX_L0];
+    entry = &tableL0[(id % KPH_CID_MAX_L1) % KPH_CID_MAX_L0];
 
 Exit:
 
-    KphReleaseRWLock(&Table->Lock);
+    KeReleaseSpinLock(&Table->Lock, oldIrql);
 
     return entry;
 }
@@ -556,24 +497,24 @@ Exit:
  *
  * \return Pointer to the table entry for the CID, null on allocation failure.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
-PCID_TABLE_ENTRY CidGetEntry(
+PKPH_CID_TABLE_ENTRY KphCidGetEntry(
     _In_ HANDLE Cid,
-    _Inout_ PCID_TABLE Table
+    _Inout_ PKPH_CID_TABLE Table
     )
 {
-    PCID_TABLE_ENTRY entry;
+    PKPH_CID_TABLE_ENTRY entry;
 
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
-    entry = CidLookupEntry(Cid, Table);
+    entry = KphpCidLookupEntry(Cid, Table);
     if (entry)
     {
         return entry;
     }
 
-    return CidExpandTableFor(Cid, Table);
+    return KphpCidExpandTableFor(Cid, Table);
 }
 
 /**
@@ -586,38 +527,25 @@ PCID_TABLE_ENTRY CidGetEntry(
  *
  * \return TRUE if enumeration should stop, FALSE otherwise.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
-BOOLEAN CidEnumerateInvokeCallback(
-    _In_ PCID_TABLE_ENTRY Entry,
-    _When_(!CallbackEx, _In_) _When_(CallbackEx, _Pre_null_) PCID_ENUMERATE_CALLBACK Callback,
-    _When_(!Callback, _In_) _When_(Callback, _Pre_null_) PCID_ENUMERATE_CALLBACK CallbackEx,
+BOOLEAN KphpCidEnumerateInvokeCallback(
+    _In_ PKPH_CID_TABLE_ENTRY Entry,
+    _When_(!Rundown, _In_) _When_(Rundown, _Pre_null_) PKPH_CID_ENUMERATE_CALLBACK Callback,
+    _When_(!Callback, _In_) _When_(Callback, _Pre_null_) PKPH_CID_RUNDOWN_CALLBACK Rundown,
     _In_opt_ PVOID Parameter
     )
 {
+    PVOID object;
     BOOLEAN res;
 
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
     res = FALSE;
 
     if (Callback)
     {
-        PVOID object;
-
-        //
-        // This path enumerates outside of the object lock.
-        //
-
-        CidAcquireObjectLock(Entry);
-
-        object = (PVOID)(Entry->Object & CID_LOCKED_OBJECT_MASK);
-        if (object)
-        {
-            KphReferenceObject(object);
-        }
-
-        CidReleaseObjectLock(Entry);
+        object = KphAtomicReferenceObject(&Entry->ObjectRef);
 
         if (object)
         {
@@ -628,21 +556,16 @@ BOOLEAN CidEnumerateInvokeCallback(
     }
     else
     {
-        NT_ASSERT(CallbackEx);
+        NT_ASSERT(Rundown);
 
-        //
-        // This path provides the entire table entry is be done under lock!
-        // The provides a way to manipulate the table entry via enumeration.
-        //
+        object = KphAtomicMoveObjectReference(&Entry->ObjectRef, NULL);
 
-        CidAcquireObjectLock(Entry);
-
-        if (Entry->Object & CID_LOCKED_OBJECT_MASK)
+        if (object)
         {
-            res = CallbackEx(Entry, Parameter);
-        }
+            Rundown(object, Parameter);
 
-        CidReleaseObjectLock(Entry);
+            KphDereferenceObject(object);
+        }
     }
 
     return res;
@@ -656,20 +579,20 @@ BOOLEAN CidEnumerateInvokeCallback(
  * \param[in] CallbackEx The extended callback to invoke.
  * \param[in] Parameter Optional parameter passed to the callback.
  */
-_IRQL_requires_max_(APC_LEVEL)
-VOID CidEnumerateInternal(
-    _In_ PCID_TABLE Table,
-    _When_(!CallbackEx, _In_) _When_(CallbackEx, _Pre_null_) PCID_ENUMERATE_CALLBACK Callback,
-    _When_(!Callback, _In_) _When_(Callback, _Pre_null_) PCID_ENUMERATE_CALLBACK CallbackEx,
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphpCidEnumerate(
+    _In_ PKPH_CID_TABLE Table,
+    _When_(!Rundown, _In_) _When_(Rundown, _Pre_null_) PKPH_CID_ENUMERATE_CALLBACK Callback,
+    _When_(!Callback, _In_) _When_(Callback, _Pre_null_) PKPH_CID_RUNDOWN_CALLBACK Rundown,
     _In_opt_ PVOID Parameter
     )
 {
     ULONG_PTR table;
-    PCID_TABLE_ENTRY tableL0;
-    PCID_TABLE_ENTRY* tableL1;
-    PCID_TABLE_ENTRY** tableL2;
+    PKPH_CID_TABLE_ENTRY tableL0;
+    PKPH_CID_TABLE_ENTRY* tableL1;
+    PKPH_CID_TABLE_ENTRY** tableL2;
 
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
     table = Table->Table;
     MemoryBarrier();
@@ -681,20 +604,20 @@ VOID CidEnumerateInternal(
 
     KeEnterCriticalRegion();
 
-    switch (table & CID_TABLE_LEVEL_MASK)
+    switch (table & KPH_CID_TABLE_LEVEL_MASK)
     {
-        case CID_TABLE_L0:
+        case KPH_CID_TABLE_L0:
         {
-            tableL0 = (PCID_TABLE_ENTRY)(table & CID_TABLE_POINTER_MASK);
+            tableL0 = (PKPH_CID_TABLE_ENTRY)(table & KPH_CID_TABLE_POINTER_MASK);
 
             NT_ASSERT(tableL0);
 
-            for (ULONG i = 0; i < CID_L0_COUNT; i++)
+            for (ULONG i = 0; i < KPH_CID_L0_COUNT; i++)
             {
-                if (CidEnumerateInvokeCallback(&tableL0[i],
-                                               Callback,
-                                               CallbackEx,
-                                               Parameter))
+                if (KphpCidEnumerateInvokeCallback(&tableL0[i],
+                                                   Callback,
+                                                   Rundown,
+                                                   Parameter))
                 {
                     goto Exit;
                 }
@@ -702,13 +625,13 @@ VOID CidEnumerateInternal(
 
             break;
         }
-        case CID_TABLE_L1:
+        case KPH_CID_TABLE_L1:
         {
-            tableL1 = (PCID_TABLE_ENTRY*)(table & CID_TABLE_POINTER_MASK);
+            tableL1 = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
 
             NT_ASSERT(tableL1);
 
-            for (ULONG i = 0; i < CID_L1_COUNT; i++)
+            for (ULONG i = 0; i < KPH_CID_L1_COUNT; i++)
             {
                 tableL0 = tableL1[i];
                 if (!tableL0)
@@ -716,12 +639,12 @@ VOID CidEnumerateInternal(
                     continue;
                 }
 
-                for (ULONG j = 0; j < CID_L0_COUNT; j++)
+                for (ULONG j = 0; j < KPH_CID_L0_COUNT; j++)
                 {
-                    if (CidEnumerateInvokeCallback(&tableL0[j],
-                                                   Callback,
-                                                   CallbackEx,
-                                                   Parameter))
+                    if (KphpCidEnumerateInvokeCallback(&tableL0[j],
+                                                       Callback,
+                                                       Rundown,
+                                                       Parameter))
                     {
                         goto Exit;
                     }
@@ -730,13 +653,13 @@ VOID CidEnumerateInternal(
 
             break;
         }
-        case CID_TABLE_L2:
+        case KPH_CID_TABLE_L2:
         {
-            tableL2 = (PCID_TABLE_ENTRY**)(table & CID_TABLE_POINTER_MASK);
+            tableL2 = (PKPH_CID_TABLE_ENTRY**)(table & KPH_CID_TABLE_POINTER_MASK);
 
             NT_ASSERT(tableL2);
 
-            for (ULONG i = 0; i < CID_L2_COUNT; i++)
+            for (ULONG i = 0; i < KPH_CID_L2_COUNT; i++)
             {
                 tableL1 = tableL2[i];
                 if (!tableL1)
@@ -744,7 +667,7 @@ VOID CidEnumerateInternal(
                     continue;
                 }
 
-                for (ULONG j = 0; j < CID_L1_COUNT; j++)
+                for (ULONG j = 0; j < KPH_CID_L1_COUNT; j++)
                 {
                     tableL0 = tableL1[j];
                     if (!tableL0)
@@ -752,12 +675,12 @@ VOID CidEnumerateInternal(
                         continue;
                     }
 
-                    for (ULONG k = 0; k < CID_L0_COUNT; k++)
+                    for (ULONG k = 0; k < KPH_CID_L0_COUNT; k++)
                     {
-                        if (CidEnumerateInvokeCallback(&tableL0[k],
-                                                       Callback,
-                                                       CallbackEx,
-                                                       Parameter))
+                        if (KphpCidEnumerateInvokeCallback(&tableL0[k],
+                                                           Callback,
+                                                           Rundown,
+                                                           Parameter))
                         {
                             goto Exit;
                         }
@@ -787,35 +710,36 @@ Exit:
  * return TRUE to stop enumerating and return FALSE to continue.
  * \param[in] Parameter Optional parameter passed to the callback.
  */
-_IRQL_requires_max_(APC_LEVEL)
-VOID CidEnumerate(
-    _In_ PCID_TABLE Table,
-    _In_ PCID_ENUMERATE_CALLBACK Callback,
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidEnumerate(
+    _In_ PKPH_CID_TABLE Table,
+    _In_ PKPH_CID_ENUMERATE_CALLBACK Callback,
     _In_opt_ PVOID Parameter
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
-    CidEnumerateInternal(Table, Callback, NULL, Parameter);
+    KphpCidEnumerate(Table, Callback, NULL, Parameter);
 }
 
 /**
- * \brief Enumerates CID entires a CID table.
+ * \brief Enumerates CID entires a CID table for rundown.
+ *
+ * \details This routine removes all items from the table. After the callback
+ * returns the object reference in the table is dereferenced.
  *
  * \param[in] Table The table to enumerate.
- * \param[in] Callback The extended callback to invoke. The callback is invoked
- * with the object lock held. The callback should return TRUE to stop
- * enumerating and return FALSE to continue.
+ * \param[in] Callback The extended callback to invoke.
  * \param[in] Parameter Optional parameter passed to the callback.
  */
-_IRQL_requires_max_(APC_LEVEL)
-VOID CidEnumerateEx(
-    _In_ PCID_TABLE Table,
-    _In_ PCID_ENUMERATE_CALLBACK_EX Callback,
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidRundown(
+    _In_ PKPH_CID_TABLE Table,
+    _In_ PKPH_CID_RUNDOWN_CALLBACK Callback,
     _In_opt_ PVOID Parameter
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_DISPATCH_MAX();
 
-    CidEnumerateInternal(Table, NULL, Callback, Parameter);
+    KphpCidEnumerate(Table, NULL, Callback, Parameter);
 }

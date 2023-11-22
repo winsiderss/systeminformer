@@ -200,8 +200,6 @@ PCKPH_INFORMER_SETTINGS KphInformerForMessageId(
     return NULL;
 }
 
-PAGED_FILE();
-
 /**
  * \brief Checks if the informer is filtered for a process.
  *
@@ -217,7 +215,7 @@ BOOLEAN KphpInformerProcessIsFiltered(
     _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     if (FlagOn(Process->InformerFilter.Flags, Settings->Flags) ||
         FlagOn(Process->InformerFilter.Flags2, Settings->Flags2) ||
@@ -244,7 +242,7 @@ BOOLEAN KphInformerIsEnabled(
     _In_opt_ PKPH_PROCESS_CONTEXT Process
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     if (!KphCommsInformerEnabled(Settings))
     {
@@ -276,7 +274,7 @@ BOOLEAN KphInformerIsEnabled2(
     _In_opt_ PKPH_PROCESS_CONTEXT TargetProcess
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     if (!KphCommsInformerEnabled(Settings))
     {
@@ -291,6 +289,8 @@ BOOLEAN KphInformerIsEnabled2(
 
     return TRUE;
 }
+
+PAGED_FILE();
 
 /**
  * \brief Gets informer filtering for a process.

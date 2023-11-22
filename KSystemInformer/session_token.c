@@ -45,7 +45,12 @@ PVOID KSIAPI KphpAllocateSessionToken(
 {
     PAGED_CODE();
 
-    return KphAllocatePaged(Size, KPH_TAG_SESSION_TOKEN_OBJECT);
+    //
+    // N.B. The session token object is allocated from non-paged pool because it
+    // is stored in an atomic object reference in process and thread contexts.
+    //
+
+    return KphAllocateNPaged(Size, KPH_TAG_SESSION_TOKEN_OBJECT);
 }
 
 /**

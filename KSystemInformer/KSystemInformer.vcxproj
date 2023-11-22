@@ -280,7 +280,6 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\cid_table.h" />
     <ClInclude Include="include\comms.h" />
     <ClInclude Include="include\informer.h" />
     <ClInclude Include="include\informer_filep.h" />
