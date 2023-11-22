@@ -10,7 +10,6 @@
  */
 
 #include <kph.h>
-#include <cid_table.h>
 
 #include <trace.h>
 
@@ -27,8 +26,8 @@ static PKPH_OBJECT_TYPE KphpCidApcType = NULL;
 PKPH_OBJECT_TYPE KphProcessContextType = NULL;
 PKPH_OBJECT_TYPE KphThreadContextType = NULL;
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpCidApcLookaside = NULL;
-static PKPH_PAGED_LOOKASIDE_OBJECT KphpProcessContextLookaside = NULL;
-static PKPH_PAGED_LOOKASIDE_OBJECT KphpThreadContextLookaside = NULL;
+static PKPH_NPAGED_LOOKASIDE_OBJECT KphpProcessContextLookaside = NULL;
+static PKPH_NPAGED_LOOKASIDE_OBJECT KphpThreadContextLookaside = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpCidApcTypeName = RTL_CONSTANT_STRING(L"KphCidApc");
@@ -37,7 +36,7 @@ static const UNICODE_STRING KphpThreadContextTypeName = RTL_CONSTANT_STRING(L"Kp
 static const LARGE_INTEGER KphpCidApcTimeout = KPH_TIMEOUT(3 * 1000);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static BOOLEAN KphpCidTrackingInitialized = FALSE;
-static CID_TABLE KphpCidTable;
+static KPH_CID_TABLE KphpCidTable;
 static volatile LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
 static BOOLEAN KphpLsassIsKnown = FALSE;
@@ -252,7 +251,7 @@ PVOID KSIAPI KphpAllocateProcessContext(
     NT_ASSERT(KphpProcessContextLookaside);
     NT_ASSERT(Size <= KphpProcessContextLookaside->L.Size);
 
-    object = KphAllocateFromPagedLookasideObject(KphpProcessContextLookaside);
+    object = KphAllocateFromNPagedLookasideObject(KphpProcessContextLookaside);
     if (object)
     {
         KphReferenceObject(KphpProcessContextLookaside);
@@ -526,7 +525,7 @@ VOID KSIAPI KphpFreeProcessContext(
 
     NT_ASSERT(KphpProcessContextLookaside);
 
-    KphFreeToPagedLookasideObject(KphpProcessContextLookaside, Object);
+    KphFreeToNPagedLookasideObject(KphpProcessContextLookaside, Object);
     KphDereferenceObject(KphpProcessContextLookaside);
 }
 
@@ -552,7 +551,7 @@ PVOID KSIAPI KphpAllocateThreadContext(
     NT_ASSERT(KphpThreadContextLookaside);
     NT_ASSERT(Size <= KphpThreadContextLookaside->L.Size);
 
-    object = KphAllocateFromPagedLookasideObject(KphpThreadContextLookaside);
+    object = KphAllocateFromNPagedLookasideObject(KphpThreadContextLookaside);
     if (object)
     {
         KphReferenceObject(KphpThreadContextLookaside);
@@ -990,7 +989,7 @@ VOID KSIAPI KphpFreeThreadContext(
 
     NT_ASSERT(KphpThreadContextLookaside);
 
-    KphFreeToPagedLookasideObject(KphpThreadContextLookaside, Object);
+    KphFreeToNPagedLookasideObject(KphpThreadContextLookaside, Object);
     KphDereferenceObject(KphpThreadContextLookaside);
 }
 
@@ -1010,7 +1009,7 @@ NTSTATUS KphCidInitialize(
 
     PAGED_CODE_PASSIVE();
 
-    status = CidTableCreate(&KphpCidTable);
+    status = KphCidTableCreate(&KphpCidTable);
     if (!NT_SUCCESS(status))
     {
         return status;
@@ -1032,9 +1031,9 @@ NTSTATUS KphCidInitialize(
         goto Exit;
     }
 
-    status = KphCreatePagedLookasideObject(&KphpProcessContextLookaside,
-                                           KphAddObjectHeaderSize(sizeof(KPH_PROCESS_CONTEXT)),
-                                           KPH_TAG_PROCESS_CONTEXT);
+    status = KphCreateNPagedLookasideObject(&KphpProcessContextLookaside,
+                                            KphAddObjectHeaderSize(sizeof(KPH_PROCESS_CONTEXT)),
+                                            KPH_TAG_PROCESS_CONTEXT);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1046,9 +1045,9 @@ NTSTATUS KphCidInitialize(
         goto Exit;
     }
 
-    status = KphCreatePagedLookasideObject(&KphpThreadContextLookaside,
-                                           KphAddObjectHeaderSize(sizeof(KPH_THREAD_CONTEXT)),
-                                           KPH_TAG_THREAD_CONTEXT);
+    status = KphCreateNPagedLookasideObject(&KphpThreadContextLookaside,
+                                            KphAddObjectHeaderSize(sizeof(KPH_THREAD_CONTEXT)),
+                                            KPH_TAG_THREAD_CONTEXT);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1094,7 +1093,7 @@ Exit:
 
     if (!NT_SUCCESS(status))
     {
-        CidTableDelete(&KphpCidTable);
+        KphCidTableDelete(&KphpCidTable);
 
         if (KphpProcessContextLookaside)
         {
@@ -1165,35 +1164,25 @@ VOID KphpUnlinkProcessContextThreadContexts(
  *
  * \return FALSE to continue enumerating.
  */
-_Function_class_(CID_ENUMERATE_CALLBACK_EX)
+_Function_class_(KPH_CID_RUNDOWN_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN CIDAPI KphpCidCleanupCallback(
-    _In_ PCID_TABLE_ENTRY Entry,
+BOOLEAN KSIAPI KphpCidCleanupCallback(
+    _In_ PVOID Object,
     _In_opt_ PVOID Parameter
     )
 {
-    PVOID object;
-
     PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Parameter);
 
-    NT_ASSERT(Entry->Object & ~CID_LOCKED_OBJECT_MASK);
-
-    object = (PVOID)(Entry->Object & CID_LOCKED_OBJECT_MASK);
-
-    CidAssignObject(Entry, NULL);
-
-    if (KphGetObjectType(object) == KphProcessContextType)
+    if (KphGetObjectType(Object) == KphProcessContextType)
     {
         PKPH_PROCESS_CONTEXT process;
 
-        process = object;
+        process = Object;
 
         KphpUnlinkProcessContextThreadContexts(process);
     }
-
-    KphDereferenceObject(object);
 
     return FALSE;
 }
@@ -1213,14 +1202,14 @@ VOID KphCidCleanup(
         return;
     }
 
-    CidEnumerateEx(&KphpCidTable, KphpCidCleanupCallback, NULL);
+    KphCidRundown(&KphpCidTable, KphpCidCleanupCallback, NULL);
 
     if (KphpSystemProcessContext)
     {
         KphDereferenceObject(KphpSystemProcessContext);
     }
 
-    CidTableDelete(&KphpCidTable);
+    KphCidTableDelete(&KphpCidTable);
 
     KphDereferenceObject(KphpCidApcLookaside);
     KphDereferenceObject(KphpThreadContextLookaside);
@@ -1245,27 +1234,17 @@ PVOID KphpLookupContext(
     )
 {
     PVOID object;
-    PCID_TABLE_ENTRY entry;
+    PKPH_CID_TABLE_ENTRY entry;
 
     PAGED_CODE();
 
-    entry = CidGetEntry(Cid, &KphpCidTable);
+    entry = KphCidGetEntry(Cid, &KphpCidTable);
     if (!entry)
     {
         return NULL;
     }
 
-    CidAcquireObjectLock(entry);
-
-    object = (PVOID)(entry->Object & CID_LOCKED_OBJECT_MASK);
-
-    if (object)
-    {
-        KphReferenceObject(object);
-    }
-
-    CidReleaseObjectLock(entry);
-
+    object = KphCidReferenceObject(entry);
     if (object && (KphGetObjectType(object) != ObjectType))
     {
         KphDereferenceObject(object);
@@ -1298,44 +1277,30 @@ PVOID KphpTrackContext(
     )
 {
     NTSTATUS status;
-    PCID_TABLE_ENTRY entry;
+    PKPH_CID_TABLE_ENTRY entry;
     PVOID object;
-    PVOID newObject;
-    BOOLEAN releaseLock;
 
     PAGED_CODE_PASSIVE();
 
-    entry = CidGetEntry(Cid, &KphpCidTable);
+    entry = KphCidGetEntry(Cid, &KphpCidTable);
     if (!entry)
     {
         return NULL;
     }
 
-    newObject = NULL;
-
-    CidAcquireObjectLock(entry);
-    releaseLock = TRUE;
-
-    object = (PVOID)(entry->Object & CID_LOCKED_OBJECT_MASK);
-
+    object = KphCidReferenceObject(entry);
     if (object)
     {
         if (KphGetObjectType(object) == ObjectType)
         {
             KphReferenceObject(object);
-        }
-        else
-        {
             object = NULL;
         }
 
-        goto Exit;
+        return object;
     }
 
-    CidReleaseObjectLock(entry);
-    releaseLock = FALSE;
-
-    status = KphCreateObject(ObjectType, ObjectBodySize, &newObject, Parameter);
+    status = KphCreateObject(ObjectType, ObjectBodySize, &object, Parameter);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1344,52 +1309,10 @@ PVOID KphpTrackContext(
                       HandleToULong(Cid),
                       status);
 
-        object = NULL;
-        goto Exit;
+        return NULL;
     }
 
-    CidAcquireObjectLock(entry);
-    releaseLock = TRUE;
-
-    object = (PVOID)(entry->Object & CID_LOCKED_OBJECT_MASK);
-
-    if (object)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE, TRACKING, "Race tracking context.");
-
-        if (KphGetObjectType(object) == ObjectType)
-        {
-            KphReferenceObject(object);
-        }
-        else
-        {
-            object = NULL;
-        }
-    }
-    else
-    {
-        object = newObject;
-        newObject = NULL;
-
-        //
-        // We reference in the table and return a reference to the caller.
-        // Object creation gives one reference, this is the caller reference.
-        //
-        KphReferenceObject(object);
-        CidAssignObject(entry, object);
-    }
-
-Exit:
-
-    if (releaseLock)
-    {
-        CidReleaseObjectLock(entry);
-    }
-
-    if (newObject)
-    {
-        KphDereferenceObject(newObject);
-    }
+    KphCidAssignObject(entry, object);
 
     return object;
 }
@@ -1412,41 +1335,26 @@ PVOID KphpUntrackContext(
     _In_ PKPH_OBJECT_TYPE ObjectType
     )
 {
-    PCID_TABLE_ENTRY entry;
+    PKPH_CID_TABLE_ENTRY entry;
     PVOID object;
 
     PAGED_CODE_PASSIVE();
 
-    entry = CidGetEntry(Cid, &KphpCidTable);
+    entry = KphCidGetEntry(Cid, &KphpCidTable);
     if (!entry)
     {
         return NULL;
     }
 
-    CidAcquireObjectLock(entry);
+    object = KphCidReferenceObject(entry);
 
-    object = (PVOID)(entry->Object & CID_LOCKED_OBJECT_MASK);
-
-    if (!object)
+    if (object && (KphGetObjectType(object) != ObjectType))
     {
-        goto Exit;
+        KphDereferenceObject(object);
+        return NULL;
     }
 
-    if (KphGetObjectType(object) != ObjectType)
-    {
-        object = NULL;
-        goto Exit;
-    }
-
-    //
-    // We do not release the in-table reference here. The caller is given
-    // ownership over the reference, they are responsible for releasing it.
-    //
-    CidAssignObject(entry, NULL);
-
-Exit:
-
-    CidReleaseObjectLock(entry);
+    KphCidAssignObject(entry, NULL);
 
     return object;
 }
@@ -1461,7 +1369,7 @@ Exit:
  */
 _Function_class_(KPH_ENUM_CID_CONTEXTS_CALLBACK)
 _Must_inspect_result_
-BOOLEAN CIDAPI KphpCidEnumPostPopulate(
+BOOLEAN KSIAPI KphpCidEnumPostPopulate(
     _In_ PVOID Context,
     _In_opt_ PVOID Parameter
     )
@@ -2050,7 +1958,7 @@ VOID KphEnumerateProcessContexts(
     context.ThreadCallback = NULL;
     context.Parameter = Parameter;
 
-    CidEnumerate(&KphpCidTable, KphpEnumerateContexts, &context);
+    KphCidEnumerate(&KphpCidTable, KphpEnumerateContexts, &context);
 }
 
 /**
@@ -2075,7 +1983,7 @@ VOID KphEnumerateThreadContexts(
     context.ThreadCallback = Callback;
     context.Parameter = Parameter;
 
-    CidEnumerate(&KphpCidTable, KphpEnumerateContexts, &context);
+    KphCidEnumerate(&KphpCidTable, KphpEnumerateContexts, &context);
 }
 
 /**
@@ -2100,7 +2008,7 @@ VOID KphEnumerateCidContexts(
     context.ThreadCallback = NULL;
     context.Parameter = Parameter;
 
-    CidEnumerate(&KphpCidTable, KphpEnumerateContexts, &context);
+    KphCidEnumerate(&KphpCidTable, KphpEnumerateContexts, &context);
 }
 
 /**

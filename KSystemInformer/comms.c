@@ -215,8 +215,6 @@ VOID KphCaptureStackInMessage(
     }
 }
 
-PAGED_FILE();
-
 /**
  * \brief Checks if the informer is enabled for a given client.
  *
@@ -232,7 +230,7 @@ BOOLEAN KphpCommsInformerEnabled(
     _In_ PCKPH_INFORMER_SETTINGS Settings
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     if (FlagOn(Client->InformerSettings.Flags, Settings->Flags) ||
         FlagOn(Client->InformerSettings.Flags2, Settings->Flags2) ||
@@ -263,7 +261,7 @@ BOOLEAN KphCommsInformerEnabled(
 {
     BOOLEAN enabled;
 
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     enabled = FALSE;
 
@@ -289,6 +287,8 @@ BOOLEAN KphCommsInformerEnabled(
     return enabled;
 }
 
+PAGED_FILE();
+
 /**
  * \brief Allocates a client object.
  *
@@ -305,7 +305,12 @@ PVOID KSIAPI KphpAllocateClientObject(
 {
     PAGED_CODE_PASSIVE();
 
-    return KphAllocatePaged(Size, KPH_TAG_CLIENT);
+    //
+    // N.B. Clients are allocated from non-paged pool to support paging I/O.
+    // KphCommsInformerEnabled supports paging I/O paths.
+    //
+
+    return KphAllocateNPaged(Size, KPH_TAG_CLIENT);
 }
 
 /**
