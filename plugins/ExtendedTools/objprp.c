@@ -156,12 +156,9 @@ static NTSTATUS EtpDuplicateHandleFromProcess(
 
 static BOOLEAN NTAPI EnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
-    if (!Context)
-        return TRUE;
-
     if (
         Module->Type == PH_MODULE_TYPE_MODULE ||
         Module->Type == PH_MODULE_TYPE_WOW64_MODULE
@@ -209,7 +206,7 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                     PPH_STRING symbol = NULL;
                     WCHAR value[PH_PTR_STR_LEN_1];
 
-                    if (symbolProvider = PhCreateSymbolProvider(basicInfo.ProcessId))
+                    if (symbolProvider = PhCreateSymbolProvider(NULL))
                     {
                         PhLoadSymbolProviderOptions(symbolProvider);
 
