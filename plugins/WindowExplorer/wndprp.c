@@ -1983,6 +1983,8 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
                             break;
                         case PHAPP_IDC_DELETE:
                             {
+                                NTSTATUS status;
+
                                 if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
                                     hwndDlg,
                                     L"remove",
@@ -1996,9 +1998,9 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
 
                                 RemoveProp(context->WindowHandle, PhGetString(listviewItems[0]));
 
-                                ULONG status = GetLastError();
-                                if (status != ERROR_SUCCESS)
-                                    PhShowStatus(hwndDlg, L"Unable to remove the window property.", 0, status);
+                                status = PhGetLastWin32ErrorAsNtStatus();
+                                if (status != STATUS_CANCELLED)
+                                    PhShowStatus(hwndDlg, L"Unable to remove the window property.", status, 0);
 
                                 //WepRefreshWindowProps(context);
                                 PvRefreshChildWindows(hwndDlg);

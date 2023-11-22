@@ -186,7 +186,7 @@ INT WINAPI wWinMain(
     dbg.StartAddress = wWinMain;
     dbg.Parameter = NULL;
     InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
-    TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
+    PhTlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
 
     PhInitializeAutoPool(&BaseAutoPool);
@@ -445,7 +445,7 @@ static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
 static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
@@ -463,7 +463,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
         &objectAttributes,
         &objectName,
         OBJ_CASE_INSENSITIVE,
-        PhGetNamespaceHandle(),
+        Context,
         NULL
         );
 
@@ -541,7 +541,11 @@ VOID PhActivatePreviousInstance(
     VOID
     )
 {
-    PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
+    HANDLE directoryHandle;
+
+    directoryHandle = PhGetNamespaceHandle();
+
+    PhEnumDirectoryObjects(directoryHandle, PhpPreviousInstancesCallback, directoryHandle);
 }
 
 VOID PhInitializeCommonControls(
@@ -927,15 +931,25 @@ BOOLEAN PhInitializeMitigationPolicy(
     {
         PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
 
+        //policyInfo.Policy = ProcessDynamicCodePolicy;
+        //policyInfo.DynamicCodePolicy.Flags = 0;
+        //policyInfo.DynamicCodePolicy.ProhibitDynamicCode = TRUE;
+        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+
+        //policyInfo.Policy = ProcessExtensionPointDisablePolicy;
+        //policyInfo.ExtensionPointDisablePolicy.Flags = 0;
+        //policyInfo.ExtensionPointDisablePolicy.DisableExtensionPoints = TRUE;
+        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+
         policyInfo.Policy = ProcessSignaturePolicy;
         policyInfo.SignaturePolicy.Flags = 0;
         policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
         NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
 
-        policyInfo.Policy = ProcessRedirectionTrustPolicy;
-        policyInfo.RedirectionTrustPolicy.Flags = 0;
-        policyInfo.RedirectionTrustPolicy.EnforceRedirectionTrust = TRUE;
-        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+        //policyInfo.Policy = ProcessRedirectionTrustPolicy;
+        //policyInfo.RedirectionTrustPolicy.Flags = 0;
+        //policyInfo.RedirectionTrustPolicy.EnforceRedirectionTrust = TRUE;
+        //NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
     }
 
     return TRUE;

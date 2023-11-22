@@ -382,7 +382,7 @@ static PVOID PhDetoursPackageSystemIdentificationContext(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        index = TlsAlloc();
+        index = PhTlsAlloc();
         PhEndInitOnce(&initOnce);
     }
 
@@ -390,12 +390,12 @@ static PVOID PhDetoursPackageSystemIdentificationContext(
     {
         if (Initialize)
         {
-            if (TlsSetValue(index, Buffer))
+            if (NT_SUCCESS(PhTlsSetValue(index, Buffer)))
                 return Buffer;
         }
         else
         {
-            return TlsGetValue(index);
+            return PhTlsGetValue(index);
         }
     }
 

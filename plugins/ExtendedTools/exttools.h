@@ -763,6 +763,13 @@ VOID EtGpuMiniInformationInitializing(
 
 // iconext
 
+typedef struct _TB_GRAPH_CONTEXT
+{
+    LONG GraphDpi;
+    ULONG GraphColor1;
+    ULONG GraphColor2;
+} TB_GRAPH_CONTEXT, *PTB_GRAPH_CONTEXT;
+
 extern BOOLEAN EtTrayIconTransparencyEnabled;
 
 VOID EtLoadTrayIconGuids(

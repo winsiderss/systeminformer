@@ -600,17 +600,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     if (processItem->FileName)
                     {
-                        PPH_STRING fileNameWin32 = processItem->FileName ? PH_AUTO(PhGetFileName(processItem->FileName)) : NULL;
-
                         if (
-                            !PhIsNullOrEmptyString(fileNameWin32) &&
-                            PhDoesFileExistWin32(PhGetString(fileNameWin32))
+                            !PhIsNullOrEmptyString(processItem->FileName) &&
+                            PhDoesFileExist(&processItem->FileName->sr)
                             )
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
                                 L"ProgramInspectExecutables",
-                                PhGetString(fileNameWin32),
+                                PhGetString(processItem->FileName),
                                 FALSE,
                                 L"Make sure the PE Viewer executable file is present."
                                 );
@@ -627,17 +625,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     if (processItem->FileName)
                     {
-                        PPH_STRING fileNameWin32 = processItem->FileName ? PH_AUTO(PhGetFileName(processItem->FileName)) : NULL;
-
                         if (
-                            !PhIsNullOrEmptyString(fileNameWin32) &&
-                            PhDoesFileExistWin32(PhGetString(fileNameWin32))
+                            !PhIsNullOrEmptyString(processItem->FileName) &&
+                            PhDoesFileExist(&processItem->FileName->sr)
                             )
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,
                                 L"FileBrowseExecutable",
-                                PhGetString(fileNameWin32),
+                                PhGetString(processItem->FileName),
                                 FALSE,
                                 L"Make sure the Explorer executable file is present."
                                 );

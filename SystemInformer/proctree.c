@@ -386,7 +386,7 @@ VOID PhReloadSettingsProcessTreeList(
     PhLoadSettingsProcessTreeUpdateMask();
 }
 
-struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportProcessTreeList(
+PPH_TN_FILTER_SUPPORT PhGetFilterSupportProcessTreeList(
     VOID
     )
 {

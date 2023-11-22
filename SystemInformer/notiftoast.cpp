@@ -11,6 +11,7 @@
 
 #include <notiftoast.h>
 #include <mapldr.h>
+#include <appresolver.h>
 
 #include <wrl.h>
 #include <roapi.h>
@@ -21,7 +22,7 @@
 #include <memory>
 
 #ifndef RETURN_IF_FAILED
-#define RETURN_IF_FAILED(_HR_) do { const auto __hr = _HR_; if (FAILED(__hr)) { return __hr; }} while (false)
+#define RETURN_IF_FAILED(_HR_) do { const auto __hr = _HR_; if (HR_FAILED(__hr)) { return __hr; }} while (false)
 #endif
 
 using namespace Microsoft::WRL;
@@ -30,10 +31,12 @@ using namespace ABI::Windows::Foundation;
 using namespace ABI::Windows::UI::Notifications;
 using namespace ABI::Windows::Data::Xml::Dom;
 
+#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
 static decltype(RoGetActivationFactory)* g_RoGetActivationFactory = nullptr;
 static decltype(RoInitialize)* g_RoInitialize = nullptr;
 static decltype(RoUninitialize)* g_RoUninitialize = nullptr;
 static decltype(WindowsCreateStringReference)* g_WindowsCreateStringReference = nullptr;
+#endif
 
 namespace PH
 {
@@ -86,6 +89,7 @@ namespace PH
 
         HRESULT Set(_In_ const wchar_t* String, _In_ size_t Length)
         {
+#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
             if (!g_WindowsCreateStringReference)
             {
                 return E_NOTIMPL;
@@ -95,15 +99,19 @@ namespace PH
             RETURN_IF_FAILED(SizeTToUInt32(Length, &length));
 
             return g_WindowsCreateStringReference(String, length, &m_Header, &m_String);
+#else
+            return PhCreateWindowsRuntimeString(String, &m_String);
+#endif
         }
 
         HRESULT Set(_In_ const wchar_t* String)
         {
+#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
             if (!g_WindowsCreateStringReference)
             {
                 return E_NOTIMPL;
             }
-
+#endif
             return Set(String, ::wcslen(String));
         }
 
@@ -114,7 +122,9 @@ namespace PH
 
     private:
 
+#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
         HSTRING_HEADER m_Header{};
+#endif
         HSTRING m_String{ nullptr };
 
     };
@@ -133,13 +143,15 @@ namespace PH
 
         @return Appropriate result status.
     */
-    template <typename T, size_t t_SizeDest>
+    template <typename I, size_t t_SizeDestName, size_t t_SizeDestClass>
     _Must_inspect_result_
     HRESULT RoGetActivationFactory(
-        _In_ wchar_t const (&ActivatableClassId)[t_SizeDest],
-        _COM_Outptr_ T** Interface
+        _In_ wchar_t const (&DllName)[t_SizeDestName],
+        _In_ wchar_t const (&ActivatableClassId)[t_SizeDestClass],
+        _COM_Outptr_ I** Interface
         )
     {
+#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
         if (!g_RoGetActivationFactory)
         {
             *Interface = nullptr;
@@ -147,17 +159,26 @@ namespace PH
         }
 
         HStringReference stringRef;
-        HRESULT hr = stringRef.Set(ActivatableClassId, t_SizeDest - 1);
-        if (FAILED(hr))
+        HRESULT hr = stringRef.Set(ActivatableClassId, t_SizeDestClass - 1);
+
+        if (HR_FAILED(hr))
         {
             *Interface = nullptr;
             return hr;
         }
 
         hr = g_RoGetActivationFactory(stringRef.Get(),
-                                      __uuidof(T),
+                                      __uuidof(I),
                                       reinterpret_cast<void**>(Interface));
-        if (FAILED(hr))
+#else
+        HRESULT hr = PhGetActivationFactory(
+                                      DllName,
+                                      ActivatableClassId,
+                                      __uuidof(I),
+                                      reinterpret_cast<void**>(Interface)
+                                      );
+#endif
+        if (HR_FAILED(hr))
         {
             *Interface = nullptr;
         }
@@ -296,11 +317,13 @@ HRESULT PH::Toast::Initialize(
 
     ComPtr<IToastNotificationManagerStatics> manager;
     RETURN_IF_FAILED(PH::RoGetActivationFactory<IToastNotificationManagerStatics>(
+        L"WpnApps.dll",
         L"Windows.UI.Notifications.ToastNotificationManager",
         &manager));
 
     ComPtr<IToastNotificationFactory> factory;
     RETURN_IF_FAILED(PH::RoGetActivationFactory<IToastNotificationFactory>(
+        L"WpnApps.dll",
         L"Windows.UI.Notifications.ToastNotification",
         &factory));
 
@@ -350,6 +373,7 @@ HRESULT PH::Toast::Initialize(
         //
         ComPtr<IPropertyValueStatics> propertyStats;
         RETURN_IF_FAILED(PH::RoGetActivationFactory<IPropertyValueStatics>(
+            L"WinTypes.dll",
             L"Windows.Foundation.PropertyValue",
             &propertyStats));
 
@@ -460,7 +484,7 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
 
     ToastDismissalReason reason;
     HRESULT hr = Args->get_Reason(&reason);
-    if (SUCCEEDED(hr))
+    if (HR_SUCCESS(hr))
     {
         switch (reason)
         {
@@ -520,7 +544,7 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
 {
     HRESULT err;
     HRESULT hr = Args->get_ErrorCode(&err);
-    if (FAILED(hr))
+    if (HR_FAILED(hr))
     {
         //
         // You wut? I doubt this could realistically fail... if so give
@@ -555,6 +579,7 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
 _Must_inspect_result_
 HRESULT PhInitializeToastRuntime()
 {
+#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     HRESULT res;
 
@@ -592,7 +617,11 @@ HRESULT PhInitializeToastRuntime()
         res = g_RoInitialize(RO_INIT_SINGLETHREADED);
     if (res == S_FALSE) // already initialized
         res = S_OK;
+
     return res;
+#else
+    return S_OK;
+#endif
 }
 
 /*!
@@ -601,10 +630,12 @@ HRESULT PhInitializeToastRuntime()
 */
 VOID PhUninitializeToastRuntime()
 {
+#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
     if (g_RoInitialize)
     {
         g_RoUninitialize();
     }
+#endif
 }
 
 /*!

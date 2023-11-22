@@ -853,8 +853,8 @@ VOID EtFwFlushHostNameData(
     PSLIST_ENTRY entry;
     PFW_ITEM_QUERY_DATA data;
 
-    if (!RtlFirstEntrySList(&EtFwQueryListHead))
-        return;
+    //if (!RtlFirstEntrySList(&EtFwQueryListHead))
+    //    return;
 
     entry = RtlInterlockedFlushSList(&EtFwQueryListHead);
 

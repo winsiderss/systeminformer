@@ -24,7 +24,7 @@ typedef VOID (NTAPI *PPH_SYSINFO_COLOR_SETUP_FUNCTION)(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
     _In_ COLORREF Color2,
-    _In_ LONG dpiValue
+    _In_ LONG WindowDpi
     );
 
 typedef struct _PH_SYSINFO_PARAMETERS
@@ -164,7 +164,7 @@ PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
     _In_ COLORREF Color2,
-    _In_ LONG dpiValue
+    _In_ LONG WindowDpi
     );
 
 PHAPPAPI

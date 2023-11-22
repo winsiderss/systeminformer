@@ -145,7 +145,7 @@ BOOLEAN PhBaseInitialization(
     PhInitializeFreeList(&PhpBaseThreadContextFreeList, sizeof(PHP_BASE_THREAD_CONTEXT), 16);
 
 #ifdef DEBUG
-    PhDbgThreadDbgTlsIndex = TlsAlloc();
+    PhDbgThreadDbgTlsIndex = PhTlsAlloc();
 #endif
 
     return TRUE;
@@ -176,7 +176,7 @@ NTSTATUS PhpBaseThreadStart(
     InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgThreadListLock);
 
-    TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
+    PhTlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
 
     // Initialization code
@@ -7673,3 +7673,43 @@ ULONG PhCountBitsUlongPtr(
         //return count;
     }
 }
+
+#pragma region Thread Local Storage (TLS)
+
+ULONG PhTlsAlloc(
+    VOID
+    )
+{
+    return TlsAlloc();
+}
+
+PVOID PhTlsGetValue(
+    _In_ ULONG Index
+    )
+{
+    if (Index < TLS_MINIMUM_AVAILABLE)
+    {
+        return NtCurrentTeb()->TlsSlots[Index];
+    }
+
+    return TlsGetValue(Index);
+}
+
+NTSTATUS PhTlsSetValue(
+    _In_ ULONG Index,
+    _In_opt_ PVOID Value
+    )
+{
+    if (Index < TLS_MINIMUM_AVAILABLE)
+    {
+        NtCurrentTeb()->TlsSlots[Index] = Value;
+        return STATUS_SUCCESS;
+    }
+
+    if (TlsSetValue(Index, Value))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+#pragma endregion
