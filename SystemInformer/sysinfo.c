@@ -283,7 +283,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
                 }
             }
 
-            PhSipOnSize();
+            PhSipOnSize(hwndDlg, 0, 0, 0);
         }
         break;
     }
