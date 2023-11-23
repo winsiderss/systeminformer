@@ -41,6 +41,7 @@ static volatile LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
 static BOOLEAN KphpLsassIsKnown = FALSE;
 static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
+static volatile ULONG64 KphpProcessSequence = 0;
 
 /**
  * \brief Looks up a context object in the CID tracking.
@@ -406,6 +407,8 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
     process = Object;
     processObject = Parameter;
+
+    process->SequenceNumber = InterlockedIncrementU64(&KphpProcessSequence);
 
     status = ObOpenObjectByPointer(processObject,
                                    OBJ_KERNEL_HANDLE,

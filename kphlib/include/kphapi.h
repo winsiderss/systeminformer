@@ -85,6 +85,8 @@ typedef enum _KPH_PROCESS_INFORMATION_CLASS
     KphProcessPriorityClassEx,       // s: PROCESS_PRIORITY_CLASS_EX
     KphProcessEmptyWorkingSet,       // s
     KphProcessWSLProcessId,          // q: ULONG
+    KphProcessSequenceNumber,        // q: ULONG64
+    KphProcessStartKey,              // q: ULONG64
 } KPH_PROCESS_INFORMATION_CLASS;
 
 typedef enum _KPH_THREAD_INFORMATION_CLASS
