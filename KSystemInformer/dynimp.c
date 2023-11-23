@@ -18,6 +18,8 @@ KPH_PROTECTED_DATA_SECTION_PUSH();
 PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX KphDynPsSetLoadImageNotifyRoutineEx = NULL;
 PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2 KphDynPsSetCreateProcessNotifyRoutineEx2 = NULL;
 PMM_PROTECT_DRIVER_SECTION KphDynMmProtectDriverSection = NULL;
+PPS_GET_PROCESS_SEQUENCE_NUMBER KphDynPsGetProcessSequenceNumber = NULL;
+PPS_GET_PROCESS_START_KEY KphDynPsGetProcessStartKey = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
@@ -35,6 +37,8 @@ VOID KphDynamicImport(
     KphDynPsSetLoadImageNotifyRoutineEx = (PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX)KphGetSystemRoutineAddress(L"PsSetLoadImageNotifyRoutineEx");
     KphDynPsSetCreateProcessNotifyRoutineEx2 = (PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2)KphGetSystemRoutineAddress(L"PsSetCreateProcessNotifyRoutineEx2");
     KphDynMmProtectDriverSection = (PMM_PROTECT_DRIVER_SECTION)KphGetSystemRoutineAddress(L"MmProtectDriverSection");
+    KphDynPsGetProcessSequenceNumber = (PPS_GET_PROCESS_SEQUENCE_NUMBER)KphGetSystemRoutineAddress(L"PsGetProcessSequenceNumber");
+    KphDynPsGetProcessStartKey = (PPS_GET_PROCESS_START_KEY)KphGetSystemRoutineAddress(L"PsGetProcessStartKey");
 }
 
 /**

@@ -432,6 +432,8 @@ VOID KphFreeToNPagedLookasideObject(
 extern PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX KphDynPsSetLoadImageNotifyRoutineEx;
 extern PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2 KphDynPsSetCreateProcessNotifyRoutineEx2;
 extern PMM_PROTECT_DRIVER_SECTION KphDynMmProtectDriverSection;
+extern PPS_GET_PROCESS_SEQUENCE_NUMBER KphDynPsGetProcessSequenceNumber;
+extern PPS_GET_PROCESS_START_KEY KphDynPsGetProcessStartKey;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDynamicImport(
@@ -1093,6 +1095,16 @@ NTSTATUS KphDominationAndPrivilegeCheck(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG64 KphGetProcessSequenceNumber(
+    _In_ PEPROCESS Process
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG64 KphGetProcessStartKey(
+    _In_ PEPROCESS Process
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1481,6 +1493,7 @@ typedef struct _KPH_PROCESS_CONTEXT
     PEPROCESS EProcess;
 
     HANDLE ProcessId;
+    ULONG64 SequenceNumber;
     CLIENT_ID CreatorClientId;
 
     PUNICODE_STRING ImageFileName;

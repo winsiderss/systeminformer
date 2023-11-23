@@ -765,6 +765,62 @@ NTSTATUS KphQueryInformationProcess(
 
             break;
         }
+        case KphProcessSequenceNumber:
+        {
+            ULONG64 sequenceNumber;
+
+            if (!ProcessInformation ||
+                (ProcessInformationLength < sizeof(ULONG64)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(ULONG64);
+                goto Exit;
+            }
+
+            sequenceNumber = KphGetProcessSequenceNumber(processObject);
+
+            __try
+            {
+                *(PULONG64)ProcessInformation = sequenceNumber;
+                returnLength = sizeof(ULONG64);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
+        case KphProcessStartKey:
+        {
+            ULONG64 startKey;
+
+            if (!ProcessInformation ||
+                (ProcessInformationLength < sizeof(ULONG64)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(ULONG64);
+                goto Exit;
+            }
+
+            startKey = KphGetProcessStartKey(processObject);
+
+            __try
+            {
+                *(PULONG64)ProcessInformation = startKey;
+                returnLength = sizeof(ULONG64);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
         default:
         {
             status = STATUS_INVALID_INFO_CLASS;

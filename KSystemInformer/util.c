@@ -224,6 +224,86 @@ VOID KphReleaseRundown(
     ExReleaseRundownProtection(Rundown);
 }
 
+/**
+ * \brief Retrieves the process sequence number for a given process.
+ *
+ * \param[in] Process The process to get the sequence number of.
+ *
+ * \return The sequence number key.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG64 KphGetProcessSequenceNumber(
+    _In_ PEPROCESS Process
+    )
+{
+    ULONG64 sequence;
+    PKPH_PROCESS_CONTEXT process;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    if (KphDynPsGetProcessSequenceNumber)
+    {
+        return KphDynPsGetProcessSequenceNumber(Process);
+    }
+
+    process = KphGetEProcessContext(Process);
+    if (!process)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Failed to get process sequence number for PID %lu",
+                      HandleToULong(PsGetProcessId(Process)));
+
+        return 0;
+    }
+
+    sequence = process->SequenceNumber;
+
+    KphDereferenceObject(process);
+
+    return sequence;
+}
+
+/**
+ * \brief Retrieves the process start key for a given process.
+ *
+ * \param[in] Process The process to get the start key of.
+ *
+ * \return The process start key.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG64 KphGetProcessStartKey(
+    _In_ PEPROCESS Process
+    )
+{
+    ULONG64 key;
+    PKPH_PROCESS_CONTEXT process;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    if (KphDynPsGetProcessStartKey)
+    {
+        return KphDynPsGetProcessStartKey(Process);
+    }
+
+    process = KphGetEProcessContext(Process);
+    if (!process)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Failed to get process start key for PID %lu",
+                      HandleToULong(PsGetProcessId(Process)));
+
+        return 0;
+    }
+
+    key = (process->SequenceNumber | ((ULONG64)SharedUserData->BootId << 48));
+
+    KphDereferenceObject(process);
+
+    return key;
+}
+
 PAGED_FILE();
 
 /**

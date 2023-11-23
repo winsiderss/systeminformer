@@ -721,6 +721,8 @@ KPH_PROCESS_STATE KSIAPI KphpCommsQueryInformationProcessRequires(
             return KPH_PROCESS_STATE_MEDIUM;
         }
         case KphProcessStateInformation:
+        case KphProcessSequenceNumber:
+        case KphProcessStartKey:
         {
             return KPH_PROCESS_STATE_LOW;
         }
