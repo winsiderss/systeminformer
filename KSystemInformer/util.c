@@ -2189,7 +2189,7 @@ NTSTATUS KphDominationAndPrivilegeCheck(
 
     granted = FALSE;
 
-    thread = KphGetThreadContext(PsGetThreadId(Thread));
+    thread = KphGetEThreadContext(Thread);
     if (thread)
     {
         granted = KphSessionTokenPrivilegeCheck(thread, Privileges);

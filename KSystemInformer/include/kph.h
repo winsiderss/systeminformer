@@ -1661,13 +1661,21 @@ PKPH_PROCESS_CONTEXT KphGetProcessContext(
     _In_ HANDLE ProcessId
     );
 
-#define KphGetCurrentProcessContext() KphGetProcessContext(PsGetCurrentProcessId())
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphGetEProcessContext(
+    _In_ PEPROCESS Process
+    );
+
+#define KphGetCurrentProcessContext() KphGetEProcessContext(PsGetCurrentProcess())
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphGetThreadContext(
     _In_ HANDLE ThreadId
     );
+
+#define KphGetEThreadContext(thread) KphGetThreadContext(PsGetThreadId(thread))
 
 #define KphGetCurrentThreadContext() KphGetThreadContext(PsGetCurrentThreadId())
 

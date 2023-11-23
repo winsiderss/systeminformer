@@ -353,12 +353,12 @@ NTSTATUS KphGetInformerProcessFilter(
         goto Exit;
     }
 
-    processContext = KphGetProcessContext(PsGetProcessId(processObject));
+    processContext = KphGetEProcessContext(processObject);
     if (!processContext)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
-                      "KphGetProcessContext return null.");
+                      "KphGetEProcessContext return null.");
 
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
@@ -511,12 +511,12 @@ NTSTATUS KphSetInformerProcessFilter(
             goto Exit;
         }
 
-        processContext = KphGetProcessContext(PsGetProcessId(processObject));
+        processContext = KphGetEProcessContext(processObject);
         if (!processContext)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
-                          "KphGetProcessContext return null.");
+                          "KphGetEProcessContext return null.");
 
             status = STATUS_INSUFFICIENT_RESOURCES;
             goto Exit;

@@ -1707,7 +1707,7 @@ NTSTATUS KphQueryInformationObject(
                 goto Exit;
             }
 
-            processContext = KphGetProcessContext(PsGetProcessId(targetProcess));
+            processContext = KphGetEProcessContext(targetProcess);
             if (!processContext || !processContext->ImageFileName)
             {
                 status = STATUS_INSUFFICIENT_RESOURCES;

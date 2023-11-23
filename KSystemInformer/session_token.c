@@ -495,7 +495,7 @@ NTSTATUS KphAssignProcessSessionToken(
         goto Exit;
     }
 
-    processContext = KphGetProcessContext(PsGetProcessId(processObject));
+    processContext = KphGetEProcessContext(processObject);
     if (!processContext)
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -657,7 +657,7 @@ NTSTATUS KphAssignThreadSessionToken(
         goto Exit;
     }
 
-    threadContext = KphGetThreadContext(PsGetThreadId(threadObject));
+    threadContext = KphGetEThreadContext(threadObject);
     if (!threadContext)
     {
         status = STATUS_INSUFFICIENT_RESOURCES;

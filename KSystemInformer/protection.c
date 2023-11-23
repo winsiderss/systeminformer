@@ -677,7 +677,7 @@ VOID KphApplyObProtections(
 
     if (Info->ObjectType == *PsProcessType)
     {
-        process = KphGetProcessContext(PsGetProcessId(Info->Object));
+        process = KphGetEProcessContext(Info->Object);
     }
     else
     {
@@ -685,7 +685,7 @@ VOID KphApplyObProtections(
 
         NT_ASSERT(Info->ObjectType == *PsThreadType);
 
-        thread = KphGetThreadContext(PsGetThreadId(Info->Object));
+        thread = KphGetEThreadContext(Info->Object);
         if (thread)
         {
             process = thread->ProcessContext;

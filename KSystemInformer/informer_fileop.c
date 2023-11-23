@@ -66,7 +66,7 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
 
     if (Data->Thread)
     {
-        process = KphGetProcessContext(PsGetThreadProcessId(Data->Thread));
+        process = KphGetEProcessContext(PsGetThreadProcess(Data->Thread));
     }
     else
     {
