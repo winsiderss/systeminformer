@@ -42,6 +42,104 @@ static KEVENT KphpCidPopulatedEvent;
 static BOOLEAN KphpLsassIsKnown = FALSE;
 static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
 
+/**
+ * \brief Looks up a context object in the CID tracking.
+ *
+ * \param[in] Cid The CID of the object to look up.
+ * \param[in] ObjectType The expected object type if the CID.
+ *
+ * \return Pointer to the context object, null if not found or the object is
+ * not of the expected type. The caller *must* dereference the object when
+ * they are through with it.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PVOID KphpLookupContext(
+    _In_ HANDLE Cid,
+    _In_ PKPH_OBJECT_TYPE ObjectType
+    )
+{
+    PVOID object;
+    PKPH_CID_TABLE_ENTRY entry;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    entry = KphCidGetEntry(Cid, &KphpCidTable);
+    if (!entry)
+    {
+        return NULL;
+    }
+
+    object = KphCidReferenceObject(entry);
+    if (object && (KphGetObjectType(object) != ObjectType))
+    {
+        KphDereferenceObject(object);
+        object = NULL;
+    }
+
+    return object;
+}
+
+/**
+ * \brief Retrieves the system process context.
+ *
+ * \return Pointer to the system process context, null if not found. The caller
+ * *must* dereference the object when they are through with it.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphGetSystemProcessContext(
+    VOID
+    )
+{
+    NPAGED_CODE_DISPATCH_MAX();
+
+    if (KphpSystemProcessContext)
+    {
+        KphReferenceObject(KphpSystemProcessContext);
+    }
+
+    return KphpSystemProcessContext;
+}
+
+/**
+ * \brief Retrieves a process context.
+ *
+ * \param[in] ProcessId The process ID of the process to get the context for.
+ *
+ * \return Pointer to the process context, null if not found. The caller
+ * *must* dereference the object when they are through with it.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphGetProcessContext(
+    _In_ HANDLE ProcessId
+    )
+{
+    NPAGED_CODE_DISPATCH_MAX();
+
+    return KphpLookupContext(ProcessId, KphProcessContextType);
+}
+
+/**
+ * \brief Retrieves a thread context.
+ *
+ * \param[in] ThreadId The thread ID of the thread to get the context for.
+ *
+ * \return Pointer to the thread context, null if not found. The caller
+ * *must* dereference the object when they are through with it.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_THREAD_CONTEXT KphGetThreadContext(
+    _In_ HANDLE ThreadId
+    )
+{
+    NPAGED_CODE_DISPATCH_MAX();
+
+    return KphpLookupContext(ThreadId, KphThreadContextType);
+}
+
 PAGED_FILE();
 
 /**
@@ -1217,44 +1315,6 @@ VOID KphCidCleanup(
 }
 
 /**
- * \brief Looks up a context object in the CID tracking.
- *
- * \param[in] Cid The CID of the object to look up.
- * \param[in] ObjectType The expected object type if the CID.
- *
- * \return Pointer to the context object, null if not found or the object is
- * not of the expected type. The caller *must* dereference the object when
- * they are through with it.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-PVOID KphpLookupContext(
-    _In_ HANDLE Cid,
-    _In_ PKPH_OBJECT_TYPE ObjectType
-    )
-{
-    PVOID object;
-    PKPH_CID_TABLE_ENTRY entry;
-
-    PAGED_CODE();
-
-    entry = KphCidGetEntry(Cid, &KphpCidTable);
-    if (!entry)
-    {
-        return NULL;
-    }
-
-    object = KphCidReferenceObject(entry);
-    if (object && (KphGetObjectType(object) != ObjectType))
-    {
-        KphDereferenceObject(object);
-        object = NULL;
-    }
-
-    return object;
-}
-
-/**
  * \brief Begins tracking a context object in the CID tracking. May return an
  * existing object if it is already being tracked.
  *
@@ -1675,66 +1735,6 @@ Exit:
     }
 
     return status;
-}
-
-/**
- * \brief Retrieves the system process context.
- *
- * \return Pointer to the system process context, null if not found. The caller
- * *must* dereference the object when they are through with it.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-PKPH_PROCESS_CONTEXT KphGetSystemProcessContext(
-    VOID
-    )
-{
-    PAGED_CODE();
-
-    if (KphpSystemProcessContext)
-    {
-        KphReferenceObject(KphpSystemProcessContext);
-    }
-
-    return KphpSystemProcessContext;
-}
-
-/**
- * \brief Retrieves a process context.
- *
- * \param[in] ProcessId The process ID of the process to get the context for.
- *
- * \return Pointer to the process context, null if not found. The caller
- * *must* dereference the object when they are through with it.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-PKPH_PROCESS_CONTEXT KphGetProcessContext(
-    _In_ HANDLE ProcessId
-    )
-{
-    PAGED_CODE();
-
-    return KphpLookupContext(ProcessId, KphProcessContextType);
-}
-
-/**
- * \brief Retrieves a thread context.
- *
- * \param[in] ThreadId The thread ID of the thread to get the context for.
- *
- * \return Pointer to the thread context, null if not found. The caller
- * *must* dereference the object when they are through with it.
- */
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-PKPH_THREAD_CONTEXT KphGetThreadContext(
-    _In_ HANDLE ThreadId
-    )
-{
-    PAGED_CODE();
-
-    return KphpLookupContext(ThreadId, KphThreadContextType);
 }
 
 /**
