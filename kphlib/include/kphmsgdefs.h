@@ -1660,6 +1660,62 @@ typedef struct _KPHM_REGISTRY
             };
         } Post;
     };
+
+    //
+    // Dynamic
+    //
+    // id: KphMsgFieldObjectName              type: KphMsgTypeUnicodeString
+    //
+    // id: KphMsgFieldValueName               type: KphMsgTypeUnicodeString
+    //     - KphMsgRegPreSetValueKey
+    //     - KphMsgRegPreDeleteValueKey
+    //     - KphMsgRegPostSetValueKey
+    //     - KphMsgRegPostDeleteValueKey
+    //
+    // id: KphMsgFieldValueBuffer             type: KphMsgTypeSizedBuffer
+    //     - KphMsgRegPreSetValueKey
+    //     - KphMsgRegPostQueryValueKey
+    //     - KphMsgRegPostQueryMultipleValueKey
+    //
+    // id: KphMsgFieldInformationBuffer       type: KphMsgTypeSizedBuffer
+    //     - KphMsgRegPreSetInformationKey
+    //     - KphMsgRegPostEnumerateKey
+    //     - KphMsgRegPostEnumerateValueKey
+    //     - KphMsgRegPostQueryKey
+    //
+    // id: KphMsgFieldNewName                 type: KphMsgTypeSizedBuffer
+    //     - KphMsgRegPreRenameKey
+    //
+    // id: KphMsgFieldMultiValueNames         type: KphMsgTypeSizedBuffer
+    //     - KphMsgRegPreQueryMultipleValueKey
+    //     - KphMsgRegPostQueryMultipleValueKey
+    //
+    // id: KphMsgFieldMultiValueEntries       type: KphMsgTypeSizedBuffer
+    //     - KphMsgRegPostQueryMultipleValueKey
+    //
+    // id: KphMsgFieldClass                   type: KphMsgTypeUnicodeString
+    //     - KphMsgRegPreCreateKey
+    //
+    // id: KphMsgFieldFileName                type: KphMsgTypeUnicodeString
+    //     - KphMsgRegPreLoadKey
+    //     - KphMsgRegPreRestoreKey
+    //     - KphMsgRegPreSaveKey
+    //     - KphMsgRegPreReplaceKey
+    //     - KphMsgRegPreSaveMergedKey
+    //     - KphMsgRegPostLoadKey
+    //     - KphMsgRegPostRestoreKey
+    //     - KphMsgRegPostSaveKey
+    //     - KphMsgRegPostReplaceKey
+    //     - KphMsgRegPostSaveMergedKey
+    //
+    // id: KphMsgFieldDestinationFileName     type: KphMsgTypeUnicodeString
+    //     - KphMsgRegPreRenameKey
+    //     - KphMsgRegPostRenameKey
+    //
+    // id: KphMsgFieldOtherObjectName        type: KphMsgTypeUnicodeString
+    //     - KphMsgRegPreSaveMergedKey
+    //     - KphMsgRegPostSaveMergedKey
+    //
 } KPHM_REGISTRY, *PKPHM_REGISTRY;
 
 #pragma warning(pop)
