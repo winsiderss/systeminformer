@@ -618,12 +618,12 @@ NTSTATUS KphQueryInformationProcess(
         goto Exit;
     }
 
-    process = KphGetProcessContext(PsGetProcessId(processObject));
+    process = KphGetEProcessContext(processObject);
     if (!process)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
-                      "KphGetProcessContext return null.");
+                      "KphGetEProcessContext return null.");
 
         status = STATUS_OBJECTID_NOT_FOUND;
         goto Exit;

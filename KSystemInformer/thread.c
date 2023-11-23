@@ -763,7 +763,7 @@ NTSTATUS KphQueryInformationThread(
         goto Exit;
     }
 
-    thread = KphGetThreadContext(PsGetThreadId(threadObject));
+    thread = KphGetEThreadContext(threadObject);
     if (!thread)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,

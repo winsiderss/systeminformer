@@ -122,6 +122,28 @@ PKPH_PROCESS_CONTEXT KphGetProcessContext(
 }
 
 /**
+ * \brief Retrieves a process context by process object.
+ *
+ * \param[in] Process The process object of the process to get the context for.
+ *
+ * \return Pointer to the process context, null if not found. The caller
+ * *must* dereference the object when they are through with it.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphGetEProcessContext(
+    _In_ PEPROCESS Process
+    )
+{
+    if (Process == PsInitialSystemProcess)
+    {
+        return KphGetSystemProcessContext();
+    }
+
+    return KphGetProcessContext(PsGetProcessId(Process));
+}
+
+/**
  * \brief Retrieves a thread context.
  *
  * \param[in] ThreadId The thread ID of the thread to get the context for.
