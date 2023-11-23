@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -202,7 +202,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
         break;
     case WM_SIZE:
         {
-            PhSipOnSize();
+            PhSipOnSize(hwndDlg, (UINT)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         }
         break;
     case WM_SIZING:
@@ -278,12 +278,12 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
 
                     if (section->DialogHandle)
                     {
-                        section->Callback(section, SysInfoDpiChanged, NULL, NULL);
+                        section->Callback(section, SysInfoDpiChanged, UlongToPtr(LOWORD(wParam)), 0);
                     }
                 }
             }
 
-            PhSipOnSize();
+            PhSipOnSize(hwndDlg, 0, 0, 0);
         }
         break;
     }
@@ -482,7 +482,7 @@ VOID PhSipOnInitDialog(
     //PhInitializeWindowTheme(PhSipWindow, PhEnableThemeSupport);
     PhInitializeThemeWindowFrame(PhSipWindow);
 
-    PhSipOnSize();
+    PhSipOnSize(PhSipWindow, 0, 0, 0);
     PhSipOnUserMessage(SI_MSG_SYSINFO_UPDATE, 0, 0);
 }
 
@@ -548,10 +548,13 @@ BOOLEAN PhSipOnSysCommand(
 }
 
 VOID PhSipOnSize(
-    VOID
+    _In_ HWND WindowHandle,
+    _In_ UINT State,
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
-    if (!IsMinimized(PhSipWindow))
+    if (State != SIZE_MINIMIZED)
     {
         if (SectionList && SectionList->Count != 0)
         {
@@ -607,7 +610,7 @@ VOID PhSipOnCommand(
     case IDC_MAXSCREEN:
         {
             static WINDOWPLACEMENT windowLayout = { sizeof(WINDOWPLACEMENT) };
-            ULONG windowStyle = (ULONG)GetWindowLongPtr(PhSipWindow, GWL_STYLE);
+            LONG_PTR windowStyle = PhGetWindowStyle(PhSipWindow);
 
             if (windowStyle & WS_OVERLAPPEDWINDOW)
             {
@@ -930,7 +933,7 @@ VOID PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
     _In_ COLORREF Color2,
-    _In_ LONG dpiValue
+    _In_ LONG WindowDpi
     )
 {
     static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
@@ -943,13 +946,13 @@ VOID PhSiSetColorsGraphDrawInfo(
     {
         PhAcquireQueuedLockExclusive(&lock);
 
-        if (lastDpi != dpiValue)
+        if (lastDpi != WindowDpi)
         {
             LOGFONT logFont;
 
-            if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
+            if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
             {
-                logFont.lfHeight += PhMultiplyDivide(1, dpiValue, 72);
+                logFont.lfHeight += PhMultiplyDivide(1, WindowDpi, 72);
 
                 HFONT fontHandle = iconTitleFont;
                 iconTitleFont = CreateFontIndirect(&logFont);
@@ -959,7 +962,7 @@ VOID PhSiSetColorsGraphDrawInfo(
             if (!iconTitleFont)
                 iconTitleFont = PhApplicationFont;
 
-            lastDpi = dpiValue;
+            lastDpi = WindowDpi;
         }
 
         DrawInfo->LabelYFont = iconTitleFont;
@@ -1622,21 +1625,21 @@ VOID PhSipDefaultDrawPanel(
     {
         if (CurrentView == SysInfoSectionView)
         {
-            //HBRUSH brush = NULL;
+            HBRUSH brush = NULL;
 
             if (Section->GraphHot || Section->PanelHot || Section->HasFocus)
             {
-                //brush = GetSysColorBrush(COLOR_WINDOW); // TODO: Use a different color
+                brush = GetSysColorBrush(COLOR_HOTLIGHT);
             }
             else if (Section == CurrentSection)
             {
-                //brush = GetSysColorBrush(COLOR_WINDOW);
+                brush = GetSysColorBrush(COLOR_WINDOW);
             }
 
-            //if (brush)
-            //{
-            //    FillRect(hdc, &DrawPanel->Rect, brush);
-            //}
+            if (brush)
+            {
+                FillRect(hdc, &DrawPanel->Rect, brush);
+            }
         }
     }
 

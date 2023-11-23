@@ -68,7 +68,7 @@ BOOLEAN PhRefInitialization(
     PhAllocType = PhCreateObjectType(L"Alloc", 0, NULL);
 
     // Reserve a slot for the auto pool.
-    PhpAutoPoolTlsIndex = TlsAlloc();
+    PhpAutoPoolTlsIndex = PhTlsAlloc();
 
     if (PhpAutoPoolTlsIndex == TLS_OUT_OF_INDEXES)
         return FALSE;
@@ -573,7 +573,7 @@ FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool(
     VOID
     )
 {
-    return (PPH_AUTO_POOL)TlsGetValue(PhpAutoPoolTlsIndex);
+    return (PPH_AUTO_POOL)PhTlsGetValue(PhpAutoPoolTlsIndex);
 }
 
 /**
@@ -583,7 +583,7 @@ _May_raise_ FORCEINLINE VOID PhpSetCurrentAutoPool(
     _In_ PPH_AUTO_POOL AutoPool
     )
 {
-    if (!TlsSetValue(PhpAutoPoolTlsIndex, AutoPool))
+    if (!NT_SUCCESS(PhTlsSetValue(PhpAutoPoolTlsIndex, AutoPool)))
         PhRaiseStatus(STATUS_UNSUCCESSFUL);
 
 #ifdef DEBUG

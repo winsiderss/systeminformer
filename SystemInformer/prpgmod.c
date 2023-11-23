@@ -232,21 +232,21 @@ BOOLEAN PhpModulesTreeFilterCallback(
 
     // module properties
 
+    if (moduleItem->BaseAddressString[0])
+    {
+        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->BaseAddressString))
+            return TRUE;
+    }
+
     if (!PhIsNullOrEmptyString(moduleItem->Name))
     {
         if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->Name->sr))
             return TRUE;
     }
 
-    if (!PhIsNullOrEmptyString(moduleItem->VerifySignerName))
+    if (!PhIsNullOrEmptyString(moduleItem->FileName))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VerifySignerName->sr))
-            return TRUE;
-    }
-
-    if (moduleItem->BaseAddressString[0])
-    {
-        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->BaseAddressString))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->FileName->sr))
             return TRUE;
     }
 
@@ -271,6 +271,12 @@ BOOLEAN PhpModulesTreeFilterCallback(
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.ProductName))
     {
         if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.ProductName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->VerifySignerName))
+    {
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VerifySignerName->sr))
             return TRUE;
     }
 

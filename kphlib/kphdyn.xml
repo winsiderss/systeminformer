@@ -54,13 +54,13 @@ dt nt!_CONTROL_AREA ControlAreaLock
 -->
 <dyn>
     <!-- Windows 11 -->
-    <data name="10.0.22000.556 - 10.0.22621.2506">
+    <data name="10.0.22000.556 - 10.0.22621.2715">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="22000"  name="BuildNumberMin"/>
         <field value="556"    name="RevisionMin"/>
         <field value="22621"  name="BuildNumberMax"/>
-        <field value="2506"   name="RevisionMax"/>
+        <field value="2715"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
@@ -100,7 +100,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
     </data>
-    <data name="10.0.22000.194 - 10.0.22000.493">
+    <data name="10.0.22000.194 - 10.0.22621.493">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="22000"  name="BuildNumberMin"/>
@@ -147,13 +147,13 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <!-- Windows Server 2022 -->
-    <data name="10.0.20348.587 - 10.0.20348.2031">
+    <data name="10.0.20348.587 - 10.0.20348.2110">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="20348"  name="BuildNumberMin"/>
         <field value="587"    name="RevisionMin"/>
         <field value="20348"  name="BuildNumberMax"/>
-        <field value="2031"   name="RevisionMax"/>
+        <field value="2110"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
@@ -194,13 +194,13 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x48"   name="MmControlAreaLock"/>
     </data>
     <!-- Windows 10 -->
-    <data name="10.0.19041.1586 - 10.0.19041.3636">
+    <data name="10.0.19041.1586 - 10.0.19041.3693">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="19041"  name="BuildNumberMin"/>
         <field value="1586"   name="RevisionMin"/>
         <field value="19041"  name="BuildNumberMax"/>
-        <field value="3636"   name="RevisionMax"/>
+        <field value="3693"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
@@ -424,13 +424,13 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
     </data>
-    <data name="10.0.17763.2746 - 10.0.17763.4974">
+    <data name="10.0.17763.2746 - 10.0.17763.5122">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="17763"  name="BuildNumberMin"/>
         <field value="2746"   name="RevisionMin"/>
         <field value="17763"  name="BuildNumberMax"/>
-        <field value="4974"   name="RevisionMax"/>
+        <field value="5122"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x418"  name="EpObjectTable"/>

@@ -3498,15 +3498,15 @@ PPH_STRING PhGetKnownLocation(
     {
     case PH_FOLDERID_LocalAppData:
         {
-            static UNICODE_STRING variableName = RTL_CONSTANT_STRING(L"LOCALAPPDATA");
-            static UNICODE_STRING variableNameProfile = RTL_CONSTANT_STRING(L"USERPROFILE");
+            static PH_STRINGREF variableName = PH_STRINGREF_INIT(L"LOCALAPPDATA");
+            static PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
             NTSTATUS status;
-            UNICODE_STRING variableValue;
+            PH_STRINGREF variableValue;
             WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
-            RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
+            PhInitializeBufferStringRef(&variableValue, variableBuffer, sizeof(variableBuffer));
 
-            status = RtlQueryEnvironmentVariable_U(
+            status = PhQueryEnvironmentVariableStringRef(
                 NULL,
                 &variableName,
                 &variableValue
@@ -3514,7 +3514,7 @@ PPH_STRING PhGetKnownLocation(
 
             if (!NT_SUCCESS(status))
             {
-                status = RtlQueryEnvironmentVariable_U(
+                status = PhQueryEnvironmentVariableStringRef(
                     NULL,
                     &variableNameProfile,
                     &variableValue
@@ -3523,49 +3523,49 @@ PPH_STRING PhGetKnownLocation(
 
             if (NT_SUCCESS(status))
             {
-                PH_STRINGREF string;
-
-                PhUnicodeStringToStringRef(&variableValue, &string);
+                PPH_STRING fileName;
 
                 if (AppendPath)
                 {
                     if (NativeFileName)
                     {
-                        PPH_STRING fileName;
-
-                        if (fileName = PhDosPathNameToNtPathName(&string))
+                        if (fileName = PhDosPathNameToNtPathName(&variableValue))
                         {
                             PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, AppendPath));
                         }
-
-                        return fileName;
+                        else
+                        {
+                            fileName = NULL;
+                        }
                     }
-
-                    return PhConcatStringRef2(&string, AppendPath);
+                    else
+                    {
+                        fileName = PhConcatStringRef2(&variableValue, AppendPath);
+                    }
                 }
                 else
                 {
                     if (NativeFileName)
-                    {
-                        return PhDosPathNameToNtPathName(&string);
-                    }
-
-                    return PhCreateString2(&string);
+                        fileName = PhDosPathNameToNtPathName(&variableValue);
+                    else
+                        fileName = PhCreateString2(&variableValue);
                 }
+
+                return fileName;
             }
         }
         break;
     case PH_FOLDERID_RoamingAppData:
         {
-            static UNICODE_STRING variableName = RTL_CONSTANT_STRING(L"APPDATA");
-            static UNICODE_STRING variableNameProfile = RTL_CONSTANT_STRING(L"USERPROFILE");
+            static PH_STRINGREF variableName = PH_STRINGREF_INIT(L"APPDATA");
+            static PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
             NTSTATUS status;
-            UNICODE_STRING variableValue;
+            PH_STRINGREF variableValue;
             WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
-            RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
+            PhInitializeBufferStringRef(&variableValue, variableBuffer, sizeof(variableBuffer));
 
-            status = RtlQueryEnvironmentVariable_U(
+            status = PhQueryEnvironmentVariableStringRef(
                 NULL,
                 &variableName,
                 &variableValue
@@ -3573,7 +3573,7 @@ PPH_STRING PhGetKnownLocation(
 
             if (!NT_SUCCESS(status))
             {
-                status = RtlQueryEnvironmentVariable_U(
+                status = PhQueryEnvironmentVariableStringRef(
                     NULL,
                     &variableNameProfile,
                     &variableValue
@@ -3582,35 +3582,39 @@ PPH_STRING PhGetKnownLocation(
 
             if (NT_SUCCESS(status))
             {
-                PH_STRINGREF string;
-
-                PhUnicodeStringToStringRef(&variableValue, &string);
+                PPH_STRING fileName;
 
                 if (AppendPath)
                 {
                     if (NativeFileName)
                     {
-                        PPH_STRING fileName;
-
-                        if (fileName = PhDosPathNameToNtPathName(&string))
+                        if (fileName = PhDosPathNameToNtPathName(&variableValue))
                         {
                             PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, AppendPath));
                         }
-
-                        return fileName;
+                        else
+                        {
+                            fileName = NULL;
+                        }
                     }
-
-                    return PhConcatStringRef2(&string, AppendPath);
+                    else
+                    {
+                        fileName = PhConcatStringRef2(&variableValue, AppendPath);
+                    }
                 }
                 else
                 {
                     if (NativeFileName)
                     {
-                        return PhDosPathNameToNtPathName(&string);
+                        fileName = PhDosPathNameToNtPathName(&variableValue);
                     }
-
-                    return PhCreateString2(&string);
+                    else
+                    {
+                        fileName = PhCreateString2(&variableValue);
+                    }
                 }
+
+                return fileName;
             }
         }
         break;
@@ -3739,11 +3743,11 @@ PPH_STRING PhGetTemporaryDirectory(
     _In_opt_ PPH_STRINGREF AppendPath
     )
 {
-    static UNICODE_STRING variableNameTmp = RTL_CONSTANT_STRING(L"TMP");
-    static UNICODE_STRING variableNameTemp = RTL_CONSTANT_STRING(L"TEMP");
-    static UNICODE_STRING variableNameProfile = RTL_CONSTANT_STRING(L"USERPROFILE");
+    static PH_STRINGREF variableNameTmp = PH_STRINGREF_INIT(L"TMP");
+    static PH_STRINGREF variableNameTemp = PH_STRINGREF_INIT(L"TEMP");
+    static PH_STRINGREF variableNameProfile = PH_STRINGREF_INIT(L"USERPROFILE");
     NTSTATUS status;
-    UNICODE_STRING variableValue;
+    PH_STRINGREF variableValue;
     WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
     if (
@@ -3774,9 +3778,9 @@ PPH_STRING PhGetTemporaryDirectory(
         PhDereferenceObject(systemPath);
     }
 
-    RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
+    PhInitializeBufferStringRef(&variableValue, variableBuffer, sizeof(variableBuffer));
 
-    status = RtlQueryEnvironmentVariable_U(
+    status = PhQueryEnvironmentVariableStringRef(
         NULL,
         &variableNameTmp,
         &variableValue
@@ -3784,7 +3788,9 @@ PPH_STRING PhGetTemporaryDirectory(
 
     if (!NT_SUCCESS(status))
     {
-        status = RtlQueryEnvironmentVariable_U(
+        PhInitializeBufferStringRef(&variableValue, variableBuffer, sizeof(variableBuffer));
+
+        status = PhQueryEnvironmentVariableStringRef(
             NULL,
             &variableNameTemp,
             &variableValue
@@ -3792,7 +3798,9 @@ PPH_STRING PhGetTemporaryDirectory(
 
         if (!NT_SUCCESS(status))
         {
-            status = RtlQueryEnvironmentVariable_U(
+            PhInitializeBufferStringRef(&variableValue, variableBuffer, sizeof(variableBuffer));
+
+            status = PhQueryEnvironmentVariableStringRef(
                 NULL,
                 &variableNameProfile,
                 &variableValue
@@ -3804,16 +3812,10 @@ PPH_STRING PhGetTemporaryDirectory(
     {
         if (AppendPath)
         {
-            PH_STRINGREF string;
-
-            PhUnicodeStringToStringRef(&variableValue, &string);
-
-            return PhConcatStringRef2(&string, AppendPath);
+            return PhConcatStringRef2(&variableValue, AppendPath);
         }
-        else
-        {
-            return PhCreateStringFromUnicodeString(&variableValue);
-        }
+
+        return PhCreateString2(&variableValue);
     }
 
     return NULL;

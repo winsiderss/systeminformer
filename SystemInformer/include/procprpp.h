@@ -77,7 +77,7 @@ VOID PhpFlushProcessPropSheetWaitContextData(
     VOID
     );
 
-VOID CALLBACK PhpProcessPropertiesWaitCallback(
+VOID NTAPI PhpProcessPropertiesWaitCallback(
     _In_ PVOID Context,
     _In_ BOOLEAN TimerOrWaitFired
     );
@@ -365,6 +365,8 @@ typedef struct _PH_STATISTICS_CONTEXT
     PPH_STRING PeakHandles;
     PPH_STRING GdiHandles;
     PPH_STRING UserHandles;
+    PPH_STRING PeakGdiHandles;
+    PPH_STRING PeakUserHandles;
     PSYSTEM_PROCESS_INFORMATION_EXTENSION ProcessExtension;
 
     PPH_STRING SharedCommitUsage;

@@ -84,7 +84,7 @@ VOID PhSaveSettingsServiceTreeList(
 
 // begin_phapppub
 PHAPPAPI
-struct _PH_TN_FILTER_SUPPORT *
+PPH_TN_FILTER_SUPPORT
 NTAPI
 PhGetFilterSupportServiceTreeList(
     VOID

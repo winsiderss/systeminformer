@@ -1695,12 +1695,39 @@ BOOLEAN PhEnumProcessEnvironmentVariables(
     return TRUE;
 }
 
+NTSTATUS PhQueryEnvironmentVariableStringRef(
+    _In_opt_ PVOID Environment,
+    _In_ PPH_STRINGREF Name,
+    _Inout_opt_ PPH_STRINGREF Value
+    )
+{
+    NTSTATUS status;
+    SIZE_T returnLength;
+
+    status = RtlQueryEnvironmentVariable(
+        Environment,
+        Name->Buffer,
+        Name->Length / sizeof(WCHAR),
+        Value ? Value->Buffer : NULL,
+        Value ? Value->Length / sizeof(WCHAR) : 0,
+        &returnLength
+        );
+
+    if (Value && NT_SUCCESS(status))
+    {
+        Value->Length = returnLength * sizeof(WCHAR);
+    }
+
+    return status;
+}
+
 NTSTATUS PhQueryEnvironmentVariable(
     _In_opt_ PVOID Environment,
     _In_ PPH_STRINGREF Name,
     _Out_opt_ PPH_STRING* Value
     )
 {
+#ifdef PHNT_UNICODESTRING_ENVIRONMENTVARIABLE
     NTSTATUS status;
     UNICODE_STRING variableName;
     UNICODE_STRING variableValue;
@@ -1752,6 +1779,51 @@ NTSTATUS PhQueryEnvironmentVariable(
     }
 
     return status;
+#else
+    NTSTATUS status;
+    PPH_STRING buffer;
+    SIZE_T returnLength;
+
+    status = RtlQueryEnvironmentVariable(
+        Environment,
+        Name->Buffer,
+        Name->Length / sizeof(WCHAR),
+        NULL,
+        0,
+        &returnLength
+        );
+
+    if (Value && status == STATUS_BUFFER_TOO_SMALL)
+    {
+        buffer = PhCreateStringEx(NULL, returnLength * sizeof(WCHAR));
+
+        status = RtlQueryEnvironmentVariable(
+            Environment,
+            Name->Buffer,
+            Name->Length / sizeof(WCHAR),
+            buffer->Buffer,
+            buffer->Length / sizeof(WCHAR),
+            &returnLength
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            buffer->Length = returnLength * sizeof(WCHAR);
+            *Value = buffer;
+        }
+        else
+        {
+            PhDereferenceObject(buffer);
+        }
+    }
+    else
+    {
+        if (Value)
+            *Value = NULL;
+    }
+
+    return status;
+#endif
 }
 
 NTSTATUS PhSetEnvironmentVariable(
@@ -2138,7 +2210,7 @@ NTSTATUS PhTraceControl(
     _In_ ETWTRACECONTROLCODE TraceInformationClass,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
-    _Out_opt_ PVOID *OutputBuffer,
+    _Out_writes_bytes_opt_(*OutputBufferLength) PVOID* OutputBuffer,
     _Out_opt_ PULONG OutputBufferLength
     )
 {
@@ -2151,14 +2223,13 @@ NTSTATUS PhTraceControl(
         TraceInformationClass,
         InputBuffer,
         InputBufferLength,
-        buffer,
-        bufferLength,
+        NULL,
+        0,
         &returnLength
         );
 
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        PhFree(buffer);
         bufferLength = returnLength;
         buffer = PhAllocate(bufferLength);
 
@@ -4031,7 +4102,7 @@ NTSTATUS PhGetProcessMandatoryPolicy(
 {
     NTSTATUS status;
     BOOLEAN found = FALSE;
-    ACCESS_MASK currentMask;
+    ACCESS_MASK currentMask = 0;
     PSYSTEM_MANDATORY_LABEL_ACE currentAce;
     PSECURITY_DESCRIPTOR currentSecurityDescriptor;
     BOOLEAN currentSaclPresent;
@@ -7007,6 +7078,9 @@ NTSTATUS PhEnumNextProcess(
     {
         status = Callback(processHandle, Context);
 
+        if (status == STATUS_NO_MORE_ENTRIES)
+            break;
+
         if (!NT_SUCCESS(status))
         {
             NtClose(processHandle);
@@ -7066,6 +7140,9 @@ NTSTATUS PhEnumNextThread(
     while (TRUE)
     {
         status = Callback(threadHandle, Context);
+
+        if (status == STATUS_NO_MORE_ENTRIES)
+            break;
 
         if (!NT_SUCCESS(status))
         {

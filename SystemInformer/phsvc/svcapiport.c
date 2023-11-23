@@ -78,7 +78,7 @@ NTSTATUS PhSvcApiPortInitialization(
 
     // Start the API threads.
 
-    PhSvcApiThreadContextTlsIndex = TlsAlloc();
+    PhSvcApiThreadContextTlsIndex = PhTlsAlloc();
 
     for (i = 0; i < 2; i++)
     {
@@ -92,7 +92,7 @@ PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext(
     VOID
     )
 {
-    return (PPHSVC_THREAD_CONTEXT)TlsGetValue(PhSvcApiThreadContextTlsIndex);
+    return (PPHSVC_THREAD_CONTEXT)PhTlsGetValue(PhSvcApiThreadContextTlsIndex);
 }
 
 NTSTATUS PhSvcApiRequestThreadStart(
@@ -116,7 +116,7 @@ NTSTATUS PhSvcApiRequestThreadStart(
     threadContext.CurrentClient = NULL;
     threadContext.OldClient = NULL;
 
-    TlsSetValue(PhSvcApiThreadContextTlsIndex, &threadContext);
+    PhTlsSetValue(PhSvcApiThreadContextTlsIndex, &threadContext);
 
     portHandle = PhSvcApiPortHandle;
     messageSize = PhIsExecutingInWow64() ? sizeof(PHSVC_API_MSG64) : sizeof(PHSVC_API_MSG);

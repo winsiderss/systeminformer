@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010
+ *     dmex    2023
+ *
+ */
+
 #ifndef _PH_PHINTRNL_H
 #define _PH_PHINTRNL_H
 
