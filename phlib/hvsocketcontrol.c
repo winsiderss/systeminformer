@@ -43,6 +43,7 @@ NTSTATUS HvSocketOpenSystemControl(
     _In_opt_ const GUID* VmId
     )
 {
+    NTSTATUS status;
     IO_STATUS_BLOCK ioStatusBlock;
     BYTE buffer[HVSOCKET_SYSTEM_PATH_LENGTH];
     UNICODE_STRING systemPath;
@@ -74,12 +75,18 @@ NTSTATUS HvSocketOpenSystemControl(
     RtlAppendUnicodeStringToString(&systemPath, &HvSocketAddressInfoName);
     RtlAppendUnicodeToString(&systemPath, L"\\");
 
-    guidString.Buffer = &systemPath.Buffer[systemPath.Length / 2];
-    guidString.Length = 0;
-    guidString.MaximumLength = systemPath.MaximumLength - systemPath.Length;
-    RtlStringFromGUIDEx((PGUID)VmId, &guidString, FALSE);
+    status = RtlStringFromGUID((PGUID)VmId, &guidString);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
 
-    systemPath.Length += guidString.Length;
+    status = RtlAppendUnicodeStringToString(&systemPath, &guidString);
+    RtlFreeUnicodeString(&guidString);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
 
     InitializeObjectAttributes(&objectAttributes, &systemPath, 0, NULL, NULL);
 
