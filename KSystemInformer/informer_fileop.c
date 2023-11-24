@@ -1003,8 +1003,13 @@ VOID KphpFltFillCommonMessage(
 
     if (Data->Thread)
     {
-        Message->Kernel.File.ClientId.UniqueProcess = PsGetThreadProcessId(Data->Thread);
+        PEPROCESS process;
+
+        process = PsGetThreadProcess(Data->Thread);
+
+        Message->Kernel.File.ClientId.UniqueProcess = PsGetProcessId(process);
         Message->Kernel.File.ClientId.UniqueThread = PsGetThreadId(Data->Thread);
+        Message->Kernel.File.ProcessStartKey = KphGetProcessStartKey(process);
     }
 
     Message->Kernel.File.RequestorMode = (Data->RequestorMode != KernelMode);

@@ -364,9 +364,24 @@ typedef struct _KPHM_SET_INFORMER_PROCESS_FILTER
 typedef struct _KPHM_PROCESS_CREATE
 {
     CLIENT_ID CreatingClientId;
+    ULONG64 CreatingProcessStartKey;
     HANDLE TargetProcessId;
+    ULONG64 TargetProcessStartKey;
     HANDLE ParentProcessId;
-    BOOLEAN IsSubsystemProcess;
+    ULONG64 ParentProcessStartKey;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG FileOpenNameAvailable : 1;
+            ULONG IsSubsystemProcess : 1;
+            ULONG Reserved : 30;
+        };
+    };
+
+    PVOID FileObject;
 
     //
     // Dynamic
@@ -383,31 +398,38 @@ typedef struct _KPHM_PROCESS_CREATE_REPLY
 
 typedef struct _KPHM_PROCESS_EXIT
 {
-    CLIENT_ID ExitingClientId;
+    CLIENT_ID ClientId;
+    ULONG64 ProcessStartKey;
     NTSTATUS ExitStatus;
 } KPHM_PROCESS_EXIT, *PKPHM_PROCESS_EXIT;
 
 typedef struct _KPHM_THREAD_CREATE
 {
     CLIENT_ID CreatingClientId;
+    ULONG64 CreatingProcessStartKey;
     CLIENT_ID TargetClientId;
+    ULONG64 TargetProcessStartKey;
 } KPHM_THREAD_CREATE, *PKPHM_THREAD_CREATE;
 
 typedef struct _KPHM_THREAD_EXECUTE
 {
-    CLIENT_ID ExecutingClientId;
+    CLIENT_ID ClientId;
+    ULONG64 ProcessStartKey;
 } KPHM_THREAD_EXECUTE, *PKPHM_THREAD_EXECUTE;
 
 typedef struct _KPHM_THREAD_EXIT
 {
-    CLIENT_ID ExitingClientId;
+    CLIENT_ID ClientId;
+    ULONG64 ProcessStartKey;
     NTSTATUS ExitStatus;
 } KPHM_THREAD_EXIT, *PKPHM_THREAD_EXIT;
 
 typedef struct _KPHM_IMAGE_LOAD
 {
     CLIENT_ID LoadingClientId;
+    ULONG64 LoadingProcessStartKey;
     HANDLE TargetProcessId;
+    ULONG64 TargetProcessStartKey;
 
     union
     {
@@ -430,6 +452,7 @@ typedef struct _KPHM_IMAGE_LOAD
     ULONG ImageSelector;
     SIZE_T ImageSize;
     ULONG ImageSectionNumber;
+    PVOID FileObject;
 
     //
     // Dynamic
@@ -454,6 +477,7 @@ typedef struct _KPHM_DEBUG_PRINT
 typedef struct _KPHM_HANDLE
 {
     CLIENT_ID ContextClientId;
+    ULONG64 ContextProcessStartKey;
 
     union
     {
@@ -1036,6 +1060,7 @@ typedef union _KPHM_FILE_PARAMETERS
 typedef struct _KPHM_FILE
 {
     CLIENT_ID ClientId;
+    ULONG64 ProcessStartKey;
 
     UCHAR MajorFunction;  // IRP_MJ_*
     UCHAR MinorFunction;  // IRP_MN_*
@@ -1386,6 +1411,7 @@ typedef union _KPHM_REGISTRY_PARAMETERS
 typedef struct _KPHM_REGISTRY
 {
     CLIENT_ID ClientId;
+    ULONG64 ProcessStartKey;
 
     union
     {

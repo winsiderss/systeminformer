@@ -219,12 +219,15 @@ PPH_STRING KsiDebugLogProcessCreate(
     KphMsgDynGetUnicodeString(Message, KphMsgFieldCommandLine, &commandLine);
 
     return PhFormatString(
-        L"process %lu (thread %lu) created process %lu%ls(parent %lu) \"%wZ\" \"%wZ\"",
+        L"%04x:%04x:%016llx created process %lu (%016llx)%ls(parent %lu (%016llx)) \"%wZ\" \"%wZ\"",
         HandleToUlong(Message->Kernel.ProcessCreate.CreatingClientId.UniqueProcess),
         HandleToUlong(Message->Kernel.ProcessCreate.CreatingClientId.UniqueThread),
+        Message->Kernel.ProcessCreate.CreatingProcessStartKey,
         HandleToUlong(Message->Kernel.ProcessCreate.TargetProcessId),
+        Message->Kernel.ProcessCreate.TargetProcessStartKey,
         Message->Kernel.ProcessCreate.IsSubsystemProcess ? L" subsystem process " : L" ",
         HandleToUlong(Message->Kernel.ProcessCreate.ParentProcessId),
+        Message->Kernel.ProcessCreate.ParentProcessStartKey,
         &fileName,
         &commandLine
         );
@@ -240,8 +243,10 @@ PPH_STRING KsiDebugLogProcessExit(
     statusMessage = PhGetStatusMessage(Message->Kernel.ProcessExit.ExitStatus, 0);
 
     result = PhFormatString(
-        L"process %lu exited with %ls (0x%08x)",
-        HandleToUlong(Message->Kernel.ProcessExit.ExitingClientId.UniqueProcess),
+        L"%04x:%04x:%016llx process exited with %ls (0x%08x)",
+        HandleToUlong(Message->Kernel.ProcessExit.ClientId.UniqueProcess),
+        HandleToUlong(Message->Kernel.ProcessExit.ClientId.UniqueThread),
+        Message->Kernel.ProcessExit.ProcessStartKey,
         PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
         Message->Kernel.ProcessExit.ExitStatus
         );
@@ -256,11 +261,13 @@ PPH_STRING KsiDebugLogThreadCreate(
     )
 {
     return PhFormatString(
-        L"thread %lu created in process %lu by process %lu (thread %lu)",
+        L"%04x:%04x:%016llx thread %lu created in process %lu (%016llx)",
+        HandleToUlong(Message->Kernel.ThreadCreate.CreatingClientId.UniqueProcess),
+        HandleToUlong(Message->Kernel.ThreadCreate.CreatingClientId.UniqueThread),
+        Message->Kernel.ThreadCreate.CreatingProcessStartKey,
         HandleToUlong(Message->Kernel.ThreadCreate.TargetClientId.UniqueThread),
         HandleToUlong(Message->Kernel.ThreadCreate.TargetClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ThreadCreate.CreatingClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ThreadCreate.CreatingClientId.UniqueThread)
+        Message->Kernel.ThreadCreate.TargetProcessStartKey
         );
 }
 
@@ -269,9 +276,10 @@ PPH_STRING KsiDebugLogThreadExecute(
     )
 {
     return PhFormatString(
-        L"thread %lu in process %lu is beginning execution",
-        HandleToUlong(Message->Kernel.ThreadExecute.ExecutingClientId.UniqueThread),
-        HandleToUlong(Message->Kernel.ThreadExecute.ExecutingClientId.UniqueProcess)
+        L"%04x:%04x:%016llx thread beginning execution",
+        HandleToUlong(Message->Kernel.ThreadExecute.ClientId.UniqueThread),
+        HandleToUlong(Message->Kernel.ThreadExecute.ClientId.UniqueProcess),
+        Message->Kernel.ThreadExecute.ProcessStartKey
         );
 }
 
@@ -285,9 +293,10 @@ PPH_STRING KsiDebugLogThreadExit(
     statusMessage = PhGetStatusMessage(Message->Kernel.ThreadExit.ExitStatus, 0);
 
     result = PhFormatString(
-        L"thread %lu in process %lu exited with %ls (0x%08x)",
-        HandleToUlong(Message->Kernel.ThreadExit.ExitingClientId.UniqueThread),
-        HandleToUlong(Message->Kernel.ThreadExit.ExitingClientId.UniqueProcess),
+        L"%04x:%04x:%016llx thread exited with %ls (0x%08x)",
+        HandleToUlong(Message->Kernel.ThreadExit.ClientId.UniqueThread),
+        HandleToUlong(Message->Kernel.ThreadExit.ClientId.UniqueProcess),
+        Message->Kernel.ThreadExit.ProcessStartKey,
         PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
         Message->Kernel.ThreadExit.ExitStatus
         );
@@ -306,12 +315,14 @@ PPH_STRING KsiDebugLogImageLoad(
     KphMsgDynGetUnicodeString(Message, KphMsgFieldFileName, &fileName);
 
     return PhFormatString(
-        L"image \"%wZ\" loaded into process %lu at %p by process %lu (thread %lu)",
+        L"%04x:%04x:%016llx image \"%wZ\" loaded into process %lu (%016llx) at %p",
+        HandleToUlong(Message->Kernel.ImageLoad.LoadingClientId.UniqueProcess),
+        HandleToUlong(Message->Kernel.ImageLoad.LoadingClientId.UniqueThread),
+        Message->Kernel.ImageLoad.LoadingProcessStartKey,
         &fileName,
         HandleToUlong(Message->Kernel.ImageLoad.TargetProcessId),
-        Message->Kernel.ImageLoad.ImageBase,
-        HandleToUlong(Message->Kernel.ImageLoad.LoadingClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ImageLoad.LoadingClientId.UniqueThread)
+        Message->Kernel.ImageLoad.TargetProcessStartKey,
+        Message->Kernel.ImageLoad.ImageBase
         );
 }
 
@@ -356,9 +367,10 @@ PPH_STRING KsiDebugLogHandleProcess(
         if (Message->Kernel.Handle.Duplicate)
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to process %lu (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
+                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to process %lu (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -377,9 +389,10 @@ PPH_STRING KsiDebugLogHandleProcess(
         else
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to process %lu %llu %llu %ls (0x%08x)",
+                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to process %lu %llu %llu %ls (0x%08x)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -401,9 +414,10 @@ PPH_STRING KsiDebugLogHandleProcess(
         if (Message->Kernel.Handle.Duplicate)
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p desires 0x%08x (original 0x%08x) to process %lu (duplicate %lu -> %lu)",
+                L"%04x:%04x:%016llx %c %p desires 0x%08x (original 0x%08x) to process %lu (duplicate %lu -> %lu)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Pre.DesiredAccess,
@@ -416,9 +430,10 @@ PPH_STRING KsiDebugLogHandleProcess(
         else
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p desires 0x%08x (original 0x%08x) to process %lu",
+                L"%04x:%04x:%016llx %c %p desires 0x%08x (original 0x%08x) to process %lu",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Pre.DesiredAccess,
@@ -446,9 +461,10 @@ PPH_STRING KsiDebugLogHandleThread(
         if (Message->Kernel.Handle.Duplicate)
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
+                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -467,9 +483,10 @@ PPH_STRING KsiDebugLogHandleThread(
         else
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu %llu %llu %ls (0x%08x)",
+                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu %llu %llu %ls (0x%08x)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -491,9 +508,10 @@ PPH_STRING KsiDebugLogHandleThread(
         if (Message->Kernel.Handle.Duplicate)
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu (duplicate %lu -> %lu)",
+                L"%04x:%04x:%016llx %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu (duplicate %lu -> %lu)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -507,9 +525,10 @@ PPH_STRING KsiDebugLogHandleThread(
         else
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu",
+                L"%04x:%04x:%016llx %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -541,9 +560,10 @@ PPH_STRING KsiDebugLogHandleDesktop(
         if (Message->Kernel.Handle.Duplicate)
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to desktop \"%wZ\" (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
+                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to desktop \"%wZ\" (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -562,9 +582,10 @@ PPH_STRING KsiDebugLogHandleDesktop(
         else
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to desktop \"%wZ\" %llu %llu %ls (0x%08x)",
+                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to desktop \"%wZ\" %llu %llu %ls (0x%08x)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -586,9 +607,10 @@ PPH_STRING KsiDebugLogHandleDesktop(
         if (Message->Kernel.Handle.Duplicate)
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu desires 0x%08x (original 0x%08x) to desktop \"%wZ\" (duplicate %lu -> %lu)",
+                L"%04x:%04x:%016llx %c %p %llu desires 0x%08x (original 0x%08x) to desktop \"%wZ\" (duplicate %lu -> %lu)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -602,9 +624,10 @@ PPH_STRING KsiDebugLogHandleDesktop(
         else
         {
             result = PhFormatString(
-                L"%04x:%04x %c %p %llu desires 0x%08x (original 0x%08x) to desktop \"%wZ\"",
+                L"%04x:%04x:%016llx %c %p %llu desires 0x%08x (original 0x%08x) to desktop \"%wZ\"",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                Message->Kernel.Handle.ContextProcessStartKey,
                 (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Sequence,
@@ -623,7 +646,7 @@ PPH_STRING KsiDebugLogRequiredStateFailure(
     )
 {
     return PhFormatString(
-        L"required state failure for process %lu (thread %lu), message %lu, state 0x%08x, required 0x%08x",
+        L"%04x:%04x required state failure, message %lu, state 0x%08x, required 0x%08x",
         HandleToUlong(Message->Kernel.RequiredStateFailure.ClientId.UniqueProcess),
         HandleToUlong(Message->Kernel.RequiredStateFailure.ClientId.UniqueThread),
         (ULONG)Message->Kernel.RequiredStateFailure.MessageId,
@@ -648,9 +671,10 @@ PPH_STRING KsiDebugLogFileCommon(
         statusMessage = PhGetStatusMessage(Message->Kernel.File.Post.IoStatus.Status, 0);
 
         result = PhFormatString(
-            L"%04x:%04x %lu %p %llu \"%wZ\" %llu %llu %ls (0x%08x)",
+            L"%04x:%04x:%016llx %lu %p %llu \"%wZ\" %llu %llu %ls (0x%08x)",
             HandleToUlong(Message->Kernel.File.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.File.ClientId.UniqueThread),
+            Message->Kernel.File.ProcessStartKey,
             (ULONG)Message->Kernel.File.Irql,
             Message->Kernel.File.FileObject,
             Message->Kernel.File.Sequence,
@@ -666,9 +690,10 @@ PPH_STRING KsiDebugLogFileCommon(
     else
     {
         result = PhFormatString(
-            L"%04x:%04x %lu %p %llu \"%wZ\"",
+            L"%04x:%04x:%016llx %lu %p %llu \"%wZ\"",
             HandleToUlong(Message->Kernel.File.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.File.ClientId.UniqueThread),
+            Message->Kernel.File.ProcessStartKey,
             (ULONG)Message->Kernel.File.Irql,
             Message->Kernel.File.FileObject,
             Message->Kernel.File.Sequence,
@@ -734,9 +759,10 @@ PPH_STRING KsiDebugLogRegCommon(
         statusMessage = PhGetStatusMessage(Message->Kernel.Reg.Post.Status, 0);
 
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" %llu %llu %ls (0x%08x)",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" %llu %llu %ls (0x%08x)",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -752,9 +778,10 @@ PPH_STRING KsiDebugLogRegCommon(
     else
     {
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\"",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\"",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -783,9 +810,10 @@ PPH_STRING KsiDebugLogRegCommonWithValue(
         statusMessage = PhGetStatusMessage(Message->Kernel.Reg.Post.Status, 0);
 
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" \"%wZ\" %llu %llu %ls (0x%08x)",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" \"%wZ\" %llu %llu %ls (0x%08x)",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -802,9 +830,10 @@ PPH_STRING KsiDebugLogRegCommonWithValue(
     else
     {
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" \"%wZ\"",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" \"%wZ\"",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -868,9 +897,10 @@ PPH_STRING KsiDebugLogRegCommonWithMultipleValues(
         statusMessage = PhGetStatusMessage(Message->Kernel.Reg.Post.Status, 0);
 
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" %ls %llu %llu %ls (0x%08x)",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" %ls %llu %llu %ls (0x%08x)",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -887,9 +917,10 @@ PPH_STRING KsiDebugLogRegCommonWithMultipleValues(
     else
     {
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" %ls",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" %ls",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -919,9 +950,10 @@ PPH_STRING KsiDebugLogRegSaveRestoreKey(
         statusMessage = PhGetStatusMessage(Message->Kernel.Reg.Post.Status, 0);
 
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" \"%wZ\" %llu %llu %ls (0x%08x)",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" \"%wZ\" %llu %llu %ls (0x%08x)",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -938,9 +970,10 @@ PPH_STRING KsiDebugLogRegSaveRestoreKey(
     else
     {
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" \"%wZ\"",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" \"%wZ\"",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -972,9 +1005,10 @@ PPH_STRING KsiDebugLogRegReplaceKey(
         statusMessage = PhGetStatusMessage(Message->Kernel.Reg.Post.Status, 0);
 
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" -> \"%wZ\" -> \"%wZ\" %llu %llu %ls (0x%08x)",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" -> \"%wZ\" -> \"%wZ\" %llu %llu %ls (0x%08x)",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -992,9 +1026,10 @@ PPH_STRING KsiDebugLogRegReplaceKey(
     else
     {
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" -> \"%wZ\" -> \"%wZ\"",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" -> \"%wZ\" -> \"%wZ\"",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -1027,9 +1062,10 @@ PPH_STRING KsiDebugLogSaveMergedKey(
         statusMessage = PhGetStatusMessage(Message->Kernel.Reg.Post.Status, 0);
 
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" + \"%wZ\" -> \"%wZ\" %llu %llu %ls (0x%08x)",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" + \"%wZ\" -> \"%wZ\" %llu %llu %ls (0x%08x)",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,
@@ -1047,9 +1083,10 @@ PPH_STRING KsiDebugLogSaveMergedKey(
     else
     {
         result = PhFormatString(
-            L"%04x:%04x %c %p %llu \"%wZ\" + \"%wZ\" -> \"%wZ\"",
+            L"%04x:%04x:%016llx %c %p %llu \"%wZ\" + \"%wZ\" -> \"%wZ\"",
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueProcess),
             HandleToUlong(Message->Kernel.Reg.ClientId.UniqueThread),
+            Message->Kernel.Reg.ProcessStartKey,
             (Message->Kernel.Reg.PreviousMode ? 'U' : 'K'),
             Message->Kernel.Reg.Object,
             Message->Kernel.Reg.Sequence,

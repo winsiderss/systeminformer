@@ -95,11 +95,22 @@ VOID KphpLoadImageNotifyInformer(
 
     msg->Kernel.ImageLoad.LoadingClientId.UniqueProcess = PsGetCurrentProcessId();
     msg->Kernel.ImageLoad.LoadingClientId.UniqueThread = PsGetCurrentThreadId();
+    msg->Kernel.ImageLoad.LoadingProcessStartKey = KphGetCurrentProcessStartKey();
     msg->Kernel.ImageLoad.TargetProcessId = ProcessId;
     msg->Kernel.ImageLoad.Properties = ImageInfo->ImageInfo.Properties;
     msg->Kernel.ImageLoad.ImageBase = ImageInfo->ImageInfo.ImageBase;
     msg->Kernel.ImageLoad.ImageSelector = ImageInfo->ImageInfo.ImageSelector;
     msg->Kernel.ImageLoad.ImageSectionNumber = ImageInfo->ImageInfo.ImageSectionNumber;
+    msg->Kernel.ImageLoad.FileObject = ImageInfo->FileObject;
+
+    if (targetProcess)
+    {
+        ULONG64 startKey;
+
+        startKey = KphGetProcessStartKey(targetProcess->EProcess);
+
+        msg->Kernel.ImageLoad.TargetProcessStartKey = startKey;
+    }
 
     if (fileName)
     {

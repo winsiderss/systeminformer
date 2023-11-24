@@ -1105,6 +1105,9 @@ ULONG64 KphGetProcessStartKey(
     _In_ PEPROCESS Process
     );
 
+#define KphGetCurrentProcessStartKey() KphGetProcessStartKey(PsGetCurrentProcess())
+#define KphGetThreadProcessStartKey(thread) KphGetProcessStartKey(PsGetThreadProcess(thread))
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

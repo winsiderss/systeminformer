@@ -117,17 +117,15 @@ VOID KphpCreateThreadNotifyInformer(
 {
     PKPH_MESSAGE msg;
     PKPH_PROCESS_CONTEXT actorProcess;
-    PKPH_PROCESS_CONTEXT targetProcess;
 
     PAGED_CODE_PASSIVE();
 
     msg = NULL;
     actorProcess = KphGetCurrentProcessContext();
-    targetProcess = KphGetProcessContext(ProcessId);
 
     if (Type == KphThreadNotifyCreate)
     {
-        if (!KphInformerEnabled2(ThreadCreate, actorProcess, targetProcess))
+        if (!KphInformerEnabled2(ThreadCreate, actorProcess, Thread->ProcessContext))
         {
             goto Exit;
         }
@@ -144,12 +142,14 @@ VOID KphpCreateThreadNotifyInformer(
         KphMsgInit(msg, KphMsgThreadCreate);
         msg->Kernel.ThreadCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
         msg->Kernel.ThreadCreate.CreatingClientId.UniqueThread = PsGetCurrentThreadId();
+        msg->Kernel.ThreadCreate.CreatingProcessStartKey = KphGetCurrentProcessStartKey();
         msg->Kernel.ThreadCreate.TargetClientId.UniqueProcess = ProcessId;
         msg->Kernel.ThreadCreate.TargetClientId.UniqueThread = ThreadId;
+        msg->Kernel.ThreadCreate.TargetProcessStartKey = KphGetThreadProcessStartKey(Thread->EThread);
     }
     else if (Type == KphThreadNotifyExecute)
     {
-        if (!KphInformerEnabled2(ThreadExecute, actorProcess, targetProcess))
+        if (!KphInformerEnabled2(ThreadExecute, actorProcess, Thread->ProcessContext))
         {
             goto Exit;
         }
@@ -164,14 +164,16 @@ VOID KphpCreateThreadNotifyInformer(
         }
 
         KphMsgInit(msg, KphMsgThreadExecute);
-        msg->Kernel.ThreadExecute.ExecutingClientId.UniqueProcess = ProcessId;
-        msg->Kernel.ThreadExecute.ExecutingClientId.UniqueThread = ThreadId;
+        msg->Kernel.ThreadExecute.ClientId.UniqueProcess = ProcessId;
+        msg->Kernel.ThreadExecute.ClientId.UniqueThread = ThreadId;
+        NT_ASSERT(ProcessId == PsGetCurrentProcessId());
+        msg->Kernel.ThreadExecute.ProcessStartKey = KphGetCurrentProcessStartKey();
     }
     else
     {
         NT_ASSERT(Type == KphThreadNotifyExit);
 
-        if (!KphInformerEnabled2(ThreadExit, actorProcess, targetProcess))
+        if (!KphInformerEnabled2(ThreadExit, actorProcess, Thread->ProcessContext))
         {
             goto Exit;
         }
@@ -186,12 +188,14 @@ VOID KphpCreateThreadNotifyInformer(
         }
 
         KphMsgInit(msg, KphMsgThreadExit);
-        msg->Kernel.ThreadExit.ExitingClientId.UniqueProcess = ProcessId;
-        msg->Kernel.ThreadExit.ExitingClientId.UniqueThread = ThreadId;
+        msg->Kernel.ThreadExit.ClientId.UniqueProcess = ProcessId;
+        msg->Kernel.ThreadExit.ClientId.UniqueThread = ThreadId;
         msg->Kernel.ThreadExit.ExitStatus = PsGetThreadExitStatus(Thread->EThread);
+        NT_ASSERT(ProcessId == PsGetCurrentProcessId());
+        msg->Kernel.ThreadExit.ProcessStartKey = KphGetCurrentProcessStartKey();
     }
 
-    if (KphInformerEnabled2(EnableStackTraces, actorProcess, targetProcess))
+    if (KphInformerEnabled2(EnableStackTraces, actorProcess, Thread->ProcessContext))
     {
         KphCaptureStackInMessage(msg);
     }
@@ -204,11 +208,6 @@ Exit:
     if (msg)
     {
         KphFreeMessage(msg);
-    }
-
-    if (targetProcess)
-    {
-        KphDereferenceObject(targetProcess);
     }
 
     if (actorProcess)
