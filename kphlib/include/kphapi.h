@@ -430,11 +430,15 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 HandlePreDuplicateDesktop : 1;
             ULONG64 HandlePostDuplicateDesktop : 1;
             ULONG64 EnableStackTraces : 1;
+            ULONG64 EnableProcessCreateReply : 1;
+            ULONG64 FileEnablePreCreateReply : 1;
+            ULONG64 FileEnablePostCreateReply : 1;
             ULONG64 FileEnablePostFileNames : 1;
             ULONG64 FileEnablePagingIo : 1;
             ULONG64 FileEnableSyncPagingIo : 1;
             ULONG64 FileEnableIoControlBuffers : 1;
             ULONG64 FileEnableFsControlBuffers : 1;
+            ULONG64 FileEnableDirControlBuffers : 1;
             ULONG64 FilePreCreate : 1;
             ULONG64 FilePostCreate : 1;
             ULONG64 FilePreCreateNamedPipe : 1;
@@ -470,10 +474,6 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 FilePreShutdown : 1;
             ULONG64 FilePostShutdown : 1;
             ULONG64 FilePreLockControl : 1;
-            ULONG64 FilePostLockControl : 1;
-            ULONG64 FilePreCleanup : 1;
-            ULONG64 FilePostCleanup : 1;
-            ULONG64 FilePreCreateMailslot : 1;
         };
     };
     union
@@ -481,6 +481,10 @@ typedef struct _KPH_INFORMER_SETTINGS
         volatile ULONG64 Flags2;
         struct
         {
+            ULONG64 FilePostLockControl : 1;
+            ULONG64 FilePreCleanup : 1;
+            ULONG64 FilePostCleanup : 1;
+            ULONG64 FilePreCreateMailslot : 1;
             ULONG64 FilePostCreateMailslot : 1;
             ULONG64 FilePreQuerySecurity : 1;
             ULONG64 FilePostQuerySecurity : 1;
@@ -541,10 +545,6 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 RegPostSetInformationKey : 1;
             ULONG64 RegPreRenameKey : 1;
             ULONG64 RegPostRenameKey : 1;
-            ULONG64 RegPreEnumerateKey : 1;
-            ULONG64 RegPostEnumerateKey : 1;
-            ULONG64 RegPreEnumerateValueKey : 1;
-            ULONG64 RegPostEnumerateValueKey : 1;
         };
     };
     union
@@ -552,6 +552,10 @@ typedef struct _KPH_INFORMER_SETTINGS
         volatile ULONG64 Flags3;
         struct
         {
+            ULONG64 RegPreEnumerateKey : 1;
+            ULONG64 RegPostEnumerateKey : 1;
+            ULONG64 RegPreEnumerateValueKey : 1;
+            ULONG64 RegPostEnumerateValueKey : 1;
             ULONG64 RegPreQueryKey : 1;
             ULONG64 RegPostQueryKey : 1;
             ULONG64 RegPreQueryValueKey : 1;
@@ -584,7 +588,7 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONG64 RegPostQueryKeyName : 1;
             ULONG64 RegPreSaveMergedKey : 1;
             ULONG64 RegPostSaveMergedKey : 1;
-            ULONG64 Reserved : 32;
+            ULONG64 Reserved : 28;
         };
     };
 } KPH_INFORMER_SETTINGS, *PKPH_INFORMER_SETTINGS;
