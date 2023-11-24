@@ -336,6 +336,7 @@ VOID KphpObPreFillMessage(
 
     Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
+    Message->Kernel.Handle.ContextProcessStartKey = KphGetCurrentProcessStartKey();
     Message->Kernel.Handle.Flags = Info->Flags;
     Message->Kernel.Handle.Object = Info->Object;
 
@@ -412,6 +413,7 @@ VOID KphpObPostFillMessage(
 
     Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
+    Message->Kernel.Handle.ContextProcessStartKey = KphGetCurrentProcessStartKey();
     Message->Kernel.Handle.Flags = Info->Flags;
     Message->Kernel.Handle.Object = Info->Object;
 

@@ -180,12 +180,14 @@ VOID KphpCreateProcessNotifyInformer(
     NTSTATUS status;
     PKPH_MESSAGE msg;
     PKPH_MESSAGE reply;
+    PEPROCESS parentProcess;
     PKPH_PROCESS_CONTEXT actorProcess;
 
     PAGED_CODE_PASSIVE();
 
     msg = NULL;
     reply = NULL;
+    parentProcess = NULL;
     actorProcess = KphGetCurrentProcessContext();
 
     if (CreateInfo)
@@ -213,12 +215,31 @@ VOID KphpCreateProcessNotifyInformer(
             goto Exit;
         }
 
+        status = PsLookupProcessByProcessId(CreateInfo->ParentProcessId,
+                                            &parentProcess);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "PsLookupProcessByProcessId failed: %!STATUS!",
+                          status);
+            parentProcess = NULL;
+        }
+
         KphMsgInit(msg, KphMsgProcessCreate);
         msg->Kernel.ProcessCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
         msg->Kernel.ProcessCreate.CreatingClientId.UniqueThread = PsGetCurrentThreadId();
-        msg->Kernel.ProcessCreate.ParentProcessId = CreateInfo->ParentProcessId;
+        msg->Kernel.ProcessCreate.CreatingProcessStartKey = KphGetCurrentProcessStartKey();
         msg->Kernel.ProcessCreate.TargetProcessId = Process->ProcessId;
-        msg->Kernel.ProcessCreate.IsSubsystemProcess = (CreateInfo->IsSubsystemProcess ? TRUE : FALSE);
+        msg->Kernel.ProcessCreate.TargetProcessStartKey = KphGetProcessStartKey(Process->EProcess);
+        msg->Kernel.ProcessCreate.Flags = CreateInfo->Flags;
+        msg->Kernel.ProcessCreate.FileObject = CreateInfo->FileObject;
+
+        msg->Kernel.ProcessCreate.ParentProcessId = CreateInfo->ParentProcessId;
+        if (parentProcess)
+        {
+            msg->Kernel.ProcessCreate.ParentProcessStartKey = KphGetProcessStartKey(parentProcess);
+        }
 
         if (Process->ImageFileName)
         {
@@ -288,8 +309,9 @@ VOID KphpCreateProcessNotifyInformer(
         }
 
         KphMsgInit(msg, KphMsgProcessExit);
-        msg->Kernel.ProcessExit.ExitingClientId.UniqueProcess = PsGetCurrentProcessId();
-        msg->Kernel.ProcessExit.ExitingClientId.UniqueThread = PsGetCurrentThreadId();
+        msg->Kernel.ProcessExit.ClientId.UniqueProcess = PsGetCurrentProcessId();
+        msg->Kernel.ProcessExit.ClientId.UniqueThread = PsGetCurrentThreadId();
+        msg->Kernel.ProcessExit.ProcessStartKey = KphGetProcessStartKey(Process->EProcess);
         msg->Kernel.ProcessExit.ExitStatus = PsGetProcessExitStatus(Process->EProcess);
 
         if (KphInformerEnabled(EnableStackTraces, actorProcess))
@@ -311,6 +333,11 @@ Exit:
     if (msg)
     {
         KphFreeMessage(msg);
+    }
+
+    if (parentProcess)
+    {
+        ObDereferenceObject(parentProcess);
     }
 
     if (actorProcess)
