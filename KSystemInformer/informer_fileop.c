@@ -19,17 +19,19 @@
 
 typedef union _KPH_FLT_OPTIONS
 {
-    UCHAR Flags;
+    USHORT Flags;
     struct
     {
-        UCHAR PreEnabled : 1;
-        UCHAR PostEnabled : 1;
-        UCHAR EnableStackTraces : 1;
-        UCHAR EnablePostFileNames : 1;
-        UCHAR EnablePagingIo : 1;
-        UCHAR EnableSyncPagingIo : 1;
-        UCHAR EnableIoControlBuffers : 1;
-        UCHAR EnableFsControlBuffers : 1;
+        USHORT PreEnabled : 1;
+        USHORT PostEnabled : 1;
+        USHORT EnableStackTraces : 1;
+        USHORT EnablePostFileNames : 1;
+        USHORT EnablePagingIo : 1;
+        USHORT EnableSyncPagingIo : 1;
+        USHORT EnableIoControlBuffers : 1;
+        USHORT EnableFsControlBuffers : 1;
+        USHORT EnableDirControlBuffers : 1;
+        USHORT Spare : 7;
     };
 } KPH_FLT_OPTIONS, *PKPH_FLT_OPTIONS;
 
@@ -143,6 +145,7 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
         options.EnableSyncPagingIo = KphInformerEnabled(FileEnableSyncPagingIo, process);
         options.EnableIoControlBuffers = KphInformerEnabled(FileEnableIoControlBuffers, process);
         options.EnableFsControlBuffers = KphInformerEnabled(FileEnableFsControlBuffers, process);
+        options.EnableDirControlBuffers = KphInformerEnabled(FileEnableDirControlBuffers, process);
     }
 
     if (process)
@@ -1277,6 +1280,11 @@ VOID KphpFltFillPostOpMessage(
         }
         case IRP_MJ_DIRECTORY_CONTROL:
         {
+            if (!Options->EnableDirControlBuffers)
+            {
+                return;
+            }
+
             switch (Data->Iopb->MinorFunction)
             {
                 case IRP_MN_QUERY_DIRECTORY:
