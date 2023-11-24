@@ -31,7 +31,9 @@ typedef union _KPH_FLT_OPTIONS
         USHORT EnableIoControlBuffers : 1;
         USHORT EnableFsControlBuffers : 1;
         USHORT EnableDirControlBuffers : 1;
-        USHORT Spare : 7;
+        USHORT EnablePreCreateReply : 1;
+        USHORT EnablePostCreateReply : 1;
+        USHORT Spare : 5;
     };
 } KPH_FLT_OPTIONS, *PKPH_FLT_OPTIONS;
 
@@ -146,6 +148,8 @@ KPH_FLT_OPTIONS KphpFltGetOptions(
         options.EnableIoControlBuffers = KphInformerEnabled(FileEnableIoControlBuffers, process);
         options.EnableFsControlBuffers = KphInformerEnabled(FileEnableFsControlBuffers, process);
         options.EnableDirControlBuffers = KphInformerEnabled(FileEnableDirControlBuffers, process);
+        options.EnablePreCreateReply = KphInformerEnabled(FileEnablePreCreateReply, process);
+        options.EnablePostCreateReply = KphInformerEnabled(FileEnablePostCreateReply, process);
     }
 
     if (process)
@@ -1669,7 +1673,8 @@ FLT_POSTOP_CALLBACK_STATUS FLTAPI KphpFltPostOp(
         KphCaptureStackInMessage(context->Message);
     }
 
-    if (Data->Iopb->MajorFunction != IRP_MJ_CREATE)
+    if ((Data->Iopb->MajorFunction != IRP_MJ_CREATE) ||
+        !context->Options.EnablePostCreateReply)
     {
         KphCommsSendNPagedMessageAsync(context->Message);
         context->Message = NULL;
@@ -1970,7 +1975,8 @@ FLT_PREOP_CALLBACK_STATUS KphpFltPreOpSend(
         KphCaptureStackInMessage(message);
     }
 
-    if (Data->Iopb->MajorFunction != IRP_MJ_CREATE)
+    if ((Data->Iopb->MajorFunction != IRP_MJ_CREATE) ||
+        !Options->EnablePreCreateReply)
     {
         KphCommsSendNPagedMessageAsync(message);
         message = NULL;
