@@ -206,15 +206,6 @@ VOID KphpCreateProcessNotifyInformer(
             goto Exit;
         }
 
-        reply = KphAllocateMessage();
-        if (!reply)
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          INFORMER,
-                          "Failed to allocate message");
-            goto Exit;
-        }
-
         status = PsLookupProcessByProcessId(CreateInfo->ParentProcessId,
                                             &parentProcess);
         if (!NT_SUCCESS(status))
@@ -272,6 +263,24 @@ VOID KphpCreateProcessNotifyInformer(
         if (KphInformerEnabled(EnableStackTraces, actorProcess))
         {
             KphCaptureStackInMessage(msg);
+        }
+
+        if (!KphInformerEnabled(EnableProcessCreateReply, actorProcess))
+        {
+            KphCommsSendMessageAsync(msg);
+            msg = NULL;
+
+            goto Exit;
+        }
+
+        reply = KphAllocateMessage();
+        if (!reply)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "Failed to allocate message");
+
+            goto Exit;
         }
 
         status = KphCommsSendMessage(msg, reply);
