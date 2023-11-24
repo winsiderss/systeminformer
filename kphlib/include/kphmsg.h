@@ -78,18 +78,18 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgThreadExit,
     KphMsgImageLoad,
     KphMsgDebugPrint,
-    KphMsgProcessHandlePreCreate,
-    KphMsgProcessHandlePostCreate,
-    KphMsgProcessHandlePreDuplicate,
-    KphMsgProcessHandlePostDuplicate,
-    KphMsgThreadHandlePreCreate,
-    KphMsgThreadHandlePostCreate,
-    KphMsgThreadHandlePreDuplicate,
-    KphMsgThreadHandlePostDuplicate,
-    KphMsgDesktopHandlePreCreate,
-    KphMsgDesktopHandlePostCreate,
-    KphMsgDesktopHandlePreDuplicate,
-    KphMsgDesktopHandlePostDuplicate,
+    KphMsgHandlePreCreateProcess,
+    KphMsgHandlePostCreateProcess,
+    KphMsgHandlePreDuplicateProcess,
+    KphMsgHandlePostDuplicateProcess,
+    KphMsgHandlePreCreateThread,
+    KphMsgHandlePostCreateThread,
+    KphMsgHandlePreDuplicateThread,
+    KphMsgHandlePostDuplicateThread,
+    KphMsgHandlePreCreateDesktop,
+    KphMsgHandlePostCreateDesktop,
+    KphMsgHandlePreDuplicateDesktop,
+    KphMsgHandlePostDuplicateDesktop,
     KphMsgRequiredStateFailure,
     KphMsgFilePreCreate,
     KphMsgFilePostCreate,
@@ -177,7 +177,6 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgFilePostVolumeMount,
     KphMsgFilePreVolumeDismount,
     KphMsgFilePostVolumeDismount,
-
     KphMsgRegPreDeleteKey,
     KphMsgRegPostDeleteKey,
     KphMsgRegPreSetValueKey,
@@ -355,18 +354,7 @@ typedef struct _KPH_MESSAGE
             KPHM_THREAD_EXIT ThreadExit;
             KPHM_IMAGE_LOAD ImageLoad;
             KPHM_DEBUG_PRINT DebugPrint;
-            KPHM_PROCESS_HANDLE_PRE_CREATE ProcessHandlePreCreate;
-            KPHM_PROCESS_HANDLE_POST_CREATE ProcessHandlePostCreate;
-            KPHM_PROCESS_HANDLE_PRE_DUPLICATE ProcessHandlePreDuplicate;
-            KPHM_PROCESS_HANDLE_POST_DUPLICATE ProcessHandlePostDuplicate;
-            KPHM_THREAD_HANDLE_PRE_CREATE ThreadHandlePreCreate;
-            KPHM_THREAD_HANDLE_POST_CREATE ThreadHandlePostCreate;
-            KPHM_THREAD_HANDLE_PRE_DUPLICATE ThreadHandlePreDuplicate;
-            KPHM_THREAD_HANDLE_POST_DUPLICATE ThreadHandlePostDuplicate;
-            KPHM_DESKTOP_HANDLE_PRE_CREATE DesktopHandlePreCreate;
-            KPHM_DESKTOP_HANDLE_POST_CREATE DesktopHandlePostCreate;
-            KPHM_DESKTOP_HANDLE_PRE_DUPLICATE DesktopHandlePreDuplicate;
-            KPHM_DESKTOP_HANDLE_POST_DUPLICATE DesktopHandlePostDuplicate;
+            KPHM_HANDLE Handle;
             KPHM_REQUIRED_STATE_FAILURE RequiredStateFailure;
             KPHM_FILE File;
             KPHM_REGISTRY Reg;

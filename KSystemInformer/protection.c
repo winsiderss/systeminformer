@@ -661,8 +661,11 @@ VOID KphApplyObProtections(
     actor = NULL;
     releaseLock = FALSE;
 
-    NT_ASSERT((Info->ObjectType == *PsProcessType) ||
-              (Info->ObjectType == *PsThreadType));
+    if ((Info->ObjectType != *PsProcessType) &&
+        (Info->ObjectType != *PsThreadType))
+    {
+        goto Exit;
+    }
 
     if (Info->KernelHandle)
     {

@@ -53,18 +53,18 @@ static KPH_INFORMER_SETTINGS KsiDebugInformerSettings =
     .ThreadExit                     = TRUE,
     .ImageLoad                      = TRUE,
     .DebugPrint                     = FALSE,
-    .ProcessHandlePreCreate         = TRUE,
-    .ProcessHandlePostCreate        = TRUE,
-    .ProcessHandlePreDuplicate      = TRUE,
-    .ProcessHandlePostDuplicate     = TRUE,
-    .ThreadHandlePreCreate          = TRUE,
-    .ThreadHandlePostCreate         = TRUE,
-    .ThreadHandlePreDuplicate       = TRUE,
-    .ThreadHandlePostDuplicate      = TRUE,
-    .DesktopHandlePreCreate         = TRUE,
-    .DesktopHandlePostCreate        = TRUE,
-    .DesktopHandlePreDuplicate      = TRUE,
-    .DesktopHandlePostDuplicate     = TRUE,
+    .HandlePreCreateProcess         = TRUE,
+    .HandlePostCreateProcess        = TRUE,
+    .HandlePreDuplicateProcess      = TRUE,
+    .HandlePostDuplicateProcess     = TRUE,
+    .HandlePreCreateThread          = TRUE,
+    .HandlePostCreateThread         = TRUE,
+    .HandlePreDuplicateThread       = TRUE,
+    .HandlePostDuplicateThread      = TRUE,
+    .HandlePreCreateDesktop         = TRUE,
+    .HandlePostCreateDesktop        = TRUE,
+    .HandlePreDuplicateDesktop      = TRUE,
+    .HandlePostDuplicateDesktop     = TRUE,
     .EnableStackTraces              = FALSE,
     .FileEnablePostFileNames        = FALSE,
     .FileEnablePagingIo             = TRUE,
@@ -341,262 +341,279 @@ PPH_STRING KsiDebugLogDebugPrint(
         );
 }
 
-PPH_STRING KsiDebugLogProcessHandlePreCreate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    return PhFormatString(
-        L"%ls to process %lu for process %lu (thread %lu) desires 0x%08x (original 0x%08x)",
-        Message->Kernel.ProcessHandlePreCreate.KernelHandle ? L"kernel handle" : L"handle",
-        HandleToUlong(Message->Kernel.ProcessHandlePreCreate.ObjectProcessId),
-        HandleToUlong(Message->Kernel.ProcessHandlePreCreate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ProcessHandlePreCreate.ContextClientId.UniqueThread),
-        Message->Kernel.ProcessHandlePreCreate.DesiredAccess,
-        Message->Kernel.ProcessHandlePreCreate.OriginalDesiredAccess
-        );
-}
-
-PPH_STRING KsiDebugLogProcessHandlePostCreate(
+PPH_STRING KsiDebugLogHandleProcess(
     _In_ PCKPH_MESSAGE Message
     )
 {
     PPH_STRING result;
-    PPH_STRING statusMessage;
 
-    statusMessage = PhGetStatusMessage(Message->Kernel.ProcessHandlePostCreate.ReturnStatus, 0);
+    if (Message->Kernel.Handle.PostOperation)
+    {
+        PPH_STRING statusMessage;
 
-    result = PhFormatString(
-        L"%ls to process %lu for process %lu (thread %lu) granted 0x%08x with %ls (0x%08x)",
-        Message->Kernel.ProcessHandlePostCreate.KernelHandle ? L"kernel handle" : L"handle",
-        HandleToUlong(Message->Kernel.ProcessHandlePostCreate.ObjectProcessId),
-        HandleToUlong(Message->Kernel.ProcessHandlePostCreate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ProcessHandlePostCreate.ContextClientId.UniqueThread),
-        Message->Kernel.ProcessHandlePostCreate.GrantedAccess,
-        PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
-        Message->Kernel.ProcessHandlePostCreate.ReturnStatus
-        );
+        statusMessage = PhGetStatusMessage(Message->Kernel.Handle.Post.ReturnStatus, 0);
 
-    PhClearReference(&statusMessage);
+        if (Message->Kernel.Handle.Duplicate)
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to process %lu (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Post.GrantedAccess,
+                Message->Kernel.Handle.Post.DesiredAccess,
+                Message->Kernel.Handle.Post.OriginalDesiredAccess,
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.ObjectProcessId),
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.SourceProcessId),
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.TargetProcessId),
+                Message->Kernel.Handle.Post.PreSequence,
+                (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.Handle.Post.PreTimeStamp.QuadPart),
+                PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
+                Message->Kernel.Handle.Post.ReturnStatus
+                );
+        }
+        else
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to process %lu %llu %llu %ls (0x%08x)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Post.GrantedAccess,
+                Message->Kernel.Handle.Post.DesiredAccess,
+                Message->Kernel.Handle.Post.OriginalDesiredAccess,
+                HandleToUlong(Message->Kernel.Handle.Post.Create.ObjectProcessId),
+                Message->Kernel.Handle.Post.PreSequence,
+                (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.Handle.Post.PreTimeStamp.QuadPart),
+                PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
+                Message->Kernel.Handle.Post.ReturnStatus
+                );
+        }
+
+        PhClearReference(&statusMessage);
+    }
+    else
+    {
+        if (Message->Kernel.Handle.Duplicate)
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p desires 0x%08x (original 0x%08x) to process %lu (duplicate %lu -> %lu)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Pre.DesiredAccess,
+                Message->Kernel.Handle.Pre.OriginalDesiredAccess,
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.ObjectProcessId),
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.SourceProcessId),
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.TargetProcessId)
+                );
+        }
+        else
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p desires 0x%08x (original 0x%08x) to process %lu",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Pre.DesiredAccess,
+                Message->Kernel.Handle.Pre.OriginalDesiredAccess,
+                HandleToUlong(Message->Kernel.Handle.Pre.Create.ObjectProcessId)
+                );
+        }
+    }
 
     return result;
 }
 
-PPH_STRING KsiDebugLogProcessHandlePreDuplicate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    return PhFormatString(
-        L"%ls to process %lu from %lu to %lu for process %lu (thread %lu) desires 0x%08x (original 0x%08x)",
-        Message->Kernel.ProcessHandlePreDuplicate.KernelHandle ? L"kernel handle" : L"handle",
-        HandleToUlong(Message->Kernel.ProcessHandlePreDuplicate.ObjectProcessId),
-        HandleToUlong(Message->Kernel.ProcessHandlePreDuplicate.SourceProcessId),
-        HandleToUlong(Message->Kernel.ProcessHandlePreDuplicate.TargetProcessId),
-        HandleToUlong(Message->Kernel.ProcessHandlePreDuplicate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ProcessHandlePreDuplicate.ContextClientId.UniqueThread),
-        Message->Kernel.ProcessHandlePreDuplicate.DesiredAccess,
-        Message->Kernel.ProcessHandlePreDuplicate.OriginalDesiredAccess
-        );
-}
-
-PPH_STRING KsiDebugLogProcessHandlePostDuplicate(
+PPH_STRING KsiDebugLogHandleThread(
     _In_ PCKPH_MESSAGE Message
     )
 {
     PPH_STRING result;
-    PPH_STRING statusMessage;
 
-    statusMessage = PhGetStatusMessage(Message->Kernel.ProcessHandlePostDuplicate.ReturnStatus, 0);
+    if (Message->Kernel.Handle.PostOperation)
+    {
+        PPH_STRING statusMessage;
 
-    result = PhFormatString(
-        L"%ls to process %lu for process %lu (thread %lu) granted 0x%08x with %ls (0x%08x)",
-        Message->Kernel.ProcessHandlePostDuplicate.KernelHandle ? L"kernel handle" : L"handle",
-        HandleToUlong(Message->Kernel.ProcessHandlePostDuplicate.ObjectProcessId),
-        HandleToUlong(Message->Kernel.ProcessHandlePostDuplicate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ProcessHandlePostDuplicate.ContextClientId.UniqueThread),
-        Message->Kernel.ProcessHandlePostDuplicate.GrantedAccess,
-        PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
-        Message->Kernel.ProcessHandlePostDuplicate.ReturnStatus
-        );
+        statusMessage = PhGetStatusMessage(Message->Kernel.Handle.Post.ReturnStatus, 0);
 
-    PhClearReference(&statusMessage);
+        if (Message->Kernel.Handle.Duplicate)
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Post.GrantedAccess,
+                Message->Kernel.Handle.Post.DesiredAccess,
+                Message->Kernel.Handle.Post.OriginalDesiredAccess,
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.ObjectThreadId),
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.SourceProcessId),
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.TargetProcessId),
+                Message->Kernel.Handle.Post.PreSequence,
+                (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.Handle.Post.PreTimeStamp.QuadPart),
+                PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
+                Message->Kernel.Handle.Post.ReturnStatus
+                );
+        }
+        else
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu %llu %llu %ls (0x%08x)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Post.GrantedAccess,
+                Message->Kernel.Handle.Post.DesiredAccess,
+                Message->Kernel.Handle.Post.OriginalDesiredAccess,
+                HandleToUlong(Message->Kernel.Handle.Post.Create.ObjectThreadId),
+                Message->Kernel.Handle.Post.PreSequence,
+                (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.Handle.Post.PreTimeStamp.QuadPart),
+                PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
+                Message->Kernel.Handle.Post.ReturnStatus
+                );
+        }
+
+        PhClearReference(&statusMessage);
+    }
+    else
+    {
+        if (Message->Kernel.Handle.Duplicate)
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu (duplicate %lu -> %lu)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Pre.DesiredAccess,
+                Message->Kernel.Handle.Pre.OriginalDesiredAccess,
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.ObjectThreadId),
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.SourceProcessId),
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.TargetProcessId)
+                );
+        }
+        else
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Pre.DesiredAccess,
+                Message->Kernel.Handle.Pre.OriginalDesiredAccess,
+                HandleToUlong(Message->Kernel.Handle.Pre.Create.ObjectThreadId)
+                );
+        }
+    }
 
     return result;
 }
 
-PPH_STRING KsiDebugLogThreadHandlePreCreate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    return PhFormatString(
-        L"%ls to thread %lu for process %lu (thread %lu) desires 0x%08x (original 0x%08x)",
-        Message->Kernel.ThreadHandlePreCreate.KernelHandle ? L"kernel handle" : L"handle",
-        HandleToUlong(Message->Kernel.ThreadHandlePreCreate.ObjectThreadId),
-        HandleToUlong(Message->Kernel.ThreadHandlePreCreate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ThreadHandlePreCreate.ContextClientId.UniqueThread),
-        Message->Kernel.ThreadHandlePreCreate.DesiredAccess,
-        Message->Kernel.ThreadHandlePreCreate.OriginalDesiredAccess
-        );
-}
-
-PPH_STRING KsiDebugLogThreadHandlePostCreate(
+PPH_STRING KsiDebugLogHandleDesktop(
     _In_ PCKPH_MESSAGE Message
     )
 {
     PPH_STRING result;
-    PPH_STRING statusMessage;
-
-    statusMessage = PhGetStatusMessage(Message->Kernel.ThreadHandlePostCreate.ReturnStatus, 0);
-
-    result = PhFormatString(
-        L"%ls to thread %lu for process %lu (thread %lu) granted 0x%08x with %ls (0x%08x)",
-        Message->Kernel.ThreadHandlePostCreate.KernelHandle ? L"kernel handle" : L"handle",
-        HandleToUlong(Message->Kernel.ThreadHandlePostCreate.ObjectThreadId),
-        HandleToUlong(Message->Kernel.ThreadHandlePostCreate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ThreadHandlePostCreate.ContextClientId.UniqueThread),
-        Message->Kernel.ThreadHandlePostCreate.GrantedAccess,
-        PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
-        Message->Kernel.ThreadHandlePostCreate.ReturnStatus
-        );
-
-    PhClearReference(&statusMessage);
-
-    return result;
-}
-
-PPH_STRING KsiDebugLogThreadHandlePreDuplicate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    return PhFormatString(
-        L"%ls to thread %lu from %lu to %lu for process %lu (thread %lu) desires 0x%08x (original 0x%08x)",
-        Message->Kernel.ThreadHandlePreDuplicate.KernelHandle ? L"kernel handle" : L"handle",
-        HandleToUlong(Message->Kernel.ThreadHandlePreDuplicate.ObjectThreadId),
-        HandleToUlong(Message->Kernel.ThreadHandlePreDuplicate.SourceProcessId),
-        HandleToUlong(Message->Kernel.ThreadHandlePreDuplicate.TargetProcessId),
-        HandleToUlong(Message->Kernel.ThreadHandlePreDuplicate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ThreadHandlePreDuplicate.ContextClientId.UniqueThread),
-        Message->Kernel.ThreadHandlePreDuplicate.DesiredAccess,
-        Message->Kernel.ThreadHandlePreDuplicate.OriginalDesiredAccess
-        );
-}
-
-PPH_STRING KsiDebugLogThreadHandlePostDuplicate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    PPH_STRING result;
-    PPH_STRING statusMessage;
-
-    statusMessage = PhGetStatusMessage(Message->Kernel.ThreadHandlePostDuplicate.ReturnStatus, 0);
-
-    result = PhFormatString(
-        L"%ls to thread %lu for process %lu (thread %lu) granted 0x%08x with %ls (0x%08x)",
-        Message->Kernel.ThreadHandlePostDuplicate.KernelHandle ? L"kernel handle" : L"handle",
-        HandleToUlong(Message->Kernel.ThreadHandlePostDuplicate.ObjectThreadId),
-        HandleToUlong(Message->Kernel.ThreadHandlePostDuplicate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.ThreadHandlePostDuplicate.ContextClientId.UniqueThread),
-        Message->Kernel.ThreadHandlePostDuplicate.GrantedAccess,
-        PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
-        Message->Kernel.ThreadHandlePostDuplicate.ReturnStatus
-        );
-
-    PhClearReference(&statusMessage);
-
-    return result;
-}
-
-PPH_STRING KsiDebugLogDesktopHandlePreCreate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
     UNICODE_STRING objectName;
 
     KphMsgDynGetUnicodeString(Message, KphMsgFieldObjectName, &objectName);
 
-    return PhFormatString(
-        L"%ls to \"%wZ\" for process %lu (thread %lu) desires 0x%08x (original 0x%08x)",
-        Message->Kernel.DesktopHandlePreCreate.KernelHandle ? L"kernel handle" : L"handle",
-        &objectName,
-        HandleToUlong(Message->Kernel.DesktopHandlePreCreate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.DesktopHandlePreCreate.ContextClientId.UniqueThread),
-        Message->Kernel.DesktopHandlePreCreate.DesiredAccess,
-        Message->Kernel.DesktopHandlePreCreate.OriginalDesiredAccess
-        );
-}
+    if (Message->Kernel.Handle.PostOperation)
+    {
+        PPH_STRING statusMessage;
 
-PPH_STRING KsiDebugLogDesktopHandlePostCreate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    UNICODE_STRING objectName;
-    PPH_STRING result;
-    PPH_STRING statusMessage;
+        statusMessage = PhGetStatusMessage(Message->Kernel.Handle.Post.ReturnStatus, 0);
 
-    KphMsgDynGetUnicodeString(Message, KphMsgFieldObjectName, &objectName);
+        if (Message->Kernel.Handle.Duplicate)
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to desktop \"%wZ\" (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Post.GrantedAccess,
+                Message->Kernel.Handle.Post.DesiredAccess,
+                Message->Kernel.Handle.Post.OriginalDesiredAccess,
+                &objectName,
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.SourceProcessId),
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.TargetProcessId),
+                Message->Kernel.Handle.Post.PreSequence,
+                (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.Handle.Post.PreTimeStamp.QuadPart),
+                PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
+                Message->Kernel.Handle.Post.ReturnStatus
+                );
+        }
+        else
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to desktop \"%wZ\" %llu %llu %ls (0x%08x)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Post.GrantedAccess,
+                Message->Kernel.Handle.Post.DesiredAccess,
+                Message->Kernel.Handle.Post.OriginalDesiredAccess,
+                &objectName,
+                Message->Kernel.Handle.Post.PreSequence,
+                (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.Handle.Post.PreTimeStamp.QuadPart),
+                PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
+                Message->Kernel.Handle.Post.ReturnStatus
+                );
+        }
 
-    statusMessage = PhGetStatusMessage(Message->Kernel.DesktopHandlePostCreate.ReturnStatus, 0);
-
-    result = PhFormatString(
-        L"%ls to \"%wZ\" for process %lu (thread %lu) granted 0x%08x with %ls (0x%08x)",
-        Message->Kernel.DesktopHandlePostCreate.KernelHandle ? L"kernel handle" : L"handle",
-        &objectName,
-        HandleToUlong(Message->Kernel.DesktopHandlePostCreate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.DesktopHandlePostCreate.ContextClientId.UniqueThread),
-        Message->Kernel.DesktopHandlePostCreate.GrantedAccess,
-        PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
-        Message->Kernel.DesktopHandlePostCreate.ReturnStatus
-        );
-
-    PhClearReference(&statusMessage);
-
-    return result;
-}
-
-PPH_STRING KsiDebugLogDesktopHandlePreDuplicate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    UNICODE_STRING objectName;
-
-    KphMsgDynGetUnicodeString(Message, KphMsgFieldObjectName, &objectName);
-
-    return PhFormatString(
-        L"%ls to \"%wZ\" from %lu to %lu for process %lu (thread %lu) desires 0x%08x (original 0x%08x)",
-        Message->Kernel.DesktopHandlePreDuplicate.KernelHandle ? L"kernel handle" : L"handle",
-        &objectName,
-        HandleToUlong(Message->Kernel.DesktopHandlePreDuplicate.SourceProcessId),
-        HandleToUlong(Message->Kernel.DesktopHandlePreDuplicate.TargetProcessId),
-        HandleToUlong(Message->Kernel.DesktopHandlePreDuplicate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.DesktopHandlePreDuplicate.ContextClientId.UniqueThread),
-        Message->Kernel.DesktopHandlePreDuplicate.DesiredAccess,
-        Message->Kernel.DesktopHandlePreDuplicate.OriginalDesiredAccess
-        );
-}
-
-PPH_STRING KsiDebugLogDesktopHandlePostDuplicate(
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    UNICODE_STRING objectName;
-    PPH_STRING result;
-    PPH_STRING statusMessage;
-
-    KphMsgDynGetUnicodeString(Message, KphMsgFieldObjectName, &objectName);
-
-    statusMessage = PhGetStatusMessage(Message->Kernel.DesktopHandlePostDuplicate.ReturnStatus, 0);
-
-    result = PhFormatString(
-        L"%ls to \"%wZ\" for process %lu (thread %lu) granted 0x%08x with %ls (0x%08x)",
-        Message->Kernel.DesktopHandlePostDuplicate.KernelHandle ? L"kernel handle" : L"handle",
-        &objectName,
-        HandleToUlong(Message->Kernel.DesktopHandlePostDuplicate.ContextClientId.UniqueProcess),
-        HandleToUlong(Message->Kernel.DesktopHandlePostDuplicate.ContextClientId.UniqueThread),
-        Message->Kernel.DesktopHandlePostDuplicate.GrantedAccess,
-        PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
-        Message->Kernel.DesktopHandlePostDuplicate.ReturnStatus
-        );
-
-    PhClearReference(&statusMessage);
+        PhClearReference(&statusMessage);
+    }
+    else
+    {
+        if (Message->Kernel.Handle.Duplicate)
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu desires 0x%08x (original 0x%08x) to desktop \"%wZ\" (duplicate %lu -> %lu)",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Pre.DesiredAccess,
+                Message->Kernel.Handle.Pre.OriginalDesiredAccess,
+                &objectName,
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.SourceProcessId),
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.TargetProcessId)
+                );
+        }
+        else
+        {
+            result = PhFormatString(
+                L"%04x:%04x %c %p %llu desires 0x%08x (original 0x%08x) to desktop \"%wZ\"",
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
+                HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
+                (Message->Kernel.Handle.KernelHandle ? 'K' : 'U'),
+                Message->Kernel.Handle.Object,
+                Message->Kernel.Handle.Sequence,
+                Message->Kernel.Handle.Pre.DesiredAccess,
+                Message->Kernel.Handle.Pre.OriginalDesiredAccess,
+                &objectName
+                );
+        }
+    }
 
     return result;
 }
@@ -1054,18 +1071,18 @@ static SI_DEBUG_LOG_DEF KsiDebugLogDefs[] =
     { PH_STRINGREF_INIT(L"ThreadExit           "), KsiDebugLogThreadExit },
     { PH_STRINGREF_INIT(L"ImageLoad            "), KsiDebugLogImageLoad },
     { PH_STRINGREF_INIT(L"DebugPrint           "), KsiDebugLogDebugPrint },
-    { PH_STRINGREF_INIT(L"ProcHandlePreCreate  "), KsiDebugLogProcessHandlePreCreate },
-    { PH_STRINGREF_INIT(L"ProcHandlePostCreate "), KsiDebugLogProcessHandlePostCreate },
-    { PH_STRINGREF_INIT(L"ProcHandlePreDupe    "), KsiDebugLogProcessHandlePreDuplicate },
-    { PH_STRINGREF_INIT(L"ProcHandlePostDupe   "), KsiDebugLogProcessHandlePostDuplicate },
-    { PH_STRINGREF_INIT(L"ThrdHandlePreCreate  "), KsiDebugLogThreadHandlePreCreate },
-    { PH_STRINGREF_INIT(L"ThrdHandlePostCreate "), KsiDebugLogThreadHandlePostCreate },
-    { PH_STRINGREF_INIT(L"ThrdHandlePreDupe    "), KsiDebugLogThreadHandlePreDuplicate },
-    { PH_STRINGREF_INIT(L"ThrdHandlePostDupe   "), KsiDebugLogThreadHandlePostDuplicate },
-    { PH_STRINGREF_INIT(L"DskpHandlePreCreate  "), KsiDebugLogDesktopHandlePreCreate },
-    { PH_STRINGREF_INIT(L"DskpHandlePostCreate "), KsiDebugLogDesktopHandlePostCreate },
-    { PH_STRINGREF_INIT(L"DskpHandlePreDupe    "), KsiDebugLogDesktopHandlePreDuplicate },
-    { PH_STRINGREF_INIT(L"DskpHandlePostDupe   "), KsiDebugLogDesktopHandlePostDuplicate },
+    { PH_STRINGREF_INIT(L"HandlePreCreateProc  "), KsiDebugLogHandleProcess },
+    { PH_STRINGREF_INIT(L"HandlePostCreateProc "), KsiDebugLogHandleProcess },
+    { PH_STRINGREF_INIT(L"HandlePreDupeProc    "), KsiDebugLogHandleProcess },
+    { PH_STRINGREF_INIT(L"HandlePostDupeProc   "), KsiDebugLogHandleProcess },
+    { PH_STRINGREF_INIT(L"HandlePreCreateThrd  "), KsiDebugLogHandleThread },
+    { PH_STRINGREF_INIT(L"HandlePostCreateThrd "), KsiDebugLogHandleThread },
+    { PH_STRINGREF_INIT(L"HandlePreDupeThrd    "), KsiDebugLogHandleThread },
+    { PH_STRINGREF_INIT(L"HandlePostDupeThrd   "), KsiDebugLogHandleThread },
+    { PH_STRINGREF_INIT(L"HandlePreCreateDskp  "), KsiDebugLogHandleDesktop },
+    { PH_STRINGREF_INIT(L"HandlePostCreateDskp "), KsiDebugLogHandleDesktop },
+    { PH_STRINGREF_INIT(L"HandlePreDupeDskp    "), KsiDebugLogHandleDesktop },
+    { PH_STRINGREF_INIT(L"HandlePostDupeDskp   "), KsiDebugLogHandleDesktop },
     { PH_STRINGREF_INIT(L"ReqiredStateFailure  "), KsiDebugLogRequiredStateFailure },
     { PH_STRINGREF_INIT(L"PreCreate            "), KsiDebugLogFileCommon },
     { PH_STRINGREF_INIT(L"PostCreate           "), KsiDebugLogFileCommon },
@@ -1256,6 +1273,7 @@ VOID KsiDebugFilterToProcInit(
 
     filter.Flags = MAXULONG64;
     filter.Flags2 = MAXULONG64;
+    filter.Flags3 = MAXULONG64;
     filter.ProcessCreate = FALSE;
 
     KphSetInformerProcessFilter(NULL, &filter);
@@ -1300,11 +1318,13 @@ VOID KsiDebugFilterToProc(
         {
             filter.Flags = 0;
             filter.Flags2 = 0;
+            filter.Flags3 = 0;
         }
         else
         {
             filter.Flags = MAXULONG64;
             filter.Flags2 = MAXULONG64;
+            filter.Flags3 = MAXULONG64;
             filter.ProcessCreate = FALSE;
         }
 

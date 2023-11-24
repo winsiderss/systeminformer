@@ -67,7 +67,7 @@
 
 // informer
 
-#define KPH_TAG_INFORMER_OB_NAME                '0IpK'
+#define KPH_TAG_OB_OBJECT_NAME                  '0IpK'
 #define KPH_TAG_PROCESS_CREATE_APC              '1IpK'
 #define KPH_TAG_FLT_STREAMHANDLE_CONTEXT        '2IpK'
 #define KPH_TAG_FLT_FILE_NAME                   '3IpK'
@@ -76,6 +76,7 @@
 #define KPH_TAG_REG_CALL_CONTEXT                '6IpK'
 #define KPH_TAG_REG_OBJECT_NAME                 '7IpK'
 #define KPH_TAG_REG_VALUE_NAMES                 '8IpK'
+#define KPH_TAG_OB_CALL_CONTEXT                 '9IpK'
 
 // cid_tracking
 
