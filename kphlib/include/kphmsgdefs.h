@@ -451,7 +451,7 @@ typedef struct _KPHM_DEBUG_PRINT
     //
 } KPHM_DEBUG_PRINT, *PKPHM_DEBUG_PRINT;
 
-typedef struct _KPHM_PROCESS_HANDLE_PRE_CREATE
+typedef struct _KPHM_HANDLE
 {
     CLIENT_ID ContextClientId;
 
@@ -465,256 +465,98 @@ typedef struct _KPHM_PROCESS_HANDLE_PRE_CREATE
         };
     };
 
-    ACCESS_MASK DesiredAccess;
-    ACCESS_MASK OriginalDesiredAccess;
-
-    HANDLE ObjectProcessId;
-} KPHM_PROCESS_HANDLE_PRE_CREATE, *PKPHM_PROCESS_HANDLE_PRE_CREATE;
-
-typedef struct _KPHM_PROCESS_HANDLE_POST_CREATE
-{
-    CLIENT_ID ContextClientId;
+    PVOID Object;
 
     union
     {
-        ULONG Flags;
+        USHORT Information;
         struct
         {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
+            USHORT PostOperation : 1;
+            USHORT Duplicate : 1;      // Create = 0, Duplicate = 1
+            USHORT Spare : 14;
         };
     };
 
-    NTSTATUS ReturnStatus;
-    ACCESS_MASK GrantedAccess;
-
-    HANDLE ObjectProcessId;
-} KPHM_PROCESS_HANDLE_POST_CREATE, *PKPHM_PROCESS_HANDLE_POST_CREATE;
-
-typedef struct _KPHM_PROCESS_HANDLE_PRE_DUPLICATE
-{
-    CLIENT_ID ContextClientId;
+    ULONG64 Sequence;
 
     union
     {
-        ULONG Flags;
         struct
         {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
+            ACCESS_MASK DesiredAccess;
+            ACCESS_MASK OriginalDesiredAccess;
 
-    ACCESS_MASK DesiredAccess;
-    ACCESS_MASK OriginalDesiredAccess;
+            union
+            {
+                struct
+                {
+                    union
+                    {
+                        HANDLE ObjectProcessId; // KphMsgHandlePreCreateProcess
+                        HANDLE ObjectThreadId;  // KphMsgHandlePreCreateThread
+                    };
+                } Create;
 
-    HANDLE SourceProcessId;
-    HANDLE TargetProcessId;
+                struct
+                {
+                    HANDLE SourceProcessId;
+                    HANDLE TargetProcessId;
 
-    HANDLE ObjectProcessId;
-} KPHM_PROCESS_HANDLE_PRE_DUPLICATE, *PKPHM_PROCESS_HANDLE_PRE_DUPLICATE;
+                    union
+                    {
+                        HANDLE ObjectProcessId; // KphMsgHandlePreDuplicateProcess
+                        HANDLE ObjectThreadId;  // KphMsgHandlePreDuplicateThread
+                    };
+                } Duplicate;
+            };
+        } Pre;
 
-typedef struct _KPHM_PROCESS_HANDLE_POST_DUPLICATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
         struct
         {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
+            ULONG64 PreSequence;
+            LARGE_INTEGER PreTimeStamp;
+            NTSTATUS ReturnStatus;
+            ACCESS_MASK GrantedAccess;
+            ACCESS_MASK DesiredAccess;
+            ACCESS_MASK OriginalDesiredAccess;
+
+            union
+            {
+                struct
+                {
+                    union
+                    {
+                        HANDLE ObjectProcessId; // KphMsgHandlePostCreateProcess
+                        HANDLE ObjectThreadId;  // KphMsgHandlePostCreateThread
+                    };
+                } Create;
+
+                struct
+                {
+                    HANDLE SourceProcessId;
+                    HANDLE TargetProcessId;
+
+                    union
+                    {
+                        HANDLE ObjectProcessId; // KphMsgHandlePostDuplicateProcess
+                        HANDLE ObjectThreadId;  // KphMsgHandlePostDuplicateThread
+                    };
+                } Duplicate;
+            };
+        } Post;
     };
-
-    NTSTATUS ReturnStatus;
-    ACCESS_MASK GrantedAccess;
-
-    HANDLE ObjectProcessId;
-} KPHM_PROCESS_HANDLE_POST_DUPLICATE, *PKPHM_PROCESS_HANDLE_POST_DUPLICATE;
-
-typedef struct _KPHM_THREAD_HANDLE_PRE_CREATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
-
-    ACCESS_MASK DesiredAccess;
-    ACCESS_MASK OriginalDesiredAccess;
-
-    HANDLE ObjectThreadId;
-} KPHM_THREAD_HANDLE_PRE_CREATE, *PKPHM_THREAD_HANDLE_PRE_CREATE;
-
-typedef struct _KPHM_THREAD_HANDLE_POST_CREATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
-
-    NTSTATUS ReturnStatus;
-    ACCESS_MASK GrantedAccess;
-
-    HANDLE ObjectThreadId;
-} KPHM_THREAD_HANDLE_POST_CREATE, *PKPHM_THREAD_HANDLE_POST_CREATE;
-
-typedef struct _KPHM_THREAD_HANDLE_PRE_DUPLICATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
-
-    ACCESS_MASK DesiredAccess;
-    ACCESS_MASK OriginalDesiredAccess;
-
-    HANDLE SourceProcessId;
-    HANDLE TargetProcessId;
-
-    HANDLE ObjectThreadId;
-} KPHM_THREAD_HANDLE_PRE_DUPLICATE, *PKPHM_THREAD_HANDLE_PRE_DUPLICATE;
-
-typedef struct _KPHM_THREAD_HANDLE_POST_DUPLICATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
-
-    NTSTATUS ReturnStatus;
-    ACCESS_MASK GrantedAccess;
-
-    HANDLE ObjectThreadId;
-} KPHM_THREAD_HANDLE_POST_DUPLICATE, *PKPHM_THREAD_HANDLE_POST_DUPLICATE;
-
-typedef struct _KPHM_DESKTOP_HANDLE_PRE_CREATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
-
-    ACCESS_MASK DesiredAccess;
-    ACCESS_MASK OriginalDesiredAccess;
 
     //
     // Dynamic
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
+    //     - KphMsgHandlePreCreateDesktop
+    //     - KphMsgHandlePostCreateDesktop
+    //     - KphMsgHandlePreDuplicateDesktop
+    //     - KphMsgHandlePostDuplicateDesktop
     //
-} KPHM_DESKTOP_HANDLE_PRE_CREATE, *PKPHM_DESKTOP_HANDLE_PRE_CREATE;
-
-typedef struct _KPHM_DESKTOP_HANDLE_POST_CREATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
-
-    NTSTATUS ReturnStatus;
-    ACCESS_MASK GrantedAccess;
-
-    //
-    // Dynamic
-    //
-    // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
-    //
-} KPHM_DESKTOP_HANDLE_POST_CREATE, *PKPHM_DESKTOP_HANDLE_POST_CREATE;
-
-typedef struct _KPHM_DESKTOP_HANDLE_PRE_DUPLICATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
-
-    ACCESS_MASK DesiredAccess;
-    ACCESS_MASK OriginalDesiredAccess;
-
-    HANDLE SourceProcessId;
-    HANDLE TargetProcessId;
-
-    //
-    // Dynamic
-    //
-    // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
-    //
-} KPHM_DESKTOP_HANDLE_PRE_DUPLICATE, *PKPHM_DESKTOP_HANDLE_PRE_DUPLICATE;
-
-typedef struct _KPHM_DESKTOP_HANDLE_POST_DUPLICATE
-{
-    CLIENT_ID ContextClientId;
-
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG KernelHandle : 1;
-            ULONG Reserved : 31;
-        };
-    };
-
-    NTSTATUS ReturnStatus;
-    ACCESS_MASK GrantedAccess;
-
-    //
-    // Dynamic
-    //
-    // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
-    //
-} KPHM_DESKTOP_HANDLE_POST_DUPLICATE, *PKPHM_DESKTOP_HANDLE_POST_DUPLICATE;
+} KPHM_HANDLE, *PKPHM_HANDLE;
 
 typedef struct _KPHM_REQUIRED_STATE_FAILURE
 {
