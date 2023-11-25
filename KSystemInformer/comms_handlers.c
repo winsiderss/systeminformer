@@ -54,6 +54,7 @@ KPHM_DEFINE_HANDLER(KphpCommsAssignProcessSessionToken);
 KPHM_DEFINE_HANDLER(KphpCommsAssignThreadSessionToken);
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerProcessFilter);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformerProcessFilter);
+KPHM_DEFINE_HANDLER(KphpCommsStripProtectedProcessMasks);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -109,6 +110,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgAssignThreadSessionToken,      KphpCommsAssignThreadSessionToken,      KphpCommsRequireMaximum },
 { KphMsgGetInformerProcessFilter,      KphpCommsGetInformerProcessFilter,      KphpCommsRequireLow },
 { KphMsgSetInformerProcessFilter,      KphpCommsSetInformerProcessFilter,      KphpCommsRequireLow },
+{ KphMsgStripProtectedProcessMasks,    KphpCommsStripProtectedProcessMasks,    KphpCommsRequireMaximum },
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
@@ -1427,6 +1429,32 @@ NTSTATUS KSIAPI KphpCommsSetInformerProcessFilter(
     msg->Status = KphSetInformerProcessFilter(msg->ProcessHandle,
                                               msg->Filter,
                                               UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsStripProtectedProcessMasks(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_STRIP_PROTECTED_PROCESS_MASKS msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgStripProtectedProcessMasks);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.StripProtectedProcessMasks;
+
+    msg->Status = KphStripProtectedProcessMasks(msg->ProcessHandle,
+                                                msg->ProcessAllowedMask,
+                                                msg->ThreadAllowedMask,
+                                                UserMode);
 
     return STATUS_SUCCESS;
 }

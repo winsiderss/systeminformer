@@ -370,6 +370,11 @@ BOOLEAN KSIAPI KphpEnumProcessContextsForProtection(
 
     parameter = Parameter;
 
+    if (Process->EProcess == parameter->Process->EProcess)
+    {
+        return FALSE;
+    }
+
     suppress = FALSE;
     status = KphpShouldSuppressObjectProtections(Process,
                                                  parameter->Process,
@@ -1766,6 +1771,172 @@ LONG KphGetDriverUnloadProtectionCount(
     MemoryBarrier();
 
     return count;
+}
+
+/**
+ * \brief Strips the process and thread allowed masks from a protected process.
+ *
+ * \details Callers may only strip allowed masks. In other words, callers may
+ * only make the protection more restrictive.
+ *
+ * \param[in] Process The protected process to strip the masks from.
+ * \param[in] ProcessAllowedMask The process allowed mask to strip.
+ * \param[in] ThreadAllowedMask The thread allowed mask to strip.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpStripProtectedProcessMasks(
+    _In_ PKPH_PROCESS_CONTEXT Process,
+    _In_ ACCESS_MASK ProcessAllowedMask,
+    _In_ ACCESS_MASK ThreadAllowedMask
+    )
+{
+    NTSTATUS status;
+    PKPH_DYN dyn;
+    KPH_ENUM_FOR_PROTECTION context;
+    ACCESS_MASK prevProcessAllowedMask;
+    ACCESS_MASK prevThreadAllowedMask;
+
+    PAGED_CODE_PASSIVE();
+
+    dyn = KphReferenceDynData();
+    if (!dyn)
+    {
+        return STATUS_NOINTERFACE;
+    }
+
+    KphAcquireRWLockExclusive(&Process->ProtectionLock);
+
+    if (!Process->Protected)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    prevProcessAllowedMask = Process->ProcessAllowedMask;
+    prevThreadAllowedMask = Process->ThreadAllowedMask;
+
+    Process->ProcessAllowedMask &= ~ProcessAllowedMask;
+    Process->ThreadAllowedMask &= ~ThreadAllowedMask;
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  PROTECTION,
+                  "Modifying protected process %wZ (%lu) allowed masks, "
+                  "process: 0x%08x -> 0x%08x, "
+                  "thread: 0x%08x -> 0x%08x",
+                  &Process->ImageName,
+                  HandleToULong(Process->ProcessId),
+                  prevProcessAllowedMask,
+                  Process->ProcessAllowedMask,
+                  prevThreadAllowedMask,
+                  Process->ThreadAllowedMask);
+
+    if ((Process->ProcessAllowedMask == prevProcessAllowedMask) &&
+        (Process->ThreadAllowedMask == prevThreadAllowedMask))
+    {
+        status = STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    context.Dyn = dyn;
+    context.Status = STATUS_SUCCESS;
+    context.Process = Process;
+
+    KphEnumerateProcessContexts(KphpEnumProcessContextsForProtection, &context);
+
+    status = context.Status;
+
+    if (!NT_SUCCESS(status))
+    {
+        Process->ProcessAllowedMask = prevProcessAllowedMask;
+        Process->ThreadAllowedMask = prevThreadAllowedMask;
+    }
+
+Exit:
+
+    KphReleaseRWLock(&Process->ProtectionLock);
+
+    KphDereferenceObject(dyn);
+
+    return status;
+}
+/**
+ * \brief Strips the process and thread allowed masks from a protected process.
+ *
+ * \details Callers may only strip allowed masks. In other words, callers may
+ * only make the protection more restrictive.
+ *
+ * \param[in] ProcessHandle A handle to a process to strip the masks from.
+ * \param[in] ProcessAllowedMask The process allowed mask to strip.
+ * \param[in] ThreadAllowedMask The thread allowed mask to strip.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphStripProtectedProcessMasks(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK ProcessAllowedMask,
+    _In_ ACCESS_MASK ThreadAllowedMask,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PEPROCESS processObject;
+    PKPH_PROCESS_CONTEXT processContext;
+
+    PAGED_CODE_PASSIVE();
+
+    processContext = NULL;
+
+    status = ObReferenceObjectByHandle(ProcessHandle,
+                                       PROCESS_SET_INFORMATION,
+                                       *PsProcessType,
+                                       AccessMode,
+                                       &processObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        processObject = NULL;
+        goto Exit;
+    }
+
+    processContext = KphGetEProcessContext(processObject);
+    if (!processContext)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "KphGetEProcessContext failed");
+
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = KphpStripProtectedProcessMasks(processContext,
+                                            ProcessAllowedMask,
+                                            ThreadAllowedMask);
+
+Exit:
+
+    if (processContext)
+    {
+        KphDereferenceObject(processContext);
+    }
+
+    if (processObject)
+    {
+        ObDereferenceObject(processObject);
+    }
+
+    return status;
 }
 
 /**

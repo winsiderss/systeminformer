@@ -350,6 +350,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiRandomizedPoolTag", L"0");
     PhpAddIntegerSetting(L"KsiEnableUnloadProtection", L"0");
     PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");
+    PhpAddIntegerSetting(L"KsiClientProcessProtectionLevel", L"0");
 }
 
 VOID PhUpdateCachedSettings(

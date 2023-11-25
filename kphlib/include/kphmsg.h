@@ -63,6 +63,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgAssignThreadSessionToken,
     KphMsgGetInformerProcessFilter,
     KphMsgSetInformerProcessFilter,
+    KphMsgStripProtectedProcessMasks,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -340,6 +341,7 @@ typedef struct _KPH_MESSAGE
             KPHM_ASSIGN_THREAD_SESSION_TOKEN AssignThreadSessionToken;
             KPHM_GET_INFORMER_PROCESS_FILTER GetInformerProcessFilter;
             KPHM_SET_INFORMER_PROCESS_FILTER SetInformerProcessFilter;
+            KPHM_STRIP_PROTECTED_PROCESS_MASKS StripProtectedProcessMasks;
         } User;
 
         //

@@ -1854,6 +1854,15 @@ BOOLEAN KphIsDriverUnloadProtected(
     return (KphGetDriverUnloadProtectionCount() > 0);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphStripProtectedProcessMasks(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK ProcessAllowedMask,
+    _In_ ACCESS_MASK ThreadAllowedMask,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // verify
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
