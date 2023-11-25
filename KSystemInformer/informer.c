@@ -187,6 +187,8 @@ const KPH_INFORMER_MAP_ENTRY KphpInformerMap[] =
 C_ASSERT((ARRAYSIZE(KphpInformerMap) + (MaxKphMsgClientAllowed + 1)) == MaxKphMsg);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
+KPH_INFORMER_SETTINGS KphDefaultInformerProcessFilter = { 0 };
+
 _Must_inspect_result_
 PCKPH_INFORMER_SETTINGS KphInformerForMessageId(
     _In_ KPH_MESSAGE_ID MessageId
@@ -443,6 +445,10 @@ VOID KphpSetInformerProcessFilterAll(
     )
 {
     PAGED_CODE_PASSIVE();
+
+    InterlockedExchangeU64(&KphDefaultInformerProcessFilter.Flags, Filter->Flags);
+    InterlockedExchangeU64(&KphDefaultInformerProcessFilter.Flags2, Filter->Flags2);
+    InterlockedExchangeU64(&KphDefaultInformerProcessFilter.Flags3, Filter->Flags3);
 
     KphEnumerateProcessContexts(KphpSetInformerProcessFilter, Filter);
 }
