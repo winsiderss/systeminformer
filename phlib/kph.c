@@ -1857,7 +1857,7 @@ NTSTATUS KphGetInformerProcessFilter(
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.AssignThreadSessionToken.Status;
+        status = msg->User.GetInformerProcessFilter.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
@@ -1876,13 +1876,40 @@ NTSTATUS KphSetInformerProcessFilter(
 
     msg = PhAllocateFromFreeList(&KphMessageFreeList);
     KphMsgInit(msg, KphMsgSetInformerProcessFilter);
-    msg->User.GetInformerProcessFilter.ProcessHandle = ProcessHandle;
-    msg->User.GetInformerProcessFilter.Filter = Filter;
+    msg->User.SetInformerProcessFilter.ProcessHandle = ProcessHandle;
+    msg->User.SetInformerProcessFilter.Filter = Filter;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.AssignThreadSessionToken.Status;
+        status = msg->User.SetInformerProcessFilter.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphStripProtectedProcessMasks(
+    HANDLE ProcessHandle,
+    ACCESS_MASK ProcessAllowedMask,
+    ACCESS_MASK ThreadAllowedMask
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgStripProtectedProcessMasks);
+    msg->User.StripProtectedProcessMasks.ProcessHandle = ProcessHandle;
+    msg->User.StripProtectedProcessMasks.ProcessAllowedMask = ProcessAllowedMask;
+    msg->User.StripProtectedProcessMasks.ThreadAllowedMask = ThreadAllowedMask;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.StripProtectedProcessMasks.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);

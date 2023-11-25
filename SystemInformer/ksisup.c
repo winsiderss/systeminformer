@@ -712,8 +712,32 @@ NTSTATUS KsiInitializeCallbackThread(
                 }
             }
 
-            if (level == KphLevelMax && PhGetIntegerSetting(L"KsiEnableUnloadProtection"))
-                KphAcquireDriverUnloadProtection(NULL, NULL);
+            if (level == KphLevelMax)
+            {
+                ACCESS_MASK process = 0;
+                ACCESS_MASK thread = 0;
+
+                if (PhGetIntegerSetting(L"KsiEnableUnloadProtection"))
+                    KphAcquireDriverUnloadProtection(NULL, NULL);
+
+                switch (PhGetIntegerSetting(L"KsiClientProcessProtectionLevel"))
+                {
+                case 2:
+                    process |= (PROCESS_VM_READ | PROCESS_QUERY_INFORMATION);
+                    thread |= (THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION);
+                    __fallthrough;
+                case 1:
+                    process |= (PROCESS_TERMINATE | PROCESS_SUSPEND_RESUME);
+                    thread |= (THREAD_TERMINATE | THREAD_SUSPEND_RESUME | THREAD_RESUME);
+                    __fallthrough;
+                case 0:
+                default:
+                    break;
+                }
+
+                if (process != 0 || thread != 0)
+                    KphStripProtectedProcessMasks(NtCurrentProcess(), process, thread);
+            }
         }
         else
         {

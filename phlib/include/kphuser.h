@@ -578,6 +578,15 @@ KphSetInformerProcessFilter(
     _In_ PKPH_INFORMER_SETTINGS Filter
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphStripProtectedProcessMasks(
+    HANDLE ProcessHandle,
+    ACCESS_MASK ProcessAllowedMask,
+    ACCESS_MASK ThreadAllowedMask
+    );
+
 EXTERN_C_END
 
 #endif
