@@ -194,6 +194,8 @@ KPH_DEFINE_INFORMER_SETTING(RegPostSaveMergedKey);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 #endif
 
+extern KPH_INFORMER_SETTINGS KphDefaultInformerProcessFilter;
+
 _Must_inspect_result_
 PCKPH_INFORMER_SETTINGS KphInformerForMessageId(
     _In_ KPH_MESSAGE_ID MessageId
