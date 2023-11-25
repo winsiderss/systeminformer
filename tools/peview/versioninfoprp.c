@@ -161,27 +161,59 @@ PPH_STRING PvVersionInfoFlagsToString(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+static wchar_t* PvVersionInfoFileOSHostToString(
+    _In_ ULONG FileOS
+)
+{
+    switch (HIWORD(FileOS))
+    {
+    case 0:  return L"";
+    case 1:  return L"DOS";
+    case 2:  return L"16-bit OS/2";
+    case 3:  return L"32-bit OS/2";
+    case 4:  return L"Windows NT";
+    case 5:  return L"Windows CE";
+    default: return L"Unknown";
+    }
+}
+
+static wchar_t* PvVersionInfoFileOSGuestToString(
+    _In_ ULONG FileOS
+)
+{
+    switch (LOWORD(FileOS))
+    {
+    case 0:  return L"";
+    case 1:  return L"16-bit Windows";
+    case 2:  return L"16-bit Presentation Manager";
+    case 3:  return L"32-bit Presentation Manager";
+    case 4:  return L"32-bit Windows";
+    default: return L"Unknown";
+    }
+}
+
 PPH_STRING PvVersionInfoFileOSToString(
-    _In_ ULONG Flags
+    _In_ ULONG FileOS
     )
 {
     PH_STRING_BUILDER stringBuilder;
     WCHAR pointer[PH_PTR_STR_LEN_1];
 
-    if (Flags == 0)
-        return PhCreateString(L"0");
+    if (FileOS == 0)
+        return PhCreateString(L"Unknown (0)");
 
     PhInitializeStringBuilder(&stringBuilder, 10);
 
-    if (BooleanFlagOn(Flags, VOS_DOS_WINDOWS32))
-        PhAppendStringBuilder2(&stringBuilder, L"DOS, ");
-    if (BooleanFlagOn(Flags, VOS_NT_WINDOWS32))
-        PhAppendStringBuilder2(&stringBuilder, L"Windows NT, ");
+    if (LOWORD(FileOS))
+    {
+        PhAppendStringBuilder2(&stringBuilder, PvVersionInfoFileOSGuestToString(FileOS));
+        if (HIWORD(FileOS))
+            PhAppendStringBuilder2(&stringBuilder, L" on ");
+    }
 
-    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-        PhRemoveEndStringBuilder(&stringBuilder, 2);
+    PhAppendStringBuilder2(&stringBuilder, PvVersionInfoFileOSHostToString(FileOS));
 
-    PhPrintPointer(pointer, UlongToPtr(Flags));
+    PhPrintPointer(pointer, UlongToPtr(FileOS));
     PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
 
     return PhFinalStringBuilderString(&stringBuilder);
