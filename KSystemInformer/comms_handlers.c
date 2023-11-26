@@ -184,9 +184,7 @@ NTSTATUS KSIAPI KphpCommsGetInformerSettings(
 
     msg = &Message->User.GetInformerSettings;
 
-    msg->Settings.Flags = Client->InformerSettings.Flags;
-    msg->Settings.Flags2 = Client->InformerSettings.Flags2;
-    msg->Settings.Flags3 = Client->InformerSettings.Flags3;
+    KphGetInformerSettings(&msg->Settings, &Client->InformerSettings);
 
     msg->Status = STATUS_SUCCESS;
 
@@ -211,9 +209,7 @@ NTSTATUS KSIAPI KphpCommsSetInformerSettings(
 
     msg = &Message->User.SetInformerSettings;
 
-    InterlockedExchangeU64(&Client->InformerSettings.Flags, msg->Settings.Flags);
-    InterlockedExchangeU64(&Client->InformerSettings.Flags2, msg->Settings.Flags2);
-    InterlockedExchangeU64(&Client->InformerSettings.Flags3, msg->Settings.Flags3);
+    KphSetInformerSettings(&Client->InformerSettings, &msg->Settings);
 
     msg->Status = STATUS_SUCCESS;
 

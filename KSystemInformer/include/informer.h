@@ -196,6 +196,44 @@ KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 extern KPH_INFORMER_SETTINGS KphDefaultInformerProcessFilter;
 
+FORCEINLINE
+VOID KphSetInformerSettings(
+    _Out_ PKPH_INFORMER_SETTINGS Destination,
+    _In_ PCKPH_INFORMER_SETTINGS Source
+    )
+{
+    InterlockedExchangeU64(&Destination->Flags, Source->Flags);
+    InterlockedExchangeU64(&Destination->Flags2, Source->Flags2);
+    InterlockedExchangeU64(&Destination->Flags3, Source->Flags3);
+}
+
+FORCEINLINE
+VOID KphGetInformerSettings(
+    _Out_ PKPH_INFORMER_SETTINGS Destination,
+    _In_ PCKPH_INFORMER_SETTINGS Source
+    )
+{
+    Destination->Flags = Source->Flags;
+    Destination->Flags2 = Source->Flags2;
+    Destination->Flags3 = Source->Flags3;
+}
+
+FORCEINLINE
+BOOLEAN KphCheckInformerSettings(
+    _In_ PCKPH_INFORMER_SETTINGS Target,
+    _In_ PCKPH_INFORMER_SETTINGS Settings
+    )
+{
+    if (FlagOn(Target->Flags, Settings->Flags) ||
+        FlagOn(Target->Flags2, Settings->Flags2) ||
+        FlagOn(Target->Flags3, Settings->Flags3))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 _Must_inspect_result_
 PCKPH_INFORMER_SETTINGS KphInformerForMessageId(
     _In_ KPH_MESSAGE_ID MessageId

@@ -88,6 +88,19 @@ ULONG64 InterlockedExchangeU64(
     return (ULONG64)InterlockedExchange64((LONG64*)Target, (LONG64)Value);
 }
 
+
+FORCEINLINE
+ULONG64 InterlockedCompareExchangeU64(
+    _Inout_ _Interlocked_operand_ volatile ULONG64* Target,
+    _In_ ULONG64 Value,
+    _In_ ULONG64 Expected
+    )
+{
+    return (ULONG64)InterlockedCompareExchange64((LONG64*)Target,
+                                                 (LONG64)Value,
+                                                 (LONG64)Expected);
+}
+
 FORCEINLINE
 ULONG64 InterlockedIncrementU64(
     _Inout_ _Interlocked_operand_ volatile ULONG64* Target

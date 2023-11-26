@@ -232,14 +232,7 @@ BOOLEAN KphpCommsInformerEnabled(
 {
     NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
-    if (FlagOn(Client->InformerSettings.Flags, Settings->Flags) ||
-        FlagOn(Client->InformerSettings.Flags2, Settings->Flags2) ||
-        FlagOn(Client->InformerSettings.Flags3, Settings->Flags3))
-    {
-        return TRUE;
-    }
-
-    return FALSE;
+    return KphCheckInformerSettings(&Client->InformerSettings, Settings);
 }
 
 /**

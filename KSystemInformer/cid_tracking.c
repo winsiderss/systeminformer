@@ -411,9 +411,8 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
     process->SequenceNumber = InterlockedIncrementU64(&KphpProcessSequence);
 
-    process->InformerFilter.Flags = KphDefaultInformerProcessFilter.Flags;
-    process->InformerFilter.Flags2 = KphDefaultInformerProcessFilter.Flags2;
-    process->InformerFilter.Flags3 = KphDefaultInformerProcessFilter.Flags3;
+    KphSetInformerSettings(&process->InformerFilter,
+                           &KphDefaultInformerProcessFilter);
 
     status = ObOpenObjectByPointer(processObject,
                                    OBJ_KERNEL_HANDLE,
