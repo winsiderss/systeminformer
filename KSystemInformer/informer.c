@@ -219,14 +219,7 @@ BOOLEAN KphpInformerProcessIsFiltered(
 {
     NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
-    if (FlagOn(Process->InformerFilter.Flags, Settings->Flags) ||
-        FlagOn(Process->InformerFilter.Flags2, Settings->Flags2) ||
-        FlagOn(Process->InformerFilter.Flags3, Settings->Flags3))
-    {
-        return TRUE;
-    }
-
-    return FALSE;
+    return KphCheckInformerSettings(&Process->InformerFilter, Settings);
 }
 
 /**
@@ -370,9 +363,7 @@ NTSTATUS KphGetInformerProcessFilter(
     {
         __try
         {
-            Filter->Flags = processContext->InformerFilter.Flags;
-            Filter->Flags2 = processContext->InformerFilter.Flags2;
-            Filter->Flags3 = processContext->InformerFilter.Flags3;
+            KphGetInformerSettings(Filter, &processContext->InformerFilter);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -382,9 +373,7 @@ NTSTATUS KphGetInformerProcessFilter(
     }
     else
     {
-        Filter->Flags = processContext->InformerFilter.Flags;
-        Filter->Flags2 = processContext->InformerFilter.Flags2;
-        Filter->Flags3 = processContext->InformerFilter.Flags3;
+        KphGetInformerSettings(Filter, &processContext->InformerFilter);
     }
 
     status = STATUS_SUCCESS;
@@ -427,9 +416,7 @@ BOOLEAN KSIAPI KphpSetInformerProcessFilter(
 
     filter = Parameter;
 
-    InterlockedExchangeU64(&Process->InformerFilter.Flags, filter->Flags);
-    InterlockedExchangeU64(&Process->InformerFilter.Flags2, filter->Flags2);
-    InterlockedExchangeU64(&Process->InformerFilter.Flags3, filter->Flags3);
+    KphSetInformerSettings(&Process->InformerFilter, filter);
 
     return FALSE;
 }
@@ -446,9 +433,7 @@ VOID KphpSetInformerProcessFilterAll(
 {
     PAGED_CODE_PASSIVE();
 
-    InterlockedExchangeU64(&KphDefaultInformerProcessFilter.Flags, Filter->Flags);
-    InterlockedExchangeU64(&KphDefaultInformerProcessFilter.Flags2, Filter->Flags2);
-    InterlockedExchangeU64(&KphDefaultInformerProcessFilter.Flags3, Filter->Flags3);
+    KphSetInformerSettings(&KphDefaultInformerProcessFilter, Filter);
 
     KphEnumerateProcessContexts(KphpSetInformerProcessFilter, Filter);
 }
