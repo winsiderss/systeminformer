@@ -171,6 +171,9 @@ struct _PH_PLUGIN *PhFindPlugin2(
 #define PH_LOG_ENTRY_SERVICE_MODIFIED 9
 #define PH_LOG_ENTRY_SERVICE_LAST 10
 
+#define PH_LOG_ENTRY_DEVICE_REMOVED 11
+#define PH_LOG_ENTRY_DEVICE_ARRIVED 12
+
 #define PH_LOG_ENTRY_MESSAGE 100 // phapppub
 
 typedef struct _PH_LOG_ENTRY *PPH_LOG_ENTRY; // phapppub
@@ -196,6 +199,11 @@ typedef struct _PH_LOG_ENTRY
             PPH_STRING Name;
             PPH_STRING DisplayName;
         } Service;
+        struct
+        {
+            PPH_STRING Classification;
+            PPH_STRING Name;
+        } Device;
         PPH_STRING Message;
     };
     UCHAR Buffer[1];
@@ -224,6 +232,12 @@ VOID PhLogServiceEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Name,
     _In_ PPH_STRING DisplayName
+    );
+
+VOID PhLogDeviceEntry(
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Classification,
+    _In_ PPH_STRING Name
     );
 
 // begin_phapppub

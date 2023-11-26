@@ -70,19 +70,30 @@ VOID PhpNotifyForDevice(
     PPH_STRING title;
 
     classification = PhpNotifyDeviceGetString(Item, PhDevicePropertyClass, TRUE);
+    if (!classification)
+        classification = PhCreateString(L"Unclassified");
+
     name = PhpNotifyDeviceGetString(Item, PhDevicePropertyName, FALSE);
+    if (!name)
+        name = PhCreateString(L"Unnamed");
 
-    title = PhFormatString(
-        L"%ls Device %ls",
-        PhGetStringOrDefault(classification, L"Unclassified"),
-        Type == PH_NOTIFY_DEVICE_REMOVED ? L"Removed" : L"Arrived"
-        );
+    if (Type == PH_NOTIFY_DEVICE_REMOVED)
+    {
+        PhLogDeviceEntry(PH_LOG_ENTRY_DEVICE_REMOVED, classification, name);
+        title = PhConcatStringRefZ(&classification->sr, L" Device Removed");
+    }
+    else
+    {
+        PhLogDeviceEntry(PH_LOG_ENTRY_DEVICE_ARRIVED, classification, name);
+        title = PhConcatStringRefZ(&classification->sr, L" Device Arrived");
+    }
 
-    PhShowIconNotification(PhGetString(title), PhGetStringOrDefault(name, L"Unnamed"));
+    if ((PhMwpNotifyIconNotifyMask & Type))
+        PhShowIconNotification(PhGetString(title), PhGetString(name));
 
     PhDereferenceObject(title);
-    PhClearReference(&name);
-    PhClearReference(&classification);
+    PhDereferenceObject(name);
+    PhDereferenceObject(classification);
 }
 
 VOID NTAPI PhpDeviceProviderCallbackHandler(
@@ -99,8 +110,7 @@ VOID NTAPI PhpDeviceProviderCallbackHandler(
         type = PH_NOTIFY_DEVICE_ARRIVED;
     else if (notify->Action == PhDeviceNotifyInstanceRemoved)
         type = PH_NOTIFY_DEVICE_REMOVED;
-
-    if (!(PhMwpNotifyIconNotifyMask & type))
+    else
         return;
 
     tree = PhReferenceDeviceTree();
