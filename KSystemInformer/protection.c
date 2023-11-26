@@ -497,18 +497,6 @@ NTSTATUS KphStartProtectingProcess(
     _In_ ACCESS_MASK ThreadAllowedMask
     )
 {
-#if KPH_PROTECTION_SUPPRESSED
-
-    PAGED_CODE_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Process);
-    UNREFERENCED_PARAMETER(ProcessAllowedMask);
-    UNREFERENCED_PARAMETER(ThreadAllowedMask);
-
-    return STATUS_NOT_SUPPORTED;
-
-#else
-
     NTSTATUS status;
     PKPH_DYN dyn;
     BOOLEAN releaseLock;
@@ -594,8 +582,6 @@ Exit:
     }
 
     return status;
-
-#endif
 }
 
 /**
