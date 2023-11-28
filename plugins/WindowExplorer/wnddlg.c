@@ -752,6 +752,38 @@ VOID NTAPI WepWindowNotifyEventChangeCallback(
     }
 }
 
+VOID NTAPI WepWindowsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+)
+{
+    PWE_WINDOW_NODE lastSelectedNode;
+    PWINDOWS_CONTEXT context = Context;
+
+    assert(context);
+
+    context->TreeContext.SearchMatchHandle = MatchHandle;
+
+    if (!context->TreeContext.SearchMatchHandle)
+    {
+        lastSelectedNode = WeGetSelectedWindowNode(&context->TreeContext);
+    }
+    else
+    {
+        WeExpandAllWindowNodes(&context->TreeContext, TRUE);
+        lastSelectedNode = NULL;
+    }
+
+    PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+
+    TreeNew_NodesStructured(context->TreeNewHandle);
+
+    if (lastSelectedNode)
+    {
+        TreeNew_EnsureVisible(context->TreeNewHandle, &lastSelectedNode->Node);
+    }
+}
+
 INT_PTR CALLBACK WepWindowsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -796,7 +828,14 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PhSetApplicationWindowIcon(hwndDlg);
             PhSetWindowText(hwndDlg, PH_AUTO_T(PH_STRING, WepGetWindowTitleForSelector(&context->Selector))->Buffer);
 
-            PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchBoxHandle,
+                L"Search Windows (Ctrl+K)",
+                WepWindowsSearchControlCallback,
+                context
+                );
+
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
             TreeNew_SetEmptyText(context->TreeNewHandle, &WepEmptyWindowsText, 0);
             SetWindowFont(context->TreeNewHandle, context->TreeWindowFont, TRUE);
@@ -857,46 +896,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PWE_WINDOW_NODE lastSelectedNode = NULL;
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
-
-                    if (!PhEqualString(context->TreeContext.SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->TreeContext.SearchboxText, newSearchboxText);
-
-                        if (PhIsNullOrEmptyString(context->TreeContext.SearchboxText))
-                        {
-                            lastSelectedNode = WeGetSelectedWindowNode(&context->TreeContext);
-                        }
-                        else
-                        {
-                            WeExpandAllWindowNodes(&context->TreeContext, TRUE);
-                            lastSelectedNode = NULL;
-                        }
-
-                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
-
-                        TreeNew_NodesStructured(context->TreeNewHandle);
-                        // PhInvokeCallback(&SearchChangedEvent, SearchboxText);
-
-                        if (lastSelectedNode)
-                        {
-                            TreeNew_EnsureVisible(context->TreeNewHandle, &lastSelectedNode->Node);
-                        }
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
@@ -1566,6 +1565,25 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     return FALSE;
 }
 
+VOID NTAPI WepWindowsPageSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PWINDOWS_CONTEXT context = Context;
+
+    assert(context);
+
+    context->TreeContext.SearchMatchHandle = MatchHandle;
+
+    if (!context->TreeContext.SearchMatchHandle)
+        WeExpandAllWindowNodes(&context->TreeContext, TRUE);
+
+    PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+
+    TreeNew_NodesStructured(context->TreeNewHandle);
+}
+
 INT_PTR CALLBACK WepWindowsPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1594,7 +1612,14 @@ INT_PTR CALLBACK WepWindowsPageProc(
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
             context->FindWindowButtonHandle = GetDlgItem(hwndDlg, IDC_FINDWINDOW);
 
-            PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchBoxHandle,
+                L"Search Windows (Ctrl+K)",
+                WepWindowsPageSearchControlCallback,
+                context
+                );
+
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
             TreeNew_SetEmptyText(context->TreeNewHandle, &WepEmptyWindowsText, 0);
             WeInitializeWindowTreeImageList(&context->TreeContext, &context->Selector);
@@ -1630,33 +1655,6 @@ INT_PTR CALLBACK WepWindowsPageProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
-
-                    if (!PhEqualString(context->TreeContext.SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->TreeContext.SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->TreeContext.SearchboxText))
-                            WeExpandAllWindowNodes(&context->TreeContext, TRUE);
-
-                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
-
-                        TreeNew_NodesStructured(context->TreeNewHandle);
-                        // PhInvokeCallback(&SearchChangedEvent, SearchboxText);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:

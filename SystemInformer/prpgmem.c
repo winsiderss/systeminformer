@@ -219,61 +219,50 @@ BOOLEAN PhpMemoryTreeFilterCallback(
         return FALSE;
     }
 
-    if (PhIsNullOrEmptyString(memoryContext->SearchboxText))
+    if (!memoryContext->SearchMatchHandle)
         return TRUE;
 
-    if (memoryContext->UseSearchPointer)
-    {
-        // Show all the nodes for which the specified pointer is the allocation base
-        if ((ULONG64)memoryNode->MemoryItem->AllocationBase == memoryContext->SearchPointer)
-        {
-            return TRUE;
-        }
+    if (PhSearchControlMatchPointer(memoryContext->SearchMatchHandle, memoryNode->MemoryItem->AllocationBase))
+        return TRUE;
 
-        // Show the AllocationBaseNode for which the specified pointer is within its range
-        if (
-            memoryNode->IsAllocationBase &&
-            (ULONG64)memoryNode->MemoryItem->AllocationBase <= memoryContext->SearchPointer &&
-            (ULONG64)memoryNode->MemoryItem->AllocationBase + (ULONG64)memoryNode->MemoryItem->RegionSize > memoryContext->SearchPointer
-            )
-        {
-            return TRUE;
-        }
+    if (PhSearchControlMatchPointerRange(
+        memoryContext->SearchMatchHandle,
+        memoryNode->MemoryItem->AllocationBase,
+        memoryNode->MemoryItem->RegionSize
+        ))
+        return TRUE;
 
-        // Show the RegionNode for which the specified pointer is within its range
-        if (
-            (ULONG64)memoryNode->MemoryItem->BaseAddress <= memoryContext->SearchPointer &&
-            (ULONG64)memoryNode->MemoryItem->BaseAddress + (ULONG64)memoryNode->MemoryItem->RegionSize > memoryContext->SearchPointer
-            )
-        {
-            return TRUE;
-        }
-    }
+    if (PhSearchControlMatchPointerRange(
+        memoryContext->SearchMatchHandle,
+        memoryNode->MemoryItem->BaseAddress,
+        memoryNode->MemoryItem->RegionSize
+        ))
+        return TRUE;
 
     if (memoryItem->BaseAddressString[0])
     {
-        if (PhWordMatchStringLongHintZ(memoryContext->SearchboxText, memoryItem->BaseAddressString))
+        if (PhSearchControlMatchLongHintZ(memoryContext->SearchMatchHandle, memoryItem->BaseAddressString))
             return TRUE;
     }
 
     string = PhGetMemoryTypeString(memoryItem->Type);
     if (string && string->Length)
     {
-        if (PhWordMatchStringRef(&memoryContext->SearchboxText->sr, string))
+        if (PhSearchControlMatch(memoryContext->SearchMatchHandle, string))
             return TRUE;
     }
 
     string = PhGetMemoryStateString(memoryItem->State);
     if (string && string->Length)
     {
-        if (PhWordMatchStringRef(&memoryContext->SearchboxText->sr, string))
+        if (PhSearchControlMatch(memoryContext->SearchMatchHandle, string))
             return TRUE;
     }
 
     useText = PH_AUTO(PhGetMemoryRegionUseText(memoryItem));
     if (!PhIsNullOrEmptyString(useText))
     {
-        if (PhWordMatchStringRef(&memoryContext->SearchboxText->sr, &useText->sr))
+        if (PhSearchControlMatch(memoryContext->SearchMatchHandle, &useText->sr))
             return TRUE;
     }
 
@@ -525,6 +514,22 @@ PPH_MEMORY_CONTEXT PhCreateMemoryContext(
     return memoryContext;
 }
 
+VOID NTAPI PhpProcessMemorySearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_MEMORY_CONTEXT memoryContext = Context;
+
+    assert(memoryContext);
+
+    // Expand any hidden nodes to make search results visible.
+    PhExpandAllMemoryNodes(&memoryContext->ListContext, TRUE);
+
+    PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
+    PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
+}
+
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -557,7 +562,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             memoryContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
             memoryContext->LastRunStatus = ULONG_MAX;
             memoryContext->ErrorMessage = NULL;
-            memoryContext->SearchboxText = PhReferenceEmptyString();
 
             // Initialize the list.
             PhInitializeMemoryList(hwndDlg, memoryContext->TreeNewHandle, &memoryContext->ListContext);
@@ -566,7 +570,13 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             memoryContext->AllocationFilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.AllocationTreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
             memoryContext->FilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
 
-            PhCreateSearchControl(hwndDlg, memoryContext->SearchboxHandle, L"Search Memory (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                memoryContext->SearchboxHandle,
+                L"Search Memory (Ctrl+K)",
+                PhpProcessMemorySearchControlCallback,
+                memoryContext
+                );
 
             PhEmCallObjectOperation(EmMemoryContextType, memoryContext, EmObjectCreate);
 
@@ -591,7 +601,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         {
             PhRemoveTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, memoryContext->FilterEntry);
             PhRemoveTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, memoryContext->AllocationFilterEntry);
-            if (memoryContext->SearchboxText) PhDereferenceObject(memoryContext->SearchboxText);
 
             PhEmCallObjectOperation(EmMemoryContextType, memoryContext, EmObjectDelete);
 
@@ -623,35 +632,6 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != memoryContext->SearchboxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(memoryContext->SearchboxHandle));
-
-                    if (!PhEqualString(memoryContext->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        // Try to get a search pointer from the search string.
-                        memoryContext->UseSearchPointer = PhStringToInteger64(&newSearchboxText->sr, 0, &memoryContext->SearchPointer);
-
-                        // Cache the current search text for our callback.
-                        PhSwapReference(&memoryContext->SearchboxText, newSearchboxText);
-
-                        // Expand any hidden nodes to make search results visible.
-                        PhExpandAllMemoryNodes(&memoryContext->ListContext, TRUE);
-
-                        PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
-                        PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_SHOWCONTEXTMENU:

@@ -406,7 +406,7 @@ BOOLEAN NTAPI DeviceTreeFilterCallback(
 {
     PDEVICE_NODE node = (PDEVICE_NODE)Node;
 
-    if (PhIsNullOrEmptyString(ToolStatusInterface->GetSearchboxText()))
+    if (!ToolStatusInterface->GetSearchMatchHandle())
         return TRUE;
 
     for (ULONG i = 0; i < ARRAYSIZE(node->DeviceItem->Properties); i++)

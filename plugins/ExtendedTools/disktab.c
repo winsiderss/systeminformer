@@ -1294,7 +1294,7 @@ BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
     //if (PhIsNullOrEmptyString(diskNode->DiskItem->FileName))
     //    return FALSE;
 
-    if (PhIsNullOrEmptyString(ToolStatusInterface->GetSearchboxText()))
+    if (!ToolStatusInterface->GetSearchMatchHandle())
         return TRUE;
 
     if (wordMatch(&diskNode->ProcessNameText->sr))

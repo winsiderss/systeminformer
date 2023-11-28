@@ -211,7 +211,7 @@ typedef struct _PH_THREADS_CONTEXT
     HWND TreeNewHandle;
     HWND StatusHandle;
     HWND SearchboxHandle;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY FilterEntry;
     union
     {
@@ -257,7 +257,7 @@ typedef struct _PH_MODULES_CONTEXT
     PH_PROVIDER_EVENT_QUEUE EventQueue;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY FilterEntry;
 // begin_phapppub
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
@@ -295,10 +295,8 @@ typedef struct _PH_HANDLES_CONTEXT
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY FilterEntry;
-    ULONG64 SearchPointer;
-    BOOLEAN UseSearchPointer;
 // begin_phapppub
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 // end_phapppub
@@ -326,9 +324,7 @@ typedef struct _PH_MEMORY_CONTEXT
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 
-    BOOLEAN UseSearchPointer;
-    ULONG64 SearchPointer;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY AllocationFilterEntry;
     PPH_TN_FILTER_ENTRY FilterEntry;
 // begin_phapppub
@@ -432,7 +428,7 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
     };
 
     PPH_PROCESS_ITEM ProcessItem;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_STRING StatusMessage;
 
     PPH_LIST NodeList;

@@ -111,7 +111,7 @@ typedef struct _POOLTAG_CONTEXT
     ULONG ProcessesUpdatedCount;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PH_TN_FILTER_SUPPORT FilterSupport;
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
 

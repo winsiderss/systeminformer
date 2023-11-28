@@ -239,47 +239,47 @@ BOOLEAN PhpHandleTreeFilterCallback(
             return FALSE;
     }
 
-    if (PhIsNullOrEmptyString(handlesContext->SearchboxText))
+    if (!handlesContext->SearchMatchHandle)
         return TRUE;
 
     // handle properties
 
-    if (handlesContext->UseSearchPointer && handleItem->Handle == (PVOID)handlesContext->SearchPointer)
+    if (PhSearchControlMatchPointer(handlesContext->SearchMatchHandle, handleItem->Handle))
         return TRUE;
 
     if (!PhIsNullOrEmptyString(handleItem->TypeName))
     {
-        if (PhWordMatchStringRef(&handlesContext->SearchboxText->sr, &handleItem->TypeName->sr))
+        if (PhSearchControlMatch(handlesContext->SearchMatchHandle, &handleItem->TypeName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(handleItem->ObjectName))
     {
-        if (PhWordMatchStringRef(&handlesContext->SearchboxText->sr, &handleItem->ObjectName->sr))
+        if (PhSearchControlMatch(handlesContext->SearchMatchHandle, &handleItem->ObjectName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(handleItem->BestObjectName))
     {
-        if (PhWordMatchStringRef(&handlesContext->SearchboxText->sr, &handleItem->BestObjectName->sr))
+        if (PhSearchControlMatch(handlesContext->SearchMatchHandle, &handleItem->BestObjectName->sr))
             return TRUE;
     }
 
     if (handleItem->HandleString[0])
     {
-        if (PhWordMatchStringLongHintZ(handlesContext->SearchboxText, handleItem->HandleString))
+        if (PhSearchControlMatchLongHintZ(handlesContext->SearchMatchHandle, handleItem->HandleString))
             return TRUE;
     }
 
     if (handleItem->GrantedAccessString[0])
     {
-        if (PhWordMatchStringLongHintZ(handlesContext->SearchboxText, handleItem->GrantedAccessString))
+        if (PhSearchControlMatchLongHintZ(handlesContext->SearchMatchHandle, handleItem->GrantedAccessString))
             return TRUE;
     }
 
     if (handleItem->ObjectString[0])
     {
-        if (PhWordMatchStringLongHintZ(handlesContext->SearchboxText, handleItem->ObjectString))
+        if (PhSearchControlMatchLongHintZ(handlesContext->SearchMatchHandle, handleItem->ObjectString))
             return TRUE;
     }
 
@@ -289,13 +289,13 @@ BOOLEAN PhpHandleTreeFilterCallback(
 
     if (!PhIsNullOrEmptyString(handleNode->GrantedAccessSymbolicText))
     {
-        if (PhWordMatchStringRef(&handlesContext->SearchboxText->sr, &handleNode->GrantedAccessSymbolicText->sr))
+        if (PhSearchControlMatch(handlesContext->SearchMatchHandle, &handleNode->GrantedAccessSymbolicText->sr))
             return TRUE;
     }
 
     if (handleNode->FileShareAccessText[0])
     {
-        if (PhWordMatchStringLongHintZ(handlesContext->SearchboxText, handleNode->FileShareAccessText))
+        if (PhSearchControlMatchLongHintZ(handlesContext->SearchMatchHandle, handleNode->FileShareAccessText))
             return TRUE;
     }
 
@@ -371,6 +371,26 @@ NTSTATUS PhpProcessHandleCloseCallback(
     return STATUS_SUCCESS;
 }
 
+VOID NTAPI PhpProcessHandlessSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_HANDLES_CONTEXT handlesContext = Context;
+
+    assert(handlesContext);
+
+    handlesContext->SearchMatchHandle = MatchHandle;
+
+    if (!handlesContext->SearchMatchHandle)
+    {
+        // Expand any hidden nodes to make search results visible.
+        PhExpandAllHandleNodes(&handlesContext->ListContext, TRUE);
+    }
+
+    PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
+}
+
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -442,10 +462,15 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhInitializeProviderEventQueue(&handlesContext->EventQueue, 100);
             handlesContext->LastRunStatus = -1;
             handlesContext->ErrorMessage = NULL;
-            handlesContext->SearchboxText = PhReferenceEmptyString();
             handlesContext->FilterEntry = PhAddTreeNewFilter(&handlesContext->ListContext.TreeFilterSupport, PhpHandleTreeFilterCallback, handlesContext);
 
-            PhCreateSearchControl(hwndDlg, handlesContext->SearchWindowHandle, L"Search Handles (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                handlesContext->SearchWindowHandle,
+                L"Search Handles (Ctrl+K)",
+                PhpProcessHandlessSearchControlCallback,
+                handlesContext
+                );
 
             PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectCreate);
 
@@ -470,7 +495,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     case WM_DESTROY:
         {
             PhRemoveTreeNewFilter(&handlesContext->ListContext.TreeFilterSupport, handlesContext->FilterEntry);
-            if (handlesContext->SearchboxText) PhDereferenceObject(handlesContext->SearchboxText);
 
             PhEmCallObjectOperation(EmHandlesContextType, handlesContext, EmObjectDelete);
 
@@ -523,36 +547,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != handlesContext->SearchWindowHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(handlesContext->SearchWindowHandle));
-
-                    if (!PhEqualString(handlesContext->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        // Cache the current search text for our callback.
-                        PhSwapReference(&handlesContext->SearchboxText, newSearchboxText);
-                        // Try to get a search pointer from the search string.
-                        handlesContext->UseSearchPointer = PhStringToInteger64(&handlesContext->SearchboxText->sr, 0, &handlesContext->SearchPointer);
-
-                        if (!PhIsNullOrEmptyString(handlesContext->SearchboxText))
-                        {
-                            // Expand any hidden nodes to make search results visible.
-                            PhExpandAllHandleNodes(&handlesContext->ListContext, TRUE);
-                        }
-
-                        PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_SHOWCONTEXTMENU:
