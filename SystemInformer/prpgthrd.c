@@ -333,104 +333,104 @@ BOOLEAN PhpThreadTreeFilterCallback(
     if (Context->ListContext.HideGuiThreads && threadItem->IsGuiThread)
         return FALSE;
 
-    if (PhIsNullOrEmptyString(Context->SearchboxText))
+    if (!Context->SearchMatchHandle)
         return TRUE;
 
     // thread properties
 
     if (threadItem->ThreadIdString[0])
     {
-        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadItem->ThreadIdString))
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadItem->ThreadIdString))
             return TRUE;
     }
 
     if (threadItem->LxssThreadIdString[0])
     {
-        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadItem->LxssThreadIdString))
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadItem->LxssThreadIdString))
             return TRUE;
     }
 
     if (threadNode->PriorityText[0])
     {
-        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->PriorityText))
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadNode->PriorityText))
             return TRUE;
     }
 
     if (threadNode->BasePriorityText[0])
     {
-        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->BasePriorityText))
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadNode->BasePriorityText))
             return TRUE;
     }
 
     if (threadNode->IdealProcessorText[0])
     {
-        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->IdealProcessorText))
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadNode->IdealProcessorText))
             return TRUE;
     }
 
     if (threadNode->ThreadIdHexText[0])
     {
-        if (PhWordMatchStringLongHintZ(Context->SearchboxText, threadNode->ThreadIdHexText))
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadNode->ThreadIdHexText))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->StartAddressText))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->StartAddressText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->StartAddressText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->PrioritySymbolicText))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->PrioritySymbolicText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->PrioritySymbolicText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->CreatedText))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->CreatedText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->CreatedText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->NameText))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->NameText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->NameText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->StateText))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->StateText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->StateText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->LastSystemCallText))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->LastSystemCallText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->LastSystemCallText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->LastErrorCodeText))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->LastErrorCodeText->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->LastErrorCodeText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->ThreadItem->ServiceName))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->ThreadItem->ServiceName->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->ServiceName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressString))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->ThreadItem->StartAddressString->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->StartAddressString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressFileName))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->ThreadItem->StartAddressFileName->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &threadNode->ThreadItem->StartAddressFileName->sr))
             return TRUE;
     }
 
@@ -770,6 +770,20 @@ VOID PhpSymbolProviderEventCallbackThreadStatus(
     }
 }
 
+VOID NTAPI PhpProcessThreadsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_THREADS_CONTEXT threadsContext = Context;
+
+    assert(threadsContext);
+
+    threadsContext->SearchMatchHandle = MatchHandle;
+
+    PhApplyTreeNewFilters(&threadsContext->ListContext.TreeFilterSupport);
+}
+
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -842,13 +856,18 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhInitializeThreadList(hwndDlg, threadsContext->TreeNewHandle, &threadsContext->ListContext);
             TreeNew_SetEmptyText(threadsContext->TreeNewHandle, &EmptyThreadsText, 0);
             PhInitializeProviderEventQueue(&threadsContext->EventQueue, 100);
-            threadsContext->SearchboxText = PhReferenceEmptyString();
             threadsContext->FilterEntry = PhAddTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, PhpThreadTreeFilterCallback, threadsContext);
             threadsContext->ListContext.ProcessId = processItem->ProcessId;
             threadsContext->ListContext.ProcessCreateTime = processItem->CreateTime;
 
             // Initialize the search box. (dmex)
-            PhCreateSearchControl(hwndDlg, threadsContext->SearchboxHandle, L"Search Threads (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                threadsContext->SearchboxHandle,
+                L"Search Threads (Ctrl+K)",
+                PhpProcessThreadsSearchControlCallback,
+                threadsContext
+                );
 
             // Use Cycles instead of Context Switches on Vista and above, but only when we can
             // open the process, since cycle time information requires sufficient access to the
@@ -931,7 +950,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             }
 
             PhRemoveTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, threadsContext->FilterEntry);
-            if (threadsContext->SearchboxText) PhDereferenceObject(threadsContext->SearchboxText);
 
             PhEmCallObjectOperation(EmThreadsContextType, threadsContext, EmObjectDelete);
 
@@ -990,28 +1008,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != threadsContext->SearchboxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(threadsContext->SearchboxHandle));
-
-                    if (!PhEqualString(threadsContext->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        // Cache the current search text for our callback.
-                        PhSwapReference(&threadsContext->SearchboxText, newSearchboxText);
-
-                        PhApplyTreeNewFilters(&threadsContext->ListContext.TreeFilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_SHOWCONTEXTMENU:

@@ -505,6 +505,30 @@
     <None Include="SystemInformer.def">
       <Filter>Module</Filter>
     </None>
+    <None Include="resources\case_sensitive_modern_dark.svg">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\case_sensitive_modern_light.svg">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\regex_modern_dark.svg">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\regex_modern_light.svg">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\search_modern_dark.svg">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\search_modern_light.svg">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\search_stop_modern_dark.svg">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\search_stop_modern_light.svg">
+      <Filter>Resources</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SystemInformer.rc">
@@ -550,5 +574,43 @@
     <Image Include="resources\inactive_search_small.png">
       <Filter>Resources</Filter>
     </Image>
+    <Image Include="resources\case_sensitive_modern_dark.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\case_sensitive_modern_light.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\regex_modern_dark.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\regex_modern_light.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\search_modern_dark.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\search_modern_light.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\search_stop_modern_dark.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\search_stop_modern_light.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\systeminformer-128x128.png">
+      <Filter>Resources</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\capslist.txt">
+      <Filter>Resources</Filter>
+    </Text>
+    <Text Include="resources\etwguids.txt">
+      <Filter>Resources</Filter>
+    </Text>
+    <Text Include="resources\pooltag.txt">
+      <Filter>Resources</Filter>
+    </Text>
   </ItemGroup>
 </Project>

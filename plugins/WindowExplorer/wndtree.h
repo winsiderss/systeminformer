@@ -79,7 +79,7 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
         };
     };
 
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PH_TN_FILTER_SUPPORT FilterSupport;
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
 

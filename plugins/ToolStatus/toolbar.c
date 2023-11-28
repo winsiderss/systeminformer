@@ -206,7 +206,6 @@ VOID RebarCreateOrUpdateWindow(
 
     if (ToolStatusConfig.SearchBoxEnabled && !SearchboxHandle)
     {
-        SearchboxText = PhReferenceEmptyString();
         ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
@@ -226,7 +225,13 @@ VOID RebarCreateOrUpdateWindow(
             NULL
             ))
         {
-            PhCreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
+            PhCreateSearchControl(
+                RebarHandle,
+                SearchboxHandle,
+                L"Search Processes (Ctrl+K)",
+                SearchControlCallback,
+                NULL
+                );
         }
     }
 
@@ -287,7 +292,7 @@ VOID RebarCreateOrUpdateWindow(
 
             dpiValue = PhGetWindowDpi(RebarHandle);
 
-            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(180, dpiValue), height);
+            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(215, dpiValue), height);
         }
 
         if (!IsWindowVisible(SearchboxHandle))
