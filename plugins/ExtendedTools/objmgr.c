@@ -1029,10 +1029,15 @@ INT_PTR CALLBACK WinObjDlgProc(
                             {
                             case 2:
                                 {
-                                    POBJECT_ENTRY entry = listviewItems[0];
+                                    POBJECT_ENTRY results = listviewItems[0];
                                     PHANDLE_OPEN_CONTEXT objectContext;
+                                    POBJECT_ENTRY entry;
                                     NTSTATUS status;
                                     HANDLE objectHandle;
+
+                                    entry = PhAllocateZero(sizeof(ET_OBJECT_ENTRY));
+                                    PhSetReference(&entry->Name, results->Name);
+                                    PhSetReference(&entry->TypeName, results->TypeName);
 
                                     objectContext = PhAllocateZero(sizeof(HANDLE_OPEN_CONTEXT));
                                     objectContext->CurrentPath = EtGetSelectedTreeViewPath(context);
