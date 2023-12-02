@@ -506,7 +506,7 @@ VOID PvpSearchDrawButton(
             Context->ImageListHandle,
             Button->ImageIndex,
             Hdc,
-            buttonRect.left + 2 /*offset*/ + ((buttonRect.right - buttonRect.left) - Context->ImageWidth) / 2,
+            buttonRect.left + 1 /*offset*/ + ((buttonRect.right - buttonRect.left) - Context->ImageWidth) / 2,
             buttonRect.top +  ((buttonRect.bottom - buttonRect.top) - Context->ImageHeight) / 2,
             ILD_TRANSPARENT,
             FALSE
@@ -705,6 +705,7 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
 
             if (hdc = GetDCEx(hWnd, updateRegion, flags))
             {
+                RECT windowRectStart;
                 HDC bufferDc;
                 RECT bufferRect;
                 HBITMAP bufferBitmap;
@@ -714,6 +715,8 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                 GetWindowRect(hWnd, &windowRect);
                 // Adjust the coordinates (start from 0,0).
                 PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+                windowRectStart = windowRect;
+
                 // Exclude client area.
                 ExcludeClipRect(
                     hdc,
@@ -770,10 +773,10 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
                     FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
                 }
 
-                PvpSearchDrawWindow(context, hWnd, bufferDc, windowRect);
-                PvpSearchDrawButton(context, &context->SearchButton, hWnd, bufferDc, windowRect);
-                PvpSearchDrawButton(context, &context->RegexButton, hWnd, bufferDc, windowRect);
-                PvpSearchDrawButton(context, &context->CaseButton, hWnd, bufferDc, windowRect);
+                PvpSearchDrawWindow(context, hWnd, bufferDc, windowRectStart);
+                PvpSearchDrawButton(context, &context->SearchButton, hWnd, bufferDc, windowRectStart);
+                PvpSearchDrawButton(context, &context->RegexButton, hWnd, bufferDc, windowRectStart);
+                PvpSearchDrawButton(context, &context->CaseButton, hWnd, bufferDc, windowRectStart);
 
                 BitBlt(
                     hdc,
