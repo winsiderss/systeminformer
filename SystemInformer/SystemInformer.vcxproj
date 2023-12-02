@@ -536,6 +536,14 @@
     <ClInclude Include="include\sysinfop.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="resources\case_sensitive_modern_dark.svg" />
+    <None Include="resources\case_sensitive_modern_light.svg" />
+    <None Include="resources\regex_modern_dark.svg" />
+    <None Include="resources\regex_modern_light.svg" />
+    <None Include="resources\search_modern_dark.svg" />
+    <None Include="resources\search_modern_light.svg" />
+    <None Include="resources\search_stop_modern_dark.svg" />
+    <None Include="resources\search_stop_modern_light.svg" />
     <None Include="SystemInformer.def" />
     <None Include="resources\application.ico" />
     <None Include="resources\cog.ico" />
@@ -553,13 +561,27 @@
     <Image Include="resources\active_search.bmp" />
     <Image Include="resources\active_search.png" />
     <Image Include="resources\active_search_small.png" />
+    <Image Include="resources\case_sensitive_modern_dark.png" />
+    <Image Include="resources\case_sensitive_modern_light.png" />
     <Image Include="resources\folder.ico" />
     <Image Include="resources\inactive_search.bmp" />
     <Image Include="resources\inactive_search.png" />
     <Image Include="resources\inactive_search_small.png" />
     <Image Include="resources\magnifier.ico" />
     <Image Include="resources\pin.ico" />
+    <Image Include="resources\regex_modern_dark.png" />
+    <Image Include="resources\regex_modern_light.png" />
+    <Image Include="resources\search_modern_dark.png" />
+    <Image Include="resources\search_modern_light.png" />
+    <Image Include="resources\search_stop_modern_dark.png" />
+    <Image Include="resources\search_stop_modern_light.png" />
     <Image Include="resources\shield.ico" />
+    <Image Include="resources\systeminformer-128x128.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\capslist.txt" />
+    <Text Include="resources\etwguids.txt" />
+    <Text Include="resources\pooltag.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

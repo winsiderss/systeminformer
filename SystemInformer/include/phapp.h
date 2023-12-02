@@ -171,6 +171,9 @@ struct _PH_PLUGIN *PhFindPlugin2(
 #define PH_LOG_ENTRY_SERVICE_MODIFIED 9
 #define PH_LOG_ENTRY_SERVICE_LAST 10
 
+#define PH_LOG_ENTRY_DEVICE_REMOVED 11
+#define PH_LOG_ENTRY_DEVICE_ARRIVED 12
+
 #define PH_LOG_ENTRY_MESSAGE 100 // phapppub
 
 typedef struct _PH_LOG_ENTRY *PPH_LOG_ENTRY; // phapppub
@@ -196,6 +199,11 @@ typedef struct _PH_LOG_ENTRY
             PPH_STRING Name;
             PPH_STRING DisplayName;
         } Service;
+        struct
+        {
+            PPH_STRING Classification;
+            PPH_STRING Name;
+        } Device;
         PPH_STRING Message;
     };
     UCHAR Buffer[1];
@@ -224,6 +232,12 @@ VOID PhLogServiceEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Name,
     _In_ PPH_STRING DisplayName
+    );
+
+VOID PhLogDeviceEntry(
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Classification,
+    _In_ PPH_STRING Name
     );
 
 // begin_phapppub
@@ -708,13 +722,65 @@ NTSTATUS PhInvokeRunAsService(
 // searchbox
 
 // begin_phapppub
+typedef
+VOID
+NTAPI
+PH_SEARCHCONTROL_CALLBACK(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    );
+typedef PH_SEARCHCONTROL_CALLBACK* PPH_SEARCHCONTROL_CALLBACK;
+
 PHAPPAPI
 VOID
 NTAPI
 PhCreateSearchControl(
-    _In_ HWND Parent,
+    _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR BannerText
+    _In_opt_ PWSTR BannerText,
+    _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatch(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PPH_STRINGREF Text
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatchZ(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PWSTR Text
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatchLongHintZ(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PWSTR Text
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatchPointer(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PVOID Pointer
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatchPointerRange(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PVOID Pointer,
+    _In_ SIZE_T Size
     );
 // end_phapppub
 

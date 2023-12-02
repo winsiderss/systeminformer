@@ -70,7 +70,7 @@ typedef struct _PV_DIRECTORY_CONTEXT
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
 
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_STRING TreeText;
 
     PH_LAYOUT_MANAGER LayoutManager;
@@ -356,6 +356,26 @@ NTSTATUS PvpPeDirectoryEnumerateThread(
     return STATUS_SUCCESS;
 }
 
+VOID NTAPI PvpPeDirectorySearchControl(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_DIRECTORY_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    if (!context->SearchMatchHandle)
+    {
+        //PhExpandAllNodes(TRUE);
+        //PhDeselectAllNodes();
+    }
+
+    PhApplyTreeNewFilters(&context->FilterSupport);
+}
+
 INT_PTR CALLBACK PvPeDirectoryDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -391,10 +411,14 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
             context->DialogHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
             context->SearchResults = PhCreateList(1);
 
-            PvCreateSearchControl(context->SearchHandle, L"Search Directories (Ctrl+K)");
+            PvCreateSearchControl(
+                context->SearchHandle,
+                L"Search Directories (Ctrl+K)",
+                PvpPeDirectorySearchControl,
+                context
+                );
 
             PvInitializeDirectoryTree(context, hwndDlg, context->TreeNewHandle);
             PhAddTreeNewFilter(&context->FilterSupport, PvDirectoryTreeFilterCallback, context);
@@ -445,33 +469,6 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
             case PSN_QUERYINITIALFOCUS:
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->TreeNewHandle);
                 return TRUE;
-            }
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchboxText))
-                        {
-                            //PhExpandAllNodes(TRUE);
-                            //PhDeselectAllNodes();
-                        }
-
-                        PhApplyTreeNewFilters(&context->FilterSupport);
-                    }
-                }
-                break;
             }
         }
         break;
@@ -1098,41 +1095,6 @@ VOID PvInitializeDirectoryTree(
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
 
-BOOLEAN PvDirectoryWordMatchStringRef(
-    _In_ PPV_DIRECTORY_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PvDirectoryWordMatchStringZ(
-    _In_ PPV_DIRECTORY_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-    return PvDirectoryWordMatchStringRef(Context, &text);
-}
-
 BOOLEAN PvDirectoryTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1141,66 +1103,66 @@ BOOLEAN PvDirectoryTreeFilterCallback(
     PPV_DIRECTORY_CONTEXT context = Context;
     PPV_DIRECTORY_NODE node = (PPV_DIRECTORY_NODE)Node;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (!PhIsNullOrEmptyString(node->UniqueIdString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->UniqueIdString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->UniqueIdString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->DirectoryNameString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->DirectoryNameString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->DirectoryNameString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RvaStartString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->RvaStartString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RvaStartString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RvaEndString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->RvaEndString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RvaEndString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RvaSizeString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->RvaSizeString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RvaSizeString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->SectionNameString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->SectionNameString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->SectionNameString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->HashString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->HashString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->HashString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->EntropyString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->EntropyString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->EntropyString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->SsdeepString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->SsdeepString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->SsdeepString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->TlshString))
     {
-        if (PvDirectoryWordMatchStringRef(context, &node->TlshString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->TlshString->sr))
             return TRUE;
     }
 

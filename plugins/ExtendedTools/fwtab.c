@@ -1837,7 +1837,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
     PFW_EVENT_ITEM fwNode = (PFW_EVENT_ITEM)Node;
     PTOOLSTATUS_WORD_MATCH wordMatch = EtFwToolStatusInterface->WordMatch;
 
-    if (PhIsNullOrEmptyString(EtFwToolStatusInterface->GetSearchboxText()))
+    if (!EtFwToolStatusInterface->GetSearchMatchHandle())
         return TRUE;
 
     if (fwNode->ProcessBaseString)

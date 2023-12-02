@@ -452,9 +452,27 @@
     <Image Include="resources\active_search.bmp" />
     <Image Include="resources\active_search.png" />
     <Image Include="resources\application.ico" />
+    <Image Include="resources\case_sensitive_modern_dark.png" />
+    <Image Include="resources\case_sensitive_modern_light.png" />
     <Image Include="resources\inactive_search.bmp" />
     <Image Include="resources\inactive_search.png" />
+    <Image Include="resources\regex_modern_dark.png" />
+    <Image Include="resources\regex_modern_light.png" />
+    <Image Include="resources\search_modern_dark.png" />
+    <Image Include="resources\search_modern_light.png" />
+    <Image Include="resources\search_stop_modern_dark.png" />
+    <Image Include="resources\search_stop_modern_light.png" />
     <Image Include="resources\SystemInformer.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\case_sensitive_modern_dark.svg" />
+    <None Include="resources\case_sensitive_modern_light.svg" />
+    <None Include="resources\regex_modern_dark.svg" />
+    <None Include="resources\regex_modern_light.svg" />
+    <None Include="resources\search_modern_dark.svg" />
+    <None Include="resources\search_modern_light.svg" />
+    <None Include="resources\search_stop_modern_dark.svg" />
+    <None Include="resources\search_stop_modern_light.svg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

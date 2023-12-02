@@ -23,7 +23,7 @@ typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
 #define KACF_OLE32VALIDATEPTRS 0x00000080
 #define KACF_DISABLECICERO 0x00000100
 #define KACF_OLE32ENABLEASYNCDOCFILE 0x00000200
-#define KACF_OLE32ENABLELEGACYEXCEPTIONHANDLING 0x00000400 
+#define KACF_OLE32ENABLELEGACYEXCEPTIONHANDLING 0x00000400
 #define KACF_RPCDISABLENDRCLIENTHARDENING 0x00000800
 #define KACF_RPCDISABLENDRMAYBENULL_SIZEIS 0x00001000
 #define KACF_DISABLEALLDDEHACK_NOT_USED 0x00002000
@@ -78,6 +78,28 @@ typedef struct _API_SET_VALUE_ENTRY
     ULONG ValueOffset;
     ULONG ValueLength;
 } API_SET_VALUE_ENTRY, *PAPI_SET_VALUE_ENTRY;
+
+// private
+typedef struct _TELEMETRY_COVERAGE_HEADER
+{
+    UCHAR MajorVersion;
+    UCHAR MinorVersion;
+    struct
+    {
+        USHORT TracingEnabled : 1;
+        USHORT Reserved1 : 15;
+    };
+    ULONG HashTableEntries;
+    ULONG HashIndexMask;
+    ULONG TableUpdateVersion;
+    ULONG TableSizeInBytes;
+    ULONG LastResetTick;
+    ULONG ResetRound;
+    ULONG Reserved2;
+    ULONG RecordedCount;
+    ULONG Reserved3[4];
+    ULONG HashTable[ANYSIZE_ARRAY];
+} TELEMETRY_COVERAGE_HEADER, *PTELEMETRY_COVERAGE_HEADER;
 
 // symbols
 typedef struct _PEB
@@ -236,7 +258,7 @@ typedef struct _PEB
     PRTL_CRITICAL_SECTION TppWorkerpListLock;
     LIST_ENTRY TppWorkerpList;
     PVOID WaitOnAddressHashTable[128];
-    PVOID TelemetryCoverageHeader; // REDSTONE3
+    PTELEMETRY_COVERAGE_HEADER TelemetryCoverageHeader; // REDSTONE3
     ULONG CloudFileFlags;
     ULONG CloudFileDiagFlags; // REDSTONE4
     CHAR PlaceholderCompatibilityMode;

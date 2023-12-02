@@ -31,7 +31,7 @@ typedef struct _PH_PROCESS_WMI_CONTEXT
 
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING DefaultNamespace;
-    PPH_STRING SearchboxText;
+    ULONG_PTR  SearchMatchHandle;
     PPH_STRING StatusMessage;
 
     union
@@ -1724,46 +1724,51 @@ BOOLEAN PhpProcessWmiProviderTreeFilterCallback(
         return FALSE;
     }
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
-
-    //if (!PhIsNullOrEmptyString(node->Provider->InstancePath))
-    //{
-    //    if (PhWordMatchStringRef(&context->SearchboxText->sr, &node->Provider->InstancePath->sr))
-    //        return TRUE;
-    //}
-
-    //if (!PhIsNullOrEmptyString(node->Provider->RelativePath))
-    //{
-    //    if (PhWordMatchStringRef(&context->SearchboxText->sr, &node->Provider->RelativePath->sr))
-    //        return TRUE;
-    //}
 
     if (!PhIsNullOrEmptyString(node->Provider->ProviderName))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &node->Provider->ProviderName->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &node->Provider->ProviderName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->Provider->ProviderNamespace))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &node->Provider->ProviderNamespace->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &node->Provider->ProviderNamespace->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->Provider->FileName))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &node->Provider->FileName->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &node->Provider->FileName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->Provider->UserName))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &node->Provider->UserName->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &node->Provider->UserName->sr))
             return TRUE;
     }
 
     return FALSE;
+}
+
+VOID NTAPI PhpProcessWmiProvidersSearchControlCallback(
+    _In_ ULONG_PTR MatcHandle,
+    _In_opt_ PVOID Context
+)
+{
+    PPH_PROCESS_WMI_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatcHandle;
+
+    // Expand any hidden nodes to make search results visible.
+    PhpExpandAllWmiProviderNodes(context, TRUE);
+
+    PhApplyTreeNewFilters(&context->TreeFilterSupport);
 }
 
 INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
@@ -1794,11 +1799,16 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
             context->ProcessItem = processItem;
             context->DefaultNamespace = PhpQueryWmiDefaultNamespace();
 
-            PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Search WMI Providers (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchWindowHandle,
+                L"Search WMI Providers (Ctrl+K)",
+                PhpProcessWmiProvidersSearchControlCallback,
+                context
+                );
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             PhpInitializeWmiProviderTree(context);
             context->TreeFilterEntry = PhAddTreeNewFilter(&context->TreeFilterSupport, PhpProcessWmiProviderTreeFilterCallback, context);
@@ -1823,8 +1833,6 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                 PhDereferenceObject(context->StatusMessage);
             if (context->DefaultNamespace)
                 PhDereferenceObject(context->DefaultNamespace);
-            if (context->SearchboxText)
-                PhDereferenceObject(context->SearchboxText);
 
             PhFree(context);
         }
@@ -1848,31 +1856,6 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchWindowHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchWindowHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        // Cache the current search text for our callback.
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        // Expand any hidden nodes to make search results visible.
-                        PhpExpandAllWmiProviderNodes(context, TRUE);
-
-                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case ID_SHOWCONTEXTMENU:

@@ -616,6 +616,25 @@ EtwQueryRealtimeConsumer(
     _Out_ PULONG BuffersLostCount
     );
 
+// private
+typedef struct _TELEMETRY_COVERAGE_POINT
+{
+    PWSTR Name;
+    ULONG Hash;
+    ULONG LastCoveredRound;
+    ULONG Flags;
+} TELEMETRY_COVERAGE_POINT, *PTELEMETRY_COVERAGE_POINT;
+
+// rev
+#if (PHNT_VERSION >= PHNT_REDSTONE3)
+NTSYSAPI
+BOOLEAN
+NTAPI
+EtwCheckCoverage(
+    _Inout_ PTELEMETRY_COVERAGE_POINT CoveragePoint
+    );
+#endif
+
 #endif
 
 #endif
