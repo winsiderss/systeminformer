@@ -27,7 +27,7 @@ typedef struct _PV_PE_LAYOUT_CONTEXT
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_STRING StatusMessage;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
@@ -685,41 +685,6 @@ VOID PvLayoutSetStatusMessage(
     PhClearReference(&statusMessage);
 }
 
-BOOLEAN PvLayoutWordMatchStringRef(
-    _In_ PPV_PE_LAYOUT_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PvLayoutWordMatchStringZ(
-    _In_ PPV_PE_LAYOUT_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-    return PvLayoutWordMatchStringRef(Context, &text);
-}
-
 BOOLEAN PvLayoutTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -728,18 +693,18 @@ BOOLEAN PvLayoutTreeFilterCallback(
     PPV_PE_LAYOUT_CONTEXT context = Context;
     PPV_LAYOUT_NODE node = (PPV_LAYOUT_NODE)Node;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (!PhIsNullOrEmptyString(node->Name))
     {
-        if (PvLayoutWordMatchStringRef(context, &node->Name->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->Name->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->Value))
     {
-        if (PvLayoutWordMatchStringRef(context, &node->Value->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->Value->sr))
             return TRUE;
     }
 
@@ -1276,6 +1241,26 @@ CleanupExit:
     return status;
 }
 
+VOID NTAPI PvpPeLayoutSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_PE_LAYOUT_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    if (!context->SearchMatchHandle)
+    {
+        //PhExpandAllProcessNodes(TRUE);
+        //PhDeselectAllProcessNodes();
+    }
+
+    PhApplyTreeNewFilters(&context->FilterSupport);
+}
+
 INT_PTR CALLBACK PvpPeLayoutDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1313,9 +1298,14 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
 
-            PvCreateSearchControl(context->SearchHandle, L"Search Layout (Ctrl+K)");
+            PvCreateSearchControl(
+                context->SearchHandle,
+                L"Search Layout (Ctrl+K)",
+                PvpPeLayoutSearchControlCallback,
+                context
+                );
+
             PvConfigTreeBorders(context->TreeNewHandle);
 
             PvInitializeLayoutTree(context);
@@ -1363,30 +1353,6 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchboxText))
-                        {
-                            //PhExpandAllProcessNodes(TRUE);
-                            //PhDeselectAllProcessNodes();
-                        }
-
-                        PhApplyTreeNewFilters(&context->FilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case WM_PV_LAYOUT_CONTEXTMENU:

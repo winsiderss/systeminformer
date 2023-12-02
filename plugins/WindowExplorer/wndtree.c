@@ -41,36 +41,36 @@ BOOLEAN WeWindowTreeFilterCallback(
     PWE_WINDOW_NODE windowNode = (PWE_WINDOW_NODE)Node;
     PWE_WINDOW_TREE_CONTEXT context = Context;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (windowNode->WindowClass[0])
     {
-        if (PhWordMatchStringLongHintZ(context->SearchboxText, windowNode->WindowClass))
+        if (PhSearchControlMatchLongHintZ(context->SearchMatchHandle, windowNode->WindowClass))
             return TRUE;
     }
 
     if (windowNode->WindowHandleString[0])
     {
-        if (PhWordMatchStringLongHintZ(context->SearchboxText, windowNode->WindowHandleString))
+        if (PhSearchControlMatchLongHintZ(context->SearchMatchHandle, windowNode->WindowHandleString))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->WindowText))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->WindowText->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &windowNode->WindowText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->ThreadString))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->ThreadString->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &windowNode->ThreadString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->ModuleString))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->ModuleString->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &windowNode->ModuleString->sr))
             return TRUE;
     }
 
@@ -118,8 +118,6 @@ VOID WeInitializeWindowTree(
     PhCmLoadSettings(TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 
-    Context->SearchboxText = PhReferenceEmptyString();
-
     PhInitializeTreeNewFilterSupport(
         &Context->FilterSupport,
         Context->TreeNewHandle,
@@ -141,7 +139,6 @@ VOID WeDeleteWindowTree(
     ULONG i;
 
     PhRemoveTreeNewFilter(&Context->FilterSupport, Context->TreeFilterEntry);
-    if (Context->SearchboxText) PhDereferenceObject(Context->SearchboxText);
 
     PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
 

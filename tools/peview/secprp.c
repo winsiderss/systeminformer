@@ -25,7 +25,7 @@ typedef struct _PV_PE_CERTIFICATE_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
-    PPH_STRING SearchText;
+    ULONG_PTR SearchMatchHandle;
     ULONG TotalSize;
     ULONG TotalCount;
     ULONG TreeNewSortColumn;
@@ -117,30 +117,6 @@ VOID PvpPeEnumerateNestedSignatures(
     _In_ PCMSG_SIGNER_INFO SignerInfo
     );
 
-static BOOLEAN WordMatchStringRef(
-    _In_ PPV_PE_CERTIFICATE_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
 BOOLEAN PvCertificateTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -151,30 +127,30 @@ BOOLEAN PvCertificateTreeFilterCallback(
 
     if (!context)
         return TRUE;
-    if (PhIsNullOrEmptyString(context->SearchText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (!PhIsNullOrEmptyString(certificateNode->Name))
     {
-        if (WordMatchStringRef(context, &certificateNode->Name->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &certificateNode->Name->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(certificateNode->Issuer))
     {
-        if (WordMatchStringRef(context, &certificateNode->Issuer->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &certificateNode->Issuer->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(certificateNode->DateFrom))
     {
-        if (WordMatchStringRef(context, &certificateNode->DateFrom->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &certificateNode->DateFrom->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(certificateNode->DateTo))
     {
-        if (WordMatchStringRef(context, &certificateNode->DateTo->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &certificateNode->DateTo->sr))
             return TRUE;
     }
 
@@ -219,7 +195,6 @@ VOID PvInitializeCertificateTree(
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
 
-    Context->SearchText = PhReferenceEmptyString();
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
     Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->FilterSupport, PvCertificateTreeFilterCallback, Context);
 }
@@ -232,7 +207,6 @@ VOID PvDeleteCertificateTree(
     ULONG i;
 
     PhRemoveTreeNewFilter(&Context->FilterSupport, Context->TreeFilterEntry);
-    if (Context->SearchText) PhDereferenceObject(Context->SearchText);
 
     PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
 
@@ -1459,6 +1433,26 @@ VOID PvpPeSaveCertificateContext(
     }
 }
 
+VOID NTAPI PhpPeSecuritySearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_PE_CERTIFICATE_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    if (!context->SearchMatchHandle)
+    {
+        PvExpandAllCertificateNodes(context, TRUE);
+        PvDeselectAllCertificateNodes(context);
+    }
+
+    PhApplyTreeNewFilters(&context->FilterSupport);
+}
+
 INT_PTR CALLBACK PvpPeSecurityDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1495,9 +1489,14 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
             context->LabelHandle = GetDlgItem(hwndDlg, IDC_NAME);
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
-            context->SearchText = PhReferenceEmptyString();
 
-            PvCreateSearchControl(context->SearchHandle, L"Search Certificates (Ctrl+K)");
+            PvCreateSearchControl(
+                context->SearchHandle,
+                L"Search Certificates (Ctrl+K)",
+                PhpPeSecuritySearchControlCallback,
+                context
+                );
+
             PvInitializeCertificateTree(context);
             PvConfigTreeBorders(context->TreeNewHandle);
 
@@ -1539,30 +1538,6 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
-
-                    if (!PhEqualString(context->SearchText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchText))
-                        {
-                            PvExpandAllCertificateNodes(context, TRUE);
-                            PvDeselectAllCertificateNodes(context);
-                        }
-
-                        PhApplyTreeNewFilters(&context->FilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case WM_PV_CERTIFICATE_PROPERTIES:

@@ -1329,22 +1329,39 @@ BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     if (context->HideCmdTypeEnvironment && environmentNode->IsCmdVariable)
         return FALSE;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (!PhIsNullOrEmptyString(environmentNode->NameText))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &environmentNode->NameText->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &environmentNode->NameText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(environmentNode->ValueText))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &environmentNode->ValueText->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &environmentNode->ValueText->sr))
             return TRUE;
     }
 
     return FALSE;
+}
+
+VOID NTAPI PhpProcessEnvironmentSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_ENVIRONMENT_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    // Expand any hidden nodes to make search results visible.
+    PhpExpandAllEnvironmentNodes(context, TRUE);
+
+    PhApplyTreeNewFilters(&context->TreeFilterSupport);
 }
 
 INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
@@ -1375,10 +1392,16 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
             context->ProcessItem = processItem;
 
-            PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Search Environment (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchWindowHandle,
+                L"Search Environment (Ctrl+K)",
+                PhpProcessEnvironmentSearchControlCallback,
+                context
+                );
+
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             PhpInitializeEnvironmentTree(context);
 
@@ -1397,7 +1420,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     case WM_DESTROY:
         {
             PhRemoveTreeNewFilter(&context->TreeFilterSupport, context->TreeFilterEntry);
-            if (context->SearchboxText) PhDereferenceObject(context->SearchboxText);
 
             PhSaveSettingsEnvironmentList(context);
             PhpDeleteEnvironmentTree(context);
@@ -1423,31 +1445,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchWindowHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchWindowHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        // Cache the current search text for our callback.
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        // Expand any hidden nodes to make search results visible.
-                        PhpExpandAllEnvironmentNodes(context, TRUE);
-
-                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_OPTIONS:

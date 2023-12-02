@@ -57,7 +57,7 @@ typedef struct _PV_EXPORT_CONTEXT
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
 
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_STRING TreeText;
 
     PPV_PROPPAGECONTEXT PropSheetContext;
@@ -353,6 +353,26 @@ NTSTATUS PvpPeExportsEnumerateThread(
     return STATUS_SUCCESS;
 }
 
+VOID NTAPI PvpPeExportsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+)
+{
+    PPV_EXPORT_CONTEXT context = Context;
+
+    assert(Context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    if (!context->SearchMatchHandle)
+    {
+        //PhExpandAllNodes(TRUE);
+        //PhDeselectAllNodes();
+    }
+
+    PhApplyTreeNewFilters(&context->FilterSupport);
+}
+
 INT_PTR CALLBACK PvPeExportsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -407,10 +427,14 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
             context->SearchResults = PhCreateList(1);
 
-            PvCreateSearchControl(context->SearchHandle, L"Search Exports (Ctrl+K)");
+            PvCreateSearchControl(
+                context->SearchHandle,
+                L"Search Exports (Ctrl+K)",
+                PvpPeExportsSearchControlCallback,
+                context
+                );
 
             PvInitializeExportTree(context, hwndDlg, context->TreeNewHandle);
             PhAddTreeNewFilter(&context->FilterSupport, PvExportTreeFilterCallback, context);
@@ -461,33 +485,6 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
             case PSN_QUERYINITIALFOCUS:
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->TreeNewHandle);
                 return TRUE;
-            }
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchboxText))
-                        {
-                            //PhExpandAllNodes(TRUE);
-                            //PhDeselectAllNodes();
-                        }
-
-                        PhApplyTreeNewFilters(&context->FilterSupport);
-                    }
-                }
-                break;
             }
         }
         break;
@@ -1044,41 +1041,6 @@ VOID PvInitializeExportTree(
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
 
-BOOLEAN PvExportWordMatchStringRef(
-    _In_ PPV_EXPORT_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PvExportWordMatchStringZ(
-    _In_ PPV_EXPORT_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-    return PvExportWordMatchStringRef(Context, &text);
-}
-
 BOOLEAN PvExportTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1087,43 +1049,43 @@ BOOLEAN PvExportTreeFilterCallback(
     PPV_EXPORT_CONTEXT context = Context;
     PPV_EXPORT_NODE node = (PPV_EXPORT_NODE)Node;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (!PhIsNullOrEmptyString(node->AddressString))
     {
-        if (PvExportWordMatchStringRef(context, &node->AddressString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->AddressString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->NameString))
     {
-        if (PvExportWordMatchStringRef(context, &node->NameString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->NameString->sr))
             return TRUE;
     }
     else
     {
         static PH_STRINGREF exportNameSr = PH_STRINGREF_INIT(L"(unnamed)");
 
-        if (PvExportWordMatchStringRef(context, &exportNameSr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &exportNameSr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->OrdinalString))
     {
-        if (PvExportWordMatchStringRef(context, &node->OrdinalString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->OrdinalString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->HintString))
     {
-        if (PvExportWordMatchStringRef(context, &node->HintString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->HintString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->UniqueIdString))
     {
-        if (PvExportWordMatchStringRef(context, &node->UniqueIdString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->UniqueIdString->sr))
             return TRUE;
     }
 

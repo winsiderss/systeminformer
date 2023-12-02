@@ -36,7 +36,6 @@
 #define SETTING_NAME_TASKBARDISPLAYSTYLE (PLUGIN_NAME L".TaskbarDisplayStyle")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
 #define SETTING_NAME_RESTOREROWAFTERSEARCH (PLUGIN_NAME L".RestoreSelectionAfterSearch")
-#define SETTING_NAME_CHILDWILDCARDSEARCH (PLUGIN_NAME L".EnableChildWildcardSearch")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
@@ -123,7 +122,6 @@ extern HWND NetworkTreeNewHandle;
 extern INT SelectedTabIndex;
 extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN UpdateGraphs;
-extern BOOLEAN EnableChildWildcardSearch;
 extern TOOLBAR_DISPLAY_STYLE DisplayStyle;
 extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
@@ -134,7 +132,7 @@ extern HWND SearchboxHandle;
 
 extern HMENU MainMenu;
 extern HACCEL AcceleratorTable;
-extern PPH_STRING SearchboxText;
+extern ULONG_PTR SearchMatchHandle;
 extern PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics;
 
 extern SIZE ToolBarImageSize;
@@ -221,7 +219,7 @@ LONG ToolStatusGetWindowFontSize(
 
 // main.c
 
-PPH_STRING GetSearchboxText(
+ULONG_PTR GetSearchMatchHandle(
     VOID
     );
 
@@ -244,6 +242,11 @@ VOID ShowCustomizeMenu(
 
 VOID InvalidateMainWindowLayout(
     VOID
+    );
+
+VOID NTAPI SearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
     );
 
 // options.c

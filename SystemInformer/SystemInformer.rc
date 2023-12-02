@@ -27,18 +27,18 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\r\n"
     "#include ""include/phappres.h""\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\0"
 END
@@ -250,9 +250,8 @@ STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS
 CAPTION "Find Handles or DLLs"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    EDITTEXT        IDC_FILTER,97,4,171,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_FILTER,97,4,207,13,ES_AUTOHSCROLL
     PUSHBUTTON      "Find",IDOK,306,3,50,14
-    CONTROL         "&Regex",IDC_REGEX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,271,6,34,10
     COMBOBOX        IDC_FILTERTYPE,2,4,93,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0x2,2,19,353,212,WS_EX_CLIENTEDGE
 END
@@ -2047,14 +2046,12 @@ BEGIN
     VK_F11,         IDC_MAXSCREEN,          VIRTKEY, NOINVERT
 END
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
 IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
-
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 
 
@@ -2063,14 +2060,18 @@ IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 // PNG
 //
 
-IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
-
-IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
-
-IDB_SEARCH_ACTIVE_SMALL PNG                     "resources\\active_search_small.png"
-
-IDB_SEARCH_INACTIVE_SMALL PNG                     "resources\\inactive_search_small.png"
-
+IDB_SEARCH_ACTIVE                PNG            "resources\\active_search.png"
+IDB_SEARCH_INACTIVE              PNG            "resources\\inactive_search.png"
+IDB_SEARCH_ACTIVE_SMALL          PNG            "resources\\active_search_small.png"
+IDB_SEARCH_INACTIVE_SMALL        PNG            "resources\\inactive_search_small.png"
+IDB_SEARCH_REGEX_MODERN_DARK     PNG            "resources\\regex_modern_dark.png"
+IDB_SEARCH_REGEX_MODERN_LIGHT    PNG            "resources\\regex_modern_light.png"
+IDB_SEARCH_CASE_MODERN_DARK      PNG            "resources\\case_sensitive_modern_dark.png"
+IDB_SEARCH_CASE_MODERN_LIGHT     PNG            "resources\\case_sensitive_modern_light.png"
+IDB_SEARCH_ACTIVE_MODERN_LIGHT   PNG            "resources\\search_stop_modern_light.png"
+IDB_SEARCH_ACTIVE_MODERN_DARK    PNG            "resources\\search_stop_modern_dark.png"
+IDB_SEARCH_INACTIVE_MODERN_LIGHT PNG            "resources\\search_modern_light.png"
+IDB_SEARCH_INACTIVE_MODERN_DARK  PNG            "resources\\search_modern_dark.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //

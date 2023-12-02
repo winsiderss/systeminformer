@@ -87,7 +87,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
     PhpAddStringSetting(L"EnvironmentTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerSetting(L"EnvironmentTreeListFlags", L"0");
-    PhpAddIntegerSetting(L"FindObjRegex", L"0");
+    PhpAddIntegerSetting(L"SearchControlRegex", L"0");
+    PhpAddIntegerSetting(L"SearchControlCaseSensitive", L"0");
     PhpAddStringSetting(L"FindObjTreeListColumns", L"");
     PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"FindObjWindowSize", L"@96|550,420");
