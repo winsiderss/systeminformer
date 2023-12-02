@@ -2582,7 +2582,7 @@ typedef struct _PH_RUNAS_PACKAGE_CONTEXT
 
     PH_TN_FILTER_SUPPORT TreeFilterSupport;
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
-    PPH_STRING SearchBoxText;
+    ULONG_PTR SearchMatchHandle;
 
     HFONT NormalFontHandle;
     HFONT TitleFontHandle;
@@ -3043,16 +3043,16 @@ BOOLEAN PhRunAsPackageTreeFilterCallback(
     PPH_RUNASPACKAGE_TREE_ROOT_NODE node = (PPH_RUNASPACKAGE_TREE_ROOT_NODE)Node;
     PPH_RUNAS_PACKAGE_CONTEXT context = Context;
 
-    if (PhIsNullOrEmptyString(context->SearchBoxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
-    if (node->AppUserModelId && PhWordMatchStringRef(&context->SearchBoxText->sr, &node->AppUserModelId->sr))
+    if (node->AppUserModelId && PhSearchControlMatch(context->SearchMatchHandle, &node->AppUserModelId->sr))
         return TRUE;
-    if (node->DisplayName && PhWordMatchStringRef(&context->SearchBoxText->sr, &node->DisplayName->sr))
+    if (node->DisplayName && PhSearchControlMatch(context->SearchMatchHandle, &node->DisplayName->sr))
         return TRUE;
-    if (node->PackageInstallPath && PhWordMatchStringRef(&context->SearchBoxText->sr, &node->PackageInstallPath->sr))
+    if (node->PackageInstallPath && PhSearchControlMatch(context->SearchMatchHandle, &node->PackageInstallPath->sr))
         return TRUE;
-    if (node->PackageFullName && PhWordMatchStringRef(&context->SearchBoxText->sr, &node->PackageFullName->sr))
+    if (node->PackageFullName && PhSearchControlMatch(context->SearchMatchHandle, &node->PackageFullName->sr))
         return TRUE;
 
     return FALSE;
@@ -3093,7 +3093,6 @@ VOID PhRunAsPackageInitializeTree(
     //PhRunAsPackageLoadSettingsTreeList(Context);
 
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
-    Context->SearchBoxText = PhReferenceEmptyString();
     Context->TreeFilterEntry = PhAddTreeNewFilter(&Context->TreeFilterSupport, PhRunAsPackageTreeFilterCallback, Context);
 
     TreeNew_SetEmptyText(Context->TreeNewHandle, &PhRunAsPackageLoadingText, 0);
@@ -3103,8 +3102,6 @@ VOID PhRunAsPackageDeleteTree(
     _In_ PPH_RUNAS_PACKAGE_CONTEXT Context
     )
 {
-    PhClearReference(&Context->SearchBoxText);
-
     PhRemoveTreeNewFilter(&Context->TreeFilterSupport, Context->TreeFilterEntry);
     PhDeleteTreeNewFilterSupport(&Context->TreeFilterSupport);
 
@@ -3190,6 +3187,20 @@ PPH_RUNAS_PACKAGE_CONTEXT PhCreatePackageWindowContext(
     return context;
 }
 
+VOID NTAPI PhpRunAsPackageSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_RUNAS_PACKAGE_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    PhApplyTreeNewFilters(&context->TreeFilterSupport);
+}
+
 INT_PTR CALLBACK PhRunAsPackageWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -3248,7 +3259,13 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             PhRunAsPackageSetImagelist(context);
             PhRunAsPackageInitializeTree(context);
 
-            PhCreateSearchControl(WindowHandle, context->SearchBoxHandle, L"Search Packages");
+            PhCreateSearchControl(
+                WindowHandle,
+                context->SearchBoxHandle,
+                L"Search Packages",
+                PhpRunAsPackageSearchControlCallback,
+                context
+                );
 
             PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
 
@@ -3407,30 +3424,6 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
 
                     PhReferenceObject(context);
                     PhCreateThread2(PhEnumPackageThreadCallback, context);
-                }
-                break;
-            }
-
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (!context->SearchBoxHandle)
-                        break;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
-
-                    if (!PhEqualString(context->SearchBoxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchBoxText, newSearchboxText);
-
-                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
-                    }
                 }
                 break;
             }

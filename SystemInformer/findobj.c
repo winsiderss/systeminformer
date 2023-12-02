@@ -57,15 +57,11 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
     HANDLE SearchThreadHandle;
 
     BOOLEAN SearchStop;
-    PPH_STRING SearchString;
     PPH_STRING SearchTypeString;
-    pcre2_code *SearchRegexCompiledExpression;
-    pcre2_match_data *SearchRegexMatchData;
+    ULONG_PTR SearchMatchHandle;
     PPH_LIST SearchResults;
     ULONG SearchResultsAddIndex;
     PH_QUEUED_LOCK SearchResultsLock;
-    ULONG64 SearchPointer;
-    BOOLEAN UseSearchPointer;
 } PH_HANDLE_SEARCH_CONTEXT, *PPH_HANDLE_SEARCH_CONTEXT;
 
 typedef enum _PHP_OBJECT_RESULT_TYPE
@@ -806,22 +802,7 @@ static BOOLEAN MatchSearchString(
     _In_ PPH_STRINGREF Input
     )
 {
-    if (Context->SearchRegexCompiledExpression && Context->SearchRegexMatchData)
-    {
-        return pcre2_match(
-            Context->SearchRegexCompiledExpression,
-            Input->Buffer,
-            Input->Length / sizeof(WCHAR),
-            0,
-            0,
-            Context->SearchRegexMatchData,
-            NULL
-            ) >= 0;
-    }
-    else
-    {
-        return PhFindStringInStringRef(Input, &Context->SearchString->sr, TRUE) != SIZE_MAX;
-    }
+    return PhSearchControlMatch(Context->SearchMatchHandle, Input);
 }
 
 static BOOLEAN MatchTypeString(
@@ -871,8 +852,11 @@ static NTSTATUS NTAPI SearchHandleFunction(
         upperBestObjectName = PhUpperString(bestObjectName);
         upperTypeName = PhUpperString(typeName);
 
-        if (((MatchSearchString(context, &upperObjectName->sr) || MatchSearchString(context, &upperBestObjectName->sr)) && MatchTypeString(context, &upperTypeName->sr)) ||
-            (context->UseSearchPointer && (handleContext->HandleInfo->Object == (PVOID)context->SearchPointer || handleContext->HandleInfo->HandleValue == context->SearchPointer)))
+        if (((MatchSearchString(context, &upperObjectName->sr) ||
+              MatchSearchString(context, &upperBestObjectName->sr)) &&
+             MatchTypeString(context, &upperTypeName->sr)) ||
+            PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->Object) ||
+            PhSearchControlMatchPointer(context->SearchMatchHandle, (PVOID)handleContext->HandleInfo->HandleValue))
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
 
@@ -934,8 +918,9 @@ static BOOLEAN NTAPI EnumModulesCallback(
     upperFileName = PhUpperString(filenameWin32);
     upperOriginalFileName = PhUpperString(Module->FileName);
 
-    if ((MatchSearchString(context, &upperFileName->sr) || MatchSearchString(context, &upperOriginalFileName->sr)) ||
-        (context->UseSearchPointer && Module->BaseAddress == (PVOID)context->SearchPointer))
+    if ((MatchSearchString(context, &upperFileName->sr) ||
+         MatchSearchString(context, &upperOriginalFileName->sr)) ||
+         PhSearchControlMatchPointer(context->SearchMatchHandle, Module->BaseAddress))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
         PWSTR typeName;
@@ -986,13 +971,8 @@ NTSTATUS PhpFindObjectsThreadStart(
     ULONG i;
 
     // Refuse to search with no filter.
-    if (context->SearchString->Length == 0)
+    if (!context->SearchMatchHandle)
         goto Exit;
-
-    // Try to get a search pointer from the search string.
-    context->UseSearchPointer = PhStringToInteger64(&context->SearchString->sr, 0, &context->SearchPointer);
-
-    PhMoveReference(&context->SearchString, PhUpperString(context->SearchString));
 
     if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
     {
@@ -1162,7 +1142,6 @@ VOID PhpFindObjectsDeleteProcedure(
 {
     PPH_HANDLE_SEARCH_CONTEXT context = Object;
 
-    PhClearReference(&context->SearchString);
     PhClearReference(&context->SearchTypeString);
 }
 
@@ -1183,6 +1162,18 @@ PPH_HANDLE_SEARCH_CONTEXT PhCreateFindObjectContext(
     memset(context, 0, sizeof(PH_HANDLE_SEARCH_CONTEXT));
 
     return context;
+}
+
+VOID NTAPI PhpFindObjectsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_HANDLE_SEARCH_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
 }
 
 INT_PTR CALLBACK PhpFindObjectsDlgProc(
@@ -1222,14 +1213,19 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhRegisterDialog(hwndDlg);
-            PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Find Handles or DLLs");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchWindowHandle,
+                L"Find Handles or DLLs",
+                PhpFindObjectsSearchControlCallback,
+                context
+                );
             PhpPopulateObjectTypes(context);
             PhpInitializeHandleObjectTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TypeWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
             PhAddLayoutItem(&context->LayoutManager, context->SearchWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REGEX), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
@@ -1252,7 +1248,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -1270,19 +1265,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 context->SearchThreadHandle = NULL;
             }
 
-            if (context->SearchRegexCompiledExpression)
-            {
-                pcre2_code_free(context->SearchRegexCompiledExpression);
-                context->SearchRegexCompiledExpression = NULL;
-            }
-
-            if (context->SearchRegexMatchData)
-            {
-                pcre2_match_data_free(context->SearchRegexMatchData);
-                context->SearchRegexMatchData = NULL;
-            }
-
-            PhSetIntegerSetting(L"FindObjRegex", Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED);
             PhSaveWindowPlacementToSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
 
             PhUnregisterWindowCallback(hwndDlg);
@@ -1359,46 +1341,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                     if (!context->SearchThreadHandle)
                     {
-                        PhMoveReference(&context->SearchString, PhGetWindowText(context->SearchWindowHandle));
                         PhMoveReference(&context->SearchTypeString, PhGetWindowText(context->TypeWindowHandle));
-
-                        if (context->SearchRegexCompiledExpression)
-                        {
-                            pcre2_code_free(context->SearchRegexCompiledExpression);
-                            context->SearchRegexCompiledExpression = NULL;
-                        }
-
-                        if (context->SearchRegexMatchData)
-                        {
-                            pcre2_match_data_free(context->SearchRegexMatchData);
-                            context->SearchRegexMatchData = NULL;
-                        }
-
-                        if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED)
-                        {
-                            int errorCode;
-                            PCRE2_SIZE errorOffset;
-
-                            context->SearchRegexCompiledExpression = pcre2_compile(
-                                context->SearchString->Buffer,
-                                context->SearchString->Length / sizeof(WCHAR),
-                                PCRE2_CASELESS | PCRE2_DOTALL,
-                                &errorCode,
-                                &errorOffset,
-                                NULL
-                                );
-
-                            if (!context->SearchRegexCompiledExpression)
-                            {
-                                PhShowError2(hwndDlg, L"Unable to compile the regular expression.", L"\"%s\" at position %zu.",
-                                    PhGetStringOrDefault(PH_AUTO(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
-                                    errorOffset
-                                    );
-                                break;
-                            }
-
-                            context->SearchRegexMatchData = pcre2_match_data_create_from_pattern(context->SearchRegexCompiledExpression, NULL);
-                        }
 
                         // Clean up previous results.
 

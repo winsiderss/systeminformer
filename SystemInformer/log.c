@@ -111,6 +111,23 @@ PPH_LOG_ENTRY PhpCreateServiceLogEntry(
     return entry;
 }
 
+PPH_LOG_ENTRY PhpCreateDeviceLogEntry(
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Classification,
+    _In_ PPH_STRING Name
+    )
+{
+    PPH_LOG_ENTRY entry;
+
+    entry = PhpCreateLogEntry(Type);
+    PhReferenceObject(Classification);
+    entry->Device.Classification = Classification;
+    PhReferenceObject(Name);
+    entry->Device.Name = Name;
+
+    return entry;
+}
+
 PPH_LOG_ENTRY PhpCreateMessageLogEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Message
@@ -174,6 +191,15 @@ VOID PhLogServiceEntry(
     )
 {
     PhpLogEntry(PhpCreateServiceLogEntry(Type, Name, DisplayName));
+}
+
+VOID PhLogDeviceEntry(
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Classification,
+    _In_ PPH_STRING Name
+    )
+{
+    PhpLogEntry(PhpCreateDeviceLogEntry(Type, Classification, Name));
 }
 
 VOID PhLogMessageEntry(
@@ -388,6 +414,30 @@ PPH_STRING PhFormatLogEntry(
             //    Entry->Service.Name->Buffer,
             //    Entry->Service.DisplayName->Buffer
             //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
+    case PH_LOG_ENTRY_DEVICE_REMOVED:
+        {
+            PH_FORMAT format[5];
+
+            PhInitFormatS(&format[0], L"Device removed: ");
+            PhInitFormatSR(&format[1], Entry->Device.Classification->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Device.Name->sr);
+            PhInitFormatC(&format[4], L')');
+
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
+    case PH_LOG_ENTRY_DEVICE_ARRIVED:
+        {
+            PH_FORMAT format[5];
+
+            PhInitFormatS(&format[0], L"Device arrived: ");
+            PhInitFormatSR(&format[1], Entry->Device.Classification->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Device.Name->sr);
+            PhInitFormatC(&format[4], L')');
+
             return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
         }
     case PH_LOG_ENTRY_MESSAGE:

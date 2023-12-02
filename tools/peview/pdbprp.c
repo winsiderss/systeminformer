@@ -632,41 +632,6 @@ VOID PvInitializeSymbolTree(
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
 
-BOOLEAN WordMatchStringRef(
-    _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN WordMatchStringZ(
-    _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-    return WordMatchStringRef(Context, &text);
-}
-
 BOOLEAN PvSymbolTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -687,72 +652,72 @@ BOOLEAN PvSymbolTreeFilterCallback(
     if (context->HideReadSection && node->Characteristics & IMAGE_SCN_MEM_READ)
         return FALSE;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     switch (node->Type)
     {
     case PV_SYMBOL_TYPE_FUNCTION:
-        if (WordMatchStringZ(context, L"FUNCTION"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"FUNCTION"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_SYMBOL:
-        if (WordMatchStringZ(context, L"SYMBOL"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"SYMBOL"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_LOCAL_VAR:
-        if (WordMatchStringZ(context, L"LOCAL_VAR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"LOCAL_VAR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_STATIC_LOCAL_VAR:
-        if (WordMatchStringZ(context, L"STATIC_LOCAL_VAR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"STATIC_LOCAL_VAR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_PARAMETER:
-        if (WordMatchStringZ(context, L"PARAMETER"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"PARAMETER"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_OBJECT_PTR:
-        if (WordMatchStringZ(context, L"OBJECT_PTR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"OBJECT_PTR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_STATIC_VAR:
-        if (WordMatchStringZ(context, L"STATIC_VAR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"STATIC_VAR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_GLOBAL_VAR:
-        if (WordMatchStringZ(context, L"GLOBAL_VAR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"GLOBAL_VAR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_STRUCT:
-        if (WordMatchStringZ(context, L"MEMBER"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"MEMBER"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_STATIC_MEMBER:
-        if (WordMatchStringZ(context, L"STATIC_MEMBER"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"STATIC_MEMBER"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_CONSTANT:
-        if (WordMatchStringZ(context, L"CONSTANT"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"CONSTANT"))
             return TRUE;
         break;
     }
 
     if (!PhIsNullOrEmptyString(node->Name))
     {
-        if (WordMatchStringRef(context, &node->Name->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->Name->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->Data))
     {
-        if (WordMatchStringRef(context, &node->Data->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->Data->sr))
             return TRUE;
     }
 
     if (node->Pointer[0])
     {
-        if (WordMatchStringZ(context, node->Pointer))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, node->Pointer))
             return TRUE;
     }
 
@@ -763,7 +728,7 @@ BOOLEAN PvSymbolTreeFilterCallback(
         text.Length = (node->SectionNameLength - 1) * sizeof(WCHAR);
         text.Buffer = node->SectionName;
 
-        if (WordMatchStringRef(context, &text))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &text))
             return TRUE;
     }
 
@@ -825,6 +790,20 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
     RtlUpdateTimer(PvSymbolGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
+VOID NTAPI PvpSymbolsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPDB_SYMBOL_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    PhApplyTreeNewFilters(GetSymbolListFilterSupport(context));
+}
+
 INT_PTR CALLBACK PvpSymbolsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -860,9 +839,13 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
 
-            PvCreateSearchControl(context->SearchHandle, L"Search Symbols (Ctrl+K)");
+            PvCreateSearchControl(
+                context->SearchHandle,
+                L"Search Symbols (Ctrl+K)",
+                PvpSymbolsSearchControlCallback,
+                context
+                );
 
             PvInitializeSymbolTree(context, hwndDlg, context->TreeNewHandle);
             PvConfigTreeBorders(context->TreeNewHandle);
@@ -927,23 +910,6 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-                        PhApplyTreeNewFilters(GetSymbolListFilterSupport(context));
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_SETTINGS:

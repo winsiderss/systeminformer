@@ -180,6 +180,51 @@ VOID PvShowOptionsWindow(
     _In_ HWND ParentWindow
     );
 
+// searchbox
+
+typedef
+VOID
+NTAPI
+PV_SEARCHCONTROL_CALLBACK(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    );
+typedef PV_SEARCHCONTROL_CALLBACK* PPV_SEARCHCONTROL_CALLBACK;
+
+VOID PvCreateSearchControl(
+    _In_ HWND WindowHandle,
+    _In_opt_ PWSTR BannerText,
+    _In_ PPV_SEARCHCONTROL_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+BOOLEAN PvSearchControlMatch(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PPH_STRINGREF Text
+    );
+
+BOOLEAN PvSearchControlMatchZ(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PWSTR Text
+    );
+
+BOOLEAN PvSearchControlMatchLongHintZ(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PWSTR Text
+    );
+
+BOOLEAN PvSearchControlMatchPointer(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PVOID Pointer
+    );
+
+BOOLEAN PvSearchControlMatchPointerRange(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PVOID Pointer,
+    _In_ SIZE_T Size
+    );
+
+
 // symbols
 
 #define WM_PV_SEARCH_FINISHED (WM_APP + 701)
@@ -188,11 +233,6 @@ VOID PvShowOptionsWindow(
 extern ULONG SearchResultsAddIndex;
 extern PPH_LIST SearchResults;
 extern PH_QUEUED_LOCK SearchResultsLock;
-
-VOID PvCreateSearchControl(
-    _In_ HWND WindowHandle,
-    _In_opt_ PWSTR BannerText
-    );
 
 typedef enum _PV_SYMBOL_COLUMN_ITEM_NAME
 {
@@ -379,7 +419,7 @@ typedef struct _PDB_SYMBOL_CONTEXT
     ULONG64 Count;
     ULONG64 BaseAddress;
     PPH_STRING FileName;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_STRING TreeText;
 
     PPH_LIST SymbolList;

@@ -2348,7 +2348,7 @@ typedef struct _PH_OPTIONS_ADVANCED_CONTEXT
     PPH_TN_FILTER_ENTRY TreeFilterEntry;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
-    PPH_STRING SearchBoxText;
+    ULONG_PTR SearchMatchHandle;
 } PH_OPTIONS_ADVANCED_CONTEXT, *PPH_OPTIONS_ADVANCED_CONTEXT;
 
 typedef enum _PH_OPTIONS_ADVANCED_TREE_ITEM_MENU
@@ -3019,17 +3019,36 @@ BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
         }
     }
 
-    if (PhIsNullOrEmptyString(context->SearchBoxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
-    if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->Name->sr))
+    if (PhSearchControlMatch(context->SearchMatchHandle, &node->Name->sr))
         return TRUE;
-    if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->DefaultString->sr))
+    if (PhSearchControlMatch(context->SearchMatchHandle, &node->DefaultString->sr))
         return TRUE;
-    if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->ValueString->sr))
+    if (PhSearchControlMatch(context->SearchMatchHandle, &node->ValueString->sr))
         return TRUE;
 
     return FALSE;
+}
+
+VOID NTAPI PhpOptionsAdvancedSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_OPTIONS_ADVANCED_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    if (!context->SearchMatchHandle)
+    {
+        // Expand the nodes?
+    }
+
+    PhApplyTreeNewFilters(&context->TreeFilterSupport);
 }
 
 INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
@@ -3062,9 +3081,15 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
 
-            PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search settings...");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchBoxHandle,
+                L"Search settings...",
+                PhpOptionsAdvancedSearchControlCallback,
+                context
+                );
+
             InitializeOptionsAdvancedTree(context);
-            context->SearchBoxText = PhReferenceEmptyString();
             context->TreeFilterEntry = PhAddTreeNewFilter(&context->TreeFilterSupport, PhpOptionsAdvancedTreeFilterCallback, context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -3077,9 +3102,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
         break;
     case WM_DESTROY:
         {
-            if (context->SearchBoxText)
-                PhDereferenceObject(context->SearchBoxText);
-
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhRemoveTreeNewFilter(&context->TreeFilterSupport, context->TreeFilterEntry);
@@ -3189,35 +3211,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                     text = PhGetTreeNewText(context->TreeNewHandle, 0);
                     PhSetClipboardString(context->TreeNewHandle, &text->sr);
                     PhDereferenceObject(text);
-                }
-                break;
-            }
-
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (!context->SearchBoxHandle)
-                        break;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
-
-                    if (!PhEqualString(context->SearchBoxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchBoxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchBoxText))
-                        {
-                            // Expand the nodes?
-                        }
-
-                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
-                    }
                 }
                 break;
             }

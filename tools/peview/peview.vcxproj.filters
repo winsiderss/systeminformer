@@ -227,5 +227,55 @@
     <Image Include="resources\application.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\case_sensitive_modern_dark.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\case_sensitive_modern_light.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\regex_modern_dark.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\regex_modern_light.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\search_modern_dark.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\search_modern_light.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\search_stop_modern_dark.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\search_stop_modern_light.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\case_sensitive_modern_dark.svg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resources\case_sensitive_modern_light.svg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resources\regex_modern_dark.svg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resources\regex_modern_light.svg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resources\search_modern_dark.svg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resources\search_modern_light.svg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resources\search_stop_modern_dark.svg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resources\search_stop_modern_light.svg">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
