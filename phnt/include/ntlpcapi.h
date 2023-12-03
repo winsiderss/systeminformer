@@ -945,7 +945,7 @@ NTAPI
 AlpcInitializeMessageAttribute(
     _In_ ULONG AttributeFlags,
     _Out_opt_ PALPC_MESSAGE_ATTRIBUTES Buffer,
-    _In_ ULONG BufferSize,
+    _In_ SIZE_T BufferSize,
     _Out_ PSIZE_T RequiredBufferSize
     );
 
