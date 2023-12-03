@@ -2128,7 +2128,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         for (i = 0; i < numberOfItems; i++)
                         {
-                            if (FlagOn(listviewItems[i]->TokenPrivilege->Attributes, SE_PRIVILEGE_REMOVED))
+                            if (listviewItems[i]->TokenPrivilege &&
+                                FlagOn(listviewItems[i]->TokenPrivilege->Attributes, SE_PRIVILEGE_REMOVED))
                             {
                                 hasRemovedItems = TRUE;
                                 break;
