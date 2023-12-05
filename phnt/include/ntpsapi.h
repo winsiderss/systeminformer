@@ -1849,6 +1849,10 @@ NtWaitForAlertByThreadId(
 #define PROC_THREAD_ATTRIBUTE_CREATE_STORE \
     ProcThreadAttributeValue(ProcThreadAttributeCreateStore, FALSE, TRUE, FALSE)
 #endif
+#ifndef PROC_THREAD_ATTRIBUTE_TRUSTED_APP
+#define PROC_THREAD_ATTRIBUTE_TRUSTED_APP \
+    ProcThreadAttributeValue(ProcThreadAttributeTrustedApp, FALSE, TRUE, FALSE)
+#endif
 
 // private
 typedef struct _PROC_THREAD_ATTRIBUTE

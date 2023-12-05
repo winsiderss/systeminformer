@@ -70,6 +70,13 @@ typedef struct _EXTENDED_CREATE_INFORMATION
     ULONG EaLength;
 } EXTENDED_CREATE_INFORMATION, *PEXTENDED_CREATE_INFORMATION;
 
+typedef struct _EXTENDED_CREATE_INFORMATION_32 
+{
+    LONGLONG ExtendedCreateFlags;
+    void* POINTER_32 EaBuffer;
+    ULONG EaLength;
+} EXTENDED_CREATE_INFORMATION_32, *PEXTENDED_CREATE_INFORMATION_32;
+
 #define EX_CREATE_FLAG_FILE_SOURCE_OPEN_FOR_COPY 0x00000001
 #define EX_CREATE_FLAG_FILE_DEST_OPEN_FOR_COPY   0x00000002
 #endif
@@ -292,6 +299,11 @@ typedef enum _FILE_INFORMATION_CLASS
     FileStorageReserveIdInformation, // q; s: FILE_STORAGE_RESERVE_ID_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
     FileCaseSensitiveInformationForceAccessCheck, // q; s: FILE_CASE_SENSITIVE_INFORMATION
     FileKnownFolderInformation, // q; s: FILE_KNOWN_FOLDER_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since WIN11
+    FileStatBasicInformation, // since 23H2
+    FileId64ExtdDirectoryInformation,
+    FileId64ExtdBothDirectoryInformation,
+    FileIdAllExtdDirectoryInformation,
+    FileIdAllExtdBothDirectoryInformation,
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -1146,6 +1158,7 @@ typedef enum _FSINFOCLASS
     FileFsDataCopyInformation, // q: FILE_FS_DATA_COPY_INFORMATION
     FileFsMetadataSizeInformation, // q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
     FileFsFullSizeInformationEx, // q: FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
+    FileFsGuidInformation, // q: FILE_FS_GUID_INFORMATION // since 23H2
     FileFsMaximumInformation
 } FSINFOCLASS, *PFSINFOCLASS;
 typedef enum _FSINFOCLASS FS_INFORMATION_CLASS;
@@ -1297,6 +1310,11 @@ typedef struct _FILE_FS_FULL_SIZE_INFORMATION_EX
     ULONG SectorsPerAllocationUnit;
     ULONG BytesPerSector;
 } FILE_FS_FULL_SIZE_INFORMATION_EX, *PFILE_FS_FULL_SIZE_INFORMATION_EX;
+
+typedef struct _FILE_FS_GUID_INFORMATION 
+{
+    GUID FsGuid;
+} FILE_FS_GUID_INFORMATION, *PFILE_FS_GUID_INFORMATION;
 
 // System calls
 
