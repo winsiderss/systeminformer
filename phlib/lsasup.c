@@ -1432,3 +1432,51 @@ NTSTATUS PhEnumerateAccounts(
 //
 //    return status;
 //}
+
+NTSTATUS PhCreateServiceSidToBuffer(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
+    _Inout_ PULONG ServiceSidLength
+    )
+{
+    typedef NTSTATUS (NTAPI* _RtlCreateServiceSid)(
+        _In_ PUNICODE_STRING ServiceName,
+        _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
+        _Inout_ PULONG ServiceSidLength
+        );
+    static _RtlCreateServiceSid RtlCreateServiceSid_I = NULL;
+    UNICODE_STRING serviceName;
+    NTSTATUS status;
+
+    if (!RtlCreateServiceSid_I)
+    {
+        if (!(RtlCreateServiceSid_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlCreateServiceSid", 0)))
+            return STATUS_PROCEDURE_NOT_FOUND;
+    }
+
+    PhStringRefToUnicodeString(ServiceName, &serviceName);
+
+    status = RtlCreateServiceSid_I(
+        &serviceName,
+        ServiceSid,
+        ServiceSidLength
+        );
+
+    return status;
+}
+
+PPH_STRING PhCreateServiceSidToStringSid(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    BYTE serviceSidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
+    ULONG serviceSidLength = sizeof(serviceSidBuffer);
+    PSID serviceSid = (PSID)serviceSidBuffer;
+
+    if (NT_SUCCESS(PhCreateServiceSidToBuffer(ServiceName, serviceSid, &serviceSidLength)))
+    {
+        return PhSidToStringSid(serviceSid);
+    }
+
+    return NULL;
+}
