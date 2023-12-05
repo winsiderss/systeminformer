@@ -202,7 +202,9 @@ typedef struct _SYSTEM_POWER_STATE_CONTEXT
             ULONG CurrentSystemState : 4;
             ULONG IgnoreHibernationPath : 1;
             ULONG PseudoTransition : 1;
-            ULONG Reserved2 : 10;
+            ULONG KernelSoftReboot : 1;
+            ULONG DirectedDripsTransition : 1;
+            ULONG Reserved2 : 8;
         };
         ULONG ContextAsUlong;
     };
@@ -591,6 +593,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalManageTransitionStateRecord,
     PowerInternalGetAcpiTimeAndAlarmCapabilities, // since 22H2
     PowerInternalSuspendResumeRequest,
+    PowerInternalEnergyEstimationInfo, // since 23H2
     PowerInformationInternalMaximum
 } POWER_INFORMATION_LEVEL_INTERNAL;
 
