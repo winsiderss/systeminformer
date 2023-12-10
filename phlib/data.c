@@ -127,6 +127,27 @@ PSID PhSeInternetExplorerSid( // S-1-15-3-4096 (dmex)
     return internetExplorerSid;
 }
 
+PSID PhSeCloudActiveDirectorySid( // S-1-12-1 (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR activeDirectorySidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID activeDirectorySid = (PSID)activeDirectorySidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(activeDirectorySid, &(SID_IDENTIFIER_AUTHORITY){ 0, 0, 0, 0, 0, 12 }, 1);
+        *PhSubAuthoritySid(activeDirectorySid, 0) = 1;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    assert(PhLengthSid(activeDirectorySid) == sizeof(activeDirectorySidBuffer));
+
+    return activeDirectorySid;
+}
+
 // Unicode
 
 DECLSPEC_SELECTANY CONST
