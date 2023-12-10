@@ -11,6 +11,9 @@
 
 namespace CustomBuildTool
 {
+    using ULONG = UInt32;
+    using USHORT = UInt16;
+
     public static class DynData
     {
         private const string FileHeader =
@@ -26,7 +29,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 10;
+        private const ULONG Version = 10;
 
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
@@ -102,50 +105,50 @@ typedef struct _KPH_DYNDATA
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct DynConfig
         {
-            public UInt16 MajorVersion;
-            public UInt16 MinorVersion;
-            public UInt16 BuildNumberMin;
-            public UInt16 RevisionMin;
-            public UInt16 BuildNumberMax;
-            public UInt16 RevisionMax;
+            public USHORT MajorVersion;
+            public USHORT MinorVersion;
+            public USHORT BuildNumberMin;
+            public USHORT RevisionMin;
+            public USHORT BuildNumberMax;
+            public USHORT RevisionMax;
 
-            public UInt16 EgeGuid;
-            public UInt16 EpObjectTable;
-            public UInt16 EreGuidEntry;
-            public UInt16 HtHandleContentionEvent;
-            public UInt16 OtName;
-            public UInt16 OtIndex;
-            public UInt16 ObDecodeShift;
-            public UInt16 ObAttributesShift;
-            public UInt16 CiVersion;
-            public UInt16 AlpcCommunicationInfo;
-            public UInt16 AlpcOwnerProcess;
-            public UInt16 AlpcConnectionPort;
-            public UInt16 AlpcServerCommunicationPort;
-            public UInt16 AlpcClientCommunicationPort;
-            public UInt16 AlpcHandleTable;
-            public UInt16 AlpcHandleTableLock;
-            public UInt16 AlpcAttributes;
-            public UInt16 AlpcAttributesFlags;
-            public UInt16 AlpcPortContext;
-            public UInt16 AlpcPortObjectLock;
-            public UInt16 AlpcSequenceNo;
-            public UInt16 AlpcState;
-            public UInt16 KtReadOperationCount;
-            public UInt16 KtWriteOperationCount;
-            public UInt16 KtOtherOperationCount;
-            public UInt16 KtReadTransferCount;
-            public UInt16 KtWriteTransferCount;
-            public UInt16 KtOtherTransferCount;
-            public UInt16 LxVersion;
-            public UInt16 LxPicoProc;
-            public UInt16 LxPicoProcInfo;
-            public UInt16 LxPicoProcInfoPID;
-            public UInt16 LxPicoThrdInfo;
-            public UInt16 LxPicoThrdInfoTID;
-            public UInt16 MmSectionControlArea;
-            public UInt16 MmControlAreaListHead;
-            public UInt16 MmControlAreaLock;
+            public USHORT EgeGuid;
+            public USHORT EpObjectTable;
+            public USHORT EreGuidEntry;
+            public USHORT HtHandleContentionEvent;
+            public USHORT OtName;
+            public USHORT OtIndex;
+            public USHORT ObDecodeShift;
+            public USHORT ObAttributesShift;
+            public USHORT CiVersion;
+            public USHORT AlpcCommunicationInfo;
+            public USHORT AlpcOwnerProcess;
+            public USHORT AlpcConnectionPort;
+            public USHORT AlpcServerCommunicationPort;
+            public USHORT AlpcClientCommunicationPort;
+            public USHORT AlpcHandleTable;
+            public USHORT AlpcHandleTableLock;
+            public USHORT AlpcAttributes;
+            public USHORT AlpcAttributesFlags;
+            public USHORT AlpcPortContext;
+            public USHORT AlpcPortObjectLock;
+            public USHORT AlpcSequenceNo;
+            public USHORT AlpcState;
+            public USHORT KtReadOperationCount;
+            public USHORT KtWriteOperationCount;
+            public USHORT KtOtherOperationCount;
+            public USHORT KtReadTransferCount;
+            public USHORT KtWriteTransferCount;
+            public USHORT KtOtherTransferCount;
+            public USHORT LxVersion;
+            public USHORT LxPicoProc;
+            public USHORT LxPicoProcInfo;
+            public USHORT LxPicoProcInfoPID;
+            public USHORT LxPicoThrdInfo;
+            public USHORT LxPicoThrdInfoTID;
+            public USHORT MmSectionControlArea;
+            public USHORT MmControlAreaListHead;
+            public USHORT MmControlAreaLock;
 
             public DynConfig()
             {
@@ -196,97 +199,167 @@ typedef struct _KPH_DYNDATA
             }
         }
 
-        public static void Execute()
+        public static bool Execute()
         {
-            string manifestFile = "kphlib\\kphdyn.xml";
-            string headerFile = "kphlib\\include\\kphdyn.h";
-            string sourceFile = "kphlib\\kphdyn.c";
+            const string manifestFile = "kphlib\\kphdyn.xml";
+            const string headerFile = "kphlib\\include\\kphdyn.h";
+            const string sourceFile = "kphlib\\kphdyn.c";
 
-            LoadConfig(manifestFile, out string config, out string sig);
+            if (!CreateHeader(headerFile))
+                return false;
+            if (!CreateSource(manifestFile, sourceFile))
+                return false;
 
-            string header = GenerateHeader();
-            string source = GenerateSource(config, sig);
-
-            File.WriteAllText(headerFile, header);
-            File.WriteAllText(sourceFile, source);
+            return true;
         }
 
-        private static string GenerateHeader()
+        private static bool CreateHeader(string FileName)
         {
-            StringBuilder sb = new StringBuilder(8192);
+            FileStreamOptions options = new FileStreamOptions
+            {
+                Mode = FileMode.Create,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
+                PreallocationSize = 0x2000, // 8KB
+                //Options = FileOptions.SequentialScan
+            };
 
-            sb.AppendLine(FileHeader);
-            sb.AppendLine();
-            sb.AppendLine("#pragma once");
-            sb.AppendLine();
-            sb.AppendLine(Includes);
-            sb.AppendLine();
-            sb.AppendLine(DynConfigC);
-            sb.AppendLine();
-            sb.AppendLine("#ifdef _WIN64");
-            sb.AppendLine("extern CONST BYTE KphDynData[];");
-            sb.AppendLine("extern CONST ULONG KphDynDataLength;");
-            sb.AppendLine("extern CONST BYTE KphDynDataSig[];");
-            sb.AppendLine("extern CONST ULONG KphDynDataSigLength;");
-            sb.AppendLine("#endif");
-
-            return sb.ToString();
+            using (StreamWriter sw = new StreamWriter(FileName, Utils.UTF8NoBOM, options))
+            {
+                sw.WriteLine(FileHeader);
+                sw.WriteLine();
+                sw.WriteLine("#pragma once");
+                sw.WriteLine();
+                sw.WriteLine(Includes);
+                sw.WriteLine();
+                sw.WriteLine(DynConfigC);
+                sw.WriteLine();
+                sw.WriteLine("#ifdef _WIN64");
+                sw.WriteLine("extern CONST BYTE KphDynData[];");
+                sw.WriteLine("extern CONST ULONG KphDynDataLength;");
+                sw.WriteLine("extern CONST BYTE KphDynDataSig[];");
+                sw.WriteLine("extern CONST ULONG KphDynDataSigLength;");
+                sw.WriteLine("#endif");
+            }
+#if DEBUG
+            var filesize = Win32.GetFileSize(FileName);
+            var filesizeondisk = 0x1000 * ((filesize + 0x1000 - 1) / 0x1000); // Assume 4k sector size (dmex)
+            Debug.Assert(filesizeondisk == options.PreallocationSize, "Update PreallocationSize");
+#endif
+            return true;
         }
 
-        private static string GenerateSource(
-            string Config,
-            string Sig
-            )
+        private static bool CreateSource(string ManifestFile, string FileName)
         {
-            StringBuilder sb = new StringBuilder(16348);
+            FileStreamOptions options = new FileStreamOptions
+            {
+                Mode = FileMode.Create,
+                Access = FileAccess.Write,
+                Share = FileShare.None,
+                PreallocationSize = 0x3000, // 12KB
+                //Options = FileOptions.SequentialScan
+            };
 
-            sb.AppendLine(FileHeader);
-            sb.AppendLine();
-            sb.AppendLine(Includes);
-            sb.AppendLine();
-            sb.AppendLine("#ifdef _WIN64");
-            sb.AppendLine("CONST BYTE KphDynData[] =");
-            sb.AppendLine("{");
-            sb.Append(Config);
-            sb.AppendLine("};");
-            sb.AppendLine();
-            sb.AppendLine("CONST ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
-            sb.AppendLine();
-            sb.AppendLine("CONST BYTE KphDynDataSig[] =");
-            sb.AppendLine("{");
-            sb.Append(Sig);
-            sb.AppendLine("};");
-            sb.AppendLine();
-            sb.AppendLine("CONST ULONG KphDynDataSigLength = ARRAYSIZE(KphDynDataSig);");
-            sb.AppendLine("#endif");
+            if (!LoadConfig(ManifestFile, out string Config, out string Sig))
+                return false;
 
-            return sb.ToString();
+            using (StreamWriter sw = new StreamWriter(FileName, Utils.UTF8NoBOM, options))
+            {
+                sw.WriteLine(FileHeader);
+                sw.WriteLine();
+                sw.WriteLine(Includes);
+                sw.WriteLine();
+                sw.WriteLine("#ifdef _WIN64");
+                sw.WriteLine("CONST BYTE KphDynData[] =");
+                sw.WriteLine("{");
+                sw.Write(Config);
+                sw.WriteLine("};");
+                sw.WriteLine();
+                sw.WriteLine("CONST ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
+                sw.WriteLine();
+                sw.WriteLine("CONST BYTE KphDynDataSig[] =");
+                sw.WriteLine("{");
+                sw.Write(Sig);
+                sw.WriteLine("};");
+                sw.WriteLine();
+                sw.WriteLine("CONST ULONG KphDynDataSigLength = ARRAYSIZE(KphDynDataSig);");
+                sw.WriteLine("#endif");
+            }
+#if DEBUG
+            var filesize = Win32.GetFileSize(FileName);
+            var filesizeondisk = 0x1000 * ((filesize + 0x1000 - 1) / 0x1000); // Assume 4k sector size (dmex)
+            Debug.Assert(filesizeondisk == options.PreallocationSize, "Update PreallocationSize");
+#endif
+            return true;
         }
 
-        private static void LoadConfig(
+        /// <summary>
+        /// This function generates a config structure for the current platform from XML
+        /// </summary>
+        /// <param name="ManifestFile">The configuration file.</param>
+        /// <param name="ConfigData">The configuration file.</param>
+        /// <param name="SigData"></param>
+        /// <returns></returns>
+        private static bool LoadConfig(
             string ManifestFile,
             out string ConfigData,
             out string SigData
             )
         {
+            List<DynConfig> configList = new List<DynConfig>(10);
+            List<string> configNames = new List<string>(10);
+            byte[] configbuffer = null;
+            byte[] signedbuffer = null;
+
             var xml = new XmlDocument();
             xml.Load(ManifestFile);
-            var dyn = xml.SelectSingleNode("/dyn");
-            var configs = new List<DynConfig>(10);
-            var configNames = new List<string>(10);
 
-            foreach (XmlNode data in dyn.SelectNodes("data"))
+            var dyn = xml.SelectSingleNode("/dyn");
+            var nodes = dyn?.SelectNodes("data");
+
+            if (nodes == null)
+            {
+                Program.PrintColorMessage("Invalid config.", ConsoleColor.Red);
+                ConfigData = null;
+                SigData = null;
+                return false;
+            }
+
+            foreach (XmlNode data in nodes)
             {
                 var config = new DynConfig();
-                var configName = data.Attributes.GetNamedItem("name").Value;
+                var configName = data.Attributes?.GetNamedItem("name")?.Value;
+                var fields = data.SelectNodes("field");
+
+                if (fields == null)
+                {
+                    Program.PrintColorMessage("Invalid config.", ConsoleColor.Red);
+                    ConfigData = null;
+                    SigData = null;
+                    return false;
+                }
 
                 Program.PrintColorMessage(configName, ConsoleColor.Cyan);
 
-                foreach (XmlNode field in data.SelectNodes("field"))
+                foreach (XmlNode field in fields)
                 {
-                    var value = field.Attributes.GetNamedItem("value").Value;
-                    var name = field.Attributes.GetNamedItem("name").Value;
-                    var member = typeof(DynConfig).GetField(name);
+                    string name = field.Attributes?.GetNamedItem("name")?.Value;
+                    string value = field.Attributes?.GetNamedItem("value")?.Value;
+
+                    if (string.IsNullOrEmpty(name))
+                        continue;
+                    if (string.IsNullOrEmpty(value))
+                        continue;
+
+                    FieldInfo member = typeof(DynConfig).GetField(name);
+
+                    if (member == null)
+                    {
+                        Program.PrintColorMessage("Invalid config.", ConsoleColor.Red);
+                        ConfigData = null;
+                        SigData = null;
+                        return false;
+                    }
 
                     if (value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
                     {
@@ -300,47 +373,40 @@ typedef struct _KPH_DYNDATA
                     member.SetValueDirect(__makeref(config), Convert.ChangeType(value, member.FieldType));
                 }
 
-                configs.Add(config);
+                configList.Add(config);
                 configNames.Add(configName);
             }
 
-            if (!Validate(configs, configNames))
+            if (!Validate(configList, configNames))
             {
-                throw new Exception("Dynamic configuration is invalid!");
+                Program.PrintColorMessage("Invalid config.", ConsoleColor.Red);
+                ConfigData = null;
+                SigData = null;
+                return false;
             }
 
-            string tempName = $"{Build.BuildWorkingFolder}\\tools\\CustomBuildTool\\bin\\Release\\" + Guid.NewGuid();
-            string configFile = $"{tempName}.bin";
-            string sigFile = $"{tempName}.sig";
-
-            using (var file = new FileStream(configFile, FileMode.CreateNew))
-            using (var writer = new BinaryWriter(file))
+            using (MemoryStream stream = new MemoryStream())
+            using (BinaryWriter writer = new BinaryWriter(stream))
             {
                 //
                 // Write the version and count first, then the blocks.
                 // This conforms with KPH_DYNDATA defined above.
                 //
                 writer.Write(Version);
-                writer.Write((uint)configs.Count);
-                writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(configs)));
+                writer.Write((uint)configList.Count);
+                writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(configList)));
+
+                configbuffer = stream.GetBuffer();
             }
 
-            if (Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile))
-            {
-                ConfigData = BytesToString(configFile);
-                SigData = BytesToString(sigFile);
+            signedbuffer = Verify.SignData(VerifyCache.KMODE_CI, configbuffer);
 
-                Win32.DeleteFile(configFile);
-                Win32.DeleteFile(sigFile);
-            }
-            else
-            {
-                ConfigData = string.Empty;
-                SigData = string.Empty;
-            }
+            ConfigData = BufferToString(configbuffer);
+            SigData = BufferToString(signedbuffer);
+            return true;
         }
 
-        private static bool Validate(List<DynConfig> Configs, List<string> ConfigNames)
+        private static bool Validate(IReadOnlyList<DynConfig> Configs, IReadOnlyList<string> ConfigNames)
         {
             bool valid = true;
 
@@ -378,11 +444,9 @@ typedef struct _KPH_DYNDATA
             return valid;
         }
 
-        private static string BytesToString(string Path)
+        private static unsafe string BufferToString(byte[] Buffer)
         {
-            var file = File.ReadAllBytes(Path);
-
-            using (MemoryStream stream = new MemoryStream(file, false))
+            using (MemoryStream stream = new MemoryStream(Buffer, false))
             {
                 StringBuilder hex = new StringBuilder(64);
                 StringBuilder sb = new StringBuilder(8192);
@@ -390,16 +454,14 @@ typedef struct _KPH_DYNDATA
 
                 while (true)
                 {
-                    var len = stream.Read(bytes);
+                    int length = stream.Read(bytes);
 
-                    if (len == 0)
-                    {
+                    if (length == 0)
                         break;
-                    }
 
-                    for (int i = 0; i < len; i++)
+                    for (int i = 0; i < length; i++)
                     {
-                        hex.AppendFormat("0x{0:x2}, ", bytes[i]);
+                        hex.Append($"0x{bytes[i]:x2}, ");
                     }
                     hex.Remove(hex.Length - 1, 1);
 
@@ -407,10 +469,8 @@ typedef struct _KPH_DYNDATA
                     sb.AppendLine(hex.ToString());
                     hex.Clear();
 
-                    if (len < bytes.Length)
-                    {
+                    if (length < bytes.Length)
                         break;
-                    }
                 }
 
                 return sb.ToString();

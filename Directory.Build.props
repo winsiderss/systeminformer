@@ -4,4 +4,9 @@
       <AdditionalOptions>/d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(ExternalCompilerOptions)'!=''">
+    <Link>
+      <AdditionalOptions>/SOURCELINK:$(MSBuildThisFileDirectory)\sourcelink.json %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
 </Project>

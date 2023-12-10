@@ -111,6 +111,7 @@ extern "C" {
 #include <ntsam.h>
 
 #include <ntmisc.h>
+#include <ntwmi.h>
 
 #include <ntzwapi.h>
 

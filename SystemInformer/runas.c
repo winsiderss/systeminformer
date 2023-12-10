@@ -1534,6 +1534,8 @@ NTSTATUS PhExecuteRunAsCommand(
  * \param DesktopName The window station and desktop to run the
  * program under.
  * \param UseLinkedToken Uses the linked token if possible.
+ * \param CreateSuspendedProcess The initial thread will be created suspended.
+ * \param CreateUIAccessProcess The initial thread has UIAccess enabled.
  *
  * \retval STATUS_CANCELLED The user cancelled the operation.
  *

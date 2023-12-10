@@ -51,7 +51,7 @@ END
 //
 // RCDATA
 //
-#if defined(PH_BUILD_API)
+#if defined(SI_BUILD_API)
 IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.zip"
 #endif
 
