@@ -2685,7 +2685,6 @@ RtlGetCurrentPeb(
     VOID
     );
 
-#ifndef PHNT_INLINE_PEB_LOCK
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2699,27 +2698,6 @@ NTAPI
 RtlReleasePebLock(
     VOID
     );
-#else
-FORCEINLINE
-NTSTATUS
-NTAPI
-RtlAcquirePebLock(
-    VOID
-    )
-{
-    return RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock)
-}
-
-FORCEINLINE
-NTSTATUS
-NTAPI
-RtlReleasePebLock(
-    VOID
-    )
-{
-    return RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock)
-}
-#endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 // private
@@ -3910,7 +3888,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateEnvironmentEx(
-    _In_ PVOID SourceEnv,
+    _In_opt_ PVOID SourceEnvironment,
     _Out_ PVOID *Environment,
     _In_ ULONG Flags
     );
@@ -3941,7 +3919,7 @@ RtlSetEnvironmentVar(
     _In_reads_(NameLength) PCWSTR Name,
     _In_ SIZE_T NameLength,
     _In_reads_(ValueLength) PCWSTR Value,
-    _In_ SIZE_T ValueLength
+    _In_opt_ SIZE_T ValueLength
     );
 #endif
 
@@ -10132,10 +10110,43 @@ RtlWow64ChangeThreadState(
 #define RtlRestoreLastWin32Error RtlSetLastWin32Error
 #endif
 
+#ifndef PHNT_INLINE_PEB_FORWARDERS
+FORCEINLINE
+PPEB
+NTAPI
+RtlGetCurrentPeb(
+    VOID
+    )
+{
+    return NtCurrentPeb();
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+RtlAcquirePebLock(
+    VOID
+    )
+{
+    return RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+RtlReleasePebLock(
+    VOID
+    )
+{
+    return RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
+}
+#endif
+
 #ifndef PHNT_INLINE_FREE_FORWARDERS
 //#define RtlFreeUnicodeString(UnicodeString) {if ((UnicodeString)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (UnicodeString)->Buffer); memset(UnicodeString, 0, sizeof(UNICODE_STRING));}
 FORCEINLINE
 VOID
+NTAPI
 RtlFreeUnicodeString(
     _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
     )
@@ -10150,6 +10161,7 @@ RtlFreeUnicodeString(
 //#define RtlFreeAnsiString(UnicodeString) {if ((AnsiString)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (AnsiString)->Buffer); memset(AnsiString, 0, sizeof(ANSI_STRING));}
 FORCEINLINE
 VOID
+NTAPI
 RtlFreeAnsiString(
     _Inout_ _At_(AnsiString->Buffer, _Frees_ptr_opt_) PANSI_STRING AnsiString
     )
@@ -10164,6 +10176,7 @@ RtlFreeAnsiString(
 //#define RtlFreeUTF8String(Utf8String) {if ((Utf8String)->Buffer) RtlFreeHeap(RtlProcessHeap(), 0, (Utf8String)->Buffer); memset(Utf8String, 0, sizeof(UTF8_STRING));}
 FORCEINLINE
 VOID
+NTAPI
 RtlFreeUTF8String(
     _Inout_ _At_(Utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
     )
@@ -10178,6 +10191,7 @@ RtlFreeUTF8String(
 //#define RtlFreeSid(Sid) RtlFreeHeap(RtlProcessHeap(), 0, (Sid))
 FORCEINLINE
 PVOID
+NTAPI
 RtlFreeSid(
     _In_ _Post_invalid_ PSID Sid
     )
@@ -10189,6 +10203,7 @@ RtlFreeSid(
 //#define RtlDeleteBoundaryDescriptor(BoundaryDescriptor) RtlFreeHeap(RtlProcessHeap(), 0, (BoundaryDescriptor))
 FORCEINLINE
 VOID
+NTAPI
 RtlDeleteBoundaryDescriptor(
     _In_ _Post_invalid_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
     )
@@ -10210,6 +10225,7 @@ RtlDeleteBoundaryDescriptor(
 //#define RtlDestroyEnvironment(Environment) RtlFreeHeap(RtlProcessHeap(), 0, (Environment))
 FORCEINLINE
 NTSTATUS
+NTAPI
 RtlDestroyEnvironment(
     _In_ _Post_invalid_ PVOID Environment
     )
@@ -10221,6 +10237,7 @@ RtlDestroyEnvironment(
 //#define RtlDestroyProcessParameters(ProcessParameters) RtlFreeHeap(RtlProcessHeap(), 0, (ProcessParameters))
 FORCEINLINE
 NTSTATUS
+NTAPI
 RtlDestroyProcessParameters(
     _In_ _Post_invalid_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters
     )
