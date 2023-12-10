@@ -59,6 +59,10 @@ PSID PhSeInternetExplorerSid(
     VOID
     );
 
+PSID PhSeCloudActiveDirectorySid(
+    VOID
+    );
+
 // Unicode
 
 extern CONST PH_STRINGREF PhUnicodeByteOrderMark;
