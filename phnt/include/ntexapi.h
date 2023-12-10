@@ -4357,7 +4357,9 @@ typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION
             ULONG Reserved2 : 3;
             ULONG RdclHardwareProtectedReported : 1;
             ULONG RdclHardwareProtected : 1;
-            ULONG Reserved : 19;
+            ULONG Reserved3 : 4;
+            ULONG Reserved4 : 3;
+            ULONG Reserved : 12;
         };
     } SpeculationControlFlags2;
 } SYSTEM_SPECULATION_CONTROL_INFORMATION, *PSYSTEM_SPECULATION_CONTROL_INFORMATION;
@@ -4915,7 +4917,9 @@ NtRaiseHardError(
     _Out_ PULONG Response
     );
 
+//
 // Kernel-user shared data
+//
 
 typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 {
@@ -4928,10 +4932,96 @@ typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 
 #define MAX_WOW64_SHARED_ENTRIES 16
 
-#define NX_SUPPORT_POLICY_ALWAYSOFF 0
-#define NX_SUPPORT_POLICY_ALWAYSON 1
-#define NX_SUPPORT_POLICY_OPTIN 2
-#define NX_SUPPORT_POLICY_OPTOUT 3
+//
+// Define NX support policy values.
+//
+
+#define NX_SUPPORT_POLICY_ALWAYSOFF     0
+#define NX_SUPPORT_POLICY_ALWAYSON      1
+#define NX_SUPPORT_POLICY_OPTIN         2
+#define NX_SUPPORT_POLICY_OPTOUT        3
+
+//
+// SEH chain validation policies.
+//
+
+#define SEH_VALIDATION_POLICY_ON        0
+#define SEH_VALIDATION_POLICY_OFF       1
+#define SEH_VALIDATION_POLICY_TELEMETRY 2
+#define SEH_VALIDATION_POLICY_DEFER     3
+
+//
+// Global shared data flags and manipulation macros.
+//
+
+#define SHARED_GLOBAL_FLAGS_ERROR_PORT_V                0x0
+#define SHARED_GLOBAL_FLAGS_ERROR_PORT                  \
+    (1UL << SHARED_GLOBAL_FLAGS_ERROR_PORT_V)
+
+#define SHARED_GLOBAL_FLAGS_ELEVATION_ENABLED_V         0x1
+#define SHARED_GLOBAL_FLAGS_ELEVATION_ENABLED           \
+    (1UL << SHARED_GLOBAL_FLAGS_ELEVATION_ENABLED_V)
+
+#define SHARED_GLOBAL_FLAGS_VIRT_ENABLED_V              0x2
+#define SHARED_GLOBAL_FLAGS_VIRT_ENABLED                \
+    (1UL << SHARED_GLOBAL_FLAGS_VIRT_ENABLED_V)
+
+#define SHARED_GLOBAL_FLAGS_INSTALLER_DETECT_ENABLED_V  0x3
+#define SHARED_GLOBAL_FLAGS_INSTALLER_DETECT_ENABLED    \
+    (1UL << SHARED_GLOBAL_FLAGS_INSTALLER_DETECT_ENABLED_V)
+
+#define SHARED_GLOBAL_FLAGS_LKG_ENABLED_V               0x4
+#define SHARED_GLOBAL_FLAGS_LKG_ENABLED                 \
+    (1UL << SHARED_GLOBAL_FLAGS_LKG_ENABLED_V)
+
+#define SHARED_GLOBAL_FLAGS_DYNAMIC_PROC_ENABLED_V      0x5
+#define SHARED_GLOBAL_FLAGS_DYNAMIC_PROC_ENABLED        \
+    (1UL << SHARED_GLOBAL_FLAGS_DYNAMIC_PROC_ENABLED_V)
+
+#define SHARED_GLOBAL_FLAGS_CONSOLE_BROKER_ENABLED_V    0x6
+#define SHARED_GLOBAL_FLAGS_CONSOLE_BROKER_ENABLED      \
+    (1UL << SHARED_GLOBAL_FLAGS_CONSOLE_BROKER_ENABLED_V)
+
+#define SHARED_GLOBAL_FLAGS_SECURE_BOOT_ENABLED_V       0x7
+#define SHARED_GLOBAL_FLAGS_SECURE_BOOT_ENABLED         \
+    (1UL << SHARED_GLOBAL_FLAGS_SECURE_BOOT_ENABLED_V)
+
+#define SHARED_GLOBAL_FLAGS_MULTI_SESSION_SKU_V         0x8
+#define SHARED_GLOBAL_FLAGS_MULTI_SESSION_SKU           \
+    (1UL << SHARED_GLOBAL_FLAGS_MULTI_SESSION_SKU_V)
+
+#define SHARED_GLOBAL_FLAGS_MULTIUSERS_IN_SESSION_SKU_V 0x9
+#define SHARED_GLOBAL_FLAGS_MULTIUSERS_IN_SESSION_SKU   \
+    (1UL << SHARED_GLOBAL_FLAGS_MULTIUSERS_IN_SESSION_SKU_V)
+
+#define SHARED_GLOBAL_FLAGS_STATE_SEPARATION_ENABLED_V 0xA
+#define SHARED_GLOBAL_FLAGS_STATE_SEPARATION_ENABLED   \
+    (1UL << SHARED_GLOBAL_FLAGS_STATE_SEPARATION_ENABLED_V)
+
+#define SHARED_GLOBAL_FLAGS_SET_GLOBAL_DATA_FLAG        0x40000000
+#define SHARED_GLOBAL_FLAGS_CLEAR_GLOBAL_DATA_FLAG      0x80000000
+
+//
+// Define legal values for the SystemCall member.
+//
+
+#define SYSTEM_CALL_SYSCALL 0
+#define SYSTEM_CALL_INT_2E  1
+
+//
+// Define flags for QPC bypass information. None of these flags may be set
+// unless bypass is enabled. This is for compat with existing code which
+// compares this value to zero to detect bypass enablement.
+//
+
+#define SHARED_GLOBAL_FLAGS_QPC_BYPASS_ENABLED (0x01)
+#define SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_HV_PAGE (0x02)
+#define SHARED_GLOBAL_FLAGS_QPC_BYPASS_DISABLE_32BIT (0x04)
+#define SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_MFENCE (0x10)
+#define SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_LFENCE (0x20)
+#define SHARED_GLOBAL_FLAGS_QPC_BYPASS_A73_ERRATA (0x40)
+#define SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_RDTSCP (0x80)
+
 
 typedef struct _KUSER_SHARED_DATA
 {
@@ -5226,24 +5316,23 @@ typedef struct _KUSER_SHARED_DATA
         ULONG SharedDataFlags;
         struct
         {
-
             //
             // The following bit fields are for the debugger only. Do not use.
             // Use the bit definitions instead.
             //
 
-            ULONG DbgErrorPortPresent : 1;
-            ULONG DbgElevationEnabled : 1;
-            ULONG DbgVirtEnabled : 1;
+            ULONG DbgErrorPortPresent       : 1;
+            ULONG DbgElevationEnabled       : 1;
+            ULONG DbgVirtEnabled            : 1;
             ULONG DbgInstallerDetectEnabled : 1;
-            ULONG DbgLkgEnabled : 1;
-            ULONG DbgDynProcessorEnabled : 1;
-            ULONG DbgConsoleBrokerEnabled : 1;
-            ULONG DbgSecureBootEnabled : 1;
-            ULONG DbgMultiSessionSku : 1;
+            ULONG DbgLkgEnabled             : 1;
+            ULONG DbgDynProcessorEnabled    : 1;
+            ULONG DbgConsoleBrokerEnabled   : 1;
+            ULONG DbgSecureBootEnabled      : 1;
+            ULONG DbgMultiSessionSku        : 1;
             ULONG DbgMultiUsersInSessionSku : 1;
             ULONG DbgStateSeparationEnabled : 1;
-            ULONG SpareBits : 21;
+            ULONG SpareBits                 : 21;
         } DUMMYSTRUCTNAME2;
     } DUMMYUNIONNAME2;
 
@@ -5438,7 +5527,6 @@ typedef struct _KUSER_SHARED_DATA
         USHORT QpcData;
         struct
         {
-
             //
             // A boolean indicating whether performance counter queries
             // can read the counter directly (bypassing the system call).
@@ -5552,10 +5640,18 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcShift) == 0x3c7);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveStart) == 0x3c8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveEnd) == 0x3d0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
+#if (PHNT_VERSION < PHNT_WIN11)
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x710);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x720);
+#if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
+C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x728);
+#endif
+#else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x720);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x730);
 #if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
 C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x738);
+#endif
 #endif
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)

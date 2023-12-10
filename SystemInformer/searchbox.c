@@ -532,7 +532,7 @@ VOID PhpSearchDrawButton(
             Context->ImageListHandle,
             Button->ImageIndex,
             Hdc,
-            buttonRect.left + 2 /*offset*/ + ((buttonRect.right - buttonRect.left) - Context->ImageWidth) / 2,
+            buttonRect.left + 1 /*offset*/ + ((buttonRect.right - buttonRect.left) - Context->ImageWidth) / 2,
             buttonRect.top +  ((buttonRect.bottom - buttonRect.top) - Context->ImageHeight) / 2,
             ILD_TRANSPARENT,
             FALSE
@@ -717,12 +717,14 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
             if (hdc = GetDCEx(hWnd, updateRegion, flags))
             {
+                RECT windowRectStart;
                 RECT bufferRect;
 
                 // Get the screen coordinates of the window.
                 GetWindowRect(hWnd, &windowRect);
                 // Adjust the coordinates (start from 0,0).
                 PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+                windowRectStart = windowRect;
 
                 // Exclude client area.
                 ExcludeClipRect(
@@ -782,10 +784,10 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
                 }
 
-                PhpSearchDrawWindow(context, hWnd, context->BufferedDc, windowRect);
-                PhpSearchDrawButton(context, &context->SearchButton, hWnd, context->BufferedDc, windowRect);
-                PhpSearchDrawButton(context, &context->RegexButton, hWnd, context->BufferedDc, windowRect);
-                PhpSearchDrawButton(context, &context->CaseButton, hWnd, context->BufferedDc, windowRect);
+                PhpSearchDrawWindow(context, hWnd, context->BufferedDc, windowRectStart);
+                PhpSearchDrawButton(context, &context->SearchButton, hWnd, context->BufferedDc, windowRectStart);
+                PhpSearchDrawButton(context, &context->RegexButton, hWnd, context->BufferedDc, windowRectStart);
+                PhpSearchDrawButton(context, &context->CaseButton, hWnd, context->BufferedDc, windowRectStart);
 
                 BitBlt(
                     hdc,
