@@ -365,7 +365,7 @@ ZwAlpcConnectPort(
     _In_ ULONG Flags,
     _In_opt_ PSID RequiredServerSid,
     _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
-    _Inout_opt_ PULONG BufferLength,
+    _Inout_opt_ PSIZE_T BufferLength,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
     _In_opt_ PLARGE_INTEGER Timeout
@@ -830,10 +830,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwConvertBetweenAuxiliaryCounterAndPerformanceCounter(
-    _In_opt_ PLARGE_INTEGER AuxiliaryCounterValue,
-    _Inout_ PLARGE_INTEGER PerformanceCounterValue,
-    _Out_ PLARGE_INTEGER PerformanceOrAuxiliaryCounterValue,
-    _Out_ PLARGE_INTEGER ConversionError
+    _In_ BOOL ConvertAuxiliaryToPerformanceCounter,
+    _In_ PLARGE_INTEGER PerformanceOrAuxiliaryCounterValue,
+    _Out_ PLARGE_INTEGER ConvertedValue,
+    _Out_opt_ PLARGE_INTEGER ConversionError
     );
 
 NTSYSCALLAPI
