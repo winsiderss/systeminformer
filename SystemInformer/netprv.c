@@ -1796,6 +1796,7 @@ BOOLEAN PhGetNetworkConnections(
             connections[index].RemoteEndpoint.Address.HvAddr = hvListeners->Listener[i].VmId;
 
             connections[index].ProcessId = UlongToHandle(hvListeners->Listener[i].ProcessId);
+            connections[index].CreateTime = hvListeners->Listener[i].TimeStamp;
 
             connections[index].State = 0; // HACK
 
@@ -1821,6 +1822,7 @@ BOOLEAN PhGetNetworkConnections(
             connections[index].RemoteEndpoint.Address.HvAddr = hvConnections->Connection[i].VmId;
 
             connections[index].ProcessId = UlongToHandle(hvConnections->Connection[i].ProcessId);
+            connections[index].CreateTime = hvConnections->Connection[i].TimeStamp;
 
             connections[index].State = 1; // HACK
 
