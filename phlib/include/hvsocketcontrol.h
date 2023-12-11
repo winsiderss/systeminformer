@@ -36,8 +36,8 @@ typedef struct _HVSOCKET_LISTENER
     };
     GUID VmId;
     ULONG ProcessId;
-    ULONG64 Unknown1;
-    BYTE Unknown2; // Type?
+    LARGE_INTEGER TimeStamp;
+    BYTE Unknown; // Type?
 } HVSOCKET_LISTENER, *PHVSOCKET_LISTENER;
 C_ASSERT(FIELD_OFFSET(HVSOCKET_LISTENER, ProcessId) == 32);
 C_ASSERT(sizeof(HVSOCKET_LISTENER) == 56);
@@ -72,7 +72,7 @@ typedef struct _HVSOCKET_CONNECTION
     };
     GUID VmId;
     ULONG ProcessId;
-    ULONG64 Unknown;
+    LARGE_INTEGER TimeStamp;
     ULONG Type; // 1 or 2?
 } HVSOCKET_CONNECTION, *PHVSOCKET_CONNECTION;
 C_ASSERT(FIELD_OFFSET(HVSOCKET_CONNECTION, ProcessId) == 32);
