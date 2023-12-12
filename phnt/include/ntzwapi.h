@@ -836,6 +836,26 @@ ZwConvertBetweenAuxiliaryCounterAndPerformanceCounter(
     _Out_ PLARGE_INTEGER ConversionError
     );
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCopyFileChunk(
+    _In_ HANDLE SourceHandle,
+    _In_ HANDLE DestinationHandle,
+    _In_opt_ HANDLE EventHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG Length,
+    _In_ PLARGE_INTEGER SourceOffset,
+    _In_ PLARGE_INTEGER DestOffset,
+    _In_opt_ PULONG SourceKey,
+    _In_opt_ PULONG DestKey,
+    _In_ ULONG Flags
+    );
+
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
