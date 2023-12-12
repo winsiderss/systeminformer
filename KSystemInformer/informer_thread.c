@@ -5,17 +5,15 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
+#include <informer.h>
 #include <comms.h>
-#include <dyndata.h>
 
 #include <trace.h>
-
-PAGED_FILE();
 
 typedef enum _KPH_THREAD_NOTIFY_TYPE
 {
@@ -23,6 +21,8 @@ typedef enum _KPH_THREAD_NOTIFY_TYPE
     KphThreadNotifyExecute,
     KphThreadNotifyExit
 } KPH_THREAD_NOTIFY_TYPE;
+
+PAGED_FILE();
 
 /**
  * \brief Performing thread tracking.
@@ -73,7 +73,7 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
     thread = KphTrackThreadContext(Thread);
     if (!thread)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
                       "Failed to track thread %lu in process %lu",
                       HandleToULong(ThreadId),
@@ -116,14 +116,16 @@ VOID KphpCreateThreadNotifyInformer(
     )
 {
     PKPH_MESSAGE msg;
+    PKPH_PROCESS_CONTEXT actorProcess;
 
     PAGED_CODE_PASSIVE();
 
     msg = NULL;
+    actorProcess = KphGetCurrentProcessContext();
 
     if (Type == KphThreadNotifyCreate)
     {
-        if (!KphInformerSettings.ThreadCreate)
+        if (!KphInformerEnabled2(ThreadCreate, actorProcess, Thread->ProcessContext))
         {
             goto Exit;
         }
@@ -131,7 +133,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg = KphAllocateMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
@@ -140,12 +142,14 @@ VOID KphpCreateThreadNotifyInformer(
         KphMsgInit(msg, KphMsgThreadCreate);
         msg->Kernel.ThreadCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
         msg->Kernel.ThreadCreate.CreatingClientId.UniqueThread = PsGetCurrentThreadId();
+        msg->Kernel.ThreadCreate.CreatingProcessStartKey = KphGetCurrentProcessStartKey();
         msg->Kernel.ThreadCreate.TargetClientId.UniqueProcess = ProcessId;
         msg->Kernel.ThreadCreate.TargetClientId.UniqueThread = ThreadId;
+        msg->Kernel.ThreadCreate.TargetProcessStartKey = KphGetThreadProcessStartKey(Thread->EThread);
     }
     else if (Type == KphThreadNotifyExecute)
     {
-        if (!KphInformerSettings.ThreadExecute)
+        if (!KphInformerEnabled2(ThreadExecute, actorProcess, Thread->ProcessContext))
         {
             goto Exit;
         }
@@ -153,21 +157,23 @@ VOID KphpCreateThreadNotifyInformer(
         msg = KphAllocateMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
         }
 
         KphMsgInit(msg, KphMsgThreadExecute);
-        msg->Kernel.ThreadExecute.ExecutingClientId.UniqueProcess = ProcessId;
-        msg->Kernel.ThreadExecute.ExecutingClientId.UniqueThread = ThreadId;
+        msg->Kernel.ThreadExecute.ClientId.UniqueProcess = ProcessId;
+        msg->Kernel.ThreadExecute.ClientId.UniqueThread = ThreadId;
+        NT_ASSERT(ProcessId == PsGetCurrentProcessId());
+        msg->Kernel.ThreadExecute.ProcessStartKey = KphGetCurrentProcessStartKey();
     }
     else
     {
         NT_ASSERT(Type == KphThreadNotifyExit);
 
-        if (!KphInformerSettings.ThreadExit)
+        if (!KphInformerEnabled2(ThreadExit, actorProcess, Thread->ProcessContext))
         {
             goto Exit;
         }
@@ -175,19 +181,21 @@ VOID KphpCreateThreadNotifyInformer(
         msg = KphAllocateMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             goto Exit;
         }
 
         KphMsgInit(msg, KphMsgThreadExit);
-        msg->Kernel.ThreadExit.ExitingClientId.UniqueProcess = ProcessId;
-        msg->Kernel.ThreadExit.ExitingClientId.UniqueThread = ThreadId;
+        msg->Kernel.ThreadExit.ClientId.UniqueProcess = ProcessId;
+        msg->Kernel.ThreadExit.ClientId.UniqueThread = ThreadId;
         msg->Kernel.ThreadExit.ExitStatus = PsGetThreadExitStatus(Thread->EThread);
+        NT_ASSERT(ProcessId == PsGetCurrentProcessId());
+        msg->Kernel.ThreadExit.ProcessStartKey = KphGetCurrentProcessStartKey();
     }
 
-    if (KphInformerSettings.EnableStackTraces)
+    if (KphInformerEnabled2(EnableStackTraces, actorProcess, Thread->ProcessContext))
     {
         KphCaptureStackInMessage(msg);
     }
@@ -202,6 +210,10 @@ Exit:
         KphFreeMessage(msg);
     }
 
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**
@@ -265,32 +277,38 @@ VOID KphpCreateThreadNotifyRoutine(
     NT_VERIFY(NT_SUCCESS(PsLookupThreadByThreadId(ThreadId, &threadObject)));
     NT_ASSERT(threadObject);
 
-    thread = KphpPerformThreadTracking(ProcessId,
-                                       ThreadId,
-                                       Create,
-                                       threadObject);
-
-    if (!thread)
-    {
-        goto Exit;
-    }
-
     if (Create)
     {
-        KphpCreateThreadNotifyInformer(thread,
-                                       ProcessId,
-                                       ThreadId,
-                                       KphThreadNotifyCreate);
+        thread = KphpPerformThreadTracking(ProcessId,
+                                           ThreadId,
+                                           TRUE,
+                                           threadObject);
+        if (thread)
+        {
+            KphpCreateThreadNotifyInformer(thread,
+                                           ProcessId,
+                                           ThreadId,
+                                           KphThreadNotifyCreate);
+        }
     }
     else
     {
-        KphpCreateThreadNotifyInformer(thread,
-                                       ProcessId,
-                                       ThreadId,
-                                       KphThreadNotifyExit);
-    }
+        thread = KphGetThreadContext(ThreadId);
+        if (thread)
+        {
+            KphpCreateThreadNotifyInformer(thread,
+                                           ProcessId,
+                                           ThreadId,
+                                           KphThreadNotifyExit);
 
-Exit:
+            KphDereferenceObject(thread);
+        }
+
+        thread = KphpPerformThreadTracking(ProcessId,
+                                           ThreadId,
+                                           FALSE,
+                                           threadObject);
+    }
 
     if (thread)
     {
@@ -319,7 +337,7 @@ NTSTATUS KphThreadInformerStart(
                                               (PVOID)KphpCreateThreadNotifyRoutine);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to register thread notify routine: %!STATUS!",
                       status);
@@ -330,7 +348,7 @@ NTSTATUS KphThreadInformerStart(
                                               (PVOID)KphpExecuteThreadNotifyRoutine);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to register thread notify routine: %!STATUS!",
                       status);

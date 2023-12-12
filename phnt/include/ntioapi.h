@@ -2603,7 +2603,148 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
      (s)->Buffer[1] == '?')
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-// File Object
+
+//
+// Major Function Codes
+//
+#define IRP_MJ_CREATE                                0x00
+#define IRP_MJ_CREATE_NAMED_PIPE                     0x01
+#define IRP_MJ_CLOSE                                 0x02
+#define IRP_MJ_READ                                  0x03
+#define IRP_MJ_WRITE                                 0x04
+#define IRP_MJ_QUERY_INFORMATION                     0x05
+#define IRP_MJ_SET_INFORMATION                       0x06
+#define IRP_MJ_QUERY_EA                              0x07
+#define IRP_MJ_SET_EA                                0x08
+#define IRP_MJ_FLUSH_BUFFERS                         0x09
+#define IRP_MJ_QUERY_VOLUME_INFORMATION              0x0a
+#define IRP_MJ_SET_VOLUME_INFORMATION                0x0b
+#define IRP_MJ_DIRECTORY_CONTROL                     0x0c
+#define IRP_MJ_FILE_SYSTEM_CONTROL                   0x0d
+#define IRP_MJ_DEVICE_CONTROL                        0x0e
+#define IRP_MJ_INTERNAL_DEVICE_CONTROL               0x0f
+#define IRP_MJ_SHUTDOWN                              0x10
+#define IRP_MJ_LOCK_CONTROL                          0x11
+#define IRP_MJ_CLEANUP                               0x12
+#define IRP_MJ_CREATE_MAILSLOT                       0x13
+#define IRP_MJ_QUERY_SECURITY                        0x14
+#define IRP_MJ_SET_SECURITY                          0x15
+#define IRP_MJ_POWER                                 0x16
+#define IRP_MJ_SYSTEM_CONTROL                        0x17
+#define IRP_MJ_DEVICE_CHANGE                         0x18
+#define IRP_MJ_QUERY_QUOTA                           0x19
+#define IRP_MJ_SET_QUOTA                             0x1a
+#define IRP_MJ_PNP                                   0x1b
+#define IRP_MJ_PNP_POWER                             IRP_MJ_PNP      // Obsolete....
+#define IRP_MJ_MAXIMUM_FUNCTION                      0x1b
+#define IRP_MJ_ACQUIRE_FOR_SECTION_SYNCHRONIZATION   ((UCHAR)-1)
+#define IRP_MJ_RELEASE_FOR_SECTION_SYNCHRONIZATION   ((UCHAR)-2)
+#define IRP_MJ_ACQUIRE_FOR_MOD_WRITE                 ((UCHAR)-3)
+#define IRP_MJ_RELEASE_FOR_MOD_WRITE                 ((UCHAR)-4)
+#define IRP_MJ_ACQUIRE_FOR_CC_FLUSH                  ((UCHAR)-5)
+#define IRP_MJ_RELEASE_FOR_CC_FLUSH                  ((UCHAR)-6)
+#define IRP_MJ_QUERY_OPEN                            ((UCHAR)-7)
+#define IRP_MJ_FAST_IO_CHECK_IF_POSSIBLE             ((UCHAR)-13)
+#define IRP_MJ_NETWORK_QUERY_OPEN                    ((UCHAR)-14)
+#define IRP_MJ_MDL_READ                              ((UCHAR)-15)
+#define IRP_MJ_MDL_READ_COMPLETE                     ((UCHAR)-16)
+#define IRP_MJ_PREPARE_MDL_WRITE                     ((UCHAR)-17)
+#define IRP_MJ_MDL_WRITE_COMPLETE                    ((UCHAR)-18)
+#define IRP_MJ_VOLUME_MOUNT                          ((UCHAR)-19)
+#define IRP_MJ_VOLUME_DISMOUNT                       ((UCHAR)-20)
+#define FLT_INTERNAL_OPERATION_COUNT                 22
+
+//
+// Minor Function Codes
+//
+#define IRP_MN_SCSI_CLASS                   0x01
+// PNP minor function codes
+#define IRP_MN_START_DEVICE                 0x00
+#define IRP_MN_QUERY_REMOVE_DEVICE          0x01
+#define IRP_MN_REMOVE_DEVICE                0x02
+#define IRP_MN_CANCEL_REMOVE_DEVICE         0x03
+#define IRP_MN_STOP_DEVICE                  0x04
+#define IRP_MN_QUERY_STOP_DEVICE            0x05
+#define IRP_MN_CANCEL_STOP_DEVICE           0x06
+#define IRP_MN_QUERY_DEVICE_RELATIONS       0x07
+#define IRP_MN_QUERY_INTERFACE              0x08
+#define IRP_MN_QUERY_CAPABILITIES           0x09
+#define IRP_MN_QUERY_RESOURCES              0x0A
+#define IRP_MN_QUERY_RESOURCE_REQUIREMENTS  0x0B
+#define IRP_MN_QUERY_DEVICE_TEXT            0x0C
+#define IRP_MN_FILTER_RESOURCE_REQUIREMENTS 0x0D
+#define IRP_MN_READ_CONFIG                  0x0F
+#define IRP_MN_WRITE_CONFIG                 0x10
+#define IRP_MN_EJECT                        0x11
+#define IRP_MN_SET_LOCK                     0x12
+#define IRP_MN_QUERY_ID                     0x13
+#define IRP_MN_QUERY_PNP_DEVICE_STATE       0x14
+#define IRP_MN_QUERY_BUS_INFORMATION        0x15
+#define IRP_MN_DEVICE_USAGE_NOTIFICATION    0x16
+#define IRP_MN_SURPRISE_REMOVAL             0x17
+#if (PHNT_VERSION >= PHNT_WIN7)
+#define IRP_MN_DEVICE_ENUMERATED            0x19
+#endif
+// POWER minor function codes
+#define IRP_MN_WAIT_WAKE                    0x00
+#define IRP_MN_POWER_SEQUENCE               0x01
+#define IRP_MN_SET_POWER                    0x02
+#define IRP_MN_QUERY_POWER                  0x03
+// WMI minor function codes under IRP_MJ_SYSTEM_CONTROL
+#define IRP_MN_QUERY_ALL_DATA               0x00
+#define IRP_MN_QUERY_SINGLE_INSTANCE        0x01
+#define IRP_MN_CHANGE_SINGLE_INSTANCE       0x02
+#define IRP_MN_CHANGE_SINGLE_ITEM           0x03
+#define IRP_MN_ENABLE_EVENTS                0x04
+#define IRP_MN_DISABLE_EVENTS               0x05
+#define IRP_MN_ENABLE_COLLECTION            0x06
+#define IRP_MN_DISABLE_COLLECTION           0x07
+#define IRP_MN_REGINFO                      0x08
+#define IRP_MN_EXECUTE_METHOD               0x09
+// Minor code 0x0a is reserved
+#define IRP_MN_REGINFO_EX                   0x0b
+// Minor code 0x0c is reserved
+// Minor code 0x0d is reserved
+
+//
+// Filter Manager Callback Data Flags
+//
+#define FLTFL_CALLBACK_DATA_REISSUE_MASK        0x0000FFFF
+#define FLTFL_CALLBACK_DATA_IRP_OPERATION       0x00000001 // Set for Irp operations
+#define FLTFL_CALLBACK_DATA_FAST_IO_OPERATION   0x00000002 // Set for Fast Io operations
+#define FLTFL_CALLBACK_DATA_FS_FILTER_OPERATION 0x00000004 // Set for Fs Filter operations
+#define FLTFL_CALLBACK_DATA_SYSTEM_BUFFER       0x00000008 // Set if the buffer passed in for the i/o was a system buffer
+#define FLTFL_CALLBACK_DATA_GENERATED_IO        0x00010000 // Set if this is I/O generated by a mini-filter
+#define FLTFL_CALLBACK_DATA_REISSUED_IO         0x00020000 // Set if this I/O was reissued
+#define FLTFL_CALLBACK_DATA_DRAINING_IO         0x00040000 // set if this operation is being drained. If set,
+#define FLTFL_CALLBACK_DATA_POST_OPERATION      0x00080000 // Set if this is a POST operation
+#define FLTFL_CALLBACK_DATA_NEW_SYSTEM_BUFFER   0x00100000
+#define FLTFL_CALLBACK_DATA_DIRTY               0x80000000 // Set by caller if parameters were changed
+
+//
+// IRP Flags
+//
+#define IRP_NOCACHE                     0x00000001
+#define IRP_PAGING_IO                   0x00000002
+#define IRP_MOUNT_COMPLETION            0x00000002
+#define IRP_SYNCHRONOUS_API             0x00000004
+#define IRP_ASSOCIATED_IRP              0x00000008
+#define IRP_BUFFERED_IO                 0x00000010
+#define IRP_DEALLOCATE_BUFFER           0x00000020
+#define IRP_INPUT_OPERATION             0x00000040
+#define IRP_SYNCHRONOUS_PAGING_IO       0x00000040
+#define IRP_CREATE_OPERATION            0x00000080
+#define IRP_READ_OPERATION              0x00000100
+#define IRP_WRITE_OPERATION             0x00000200
+#define IRP_CLOSE_OPERATION             0x00000400
+#define IRP_DEFER_IO_COMPLETION         0x00000800
+#define IRP_OB_QUERY_NAME               0x00001000
+#define IRP_HOLD_DEVICE_QUEUE           0x00002000
+#define IRP_UM_DRIVER_INITIATED_IO      0x00400000
+
+//
+// File Object Flags
+//
 #define FO_FILE_OPEN                    0x00000001
 #define FO_SYNCHRONOUS_IO               0x00000002
 #define FO_ALERTABLE_IO                 0x00000004
@@ -2638,30 +2779,73 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 #define FO_SECTION_MINSTORE_TREATMENT   0x20000000
 
 //
-// Define Device Object (DO) flags
+// Define stack location (IO_STACK_LOCATION) flags
 //
-// DO_DAX_VOLUME - If set, this is a DAX volume i.e. the volume supports mapping a file directly
-// on the persistent memory device.  The cached and memory mapped IO to user files wouldn't
-// generate paging IO.
-//
-#define DO_VERIFY_VOLUME                    0x00000002
-#define DO_BUFFERED_IO                      0x00000004
-#define DO_EXCLUSIVE                        0x00000008
-#define DO_DIRECT_IO                        0x00000010
-#define DO_MAP_IO_BUFFER                    0x00000020
-#define DO_DEVICE_INITIALIZING              0x00000080
-#define DO_SHUTDOWN_REGISTERED              0x00000800
-#define DO_BUS_ENUMERATED_DEVICE            0x00001000
-#define DO_POWER_PAGABLE                    0x00002000
-#define DO_POWER_INRUSH                     0x00004000
-#define DO_DEVICE_TO_BE_RESET               0x04000000
-#define DO_DAX_VOLUME                       0x10000000
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
+#define SL_PENDING_RETURNED                0x01
+#define SL_ERROR_RETURNED                  0x02
+#define SL_INVOKE_ON_CANCEL                0x20
+#define SL_INVOKE_ON_SUCCESS               0x40
+#define SL_INVOKE_ON_ERROR                 0x80
+// Create / Create Named Pipe (IRP_MJ_CREATE/IRP_MJ_CREATE_NAMED_PIPE)
+#define SL_FORCE_ACCESS_CHECK              0x01
+#define SL_OPEN_PAGING_FILE                0x02
+#define SL_OPEN_TARGET_DIRECTORY           0x04
+#define SL_STOP_ON_SYMLINK                 0x08
+#define SL_IGNORE_READONLY_ATTRIBUTE       0x40
+#define SL_CASE_SENSITIVE                  0x80
+// Read / Write (IRP_MJ_READ/IRP_MJ_WRITE)
+#define SL_KEY_SPECIFIED                   0x01
+#define SL_OVERRIDE_VERIFY_VOLUME          0x02
+#define SL_WRITE_THROUGH                   0x04
+#define SL_FT_SEQUENTIAL_WRITE             0x08
+#define SL_FORCE_DIRECT_WRITE              0x10
+#define SL_REALTIME_STREAM                 0x20    // valid only with optical media
+#define SL_PERSISTENT_MEMORY_FIXED_MAPPING 0x20    // valid only with persistent memory device and IRP_MJ_WRITE
+#define SL_BYPASS_IO                       0x40
+//  IRP_MJ_FLUSH_BUFFERS
+#define SL_FORCE_ASYNCHRONOUS              0x01
+// Device I/O Control
+#define SL_READ_ACCESS_GRANTED             0x01
+#define SL_WRITE_ACCESS_GRANTED            0x04    // Gap for SL_OVERRIDE_VERIFY_VOLUME
+// Lock (IRP_MJ_LOCK_CONTROL)
+#define SL_FAIL_IMMEDIATELY                0x01
+#define SL_EXCLUSIVE_LOCK                  0x02
+// QueryDirectory / QueryEa / QueryQuota (IRP_MJ_DIRECTORY_CONTROL/IRP_MJ_QUERY_EA/IRP_MJ_QUERY_QUOTA))
+#define SL_RESTART_SCAN                    0x01
+#define SL_RETURN_SINGLE_ENTRY             0x02
+#define SL_INDEX_SPECIFIED                 0x04
+#define SL_RETURN_ON_DISK_ENTRIES_ONLY     0x08
+#define SL_NO_CURSOR_UPDATE                0x10
+#define SL_QUERY_DIRECTORY_MASK            0x1b
+// NotifyDirectory (IRP_MJ_DIRECTORY_CONTROL)
+#define SL_WATCH_TREE                      0x01
+// FileSystemControl (IRP_MJ_FILE_SYSTEM_CONTROL)
+#define SL_ALLOW_RAW_MOUNT                 0x01
+//  SetInformationFile (IRP_MJ_SET_INFORMATION) / QueryInformationFile
+#define SL_BYPASS_ACCESS_CHECK             0x01
+#define SL_INFO_FORCE_ACCESS_CHECK         0x01
+#define SL_INFO_IGNORE_READONLY_ATTRIBUTE  0x40  // same value as IO_IGNORE_READONLY_ATTRIBUTE
 
+//
+// Device Object (DO) flags
+//
+#define DO_VERIFY_VOLUME                0x00000002
+#define DO_BUFFERED_IO                  0x00000004
+#define DO_EXCLUSIVE                    0x00000008
+#define DO_DIRECT_IO                    0x00000010
+#define DO_MAP_IO_BUFFER                0x00000020
+#define DO_DEVICE_INITIALIZING          0x00000080
+#define DO_SHUTDOWN_REGISTERED          0x00000800
+#define DO_BUS_ENUMERATED_DEVICE        0x00001000
+#define DO_POWER_PAGABLE                0x00002000
+#define DO_POWER_INRUSH                 0x00004000
+#define DO_DEVICE_TO_BE_RESET           0x04000000
+#define DO_DAX_VOLUME                   0x10000000
+
+//
 // KSecDD FS control definitions
-
+//
 #define KSEC_DEVICE_NAME L"\\Device\\KSecDD"
-
 #define IOCTL_KSEC_CONNECT_LSA                      CTL_CODE(FILE_DEVICE_KSEC,  0, METHOD_BUFFERED,     FILE_WRITE_ACCESS )
 #define IOCTL_KSEC_RNG                              CTL_CODE(FILE_DEVICE_KSEC,  1, METHOD_BUFFERED,     FILE_ANY_ACCESS )
 #define IOCTL_KSEC_RNG_REKEY                        CTL_CODE(FILE_DEVICE_KSEC,  2, METHOD_BUFFERED,     FILE_ANY_ACCESS )
@@ -2690,5 +2874,75 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 #define IOCTL_KSEC_GET_BCRYPT_EXTENSION2            CTL_CODE(FILE_DEVICE_KSEC, 25, METHOD_BUFFERED,     FILE_ANY_ACCESS )
 #define IOCTL_KSEC_IPC_GET_QUEUED_FUNCTION_CALLS    CTL_CODE(FILE_DEVICE_KSEC, 26, METHOD_OUT_DIRECT,   FILE_ANY_ACCESS)
 #define IOCTL_KSEC_IPC_SET_FUNCTION_RETURN          CTL_CODE(FILE_DEVICE_KSEC, 27, METHOD_NEITHER,      FILE_ANY_ACCESS)
+
+// pub
+typedef enum _FS_FILTER_SECTION_SYNC_TYPE
+{
+    SyncTypeOther = 0,
+    SyncTypeCreateSection
+} FS_FILTER_SECTION_SYNC_TYPE, *PFS_FILTER_SECTION_SYNC_TYPE;
+
+//pub
+typedef enum _CREATE_FILE_TYPE
+{
+    CreateFileTypeNone,
+    CreateFileTypeNamedPipe,
+    CreateFileTypeMailslot
+} CREATE_FILE_TYPE;
+
+// pub
+typedef struct _NAMED_PIPE_CREATE_PARAMETERS
+{
+    ULONG NamedPipeType;
+    ULONG ReadMode;
+    ULONG CompletionMode;
+    ULONG MaximumInstances;
+    ULONG InboundQuota;
+    ULONG OutboundQuota;
+    LARGE_INTEGER DefaultTimeout;
+    BOOLEAN TimeoutSpecified;
+} NAMED_PIPE_CREATE_PARAMETERS, *PNAMED_PIPE_CREATE_PARAMETERS;
+
+// pub
+typedef struct _MAILSLOT_CREATE_PARAMETERS
+{
+    ULONG MailslotQuota;
+    ULONG MaximumMessageSize;
+    LARGE_INTEGER ReadTimeout;
+    BOOLEAN TimeoutSpecified;
+} MAILSLOT_CREATE_PARAMETERS, *PMAILSLOT_CREATE_PARAMETERS;
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+
+// pub
+typedef struct _OPLOCK_KEY_ECP_CONTEXT
+{
+    GUID OplockKey;
+    ULONG Reserved;
+} OPLOCK_KEY_ECP_CONTEXT, *POPLOCK_KEY_ECP_CONTEXT;
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+// pub
+typedef struct _OPLOCK_KEY_CONTEXT
+{
+    USHORT Version;        //  OPLOCK_KEY_VERSION_*
+    USHORT Flags;          //  OPLOCK_KEY_FLAG_*
+    GUID ParentOplockKey;
+    GUID TargetOplockKey;
+    ULONG Reserved;
+} OPLOCK_KEY_CONTEXT, *POPLOCK_KEY_CONTEXT;
+
+#define OPLOCK_KEY_VERSION_WIN7    0x0001
+#define OPLOCK_KEY_VERSION_WIN8    0x0002
+
+#define OPLOCK_KEY_FLAG_PARENT_KEY 0x0001
+#define OPLOCK_KEY_FLAG_TARGET_KEY 0x0002
+
+#endif
+
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

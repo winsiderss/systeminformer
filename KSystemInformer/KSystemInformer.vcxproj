@@ -251,17 +251,23 @@
     <ClCompile Include="http.c" />
     <ClCompile Include="informer_debug.c" />
     <ClCompile Include="informer_file.c" />
+    <ClCompile Include="informer_fileop.c" />
+    <ClCompile Include="informer_filenc.c" />
     <ClCompile Include="informer_image.c" />
     <ClCompile Include="informer_object.c" />
     <ClCompile Include="informer_process.c" />
+    <ClCompile Include="informer.c" />
+    <ClCompile Include="informer_registry.c" />
     <ClCompile Include="informer_thread.c" />
     <ClCompile Include="knowndll.c" />
     <ClCompile Include="kphobject.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="object.c" />
+    <ClCompile Include="parameters.c" />
     <ClCompile Include="process.c" />
     <ClCompile Include="protection.c" />
     <ClCompile Include="qrydrv.c" />
+    <ClCompile Include="session_token.c" />
     <ClCompile Include="sign.c" />
     <ClCompile Include="system.c" />
     <ClCompile Include="thread.c" />
@@ -274,10 +280,9 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\cid_table.h" />
     <ClInclude Include="include\comms.h" />
-    <ClInclude Include="include\dyndata.h" />
     <ClInclude Include="include\informer.h" />
+    <ClInclude Include="include\informer_filep.h" />
     <ClInclude Include="include\kph.h" />
     <ClInclude Include="include\ntfill.h" />
     <ClInclude Include="include\pooltags.h" />

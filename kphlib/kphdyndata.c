@@ -16,6 +16,7 @@
  * \brief Searches for a dynamic data configuration for a given kernel version.
  *
  * \param[in] DynData Pointer to dynamic data.
+ * \param[in] DynDataLength Length of the dynamic data.
  * \param[in] MajorVersion Kernel major version.
  * \param[in] MinorVersion Kernel minor version.
  * \param[in] BuildNumber Kernel build number.
@@ -28,6 +29,7 @@
 _Must_inspect_result_
 NTSTATUS KphDynDataGetConfiguration(
     _In_ PKPH_DYNDATA DynData,
+    _In_ ULONG DynDataLength,
     _In_ USHORT MajorVersion,
     _In_ USHORT MinorVersion,
     _In_ USHORT BuildNumber,
@@ -35,14 +37,28 @@ NTSTATUS KphDynDataGetConfiguration(
     _Out_opt_ PKPH_DYN_CONFIGURATION* Config
     )
 {
+    ULONG length;
+
     if (Config)
     {
         *Config = NULL;
     }
 
+    if (DynDataLength < RTL_SIZEOF_THROUGH_FIELD(KPH_DYNDATA, Count))
+    {
+        return STATUS_SI_DYNDATA_INVALID_LENGTH;
+    }
+
     if (DynData->Version != KPH_DYN_CONFIGURATION_VERSION)
     {
         return STATUS_SI_DYNDATA_VERSION_MISMATCH;
+    }
+
+    length = DynDataLength - RTL_SIZEOF_THROUGH_FIELD(KPH_DYNDATA, Count);
+    if (((length % sizeof(KPH_DYN_CONFIGURATION)) != 0) ||
+        ((length / sizeof(KPH_DYN_CONFIGURATION)) != DynData->Count))
+    {
+        return STATUS_SI_DYNDATA_INVALID_LENGTH;
     }
 
     for (ULONG i = 0; i < DynData->Count; i++)

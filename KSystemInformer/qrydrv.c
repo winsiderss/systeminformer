@@ -6,12 +6,11 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
 
@@ -107,7 +106,7 @@ NTSTATUS KphQueryInformationDriver(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);

@@ -5,31 +5,29 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
-
-static PKPH_OBJECT_TYPE KphpPagedLookasideObjectType = NULL;
-static UNICODE_STRING KphpPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphPagedLookaside");
-
-static PKPH_OBJECT_TYPE KphpNPagedLookasideObjectType = NULL;
-static UNICODE_STRING KphpNPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphNPagedLookaside");
-
-static UNICODE_STRING KphpRandomizedPoolTagValueName = RTL_CONSTANT_STRING(L"RandomizedPoolTag");
-KPH_PROTECTED_DATA_SECTION_PUSH();
-static ULONG KphpRandomPoolTag = 0;
-KPH_PROTECTED_DATA_SECTION_POP();
 
 typedef struct _KPH_LOOKASIDE_INIT
 {
     SIZE_T Size;
     ULONG Tag;
 } KPH_LOOKASIDE_INIT, *PKPH_LOOKASIDE_INIT;
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphPagedLookaside");
+static const UNICODE_STRING KphpNPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphNPagedLookaside");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static PKPH_OBJECT_TYPE KphpPagedLookasideObjectType = NULL;
+static PKPH_OBJECT_TYPE KphpNPagedLookasideObjectType = NULL;
+static ULONG KphpRandomPoolTag = 0;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 /**
  * \brief Allocates non-page-able memory.
@@ -335,7 +333,6 @@ VOID KphFreeToNPagedLookasideObject(
 
     KphFreeToNPagedLookaside((PNPAGED_LOOKASIDE_LIST)Lookaside, Memory);
 }
-
 
 PAGED_FILE();
 
@@ -681,87 +678,23 @@ ULONG KphpGenerateRandomPoolTag(
 }
 
 /**
- * \brief Initializes allocation infrastructure options.
- *
- * \param[in] RegistryPath Registry path from the entry point.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphpInitializeAllocOptions(
-    _In_ PUNICODE_STRING RegistryPath
-    )
-{
-    NTSTATUS status;
-    HANDLE keyHandle;
-    ULONG randomizedPoolTag;
-
-    PAGED_CODE_PASSIVE();
-
-    status = KphOpenParametersKey(RegistryPath, &keyHandle);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphOpenParametersKey failed: %!STATUS!",
-                      status);
-
-        keyHandle = NULL;
-        goto Exit;
-    }
-
-    status = KphQueryRegistryULong(keyHandle,
-                                   &KphpRandomizedPoolTagValueName,
-                                   &randomizedPoolTag);
-    if (!NT_SUCCESS(status))
-    {
-        randomizedPoolTag = 0;
-    }
-
-    status = STATUS_SUCCESS;
-    if (randomizedPoolTag)
-    {
-        KphpRandomPoolTag = KphpGenerateRandomPoolTag();
-    }
-
-Exit:
-
-    if (keyHandle)
-    {
-        ZwClose(keyHandle);
-    }
-
-    return status;
-}
-
-/**
  * \brief Initializes allocation infrastructure.
- *
- * \param[in] RegistryPath Registry path from the entry point.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphInitializeAlloc(
-    _In_ PUNICODE_STRING RegistryPath
+    VOID
     )
 {
-    NTSTATUS status;
     KPH_OBJECT_TYPE_INFO typeInfo;
 
     PAGED_CODE_PASSIVE();
 
-    status = KphpInitializeAllocOptions(RegistryPath);
-    if (!NT_SUCCESS(status))
+    if (KphParameterFlags.RandomizedPoolTag)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphpInitializeAllocOptions failed: %!STATUS!",
-                      status);
-
-        return status;
+        KphpRandomPoolTag = KphpGenerateRandomPoolTag();
     }
 
     typeInfo.Allocate = KphpAllocatePagedLookasideObject;

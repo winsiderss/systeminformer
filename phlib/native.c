@@ -14728,19 +14728,34 @@ NTSTATUS PhGetProcessSequenceNumber(
     )
 {
     NTSTATUS status;
-    ULONGLONG sequenceNumber;
 
-    status = NtQueryInformationProcess(
-        ProcessHandle,
-        ProcessSequenceNumber,
-        &sequenceNumber,
-        sizeof(ULONGLONG),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
+    if (KphLevel() >= KphLevelLow)
     {
-        *SequenceNumber = sequenceNumber;
+        // The driver exposes this information earlier than ProcessSequenceNumber was introduced.
+        status = KphQueryInformationProcess(
+            ProcessHandle,
+            KphProcessSequenceNumber,
+            SequenceNumber,
+            sizeof(ULONGLONG),
+            NULL
+            );
+    }
+    else
+    {
+        ULONGLONG sequenceNumber;
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessSequenceNumber,
+            &sequenceNumber,
+            sizeof(ULONGLONG),
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *SequenceNumber = sequenceNumber;
+        }
     }
 
     return status;
@@ -14752,16 +14767,31 @@ NTSTATUS PhGetProcessStartKey(
     )
 {
     NTSTATUS status;
-    ULONGLONG processSequenceNumber;
 
-    status = PhGetProcessSequenceNumber(
-        ProcessHandle,
-        &processSequenceNumber
-        );
-
-    if (NT_SUCCESS(status))
+    if (KphLevel() >= KphLevelLow)
     {
-        *ProcessStartKey = PH_PROCESS_EXTENSION_STARTKEY(processSequenceNumber);
+        // The driver exposes this information earlier than ProcessSequenceNumber was introduced.
+        status = KphQueryInformationProcess(
+            ProcessHandle,
+            KphProcessStartKey,
+            ProcessStartKey,
+            sizeof(ULONGLONG),
+            NULL
+            );
+    }
+    else
+    {
+        ULONGLONG processSequenceNumber;
+
+        status = PhGetProcessSequenceNumber(
+            ProcessHandle,
+            &processSequenceNumber
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *ProcessStartKey = PH_PROCESS_EXTENSION_STARTKEY(processSequenceNumber);
+        }
     }
 
     return status;

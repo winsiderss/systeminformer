@@ -20,9 +20,8 @@
 EXTERN_C_START
 
 #define KPH_SERVICE_NAME __TEXT("KSystemInformer")
-#define KPH_OBJECT_NAME __TEXT("\\Driver\\KSystemInformer")
-#define KPH_PORT_NAME __TEXT("\\KSystemInformer")
-#define KPH_ALTITUDE_NAME __TEXT("385400")
+#define KPH_OBJECT_NAME  __TEXT("\\Driver\\KSystemInformer")
+#define KPH_PORT_NAME    __TEXT("\\KSystemInformer")
 
 #ifdef DEBUG
 #define KSI_COMMS_INIT_ASSERT() assert(KphCommsIsConnected())
@@ -35,23 +34,13 @@ typedef struct _KPH_CONFIG_PARAMETERS
     _In_ PPH_STRINGREF FileName;
     _In_ PPH_STRINGREF ServiceName;
     _In_ PPH_STRINGREF ObjectName;
-    _In_ PPH_STRINGREF PortName;
-    _In_ PPH_STRINGREF Altitude;
-
-    union
-    {
-        BOOLEAN Flags;
-        struct
-        {
-            BOOLEAN EnableNativeLoad : 1;
-            BOOLEAN EnableFilterLoad : 1;
-            BOOLEAN DisableImageLoadProtection : 1;
-            BOOLEAN RandomizedPoolTag : 1;
-            BOOLEAN Spare : 4;
-        };
-    };
-
+    _In_opt_ PPH_STRINGREF PortName;
+    _In_opt_ PPH_STRINGREF Altitude;
+    _In_ KPH_PARAMETER_FLAGS Flags;
     _In_opt_ PKPH_COMMS_CALLBACK Callback;
+
+    _In_ BOOLEAN EnableNativeLoad;
+    _In_ BOOLEAN EnableFilterLoad;
 } KPH_CONFIG_PARAMETERS, *PKPH_CONFIG_PARAMETERS;
 
 PHLIBAPI
@@ -533,6 +522,69 @@ NTSTATUS
 NTAPI
 KphGetConnectedClientCount(
     _Out_ PULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphActivateDynData(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphRequestSessionAccessToken(
+    _Out_ PKPH_SESSION_ACCESS_TOKEN AccessToken,
+    _In_ PLARGE_INTEGER Expiry,
+    _In_ ULONG Privileges,
+    _In_ LONG Uses
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphAssignProcessSessionToken(
+    _In_ HANDLE ProcessHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphAssignThreadSessionToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphGetInformerProcessFilter(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKPH_INFORMER_SETTINGS Filter
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphSetInformerProcessFilter(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ PKPH_INFORMER_SETTINGS Filter
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphStripProtectedProcessMasks(
+    HANDLE ProcessHandle,
+    ACCESS_MASK ProcessAllowedMask,
+    ACCESS_MASK ThreadAllowedMask
     );
 
 EXTERN_C_END

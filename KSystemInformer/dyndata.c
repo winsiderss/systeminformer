@@ -6,73 +6,105 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#define _DYNDATA_PRIVATE
-#include <dyndata.h>
 #include <kphdyndata.h>
 
 #include <trace.h>
 
-PAGED_FILE();
-
-static UNICODE_STRING KphpAltitudeValueName = RTL_CONSTANT_STRING(L"KphAltitude");
-static UNICODE_STRING KphpPortNameValueName = RTL_CONSTANT_STRING(L"KphPortName");
-static UNICODE_STRING KphpDynDataValueName = RTL_CONSTANT_STRING(L"DynData");
-static UNICODE_STRING KphpDynDataSigValueName = RTL_CONSTANT_STRING(L"DynDataSig");
-static UNICODE_STRING KphpDisableImageLoadProtectionValueName = RTL_CONSTANT_STRING(L"DisableImageLoadProtection");
-
-typedef struct _KPH_ACTIVE_DYNDATA
+typedef struct _KPH_DYN_INIT
 {
-    ULONG Version;
-    USHORT MajorVersion;
-    USHORT MinorVersion;
-    USHORT BuildNumberMin;
-    USHORT RevisionMin;
-    USHORT BuildNumberMax;
-    USHORT RevisionMax;
-} KPH_ACTIVE_DYNDATA, *PKPH_ACTIVE_DYNDATA;
+    PKPH_DYNDATA Data;
+    PKPH_DYN_CONFIGURATION Config;
+} KPH_DYN_INIT, *PKPH_DYN_INIT;
 
-static KPH_ACTIVE_DYNDATA KphpActiveDynData = { 0 };
+typedef union _KPH_DYN_ATOMIC
+{
+    PKPH_DYN Dyn;
+    KPH_ATOMIC_OBJECT_REF Atomic;
+} KPH_DYN_ATOMIC, *PKPH_DYN_ATOMIC;
 
-#define KPH_LOAD_DYNITEM(x) KphDyn##x = C_2sTo4(Configuration->##x)
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpDynDataTypeName = RTL_CONSTANT_STRING(L"KphDynData");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static PKPH_OBJECT_TYPE KphDynDataType = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+static KPH_DYN_ATOMIC KphpDynData = { .Atomic = KPH_ATOMIC_OBJECT_REF_INIT };
 
 /**
- * \brief Sets the dynamic configuration.
+ * \brief Reference the dynamic configuration.
  *
- * \param[in] Configuration The configuration to set.
- *
+ * \return Pointer to the dynamic configuration, NULL if not activated. The
+ * caller must eventually dereference the object.
  */
+_Must_inspect_result_
+PKPH_DYN KphReferenceDynData(
+    VOID
+    )
+{
+    return KphAtomicReferenceObject(&KphpDynData.Atomic);
+}
+
+PAGED_FILE();
+
+/**
+ * \brief Allocates a dynamic configuration object.
+ *
+ * \param[in] Size The size of the object to allocate.
+ *
+ * \return Pointer to the allocated object, NULL on failure.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpSetDynamicConfigiration(
-    _In_ PKPH_DYN_CONFIGURATION Configuration
+_Return_allocatesMem_size_(Size)
+PVOID KSIAPI KphpAllocateDynData(
+    _In_ SIZE_T Size
     )
 {
     PAGED_CODE_PASSIVE();
 
-    KphTracePrint(TRACE_LEVEL_INFORMATION,
-                  GENERAL,
-                  "Setting dynamic configuration "
-                  "(%lu.%lu.%lu.%lu - %lu.%lu.%lu.%lu) "
-                  "for Windows %lu.%lu.%lu Kernel %lu.%lu.%lu.%lu",
-                  Configuration->MajorVersion,
-                  Configuration->MinorVersion,
-                  Configuration->BuildNumberMin,
-                  Configuration->RevisionMin,
-                  Configuration->MajorVersion,
-                  Configuration->MinorVersion,
-                  Configuration->BuildNumberMax,
-                  Configuration->RevisionMax,
-                  KphOsVersionInfo.dwMajorVersion,
-                  KphOsVersionInfo.dwMinorVersion,
-                  KphOsVersionInfo.dwBuildNumber,
-                  KphKernelVersion.MajorVersion,
-                  KphKernelVersion.MinorVersion,
-                  KphKernelVersion.BuildNumber,
-                  KphKernelVersion.Revision);
+    return KphAllocateNPaged(Size, KPH_TAG_DYNDATA);
+}
+
+/**
+ * \brief Initializes a dynamic configuration object.
+ *
+ * \param[in] Object Dynamic configuration object to initialize.
+ * \param[in] Parameter Initialization parameters for dynamic configuration.
+ *
+ * \return STATUS_SUCCESS
+ */
+_Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpInitializeDynData(
+    _Inout_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    )
+{
+    NTSTATUS status;
+    PKPH_DYN dyn;
+    PKPH_DYN_INIT init;
+
+    PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Parameter);
+
+    dyn = Object;
+    init = Parameter;
+
+#define KPH_LOAD_DYNITEM(x) dyn->##x = C_2sTo4(init->Config->##x)
+
+    KPH_LOAD_DYNITEM(MajorVersion);
+    KPH_LOAD_DYNITEM(MinorVersion);
+    KPH_LOAD_DYNITEM(BuildNumberMin);
+    KPH_LOAD_DYNITEM(RevisionMin);
+    KPH_LOAD_DYNITEM(BuildNumberMax);
+    KPH_LOAD_DYNITEM(BuildNumberMin);
 
     KPH_LOAD_DYNITEM(EgeGuid);
     KPH_LOAD_DYNITEM(EpObjectTable);
@@ -83,33 +115,22 @@ VOID KphpSetDynamicConfigiration(
     KPH_LOAD_DYNITEM(ObDecodeShift);
     KPH_LOAD_DYNITEM(ObAttributesShift);
 
-    if (Configuration->CiVersion == KPH_DYN_CI_V1)
+    if (init->Config->CiVersion == KPH_DYN_CI_V1)
     {
-        KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "CI V1");
-        KphDynCiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
-        KphDynCiCheckSignedFile = (PCI_CHECK_SIGNED_FILE)KphGetRoutineAddress(L"ci.dll", "CiCheckSignedFile");
-        KphDynCiVerifyHashInCatalog = (PCI_VERIFY_HASH_IN_CATALOG)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
+        dyn->CiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
+        dyn->CiCheckSignedFile = (PCI_CHECK_SIGNED_FILE)KphGetRoutineAddress(L"ci.dll", "CiCheckSignedFile");
+        dyn->CiVerifyHashInCatalog = (PCI_VERIFY_HASH_IN_CATALOG)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
     }
-    else if (Configuration->CiVersion == KPH_DYN_CI_V2)
+    else if (init->Config->CiVersion == KPH_DYN_CI_V2)
     {
-        KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "CI V2");
-        KphDynCiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
-        KphDynCiCheckSignedFileEx = (PCI_CHECK_SIGNED_FILE_EX)KphGetRoutineAddress(L"ci.dll", "CiCheckSignedFile");
-        KphDynCiVerifyHashInCatalogEx = (PCI_VERIFY_HASH_IN_CATALOG_EX)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
-    }
-    else
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "CI INVALID");
+        dyn->CiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
+        dyn->CiCheckSignedFileEx = (PCI_CHECK_SIGNED_FILE_EX)KphGetRoutineAddress(L"ci.dll", "CiCheckSignedFile");
+        dyn->CiVerifyHashInCatalogEx = (PCI_VERIFY_HASH_IN_CATALOG_EX)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
     }
 
-    if (Configuration->LxVersion == KPH_DYN_LX_V1)
+    if (init->Config->LxVersion == KPH_DYN_LX_V1)
     {
-        KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "LX V1");
-        KphDynLxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
-    }
-    else
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "LX INVALID");
+        dyn->LxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
     }
 
     KPH_LOAD_DYNITEM(AlpcCommunicationInfo);
@@ -139,237 +160,109 @@ VOID KphpSetDynamicConfigiration(
     KPH_LOAD_DYNITEM(MmSectionControlArea);
     KPH_LOAD_DYNITEM(MmControlAreaListHead);
     KPH_LOAD_DYNITEM(MmControlAreaLock);
-}
 
-/**
- * \brief Reads dynamic configuration from parameters.
- *
- * \param[in] KeyHandle Handle to the parameters registry key.
- * \param[out] DynData Set to the dynamic data blob, should be freed with
- * KphFreeRegistryBinay.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphpReadDynamicConfiguration(
-    _In_ HANDLE KeyHandle,
-    _Out_ PKPH_DYNDATA* DynData
-    )
-{
-    NTSTATUS status;
-    PBYTE dataBuffer;
-    ULONG dataLength;
-    PBYTE sigBuffer;
-    ULONG sigLength;
-    ULONG actualLength;
-    PKPH_DYNDATA dynData;
-
-    PAGED_CODE_PASSIVE();
-
-    *DynData = NULL;
-
-    dataBuffer = NULL;
-    sigBuffer = NULL;
-
-    status = KphQueryRegistryBinary(KeyHandle,
-                                    &KphpDynDataValueName,
-                                    &dataBuffer,
-                                    &dataLength);
+    status = KphVerifyCreateKey(&dyn->SessionTokenPublicKeyHandle,
+                                init->Data->SessionTokenPublicKey,
+                                KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
-                      "KphQueryRegistryBinary failed: %!STATUS!",
+                      "KphVerifyCreateKey failed: %!STATUS!",
                       status);
 
-        goto Exit;
-    }
-
-    status = KphQueryRegistryBinary(KeyHandle,
-                                    &KphpDynDataSigValueName,
-                                    &sigBuffer,
-                                    &sigLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphQueryRegistryBinary failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = KphVerifyBuffer(dataBuffer, dataLength, sigBuffer, sigLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_CRITICAL,
-                      GENERAL,
-                      "KphVerifyBuffer failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    if (dataLength < sizeof(KPH_DYNDATA))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Dynamic data blob is too small");
-
-        status = STATUS_BUFFER_TOO_SMALL;
-        goto Exit;
-    }
-
-    dynData = (PKPH_DYNDATA)dataBuffer;
-
-    if (dynData->Version != KPH_DYN_CONFIGURATION_VERSION)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Dynamic configuration version mismatch");
-
-        status = STATUS_REVISION_MISMATCH;
-        goto Exit;
-    }
-
-    status = RtlULongMult(sizeof(KPH_DYN_CONFIGURATION),
-                          dynData->Count,
-                          &actualLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "RtlULongMult failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = RtlULongAdd(actualLength,
-                         RTL_SIZEOF_THROUGH_FIELD(KPH_DYNDATA, Count),
-                         &actualLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "RtlULongAdd failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    if (dataLength < actualLength)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Dynamic data buffer overflow");
-
-        status = STATUS_BUFFER_OVERFLOW;
-        goto Exit;
-    }
-
-    *DynData = (PKPH_DYNDATA)dataBuffer;
-    dataBuffer = NULL;
-    status = STATUS_SUCCESS;
-
-Exit:
-
-    if (sigBuffer)
-    {
-        KphFreeRegistryBinary(sigBuffer);
-    }
-
-    if (dataBuffer)
-    {
-        KphFreeRegistryBinary(dataBuffer);
+        dyn->SessionTokenPublicKeyHandle = NULL;
     }
 
     return status;
 }
 
 /**
- * \brief Initializes the dynamic data from the driver parameters.
+ * \brief Deletes a dynamic configuration object.
  *
- * \param[in] RegistryPath Registry path from the entry point.
+ * \param[in] Object Dynamic configuration object to delete.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpDeleteDynData(
+    _In_freesMem_ PVOID Object
+    )
+{
+    PKPH_DYN dyn;
+
+    PAGED_CODE_PASSIVE();
+
+    dyn = Object;
+
+    if (dyn->SessionTokenPublicKeyHandle)
+    {
+        KphVerifyCloseKey(dyn->SessionTokenPublicKeyHandle);
+    }
+}
+
+/**
+ * \brief Frees a dynamic configuration object.
+ *
+ * \param[in] Object Dynamic configuration object to free.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpFreeDynData(
+    _In_freesMem_ PVOID Object
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    KphFree(Object, KPH_TAG_DYNDATA);
+}
+
+/**
+ * \brief Activates dynamic data.
+ *
+ * \param[in] DynData The dynamic data to activate.
+ * \param[in] DynDataLength The length of the dynamic data.
+ * \param[in] Signature The signature of the dynamic data.
+ * \param[in] SignatureLength The length of the signature.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphDynamicDataInitialization(
-    _In_ PUNICODE_STRING RegistryPath
+NTSTATUS KphpActivateDynData(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength,
+    _In_opt_ PBYTE Signature,
+    _In_ ULONG SignatureLength
     )
 {
     NTSTATUS status;
-    HANDLE keyHandle;
-    PKPH_DYNDATA dynData;
+    PKPH_DYN dyn;
+    KPH_DYN_INIT init;
     PKPH_DYN_CONFIGURATION config;
 
     PAGED_CODE_PASSIVE();
 
-    keyHandle = NULL;
-    dynData = NULL;
+    dyn = NULL;
 
-    status = KphOpenParametersKey(RegistryPath, &keyHandle);
-    if (!NT_SUCCESS(status))
+    if (Signature)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphpOpenParametersKey failed: %!STATUS!",
-                      status);
+        status = KphVerifyBuffer(DynData,
+                                 DynDataLength,
+                                 Signature,
+                                 SignatureLength);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "KphVerifyBuffer failed: %!STATUS!",
+                          status);
 
-        goto Exit;
+            goto Exit;
+        }
     }
 
-    status = KphQueryRegistryString(keyHandle,
-                                    &KphpAltitudeValueName,
-                                    &KphDynAltitude);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphQueryRegistryString failed: %!STATUS!",
-                      status);
-
-        KphDynAltitude = NULL;
-        goto Exit;
-    }
-
-    status = KphQueryRegistryString(keyHandle,
-                                    &KphpPortNameValueName,
-                                    &KphDynPortName);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphQueryRegistryString failed: %!STATUS!",
-                      status);
-
-        KphDynPortName = NULL;
-        goto Exit;
-    }
-
-    status = KphQueryRegistryULong(keyHandle,
-                                   &KphpDisableImageLoadProtectionValueName,
-                                   &KphDynDisableImageLoadProtection);
-    if (!NT_SUCCESS(status))
-    {
-        KphDynDisableImageLoadProtection = 0;
-    }
-
-    status = KphpReadDynamicConfiguration(keyHandle, &dynData);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphpReadDynamicConfiguration failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = KphDynDataGetConfiguration(dynData,
+    status = KphDynDataGetConfiguration((PKPH_DYNDATA)DynData,
+                                        DynDataLength,
                                         KphKernelVersion.MajorVersion,
                                         KphKernelVersion.MinorVersion,
                                         KphKernelVersion.BuildNumber,
@@ -377,7 +270,7 @@ NTSTATUS KphDynamicDataInitialization(
                                         &config);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphDynDataGetConfiguration failed: %!STATUS!",
                       status);
@@ -385,50 +278,194 @@ NTSTATUS KphDynamicDataInitialization(
         goto Exit;
     }
 
-    KphpSetDynamicConfigiration(config);
+    init.Data = (PKPH_DYNDATA)DynData;
+    init.Config = config;
 
-    KphpActiveDynData.Version = dynData->Version;
-    KphpActiveDynData.MajorVersion = config->MajorVersion;
-    KphpActiveDynData.MinorVersion = config->MinorVersion;
-    KphpActiveDynData.BuildNumberMin = config->BuildNumberMin;
-    KphpActiveDynData.RevisionMin = config->RevisionMin;
-    KphpActiveDynData.BuildNumberMax = config->BuildNumberMax;
-    KphpActiveDynData.RevisionMax = config->RevisionMax;
+    status = KphCreateObject(KphDynDataType, sizeof(KPH_DYN), &dyn, &init);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphCreateObject failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    KphAtomicAssignObjectReference(&KphpDynData.Atomic, dyn);
+
+    KphTracePrint(TRACE_LEVEL_INFORMATION,
+                  GENERAL,
+                  "Activated Dynamic Configuration "
+                  "(%hu.%hu.%hu.%hu - %hu.%hu.%hu.%hu) "
+                  "for Windows %lu.%lu.%lu Kernel %hu.%hu.%hu.%hu",
+                  dyn->MajorVersion,
+                  dyn->MinorVersion,
+                  dyn->BuildNumberMin,
+                  dyn->RevisionMin,
+                  dyn->MajorVersion,
+                  dyn->MinorVersion,
+                  dyn->BuildNumberMax,
+                  dyn->RevisionMax,
+                  KphOsVersionInfo.dwMajorVersion,
+                  KphOsVersionInfo.dwMinorVersion,
+                  KphOsVersionInfo.dwBuildNumber,
+                  KphKernelVersion.MajorVersion,
+                  KphKernelVersion.MinorVersion,
+                  KphKernelVersion.BuildNumber,
+                  KphKernelVersion.Revision);
 
 Exit:
 
-    if (dynData)
+    if (dyn)
     {
-        KphFreeRegistryBinary((PBYTE)dynData);
-    }
-
-    if (keyHandle)
-    {
-        ObCloseHandle(keyHandle, KernelMode);
+        KphDereferenceObject(dyn);
     }
 
     return status;
 }
 
 /**
- * \brief Cleans up dynamic configuration.
+ * \brief Activates dynamic data.
+ *
+ * \param[in] DynData The dynamic data to activate.
+ * \param[in] DynDataLength The length of the dynamic data.
+ * \param[in] Signature The signature of the dynamic data.
+ * \param[in] SignatureLength The length of the signature.
+ * \param[in] AccessMode The access mode of the caller.
+ *
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphDynamicDataCleanup(
+_Must_inspect_result_
+NTSTATUS KphActivateDynData(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PBYTE dynData;
+    PBYTE signature;
+
+    PAGED_CODE_PASSIVE();
+
+    dynData = NULL;
+    signature = NULL;
+
+    if (!DynData || !DynDataLength || !Signature || !SignatureLength)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    if (AccessMode != KernelMode)
+    {
+        dynData = KphAllocatePaged(DynDataLength, KPH_TAG_DYNDATA);
+        if (!dynData)
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
+        }
+
+        signature = KphAllocatePaged(SignatureLength, KPH_TAG_DYNDATA);
+        if (!signature)
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
+        }
+
+        __try
+        {
+            ProbeForRead(DynData, DynDataLength, 1);
+            RtlCopyMemory(dynData, DynData, DynDataLength);
+
+            ProbeForRead(Signature, DynDataLength, 1);
+            RtlCopyMemory(signature, Signature, SignatureLength);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+    else
+    {
+        dynData = DynData;
+        signature = Signature;
+    }
+
+    status = KphpActivateDynData(dynData,
+                                 DynDataLength,
+                                 signature,
+                                 SignatureLength);
+
+Exit:
+
+    if (dynData && (dynData != DynData))
+    {
+        KphFree(dynData, KPH_TAG_DYNDATA);
+    }
+
+    if (signature && (signature != DynData))
+    {
+        KphFree(signature, KPH_TAG_DYNDATA);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Initializes the dynamic data infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeDynData(
+    VOID
+    )
+{
+    NTSTATUS status;
+    KPH_OBJECT_TYPE_INFO typeInfo;
+
+    PAGED_CODE_PASSIVE();
+
+    typeInfo.Allocate = KphpAllocateDynData;
+    typeInfo.Initialize = KphpInitializeDynData;
+    typeInfo.Delete = KphpDeleteDynData;
+    typeInfo.Free = KphpFreeDynData;
+
+    KphCreateObjectType(&KphpDynDataTypeName, &typeInfo, &KphDynDataType);
+
+    if (KphParameterFlags.DynDataNoEmbedded)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Embedded Dynamic Configuration disabled");
+    }
+    else
+    {
+        status = KphpActivateDynData((PBYTE)KphDynData,
+                                     KphDynDataLength,
+                                     NULL,
+                                     0);
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Embedded Dynamic Configuration: %!STATUS!",
+                      status);
+    }
+}
+
+/**
+ * \brief Cleans up the dynamic data infrastructure.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupDynData(
     VOID
     )
 {
     PAGED_CODE_PASSIVE();
 
-    if (KphDynAltitude)
-    {
-        KphFreeRegistryString(KphDynAltitude);
-        KphDynAltitude = NULL;
-    }
-
-    if (KphDynPortName)
-    {
-        KphFreeRegistryString(KphDynPortName);
-        KphDynPortName = NULL;
-    }
+    KphAtomicAssignObjectReference(&KphpDynData.Atomic, NULL);
 }

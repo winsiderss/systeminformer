@@ -1,6 +1,7 @@
 LIBRARY ksi.dll
 EXPORTS
     DllInitialize       PRIVATE
+    DllUnload           PRIVATE
     KsiInitializeApc
     KsiInsertQueueApc
     KsiInitializeWorkItem

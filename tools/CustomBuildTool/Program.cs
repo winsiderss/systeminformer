@@ -40,7 +40,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-dyndata"))
             {
-                if (!Build.BuildDynamicHeaderFiles())
+                if (!Build.BuildDynamicData(ProgramArgs["-dyndata"]))
                 {
                     Environment.Exit(1);
                 }

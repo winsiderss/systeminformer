@@ -21,14 +21,16 @@ typedef struct _KPH_DOWNLOAD_CONTEXT
     KPH_TLS_HANDLE Tls;
 } KPH_DOWNLOAD_CONTEXT, *PKPH_DOWNLOAD_CONTEXT;
 
-static UNICODE_STRING KphpDownloadPort = RTL_CONSTANT_STRING(L"443");
-static ANSI_STRING KphpDownloadHttpMethod = RTL_CONSTANT_STRING("GET");
-static ANSI_STRING KphpDownloadHeaderLocation = RTL_CONSTANT_STRING("Location");
-static KPH_HTTP_HEADER_ITEM KphpDownloadHeaders[] =
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpDownloadPort = RTL_CONSTANT_STRING(L"443");
+static const ANSI_STRING KphpDownloadHttpMethod = RTL_CONSTANT_STRING("GET");
+static const ANSI_STRING KphpDownloadHeaderLocation = RTL_CONSTANT_STRING("Location");
+static const KPH_HTTP_HEADER_ITEM KphpDownloadHeaders[] =
 {
 { RTL_CONSTANT_STRING("Accept"),     RTL_CONSTANT_STRING("application/octet-stream") },
 { RTL_CONSTANT_STRING("Connection"), RTL_CONSTANT_STRING("close") },
 };
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 /**
  * \brief Closes the download context, shutting down TLS and closing the socket
@@ -108,7 +110,9 @@ NTSTATUS KphpDownloadBinary(
 
     if (!UrlInfo->DomainName.Length || !UrlInfo->Authority.Length)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "Invalid URL information.");
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Invalid URL information.");
 
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
@@ -119,7 +123,7 @@ NTSTATUS KphpDownloadBinary(
                                           TRUE);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "RtlAnsiStringToUnicodeString failed: %!STATUS!",
                       status);
@@ -136,7 +140,7 @@ NTSTATUS KphpDownloadBinary(
         status = RtlAnsiStringToUnicodeString(&port, &UrlInfo->Port, FALSE);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "RtlAnsiStringToUnicodeString failed: %!STATUS!",
                           status);
@@ -161,7 +165,7 @@ NTSTATUS KphpDownloadBinary(
                                &remoteAddress);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphGetAddressInfo failed: %!STATUS!",
                       status);
@@ -184,7 +188,7 @@ NTSTATUS KphpDownloadBinary(
     {
         NT_ASSERT(!NT_SUCCESS(status));
 
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphHttpBuildRequest failed: %!STATUS!",
                       status);
@@ -211,7 +215,7 @@ NTSTATUS KphpDownloadBinary(
                                  &requestLength);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphHttpBuildRequest failed: %!STATUS!",
                       status);
@@ -231,7 +235,7 @@ NTSTATUS KphpDownloadBinary(
                               &socket);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphSocketConnect failed: %!STATUS!",
                       status);
@@ -242,7 +246,7 @@ NTSTATUS KphpDownloadBinary(
     status = KphSocketTlsCreate(&tls);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphSocketTlsCreate failed: %!STATUS!",
                       status);
@@ -253,7 +257,7 @@ NTSTATUS KphpDownloadBinary(
     status = KphSocketTlsHandshake(socket, Timeout, tls, &hostName);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphSocketTlsHandshake failed: %!STATUS!",
                       status);
@@ -268,7 +272,7 @@ NTSTATUS KphpDownloadBinary(
                               requestLength);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphSocketTlsSend failed: %!STATUS!",
                       status);
@@ -279,7 +283,7 @@ NTSTATUS KphpDownloadBinary(
     status = KphSocketTlsRecv(socket, Timeout, tls, Buffer, Length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphSocketTlsRecv failed: %!STATUS!",
                       status);
@@ -290,7 +294,7 @@ NTSTATUS KphpDownloadBinary(
     status = KphHttpParseResponse(Buffer, *Length, Response);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphHttpParseResponse failed: %!STATUS!",
                       status);
@@ -380,7 +384,7 @@ NTSTATUS KphDownloadBinary(
                                KPH_TAG_DOWNLOAD_CONTEXT);
     if (!context)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Failed to allocate download context.");
 
@@ -391,7 +395,7 @@ NTSTATUS KphDownloadBinary(
     status = KphParseUrlInformation(Url, &urlInfo);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphParseUrlInformation failed: %!STATUS!",
                       status);
@@ -409,7 +413,7 @@ NTSTATUS KphDownloadBinary(
                                 &context->Tls);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphpDownloadBinary failed: %!STATUS!",
                       status);
@@ -452,7 +456,7 @@ NTSTATUS KphDownloadBinary(
 
         if (!location.Length)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "Failed to find Location header item.");
 
@@ -472,7 +476,7 @@ NTSTATUS KphDownloadBinary(
         status = KphParseUrlInformation(&location, &locationInfo);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphParseUrlInformation failed (%Z): %!STATUS!",
                           &location,
@@ -486,7 +490,7 @@ NTSTATUS KphDownloadBinary(
             //
             // TODO(jxy-s) handle relative redirects
             //
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "Relative redirect not supported.");
 
@@ -511,7 +515,7 @@ NTSTATUS KphDownloadBinary(
                                     &context->Tls);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphpDownloadBinary failed: %!STATUS!",
                           status);

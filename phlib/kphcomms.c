@@ -514,12 +514,12 @@ NTSTATUS KphpFilterConnectCommunicationPort(
 }
 
 /**
- * \brief No-operation communications callback handling only the minimum
- *  necessary. Used when no callback is provided when connecting. Or when the
- *  callback does not handle the message.
+ * \brief Unhandled communications callback.
  *
  * \details Synchronous messages expecting a reply must always be handled, this
- * no-operation default callback will handle them as necessary.
+ * no-operation default callback will handle them as necessary. Used when no
+ * callback is provided when connecting. Or when the callback does not handle
+ * the message.
  *
  * \param[in] ReplyToken - Token used to reply, when possible.
  * \param[in] Message - Message from KPH to handle.
@@ -532,7 +532,7 @@ VOID KphpCommsCallbackUnhandled(
     PPH_FREE_LIST freelist;
     PKPH_MESSAGE msg;
 
-    if (Message->Header.MessageId != KphMsgProcessCreate)
+    if (!ReplyToken)
     {
         return;
     }
@@ -540,8 +540,7 @@ VOID KphpCommsCallbackUnhandled(
     freelist = KphGetMessageFreeList();
 
     msg = PhAllocateFromFreeList(freelist);
-    KphMsgInit(msg, KphMsgProcessCreate);
-    msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
+    KphMsgInit(msg, KphMsgUnhandled);
     KphCommsReplyMessage(ReplyToken, msg);
 
     PhFreeToFreeList(freelist, msg);
@@ -567,6 +566,7 @@ VOID WINAPI KphpCommsIoCallback(
     NTSTATUS status;
     PKPH_UMESSAGE msg;
     BOOLEAN handled;
+    ULONG_PTR replyToken;
 
     if (!PhAcquireRundownProtection(&KphpCommsRundown))
     {
@@ -593,10 +593,18 @@ VOID WINAPI KphpCommsIoCallback(
         goto Exit;
     }
 
+    if (msg->MessageHeader.ReplyLength)
+    {
+        replyToken = (ULONG_PTR)&msg->MessageHeader;
+    }
+    else
+    {
+        replyToken = 0;
+    }
+
     if (KphpCommsRegisteredCallback)
     {
-        handled = KphpCommsRegisteredCallback((ULONG_PTR)&msg->MessageHeader,
-                                              &msg->Message);
+        handled = KphpCommsRegisteredCallback(replyToken, &msg->Message);
     }
     else
     {
@@ -605,8 +613,7 @@ VOID WINAPI KphpCommsIoCallback(
 
     if (!handled)
     {
-        KphpCommsCallbackUnhandled((ULONG_PTR)&msg->MessageHeader,
-                                   &msg->Message);
+        KphpCommsCallbackUnhandled(replyToken, &msg->Message);
     }
 
 Exit:
@@ -891,7 +898,7 @@ NTSTATUS KphCommsReplyMessage(
         goto Exit;
     }
 
-    if (!header || (header->ReplyLength == 0))
+    if (!header || !header->ReplyLength)
     {
         //
         // Kernel is not expecting a reply.

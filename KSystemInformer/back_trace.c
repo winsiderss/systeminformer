@@ -26,11 +26,15 @@ typedef struct _KPH_STACK_BACK_TRACE_OBJECT
     PVOID BackTrace[ANYSIZE_ARRAY];
 } KPH_STACK_BACK_TRACE_OBJECT, *PKPH_STACK_BACK_TRACE_OBJECT;
 
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpStackBackTraceTypeName = RTL_CONSTANT_STRING(L"KphStackBackTrace");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PVOID KphpSelfImageBase = NULL;
 static PVOID KphpSelfImageEnd = NULL;
 static PVOID KphpKsiImageBase = NULL;
 static PVOID KphpKsiImageEnd = NULL;
+static PKPH_OBJECT_TYPE KphpStackBackTraceType = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 //
@@ -158,7 +162,7 @@ ContinueCapture:
     //
     if (thread->CapturingUserModeStack)
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Skipping user mode stack capture for "
                       "thread %lu in process %wZ (%lu)",
@@ -207,11 +211,7 @@ Exit:
     return frames;
 }
 
-
 PAGED_FILE();
-
-static UNICODE_STRING KphpStackBackTraceTypeName = RTL_CONSTANT_STRING(L"KphStackBackTrace");
-static PKPH_OBJECT_TYPE KphpStackBackTraceType = NULL;
 
 /**
  * \brief Captures the current stack back trace into a back trace object.
@@ -439,7 +439,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
                          &backTraceSize);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "RtlULongAdd failed: %!STATUS!",
                       status);
@@ -453,7 +453,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
                              Thread);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphCreateObject failed: %!STATUS!",
                       status);
@@ -473,7 +473,9 @@ NTSTATUS KphCaptureStackBackTraceThread(
     KphReferenceObject(backTrace);
     if (!KsiInsertQueueApc(&backTrace->Apc, NULL, NULL, IO_NO_INCREMENT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "KsiInsertQueueApc failed");
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KsiInsertQueueApc failed");
 
         KphDereferenceObject(backTrace);
         status = STATUS_UNSUCCESSFUL;
@@ -549,7 +551,7 @@ NTSTATUS KphInitializeStackBackTrace(
                                       NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ZwQuerySystemInformation failed: %!STATUS!",
                       status);
@@ -569,7 +571,7 @@ NTSTATUS KphInitializeStackBackTrace(
                                       NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ZwQuerySystemInformation failed: %!STATUS!",
                       status);
