@@ -152,6 +152,9 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
+    <PreBuildEvent>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -176,6 +179,9 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
+    <PreBuildEvent>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
@@ -199,6 +205,9 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
+    <PreBuildEvent>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -227,6 +236,9 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
+    <PreBuildEvent>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -254,6 +266,9 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
+    <PreBuildEvent>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
@@ -280,6 +295,9 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
+    <PreBuildEvent>
+      <Command>"$(SolutionDir)tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -dyndata "$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />

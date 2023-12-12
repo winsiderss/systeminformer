@@ -3,13 +3,11 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #pragma once
-extern ULONG KphDynObDecodeShift;
-extern ULONG KphDynObAttributesShift;
 
 typedef struct _CLIENT_ID32
 {
@@ -204,8 +202,7 @@ KeTestAlertThread (
 // GrantedAccess in the table entry is the low 25 bits
 #define OBJ_GRANTED_ACCESS_MASK 0x01ffffff
 
-#define ObpDecodeGrantedAccess(Access) \
-    ((Access) & OBJ_GRANTED_ACCESS_MASK)
+#define ObpDecodeGrantedAccess(Access) ((Access) & OBJ_GRANTED_ACCESS_MASK)
 
 FORCEINLINE
 VOID
@@ -218,49 +215,6 @@ ObpSetGrantedAccess(
     // Preserve the high bits and only set the low 25 bits.
     //
     *GrantedAccess = (Access | (*GrantedAccess & ~OBJ_GRANTED_ACCESS_MASK));
-}
-
-FORCEINLINE
-_Must_inspect_result_
-PVOID
-ObpDecodeObject(
-    _In_ PVOID Object
-    )
-{
-#if (defined _M_X64) || (defined _M_ARM64)
-    if (KphDynObDecodeShift != ULONG_MAX)
-    {
-        return (PVOID)(((LONG_PTR)Object >> KphDynObDecodeShift) & ~(ULONG_PTR)0xf);
-    }
-    else
-    {
-        return NULL;
-    }
-#else
-    return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
-#endif
-}
-
-FORCEINLINE
-_Must_inspect_result_
-ULONG
-ObpGetHandleAttributes(
-    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
-    )
-{
-#if (defined _M_X64) || (defined _M_ARM64)
-    if (KphDynObAttributesShift != ULONG_MAX)
-    {
-        return (ULONG)(HandleTableEntry->Value >> KphDynObAttributesShift) & 0x3;
-    }
-    else
-    {
-        return 0;
-    }
-#else
-    return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) |
-        ((HandleTableEntry->GrantedAccess & ObpAccessProtectCloseBit) ? OBJ_PROTECT_CLOSE : 0);
-#endif
 }
 
 typedef struct _OBJECT_CREATE_INFORMATION OBJECT_CREATE_INFORMATION, *POBJECT_CREATE_INFORMATION;
@@ -364,6 +318,21 @@ ObDuplicateObject(
     _In_ ULONG Options,
     _In_ KPROCESSOR_MODE PreviousMode
     );
+
+// CM
+
+#if (NTDDI_VERSION < NTDDI_WIN10_FE)
+typedef struct _REG_SAVE_MERGED_KEY_INFORMATION
+{
+    PVOID Object;
+    HANDLE FileHandle;
+    PVOID HighKeyObject;
+    PVOID LowKeyObject;
+    PVOID CallContext;
+    PVOID ObjectContext;
+    PVOID Reserved;
+} REG_SAVE_MERGED_KEY_INFORMATION, *PREG_SAVE_MERGED_KEY_INFORMATION;
+#endif
 
 // LDR
 
@@ -728,6 +697,24 @@ NTAPI
 PsGetProcessImageFileName(
     _In_ PEPROCESS Process
     );
+
+typedef
+_Function_class_(PS_GET_PROCESS_SEQUENCE_NUMBER)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONGLONG
+PS_GET_PROCESS_SEQUENCE_NUMBER(
+    _In_ PEPROCESS Process
+    );
+typedef PS_GET_PROCESS_SEQUENCE_NUMBER* PPS_GET_PROCESS_SEQUENCE_NUMBER;
+
+typedef
+_Function_class_(PS_GET_PROCESS_START_KEY)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONGLONG
+PS_GET_PROCESS_START_KEY(
+    _In_ PEPROCESS Process
+    );
+typedef PS_GET_PROCESS_START_KEY* PPS_GET_PROCESS_START_KEY;
 
 // RTL
 
@@ -1547,7 +1534,7 @@ ZwAlpcConnectPort(
     _In_ ULONG Flags,
     _In_opt_ PSID RequiredServerSid,
     _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
-    _Inout_opt_ PULONG BufferLength,
+    _Inout_opt_ PSIZE_T BufferLength,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
     _In_opt_ PLARGE_INTEGER Timeout

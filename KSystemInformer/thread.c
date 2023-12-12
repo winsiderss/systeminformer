@@ -6,15 +6,13 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
-
 
 PAGED_FILE();
 
@@ -74,7 +72,7 @@ NTSTATUS KphOpenThread(
         status = PsLookupProcessThreadByCid(&clientId, NULL, &thread);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "PsLookupProcessThreadByCid failed: %!STATUS!",
                           status);
@@ -88,7 +86,7 @@ NTSTATUS KphOpenThread(
         status = PsLookupThreadByThreadId(clientId.UniqueThread, &thread);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "PsLookupThreadByThreadId failed: %!STATUS!",
                           status);
@@ -105,7 +103,7 @@ NTSTATUS KphOpenThread(
                                     AccessMode);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphDominationCheck failed: %!STATUS!",
                           status);
@@ -126,7 +124,7 @@ NTSTATUS KphOpenThread(
                                    &threadHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -208,7 +206,7 @@ NTSTATUS KphOpenThreadProcess(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -224,7 +222,7 @@ NTSTATUS KphOpenThreadProcess(
                                     AccessMode);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "KphDominationCheck failed: %!STATUS!",
                           status);
@@ -245,7 +243,7 @@ NTSTATUS KphOpenThreadProcess(
                                    &processHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -358,7 +356,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
                                      KPH_TAG_THREAD_BACK_TRACE);
         if (!backTrace)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "Failed to allocate back trace buffer.");
 
@@ -391,7 +389,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -410,7 +408,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
                                             (Timeout ? &timeout : NULL));
     if (!NT_SUCCESS(status) || (status == STATUS_TIMEOUT))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphCaptureStackBackTraceThread failed: %!STATUS!",
                       status);
@@ -514,7 +512,7 @@ NTSTATUS KphSetInformationThread(
                                                  KPH_TAG_THREAD_INFO);
             if (!threadInformation)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Failed to allocate thread info buffer.");
 
@@ -549,7 +547,7 @@ NTSTATUS KphSetInformationThread(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -563,7 +561,7 @@ NTSTATUS KphSetInformationThread(
                                 AccessMode);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphDominationCheck failed: %!STATUS!",
                       status);
@@ -580,7 +578,7 @@ NTSTATUS KphSetInformationThread(
                                    &threadHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
@@ -715,12 +713,14 @@ NTSTATUS KphQueryInformationThread(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     PETHREAD threadObject;
     PKPH_THREAD_CONTEXT thread;
     ULONG returnLength;
 
     PAGED_CODE_PASSIVE();
 
+    dyn = NULL;
     threadObject = NULL;
     thread = NULL;
     returnLength = 0;
@@ -754,7 +754,7 @@ NTSTATUS KphQueryInformationThread(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
@@ -763,10 +763,10 @@ NTSTATUS KphQueryInformationThread(
         goto Exit;
     }
 
-    thread = KphGetThreadContext(PsGetThreadId(threadObject));
+    thread = KphGetEThreadContext(threadObject);
     if (!thread)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "KphGetThreadContext returned null.");
 
@@ -781,12 +781,15 @@ NTSTATUS KphQueryInformationThread(
             PIO_COUNTERS counters;
             PULONGLONG value;
 
-            if ((KphDynKtReadOperationCount == ULONG_MAX) ||
-                (KphDynKtWriteOperationCount == ULONG_MAX) ||
-                (KphDynKtOtherOperationCount == ULONG_MAX) ||
-                (KphDynKtReadTransferCount == ULONG_MAX) ||
-                (KphDynKtWriteTransferCount == ULONG_MAX) ||
-                (KphDynKtOtherTransferCount == ULONG_MAX))
+            dyn = KphReferenceDynData();
+
+            if (!dyn ||
+                (dyn->KtReadOperationCount == ULONG_MAX) ||
+                (dyn->KtWriteOperationCount == ULONG_MAX) ||
+                (dyn->KtOtherOperationCount == ULONG_MAX) ||
+                (dyn->KtReadTransferCount == ULONG_MAX) ||
+                (dyn->KtWriteTransferCount == ULONG_MAX) ||
+                (dyn->KtOtherTransferCount == ULONG_MAX))
             {
                 status = STATUS_NOINTERFACE;
                 goto Exit;
@@ -804,22 +807,22 @@ NTSTATUS KphQueryInformationThread(
 
             __try
             {
-                value = Add2Ptr(threadObject, KphDynKtReadOperationCount);
+                value = Add2Ptr(threadObject, dyn->KtReadOperationCount);
                 counters->ReadOperationCount = *value;
 
-                value = Add2Ptr(threadObject, KphDynKtWriteOperationCount);
+                value = Add2Ptr(threadObject, dyn->KtWriteOperationCount);
                 counters->WriteOperationCount = *value;
 
-                value = Add2Ptr(threadObject, KphDynKtOtherOperationCount);
+                value = Add2Ptr(threadObject, dyn->KtOtherOperationCount);
                 counters->OtherOperationCount = *value;
 
-                value = Add2Ptr(threadObject, KphDynKtReadTransferCount);
+                value = Add2Ptr(threadObject, dyn->KtReadTransferCount);
                 counters->ReadTransferCount = *value;
 
-                value = Add2Ptr(threadObject, KphDynKtWriteTransferCount);
+                value = Add2Ptr(threadObject, dyn->KtWriteTransferCount);
                 counters->WriteTransferCount = *value;
 
-                value = Add2Ptr(threadObject, KphDynKtOtherTransferCount);
+                value = Add2Ptr(threadObject, dyn->KtOtherTransferCount);
                 counters->OtherTransferCount = *value;
 
                 returnLength = sizeof(IO_COUNTERS);
@@ -835,25 +838,15 @@ NTSTATUS KphQueryInformationThread(
         }
         case KphThreadWSLThreadId:
         {
-            PULONG threadId;
+            ULONG threadId;
 
             if (thread->SubsystemType != SubsystemInformationTypeWSL)
             {
-                KphTracePrint(TRACE_LEVEL_WARNING,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Invalid subsystem for WSL thread ID query.");
 
                 status = STATUS_INVALID_HANDLE;
-                goto Exit;
-            }
-
-            if (!thread->WSL.ValidThreadId)
-            {
-                KphTracePrint(TRACE_LEVEL_WARNING,
-                              GENERAL,
-                              "WSL thread ID is not valid.");
-
-                status = STATUS_OBJECTID_NOT_FOUND;
                 goto Exit;
             }
 
@@ -865,11 +858,19 @@ NTSTATUS KphQueryInformationThread(
                 goto Exit;
             }
 
-            threadId = ThreadInformation;
+            status = KphQueryInformationThreadContext(thread,
+                                                      KphThreadContextWSLThreadId,
+                                                      &threadId,
+                                                      sizeof(threadId),
+                                                      NULL);
+            if (!NT_SUCCESS(status))
+            {
+                goto Exit;
+            }
 
             __try
             {
-                *threadId = thread->WSL.ThreadId;
+                *(PULONG)ThreadInformation = threadId;
                 returnLength = sizeof(ULONG);
                 status = STATUS_SUCCESS;
             }
@@ -917,6 +918,11 @@ Exit:
     if (threadObject)
     {
         ObDereferenceObject(threadObject);
+    }
+
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
     }
 
     return status;

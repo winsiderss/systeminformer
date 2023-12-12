@@ -5,20 +5,13 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
 
 #include <trace.h>
-
-KPH_PROTECTED_DATA_SECTION_PUSH();
-PVOID KphNtDllBaseAddress = NULL;
-PVOID KphNtDllRtlSetBits = NULL;
-KPH_PROTECTED_DATA_SECTION_POP();
-
-PAGED_FILE();
 
 typedef struct _KPH_KNOWN_DLL_EXPORT
 {
@@ -33,12 +26,14 @@ typedef struct _KPH_KNOWN_DLL_INFORMATION
     PKPH_KNOWN_DLL_EXPORT Exports;
 } KPH_KNOWN_DLL_INFORMATION, *PKPH_KNOWN_DLL_INFORMATION;
 
+KPH_PROTECTED_DATA_SECTION_PUSH();
+PVOID KphNtDllBaseAddress = NULL;
+PVOID KphNtDllRtlSetBits = NULL;
 static KPH_KNOWN_DLL_EXPORT KphpNtDllExports[] =
 {
     { "RtlSetBits", &KphNtDllRtlSetBits },
     { NULL, NULL }
 };
-
 static KPH_KNOWN_DLL_INFORMATION KphpKnownDllInformation[] =
 {
     {
@@ -47,6 +42,9 @@ static KPH_KNOWN_DLL_INFORMATION KphpKnownDllInformation[] =
         KphpNtDllExports
     }
 };
+KPH_PROTECTED_DATA_SECTION_POP();
+
+PAGED_FILE();
 
 /**
  * \brief Populates known DLL information.
@@ -107,7 +105,7 @@ NTSTATUS KphInitializeKnownDll(
                                &objectAttributes);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "ZwOpenSection failed: %!STATUS!",
                           status);
@@ -124,7 +122,7 @@ NTSTATUS KphInitializeKnownDll(
                                 NULL);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "ZwQuerySection failed: %!STATUS!",
                           status);
@@ -147,7 +145,7 @@ NTSTATUS KphInitializeKnownDll(
                                            NULL);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "ObReferenceObjectByHandle failed: %!STATUS!",
                           status);
@@ -162,7 +160,7 @@ NTSTATUS KphInitializeKnownDll(
                                         &viewSize);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "MmMapViewInSystemSpace failed: %!STATUS!",
                           status);
@@ -183,7 +181,7 @@ NTSTATUS KphInitializeKnownDll(
                                                          export->Name);
             if (!exportAddress)
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Failed to find %hs in %wZ",
                               export->Name,

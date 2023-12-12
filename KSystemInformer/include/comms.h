@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
@@ -18,6 +18,8 @@ typedef struct _KPH_CLIENT
     PKPH_PROCESS_CONTEXT Process;
     PFLT_PORT Port;
     KPH_REFERENCE DriverUnloadProtectionRef;
+    KPH_MESSAGE_TIMEOUTS MessageTimeouts;
+    KPH_INFORMER_SETTINGS InformerSettings;
 } KPH_CLIENT, *PKPH_CLIENT;
 
 typedef
@@ -84,17 +86,25 @@ VOID KphCommsStop(
     );
 
 _IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphCommsInformerEnabled(
+    _In_ PCKPH_INFORMER_SETTINGS Settings
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
 ULONG KphGetConnectedClientCount(
     VOID
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphGetMessageTimeouts(
+    _In_ PKPH_CLIENT Client,
     _Out_ PKPH_MESSAGE_TIMEOUTS Timeouts
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS KphSetMessageTimeouts(
+    _In_ PKPH_CLIENT Client,
     _In_ PKPH_MESSAGE_TIMEOUTS Timeouts
     );
 
@@ -121,6 +131,7 @@ VOID KphFreeNPagedMessage(
     );
 
 _IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphCommsSendMessage(
     _In_ PKPH_MESSAGE Message,
     _Out_opt_ PKPH_MESSAGE Reply

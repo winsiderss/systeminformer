@@ -1821,6 +1821,14 @@ PhHungWindowFromGhostWindow(
     );
 
 PHLIBAPI
+NTSTATUS
+PhGetFileData(
+    _In_ HANDLE FileHandle,
+    _Out_ PVOID* Buffer,
+    _Out_ PULONG BufferLength
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetFileText(

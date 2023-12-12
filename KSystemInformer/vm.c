@@ -6,14 +6,18 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
+
+#define KPH_STACK_COPY_BYTES 0x200
+#define KPH_POOL_COPY_BYTES 0x10000
+#define KPH_MAPPED_COPY_PAGES 14
+#define KPH_POOL_COPY_THRESHOLD 0x3ff
 
 /**
  * \brief Queries information on mappings for a given section object.
@@ -36,6 +40,7 @@ NTSTATUS KphpQuerySectionMappings(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     ULONG returnLength;
     PVOID controlArea;
     PLIST_ENTRY listHead;
@@ -47,18 +52,21 @@ NTSTATUS KphpQuerySectionMappings(
     oldIrql = 0;
     returnLength = 0;
 
-    if ((KphDynMmSectionControlArea == ULONG_MAX) ||
-        (KphDynMmControlAreaListHead == ULONG_MAX) ||
-        (KphDynMmControlAreaLock == ULONG_MAX))
+    dyn = KphReferenceDynData();
+
+    if (!dyn ||
+        (dyn->MmSectionControlArea == ULONG_MAX) ||
+        (dyn->MmControlAreaListHead == ULONG_MAX) ||
+        (dyn->MmControlAreaLock == ULONG_MAX))
     {
         status = STATUS_NOINTERFACE;
         goto Exit;
     }
 
-    controlArea = *(PVOID*)Add2Ptr(SectionObject, KphDynMmSectionControlArea);
+    controlArea = *(PVOID*)Add2Ptr(SectionObject, dyn->MmSectionControlArea);
     if ((ULONG_PTR)controlArea & 3)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Section remote mappings not supported.");
 
@@ -69,7 +77,7 @@ NTSTATUS KphpQuerySectionMappings(
     controlArea = (PVOID)((ULONG_PTR)controlArea & ~3);
     if (!controlArea)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Section control area is null.");
 
@@ -77,10 +85,10 @@ NTSTATUS KphpQuerySectionMappings(
         goto Exit;
     }
 
-    lock = Add2Ptr(controlArea, KphDynMmControlAreaLock);
+    lock = Add2Ptr(controlArea, dyn->MmControlAreaLock);
     oldIrql = ExAcquireSpinLockShared(lock);
 
-    listHead = Add2Ptr(controlArea, KphDynMmControlAreaListHead);
+    listHead = Add2Ptr(controlArea, dyn->MmControlAreaListHead);
 
     //
     // Links are shared in a union with AweContext pointer. Ensure that both
@@ -90,7 +98,7 @@ NTSTATUS KphpQuerySectionMappings(
         (listHead->Flink->Blink != listHead) ||
         (listHead->Blink->Flink != listHead))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "Section unexpected control area links.");
 
@@ -109,7 +117,7 @@ NTSTATUS KphpQuerySectionMappings(
                              &returnLength);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "RtlULongAdd failed: %!STATUS!",
                           status);
@@ -176,11 +184,6 @@ Exit:
 }
 
 PAGED_FILE();
-
-#define KPH_STACK_COPY_BYTES 0x200
-#define KPH_POOL_COPY_BYTES 0x10000
-#define KPH_MAPPED_COPY_PAGES 14
-#define KPH_POOL_COPY_THRESHOLD 0x3ff
 
 /**
  * \brief Copies out the bad address from a virtual memory flavored exception.
@@ -577,7 +580,7 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
             {
                 KeLeaveCriticalRegion();
 
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "Failed to acquire PsLoadedModuleResource");
 
@@ -752,7 +755,7 @@ NTSTATUS KphQuerySection(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);

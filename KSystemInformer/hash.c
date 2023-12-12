@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
@@ -20,13 +20,17 @@ typedef struct _KPH_HASHING_INFRASTRUCTURE
     BCRYPT_ALG_HANDLE BCryptSha256Provider;
 } KPH_HASHING_INFRASTRUCTURE, *PKPH_HASHING_INFRASTRUCTURE;
 
-static UNICODE_STRING KphpHashingInfraName = RTL_CONSTANT_STRING(L"KphHashingInfrastructure");
-static PKPH_OBJECT_TYPE KphpHashingInfraType = NULL;
+#define KPH_HASHING_BUFFER_SIZE (16 * 1024)
+
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpHashingInfraName = RTL_CONSTANT_STRING(L"KphHashingInfrastructure");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_HASHING_INFRASTRUCTURE KphpHashingInfra = NULL;
+static PKPH_OBJECT_TYPE KphpHashingInfraType = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
-
-#define KPH_HASHING_BUFFER_SIZE (16 * 1024)
 
 /**
  * \brief Allocates hashing infrastructure object.
@@ -76,7 +80,7 @@ NTSTATUS KSIAPI KphpInitHashingInfra(
                                          0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptOpenAlgorithmProvider failed: %!STATUS!",
                       status);
@@ -91,7 +95,7 @@ NTSTATUS KSIAPI KphpInitHashingInfra(
                                          0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptOpenAlgorithmProvider failed: %!STATUS!",
                       status);
@@ -327,7 +331,7 @@ NTSTATUS KphHashBuffer(
     status = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, NULL, 0, 0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptCreateHash failed: %!STATUS!",
                       status);
@@ -339,7 +343,7 @@ NTSTATUS KphHashBuffer(
     status = BCryptHashData(hashHandle, Buffer, BufferLength, 0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptHashData failed: %!STATUS!",
                       status);
@@ -357,7 +361,7 @@ NTSTATUS KphHashBuffer(
                                   0);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
                           "BCryptFinishHash failed: %!STATUS!",
                           status);
@@ -379,7 +383,7 @@ NTSTATUS KphHashBuffer(
                                   0);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
                           "BCryptFinishHash failed: %!STATUS!",
                           status);
@@ -457,7 +461,7 @@ NTSTATUS KphHashFile(
     status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "KphMapViewInSystem failed: %!STATUS!",
                       status);
@@ -469,7 +473,7 @@ NTSTATUS KphHashFile(
     status = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, NULL, 0, 0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptCreateHash failed: %!STATUS!",
                       status);
@@ -481,7 +485,7 @@ NTSTATUS KphHashFile(
     readBuffer = KphpAllocateHashingBuffer();
     if (!readBuffer)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "Failed to allocate hashing buffer.");
 
@@ -509,7 +513,7 @@ NTSTATUS KphHashFile(
         status = BCryptHashData(hashHandle, readBuffer, (ULONG)readSize, 0);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
                           "BCryptHashData failed: %!STATUS!",
                           status);
@@ -528,7 +532,7 @@ NTSTATUS KphHashFile(
                                   0);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
                           "BCryptFinishHash failed: %!STATUS!",
                           status);
@@ -550,7 +554,7 @@ NTSTATUS KphHashFile(
                                   0);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
                           "BCryptFinishHash failed: %!STATUS!",
                           status);
@@ -596,7 +600,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHashFileByName(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _In_ ALG_ID AlgorithmId,
     _Out_ PKPH_HASH Hash
     )
@@ -611,7 +615,7 @@ NTSTATUS KphHashFileByName(
     RtlZeroMemory(Hash, sizeof(*Hash));
 
     InitializeObjectAttributes(&objectAttributes,
-                               FileName,
+                               (PUNICODE_STRING)FileName,
                                OBJ_KERNEL_HANDLE,
                                NULL,
                                NULL);
@@ -631,7 +635,7 @@ NTSTATUS KphHashFileByName(
                            KernelMode);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "KphCreateFile failed: %!STATUS!",
                       status);
@@ -711,7 +715,7 @@ NTSTATUS KphGetAuthenticodeInfo(
     status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "KphMapViewInSystem failed: %!STATUS!",
                       status);
@@ -809,7 +813,7 @@ BeginHashing:
                               0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptCreateHash failed: %!STATUS!",
                       status);
@@ -827,7 +831,7 @@ BeginHashing:
                               0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptCreateHash failed: %!STATUS!",
                       status);
@@ -839,7 +843,7 @@ BeginHashing:
     readBuffer = KphpAllocateHashingBuffer();
     if (!readBuffer)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "Failed to allocate hashing buffer.");
 
@@ -862,7 +866,7 @@ BeginHashing:
             ((PVOID)regions[i].Buffer >= mappedEnd) ||
             (Add2Ptr(regions[i].Buffer, regions[i].Size) > mappedEnd))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
                           "Authenticode region overflows mapping.");
 
@@ -879,7 +883,7 @@ BeginHashing:
         if ((securityBase < mappedBase) || (securityEnd < mappedBase) ||
             (securityBase >= mappedEnd) || (securityEnd > mappedEnd))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
                           "Security directory overflows mapping.");
 
@@ -917,7 +921,7 @@ BeginHashing:
             status = BCryptHashData(sha1Handle, readBuffer, readSize, 0);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               HASH,
                               "BCryptHashData failed: %!STATUS!",
                               status);
@@ -928,7 +932,7 @@ BeginHashing:
             status = BCryptHashData(sha256Handle, readBuffer, readSize, 0);
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               HASH,
                               "BCryptHashData failed: %!STATUS!",
                               status);
@@ -944,7 +948,7 @@ BeginHashing:
                               0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptFinishHash failed: %!STATUS!",
                       status);
@@ -958,7 +962,7 @@ BeginHashing:
                               0);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "BCryptFinishHash failed: %!STATUS!",
                       status);
@@ -975,7 +979,7 @@ BeginHashing:
                                            KPH_TAG_AUTHENTICODE_SIG);
         if (!Info->Signature)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
                           "Failed to allocate buffer for signature.");
 
@@ -1038,7 +1042,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetAuthenticodeInfoByFileName(
-    _In_ PUNICODE_STRING FileName,
+    _In_ PCUNICODE_STRING FileName,
     _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
     )
 {
@@ -1052,7 +1056,7 @@ NTSTATUS KphGetAuthenticodeInfoByFileName(
     RtlZeroMemory(Info, sizeof(*Info));
 
     InitializeObjectAttributes(&objectAttributes,
-                               FileName,
+                               (PUNICODE_STRING)FileName,
                                OBJ_KERNEL_HANDLE,
                                NULL,
                                NULL);
@@ -1072,7 +1076,7 @@ NTSTATUS KphGetAuthenticodeInfoByFileName(
                            KernelMode);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
                       "KphCreateFile failed: %!STATUS!",
                       status);

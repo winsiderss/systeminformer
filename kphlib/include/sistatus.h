@@ -72,4 +72,13 @@
 //
 #define STATUS_SI_DYNDATA_VERSION_MISMATCH ((NTSTATUS)0xE0020002L)
 
+//
+// MessageId: STATUS_SI_DYNDATA_INVALID_LENGTH
+//
+// MessageText:
+//
+// System Informer dynamic data is an invalid length.
+//
+#define STATUS_SI_DYNDATA_INVALID_LENGTH ((NTSTATUS)0xE0020003L)
+
 #endif

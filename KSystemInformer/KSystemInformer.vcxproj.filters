@@ -105,6 +105,27 @@
     <ClCompile Include="socket.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="back_trace.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="download.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="http.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="parameters.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kphtoken.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_fileop.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_filenc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
@@ -112,9 +133,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\dyndata.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\kph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -134,6 +152,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cid_table.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\informer_filep.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

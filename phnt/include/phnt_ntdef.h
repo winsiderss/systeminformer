@@ -356,4 +356,10 @@ typedef struct _KSYSTEM_TIME
 
 #endif
 
+#if defined(_WIN64)
+#define POINTER_ALIGNMENT DECLSPEC_ALIGN(8)
+#else
+#define POINTER_ALIGNMENT
+#endif
+
 #endif

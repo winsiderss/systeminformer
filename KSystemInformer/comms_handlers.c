@@ -5,12 +5,13 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
 #include <comms.h>
+#include <informer.h>
 
 #include <trace.h>
 
@@ -47,6 +48,13 @@ KPHM_DEFINE_HANDLER(KphpCommsSetMessageTimeouts);
 KPHM_DEFINE_HANDLER(KphpCommsAcquireDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsReleaseDriverUnloadProtection);
 KPHM_DEFINE_HANDLER(KphpCommsGetConnectedClientCount);
+KPHM_DEFINE_HANDLER(KphpCommsActivateDynData);
+KPHM_DEFINE_HANDLER(KphpCommsRequestSessionAccessToken);
+KPHM_DEFINE_HANDLER(KphpCommsAssignProcessSessionToken);
+KPHM_DEFINE_HANDLER(KphpCommsAssignThreadSessionToken);
+KPHM_DEFINE_HANDLER(KphpCommsGetInformerProcessFilter);
+KPHM_DEFINE_HANDLER(KphpCommsSetInformerProcessFilter);
+KPHM_DEFINE_HANDLER(KphpCommsStripProtectedProcessMasks);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -60,7 +68,6 @@ KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsCreateFileRequires);
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-
 const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 {
 { InvalidKphMsg,                       NULL,                                   NULL },
@@ -97,10 +104,15 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgAcquireDriverUnloadProtection, KphpCommsAcquireDriverUnloadProtection, KphpCommsRequireMaximum },
 { KphMsgReleaseDriverUnloadProtection, KphpCommsReleaseDriverUnloadProtection, KphpCommsRequireMaximum },
 { KphMsgGetConnectedClientCount,       KphpCommsGetConnectedClientCount,       KphpCommsRequireLow },
+{ KphMsgActivateDynData,               KphpCommsActivateDynData,               KphpCommsRequireLow },
+{ KphMsgRequestSessionAccessToken,     KphpCommsRequestSessionAccessToken,     KphpCommsRequireMaximum },
+{ KphMsgAssignProcessSessionToken,     KphpCommsAssignProcessSessionToken,     KphpCommsRequireMaximum },
+{ KphMsgAssignThreadSessionToken,      KphpCommsAssignThreadSessionToken,      KphpCommsRequireMaximum },
+{ KphMsgGetInformerProcessFilter,      KphpCommsGetInformerProcessFilter,      KphpCommsRequireLow },
+{ KphMsgSetInformerProcessFilter,      KphpCommsSetInformerProcessFilter,      KphpCommsRequireLow },
+{ KphMsgStripProtectedProcessMasks,    KphpCommsStripProtectedProcessMasks,    KphpCommsRequireMaximum },
 };
-
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
-
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 PAGED_FILE();
@@ -170,11 +182,10 @@ NTSTATUS KSIAPI KphpCommsGetInformerSettings(
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerSettings);
 
-    UNREFERENCED_PARAMETER(Client);
-
     msg = &Message->User.GetInformerSettings;
 
-    msg->Settings.Flags = KphInformerSettings.Flags;
+    KphGetInformerSettings(&msg->Settings, &Client->InformerSettings);
+
     msg->Status = STATUS_SUCCESS;
 
     return STATUS_SUCCESS;
@@ -198,8 +209,8 @@ NTSTATUS KSIAPI KphpCommsSetInformerSettings(
 
     msg = &Message->User.SetInformerSettings;
 
-    InterlockedExchangeU64(&KphInformerSettings.Flags,
-                           msg->Settings.Flags);
+    KphSetInformerSettings(&Client->InformerSettings, &msg->Settings);
+
     msg->Status = STATUS_SUCCESS;
 
     return STATUS_SUCCESS;
@@ -708,6 +719,8 @@ KPH_PROCESS_STATE KSIAPI KphpCommsQueryInformationProcessRequires(
             return KPH_PROCESS_STATE_MEDIUM;
         }
         case KphProcessStateInformation:
+        case KphProcessSequenceNumber:
+        case KphProcessStartKey:
         {
             return KPH_PROCESS_STATE_LOW;
         }
@@ -1128,11 +1141,9 @@ NTSTATUS KSIAPI KphpCommsGetMessageTimeouts(
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgGetMessageTimeouts);
 
-    UNREFERENCED_PARAMETER(Client);
-
     msg = &Message->User.GetMessageTimeouts;
 
-    KphGetMessageTimeouts(&msg->Timeouts);
+    KphGetMessageTimeouts(Client, &msg->Timeouts);
 
     return STATUS_SUCCESS;
 }
@@ -1151,11 +1162,9 @@ NTSTATUS KSIAPI KphpCommsSetMessageTimeouts(
     NT_ASSERT(ExGetPreviousMode() == UserMode);
     NT_ASSERT(Message->Header.MessageId == KphMsgSetMessageTimeouts);
 
-    UNREFERENCED_PARAMETER(Client);
-
     msg = &Message->User.SetMessageTimeouts;
 
-    msg->Status = KphSetMessageTimeouts(&msg->Timeouts);
+    msg->Status = KphSetMessageTimeouts(Client, &msg->Timeouts);
 
     return STATUS_SUCCESS;
 }
@@ -1261,6 +1270,187 @@ NTSTATUS KSIAPI KphpCommsGetConnectedClientCount(
     msg = &Message->User.GetConnectedClientCount;
 
     msg->Count = KphGetConnectedClientCount();
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsActivateDynData(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_ACTIVATE_DYNDATA msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgActivateDynData);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.ActivateDynData;
+
+    msg->Status = KphActivateDynData(msg->DynData,
+                                     msg->DynDataLength,
+                                     msg->Signature,
+                                     msg->SignatureLength,
+                                     UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsRequestSessionAccessToken(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_REQUEST_SESSION_ACCESS_TOKEN msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgRequestSessionAccessToken);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.RequestSessionAccessToken;
+
+    msg->Status = KphRequestSessionAccessToken(&msg->AccessToken,
+                                               &msg->Expiry,
+                                               msg->Privileges,
+                                               msg->Uses);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsAssignProcessSessionToken(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_ASSIGN_PROCESS_SESSION_TOKEN msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgAssignProcessSessionToken);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.AssignProcessSessionToken;
+
+    msg->Status = KphAssignProcessSessionToken(msg->ProcessHandle,
+                                               msg->Signature,
+                                               msg->SignatureLength,
+                                               UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsAssignThreadSessionToken(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_ASSIGN_THREAD_SESSION_TOKEN msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgAssignThreadSessionToken);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.AssignThreadSessionToken;
+
+    msg->Status = KphAssignThreadSessionToken(msg->ThreadHandle,
+                                              msg->Signature,
+                                              msg->SignatureLength,
+                                              UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsGetInformerProcessFilter(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_GET_INFORMER_PROCESS_FILTER msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgGetInformerProcessFilter);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.GetInformerProcessFilter;
+
+    msg->Status = KphGetInformerProcessFilter(msg->ProcessHandle,
+                                              msg->Filter,
+                                              UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsSetInformerProcessFilter(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_SET_INFORMER_PROCESS_FILTER msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgSetInformerProcessFilter);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.SetInformerProcessFilter;
+
+    msg->Status = KphSetInformerProcessFilter(msg->ProcessHandle,
+                                              msg->Filter,
+                                              UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsStripProtectedProcessMasks(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_STRIP_PROTECTED_PROCESS_MASKS msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgStripProtectedProcessMasks);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.StripProtectedProcessMasks;
+
+    msg->Status = KphStripProtectedProcessMasks(msg->ProcessHandle,
+                                                msg->ProcessAllowedMask,
+                                                msg->ThreadAllowedMask,
+                                                UserMode);
 
     return STATUS_SUCCESS;
 }

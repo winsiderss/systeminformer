@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
@@ -13,16 +13,14 @@
 
 #include <trace.h>
 
+#define KPH_ATOMIC_OBJECT_LOCKED_MASK (((ULONG_PTR)-1) - 1)
+
 //
 // N.B. If more object types are added the array must be expanded.
 //
-
-static volatile LONG KphpObjectTypeCount = 0;
-static KPH_OBJECT_TYPE KphpObjectTypes[9];
-
-#define KPH_ATOMIC_OBJECT_LOCKED_MASK (((ULONG_PTR)-1) - 1)
-
+static KPH_OBJECT_TYPE KphpObjectTypes[13] = { 0 };
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
+static volatile LONG KphpObjectTypeCount = 0;
 
 /**
  * \brief Creates an object type.
@@ -32,9 +30,8 @@ C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
  * \param[in] TypeInfo The information for the type being created.
  * \param[out] ObjectType Set to a pointer to the object type on success.
  */
-VOID
-KphCreateObjectType(
-    _In_ PUNICODE_STRING TypeName,
+VOID KphCreateObjectType(
+    _In_ PCUNICODE_STRING TypeName,
     _In_ PKPH_OBJECT_TYPE_INFO TypeInfo,
     _Outptr_ PKPH_OBJECT_TYPE* ObjectType
     )
@@ -78,8 +75,7 @@ KphCreateObjectType(
  * \return Successful or errant status.
  */
 _Must_inspect_result_
-NTSTATUS
-KphCreateObject(
+NTSTATUS KphCreateObject(
     _In_ PKPH_OBJECT_TYPE ObjectType,
     _In_ ULONG ObjectBodySize,
     _Outptr_result_nullonfailure_ PVOID* Object,
@@ -128,8 +124,7 @@ KphCreateObject(
  *
  * \param[in] Object The object to reference.
  */
-VOID
-KphReferenceObject(
+VOID KphReferenceObject(
     _In_ PVOID Object
     )
 {
@@ -145,8 +140,7 @@ KphReferenceObject(
  *
  * \param[in] Object The object to dereference.
  */
-VOID
-KphDereferenceObject(
+VOID KphDereferenceObject(
     _In_ PVOID Object
     )
 {
@@ -184,8 +178,7 @@ KphDereferenceObject(
  * \return Pointer to the type of object.
  */
 _Must_inspect_result_
-PKPH_OBJECT_TYPE
-KphGetObjectType(
+PKPH_OBJECT_TYPE KphGetObjectType(
     _In_ PVOID Object
     )
 {
@@ -209,14 +202,21 @@ KphGetObjectType(
  * \brief Acquires the atomic object reference lock.
  *
  * \param[in,out] ObjectRef The object reference to acquire the lock for.
+ *
+ * \return The previous IRQL that should be passed when releasing the lock.
  */
-_Acquires_lock_(_Global_critical_region_)
-VOID KphpAtomicAcquireObjectLock(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
-    PKPH_ATOMIC_OBJECT_REF ObjectRef
+_Requires_lock_not_held_(*ObjectRef)
+_Acquires_lock_(*ObjectRef)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_saves_
+_IRQL_raises_(DISPATCH_LEVEL)
+KIRQL KphpAtomicAcquireObjectLock(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
-    KeEnterCriticalRegion();
+    KIRQL previousIrql;
+
+    previousIrql = KeRaiseIrqlToDpcLevel();
 
     for (;; YieldProcessor())
     {
@@ -242,17 +242,22 @@ VOID KphpAtomicAcquireObjectLock(
             break;
         }
     }
+
+    return previousIrql;
 }
 
 /**
  * \brief Releases the atomic object reference lock.
  *
  * \param[in,out] ObjectRef The object reference to release the lock of.
+ * \param[in] NewIrql The previous IRQL to restore from acquiring the lock.
  */
-_Releases_lock_(_Global_critical_region_)
+_Requires_lock_held_(*Entry)
+_Releases_lock_(*Entry)
+_IRQL_requires_(DISPATCH_LEVEL)
 VOID KphpAtomicReleaseObjectLock(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_)
-    PKPH_ATOMIC_OBJECT_REF Entry
+    _Inout_ PKPH_ATOMIC_OBJECT_REF Entry,
+    _In_ _IRQL_restores_ KIRQL NewIrql
     )
 {
     ULONG_PTR object;
@@ -267,7 +272,7 @@ VOID KphpAtomicReleaseObjectLock(
 
     InterlockedExchangePointer((PVOID*)&Entry->Object, unlocked);
 
-    KeLeaveCriticalRegion();
+    KeLowerIrql(NewIrql);
 }
 
 /**
@@ -277,7 +282,8 @@ VOID KphpAtomicReleaseObjectLock(
  * \details This mechanism provides a light weight and fast way to atomically
  * managed a reference to an object. If an object is currently managed an
  * additional reference to that object is acquired and must be eventually
- * released by calling KphDereferenceObject.
+ * released by calling KphDereferenceObject. The atomic object reference and
+ * stored object must both be allocated from non-paged pool.
  *
  * \param[in] ObjectRef The object reference to retrieve the object from.
  *
@@ -288,9 +294,10 @@ PVOID KphAtomicReferenceObject(
     _In_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
+    KIRQL previousIrql;
     PVOID object;
 
-    KphpAtomicAcquireObjectLock(ObjectRef);
+    previousIrql = KphpAtomicAcquireObjectLock(ObjectRef);
 
     object = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
     if (object)
@@ -298,16 +305,13 @@ PVOID KphAtomicReferenceObject(
         KphReferenceObject(object);
     }
 
-    KphpAtomicReleaseObjectLock(ObjectRef);
+    KphpAtomicReleaseObjectLock(ObjectRef, previousIrql);
 
     return object;
 }
 
 /**
  * \brief Stores an object to an atomically managed object reference.
- *
- * \details This mechanism provides a light weight and fast way to atomically
- * managed a reference to an object.
  *
  * \param[in,out] ObjectRef The object reference to assign the object to.
  * \param[in] Object Optional object to reference and assign.
@@ -319,10 +323,11 @@ PVOID KphpAtomicStoreObjectReference(
     _In_opt_ PVOID Object
     )
 {
+    KIRQL previousIrql;
     ULONG_PTR object;
     PVOID previous;
 
-    KphpAtomicAcquireObjectLock(ObjectRef);
+    previousIrql = KphpAtomicAcquireObjectLock(ObjectRef);
 
     previous = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
 
@@ -330,7 +335,7 @@ PVOID KphpAtomicStoreObjectReference(
 
     InterlockedExchangePointer((PVOID*)&ObjectRef->Object, (PVOID)object);
 
-    KphpAtomicReleaseObjectLock(ObjectRef);
+    KphpAtomicReleaseObjectLock(ObjectRef, previousIrql);
 
     return previous;
 }
@@ -342,6 +347,8 @@ PVOID KphpAtomicStoreObjectReference(
  * managed a reference to an object. Any previously managed reference will be
  * released. If an object is provided, this function will acquire an additional
  * reference to the object, the caller should still release their reference.
+ * The atomic object reference and stored object must both be allocated from
+ * non-paged pool.
  *
  * \param[in,out] ObjectRef The object reference to assign the object to.
  * \param[in] Object Optional object to reference and assign, if NULL the
@@ -375,6 +382,8 @@ VOID KphAtomicAssignObjectReference(
  * will assume ownership over the reference, the caller should *not* release
  * their reference. If an object is returned the ownership of it is transferred
  * to the caller, the caller is responsible for eventually releasing it.
+ * The atomic object reference and stored object must both be allocated from
+ * non-paged pool.
  *
  * \param[in,out] ObjectRef The object reference to move the object into.
  * \param[in] Object Optional object move into the object reference.

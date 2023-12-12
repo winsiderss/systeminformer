@@ -237,6 +237,20 @@ VOID KsiQueueWorkItem(
     ExQueueWorkItem(&WorkItem->WorkItem, QueueType);
 }
 
+NTSTATUS DllUnload(
+    VOID
+    )
+{
+    //
+    // N.B. It used to be that not specifying a DllUnload routine would
+    // enforce that your export driver can not be unloaded by not activating
+    // the reference count mechanism. 10.0.25997.1010 changed this so if you
+    // do not specify DllUnload the driver can be unmapped. This is resolved
+    // by implementing DllUnload and returning an error.
+    //
+    return STATUS_NOT_SUPPORTED;
+}
+
 NTSTATUS DllInitialize(
     _In_ PUNICODE_STRING RegistryPath
     )

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
@@ -67,8 +67,16 @@
 
 // informer
 
-#define KPH_TAG_INFORMER_OB_NAME                '0IpK'
+#define KPH_TAG_OB_OBJECT_NAME                  '0IpK'
 #define KPH_TAG_PROCESS_CREATE_APC              '1IpK'
+#define KPH_TAG_FLT_STREAMHANDLE_CONTEXT        '2IpK'
+#define KPH_TAG_FLT_FILE_NAME                   '3IpK'
+#define KPH_TAG_FLT_CACHED_FILE_NAME            '4IpK'
+#define KPH_TAG_FLT_COMPLETION_CONTEXT          '5IpK'
+#define KPH_TAG_REG_CALL_CONTEXT                '6IpK'
+#define KPH_TAG_REG_OBJECT_NAME                 '7IpK'
+#define KPH_TAG_REG_VALUE_NAMES                 '8IpK'
+#define KPH_TAG_OB_CALL_CONTEXT                 '9IpK'
 
 // cid_tracking
 
@@ -110,3 +118,8 @@
 // back_trace
 
 #define KPH_TAG_BACK_TRACE_OBJECT               '0BpK'
+
+// kphtoken
+
+#define KPH_TAG_SESSION_TOKEN_OBJECT            '0tpK'
+#define KPH_TAG_SESSION_TOKEN_SIGNATURE         '1tpK'

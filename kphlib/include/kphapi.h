@@ -85,6 +85,8 @@ typedef enum _KPH_PROCESS_INFORMATION_CLASS
     KphProcessPriorityClassEx,       // s: PROCESS_PRIORITY_CLASS_EX
     KphProcessEmptyWorkingSet,       // s
     KphProcessWSLProcessId,          // q: ULONG
+    KphProcessSequenceNumber,        // q: ULONG64
+    KphProcessStartKey,              // q: ULONG64
 } KPH_PROCESS_INFORMATION_CLASS;
 
 typedef enum _KPH_THREAD_INFORMATION_CLASS
@@ -405,39 +407,231 @@ typedef struct _KPH_INFORMER_SETTINGS
 {
     union
     {
-        volatile ULONGLONG Flags;
+        volatile ULONG64 Flags;
         struct
         {
-            ULONGLONG ProcessCreate : 1;
-            ULONGLONG ProcessExit : 1;
-            ULONGLONG ThreadCreate : 1;
-            ULONGLONG ThreadExecute : 1;
-            ULONGLONG ThreadExit : 1;
-            ULONGLONG ImageLoad : 1;
-            ULONGLONG DebugPrint : 1;
-            ULONGLONG ProcessHandlePreCreate : 1;
-            ULONGLONG ProcessHandlePostCreate : 1;
-            ULONGLONG ProcessHandlePreDuplicate : 1;
-            ULONGLONG ProcessHandlePostDuplicate : 1;
-            ULONGLONG ThreadHandlePreCreate : 1;
-            ULONGLONG ThreadHandlePostCreate : 1;
-            ULONGLONG ThreadHandlePreDuplicate : 1;
-            ULONGLONG ThreadHandlePostDuplicate : 1;
-            ULONGLONG DesktopHandlePreCreate : 1;
-            ULONGLONG DesktopHandlePostCreate : 1;
-            ULONGLONG DesktopHandlePreDuplicate : 1;
-            ULONGLONG DesktopHandlePostDuplicate : 1;
-            ULONGLONG EnableStackTraces : 1;
-            ULONGLONG Reserved : 44;
+            ULONG64 ProcessCreate : 1;
+            ULONG64 ProcessExit : 1;
+            ULONG64 ThreadCreate : 1;
+            ULONG64 ThreadExecute : 1;
+            ULONG64 ThreadExit : 1;
+            ULONG64 ImageLoad : 1;
+            ULONG64 DebugPrint : 1;
+            ULONG64 HandlePreCreateProcess : 1;
+            ULONG64 HandlePostCreateProcess : 1;
+            ULONG64 HandlePreDuplicateProcess : 1;
+            ULONG64 HandlePostDuplicateProcess : 1;
+            ULONG64 HandlePreCreateThread : 1;
+            ULONG64 HandlePostCreateThread : 1;
+            ULONG64 HandlePreDuplicateThread : 1;
+            ULONG64 HandlePostDuplicateThread : 1;
+            ULONG64 HandlePreCreateDesktop : 1;
+            ULONG64 HandlePostCreateDesktop : 1;
+            ULONG64 HandlePreDuplicateDesktop : 1;
+            ULONG64 HandlePostDuplicateDesktop : 1;
+            ULONG64 EnableStackTraces : 1;
+            ULONG64 EnableProcessCreateReply : 1;
+            ULONG64 FileEnablePreCreateReply : 1;
+            ULONG64 FileEnablePostCreateReply : 1;
+            ULONG64 FileEnablePostFileNames : 1;
+            ULONG64 FileEnablePagingIo : 1;
+            ULONG64 FileEnableSyncPagingIo : 1;
+            ULONG64 FileEnableIoControlBuffers : 1;
+            ULONG64 FileEnableFsControlBuffers : 1;
+            ULONG64 FileEnableDirControlBuffers : 1;
+            ULONG64 FilePreCreate : 1;
+            ULONG64 FilePostCreate : 1;
+            ULONG64 FilePreCreateNamedPipe : 1;
+            ULONG64 FilePostCreateNamedPipe : 1;
+            ULONG64 FilePreClose : 1;
+            ULONG64 FilePostClose : 1;
+            ULONG64 FilePreRead : 1;
+            ULONG64 FilePostRead : 1;
+            ULONG64 FilePreWrite : 1;
+            ULONG64 FilePostWrite : 1;
+            ULONG64 FilePreQueryInformation : 1;
+            ULONG64 FilePostQueryInformation : 1;
+            ULONG64 FilePreSetInformation : 1;
+            ULONG64 FilePostSetInformation : 1;
+            ULONG64 FilePreQueryEa : 1;
+            ULONG64 FilePostQueryEa : 1;
+            ULONG64 FilePreSetEa : 1;
+            ULONG64 FilePostSetEa : 1;
+            ULONG64 FilePreFlushBuffers : 1;
+            ULONG64 FilePostFlushBuffers : 1;
+            ULONG64 FilePreQueryVolumeInformation : 1;
+            ULONG64 FilePostQueryVolumeInformation : 1;
+            ULONG64 FilePreSetVolumeInformation : 1;
+            ULONG64 FilePostSetVolumeInformation : 1;
+            ULONG64 FilePreDirectoryControl : 1;
+            ULONG64 FilePostDirectoryControl : 1;
+            ULONG64 FilePreFileSystemControl : 1;
+            ULONG64 FilePostFileSystemControl : 1;
+            ULONG64 FilePreDeviceControl : 1;
+            ULONG64 FilePostDeviceControl : 1;
+            ULONG64 FilePreInternalDeviceControl : 1;
+            ULONG64 FilePostInternalDeviceControl : 1;
+            ULONG64 FilePreShutdown : 1;
+            ULONG64 FilePostShutdown : 1;
+            ULONG64 FilePreLockControl : 1;
+        };
+    };
+    union
+    {
+        volatile ULONG64 Flags2;
+        struct
+        {
+            ULONG64 FilePostLockControl : 1;
+            ULONG64 FilePreCleanup : 1;
+            ULONG64 FilePostCleanup : 1;
+            ULONG64 FilePreCreateMailslot : 1;
+            ULONG64 FilePostCreateMailslot : 1;
+            ULONG64 FilePreQuerySecurity : 1;
+            ULONG64 FilePostQuerySecurity : 1;
+            ULONG64 FilePreSetSecurity : 1;
+            ULONG64 FilePostSetSecurity : 1;
+            ULONG64 FilePrePower : 1;
+            ULONG64 FilePostPower : 1;
+            ULONG64 FilePreSystemControl : 1;
+            ULONG64 FilePostSystemControl : 1;
+            ULONG64 FilePreDeviceChange : 1;
+            ULONG64 FilePostDeviceChange : 1;
+            ULONG64 FilePreQueryQuota : 1;
+            ULONG64 FilePostQueryQuota : 1;
+            ULONG64 FilePreSetQuota : 1;
+            ULONG64 FilePostSetQuota : 1;
+            ULONG64 FilePrePnp : 1;
+            ULONG64 FilePostPnp : 1;
+            ULONG64 FilePreAcquireForSectionSync : 1;
+            ULONG64 FilePostAcquireForSectionSync : 1;
+            ULONG64 FilePreReleaseForSectionSync : 1;
+            ULONG64 FilePostReleaseForSectionSync : 1;
+            ULONG64 FilePreAcquireForModWrite : 1;
+            ULONG64 FilePostAcquireForModWrite : 1;
+            ULONG64 FilePreReleaseForModWrite : 1;
+            ULONG64 FilePostReleaseForModWrite : 1;
+            ULONG64 FilePreAcquireForCcFlush : 1;
+            ULONG64 FilePostAcquireForCcFlush : 1;
+            ULONG64 FilePreReleaseForCcFlush : 1;
+            ULONG64 FilePostReleaseForCcFlush : 1;
+            ULONG64 FilePreQueryOpen : 1;
+            ULONG64 FilePostQueryOpen : 1;
+            ULONG64 FilePreFastIoCheckIfPossible : 1;
+            ULONG64 FilePostFastIoCheckIfPossible : 1;
+            ULONG64 FilePreNetworkQueryOpen : 1;
+            ULONG64 FilePostNetworkQueryOpen : 1;
+            ULONG64 FilePreMdlRead : 1;
+            ULONG64 FilePostMdlRead : 1;
+            ULONG64 FilePreMdlReadComplete : 1;
+            ULONG64 FilePostMdlReadComplete : 1;
+            ULONG64 FilePrePrepareMdlWrite : 1;
+            ULONG64 FilePostPrepareMdlWrite : 1;
+            ULONG64 FilePreMdlWriteComplete : 1;
+            ULONG64 FilePostMdlWriteComplete : 1;
+            ULONG64 FilePreVolumeMount : 1;
+            ULONG64 FilePostVolumeMount : 1;
+            ULONG64 FilePreVolumeDismount : 1;
+            ULONG64 FilePostVolumeDismount : 1;
+            ULONG64 RegEnablePostObjectNames : 1;
+            ULONG64 RegEnablePostValueNames : 1;
+            ULONG64 RegEnableValueBuffers : 1;
+            ULONG64 RegPreDeleteKey : 1;
+            ULONG64 RegPostDeleteKey : 1;
+            ULONG64 RegPreSetValueKey : 1;
+            ULONG64 RegPostSetValueKey : 1;
+            ULONG64 RegPreDeleteValueKey : 1;
+            ULONG64 RegPostDeleteValueKey : 1;
+            ULONG64 RegPreSetInformationKey : 1;
+            ULONG64 RegPostSetInformationKey : 1;
+            ULONG64 RegPreRenameKey : 1;
+            ULONG64 RegPostRenameKey : 1;
+        };
+    };
+    union
+    {
+        volatile ULONG64 Flags3;
+        struct
+        {
+            ULONG64 RegPreEnumerateKey : 1;
+            ULONG64 RegPostEnumerateKey : 1;
+            ULONG64 RegPreEnumerateValueKey : 1;
+            ULONG64 RegPostEnumerateValueKey : 1;
+            ULONG64 RegPreQueryKey : 1;
+            ULONG64 RegPostQueryKey : 1;
+            ULONG64 RegPreQueryValueKey : 1;
+            ULONG64 RegPostQueryValueKey : 1;
+            ULONG64 RegPreQueryMultipleValueKey : 1;
+            ULONG64 RegPostQueryMultipleValueKey : 1;
+            ULONG64 RegPreKeyHandleClose : 1;
+            ULONG64 RegPostKeyHandleClose : 1;
+            ULONG64 RegPreCreateKey : 1;
+            ULONG64 RegPostCreateKey : 1;
+            ULONG64 RegPreOpenKey : 1;
+            ULONG64 RegPostOpenKey : 1;
+            ULONG64 RegPreFlushKey : 1;
+            ULONG64 RegPostFlushKey : 1;
+            ULONG64 RegPreLoadKey : 1;
+            ULONG64 RegPostLoadKey : 1;
+            ULONG64 RegPreUnLoadKey : 1;
+            ULONG64 RegPostUnLoadKey : 1;
+            ULONG64 RegPreQueryKeySecurity : 1;
+            ULONG64 RegPostQueryKeySecurity : 1;
+            ULONG64 RegPreSetKeySecurity : 1;
+            ULONG64 RegPostSetKeySecurity : 1;
+            ULONG64 RegPreRestoreKey : 1;
+            ULONG64 RegPostRestoreKey : 1;
+            ULONG64 RegPreSaveKey : 1;
+            ULONG64 RegPostSaveKey : 1;
+            ULONG64 RegPreReplaceKey : 1;
+            ULONG64 RegPostReplaceKey : 1;
+            ULONG64 RegPreQueryKeyName : 1;
+            ULONG64 RegPostQueryKeyName : 1;
+            ULONG64 RegPreSaveMergedKey : 1;
+            ULONG64 RegPostSaveMergedKey : 1;
+            ULONG64 Reserved : 28;
         };
     };
 } KPH_INFORMER_SETTINGS, *PKPH_INFORMER_SETTINGS;
+typedef const KPH_INFORMER_SETTINGS* PCKPH_INFORMER_SETTINGS;
 
 typedef struct _KPH_MESSAGE_TIMEOUTS
 {
     LARGE_INTEGER AsyncTimeout;
     LARGE_INTEGER DefaultTimeout;
     LARGE_INTEGER ProcessCreateTimeout;
+    LARGE_INTEGER FilePreCreateTimeout;
+    LARGE_INTEGER FilePostCreateTimeout;
 } KPH_MESSAGE_TIMEOUTS, *PKPH_MESSAGE_TIMEOUTS;
+
+// Parameters
+
+typedef union _KPH_PARAMETER_FLAGS
+{
+    ULONG Flags;
+    struct
+    {
+        ULONG DisableImageLoadProtection : 1;
+        ULONG RandomizedPoolTag : 1;
+        ULONG DynDataNoEmbedded : 1;
+        ULONG Reserved : 29;
+    };
+} KPH_PARAMETER_FLAGS, *PKPH_PARAMETER_FLAGS;
+
+// Session Token
+
+#define KPH_TOKEN_PRIVILEGE_TERMINATE 0x00000001ul
+#define KPH_TOKEN_VALID_PRIVILEGES    (KPH_TOKEN_PRIVILEGE_TERMINATE)
+
+#include <pshpack1.h>
+typedef struct _KPH_SESSION_ACCESS_TOKEN
+{
+    LARGE_INTEGER Expiry;
+    ULONG Privileges;
+    LONG Uses;
+    GUID Identifier;
+    BYTE Material[32];
+} KPH_SESSION_ACCESS_TOKEN, *PKPH_SESSION_ACCESS_TOKEN;
+C_ASSERT(sizeof(KPH_SESSION_ACCESS_TOKEN) == 64);
+#include <poppack.h>
 
 #pragma warning(pop)

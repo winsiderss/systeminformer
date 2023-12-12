@@ -5,12 +5,11 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
 
@@ -59,7 +58,7 @@ NTSTATUS KphpCheckFileHandleForQuery(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -140,7 +139,7 @@ NTSTATUS KphQueryInformationFile(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -290,7 +289,7 @@ NTSTATUS KphQueryVolumeInformationFile(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -424,7 +423,7 @@ NTSTATUS KphCreateFile(
     {
         if (ExGetPreviousMode() == KernelMode)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "Unexpected previous mode");
 
@@ -437,7 +436,7 @@ NTSTATUS KphCreateFile(
                         IO_STOP_ON_SYMLINK |
                         IO_IGNORE_SHARE_ACCESS_CHECK))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           GENERAL,
                           "Invalid options 0x%lx",
                           Options);
