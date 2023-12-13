@@ -839,6 +839,22 @@ ZwConvertBetweenAuxiliaryCounterAndPerformanceCounter(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwCopyFileChunk(
+    _In_ HANDLE SourceHandle,
+    _In_ HANDLE DestinationHandle,
+    _In_opt_ HANDLE EventHandle,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG Length,
+    _In_ PLARGE_INTEGER SourceOffset,
+    _In_ PLARGE_INTEGER DestOffset,
+    _In_opt_ PULONG SourceKey,
+    _In_opt_ PULONG DestKey,
+    _In_ ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwCreateDebugObject(
     _Out_ PHANDLE DebugObjectHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -940,6 +956,17 @@ ZwCreateIoCompletion(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ ULONG Count
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCreateIoRing(
+    _Out_ PHANDLE IoRingHandle,
+    _In_ ULONG CreateParametersLength,
+    _In_ PVOID CreateParameters,
+    _In_ ULONG OutputParametersLength,
+    _Out_ PVOID OutputParameters
     );
 
 NTSYSCALLAPI
@@ -2017,7 +2044,8 @@ NTAPI
 ZwInitializeNlsFiles(
     _Out_ PVOID *BaseAddress,
     _Out_ PLCID DefaultLocaleId,
-    _Out_ PLARGE_INTEGER DefaultCasingTableSize
+    _Out_ PLARGE_INTEGER DefaultCasingTableSize,
+    _Out_opt_ PULONG CurrentNLSVersion
     );
 
 NTSYSCALLAPI
@@ -3103,6 +3131,14 @@ ZwQueryIoCompletion(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQueryIoRingCapabilities(
+    _In_ SIZE_T IoRingCapabilitiesLength,
+    _Out_ PVOID IoRingCapabilities
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwQueryKey(
     _In_ HANDLE KeyHandle,
     _In_ KEY_INFORMATION_CLASS KeyInformationClass,
@@ -3999,6 +4035,16 @@ ZwSetInformationFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetInformationIoRing(
+    _In_ HANDLE IoRingHandle,
+    _In_ ULONG IoRingInformationClass,
+    _In_ ULONG IoRingInformationLength,
+    _In_ PVOID IoRingInformation
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwSetInformationJobObject(
     _In_ HANDLE JobHandle,
     _In_ JOBOBJECTINFOCLASS JobObjectInformationClass,
@@ -4379,6 +4425,16 @@ NTSTATUS
 NTAPI
 ZwStopProfile(
     _In_ HANDLE ProfileHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSubmitIoRing(
+    _In_ HANDLE IoRingHandle,
+    _In_ ULONG Flags,
+    _In_opt_ ULONG WaitOperations,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 NTSYSCALLAPI
