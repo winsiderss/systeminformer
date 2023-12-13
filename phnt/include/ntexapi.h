@@ -1302,10 +1302,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtConvertBetweenAuxiliaryCounterAndPerformanceCounter(
-    _In_opt_ PLARGE_INTEGER AuxiliaryCounterValue,
-    _Inout_ PLARGE_INTEGER PerformanceCounterValue,
-    _Out_ PLARGE_INTEGER PerformanceOrAuxiliaryCounterValue,
-    _Out_ PLARGE_INTEGER ConversionError
+    _In_ BOOLEAN ConvertAuxiliaryToPerformanceCounter,
+    _In_ PLARGE_INTEGER PerformanceOrAuxiliaryCounterValue,
+    _Out_ PLARGE_INTEGER ConvertedValue,
+    _Out_opt_ PLARGE_INTEGER ConversionError
     );
 #endif
 
