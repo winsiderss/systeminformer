@@ -10021,7 +10021,7 @@ RtlUnsubscribeWnfStateChangeNotification(
 
 #if (PHNT_VERSION >= PHNT_WIN11)
 
-NTSYSAPI
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCopyFileChunk(
