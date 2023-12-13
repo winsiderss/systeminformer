@@ -215,7 +215,6 @@ typedef struct _KPH_DYNDATA
             string manifestFile = "kphlib\\kphdyn.xml";
             string headerFile = "kphlib\\include\\kphdyn.h";
             string sourceFile = "kphlib\\kphdyn.c";
-            string configFile = $"{OutDir}\\ksidyn.bin";
 
             GenerateConfig(manifestFile, out byte[] config);
 
@@ -223,6 +222,11 @@ typedef struct _KPH_DYNDATA
             Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
             File.WriteAllText(sourceFile, GenerateSource(BytesToString(config)));
             Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
+
+            if (OutDir.Length == 0)
+                return;
+
+            string configFile = $"{OutDir}\\ksidyn.bin";
 
             if (File.Exists(configFile))
                 File.Delete(configFile);
