@@ -232,7 +232,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                     //LoadCollapseServicesOnStart();
                     //PhExpandAllProcessNodes(TRUE);
                     //if (ToolStatusInterface)
-                    //    PhInvokeCallback(ToolStatusInterface->SearchChangedEvent, PH_AUTO(PhReferenceEmptyString()));
+                    //    PhInvokeCallback(ToolStatusInterface->SearchChangedEvent, NULL);
                 }
                 break;
             }
