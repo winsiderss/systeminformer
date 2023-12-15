@@ -4099,7 +4099,11 @@ NTSTATUS NTAPI PhpDeviceNotifyWorker(
     _In_ PVOID ThreadParameter
     )
 {
+    PH_AUTO_POOL autoPool;
+
     PhSetThreadName(NtCurrentThread(), L"DeviceNotifyWorker");
+
+    PhInitializeAutoPool(&autoPool);
 
     for (;;)
     {
@@ -4127,7 +4131,11 @@ NTSTATUS NTAPI PhpDeviceNotifyWorker(
         PhReleaseFastLockExclusive(&PhpDeviceNotifyLock);
 
         PhpDeviceNotify(&list);
+
+        PhDrainAutoPool(&autoPool);
     }
+
+    PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
 }
