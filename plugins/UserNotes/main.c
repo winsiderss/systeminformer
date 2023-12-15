@@ -2525,7 +2525,7 @@ VOID SearchChangedHandler(
 {
     ULONG_PTR matchHandle = (ULONG_PTR)Parameter;
 
-    if (matchHandle)
+    if (!matchHandle)
     {
         // ToolStatus expanded all nodes for searching, but the search text just became empty. We
         // should re-collapse processes.
