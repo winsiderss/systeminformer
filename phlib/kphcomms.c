@@ -834,11 +834,8 @@ VOID KphCommsStop(
     KphpCommsRegisteredCallback = NULL;
     KphpCommsPortDisconnected = TRUE;
 
-    if (KphpCommsFltPortHandle)
-    {
-        NtClose(KphpCommsFltPortHandle);
-        KphpCommsFltPortHandle = NULL;
-    }
+    NtClose(KphpCommsFltPortHandle);
+    KphpCommsFltPortHandle = NULL;
 
     if (KphpCommsMessages)
     {
