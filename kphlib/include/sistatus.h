@@ -41,8 +41,8 @@
 // Define the facility codes
 //
 #define FACILITY_SI                      0x1
-#define FACILITY_KSI                     0x2
 #define FACILITY_SI_DYNDATA              0x2
+#define FACILITY_KSI                     0x3
 
 
 //
@@ -80,5 +80,14 @@
 // System Informer dynamic data is an invalid length.
 //
 #define STATUS_SI_DYNDATA_INVALID_LENGTH ((NTSTATUS)0xE0020003L)
+
+//
+// MessageId: STATUS_SI_DYNDATA_INVALID_SIGNATURE
+//
+// MessageText:
+//
+// System Informer dynamic data signature is invalid.
+//
+#define STATUS_SI_DYNDATA_INVALID_SIGNATURE ((NTSTATUS)0xE0020004L)
 
 #endif
