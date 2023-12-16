@@ -475,7 +475,7 @@ NTSTATUS KsiReadConfiguration(
         {
             status = PhGetFileData(fileHandle, Data, Length);
 
-            NtClose(fileName);
+            NtClose(fileHandle);
         }
 
         PhDereferenceObject(fileName);
@@ -546,13 +546,19 @@ NTSTATUS KsiGetDynData(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    status = KsiValidateDynamicConfiguration(data, dataLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
     status = KsiReadConfiguration(L"ksidyn.sig", &sig, &sigLength);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = KsiValidateDynamicConfiguration(data, dataLength);
-    if (!NT_SUCCESS(status))
+    if (!sigLength)
+    {
+        status = STATUS_SI_DYNDATA_INVALID_SIGNATURE;
         goto CleanupExit;
+    }
 
     *DynDataLength = dataLength;
     *DynData = data;

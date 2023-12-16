@@ -257,6 +257,7 @@ NTSTATUS KphpActivateDynData(
                           "KphVerifyBuffer failed: %!STATUS!",
                           status);
 
+            status = STATUS_SI_DYNDATA_INVALID_SIGNATURE;
             goto Exit;
         }
     }
@@ -355,9 +356,15 @@ NTSTATUS KphActivateDynData(
     dynData = NULL;
     signature = NULL;
 
-    if (!DynData || !DynDataLength || !Signature || !SignatureLength)
+    if (!DynData || !DynDataLength)
     {
         status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    if (!Signature || !SignatureLength)
+    {
+        status = STATUS_SI_DYNDATA_INVALID_SIGNATURE;
         goto Exit;
     }
 

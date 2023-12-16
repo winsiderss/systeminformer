@@ -24,8 +24,8 @@ SeverityNames = (
 FacilityNames = (
     System          = 0x0
     SystemInformer  = 0x1:FACILITY_SI
-    KSystemInformer = 0x2:FACILITY_KSI
     DynamicData     = 0x2:FACILITY_SI_DYNDATA
+    KSystemInformer = 0x3:FACILITY_KSI
     )
 
 MessageId    = 0x0001
@@ -50,6 +50,14 @@ Severity     = Error
 SymbolicName = STATUS_SI_DYNDATA_INVALID_LENGTH
 Language     = English
 System Informer dynamic data is an invalid length.
+.
+
+MessageId    = 0x0004
+Facility     = DynamicData
+Severity     = Error
+SymbolicName = STATUS_SI_DYNDATA_INVALID_SIGNATURE
+Language     = English
+System Informer dynamic data signature is invalid.
 .
 
 ;#endif

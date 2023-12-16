@@ -7379,6 +7379,7 @@ NTSTATUS PhGetFileData(
     _Out_ PULONG BufferLength
     )
 {
+    NTSTATUS status;
     PSTR data = NULL;
     ULONG allocatedLength;
     ULONG dataLength;
@@ -7390,7 +7391,7 @@ NTSTATUS PhGetFileData(
     data = PhAllocate(allocatedLength);
     dataLength = 0;
 
-    while (NT_SUCCESS(NtReadFile(
+    while (NT_SUCCESS(status = NtReadFile(
         FileHandle,
         NULL,
         NULL,
@@ -7418,30 +7419,32 @@ NTSTATUS PhGetFileData(
         dataLength += returnLength;
     }
 
+    if (status == STATUS_END_OF_FILE)
+    {
+        status = STATUS_SUCCESS;
+    }
+    else if (!NT_SUCCESS(status))
+    {
+        PhFree(data);
+
+        *Buffer = NULL;
+        *BufferLength = 0;
+
+        return status;
+    }
+
     if (allocatedLength < dataLength + sizeof(ANSI_NULL))
     {
         allocatedLength++;
         data = PhReAllocate(data, allocatedLength);
     }
 
-    if (dataLength > 0)
-    {
-        data[dataLength] = ANSI_NULL;
+    data[dataLength] = ANSI_NULL;
 
-        *Buffer = data;
-        *BufferLength = dataLength;
+    *Buffer = data;
+    *BufferLength = dataLength;
 
-        return STATUS_SUCCESS;
-    }
-    else
-    {
-        *Buffer = NULL;
-        *BufferLength = 0;
-
-        PhFree(data);
-
-        return STATUS_UNSUCCESSFUL;
-    }
+    return status;
 }
 
 PVOID PhGetFileText(
@@ -7455,10 +7458,13 @@ PVOID PhGetFileText(
 
     if (NT_SUCCESS(PhGetFileData(FileHandle, &data, &dataLength)))
     {
-        if (Unicode)
-            string = PhConvertUtf8ToUtf16Ex(data, dataLength);
-        else
-            string = PhCreateBytesEx(data, dataLength);
+        if (dataLength)
+        {
+            if (Unicode)
+                string = PhConvertUtf8ToUtf16Ex(data, dataLength);
+            else
+                string = PhCreateBytesEx(data, dataLength);
+        }
 
         PhFree(data);
     }
