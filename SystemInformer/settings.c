@@ -92,6 +92,9 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"FindObjTreeListColumns", L"");
     PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"FindObjWindowSize", L"@96|550,420");
+    PhpAddStringSetting(L"ThreadStacksTreeListColumns", L"");
+    PhpAddIntegerPairSetting(L"ThreadStacksWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"ThreadStacksWindowSize", L"@96|550,420");
     PhpAddStringSetting(L"FileBrowseExecutable", L"%SystemRoot%\\explorer.exe /select,\"%s\"");
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
