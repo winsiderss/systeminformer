@@ -336,6 +336,9 @@
     <ClCompile Include="ksidbg.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="thrdstks.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

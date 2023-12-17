@@ -11,6 +11,7 @@
 #define IDD_PROCHANDLES                 106
 #define IDD_PROCENVIRONMENT             107
 #define IDD_THRDSTACK                   108
+#define IDD_THRDSTACKS                  109
 #define IDC_CPU                         112
 #define IDC_PRIVATEBYTES                113
 #define IDC_IO                          114
@@ -629,6 +630,7 @@
 #define ID_TRAYICONS_COMMITHISTORY      40096
 #define ID_TRAYICONS_PHYSICALMEMORYHISTORY 40097
 #define ID_VIEW_REFRESH                 40098
+#define ID_TOOLS_THREADSTACKS           40100
 #define ID_TOOLS_CREATESERVICE          40101
 #define ID_TOOLS_HIDDENPROCESSES        40102
 #define ID_TOOLS_INSPECTEXECUTABLEFILE  40103

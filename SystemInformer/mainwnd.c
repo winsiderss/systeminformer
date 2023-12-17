@@ -1054,6 +1054,11 @@ VOID PhMwpOnCommand(
             PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, (PVOID)PhMwpUpdateAutomatically, NULL);
         }
         break;
+    case ID_TOOLS_THREADSTACKS:
+        {
+            PhShowThreadStacksDialog();
+        }
+        break;
     case ID_TOOLS_CREATESERVICE:
         {
             PhShowCreateServiceDialog(WindowHandle);
@@ -2710,6 +2715,7 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_CREATESERVICE, L"&Create service...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_LIVEDUMP, L"&Create live dump...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_INSPECTEXECUTABLEFILE, L"Inspect e&xecutable file...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_THREADSTACKS, L"&Search thread stacks", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_HIDDENPROCESSES, L"&Hidden processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);

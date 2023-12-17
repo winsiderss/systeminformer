@@ -842,6 +842,12 @@ VOID PhShowThreadStackDialog(
     _In_ PPH_THREAD_PROVIDER ThreadProvider
     );
 
+// thrdstks
+
+VOID PhShowThreadStacksDialog(
+    VOID
+    );
+
 // tokprp
 
 PPH_STRING PhGetGroupAttributesString(

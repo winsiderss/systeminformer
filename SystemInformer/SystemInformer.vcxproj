@@ -481,6 +481,7 @@
     <ClCompile Include="thrdlist.c" />
     <ClCompile Include="thrdprv.c" />
     <ClCompile Include="thrdstk.c" />
+    <ClCompile Include="thrdstks.c" />
     <ClCompile Include="tokprp.c" />
   </ItemGroup>
   <ItemGroup>
