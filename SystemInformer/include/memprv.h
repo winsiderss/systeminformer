@@ -42,8 +42,17 @@ typedef enum _PH_MEMORY_REGION_TYPE
     GdiSharedHandleTableRegion,
     ShimDataRegion,
     ActivationContextDataRegion,
-    SystemDefaultActivationContextDataRegion
+    WerRegistrationDataRegion,
+    SiloSharedDataRegion,
+    TelemetryCoverageRegion
 } PH_MEMORY_REGION_TYPE;
+
+typedef enum _PH_ACTIVATION_CONTEXT_DATA_TYPE
+{
+    CustomActivationContext,
+    ProcessActivationContext,
+    SystemActivationContext
+} PH_ACTIVATION_CONTEXT_DATA_TYPE;
 
 typedef struct _PH_MEMORY_ITEM
 {
@@ -146,6 +155,10 @@ typedef struct _PH_MEMORY_ITEM
         {
             struct _PH_MEMORY_ITEM *HeapItem;
         } HeapSegment;
+        struct
+        {
+            PH_ACTIVATION_CONTEXT_DATA_TYPE Type;
+        } ActivationContextData;
     } u;
 } PH_MEMORY_ITEM, *PPH_MEMORY_ITEM;
 
