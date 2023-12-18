@@ -579,6 +579,9 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID shimData;
         PVOID activationContextData;
         PVOID defaultActivationContextData;
+        PVOID werRegistrationData;
+        PVOID siloSharedData;
+        PVOID telemetryCoverageData;
 #ifdef _WIN64
         PVOID processPeb32;
         ULONG processHeapsPtr32;
@@ -590,6 +593,9 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG shimData32;
         ULONG activationContextData32;
         ULONG defaultActivationContextData32;
+        ULONG werRegistrationData32;
+        ULONG siloSharedData32;
+        ULONG telemetryCoverageData32;
 #endif
         if (PhGetIntegerSetting(L"EnableHeapMemoryTagging"))
         {
@@ -735,7 +741,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 PhpSetMemoryRegionType(List, shimData, TRUE, ShimDataRegion);
             }
 
-            // Activation context data
+            // Process activation context data
             if (NT_SUCCESS(NtReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, ActivationContextData)),
@@ -744,10 +750,11 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && activationContextData)
             {
-                PhpSetMemoryRegionType(List, activationContextData, TRUE, ActivationContextDataRegion);
+                memoryItem = PhpSetMemoryRegionType(List, activationContextData, TRUE, ActivationContextDataRegion);
+                memoryItem->u.ActivationContextData.Type = ProcessActivationContext;
             }
 
-            // Default activation context data
+            // System-default activation context data
             if (NT_SUCCESS(NtReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, SystemDefaultActivationContextData)),
@@ -756,7 +763,44 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && defaultActivationContextData)
             {
-                PhpSetMemoryRegionType(List, defaultActivationContextData, TRUE, SystemDefaultActivationContextDataRegion);
+                memoryItem = PhpSetMemoryRegionType(List, defaultActivationContextData, TRUE, ActivationContextDataRegion);
+                memoryItem->u.ActivationContextData.Type = SystemActivationContext;
+            }
+
+            // WER registration data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, WerRegistrationData)),
+                &werRegistrationData,
+                sizeof(PVOID),
+                NULL
+                )) && werRegistrationData)
+            {
+                PhpSetMemoryRegionType(List, werRegistrationData, TRUE, WerRegistrationDataRegion);
+            }
+
+            // Silo shared data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, SharedData)),
+                &siloSharedData,
+                sizeof(PVOID),
+                NULL
+                )) && siloSharedData)
+            {
+                PhpSetMemoryRegionType(List, siloSharedData, TRUE, SiloSharedDataRegion);
+            }
+
+            // Telemetry coverage map
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb, FIELD_OFFSET(PEB, TelemetryCoverageHeader)),
+                &telemetryCoverageData,
+                sizeof(PVOID),
+                NULL
+                )) && telemetryCoverageData)
+            {
+                PhpSetMemoryRegionType(List, telemetryCoverageData, TRUE, TelemetryCoverageRegion);
             }
         }
 #ifdef _WIN64
@@ -851,7 +895,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 PhpSetMemoryRegionType(List, UlongToPtr(shimData32), TRUE, ShimDataRegion);
             }
 
-            // Activation context data
+            // Process activation context data
             if (NT_SUCCESS(NtReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, ActivationContextData)),
@@ -860,10 +904,11 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && activationContextData32)
             {
-                PhpSetMemoryRegionType(List, UlongToPtr(activationContextData32), TRUE, ActivationContextDataRegion);
+                memoryItem = PhpSetMemoryRegionType(List, UlongToPtr(activationContextData32), TRUE, ActivationContextDataRegion);
+                memoryItem->u.ActivationContextData.Type = ProcessActivationContext;
             }
 
-            // Default activation context data
+            // System-default activation context data
             if (NT_SUCCESS(NtReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, SystemDefaultActivationContextData)),
@@ -872,7 +917,44 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && defaultActivationContextData32)
             {
-                PhpSetMemoryRegionType(List, UlongToPtr(defaultActivationContextData32), TRUE, SystemDefaultActivationContextDataRegion);
+                memoryItem = PhpSetMemoryRegionType(List, UlongToPtr(defaultActivationContextData32), TRUE, ActivationContextDataRegion);
+                memoryItem->u.ActivationContextData.Type = SystemActivationContext;
+            }
+
+            // WER registration data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, WerRegistrationData)),
+                &werRegistrationData32,
+                sizeof(ULONG),
+                NULL
+                )) && werRegistrationData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(werRegistrationData32), TRUE, WerRegistrationDataRegion);
+            }
+
+            // Silo shared data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, SharedData)),
+                &siloSharedData32,
+                sizeof(ULONG),
+                NULL
+                )) && siloSharedData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(siloSharedData32), TRUE, SiloSharedDataRegion);
+            }
+
+            // Telemetry coverage map
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(processPeb32, UFIELD_OFFSET(PEB32, TelemetryCoverageHeader)),
+                &telemetryCoverageData32,
+                sizeof(ULONG),
+                NULL
+                )) && telemetryCoverageData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(telemetryCoverageData32), TRUE, TelemetryCoverageRegion);
             }
         }
 #endif
@@ -1000,6 +1082,23 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                         memoryItem->u.HeapSegment.HeapItem = heapMemoryItem;
                         continue;
                     }
+                }
+            }
+        }
+
+        if (FlagOn(memoryItem->Type, MEM_MAPPED) &&
+            memoryItem->AllocationProtect == PAGE_READONLY &&
+            memoryItem->AllocationBaseItem == memoryItem)
+        {
+            ACTIVATION_CONTEXT_DATA buffer;
+
+            if (NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, memoryItem->BaseAddress, &buffer, sizeof(buffer), NULL)))
+            {
+                if (buffer.Magic == ACTIVATION_CONTEXT_DATA_MAGIC)
+                {
+                    memoryItem->RegionType = ActivationContextDataRegion;
+                    memoryItem->u.ActivationContextData.Type = CustomActivationContext;
+                    continue;
                 }
             }
         }

@@ -597,9 +597,21 @@ PPH_STRING PhGetMemoryRegionUseText(
     case ShimDataRegion:
         return PhFormatString(L"Shim data");
     case ActivationContextDataRegion:
-        return PhFormatString(L"Activation context data");
-    case SystemDefaultActivationContextDataRegion:
-        return PhFormatString(L"Default activation context data");
+        switch (MemoryItem->u.ActivationContextData.Type)
+        {
+        case ProcessActivationContext:
+            return PhFormatString(L"Process activation context data");
+        case SystemActivationContext:
+            return PhFormatString(L"System activation context data");
+        default:
+            return PhFormatString(L"Activation context data");
+        }
+    case WerRegistrationDataRegion:
+        return PhFormatString(L"WER registration data");
+    case SiloSharedDataRegion:
+        return PhFormatString(L"Silo shared data");
+    case TelemetryCoverageRegion:
+        return PhFormatString(L"Telemetry coverage map");
     default:
         return NULL;
     }

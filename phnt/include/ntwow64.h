@@ -302,7 +302,7 @@ typedef struct _PEB32
     WOW64_POINTER(PVOID) TlsBitmap;
     ULONG TlsBitmapBits[2];
     WOW64_POINTER(PVOID) ReadOnlySharedMemoryBase;
-    WOW64_POINTER(PVOID) HotpatchInformation;
+    WOW64_POINTER(PVOID) SharedData;
     WOW64_POINTER(PVOID *) ReadOnlyStaticServerData;
     WOW64_POINTER(PVOID) AnsiCodePageData;
     WOW64_POINTER(PVOID) OemCodePageData;
