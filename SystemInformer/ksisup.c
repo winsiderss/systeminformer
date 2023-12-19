@@ -172,10 +172,38 @@ VOID PhpShowKsiMessage(
 
     if (Status != 0)
     {
-        if (!(errorMessage = PhGetStatusMessage(Status, 0)))
-            errorMessage = PhGetStatusMessage(0, Status);
+        switch (Status)
+        {
+        case STATUS_NO_SUCH_FILE:
+            errorMessage = PhCreateString(L"The file does not exist.");
+            break;
+        default:
+            if (!(errorMessage = PhGetStatusMessage(Status, 0)))
+                errorMessage = PhGetStatusMessage(0, Status);
+            break;
+        }
 
-        PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(errorMessage, L"Unknown error."));
+        if (errorMessage)
+        {
+            PH_STRINGREF firstPart;
+            PH_STRINGREF secondPart;
+
+            // sanitize format specifiers
+
+            secondPart = errorMessage->sr;
+            while (PhSplitStringRefAtChar(&secondPart, L'%', &firstPart, &secondPart))
+            {
+                PhAppendStringBuilder(&stringBuilder, &firstPart);
+                PhAppendStringBuilder2(&stringBuilder, L"%%");
+            }
+
+            PhAppendStringBuilder(&stringBuilder, &firstPart);
+        }
+        else
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"Unknown error.");
+        }
+
         PhAppendFormatStringBuilder(&stringBuilder, L" (0x%08x)", Status);
         PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
     }
