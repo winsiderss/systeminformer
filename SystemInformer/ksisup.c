@@ -425,7 +425,14 @@ BOOLEAN PhDoesOldKsiExist(
 
     if (fileName = PhConcatStringRef2(&applicationDirectory->sr, &ksiOld))
     {
-        result = PhDoesFileExist(&fileName->sr);
+        if (result = PhDoesFileExist(&fileName->sr))
+        {
+            // If the file exists try to delete it. If we can't a reboot is
+            // still required since it's likely still mapped into the kernel.
+            if (NT_SUCCESS(PhDeleteFile(&fileName->sr)))
+                result = FALSE;
+        }
+
         PhDereferenceObject(fileName);
     }
 
