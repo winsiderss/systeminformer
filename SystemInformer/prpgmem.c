@@ -934,13 +934,13 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             }
 
                             if (id != ULONG_MAX)
-                                break;
+                            {
+                                PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
+                                PhSaveSettingsMemoryList(&memoryContext->ListContext);
 
-                            PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
-                            PhSaveSettingsMemoryList(&memoryContext->ListContext);
-
-                            PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
-                            PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
+                                PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
+                                PhApplyTreeNewFilters(&memoryContext->ListContext.TreeFilterSupport);
+                            }
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_ZERO_PAD_ADDRESSES)
                         {
