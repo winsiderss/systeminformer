@@ -523,6 +523,8 @@ VOID NTAPI PhpProcessMemorySearchControlCallback(
 
     assert(memoryContext);
 
+    memoryContext->SearchMatchHandle = MatchHandle;
+
     // Expand any hidden nodes to make search results visible.
     PhExpandAllMemoryNodes(&memoryContext->ListContext, TRUE);
 
