@@ -142,6 +142,8 @@ typedef struct _PH_THREAD_STACKS_CONTEXT
     HWND SearchWindowHandle;
     ULONG_PTR SearchMatchHandle;
 
+    ULONG MessageCount;
+    ULONG LastMessageCount;
     PPH_STRING StatusMessage;
     PPH_STRING SymbolMessage;
     PH_QUEUED_LOCK MessageLock;
@@ -333,6 +335,7 @@ VOID PhpThreadStacksMessage(
 
     PhAcquireQueuedLockExclusive(&context->MessageLock);
     PhMoveReference(&context->StatusMessage, message);
+    context->MessageCount++;
     PhReleaseQueuedLockExclusive(&context->MessageLock);
 }
 
@@ -1593,6 +1596,7 @@ VOID PhpThreadStacksSymbolProviderEventCallback(
 
     PhAcquireQueuedLockExclusive(&context->MessageLock);
     PhMoveReference(&context->SymbolMessage, statusMessage);
+    context->MessageCount++;
     PhReleaseQueuedLockExclusive(&context->MessageLock);
 }
 
@@ -1671,7 +1675,7 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
 
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
-            PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
+            PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 200, NULL);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -1731,31 +1735,41 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
         return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_TIMER:
         {
-            PPH_STRING message;
-            PPH_STRING statusMessage;
-            PPH_STRING symbolMessage;
-            PH_FORMAT format[3];
-            ULONG count = 0;
+            PPH_STRING statusMessage = NULL;
+            PPH_STRING symbolMessage = NULL;
 
             PhAcquireQueuedLockExclusive(&context->MessageLock);
-            statusMessage = PhReferenceObject(context->StatusMessage);
-            symbolMessage = PhReferenceObject(context->SymbolMessage);
+            if (context->MessageCount != context->LastMessageCount)
+            {
+                context->LastMessageCount = context->MessageCount;
+                statusMessage = PhReferenceObject(context->StatusMessage);
+                symbolMessage = PhReferenceObject(context->SymbolMessage);
+            }
             PhReleaseQueuedLockExclusive(&context->MessageLock);
 
-            PhInitFormatSR(&format[count++], statusMessage->sr);
-            if (symbolMessage->Length)
+            if (statusMessage)
             {
-                PhInitFormatS(&format[count++], L" - ");
-                PhInitFormatSR(&format[count++], symbolMessage->sr);
+                PPH_STRING message;
+                PH_FORMAT format[3];
+                ULONG count = 0;
+
+                assert(symbolMessage);
+
+                PhInitFormatSR(&format[count++], statusMessage->sr);
+                if (symbolMessage->Length)
+                {
+                    PhInitFormatS(&format[count++], L" - ");
+                    PhInitFormatSR(&format[count++], symbolMessage->sr);
+                }
+
+                message = PhFormat(format, count, 80);
+
+                SetWindowText(context->MessageHandle, message->Buffer);
+
+                PhDereferenceObject(message);
+                PhDereferenceObject(statusMessage);
+                PhDereferenceObject(symbolMessage);
             }
-
-            message = PhFormat(format, count, 80);
-
-            SetWindowText(context->MessageHandle, message->Buffer);
-
-            PhDereferenceObject(message);
-            PhDereferenceObject(statusMessage);
-            PhDereferenceObject(symbolMessage);
         }
         break;
     case WM_PH_THREAD_STACKS_PUBLISH:
