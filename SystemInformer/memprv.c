@@ -750,8 +750,10 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && activationContextData)
             {
-                memoryItem = PhpSetMemoryRegionType(List, activationContextData, TRUE, ActivationContextDataRegion);
-                memoryItem->u.ActivationContextData.Type = ProcessActivationContext;
+                if (memoryItem = PhpSetMemoryRegionType(List, activationContextData, TRUE, ActivationContextDataRegion))
+                {
+                    memoryItem->u.ActivationContextData.Type = ProcessActivationContext;
+                }
             }
 
             // System-default activation context data
@@ -763,8 +765,10 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && defaultActivationContextData)
             {
-                memoryItem = PhpSetMemoryRegionType(List, defaultActivationContextData, TRUE, ActivationContextDataRegion);
-                memoryItem->u.ActivationContextData.Type = SystemActivationContext;
+                if (memoryItem = PhpSetMemoryRegionType(List, defaultActivationContextData, TRUE, ActivationContextDataRegion))
+                {
+                    memoryItem->u.ActivationContextData.Type = SystemActivationContext;
+                }
             }
 
             // WER registration data
@@ -904,8 +908,10 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && activationContextData32)
             {
-                memoryItem = PhpSetMemoryRegionType(List, UlongToPtr(activationContextData32), TRUE, ActivationContextDataRegion);
-                memoryItem->u.ActivationContextData.Type = ProcessActivationContext;
+                if (memoryItem = PhpSetMemoryRegionType(List, UlongToPtr(activationContextData32), TRUE, ActivationContextDataRegion))
+                {
+                    memoryItem->u.ActivationContextData.Type = ProcessActivationContext;
+                }
             }
 
             // System-default activation context data
@@ -917,8 +923,10 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 NULL
                 )) && defaultActivationContextData32)
             {
-                memoryItem = PhpSetMemoryRegionType(List, UlongToPtr(defaultActivationContextData32), TRUE, ActivationContextDataRegion);
-                memoryItem->u.ActivationContextData.Type = SystemActivationContext;
+                if (memoryItem = PhpSetMemoryRegionType(List, UlongToPtr(defaultActivationContextData32), TRUE, ActivationContextDataRegion))
+                {
+                    memoryItem->u.ActivationContextData.Type = SystemActivationContext;
+                }
             }
 
             // WER registration data
