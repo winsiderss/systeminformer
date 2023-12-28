@@ -4,5 +4,6 @@ EXPORTS
     DllUnload           PRIVATE
     KsiInitializeApc
     KsiInsertQueueApc
+    KsiRemoveQueueApc
     KsiInitializeWorkItem
     KsiQueueWorkItem

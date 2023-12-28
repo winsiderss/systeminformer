@@ -1948,7 +1948,8 @@ typedef enum _KSI_KAPC_CLEANUP_REASON
 {
     KsiApcCleanupKernel,
     KsiApcCleanupNormal,
-    KsiApcCleanupRundown
+    KsiApcCleanupRundown,
+    KsiApcCleanupRemoved
 } KSI_KAPC_CLEANUP_REASON;
 
 typedef
@@ -2000,10 +2001,17 @@ KSISYSAPI
 BOOLEAN
 KSIAPI
 KsiInsertQueueApc(
-    _In_ PKSI_KAPC Apc,
+    _Inout_ PKSI_KAPC Apc,
     _In_opt_ PVOID SystemArgument1,
     _In_opt_ PVOID SystemArgument2,
     _In_ KPRIORITY PriorityBoost
+    );
+
+KSISYSAPI
+NTSTATUS
+KSIAPI
+KsiRemoveQueueApc(
+    _Inout_ PKSI_KAPC Apc
     );
 
 typedef

@@ -489,7 +489,17 @@ NTSTATUS KphCaptureStackBackTraceThread(
                                    Timeout);
     if (status != STATUS_SUCCESS)
     {
+        NTSTATUS removeStatus;
+
         NT_ASSERT(status == STATUS_TIMEOUT);
+
+        removeStatus = KsiRemoveQueueApc(&backTrace->Apc);
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KsiRemoveQueueApc: %!STATUS!",
+                      removeStatus);
+
         goto Exit;
     }
 

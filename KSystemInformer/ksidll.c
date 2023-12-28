@@ -17,6 +17,24 @@
 // be dangerous or impossible.
 //
 
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static BYTE KsipProtectedSection = 0;
+static PMM_PROTECT_DRIVER_SECTION KsipMmProtectDriverSection = NULL;
+static PKE_REMOVE_QUEUE_APC KsipKeRemoveQueueApc = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PVOID KsipGetSystemRoutineAddress(
+    _In_z_ PCWSTR SystemRoutineName
+    )
+{
+    UNICODE_STRING systemRoutineName;
+
+    RtlInitUnicodeString(&systemRoutineName, SystemRoutineName);
+
+    return MmGetSystemRoutineAddress(&systemRoutineName);
+}
+
 //
 // This is an extension of the APC functionality in Windows to enable a driver
 // to be unloaded while there are outstanding APCs on the system which
@@ -29,11 +47,11 @@
 // accordingly in their routines.
 //
 // This extension guarantees that the cleanup routine will always be invoked.
-// Either due to normal APC rundown, immediately after the kernel routine is
-// executed, or (in the case of normal kernel APC execution) after the normal
-// kernel routine executes. KSI_KAPC_CLEANUP_REASON indicates the context
-// in which this is called. Users may choose to implement their own mechanism
-// in the cleanup routine to synchronize with DriverUnload.
+// Either due to normal APC rundown, removal, immediately after the kernel
+// routine is executed, or (in the case of normal kernel APC execution) after
+// the normal kernel routine executes. KSI_KAPC_CLEANUP_REASON indicates the
+// context in which this is called. Users may choose to implement their own
+// mechanism in the cleanup routine to synchronize with DriverUnload.
 //
 
 _Function_class_(KRUNDOWN_ROUTINE)
@@ -153,7 +171,7 @@ VOID KsiInitializeApc(
 }
 
 BOOLEAN KsiInsertQueueApc(
-    _In_ PKSI_KAPC Apc,
+    _Inout_ PKSI_KAPC Apc,
     _In_opt_ PVOID SystemArgument1,
     _In_opt_ PVOID SystemArgument2,
     _In_ KPRIORITY PriorityBoost
@@ -173,6 +191,33 @@ BOOLEAN KsiInsertQueueApc(
     }
 
     return result;
+}
+
+NTSTATUS KsiRemoveQueueApc(
+    _Inout_ PKSI_KAPC Apc
+    )
+{
+    PDRIVER_OBJECT driverObject;
+    PKSI_KCLEANUP_ROUTINE cleanupRoutine;
+
+    if (!KsipKeRemoveQueueApc)
+    {
+        return STATUS_NOINTERFACE;
+    }
+
+    if (!KsipKeRemoveQueueApc(&Apc->Apc))
+    {
+        return STATUS_INVALID_STATE_TRANSITION;
+    }
+
+    driverObject = Apc->DriverObject;
+    cleanupRoutine = (PKSI_KCLEANUP_ROUTINE)Apc->InternalCleanup;
+
+    cleanupRoutine(Apc, KsiApcCleanupRemoved);
+
+    ObDereferenceObjectDeferDelete(driverObject);
+
+    return STATUS_SUCCESS;
 }
 
 //
@@ -258,6 +303,14 @@ NTSTATUS DllInitialize(
     UNREFERENCED_PARAMETER(RegistryPath);
 
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
+
+    KsipMmProtectDriverSection = (PMM_PROTECT_DRIVER_SECTION)KsipGetSystemRoutineAddress(L"MmProtectDriverSection");
+    KsipKeRemoveQueueApc = (PKE_REMOVE_QUEUE_APC)KsipGetSystemRoutineAddress(L"KeRemoveQueueApc");
+
+    if (KsipMmProtectDriverSection)
+    {
+        KsipMmProtectDriverSection(&KsipProtectedSection, 0, 0);
+    }
 
     return STATUS_SUCCESS;
 }
