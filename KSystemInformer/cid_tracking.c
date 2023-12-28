@@ -921,7 +921,17 @@ VOID KphpInitializeThreadContextDynData(
                                    (PLARGE_INTEGER)&KphpCidApcTimeout);
     if (status != STATUS_SUCCESS)
     {
+        NTSTATUS removeStatus;
+
         NT_ASSERT(status == STATUS_TIMEOUT);
+
+        removeStatus = KsiRemoveQueueApc(&apc->Apc);
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "KsiRemoveQueueApc: %!STATUS!",
+                      removeStatus);
+
         goto Exit;
     }
 

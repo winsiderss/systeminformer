@@ -185,9 +185,18 @@ KeInsertQueueApc(
 NTKERNELAPI
 BOOLEAN
 NTAPI
-KeTestAlertThread (
+KeTestAlertThread(
     _In_ KPROCESSOR_MODE Mode
     );
+
+typedef
+_Function_class_(KE_REMOVE_QUEUE_APC)
+BOOLEAN
+NTAPI
+KE_REMOVE_QUEUE_APC(
+    _Inout_ PKAPC Apc
+    );
+typedef KE_REMOVE_QUEUE_APC* PKE_REMOVE_QUEUE_APC;
 
 // OB
 
