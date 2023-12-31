@@ -754,6 +754,23 @@ VOID PhpThreadProviderUpdate(
         // The process doesn't exist anymore. Pretend it does but has no threads.
         process = &localProcess;
         process->NumberOfThreads = 0;
+
+        //
+        // We want dbghelp.dll to release the symbol files so that the exited process symbols can
+        // be rebuilt. This is most common for developers building, inspecting with system informer,
+        // then rebuilding without closing the process properties dialog.
+        //
+        // There are downstream dependencies on the symbol provider and the process handle from it,
+        // so we can't just dereference it immediately here.
+        //
+        // PhUnregisterSymbolProvider will unregister this symbol provider from dbghelp.dll which
+        // will get it to release the symbol files. This gives us the desired result without
+        // breaking downstream logic. The consequence is that symbol resolution downstream will
+        // fail cleanly, but it shouldn't matter in this path as it relies on being able to query
+        // information about the process threads, which no longer exist.
+        //
+        if (threadProvider->SymbolProvider)
+            PhUnregisterSymbolProvider(threadProvider->SymbolProvider);
     }
 
     threads = process->Threads;
