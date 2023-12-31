@@ -546,9 +546,10 @@ BOOLEAN PhpRegisterSymbolProvider(
                 SymRegisterCallbackW64_I(SymbolProvider->ProcessHandle, PhpSymbolCallbackFunction, (ULONG64)SymbolProvider);
 
             PH_UNLOCK_SYMBOLS();
+
+            SymbolProvider->IsRegistered = TRUE;
         }
 
-        SymbolProvider->IsRegistered = TRUE;
 
         PhEndInitOnce(&SymbolProvider->InitOnce);
     }
