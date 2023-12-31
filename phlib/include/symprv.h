@@ -524,6 +524,13 @@ BOOLEAN PhGetDiaSymbolInformation(
     _Out_ PPH_DIA_SYMBOL_INFORMATION SymbolInformation
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhUnregisterSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
 // symprv_std.cpp (dmex)
 
 EXTERN_C VOID PhPrintCurrentStacktrace(
