@@ -1486,9 +1486,9 @@ NTSTATUS PhGetProcessDepStatus(
 
     // Check if execution of data pages is enabled.
     if (executeFlags & MEM_EXECUTE_OPTION_ENABLE)
-        depStatus = 0;
-    else
         depStatus = PH_PROCESS_DEP_ENABLED;
+    else
+        depStatus = 0;
 
     if (executeFlags & MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION)
         depStatus |= PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED;
