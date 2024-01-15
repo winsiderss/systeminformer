@@ -704,7 +704,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             node = (PDEVICE_NODE)contextMenuEvent->Node;
 
             menu = PhCreateEMenu();
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 100, L"Refresh", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 100, L"刷新", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, autoRefresh = PhCreateEMenuItem(0, 101, L"Refresh automatically", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, showDisconnectedDevices = PhCreateEMenuItem(0, 102, L"Show disconnected devices", NULL, NULL), ULONG_MAX);
@@ -1547,7 +1547,7 @@ VOID InitializeDevicesTab(
     DeviceTreeUpdateCachedSettings(TRUE);
 
     RtlZeroMemory(&page, sizeof(PH_MAIN_TAB_PAGE));
-    PhInitializeStringRef(&page.Name, L"Devices");
+    PhInitializeStringRef(&page.Name, L"设备");
     page.Callback = DevicesTabPageCallback;
 
     DevicesAddedTabPage = PhPluginCreateTabPage(&page);

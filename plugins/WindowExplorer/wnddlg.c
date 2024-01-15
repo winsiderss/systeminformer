@@ -70,7 +70,7 @@ VOID WepAddEnumChildWindows(
 HWND WepWindowsDialogHandle = NULL;
 HANDLE WepWindowsDialogThreadHandle = NULL;
 PH_EVENT WepWindowsInitializedEvent = PH_EVENT_INIT;
-PH_STRINGREF WepEmptyWindowsText = PH_STRINGREF_INIT(L"There are no windows to display.");
+PH_STRINGREF WepEmptyWindowsText = PH_STRINGREF_INIT(L"没有可以展示的窗口。");
 #define WE_WM_FINDWINDOW (WM_APP + 502)
 
 NTSTATUS WepShowWindowsDialogThread(
@@ -132,7 +132,7 @@ VOID WeShowWindowsDialog(
         if (!NT_SUCCESS(PhCreateThreadEx(&WepWindowsDialogThreadHandle, WepShowWindowsDialogThread, context)))
         {
             PhFree(context);
-            PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+            PhShowError(ParentWindowHandle, L"%s", L"无法创建窗口。");
             return;
         }
 
@@ -482,12 +482,12 @@ PPH_STRING WepGetWindowTitleForSelector(
     {
     case WeWindowSelectorAll:
         {
-            return PhCreateString(L"Windows - All");
+            return PhCreateString(L"所有窗口");
         }
         break;
     case WeWindowSelectorThread:
         {
-            return PhFormatString(L"Windows - Thread %lu", HandleToUlong(Selector->Thread.ThreadId));
+            return PhFormatString(L"窗口 - 线程 %lu", HandleToUlong(Selector->Thread.ThreadId));
         }
         break;
     case WeWindowSelectorProcess:
@@ -497,16 +497,16 @@ PPH_STRING WepGetWindowTitleForSelector(
             clientId.UniqueProcess = Selector->Process.ProcessId;
             clientId.UniqueThread = NULL;
 
-            return PhConcatStrings2(L"Windows - ", PH_AUTO_T(PH_STRING, PhGetClientIdName(&clientId))->Buffer);
+            return PhConcatStrings2(L"窗口 - ", PH_AUTO_T(PH_STRING, PhGetClientIdName(&clientId))->Buffer);
         }
         break;
     case WeWindowSelectorDesktop:
         {
-            return PhFormatString(L"Windows - Desktop \"%s\"", Selector->Desktop.DesktopName->Buffer);
+            return PhFormatString(L"窗口 - 桌面 \"%s\"", Selector->Desktop.DesktopName->Buffer);
         }
         break;
     default:
-        return PhCreateString(L"Windows");
+        return PhCreateString(L"窗口");
     }
 }
 
@@ -559,19 +559,19 @@ PPH_EMENU WepCreateWindowMenu(
 {
     PPH_EMENU_ITEM menuItem;
 
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_BRINGTOFRONT, L"Bring to front", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_RESTORE, L"Restore", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MINIMIZE, L"Minimize", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MAXIMIZE, L"Maximize", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_CLOSE, L"Close", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_DESTROY, L"Destroy", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_BRINGTOFRONT, L"放到前面", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_RESTORE, L"恢复", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MINIMIZE, L"最小化", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MAXIMIZE, L"最大化", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_CLOSE, L"关闭", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_DESTROY, L"销毁", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
 
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_VISIBLE, L"Visible", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_ENABLED, L"Enabled", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_ALWAYSONTOP, L"Always on top", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_VISIBLE, L"可见", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_ENABLED, L"激活", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_ALWAYSONTOP, L"置顶", NULL, NULL), ULONG_MAX);
 
-    menuItem = PhCreateEMenuItem(0, 0, L"&Opacity", NULL, NULL);
+    menuItem = PhCreateEMenuItem(0, 0, L"透明度(&O)", NULL, NULL);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_10, L"&10%", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_20, L"&20%", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_30, L"&30%", NULL, NULL), ULONG_MAX);
@@ -581,22 +581,23 @@ PPH_EMENU WepCreateWindowMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_70, L"&70%", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_80, L"&80%", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_90, L"&90%", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_OPAQUE, L"&Opaque", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_95, L"&95%", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_OPACITY_OPAQUE, L"不透明(&O)", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, menuItem, ULONG_MAX);
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_INSPECT, L"侦测(&I)", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_SETDPI, L"DPI", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_OPENFILELOCATION, L"Open &file location", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_OPENFILELOCATION, L"打开文件位置(&F)", NULL, NULL), ULONG_MAX);
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_HIGHLIGHT, L"Highlight", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_GOTOPROCESS, L"Go to process...", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_GOTOTHREAD, L"Go to thread...", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_PROPERTIES, L"Properties", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_HIGHLIGHT, L"高亮", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_GOTOPROCESS, L"转到进程...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_GOTOTHREAD, L"转到线程...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_PROPERTIES, L"属性", NULL, NULL), ULONG_MAX);
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_COPY, L"Copy\bCtrl+C", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_COPY, L"复制\bCtrl+C", NULL, NULL), ULONG_MAX);
 
     return WindowMenu;
 }
@@ -728,7 +729,7 @@ VOID WepDestroyRemoteWindow(
 
     if (!NT_SUCCESS(status))
     {
-        PhShowStatus(WindowHandle, L"Unable to destroy the window.", status, 0);
+        PhShowStatus(WindowHandle, L"无法销毁窗口。", status, 0);
     }
 }
 
@@ -831,7 +832,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PhCreateSearchControl(
                 hwndDlg,
                 context->SearchBoxHandle,
-                L"Search Windows (Ctrl+K)",
+                L"搜索窗口 (Ctrl+K)",
                 WepWindowsSearchControlCallback,
                 context
                 );
@@ -1205,6 +1206,18 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     }
                 }
                 break;
+
+            case ID_OPACITY_95:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext)) {
+                        // Add the WS_EX_LAYERED bit so opacity will work.
+                        PhSetWindowExStyle(selectedNode->WindowHandle, WS_EX_LAYERED, WS_EX_LAYERED);
+                        SetLayeredWindowAttributes(selectedNode->WindowHandle, 0, (BYTE)(255 * 0.95), LWA_ALPHA);
+                    }
+                }
+                break;
             case ID_WINDOW_HIGHLIGHT:
                 {
                     PWE_WINDOW_NODE selectedNode;
@@ -1244,7 +1257,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         }
                         else
                         {
-                            PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+                            PhShowError(hwndDlg, L"%s", L"进程不存在。");
                         }
                     }
                 }
@@ -1270,7 +1283,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         }
                         else
                         {
-                            PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+                            PhShowError(hwndDlg, L"%s", L"进程不存在。");
                         }
                     }
                 }
@@ -1327,7 +1340,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         if (!WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly, &selectedNode->ClientId))
                         {
-                            PhShowError(hwndDlg, L"%s", L"The window does not exist.");
+                            PhShowError(hwndDlg, L"%s", L"窗口不存在。");
                         }
                     }
                 }
@@ -1351,8 +1364,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                         while (PhaChoiceDialog(
                             hwndDlg,
-                            L"Enter new Window DPI:",
-                            L"Enter new Window DPI:",
+                            L"输入新的窗口DPI:",
+                            L"输入新的窗口DPI:",
                             NULL,
                             0,
                             NULL,
@@ -1615,7 +1628,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             PhCreateSearchControl(
                 hwndDlg,
                 context->SearchBoxHandle,
-                L"Search Windows (Ctrl+K)",
+                L"搜索窗口 (Ctrl+K)",
                 WepWindowsPageSearchControlCallback,
                 context
                 );
@@ -1972,7 +1985,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                         }
                         else
                         {
-                            PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+                            PhShowError(hwndDlg, L"%s", L"进程不存在。");
                         }
                     }
                 }
@@ -2029,7 +2042,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     {
                         if (!WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly, &selectedNode->ClientId))
                         {
-                            PhShowError(hwndDlg, L"%s", L"The window does not exist.");
+                            PhShowError(hwndDlg, L"%s", L"窗口不存在。");
                         }
                     }
                 }

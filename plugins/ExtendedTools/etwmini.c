@@ -20,12 +20,12 @@ VOID EtEtwMiniInformationInitializing(
 
     memset(&section, 0, sizeof(PH_MINIINFO_LIST_SECTION));
     section.Callback = EtpDiskListSectionCallback;
-    Pointers->CreateListSection(L"Disk", 0, &section);
+    Pointers->CreateListSection(L"存储", 0, &section);
 
     memset(&section, 0, sizeof(PH_MINIINFO_LIST_SECTION));
     section.Callback = EtpNetworkListSectionCallback;
 
-    Pointers->CreateListSection(L"Network", 0, &section);
+    Pointers->CreateListSection(L"网络", 0, &section);
 }
 
 BOOLEAN EtpDiskListSectionCallback(

@@ -51,7 +51,7 @@ VOID EtInitializeDiskTab(
     }
 
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
-    PhInitializeStringRef(&page.Name, L"Disk");
+    PhInitializeStringRef(&page.Name, L"存储");
     page.Callback = EtpDiskPageCallback;
     DiskPage = PhPluginCreateTabPage(&page);
 

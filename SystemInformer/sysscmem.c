@@ -783,7 +783,7 @@ VOID PhSipNotifyPhysicalGraph(
                     {
                         PH_FORMAT format[13];
 
-                        PhInitFormatS(&format[0], L"Physical memory: ");
+                        PhInitFormatS(&format[0], L"物理内存7: ");
                         PhInitFormatSize(&format[1], UInt32x32To64(usedPages, PAGE_SIZE));
                         PhInitFormatC(&format[2], L'\n');
                         PhInitFormatS(&format[3], L"Compressed memory: ");

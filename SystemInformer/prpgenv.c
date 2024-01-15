@@ -687,7 +687,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
     {
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ENV_EDIT, L"Edit", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ENV_DELETE, L"Delete", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ENV_DELETE, L"删除", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     }
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ENV_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -1280,7 +1280,7 @@ VOID PhpInitializeEnvironmentTree(
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_VALUE, TRUE, L"Value", 250, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_VALUE, TRUE, L"值", 250, PH_ALIGN_LEFT, 1, 0);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);

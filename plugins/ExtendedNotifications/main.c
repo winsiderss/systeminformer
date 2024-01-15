@@ -323,28 +323,28 @@ VOID NTAPI ShowOptionsCallback(
         return;
 
     optionsEntry->CreateSection(
-        L"Notifications - Processes",
+        L"通知 - 进程",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PROCESSES),
         ProcessesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
-        L"Notifications - Services",
+        L"通知 - 服务",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_SERVICES),
         ServicesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
-        L"Notifications - Devices",
+        L"通知 - 设备",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_DEVICES),
         DevicesDlgProc,
         NULL
         );
     optionsEntry->CreateSection(
-        L"Notifications - Logging",
+        L"通知 - 日志",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_LOGGING),
         LoggingDlgProc,

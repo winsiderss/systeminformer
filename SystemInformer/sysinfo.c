@@ -1170,7 +1170,7 @@ VOID PhSipInitializeParameters(
         CurrentParameters.PanelPadding +
         2;
 
-    CurrentParameters.PanelWidth = CurrentParameters.MediumFontAverageWidth * 10;
+    CurrentParameters.PanelWidth = CurrentParameters.MediumFontAverageWidth * 14;
 
     ReleaseDC(PhSipWindow, hdc);
 }
@@ -1381,7 +1381,7 @@ VOID PhSipDrawRestoreSummaryPanel(
     }
 
     SelectFont(bufferDc, CurrentParameters.MediumFont);
-    DrawText(bufferDc, L"Back", 4, &bufferRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    DrawText(bufferDc, L"返回", 4, &bufferRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     BitBlt(
         hdc,

@@ -183,7 +183,7 @@ INT_PTR CALLBACK PvpPePropStoreDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"值");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 150, L"Description");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImagePropertiesListViewColumns", context->ListViewHandle);

@@ -103,7 +103,7 @@ VOID NTAPI ShowOptionsCallback(
     if (optionsEntry)
     {
         optionsEntry->CreateSection(
-            L"ExtendedTools",
+            L"附加工具",
             PluginInstance->DllBase,
             MAKEINTRESOURCE(IDD_OPTIONS),
             OptionsDlgProc,

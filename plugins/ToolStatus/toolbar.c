@@ -228,7 +228,7 @@ VOID RebarCreateOrUpdateWindow(
             PhCreateSearchControl(
                 RebarHandle,
                 SearchboxHandle,
-                L"Search Processes (Ctrl+K)",
+                L"搜索进程 (Ctrl+K)",
                 SearchControlCallback,
                 NULL
                 );
@@ -487,28 +487,28 @@ PWSTR ToolbarGetText(
     switch (CommandID)
     {
     case PHAPP_ID_VIEW_REFRESH:
-        return L"Refresh";
+        return L"刷新 ";
     case PHAPP_ID_HACKER_OPTIONS:
-        return L"Options";
+        return L"选项 ";
     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
-        return L"Find handles or DLLs";
+        return L"查找句柄/DLL ";
     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
-        return L"System information";
+        return L"系统信息概览 ";
     case TIDC_FINDWINDOW:
-        return L"Find window";
+        return L"查找窗口";
     case TIDC_FINDWINDOWTHREAD:
         return L"Find window and thread";
     case TIDC_FINDWINDOWKILL:
         return L"Find window and kill";
     case PHAPP_ID_VIEW_ALWAYSONTOP:
-        return L"Always on top";
+        return L"置顶";
     case TIDC_POWERMENUDROPDOWN:
-        return L"Computer";
+        return L"计算机";
     case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
         return L"Show details for all processes";
     }
 
-    return L"ERROR";
+    return L"错误";
 }
 
 HBITMAP ToolbarLoadImageFromIcon(

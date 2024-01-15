@@ -198,7 +198,7 @@ VOID ShowUpdateErrorPageDialog(
     static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     {
         { IDYES, L"Retry" },
-        { IDCLOSE, L"Close" },
+        { IDCLOSE, L"关闭" },
     };
     TASKDIALOGCONFIG config;
 

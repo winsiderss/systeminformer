@@ -311,7 +311,7 @@ VOID NTAPI ShowOptionsCallback(
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
     optionsEntry->CreateSection(
-        L"UserNotes",
+        L"用户配置",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONS),
         OptionsDlgProc,
@@ -331,9 +331,9 @@ VOID NTAPI MainMenuInitializingCallback(
         return;
 
     onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&User Notes", NULL);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PRIORITY_SAVE_IFEO, L"Configure priority for executable...", NULL), ULONG_MAX);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_IO_PRIORITY_SAVE_IFEO, L"Configure IO priority for executable...", NULL), ULONG_MAX);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PAGE_PRIORITY_SAVE_IFEO, L"Configure page priority for executable...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PRIORITY_SAVE_IFEO, L"配置可执行程序优先级...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_IO_PRIORITY_SAVE_IFEO, L"配置可执行程序IO优先级...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PAGE_PRIORITY_SAVE_IFEO, L"配置可执行程序内存优先级...", NULL), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, ULONG_MAX);
 }
 
@@ -582,17 +582,17 @@ VOID ShowProcessPriorityDialog(
 {
     static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
     {
-        { PHAPP_ID_PRIORITY_REALTIME, L"Realtime" },
-        { PHAPP_ID_PRIORITY_HIGH, L"High" },
-        { PHAPP_ID_PRIORITY_ABOVENORMAL, L"Above normal" },
-        { PHAPP_ID_PRIORITY_NORMAL, L"Normal" },
-        { PHAPP_ID_PRIORITY_BELOWNORMAL, L"Below normal" },
-        { PHAPP_ID_PRIORITY_IDLE, L"Idle" },
+        { PHAPP_ID_PRIORITY_REALTIME, L"实时" },
+        { PHAPP_ID_PRIORITY_HIGH, L"高" },
+        { PHAPP_ID_PRIORITY_ABOVENORMAL, L"高于正常" },
+        { PHAPP_ID_PRIORITY_NORMAL, L"正常" },
+        { PHAPP_ID_PRIORITY_BELOWNORMAL, L"低于正常" },
+        { PHAPP_ID_PRIORITY_IDLE, L"闲时" },
     };
     static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     {
-        { IDYES, L"Save" },
-        { IDCANCEL, L"Cancel" },
+        { IDYES, L"保存" },
+        { IDCANCEL, L"取消" },
     };
     PUSERNOTES_TASK_IFEO_CONTEXT context;
     TASKDIALOGCONFIG config;
@@ -608,9 +608,9 @@ VOID ShowProcessPriorityDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.pszWindowTitle = PhGetString(FileName);
-    config.pszMainInstruction = L"Select the default process priority.";
-    config.pszContent = L"The process priority will be applied by Windows even when System Informer isn't currently running. "
-    L"Note: Realtime priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
+    config.pszMainInstruction = L"选择进程默认优先级";
+    config.pszContent = L"在System Informer没有运行时，进程优先级的设定仍然有效。"
+    L"注意: 实时优先级需要用户有 增加调度优先级 权限或者该进程以管理员模式运行。";
     config.nDefaultButton = IDCANCEL;
     config.pRadioButtons = TaskDialogRadioButtonArray;
     config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
@@ -667,15 +667,15 @@ VOID ShowProcessIoPriorityDialog(
 {
     static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
     {
-        { PHAPP_ID_IOPRIORITY_HIGH , L"High" },
-        { PHAPP_ID_IOPRIORITY_NORMAL, L"Normal" },
-        { PHAPP_ID_IOPRIORITY_LOW , L"Low" },
-        { PHAPP_ID_IOPRIORITY_VERYLOW, L"Very low" },
+        { PHAPP_ID_IOPRIORITY_HIGH , L"高" },
+        { PHAPP_ID_IOPRIORITY_NORMAL, L"正常" },
+        { PHAPP_ID_IOPRIORITY_LOW , L"低" },
+        { PHAPP_ID_IOPRIORITY_VERYLOW, L"非常低" },
     };
     static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     {
-        { IDYES, L"Save" },
-        { IDCANCEL, L"Cancel" },
+        { IDYES, L"保存" },
+        { IDCANCEL, L"取消" },
     };
     PUSERNOTES_TASK_IFEO_CONTEXT context;
     TASKDIALOGCONFIG config;
@@ -691,9 +691,9 @@ VOID ShowProcessIoPriorityDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.pszWindowTitle = PhGetString(FileName);
-    config.pszMainInstruction = L"Select the default process IO priority.";
-    config.pszContent = L"The IO priority will be applied by Windows even when System Informer isn't currently running. "
-    L"Note: High IO priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
+    config.pszMainInstruction = L"请选择默认进程IO优先级";
+    config.pszContent = L"在System Informer没有运行时该设定仍然有效。 "
+    L"注意: 高IO优先级需要用户有 增加调度优先级 权限或者该进程以管理员模式运行。";
     config.nDefaultButton = IDCANCEL;
     config.pRadioButtons = TaskDialogRadioButtonArray;
     config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
@@ -744,16 +744,16 @@ VOID ShowProcessPagePriorityDialog(
 {
     static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
     {
-        { PHAPP_ID_PAGEPRIORITY_NORMAL, L"Normal" },
-        { PHAPP_ID_PAGEPRIORITY_BELOWNORMAL, L"Below normal" },
-        { PHAPP_ID_PAGEPRIORITY_MEDIUM, L"Medium" },
-        { PHAPP_ID_PAGEPRIORITY_LOW , L"Low" },
-        { PHAPP_ID_PAGEPRIORITY_VERYLOW, L"Very low" },
+        { PHAPP_ID_PAGEPRIORITY_NORMAL, L"正常" },
+        { PHAPP_ID_PAGEPRIORITY_BELOWNORMAL, L"低于正常" },
+        { PHAPP_ID_PAGEPRIORITY_MEDIUM, L"中等" },
+        { PHAPP_ID_PAGEPRIORITY_LOW , L"低" },
+        { PHAPP_ID_PAGEPRIORITY_VERYLOW, L"非常低" },
     };
     static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     {
-        { IDYES, L"Save" },
-        { IDCANCEL, L"Cancel" },
+        { IDYES, L"保存" },
+        { IDCANCEL, L"取消" },
     };
     PUSERNOTES_TASK_IFEO_CONTEXT context;
     TASKDIALOGCONFIG config;
@@ -769,8 +769,8 @@ VOID ShowProcessPagePriorityDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.pszWindowTitle = PhGetString(FileName);
-    config.pszMainInstruction = L"Select the default process page priority.";
-    config.pszContent = L"The page priority will be applied by Windows even when System Informer isn't currently running.";
+    config.pszMainInstruction = L"请选择默认内存优先级";
+    config.pszContent = L"在System Informer没有运行时该设定仍然有效。";
     config.nDefaultButton = IDCANCEL;
     config.pRadioButtons = TaskDialogRadioButtonArray;
     config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);

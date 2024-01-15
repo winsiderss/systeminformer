@@ -781,7 +781,7 @@ INT_PTR CALLBACK PvPeHeadersDlgProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 220, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 170, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 170, L"值");
             PhSetExtendedListView(context->ListViewHandle);
             PvPeAddImageHeaderGroups(context);
             PhLoadListViewColumnsFromSetting(L"ImageHeadersListViewColumns", context->ListViewHandle);

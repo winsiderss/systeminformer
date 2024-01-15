@@ -130,7 +130,7 @@ VOID NTAPI MainMenuInitializingCallback(
     else
         insertIndex = ULONG_MAX;
 
-    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_VIEW_WINDOWS, L"&Windows", NULL), insertIndex);
+    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_VIEW_WINDOWS, L"窗口管理(&W)", NULL), insertIndex);
 
     if (PhGetIntegerSetting(SETTING_NAME_SHOW_DESKTOP_WINDOWS))
     {

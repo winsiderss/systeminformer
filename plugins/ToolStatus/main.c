@@ -355,13 +355,13 @@ VOID NTAPI TabPageUpdatedCallback(
     switch (tabIndex)
     {
     case 0:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Processes (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"搜索进程 (Ctrl+K)");
         break;
     case 1:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Services (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"搜索服务 (Ctrl+K)");
         break;
     case 2:
-        Edit_SetCueBannerText(SearchboxHandle, L"Search Network (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"搜索设备 (Ctrl+K)");
         break;
     default:
         {
@@ -374,7 +374,7 @@ VOID NTAPI TabPageUpdatedCallback(
             else
             {
                 // Disable the textbox if we're on an unsupported tab.
-                Edit_SetCueBannerText(SearchboxHandle, L"Search disabled");
+                Edit_SetCueBannerText(SearchboxHandle, L"搜索被禁止");
             }
         }
         break;
@@ -1677,14 +1677,14 @@ VOID NTAPI MainMenuInitializingCallback(
     else
         insertIndex = ULONG_MAX;
 
-    menu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Toolbar", NULL);
-    PhInsertEMenuItem(menu, mainMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, searchMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL), ULONG_MAX);
+    menu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"工具栏", NULL);
+    PhInsertEMenuItem(menu, mainMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_MENU, L"自动隐藏", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, searchMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_SEARCHBOX, L"搜索框", NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     ToolbarGraphCreatePluginMenu(menu, COMMAND_ID_GRAPHS_CUSTOMIZE);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menu, lockMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"Lock the toolbar", NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"Customize...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, lockMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_TOOLBAR_LOCKUNLOCK, L"锁定工具栏", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_TOOLBAR_CUSTOMIZE, L"自定义...", NULL), ULONG_MAX);
 
     if (ToolStatusConfig.AutoHideMenu)
         mainMenuItem->Flags |= PH_EMENU_CHECKED;
@@ -1863,7 +1863,7 @@ VOID NTAPI ShowOptionsCallback(
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
     optionsEntry->CreateSection(
-        L"ToolStatus",
+        L"状态工具",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONS),
         OptionsDlgProc,

@@ -101,11 +101,11 @@ BOOLEAN PhMwpProcessesPageCallback(
             PPH_EMENU_ITEM menuItem;
             PPH_EMENU_ITEM columnSetMenuItem;
 
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"&Hide processes from other users", NULL, NULL), startIndex);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide si&gned processes", NULL, NULL), startIndex + 1);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEMICROSOFTPROCESSES, L"Hide &system processes", NULL, NULL), startIndex + 2);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), startIndex + 3);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), startIndex + 4);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"对其他用户隐藏该进程(&H)", NULL, NULL), startIndex);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"隐藏经过签名的进程(&G)", NULL, NULL), startIndex + 1);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEMICROSOFTPROCESSES, L"隐藏系统进程(&S)", NULL, NULL), startIndex + 2);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"自动定位到新进程(&L)", NULL, NULL), startIndex + 3);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"CPU使用率低于0.01%时仍然显示", NULL, NULL), startIndex + 4);
 
             if (PhGetIntegerSetting(L"HideOtherUserProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
@@ -130,9 +130,9 @@ BOOLEAN PhMwpProcessesPageCallback(
             }
 
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), startIndex + 5);
-            PhInsertEMenuItem(menu, menuItem = PhCreateEMenuItem(0, ID_VIEW_ORGANIZECOLUMNSETS, L"Organi&ze column sets...", NULL, NULL), startIndex + 6);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SAVECOLUMNSET, L"Sa&ve column set...", NULL, NULL), startIndex + 6);
-            PhInsertEMenuItem(menu, columnSetMenuItem = PhCreateEMenuItem(0, 0, L"Loa&d column set", NULL, NULL), startIndex + 7);
+            PhInsertEMenuItem(menu, menuItem = PhCreateEMenuItem(0, ID_VIEW_ORGANIZECOLUMNSETS, L"管理界面设定(&Z)...", NULL, NULL), startIndex + 6);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SAVECOLUMNSET, L"保存界面设定(&V)...", NULL, NULL), startIndex + 6);
+            PhInsertEMenuItem(menu, columnSetMenuItem = PhCreateEMenuItem(0, 0, L"读取界面设定(&D)", NULL, NULL), startIndex + 7);
 
             // Add column set sub menu entries.
             {

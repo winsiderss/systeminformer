@@ -945,7 +945,7 @@ BOOLEAN PhShowConfirmMessage(
         buttons[0].nButtonID = IDYES;
         buttons[0].pszButtonText = verbCaps->Buffer;
         buttons[1].nButtonID = IDNO;
-        buttons[1].pszButtonText = L"Cancel";
+        buttons[1].pszButtonText = L"取消";
 
         config.cButtons = 2;
         config.pButtons = buttons;

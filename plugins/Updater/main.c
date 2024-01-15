@@ -56,7 +56,7 @@ VOID NTAPI MainMenuInitializingCallback(
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_HELP)
         return;
 
-    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for &updates", NULL), 0);
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"检查更新(&U)", NULL), 0);
 }
 
 VOID NTAPI MenuItemCallback(
@@ -80,7 +80,7 @@ VOID NTAPI ShowOptionsCallback(
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
     optionsEntry->CreateSection(
-        L"Updater",
+        L"更新检查",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONS),
         OptionsDlgProc,

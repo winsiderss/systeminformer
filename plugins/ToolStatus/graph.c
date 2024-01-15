@@ -141,7 +141,7 @@ VOID ToolbarGraphsInitialize(
     ToolbarRegisterGraph(
         PluginInstance,
         1,
-        L"CPU history",
+        L"CPU使用率记录",
         0,
         &CpuHistoryGraphContext,
         CpuHistoryGraphMessageCallback
@@ -150,7 +150,7 @@ VOID ToolbarGraphsInitialize(
     ToolbarRegisterGraph(
         PluginInstance,
         2,
-        L"Physical memory history",
+        L"物理内存占用记录",
         0,
         &PhysicalHistoryGraphContext,
         PhysicalHistoryGraphMessageCallback
@@ -159,7 +159,7 @@ VOID ToolbarGraphsInitialize(
     ToolbarRegisterGraph(
         PluginInstance,
         3,
-        L"Commit charge history",
+        L"提交页面大小记录",
         0,
         &CommitHistoryGraphContext,
         CommitHistoryGraphMessageCallback
@@ -168,7 +168,7 @@ VOID ToolbarGraphsInitialize(
     ToolbarRegisterGraph(
         PluginInstance,
         4,
-        L"I/O history",
+        L"I/O 读写记录",
         0,
         &IoHistoryGraphContext,
         IoHistoryGraphMessageCallback
@@ -462,7 +462,7 @@ VOID ToolbarGraphCreateMenu(
         {
             PPH_STRING newText;
 
-            newText = PhaConcatStrings2(graph->Text, L" (Unavailable)");
+            newText = PhaConcatStrings2(graph->Text, L" (不可用)");
             PhModifyEMenuItem(menuItem, PH_EMENU_MODIFY_TEXT, PH_EMENU_TEXT_OWNED,
                 PhAllocateCopy(newText->Buffer, newText->Length + sizeof(UNICODE_NULL)), NULL);
         }
@@ -493,7 +493,7 @@ VOID ToolbarGraphCreatePluginMenu(
         {
             PPH_STRING newText;
 
-            newText = PhaConcatStrings2(graph->Text, L" (Unavailable)");
+            newText = PhaConcatStrings2(graph->Text, L" (不可用)");
             PhModifyEMenuItem(menuItem, PH_EMENU_MODIFY_TEXT, PH_EMENU_TEXT_OWNED,
                 PhAllocateCopy(newText->Buffer, newText->Length + sizeof(UNICODE_NULL)), NULL);
         }

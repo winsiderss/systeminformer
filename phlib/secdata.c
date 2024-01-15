@@ -30,7 +30,7 @@ typedef struct _PH_SPECIFIC_TYPE
 ACCESS_ENTRIES(Standard)
 {
     { L"Synchronize", SYNCHRONIZE, FALSE, TRUE },
-    { L"Delete", DELETE, FALSE, TRUE },
+    { L"删除", DELETE, FALSE, TRUE },
     { L"Read permissions", READ_CONTROL, FALSE, TRUE, L"Read control" },
     { L"Change permissions", WRITE_DAC, FALSE, TRUE, L"Write DAC" },
     { L"Take ownership", WRITE_OWNER, FALSE, TRUE, L"Write owner" }
@@ -630,7 +630,7 @@ ACCESS_ENTRIES(Rdp)
     { L"Full control", WTS_SECURITY_ALL_ACCESS, TRUE, TRUE },
     { L"Query information", WTS_SECURITY_QUERY_INFORMATION, TRUE, TRUE },
     { L"Set information", WTS_SECURITY_SET_INFORMATION, TRUE, TRUE },
-    { L"Reset", WTS_SECURITY_RESET, FALSE, TRUE },
+    { L"重置", WTS_SECURITY_RESET, FALSE, TRUE },
     { L"Virtual channels", WTS_SECURITY_VIRTUAL_CHANNELS, FALSE, TRUE },
     { L"Remote control", WTS_SECURITY_REMOTE_CONTROL, FALSE, TRUE },
     { L"Logon", WTS_SECURITY_LOGON, FALSE, TRUE },

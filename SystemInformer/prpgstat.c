@@ -449,8 +449,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
             PhSetListViewStyle(statisticsContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(statisticsContext->ListViewHandle, L"explorer");
-            PhAddListViewColumn(statisticsContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"Property");
-            PhAddListViewColumn(statisticsContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Value");
+            PhAddListViewColumn(statisticsContext->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 135, L"属性");
+            PhAddListViewColumn(statisticsContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"值");
             PhAddListViewColumn(statisticsContext->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Min");
             PhAddListViewColumn(statisticsContext->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 150, L"Max");
             PhAddListViewColumn(statisticsContext->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 150, L"Difference");

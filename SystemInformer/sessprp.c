@@ -31,7 +31,7 @@ static PH_KEY_VALUE_PAIR PhpConnectStatePairs[] =
     SIP(L"Disconnected", State_Disconnected),
     SIP(L"Idle", State_Idle),
     SIP(L"Listen", State_Listen),
-    SIP(L"Reset", State_Reset),
+    SIP(L"重置", State_Reset),
     SIP(L"Down", State_Down),
     SIP(L"Init", State_Init)
 };
@@ -246,24 +246,24 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 150, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 150, L"名称");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"值");
             PhSetExtendedListView(context->ListViewHandle);
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
-            PhAddListViewGroup(context->ListViewHandle, 0, L"User");
+            PhAddListViewGroup(context->ListViewHandle, 0, L"用户");
             //PhAddListViewGroup(context->ListViewHandle, 1, L"Profile");
 
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 0, L"User name", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 1, L"Session ID", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 2, L"State", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 3, L"Logon time", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 4, L"Connect time", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 5, L"Disconnect time", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 6, L"Last input time", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 7, L"Client name", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 8, L"Client address", NULL);
-            PhAddListViewGroupItem(context->ListViewHandle, 0, 9, L"Client display", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 0, L"用户名", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 1, L"对话ID", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 2, L"状态", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 3, L"登录时间", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 4, L"连接时间", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 5, L"断开时间", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 6, L"上次输入时间", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 7, L"客户端名称", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 8, L"客户端地址", NULL);
+            PhAddListViewGroupItem(context->ListViewHandle, 0, 9, L"客户端显示信息", NULL);
 
             //PhAddListViewGroupItem(context->ListViewHandle, 1, 10, L"LastLogon", NULL);
             //PhAddListViewGroupItem(context->ListViewHandle, 1, 11, L"LastLogoff", NULL);

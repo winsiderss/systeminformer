@@ -767,7 +767,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             PhSetListViewStyle(context->CountersListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->CountersListViewHandle, L"explorer");
             PhAddListViewColumn(context->CountersListViewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Counter");
-            PhAddListViewColumn(context->CountersListViewHandle, 1, 1, 1, LVCFMT_RIGHT, 140, L"Value");
+            PhAddListViewColumn(context->CountersListViewHandle, 1, 1, 1, LVCFMT_RIGHT, 140, L"值");
             PhSetExtendedListView(context->CountersListViewHandle);
 
             DotNetPerfAddListViewGroups(context->CountersListViewHandle);

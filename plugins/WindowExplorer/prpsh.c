@@ -308,7 +308,7 @@ HWND PvpCreateOptionsButton(
         PropSheetContext->RefreshButtonWindowHandle = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             WC_BUTTON,
-            L"Refresh",
+            L"刷新",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP,
             clientRect.right - rect.right,
             rect.top,
@@ -349,8 +349,8 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
 
         // Hide the OK button.
         ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
-        // Set the Cancel button's text to "Close".
-        PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
+        // Set the Cancel button's text to "关闭".
+        PhSetDialogItemText(hwnd, IDCANCEL, L"关闭");
 
         if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X != 0) // HACK
             PhLoadWindowPlacementFromSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION, SETTING_NAME_WINDOWS_PROPERTY_SIZE, hwnd);

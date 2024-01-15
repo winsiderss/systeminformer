@@ -13,7 +13,7 @@
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
-    { IDOK, L"Check" }
+    { IDOK, L"检查" }
 };
 
 HRESULT CALLBACK CheckForUpdatesCallbackProc(
@@ -62,10 +62,10 @@ VOID ShowCheckForUpdatesDialog(
     config.pfCallback = CheckForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = L"Check for an updated System Informer release?";
+    config.pszWindowTitle = L"System Informer - 更新工具";
+    config.pszMainInstruction = L"是否检测新的版本?";
     //config.pszContent = L"The updater will check for an updated System Informer release which then can be optionally downloaded and installed.\r\n\r\nClick Check to continue.";
-    config.pszContent = L"Click Check to continue.\r\n";
+    config.pszContent = L"点击检查继续。\r\n";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

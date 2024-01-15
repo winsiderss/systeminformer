@@ -66,9 +66,9 @@ VOID ShowProgressDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = ShowProgressCallbackProc;
 
-    config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = PhaFormatString(L"Downloading update %s...", PhGetStringOrEmpty(Context->Version))->Buffer;
-    config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
+    config.pszWindowTitle = L"System Informer - 更新";
+    config.pszMainInstruction = PhaFormatString(L"下载更新 %s...", PhGetStringOrEmpty(Context->Version))->Buffer;
+    config.pszContent = L"已下载: ~ of ~ (0%)\r\n速度: ~ KB/s";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

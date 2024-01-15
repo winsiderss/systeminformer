@@ -1808,9 +1808,9 @@ BOOLEAN PhInsertCopyCellEMenuItem(
 
     PhInitializeStringRefLongHint(&columnText, Column->Text);
     escapedText = PhEscapeStringForMenuPrefix(&columnText);
-    PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
+    PhInitFormatS(&format[0], L"复制 "); // Copy \"%s\"
     PhInitFormatSR(&format[1], escapedText->sr);
-    PhInitFormatS(&format[2], L"\"");
+    PhInitFormatS(&format[2], L"");
     menuItemText = PhFormat(format, RTL_NUMBER_OF(format), 0);
     PhDereferenceObject(escapedText);
 
@@ -1944,9 +1944,9 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     context->SubId = lvHitInfo.iSubItem;
 
     escapedText = PhEscapeStringForMenuPrefix(&columnText->sr);
-    PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
+    PhInitFormatS(&format[0], L"复制 "); // Copy \"%s\"
     PhInitFormatSR(&format[1], escapedText->sr);
-    PhInitFormatS(&format[2], L"\"");
+    PhInitFormatS(&format[2], L"");
     menuItemText = PhFormat(format, RTL_NUMBER_OF(format), 0);
     PhDereferenceObject(escapedText);
 
@@ -2070,7 +2070,7 @@ BOOLEAN PhpSelectFavoriteInRegedit(
     else
         SendMessage(RegeditWindow, WM_COMMAND, MAKEWPARAM(id, 0), 0);
 
-    // "Close" the Favorites menu and restore normal status bar text.
+    // "关闭" the Favorites menu and restore normal status bar text.
     if (UsePhSvc)
         PhSvcCallPostMessage(RegeditWindow, WM_MENUSELECT, MAKEWPARAM(0, 0xffff), 0);
     else

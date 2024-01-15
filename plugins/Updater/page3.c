@@ -13,7 +13,7 @@
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
-    { IDOK, L"Download" }
+    { IDOK, L"下载" }
 };
 
 HRESULT CALLBACK ShowAvailableCallbackProc(
@@ -68,9 +68,9 @@ VOID ShowAvailableDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.pfCallback = ShowAvailableCallbackProc;
 
-    config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = L"A newer build of System Informer is available.";
-    config.pszContent = PhaFormatString(L"Version: %s\r\nDownload size: %s\r\n\r\n<A HREF=\"changelog.txt\">View changelog</A>",
+    config.pszWindowTitle = L"System Informer - 更新工具";
+    config.pszMainInstruction = L"检查到一个可用的更新。";
+    config.pszContent = PhaFormatString(L"版本: %s\r\n下载大小: %s\r\n\r\n<A HREF=\"changelog.txt\">查看更新日志</A>",
         PhGetStringOrEmpty(Context->Version),
         PhGetStringOrEmpty(Context->SetupFileLength)
         )->Buffer;

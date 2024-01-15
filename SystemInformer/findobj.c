@@ -1355,7 +1355,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                             break;
                         }
 
-                        PhSetDialogItemText(hwndDlg, IDOK, L"Cancel");
+                        PhSetDialogItemText(hwndDlg, IDOK, L"取消");
 
                         PhSetCursor(PhLoadCursor(NULL, IDC_APPSTARTING));
                     }

@@ -355,7 +355,7 @@ VOID ShowConfigPageDialog(
 {
     TASKDIALOG_BUTTON buttonConfig[] =
     {
-        { IDYES, L"Browse" },
+        { IDYES, L"浏览" },
         { IDOK, L"Next" },
     };
     TASKDIALOGCONFIG config;

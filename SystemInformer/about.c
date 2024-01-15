@@ -64,7 +64,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             PhDereferenceObject(appName);
 
             PhSetDialogItemText(hwndDlg, IDC_CREDITS,
-                L"Thanks to:\n"
+                L"感谢:\n"
                 L"    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu\n"
                 L"    <a href=\"https://github.com/dmex\">dmex</a> - Steven G\n"
                 L"    <a href=\"https://github.com/jxy-s\">jxy-s</a> - Johnny Shaw\n"
@@ -79,6 +79,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 L"    <a href=\"https://github.com/json-c/json-c\">json-c</a> by Michael Clark\n"
                 L"    MD5 code by Jouni Malinen\n"
                 L"    SHA1 code by Filip Navara, based on code by Steve Reid\n"
+                L"    <a href=\"https://github.com/Amarillys\">Amarillys</a> 汉化\n"
                 );
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));

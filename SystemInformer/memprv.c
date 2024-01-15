@@ -93,7 +93,7 @@ PPH_STRINGREF PhGetMemoryStateString(
         PH_STRINGREF_INIT(L"Unknown"),
         PH_STRINGREF_INIT(L"Commit"),
         PH_STRINGREF_INIT(L"Reserved"),
-        PH_STRINGREF_INIT(L"Free"),
+        PH_STRINGREF_INIT(L"空闲"),
     };
 
     if (FlagOn(State, MEM_COMMIT))

@@ -1147,7 +1147,7 @@ VOID PhpUpdateHandleGeneral(
                     break;
                 case FILE_DEVICE_NETWORK:
                     //isNetworkHandle = TRUE;
-                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Network");
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"网络");
                     break;
                 case FILE_DEVICE_CD_ROM:
                 case FILE_DEVICE_CD_ROM_FILE_SYSTEM:
@@ -1354,7 +1354,7 @@ VOID PhpUpdateHandleGeneral(
                         break;
                     case FILE_DEVICE_NETWORK:
                         //isNetworkHandle = TRUE;
-                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Network");
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"网络");
                         break;
                     case FILE_DEVICE_CD_ROM:
                     case FILE_DEVICE_CD_ROM_FILE_SYSTEM:
@@ -2065,7 +2065,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"值");
             PhSetExtendedListView(context->ListViewHandle);
 
             // HACK

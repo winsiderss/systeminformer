@@ -54,22 +54,22 @@ END
 IDD_OPTIONS DIALOGEX 0, 0, 290, 95
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Updater Options"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
+FONT 8, "微软雅黑", 400, 0, 0x1
 BEGIN
-    CONTROL         "Check for updates automatically",IDC_AUTOCHECKBOX,
+    CONTROL         "自动检查更新",IDC_AUTOCHECKBOX,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,142,10
     LTEXT           "Last update check: N/A",IDC_TEXT,7,7,276,8
     LTEXT           "Next update check: N/A",IDC_TEXT2,7,21,276,8
-    CONTROL         "Show update prompt before main window",IDC_SHOWSTARTPROMPTCHECK,
+    CONTROL         "在主窗口之前显示更新提示",IDC_SHOWSTARTPROMPTCHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,160,10
-    CONTROL         "Skip check for updates and search automatically",IDC_SKIPWELCOMEPAGECHECK,
+    CONTROL         "跳过更新检查并自动搜索更新",IDC_SKIPWELCOMEPAGECHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,65,169,10
 END
 
 IDD_TEXT DIALOGEX 0, 0, 309, 176
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Changelog"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
+FONT 8, "微软雅黑", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDCANCEL,258,159,50,14
     CONTROL         "",IDC_COMMITS,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,1,1,307,156

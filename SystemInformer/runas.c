@@ -127,7 +127,7 @@ static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
 {
     SIP(L"Batch", LOGON32_LOGON_BATCH),
     SIP(L"Interactive", LOGON32_LOGON_INTERACTIVE),
-    SIP(L"Network", LOGON32_LOGON_NETWORK),
+    SIP(L"网络", LOGON32_LOGON_NETWORK),
     SIP(L"New credentials", LOGON32_LOGON_NEW_CREDENTIALS),
     SIP(L"Service", LOGON32_LOGON_SERVICE)
 };
@@ -811,7 +811,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             ComboBox_AddString(context->TypeComboBoxWindowHandle, L"Batch");
             ComboBox_AddString(context->TypeComboBoxWindowHandle, L"Interactive");
-            ComboBox_AddString(context->TypeComboBoxWindowHandle, L"Network");
+            ComboBox_AddString(context->TypeComboBoxWindowHandle, L"网络");
             ComboBox_AddString(context->TypeComboBoxWindowHandle, L"New credentials");
             ComboBox_AddString(context->TypeComboBoxWindowHandle, L"Service");
             PhSelectComboBoxString(context->TypeComboBoxWindowHandle, L"Interactive", FALSE);

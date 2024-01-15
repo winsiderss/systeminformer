@@ -2616,7 +2616,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 280, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 280, L"值");
             PhSetExtendedListView(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -4084,7 +4084,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 280, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 280, L"值");
             PhSetExtendedListView(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -5773,7 +5773,7 @@ INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
             TreeNew_SetCallback(tnHandle, PhpAppPolicyTreeNewCallback, &tokenPageContext->AppPolicyTreeContext);
             TreeNew_SetRedraw(tnHandle, FALSE);
             PhAddTreeNewColumnEx2(tnHandle, 0, TRUE, L"Policy", 220, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
-            PhAddTreeNewColumnEx2(tnHandle, 1, TRUE, L"Value", 150, PH_ALIGN_LEFT, 1, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+            PhAddTreeNewColumnEx2(tnHandle, 1, TRUE, L"值", 150, PH_ALIGN_LEFT, 1, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
             TreeNew_SetRedraw(tnHandle, TRUE);
             TreeNew_SetSort(tnHandle, 0, AscendingSortOrder);
 

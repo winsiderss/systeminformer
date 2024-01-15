@@ -175,7 +175,7 @@ INT_PTR CALLBACK PvpExlfDynamicDlgProc(
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_RIGHT, 80, L"Tag");
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 150, L"Type");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Value");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"值");
             PhSetExtendedListView(lvHandle);
             PhLoadListViewColumnsFromSetting(L"DynamicWslListViewColumns", lvHandle);
 

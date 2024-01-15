@@ -148,7 +148,7 @@ VOID NTAPI ShowOptionsCallback(
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
 
     optionsEntry->CreateSection(
-        L"OnlineChecks",
+        L"在线扫描",
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONS),
         OptionsDlgProc,
@@ -271,11 +271,11 @@ VOID NTAPI MainMenuInitializingCallback(
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
 
-    onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Online Checks", NULL);
-    PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"&Enable VirusTotal scanning", NULL), ULONG_MAX);
+    onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"在线扫描(&O)", NULL);
+    PhInsertEMenuItem(onlineMenuItem, enableMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ENABLE_SERVICE_VIRUSTOTAL, L"启用VirusTotal扫描(&E)", NULL), ULONG_MAX);
     PhInsertEMenuItem(onlineMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE, L"Upload file to &Hybrid-Analysis...", NULL), ULONG_MAX);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"&Upload file to VirusTotal...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE, L"上传文件到Hybrid-Analysis(&H)...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_FILE, L"上传文件到VirusTotal(&U)...", NULL), ULONG_MAX);
     //PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_QUEUE, L"Upload unknown files to VirusTotal...", NULL), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, ULONG_MAX);
 
@@ -771,7 +771,7 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            info->DisplayName = L"Online Checks";
+            info->DisplayName = L"在线扫描";
             info->Author = L"dmex, wj32";
             info->Description = L"Allows files to be checked with online services.";
 

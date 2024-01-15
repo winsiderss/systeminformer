@@ -18,7 +18,7 @@ BOOLEAN FwTreeNewCreated = FALSE;
 HWND FwTreeNewHandle = NULL;
 ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
 PH_SORT_ORDER FwTreeNewSortOrder = NoSortOrder;
-PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires System Informer to be restarted with administrative privileges.");
+PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"防火墙监测需要 System Informer 以管理员权限重新启动。");
 PPH_STRING FwTreeErrorText = NULL;
 LONG FwTreeIconHeightPadding = 0;
 LONG FwTreeLeftMarginPadding = 0;
@@ -230,7 +230,7 @@ VOID EtInitializeFirewallTab(
     PPH_PLUGIN toolStatusPlugin;
 
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
-    PhInitializeStringRef(&page.Name, L"Firewall");
+    PhInitializeStringRef(&page.Name, L"防火墙");
     page.Callback = FwTabPageCallback;
 
     EtFwAddedTabPage = PhPluginCreateTabPage(&page);
@@ -1847,7 +1847,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
     }
     else
     {
-        static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"System");
+        static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"系统");
 
         if (wordMatch(&stringSr))
             return TRUE;

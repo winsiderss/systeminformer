@@ -49,14 +49,14 @@ VOID EtEtwSystemInformationInitializing(
     PH_SYSINFO_SECTION section;
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
-    PhInitializeStringRef(&section.Name, L"Disk");
+    PhInitializeStringRef(&section.Name, L"存储");
     section.Flags = 0;
     section.Callback = EtpDiskSysInfoSectionCallback;
 
     DiskSection = Pointers->CreateSection(&section);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
-    PhInitializeStringRef(&section.Name, L"Network");
+    PhInitializeStringRef(&section.Name, L"网络");
     section.Flags = 0;
     section.Callback = EtpNetworkSysInfoSectionCallback;
 
@@ -214,7 +214,7 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
             PH_FORMAT format[4];
 
-            drawPanel->Title = PhCreateString(L"Disk");
+            drawPanel->Title = PhCreateString(L"存储");
 
             // R: %s\nW: %s
             PhInitFormatS(&format[0], L"R: ");
@@ -978,7 +978,7 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
             PPH_SYSINFO_DRAW_PANEL drawPanel = Parameter1;
             PH_FORMAT format[4];
 
-            drawPanel->Title = PhCreateString(L"Network");
+            drawPanel->Title = PhCreateString(L"网络");
 
             // R: %s\nS: %s
             PhInitFormatS(&format[0], L"R: ");

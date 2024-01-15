@@ -619,7 +619,7 @@ VOID PvAddTreeViewSections(
 
     // Processes page
     PvCreateTabSection(
-        L"Processes",
+        L"进程",
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_PIDS),
         PvpPeProcessesDlgProc,

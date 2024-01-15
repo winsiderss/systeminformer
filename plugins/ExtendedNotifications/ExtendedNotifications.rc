@@ -51,8 +51,8 @@ END
 
 IDD_PROCESSES DIALOGEX 0, 0, 255, 229
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Processes"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
+CAPTION "进程"
+FONT 8, "微软雅黑", 400, 0, 0x1
 BEGIN
     LTEXT           "You can configure processes for which notifications are displayed. Wildcards can be used, and ordering is considered.",IDC_STATIC,7,7,241,19
     LISTBOX         IDC_LIST,7,30,187,118,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
@@ -68,8 +68,8 @@ END
 
 IDD_SERVICES DIALOGEX 0, 0, 255, 229
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Services"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
+CAPTION "服务"
+FONT 8, "微软雅黑", 400, 0, 0x1
 BEGIN
     LTEXT           "You can configure services for which notifications are displayed. Wildcards can be used, and ordering is considered.",IDC_STATIC,7,7,241,19
     LISTBOX         IDC_LIST,7,30,187,118,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
@@ -86,7 +86,7 @@ END
 IDD_DEVICES DIALOGEX 0, 0, 255, 229
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Devices"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
+FONT 8, "微软雅黑", 400, 0, 0x1
 BEGIN
     LTEXT           "You can configure devices for which notifications are displayed. Wildcards can be used, and ordering is considered.",IDC_STATIC,7,7,241,19
     LISTBOX         IDC_LIST,7,30,187,118,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
@@ -103,7 +103,7 @@ END
 IDD_LOGGING DIALOGEX 0, 0, 255, 69
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Logging"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
+FONT 8, "微软雅黑", 400, 0, 0x1
 BEGIN
     GROUPBOX        "File",IDC_INFO,7,7,241,53
     LTEXT           "Log all events to this file (leave blank to disable this feature):",IDC_STATIC,13,18,196,8

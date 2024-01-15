@@ -45,6 +45,7 @@
 #define ID_OPACITY_70                   40022
 #define ID_OPACITY_80                   40023
 #define ID_OPACITY_90                   40024
+#define ID_OPACITY_95                   40031
 #define ID_OPACITY_OPAQUE               40025
 #define ID_WINDOW_VISIBLE               40026
 #define ID_WINDOW_ENABLED               40027

@@ -156,7 +156,7 @@ PWSTR StatusBarGetText(
     case ID_STATUS_CPUUSAGE:
         return L"CPU usage";
     case ID_STATUS_PHYSICALMEMORY:
-        return L"Physical memory";
+        return L"物理内存";
     case ID_STATUS_NUMBEROFPROCESSES:
         return L"Number of processes";
     case ID_STATUS_COMMITCHARGE:
@@ -282,7 +282,7 @@ VOID StatusBarUpdate(
                 FLOAT cpuUsage = SystemStatistics.CpuKernelUsage + SystemStatistics.CpuUserUsage;
                 PH_FORMAT format[3];
 
-                PhInitFormatS(&format[0], L"CPU usage: ");
+                PhInitFormatS(&format[0], L" CPU 使用率: ");
                 PhInitFormatF(&format[1], cpuUsage * 100, 2);
                 PhInitFormatS(&format[2], L"%");
 
@@ -322,11 +322,11 @@ VOID StatusBarUpdate(
                 physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - SystemStatistics.Performance->AvailablePages;
                 physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
-                PhInitFormatS(&format[0], L"Physical memory: ");
+                PhInitFormatS(&format[0], L" 物理内存: ");
                 PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
-                PhInitFormatS(&format[2], L" (");
+                PhInitFormatS(&format[2], L" [");
                 PhInitFormatF(&format[3], physicalFraction, 2);
-                PhInitFormatS(&format[4], L"%)");
+                PhInitFormatS(&format[4], L"%]");
 
                 PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
             }
@@ -343,7 +343,7 @@ VOID StatusBarUpdate(
                 physicalFree = SystemStatistics.Performance->AvailablePages;
                 physicalFreeFraction = (FLOAT)physicalFree / PhSystemBasicInformation.NumberOfPhysicalPages * 100;
 
-                PhInitFormatS(&format[0], L"Free memory: ");
+                PhInitFormatS(&format[0], L" 可用内存: ");
                 PhInitFormatSize(&format[1], UInt32x32To64(physicalFree, PAGE_SIZE));
                 PhInitFormatS(&format[2], L" (");
                 PhInitFormatF(&format[3], physicalFreeFraction, 2);
@@ -356,7 +356,7 @@ VOID StatusBarUpdate(
             {
                 PH_FORMAT format[2];
 
-                PhInitFormatS(&format[0], L"Processes: ");
+                PhInitFormatS(&format[0], L" 进程数: ");
                 PhInitFormatI64UGroupDigits(&format[1], SystemStatistics.NumberOfProcesses);
 
                 PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
@@ -366,7 +366,7 @@ VOID StatusBarUpdate(
             {
                 PH_FORMAT format[2];
 
-                PhInitFormatS(&format[0], L"Threads: ");
+                PhInitFormatS(&format[0], L" 线程数: ");
                 PhInitFormatI64UGroupDigits(&format[1], SystemStatistics.NumberOfThreads);
 
                 PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
@@ -376,7 +376,7 @@ VOID StatusBarUpdate(
             {
                 PH_FORMAT format[2];
 
-                PhInitFormatS(&format[0], L"Handles: ");
+                PhInitFormatS(&format[0], L" 句柄数: ");
                 PhInitFormatI64UGroupDigits(&format[1], SystemStatistics.NumberOfHandles);
 
                 PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);

@@ -306,7 +306,7 @@ HWND PvpCreateControlButton(
         PropSheetContext->OptionsButtonWindowHandle = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
             WC_BUTTON,
-            L"Options",
+            L"选项",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP,
             clientRect.right - rect.right,
             rect.top,
@@ -359,8 +359,8 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
 
         // Hide the OK button.
         ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
-        // Set the Cancel button's text to "Close".
-        PhSetDialogItemText(hwnd, IDCANCEL, L"Close");
+        // Set the Cancel button's text to "关闭".
+        PhSetDialogItemText(hwnd, IDCANCEL, L"关闭");
 
         if (PositionSettingName)
         {

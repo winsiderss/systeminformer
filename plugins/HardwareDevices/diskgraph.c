@@ -99,9 +99,9 @@ VOID DiskDriveUpdateTitle(
     if (Context->DiskEntry->PendingQuery)
     {
         if (Context->DiskPathLabel)
-            PhSetWindowText(Context->DiskPathLabel, L"Pending...");
+            PhSetWindowText(Context->DiskPathLabel, L"读取中...");
         if (Context->DiskNameLabel)
-            PhSetWindowText(Context->DiskNameLabel, L"Pending...");
+            PhSetWindowText(Context->DiskNameLabel, L"读取中...");
     }
     else
     {
@@ -625,7 +625,7 @@ BOOLEAN DiskDriveSectionCallback(
             PH_FORMAT format[4];
 
             if (context->DiskEntry->PendingQuery)
-                PhMoveReference(&drawPanel->Title, PhCreateString(L"Pending..."));
+                PhMoveReference(&drawPanel->Title, PhCreateString(L"读取中..."));
             else
                 PhSetReference(&drawPanel->Title, context->DiskEntry->DiskIndexName);
 

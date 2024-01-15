@@ -131,7 +131,7 @@ CreateAndConnectEnd:
     if (created && serviceHandle)
     {
         //
-        // "Delete" the service (mark it for deletion), SCM will retain the
+        // "删除" the service (mark it for deletion), SCM will retain the
         // service entry as long as the "ObjectName" exists. We do not use a
         // device object, SCM will detect that the driver has gone away by the
         // driver object (the specified "ObjectName").

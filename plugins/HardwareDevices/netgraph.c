@@ -160,9 +160,9 @@ VOID NetAdapterUpdateTitle(
     if (Context->AdapterEntry->PendingQuery)
     {
         if (Context->AdapterTextLabel)
-            PhSetWindowText(Context->AdapterTextLabel, L"Pending...");
+            PhSetWindowText(Context->AdapterTextLabel, L"读取中...");
         if (Context->AdapterNameLabel)
-            PhSetWindowText(Context->AdapterNameLabel, L"Pending...");
+            PhSetWindowText(Context->AdapterNameLabel, L"读取中...");
     }
     else
     {
@@ -657,7 +657,7 @@ BOOLEAN NetAdapterSectionCallback(
             PH_FORMAT format[4];
 
             if (context->AdapterEntry->PendingQuery)
-                PhMoveReference(&drawPanel->Title, PhCreateString(L"Pending..."));
+                PhMoveReference(&drawPanel->Title, PhCreateString(L"读取中..."));
             else
             {
                 if (context->AdapterEntry->AdapterAlias)

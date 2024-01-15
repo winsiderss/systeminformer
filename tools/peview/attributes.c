@@ -134,7 +134,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"值");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageAttributesListViewColumns", context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
@@ -200,7 +200,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Delete", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"删除", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"&Copy", NULL, NULL), ULONG_MAX);
                     PvInsertCopyListViewEMenuItem(menu, USHRT_MAX, context->ListViewHandle);

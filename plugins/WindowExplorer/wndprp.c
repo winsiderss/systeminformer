@@ -1453,7 +1453,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"值");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPERTY_COLUMNS, context->ListViewHandle);
 
@@ -1860,7 +1860,7 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
             PhSetControlTheme(context->PropsListViewHandle, L"explorer");
             PhAddListViewColumn(context->PropsListViewHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"#");
             PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(context->PropsListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Value");
+            PhAddListViewColumn(context->PropsListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"值");
             PhAddListViewColumn(context->PropsListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Alias");
             PhSetExtendedListView(context->PropsListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, context->PropsListViewHandle);
@@ -1922,7 +1922,7 @@ INT_PTR CALLBACK WepWindowPropListDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDD_EDITENV, L"Edit", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_DELETE, L"Delete", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_DELETE, L"删除", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, context->PropsListViewHandle);
@@ -2133,7 +2133,7 @@ INT_PTR CALLBACK WepWindowPropStoreDlgProc(
             PhSetControlTheme(context->PropStoreListViewHandle, L"explorer");
             PhAddListViewColumn(context->PropStoreListViewHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"#");
             PhAddListViewColumn(context->PropStoreListViewHandle, 1, 1, 1, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(context->PropStoreListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Value");
+            PhAddListViewColumn(context->PropStoreListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"值");
             PhSetExtendedListView(context->PropStoreListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, context->PropStoreListViewHandle);
 
@@ -2347,7 +2347,7 @@ INT_PTR CALLBACK WepWindowPreviewDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
 
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Value");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"值");
             PhSetExtendedListView(lvHandle);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));

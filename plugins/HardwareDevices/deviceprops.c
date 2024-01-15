@@ -234,7 +234,7 @@ INT_PTR CALLBACK DevicePropGeneralDlgProc(
             PhSetListViewStyle(context->GeneralListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->GeneralListViewHandle, L"explorer");
             PhAddListViewColumn(context->GeneralListViewHandle, 0, 0, 0, LVCFMT_LEFT, 180, L"Name");
-            PhAddListViewColumn(context->GeneralListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
+            PhAddListViewColumn(context->GeneralListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"值");
             PhSetExtendedListView(context->GeneralListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_GENERAL_COLUMNS, context->GeneralListViewHandle);
 
@@ -660,7 +660,7 @@ INT_PTR CALLBACK DevicePropPropertiesDlgProc(
             PhSetListViewStyle(context->PropsListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->PropsListViewHandle, L"explorer");
             PhAddListViewColumn(context->PropsListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
+            PhAddListViewColumn(context->PropsListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"值");
             PhSetExtendedListView(context->PropsListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_PROPERTIES_COLUMNS, context->PropsListViewHandle);
 
@@ -833,7 +833,7 @@ INT_PTR CALLBACK DevicePropInterfacesDlgProc(
             PhSetListViewStyle(context->InterfacesListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->InterfacesListViewHandle, L"explorer");
             PhAddListViewColumn(context->InterfacesListViewHandle, 0, 0, 0, LVCFMT_LEFT, 160, L"Name");
-            PhAddListViewColumn(context->InterfacesListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
+            PhAddListViewColumn(context->InterfacesListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"值");
             PhSetExtendedListView(context->InterfacesListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DEVICE_INTERFACES_COLUMNS, context->InterfacesListViewHandle);
 
