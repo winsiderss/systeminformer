@@ -598,7 +598,7 @@ INT_PTR CALLBACK TextDlgProc(
                         if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                         {
                             if (commitHashUrl = PhConcatStrings2(
-                                L"https://github.com/winsiderss/systeminformer/commit/",
+                                L"https://github.com/Amarillys/systeminformer-cn/commit/",
                                 PhGetString(entry->CommitHashString)
                                 ))
                             {
@@ -774,7 +774,7 @@ INT_PTR CALLBACK TextDlgProc(
                                         if (PhGetListViewItemParam(context->ListViewHandle, lvItemIndex, &entry))
                                         {
                                             if (commitHashUrl = PhConcatStrings2(
-                                                L"https://github.com/winsiderss/systeminformer/commit/",
+                                                L"https://github.com/Amarillys/systeminformer-cn/commit/",
                                                 PhGetString(entry->CommitHashString)
                                                 ))
                                             {

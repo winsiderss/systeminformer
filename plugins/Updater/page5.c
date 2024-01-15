@@ -165,7 +165,7 @@ VOID ShowLatestVersionDialog(
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"System Informer - 更新";
-    config.pszMainInstruction = L"You're running the latest version.";
+    config.pszMainInstruction = L"你的System Informer的版本是最新的。";
     config.pszContent = PH_AUTO_T(PH_STRING, UpdaterGetLatestVersionText(Context))->Buffer;
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
@@ -212,15 +212,15 @@ VOID ShowUpdateFailedDialog(
     config.hMainIcon = PhGetApplicationIcon(FALSE);
 
     config.pszWindowTitle = L"System Informer - 更新";
-    config.pszMainInstruction = L"Error downloading the update.";
+    config.pszMainInstruction = L"下载更新出错了";
 
     if (SignatureFailed)
     {
-        config.pszContent = L"Signature check failed. Click Retry to download the update again.";
+        config.pszContent = L"签名校验失败，请点击重试进行重新下载";
     }
     else if (HashFailed)
     {
-        config.pszContent = L"Hash check failed. Click Retry to download the update again.";
+        config.pszContent = L"哈希校验失败，请点击重试进行重新下载。";
     }
     else
     {
@@ -235,12 +235,12 @@ VOID ShowUpdateFailedDialog(
             }
             else
             {
-                config.pszContent = L"Click Retry to download the update again.";
+                config.pszContent = L"请点击重试进行重新下载。";
             }
         }
         else
         {
-            config.pszContent = L"Click Retry to download the update again.";
+            config.pszContent = L"请点击重试进行重新下载。";
         }
     }
 

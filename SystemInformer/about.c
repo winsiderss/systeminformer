@@ -45,7 +45,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 
 #if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
-                L"System Informer %lu.%lu.%lu (<a href=\"https://github.com/winsiderss/systeminformer/commit/%hs\">%hs</a>)",
+                L"System Informer %lu.%lu.%lu (<a href=\"https://github.com/Amarillys/systeminformer-cn/commit/%hs\">%hs</a>)",
                 PHAPP_VERSION_MAJOR,
                 PHAPP_VERSION_MINOR,
                 PHAPP_VERSION_REVISION,
