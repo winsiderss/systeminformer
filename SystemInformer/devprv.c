@@ -3555,6 +3555,7 @@ VOID PhpDeviceItemDeleteProcedure(
 
     PhClearReference(&item->InstanceId);
     PhClearReference(&item->ParentInstanceId);
+    PhClearReference(&item->DeviceInfo);
 }
 
 VOID PhpDeviceTreeDeleteProcedure(
@@ -3798,7 +3799,7 @@ VOID PhpGetInterfaceClassList(
     PhDevFreeObjects(objectCount, objects);
 }
 
-VOID PhpAssociateDeviceIntefaces(
+VOID PhpAssociateDeviceInterfaces(
     _Inout_ PPH_DEVICE_TREE Tree,
     _In_ PPH_DEVICE_ITEM DeviceItem,
     _In_ PGUID InterfaceClassList,
@@ -3982,7 +3983,7 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
         item = tree->DeviceList->Items[i];
 
         // for this device item associate any device interfaces
-        PhpAssociateDeviceIntefaces(tree, item, interfaceClassList, interfaceClassListCount);
+        PhpAssociateDeviceInterfaces(tree, item, interfaceClassList, interfaceClassListCount);
 
         for (ULONG j = 0; j < tree->DeviceList->Count; j++)
         {
