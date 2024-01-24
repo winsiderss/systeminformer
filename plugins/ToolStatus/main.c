@@ -361,7 +361,7 @@ VOID NTAPI TabPageUpdatedCallback(
         Edit_SetCueBannerText(SearchboxHandle, L"搜索服务 (Ctrl+K)");
         break;
     case 2:
-        Edit_SetCueBannerText(SearchboxHandle, L"搜索设备 (Ctrl+K)");
+        Edit_SetCueBannerText(SearchboxHandle, L"搜索网络 (Ctrl+K)");
         break;
     default:
         {

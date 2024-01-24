@@ -263,7 +263,7 @@ BOOLEAN PhSipMemorySectionCallback(
                 usedPages = totalPages - PhPerfInformation.AvailablePages;
             }
 
-            drawPanel->Title = PhCreateString(L"Memory");
+            drawPanel->Title = PhCreateString(L"内存");
 
             // %.0f%%\n%s / %s
             PhInitFormatF(&format[0], (DOUBLE)usedPages * 100 / totalPages, 0);
@@ -381,12 +381,12 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             if (PhGetPhysicallyInstalledSystemMemory(&InstalledMemory, &ReservedMemory))
             {
                 PhSetWindowText(totalPhysicalLabel, PhaConcatStrings2(
-                    PhaFormatSize(InstalledMemory, ULONG_MAX)->Buffer, L" installed")->Buffer);
+                    PhaFormatSize(InstalledMemory, ULONG_MAX)->Buffer, L" ")->Buffer);
             }
             else
             {
                 PhSetWindowText(totalPhysicalLabel, PhaConcatStrings2(
-                    PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), ULONG_MAX)->Buffer, L" total")->Buffer);
+                    PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), ULONG_MAX)->Buffer, L" 总共")->Buffer);
             }
 
             MemoryPanel = PhCreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_MEMPANEL), hwndDlg, PhSipMemoryPanelDialogProc, NULL);
@@ -565,30 +565,6 @@ VOID PhSipLayoutMemoryGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(MemoryDialog, IDC_COMMIT_L),
-        NULL,
-        marginRect.left,
-        y,
-        0,
-        0,
-        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
-        );
-    y += labelRect.bottom + MemorySection->Parameters->MemoryPadding;
-
-    deferHandle = DeferWindowPos(
-        deferHandle,
-        CommitGraphHandle,
-        NULL,
-        marginRect.left,
-        y,
-        graphWidth,
-        graphHeight,
-        SWP_NOACTIVATE | SWP_NOZORDER
-        );
-    y += graphHeight + MemorySection->Parameters->MemoryPadding;
-
-    deferHandle = DeferWindowPos(
-        deferHandle,
         GetDlgItem(MemoryDialog, IDC_PHYSICAL_L),
         NULL,
         marginRect.left,
@@ -602,6 +578,30 @@ VOID PhSipLayoutMemoryGraphs(
     deferHandle = DeferWindowPos(
         deferHandle,
         PhysicalGraphHandle,
+        NULL,
+        marginRect.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + MemorySection->Parameters->MemoryPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        GetDlgItem(MemoryDialog, IDC_COMMIT_L),
+        NULL,
+        marginRect.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + MemorySection->Parameters->MemoryPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        CommitGraphHandle,
         NULL,
         marginRect.left,
         y,

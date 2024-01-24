@@ -1327,7 +1327,7 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
             SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
 
             if (GraphicsQueryDeviceProperties(PhGetString(context->DeviceEntry->Id.DevicePath), &description, NULL, NULL, NULL, NULL, NULL))
-                PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PhGetString(PH_AUTO_T(PH_STRING, description)));
+                PhSetDialogItemText(hwndDlg, IDC_GPUNAME,  wcscat(PhGetString(PH_AUTO_T(PH_STRING, description)), L" "));
             else
                 PhSetDialogItemText(hwndDlg, IDC_GPUNAME, L"GPU");
 

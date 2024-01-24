@@ -115,22 +115,22 @@ VOID PhInitializeServiceTreeList(
     TreeNew_SetRedraw(hwnd, FALSE);
 
     // Default columns
-    PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display name", 220, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_STATUS, TRUE, L"Status", 70, PH_ALIGN_LEFT, 4, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start type", 130, PH_ALIGN_LEFT, 5, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"名称", 140, PH_ALIGN_CENTER, 0, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_CENTER, 1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"详细信息", 220, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"类型", 100, PH_ALIGN_CENTER, 3, DT_CENTER);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_STATUS, TRUE, L"状态", 70, PH_ALIGN_CENTER, 4, DT_CENTER);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"启动类型", 130, PH_ALIGN_CENTER, 5, DT_CENTER);
 
-    PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary path", 180, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error control", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_DESCRIPTION, FALSE, L"Description", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumnEx(hwnd, PHSVTLC_KEYMODIFIEDTIME, FALSE, L"Key modified time", 140, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"文件路径", 180, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"错误控制", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"用户组", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_DESCRIPTION, FALSE, L"描述", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumnEx(hwnd, PHSVTLC_KEYMODIFIEDTIME, FALSE, L"密钥修改时间", 140, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFICATIONSTATUS, FALSE, L"认证状态", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFIEDSIGNER, FALSE, L"Verified signer", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumnEx2(hwnd, PHSVTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"文件名", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumnEx2(hwnd, PHSVTLC_TIMELINE, FALSE, L"活动状态", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -702,11 +702,11 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     if (serviceItem->StartType == SERVICE_DISABLED)
                         additional = NULL;
                     else if (serviceItem->DelayedStart && serviceItem->HasTriggers)
-                        additional = L" (delayed, trigger)";
+                        additional = L" (延迟, 触发)";
                     else if (serviceItem->DelayedStart)
-                        additional = L" (delayed)";
+                        additional = L" (延迟)";
                     else if (serviceItem->HasTriggers)
-                        additional = L" (trigger)";
+                        additional = L" (触发)";
 
                     if (additional)
                         PhInitFormatS(&format[1], additional);

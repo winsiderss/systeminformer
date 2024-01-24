@@ -244,7 +244,7 @@ VOID EtInitializeFirewallTab(
             PTOOLSTATUS_TAB_INFO tabInfo;
 
             tabInfo = EtFwToolStatusInterface->RegisterTabInfo(EtFwAddedTabPage->Index);
-            tabInfo->BannerText = L"Search Firewall";
+            tabInfo->BannerText = L"搜索防火墙";
             tabInfo->ActivateContent = FwToolStatusActivateContent;
             tabInfo->GetTreeNewHandle = FwToolStatusGetTreeNewHandle;
         }
@@ -264,30 +264,30 @@ VOID InitializeFwTreeList(
     TreeNew_SetCallback(FwTreeNewHandle, FwTreeNewCallback, NULL);
     TreeNew_SetRedraw(FwTreeNewHandle, FALSE);
 
-    PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_NAME, TRUE, L"Name", 140, PH_ALIGN_LEFT, FW_COLUMN_NAME, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ACTION, TRUE, L"Action", 70, PH_ALIGN_LEFT, FW_COLUMN_ACTION, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_DIRECTION, TRUE, L"Direction", 40, PH_ALIGN_LEFT, FW_COLUMN_DIRECTION, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_RULENAME, TRUE, L"Rule", 240, PH_ALIGN_LEFT, FW_COLUMN_RULENAME, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_RULEDESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, FW_COLUMN_RULEDESCRIPTION, 0);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_LOCALADDRESS, TRUE, L"Local address", 220, PH_ALIGN_RIGHT, FW_COLUMN_LOCALADDRESS, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_LEFT, FW_COLUMN_LOCALPORT, DT_LEFT, TRUE);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALHOSTNAME, TRUE, L"Local hostname", 70, PH_ALIGN_LEFT, FW_COLUMN_LOCALHOSTNAME, 0);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESS, TRUE, L"Remote address", 220, PH_ALIGN_RIGHT, FW_COLUMN_REMOTEADDRESS, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_LEFT, FW_COLUMN_REMOTEPORT, DT_LEFT, TRUE);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, TRUE, L"Remote hostname", 70, PH_ALIGN_LEFT, FW_COLUMN_REMOTEHOSTNAME, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROTOCOL, TRUE, L"Protocol", 60, PH_ALIGN_LEFT, FW_COLUMN_PROTOCOL, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, TRUE, L"Timestamp", 60, PH_ALIGN_LEFT, FW_COLUMN_TIMESTAMP, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROCESSFILENAME, FALSE, L"File path", 100, PH_ALIGN_LEFT, FW_COLUMN_PROCESSFILENAME, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_USER, FALSE, L"Username", 100, PH_ALIGN_LEFT, FW_COLUMN_USER, 0);
+    PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_NAME, TRUE, L"名称", 140, PH_ALIGN_LEFT, FW_COLUMN_NAME, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ACTION, TRUE, L"策略", 70, PH_ALIGN_LEFT, FW_COLUMN_ACTION, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_DIRECTION, TRUE, L"描述", 40, PH_ALIGN_LEFT, FW_COLUMN_DIRECTION, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_RULENAME, TRUE, L"规则", 240, PH_ALIGN_LEFT, FW_COLUMN_RULENAME, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_RULEDESCRIPTION, TRUE, L"描述", 180, PH_ALIGN_LEFT, FW_COLUMN_RULEDESCRIPTION, 0);
+    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_LOCALADDRESS, TRUE, L"本地IP", 220, PH_ALIGN_RIGHT, FW_COLUMN_LOCALADDRESS, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_LOCALPORT, TRUE, L"本地端口", 50, PH_ALIGN_LEFT, FW_COLUMN_LOCALPORT, DT_LEFT, TRUE);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALHOSTNAME, TRUE, L"本地主机名", 70, PH_ALIGN_LEFT, FW_COLUMN_LOCALHOSTNAME, 0);
+    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESS, TRUE, L"远程IP", 220, PH_ALIGN_RIGHT, FW_COLUMN_REMOTEADDRESS, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEPORT, TRUE, L"远程端口", 50, PH_ALIGN_LEFT, FW_COLUMN_REMOTEPORT, DT_LEFT, TRUE);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, TRUE, L"远程主机名", 70, PH_ALIGN_LEFT, FW_COLUMN_REMOTEHOSTNAME, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROTOCOL, TRUE, L"协议", 60, PH_ALIGN_LEFT, FW_COLUMN_PROTOCOL, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, TRUE, L"发起时间", 60, PH_ALIGN_LEFT, FW_COLUMN_TIMESTAMP, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROCESSFILENAME, FALSE, L"文件路径", 100, PH_ALIGN_LEFT, FW_COLUMN_PROCESSFILENAME, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_USER, FALSE, L"用户名", 100, PH_ALIGN_LEFT, FW_COLUMN_USER, 0);
     //PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PACKAGE, FALSE, L"Package", 100, PH_ALIGN_LEFT, FW_COLUMN_PACKAGE, 0);
-    PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_COUNTRY, FALSE, L"Country", 80, PH_ALIGN_LEFT, FW_COLUMN_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSCLASS, FALSE, L"Local address class", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSCLASS, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSCLASS, FALSE, L"Remote address class", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSCLASS, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, FALSE, L"Local address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, FALSE, L"Remote address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ORIGINALNAME, FALSE, L"Original name", 100, PH_ALIGN_LEFT, FW_COLUMN_ORIGINALNAME, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALSERVICENAME, FALSE, L"Local port service", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALSERVICENAME, 0);
-    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTESERVICENAME, FALSE, L"Remote port service", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTESERVICENAME, 0);
+    PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_COUNTRY, FALSE, L"城市", 80, PH_ALIGN_LEFT, FW_COLUMN_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSCLASS, FALSE, L"本地IP类型", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSCLASS, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSCLASS, FALSE, L"远程IP类型", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSCLASS, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, FALSE, L"本地IP范围", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, FALSE, L"远程IP范围", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_ORIGINALNAME, FALSE, L"原始路径", 100, PH_ALIGN_LEFT, FW_COLUMN_ORIGINALNAME, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALSERVICENAME, FALSE, L"本地端口服务", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALSERVICENAME, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTESERVICENAME, FALSE, L"远程端口服务", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTESERVICENAME, 0);
 
     TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
     TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
@@ -846,11 +846,11 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     {
                     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
                     case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
-                        PhInitializeStringRef(&getCellText->Text, L"DROP");
+                        PhInitializeStringRef(&getCellText->Text, L"丢弃");
                         break;
                     case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
                     case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
-                        PhInitializeStringRef(&getCellText->Text, L"ALLOW");
+                        PhInitializeStringRef(&getCellText->Text, L"允许");
                         break;
                     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
                         PhInitializeStringRef(&getCellText->Text, L"DROP_MAC");
@@ -898,10 +898,10 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         switch (node->Direction)
                         {
                         case FW_EVENT_DIRECTION_INBOUND:
-                            PhInitializeStringRef(&getCellText->Text, L"In");
+                            PhInitializeStringRef(&getCellText->Text, L"入站");
                             break;
                         case FW_EVENT_DIRECTION_OUTBOUND:
-                            PhInitializeStringRef(&getCellText->Text, L"Out");
+                            PhInitializeStringRef(&getCellText->Text, L"出站");
                             break;
                         case FW_EVENT_DIRECTION_FORWARD:
                             PhInitializeStringRef(&getCellText->Text, L"Fwd");
@@ -981,7 +981,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     }
                     else
                     {
-                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                        PhInitializeStringRef(&getCellText->Text, L"解析中....");
                     }
                 }
                 break;
@@ -1043,7 +1043,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     }
                     else
                     {
-                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                        PhInitializeStringRef(&getCellText->Text, L"解析中....");
                     }
                 }
                 break;
@@ -1858,7 +1858,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
     case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
         {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"DROP");
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"丢弃");
 
             if (wordMatch(&stringSr))
                 return TRUE;
@@ -1867,7 +1867,7 @@ BOOLEAN NTAPI FwSearchFilterCallback(
     case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
     case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
         {
-            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"ALLOW");
+            static PH_STRINGREF stringSr = PH_STRINGREF_INIT(L"允许");
 
             if (wordMatch(&stringSr))
                 return TRUE;

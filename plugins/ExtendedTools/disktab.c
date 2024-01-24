@@ -60,7 +60,7 @@ VOID EtInitializeDiskTab(
         PTOOLSTATUS_TAB_INFO tabInfo;
 
         tabInfo = ToolStatusInterface->RegisterTabInfo(DiskPage->Index);
-        tabInfo->BannerText = L"Search Disk";
+        tabInfo->BannerText = L"搜索文件";
         tabInfo->ActivateContent = EtpToolStatusActivateContent;
         tabInfo->GetTreeNewHandle = EtpToolStatusGetTreeNewHandle;
     }
@@ -276,15 +276,15 @@ VOID EtInitializeDiskTreeList(
     TreeNew_SetRedraw(hwnd, FALSE);
 
     // Default columns
-    PhAddTreeNewColumn(hwnd, ETDSTNC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(hwnd, ETDSTNC_NAME, TRUE, L"名称", 100, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, ETDSTNC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, ETDSTNC_FILE, TRUE, L"File", 400, PH_ALIGN_LEFT, 2, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_READRATEAVERAGE, TRUE, L"Read rate average", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_WRITERATEAVERAGE, TRUE, L"Write rate average", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_TOTALRATEAVERAGE, TRUE, L"Total rate average", 70, PH_ALIGN_RIGHT, 5, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_IOPRIORITY, TRUE, L"I/O priority", 70, PH_ALIGN_LEFT, 6, 0, TRUE);
-    PhAddTreeNewColumnEx(hwnd, ETDSTNC_RESPONSETIME, TRUE, L"Response time (ms)", 70, PH_ALIGN_RIGHT, 7, 0, TRUE);
-    PhAddTreeNewColumn(hwnd, ETDSTNC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(hwnd, ETDSTNC_FILE, TRUE, L"文件", 400, PH_ALIGN_LEFT, 2, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_READRATEAVERAGE, TRUE, L"平均读取速率", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_WRITERATEAVERAGE, TRUE, L"平均写入速率", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_TOTALRATEAVERAGE, TRUE, L"总速率", 70, PH_ALIGN_RIGHT, 5, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_IOPRIORITY, TRUE, L"I/O 优先级", 70, PH_ALIGN_LEFT, 6, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, ETDSTNC_RESPONSETIME, TRUE, L"反应时间 (ms)", 70, PH_ALIGN_RIGHT, 7, 0, TRUE);
+    PhAddTreeNewColumn(hwnd, ETDSTNC_ORIGINALNAME, FALSE, L"原始文件路径", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -659,22 +659,22 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 switch (diskItem->IoPriority)
                 {
                 case IoPriorityVeryLow:
-                    PhInitializeStringRef(&getCellText->Text, L"Very Low");
+                    PhInitializeStringRef(&getCellText->Text, L"非常低");
                     break;
                 case IoPriorityLow:
-                    PhInitializeStringRef(&getCellText->Text, L"Low");
+                    PhInitializeStringRef(&getCellText->Text, L"低");
                     break;
                 case IoPriorityNormal:
-                    PhInitializeStringRef(&getCellText->Text, L"Normal");
+                    PhInitializeStringRef(&getCellText->Text, L"普通");
                     break;
                 case IoPriorityHigh:
-                    PhInitializeStringRef(&getCellText->Text, L"High");
+                    PhInitializeStringRef(&getCellText->Text, L"高");
                     break;
                 case IoPriorityCritical:
-                    PhInitializeStringRef(&getCellText->Text, L"Critical");
+                    PhInitializeStringRef(&getCellText->Text, L"关键");
                     break;
                 default:
-                    PhInitializeStringRef(&getCellText->Text, L"Unknown");
+                    PhInitializeStringRef(&getCellText->Text, L"未知");
                     break;
                 }
                 break;
