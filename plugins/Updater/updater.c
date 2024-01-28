@@ -1251,8 +1251,7 @@ VOID ShowStartupUpdateDialog(
         PhIsNullOrEmptyString(context->SetupFileSignature) &&
         PhIsNullOrEmptyString(context->CommitHash))
     {
-        PhDereferenceObject(context);
-        return;
+        goto CleanupExit;
     }
 
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
@@ -1263,6 +1262,7 @@ VOID ShowStartupUpdateDialog(
     config.pfCallback = TaskDialogBootstrapCallback;
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
+CleanupExit:
     PhDereferenceObject(context);
     PhDeleteAutoPool(&autoPool);
 }
