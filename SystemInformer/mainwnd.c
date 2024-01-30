@@ -284,7 +284,7 @@ PPH_STRING PhMwpInitializeWindowTitle(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    PPH_STRING currentUserName;
+    PPH_STRING myUserAndDomain;
 
     if (!PhEnableWindowText)
     {
@@ -292,38 +292,153 @@ PPH_STRING PhMwpInitializeWindowTitle(
         return NULL;
     }
 
-    PhInitializeStringBuilder(&stringBuilder, 100);
-    PhAppendStringBuilder2(&stringBuilder, PhApplicationName);
-
-    if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+    if (!PhGetIntegerSetting(L"EnableVerboseDeveloperWindowTitle"))
     {
-        PhAppendStringBuilder2(&stringBuilder, L" [");
-        PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
-        PhAppendCharStringBuilder(&stringBuilder, L']');
-        PhDereferenceObject(currentUserName);
-    }
+        //
+        // Standard window title...
+        //
 
-    switch (KphLevelEx(FALSE))
+        PhInitializeStringBuilder(&stringBuilder, 100);
+        PhAppendStringBuilder2(&stringBuilder, PhApplicationName);
+
+        if (myUserAndDomain = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L" [");
+            PhAppendStringBuilder(&stringBuilder, &myUserAndDomain->sr);
+            PhAppendCharStringBuilder(&stringBuilder, L']');
+            PhDereferenceObject(myUserAndDomain);
+        }
+
+        switch (KphLevelEx(FALSE))
+        {
+        case KphLevelMax:
+            PhAppendStringBuilder2(&stringBuilder, L"++");
+            break;
+        case KphLevelHigh:
+            PhAppendStringBuilder2(&stringBuilder, L"+");
+            break;
+        case KphLevelMed:
+            PhAppendStringBuilder2(&stringBuilder, L"~");
+            break;
+        case KphLevelLow:
+            PhAppendStringBuilder2(&stringBuilder, L"-");
+            break;
+        case KphLevelMin:
+            PhAppendStringBuilder2(&stringBuilder, L"--");
+            break;
+        }
+
+        if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
+            PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+    }
+    else
     {
-    case KphLevelMax:
-        PhAppendStringBuilder2(&stringBuilder, L"++");
-        break;
-    case KphLevelHigh:
-        PhAppendStringBuilder2(&stringBuilder, L"+");
-        break;
-    case KphLevelMed:
-        PhAppendStringBuilder2(&stringBuilder, L"~");
-        break;
-    case KphLevelLow:
-        PhAppendStringBuilder2(&stringBuilder, L"-");
-        break;
-    case KphLevelMin:
-        PhAppendStringBuilder2(&stringBuilder, L"--");
-        break;
-    }
+        //
+        // Verbose Developer Window Title ON
+        //
 
-    if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
-        PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+        // 1. Starting Text
+        //
+        PhInitializeStringBuilder(&stringBuilder, 200);
+        PhAppendStringBuilder2(&stringBuilder, L"SI");
+
+        // 2. PID
+        //
+        PhAppendFormatStringBuilder(&stringBuilder, L" - %lu ", HandleToUlong(NtCurrentProcessId()));
+
+        // 3. Username
+        //
+        BOOL isRunningAsSYSTEMUser = FALSE;
+        PSID mySID = PhGetOwnTokenAttributes().TokenSid;
+        if (myUserAndDomain = PhGetSidFullName(mySID, TRUE, NULL))
+        {
+            isRunningAsSYSTEMUser = RtlEqualSid(mySID, (PSID)&PhSeLocalSystemSid);
+
+            PhAppendStringBuilder2(&stringBuilder, L"- ");
+            PhAppendStringBuilder(&stringBuilder, &myUserAndDomain->sr);
+            PhAppendCharStringBuilder(&stringBuilder, L' ');
+            PhDereferenceObject(myUserAndDomain);
+        }
+
+        // 4. Elevated or not  (IL level string)
+        // 
+        BOOL isHighILOrGreater = FALSE;
+        MANDATORY_LEVEL integrityLevel;
+        PWSTR integrityString;
+        if (NT_SUCCESS(PhGetTokenIntegrityLevel(PhGetOwnTokenAttributes().TokenHandle, &integrityLevel, &integrityString)))
+        {
+            isHighILOrGreater = (integrityLevel >= MandatoryLevelHigh);
+        }
+        PhAppendFormatStringBuilder(&stringBuilder, L"   |   %ls IL", integrityString);
+
+
+        // 4.5 - Elevated why
+        //
+        ULONG ElevationType = PhGetOwnTokenAttributes().ElevationType;
+        if ((ElevationType == TokenElevationTypeFull || ElevationType == TokenElevationTypeDefault) && !isRunningAsSYSTEMUser && !isHighILOrGreater)
+        {
+            if (ElevationType == TokenElevationTypeFull)                                                                                                    // Token reports as Full (Linked-token) or Default (= No Linked Token, IE UAC is OFF), but Medium IL and lower
+                PhAppendStringBuilder2(&stringBuilder, L" (Elevation : Token UAC). ");
+            else if (ElevationType == TokenElevationTypeDefault)
+                PhAppendStringBuilder2(&stringBuilder, L" (Elevation : Token Admin). ");
+        }
+        else if (!(ElevationType == TokenElevationTypeFull || ElevationType == TokenElevationTypeDefault) && isRunningAsSYSTEMUser && !isHighILOrGreater)
+            PhAppendStringBuilder2(&stringBuilder, L" (Elevation : SYSTEM). ");                                                                             // If running as SYSTEM but have a Medium IL, consider this "Elevated". The Token Elevation attribute wont be set for NT Authority\System
+        else if (!(ElevationType == TokenElevationTypeFull || ElevationType == TokenElevationTypeDefault) && !isRunningAsSYSTEMUser && isHighILOrGreater)
+            PhAppendStringBuilder2(&stringBuilder, L" (Elevation : IL). ");                                                                                 // Token = Full (UAC)
+        else if ((ElevationType == TokenElevationTypeFull || ElevationType == TokenElevationTypeDefault) && (isRunningAsSYSTEMUser || isHighILOrGreater))
+            PhAppendStringBuilder2(&stringBuilder, L" (Elevated). ");
+
+
+        // 5. Driver connection verbosity
+        //
+        KPH_LEVEL driverLevel = KphLevelEx(FALSE);
+        BOOL isConnectedToDriver = driverLevel != KphLevelNone;
+        if (!isConnectedToDriver)
+            PhAppendStringBuilder2(&stringBuilder, L"  |  <No-Driver> ");
+        else
+            PhAppendStringBuilder2(&stringBuilder, L"  |   ");
+
+        // 5.5 - Driver Load type (Features + Security)
+        //
+        switch (driverLevel)
+        {
+        case KphLevelMax:
+            PhAppendStringBuilder2(&stringBuilder, L"Driver Connection: ++[Maximum]  ");
+            break;
+        case KphLevelHigh:
+            PhAppendStringBuilder2(&stringBuilder, L"Driver Connection: +[High]  ");
+            break;
+        case KphLevelMed:
+            PhAppendStringBuilder2(&stringBuilder, L"Driver Connection: ~[Medium]  ");
+            break;
+        case KphLevelLow:
+            PhAppendStringBuilder2(&stringBuilder, L"Driver Connection: -[Lower]  ");
+            break;
+        case KphLevelMin:
+            PhAppendStringBuilder2(&stringBuilder, L"Driver Connection: --[Minimal]  ");
+            break;
+        }
+
+        // 6. Session ID \ WindowStation \ Desktop
+        //
+        ULONG sessionID;
+        PhGetProcessSessionId(NtCurrentProcess(), &sessionID);
+        PPH_STRING winStaOfProcess = PhGetCurrentWindowStationName();          // Always WinSta0 for anything interactive
+        PPH_STRING desktopNameOfThread = PhGetCurrentThreadDesktopName();
+        PhAppendFormatStringBuilder(&stringBuilder, L" |    %lu \\ ", sessionID);
+        PhAppendStringBuilder(&stringBuilder, &winStaOfProcess->sr);
+        PhAppendStringBuilder2(&stringBuilder, L" \\ ");
+        PhAppendStringBuilder(&stringBuilder, &desktopNameOfThread->sr);
+        PhAppendStringBuilder2(&stringBuilder, L" ");
+        PhDereferenceObject(winStaOfProcess);
+        PhDereferenceObject(desktopNameOfThread);
+
+        // 7. A dev is running this under the Visual Stduio Debugger?
+        //
+        if (IsDebuggerPresent())
+            PhAppendStringBuilder2(&stringBuilder, L"           ** BEING DEBUGGED **");
+    }
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
