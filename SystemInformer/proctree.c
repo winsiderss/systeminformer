@@ -3515,7 +3515,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_PROTECTION:
                 {
-                    if (processItem->Protection.Level != 0 && processItem->Protection.Level != UCHAR_MAX)
+                    if ((processItem->Protection.Level != 0 || processItem->IsSecureProcess) && processItem->Protection.Level != UCHAR_MAX)
                     {
                         PhMoveReference(&node->ProtectionText, PhGetProcessItemProtectionText(processItem));
                         getCellText->Text = node->ProtectionText->sr;
