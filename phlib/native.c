@@ -14390,7 +14390,7 @@ NTSTATUS PhGetMachineTypeAttributes(
     return status;
 }
 
-// Essentially KernelBase!QueryProcessMachine (jxy-s)
+// rev from KernelBase!QueryProcessMachine (jxy-s)
 NTSTATUS PhGetProcessArchitecture(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessArchitecture
