@@ -202,9 +202,12 @@ typedef struct _PH_PROCESS_NODE
     // Image
     ULONG ImageTimeDateStamp;
     USHORT ImageCharacteristics;
-    USHORT ImageReserved;
+    USHORT ImageMachine;
     USHORT ImageSubsystem;
     USHORT ImageDllCharacteristics;
+#ifdef _M_ARM64
+    BOOLEAN ImageHasCHPE;
+#endif
     // App ID
     PPH_STRING AppIdText;
     // DPI awareness

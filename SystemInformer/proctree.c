@@ -1170,8 +1170,6 @@ static VOID PhpUpdateProcessNodeImage(
 
             if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
             {
-                if (WindowsVersion < WINDOWS_11)
-                    ProcessNode->ImageReserved = mappedImage.NtHeaders->FileHeader.Machine;
                 ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
                 ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
 
@@ -1508,17 +1506,31 @@ static VOID PhpUpdateProcessNodeArchitecture(
 {
     if (!(ProcessNode->ValidMask & PHPN_ARCHITECTURE))
     {
-        ProcessNode->ImageReserved = IMAGE_FILE_MACHINE_UNKNOWN;
+        ProcessNode->ImageMachine = IMAGE_FILE_MACHINE_UNKNOWN;
 
-        if (ProcessNode->ProcessItem->QueryHandle)
+        if (ProcessNode->ProcessItem->FileName)
         {
-            USHORT processArchitecture;
+            PH_MAPPED_IMAGE mappedImage;
 
-            if (NT_SUCCESS(PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &processArchitecture)))
+#ifdef _M_ARM64
+            if (NT_SUCCESS(PhLoadMappedImageEx(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
             {
-                ProcessNode->ImageReserved = processArchitecture;
+                ProcessNode->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+                if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_AMD64 || ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_ARM64)
+                    ProcessNode->ImageHasCHPE = PhMappedImageHasCHPEMetadata(&mappedImage);
+                PhUnloadMappedImage(&mappedImage);
             }
+#else
+            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
+            {
+                ProcessNode->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+                PhUnloadMappedImage(&mappedImage);
+            }
+#endif
         }
+
+        if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_UNKNOWN && ProcessNode->ProcessItem->QueryHandle)
+            PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->ImageMachine);
 
         ProcessNode->ValidMask |= PHPN_ARCHITECTURE;
     }
@@ -2354,7 +2366,11 @@ BEGIN_SORT_FUNCTION(Architecture)
         PhpUpdateProcessNodeImage(node2);
     }
 
-    sortResult = uintcmp(node1->ImageReserved, node2->ImageReserved);
+    sortResult = uintcmp(node1->ImageMachine, node2->ImageMachine);
+#ifdef _M_ARM64
+    if (sortResult == 0)
+        sortResult = uintcmp(node1->ImageHasCHPE, node2->ImageHasCHPE);
+#endif
 }
 END_SORT_FUNCTION
 
@@ -3662,19 +3678,27 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     else
                         PhpUpdateProcessNodeImage(node);
 
-                    switch (node->ImageReserved)
+                    switch (node->ImageMachine)
                     {
                     case IMAGE_FILE_MACHINE_I386:
                         PhInitializeStringRef(&getCellText->Text, L"x86");
                         break;
                     case IMAGE_FILE_MACHINE_AMD64:
+#ifdef _M_ARM64
+                        PhInitializeStringRef(&getCellText->Text, node->ImageHasCHPE ? L"x64 (ARM64X)" : L"x64");
+#else
                         PhInitializeStringRef(&getCellText->Text, L"x64");
+#endif
                         break;
                     case IMAGE_FILE_MACHINE_ARMNT:
                         PhInitializeStringRef(&getCellText->Text, L"ARM");
                         break;
                     case IMAGE_FILE_MACHINE_ARM64:
+#ifdef _M_ARM64
+                        PhInitializeStringRef(&getCellText->Text, node->ImageHasCHPE ? L"ARM64 (ARM64X)" : L"ARM64");
+#else
                         PhInitializeStringRef(&getCellText->Text, L"ARM64");
+#endif
                         break;
                     }
                     break;
