@@ -5401,3 +5401,33 @@ BOOLEAN PhGetMappedImageEntropy(
 
     return status;
 }
+
+BOOLEAN PhMappedImageHasCHPEMetadata(
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+
+        if (NT_SUCCESS(PhGetMappedImageLoadConfig32(MappedImage, &config32)) &&
+            RTL_CONTAINS_FIELD(config32, config32->Size, CHPEMetadataPointer))
+        {
+            if (config32->CHPEMetadataPointer)
+                return TRUE;
+        }
+    }
+    else
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+
+        if (NT_SUCCESS(PhGetMappedImageLoadConfig64(MappedImage, &config64)) &&
+            RTL_CONTAINS_FIELD(config64, config64->Size, CHPEMetadataPointer))
+        {
+            if (config64->CHPEMetadataPointer)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
