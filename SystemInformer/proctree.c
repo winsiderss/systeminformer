@@ -718,7 +718,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_CODEPAGE | PHPN_ARCHITECTURE | PHPN_GRANTEDACCESS; // Items that always remain valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_CODEPAGE | PHPN_GRANTEDACCESS; // Items that always remain valid
 
         // The DPI awareness defaults to unaware if not set or declared in the manifest in which case
         // it can be changed once, so we can only be sure that it won't be changed again if it is different
@@ -1160,6 +1160,8 @@ static VOID PhpUpdateProcessNodeImage(
 {
     if (!(ProcessNode->ValidMask & PHPN_IMAGE))
     {
+        ProcessNode->ImageMachine = IMAGE_FILE_MACHINE_UNKNOWN;
+
         if (ProcessNode->ProcessItem->IsSubsystemProcess)
         {
             ProcessNode->ImageSubsystem = IMAGE_SUBSYSTEM_POSIX_CUI;
@@ -1168,8 +1170,13 @@ static VOID PhpUpdateProcessNodeImage(
         {
             PH_MAPPED_IMAGE mappedImage;
 
+#ifdef _M_ARM64
+            if (NT_SUCCESS(PhLoadMappedImageEx(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
+#else
             if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
+#endif
             {
+                ProcessNode->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
                 ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
                 ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
 
@@ -1184,9 +1191,17 @@ static VOID PhpUpdateProcessNodeImage(
                     ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
                 }
 
+#ifdef _M_ARM64
+                if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_AMD64 || ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_ARM64)
+                    ProcessNode->ImageHasCHPE = PhMappedImageHasCHPEMetadata(&mappedImage);
+#endif
+
                 PhUnloadMappedImage(&mappedImage);
             }
         }
+
+        if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_UNKNOWN && ProcessNode->ProcessItem->QueryHandle)
+            PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->ImageMachine);
 
         //if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
         //{
@@ -1497,42 +1512,6 @@ static VOID PhpUpdateProcessNodePowerThrottling(
         }
 
         ProcessNode->ValidMask |= PHPN_POWERTHROTTLING;
-    }
-}
-
-static VOID PhpUpdateProcessNodeArchitecture(
-    _Inout_ PPH_PROCESS_NODE ProcessNode
-    )
-{
-    if (!(ProcessNode->ValidMask & PHPN_ARCHITECTURE))
-    {
-        ProcessNode->ImageMachine = IMAGE_FILE_MACHINE_UNKNOWN;
-
-        if (ProcessNode->ProcessItem->FileName)
-        {
-            PH_MAPPED_IMAGE mappedImage;
-
-#ifdef _M_ARM64
-            if (NT_SUCCESS(PhLoadMappedImageEx(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
-            {
-                ProcessNode->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-                if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_AMD64 || ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_ARM64)
-                    ProcessNode->ImageHasCHPE = PhMappedImageHasCHPEMetadata(&mappedImage);
-                PhUnloadMappedImage(&mappedImage);
-            }
-#else
-            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
-            {
-                ProcessNode->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
-                PhUnloadMappedImage(&mappedImage);
-            }
-#endif
-        }
-
-        if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_UNKNOWN && ProcessNode->ProcessItem->QueryHandle)
-            PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->ImageMachine);
-
-        ProcessNode->ValidMask |= PHPN_ARCHITECTURE;
     }
 }
 
@@ -2355,16 +2334,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Architecture)
 {
-    if (WindowsVersion >= WINDOWS_11)
-    {
-        PhpUpdateProcessNodeArchitecture(node1);
-        PhpUpdateProcessNodeArchitecture(node2);
-    }
-    else
-    {
-        PhpUpdateProcessNodeImage(node1);
-        PhpUpdateProcessNodeImage(node2);
-    }
+    PhpUpdateProcessNodeImage(node1);
+    PhpUpdateProcessNodeImage(node2);
 
     sortResult = uintcmp(node1->ImageMachine, node2->ImageMachine);
 #ifdef _M_ARM64
@@ -3673,10 +3644,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_ARCHITECTURE:
                 {
-                    if (WindowsVersion >= WINDOWS_11)
-                        PhpUpdateProcessNodeArchitecture(node);
-                    else
-                        PhpUpdateProcessNodeImage(node);
+                    PhpUpdateProcessNodeImage(node);
 
                     switch (node->ImageMachine)
                     {
