@@ -1143,6 +1143,13 @@ PhGetMappedImageEntropy(
     _Out_ DOUBLE* ImageVariance
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhMappedImageHasCHPEMetadata(
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    );
+
 // ELF binary support
 
 NTSTATUS PhInitializeMappedWslImage(

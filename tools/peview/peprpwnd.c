@@ -409,38 +409,15 @@ VOID PvAddTreeViewSections(
     }
 
     // CHPE page
+    if (PhMappedImageHasCHPEMetadata(&PvMappedImage))
     {
-        BOOLEAN hasCHPE = FALSE;
-
-        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        {
-            if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
-                RTL_CONTAINS_FIELD(config32, config32->Size, CHPEMetadataPointer))
-            {
-                if (config32->CHPEMetadataPointer)
-                    hasCHPE = TRUE;
-            }
-        }
-        else
-        {
-            if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
-                RTL_CONTAINS_FIELD(config64, config64->Size, CHPEMetadataPointer))
-            {
-                if (config64->CHPEMetadataPointer)
-                    hasCHPE = TRUE;
-            }
-        }
-
-        if (hasCHPE)
-        {
-            PvCreateTabSection(
-                L"CHPE",
-                PhInstanceHandle,
-                MAKEINTRESOURCE(IDD_PELOADCONFIG),
-                PvpPeCHPEDlgProc,
-                NULL
-                );
-        }
+        PvCreateTabSection(
+            L"CHPE",
+            PhInstanceHandle,
+            MAKEINTRESOURCE(IDD_PELOADCONFIG),
+            PvpPeCHPEDlgProc,
+            NULL
+            );
     }
 
     // Certificates page
