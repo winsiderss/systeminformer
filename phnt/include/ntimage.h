@@ -9,8 +9,10 @@
 
 #include <pshpack4.h>
 
-#ifndef IMAGE_FILE_MACHINE_CHPE_X86
-#define IMAGE_FILE_MACHINE_CHPE_X86 0x3A64
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+#define IMAGE_FILE_MACHINE_CHPE_X86          0x3A64
+#define IMAGE_FILE_MACHINE_ARM64EC           0xA641
+#define IMAGE_FILE_MACHINE_ARM64X            0xA64E
 #endif
 
 typedef struct _IMAGE_DEBUG_POGO_ENTRY
