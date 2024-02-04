@@ -18373,4 +18373,61 @@ VOID PhNativeContextToEcContext(
     EcContext->V[14] = Context->V[14];
     EcContext->V[15] = Context->V[15];
 }
+
+// rev from ntdll!RtlIsEcCode (jxy-s)
+NTSTATUS PhIsEcCode(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 CodePointer,
+    _Out_ PBOOLEAN IsEcCode
+    )
+{
+    NTSTATUS status;
+    PVOID pebBaseAddress;
+    PVOID ecCodeBitMap;
+    ULONG64 bitmap;
+
+    *IsEcCode = FALSE;
+
+    // hack (jxy-s)
+    // 0x00007ffffffeffff = LdrpEcBitmapData.HighestAddress (MmHighestUserAddress)
+    // 0x0000000000010000 = MM_LOWEST_USER_ADDRESS 
+    if (CodePointer > 0x00007ffffffeffff || CodePointer < 0x0000000000010000)
+        return STATUS_INVALID_PARAMETER_2;
+
+    if (!NT_SUCCESS(status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress)))
+        return status;
+
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, EcCodeBitMap)),
+        &ecCodeBitMap,
+        sizeof(PVOID),
+        NULL
+        )))
+        return status;
+
+    if (!ecCodeBitMap)
+        return STATUS_INVALID_PARAMETER_1;
+
+    // each byte of bitmap indexes 8*4K = 2^15 byte span
+    ecCodeBitMap = PTR_ADD_OFFSET(ecCodeBitMap, CodePointer >> 15);
+
+    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        ProcessHandle,
+        ecCodeBitMap,
+        &bitmap,
+        sizeof(ULONG64),
+        NULL
+        )))
+        return status;
+
+    // index to the 4k page within the 8*4K span
+    bitmap >>= ((CodePointer >> PAGE_SHIFT) & 7);
+
+    // test the specific page
+    if (bitmap & 1)
+        *IsEcCode = TRUE;
+
+    return STATUS_SUCCESS;
+}
 #endif

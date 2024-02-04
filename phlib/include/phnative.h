@@ -3542,6 +3542,15 @@ PhNativeContextToEcContext(
     _In_ PCONTEXT Context,
     _In_ BOOLEAN InitializeEc
     );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhIsEcCode(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 CodePointer,
+    _Out_ PBOOLEAN IsEcCode
+    );
 #endif
 
 EXTERN_C_END
