@@ -3525,6 +3525,25 @@ PhGetProcessLdrTableEntryNames(
     _Out_ PPH_STRING* FileName
     );
 
+#ifdef _M_ARM64
+PHLIBAPI
+VOID
+NTAPI
+PhEcContextToNativeContext(
+    _Out_ PCONTEXT Context,
+    _In_ PARM64EC_NT_CONTEXT EcContext
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhNativeContextToEcContext(
+    _When_(InitializeEc, _Out_) _When_(!InitializeEc, _Inout_) PARM64EC_NT_CONTEXT EcContext,
+    _In_ PCONTEXT Context,
+    _In_ BOOLEAN InitializeEc
+    );
+#endif
+
 EXTERN_C_END
 
 #endif

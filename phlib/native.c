@@ -18097,3 +18097,280 @@ CleanupExit:
 
     return STATUS_SUCCESS;
 }
+
+#ifdef _M_ARM64
+// rev from ntdll!RtlEcContextToNativeContext (jxy-s)
+VOID PhEcContextToNativeContext(
+    _Out_ PCONTEXT Context,
+    _In_ PARM64EC_NT_CONTEXT EcContext
+    )
+{
+    Context->ContextFlags = 0;
+
+    //#define CONTEXT_AMD64   0x00100000L
+
+    //#define CONTEXT_CONTROL         (CONTEXT_AMD64 | 0x00000001L)
+    if (BooleanFlagOn(EcContext->ContextFlags, 0x00100000L | 0x00000001L))
+        SetFlag(Context->ContextFlags, CONTEXT_CONTROL);
+
+    //#define CONTEXT_INTEGER         (CONTEXT_AMD64 | 0x00000002L)
+    if (BooleanFlagOn(EcContext->ContextFlags, 0x00100000L | 0x00000002L))
+        SetFlag(Context->ContextFlags, CONTEXT_INTEGER);
+
+    //#define CONTEXT_FLOATING_POINT  (CONTEXT_AMD64 | 0x00000008L)
+    if (BooleanFlagOn(EcContext->ContextFlags, 0x00100000L | 0x00000008L))
+        SetFlag(Context->ContextFlags, CONTEXT_FLOATING_POINT);
+
+    SetFlag(Context->ContextFlags,
+            EcContext->ContextFlags & (
+                CONTEXT_EXCEPTION_ACTIVE |
+                CONTEXT_SERVICE_ACTIVE |
+                CONTEXT_EXCEPTION_REQUEST |
+                CONTEXT_EXCEPTION_REPORTING
+                ));
+
+    Context->Cpsr = (EcContext->AMD64_EFlags & 0x00000100);         // Overflow Flag
+    Context->Cpsr |= ((EcContext->AMD64_EFlags & 0x00000800) << 4); // Direction Flag
+    Context->Cpsr |= ((EcContext->AMD64_EFlags & 0xFFFFFFC0) << 7); // Other Flags
+    Context->Cpsr |= ((EcContext->AMD64_EFlags & 0x00000001) << 5); // Carry Flag
+    Context->Cpsr <<= 13;
+
+    Context->X0 = EcContext->X0;
+    Context->X2 = EcContext->X2;
+    Context->X4 = EcContext->X4;
+    Context->X6 = EcContext->X6;
+    Context->X7 = EcContext->X7;
+    Context->X8 = EcContext->X8;
+    Context->X9 = EcContext->X9;
+    Context->X10 = EcContext->X10;
+    Context->X11 = EcContext->X11;
+    Context->X12 = EcContext->X12;
+    Context->X14 = 0;
+    Context->X15 = EcContext->X15;
+
+    Context->X16 = EcContext->X16_0;
+    Context->X16 |= ((ULONG64)EcContext->X16_1 << 16);
+    Context->X16 |= ((ULONG64)EcContext->X16_2 << 32);
+    Context->X16 |= ((ULONG64)EcContext->X16_3 << 48);
+
+    Context->X17 = EcContext->X17_0;
+    Context->X17 |= ((ULONG64)EcContext->X17_1 << 16);
+    Context->X17 |= ((ULONG64)EcContext->X17_2 << 32);
+    Context->X17 |= ((ULONG64)EcContext->X17_3 << 48);
+
+    Context->X19 = EcContext->X19;
+    Context->X21 = EcContext->X21;
+    Context->X23 = 0;
+    Context->X25 = EcContext->X25;
+    Context->X27 = EcContext->X27;
+
+    Context->Fp = EcContext->Fp;
+    Context->Lr = EcContext->Lr;
+    Context->Sp = EcContext->Sp;
+    Context->Pc = EcContext->Pc;
+
+    Context->V[0] = EcContext->V[0];
+    Context->V[1] = EcContext->V[1];
+    Context->V[2] = EcContext->V[2];
+    Context->V[3] = EcContext->V[3];
+    Context->V[4] = EcContext->V[4];
+    Context->V[5] = EcContext->V[5];
+    Context->V[6] = EcContext->V[6];
+    Context->V[7] = EcContext->V[7];
+    Context->V[8] = EcContext->V[8];
+    Context->V[9] = EcContext->V[9];
+    Context->V[10] = EcContext->V[10];
+    Context->V[11] = EcContext->V[11];
+    Context->V[12] = EcContext->V[12];
+    Context->V[13] = EcContext->V[13];
+    Context->V[14] = EcContext->V[14];
+    Context->V[15] = EcContext->V[15];
+    RtlZeroMemory(&Context->V[16], sizeof(ARM64_NT_NEON128));
+
+    Context->Fpcr = (EcContext->AMD64_MxCsr & 0x00000080) == 0;         // IM: Invalid Operation Mask
+    Context->Fpcr |= ((EcContext->AMD64_MxCsr & 0x00000200) == 0) << 1; // ZM: Divide-by-Zero Mask
+    Context->Fpcr |= ((EcContext->AMD64_MxCsr & 0x00000400) == 0) << 2; // OM: Overflow Mask
+    Context->Fpcr |= ((EcContext->AMD64_MxCsr & 0x00000800) == 0) << 3; // UM: Underflow Mask
+    Context->Fpcr |= ((EcContext->AMD64_MxCsr & 0x00001000) == 0) << 4; // PM: Precision Mask
+    Context->Fpcr |= (EcContext->AMD64_MxCsr & 0x00000040) << 5;        // DAZ: Denormals Are Zero Mask
+    Context->Fpcr |= ((EcContext->AMD64_MxCsr & 0x00000100) == 0) << 7; // DM: Denormal Operation Mask
+    Context->Fpcr |= (EcContext->AMD64_MxCsr & 0x00002000);             // FZ: Flush to Zero Mask
+    Context->Fpcr |= (EcContext->AMD64_MxCsr & 0x0000C000);             // RC: Rounding Control
+    Context->Fpcr <<= 8;
+
+    Context->Fpsr = EcContext->AMD64_MxCsr & 1;            // IE: Invalid Operation Flag
+    Context->Fpsr |= (EcContext->AMD64_MxCsr & 2) << 6;    // DE: Denormal Flag
+    Context->Fpsr |= (EcContext->AMD64_MxCsr >> 1) & 0x1E; // ZE | OE | UE | PE: Zero, Overflow, Underflow, Precision Flags
+
+    RtlZeroMemory(Context->Bcr, sizeof(Context->Bcr));
+    RtlZeroMemory(Context->Bvr, sizeof(Context->Bvr));
+    RtlZeroMemory(Context->Wcr, sizeof(Context->Wcr));
+    RtlZeroMemory(Context->Wvr, sizeof(Context->Wvr));
+}
+
+// rev from ntdll!RtlNativeContextToEcContext (jxy-s)
+VOID PhNativeContextToEcContext(
+    _When_(InitializeEc, _Out_) _When_(!InitializeEc, _Inout_) PARM64EC_NT_CONTEXT EcContext,
+    _In_ PCONTEXT Context,
+    _In_ BOOLEAN InitializeEc
+    )
+{
+    if (InitializeEc)
+    {
+        EcContext->ContextFlags = 0;
+
+        //#define CONTEXT_AMD64   0x00100000L
+
+        //#define CONTEXT_CONTROL         (CONTEXT_AMD64 | 0x00000001L)
+        if (BooleanFlagOn(Context->ContextFlags, CONTEXT_CONTROL))
+            SetFlag(EcContext->ContextFlags, (0x00100000L | 0x00000001L));
+
+        //#define CONTEXT_INTEGER         (CONTEXT_AMD64 | 0x00000002L)
+        if (BooleanFlagOn(Context->ContextFlags, CONTEXT_INTEGER))
+            SetFlag(EcContext->ContextFlags, (0x00100000L | 0x00000002L));
+
+        //#define CONTEXT_FLOATING_POINT  (CONTEXT_AMD64 | 0x00000008L)
+        if (BooleanFlagOn(Context->ContextFlags, CONTEXT_FLOATING_POINT))
+            SetFlag(EcContext->ContextFlags, (0x00100000L | 0x00000008L));
+
+        EcContext->AMD64_P1Home = 0;
+        EcContext->AMD64_P2Home = 0;
+        EcContext->AMD64_P3Home = 0;
+        EcContext->AMD64_P4Home = 0;
+        EcContext->AMD64_P5Home = 0;
+        EcContext->AMD64_P6Home = 0;
+
+        EcContext->AMD64_Dr0 = 0;
+        EcContext->AMD64_Dr1 = 0;
+        EcContext->AMD64_Dr3 = 0;
+        EcContext->AMD64_Dr6 = 0;
+        EcContext->AMD64_Dr7 = 0;
+
+        EcContext->AMD64_MxCsr_copy = 0;
+
+        EcContext->AMD64_SegCs = 0x0033;
+        EcContext->AMD64_SegDs = 0x002B;
+        EcContext->AMD64_SegEs = 0x002B;
+        EcContext->AMD64_SegFs = 0x0053;
+        EcContext->AMD64_SegGs = 0x002B;
+        EcContext->AMD64_SegSs = 0x002B;
+
+        EcContext->AMD64_ControlWord = 0;
+        EcContext->AMD64_StatusWord = 0;
+        EcContext->AMD64_TagWord = 0;
+        EcContext->AMD64_Reserved1 = 0;
+        EcContext->AMD64_ErrorOpcode = 0;
+        EcContext->AMD64_ErrorOffset = 0;
+        EcContext->AMD64_ErrorSelector = 0;
+        EcContext->AMD64_Reserved2= 0;
+        EcContext->AMD64_DataOffset = 0;
+        EcContext->AMD64_DataSelector = 0;
+        EcContext->AMD64_Reserved3 = 0;
+
+        EcContext->AMD64_MxCsr = 0;
+        EcContext->AMD64_MxCsr_Mask = 0;
+
+        EcContext->AMD64_St0_Reserved1 = 0;
+        EcContext->AMD64_St0_Reserved2 = 0;
+        EcContext->AMD64_St1_Reserved1 = 0;
+        EcContext->AMD64_St1_Reserved2 = 0;
+        EcContext->AMD64_St2_Reserved1 = 0;
+        EcContext->AMD64_St2_Reserved2 = 0;
+        EcContext->AMD64_St3_Reserved1 = 0;
+        EcContext->AMD64_St3_Reserved2 = 0;
+        EcContext->AMD64_St4_Reserved1 = 0;
+        EcContext->AMD64_St4_Reserved2 = 0;
+        EcContext->AMD64_St5_Reserved1 = 0;
+        EcContext->AMD64_St5_Reserved2 = 0;
+        EcContext->AMD64_St6_Reserved1 = 0;
+        EcContext->AMD64_St6_Reserved2 = 0;
+        EcContext->AMD64_St7_Reserved1 = 0;
+        EcContext->AMD64_St7_Reserved2 = 0;
+
+        EcContext->AMD64_EFlags = 0x202; // IF(EI) | RESERVED_1(always set)
+    }
+
+    EcContext->ContextFlags &= 0x7ffffffff;
+    SetFlag(EcContext->ContextFlags,
+            Context->ContextFlags & (
+                CONTEXT_EXCEPTION_ACTIVE |
+                CONTEXT_SERVICE_ACTIVE |
+                CONTEXT_EXCEPTION_REQUEST |
+                CONTEXT_EXCEPTION_REPORTING
+                ));
+
+    EcContext->AMD64_MxCsr_copy &= 0xFFFF0000;
+    EcContext->AMD64_MxCsr_copy |= (Context->Fpsr & 0x00000080) >> 6;         // IM: Invalid Operation Mask
+    EcContext->AMD64_MxCsr_copy |= (Context->Fpcr & 0x00400000) >> 8;         // ZM: Divide-by-Zero Mask
+    EcContext->AMD64_MxCsr_copy |= (Context->Fpcr & 0x01000000) >> 9;         // OM: Overflow Mask
+    EcContext->AMD64_MxCsr_copy |= (Context->Fpcr & 0x00080000) >> 7;         // UM: Underflow Mask
+    EcContext->AMD64_MxCsr_copy |= (Context->Fpcr & 0x00800000) >> 7;         // PM: Precision Mask
+    EcContext->AMD64_MxCsr_copy |= (Context->Fpsr & 0x0000001E) << 1;         // Other Flags
+    EcContext->AMD64_MxCsr_copy |= ((Context->Fpcr & 0x00000100) == 0) << 7;  // DAZ: Denormals Are Zeros
+    EcContext->AMD64_MxCsr_copy |= ((Context->Fpcr & 0x00008000) == 0) << 8;  // DM: Denormal Operation Mask
+    EcContext->AMD64_MxCsr_copy |= ((Context->Fpcr & 0x00000200) == 0) << 9;  // FZ: Flush to Zero
+    EcContext->AMD64_MxCsr_copy |= ((Context->Fpcr & 0x00000400) == 0) << 10; // RC: Rounding Control
+    EcContext->AMD64_MxCsr_copy |= ((Context->Fpcr & 0x00000800) == 0) << 11; // RC: Rounding Control
+    EcContext->AMD64_MxCsr_copy |= ((Context->Fpcr & 0x00001000) == 0) << 12; // RC: Rounding Control
+    EcContext->AMD64_MxCsr_copy |= Context->Fpsr & 0x00000001;
+
+    EcContext->AMD64_EFlags &= 0xFFFFF63E;
+    EcContext->AMD64_EFlags |= ((Context->Cpsr & 0x200000) >> 13);         // Overflow Flag
+    EcContext->AMD64_EFlags |= ((Context->Cpsr & 0x10000000) >> 17);       // Direction Flag
+    EcContext->AMD64_EFlags |= (((Context->Cpsr >> 5) & 0x1000000) >> 20); // Carry Flag
+    EcContext->AMD64_EFlags |= ((Context->Cpsr & 0xC0FFFFFF) >> 20);       // Other Flags
+
+    EcContext->Pc = Context->Pc;
+
+    EcContext->X8 = Context->X8;
+    EcContext->X0 = Context->X0;
+    EcContext->X1 = Context->X1;
+    EcContext->X27 = Context->X27;
+    EcContext->Sp = Context->Sp;
+    EcContext->Fp = Context->Fp;
+    EcContext->X25 = Context->X25;
+    EcContext->X26 = Context->X26;
+    EcContext->X2 = Context->X2;
+    EcContext->X3 = Context->X3;
+    EcContext->X4 = Context->X4;
+    EcContext->X5 = Context->X5;
+    EcContext->X19 = Context->X19;
+    EcContext->X20 = Context->X20;
+    EcContext->X21 = Context->X21;
+    EcContext->X22 = Context->X22;
+
+    EcContext->Lr = Context->Lr;
+    EcContext->X16_0 = LOWORD(Context->X16);
+    EcContext->X6 = Context->X6;
+    EcContext->X16_1 = HIWORD(Context->X16);
+    EcContext->X7 = Context->X7;
+    EcContext->X16_2 = LOWORD(Context->X16 >> 32);
+    EcContext->X9 = Context->X9;
+    EcContext->X16_3 = HIWORD(Context->X16 >> 32);
+    EcContext->X10 = Context->X10;
+    EcContext->X17_0 = LOWORD(Context->X17);
+    EcContext->X11 = Context->X11;
+    EcContext->X17_1 = HIWORD(Context->X17);
+    EcContext->X12 = Context->X12;
+    EcContext->X17_2 = LOWORD(Context->X17 >> 32);
+    EcContext->X15 = Context->X15;
+    EcContext->X17_3 = HIWORD(Context->X17 >> 32);
+
+    EcContext->V[0] = Context->V[0];
+    EcContext->V[1] = Context->V[1];
+    EcContext->V[2] = Context->V[2];
+    EcContext->V[3] = Context->V[3];
+    EcContext->V[4] = Context->V[4];
+    EcContext->V[5] = Context->V[5];
+    EcContext->V[6] = Context->V[6];
+    EcContext->V[7] = Context->V[7];
+    EcContext->V[8] = Context->V[8];
+    EcContext->V[9] = Context->V[9];
+    EcContext->V[10] = Context->V[10];
+    EcContext->V[11] = Context->V[11];
+    EcContext->V[12] = Context->V[12];
+    EcContext->V[13] = Context->V[13];
+    EcContext->V[14] = Context->V[14];
+    EcContext->V[15] = Context->V[15];
+}
+#endif
