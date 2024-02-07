@@ -117,13 +117,13 @@ PPH_STRING PhGetProcessItemImageTypeText(
     switch (architecture)
     {
     case IMAGE_FILE_MACHINE_I386:
-        arch = L"i386 ";
+        arch = L"I386 ";
         break;
     case IMAGE_FILE_MACHINE_AMD64:
         arch = chpeVersion ? L"AMD64 (ARM64X) " : L"AMD64 ";
         break;
     case IMAGE_FILE_MACHINE_ARMNT:
-        arch = L"ARM Thumb-2 ";
+        arch = L"ARM ";
         break;
     case IMAGE_FILE_MACHINE_ARM64:
         arch = chpeVersion ? L"ARM64 (ARM64X) " : L"ARM64 ";

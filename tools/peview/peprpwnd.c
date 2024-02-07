@@ -409,7 +409,7 @@ VOID PvAddTreeViewSections(
     }
 
     // CHPE page
-    if (PhMappedImageHasCHPEMetadata(&PvMappedImage))
+    if (PhGetMappedImageCHPEVersion(&PvMappedImage))
     {
         PvCreateTabSection(
             L"CHPE",

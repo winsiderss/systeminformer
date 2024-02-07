@@ -208,6 +208,7 @@ typedef struct _PH_PROCESS_NODE
 #ifdef _ARM64_
     ULONG ImageCHPEVersion;
 #endif
+
     // App ID
     PPH_STRING AppIdText;
     // DPI awareness

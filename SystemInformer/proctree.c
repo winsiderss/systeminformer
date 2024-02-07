@@ -2338,7 +2338,7 @@ BEGIN_SORT_FUNCTION(Architecture)
     PhpUpdateProcessNodeImage(node2);
 
     sortResult = uintcmp(node1->ImageMachine, node2->ImageMachine);
-#ifdef _M_ARM64
+#ifdef _ARM64_
     if (sortResult == 0)
         sortResult = uintcmp(node1->ImageCHPEVersion, node2->ImageCHPEVersion);
 #endif
@@ -3652,7 +3652,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhInitializeStringRef(&getCellText->Text, L"x86");
                         break;
                     case IMAGE_FILE_MACHINE_AMD64:
-#ifdef _M_ARM64
+#ifdef _ARM64_
                         PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"x64 (ARM64X)" : L"x64");
 #else
                         PhInitializeStringRef(&getCellText->Text, L"x64");
@@ -3662,7 +3662,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhInitializeStringRef(&getCellText->Text, L"ARM");
                         break;
                     case IMAGE_FILE_MACHINE_ARM64:
-#ifdef _M_ARM64
+#ifdef _ARM64_
                         PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"ARM64 (ARM64X)" : L"ARM64");
 #else
                         PhInitializeStringRef(&getCellText->Text, L"ARM64");
