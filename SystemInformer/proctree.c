@@ -1170,7 +1170,7 @@ static VOID PhpUpdateProcessNodeImage(
         {
             PH_MAPPED_IMAGE mappedImage;
 
-#ifdef _M_ARM64
+#ifdef _ARM64_
             if (NT_SUCCESS(PhLoadMappedImageEx(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
 #else
             if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
@@ -1191,9 +1191,9 @@ static VOID PhpUpdateProcessNodeImage(
                     ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
                 }
 
-#ifdef _M_ARM64
+#ifdef _ARM64_
                 if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_AMD64 || ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_ARM64)
-                    ProcessNode->ImageHasCHPE = PhMappedImageHasCHPEMetadata(&mappedImage);
+                    ProcessNode->ImageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
 #endif
 
                 PhUnloadMappedImage(&mappedImage);
@@ -2340,7 +2340,7 @@ BEGIN_SORT_FUNCTION(Architecture)
     sortResult = uintcmp(node1->ImageMachine, node2->ImageMachine);
 #ifdef _M_ARM64
     if (sortResult == 0)
-        sortResult = uintcmp(node1->ImageHasCHPE, node2->ImageHasCHPE);
+        sortResult = uintcmp(node1->ImageCHPEVersion, node2->ImageCHPEVersion);
 #endif
 }
 END_SORT_FUNCTION
@@ -3653,7 +3653,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         break;
                     case IMAGE_FILE_MACHINE_AMD64:
 #ifdef _M_ARM64
-                        PhInitializeStringRef(&getCellText->Text, node->ImageHasCHPE ? L"x64 (ARM64X)" : L"x64");
+                        PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"x64 (ARM64X)" : L"x64");
 #else
                         PhInitializeStringRef(&getCellText->Text, L"x64");
 #endif
@@ -3663,7 +3663,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         break;
                     case IMAGE_FILE_MACHINE_ARM64:
 #ifdef _M_ARM64
-                        PhInitializeStringRef(&getCellText->Text, node->ImageHasCHPE ? L"ARM64 (ARM64X)" : L"ARM64");
+                        PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"ARM64 (ARM64X)" : L"ARM64");
 #else
                         PhInitializeStringRef(&getCellText->Text, L"ARM64");
 #endif

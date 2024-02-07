@@ -876,10 +876,10 @@ VOID PvpSetPeImageMachineType(
     switch (machine)
     {
     case IMAGE_FILE_MACHINE_I386:
-        type = PhMappedImageHasCHPEMetadata(&PvMappedImage) ? L"i386 (CHPE)" : L"i386";
+        type = PhGetMappedImageCHPEVersion(&PvMappedImage) ? L"i386 (CHPE)" : L"i386";
         break;
     case IMAGE_FILE_MACHINE_AMD64:
-        type = PhMappedImageHasCHPEMetadata(&PvMappedImage) ? L"AMD64 (ARM64X)" : L"AMD64";
+        type = PhGetMappedImageCHPEVersion(&PvMappedImage) ? L"AMD64 (ARM64X)" : L"AMD64";
         break;
     case IMAGE_FILE_MACHINE_IA64:
         type = L"IA64";
@@ -888,7 +888,7 @@ VOID PvpSetPeImageMachineType(
         type = L"ARM Thumb-2";
         break;
     case IMAGE_FILE_MACHINE_ARM64:
-        type = PhMappedImageHasCHPEMetadata(&PvMappedImage) ? L"ARM64 (ARM64X)" : L"ARM64";
+        type = PhGetMappedImageCHPEVersion(&PvMappedImage) ? L"ARM64 (ARM64X)" : L"ARM64";
         break;
     default:
         type = L"Unknown";

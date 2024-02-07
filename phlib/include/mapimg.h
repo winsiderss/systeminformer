@@ -1144,9 +1144,9 @@ PhGetMappedImageEntropy(
     );
 
 PHLIBAPI
-BOOLEAN
+ULONG
 NTAPI
-PhMappedImageHasCHPEMetadata(
+PhGetMappedImageCHPEVersion(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
