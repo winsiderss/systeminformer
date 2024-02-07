@@ -1345,7 +1345,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
             );
 
         if (symbol &&
-            (StackFrame->Flags & PH_THREAD_STACK_FRAME_I386) &&
+            (StackFrame->Machine == IMAGE_FILE_MACHINE_I386) &&
             !(StackFrame->Flags & PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT))
         {
             PhMoveReference(&symbol, PhConcatStringRefZ(&symbol->sr, L" (No unwind info)"));
@@ -1409,7 +1409,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
             );
 
         if (symbol &&
-            (StackFrame->Flags & PH_THREAD_STACK_FRAME_I386) &&
+            (StackFrame->Machine == IMAGE_FILE_MACHINE_I386) &&
             !(StackFrame->Flags & PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT))
         {
             PhMoveReference(&symbol, PhConcatStringRefZ(&symbol->sr, L" (No unwind info)"));
@@ -1846,20 +1846,30 @@ NTSTATUS PhpRefreshThreadStack(
             if (item->StackFrame.ReturnAddress)
                 PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
 
-            if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM64EC)
+            switch (stackNode->StackFrame.Machine)
+            {
+            case IMAGE_FILE_MACHINE_ARM64EC:
                 PhInitializeStringRef(&stackNode->Architecture, L"ARM64EC");
-            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_CHPE)
+                break;
+            case IMAGE_FILE_MACHINE_CHPE_X86:
                 PhInitializeStringRef(&stackNode->Architecture, L"CHPE");
-            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM64)
+                break;
+            case IMAGE_FILE_MACHINE_ARM64:
                 PhInitializeStringRef(&stackNode->Architecture, L"ARM64");
-            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM)
+                break;
+            case IMAGE_FILE_MACHINE_ARM:
                 PhInitializeStringRef(&stackNode->Architecture, L"ARM");
-            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_AMD64)
+                break;
+            case IMAGE_FILE_MACHINE_AMD64:
                 PhInitializeStringRef(&stackNode->Architecture, L"x64");
-            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_I386)
+                break;
+            case IMAGE_FILE_MACHINE_I386:
                 PhInitializeStringRef(&stackNode->Architecture, L"x86");
-            else
+                break;
+            default:
                 PhInitializeStringRef(&stackNode->Architecture, L"");
+                break;
+            }
 
             if (i > 0 && item->StackFrame.StackAddress)
             {
