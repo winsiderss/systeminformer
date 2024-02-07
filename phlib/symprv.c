@@ -737,7 +737,9 @@ USHORT PhpGetMachineForAddress(
     PPH_AVL_LINKS links;
     PPH_SYMBOL_MODULE module;
     USHORT machine;
+#ifdef _ARM64_
     BOOLEAN isEcCode;
+#endif
 
     machine = IMAGE_FILE_MACHINE_UNKNOWN;
 
@@ -2245,11 +2247,11 @@ NTSTATUS PhWalkThreadStack(
 
 #if defined(_X86_)
             // (x86 only) Allow the user to change Eip, Esp and Ebp.
-            u.Context.Eip = PtrToUlong(threadStackFrame.PcAddress);
+            context.Eip = PtrToUlong(threadStackFrame.PcAddress);
             stackFrame.AddrPC.Offset = PtrToUlong(threadStackFrame.PcAddress);
-            u.Context.Ebp = PtrToUlong(threadStackFrame.FrameAddress);
+            context.Ebp = PtrToUlong(threadStackFrame.FrameAddress);
             stackFrame.AddrFrame.Offset = PtrToUlong(threadStackFrame.FrameAddress);
-            u.Context.Esp = PtrToUlong(threadStackFrame.StackAddress);
+            context.Esp = PtrToUlong(threadStackFrame.StackAddress);
             stackFrame.AddrStack.Offset = PtrToUlong(threadStackFrame.StackAddress);
 #endif
         }

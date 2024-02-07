@@ -18390,7 +18390,7 @@ NTSTATUS PhIsEcCode(
 
     // hack (jxy-s)
     // 0x00007ffffffeffff = LdrpEcBitmapData.HighestAddress (MmHighestUserAddress)
-    // 0x0000000000010000 = MM_LOWEST_USER_ADDRESS 
+    // 0x0000000000010000 = MM_LOWEST_USER_ADDRESS
     if (CodePointer > 0x00007ffffffeffff || CodePointer < 0x0000000000010000)
         return STATUS_INVALID_PARAMETER_2;
 
