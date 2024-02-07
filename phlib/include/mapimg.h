@@ -1150,6 +1150,23 @@ PhGetMappedImageCHPEVersion(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetRemoteMappedImageCHPEVersion(
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _Out_ PULONG CHPEVersion
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetRemoteMappedImageCHPEVersionEx(
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _Out_ PULONG CHPEVersion
+    );
+
 // ELF binary support
 
 NTSTATUS PhInitializeMappedWslImage(
