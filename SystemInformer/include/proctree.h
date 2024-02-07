@@ -205,8 +205,8 @@ typedef struct _PH_PROCESS_NODE
     USHORT ImageMachine;
     USHORT ImageSubsystem;
     USHORT ImageDllCharacteristics;
-#ifdef _M_ARM64
-    BOOLEAN ImageHasCHPE;
+#ifdef _ARM64_
+    ULONG ImageCHPEVersion;
 #endif
     // App ID
     PPH_STRING AppIdText;

@@ -86,7 +86,7 @@ PPH_STRING PhGetProcessItemImageTypeText(
     )
 {
     USHORT architecture = IMAGE_FILE_MACHINE_UNKNOWN;
-    BOOLEAN hasCHPE = FALSE;
+    ULONG chpeVersion = 0;
     PWSTR arch = L"";
     PWSTR bits = L"";
 
@@ -94,12 +94,12 @@ PPH_STRING PhGetProcessItemImageTypeText(
     {
         PH_MAPPED_IMAGE mappedImage;
 
-#ifdef _M_ARM64
+#ifdef _ARM64_
         if (NT_SUCCESS(PhLoadMappedImageEx(&ProcessItem->FileName->sr, NULL, &mappedImage)))
         {
             architecture = mappedImage.NtHeaders->FileHeader.Machine;
             if (architecture == IMAGE_FILE_MACHINE_AMD64 || architecture == IMAGE_FILE_MACHINE_ARM64)
-                hasCHPE = PhMappedImageHasCHPEMetadata(&mappedImage);
+                chpeVersion = PhGetMappedImageCHPEVersion(&mappedImage);
             PhUnloadMappedImage(&mappedImage);
         }
 #else
@@ -120,13 +120,13 @@ PPH_STRING PhGetProcessItemImageTypeText(
         arch = L"i386 ";
         break;
     case IMAGE_FILE_MACHINE_AMD64:
-        arch = hasCHPE ? L"AMD64 (ARM64X) " : L"AMD64 ";
+        arch = chpeVersion ? L"AMD64 (ARM64X) " : L"AMD64 ";
         break;
     case IMAGE_FILE_MACHINE_ARMNT:
         arch = L"ARM Thumb-2 ";
         break;
     case IMAGE_FILE_MACHINE_ARM64:
-        arch = hasCHPE ? L"ARM64 (ARM64X) " : L"ARM64 ";
+        arch = chpeVersion ? L"ARM64 (ARM64X) " : L"ARM64 ";
         break;
     default:
         arch = L"N/A ";
