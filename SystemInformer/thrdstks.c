@@ -595,7 +595,7 @@ PPH_STRING PhpThreadStacksInitFrameNode(
     FrameNode->StackFrame = *StackFrame;
 
     if (symbol &&
-        FlagOn(FrameNode->StackFrame.Flags, PH_THREAD_STACK_FRAME_I386) &&
+        (FrameNode->StackFrame.Machine == IMAGE_FILE_MACHINE_I386) &&
         FlagOn(FrameNode->StackFrame.Flags, PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT))
     {
         PhMoveReference(&symbol, PhConcatStringRefZ(&symbol->sr, L" (No unwind info)"));
@@ -646,20 +646,30 @@ PPH_STRING PhpThreadStacksInitFrameNode(
     if (FrameNode->StackFrame.ReturnAddress)
         PhPrintPointer(FrameNode->ReturnAddressString, (PVOID)FrameNode->StackFrame.ReturnAddress);
 
-    if (FrameNode->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM64EC)
+    switch (FrameNode->StackFrame.Machine)
+    {
+    case IMAGE_FILE_MACHINE_ARM64EC:
         PhInitializeStringRef(&FrameNode->Architecture, L"ARM64EC");
-    else if (FrameNode->StackFrame.Flags & PH_THREAD_STACK_FRAME_CHPE)
+        break;
+    case IMAGE_FILE_MACHINE_CHPE_X86:
         PhInitializeStringRef(&FrameNode->Architecture, L"CHPE");
-    else if (FrameNode->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM64)
+        break;
+    case IMAGE_FILE_MACHINE_ARM64:
         PhInitializeStringRef(&FrameNode->Architecture, L"ARM64");
-    else if (FrameNode->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM)
+        break;
+    case IMAGE_FILE_MACHINE_ARM:
         PhInitializeStringRef(&FrameNode->Architecture, L"ARM");
-    else if (FrameNode->StackFrame.Flags & PH_THREAD_STACK_FRAME_AMD64)
+        break;
+    case IMAGE_FILE_MACHINE_AMD64:
         PhInitializeStringRef(&FrameNode->Architecture, L"x64");
-    else if (FrameNode->StackFrame.Flags & PH_THREAD_STACK_FRAME_I386)
+        break;
+    case IMAGE_FILE_MACHINE_I386:
         PhInitializeStringRef(&FrameNode->Architecture, L"x86");
-    else
-        PhInitializeEmptyStringRef(&FrameNode->Architecture);
+        break;
+    default:
+        PhInitializeStringRef(&FrameNode->Architecture, L"");
+        break;
+    }
 
     PhMoveReference(&FrameNode->FileName, fileName);
     PhMoveReference(&FrameNode->LineText, lineText);
