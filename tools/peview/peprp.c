@@ -867,11 +867,24 @@ VOID PvpSetPeImageMachineType(
 {
     ULONG machine;
     PWSTR type;
+    size_t sz;
+    size_t szComp = strlen(".hexpthk");
+    boolean hasA64ThunkSection = FALSE;
 
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         machine = PvMappedImage.NtHeaders32->FileHeader.Machine;
     else
         machine = PvMappedImage.NtHeaders->FileHeader.Machine;
+
+    for (ULONG i = 0; i < PvMappedImage.NumberOfSections; i++)
+    {
+        sz = min(strlen(PvMappedImage.Sections[i].Name), szComp);
+        if (strncmp(PvMappedImage.Sections[i].Name, ".hexpthk", sz) == 0)
+        {
+            hasA64ThunkSection =  TRUE;
+            break;
+        }
+    }
 
     switch (machine)
     {
@@ -879,7 +892,7 @@ VOID PvpSetPeImageMachineType(
         type = L"i386";
         break;
     case IMAGE_FILE_MACHINE_AMD64:
-        type = L"AMD64";
+        type = hasA64ThunkSection ? L"ARM64EC" : L"AMD64";
         break;
     case IMAGE_FILE_MACHINE_IA64:
         type = L"IA64";
@@ -888,7 +901,7 @@ VOID PvpSetPeImageMachineType(
         type = L"ARM Thumb-2";
         break;
     case IMAGE_FILE_MACHINE_ARM64:
-        type = L"ARM64";
+        type = hasA64ThunkSection ? L"ARM64X" : L"ARM64";
         break;
     case IMAGE_FILE_MACHINE_CHPE_X86:
         type = L"Hybrid PE";
