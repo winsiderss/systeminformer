@@ -118,6 +118,8 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_BASE_ADDRESS, FALSE, L"Enclave base address", 80, PH_ALIGN_RIGHT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENCLAVE_SIZE, FALSE, L"Enclave size", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ARCHITECTURE, FALSE, L"Architecture", 80, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
@@ -784,6 +786,14 @@ BEGIN_SORT_FUNCTION(EnclaveSize)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Architecture)
+{
+    sortResult = uintcmp(moduleItem1->ImageMachine, moduleItem2->ImageMachine);
+    if (!sortResult)
+        sortResult = uintcmp(moduleItem1->ImageCHPEVersion, moduleItem2->ImageCHPEVersion);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -852,6 +862,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(EnclaveType),
                     SORT_FUNCTION(EnclaveBaseAddress),
                     SORT_FUNCTION(EnclaveSize),
+                    SORT_FUNCTION(Architecture),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1223,6 +1234,27 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         if (!node->EnclaveSizeText)
                             node->EnclaveSizeText = PhFormatSize(moduleItem->EnclaveSize, ULONG_MAX);
                         getCellText->Text = PhGetStringRef(node->EnclaveSizeText);
+                    }
+                }
+                break;
+            case PHMOTLC_ARCHITECTURE:
+                {
+                    switch (node->ModuleItem->ImageMachine)
+                    {
+                    case IMAGE_FILE_MACHINE_I386:
+                        PhInitializeStringRef(&getCellText->Text, node->ModuleItem->ImageCHPEVersion ? L"x86 (CHPE)" : L"x86");
+                        break;
+                    case IMAGE_FILE_MACHINE_AMD64:
+                        PhInitializeStringRef(&getCellText->Text, node->ModuleItem->ImageCHPEVersion ? L"x64 (ARM64X)" : L"x64");
+                        break;
+                    case IMAGE_FILE_MACHINE_ARMNT:
+                        PhInitializeStringRef(&getCellText->Text, L"ARM");
+                        break;
+                    case IMAGE_FILE_MACHINE_ARM64:
+                        PhInitializeStringRef(&getCellText->Text, node->ModuleItem->ImageCHPEVersion ? L"ARM64 (ARM64X)" : L"ARM64");
+                        break;
+                    default:
+                        break;
                     }
                 }
                 break;

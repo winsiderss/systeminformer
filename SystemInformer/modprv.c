@@ -463,6 +463,9 @@ NTSTATUS PhpModuleQueryWorker(
                 ULONG debugEntryLength;
                 PVOID debugEntry;
 
+                moduleItem->ImageMachine = remoteMappedImage.NtHeaders->FileHeader.Machine;
+                PhGetRemoteMappedImageCHPEVersionEx(&remoteMappedImage, readVirtualMemoryCallback, &moduleItem->ImageCHPEVersion);
+
                 moduleItem->ImageTimeDateStamp = remoteMappedImage.NtHeaders->FileHeader.TimeDateStamp;
                 moduleItem->ImageCharacteristics = remoteMappedImage.NtHeaders->FileHeader.Characteristics;
 
@@ -541,16 +544,19 @@ NTSTATUS PhpModuleQueryWorker(
                     PIMAGE_DATA_DIRECTORY dataDirectory;
                     PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
 
-                    if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    moduleItem->ImageMachine = mappedImage.NtHeaders->FileHeader.Machine;
+                    moduleItem->ImageCHPEVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+
+                    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                     {
-                        PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders32->OptionalHeader;
+                        PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders32->OptionalHeader;
 
                         entryPoint = optionalHeader->AddressOfEntryPoint;
                         characteristics = optionalHeader->DllCharacteristics;
                     }
-                    else if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
                     {
-                        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader;
+                        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders64->OptionalHeader;
 
                         entryPoint = optionalHeader->AddressOfEntryPoint;
                         characteristics = optionalHeader->DllCharacteristics;

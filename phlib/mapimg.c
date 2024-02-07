@@ -5439,3 +5439,104 @@ ULONG PhGetMappedImageCHPEVersion(
 
     return 0;
 }
+
+NTSTATUS PhGetRemoteMappedImageCHPEVersion(
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _Out_ PULONG CHPEVersion
+    )
+{
+    return PhGetRemoteMappedImageCHPEVersionEx(RemoteMappedImage, NtReadVirtualMemory, CHPEVersion);
+}
+
+NTSTATUS PhGetRemoteMappedImageCHPEVersionEx(
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
+    _In_ PPH_READ_VIRTUAL_MEMORY_CALLBACK ReadVirtualMemoryCallback,
+    _Out_ PULONG CHPEVersion
+    )
+{
+    NTSTATUS status;
+    PVOID entry;
+    ULONG entryLength;
+
+    *CHPEVersion = 0;
+
+    if (!NT_SUCCESS(status = PhGetRemoteMappedImageDirectoryEntry(
+        RemoteMappedImage,
+        ReadVirtualMemoryCallback,
+        IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
+        &entry,
+        &entryLength
+        )))
+        return status;
+
+    if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+        IMAGE_CHPE_METADATA_X86 chpe32;
+
+        if (entryLength < sizeof(IMAGE_LOAD_CONFIG_DIRECTORY32))
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto CleanupExit;
+        }
+
+        config32 = entry;
+
+        if (!RTL_CONTAINS_FIELD(config32, config32->Size, CHPEMetadataPointer) ||
+            !config32->CHPEMetadataPointer)
+        {
+            status = STATUS_SUCCESS;
+            goto CleanupExit;
+        }
+
+        status = ReadVirtualMemoryCallback(
+            RemoteMappedImage->ProcessHandle,
+            ULongToPtr(config32->CHPEMetadataPointer),
+            &chpe32,
+            sizeof(chpe32),
+            NULL
+            );
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        *CHPEVersion = chpe32.Version;
+    }
+    else if (RemoteMappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+        IMAGE_ARM64EC_METADATA chpe64;
+
+        if (entryLength < sizeof(IMAGE_LOAD_CONFIG_DIRECTORY64))
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto CleanupExit;
+        }
+
+        config64 = entry;
+
+        if (!RTL_CONTAINS_FIELD(config64, config64->Size, CHPEMetadataPointer) ||
+            !config64->CHPEMetadataPointer)
+        {
+            status = STATUS_SUCCESS;
+            goto CleanupExit;
+        }
+
+        status = ReadVirtualMemoryCallback(
+            RemoteMappedImage->ProcessHandle,
+            (PVOID)config64->CHPEMetadataPointer,
+            &chpe64,
+            sizeof(chpe64),
+            NULL
+            );
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        *CHPEVersion = chpe64.Version;
+    }
+
+CleanupExit:
+
+    PhFree(entry);
+
+    return status;
+}

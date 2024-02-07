@@ -50,6 +50,8 @@ typedef struct _PH_MODULE_ITEM
     enum _VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
 
+    USHORT ImageMachine;
+    ULONG ImageCHPEVersion;
     ULONG ImageTimeDateStamp;
     USHORT ImageCharacteristics;
     USHORT ImageDllCharacteristics;
