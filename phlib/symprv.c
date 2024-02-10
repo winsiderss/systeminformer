@@ -2216,7 +2216,24 @@ NTSTATUS PhWalkThreadStack(
             USHORT frameMachine;
 
             // TODO(jxy-s)
+            //
             // This needs work to handle enter, exit, and inlined thunks.
+            //
+            // Much of the stack walk handling for EC code is in dbgeng and not dbghelp. Since we
+            // only rely on dbghelp we need some special handling too. The following are known
+            // issues with possible solutions. These need more time to investigate:
+            //
+            // - ARM64EC <-> x64 enter and exit thunks work (the frames will be shown) but the
+            //   return address is lost for certain frames. The frame calling into the entry thunk
+            //   will not have a return address displayed. And the frame of the exit thunk will
+            //   also not have a return address displayed. The ARM64EC ABI defines the handling of
+            //   return addresses in the context. We likely need more state tracking to remembr the
+            //   context around these frames. Then manually fix them ourselves.
+            // - ARM64EC <-> ARM64EC "inlined thunks" do not work. The loader will inline an
+            //   ARM64EC call when it identifies no emulation switching is necessary. This causes
+            //   us to fail to walk past these frames. For use to handle this we likely need to
+            //   extract more metadata from the PE file to be able to identify inlining of these
+            //   push thunks and walk past them ourselves.
 
             frameMachine = PhpGetMachineForAddress(SymbolProvider, ProcessHandle, stackFrame.AddrPC.Offset);
 
