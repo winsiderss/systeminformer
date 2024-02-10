@@ -183,6 +183,15 @@ PhGetMappedImageDataEntry(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhRelocateMappedImageDataEntryARM64X(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DATA_DIRECTORY Entry,
+    _Out_ PIMAGE_DATA_DIRECTORY RelocatedEntry
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetMappedImageDirectoryEntry(
