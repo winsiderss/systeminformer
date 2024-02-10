@@ -226,7 +226,8 @@ VOID PvAddTreeViewSections(
             );
     }
 
-    if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64EC)) && exports.NumberOfEntries != 0)
+    // Exports ARM64X page
+    if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64X)) && exports.NumberOfEntries != 0)
     {
         PPV_EXPORTS_PAGECONTEXT exportsPageContext;
         PPV_PROPPAGECONTEXT propPageContext;
@@ -234,7 +235,7 @@ VOID PvAddTreeViewSections(
 
         exportsPageContext = PhAllocateZero(sizeof(PV_EXPORTS_PAGECONTEXT));
         exportsPageContext->FreePropPageContext = TRUE;
-        exportsPageContext->Context = ULongToPtr(PH_GET_IMAGE_EXPORTS_ARM64EC);
+        exportsPageContext->Context = ULongToPtr(PH_GET_IMAGE_EXPORTS_ARM64X);
 
         propPageContext = PhAllocateZero(sizeof(PV_PROPPAGECONTEXT));
         propPageContext->Context = exportsPageContext;
@@ -242,7 +243,7 @@ VOID PvAddTreeViewSections(
         propSheetPage->lParam = (LPARAM)propPageContext;
 
         PvCreateTabSection(
-            L"Exports ARM64EC",
+            L"Exports ARM64X",
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_PEEXPORTS),
             PvPeExportsDlgProc,

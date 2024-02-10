@@ -1318,7 +1318,7 @@ NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
     return status;
 }
 
-NTSTATUS PhpFixupExportDirectoryForARM64EC(
+NTSTATUS PhpFixupExportDirectoryForARM64X(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
     _Inout_ PIMAGE_EXPORT_DIRECTORY* ExportDirectory,
@@ -1346,7 +1346,7 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
 
     vaRva = PtrToUlong(PTR_SUB_OFFSET(DataDirectory, MappedImage->ViewBase));
     sizeRva = PtrToUlong(PTR_SUB_OFFSET(PTR_ADD_OFFSET(DataDirectory, sizeof(ULONG)), MappedImage->ViewBase));
-#define PH_ARM64EC_EXP_FIX_DONE() (vaRva == 0 && sizeRva == 0)
+#define PH_ARM64X_EXP_FIX_DONE() (vaRva == 0 && sizeRva == 0)
 
     reloc = PTR_ADD_OFFSET(table, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION_TABLE, Size));
     end = PTR_ADD_OFFSET(table, table->Size);
@@ -1428,14 +1428,14 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
                         break;
                     }
 
-                    if (PH_ARM64EC_EXP_FIX_DONE())
+                    if (PH_ARM64X_EXP_FIX_DONE())
                         break;
 
                     if (!PhPtrAdvance(&record, recordsEnd, consumed))
                         break;
                 }
 
-                if (PH_ARM64EC_EXP_FIX_DONE())
+                if (PH_ARM64X_EXP_FIX_DONE())
                     break;
 
                 if (!PhPtrAdvance(&base, baseEnd, base->SizeOfBlock))
@@ -1443,7 +1443,7 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
             }
         }
 
-        if (PH_ARM64EC_EXP_FIX_DONE())
+        if (PH_ARM64X_EXP_FIX_DONE())
             break;
 
         if (!PhPtrAdvance(&reloc, end, reloc->BaseRelocSize))
@@ -1453,7 +1453,7 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
             break;
     }
 
-    if (!PH_ARM64EC_EXP_FIX_DONE())
+    if (!PH_ARM64X_EXP_FIX_DONE())
         return STATUS_INVALID_PARAMETER;
 
     *ExportDirectory = PhMappedImageRvaToVa(
@@ -1478,8 +1478,8 @@ NTSTATUS PhGetMappedImageExportsEx(
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
 
-    Exports->DataDirectoryARM64EC.VirtualAddress = 0;
-    Exports->DataDirectoryARM64EC.Size = 0;
+    Exports->DataDirectoryARM64X.VirtualAddress = 0;
+    Exports->DataDirectoryARM64X.Size = 0;
 
     // Get a pointer to the export directory.
 
@@ -1501,13 +1501,13 @@ NTSTATUS PhGetMappedImageExportsEx(
     if (!exportDirectory)
         return STATUS_INVALID_PARAMETER;
 
-    if (Flags & PH_GET_IMAGE_EXPORTS_ARM64EC)
+    if (Flags & PH_GET_IMAGE_EXPORTS_ARM64X)
     {
-        status = PhpFixupExportDirectoryForARM64EC(
+        status = PhpFixupExportDirectoryForARM64X(
             MappedImage,
             dataDirectory,
             &exportDirectory,
-            &Exports->DataDirectoryARM64EC
+            &Exports->DataDirectoryARM64X
             );
 
         if (!NT_SUCCESS(status))
