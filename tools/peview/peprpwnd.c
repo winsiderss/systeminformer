@@ -352,9 +352,9 @@ VOID PvAddTreeViewSections(
         }
     }
 
-    // Exceptions page
     {
         BOOLEAN hasExceptions = FALSE;
+        BOOLEAN hasExceptionsArm64X = FALSE;
 
         if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         {
@@ -368,17 +368,63 @@ VOID PvAddTreeViewSections(
         else
         {
             if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
+            {
+                IMAGE_DATA_DIRECTORY entryArm64X;
+
                 hasExceptions = TRUE;
+
+                if (NT_SUCCESS(PhRelocateMappedImageDataEntryARM64X(&PvMappedImage, entry, &entryArm64X)))
+                    hasExceptionsArm64X = TRUE;
+            }
         }
 
+        // Exceptions page
         if (hasExceptions)
         {
+            PPV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext;
+            PPV_PROPPAGECONTEXT propPageContext;
+            LPPROPSHEETPAGE propSheetPage;
+
+            exceptionsPageContext = PhAllocateZero(sizeof(PV_EXCEPTIONS_PAGECONTEXT));
+            exceptionsPageContext->FreePropPageContext = TRUE;
+            exceptionsPageContext->Context = ULongToPtr(0); // PhGetMappedImageExceptionsEx with no flags
+
+            propPageContext = PhAllocateZero(sizeof(PV_PROPPAGECONTEXT));
+            propPageContext->Context = exceptionsPageContext;
+            propSheetPage = PhAllocateZero(sizeof(PROPSHEETPAGE));
+            propSheetPage->lParam = (LPARAM)propPageContext;
+
             PvCreateTabSection(
                 L"Exceptions",
                 PhInstanceHandle,
                 MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
                 PvpPeExceptionDlgProc,
-                NULL
+                propSheetPage
+                );
+        }
+
+        // Exceptions ARM64X page
+        if (hasExceptionsArm64X)
+        {
+            PPV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext;
+            PPV_PROPPAGECONTEXT propPageContext;
+            LPPROPSHEETPAGE propSheetPage;
+
+            exceptionsPageContext = PhAllocateZero(sizeof(PV_EXCEPTIONS_PAGECONTEXT));
+            exceptionsPageContext->FreePropPageContext = TRUE;
+            exceptionsPageContext->Context = ULongToPtr(PH_GET_IMAGE_EXCEPTIONS_ARM64X);
+
+            propPageContext = PhAllocateZero(sizeof(PV_PROPPAGECONTEXT));
+            propPageContext->Context = exceptionsPageContext;
+            propSheetPage = PhAllocateZero(sizeof(PROPSHEETPAGE));
+            propSheetPage->lParam = (LPARAM)propPageContext;
+
+            PvCreateTabSection(
+                L"Exceptions ARM64X",
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
+                PvpPeExceptionDlgProc,
+                propSheetPage
                 );
         }
     }

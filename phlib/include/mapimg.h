@@ -1058,11 +1058,23 @@ typedef struct _PH_MAPPED_IMAGE_EXCEPTIONS
 {
     PPH_MAPPED_IMAGE MappedImage;
     PIMAGE_DATA_DIRECTORY DataDirectory;
+    IMAGE_DATA_DIRECTORY DataDirectoryARM64X;
     PVOID ExceptionDirectory;
 
     ULONG NumberOfEntries;
     PVOID ExceptionEntries;
 } PH_MAPPED_IMAGE_EXCEPTIONS, *PPH_MAPPED_IMAGE_EXCEPTIONS;
+
+#define PH_GET_IMAGE_EXCEPTIONS_ARM64X 0x00000001ul
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageExceptionsEx(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_EXCEPTIONS Exceptions,
+    _In_ ULONG Flags
+    );
 
 PHLIBAPI
 NTSTATUS

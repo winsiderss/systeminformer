@@ -648,6 +648,12 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
     _In_ LPARAM lParam
     );
 
+typedef struct _PV_EXCEPTIONS_PAGECONTEXT
+{
+    BOOLEAN FreePropPageContext;
+    PVOID Context;
+} PV_EXCEPTIONS_PAGECONTEXT, *PPV_EXCEPTIONS_PAGECONTEXT;
+
 INT_PTR CALLBACK PvpPeExceptionDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
