@@ -407,7 +407,7 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
 
                                 PvpCHPAddValue(
                                     lvHandle,
-                                    PhFormatString(L"Code Entry Range%lu", i)->Buffer,
+                                    PhFormatString(L"Code Entry Range %lu", i)->Buffer,
                                     PhFormatString(
                                         L"[0x%lx, 0x%lx] 0x%lx",
                                         table[i].StartRva,
