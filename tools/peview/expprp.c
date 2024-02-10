@@ -320,12 +320,13 @@ NTSTATUS PvpPeExportsEnumerateThread(
                             );
                     }
 
-                    if (
-                        (exportSymbolName && PhIsNullOrEmptyString(exportNode->NameString)) ||
-                        (exportNode->NameString && !PhEqualString(exportSymbolName, exportNode->NameString, TRUE))
-                        )
+                    if (exportSymbolName)
                     {
-                        exportNode->SymbolString = PhReferenceObject(exportSymbolName);
+                        if (PhIsNullOrEmptyString(exportNode->NameString) ||
+                            (exportNode->NameString && !PhEqualString(exportSymbolName, exportNode->NameString, TRUE)))
+                        {
+                            exportNode->SymbolString = PhReferenceObject(exportSymbolName);
+                        }
                     }
 
                     PhClearReference(&exportSymbolName);
