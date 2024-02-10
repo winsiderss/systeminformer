@@ -4767,6 +4767,15 @@ NTSTATUS PhGetMappedImageExceptions(
     _Out_ PPH_MAPPED_IMAGE_EXCEPTIONS Exceptions
     )
 {
+    return PhGetMappedImageExceptionsEx(MappedImage, Exceptions, 0);
+}
+
+NTSTATUS PhGetMappedImageExceptionsEx(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_EXCEPTIONS Exceptions,
+    _In_ ULONG Flags
+    )
+{
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PVOID exceptionDirectory;
@@ -4774,6 +4783,9 @@ NTSTATUS PhGetMappedImageExceptions(
     ULONG imageMachine;
     ULONG exceptionTotal = 0;
     ULONG exceptionEntrySize = 0;
+
+    Exceptions->DataDirectoryARM64X.VirtualAddress = 0;
+    Exceptions->DataDirectoryARM64X.Size = 0;
 
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         imageMachine = MappedImage->NtHeaders32->FileHeader.Machine;
@@ -4844,50 +4856,101 @@ NTSTATUS PhGetMappedImageExceptions(
     if (!NT_SUCCESS(status))
         return status;
 
-    exceptionDirectory = PhMappedImageRvaToVa(
-        MappedImage,
-        dataDirectory->VirtualAddress,
-        NULL
-        );
-
-    if (!exceptionDirectory)
-        return STATUS_INVALID_PARAMETER;
-
-    __try
+    if (Flags & PH_GET_IMAGE_EXCEPTIONS_ARM64X)
     {
-        PhMappedImageProbe(MappedImage, exceptionDirectory, dataDirectory->Size);
+        status = PhRelocateMappedImageDataEntryARM64X(
+            MappedImage,
+            dataDirectory,
+            &Exceptions->DataDirectoryARM64X
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        exceptionDirectory = PhMappedImageRvaToVa(
+            MappedImage,
+            Exceptions->DataDirectoryARM64X.VirtualAddress,
+            NULL
+            );
+
+        if (!exceptionDirectory)
+            return STATUS_INVALID_PARAMETER;
+
+        __try
+        {
+            PhMappedImageProbe(MappedImage, exceptionDirectory, Exceptions->DataDirectoryARM64X.Size);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        // N.B. intentionally inverted
+        switch (imageMachine)
+        {
+        //case IMAGE_FILE_MACHINE_AMD64:
+        //    {
+        //        exceptionEntrySize = sizeof(IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY);
+        //        exceptionTotal = Exceptions->DataDirectoryARM64X.Size / exceptionEntrySize;
+        //    }
+        //    break;
+        case IMAGE_FILE_MACHINE_ARM64:
+            {
+                exceptionEntrySize = sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
+                exceptionTotal = Exceptions->DataDirectoryARM64X.Size / exceptionEntrySize;
+            }
+            break;
+        default:
+            return STATUS_NOT_SUPPORTED;
+        }
     }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+    else
     {
-        return GetExceptionCode();
+        exceptionDirectory = PhMappedImageRvaToVa(
+            MappedImage,
+            dataDirectory->VirtualAddress,
+            NULL
+            );
+
+        if (!exceptionDirectory)
+            return STATUS_INVALID_PARAMETER;
+
+        __try
+        {
+            PhMappedImageProbe(MappedImage, exceptionDirectory, dataDirectory->Size);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        switch (imageMachine)
+        {
+        case IMAGE_FILE_MACHINE_AMD64:
+        case IMAGE_FILE_MACHINE_IA64:
+            {
+                exceptionEntrySize = sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
+                exceptionTotal = dataDirectory->Size / exceptionEntrySize;
+            }
+            break;
+        case IMAGE_FILE_MACHINE_ARMNT:
+            {
+                exceptionEntrySize = sizeof(IMAGE_ARM_RUNTIME_FUNCTION_ENTRY);
+                exceptionTotal = dataDirectory->Size / exceptionEntrySize;
+            }
+            break;
+        case IMAGE_FILE_MACHINE_ARM64:
+            {
+                exceptionEntrySize = sizeof(IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY);
+                exceptionTotal = dataDirectory->Size / exceptionEntrySize;
+            }
+            break;
+        }
     }
 
     Exceptions->MappedImage = MappedImage;
     Exceptions->DataDirectory = dataDirectory;
     Exceptions->ExceptionDirectory = exceptionDirectory;
-
-    switch (imageMachine)
-    {
-    case IMAGE_FILE_MACHINE_AMD64:
-    case IMAGE_FILE_MACHINE_IA64:
-        {
-            exceptionEntrySize = sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY);
-            exceptionTotal = dataDirectory->Size / exceptionEntrySize;
-        }
-        break;
-    case IMAGE_FILE_MACHINE_ARMNT:
-        {
-            exceptionEntrySize = sizeof(IMAGE_ARM_RUNTIME_FUNCTION_ENTRY);
-            exceptionTotal = dataDirectory->Size / exceptionEntrySize;
-        }
-        break;
-    case IMAGE_FILE_MACHINE_ARM64:
-        {
-            exceptionEntrySize = sizeof(IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY);
-            exceptionTotal = dataDirectory->Size / exceptionEntrySize;
-        }
-        break;
-    }
 
     // Allocate the number of exception entries.
 

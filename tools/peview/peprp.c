@@ -326,9 +326,9 @@ VOID PvPeProperties(
             }
         }
 
-        // Exceptions page
         {
-            BOOLEAN has_exceptions = FALSE;
+            BOOLEAN hasExceptions = FALSE;
+            BOOLEAN hasExceptionsArm64X = FALSE;
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
@@ -336,23 +336,52 @@ VOID PvPeProperties(
                     RTL_CONTAINS_FIELD(config32, config32->Size, SEHandlerCount))
                 {
                     if (config32->SEHandlerCount && config32->SEHandlerTable)
-                        has_exceptions = TRUE;
+                        hasExceptions = TRUE;
                 }
             }
             else
             {
                 if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
                 {
-                    has_exceptions = TRUE;
+                    IMAGE_DATA_DIRECTORY entryArm64X;
+
+                    hasExceptions = TRUE;
+
+                    if (NT_SUCCESS(PhRelocateMappedImageDataEntryARM64X(&PvMappedImage, entry, &entryArm64X)))
+                        hasExceptionsArm64X = TRUE;
                 }
             }
 
-            if (has_exceptions)
+            // Exceptions page
+            if (hasExceptions)
             {
+                PV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext;
+
+                memset(&exceptionsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
+                exceptionsPageContext.FreePropPageContext = FALSE;
+                exceptionsPageContext.Context = ULongToPtr(0); // PhGetMappedImageExceptionsEx with no flags
+
                 newPage = PvCreatePropPageContext(
                     MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
                     PvpPeExceptionDlgProc,
-                    NULL
+                    &exceptionsPageContext
+                    );
+                PvAddPropPage(propContext, newPage);
+            }
+
+            // Exceptions ARM64X page
+            if (hasExceptionsArm64X)
+            {
+                PV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext;
+
+                memset(&exceptionsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
+                exceptionsPageContext.FreePropPageContext = FALSE;
+                exceptionsPageContext.Context = ULongToPtr(PH_GET_IMAGE_EXCEPTIONS_ARM64X);
+
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PEEXCEPTIONS),
+                    PvpPeExceptionDlgProc,
+                    &exceptionsPageContext
                     );
                 PvAddPropPage(propContext, newPage);
             }
