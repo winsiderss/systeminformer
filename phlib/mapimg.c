@@ -1318,11 +1318,10 @@ NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
     return status;
 }
 
-NTSTATUS PhpFixupExportDirectoryForARM64X(
+NTSTATUS PhRelocateMappedImageDataEntryARM64X(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
-    _Inout_ PIMAGE_EXPORT_DIRECTORY* ExportDirectory,
-    _Out_ PIMAGE_DATA_DIRECTORY FixedDataDirectory
+    _In_ PIMAGE_DATA_DIRECTORY Entry,
+    _Out_ PIMAGE_DATA_DIRECTORY RelocatedEntry
     )
 {
     NTSTATUS status;
@@ -1332,7 +1331,7 @@ NTSTATUS PhpFixupExportDirectoryForARM64X(
     PIMAGE_DYNAMIC_RELOCATION64 reloc;
     PVOID end;
 
-    RtlZeroMemory(FixedDataDirectory, sizeof(IMAGE_DATA_DIRECTORY));
+    RtlZeroMemory(RelocatedEntry, sizeof(IMAGE_DATA_DIRECTORY));
 
     if (MappedImage->Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
         return STATUS_INVALID_PARAMETER;
@@ -1344,9 +1343,10 @@ NTSTATUS PhpFixupExportDirectoryForARM64X(
     if (table->Version != 1)
         return STATUS_NOT_SUPPORTED;
 
-    vaRva = PtrToUlong(PTR_SUB_OFFSET(DataDirectory, MappedImage->ViewBase));
-    sizeRva = PtrToUlong(PTR_SUB_OFFSET(PTR_ADD_OFFSET(DataDirectory, sizeof(ULONG)), MappedImage->ViewBase));
-#define PH_ARM64X_EXP_FIX_DONE() (vaRva == 0 && sizeRva == 0)
+    vaRva = PtrToUlong(PTR_SUB_OFFSET(Entry, MappedImage->ViewBase));
+    sizeRva = PtrToUlong(PTR_SUB_OFFSET(PTR_ADD_OFFSET(Entry, sizeof(ULONG)), MappedImage->ViewBase));
+
+#define PH_ARM64X_DIR_FIX_DONE() (vaRva == 0 && sizeRva == 0)
 
     reloc = PTR_ADD_OFFSET(table, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION_TABLE, Size));
     end = PTR_ADD_OFFSET(table, table->Size);
@@ -1398,12 +1398,12 @@ NTSTATUS PhpFixupExportDirectoryForARM64X(
                             ULONG value = *(PULONG)PTR_ADD_OFFSET(record, consumed);
                             if (vaRva != 0 && vaRva == rva)
                             {
-                                FixedDataDirectory->VirtualAddress = value;
+                                RelocatedEntry->VirtualAddress = value;
                                 vaRva = 0;
                             }
                             else if (sizeRva != 0 && sizeRva == rva)
                             {
-                                FixedDataDirectory->Size = value;
+                                RelocatedEntry->Size = value;
                                 sizeRva = 0;
                             }
 
@@ -1428,14 +1428,14 @@ NTSTATUS PhpFixupExportDirectoryForARM64X(
                         break;
                     }
 
-                    if (PH_ARM64X_EXP_FIX_DONE())
+                    if (PH_ARM64X_DIR_FIX_DONE())
                         break;
 
                     if (!PhPtrAdvance(&record, recordsEnd, consumed))
                         break;
                 }
 
-                if (PH_ARM64X_EXP_FIX_DONE())
+                if (PH_ARM64X_DIR_FIX_DONE())
                     break;
 
                 if (!PhPtrAdvance(&base, baseEnd, base->SizeOfBlock))
@@ -1443,7 +1443,7 @@ NTSTATUS PhpFixupExportDirectoryForARM64X(
             }
         }
 
-        if (PH_ARM64X_EXP_FIX_DONE())
+        if (PH_ARM64X_DIR_FIX_DONE())
             break;
 
         if (!PhPtrAdvance(&reloc, end, reloc->BaseRelocSize))
@@ -1453,19 +1453,7 @@ NTSTATUS PhpFixupExportDirectoryForARM64X(
             break;
     }
 
-    if (!PH_ARM64X_EXP_FIX_DONE())
-        return STATUS_INVALID_PARAMETER;
-
-    *ExportDirectory = PhMappedImageRvaToVa(
-        MappedImage,
-        FixedDataDirectory->VirtualAddress,
-        NULL
-        );
-
-    if (!(*ExportDirectory))
-        return STATUS_INVALID_PARAMETER;
-
-    return STATUS_SUCCESS;
+    return PH_ARM64X_DIR_FIX_DONE() ? STATUS_SUCCESS : STATUS_INVALID_PARAMETER;
 }
 
 NTSTATUS PhGetMappedImageExportsEx(
@@ -1492,27 +1480,34 @@ NTSTATUS PhGetMappedImageExportsEx(
     if (!NT_SUCCESS(status))
         return status;
 
-    exportDirectory = PhMappedImageRvaToVa(
-        MappedImage,
-        dataDirectory->VirtualAddress,
-        NULL
-        );
-
-    if (!exportDirectory)
-        return STATUS_INVALID_PARAMETER;
-
     if (Flags & PH_GET_IMAGE_EXPORTS_ARM64X)
     {
-        status = PhpFixupExportDirectoryForARM64X(
+        status = PhRelocateMappedImageDataEntryARM64X(
             MappedImage,
             dataDirectory,
-            &exportDirectory,
             &Exports->DataDirectoryARM64X
             );
 
         if (!NT_SUCCESS(status))
             return status;
+
+        exportDirectory = PhMappedImageRvaToVa(
+            MappedImage,
+            Exports->DataDirectoryARM64X.VirtualAddress,
+            NULL
+            );
     }
+    else
+    {
+        exportDirectory = PhMappedImageRvaToVa(
+            MappedImage,
+            dataDirectory->VirtualAddress,
+            NULL
+            );
+    }
+
+    if (!exportDirectory)
+        return STATUS_INVALID_PARAMETER;
 
     __try
     {
