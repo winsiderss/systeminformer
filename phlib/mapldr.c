@@ -527,7 +527,7 @@ NTSTATUS PhGetProcedureAddressRemote(
             goto CleanupExit;
 
         if (processArchitecture == IMAGE_FILE_MACHINE_AMD64)
-            exportsFlags |= PH_GET_IMAGE_EXPORTS_ARM64EC;
+            exportsFlags |= PH_GET_IMAGE_EXPORTS_ARM64X;
     }
 
     status = PhGetMappedImageExportsEx(&exports, &mappedImage, exportsFlags);

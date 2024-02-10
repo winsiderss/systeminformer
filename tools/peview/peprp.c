@@ -216,13 +216,13 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
-        if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64EC)) && exports.NumberOfEntries != 0)
+        if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64X)) && exports.NumberOfEntries != 0)
         {
             PV_EXPORTS_PAGECONTEXT exportsPageContext;
 
             memset(&exportsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
             exportsPageContext.FreePropPageContext = FALSE;
-            exportsPageContext.Context = ULongToPtr(PH_GET_IMAGE_EXPORTS_ARM64EC);
+            exportsPageContext.Context = ULongToPtr(PH_GET_IMAGE_EXPORTS_ARM64X);
 
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PEEXPORTS),
