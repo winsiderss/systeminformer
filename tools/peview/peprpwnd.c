@@ -409,11 +409,11 @@ VOID PvAddTreeViewSections(
             );
     }
 
-    // CHPE page
+    // Hybrid Metadata page
     if (PhGetMappedImageCHPEVersion(&PvMappedImage))
     {
         PvCreateTabSection(
-            L"CHPE",
+            L"Hybrid Metadata",
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_PELOADCONFIG),
             PvpPeCHPEDlgProc,

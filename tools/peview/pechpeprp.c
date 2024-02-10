@@ -218,18 +218,25 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                             {
                                 ULONG start = table[i].StartOffset & ~1ul;
                                 ULONG end = start + table[i].Length;
-                                PPH_STRING startSym = PvpCHPERvaToSymbol(start);
-                                PPH_STRING endSym = PvpCHPERvaToSymbol(end);
 
-                                PvpCHPAddValue(
-                                    lvHandle,
-                                    PhFormatString(L"Code Address Range %lu", i)->Buffer,
-                                    PhFormatString(L"[0x%lx, 0x%lx]%ls", start, end, table[i].NativeCode ? L" (native)" : L""),
-                                    PhFormatString(L"(%ls, %ls)", startSym->Buffer, endSym->Buffer)
-                                    );
-
-                                PhDereferenceObject(startSym);
-                                PhDereferenceObject(endSym);
+                                if (table[i].NativeCode)
+                                {
+                                    PvpCHPAddValue(
+                                        lvHandle,
+                                        PhFormatString(L"Code range %lu Native", i)->Buffer,
+                                        PhFormatString(L"[0x%lx, 0x%lx]", start, end),
+                                        PhReferenceEmptyString()
+                                        );
+                                }
+                                else
+                                {
+                                    PvpCHPAddValue(
+                                        lvHandle,
+                                        PhFormatString(L"Code range %lu", i)->Buffer,
+                                        PhFormatString(L"[0x%lx, 0x%lx]", start, end),
+                                        PhReferenceEmptyString()
+                                        );
+                                }
                             }
                         }
                     }
@@ -369,6 +376,45 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         PvpCHPERvaToSymbol(chpe64->__os_arm64x_dispatch_fptr)
                         );
 
+                    if (chpe64->CodeMap && chpe64->CodeMapCount)
+                    {
+                        PIMAGE_ARM64EC_CODE_MAP_ENTRY table;
+
+                        table = PhMappedImageRvaToVa(&PvMappedImage, chpe64->CodeMap, NULL);
+                        if (table)
+                        {
+                            for (ULONG i = 0; i < chpe64->CodeMapCount; i++)
+                            {
+                                ULONG start = table[i].AddressBits << 2;
+                                ULONG end = start + table[i].Length;
+                                PPH_STRING type;
+
+                                switch (table[i].Type)
+                                {
+                                case IMAGE_ARM64EC_CODE_MAP_TYPE_ARM64:
+                                    type = PhFormatString(L"Code range %lu ARM64", i);
+                                    break;
+                                case IMAGE_ARM64EC_CODE_MAP_TYPE_ARM64EC:
+                                    type = PhFormatString(L"Code range %lu ARM64EC", i);
+                                    break;
+                                case IMAGE_ARM64EC_CODE_MAP_TYPE_AMD64:
+                                    type = PhFormatString(L"Code range %lu AMD64", i);
+                                    break;
+                                default:
+                                    type = PhFormatString(L"Code range %lu UNKNOWN (%lu)", i, table[i].Type);
+                                    break;
+                                }
+
+                                PvpCHPAddValue(
+                                    lvHandle,
+                                    type->Buffer,
+                                    PhFormatString(L"[0x%lx, 0x%lx]", start, end),
+                                    PhReferenceEmptyString()
+                                    );
+                            }
+                        }
+                    }
+
                     if (chpe64->RedirectionMetadata && chpe64->RedirectionMetadataCount)
                     {
                         PIMAGE_ARM64EC_REDIRECTION_ENTRY table;
@@ -407,7 +453,7 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
 
                                 PvpCHPAddValue(
                                     lvHandle,
-                                    PhFormatString(L"Code Entry Range %lu", i)->Buffer,
+                                    PhFormatString(L"Code entry range %lu", i)->Buffer,
                                     PhFormatString(
                                         L"[0x%lx, 0x%lx] 0x%lx",
                                         table[i].StartRva,

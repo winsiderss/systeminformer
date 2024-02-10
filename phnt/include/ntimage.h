@@ -91,6 +91,27 @@ typedef struct _IMAGE_ARM64EC_METADATA
     ULONG AuxiliaryIATCopy;
 } IMAGE_ARM64EC_METADATA, *PIMAGE_ARM64EC_METADATA;
 
+// rev
+#define IMAGE_ARM64EC_CODE_MAP_TYPE_ARM64   0
+#define IMAGE_ARM64EC_CODE_MAP_TYPE_ARM64EC 1
+#define IMAGE_ARM64EC_CODE_MAP_TYPE_AMD64   2
+
+// rev
+typedef struct _IMAGE_ARM64EC_CODE_MAP_ENTRY
+{
+    union
+    {
+        ULONG StartOffset;
+        struct
+        {
+            ULONG Type : 2;
+            ULONG AddressBits : 30;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+
+    ULONG Length;
+} IMAGE_ARM64EC_CODE_MAP_ENTRY, *PIMAGE_ARM64EC_CODE_MAP_ENTRY;
+
 typedef struct _IMAGE_ARM64EC_REDIRECTION_ENTRY
 {
     ULONG Source;
