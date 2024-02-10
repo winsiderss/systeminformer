@@ -104,7 +104,7 @@ VOID PvEnumerateExceptionEntries(
     {
         for (ULONG i = 0; i < exceptions.NumberOfEntries; i++)
         {
-            PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64));
+            PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY));
             INT lvItemIndex;
             PPH_STRING symbol;
             PPH_STRING symbolName = NULL;
@@ -179,8 +179,8 @@ INT NTAPI PvpPeExceptionSizeCompareFunctionAmd64(
     _In_ PVOID Context
     )
 {
-    PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry1 = Item1;
-    PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry2 = Item2;
+    PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY entry1 = Item1;
+    PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY entry2 = Item2;
 
     return uintptrcmp((ULONG_PTR)entry1->EndAddress - entry1->BeginAddress, (ULONG_PTR)entry2->EndAddress - entry2->BeginAddress);
 }
