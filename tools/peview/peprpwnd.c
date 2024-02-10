@@ -354,7 +354,7 @@ VOID PvAddTreeViewSections(
 
     // Exceptions page
     {
-        BOOLEAN has_exceptions = FALSE;
+        BOOLEAN hasExceptions = FALSE;
 
         if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         {
@@ -362,18 +362,16 @@ VOID PvAddTreeViewSections(
                 RTL_CONTAINS_FIELD(config32, config32->Size, SEHandlerCount))
             {
                 if (config32->SEHandlerCount && config32->SEHandlerTable)
-                    has_exceptions = TRUE;
+                    hasExceptions = TRUE;
             }
         }
         else
         {
             if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
-            {
-                has_exceptions = TRUE;
-            }
+                hasExceptions = TRUE;
         }
 
-        if (has_exceptions)
+        if (hasExceptions)
         {
             PvCreateTabSection(
                 L"Exceptions",
