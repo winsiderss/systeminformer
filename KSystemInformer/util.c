@@ -1221,6 +1221,7 @@ NTSTATUS KphpGetLsassProcessId(
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
     HANDLE portHandle;
     KAPC_STATE apcState;
     KPH_ALPC_COMMUNICATION_INFORMATION info;
@@ -1228,6 +1229,18 @@ NTSTATUS KphpGetLsassProcessId(
     PAGED_CODE_PASSIVE();
 
     *ProcessId = NULL;
+
+    //
+    // N.B. This is an optimization. In order to query the process ID of lsass
+    // through the LSA port, we need the dynamic data. Rather than doing the
+    // work to attach to the system process and open the port, if we know we
+    // do not have the dynamic data, exit early.
+    //
+    dyn = KphReferenceDynData();
+    if (!dyn)
+    {
+        return STATUS_NOINTERFACE;
+    }
 
     //
     // Attach to system to ensure we get a kernel handle from the following
@@ -1272,7 +1285,7 @@ NTSTATUS KphpGetLsassProcessId(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       UTIL,
-                      "ZwAlpcQueryInformation failed: %!STATUS!",
+                      "KphAlpcQueryInformation failed: %!STATUS!",
                       status);
         goto Exit;
     }
@@ -1287,6 +1300,8 @@ Exit:
     }
 
     KeUnstackDetachProcess(&apcState);
+
+    KphDereferenceObject(dyn);
 
     return status;
 }
