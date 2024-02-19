@@ -129,6 +129,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES, FALSE, L"I/O write bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES, FALSE, L"I/O other bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LXSSTID, FALSE, L"TID (LXSS)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING, FALSE, L"Power throttling", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -1187,6 +1188,12 @@ BEGIN_SORT_FUNCTION(LxssTid)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PowerThrottling)
+{
+    sortResult = uintcmp(threadItem1->PowerThrottling, threadItem2->PowerThrottling);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1253,6 +1260,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(IoWriteBytes),
                     SORT_FUNCTION(IoOtherBytes),
                     SORT_FUNCTION(LxssTid),
+                    SORT_FUNCTION(PowerThrottling),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -2028,6 +2036,14 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     {
                         PhMoveReference(&node->IoOtherBytes, PhFormatSize(threadItem->IoCounters.OtherTransferCount, ULONG_MAX));
                         getCellText->Text = node->IoOtherBytes->sr;
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_POWERTHROTTLING:
+                {
+                    if (threadItem->PowerThrottling)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Yes");
                     }
                 }
                 break;

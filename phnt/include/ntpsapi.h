@@ -277,7 +277,7 @@ typedef enum _THREADINFOCLASS
     ThreadDbgkWerReportActive, // s: ULONG; s: 0 disables, otherwise enables
     ThreadAttachContainer, // s: HANDLE (job object) // NtCurrentThread
     ThreadManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
-    ThreadPowerThrottlingState, // POWER_THROTTLING_THREAD_STATE
+    ThreadPowerThrottlingState, // POWER_THROTTLING_THREAD_STATE // since REDSTONE3 (set), WIN11 22H2 (query)
     ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
     ThreadCreateStateChange, // since WIN11
     ThreadApplyStateChange,

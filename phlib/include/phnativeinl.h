@@ -752,6 +752,32 @@ PhGetProcessPowerThrottlingState(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetThreadPowerThrottlingState(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PPOWER_THROTTLING_THREAD_STATE PowerThrottlingState
+    )
+{
+    NTSTATUS status;
+    POWER_THROTTLING_THREAD_STATE powerThrottlingState = { .Version = POWER_THROTTLING_THREAD_CURRENT_VERSION };
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadPowerThrottlingState,
+        &powerThrottlingState,
+        sizeof(powerThrottlingState),
+        NULL
+    );
+
+    if (NT_SUCCESS(status))
+    {
+        *PowerThrottlingState = powerThrottlingState;
+    }
+
+    return status;
+}
+
 /**
  * Gets basic information for a thread.
  *
