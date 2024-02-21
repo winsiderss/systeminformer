@@ -57,6 +57,7 @@ typedef struct _PH_THREAD_ITEM
     IO_COUNTERS IoCounters;
 
     ULONG LxssThreadId;
+    BOOLEAN PowerThrottling;
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;
 
 typedef enum _PH_KNOWN_PROCESS_TYPE PH_KNOWN_PROCESS_TYPE;
