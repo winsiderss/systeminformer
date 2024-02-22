@@ -148,7 +148,7 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                     PvpCHPAddValue(
                         lvHandle,
                         L"Code address range count",
-                        PhFormatString(L"%lu", chpe32->CHPECodeAddressRangeOffset),
+                        PhFormatString(L"%lu", chpe32->CHPECodeAddressRangeCount),
                         NULL
                         );
                     PvpCHPAddValue(
