@@ -383,8 +383,11 @@
 #define IDC_GROUPCPU                    1198
 #define IDC_GROUPPRIVATEBYTES           1199
 #define IDC_GROUPIO                     1200
+#define IDC_UNDO                        1201
 #define IDC_ONEGRAPHPERCPU              1202
 #define IDC_ALWAYSONTOP                 1203
+#define IDC_PASTE                       1204
+#define IDC_CUT                         1205
 #define IDC_COPY                        1206
 #define IDC_INACTIVE                    1207
 #define IDC_ACTIVE                      1208

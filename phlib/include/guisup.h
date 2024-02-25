@@ -706,6 +706,11 @@ VOID PhSetClipboardString(
     _In_ PPH_STRINGREF String
     );
 
+PHLIBAPI
+PPH_STRING PhGetClipboardString(
+    _In_ HWND WindowHandle
+    );
+
 #include <pshpack1.h>
 typedef struct _DLGTEMPLATEEX
 {

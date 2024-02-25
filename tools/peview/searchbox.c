@@ -13,6 +13,7 @@
 #include <peview.h>
 #include <vssym32.h>
 //#include <wincodec.h>
+#include <emenu.h>
 
 #include "../../tools/thirdparty/pcre/pcre2.h"
 
@@ -901,6 +902,92 @@ LRESULT CALLBACK PvpSearchWndSubclassProc(
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;
+    case WM_CONTEXTMENU:
+        {
+            POINT windowPoint;
+            PPH_EMENU menu;
+            PPH_EMENU item;
+            ULONG selStart;
+            ULONG selEnd;
+
+            SendMessage(hWnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+
+            windowPoint.x = GET_X_LPARAM(lParam);
+            windowPoint.y = GET_Y_LPARAM(lParam);
+
+            menu = PhCreateEMenu();
+
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_UNDO, L"Undo", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CUT, L"Cut", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_PASTE, L"Paste", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_SELECTALL, L"Select All", NULL, NULL), ULONG_MAX);
+
+            if (selStart == selEnd)
+            {
+                PhEnableEMenuItem(menu, IDC_CUT, FALSE);
+                PhEnableEMenuItem(menu, IDC_COPY, FALSE);
+            }
+
+            item = PhShowEMenu(
+                menu,
+                hWnd,
+                PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                windowPoint.x,
+                windowPoint.y
+                );
+
+            if (item)
+            {
+                PPH_STRING text = PH_AUTO(PhGetWindowText(hWnd));
+
+                switch (item->Id)
+                {
+                    case IDC_UNDO:
+                        {
+                            SendMessage(hWnd, EM_UNDO, 0, 0);
+                            PvpSearchUpdateText(hWnd, context, FALSE);
+                        }
+                        break;
+                    case IDC_CUT:
+                        {
+                            PPH_STRING selectedText = PH_AUTO(PhSubstring(text, selStart, selEnd - selStart));
+                            PPH_STRING startText = PH_AUTO(PhSubstring(text, 0, selStart));
+                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR)));
+                            PPH_STRING newText = PH_AUTO(PhConcatStringRef2(&startText->sr, &endText->sr));
+                            PhSetClipboardString(hWnd, &selectedText->sr);
+                            PhSetWindowText(hWnd, newText->Buffer);
+                            PvpSearchUpdateText(hWnd, context, FALSE);
+                        }
+                        break;
+                    case IDC_COPY:
+                        {
+                            PPH_STRING selectedText = PH_AUTO(PhSubstring(text, selStart, selEnd - selStart));
+                            PhSetClipboardString(hWnd, &selectedText->sr);
+                        }
+                        break;
+                    case IDC_PASTE:
+                        {
+                            PPH_STRING clipText = PH_AUTO(PhGetClipboardString(hWnd));
+                            PPH_STRING startText = PH_AUTO(PhSubstring(text, 0, selStart));
+                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR)));
+                            PPH_STRING newText = PH_AUTO(PhConcatStringRef3(&startText->sr, &clipText->sr, &endText->sr));
+                            PhSetWindowText(hWnd, newText->Buffer);
+                            PvpSearchUpdateText(hWnd, context, FALSE);
+                        }
+                        break;
+                    case IDC_SELECTALL:
+                        SendMessage(hWnd, EM_SETSEL, 0, -1);
+                        break;
+                }
+            }
+
+            PhDestroyEMenu(menu);
+        }
+        return FALSE;
     case WM_CUT:
     case WM_CLEAR:
     case WM_PASTE:
