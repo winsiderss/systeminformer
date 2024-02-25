@@ -25,7 +25,8 @@ VOID PingContextDeleteProcedure(
 {
     PNETWORK_PING_CONTEXT context = Object;
 
-    PhDeleteCircularBuffer_FLOAT(&context->PingHistory);
+    PhDeleteCircularBuffer_FLOAT(&context->PingSuccessHistory);
+    PhDeleteCircularBuffer_FLOAT(&context->PingFailureHistory);
 }
 
 PNETWORK_PING_CONTEXT CreatePingContext(
@@ -52,6 +53,7 @@ NTSTATUS NetworkPingThreadStart(
 {
     PNETWORK_PING_CONTEXT context = (PNETWORK_PING_CONTEXT)Parameter;
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
+    BOOLEAN icmpSuccess = FALSE;
     FLOAT icmpCurrentPingMs = 0.0f;
     ULONG icmpCurrentOverhead = 0;
     ULONG icmpReplyCount = 0;
@@ -130,13 +132,13 @@ NTSTATUS NetworkPingThreadStart(
         PhQueryPerformanceCounter(&performanceCounterEnd);
         icmp6ReplyStruct = (PICMPV6_ECHO_REPLY2)icmpReplyBuffer;
 
+        performanceCounterTime = (FLOAT)(performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart);
+        performanceCounterTime *= 1000000;
+        performanceCounterTime /= performanceCounterFrequency.QuadPart;
+        performanceCounterTime /= 1000;
+
         if (icmpReplyCount && icmp6ReplyStruct->Status == IP_SUCCESS)
         {
-            performanceCounterTime = (FLOAT)(performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart);
-            performanceCounterTime *= 1000000;
-            performanceCounterTime /= performanceCounterFrequency.QuadPart;
-            performanceCounterTime /= 1000;
-
             if (!RtlEqualMemory(
                 icmp6ReplyStruct->Address.sin6_addr,
                 icmp6RemoteAddr.sin6_addr.u.Word,
@@ -154,6 +156,8 @@ NTSTATUS NetworkPingThreadStart(
             {
                 InterlockedIncrement(&context->HashFailCount);
             }
+
+            icmpSuccess = TRUE;
         }
         else
         {
@@ -205,13 +209,13 @@ NTSTATUS NetworkPingThreadStart(
         PhQueryPerformanceCounter(&performanceCounterEnd);
         icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
+        performanceCounterTime = (FLOAT)(performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart);
+        performanceCounterTime *= 1000000;
+        performanceCounterTime /= performanceCounterFrequency.QuadPart;
+        performanceCounterTime /= 1000;
+
         if (icmpReplyCount && icmpReplyStruct->Status == IP_SUCCESS)
         {
-            performanceCounterTime = (FLOAT)(performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart);
-            performanceCounterTime *= 1000000;
-            performanceCounterTime /= performanceCounterFrequency.QuadPart;
-            performanceCounterTime /= 1000;
-
             if (icmpReplyStruct->Address != icmpRemoteAddr)
             {
                 InterlockedIncrement(&context->UnknownAddrCount);
@@ -229,6 +233,8 @@ NTSTATUS NetworkPingThreadStart(
             {
                 InterlockedIncrement(&context->HashFailCount);
             }
+
+            icmpSuccess = TRUE;
         }
         else
         {
@@ -249,7 +255,16 @@ NTSTATUS NetworkPingThreadStart(
 
     InterlockedIncrement(&context->PingRecvCount);
 
-    PhAddItemCircularBuffer_FLOAT(&context->PingHistory, icmpCurrentPingMs);
+    if (icmpSuccess)
+    {
+        PhAddItemCircularBuffer_FLOAT(&context->PingSuccessHistory, icmpCurrentPingMs);
+        PhAddItemCircularBuffer_FLOAT(&context->PingFailureHistory, 0.0f);
+    }
+    else
+    {
+        PhAddItemCircularBuffer_FLOAT(&context->PingSuccessHistory, 0.0f);
+        PhAddItemCircularBuffer_FLOAT(&context->PingFailureHistory, icmpCurrentPingMs);
+    }
 
 CleanupExit:
 
@@ -297,6 +312,32 @@ VOID NetworkPingUpdateGraph(
     InvalidateRect(Context->PingGraphHandle, NULL, FALSE);
 }
 
+PPH_STRING NetworkPingLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    DOUBLE value;
+
+    value = (DOUBLE)(Parameter);
+
+    if (value != 0)
+    {
+        PH_FORMAT format[2];
+
+        PhInitFormatF(&format[0], value, 2); // (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit"));
+        PhInitFormatS(&format[1], L" ms");
+
+        return PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
+    else
+    {
+        return PhReferenceEmptyString();
+    }
+}
+
 INT_PTR CALLBACK NetworkPingWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -324,9 +365,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
     case WM_INITDIALOG:
         {
             PPH_LAYOUT_ITEM panelItem;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(hwndDlg);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -338,9 +376,10 @@ INT_PTR CALLBACK NetworkPingWndProc(
 
             context->WindowHandle = hwndDlg;
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
             context->MinPingScaling = PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING);
             context->Timeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
-            context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, context->StatusHandle, dpiValue);
+            context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, context->StatusHandle, context->WindowDpi);
             context->PingGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
@@ -359,7 +398,8 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhInitializeWorkQueue(&context->PingWorkQueue, 0, 20, 5000);
             PhInitializeGraphState(&context->PingGraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhInitializeCircularBuffer_FLOAT(&context->PingHistory, PhGetIntegerSetting(L"SampleCount"));
+            PhInitializeCircularBuffer_FLOAT(&context->PingSuccessHistory, PhGetIntegerSetting(L"SampleCount"));
+            PhInitializeCircularBuffer_FLOAT(&context->PingFailureHistory, PhGetIntegerSetting(L"SampleCount"));
 
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_PANEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT| PH_LAYOUT_FORCE_INVALIDATE);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ICMP_AVG), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
@@ -456,26 +496,26 @@ INT_PTR CALLBACK NetworkPingWndProc(
 
             NetworkPingUpdateGraph(context);
 
-            for (ULONG i = 0; i < context->PingHistory.Count; i++)
+            for (ULONG i = 0; i < context->PingSuccessHistory.Count; i++)
             {
-                pingSumValue += PhGetItemCircularBuffer_FLOAT(&context->PingHistory, i);
+                pingSumValue += PhGetItemCircularBuffer_FLOAT(&context->PingSuccessHistory, i);
             }
 
-            if (context->PingHistory.Count)
+            if (context->PingSuccessHistory.Count)
             {
-                pingAvgMeanValue = (FLOAT)pingSumValue / context->PingHistory.Count;
+                pingAvgMeanValue = (FLOAT)pingSumValue / context->PingSuccessHistory.Count;
             }
 
-            for (ULONG i = 0; i < context->PingHistory.Count; i++)
+            for (ULONG i = 0; i < context->PingSuccessHistory.Count; i++)
             {
-                FLOAT pingHistoryValue = PhGetItemCircularBuffer_FLOAT(&context->PingHistory, i);
+                FLOAT pingHistoryValue = PhGetItemCircularBuffer_FLOAT(&context->PingSuccessHistory, i);
 
                 pingDeviationValue += powf(pingHistoryValue - pingAvgMeanValue, 2);
             }
 
-            if (context->PingHistory.Count)
+            if (context->PingSuccessHistory.Count)
             {
-                FLOAT pingVarianceValue = pingDeviationValue / context->PingHistory.Count;
+                FLOAT pingVarianceValue = pingDeviationValue / context->PingSuccessHistory.Count;
 
                 pingDeviationValue = sqrtf(pingVarianceValue);
             }
@@ -514,12 +554,53 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-                    LONG dpiValue;
-
-                    dpiValue = PhGetWindowDpi(header->hwndFrom);
-
+  
                     if (header->hwndFrom == context->PingGraphHandle)
                     {
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | PH_GRAPH_LABEL_MAX_Y;
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"), context->WindowDpi);
+                        PhGraphStateGetDrawInfo(&context->PingGraphState, getDrawInfo, context->PingSuccessHistory.Count);
+
+                        if (!context->PingGraphState.Valid)
+                        {
+                            PhCopyCircularBuffer_FLOAT(&context->PingSuccessHistory, context->PingGraphState.Data1, drawInfo->LineDataCount);
+                            PhCopyCircularBuffer_FLOAT(&context->PingFailureHistory, context->PingGraphState.Data2, drawInfo->LineDataCount);
+
+                            {
+                                FLOAT max = PhGetIntegerSetting(L"EnableGraphMaxScale") ? 0 : (FLOAT)context->MinPingScaling; // minimum scaling
+
+                                if (PhGetIntegerSetting(L"EnableAvxSupport") && drawInfo->LineDataCount > 128)
+                                {
+                                    max = PhAddPlusMaxMemorySingles(
+                                        context->PingGraphState.Data1,
+                                        context->PingGraphState.Data2,
+                                        drawInfo->LineDataCount
+                                        );
+                                }
+                                else
+                                {
+                                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                    {
+                                        FLOAT data = context->PingGraphState.Data1[i] + context->PingGraphState.Data2[i];
+
+                                        if (max < data)
+                                            max = data;
+                                    }
+                                }
+
+                                if (max != 0)
+                                {
+                                    PhDivideSinglesBySingle(context->PingGraphState.Data1, max, drawInfo->LineDataCount);
+                                    PhDivideSinglesBySingle(context->PingGraphState.Data2, max, drawInfo->LineDataCount);
+                                }
+
+                                drawInfo->LabelYFunction = NetworkPingLabelYFunction;
+                                drawInfo->LabelYFunctionParameter = max;
+                            }
+
+                            context->PingGraphState.Valid = TRUE;
+                        }
+
                         if (PhGetIntegerSetting(L"GraphShowText"))
                         {
                             HDC hdc;
@@ -539,35 +620,6 @@ INT_PTR CALLBACK NetworkPingWndProc(
                         {
                             drawInfo->Text.Buffer = NULL;
                         }
-
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
-                        PhGraphStateGetDrawInfo(&context->PingGraphState, getDrawInfo, context->PingHistory.Count);
-
-                        if (!context->PingGraphState.Valid)
-                        {
-                            ULONG i;
-                            FLOAT max = (FLOAT)context->MinPingScaling; // minimum scaling
-
-                            for (i = 0; i < drawInfo->LineDataCount; i++)
-                            {
-                                FLOAT data1;
-
-                                context->PingGraphState.Data1[i] = data1 = PhGetItemCircularBuffer_FLOAT(&context->PingHistory, i);
-
-                                if (max < data1)
-                                    max = data1;
-                            }
-
-                            // Scale the data.
-                            PhDivideSinglesBySingle(
-                                context->PingGraphState.Data1,
-                                max,
-                                drawInfo->LineDataCount
-                                );
-
-                            context->PingGraphState.Valid = TRUE;
-                        }
                     }
                 }
                 break;
@@ -584,7 +636,8 @@ INT_PTR CALLBACK NetworkPingWndProc(
                                 FLOAT pingMs;
                                 PH_FORMAT format[3];
 
-                                pingMs = PhGetItemCircularBuffer_FLOAT(&context->PingHistory, getTooltipText->Index);
+                                if (!(pingMs = PhGetItemCircularBuffer_FLOAT(&context->PingSuccessHistory, getTooltipText->Index)))
+                                    pingMs = PhGetItemCircularBuffer_FLOAT(&context->PingFailureHistory, getTooltipText->Index);
 
                                 // %.2f ms\n%s
                                 PhInitFormatF(&format[0], pingMs, 2);
@@ -600,6 +653,11 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
         }
         break;
     case WM_CTLCOLORBTN:
@@ -637,13 +695,25 @@ NTSTATUS NetworkPingDialogThreadStart(
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
-        if (result == -1)
+        if (result == INT_ERROR)
             break;
 
         if (!IsDialogMessage(windowHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
+        }
+
+        if ((
+            message.hwnd == windowHandle ||
+            message.hwnd && IsChild(windowHandle, message.hwnd)) &&
+            message.message == WM_KEYDOWN
+            )
+        {
+            if (message.wParam == VK_F5)
+            {
+                ProcessHacker_Refresh();  // forward key messages (dmex)
+            }
         }
 
         PhDrainAutoPool(&autoPool);
