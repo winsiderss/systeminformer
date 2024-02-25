@@ -927,6 +927,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_CUT, L"Cut", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_PASTE, L"Paste", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_DELETE, L"Delete", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_SELECTALL, L"Select All", NULL, NULL), ULONG_MAX);
 
@@ -934,6 +935,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             {
                 PhEnableEMenuItem(menu, IDC_CUT, FALSE);
                 PhEnableEMenuItem(menu, IDC_COPY, FALSE);
+                PhEnableEMenuItem(menu, IDC_DELETE, FALSE);
             }
 
             item = PhShowEMenu(
@@ -972,6 +974,15 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                         {
                             PPH_STRING selectedText = PH_AUTO(PhSubstring(text, selStart, selEnd - selStart));
                             PhSetClipboardString(hWnd, &selectedText->sr);
+                        }
+                        break;
+                    case IDC_DELETE:
+                        {
+                            PPH_STRING startText = PH_AUTO(PhSubstring(text, 0, selStart));
+                            PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR)));
+                            PPH_STRING newText = PH_AUTO(PhConcatStringRef2(&startText->sr, &endText->sr));
+                            PhSetWindowText(hWnd, newText->Buffer);
+                            PhpSearchUpdateText(hWnd, context, FALSE);
                         }
                         break;
                     case IDC_PASTE:

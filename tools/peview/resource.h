@@ -103,6 +103,7 @@
 #define IDC_HIDE                        1210
 #define IDC_DBGHELPSEARCHPATH           1218
 #define IDC_SELECTALL                   1365
+#define IDC_DELETE                      1382
 #define IDC_SEARCH                      1387
 #define IDC_SECTIONTREE                 1393
 #define IDC_SETTINGS                    1399
