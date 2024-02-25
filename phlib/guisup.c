@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -826,6 +826,16 @@ VOID PhSetListViewSubItem(
     item.pszText = Text;
 
     ListView_SetItem(ListViewHandle, &item);
+}
+
+VOID PhRedrawListViewItems(
+    _In_ HWND ListViewHandle
+    )
+{
+    ListView_RedrawItems(ListViewHandle, 0, INT_MAX);
+    // Note: UpdateWindow() is a workaround for ListView_RedrawItems() failing to send LVN_GETDISPINFO
+    // and fixes RedrawItems() graphical artifacts when the listview doesn't have foreground focus. (dmex)
+    UpdateWindow(ListViewHandle);
 }
 
 INT PhAddListViewGroup(
@@ -2686,6 +2696,26 @@ BOOLEAN PhGetPhysicallyInstalledSystemMemory(
     }
 
     return FALSE;
+}
+
+NTSTATUS PhGetSessionGuiResources(
+    _In_ ULONG Flags,
+    _Out_ PULONG Total
+    )
+{
+    return PhGetProcessGuiResources(GR_GLOBAL, Flags, Total);
+}
+
+NTSTATUS PhGetProcessGuiResources(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG Flags,
+    _Out_ PULONG Total
+    )
+{
+    if (*Total = GetGuiResources(ProcessHandle, Flags))
+        return STATUS_SUCCESS;
+
+    return PhGetLastWin32ErrorAsNtStatus();
 }
 
 _Success_(return)

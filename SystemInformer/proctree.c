@@ -950,12 +950,14 @@ static VOID PhpUpdateProcessNodeGdiUserHandles(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    if (!(ProcessNode->ValidMask & PHPN_GDIUSERHANDLES))
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_GDIUSERHANDLES))
     {
         if (ProcessNode->ProcessItem->QueryHandle)
         {
-            ProcessNode->GdiHandles = GetGuiResources(ProcessNode->ProcessItem->QueryHandle, GR_GDIOBJECTS);
-            ProcessNode->UserHandles = GetGuiResources(ProcessNode->ProcessItem->QueryHandle, GR_USEROBJECTS);
+            if (!NT_SUCCESS(PhGetProcessGuiResources(ProcessNode->ProcessItem->QueryHandle, GR_GDIOBJECTS, &ProcessNode->GdiHandles)))
+                ProcessNode->GdiHandles = 0;
+            if (!NT_SUCCESS(PhGetProcessGuiResources(ProcessNode->ProcessItem->QueryHandle, GR_USEROBJECTS, &ProcessNode->UserHandles)))
+                ProcessNode->UserHandles = 0;
         }
         else
         {
@@ -963,7 +965,7 @@ static VOID PhpUpdateProcessNodeGdiUserHandles(
             ProcessNode->UserHandles = 0;
         }
 
-        ProcessNode->ValidMask |= PHPN_GDIUSERHANDLES;
+        SetFlag(ProcessNode->ValidMask, PHPN_GDIUSERHANDLES);
     }
 }
 
@@ -1879,6 +1881,9 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(GdiHandles)
 {
+    PhpUpdateProcessNodeGdiUserHandles(node1);
+    PhpUpdateProcessNodeGdiUserHandles(node2);
+
     sortResult = uintcmp(node1->GdiHandles, node2->GdiHandles);
 }
 END_SORT_FUNCTION

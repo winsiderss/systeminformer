@@ -278,18 +278,180 @@ VOID PhpUpdateProcessStatisticDeltaBytes(
     }
 }
 
+VOID PH_PROCESS_STATISTICS_FORMAT_F(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ FLOAT Value
+    )
+{
+    PH_FORMAT format[2];
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    // %.2f%%
+    PhInitFormatF(&format[0], (Value), PhMaxPrecisionUnit);
+    PhInitFormatC(&format[1], L'%');
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+    }
+}
+
+VOID PH_PROCESS_STATISTICS_FORMAT_I64U(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Value
+    )
+{
+    PH_FORMAT format[1];
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    PhInitFormatI64UGroupDigits(&format[0], Value);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+    }
+}
+
+VOID PH_PROCESS_STATISTICS_FORMAT_SIZE(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Value
+    )
+{
+    PH_FORMAT format[1];
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    PhInitFormatSize(&format[0], Value);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+    }
+}
+
+VOID PH_PROCESS_STATISTICS_FORMAT_TIME(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Value
+    )
+{
+    WCHAR buffer[PH_TIMESPAN_STR_LEN_1] = L"";
+
+    if (PhPrintTimeSpanToBuffer(Value, PH_TIMESPAN_DHMSM, buffer, sizeof(buffer), NULL))
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+    }
+}
+
+#define PH_PROCESS_STATISTICS_UPDATE_MINMAX(Minimum, Maximum, Difference, Value) \
+    if ((Value) != 0 && ((Minimum) == 0 || (Value) < (Minimum))) \
+    (Minimum) = (Value); \
+    if ((Value) != 0 && ((Maximum) == 0 || (Value) > (Maximum))) \
+        (Maximum) = (Value); \
+    (Difference) = (Maximum)-(Minimum);
+
+#define PH_PROCESS_STATISTICS_UPDATE_INCREMENTALMINMAX(Context, Type, Last, Minimum, Maximum, NewValue) \
+    if ((Last).Value) \
+    { \
+        Type delta = (NewValue) - (Last).Value; \
+        if (delta != 0 && ((Minimum) == 0 || delta < (Minimum))) \
+            (Minimum) = delta; \
+        if (delta != 0 && ((Maximum) == 0 || delta > (Maximum))) \
+            (Maximum) = delta; \
+    } PhUpdateDelta(&(Last), (NewValue));
+
+VOID PhUpdateProcessStatisticsValue(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_STATISTICS_CONTEXT Context
+    )
+{
+    Context->CpuUsage = ProcessItem->CpuUsage * 100;
+    Context->CpuUsageUser = ProcessItem->CpuUserUsage * 100;
+    Context->CpuUsageKernel = ProcessItem->CpuKernelUsage * 100;
+
+    if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE))
+    {
+        Context->CpuUsageAverage = ProcessItem->CpuAverageUsage * 100;
+    }
+    else
+    {
+        FLOAT cpuSumValue = 0;
+        FLOAT cpuAverageValue = 0;
+
+        for (ULONG i = 0; i < ProcessItem->CpuKernelHistory.Count; i++)
+        {
+            cpuSumValue += PhGetItemCircularBuffer_FLOAT(&ProcessItem->CpuKernelHistory, i) +
+                PhGetItemCircularBuffer_FLOAT(&ProcessItem->CpuUserHistory, i);
+        }
+
+        if (ProcessItem->CpuKernelHistory.Count)
+        {
+            cpuAverageValue = (FLOAT)cpuSumValue / ProcessItem->CpuKernelHistory.Count;
+        }
+
+        Context->CpuUsageAverage = cpuAverageValue * 100;
+    }
+
+    Context->CpuUsageRelative = (FLOAT)(ProcessItem->CpuUsage * 100) * PhSystemProcessorInformation.NumberOfProcessors;
+
+    {
+        ULONG64 cycleTime;
+
+        if (ProcessItem->QueryHandle && NT_SUCCESS(PhGetProcessCycleTime(ProcessItem->QueryHandle, &cycleTime)))
+        {
+            Context->CycleTime = cycleTime;
+            Context->GotCycles = TRUE;
+        }
+        else
+        {
+            Context->CycleTime = 0;
+            Context->GotCycles = FALSE;
+        }
+    }
+
+    Context->CycleTimeDelta = ProcessItem->CycleTimeDelta.Delta;
+    Context->ContextSwitches = ProcessItem->ContextSwitches;
+    Context->ContextSwitchesDelta = ProcessItem->ContextSwitchesDelta.Delta;
+    Context->KernelTime = ProcessItem->KernelTime.QuadPart;
+    Context->KernelTimeDelta = ProcessItem->CpuKernelDelta.Delta;
+    Context->UserTime = ProcessItem->UserTime.QuadPart;
+    Context->UserTimeDelta = ProcessItem->CpuUserDelta.Delta;
+}
+
+VOID PhUpdateProcessStatisticsMinMax(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_STATISTICS_CONTEXT Context
+    )
+{
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->CpuUsageMin, Context->CpuUsageMax, Context->CpuUsageDiff, Context->CpuUsage);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->CpuUsageUserMin, Context->CpuUsageUserMax, Context->CpuUsageUserDiff, Context->CpuUsageUser);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->CpuUsageKernelMin, Context->CpuUsageKernelMax, Context->CpuUsageKernelDiff, Context->CpuUsageKernel);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->CpuUsageAverageMin, Context->CpuUsageAverageMax, Context->CpuUsageAverageDiff, Context->CpuUsageAverage);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->CpuUsageRelativeMin, Context->CpuUsageRelativeMax, Context->CpuUsageRelativeDiff, Context->CpuUsageRelative);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->CycleTimeMin, Context->CycleTimeMax, Context->CycleTimeDiff, Context->CycleTime);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->CycleTimeDeltaMin, Context->CycleTimeDeltaMax, Context->CycleTimeDeltaDiff, Context->CycleTimeDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->ContextSwitchesMin, Context->ContextSwitchesMax, Context->ContextSwitchesDiff, Context->ContextSwitches);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->ContextSwitchesDeltaMin, Context->ContextSwitchesDeltaMax, Context->ContextSwitchesDeltaDiff, Context->ContextSwitchesDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->KernelTimeMin, Context->KernelTimeMax, Context->KernelTimeDiff, Context->KernelTime);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->KernelTimeDeltaMin, Context->KernelTimeDeltaMax, Context->KernelTimeDeltaDiff, Context->KernelTimeDelta);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->UserTimeMin, Context->UserTimeMax, Context->UserTimeDiff, Context->UserTime);
+    PH_PROCESS_STATISTICS_UPDATE_MINMAX(Context->UserTimeDeltaMin, Context->UserTimeDeltaMax, Context->UserTimeDeltaDiff, Context->UserTimeDelta);
+}
+
 VOID PhpUpdateProcessStatistics(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PPH_STATISTICS_CONTEXT Context
     )
 {
+    PhUpdateProcessStatisticsValue(ProcessItem, Context);
+    PhUpdateProcessStatisticsMinMax(ProcessItem, Context);
+
     if (!PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
     {
         if (ProcessItem->QueryHandle)
         {
-            ULONG64 cycleTime;
             PROCESS_HANDLE_INFORMATION handleInfo;
             PROCESS_UPTIME_INFORMATION uptimeInfo;
+            ULONG objects;
+            ULONG objectsTotal;
 
             if (NT_SUCCESS(PhGetProcessHandleCount(ProcessItem->QueryHandle, &handleInfo)))
             {
@@ -302,15 +464,44 @@ VOID PhpUpdateProcessStatistics(
                 PhMoveReference(&Context->PeakHandles, PhFormatUInt64(Context->PeakHandleCount, TRUE));
             }
 
-            PhMoveReference(&Context->GdiHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS), TRUE)); // GDI handles
-            PhMoveReference(&Context->UserHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS), TRUE)); // USER handles
-            PhMoveReference(&Context->PeakGdiHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS_PEAK), TRUE)); // GDI handles (Peak)
-            PhMoveReference(&Context->PeakUserHandles, PhFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS_PEAK), TRUE)); // USER handles (Peak)
-
-            if (NT_SUCCESS(PhGetProcessCycleTime(ProcessItem->QueryHandle, &cycleTime)))
+            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS, &objects))) // GDI handles
             {
-                PhMoveReference(&Context->Cycles, PhFormatUInt64(cycleTime, TRUE));
-                Context->GotCycles = TRUE;
+                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS, &objectsTotal)))
+                    objectsTotal = 1;
+
+                PPH_STRING string = PhFormatUInt64(objects, TRUE);
+                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+                PhMoveReference(&Context->GdiHandles, string);
+            }
+
+            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS, &objects))) // USER handles
+            {
+                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS, &objectsTotal)))
+                    objectsTotal = 1;
+
+                PPH_STRING string = PhFormatUInt64(objects, TRUE);
+                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+                PhMoveReference(&Context->UserHandles, string);
+            }
+
+            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS_PEAK, &objects))) // GDI handles (Peak)
+            {
+                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_GDIOBJECTS_PEAK, &objectsTotal)))
+                    objectsTotal = 1;
+
+                PPH_STRING string = PhFormatUInt64(objects, TRUE);
+                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+                PhMoveReference(&Context->PeakGdiHandles, string);
+            }
+
+            if (NT_SUCCESS(PhGetProcessGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS_PEAK, &objects))) // USER handles (Peak)
+            {
+                if (!NT_SUCCESS(PhGetSessionGuiResources(GR_USEROBJECTS_PEAK, &objectsTotal)))
+                    objectsTotal = 1;
+
+                PPH_STRING string = PhFormatUInt64(objects, TRUE);
+                PhMoveReference(&string, PhFormatString(L"%s (%.2f%%)", PhGetString(string), (FLOAT)objects / (FLOAT)objectsTotal * 100.0f));
+                PhMoveReference(&Context->PeakUserHandles, string);
             }
 
             PhGetProcessPagePriority(ProcessItem->QueryHandle, &Context->PagePriority);
@@ -336,7 +527,10 @@ VOID PhpUpdateProcessStatistics(
                 PhMoveReference(&Context->PrivateWs, PhFormatSize((ULONG64)wsCounters.NumberOfPrivatePages * PAGE_SIZE, ULONG_MAX));
                 PhMoveReference(&Context->ShareableWs, PhFormatSize((ULONG64)wsCounters.NumberOfShareablePages * PAGE_SIZE, ULONG_MAX));
                 PhMoveReference(&Context->SharedWs, PhFormatSize((ULONG64)wsCounters.NumberOfSharedPages * PAGE_SIZE, ULONG_MAX));
-                Context->GotWsCounters = TRUE;
+            }
+            else
+            {
+                PhMoveReference(&Context->PrivateWs, PhFormatSize(ProcessItem->WorkingSetPrivateSize, ULONG_MAX));
             }
 
             if (NT_SUCCESS(PhGetProcessAppMemoryInformation(Context->ProcessHandle, &appMemoryInfo)))
@@ -351,15 +545,10 @@ VOID PhpUpdateProcessStatistics(
             }
         }
 
-        if (!Context->GotCycles)
-        {
-            PhMoveReference(&Context->Cycles, PhFormatUInt64(ProcessItem->CycleTimeDelta.Value, TRUE));
-        }
-
-        if (!Context->GotWsCounters)
-        {
-            PhMoveReference(&Context->PrivateWs, PhFormatSize(ProcessItem->WorkingSetPrivateSize, ULONG_MAX));
-        }
+        //if (!Context->GotCycles)
+        //{
+        //    PhMoveReference(&Context->Cycles, PhFormatUInt64(ProcessItem->CycleTimeDelta.Value, TRUE));
+        //}
     }
 
     if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
@@ -374,23 +563,15 @@ VOID PhpUpdateProcessStatistics(
 
             if (processInfo && (processExtension = PH_PROCESS_EXTENSION(processInfo)))
             {
-                PVOID extension = Context->ProcessExtension;
-
-                Context->ProcessExtension = PhAllocateCopy(processExtension, sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
-
-                if (extension)
-                {
-                    PhFree(extension);
-                }
+                //Context->ContextSwitches = processExtension->ContextSwitches;
+                Context->NetworkTxRxBytes = processExtension->EnergyValues.NetworkTxRxBytes;
             }
 
             PhFree(processes);
         }
     }
 
-    // The ListView doesn't send LVN_GETDISPINFO (or redraw properly) when not focused so force the redraw. (dmex)
-    ListView_RedrawItems(Context->ListViewHandle, 0, INT_MAX);
-    UpdateWindow(Context->ListViewHandle);
+    PhRedrawListViewItems(Context->ListViewHandle);
 }
 
 static VOID NTAPI PhpStatisticsUpdateHandler(
@@ -490,9 +671,6 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             if (statisticsContext->ProcessHandle)
                 NtClose(statisticsContext->ProcessHandle);
 
-            if (statisticsContext->ProcessExtension)
-                PhFree(statisticsContext->ProcessExtension);
-
             PhFree(statisticsContext);
         }
         break;
@@ -534,197 +712,70 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                             switch (PtrToUlong((PVOID)dispInfo->item.lParam))
                             {
                             case PH_PROCESS_STATISTICS_INDEX_CPU:
-                                {
-                                    PH_FORMAT format[2];
-                                    WCHAR buffer[PH_INT64_STR_LEN_1];
-
-                                    // %.2f%%
-                                    PhInitFormatF(&format[0], statisticsContext->ProcessItem->CpuUsage * 100, PhMaxPrecisionUnit);
-                                    PhInitFormatC(&format[1], L'%');
-
-                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-                                    {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
-                                    }
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_CPUUSER:
-                                {
-                                    PH_FORMAT format[2];
-                                    WCHAR buffer[PH_INT64_STR_LEN_1];
-
-                                    // %.2f%%
-                                    PhInitFormatF(&format[0], statisticsContext->ProcessItem->CpuUserUsage * 100, PhMaxPrecisionUnit);
-                                    PhInitFormatC(&format[1], L'%');
-
-                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-                                    {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
-                                    }
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageUser);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_CPUKERNEL:
-                                {
-                                    PH_FORMAT format[2];
-                                    WCHAR buffer[PH_INT64_STR_LEN_1];
-
-                                    // %.2f%%
-                                    PhInitFormatF(&format[0], statisticsContext->ProcessItem->CpuKernelUsage * 100, PhMaxPrecisionUnit);
-                                    PhInitFormatC(&format[1], L'%');
-
-                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-                                    {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
-                                    }
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageKernel);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_CPUAVERAGE:
-                                {
-                                    if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE))
-                                    {
-                                        PH_FORMAT format[2];
-                                        WCHAR buffer[PH_INT64_STR_LEN_1];
-
-                                        // %.2f%%
-                                        PhInitFormatF(&format[0], statisticsContext->ProcessItem->CpuAverageUsage * 100, PhMaxPrecisionUnit);
-                                        PhInitFormatC(&format[1], L'%');
-
-                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-                                        {
-                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        PH_FORMAT format[2];
-                                        SIZE_T returnLength;
-                                        FLOAT cpuSumValue = 0;
-                                        FLOAT cpuAverageValue = 0;
-                                        WCHAR buffer[PH_INT64_STR_LEN_1];
-
-                                        for (ULONG i = 0; i < processItem->CpuKernelHistory.Count; i++)
-                                        {
-                                            cpuSumValue += PhGetItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, i) +
-                                                PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, i);
-                                        }
-
-                                        if (statisticsContext->ProcessItem->CpuKernelHistory.Count)
-                                        {
-                                            cpuAverageValue = (FLOAT)cpuSumValue / statisticsContext->ProcessItem->CpuKernelHistory.Count;
-                                        }
-
-                                        PhInitFormatF(&format[0], cpuAverageValue * 100, PhMaxPrecisionUnit);
-                                        PhInitFormatC(&format[1], L'%');
-
-                                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
-                                        {
-                                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
-                                        }
-                                    }
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageAverage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_CPURELATIVE:
-                                {
-                                    FLOAT value = (FLOAT)(statisticsContext->ProcessItem->CpuUsage * 100) * PhSystemProcessorInformation.NumberOfProcessors;
-                                    PH_FORMAT format[2];
-                                    WCHAR buffer[PH_INT64_STR_LEN_1];
-
-                                    // %.2f%%
-                                    PhInitFormatF(&format[0], value, PhMaxPrecisionUnit);
-                                    PhInitFormatC(&format[1], L'%');
-
-                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
-                                    {
-                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
-                                    }
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageRelative);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_CYCLES:
                                 {
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, PhGetStringOrDefault(statisticsContext->Cycles, L"N/A"), _TRUNCATE);
+                                    PH_FORMAT format[1];
+                                    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                                    if (statisticsContext->GotCycles)
+                                    {
+                                        PhInitFormatI64UGroupDigits(&format[0], statisticsContext->CycleTime);
+                                    }
+                                    //else if (statisticsContext->CycleTimeDelta)
+                                    //{
+                                    //    PhInitFormatI64UGroupDigits(&format[0], statisticsContext->CycleTimeDelta);
+                                    //}
+                                    else
+                                    {
+                                        PhInitFormatS(&format[0], L"N/A");
+                                    }
+
+                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                                    }
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_KERNELTIME:
-                                {
-                                    WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"";
-
-                                    PhPrintTimeSpan(timeSpan, statisticsContext->ProcessItem->KernelTime.QuadPart, PH_TIMESPAN_DHMSM);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, timeSpan, _TRUNCATE);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->KernelTime);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_USERTIME:
-                                {
-                                    WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"";
-
-                                    PhPrintTimeSpan(timeSpan, statisticsContext->ProcessItem->UserTime.QuadPart, PH_TIMESPAN_DHMSM);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, timeSpan, _TRUNCATE);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->UserTime);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_TOTALTIME:
-                                {
-                                    WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"";
-
-                                    PhPrintTimeSpan(timeSpan, statisticsContext->ProcessItem->KernelTime.QuadPart + statisticsContext->ProcessItem->UserTime.QuadPart, PH_TIMESPAN_DHMSM);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, timeSpan, _TRUNCATE);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->KernelTime + statisticsContext->UserTime);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_CYCLESDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    //PhPrintUInt64(dispInfo->item.pszText, statisticsContext->ProcessItem->CycleTimeDelta.Delta);
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->CycleTimeDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->CycleTimeDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->ContextSwitches, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ContextSwitches);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHESDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->ContextSwitchesDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ContextSwitchesDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_KERNELDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    //PhPrintUInt64(dispInfo->item.pszText, statisticsContext->ProcessItem->CpuKernelDelta.Delta);
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->CpuKernelDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_USERDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    //PhPrintUInt64(dispInfo->item.pszText, statisticsContext->ProcessItem->CpuUserDelta.Delta);
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->CpuUserDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserTimeDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_TOTALDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    //PhPrintUInt64(dispInfo->item.pszText, statisticsContext->ProcessItem->CpuKernelDelta.Delta + statisticsContext->ProcessItem->CpuUserDelta.Delta);
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->CpuKernelDelta.Delta + statisticsContext->ProcessItem->CpuUserDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDelta + statisticsContext->UserTimeDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIORITY:
                                 {
@@ -735,99 +786,37 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTES:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.PagefileUsage, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.PagefileUsage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATEBYTESDELTA:
-                                {
-                                    PhpUpdateProcessStatisticDelta(statisticsContext, dispInfo, statisticsContext->ProcessItem->PrivateBytesDelta.Delta);
-                                }
+                                PhpUpdateProcessStatisticDelta(statisticsContext, dispInfo, statisticsContext->ProcessItem->PrivateBytesDelta.Delta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKPRIVATEBYTES:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.PeakPagefileUsage, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.PeakPagefileUsage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_VIRTUALSIZE:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.VirtualSize, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.VirtualSize);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.PeakVirtualSize, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.PeakVirtualSize);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->VmCounters.PageFaultCount, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->VmCounters.PageFaultCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEFAULTSDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->PageFaultsDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->PageFaultsDelta.Delta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_HARDFAULTS:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->HardFaultCount, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->HardFaultCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->HardFaultsDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->HardFaultsDelta.Delta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_WORKINGSET:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.WorkingSetSize, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.WorkingSetSize);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.PeakWorkingSetSize, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.PeakWorkingSetSize);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PRIVATEWS:
                                 {
@@ -884,100 +873,40 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                             //    }
                             //    break;
                             case PH_PROCESS_STATISTICS_INDEX_READS:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->IoCounters.ReadOperationCount, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->IoCounters.ReadOperationCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_READSDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->IoReadCountDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->IoReadCountDelta.Delta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_READBYTES:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->IoCounters.ReadTransferCount, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->IoCounters.ReadTransferCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_READBYTESDELTA:
-                                {
-                                    PhpUpdateProcessStatisticDeltaBytes(statisticsContext, dispInfo, statisticsContext->ProcessItem->IoReadDelta);
-                                }
+                                PhpUpdateProcessStatisticDeltaBytes(statisticsContext, dispInfo, statisticsContext->ProcessItem->IoReadDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_WRITES:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->IoCounters.WriteOperationCount, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->IoCounters.WriteOperationCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_WRITESDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->IoWriteCountDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->IoWriteCountDelta.Delta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_WRITEBYTES:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->IoCounters.WriteTransferCount, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->IoCounters.WriteTransferCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_WRITEBYTESDELTA:
-                                {
-                                    PhpUpdateProcessStatisticDeltaBytes(statisticsContext, dispInfo, statisticsContext->ProcessItem->IoWriteDelta);
-                                }
+                                PhpUpdateProcessStatisticDeltaBytes(statisticsContext, dispInfo, statisticsContext->ProcessItem->IoWriteDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_OTHER:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->IoCounters.OtherOperationCount, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->IoCounters.OtherOperationCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_OTHERDELTA:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->IoOtherCountDelta.Delta, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->IoOtherCountDelta.Delta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_OTHERBYTES:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->IoCounters.OtherTransferCount, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->IoCounters.OtherTransferCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_OTHERBYTESDELTA:
-                                {
-                                    PhpUpdateProcessStatisticDeltaBytes(statisticsContext, dispInfo, statisticsContext->ProcessItem->IoOtherDelta);
-                                }
+                                PhpUpdateProcessStatisticDeltaBytes(statisticsContext, dispInfo, statisticsContext->ProcessItem->IoOtherDelta);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_IOTOTAL:
                                 {
@@ -1069,13 +998,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_HANDLES:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->ProcessItem->NumberOfHandles, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ProcessItem->NumberOfHandles);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKHANDLES:
                                 {
@@ -1103,40 +1026,16 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PAGEDPOOL:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.QuotaPagedPoolUsage, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.QuotaPagedPoolUsage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKPAGEDPOOL:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.QuotaPeakPagedPoolUsage, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.QuotaPeakPagedPoolUsage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_NONPAGED:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.QuotaNonPagedPoolUsage, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.QuotaNonPagedPoolUsage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_PEAKNONPAGED:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatSize(statisticsContext->ProcessItem->VmCounters.QuotaPeakNonPagedPoolUsage, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->ProcessItem->VmCounters.QuotaPeakNonPagedPoolUsage);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_RUNNINGTIME:
                                 {
@@ -1155,22 +1054,10 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                 }
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_HANGCOUNT:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->HangCount, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->HangCount);
                                 break;
                             case PH_PROCESS_STATISTICS_INDEX_GHOSTCOUNT:
-                                {
-                                    PPH_STRING value;
-
-                                    value = PhFormatUInt64(statisticsContext->GhostCount, TRUE);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->GhostCount);
                                 break;
                             //case PH_PROCESS_STATISTICS_INDEX_DISKREAD:
                             //    {
@@ -1197,16 +1084,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                             //    }
                             //    break;
                             case PH_PROCESS_STATISTICS_INDEX_NETWORKTXRXBYTES:
-                                {
-                                    PPH_STRING value;
-
-                                    if (!statisticsContext->ProcessExtension)
-                                        break;
-
-                                    value = PhFormatSize(statisticsContext->ProcessExtension->EnergyValues.NetworkTxRxBytes, ULONG_MAX);
-                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                                    PhDereferenceObject(value);
-                                }
+                                PH_PROCESS_STATISTICS_FORMAT_SIZE(dispInfo, statisticsContext->NetworkTxRxBytes);
                                 break;
                             //case PH_PROCESS_STATISTICS_INDEX_MBBTXRXBYTES:
                             //    {
@@ -1234,6 +1112,226 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessStatsNotifyEvent), &notifyEvent);
                                     }
                                 }
+                                break;
+                            }
+                        }
+                    }
+
+                    if (FlagOn(dispInfo->item.mask, LVIF_TEXT))
+                    {
+                        if (dispInfo->item.iSubItem == 2)
+                        {
+                            switch (PtrToUlong((PVOID)dispInfo->item.lParam))
+                            {
+                            case PH_PROCESS_STATISTICS_INDEX_CPU:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUUSER:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageUserMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUKERNEL:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageKernelMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUAVERAGE:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageAverageMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPURELATIVE:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageRelativeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CYCLES:
+                                {
+                                    PH_FORMAT format[1];
+                                    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                                    if (statisticsContext->GotCycles)
+                                    {
+                                        PhInitFormatI64UGroupDigits(&format[0], statisticsContext->CycleTimeMin);
+                                    }
+                                    //else if (statisticsContext->CycleTimeDeltaMin)
+                                    //{
+                                    //    PhInitFormatI64UGroupDigits(&format[0], statisticsContext->CycleTimeDeltaMin);
+                                    //}
+                                    else
+                                    {
+                                        PhInitFormatS(&format[0], L"N/A");
+                                    }
+
+                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CYCLESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->CycleTimeDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ContextSwitchesMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ContextSwitchesDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KERNELTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->KernelTimeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->UserTimeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_TOTALTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->KernelTimeMin + statisticsContext->UserTimeMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KERNELDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserTimeDeltaMin);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_TOTALDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaMin + statisticsContext->UserTimeDeltaMin);
+                                break;
+                            }
+                        }
+                        else if (dispInfo->item.iSubItem == 3)
+                        {
+                            switch (PtrToUlong((PVOID)dispInfo->item.lParam))
+                            {
+                            case PH_PROCESS_STATISTICS_INDEX_CPU:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUUSER:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageUserMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUKERNEL:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageKernelMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUAVERAGE:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageAverageMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPURELATIVE:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageRelativeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CYCLES:
+                                {
+                                    PH_FORMAT format[1];
+                                    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                                    if (statisticsContext->GotCycles)
+                                    {
+                                        PhInitFormatI64UGroupDigits(&format[0], statisticsContext->CycleTimeMax);
+                                    }
+                                    //else if (statisticsContext->CycleTimeDeltaMax)
+                                    //{
+                                    //    PhInitFormatI64UGroupDigits(&format[0], statisticsContext->CycleTimeDeltaMax);
+                                    //}
+                                    else
+                                    {
+                                        PhInitFormatS(&format[0], L"N/A");
+                                    }
+
+                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CYCLESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->CycleTimeDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ContextSwitchesMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ContextSwitchesDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KERNELTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->KernelTimeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->UserTimeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_TOTALTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->KernelTimeMax + statisticsContext->UserTimeMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KERNELDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserTimeDeltaMax);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_TOTALDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaMax + statisticsContext->UserTimeDeltaMax);
+                                break;
+                            }
+                        }
+                        else if (dispInfo->item.iSubItem == 4)
+                        {
+                            switch (PtrToUlong((PVOID)dispInfo->item.lParam))
+                            {
+                            case PH_PROCESS_STATISTICS_INDEX_CPU:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUUSER:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageUserDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUKERNEL:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageKernelDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPUAVERAGE:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageAverageDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CPURELATIVE:
+                                PH_PROCESS_STATISTICS_FORMAT_F(dispInfo, statisticsContext->CpuUsageRelativeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CYCLES:
+                                {
+                                    PH_FORMAT format[1];
+                                    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                                    if (statisticsContext->GotCycles)
+                                    {
+                                        PhInitFormatI64UGroupDigits(&format[0], statisticsContext->CycleTimeDiff);
+                                    }
+                                    //else if (statisticsContext->CycleTimeDeltaDiff)
+                                    //{
+                                    //    PhInitFormatI64UGroupDigits(&format[0], statisticsContext->CycleTimeDeltaDiff);
+                                    //}
+                                    else
+                                    {
+                                        PhInitFormatS(&format[0], L"N/A");
+                                    }
+
+                                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                                    {
+                                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                                    }
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CYCLESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->CycleTimeDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ContextSwitchesDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHESDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->ContextSwitchesDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KERNELTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->KernelTimeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->UserTimeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_TOTALTIME:
+                                PH_PROCESS_STATISTICS_FORMAT_TIME(dispInfo, statisticsContext->KernelTimeDiff + statisticsContext->UserTimeDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_KERNELDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_USERDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->UserTimeDeltaDiff);
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_TOTALDELTA:
+                                PH_PROCESS_STATISTICS_FORMAT_I64U(dispInfo, statisticsContext->KernelTimeDeltaDiff + statisticsContext->UserTimeDeltaDiff);
                                 break;
                             }
                         }
