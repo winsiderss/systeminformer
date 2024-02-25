@@ -343,7 +343,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
 
     BOOLEAN GotCycles;
-    BOOLEAN GotWsCounters;
+    BOOLEAN GotCounters;
     BOOLEAN GotUptime;
 
     ULONG PagePriority;
@@ -353,8 +353,8 @@ typedef struct _PH_STATISTICS_CONTEXT
     ULONG GhostCount;
     ULONGLONG RunningTime;
     ULONGLONG SuspendedTime;
+    ULONGLONG NetworkTxRxBytes;
 
-    PPH_STRING Cycles;
     PPH_STRING PrivateWs;
     PPH_STRING ShareableWs;
     PPH_STRING SharedWs;
@@ -363,13 +363,26 @@ typedef struct _PH_STATISTICS_CONTEXT
     PPH_STRING UserHandles;
     PPH_STRING PeakGdiHandles;
     PPH_STRING PeakUserHandles;
-    PSYSTEM_PROCESS_INFORMATION_EXTENSION ProcessExtension;
 
     PPH_STRING SharedCommitUsage;
     PPH_STRING PrivateCommitUsage;
     PPH_STRING PeakPrivateCommitUsage;
     //PPH_STRING PrivateCommitLimit;
     //PPH_STRING TotalCommitLimit;
+
+    FLOAT CpuUsage; FLOAT CpuUsageMin; FLOAT CpuUsageMax; FLOAT CpuUsageDiff;
+    FLOAT CpuUsageUser; FLOAT CpuUsageUserMin; FLOAT CpuUsageUserMax; FLOAT CpuUsageUserDiff;
+    FLOAT CpuUsageKernel; FLOAT CpuUsageKernelMin; FLOAT CpuUsageKernelMax; FLOAT CpuUsageKernelDiff;
+    FLOAT CpuUsageAverage; FLOAT CpuUsageAverageMin; FLOAT CpuUsageAverageMax; FLOAT CpuUsageAverageDiff;
+    FLOAT CpuUsageRelative; FLOAT CpuUsageRelativeMin; FLOAT CpuUsageRelativeMax; FLOAT CpuUsageRelativeDiff;
+    ULONG64 CycleTime; ULONG64 CycleTimeMin; ULONG64 CycleTimeMax; ULONG64 CycleTimeDiff;
+    ULONG64 CycleTimeDelta; ULONG64 CycleTimeDeltaMin; ULONG64 CycleTimeDeltaMax; ULONG64 CycleTimeDeltaDiff;
+    ULONG64 ContextSwitches; ULONG64 ContextSwitchesMin; ULONG64 ContextSwitchesMax; ULONG64 ContextSwitchesDiff;
+    ULONG64 ContextSwitchesDelta; ULONG64 ContextSwitchesDeltaMin; ULONG64 ContextSwitchesDeltaMax; ULONG64 ContextSwitchesDeltaDiff;
+    ULONG64 KernelTime; ULONG64 KernelTimeMin; ULONG64 KernelTimeMax; ULONG64 KernelTimeDiff;
+    ULONG64 KernelTimeDelta; ULONG64 KernelTimeDeltaMin; ULONG64 KernelTimeDeltaMax; ULONG64 KernelTimeDeltaDiff;
+    ULONG64 UserTime; ULONG64 UserTimeMin; ULONG64 UserTimeMax; ULONG64 UserTimeDiff;
+    ULONG64 UserTimeDelta; ULONG64 UserTimeDeltaMin; ULONG64 UserTimeDeltaMax; ULONG64 UserTimeDeltaDiff;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
 #define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)
