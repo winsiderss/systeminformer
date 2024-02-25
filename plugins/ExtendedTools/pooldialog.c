@@ -312,9 +312,7 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
                 }
                 break;
             case IDC_POOLSEARCH:
-                {
-                    // REMOVE?
-                }
+                NOTHING; // handled by search control callback
                 break;
             case IDC_POOL_AUTOSIZE_COLUMNS:
                 {

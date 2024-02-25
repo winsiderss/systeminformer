@@ -1527,6 +1527,39 @@ VOID PhSetClipboardString(
     PhpSetClipboardData(WindowHandle, CF_UNICODETEXT, data);
 }
 
+PPH_STRING PhGetClipboardString(
+    _In_ HWND WindowHandle
+    )
+{
+    PPH_STRING string;
+    HGLOBAL data;
+
+    string = PhReferenceEmptyString();
+
+    if (!IsClipboardFormatAvailable(CF_UNICODETEXT))
+        return string;
+
+    if (!OpenClipboard(WindowHandle))
+        return string;
+
+    data = GetClipboardData(CF_UNICODETEXT);
+    if (data)
+    {
+        PVOID str;
+
+        str = GlobalLock(data);
+        if (str)
+        {
+            PhMoveReference(&string, PhCreateString(str));
+            GlobalUnlock(data);
+        }
+    }
+
+    CloseClipboard();
+
+    return string;
+}
+
 HWND PhCreateDialogFromTemplate(
     _In_ HWND Parent,
     _In_ ULONG Style,

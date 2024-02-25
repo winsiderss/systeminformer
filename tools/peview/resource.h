@@ -93,11 +93,16 @@
 #define IDC_MESSAGE                     1142
 #define IDC_MAXSIZEUNIT                 1144
 #define IDC_MOVEDOWN                    1176
+#define IDC_UNDO                        1201
+#define IDC_PASTE                       1204
+#define IDC_CUT                         1205
+#define IDC_COPY                        1206
 #define IDC_INACTIVE                    1207
 #define IDC_ACTIVE                      1208
 #define IDC_SHOW                        1209
 #define IDC_HIDE                        1210
 #define IDC_DBGHELPSEARCHPATH           1218
+#define IDC_SELECTALL                   1365
 #define IDC_SEARCH                      1387
 #define IDC_SECTIONTREE                 1393
 #define IDC_SETTINGS                    1399
