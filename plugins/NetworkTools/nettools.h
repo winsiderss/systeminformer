@@ -106,6 +106,7 @@ typedef struct _NETWORK_PING_CONTEXT
 
     ULONG Timeout;
     ULONG MinPingScaling;
+    LONG WindowDpi;
     volatile LONG HashFailCount;
     volatile LONG UnknownAddrCount;
     volatile LONG PingSentCount;
@@ -119,7 +120,8 @@ typedef struct _NETWORK_PING_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PH_WORK_QUEUE PingWorkQueue;
     PH_GRAPH_STATE PingGraphState;
-    PH_CIRCULAR_BUFFER_FLOAT PingHistory;
+    PH_CIRCULAR_BUFFER_FLOAT PingSuccessHistory;
+    PH_CIRCULAR_BUFFER_FLOAT PingFailureHistory;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     PH_IP_ENDPOINT RemoteEndpoint;
