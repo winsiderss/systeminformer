@@ -160,6 +160,7 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM(MmSectionControlArea);
     KPH_LOAD_DYNITEM(MmControlAreaListHead);
     KPH_LOAD_DYNITEM(MmControlAreaLock);
+    KPH_LOAD_DYNITEM(EpSectionObject);
 
     status = KphVerifyCreateKey(&dyn->SessionTokenPublicKeyHandle,
                                 init->Data->SessionTokenPublicKey,
