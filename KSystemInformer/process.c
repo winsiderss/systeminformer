@@ -821,6 +821,101 @@ NTSTATUS KphQueryInformationProcess(
 
             break;
         }
+        case KphProcessImageSection:
+        {
+            PVOID processSectionObject;
+            HANDLE processSectionHandle;
+
+            dyn = KphReferenceDynData();
+            if (!dyn || (dyn->EpSectionObject == ULONG_MAX))
+            {
+                status = STATUS_NOINTERFACE;
+                goto Exit;
+            }
+
+            if (!ProcessInformation ||
+                (ProcessInformationLength < sizeof(HANDLE)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(HANDLE);
+                goto Exit;
+            }
+
+            status = PsAcquireProcessExitSynchronization(processObject);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "PsAcquireProcessExitSynchronization failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+
+            processSectionObject = *(PVOID*)Add2Ptr(processObject,
+                                                    dyn->EpSectionObject);
+
+            if (processSectionObject)
+            {
+                ObReferenceObject(processSectionObject);
+            }
+
+            PsReleaseProcessExitSynchronization(processObject);
+
+            if (!processSectionObject)
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "Process section object pointer is null.");
+
+                status = STATUS_INVALID_PARAMETER;
+                goto Exit;
+            }
+
+            status = ObOpenObjectByPointer(processSectionObject,
+                                           (AccessMode ? 0 : OBJ_KERNEL_HANDLE),
+                                           NULL,
+                                           SECTION_QUERY | SECTION_MAP_READ,
+                                           *MmSectionObjectType,
+                                           KernelMode,
+                                           &processSectionHandle);
+
+            ObDereferenceObject(processSectionObject);
+
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "ObOpenObjectByPointer failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+
+            if (AccessMode != KernelMode)
+            {
+                __try
+                {
+                    *(PHANDLE)ProcessInformation = processSectionHandle;
+                    returnLength = sizeof(HANDLE);
+                    status = STATUS_SUCCESS;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                    ObCloseHandle(processSectionHandle, UserMode);
+                    goto Exit;
+                }
+            }
+            else
+            {
+                *(PHANDLE)ProcessInformation = processSectionHandle;
+                returnLength = sizeof(HANDLE);
+                status = STATUS_SUCCESS;
+            }
+
+            break;
+        }
         default:
         {
             status = STATUS_INVALID_INFO_CLASS;

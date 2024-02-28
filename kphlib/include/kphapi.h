@@ -87,6 +87,7 @@ typedef enum _KPH_PROCESS_INFORMATION_CLASS
     KphProcessWSLProcessId,          // q: ULONG
     KphProcessSequenceNumber,        // q: ULONG64
     KphProcessStartKey,              // q: ULONG64
+    KphProcessImageSection,          // q: HANDLE
 } KPH_PROCESS_INFORMATION_CLASS;
 
 typedef enum _KPH_THREAD_INFORMATION_CLASS

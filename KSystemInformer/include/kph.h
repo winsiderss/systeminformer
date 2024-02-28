@@ -510,6 +510,7 @@ typedef struct _KPH_DYN
     ULONG MmSectionControlArea;
     ULONG MmControlAreaListHead;
     ULONG MmControlAreaLock;
+    ULONG EpSectionObject;
 
     PCI_FREE_POLICY_INFO CiFreePolicyInfo;
     PCI_VERIFY_HASH_IN_CATALOG CiVerifyHashInCatalog;
