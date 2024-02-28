@@ -66,6 +66,7 @@ KPHM_DEFINE_REQUIRED_STATE(KphpCommsOpenThreadRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsOpenThreadProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsCreateFileRequires);
+KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationThreadRequires);
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
@@ -96,7 +97,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgDuplicateObject,               KphpCommsDuplicateObject,               KphpCommsRequireMaximum },
 { KphMsgQueryPerformanceCounter,       KphpCommsQueryPerformanceCounter,       KphpCommsRequireLow },
 { KphMsgCreateFile,                    KphpCommsCreateFile,                    KphpCommsCreateFileRequires },
-{ KphMsgQueryInformationThread,        KphpCommsQueryInformationThread,        KphpCommsRequireMedium },
+{ KphMsgQueryInformationThread,        KphpCommsQueryInformationThread,        KphpCommsQueryInformationThreadRequires },
 { KphMsgQuerySection,                  KphpCommsQuerySection,                  KphpCommsRequireMedium },
 { KphMsgCompareObjects,                KphpCommsCompareObjects,                KphpCommsRequireMedium },
 { KphMsgGetMessageTimeouts,            KphpCommsGetMessageTimeouts,            KphpCommsRequireLow },
@@ -714,15 +715,17 @@ KPH_PROCESS_STATE KSIAPI KphpCommsQueryInformationProcessRequires(
 
     switch (Message->User.QueryInformationProcess.ProcessInformationClass)
     {
-        case KphProcessBasicInformation:
-        {
-            return KPH_PROCESS_STATE_MEDIUM;
-        }
+        case KphProcessWSLProcessId:
         case KphProcessStateInformation:
         case KphProcessSequenceNumber:
         case KphProcessStartKey:
         {
             return KPH_PROCESS_STATE_LOW;
+        }
+        case KphProcessBasicInformation:
+        case KphProcessImageSection:
+        {
+            return KPH_PROCESS_STATE_MEDIUM;
         }
         default:
         {
@@ -1043,6 +1046,34 @@ NTSTATUS KSIAPI KphpCommsCreateFile(
                                 UserMode);
 
     return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_REQUIRED_STATE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+KPH_PROCESS_STATE KSIAPI KphpCommsQueryInformationThreadRequires(
+    _In_ PKPH_CLIENT Client,
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationThread);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    switch (Message->User.QueryInformationThread.ThreadInformationClass)
+    {
+        case KphThreadIoCounters:
+        case KphThreadWSLThreadId:
+        {
+            return KPH_PROCESS_STATE_LOW;
+        }
+        default:
+        {
+            return KPH_PROCESS_STATE_MAXIMUM;
+        }
+    }
 }
 
 _Function_class_(KPHM_HANDLER)
