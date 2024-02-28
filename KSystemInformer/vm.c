@@ -23,18 +23,19 @@
  * \brief Queries information on mappings for a given section object.
  *
  * \param[in] SectionObject The section object to query the info of.
- * \param[out] SectionInformation Populated with the information.
+ * \param[out] SectionInformation Populated with the information. This storage
+ * must be located in non-paged system-space memory.
  * \param[in] SectionInformationLength Length of the section information.
- * \param[out] ReturnLength Set to the number of bytes written or the requires
+ * \param[out] ReturnLength Set to the number of bytes written or the required
  * number of bytes if the input length is insufficient.
  *
  * \return Successful or errant status.
  */
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpQuerySectionMappings(
     _In_ PVOID SectionObject,
-    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _Out_writes_bytes_opt_(SectionInformationLength) PVOID SectionInformation,
     _In_ ULONG SectionInformationLength,
     _Out_ PULONG ReturnLength
     )
@@ -47,6 +48,8 @@ NTSTATUS KphpQuerySectionMappings(
     PKPH_SECTION_MAPPINGS_INFORMATION info;
     PEX_SPIN_LOCK lock;
     KIRQL oldIrql;
+
+    NPAGED_CODE_DISPATCH_MAX();
 
     lock = NULL;
     oldIrql = 0;
@@ -133,40 +136,33 @@ NTSTATUS KphpQuerySectionMappings(
     }
 
     info = SectionInformation;
-    __try
-    {
-        info->NumberOfMappings = 0;
 
-        for (PLIST_ENTRY link = listHead->Flink;
-             link != listHead;
-             link = link->Flink)
+    info->NumberOfMappings = 0;
+
+    for (PLIST_ENTRY link = listHead->Flink;
+         link != listHead;
+         link = link->Flink)
+    {
+        PMMVAD vad;
+        PKPH_SECTION_MAP_ENTRY entry;
+
+        vad = CONTAINING_RECORD(link, MMVAD, ViewLinks);
+        entry = &info->Mappings[info->NumberOfMappings++];
+
+        entry->ViewMapType = vad->ViewMapType;
+        entry->ProcessId = NULL;
+        if (vad->ViewMapType == VIEW_MAP_TYPE_PROCESS)
         {
-            PMMVAD vad;
-            PKPH_SECTION_MAP_ENTRY entry;
+            PEPROCESS process;
 
-            vad = CONTAINING_RECORD(link, MMVAD, ViewLinks);
-            entry = &info->Mappings[info->NumberOfMappings++];
-
-            entry->ViewMapType = vad->ViewMapType;
-            entry->ProcessId = NULL;
-            if (vad->ViewMapType == VIEW_MAP_TYPE_PROCESS)
+            process = (PEPROCESS)((ULONG_PTR)vad->VadsProcess & ~VIEW_MAP_TYPE_PROCESS);
+            if (process)
             {
-                PEPROCESS process;
-
-                process = (PEPROCESS)((ULONG_PTR)vad->VadsProcess & ~VIEW_MAP_TYPE_PROCESS);
-                if (process)
-                {
-                    entry->ProcessId = PsGetProcessId(process);
-                }
+                entry->ProcessId = PsGetProcessId(process);
             }
-            entry->StartVa = MiGetVadStartAddress(vad);
-            entry->EndVa = MiGetVadEndAddress(vad);
         }
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        status = GetExceptionCode();
-        goto Exit;
+        entry->StartVa = MiGetVadStartAddress(vad);
+        entry->EndVa = MiGetVadEndAddress(vad);
     }
 
     status = STATUS_SUCCESS;
@@ -720,11 +716,14 @@ NTSTATUS KphQuerySection(
     NTSTATUS status;
     PVOID sectionObject;
     ULONG returnLength;
+    PVOID buffer;
+    BYTE stackBuffer[64];
 
     PAGED_CODE_PASSIVE();
 
     sectionObject = NULL;
     returnLength = 0;
+    buffer = NULL;
 
     if (AccessMode != KernelMode)
     {
@@ -768,10 +767,54 @@ NTSTATUS KphQuerySection(
     {
         case KphSectionMappingsInformation:
         {
+            if (SectionInformation)
+            {
+                if (SectionInformationLength <= ARRAYSIZE(stackBuffer))
+                {
+                    RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
+                    buffer = stackBuffer;
+                }
+                else
+                {
+                    buffer = KphAllocateNPaged(SectionInformationLength,
+                                               KPH_TAG_SECTION_QUERY);
+                    if (!buffer)
+                    {
+                        status = STATUS_INSUFFICIENT_RESOURCES;
+                        goto Exit;
+                    }
+                }
+            }
+            else
+            {
+                NT_ASSERT(!buffer);
+                SectionInformationLength = 0;
+            }
+
             status = KphpQuerySectionMappings(sectionObject,
-                                              SectionInformation,
+                                              buffer,
                                               SectionInformationLength,
                                               &returnLength);
+            if (!NT_SUCCESS(status))
+            {
+                goto Exit;
+            }
+
+            if (!SectionInformation)
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+                goto Exit;
+            }
+
+            __try
+            {
+                RtlCopyMemory(SectionInformation, buffer, returnLength);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+
             break;
         }
         default:
@@ -805,6 +848,11 @@ Exit:
     if (sectionObject)
     {
         ObDereferenceObject(sectionObject);
+    }
+
+    if (buffer && (buffer != stackBuffer))
+    {
+        KphFree(buffer, KPH_TAG_SECTION_QUERY);
     }
 
     return status;
