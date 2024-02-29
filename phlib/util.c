@@ -2059,6 +2059,62 @@ PPH_STRING PhFormatGuid(
     return string;
 }
 
+/**
+ * Converts a UUID to its string representation.
+ *
+ * \param Guid A UUID.
+ * \param Buffer A buffer. If NULL, no data is written.
+ * \param BufferLength The number of bytes available in Buffer, including space for the null terminator.
+ * \param ReturnLength The number of bytes required to hold the string, including the null terminator.
+ */
+NTSTATUS PhFormatGuidToBuffer(
+    _In_ PGUID Guid,
+    _Writable_bytes_(BufferLength) _When_(BufferLength != 0, _Notnull_) PWCHAR Buffer,
+    _In_opt_ USHORT BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS (NTAPI* RtlStringFromGUIDEx_I)(
+        _In_ PGUID Guid,
+        _Inout_ PUNICODE_STRING GuidString,
+        _In_ BOOLEAN AllocateGuidString
+        ) = NULL;
+    NTSTATUS status;
+    UNICODE_STRING unicodeString;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            RtlStringFromGUIDEx_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlStringFromGUIDEx", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!RtlStringFromGUIDEx_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    RtlInitEmptyUnicodeString(&unicodeString, Buffer, BufferLength);
+
+    status = RtlStringFromGUIDEx_I(
+        Guid,
+        &unicodeString,
+        FALSE
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ReturnLength)
+        {
+            *ReturnLength = unicodeString.Length + sizeof(UNICODE_NULL);
+        }
+    }
+
+    return status;
+}
+
 NTSTATUS PhStringToGuid(
     _In_ PPH_STRINGREF GuidString,
     _Out_ PGUID Guid
