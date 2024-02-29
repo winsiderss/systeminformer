@@ -4399,6 +4399,31 @@ NTSTATUS PhSetFileBasicInformation(
         );
 }
 
+NTSTATUS PhGetFileFullAttributesInformation(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    FILE_NETWORK_OPEN_INFORMATION fullAttributesInfo;
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &isb,
+        &fullAttributesInfo,
+        sizeof(FILE_NETWORK_OPEN_INFORMATION),
+        FileNetworkOpenInformation
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileInformation = fullAttributesInfo;
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetFileStandardInformation(
     _In_ HANDLE FileHandle,
     _Out_ PFILE_STANDARD_INFORMATION StandardInfo
