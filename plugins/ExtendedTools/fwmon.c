@@ -30,6 +30,7 @@ BOOLEAN EtFwIgnoreOnError = TRUE;
 BOOLEAN EtFwIgnorePortScan = FALSE;
 BOOLEAN EtFwIgnoreLoopback = TRUE;
 BOOLEAN EtFwIgnoreAllow = FALSE;
+PPH_STRING EtFwSessionName = NULL;
 PH_INITONCE EtFwWorkQueueInitOnce = PH_INITONCE_INIT;
 SLIST_HEADER EtFwQueryListHead;
 PH_WORK_QUEUE EtFwWorkQueue;
@@ -2094,6 +2095,35 @@ ULONG EtFwMonitorEnumEvents(
     return status;
 }
 
+PPH_STRING EtFwSessionInitialize(
+    VOID
+    )
+{
+    PPH_STRING settingsString;
+    GUID settingsGuid;
+
+    settingsString = PhGetStringSetting(SETTING_NAME_FW_SESSION_GUID);
+
+    if (PhIsNullOrEmptyString(settingsString))
+    {
+        PPH_STRING string;
+
+        PhGenerateGuid(&settingsGuid);
+
+        if (string = PhFormatGuid(&settingsGuid))
+        {
+            PhSetStringSetting2(SETTING_NAME_FW_SESSION_GUID, &string->sr);
+            PhMoveReference(&settingsString, string);
+        }
+        else
+        {
+            PhMoveReference(&settingsString, PhCreateString(L"SiNetEventSession"));
+        }
+    }
+
+    return settingsString;
+}
+
 ULONG EtFwMonitorInitialize(
     VOID
     )
@@ -2110,6 +2140,7 @@ ULONG EtFwMonitorInitialize(
     EtFwIgnorePortScan = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_PORTSCAN);
     EtFwIgnoreLoopback = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_LOOPBACK);
     EtFwIgnoreAllow = !!PhGetIntegerSetting(SETTING_NAME_FW_IGNORE_ALLOW);
+    EtFwSessionName = EtFwSessionInitialize();
 
     PhInitializeFreeList(&EtFwPacketFreeList, sizeof(FW_EVENT_PACKET), 64);
     PhInitializeSListHead(&EtFwPacketListHead);
@@ -2182,7 +2213,7 @@ ULONG EtFwMonitorInitialize(
     // Create a non-dynamic BFE session
 
     memset(&session, 0, sizeof(FWPM_SESSION));
-    session.displayData.name = L"SiNetEventSession";
+    session.displayData.name = PhGetString(EtFwSessionName);
     session.displayData.description = L"";
 
     status = FwpmEngineOpen(
