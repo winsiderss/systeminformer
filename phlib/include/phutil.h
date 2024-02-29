@@ -704,6 +704,16 @@ PhFormatGuid(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhFormatGuidToBuffer(
+    _In_ PGUID Guid,
+    _Writable_bytes_(BufferLength) _When_(BufferLength != 0, _Notnull_) PWCHAR Buffer,
+    _In_opt_ USHORT BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhStringToGuid(
     _In_ PPH_STRINGREF GuidString,
     _Out_ PGUID Guid
