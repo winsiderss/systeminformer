@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2023
+ *     dmex    2015-2024
  *
  */
 
@@ -200,7 +200,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 
         if (entry->DevicePresent)
         {
-            NetAdapterSysInfoInitializing(pluginEntry, entry);
+            NetworkDeviceSysInfoInitializing(pluginEntry, entry);
         }
 
         PhDereferenceObjectDeferDelete(entry);

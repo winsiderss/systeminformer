@@ -6,181 +6,142 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2023
+ *     dmex    2015-2024
  *
  */
 
 #include "devices.h"
 
-VOID NetAdapterUpdateGraph(
-    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
-    )
-{
-    Context->GraphState.Valid = FALSE;
-    Context->GraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(Context->GraphHandle, 1);
-    Graph_Draw(Context->GraphHandle);
-    Graph_UpdateTooltip(Context->GraphHandle);
-    InvalidateRect(Context->GraphHandle, NULL, FALSE);
-}
+ VOID NetworkDeviceUpdatePanel(
+     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+     )
+ {
+     ULONG64 linkSpeedValue = 0;
+     NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
+     HANDLE deviceHandle = NULL;
+     PH_FORMAT format[2];
+     WCHAR formatBuffer[256];
+ 
+     if (NetAdapterEnableNdis)
+     {
+         if (NT_SUCCESS(PhCreateFile(
+             &deviceHandle,
+             &Context->AdapterEntry->AdapterId.InterfacePath->sr,
+             FILE_GENERIC_READ,
+             FILE_ATTRIBUTE_NORMAL,
+             FILE_SHARE_READ | FILE_SHARE_WRITE,
+             FILE_OPEN,
+             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+             )))
+         {
+             if (!Context->AdapterEntry->CheckedDeviceSupport)
+             {
+                 if (NetworkAdapterQuerySupported(deviceHandle))
+                 {
+                     Context->AdapterEntry->DeviceSupported = TRUE;
+                 }
+ 
+                 Context->AdapterEntry->CheckedDeviceSupport = TRUE;
+             }
+ 
+             if (!Context->AdapterEntry->DeviceSupported)
+             {
+                 NtClose(deviceHandle);
+                 deviceHandle = NULL;
+             }
+         }
+     }
+ 
+     if (deviceHandle)
+     {
+         NDIS_LINK_STATE interfaceState;
+ 
+         if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
+         {
+             mediaState = interfaceState.MediaConnectState;
+             linkSpeedValue = interfaceState.XmitLinkSpeed;
+         }
+         else
+         {
+             NetworkAdapterQueryLinkSpeed(deviceHandle, &linkSpeedValue);
+         }
+ 
+         NtClose(deviceHandle);
+     }
+     else
+     {
+         MIB_IF_ROW2 interfaceRow;
+ 
+         if (NetworkAdapterQueryInterfaceRow(&Context->AdapterEntry->AdapterId, MibIfEntryNormal, &interfaceRow))
+         {
+             mediaState = interfaceRow.MediaConnectState;
+             linkSpeedValue = interfaceRow.TransmitLinkSpeed;
+         }
+     }
+ 
+     PhInitFormatSize(&format[0], Context->AdapterEntry->NetworkSendDelta.Value);
+ 
+     if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+         PhSetWindowText(Context->NetAdapterPanelSentLabel, formatBuffer);
+     else
+         PhSetWindowText(Context->NetAdapterPanelSentLabel, PhaFormatSize(Context->AdapterEntry->NetworkSendDelta.Value, ULONG_MAX)->Buffer);
+ 
+     PhInitFormatSize(&format[0], Context->AdapterEntry->NetworkReceiveDelta.Value);
+ 
+     if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+         PhSetWindowText(Context->NetAdapterPanelReceivedLabel, formatBuffer);
+     else
+         PhSetWindowText(Context->NetAdapterPanelReceivedLabel, PhaFormatSize(Context->AdapterEntry->NetworkReceiveDelta.Value, ULONG_MAX)->Buffer);
+ 
+     PhInitFormatSize(&format[0], Context->AdapterEntry->NetworkReceiveDelta.Value + Context->AdapterEntry->NetworkSendDelta.Value);
+ 
+     if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+         PhSetWindowText(Context->NetAdapterPanelTotalLabel, formatBuffer);
+     else
+         PhSetWindowText(Context->NetAdapterPanelTotalLabel, PhaFormatSize(Context->AdapterEntry->NetworkReceiveDelta.Value + Context->AdapterEntry->NetworkSendDelta.Value, ULONG_MAX)->Buffer);
+ 
+     if (mediaState == MediaConnectStateConnected)
+     {
+         PhSetWindowText(Context->NetAdapterPanelStateLabel, L"Connected");
+ 
+         //PhInitFormatSR(&format[0], PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(linkSpeedValue))->sr);
+         PhInitFormatSize(&format[0], linkSpeedValue / BITS_IN_ONE_BYTE);
+         PhInitFormatS(&format[1], L"/s");
+ 
+         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
+             PhSetWindowText(Context->NetAdapterPanelSpeedLabel, formatBuffer);
+         else
+         {
+             PhSetWindowText(Context->NetAdapterPanelSpeedLabel, PhaConcatStrings2(
+                 PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer,
+                 L"/s"
+                 )->Buffer);
+             //PhSetWindowText(Context->NetAdapterPanelSpeedLabel, PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(linkSpeedValue))->Buffer);
+         }
+     }
+     else
+     {
+         PhSetWindowText(Context->NetAdapterPanelStateLabel, L"Disconnected");
+         PhSetWindowText(Context->NetAdapterPanelSpeedLabel, L"N/A");
+     }
+ 
+     //PhInitFormatSR(&format[0], PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix((Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend) * BITS_IN_ONE_BYTE))->sr);
+     PhInitFormatSize(&format[0], Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend);
+     PhInitFormatS(&format[1], L"/s");
+ 
+     if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
+         PhSetWindowText(Context->NetAdapterPanelBytesLabel, formatBuffer);
+     else
+     {
+         PhSetWindowText(Context->NetAdapterPanelBytesLabel, PhaFormatString(
+             L"%s/s",
+             PhaFormatSize(Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend, ULONG_MAX)->Buffer)->Buffer
+             );
+         //PhSetWindowText(Context->NetAdapterPanelBytesLabel, PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix((Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend)* BITS_IN_ONE_BYTE))->Buffer);
+     }
+ }
 
-VOID NetAdapterUpdatePanel(
-    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
-    )
-{
-    ULONG64 linkSpeedValue = 0;
-    NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
-    HANDLE deviceHandle = NULL;
-    PH_FORMAT format[2];
-    WCHAR formatBuffer[256];
-
-    if (NetAdapterEnableNdis)
-    {
-        if (NT_SUCCESS(PhCreateFile(
-            &deviceHandle,
-            &Context->AdapterEntry->AdapterId.InterfacePath->sr,
-            FILE_GENERIC_READ,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            )))
-        {
-            if (!Context->AdapterEntry->CheckedDeviceSupport)
-            {
-                if (NetworkAdapterQuerySupported(deviceHandle))
-                {
-                    Context->AdapterEntry->DeviceSupported = TRUE;
-                }
-
-                Context->AdapterEntry->CheckedDeviceSupport = TRUE;
-            }
-
-            if (!Context->AdapterEntry->DeviceSupported)
-            {
-                NtClose(deviceHandle);
-                deviceHandle = NULL;
-            }
-        }
-    }
-
-    if (deviceHandle)
-    {
-        NDIS_LINK_STATE interfaceState;
-
-        if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
-        {
-            mediaState = interfaceState.MediaConnectState;
-            linkSpeedValue = interfaceState.XmitLinkSpeed;
-        }
-        else
-        {
-            NetworkAdapterQueryLinkSpeed(deviceHandle, &linkSpeedValue);
-        }
-
-        NtClose(deviceHandle);
-    }
-    else
-    {
-        MIB_IF_ROW2 interfaceRow;
-
-        if (NetworkAdapterQueryInterfaceRow(&Context->AdapterEntry->AdapterId, MibIfEntryNormal, &interfaceRow))
-        {
-            mediaState = interfaceRow.MediaConnectState;
-            linkSpeedValue = interfaceRow.TransmitLinkSpeed;
-        }
-    }
-
-    PhInitFormatSize(&format[0], Context->AdapterEntry->NetworkSendDelta.Value);
-
-    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-        PhSetWindowText(Context->NetAdapterPanelSentLabel, formatBuffer);
-    else
-        PhSetWindowText(Context->NetAdapterPanelSentLabel, PhaFormatSize(Context->AdapterEntry->NetworkSendDelta.Value, ULONG_MAX)->Buffer);
-
-    PhInitFormatSize(&format[0], Context->AdapterEntry->NetworkReceiveDelta.Value);
-
-    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-        PhSetWindowText(Context->NetAdapterPanelReceivedLabel, formatBuffer);
-    else
-        PhSetWindowText(Context->NetAdapterPanelReceivedLabel, PhaFormatSize(Context->AdapterEntry->NetworkReceiveDelta.Value, ULONG_MAX)->Buffer);
-
-    PhInitFormatSize(&format[0], Context->AdapterEntry->NetworkReceiveDelta.Value + Context->AdapterEntry->NetworkSendDelta.Value);
-
-    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-        PhSetWindowText(Context->NetAdapterPanelTotalLabel, formatBuffer);
-    else
-        PhSetWindowText(Context->NetAdapterPanelTotalLabel, PhaFormatSize(Context->AdapterEntry->NetworkReceiveDelta.Value + Context->AdapterEntry->NetworkSendDelta.Value, ULONG_MAX)->Buffer);
-
-    if (mediaState == MediaConnectStateConnected)
-    {
-        PhSetWindowText(Context->NetAdapterPanelStateLabel, L"Connected");
-
-        //PhInitFormatSR(&format[0], PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(linkSpeedValue))->sr);
-        PhInitFormatSize(&format[0], linkSpeedValue / BITS_IN_ONE_BYTE);
-        PhInitFormatS(&format[1], L"/s");
-
-        if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetWindowText(Context->NetAdapterPanelSpeedLabel, formatBuffer);
-        else
-        {
-            PhSetWindowText(Context->NetAdapterPanelSpeedLabel, PhaConcatStrings2(
-                PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer,
-                L"/s"
-                )->Buffer);
-            //PhSetWindowText(Context->NetAdapterPanelSpeedLabel, PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(linkSpeedValue))->Buffer);
-        }
-    }
-    else
-    {
-        PhSetWindowText(Context->NetAdapterPanelStateLabel, L"Disconnected");
-        PhSetWindowText(Context->NetAdapterPanelSpeedLabel, L"N/A");
-    }
-
-    //PhInitFormatSR(&format[0], PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix((Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend) * BITS_IN_ONE_BYTE))->sr);
-    PhInitFormatSize(&format[0], Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend);
-    PhInitFormatS(&format[1], L"/s");
-
-    if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
-        PhSetWindowText(Context->NetAdapterPanelBytesLabel, formatBuffer);
-    else
-    {
-        PhSetWindowText(Context->NetAdapterPanelBytesLabel, PhaFormatString(
-            L"%s/s",
-            PhaFormatSize(Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend, ULONG_MAX)->Buffer)->Buffer
-            );
-        //PhSetWindowText(Context->NetAdapterPanelBytesLabel, PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix((Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend)* BITS_IN_ONE_BYTE))->Buffer);
-    }
-}
-
-VOID NetAdapterUpdateTitle(
-    _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
-    )
-{
-    if (Context->AdapterEntry->PendingQuery)
-    {
-        if (Context->AdapterTextLabel)
-            PhSetWindowText(Context->AdapterTextLabel, L"Pending...");
-        if (Context->AdapterNameLabel)
-            PhSetWindowText(Context->AdapterNameLabel, L"Pending...");
-    }
-    else
-    {
-        if (Context->AdapterTextLabel)
-            PhSetWindowText(Context->AdapterTextLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterAlias, L"Unknown network adapter"));
-        if (Context->AdapterNameLabel)
-            PhSetWindowText(Context->AdapterNameLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterName, L"Unknown network adapter"));
-    }
-}
-
-VOID NetAdapterUpdateAdapterNameText(
-    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
-    )
-{
-    NetAdapterUpdateDeviceInfo(NULL, AdapterEntry);
-}
-
-INT_PTR CALLBACK NetAdapterPanelDialogProc(
+INT_PTR CALLBACK NetworkDevicePanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -241,11 +202,21 @@ INT_PTR CALLBACK NetAdapterPanelDialogProc(
     return FALSE;
 }
 
-VOID NetAdapterCreateGraph(
+VOID NetworkDeviceInitializeDialogDpi(
+    _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+    )
+{
+    Context->GraphPadding = PhGetDpi(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
+}
+
+VOID NetworkDeviceCreateGraphs(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    Context->GraphHandle = CreateWindow(
+    PhInitializeGraphState(&Context->GraphSendState);
+    PhInitializeGraphState(&Context->GraphReceiveState);
+
+    Context->GraphSendHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -258,20 +229,361 @@ VOID NetAdapterCreateGraph(
         NULL,
         NULL
         );
-    Graph_SetTooltip(Context->GraphHandle, TRUE);
+    Graph_SetTooltip(Context->GraphSendHandle, TRUE);
 
-    PhAddLayoutItemEx(&Context->LayoutManager, Context->GraphHandle, NULL, PH_ANCHOR_ALL, Context->GraphMargin);
+    Context->GraphReceiveHandle = CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        Context->WindowHandle,
+        NULL,
+        NULL,
+        NULL
+        );
+    Graph_SetTooltip(Context->GraphReceiveHandle, TRUE);
+
+    Context->LabelSendHandle = GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L);
+    Context->LabelReceiveHandle = GetDlgItem(Context->WindowHandle, IDC_CORE_L);
 }
 
-VOID NetAdapterTickDialog(
+VOID NetworkDeviceUpdateGraphs(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    NetAdapterUpdateGraph(Context);
-    NetAdapterUpdatePanel(Context);
+    Context->GraphSendState.Valid = FALSE;
+    Context->GraphSendState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(Context->GraphSendHandle, 1);
+    Graph_Draw(Context->GraphSendHandle);
+    Graph_UpdateTooltip(Context->GraphSendHandle);
+    InvalidateRect(Context->GraphSendHandle, NULL, FALSE);
+
+    Context->GraphReceiveState.Valid = FALSE;
+    Context->GraphReceiveState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(Context->GraphReceiveHandle, 1);
+    Graph_Draw(Context->GraphReceiveHandle);
+    Graph_UpdateTooltip(Context->GraphReceiveHandle);
+    InvalidateRect(Context->GraphReceiveHandle, NULL, FALSE);
 }
 
-INT_PTR CALLBACK NetAdapterDialogProc(
+VOID NetworkDeviceLayoutGraphs(
+    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+    )
+{
+    RECT clientRect;
+    RECT labelRect;
+    RECT margin;
+    ULONG graphWidth;
+    ULONG graphHeight;
+    HDWP deferHandle;
+    ULONG y;
+
+    Context->GraphSendState.Valid = FALSE;
+    Context->GraphSendState.TooltipIndex = ULONG_MAX;
+    Context->GraphReceiveState.Valid = FALSE;
+    Context->GraphReceiveState.TooltipIndex = ULONG_MAX;
+
+    margin = Context->GraphMargin;
+    PhGetSizeDpiValue(&margin, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
+
+    GetClientRect(Context->WindowHandle, &clientRect);
+    GetClientRect(Context->LabelSendHandle, &labelRect);
+    graphWidth = clientRect.right - margin.left - margin.right;
+    graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 2 - Context->GraphPadding * 3) / 2;
+
+    deferHandle = BeginDeferWindowPos(4);
+    y = margin.top;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->LabelSendHandle,
+        NULL,
+        margin.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + Context->GraphPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->GraphSendHandle,
+        NULL,
+        margin.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + Context->GraphPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->LabelReceiveHandle,
+        NULL,
+        margin.left,
+        y,
+        0,
+        0,
+        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += labelRect.bottom + Context->GraphPadding;
+
+    deferHandle = DeferWindowPos(
+        deferHandle,
+        Context->GraphReceiveHandle,
+        NULL,
+        margin.left,
+        y,
+        graphWidth,
+        graphHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
+    y += graphHeight + Context->GraphPadding;
+
+    EndDeferWindowPos(deferHandle);
+}
+
+VOID NetworkDeviceNotifyProcessorGraph(
+    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
+    _In_ NMHDR *Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+
+            PhGraphStateGetDrawInfo(
+                &Context->GraphSendState,
+                getDrawInfo,
+                Context->AdapterEntry->OutboundBuffer.Count
+                );
+
+            if (!Context->GraphSendState.Valid)
+            {
+                ULONG i;
+                FLOAT max = 4 * 1024; // Minimum scaling 4KB
+
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FLOAT data1;
+
+                    Context->GraphSendState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&Context->AdapterEntry->OutboundBuffer, i);
+
+                    if (max < data1)
+                        max = data1;
+                }
+
+                if (max != 0)
+                {
+                    // Scale the data.
+
+                    PhDivideSinglesBySingle(
+                        Context->GraphSendState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                drawInfo->LabelYFunctionParameter = max;
+
+                Context->GraphSendState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (Context->GraphSendState.TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG64 value;
+                    PH_FORMAT format[4];
+
+                    value = PhGetItemCircularBuffer_ULONG64(
+                        &Context->AdapterEntry->OutboundBuffer,
+                        getTooltipText->Index
+                        );
+
+                    // R: %s\nS: %s\n%s
+                    PhInitFormatS(&format[0], L"S: ");
+                    PhInitFormatSize(&format[1], value);
+                    PhInitFormatC(&format[2], L'\n');
+                    PhInitFormatSR(&format[3], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&Context->GraphSendState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                }
+
+                getTooltipText->Text = PhGetStringRef(Context->GraphSendState.TooltipText);
+            }
+        }
+        break;
+    }
+}
+
+VOID NetworkDeviceNotifyPackageGraph(
+    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context,
+    _In_ NMHDR *Header
+    )
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), 0, Context->SysinfoSection->Parameters->WindowDpi);
+
+            PhGraphStateGetDrawInfo(
+                &Context->GraphReceiveState,
+                getDrawInfo,
+                Context->AdapterEntry->InboundBuffer.Count
+                );
+
+            if (!Context->GraphReceiveState.Valid)
+            {
+                ULONG i;
+                FLOAT max = 4 * 1024; // Minimum scaling 4KB
+
+                for (i = 0; i < drawInfo->LineDataCount; i++)
+                {
+                    FLOAT data1;
+
+                    Context->GraphReceiveState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&Context->AdapterEntry->InboundBuffer, i);
+
+                    if (max < data1)
+                        max = data1;
+                }
+
+                if (max != 0)
+                {
+                    // Scale the data.
+
+                    PhDivideSinglesBySingle(
+                        Context->GraphReceiveState.Data1,
+                        max,
+                        drawInfo->LineDataCount
+                        );
+                }
+
+                drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                drawInfo->LabelYFunctionParameter = max;
+
+                Context->GraphReceiveState.Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (Context->GraphReceiveState.TooltipIndex != getTooltipText->Index)
+                {
+                    ULONG64 value;
+                    PH_FORMAT format[4];
+
+                    value = PhGetItemCircularBuffer_ULONG64(
+                        &Context->AdapterEntry->InboundBuffer,
+                        getTooltipText->Index
+                        );
+
+                    // R: %s\nS: %s\n%s
+                    PhInitFormatS(&format[0], L"R: ");
+                    PhInitFormatSize(&format[1], value);
+                    PhInitFormatC(&format[2], L'\n');
+                    PhInitFormatSR(&format[3], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&Context->GraphReceiveState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                }
+
+                getTooltipText->Text = PhGetStringRef(Context->GraphReceiveState.TooltipText);
+            }
+        }
+        break;
+    }
+}
+
+VOID NetworkDeviceTickDialog(
+    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+    )
+{
+    NetworkDeviceUpdateGraphs(Context);
+    NetworkDeviceUpdatePanel(Context);
+}
+
+VOID NetworkDeviceUpdateTitle(
+    _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+    )
+{
+    if (Context->AdapterEntry->PendingQuery)
+    {
+        if (Context->AdapterTextLabel)
+            PhSetWindowText(Context->AdapterTextLabel, L"Pending...");
+        if (Context->AdapterNameLabel)
+            PhSetWindowText(Context->AdapterNameLabel, L"Pending...");
+    }
+    else
+    {
+        if (Context->AdapterTextLabel)
+            PhSetWindowText(Context->AdapterTextLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterAlias, L"Unknown"));
+        if (Context->AdapterNameLabel)
+            PhSetWindowText(Context->AdapterNameLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterName, L"Unknown"));
+    }
+}
+
+VOID NetworkDeviceUpdateAdapterNameText(
+    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
+    )
+{
+    NetAdapterUpdateDeviceInfo(NULL, AdapterEntry);
+}
+
+NTSTATUS NetworkDeviceQueryNameWorkQueueItem(
+    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
+    )
+{
+    // Update the adapter aliases, index and guids (dmex)
+    NetworkDeviceUpdateAdapterNameText(AdapterEntry);
+
+#ifdef FORCE_DELAY_LABEL_WORKQUEUE
+    PhDelayExecution(4000);
+#endif
+
+    InterlockedExchange(&AdapterEntry->JustProcessed, TRUE);
+    AdapterEntry->PendingQuery = FALSE;
+
+    PhDereferenceObject(AdapterEntry);
+    return STATUS_SUCCESS;
+}
+
+VOID NetworkDeviceQueueNameUpdate(
+    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
+    )
+{
+    AdapterEntry->PendingQuery = TRUE;
+
+    PhReferenceObject(AdapterEntry);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), NetworkDeviceQueryNameWorkQueueItem, AdapterEntry);
+}
+
+INT_PTR CALLBACK NetworkDeviceDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -283,6 +595,7 @@ INT_PTR CALLBACK NetAdapterDialogProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PDV_NETADAPTER_SYSINFO_CONTEXT)lParam;
+
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -299,45 +612,44 @@ INT_PTR CALLBACK NetAdapterDialogProc(
         {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
-            RECT margin;
 
             context->WindowHandle = hwndDlg;
-            context->AdapterTextLabel = GetDlgItem(hwndDlg, IDC_ADAPTERTEXT);
-            context->AdapterNameLabel = GetDlgItem(hwndDlg, IDC_ADAPTERNAME);
+            context->AdapterTextLabel = GetDlgItem(hwndDlg, IDC_TITLE);
+            context->AdapterNameLabel = GetDlgItem(hwndDlg, IDC_DEVICENAME);
 
-            PhInitializeGraphState(&context->GraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-
-            PhAddLayoutItem(&context->LayoutManager, context->AdapterTextLabel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            PhAddLayoutItem(&context->LayoutManager, context->AdapterNameLabel, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, context->AdapterNameLabel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
-            panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             context->GraphMargin = graphItem->Margin;
-            PhGetSizeDpiValue(&context->GraphMargin, context->SysinfoSection->Parameters->WindowDpi, TRUE);
+
+            NetworkDeviceInitializeDialogDpi(context);
 
             SetWindowFont(context->AdapterTextLabel, context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetWindowFont(context->AdapterNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
+            PhSetWindowText(context->AdapterNameLabel, PhGetStringOrDefault(context->AdapterEntry->AdapterName, L"Unknown"));
 
-            context->PanelWindowHandle = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetAdapterPanelDialogProc, context);
+            context->PanelWindowHandle = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_NETADAPTER_PANEL), hwndDlg, NetworkDevicePanelDialogProc, context);
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
+            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
-            margin = panelItem->Margin;
-            PhGetSizeDpiValue(&margin, context->SysinfoSection->Parameters->WindowDpi, TRUE);
-            PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
-
-            NetAdapterUpdateTitle(context);
-            NetAdapterCreateGraph(context);
-            NetAdapterUpdateGraph(context);
-            NetAdapterUpdatePanel(context);
+            NetworkDeviceUpdateTitle(context);
+            NetworkDeviceCreateGraphs(context);
+            NetworkDeviceUpdateGraphs(context);
+            NetworkDeviceUpdatePanel(context);
         }
         break;
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&context->LayoutManager);
-            PhDeleteGraphState(&context->GraphState);
 
-            if (context->GraphHandle)
-                DestroyWindow(context->GraphHandle);
+            PhDeleteGraphState(&context->GraphSendState);
+            PhDeleteGraphState(&context->GraphReceiveState);
+
+            if (context->GraphSendHandle)
+                DestroyWindow(context->GraphSendHandle);
+            if (context->GraphReceiveHandle)
+                DestroyWindow(context->GraphReceiveHandle);
             if (context->PanelWindowHandle)
                 DestroyWindow(context->PanelWindowHandle);
         }
@@ -349,6 +661,8 @@ INT_PTR CALLBACK NetAdapterDialogProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            NetworkDeviceInitializeDialogDpi(context);
+
             if (context->SysinfoSection->Parameters->LargeFont)
             {
                 SetWindowFont(context->AdapterTextLabel, context->SysinfoSection->Parameters->LargeFont, FALSE);
@@ -359,118 +673,27 @@ INT_PTR CALLBACK NetAdapterDialogProc(
                 SetWindowFont(context->AdapterNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
             }
 
-            context->GraphState.Valid = FALSE;
-            context->GraphState.TooltipIndex = ULONG_MAX;
             PhLayoutManagerLayout(&context->LayoutManager);
+            NetworkDeviceLayoutGraphs(context);
         }
         break;
     case WM_SIZE:
         {
-            context->GraphState.Valid = FALSE;
-            context->GraphState.TooltipIndex = ULONG_MAX;
             PhLayoutManagerLayout(&context->LayoutManager);
+            NetworkDeviceLayoutGraphs(context);
         }
         break;
     case WM_NOTIFY:
         {
             NMHDR* header = (NMHDR*)lParam;
 
-            if (header->hwndFrom == context->GraphHandle)
+            if (header->hwndFrom == context->GraphSendHandle)
             {
-                switch (header->code)
-                {
-                case GCN_GETDRAWINFO:
-                    {
-                        PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
-                        PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), context->SysinfoSection->Parameters->WindowDpi);
-
-                        PhGraphStateGetDrawInfo(
-                            &context->GraphState,
-                            getDrawInfo,
-                            context->AdapterEntry->InboundBuffer.Count
-                            );
-
-                        if (!context->GraphState.Valid)
-                        {
-                            ULONG i;
-                            FLOAT max = 4 * 1024; // Minimum scaling 4KB
-
-                            for (i = 0; i < drawInfo->LineDataCount; i++)
-                            {
-                                FLOAT data1;
-                                FLOAT data2;
-
-                                context->GraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->InboundBuffer, i);
-                                context->GraphState.Data2[i] = data2 = (FLOAT)PhGetItemCircularBuffer_ULONG64(&context->AdapterEntry->OutboundBuffer, i);
-
-                                if (max < data1 + data2)
-                                    max = data1 + data2;
-                            }
-
-                            if (max != 0)
-                            {
-                                // Scale the data.
-
-                                PhDivideSinglesBySingle(
-                                    context->GraphState.Data1,
-                                    max,
-                                    drawInfo->LineDataCount
-                                    );
-                                PhDivideSinglesBySingle(
-                                    context->GraphState.Data2,
-                                    max,
-                                    drawInfo->LineDataCount
-                                    );
-                            }
-
-                            drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = max;
-
-                            context->GraphState.Valid = TRUE;
-                        }
-                    }
-                    break;
-                case GCN_GETTOOLTIPTEXT:
-                    {
-                        PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)header;
-
-                        if (getTooltipText->Index < getTooltipText->TotalCount)
-                        {
-                            if (context->GraphState.TooltipIndex != getTooltipText->Index)
-                            {
-                                ULONG64 adapterInboundValue;
-                                ULONG64 adapterOutboundValue;
-                                PH_FORMAT format[6];
-
-                                adapterInboundValue = PhGetItemCircularBuffer_ULONG64(
-                                    &context->AdapterEntry->InboundBuffer,
-                                    getTooltipText->Index
-                                    );
-
-                                adapterOutboundValue = PhGetItemCircularBuffer_ULONG64(
-                                    &context->AdapterEntry->OutboundBuffer,
-                                    getTooltipText->Index
-                                    );
-
-                                // R: %s\nS: %s\n%s
-                                PhInitFormatS(&format[0], L"R: ");
-                                PhInitFormatSize(&format[1], adapterInboundValue);
-                                PhInitFormatS(&format[2], L"\nS: ");
-                                PhInitFormatSize(&format[3], adapterOutboundValue);
-                                PhInitFormatC(&format[4], L'\n');
-                                PhInitFormatSR(&format[5], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                PhMoveReference(&context->GraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                            }
-
-                            getTooltipText->Text = PhGetStringRef(context->GraphState.TooltipText);
-                        }
-                    }
-                    break;
-                }
+                NetworkDeviceNotifyProcessorGraph(context, header);
+            }
+            else if (header->hwndFrom == context->GraphReceiveHandle)
+            {
+                NetworkDeviceNotifyPackageGraph(context, header);
             }
         }
         break;
@@ -485,35 +708,7 @@ INT_PTR CALLBACK NetAdapterDialogProc(
     return FALSE;
 }
 
-NTSTATUS NetAdapterQueryNameWorkQueueItem(
-    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
-    )
-{
-    // Update the adapter aliases, index and guids (dmex)
-    NetAdapterUpdateAdapterNameText(AdapterEntry);
-
-#ifdef FORCE_DELAY_LABEL_WORKQUEUE
-    PhDelayExecution(4000);
-#endif
-
-    InterlockedExchange(&AdapterEntry->JustProcessed, TRUE);
-    AdapterEntry->PendingQuery = FALSE;
-
-    PhDereferenceObject(AdapterEntry);
-    return STATUS_SUCCESS;
-}
-
-VOID NetAdapterQueueNameUpdate(
-    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
-    )
-{
-    AdapterEntry->PendingQuery = TRUE;
-
-    PhReferenceObject(AdapterEntry);
-    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), NetAdapterQueryNameWorkQueueItem, AdapterEntry);
-}
-
-BOOLEAN NetAdapterSectionCallback(
+BOOLEAN NetworkDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_ PVOID Parameter1,
@@ -526,7 +721,7 @@ BOOLEAN NetAdapterSectionCallback(
     {
     case SysInfoCreate:
         {
-            NetAdapterQueueNameUpdate(context->AdapterEntry);
+            NetworkDeviceQueueNameUpdate(context->AdapterEntry);
         }
         return TRUE;
     case SysInfoDestroy:
@@ -541,11 +736,11 @@ BOOLEAN NetAdapterSectionCallback(
             {
                 if (context->AdapterEntry->JustProcessed)
                 {
-                    NetAdapterUpdateTitle(context);
+                    NetworkDeviceUpdateTitle(context);
                     InterlockedExchange(&context->AdapterEntry->JustProcessed, FALSE);
                 }
 
-                NetAdapterTickDialog(context);
+                NetworkDeviceTickDialog(context);
             }
         }
         return TRUE;
@@ -557,11 +752,18 @@ BOOLEAN NetAdapterSectionCallback(
             if (view == SysInfoSummaryView || section != Section)
                 return TRUE;
 
-            if (context->GraphHandle)
+            if (context->GraphSendHandle)
             {
-                context->GraphState.Valid = FALSE;
-                context->GraphState.TooltipIndex = ULONG_MAX;
-                Graph_Draw(context->GraphHandle);
+                context->GraphSendState.Valid = FALSE;
+                context->GraphSendState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(context->GraphSendHandle);
+            }
+
+            if (context->GraphReceiveHandle)
+            {
+                context->GraphReceiveState.Valid = FALSE;
+                context->GraphReceiveState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(context->GraphReceiveHandle);
             }
         }
         return TRUE;
@@ -571,7 +773,7 @@ BOOLEAN NetAdapterSectionCallback(
 
             createDialog->Instance = PluginInstance->DllBase;
             createDialog->Template = MAKEINTRESOURCE(IDD_NETADAPTER_DIALOG);
-            createDialog->DialogProc = NetAdapterDialogProc;
+            createDialog->DialogProc = NetworkDeviceDialogProc;
             createDialog->Parameter = context;
         }
         return TRUE;
@@ -667,7 +869,7 @@ BOOLEAN NetAdapterSectionCallback(
             }
 
             if (!drawPanel->Title)
-                drawPanel->Title = PhCreateString(L"Unknown network adapter");
+                drawPanel->Title = PhCreateString(L"Unknown");
 
             // R: %s\nS: %s
             PhInitFormatS(&format[0], L"R: ");
@@ -683,11 +885,12 @@ BOOLEAN NetAdapterSectionCallback(
     return FALSE;
 }
 
-VOID NetAdapterSysInfoInitializing(
+VOID NetworkDeviceSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     )
 {
+    static PH_STRINGREF text = PH_STRINGREF_INIT(L"Unknown");
     PDV_NETADAPTER_SYSINFO_CONTEXT context;
     PH_SYSINFO_SECTION section;
 
@@ -697,8 +900,8 @@ VOID NetAdapterSysInfoInitializing(
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     section.Context = context;
-    section.Callback = NetAdapterSectionCallback;
-    PhInitializeStringRef(&section.Name, L"NetAdapter");
+    section.Callback = NetworkDeviceSectionCallback;
+    section.Name = text;
 
     context->SysinfoSection = Pointers->CreateSection(&section);
 }
