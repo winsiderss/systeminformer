@@ -1185,6 +1185,14 @@ PhSetFileBasicInformation(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileFullAttributesInformation(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetFileStandardInformation(
     _In_ HANDLE FileHandle,
     _Out_ PFILE_STANDARD_INFORMATION StandardInfo
