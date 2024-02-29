@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2024
  *
  */
 
@@ -688,8 +688,8 @@ PhExecuteRunAsCommand2(
     _In_opt_ PWSTR Password,
     _In_opt_ ULONG LogonType,
     _In_opt_ HANDLE ProcessIdWithToken,
-    _In_ ULONG SessionId,
-    _In_ PWSTR DesktopName,
+    _In_opt_ ULONG SessionId,
+    _In_opt_ PWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken
     );
 // end_phapppub
@@ -704,8 +704,8 @@ PhExecuteRunAsCommand3(
     _In_opt_ PWSTR Password,
     _In_opt_ ULONG LogonType,
     _In_opt_ HANDLE ProcessIdWithToken,
-    _In_ ULONG SessionId,
-    _In_ PWSTR DesktopName,
+    _In_opt_ ULONG SessionId,
+    _In_opt_ PWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken,
     _In_ BOOLEAN CreateSuspendedProcess,
     _In_ BOOLEAN CreateUIAccessProcess
