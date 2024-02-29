@@ -1480,3 +1480,45 @@ PPH_STRING PhCreateServiceSidToStringSid(
 
     return NULL;
 }
+
+PPH_STRING PhGetAzureDirectoryObjectSid(
+    _In_ PSID ActiveDirectorySid
+    )
+{
+    if (PhEqualIdentifierAuthoritySid(
+        PhIdentifierAuthoritySid(ActiveDirectorySid),
+        PhIdentifierAuthoritySid(PhSeCloudActiveDirectorySid())
+        ))
+    {
+        ULONG subAuthority = *PhSubAuthoritySid(ActiveDirectorySid, 0);
+
+        if (subAuthority == 1)
+        {
+            PPH_STRING string;
+            union
+            {
+                GUID Guid;
+                struct
+                {
+                    ULONG Data1;
+                    ULONG Data2;
+                    ULONG Data3;
+                    ULONG Data4;
+                };
+            } objectGuid;
+
+            objectGuid.Data1 = *PhSubAuthoritySid(ActiveDirectorySid, 1);
+            objectGuid.Data2 = *PhSubAuthoritySid(ActiveDirectorySid, 2);
+            objectGuid.Data3 = *PhSubAuthoritySid(ActiveDirectorySid, 3);
+            objectGuid.Data4 = *PhSubAuthoritySid(ActiveDirectorySid, 4);
+
+            if (string = PhFormatGuid(&objectGuid.Guid))
+            {
+                PhMoveReference(&string, PhSubstring(string, 1, string->Length / sizeof(WCHAR) - 2)); // Strip {}
+                return string;
+            }
+        }
+    }
+
+    return NULL;
+}

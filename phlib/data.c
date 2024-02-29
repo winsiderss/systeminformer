@@ -132,7 +132,7 @@ PSID PhSeCloudActiveDirectorySid( // S-1-12-1 (dmex)
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static UCHAR activeDirectorySidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    static UCHAR activeDirectorySidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[1])];
     PSID activeDirectorySid = (PSID)activeDirectorySidBuffer;
 
     if (PhBeginInitOnce(&initOnce))
