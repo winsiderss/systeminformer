@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2023
+ *     dmex    2015-2024
  *     jxy-s   2022
  *
  */
@@ -209,16 +209,27 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
-    HWND GraphHandle;
+
+    HWND LabelSendHandle;
+    HWND LabelReceiveHandle;
+
+    HWND GraphSendHandle;
+    HWND GraphReceiveHandle;
 
     HANDLE DetailsWindowThreadHandle;
     HWND DetailsWindowDialogHandle;
     PH_EVENT DetailsWindowInitializedEvent;
 
     PPH_SYSINFO_SECTION SysinfoSection;
-    PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    LONG GraphPadding;
+
+    PH_GRAPH_STATE GraphSendState;
+    PH_GRAPH_STATE GraphReceiveState;
+
+    HWND NetworkSendGroupBox;
+    HWND NetworkReceiveGroupBox;
 
     HWND AdapterNameLabel;
     HWND AdapterTextLabel;
@@ -1038,7 +1049,7 @@ VOID DiskDriveSysInfoInitializing(
 
 // netgraph.c
 
-VOID NetAdapterSysInfoInitializing(
+VOID NetworkDeviceSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     );
