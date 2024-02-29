@@ -721,6 +721,15 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
                     break;
                 }
             }
+            else if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(context->TokenGroupSid), PhIdentifierAuthoritySid(PhSeCloudActiveDirectorySid())))
+            {
+                ULONG subAuthority = *PhSubAuthoritySid(context->TokenGroupSid, 0);
+
+                if (subAuthority == 1)
+                {
+                    PhMoveReference(&sidString, PhGetAzureDirectoryObjectSid(context->TokenGroupSid));
+                }
+            }
         }
 
         if (sidString)
@@ -1075,6 +1084,14 @@ static NTSTATUS NTAPI PhpTokenUserResolveWorker(
     {
         PhSetWindowText(context->WindowHandle, fullUserName->Buffer);
         PhDereferenceObject(fullUserName);
+    }
+    else
+    {
+        if (fullUserName = PhGetAzureDirectoryObjectSid(context->TokenUserSid))
+        {
+            PhSetWindowText(context->WindowHandle, fullUserName->Buffer);
+            PhDereferenceObject(fullUserName);
+        }
     }
 
     PhFree(context->TokenUserSid);

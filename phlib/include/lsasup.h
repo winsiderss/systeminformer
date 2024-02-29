@@ -231,6 +231,13 @@ PhCreateServiceSidToStringSid(
     _In_ PPH_STRINGREF ServiceName
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetAzureDirectoryObjectSid(
+    _In_ PSID ActiveDirectorySid
+    );
+
 #ifdef __cplusplus
 }
 #endif
