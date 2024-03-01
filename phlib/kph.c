@@ -1890,9 +1890,9 @@ NTSTATUS KphSetInformerProcessFilter(
 }
 
 NTSTATUS KphStripProtectedProcessMasks(
-    HANDLE ProcessHandle,
-    ACCESS_MASK ProcessAllowedMask,
-    ACCESS_MASK ThreadAllowedMask
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK ProcessAllowedMask,
+    _In_ ACCESS_MASK ThreadAllowedMask
     )
 {
     NTSTATUS status;
