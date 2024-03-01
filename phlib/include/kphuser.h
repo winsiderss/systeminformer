@@ -582,9 +582,9 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphStripProtectedProcessMasks(
-    HANDLE ProcessHandle,
-    ACCESS_MASK ProcessAllowedMask,
-    ACCESS_MASK ThreadAllowedMask
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK ProcessAllowedMask,
+    _In_ ACCESS_MASK ThreadAllowedMask
     );
 
 EXTERN_C_END
