@@ -587,6 +587,18 @@ KphStripProtectedProcessMasks(
     _In_ ACCESS_MASK ThreadAllowedMask
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ KPH_MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_opt_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONG MemoryInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
 EXTERN_C_END
 
 #endif

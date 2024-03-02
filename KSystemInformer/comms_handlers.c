@@ -55,6 +55,7 @@ KPHM_DEFINE_HANDLER(KphpCommsAssignThreadSessionToken);
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerProcessFilter);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformerProcessFilter);
 KPHM_DEFINE_HANDLER(KphpCommsStripProtectedProcessMasks);
+KPHM_DEFINE_HANDLER(KphpCommsQueryVirtualMemory);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -67,6 +68,7 @@ KPHM_DEFINE_REQUIRED_STATE(KphpCommsOpenThreadProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsCreateFileRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationThreadRequires);
+KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryVirtualMemoryRequires);
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
@@ -112,6 +114,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgGetInformerProcessFilter,      KphpCommsGetInformerProcessFilter,      KphpCommsRequireLow },
 { KphMsgSetInformerProcessFilter,      KphpCommsSetInformerProcessFilter,      KphpCommsRequireLow },
 { KphMsgStripProtectedProcessMasks,    KphpCommsStripProtectedProcessMasks,    KphpCommsRequireMaximum },
+{ KphMsgQueryVirtualMemory,            KphpCommsQueryVirtualMemory,            KphpCommsQueryVirtualMemoryRequires },
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
@@ -1485,3 +1488,61 @@ NTSTATUS KSIAPI KphpCommsStripProtectedProcessMasks(
 
     return STATUS_SUCCESS;
 }
+
+_Function_class_(KPHM_REQUIRED_STATE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+KPH_PROCESS_STATE KSIAPI KphpCommsQueryVirtualMemoryRequires(
+    _In_ PKPH_CLIENT Client,
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQueryVirtualMemory);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    switch (Message->User.QueryVirtualMemory.MemoryInformationClass)
+    {
+        case KphMemoryImageSection:
+        case KphMemoryDataSection:
+        {
+            return KPH_PROCESS_STATE_MEDIUM;
+        }
+        default:
+        {
+            return KPH_PROCESS_STATE_MAXIMUM;
+        }
+    }
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsQueryVirtualMemory(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_QUERY_VIRTUAL_MEMORY msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQueryVirtualMemory);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.QueryVirtualMemory;
+
+    msg->Status = KphQueryVirtualMemory(msg->ProcessHandle,
+                                        msg->BaseAddress,
+                                        msg->MemoryInformationClass,
+                                        msg->MemoryInformation,
+                                        msg->MemoryInformationLength,
+                                        msg->ReturnLength,
+                                        UserMode);
+
+    return STATUS_SUCCESS;
+}
+
