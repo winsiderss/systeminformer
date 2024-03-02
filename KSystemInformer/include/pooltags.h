@@ -51,6 +51,7 @@
 
 #define KPH_TAG_COPY_VM                         '0vpK'
 #define KPH_TAG_SECTION_QUERY                   '1vpK'
+#define KPH_TAG_VM_QUERY                        '2vpK'
 
 // debug
 

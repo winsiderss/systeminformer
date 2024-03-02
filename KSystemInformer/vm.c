@@ -696,7 +696,7 @@ Exit:
  * \param[in] SectionInformationClass Classification of information to query.
  * \param[out] SectionInformation Populated with the requested information.
  * \param[in] SectionInformationLength Length of the information buffer.
- * \param[out] ReturnLength Set to the number of bytes written or the requires
+ * \param[out] ReturnLength Set to the number of bytes written or the required
  * number of bytes if the input length is insufficient.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
@@ -853,6 +853,363 @@ Exit:
     if (buffer && (buffer != stackBuffer))
     {
         KphFree(buffer, KPH_TAG_SECTION_QUERY);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Queries information about a region of pages within the virtual address
+ * space of the specified process.
+ *
+ * \param[in] ProcessHandle Handle for the process whose context the pages to be
+ * queried resides.
+ * \param[in] BaseAddress The base address of the region of pages to be queried.
+ * \param[in] MemoryInformationClass The memory information to retrieve.
+ * \param[out] MemoryInformation Populated with the requested information.
+ * \param[in] MemoryInformationLength Length of the information buffer.
+ * \param[out] ReturnLength Set to the number of bytes written or the required
+ * number of bytes if the input length is insufficient.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ KPH_MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_opt_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONG MemoryInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    PKPH_THREAD_CONTEXT thread;
+    PUNICODE_STRING mappedFileName;
+
+    PAGED_CODE_PASSIVE();
+
+    returnLength = 0;
+    thread = NULL;
+    mappedFileName = NULL;
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            if (MemoryInformation)
+            {
+                ProbeForWrite(MemoryInformation, MemoryInformationLength, 1);
+            }
+
+            if (ReturnLength)
+            {
+                ProbeOutputType(ReturnLength, ULONG);
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+    switch (MemoryInformationClass)
+    {
+        case KphMemoryImageSection:
+        {
+            SIZE_T length;
+            OBJECT_ATTRIBUTES objectAttributes;
+            IO_STATUS_BLOCK ioStatusBlock;
+            HANDLE fileHandle;
+            HANDLE sectionHandle;
+
+            if (!MemoryInformation ||
+                (MemoryInformationLength < sizeof(HANDLE)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                goto Exit;
+            }
+
+            //
+            // At this time there is no known way to open the image section
+            // for an address in a process without reopening the file.
+            //
+            // For image mappings the VAD does not retain a reference to the
+            // actual section object but does contain a pointer to the file
+            // object. There are a few exported APIs for creating sections
+            // using a file object directly. And, using the file object in the
+            // VAD, it is possible to map the data section but not the image
+            // section. Internally, MiCreateSection has checks for SEC_IMAGE
+            // when passing in a file object - this check will fail the
+            // operation.
+            //
+            // Unfortunately, to create the image section, we have to query the
+            // file name and open the file again. This introduces two points of
+            // failure that could be avoided if we could create the image
+            // section using the file object. The unfortunate failure mode is
+            // the file being "gone" or otherwise inaccessible. The other cases
+            // might be a resource constraint or a filter interfering with
+            // access to the file.
+            //
+
+            mappedFileName = KphAllocatePaged(MAX_PATH, KPH_TAG_VM_QUERY);
+            if (!mappedFileName)
+            {
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
+            }
+
+            status = ZwQueryVirtualMemory(ProcessHandle,
+                                          BaseAddress,
+                                          MemoryMappedFilenameInformation,
+                                          mappedFileName,
+                                          MAX_PATH,
+                                          &length);
+            if ((status == STATUS_BUFFER_OVERFLOW) && (length > 0))
+            {
+                KphFree(mappedFileName, KPH_TAG_VM_QUERY);
+                mappedFileName = KphAllocatePaged(length, KPH_TAG_VM_QUERY);
+                if (!mappedFileName)
+                {
+                    status = STATUS_INSUFFICIENT_RESOURCES;
+                    goto Exit;
+                }
+
+                status = ZwQueryVirtualMemory(ProcessHandle,
+                                              BaseAddress,
+                                              MemoryMappedFilenameInformation,
+                                              mappedFileName,
+                                              length,
+                                              &length);
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "ZwQueryVirtualMemory failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+
+            InitializeObjectAttributes(&objectAttributes,
+                                       mappedFileName,
+                                       OBJ_KERNEL_HANDLE,
+                                       NULL,
+                                       NULL);
+
+            status = KphCreateFile(&fileHandle,
+                                   FILE_READ_ACCESS | SYNCHRONIZE,
+                                   &objectAttributes,
+                                   &ioStatusBlock,
+                                   NULL,
+                                   FILE_ATTRIBUTE_NORMAL,
+                                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                   FILE_OPEN,
+                                   FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                                   NULL,
+                                   0,
+                                   IO_IGNORE_SHARE_ACCESS_CHECK,
+                                   KernelMode);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "KphCreateFile failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+
+            InitializeObjectAttributes(&objectAttributes,
+                                       NULL,
+                                       (AccessMode ? 0 : OBJ_KERNEL_HANDLE),
+                                       NULL,
+                                       NULL);
+
+            status = ZwCreateSection(&sectionHandle,
+                                     SECTION_QUERY | SECTION_MAP_READ,
+                                     &objectAttributes,
+                                     NULL,
+                                     PAGE_READONLY,
+                                     SEC_IMAGE_NO_EXECUTE,
+                                     fileHandle);
+
+            ObCloseHandle(fileHandle, KernelMode);
+
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "ZwCreateSection failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+
+            if (AccessMode != KernelMode)
+            {
+                __try
+                {
+                    *(PHANDLE)MemoryInformation = sectionHandle;
+                    returnLength = sizeof(HANDLE);
+                    status = STATUS_SUCCESS;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    ObCloseHandle(sectionHandle, UserMode);
+                    status = GetExceptionCode();
+                }
+            }
+            else
+            {
+                *(PHANDLE)MemoryInformation = sectionHandle;
+                returnLength = sizeof(HANDLE);
+                status = STATUS_SUCCESS;
+            }
+
+            break;
+        }
+        case KphMemoryDataSection:
+        {
+            SIZE_T length;
+            KPH_VM_TLS_CREATE_DATA_SECTION tls;
+            PKPH_MEMORY_DATA_SECTION memoryInformation;
+
+            if (!MemoryInformation ||
+                (MemoryInformationLength) < sizeof(KPH_MEMORY_DATA_SECTION))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                goto Exit;
+            }
+
+            //
+            // The data section may be created using the file object in the VAD.
+            // First we have to access the file object from the VAD. We could do
+            // some dynamic data and walk the process VAD ourselves, but there
+            // is a "cleaner" option. Querying for the memory mapped file name
+            // will do the work to enumerate the VAD and will land us in our
+            // mini-filter instance with the file object. This still comes with
+            // possibility of filters interfering with the name query, but at
+            // least we don't have to go through an entire IRP_MJ_CREATE. The
+            // advantage here is we are able to create a section object for a
+            // file that might be "gone" or otherwise inaccessible.
+            //
+
+            thread = KphGetCurrentThreadContext();
+            if (!thread)
+            {
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
+            }
+
+            RtlZeroMemory(&tls, sizeof(tls));
+
+            tls.AccessMode = AccessMode;
+
+            thread->VmTlsCreateDataSection = &tls;
+
+            status = ZwQueryVirtualMemory(ProcessHandle,
+                                          BaseAddress,
+                                          MemoryMappedFilenameInformation,
+                                          NULL,
+                                          0,
+                                          &length);
+
+            if (thread->VmTlsCreateDataSection)
+            {
+                thread->VmTlsCreateDataSection = NULL;
+
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "VmTlsCreateDataSection was not null! "
+                              "ZwQueryVirtualMemory returned: %!STATUS!",
+                              status);
+
+                status = STATUS_UNEXPECTED_IO_ERROR;
+                goto Exit;
+            }
+
+            status = tls.Status;
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "KPH_VM_TLS_CREATE_DATA_SECTION status: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+
+            memoryInformation = MemoryInformation;
+
+            if (AccessMode != KernelMode)
+            {
+                __try
+                {
+                    memoryInformation->SectionHandle = tls.SectionHandle;
+                    memoryInformation->SectionFileSize = tls.SectionFileSize;
+                    returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
+                    status = STATUS_SUCCESS;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    ObCloseHandle(tls.SectionHandle, UserMode);
+                    status = GetExceptionCode();
+                }
+            }
+            else
+            {
+                memoryInformation->SectionHandle = tls.SectionHandle;
+                memoryInformation->SectionFileSize = tls.SectionFileSize;
+                returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
+                status = STATUS_SUCCESS;
+            }
+
+            break;
+        }
+        default:
+        {
+            status = STATUS_INVALID_INFO_CLASS;
+            break;
+        }
+    }
+
+Exit:
+
+    if (ReturnLength)
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *ReturnLength = returnLength;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                NOTHING;
+            }
+        }
+        else
+        {
+            *ReturnLength = returnLength;
+        }
+    }
+
+    if (mappedFileName)
+    {
+        KphFree(mappedFileName, KPH_TAG_VM_QUERY);
+    }
+
+    if (thread)
+    {
+        KphDereferenceObject(thread);
     }
 
     return status;

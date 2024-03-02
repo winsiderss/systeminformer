@@ -365,6 +365,17 @@ typedef struct _KPHM_STRIP_PROTECTED_PROCESS_MASKS
     ACCESS_MASK ThreadAllowedMask;
 } KPHM_STRIP_PROTECTED_PROCESS_MASKS, *PKPHM_STRIP_PROTECTED_PROCESS_MASKS;
 
+typedef struct _KPHM_QUERY_VIRTUAL_MEMORY
+{
+    NTSTATUS Status;
+    HANDLE ProcessHandle;
+    PVOID BaseAddress;
+    KPH_MEMORY_INFORMATION_CLASS MemoryInformationClass;
+    PVOID MemoryInformation;
+    ULONG MemoryInformationLength;
+    PULONG ReturnLength;
+} KPHM_QUERY_VIRTUAL_MEMORY, *PKPHM_QUERY_VIRTUAL_MEMORY;
+
 //
 // KPH -> PH
 //

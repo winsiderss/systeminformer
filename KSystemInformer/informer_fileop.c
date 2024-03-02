@@ -2030,6 +2030,77 @@ Exit:
 }
 
 /**
+ * \brief Handles a request to perform an action inside of the filter.
+ *
+ * \param[in,out] Data The callback data for the operation.
+ * \param[in] FltObjects The related objects for the operation.
+ */
+VOID KphpFltRequestHandler(
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects
+    )
+{
+    PKPH_THREAD_CONTEXT thread;
+
+    //
+    // KphQueryVirtualMemory will use this to create a data section object.
+    // It will do this by issuing a MemoryMappedFilenameInformation. This
+    // results in an IRP_MJ_QUERY_INFORMATION with FileNameInformation. And will
+    // have previously set the VmTlsCreateDataSection to the address of the
+    // KphQueryVirtualMemory stack to pass information to and from this call.
+    //
+
+    if ((Data->Iopb->MajorFunction != IRP_MJ_QUERY_INFORMATION) ||
+        (Data->Iopb->Parameters.QueryFileInformation.FileInformationClass != FileNameInformation))
+    {
+        return;
+    }
+
+    thread = KphGetCurrentThreadContext();
+    if (!thread)
+    {
+        return;
+    }
+
+    if (thread->VmTlsCreateDataSection)
+    {
+        PKPH_VM_TLS_CREATE_DATA_SECTION tls;
+        NTSTATUS status;
+        OBJECT_ATTRIBUTES objectAttributes;
+        PVOID sectionObject;
+
+        tls = thread->VmTlsCreateDataSection;
+
+        thread->VmTlsCreateDataSection = NULL;
+
+        InitializeObjectAttributes(&objectAttributes,
+                                   NULL,
+                                   (tls->AccessMode ? 0 : OBJ_KERNEL_HANDLE),
+                                   NULL,
+                                   NULL);
+
+        status = FsRtlCreateSectionForDataScan(&tls->SectionHandle,
+                                               &sectionObject,
+                                               &tls->SectionFileSize,
+                                               FltObjects->FileObject,
+                                               SECTION_QUERY | SECTION_MAP_READ,
+                                               &objectAttributes,
+                                               NULL,
+                                               PAGE_READONLY,
+                                               SEC_COMMIT,
+                                               0);
+        if (NT_SUCCESS(status))
+        {
+            ObDereferenceObject(sectionObject);
+        }
+
+        tls->Status = status;
+    }
+
+    KphDereferenceObject(thread);
+}
+
+/**
  * \brief Filter pre operation callback for file operations.
  *
  * \param[in,out] Data The callback data for the operation.
@@ -2058,6 +2129,8 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
     NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     *CompletionContext = NULL;
+
+    KphpFltRequestHandler(Data, FltObjects);
 
     sequence = InterlockedIncrementU64(&KphpFltSequence);
     callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;

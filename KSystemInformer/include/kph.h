@@ -1158,6 +1158,26 @@ NTSTATUS KphQuerySection(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+typedef struct _KPH_VM_TLS_CREATE_DATA_SECTION
+{
+    NTSTATUS Status;
+    HANDLE SectionHandle;
+    LARGE_INTEGER SectionFileSize;
+    KPROCESSOR_MODE AccessMode;
+} KPH_VM_TLS_CREATE_DATA_SECTION, *PKPH_VM_TLS_CREATE_DATA_SECTION;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ KPH_MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_opt_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONG MemoryInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // hash
 
 typedef struct _KPH_HASH
@@ -1638,6 +1658,7 @@ typedef struct _KPH_THREAD_CONTEXT
         ULONG ThreadId;
     } WSL;
 
+    PVOID VmTlsCreateDataSection;
 } KPH_THREAD_CONTEXT, *PKPH_THREAD_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphThreadContextType;

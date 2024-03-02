@@ -64,6 +64,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgGetInformerProcessFilter,
     KphMsgSetInformerProcessFilter,
     KphMsgStripProtectedProcessMasks,
+    KphMsgQueryVirtualMemory,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -342,6 +343,7 @@ typedef struct _KPH_MESSAGE
             KPHM_GET_INFORMER_PROCESS_FILTER GetInformerProcessFilter;
             KPHM_SET_INFORMER_PROCESS_FILTER SetInformerProcessFilter;
             KPHM_STRIP_PROTECTED_PROCESS_MASKS StripProtectedProcessMasks;
+            KPHM_QUERY_VIRTUAL_MEMORY QueryVirtualMemory;
         } User;
 
         //
