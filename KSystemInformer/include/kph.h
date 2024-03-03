@@ -110,12 +110,64 @@ ULONG64 InterlockedIncrementU64(
 }
 
 FORCEINLINE
+ULONG_PTR InterlockedExchangeULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Value
+    )
+{
+#ifdef _WIN64
+    return (ULONG_PTR)InterlockedExchange64((LONG64*)Target, (LONG64)Value);
+#else
+    return (ULONG_PTR)InterlockedExchange((LONG*)Target, (LONG)Value);
+#endif
+}
+
+FORCEINLINE
 ULONG_PTR InterlockedExchangeAddULongPtr(
     _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
     _In_ ULONG_PTR Value
     )
 {
     return (ULONG_PTR)InterlockedExchangeAddSizeT((SIZE_T*)Target, (SIZE_T)Value);
+}
+
+FORCEINLINE
+BOOLEAN InterlockedBitTestAndResetULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Bit
+    )
+{
+#ifdef _WIN64
+    return InterlockedBitTestAndReset64((LONG64*)Target, (LONG64)Bit);
+#else
+    return InterlockedBitTestAndReset((LONG*)Target, (LONG)Bit);
+#endif
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedCompareExchangeULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Value,
+    _In_ ULONG_PTR Expected
+    )
+{
+#ifdef _WIN64
+    return (ULONG_PTR)InterlockedCompareExchange64((LONG64*)Target,
+                                                   (LONG64)Value,
+                                                   (LONG64)Expected);
+#else
+    return (ULONG_PTR)InterlockedCompareExchange((LONG*)Target,
+                                                 (LONG)Value,
+                                                 (LONG)Expected);
+#endif
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedDecrementULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target
+    )
+{
+    return (ULONG_PTR)InterlockedDecrementSizeT((SIZE_T*)Target);
 }
 
 FORCEINLINE
