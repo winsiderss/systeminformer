@@ -375,6 +375,7 @@ typedef enum _KPH_MEMORY_INFORMATION_CLASS
 {
     KphMemoryImageSection,          // q: HANDLE
     KphMemoryDataSection,           // q: KPH_MEMORY_DATA_SECTION
+    KphMemoryMappedInformation,     // q: KPH_MEMORY_MAPPED_INFORMATION
 } KPH_MEMORY_INFORMATION_CLASS, *PKPH_MEMORY_INFORMATION_CLASS;
 
 typedef struct _KPH_MEMORY_DATA_SECTION
@@ -382,6 +383,16 @@ typedef struct _KPH_MEMORY_DATA_SECTION
     HANDLE SectionHandle;
     LARGE_INTEGER SectionFileSize;
 } KPH_MEMORY_DATA_SECTION, *PKPH_MEMORY_DATA_SECTION;
+
+typedef struct _KPH_MEMORY_MAPPED_INFORMATION
+{
+    PVOID FileObject;
+    PVOID SectionObjectPointers;
+    PVOID DataControlArea;
+    PVOID SharedCacheMap;
+    PVOID ImageControlArea;
+    ULONG UserWritableReferences;
+} KPH_MEMORY_MAPPED_INFORMATION, *PKPH_MEMORY_MAPPED_INFORMATION;
 
 // Verification
 

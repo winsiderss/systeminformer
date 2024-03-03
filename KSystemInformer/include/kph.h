@@ -1711,6 +1711,7 @@ typedef struct _KPH_THREAD_CONTEXT
     } WSL;
 
     PVOID VmTlsCreateDataSection;
+    PVOID VmTlsMappedInformation;
 } KPH_THREAD_CONTEXT, *PKPH_THREAD_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphThreadContextType;

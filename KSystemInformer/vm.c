@@ -990,7 +990,7 @@ NTSTATUS KphQueryVirtualMemory(
 
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ZwQueryVirtualMemory failed: %!STATUS!",
                               status);
@@ -1045,7 +1045,7 @@ NTSTATUS KphQueryVirtualMemory(
 
             if (!NT_SUCCESS(status))
             {
-                KphTracePrint(TRACE_LEVEL_ERROR,
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
                               GENERAL,
                               "ZwCreateSection failed: %!STATUS!",
                               status);
@@ -1170,6 +1170,71 @@ NTSTATUS KphQueryVirtualMemory(
                 memoryInformation->SectionFileSize = tls.SectionFileSize;
                 returnLength = sizeof(KPH_MEMORY_DATA_SECTION);
                 status = STATUS_SUCCESS;
+            }
+
+            break;
+        }
+        case KphMemoryMappedInformation:
+        {
+            SIZE_T length;
+            KPH_MEMORY_MAPPED_INFORMATION tls;
+            PKPH_MEMORY_MAPPED_INFORMATION memoryInformation;
+
+            if (!MemoryInformation ||
+                (MemoryInformationLength) < sizeof(KPH_MEMORY_MAPPED_INFORMATION))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                goto Exit;
+            }
+
+            thread = KphGetCurrentThreadContext();
+            if (!thread)
+            {
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
+            }
+
+            RtlZeroMemory(&tls, sizeof(tls));
+
+            thread->VmTlsMappedInformation = &tls;
+
+            status = ZwQueryVirtualMemory(ProcessHandle,
+                                          BaseAddress,
+                                          MemoryMappedFilenameInformation,
+                                          NULL,
+                                          0,
+                                          &length);
+
+            if (thread->VmTlsMappedInformation)
+            {
+                thread->VmTlsMappedInformation = NULL;
+
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "VmTlsMappedInformation was not null! "
+                              "ZwQueryVirtualMemory returned: %!STATUS!",
+                              status);
+
+                status = STATUS_UNEXPECTED_IO_ERROR;
+                goto Exit;
+            }
+
+            memoryInformation = MemoryInformation;
+
+            __try
+            {
+                memoryInformation->FileObject = tls.FileObject;
+                memoryInformation->SectionObjectPointers = tls.SectionObjectPointers;
+                memoryInformation->DataControlArea = tls.DataControlArea;
+                memoryInformation->SharedCacheMap = tls.SharedCacheMap;
+                memoryInformation->ImageControlArea = tls.ImageControlArea;
+                memoryInformation->UserWritableReferences = tls.UserWritableReferences;
+                returnLength = sizeof(KPH_MEMORY_MAPPED_INFORMATION);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
             }
 
             break;
