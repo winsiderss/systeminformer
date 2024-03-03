@@ -2289,6 +2289,9 @@ Exit:
 
 PAGED_FILE();
 
+/**
+ * \brief Cleans up the file operation filter.
+*/
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpFltCleanupFileOp(
     VOID
@@ -2304,6 +2307,9 @@ VOID KphpFltCleanupFileOp(
     KphDeleteNPagedLookaside(&KphpFltCompletionContextLookaside);
 }
 
+/**
+ * \brief Initializes the file operation filter.
+ */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpFltInitializeFileOp(
     VOID
