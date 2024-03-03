@@ -2046,7 +2046,7 @@ VOID KphpFltRequestHandler(
     // KphQueryVirtualMemory will use this to create a data section object.
     // It will do this by issuing a MemoryMappedFilenameInformation. This
     // results in an IRP_MJ_QUERY_INFORMATION with FileNameInformation. And will
-    // have previously set the VmTlsCreateDataSection to the address of the
+    // have previously set the one of the "TLS slots" to the address of the
     // KphQueryVirtualMemory stack to pass information to and from this call.
     //
 
@@ -2095,6 +2095,24 @@ VOID KphpFltRequestHandler(
         }
 
         tls->Status = status;
+    }
+    else if (thread->VmTlsMappedInformation)
+    {
+        PKPH_MEMORY_MAPPED_INFORMATION tls;
+
+        tls = thread->VmTlsMappedInformation;
+
+        thread->VmTlsMappedInformation = NULL;
+
+        tls->FileObject = FltObjects->FileObject;
+        tls->SectionObjectPointers = FltObjects->FileObject->SectionObjectPointer;
+        if (FltObjects->FileObject->SectionObjectPointer)
+        {
+            tls->DataControlArea = FltObjects->FileObject->SectionObjectPointer->DataSectionObject;
+            tls->SharedCacheMap = FltObjects->FileObject->SectionObjectPointer->SharedCacheMap;
+            tls->ImageControlArea = FltObjects->FileObject->SectionObjectPointer->ImageSectionObject;
+            tls->UserWritableReferences = MmDoesFileHaveUserWritableReferences(FltObjects->FileObject->SectionObjectPointer);
+        }
     }
 
     KphDereferenceObject(thread);

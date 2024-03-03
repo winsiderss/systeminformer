@@ -1510,6 +1510,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsQueryVirtualMemoryRequires(
         {
             return KPH_PROCESS_STATE_MEDIUM;
         }
+        case KphMemoryMappedInformation:
         default:
         {
             return KPH_PROCESS_STATE_MAXIMUM;
