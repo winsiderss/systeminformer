@@ -94,7 +94,6 @@ VOID KphpDriverCleanup(
     KphCleanupSigning();
     KphCleanupVerify();
     KphCleanupHashing();
-    KphCleanupSocket();
     KphCleanupParameters();
 }
 
@@ -231,17 +230,6 @@ NTSTATUS DriverEntry(
                   KphKernelVersion.MinorVersion,
                   KphKernelVersion.BuildNumber,
                   KphKernelVersion.Revision);
-
-    status = KphInitializeSocket();
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphInitializeSocket failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
 
     status = KphInitializeHashing();
     if (!NT_SUCCESS(status))
