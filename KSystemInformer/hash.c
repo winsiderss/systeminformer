@@ -13,17 +13,118 @@
 
 #include <trace.h>
 
+#define KPH_HASHING_BUFFER_SIZE (16 * 1024)
+
+#define KPH_HASH_EACACHE_MD5                 KPH_KERNEL_PURGE_EA "MD5"
+#define KPH_HASH_EACACHE_SHA1                KPH_KERNEL_PURGE_EA "SHA1"
+#define KPH_HASH_EACACHE_SHA1_AUTHENTICODE   KPH_KERNEL_PURGE_EA "SHA1A"
+#define KPH_HASH_EACACHE_SHA256              KPH_KERNEL_PURGE_EA "SHA256"
+#define KPH_HASH_EACACHE_SHA256_AUTHENTICODE KPH_KERNEL_PURGE_EA "SHA256A"
+#define KPH_HASH_EACACHE_SHA384              KPH_KERNEL_PURGE_EA "SHA384"
+#define KPH_HASH_EACACHE_SHA512              KPH_KERNEL_PURGE_EA "SHA512"
+
+#define KPH_HASH_EACACHE_LEN(x)                                                \
+    ALIGN_UP_BY(FIELD_OFFSET(FILE_GET_EA_INFORMATION, EaName) +                \
+                sizeof(x),                                                     \
+                sizeof(ULONG))
+
+#define KPH_HASH_EACACHE_FULL_LEN(x)                                           \
+    ALIGN_UP_BY(FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) +               \
+                sizeof(x) +                                                    \
+                KPH_HASH_ALGORITHM_MAX_LENGTH,                                 \
+                sizeof(ULONG))
+
+#define KPH_HASH_EACACHE_MAX_LENGTH (                                          \
+    KPH_HASH_EACACHE_LEN(KPH_HASH_EACACHE_MD5) +                               \
+    KPH_HASH_EACACHE_LEN(KPH_HASH_EACACHE_SHA1) +                              \
+    KPH_HASH_EACACHE_LEN(KPH_HASH_EACACHE_SHA1_AUTHENTICODE) +                 \
+    KPH_HASH_EACACHE_LEN(KPH_HASH_EACACHE_SHA256) +                            \
+    KPH_HASH_EACACHE_LEN(KPH_HASH_EACACHE_SHA256_AUTHENTICODE) +               \
+    KPH_HASH_EACACHE_LEN(KPH_HASH_EACACHE_SHA384) +                            \
+    KPH_HASH_EACACHE_LEN(KPH_HASH_EACACHE_SHA512))
+
+#define KPH_HASH_EACACHE_FULL_MAX_LENGTH (                                     \
+    KPH_HASH_EACACHE_FULL_LEN(KPH_HASH_EACACHE_MD5) +                          \
+    KPH_HASH_EACACHE_FULL_LEN(KPH_HASH_EACACHE_SHA1) +                         \
+    KPH_HASH_EACACHE_FULL_LEN(KPH_HASH_EACACHE_SHA1_AUTHENTICODE) +            \
+    KPH_HASH_EACACHE_FULL_LEN(KPH_HASH_EACACHE_SHA256) +                       \
+    KPH_HASH_EACACHE_FULL_LEN(KPH_HASH_EACACHE_SHA256_AUTHENTICODE) +          \
+    KPH_HASH_EACACHE_FULL_LEN(KPH_HASH_EACACHE_SHA384) +                       \
+    KPH_HASH_EACACHE_FULL_LEN(KPH_HASH_EACACHE_SHA512))
+
+C_ASSERT(KPH_HASH_EACACHE_FULL_MAX_LENGTH <= KPH_HASHING_BUFFER_SIZE);
+
 typedef struct _KPH_HASHING_INFRASTRUCTURE
 {
     PAGED_LOOKASIDE_LIST HashingLookaside;
+    BCRYPT_ALG_HANDLE BCryptMd5Provider;
     BCRYPT_ALG_HANDLE BCryptSha1Provider;
     BCRYPT_ALG_HANDLE BCryptSha256Provider;
+    BCRYPT_ALG_HANDLE BCryptSha384Provider;
+    BCRYPT_ALG_HANDLE BCryptSha512Provider;
+    BYTE EaList[KPH_HASH_EACACHE_MAX_LENGTH];
 } KPH_HASHING_INFRASTRUCTURE, *PKPH_HASHING_INFRASTRUCTURE;
 
-#define KPH_HASHING_BUFFER_SIZE (16 * 1024)
+typedef struct _KPH_HASHING_EACACHE_INFORMATION
+{
+    ULONG HashSize;
+    ANSI_STRING EaName;
+} KPH_HASHING_EACACHE_INFORMATION, *PKPH_HASHING_EACACHE_INFORMATION;
+typedef const KPH_HASHING_EACACHE_INFORMATION *PCKPH_HASHING_EACACHE_INFORMATION;
+
+typedef struct _KPH_HASHING_EACACHE_CONTEXT
+{
+    HANDLE FileHandle;
+    PFILE_OBJECT FileObject;
+    HANDLE OplockEventHandle;
+    PKEVENT OplockEventObject;
+    IO_STATUS_BLOCK IoStatusBlock;
+    REQUEST_OPLOCK_OUTPUT_BUFFER OplockOutput;
+} KPH_HASHING_EACACHE_CONTEXT, *PKPH_HASHING_EACACHE_CONTEXT;
+
+typedef struct _KPH_HASHING_AUTHENTICODE_REGION
+{
+    PVOID Start;
+    PVOID End;
+} KPH_HASHING_AUTHENTICODE_REGION, *PKPH_HASHING_AUTHENTICODE_REGION;
+
+typedef struct _KPH_HASHING_AUTHENTICODE_CONTEXT
+{
+    KPH_HASHING_AUTHENTICODE_REGION Regions[4];
+    PVOID SecurityBase;
+    ULONG SecuritySize;
+} KPH_HASHING_AUTHENTICODE_CONTEXT, *PKPH_HASHING_AUTHENTICODE_CONTEXT;
+
+typedef struct _KPH_HASHING_ENTRY
+{
+    BCRYPT_HASH_HANDLE Handle;
+    BOOLEAN HashComplete;
+    ULONG Length;
+    BYTE Hash[KPH_HASH_ALGORITHM_MAX_LENGTH];
+} KPH_HASHING_ENTRY, *PKPH_HASHING_ENTRY;
+
+typedef struct _KPH_HASHING_CONTEXT
+{
+    KPH_HASHING_ENTRY Hash[MaxKphHashAlgorithm];
+    KPH_HASHING_AUTHENTICODE_CONTEXT Authenticode;
+    BOOLEAN RequiresHashing;
+    KPH_HASHING_EACACHE_CONTEXT EaCache;
+    BYTE Buffer[KPH_HASHING_BUFFER_SIZE];
+} KPH_HASHING_CONTEXT, *PKPH_HASHING_CONTEXT;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpHashingInfraName = RTL_CONSTANT_STRING(L"KphHashingInfrastructure");
+static const KPH_HASHING_EACACHE_INFORMATION KphpHashEaCacheInfo[] =
+{
+    { (128 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_MD5) },
+    { (160 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA1) },
+    { (160 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA1_AUTHENTICODE) },
+    { (256 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA256) },
+    { (256 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA256_AUTHENTICODE) },
+    { (384 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA384) },
+    { (512 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA512) },
+};
+C_ASSERT(ARRAYSIZE(KphpHashEaCacheInfo) == MaxKphHashAlgorithm);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_HASHING_INFRASTRUCTURE KphpHashingInfra = NULL;
@@ -67,12 +168,28 @@ NTSTATUS KSIAPI KphpInitHashingInfra(
 {
     NTSTATUS status;
     PKPH_HASHING_INFRASTRUCTURE infra;
+    PFILE_GET_EA_INFORMATION eaInfo;
 
     PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Parameter);
 
     infra = Object;
+
+    status = BCryptOpenAlgorithmProvider(&infra->BCryptMd5Provider,
+                                         BCRYPT_MD5_ALGORITHM,
+                                         NULL,
+                                         0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
+                      status);
+
+        infra->BCryptMd5Provider = NULL;
+        goto Exit;
+    }
 
     status = BCryptOpenAlgorithmProvider(&infra->BCryptSha1Provider,
                                          BCRYPT_SHA1_ALGORITHM,
@@ -104,23 +221,102 @@ NTSTATUS KSIAPI KphpInitHashingInfra(
         goto Exit;
     }
 
+    status = BCryptOpenAlgorithmProvider(&infra->BCryptSha384Provider,
+                                         BCRYPT_SHA384_ALGORITHM,
+                                         NULL,
+                                         0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
+                      status);
+
+        infra->BCryptSha384Provider = NULL;
+        goto Exit;
+    }
+
+    status = BCryptOpenAlgorithmProvider(&infra->BCryptSha512Provider,
+                                         BCRYPT_SHA512_ALGORITHM,
+                                         NULL,
+                                         0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
+                      status);
+
+        infra->BCryptSha512Provider = NULL;
+        goto Exit;
+    }
+
+    //
+    // Pre-populate the EA cache items into the buffer to be used when querying
+    // for the cached EA values. We compile time assert that it will all fit in
+    // the buffer.
+    //
+
+    eaInfo = (PFILE_GET_EA_INFORMATION)infra->EaList;
+    eaInfo->NextEntryOffset = 0;
+
+    for (ULONG i = 0; i < ARRAYSIZE(KphpHashEaCacheInfo); i++)
+    {
+        PCKPH_HASHING_EACACHE_INFORMATION eaCacheInfo;
+
+        eaInfo = Add2Ptr(eaInfo, eaInfo->NextEntryOffset);
+
+        eaCacheInfo = &KphpHashEaCacheInfo[i];
+
+        RtlCopyMemory(eaInfo->EaName,
+                      eaCacheInfo->EaName.Buffer,
+                      eaCacheInfo->EaName.Length);
+
+        eaInfo->EaNameLength = (UCHAR)eaCacheInfo->EaName.Length;
+        eaInfo->EaName[eaInfo->EaNameLength] = ANSI_NULL;
+
+        eaInfo->NextEntryOffset = FIELD_OFFSET(FILE_GET_EA_INFORMATION, EaName);
+        eaInfo->NextEntryOffset += eaCacheInfo->EaName.Length;
+        eaInfo->NextEntryOffset += sizeof(ANSI_NULL);
+        eaInfo->NextEntryOffset = ALIGN_UP_BY(eaInfo->NextEntryOffset,
+                                              sizeof(ULONG));
+    }
+
+    eaInfo->NextEntryOffset = 0;
+
     KphInitializePagedLookaside(&infra->HashingLookaside,
-                                KPH_HASHING_BUFFER_SIZE,
-                                KPH_TAG_HASHING_BUFFER);
+                                sizeof(KPH_HASHING_CONTEXT),
+                                KPH_TAG_HASHING_CONTEXT);
+
     status = STATUS_SUCCESS;
 
 Exit:
 
     if (!NT_SUCCESS(status))
     {
+        if (infra->BCryptMd5Provider)
+        {
+            BCryptCloseAlgorithmProvider(infra->BCryptMd5Provider, 0);
+        }
+
         if (infra->BCryptSha1Provider)
         {
             BCryptCloseAlgorithmProvider(infra->BCryptSha1Provider, 0);
         }
 
+        if (infra->BCryptSha384Provider)
+        {
+            BCryptCloseAlgorithmProvider(infra->BCryptSha384Provider, 0);
+        }
+
         if (infra->BCryptSha256Provider)
         {
             BCryptCloseAlgorithmProvider(infra->BCryptSha256Provider, 0);
+        }
+
+        if (infra->BCryptSha512Provider)
+        {
+            BCryptCloseAlgorithmProvider(infra->BCryptSha512Provider, 0);
         }
     }
 
@@ -143,11 +339,20 @@ VOID KSIAPI KphpDeleteHashingInfra(
 
     infra = Object;
 
+    NT_ASSERT(infra->BCryptMd5Provider);
+    BCryptCloseAlgorithmProvider(infra->BCryptMd5Provider, 0);
+
     NT_ASSERT(infra->BCryptSha1Provider);
     BCryptCloseAlgorithmProvider(infra->BCryptSha1Provider, 0);
 
     NT_ASSERT(infra->BCryptSha256Provider);
     BCryptCloseAlgorithmProvider(infra->BCryptSha256Provider, 0);
+
+    NT_ASSERT(infra->BCryptSha384Provider);
+    BCryptCloseAlgorithmProvider(infra->BCryptSha384Provider, 0);
+
+    NT_ASSERT(infra->BCryptSha512Provider);
+    BCryptCloseAlgorithmProvider(infra->BCryptSha512Provider, 0);
 
     KphDeletePagedLookaside(&infra->HashingLookaside);
 }
@@ -168,13 +373,13 @@ VOID KSIAPI KphpFreeHashingInfra(
 }
 
 /**
- * \brief Allocates a hashing buffer from the hashing look-aside list.
+ * \brief Allocates a hashing context from the hashing look-aside list.
  *
- * \return Hashing buffer, null on failure.
+ * \return Hashing context, null on failure.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Return_allocatesMem_
-PBYTE KphpAllocateHashingBuffer(
+PKPH_HASHING_CONTEXT KphpAllocateHashingContext(
     VOID
     )
 {
@@ -185,22 +390,71 @@ PBYTE KphpAllocateHashingBuffer(
     return KphAllocateFromPagedLookaside(&KphpHashingInfra->HashingLookaside);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpCloseHashingEaCacheContext(
+    _Inout_ PKPH_HASHING_EACACHE_CONTEXT Context
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    if (Context->FileObject)
+    {
+        ObDereferenceObject(Context->FileObject);
+        Context->FileObject = NULL;
+    }
+
+    if (Context->FileHandle)
+    {
+        NT_ASSERT(!KeAreAllApcsDisabled());
+
+        ObCloseHandle(Context->FileHandle, KernelMode);
+        Context->FileHandle = NULL;
+    }
+
+    if (Context->OplockEventObject)
+    {
+        KeWaitForSingleObject(Context->OplockEventObject,
+                              Executive,
+                              KernelMode,
+                              FALSE,
+                              NULL);
+
+        ObDereferenceObject(Context->OplockEventObject);
+        Context->OplockEventObject = NULL;
+    }
+
+    if (Context->OplockEventHandle)
+    {
+        ObCloseHandle(Context->OplockEventHandle, KernelMode);
+        Context->OplockEventHandle = NULL;
+    }
+}
+
 /**
- * \brief Frees a hashing buffer back to the look-aside list.
+ * \brief Frees a hashing context back to the look-aside list.
  *
- * \param[in] Buffer The buffer to free back to the look-aside list.
+ * \param[in] Buffer The context to free back to the look-aside list.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpFreeHashingBuffer(
-    _In_freesMem_ PBYTE Buffer
+VOID KphpFreeHashingContext(
+    _In_freesMem_ PKPH_HASHING_CONTEXT Context
     )
 {
     PAGED_CODE_PASSIVE();
 
     NT_ASSERT(KphpHashingInfra);
 
-    KphFreeToPagedLookaside(&KphpHashingInfra->HashingLookaside,
-                            Buffer);
+    for (ULONG i = 0; i < ARRAYSIZE(Context->Hash); i++)
+    {
+        if (Context->Hash[i].Handle)
+        {
+            BCryptDestroyHash(Context->Hash[i].Handle);
+        }
+    }
+
+    KphpCloseHashingEaCacheContext(&Context->EaCache);
+
+    KphFreeToPagedLookaside(&KphpHashingInfra->HashingLookaside, Context);
 }
 
 /**
@@ -291,8 +545,8 @@ VOID KphDereferenceHashingInfrastructure(
  *
  * \param[in] Buffer The buffer to hash.
  * \param[in] BufferLength The length of the buffer.
- * \param[in] AlgorithmId The algorithm to use.
- * \param[out] Hash Populated with the hash.
+ * \param[in] HashAlgorithm The algorithm to use for hashing.
+ * \param[out] HashInformation Populated with the hash information.
  *
  * \return Successful or errant status.
  */
@@ -301,8 +555,8 @@ _Must_inspect_result_
 NTSTATUS KphHashBuffer(
     _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
+    _In_ KPH_HASH_ALGORITHM HashAlgorithm,
+    _Out_ PKPH_HASH_INFORMATION HashInformation
     )
 {
     NTSTATUS status;
@@ -313,19 +567,49 @@ NTSTATUS KphHashBuffer(
 
     NT_ASSERT(KphpHashingInfra);
 
-    RtlZeroMemory(Hash, sizeof(*Hash));
+    hashHandle = NULL;
 
-    if (AlgorithmId == CALG_SHA1)
+    RtlZeroMemory(HashInformation, sizeof(*HashInformation));
+
+    HashInformation->Algorithm = HashAlgorithm;
+
+    switch (HashAlgorithm)
     {
-        algHandle = KphpHashingInfra->BCryptSha1Provider;
-    }
-    else if (AlgorithmId == CALG_SHA_256)
-    {
-        algHandle = KphpHashingInfra->BCryptSha256Provider;
-    }
-    else
-    {
-        return STATUS_INVALID_PARAMETER_2;
+        case KphHashAlgorithmMd5:
+        {
+            HashInformation->Length = (128 / 8);
+            algHandle = KphpHashingInfra->BCryptMd5Provider;
+            break;
+        }
+        case KphHashAlgorithmSha1:
+        {
+            HashInformation->Length = (160 / 8);
+            algHandle = KphpHashingInfra->BCryptSha1Provider;
+            break;
+        }
+        case KphHashAlgorithmSha256:
+        {
+            HashInformation->Length = (256 / 8);
+            algHandle = KphpHashingInfra->BCryptSha256Provider;
+            break;
+        }
+        case KphHashAlgorithmSha384:
+        {
+            HashInformation->Length = (384 / 8);
+            algHandle = KphpHashingInfra->BCryptSha384Provider;
+            break;
+        }
+        case KphHashAlgorithmSha512:
+        {
+            HashInformation->Length = (512 / 8);
+            algHandle = KphpHashingInfra->BCryptSha512Provider;
+            break;
+        }
+        default:
+        {
+            status = STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
     }
 
     status = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, NULL, 0, 0);
@@ -351,287 +635,473 @@ NTSTATUS KphHashBuffer(
         goto Exit;
     }
 
-    if (AlgorithmId == CALG_SHA1)
+    status = BCryptFinishHash(hashHandle,
+                              HashInformation->Hash,
+                              HashInformation->Length,
+                              0);
+    if (!NT_SUCCESS(status))
     {
-        NT_ASSERT(ARRAYSIZE(Hash->Buffer) >= MINCRYPT_SHA1_HASH_LEN);
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "BCryptFinishHash failed: %!STATUS!",
+                      status);
 
-        status = BCryptFinishHash(hashHandle,
-                                  Hash->Buffer,
-                                  MINCRYPT_SHA1_HASH_LEN,
-                                  0);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HASH,
-                          "BCryptFinishHash failed: %!STATUS!",
-                          status);
-
-            goto Exit;
-        }
-
-        Hash->AlgorithmId = CALG_SHA1;
-        Hash->Size = MINCRYPT_SHA1_HASH_LEN;
+        goto Exit;
     }
-    else
-    {
-        NT_ASSERT(AlgorithmId == CALG_SHA_256);
-        NT_ASSERT(ARRAYSIZE(Hash->Buffer) >= MINCRYPT_SHA256_HASH_LEN);
-
-        status = BCryptFinishHash(hashHandle,
-                                  Hash->Buffer,
-                                  MINCRYPT_SHA256_HASH_LEN,
-                                  0);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HASH,
-                          "BCryptFinishHash failed: %!STATUS!",
-                          status);
-
-            goto Exit;
-        }
-
-        Hash->AlgorithmId = CALG_SHA_256;
-        Hash->Size = MINCRYPT_SHA256_HASH_LEN;
-    }
-
-    status = STATUS_SUCCESS;
 
 Exit:
 
     if (hashHandle)
     {
         BCryptDestroyHash(hashHandle);
-    }
-
-    return status;
-}
-
-/**he algorithm to use
- * \brief Hashes a file.
- *
- * \param[in] FileHandle Handle to the file to hash.
- * \param[in] AlgorithmId Algorithm to use to hash (CALG_SHA1 or CALG_SHA_256).
- * \param[out] Hash Populated with hash.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphHashFile(
-    _In_ HANDLE FileHandle,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
-    )
-{
-    NTSTATUS status;
-    BCRYPT_ALG_HANDLE algHandle;
-    BCRYPT_HASH_HANDLE hashHandle;
-    PVOID mappedBase;
-    SIZE_T viewSize;
-    PBYTE readBuffer;
-    SIZE_T readSize;
-
-    PAGED_CODE_PASSIVE();
-
-    NT_ASSERT(KphpHashingInfra);
-
-    hashHandle = NULL;
-    mappedBase = NULL;
-    readBuffer = NULL;
-
-    RtlZeroMemory(Hash, sizeof(*Hash));
-
-    if (AlgorithmId == CALG_SHA1)
-    {
-        algHandle = KphpHashingInfra->BCryptSha1Provider;
-    }
-    else if (AlgorithmId == CALG_SHA_256)
-    {
-        algHandle = KphpHashingInfra->BCryptSha256Provider;
-    }
-    else
-    {
-        return STATUS_INVALID_PARAMETER_2;
-    }
-
-    NT_ASSERT(algHandle);
-
-    viewSize = 0;
-    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "KphMapViewInSystem failed: %!STATUS!",
-                      status);
-
-        mappedBase = NULL;
-        goto Exit;
-    }
-
-    status = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, NULL, 0, 0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptCreateHash failed: %!STATUS!",
-                      status);
-
-        hashHandle = NULL;
-        goto Exit;
-    }
-
-    readBuffer = KphpAllocateHashingBuffer();
-    if (!readBuffer)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "Failed to allocate hashing buffer.");
-
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
-
-    readSize = 0;
-    for (SIZE_T offset = 0; offset < viewSize; offset += readSize)
-    {
-        readSize = min(viewSize - offset, KPH_HASHING_BUFFER_SIZE);
-
-        __try
-        {
-            RtlCopyMemory(readBuffer, &((PBYTE)mappedBase)[offset], readSize);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            goto Exit;
-        }
-
-        NT_ASSERT(readSize <= MAXULONG);
-
-        status = BCryptHashData(hashHandle, readBuffer, (ULONG)readSize, 0);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HASH,
-                          "BCryptHashData failed: %!STATUS!",
-                          status);
-
-            goto Exit;
-        }
-    }
-
-    if (AlgorithmId == CALG_SHA1)
-    {
-        NT_ASSERT(ARRAYSIZE(Hash->Buffer) >= MINCRYPT_SHA1_HASH_LEN);
-
-        status = BCryptFinishHash(hashHandle,
-                                  Hash->Buffer,
-                                  MINCRYPT_SHA1_HASH_LEN,
-                                  0);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HASH,
-                          "BCryptFinishHash failed: %!STATUS!",
-                          status);
-
-            goto Exit;
-        }
-
-        Hash->AlgorithmId = CALG_SHA1;
-        Hash->Size = MINCRYPT_SHA1_HASH_LEN;
-    }
-    else
-    {
-        NT_ASSERT(AlgorithmId == CALG_SHA_256);
-        NT_ASSERT(ARRAYSIZE(Hash->Buffer) >= MINCRYPT_SHA256_HASH_LEN);
-
-        status = BCryptFinishHash(hashHandle,
-                                  Hash->Buffer,
-                                  MINCRYPT_SHA256_HASH_LEN,
-                                  0);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HASH,
-                          "BCryptFinishHash failed: %!STATUS!",
-                          status);
-
-            goto Exit;
-        }
-
-        Hash->AlgorithmId = CALG_SHA_256;
-        Hash->Size = MINCRYPT_SHA256_HASH_LEN;
-    }
-
-    status = STATUS_SUCCESS;
-
-Exit:
-
-    if (readBuffer)
-    {
-        KphpFreeHashingBuffer(readBuffer);
-    }
-
-    if (hashHandle)
-    {
-        BCryptDestroyHash(hashHandle);
-    }
-
-    if (mappedBase)
-    {
-        KphUnmapViewInSystem(mappedBase);
     }
 
     return status;
 }
 
 /**
- * \brief Hashes a file by file name.
+ * \brief Updates a hash with a buffer from the context.
  *
- * \param[in] FileName File name of file to hash.
- * \param[in] AlgorithmId Algorithm to use to hash (CALG_SHA1 or CALG_SHA_256).
- * \param[out] Hash Populated with hash.
+ * \details The internal context buffer must already be updated with a copy of
+ * data pointed to by UnsafeBuffer.
+ *
+ * \param[in,out] Entry The hash entry to update.
+ * \param[in] Context The hashing context.
+ * \param[in] Authenticode Whether the hash is for authenticode or not.
+ * \param[in] UnsafeBuffer Address from which the information was copied.
+ * \param[in] Length The length of the buffer.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphHashFileByName(
-    _In_ PCUNICODE_STRING FileName,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
+NTSTATUS KphpUpdateHash(
+    _Inout_ PKPH_HASHING_ENTRY Entry,
+    _In_ PKPH_HASHING_CONTEXT Context,
+    _In_ BOOLEAN Authenticode,
+    _In_ PVOID UnsafeBuffer,
+    _In_ ULONG Length
+    )
+{
+    PVOID unsafeEnd;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(Entry->Handle && !Entry->HashComplete);
+
+    if (!Authenticode)
+    {
+        return BCryptHashData(Entry->Handle, Context->Buffer, Length, 0);
+    }
+
+    //
+    // Only hash within a region relevant for authenticode hashing.
+    //
+
+    unsafeEnd = Add2Ptr(UnsafeBuffer, Length);
+
+    for (ULONG i = 0; i < ARRAYSIZE(Context->Authenticode.Regions); i++)
+    {
+        NTSTATUS status;
+        PKPH_HASHING_AUTHENTICODE_REGION region;
+        PVOID start;
+        PVOID end;
+        PVOID buffer;
+        ULONG length;
+
+        region = &Context->Authenticode.Regions[i];
+
+        if (!region->Start)
+        {
+            break;
+        }
+
+        if ((UnsafeBuffer >= region->Start) && (UnsafeBuffer < region->End))
+        {
+            start = UnsafeBuffer;
+        }
+        else if ((region->Start >= UnsafeBuffer) && (region->Start < unsafeEnd))
+        {
+            start = region->Start;
+        }
+        else
+        {
+            start = NULL;
+        }
+
+        if ((unsafeEnd >= region->Start) && (unsafeEnd < region->End))
+        {
+            end = unsafeEnd;
+        }
+        else if ((region->End >= UnsafeBuffer) && (region->End < unsafeEnd))
+        {
+            end = region->End;
+        }
+        else
+        {
+            end = NULL;
+        }
+
+        if (start && end)
+        {
+            NOTHING;
+        }
+        else if (start && !end)
+        {
+            end = unsafeEnd;
+        }
+        else if (!start && end)
+        {
+            start = UnsafeBuffer;
+        }
+        else
+        {
+            continue;
+        }
+
+        NT_ASSERT(start <= end);
+
+        buffer = Add2Ptr(Context->Buffer, PtrOffset(UnsafeBuffer, start));
+        length = PtrOffset(start, end);
+
+        status = BCryptHashData(Entry->Handle, buffer, length, 0);
+        if (!NT_SUCCESS(status))
+        {
+            return status;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Updates all hashes in the context with the context buffer.
+ *
+ * \details The internal context buffer must already be updated with a copy of
+ * data pointed to by UnsafeBuffer.
+ *
+ * \param[in,out] Context The hashing context.
+ * \param[in] UnsafeBuffer Address from which the information was copied.
+ * \param[in] Length The length of the buffer.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpUpdateHashes(
+    _Inout_ PKPH_HASHING_CONTEXT Context,
+    _In_ PVOID UnsafeBuffer,
+    _In_ ULONG Length
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    for (ULONG i = 0; i < ARRAYSIZE(Context->Hash); i++)
+    {
+        NTSTATUS status;
+        PKPH_HASHING_ENTRY entry;
+        BOOLEAN authenticode;
+
+        entry = &Context->Hash[i];
+
+        if (entry->HashComplete || !entry->Handle)
+        {
+            continue;
+        }
+
+        authenticode = ((i == KphHashAlgorithmSha1Authenticode) ||
+                        (i == KphHashAlgorithmSha256Authenticode));
+
+        status = KphpUpdateHash(entry,
+                                Context,
+                                authenticode,
+                                UnsafeBuffer,
+                                Length);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HASH,
+                          "KphpUpdateHash failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Initializes a hashing context.
+ *
+ * \param[in,out] Context The hashing context to initialize.
+ * \param[in] HashInformation The hash information to use for initialization.
+ * \param[in] NumberOfHashes The number of hashing information items.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpInitializeHashingContext(
+    _Inout_ PKPH_HASHING_CONTEXT Context,
+    _In_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG NumberOfHashes
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
-    IO_STATUS_BLOCK ioStatusBlock;
 
     PAGED_CODE_PASSIVE();
 
-    RtlZeroMemory(Hash, sizeof(*Hash));
+    status = STATUS_SUCCESS;
+
+    for (ULONG i = 0; i < NumberOfHashes; i++)
+    {
+        PKPH_HASHING_ENTRY entry;
+        BCRYPT_ALG_HANDLE algHandle;
+
+        if ((HashInformation[i].Algorithm >= MaxKphHashAlgorithm) ||
+            (HashInformation[i].Algorithm < 0))
+        {
+            status = STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
+
+        entry = &Context->Hash[HashInformation[i].Algorithm];
+
+        if (entry->HashComplete || entry->Handle)
+        {
+            continue;
+        }
+
+        Context->RequiresHashing = TRUE;
+
+        switch (HashInformation[i].Algorithm)
+        {
+            case KphHashAlgorithmMd5:
+            {
+                entry->Length = (128 / 8);
+                algHandle = KphpHashingInfra->BCryptMd5Provider;
+                break;
+            }
+            case KphHashAlgorithmSha1:
+            case KphHashAlgorithmSha1Authenticode:
+            {
+                entry->Length = (160 / 8);
+                algHandle = KphpHashingInfra->BCryptSha1Provider;
+                break;
+            }
+            case KphHashAlgorithmSha256:
+            case KphHashAlgorithmSha256Authenticode:
+            {
+                entry->Length = (256 / 8);
+                algHandle = KphpHashingInfra->BCryptSha256Provider;
+                break;
+            }
+            case KphHashAlgorithmSha384:
+            {
+                entry->Length = (384 / 8);
+                algHandle = KphpHashingInfra->BCryptSha384Provider;
+                break;
+            }
+            case KphHashAlgorithmSha512:
+            {
+                entry->Length = (512 / 8);
+                algHandle = KphpHashingInfra->BCryptSha512Provider;
+                break;
+            }
+            DEFAULT_UNREACHABLE;
+        }
+
+        NT_ASSERT(entry->Length <= sizeof(Context->Hash));
+
+        status = BCryptCreateHash(algHandle,
+                                  &entry->Handle,
+                                  NULL,
+                                  0,
+                                  NULL,
+                                  0,
+                                  0);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HASH,
+                          "BCryptCreateHash failed: %!STATUS!",
+                          status);
+
+            entry->Handle = NULL;
+            goto Exit;
+        }
+    }
+
+Exit:
+
+    return status;
+}
+
+/**
+ * \brief Loads hashes from the EA cache into the hashing context.
+ *
+ * \param[in,out] Context The hashing context to load the hashes into.
+ * \param[in] FileHandle The file handle to load the hashes from.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpLoadHashesFromEaCache(
+    _Inout_ PKPH_HASHING_CONTEXT Context,
+    _In_ HANDLE FileHandle,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PFILE_OBJECT fileObject;
+    ULONG returnLength;
+    PFILE_FULL_EA_INFORMATION fullEaInfo;
+
+    PAGED_CODE_PASSIVE();
+
+    status = ObReferenceObjectByHandle(FileHandle,
+                                       0,
+                                       *IoFileObjectType,
+                                       AccessMode,
+                                       &fileObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        return;
+    }
+
+    //
+    // N.B. We compile time assert that all the information we might store in
+    // our extended attributes will fit within the supplied buffer.
+    //
+
+    status = FsRtlQueryKernelEaFile(fileObject,
+                                    Context->Buffer,
+                                    sizeof(Context->Buffer),
+                                    FALSE,
+                                    KphpHashingInfra->EaList,
+                                    sizeof(KphpHashingInfra->EaList),
+                                    NULL,
+                                    TRUE,
+                                    &returnLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "FsRtlQueryKernelEaFile failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    fullEaInfo = (PFILE_FULL_EA_INFORMATION)Context->Buffer;
+
+    for (;;)
+    {
+        ANSI_STRING eaName;
+
+        eaName.Buffer = fullEaInfo->EaName;
+        eaName.Length = fullEaInfo->EaNameLength;
+        eaName.MaximumLength = fullEaInfo->EaNameLength;
+
+        for (ULONG i = 0; i < ARRAYSIZE(KphpHashEaCacheInfo); i++)
+        {
+            PCKPH_HASHING_EACACHE_INFORMATION eaCacheInfo;
+            PKPH_HASHING_ENTRY entry;
+            PVOID buffer;
+
+            eaCacheInfo = &KphpHashEaCacheInfo[i];
+
+            if (fullEaInfo->EaValueLength != eaCacheInfo->HashSize)
+            {
+                continue;
+            }
+
+            if (!RtlEqualString(&eaName, &eaCacheInfo->EaName, FALSE))
+            {
+                continue;
+            }
+
+            entry = &Context->Hash[i];
+
+            buffer = Add2Ptr(fullEaInfo->EaName,
+                             fullEaInfo->EaNameLength + sizeof(ANSI_NULL));
+
+            RtlCopyMemory(entry->Hash, buffer, fullEaInfo->EaValueLength);
+
+            entry->Length = fullEaInfo->EaValueLength;
+            entry->HashComplete = TRUE;
+
+            break;
+        }
+
+        if (!fullEaInfo->NextEntryOffset)
+        {
+            break;
+        }
+
+        fullEaInfo = Add2Ptr(fullEaInfo, fullEaInfo->NextEntryOffset);
+    }
+
+Exit:
+
+    ObDereferenceObject(fileObject);
+}
+
+/**
+ * \brief Initializes the EA cache context for hashing.
+ *
+ * \details The EA caching is completely opportunistic and will only be used if
+ * we can guarantee cache consistency. We do this using an opportunistic lock.
+ * The caller should call KphpProgressEaCacheContext to after each read from
+ * the file data to determine if there is another contender for writing to the
+ * file. If contention is detected, the EA cache will be closed and the cache
+ * will not be updated. This avoids contention on the system and ensures cache
+ * consistency.
+ *
+ * \param[in,out] Context The hashing context to initialize.
+ * \param[in] FileHandle The file handle to initialize the context with.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpInitializeEaCacheContext(
+    _Inout_ PKPH_HASHING_CONTEXT Context,
+    _In_ HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    REQUEST_OPLOCK_INPUT_BUFFER oplockInput;
+    ULONG64 usnValue;
+    ULONG returnLength;
+
+    PAGED_CODE_PASSIVE();
+
+    RtlInitUnicodeString(&objectName, NULL);
 
     InitializeObjectAttributes(&objectAttributes,
-                               (PUNICODE_STRING)FileName,
+                               &objectName,
                                OBJ_KERNEL_HANDLE,
-                               NULL,
+                               FileHandle,
                                NULL);
 
-    status = KphCreateFile(&fileHandle,
-                           FILE_READ_ACCESS | SYNCHRONIZE,
+    status = KphCreateFile(&Context->EaCache.FileHandle,
+                           FILE_WRITE_EA | FILE_READ_DATA | FILE_READ_ATTRIBUTES,
                            &objectAttributes,
                            &ioStatusBlock,
                            NULL,
                            FILE_ATTRIBUTE_NORMAL,
-                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_SHARE_READ,
                            FILE_OPEN,
-                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           FILE_NON_DIRECTORY_FILE | FILE_OPEN_REQUIRING_OPLOCK,
                            NULL,
                            0,
-                           IO_IGNORE_SHARE_ACCESS_CHECK,
+                           0,
                            KernelMode);
     if (!NT_SUCCESS(status))
     {
@@ -640,46 +1110,239 @@ NTSTATUS KphHashFileByName(
                       "KphCreateFile failed: %!STATUS!",
                       status);
 
-        fileHandle = NULL;
+        Context->EaCache.FileHandle = NULL;
         goto Exit;
     }
 
-    status = KphHashFile(fileHandle, AlgorithmId, Hash);
+    status = ObReferenceObjectByHandle(Context->EaCache.FileHandle,
+                                       FILE_ALL_ACCESS,
+                                       *IoFileObjectType,
+                                       KernelMode,
+                                       &Context->EaCache.FileObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        Context->EaCache.FileObject = NULL;
+        goto Exit;
+    }
+
+    status = ZwCreateEvent(&Context->EaCache.OplockEventHandle,
+                           EVENT_ALL_ACCESS,
+                           NULL,
+                           NotificationEvent,
+                           TRUE);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "ZwCreateEvent failed: %!STATUS!",
+                      status);
+
+        Context->EaCache.OplockEventHandle = NULL;
+        goto Exit;
+    }
+
+    status = ObReferenceObjectByHandle(Context->EaCache.OplockEventHandle,
+                                       EVENT_ALL_ACCESS,
+                                       *ExEventObjectType,
+                                       KernelMode,
+                                       &Context->EaCache.OplockEventObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        Context->EaCache.OplockEventObject = NULL;
+        goto Exit;
+    }
+
+    oplockInput.StructureVersion = REQUEST_OPLOCK_CURRENT_VERSION;
+    oplockInput.StructureLength = sizeof(oplockInput);
+    oplockInput.Flags = REQUEST_OPLOCK_INPUT_FLAG_REQUEST;
+    oplockInput.RequestedOplockLevel = (OPLOCK_LEVEL_CACHE_READ |
+                                        OPLOCK_LEVEL_CACHE_HANDLE);
+
+    KeResetEvent(Context->EaCache.OplockEventObject);
+
+    status = ZwFsControlFile(Context->EaCache.FileHandle,
+                             Context->EaCache.OplockEventHandle,
+                             NULL,
+                             NULL,
+                             &Context->EaCache.IoStatusBlock,
+                             FSCTL_REQUEST_OPLOCK,
+                             &oplockInput,
+                             sizeof(oplockInput),
+                             &Context->EaCache.OplockOutput,
+                             sizeof(Context->EaCache.OplockOutput));
+    if (status != STATUS_PENDING)
+    {
+        KeSetEvent(Context->EaCache.OplockEventObject, IO_NO_INCREMENT, FALSE);
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "ZwFsControlFile returned: %!STATUS!",
+                      status);
+
+        if (NT_SUCCESS(status))
+        {
+            status = STATUS_UNEXPECTED_IO_ERROR;
+        }
+
+        goto Exit;
+    }
+
+    status = FsRtlKernelFsControlFile(Context->EaCache.FileObject,
+                                      FSCTL_WRITE_USN_CLOSE_RECORD,
+                                      NULL,
+                                      0,
+                                      &usnValue,
+                                      sizeof(usnValue),
+                                      &returnLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "FsRtlKernelFsControlFile failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
 
 Exit:
 
-    if (fileHandle)
+    if (!NT_SUCCESS(status))
     {
-        ObCloseHandle(fileHandle, KernelMode);
+        KphpCloseHashingEaCacheContext(&Context->EaCache);
+    }
+}
+
+/**
+ * \brief Progresses the EA cache context.
+ *
+ * \details This function should be called after each read from the file data.
+ *
+ * \param[in,out] Context The hashing context to progress the EA cache of.
+ *
+ * \return TRUE if the EA cache is available and the opportunistic lock has not
+ * been broken, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphpProgressEaCacheContext(
+    _Inout_ PKPH_HASHING_CONTEXT Context
+    )
+{
+    LARGE_INTEGER zeroTimeout = KPH_TIMEOUT(0);
+
+    PAGED_CODE_PASSIVE();
+
+    if (!Context->EaCache.OplockEventObject)
+    {
+        return FALSE;
+    }
+
+    if (KeWaitForSingleObject(Context->EaCache.OplockEventObject,
+                              Executive,
+                              KernelMode,
+                              FALSE,
+                              &zeroTimeout) != STATUS_SUCCESS)
+    {
+        return TRUE;
+    }
+
+    //
+    // The opportunistic lock has been broken. We could try to guarantee cache
+    // consistency by not closing the handle. Doing so would block the thread
+    // attempting to open a write handle until we acknowledge the break.
+    //
+    // An opportunistic lock break can also happen when a write occurs to the
+    // file, but this will not suspend the write operation for acknowledgment.
+    // Therefore, acknowledging the break here is important to avoid the
+    // possible cache inconsistency.
+    //
+    // We choose to completely get out of the way of the system and acknowledge
+    // the break of the opportunistic lock by closing the handle. We will
+    // continue to hash and return whatever that result is, but we will not
+    // update the EA cache since we can not guarantee cash consistency.
+    //
+    // N.B. It is important to close the handle instead of using the lock break
+    // acknowledgment control code, otherwise we could be the cause of a
+    // sharing violation.
+    //
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE, HASH, "Opportunistic lock broken");
+
+    KphpCloseHashingEaCacheContext(&Context->EaCache);
+
+    return FALSE;
+}
+
+/**
+ * \brief Initializes the hashing context for file hashing.
+ *
+ * \param[in,out] Context The hashing context to initialize.
+ * \param[in] FileHandle The file handle to initialize the context with.
+ * \param[in] HashInformation The hash information to use for initialization.
+ * \param[in] NumberOfHashes The number of hashing information items.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpInitializeFileHashingContext(
+    _Inout_ PKPH_HASHING_CONTEXT Context,
+    _In_ HANDLE FileHandle,
+    _In_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG NumberOfHashes,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+
+    PAGED_CODE_PASSIVE();
+
+    KphpLoadHashesFromEaCache(Context, FileHandle, AccessMode);
+
+    status = KphpInitializeHashingContext(Context,
+                                          HashInformation,
+                                          NumberOfHashes);
+    if (NT_SUCCESS(status) && Context->RequiresHashing)
+    {
+        KphpInitializeEaCacheContext(Context, FileHandle);
     }
 
     return status;
 }
 
 /**
- * \brief Retrieves authenticode info from a PE file.
+ * \brief Initializes the hashing context for authenticode hashing.
  *
- * \param[in] FileHandle Handle to PE file to get authenticode info from.
- * \param[out] Info Populated with authenticode info. The signature is
- * allocated and copied into the output. The caller should free this by passing
- * the structure to KphAuthenticodeInfo.
+ * \details This function can raise a structured exception due to an in-page
+ * error, which callers should be prepared to handle.
+ *
+ * \param[in,out] Context The hashing context to initialize.
+ * \param[in] MappedBase The base address of the mapped image.
+ * \param[in] ViewSize The size of the mapped image.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInfo(
-    _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
+NTSTATUS KphpInitializeAuthenticodeHashing(
+    _Inout_ PKPH_HASHING_CONTEXT Context,
+    _In_ PVOID MappedBase,
+    _In_ SIZE_T ViewSize
     )
 {
     NTSTATUS status;
-    KPH_SIZED_BUFFER regions[4];
-    PVOID mappedBase;
-    SIZE_T viewSize;
     PVOID mappedEnd;
-    BCRYPT_HASH_HANDLE sha1Handle;
-    BCRYPT_HASH_HANDLE sha256Handle;
     union
     {
         PIMAGE_NT_HEADERS Headers;
@@ -690,181 +1353,104 @@ NTSTATUS KphGetAuthenticodeInfo(
     PVOID securityBase;
     ULONG securitySize;
     PVOID securityEnd;
-    PBYTE readBuffer;
 
     PAGED_CODE_PASSIVE();
 
-    RtlZeroMemory(regions, sizeof(regions));
-    mappedBase = NULL;
-    mappedEnd = NULL;
-    sha1Handle = NULL;
-    sha256Handle = NULL;
+    RtlZeroMemory(&Context->Authenticode, sizeof(Context->Authenticode));
+
+    mappedEnd = Add2Ptr(MappedBase, ViewSize);
     securityDir = NULL;
     securityBase = NULL;
-    securitySize = 0;
     securityEnd = NULL;
-    readBuffer = NULL;
 
-    RtlZeroMemory(Info, sizeof(*Info));
+    NT_ASSERT(MappedBase <= mappedEnd);
 
-    NT_ASSERT(KphpHashingInfra);
-    NT_ASSERT(KphpHashingInfra->BCryptSha1Provider);
-    NT_ASSERT(KphpHashingInfra->BCryptSha256Provider);
-
-    viewSize = 0;
-    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
+    status = RtlImageNtHeaderEx(0, MappedBase, ViewSize, &image.Headers);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "KphMapViewInSystem failed: %!STATUS!",
-                      status);
-
-        mappedBase = NULL;
         goto Exit;
     }
 
-    mappedEnd = Add2Ptr(mappedBase, viewSize);
-
-    __try
+    if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        status = RtlImageNtHeaderEx(0, mappedBase, viewSize, &image.Headers);
-        if (!NT_SUCCESS(status))
+        Context->Authenticode.Regions[0].Start = MappedBase;
+        Context->Authenticode.Regions[0].End = &image.Headers32->OptionalHeader.CheckSum;
+
+        Context->Authenticode.Regions[1].Start = &image.Headers32->OptionalHeader.Subsystem;
+        if (image.Headers32->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
         {
-            image.Headers = NULL;
-            goto Exit;
+            Context->Authenticode.Regions[1].End = mappedEnd;
+            status = STATUS_SUCCESS;
+            goto VerifyRegions;
         }
 
-        mappedEnd = Add2Ptr(mappedBase, viewSize);
-        if (mappedEnd < mappedBase)
-        {
-            status = STATUS_BUFFER_OVERFLOW;
-            goto Exit;
-        }
-
-        if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        {
-            regions[0].Buffer = (PBYTE)mappedBase;
-            regions[0].Size = PtrOffset(regions[0].Buffer, &image.Headers32->OptionalHeader.CheckSum);
-
-            regions[1].Buffer = (PBYTE)&image.Headers32->OptionalHeader.Subsystem;
-            if (image.Headers32->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
-            {
-                regions[1].Size = PtrOffset(regions[1].Buffer, mappedEnd);
-                goto BeginHashing;
-            }
-            securityDir = &image.Headers32->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
-            regions[1].Size = PtrOffset(regions[1].Buffer, securityDir);
-
-        }
-        else if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-        {
-            regions[0].Buffer = (PBYTE)mappedBase;
-            regions[0].Size = PtrOffset(regions[0].Buffer, &image.Headers64->OptionalHeader.CheckSum);
-
-            regions[1].Buffer = (PBYTE)&image.Headers64->OptionalHeader.Subsystem;
-            if (image.Headers64->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
-            {
-                regions[1].Size = PtrOffset(regions[1].Buffer, mappedEnd);
-                goto BeginHashing;
-            }
-            securityDir = &image.Headers64->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
-            regions[1].Size = PtrOffset(regions[1].Buffer, securityDir);
-        }
-        else
-        {
-            status = STATUS_INVALID_IMAGE_FORMAT;
-            goto Exit;
-        }
-
-        NT_ASSERT(securityDir);
-        regions[2].Buffer = (PBYTE)&securityDir[1];
-        if ((securityDir->VirtualAddress == 0) || (securityDir->Size == 0))
-        {
-            regions[2].Size = PtrOffset(regions[2].Buffer, mappedEnd);
-            goto BeginHashing;
-        }
-
-        securityBase = Add2Ptr(mappedBase, securityDir->VirtualAddress);
-        securitySize = securityDir->Size;
-        securityEnd = Add2Ptr(securityBase, securitySize);
-        regions[2].Size = PtrOffset(regions[2].Buffer, securityBase);
-
-        if (securityEnd < mappedEnd)
-        {
-            regions[3].Buffer = (PBYTE)securityEnd;
-            regions[3].Size = PtrOffset(regions[3].Buffer, mappedEnd);
-        }
+        securityDir = &image.Headers32->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
+        Context->Authenticode.Regions[1].End = securityDir;
     }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+    else if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
-        status = GetExceptionCode();
+        Context->Authenticode.Regions[0].Start = MappedBase;
+        Context->Authenticode.Regions[0].End = &image.Headers64->OptionalHeader.CheckSum;
+
+        Context->Authenticode.Regions[1].Start = &image.Headers64->OptionalHeader.Subsystem;
+        if (image.Headers64->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
+        {
+            Context->Authenticode.Regions[1].End = mappedEnd;
+            status = STATUS_SUCCESS;
+            goto VerifyRegions;
+        }
+
+        securityDir = &image.Headers64->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
+        Context->Authenticode.Regions[1].End = securityDir;
+    }
+    else
+    {
+        status = STATUS_INVALID_IMAGE_FORMAT;
         goto Exit;
     }
 
-BeginHashing:
+    NT_ASSERT(securityDir);
 
-    status = BCryptCreateHash(KphpHashingInfra->BCryptSha1Provider,
-                              &sha1Handle,
-                              NULL,
-                              0,
-                              NULL,
-                              0,
-                              0);
-    if (!NT_SUCCESS(status))
+    Context->Authenticode.Regions[2].Start = &securityDir[1];
+
+    if (!securityDir->VirtualAddress || !securityDir->Size)
     {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptCreateHash failed: %!STATUS!",
-                      status);
-
-        sha1Handle = NULL;
-        goto Exit;
+        Context->Authenticode.Regions[2].End = mappedEnd;
+        status = STATUS_SUCCESS;
+        goto VerifyRegions;
     }
 
-    status = BCryptCreateHash(KphpHashingInfra->BCryptSha256Provider,
-                              &sha256Handle,
-                              NULL,
-                              0,
-                              NULL,
-                              0,
-                              0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptCreateHash failed: %!STATUS!",
-                      status);
+    securityBase = Add2Ptr(MappedBase, securityDir->VirtualAddress);
+    securitySize = securityDir->Size;
+    securityEnd = Add2Ptr(securityBase, securitySize);
 
-        sha256Handle = NULL;
-        goto Exit;
+    Context->Authenticode.SecurityBase = securityBase;
+    Context->Authenticode.SecuritySize = securitySize;
+
+    Context->Authenticode.Regions[2].End = securityBase;
+
+    if (securityEnd < mappedEnd)
+    {
+        Context->Authenticode.Regions[3].Start = securityEnd;
+        Context->Authenticode.Regions[3].End = mappedEnd;
     }
 
-    readBuffer = KphpAllocateHashingBuffer();
-    if (!readBuffer)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "Failed to allocate hashing buffer.");
+VerifyRegions:
 
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
-
-    //
-    // Verify that the regions are all within the view.
-    //
-    for (ULONG i = 0; i < ARRAYSIZE(regions); i++)
+    for (ULONG i = 0; i < ARRAYSIZE(Context->Authenticode.Regions); i++)
     {
-        if (!regions[i].Buffer)
+        PKPH_HASHING_AUTHENTICODE_REGION region;
+
+        region = &Context->Authenticode.Regions[i];
+
+        if (region->Start)
         {
             break;
         }
 
-        if (((PVOID)regions[i].Buffer < mappedBase) ||
-            (Add2Ptr((PVOID)regions[i].Buffer, regions[i].Size) < mappedBase) ||
-            ((PVOID)regions[i].Buffer >= mappedEnd) ||
-            (Add2Ptr(regions[i].Buffer, regions[i].Size) > mappedEnd))
+        if ((region->End < region->Start) ||
+            (region->Start < MappedBase) || (region->End < MappedBase) ||
+            (region->Start >= mappedEnd) || (region->End > mappedEnd))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
@@ -877,10 +1463,8 @@ BeginHashing:
 
     if (securityBase)
     {
-        NT_ASSERT(securitySize > 0);
-        NT_ASSERT(securityEnd);
-
-        if ((securityBase < mappedBase) || (securityEnd < mappedBase) ||
+        if ((securityEnd < securityBase) ||
+            (securityBase < MappedBase) || (securityEnd < MappedBase) ||
             (securityBase >= mappedEnd) || (securityEnd > mappedEnd))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -892,148 +1476,419 @@ BeginHashing:
         }
     }
 
-    for (ULONG i = 0; i < ARRAYSIZE(regions); i++)
-    {
-        ULONG readSize;
-
-        if (!regions[i].Buffer)
-        {
-            break;
-        }
-
-        readSize = 0;
-        for (ULONG offset = 0; offset < regions[i].Size; offset += readSize)
-        {
-            readSize = min(regions[i].Size - offset, KPH_HASHING_BUFFER_SIZE);
-
-            __try
-            {
-                RtlCopyMemory(readBuffer,
-                              &regions[i].Buffer[offset],
-                              readSize);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
-
-            status = BCryptHashData(sha1Handle, readBuffer, readSize, 0);
-            if (!NT_SUCCESS(status))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              HASH,
-                              "BCryptHashData failed: %!STATUS!",
-                              status);
-
-                goto Exit;
-            }
-
-            status = BCryptHashData(sha256Handle, readBuffer, readSize, 0);
-            if (!NT_SUCCESS(status))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              HASH,
-                              "BCryptHashData failed: %!STATUS!",
-                              status);
-
-                goto Exit;
-            }
-        }
-    }
-
-    status = BCryptFinishHash(sha1Handle,
-                              Info->SHA1,
-                              ARRAYSIZE(Info->SHA1),
-                              0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptFinishHash failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = BCryptFinishHash(sha256Handle,
-                              Info->SHA256,
-                              ARRAYSIZE(Info->SHA256),
-                              0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "BCryptFinishHash failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    Info->Signature = NULL;
-    Info->SignatureSize = 0;
-    if (securityBase)
-    {
-        NT_ASSERT(securitySize > 0);
-        Info->Signature = KphAllocatePaged(securitySize,
-                                           KPH_TAG_AUTHENTICODE_SIG);
-        if (!Info->Signature)
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HASH,
-                          "Failed to allocate buffer for signature.");
-
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            goto Exit;
-        }
-
-        __try
-        {
-            RtlCopyMemory(Info->Signature, securityBase, securitySize);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
-            KphFree(Info->Signature, KPH_TAG_AUTHENTICODE_SIG);
-            Info->Signature = NULL;
-            goto Exit;
-        }
-
-        Info->SignatureSize = securitySize;
-    }
-
-    status = STATUS_SUCCESS;
-
 Exit:
 
-    if (readBuffer)
+    if (!NT_SUCCESS(status))
     {
-        KphpFreeHashingBuffer(readBuffer);
-    }
-
-    if (sha256Handle)
-    {
-        BCryptDestroyHash(sha256Handle);
-    }
-
-    if (sha1Handle)
-    {
-        BCryptDestroyHash(sha1Handle);
-    }
-
-    if (mappedBase)
-    {
-        KphUnmapViewInSystem(mappedBase);
+        RtlZeroMemory(&Context->Authenticode, sizeof(Context->Authenticode));
     }
 
     return status;
 }
 
 /**
- * \brief Retrieves authenticode info from a PE file by file name.
+ * \brief Finishes hashes in the hashing context.
  *
- * \param[in] FileName Name of PE file to get authenticode info from.
- * \param[out] Info Populated with authenticode info. The signature is
+ * \param[in,out] Context The hashing context to finish the hashes in.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpFinishHashes(
+    _In_ PKPH_HASHING_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+    PFILE_FULL_EA_INFORMATION fullEaInfo;
+    ULONG fullEaInfoLength;
+
+    PAGED_CODE_PASSIVE();
+
+    fullEaInfoLength = 0;
+
+    if (Context->EaCache.FileObject)
+    {
+        fullEaInfo = (PFILE_FULL_EA_INFORMATION)Context->Buffer;
+        fullEaInfo->NextEntryOffset = 0;
+    }
+    else
+    {
+        fullEaInfo = NULL;
+    }
+
+    for (ULONG i = 0; i < ARRAYSIZE(Context->Hash); i++)
+    {
+        PKPH_HASHING_ENTRY entry;
+        PCKPH_HASHING_EACACHE_INFORMATION eaInfo;
+        PVOID buffer;
+
+        entry = &Context->Hash[i];
+
+        if (!entry->Handle)
+        {
+            continue;
+        }
+
+        status = BCryptFinishHash(entry->Handle,
+                                  entry->Hash,
+                                  entry->Length,
+                                  0);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HASH,
+                          "BCryptFinishHash failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+
+        entry->HashComplete = TRUE;
+
+        if (!fullEaInfo)
+        {
+            continue;
+        }
+
+        fullEaInfo = Add2Ptr(fullEaInfo, fullEaInfo->NextEntryOffset);
+
+        eaInfo = &KphpHashEaCacheInfo[i];
+
+        fullEaInfo->Flags = 0;
+        fullEaInfo->EaNameLength = (UCHAR)eaInfo->EaName.Length;
+        fullEaInfo->EaValueLength = (USHORT)entry->Length;
+
+        RtlCopyMemory(fullEaInfo->EaName,
+                      eaInfo->EaName.Buffer,
+                      eaInfo->EaName.Length);
+
+        fullEaInfo->EaName[eaInfo->EaName.Length] = ANSI_NULL;
+
+        buffer = Add2Ptr(fullEaInfo->EaName,
+                         fullEaInfo->EaNameLength + sizeof(ANSI_NULL));
+
+        RtlCopyMemory(buffer, entry->Hash, entry->Length);
+
+        buffer = Add2Ptr(buffer, entry->Length);
+
+        fullEaInfo->NextEntryOffset = ALIGN_UP_BY(PtrOffset(fullEaInfo, buffer),
+                                                  sizeof(ULONG));
+
+        fullEaInfoLength += fullEaInfo->NextEntryOffset;
+    }
+
+    if (fullEaInfoLength && KphpProgressEaCacheContext(Context))
+    {
+        NT_ASSERT(Context->EaCache.FileObject);
+        NT_ASSERT(fullEaInfo);
+
+        fullEaInfo->NextEntryOffset = 0;
+
+        status = FsRtlSetKernelEaFile(Context->EaCache.FileObject,
+                                      Context->Buffer,
+                                      fullEaInfoLength);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HASH,
+                          "FsRtlSetKernelEaFile failed: %!STATUS!",
+                          status);
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Copies hashes from the hashing context to the hash information.
+ *
+ * \param[in] Context The hashing context to copy the hashes from.
+ * \param[in,out] HashInformation The hash information to copy the hashes to.
+ * \param[in] NumberOfHashes The number of hashing information items.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpCopyHashes(
+    _In_ PKPH_HASHING_CONTEXT Context,
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG NumberOfHashes
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    for (ULONG i = 0; i < NumberOfHashes; i++)
+    {
+        PKPH_HASHING_ENTRY entry;
+        PKPH_HASH_INFORMATION info;
+
+        info = &HashInformation[i];
+
+        NT_ASSERT((info->Algorithm < MaxKphHashAlgorithm) &&
+                  (info->Algorithm >= 0));
+
+        entry = &Context->Hash[info->Algorithm];
+
+        NT_ASSERT(entry->HashComplete);
+
+        info->Length = entry->Length;
+
+        RtlCopyMemory(info->Hash, entry->Hash, entry->Length);
+    }
+}
+
+/**
+ * \brief Hashes a file.
+ *
+ * \param[in] FileHandle Handle to a file to hash.
+ * \param[in,out] HashInformation The hash information to populate with the
+ * requested hash algorithms. On input this array contains the requested hash
+ * algorithms to use, and on output the hash information items are populated
+ * with the requested hash values.
+ * \param[in] NumberOfHashes The number of hash information items.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpHashFile(
+    _In_ HANDLE FileHandle,
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG NumberOfHashes,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PKPH_HASHING_CONTEXT context;
+    PVOID mappedBase;
+    SIZE_T viewSize;
+    ULONG readSize;
+
+    PAGED_CODE_PASSIVE();
+
+    mappedBase = NULL;
+
+    context = KphpAllocateHashingContext();
+    if (!context)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = KphpInitializeFileHashingContext(context,
+                                              FileHandle,
+                                              HashInformation,
+                                              NumberOfHashes,
+                                              AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphpInitializeFileHashingContext failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (!context->RequiresHashing)
+    {
+        goto Finish;
+    }
+
+    viewSize = 0;
+
+    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphMapViewInSystem failed: %!STATUS!",
+                      status);
+
+        mappedBase = NULL;
+        goto Exit;
+    }
+
+    if (context->Hash[KphHashAlgorithmSha1Authenticode].Handle ||
+        context->Hash[KphHashAlgorithmSha256Authenticode].Handle)
+    {
+        __try
+        {
+            KphpInitializeAuthenticodeHashing(context, mappedBase, viewSize);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+    readSize = 0;
+
+    for (SIZE_T offset = 0; offset < viewSize; offset += readSize)
+    {
+        PVOID buffer;
+
+        buffer = &((PBYTE)mappedBase)[offset];
+        readSize = (ULONG)min(viewSize - offset, sizeof(context->Buffer));
+
+        __try
+        {
+            RtlCopyMemory(context->Buffer, buffer, readSize);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+
+        KphpProgressEaCacheContext(context);
+
+        status = KphpUpdateHashes(context, buffer, readSize);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HASH,
+                          "KphpUpdateHashes failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+    }
+
+    status = KphpFinishHashes(context);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphpFinishHashes failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+Finish:
+
+    KphpCopyHashes(context, HashInformation, NumberOfHashes);
+
+Exit:
+
+    if (mappedBase)
+    {
+        KphUnmapViewInSystem(mappedBase);
+    }
+
+    if (context)
+    {
+        KphpFreeHashingContext(context);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Queries hash information for a file.
+ *
+ * \param[in] FileHandle Handle to a file to query.
+ * \param[in,out] HashInformation The hash information to populate with the
+ * requested hash algorithms. On input this array contains the requested hash
+ * algorithms to use, and on output the hash information items are populated
+ * with the requested hash values.
+ * \param[in] HashInformationLength The length of the hash information in bytes.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryHashInformationFile(
+    _In_ HANDLE FileHandle,
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG HashInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PKPH_HASH_INFORMATION hashInfo;
+    ULONG numberOfHashes;
+
+    PAGED_CODE_PASSIVE();
+
+    hashInfo = NULL;
+    numberOfHashes = HashInformationLength / sizeof(KPH_HASH_INFORMATION);
+
+    if (!HashInformation || !numberOfHashes)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    if (AccessMode != KernelMode)
+    {
+        hashInfo = KphAllocatePaged(HashInformationLength,
+                                    KPH_TAG_CAPTURED_HASHES);
+        if (!hashInfo)
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Exit;
+        }
+
+        __try
+        {
+            ProbeForRead(HashInformation, HashInformationLength, 1);
+            RtlCopyMemory(hashInfo, HashInformation, HashInformationLength);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+    else
+    {
+        hashInfo = HashInformation;
+    }
+
+    status = KphpHashFile(FileHandle, hashInfo, numberOfHashes, AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphpHashFile failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            ProbeForWrite(HashInformation, HashInformationLength, 1);
+            RtlCopyMemory(HashInformation, hashInfo, HashInformationLength);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+Exit:
+
+    if (hashInfo && (hashInfo != HashInformation))
+    {
+        KphFree(hashInfo, KPH_TAG_CAPTURED_HASHES);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Retrieves authenticode info from a PE file.
+ *
+ * \param[in] FileHandle Handle to PE file to get authenticode info from.
+ * \param[out] Information Populated with authenticode info. The signature is
  * allocated and copied into the output. The caller should free this by passing
  * the structure to KphAuthenticodeInfo.
  *
@@ -1041,57 +1896,197 @@ Exit:
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInfoByFileName(
-    _In_ PCUNICODE_STRING FileName,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
+NTSTATUS KphGetAuthenticodeInformation(
+    _In_ HANDLE FileHandle,
+    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFORMATION Information
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
-    IO_STATUS_BLOCK ioStatusBlock;
+    PKPH_HASH_INFORMATION hashInfoSha1;
+    PKPH_HASH_INFORMATION hashInfoSha256;
+    PKPH_HASHING_CONTEXT context;
+    PVOID mappedBase;
+    SIZE_T viewSize;
 
     PAGED_CODE_PASSIVE();
 
-    RtlZeroMemory(Info, sizeof(*Info));
+    RtlZeroMemory(Information, sizeof(KPH_AUTHENTICODE_INFORMATION));
 
-    InitializeObjectAttributes(&objectAttributes,
-                               (PUNICODE_STRING)FileName,
-                               OBJ_KERNEL_HANDLE,
-                               NULL,
-                               NULL);
+    mappedBase = NULL;
+    hashInfoSha1 = &Information->HashInfo[KPH_AUTHENTICODE_HASH_SHA1];
+    hashInfoSha256 = &Information->HashInfo[KPH_AUTHENTICODE_HASH_SHA256];
 
-    status = KphCreateFile(&fileHandle,
-                           FILE_READ_ACCESS | SYNCHRONIZE,
-                           &objectAttributes,
-                           &ioStatusBlock,
-                           NULL,
-                           FILE_ATTRIBUTE_NORMAL,
-                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                           FILE_OPEN,
-                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-                           NULL,
-                           0,
-                           IO_IGNORE_SHARE_ACCESS_CHECK,
-                           KernelMode);
+    hashInfoSha1->Algorithm = KphHashAlgorithmSha1Authenticode;
+    hashInfoSha256->Algorithm = KphHashAlgorithmSha256Authenticode;
+
+    context = KphpAllocateHashingContext();
+    if (!context)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    status = KphpInitializeFileHashingContext(context,
+                                              FileHandle,
+                                              Information->HashInfo,
+                                              ARRAYSIZE(Information->HashInfo),
+                                              KernelMode);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
-                      "KphCreateFile failed: %!STATUS!",
+                      "KphpInitializeFileHashingContext failed: %!STATUS!",
                       status);
 
-        fileHandle = NULL;
         goto Exit;
     }
 
-    status = KphGetAuthenticodeInfo(fileHandle, Info);
+    viewSize = 0;
+
+    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphMapViewInSystem failed: %!STATUS!",
+                      status);
+
+        mappedBase = NULL;
+        goto Exit;
+    }
+
+    __try
+    {
+        status = KphpInitializeAuthenticodeHashing(context,
+                                                   mappedBase,
+                                                   viewSize);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HASH,
+                          "KphpInitializeAuthenticodeHashing failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        goto Exit;
+    }
+
+    if (!context->RequiresHashing)
+    {
+        goto Finish;
+    }
+
+    for (ULONG i = 0; i < ARRAYSIZE(context->Authenticode.Regions); i++)
+    {
+        PKPH_HASHING_AUTHENTICODE_REGION region;
+        ULONG length;
+        ULONG readSize;
+
+        region = &context->Authenticode.Regions[i];
+
+        if (!region->Start)
+        {
+            break;
+        }
+
+        readSize = 0;
+        length = PtrOffset(region->Start, region->End);
+
+        for (ULONG offset = 0; offset < length; offset += readSize)
+        {
+            PVOID buffer;
+
+            buffer = Add2Ptr(region->Start, offset);
+            readSize = min(length - offset, sizeof(context->Buffer));
+
+            __try
+            {
+                RtlCopyMemory(context->Buffer, buffer, readSize);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            KphpProgressEaCacheContext(context);
+
+            status = KphpUpdateHashes(context, buffer, readSize);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              HASH,
+                              "KphpUpdateHashes failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+        }
+    }
+
+    status = KphpFinishHashes(context);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphpFinishHashes failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+Finish:
+
+    KphpCopyHashes(context,
+                   Information->HashInfo,
+                   ARRAYSIZE(Information->HashInfo));
+
+    if (!context->Authenticode.SecurityBase)
+    {
+        goto Exit;
+    }
+
+    NT_ASSERT(context->Authenticode.SecuritySize > 0);
+
+    Information->Signature = KphAllocatePaged(context->Authenticode.SecuritySize,
+                                              KPH_TAG_AUTHENTICODE_SIG);
+    if (!Information->Signature)
+    {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    __try
+    {
+        RtlCopyMemory(Information->Signature,
+                      context->Authenticode.SecurityBase,
+                      context->Authenticode.SecuritySize);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+        KphFree(Information->Signature, KPH_TAG_AUTHENTICODE_SIG);
+        Information->Signature = NULL;
+        goto Exit;
+    }
+
+    Information->SignatureLength = context->Authenticode.SecuritySize;
 
 Exit:
 
-    if (fileHandle)
+    if (mappedBase)
     {
-        ObCloseHandle(fileHandle, KernelMode);
+        KphUnmapViewInSystem(mappedBase);
+    }
+
+    if (context)
+    {
+        KphpFreeHashingContext(context);
     }
 
     return status;
@@ -1100,17 +2095,17 @@ Exit:
 /**
  * \brief Frees authenticode info.
  *
- * \param[in] Info Authenticode info to free.
+ * \param[in] Information Authenticode information to free.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeAuthenticodeInfo(
-    _In_freesMem_ PKPH_AUTHENTICODE_INFO Info
+VOID KphFreeAuthenticodeInformation(
+    _In_freesMem_ PKPH_AUTHENTICODE_INFORMATION Information
     )
 {
     PAGED_CODE_PASSIVE();
 
-    if (Info->Signature)
+    if (Information->Signature)
     {
-        KphFree(Info->Signature, KPH_TAG_AUTHENTICODE_SIG);
+        KphFree(Information->Signature, KPH_TAG_AUTHENTICODE_SIG);
     }
 }

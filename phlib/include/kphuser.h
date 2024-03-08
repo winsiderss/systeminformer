@@ -599,6 +599,16 @@ KphQueryVirtualMemory(
     _Out_opt_ PULONG ReturnLength
     );
 
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryHashInformationFile(
+    _In_ HANDLE FileHandle,
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG HashInformationLength
+    );
+
 EXTERN_C_END
 
 #endif

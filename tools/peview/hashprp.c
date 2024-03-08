@@ -491,25 +491,59 @@ VOID PvGetFileHashes(
     _Out_ PPH_STRING* Sha1HashString,
     _Out_ PPH_STRING* Sha2HashString,
     _Out_ PPH_STRING* Sha384HashString,
-    _Out_ PPH_STRING* Sha512HashString
+    _Out_ PPH_STRING* Sha512HashString,
+    _Out_ PPH_STRING* AuthentihashSha1String,
+    _Out_ PPH_STRING* AuthentihashSha256String
     )
 {
-    PPV_HASH_CONTEXT hashContextMd5;
-    PPV_HASH_CONTEXT hashContextSha1;
-    PPV_HASH_CONTEXT hashContextSha256;
-    PPV_HASH_CONTEXT hashContextSha384;
-    PPV_HASH_CONTEXT hashContextSha512;
+    PPV_HASH_CONTEXT hashContextMd5 = NULL;
+    PPV_HASH_CONTEXT hashContextSha1 = NULL;
+    PPV_HASH_CONTEXT hashContextSha256 = NULL;
+    PPV_HASH_CONTEXT hashContextSha384 = NULL;
+    PPV_HASH_CONTEXT hashContextSha512 = NULL;
     ULONG crc32Hash = 0;
     ULONG returnLength;
     IO_STATUS_BLOCK isb;
     PBYTE buffer;
+    BOOLEAN kphSuccess = FALSE;
+
+    *AuthentihashSha1String = NULL;
+    *AuthentihashSha256String = NULL;
+
+    if (KphLevel() == KphLevelMax)
+    {
+        KPH_HASH_INFORMATION hashInfo[7];
+
+        hashInfo[0].Algorithm = KphHashAlgorithmMd5;
+        hashInfo[1].Algorithm = KphHashAlgorithmSha1;
+        hashInfo[2].Algorithm = KphHashAlgorithmSha256;
+        hashInfo[3].Algorithm = KphHashAlgorithmSha384;
+        hashInfo[4].Algorithm = KphHashAlgorithmSha512;
+        hashInfo[5].Algorithm = KphHashAlgorithmSha1Authenticode;
+        hashInfo[6].Algorithm = KphHashAlgorithmSha256Authenticode;
+
+        if (NT_SUCCESS(KphQueryHashInformationFile(FileHandle, hashInfo, sizeof(hashInfo))))
+        {
+            *Md5HashString = PhBufferToHexString(hashInfo[0].Hash, hashInfo[0].Length);
+            *Sha1HashString = PhBufferToHexString(hashInfo[1].Hash, hashInfo[1].Length);
+            *Sha2HashString = PhBufferToHexString(hashInfo[2].Hash, hashInfo[2].Length);
+            *Sha384HashString = PhBufferToHexString(hashInfo[3].Hash, hashInfo[3].Length);
+            *Sha512HashString = PhBufferToHexString(hashInfo[4].Hash, hashInfo[4].Length);
+            *AuthentihashSha1String = PhBufferToHexString(hashInfo[5].Hash, hashInfo[5].Length);
+            *AuthentihashSha256String = PhBufferToHexString(hashInfo[6].Hash, hashInfo[6].Length);
+            kphSuccess = TRUE;
+        }
+    }
 
     buffer = PhAllocate(PAGE_SIZE * 2);
-    hashContextMd5 = PvCreateHashHandle(BCRYPT_MD5_ALGORITHM);
-    hashContextSha1 = PvCreateHashHandle(BCRYPT_SHA1_ALGORITHM);
-    hashContextSha256 = PvCreateHashHandle(BCRYPT_SHA256_ALGORITHM);
-    hashContextSha384 = PvCreateHashHandle(BCRYPT_SHA384_ALGORITHM);
-    hashContextSha512 = PvCreateHashHandle(BCRYPT_SHA512_ALGORITHM);
+    if (!kphSuccess)
+    {
+        hashContextMd5 = PvCreateHashHandle(BCRYPT_MD5_ALGORITHM);
+        hashContextSha1 = PvCreateHashHandle(BCRYPT_SHA1_ALGORITHM);
+        hashContextSha256 = PvCreateHashHandle(BCRYPT_SHA256_ALGORITHM);
+        hashContextSha384 = PvCreateHashHandle(BCRYPT_SHA384_ALGORITHM);
+        hashContextSha512 = PvCreateHashHandle(BCRYPT_SHA512_ALGORITHM);
+    }
 
     while (NT_SUCCESS(NtReadFile(
         FileHandle,
@@ -529,25 +563,33 @@ VOID PvGetFileHashes(
             break;
 
         crc32Hash = PhCrc32(crc32Hash, buffer, returnLength);
-        PvHashMappedImageData(hashContextMd5, buffer, returnLength);
-        PvHashMappedImageData(hashContextSha1, buffer, returnLength);
-        PvHashMappedImageData(hashContextSha256, buffer, returnLength);
-        PvHashMappedImageData(hashContextSha384, buffer, returnLength);
-        PvHashMappedImageData(hashContextSha512, buffer, returnLength);
+        if (!kphSuccess)
+        {
+            PvHashMappedImageData(hashContextMd5, buffer, returnLength);
+            PvHashMappedImageData(hashContextSha1, buffer, returnLength);
+            PvHashMappedImageData(hashContextSha256, buffer, returnLength);
+            PvHashMappedImageData(hashContextSha384, buffer, returnLength);
+            PvHashMappedImageData(hashContextSha512, buffer, returnLength);
+        }
     }
 
     crc32Hash = _byteswap_ulong(crc32Hash);
     *CrcHashString = PhBufferToHexString((PUCHAR)&crc32Hash, sizeof(ULONG));
-    *Md5HashString = PvGetFinalHash(hashContextMd5);
-    *Sha1HashString = PvGetFinalHash(hashContextSha1);
-    *Sha2HashString = PvGetFinalHash(hashContextSha256);
-    *Sha384HashString = PvGetFinalHash(hashContextSha384);
-    *Sha512HashString = PvGetFinalHash(hashContextSha512);
+    if (!kphSuccess)
+    {
+        *Md5HashString = PvGetFinalHash(hashContextMd5);
+        *Sha1HashString = PvGetFinalHash(hashContextSha1);
+        *Sha2HashString = PvGetFinalHash(hashContextSha256);
+        *Sha384HashString = PvGetFinalHash(hashContextSha384);
+        *Sha512HashString = PvGetFinalHash(hashContextSha512);
 
-    PvDestroyHashHandle(hashContextSha512);
-    PvDestroyHashHandle(hashContextSha256);
-    PvDestroyHashHandle(hashContextSha1);
-    PvDestroyHashHandle(hashContextMd5);
+        PvDestroyHashHandle(hashContextSha512);
+        PvDestroyHashHandle(hashContextSha384);
+        PvDestroyHashHandle(hashContextSha256);
+        PvDestroyHashHandle(hashContextSha1);
+        PvDestroyHashHandle(hashContextMd5);
+    }
+
     PhFree(buffer);
 }
 
@@ -1138,7 +1180,9 @@ NTSTATUS PvPeFileHashThread(
             &sha1HashString,
             &sha2HashString,
             &sha384HashString,
-            &sha512HashString
+            &sha512HashString,
+            &authentihashSha1String,
+            &authentihashSha256String
             );
 
         if (checkImports)
@@ -1177,8 +1221,10 @@ NTSTATUS PvPeFileHashThread(
 
     // Authentihash (Authenticode)
 
-    authentihashSha1String = PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha1HashAlgorithm);
-    authentihashSha256String = PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha256HashAlgorithm);
+    if (!authentihashSha1String)
+        authentihashSha1String = PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha1HashAlgorithm);
+    if (!authentihashSha256String)
+        authentihashSha256String = PhGetMappedImageAuthenticodeHash(&PvMappedImage, Sha256HashAlgorithm);
 
     // Page hash (WDAC)
 

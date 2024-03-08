@@ -10,6 +10,7 @@
  */
 
 #include "onlnchk.h"
+#include <kphuser.h>
 
 PPH_OBJECT_TYPE UploadContextType = NULL;
 PH_INITONCE UploadContextTypeInitOnce = PH_INITONCE_INIT;
@@ -149,6 +150,37 @@ NTSTATUS HashFileAndResetPosition(
     KPRIORITY priority;
     IO_PRIORITY_HINT ioPriority;
     BYTE buffer[PAGE_SIZE];
+
+    if (KphLevel() == KphLevelMax)
+    {
+        KPH_HASH_INFORMATION hash;
+
+        switch (Algorithm)
+        {
+        case Md5HashAlgorithm:
+            hash.Algorithm = KphHashAlgorithmMd5;
+            break;
+        case Sha1HashAlgorithm:
+            hash.Algorithm = KphHashAlgorithmSha1;
+            break;
+        case Sha256HashAlgorithm:
+            hash.Algorithm = KphHashAlgorithmSha256;
+            break;
+        default:
+            hash.Algorithm = MaxKphHashAlgorithm;
+            break;
+        }
+
+        if (hash.Algorithm != MaxKphHashAlgorithm)
+        {
+            status = KphQueryHashInformationFile(FileHandle, &hash, sizeof(hash));
+            if (NT_SUCCESS(status))
+            {
+                *HashString = PhBufferToHexString(hash.Hash, hash.Length);
+                return status;
+            }
+        }
+    }
 
     bytesRemaining = FileSize->QuadPart;
 

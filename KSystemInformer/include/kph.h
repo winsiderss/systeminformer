@@ -245,11 +245,7 @@ if ((string)->Buffer)                                                         \
 
 #define KPH_TIMEOUT(ms) { .QuadPart = (-10000ll * (ms)) }
 
-typedef struct _KPH_SIZED_BUFFER
-{
-    ULONG Size;
-    PBYTE Buffer;
-} KPH_SIZED_BUFFER, *PKPH_SIZED_BUFFER;
+#define KPH_KERNEL_PURGE_EA "$KERNEL.PURGE.SI."
 
 typedef struct _KPH_FILE_VERSION
 {
@@ -1232,20 +1228,16 @@ NTSTATUS KphQueryVirtualMemory(
 
 // hash
 
-typedef struct _KPH_HASH
-{
-    ALG_ID AlgorithmId;
-    ULONG Size;
-    BYTE Buffer[MINCRYPT_MAX_HASH_LEN];
-} KPH_HASH, *PKPH_HASH;
+#define KPH_AUTHENTICODE_HASH_SHA1   0
+#define KPH_AUTHENTICODE_HASH_SHA256 1
+#define KPH_AUTHENTICODE_HASH_MAX    2
 
-typedef struct _KPH_AUTHENTICODE_INFO
+typedef struct _KPH_AUTHENTICODE_INFORMATION
 {
-    BYTE SHA1[MINCRYPT_SHA1_HASH_LEN];
-    BYTE SHA256[MINCRYPT_SHA256_HASH_LEN];
+    KPH_HASH_INFORMATION HashInfo[KPH_AUTHENTICODE_HASH_MAX];
+    ULONG SignatureLength;
     PBYTE Signature;
-    ULONG SignatureSize;
-} KPH_AUTHENTICODE_INFO, *PKPH_AUTHENTICODE_INFO;
+} KPH_AUTHENTICODE_INFORMATION, *PKPH_AUTHENTICODE_INFORMATION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -1273,56 +1265,42 @@ _Must_inspect_result_
 NTSTATUS KphHashBuffer(
     _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
+    _In_ KPH_HASH_ALGORITHM HashAlgorithm,
+    _Out_ PKPH_HASH_INFORMATION HashInformation
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphHashFile(
+NTSTATUS KphQueryHashInformationFile(
     _In_ HANDLE FileHandle,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG HashInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphHashFileByName(
-    _In_ PCUNICODE_STRING FileName,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInfo(
+NTSTATUS KphGetAuthenticodeInformation(
     _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
+    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFORMATION Information
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInfoByFileName(
-    _In_ PCUNICODE_STRING FileName,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeAuthenticodeInfo(
-    _In_freesMem_ PKPH_AUTHENTICODE_INFO Info
+VOID KphFreeAuthenticodeInformation(
+    _In_freesMem_ PKPH_AUTHENTICODE_INFORMATION Information
     );
 
 // sign
 
-typedef struct _KPH_SIGNING_INFO
+typedef struct _KPH_SIGNING_INFORMATION
 {
     PKPH_DYN Dyn;
-    KPH_AUTHENTICODE_INFO Authenticode;
+    KPH_AUTHENTICODE_INFORMATION AuthenticodeInfo;
     MINCRYPT_POLICY_INFO PolicyInfo;
     LARGE_INTEGER SigningTime;
     MINCRYPT_POLICY_INFO TimeStampPolicyInfo;
     UNICODE_STRING CatalogName;
-} KPH_SIGNING_INFO, *PKPH_SIGNING_INFO;
+} KPH_SIGNING_INFORMATION, *PKPH_SIGNING_INFORMATION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -1347,21 +1325,14 @@ VOID KphDereferenceSigningInfrastructure(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetSigningInfo(
-    _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_SIGNING_INFO Info
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetSigningInfoByFileName(
+NTSTATUS KphGetSigningInformation(
     _In_ PCUNICODE_STRING FileName,
-    _Out_allocatesMem_ PKPH_SIGNING_INFO Info
+    _Out_allocatesMem_ PKPH_SIGNING_INFORMATION Information
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeSigningInfo(
-    _In_freesMem_ PKPH_SIGNING_INFO Info
+VOID KphFreeSigningInformation(
+    _In_freesMem_ PKPH_SIGNING_INFORMATION Information
     );
 
 // kphobject

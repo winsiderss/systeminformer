@@ -1255,7 +1255,7 @@ VOID KphpApplyImageProtections(
     )
 {
     NTSTATUS status;
-    KPH_SIGNING_INFO info;
+    KPH_SIGNING_INFORMATION info;
     ANSI_STRING issuer;
     ANSI_STRING subject;
     PUNICODE_STRING fileName;
@@ -1321,7 +1321,7 @@ VOID KphpApplyImageProtections(
     RtlZeroMemory(&issuer, sizeof(issuer));
     RtlZeroMemory(&subject, sizeof(subject));
 
-    status = KphGetSigningInfoByFileName(fileName, &info);
+    status = KphGetSigningInformation(fileName, &info);
 
     //
     // Pull out the issuer and subject if it's there. The size check for
@@ -1370,7 +1370,7 @@ VOID KphpApplyImageProtections(
         InterlockedIncrementSizeT(&Process->NumberOfMicrosoftImageLoads);
     }
 
-    KphFreeSigningInfo(&info);
+    KphFreeSigningInformation(&info);
 
 Exit:
 
