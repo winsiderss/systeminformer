@@ -56,6 +56,7 @@ KPHM_DEFINE_HANDLER(KphpCommsGetInformerProcessFilter);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformerProcessFilter);
 KPHM_DEFINE_HANDLER(KphpCommsStripProtectedProcessMasks);
 KPHM_DEFINE_HANDLER(KphpCommsQueryVirtualMemory);
+KPHM_DEFINE_HANDLER(KphpCommsQueryHashInformationFile);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -115,8 +116,10 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgSetInformerProcessFilter,      KphpCommsSetInformerProcessFilter,      KphpCommsRequireLow },
 { KphMsgStripProtectedProcessMasks,    KphpCommsStripProtectedProcessMasks,    KphpCommsRequireMaximum },
 { KphMsgQueryVirtualMemory,            KphpCommsQueryVirtualMemory,            KphpCommsQueryVirtualMemoryRequires },
+{ KphMsgQueryHashInformationFile,      KphpCommsQueryHashInformationFile,      KphpCommsRequireMaximum },
 };
 const ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
+C_ASSERT(ARRAYSIZE(KphCommsMessageHandlers) == MaxKphMsgClient);
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
 PAGED_FILE();
@@ -1547,3 +1550,28 @@ NTSTATUS KSIAPI KphpCommsQueryVirtualMemory(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsQueryHashInformationFile(
+    _In_ PKPH_CLIENT Client,
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_QUERY_HASH_INFORMATION_FILE msg;
+
+    PAGED_CODE_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQueryHashInformationFile);
+
+    UNREFERENCED_PARAMETER(Client);
+
+    msg = &Message->User.QueryHashInformationFile;
+
+    msg->Status = KphQueryHashInformationFile(msg->FileHandle,
+                                              msg->HashingInformation,
+                                              msg->HashingInformationLength,
+                                              UserMode);
+
+    return STATUS_SUCCESS;
+}

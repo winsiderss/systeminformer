@@ -394,6 +394,29 @@ typedef struct _KPH_MEMORY_MAPPED_INFORMATION
     ULONG UserWritableReferences;
 } KPH_MEMORY_MAPPED_INFORMATION, *PKPH_MEMORY_MAPPED_INFORMATION;
 
+// File
+
+typedef enum _KPH_HASH_ALGORITHM
+{
+    KphHashAlgorithmMd5,
+    KphHashAlgorithmSha1,
+    KphHashAlgorithmSha1Authenticode,
+    KphHashAlgorithmSha256,
+    KphHashAlgorithmSha256Authenticode,
+    KphHashAlgorithmSha384,
+    KphHashAlgorithmSha512,
+    MaxKphHashAlgorithm,
+} KPH_HASH_ALGORITHM, *PKPH_HASH_ALGORITHM;
+
+#define KPH_HASH_ALGORITHM_MAX_LENGTH (512 / 8)
+
+typedef struct _KPH_HASH_INFORMATION
+{
+    KPH_HASH_ALGORITHM Algorithm;
+    ULONG Length;
+    BYTE Hash[KPH_HASH_ALGORITHM_MAX_LENGTH];
+} KPH_HASH_INFORMATION, *PKPH_HASH_INFORMATION;
+
 // Verification
 
 #define KPH_PROCESS_READ_ACCESS   (STANDARD_RIGHTS_READ                 |\

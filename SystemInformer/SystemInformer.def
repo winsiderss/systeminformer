@@ -843,3 +843,4 @@ EXPORTS
 ; kphuser
     KphLevel
     KphEnumerateProcessHandles2
+    KphQueryHashInformationFile
