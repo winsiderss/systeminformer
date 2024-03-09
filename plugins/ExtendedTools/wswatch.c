@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2018-2023
+ *     dmex    2018-2024
  *
  */
 
@@ -62,38 +62,36 @@ VOID EtShowWsWatchDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     PWS_WATCH_CONTEXT context;
+    HANDLE processHandle;
 
-    context = PhAllocateZero(sizeof(WS_WATCH_CONTEXT));
-    context->RefCount = 1;
-    context->ProcessItem = PhReferenceObject(ProcessItem);
-    context->ProcessId = ProcessItem->ProcessId;
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        ProcessItem->ProcessId
+        );
 
-    if (PH_IS_REAL_PROCESS_ID(context->ProcessId))
+    if (!NT_SUCCESS(status))
     {
         status = PhOpenProcess(
-            &context->ProcessHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            context->ProcessId
+            &processHandle,
+            MAXIMUM_ALLOWED,
+            ProcessItem->ProcessId
             );
-
-        if (!NT_SUCCESS(status))
-        {
-            status = PhOpenProcess(
-                &context->ProcessHandle,
-                MAXIMUM_ALLOWED,
-                context->ProcessId
-                );
-        }
     }
 
     if (!NT_SUCCESS(status))
     {
         PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
-        EtpDereferenceWsWatchContext(context);
         return;
     }
+
+    context = PhAllocateZero(sizeof(WS_WATCH_CONTEXT));
+    context->RefCount = 1;
+    context->ProcessItem = PhReferenceObject(ProcessItem);
+    context->ProcessId = ProcessItem->ProcessId;
+    context->ProcessHandle = processHandle;
 
     PhDialogBox(
         PluginInstance->DllBase,
@@ -219,7 +217,7 @@ static PPH_STRING EtpGetBasicSymbol(
 
     modBase = PhGetModuleFromAddress(SymbolProvider, Address, &fileName);
 
-    if (!fileName)
+    if (PhIsNullOrEmptyString(fileName))
     {
         symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
@@ -415,6 +413,25 @@ SkipBuffer:
     return result;
 }
 
+PPH_STRING EtpCreateWindowTitle(
+    _In_ PWS_WATCH_CONTEXT Context
+    )
+{
+    PPH_STRING windowTitle;
+    PH_FORMAT format[6];
+
+    windowTitle = PhGetWindowText(Context->WindowHandle);
+    PhInitFormatSR(&format[0], windowTitle->sr);
+    PhInitFormatS(&format[1], L": ");
+    PhInitFormatSR(&format[2], Context->ProcessItem->ProcessName->sr);
+    PhInitFormatS(&format[3], L" (");
+    PhInitFormatU(&format[4], HandleToUlong(Context->ProcessItem->ProcessId));
+    PhInitFormatS(&format[5], L")");
+    PhMoveReference(&windowTitle, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+    return windowTitle;
+}
+
 static BOOLEAN NTAPI EtpWsWatchEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
     _In_ PVOID Context
@@ -458,9 +475,6 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -541,11 +555,15 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 // WS Watch has not yet been enabled for the process.
             }
 
+            PhSetWindowText(context->WindowHandle, PH_AUTO_T(PH_STRING, EtpCreateWindowTitle(context))->Buffer);
+
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             context->Destroying = TRUE;
 
             PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
@@ -598,7 +616,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                     {
                         EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
                         ShowWindow(GetDlgItem(hwndDlg, IDC_WSWATCHENABLED), SW_SHOW);
-                        PhSetTimer(hwndDlg, 1, 1000, NULL);
+                        PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
                     }
                     else
                     {
