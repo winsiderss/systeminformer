@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2018-2023
+ *     dmex    2018-2024
  *
  */
 
@@ -72,7 +72,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
     // Query basic session information
 
     haveWinStationInfo = WinStationQueryInformationW(
-        NULL,
+        WINSTATION_CURRENT_SERVER,
         SessionId,
         WinStationInformation,
         &winStationInfo,
@@ -83,7 +83,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
     // Query client information
 
     haveClientInfo = WinStationQueryInformationW(
-        NULL,
+        WINSTATION_CURRENT_SERVER,
         SessionId,
         WinStationClient,
         &clientInfo,

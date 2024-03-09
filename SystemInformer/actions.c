@@ -1162,9 +1162,10 @@ VOID PhUiCreateSessionMenu(
     PSESSIONIDW sessions;
     ULONG numberOfSessions;
     ULONG i;
+
     userSessionList = PhCreateList(1);
 
-    if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
+    if (WinStationEnumerateW(WINSTATION_CURRENT_SERVER, &sessions, &numberOfSessions))
     {
         for (i = 0; i < numberOfSessions; i++)
         {
@@ -1176,7 +1177,7 @@ VOID PhUiCreateSessionMenu(
             WCHAR formatBuffer[0x100];
 
             if (!WinStationQueryInformationW(
-                NULL,
+                WINSTATION_CURRENT_SERVER,
                 sessions[i].SessionId,
                 WinStationInformation,
                 &winStationInfo,
