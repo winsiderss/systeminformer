@@ -1007,8 +1007,8 @@ VOID WctAddChildWaitNode(
     childNode->WaitTime = WctNode->ThreadObject.WaitTime;
     childNode->ContextSwitches = WctNode->ThreadObject.ContextSwitches;
     childNode->Timeout = WctNode->LockObject.Timeout;
-    childNode->ProcessIdString = PhFormatUInt64(childNode->ProcessId, TRUE);
-    childNode->ThreadIdString = PhFormatUInt64(childNode->ThreadId, TRUE);
+    childNode->ProcessIdString = PhFormatUInt64(childNode->ProcessId, FALSE);
+    childNode->ThreadIdString = PhFormatUInt64(childNode->ThreadId, FALSE);
     childNode->WaitTimeString = PhFormatUInt64(childNode->WaitTime, TRUE);
     childNode->ContextSwitchesString = PhFormatUInt64(childNode->ContextSwitches, TRUE);
 
