@@ -777,6 +777,11 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
 
     NT_ASSERT(apc->Dyn);
 
+    //
+    // This call populates the cached sub-process tag.
+    //
+    (VOID)KphGetCurrentThreadSubProcessTag();
+
     KphpInitializeWSLThreadContext(apc->Dyn, apc->Thread);
 
     KeSetEvent(&apc->CompletedEvent, EVENT_INCREMENT, FALSE);
