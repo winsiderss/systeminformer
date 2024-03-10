@@ -2301,3 +2301,36 @@ NTSTATUS KphDominationAndPrivilegeCheck(
                               ProcessTarget,
                               AccessMode);
 }
+
+/**
+ * \brief Returns the service tag of the current thread on success and 0 on failure.
+ *
+ * \return Service tag .
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+ULONG GetCurrentThreadServiceTag(
+    VOID
+    )
+{
+    ULONG SvcTag = 0;
+
+    __try {
+        ULONG_PTR Teb;
+#ifdef _M_ARM64
+        Teb = (*((ULONG_PTR*)(__getReg(18) + 0x30)));
+#elif _WIN64
+        Teb = (ULONG_PTR)__readgsqword(0x30);
+#else ! _WIN64
+        Teb = (ULONG_PTR)__readfsdword(0x18);
+#endif _WIN64
+
+        ULONG* pSvcTag = (ULONG*)((PVOID)(Teb + FIELD_OFFSET(TEB, SubProcessTag)));
+
+        SvcTag = *pSvcTag;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+
+    return SvcTag;
+}

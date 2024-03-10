@@ -372,6 +372,7 @@ typedef struct _KPHM_STRIP_PROTECTED_PROCESS_MASKS
 typedef struct _KPHM_PROCESS_CREATE
 {
     CLIENT_ID CreatingClientId;
+    ULONG ServiceTag;
     ULONG64 CreatingProcessStartKey;
     HANDLE TargetProcessId;
     ULONG64 TargetProcessStartKey;
@@ -414,6 +415,7 @@ typedef struct _KPHM_PROCESS_EXIT
 typedef struct _KPHM_THREAD_CREATE
 {
     CLIENT_ID CreatingClientId;
+    ULONG ServiceTag;
     ULONG64 CreatingProcessStartKey;
     CLIENT_ID TargetClientId;
     ULONG64 TargetProcessStartKey;
@@ -435,6 +437,7 @@ typedef struct _KPHM_THREAD_EXIT
 typedef struct _KPHM_IMAGE_LOAD
 {
     CLIENT_ID LoadingClientId;
+    ULONG ServiceTag;
     ULONG64 LoadingProcessStartKey;
     HANDLE TargetProcessId;
     ULONG64 TargetProcessStartKey;
@@ -485,6 +488,7 @@ typedef struct _KPHM_DEBUG_PRINT
 typedef struct _KPHM_HANDLE
 {
     CLIENT_ID ContextClientId;
+    ULONG ServiceTag;
     ULONG64 ContextProcessStartKey;
 
     union
@@ -1419,6 +1423,7 @@ typedef union _KPHM_REGISTRY_PARAMETERS
 typedef struct _KPHM_REGISTRY
 {
     CLIENT_ID ClientId;
+    ULONG ServiceTag;
     ULONG64 ProcessStartKey;
 
     union

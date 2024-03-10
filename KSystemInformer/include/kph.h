@@ -1157,6 +1157,12 @@ NTSTATUS KphQuerySection(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+ULONG GetCurrentThreadServiceTag(
+    VOID
+    );
+
 // hash
 
 typedef struct _KPH_HASH

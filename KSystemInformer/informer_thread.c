@@ -142,6 +142,7 @@ VOID KphpCreateThreadNotifyInformer(
         KphMsgInit(msg, KphMsgThreadCreate);
         msg->Kernel.ThreadCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
         msg->Kernel.ThreadCreate.CreatingClientId.UniqueThread = PsGetCurrentThreadId();
+        msg->Kernel.ThreadCreate.ServiceTag = GetCurrentThreadServiceTag();
         msg->Kernel.ThreadCreate.CreatingProcessStartKey = KphGetCurrentProcessStartKey();
         msg->Kernel.ThreadCreate.TargetClientId.UniqueProcess = ProcessId;
         msg->Kernel.ThreadCreate.TargetClientId.UniqueThread = ThreadId;
