@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2015-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -211,15 +211,6 @@ typedef BOOL (WINAPI* _SetWindowDisplayAffinity)(
     _In_ ULONG Affinity
     );
 
-typedef BOOLEAN (WINAPI* _WinStationQueryInformationW)(
-    _In_opt_ HANDLE ServerHandle,
-    _In_ ULONG SessionId,
-    _In_ ULONG WinStationInformationClass,
-    _Out_writes_bytes_(WinStationInformationLength) PVOID pWinStationInformation,
-    _In_ ULONG WinStationInformationLength,
-    _Out_ PULONG pReturnLength
-    );
-
 typedef ULONG (WINAPI *_NotifyServiceStatusChangeW)(
     _In_ SC_HANDLE hService,
     _In_ DWORD dwNotifyMask,
@@ -270,7 +261,5 @@ PH_DECLARE_IMPORT(GetAppContainerRegistryLocation);
 PH_DECLARE_IMPORT(GetAppContainerFolderPath);
 
 PH_DECLARE_IMPORT(SetWindowDisplayAffinity);
-
-PH_DECLARE_IMPORT(WinStationQueryInformationW);
 
 #endif

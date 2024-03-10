@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2015
- *     dmex    2019-2023
+ *     dmex    2019-2024
  *
  */
 
@@ -91,5 +91,3 @@ PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerRegistryLocation);
 PH_DEFINE_IMPORT(L"userenv.dll", GetAppContainerFolderPath);
 
 PH_DEFINE_IMPORT(L"user32.dll", SetWindowDisplayAffinity);
-
-PH_DEFINE_IMPORT(L"winsta.dll", WinStationQueryInformationW);

@@ -3468,7 +3468,7 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     PH_STRINGREF randomAlphaString;
     WCHAR randomAlphaStringBuffer[33] = L"";
 
-    PhGenerateRandomAlphaString(randomAlphaStringBuffer, ARRAYSIZE(randomAlphaStringBuffer));
+    PhGenerateRandomAlphaString(randomAlphaStringBuffer, RTL_NUMBER_OF(randomAlphaStringBuffer));
     randomAlphaStringBuffer[0] = OBJ_NAME_PATH_SEPARATOR;
     randomAlphaString.Buffer = randomAlphaStringBuffer;
     randomAlphaString.Length = sizeof(randomAlphaStringBuffer) - sizeof(UNICODE_NULL);
@@ -4565,11 +4565,9 @@ NTSTATUS PhCreateProcessAsUser(
         WINSTATIONUSERTOKEN userToken;
         ULONG returnLength;
 
-        if (!WinStationQueryInformationW_Import())
-            return STATUS_PROCEDURE_NOT_FOUND;
 
-        if (!WinStationQueryInformationW_Import()(
-            NULL,
+        if (!WinStationQueryInformationW(
+            WINSTATION_CURRENT_SERVER,
             Information->SessionIdWithToken,
             WinStationUserToken,
             &userToken,
