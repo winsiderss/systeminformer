@@ -647,6 +647,13 @@ PsGetCurrentProcessWow64Process(
 #endif
 
 NTKERNELAPI
+PVOID
+NTAPI
+PsGetThreadTeb(
+    _In_ PETHREAD Thread
+    );
+
+NTKERNELAPI
 BOOLEAN
 NTAPI
 PsIsProcessBeingDebugged(
