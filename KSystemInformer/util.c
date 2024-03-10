@@ -2316,11 +2316,15 @@ UINT_PTR KphGetCurrentThreadSubProcessTag(
     ULONG_PTR SubProcessTag = 0;
 
     __try {
+
         PVOID Teb = PsGetCurrentThreadTeb();
 
-        UINT_PTR* pSubProcessTag = (UINT_PTR*)(((UINT_PTR)Teb) + FIELD_OFFSET(TEB, SubProcessTag));
+        if (Teb) {
 
-        SubProcessTag = *pSubProcessTag;
+            UINT_PTR* pSubProcessTag = (UINT_PTR*)(((UINT_PTR)Teb) + FIELD_OFFSET(TEB, SubProcessTag));
+
+            SubProcessTag = *pSubProcessTag;
+        }
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
     }
