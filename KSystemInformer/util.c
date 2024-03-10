@@ -2309,28 +2309,21 @@ NTSTATUS KphDominationAndPrivilegeCheck(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-ULONG GetCurrentThreadServiceTag(
+UINT_PTR KphGetCurrentThreadSubProcessTag(
     VOID
     )
 {
-    ULONG SvcTag = 0;
+    ULONG_PTR SubProcessTag = 0;
 
     __try {
-        ULONG_PTR Teb;
-#ifdef _M_ARM64
-        Teb = (*((ULONG_PTR*)(__getReg(18) + 0x30)));
-#elif _WIN64
-        Teb = (ULONG_PTR)__readgsqword(0x30);
-#else ! _WIN64
-        Teb = (ULONG_PTR)__readfsdword(0x18);
-#endif _WIN64
+        PVOID Teb = PsGetCurrentThreadTeb();
 
-        ULONG* pSvcTag = (ULONG*)((PVOID)(Teb + FIELD_OFFSET(TEB, SubProcessTag)));
+        UINT_PTR* pSubProcessTag = (UINT_PTR*)(((UINT_PTR)Teb) + FIELD_OFFSET(TEB, SubProcessTag));
 
-        SvcTag = *pSvcTag;
+        SubProcessTag = *pSubProcessTag;
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
     }
 
-    return SvcTag;
+    return SubProcessTag;
 }

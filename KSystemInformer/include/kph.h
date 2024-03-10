@@ -1159,7 +1159,7 @@ NTSTATUS KphQuerySection(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-ULONG GetCurrentThreadServiceTag(
+UINT_PTR KphGetCurrentThreadSubProcessTag(
     VOID
     );
 

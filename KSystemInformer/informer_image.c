@@ -95,7 +95,7 @@ VOID KphpLoadImageNotifyInformer(
 
     msg->Kernel.ImageLoad.LoadingClientId.UniqueProcess = PsGetCurrentProcessId();
     msg->Kernel.ImageLoad.LoadingClientId.UniqueThread = PsGetCurrentThreadId();
-    msg->Kernel.ImageLoad.ServiceTag = GetCurrentThreadServiceTag();
+    msg->Kernel.ImageLoad.SubProcessTag = KphGetCurrentThreadSubProcessTag();
     msg->Kernel.ImageLoad.LoadingProcessStartKey = KphGetCurrentProcessStartKey();
     msg->Kernel.ImageLoad.TargetProcessId = ProcessId;
     msg->Kernel.ImageLoad.Properties = ImageInfo->ImageInfo.Properties;

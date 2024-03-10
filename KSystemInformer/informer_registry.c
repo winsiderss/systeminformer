@@ -278,7 +278,7 @@ VOID KphpRegFillCommonMessage(
 
     Message->Kernel.Reg.ClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Reg.ClientId.UniqueThread = PsGetCurrentThreadId();
-    Message->Kernel.Reg.ServiceTag = GetCurrentThreadServiceTag();
+    Message->Kernel.Reg.SubProcessTag = KphGetCurrentThreadSubProcessTag();
     Message->Kernel.Reg.ProcessStartKey = KphGetCurrentProcessStartKey();
     Message->Kernel.Reg.PreviousMode = (ExGetPreviousMode() != KernelMode);
 
