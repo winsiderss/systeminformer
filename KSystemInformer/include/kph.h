@@ -1170,6 +1170,22 @@ ULONG64 KphGetProcessStartKey(
 #define KphGetCurrentProcessStartKey() KphGetProcessStartKey(PsGetCurrentProcess())
 #define KphGetThreadProcessStartKey(thread) KphGetProcessStartKey(PsGetThreadProcess(thread))
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetCurrentThreadSubProcessTag(
+    VOID
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetThreadSubProcessTagEx(
+    _In_ PETHREAD Thread,
+    _In_ BOOLEAN CacheOnly
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetThreadSubProcessTag(
+    _In_ PETHREAD Thread
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1644,6 +1660,8 @@ typedef struct _KPH_THREAD_CONTEXT
 
     CLIENT_ID ClientId;
     CLIENT_ID CreatorClientId;
+
+    PVOID SubProcessTag;
 
     KPH_SESSION_TOKEN_ATOMIC SessionToken;
     KPH_SESSION_TOKEN_ATOMIC RequestSessionToken;
