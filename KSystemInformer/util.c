@@ -304,8 +304,6 @@ ULONG64 KphGetProcessStartKey(
     return key;
 }
 
-PAGED_FILE();
-
 /**
  * \brief Initializes rundown object.
  *
@@ -316,7 +314,7 @@ VOID KphInitializeRundown(
     _Out_ PKPH_RUNDOWN Rundown
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     ExInitializeRundownProtection(Rundown);
 }
@@ -332,7 +330,7 @@ VOID KphWaitForRundown(
     _Inout_ PKPH_RUNDOWN Rundown
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     ExWaitForRundownProtectionRelease(Rundown);
 }
@@ -347,7 +345,7 @@ VOID KphInitializeRWLock(
     _Out_ PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltInitializePushLock(Lock);
 }
@@ -362,7 +360,7 @@ VOID KphDeleteRWLock(
     _In_ PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltDeletePushLock(Lock);
 }
@@ -378,7 +376,7 @@ VOID KphAcquireRWLockExclusive(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltAcquirePushLockExclusive(Lock);
 }
@@ -394,7 +392,7 @@ VOID KphAcquireRWLockShared(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltAcquirePushLockShared(Lock);
 }
@@ -410,10 +408,12 @@ VOID KphReleaseRWLock(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltReleasePushLock(Lock);
 }
+
+PAGED_FILE();
 
 /**
  * \brief Acquires a reference to a reference object.
