@@ -351,11 +351,19 @@ VOID KphpObPreFillMessage(
 
         if (Info->ObjectType == *PsProcessType)
         {
-            Message->Kernel.Handle.Pre.Create.ObjectProcessId = PsGetProcessId(Info->Object);
+            Message->Kernel.Handle.Pre.Create.Process.ProcessId =
+                PsGetProcessId(Info->Object);
         }
         else if (Info->ObjectType == *PsThreadType)
         {
-            Message->Kernel.Handle.Pre.Create.ObjectThreadId = PsGetThreadId(Info->Object);
+            Message->Kernel.Handle.Pre.Create.Thread.ClientId.UniqueProcess =
+                PsGetProcessId(PsGetThreadProcess(Info->Object));
+
+            Message->Kernel.Handle.Pre.Create.Thread.ClientId.UniqueThread =
+                PsGetThreadId(Info->Object);
+
+            Message->Kernel.Handle.Pre.Create.Thread.SubProcessTag =
+                KphGetThreadSubProcessTag(Info->Object);
         }
         else
         {
@@ -381,11 +389,19 @@ VOID KphpObPreFillMessage(
 
         if (Info->ObjectType == *PsProcessType)
         {
-            Message->Kernel.Handle.Pre.Duplicate.ObjectProcessId = PsGetProcessId(Info->Object);
+            Message->Kernel.Handle.Pre.Duplicate.Process.ProcessId =
+                PsGetProcessId(Info->Object);
         }
         else if (Info->ObjectType == *PsThreadType)
         {
-            Message->Kernel.Handle.Pre.Duplicate.ObjectThreadId = PsGetThreadId(Info->Object);
+            Message->Kernel.Handle.Pre.Duplicate.Thread.ClientId.UniqueProcess =
+                PsGetProcessId(PsGetThreadProcess(Info->Object));
+
+            Message->Kernel.Handle.Pre.Duplicate.Thread.ClientId.UniqueThread =
+                PsGetThreadId(Info->Object);
+
+            Message->Kernel.Handle.Pre.Duplicate.Thread.SubProcessTag =
+                KphGetThreadSubProcessTag(Info->Object);
         }
         else
         {
@@ -414,6 +430,7 @@ VOID KphpObPostFillMessage(
     Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
     Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
     Message->Kernel.Handle.ContextProcessStartKey = KphGetCurrentProcessStartKey();
+    Message->Kernel.Handle.ContextThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
     Message->Kernel.Handle.Flags = Info->Flags;
     Message->Kernel.Handle.Object = Info->Object;
 
@@ -434,11 +451,19 @@ VOID KphpObPostFillMessage(
 
         if (Info->ObjectType == *PsProcessType)
         {
-            Message->Kernel.Handle.Post.Create.ObjectProcessId = PsGetProcessId(Info->Object);
+            Message->Kernel.Handle.Post.Create.Process.ProcessId =
+                PsGetProcessId(Info->Object);
         }
         else if (Info->ObjectType == *PsThreadType)
         {
-            Message->Kernel.Handle.Post.Create.ObjectThreadId = PsGetThreadId(Info->Object);
+            Message->Kernel.Handle.Post.Create.Thread.ClientId.UniqueProcess =
+                PsGetProcessId(PsGetThreadProcess(Info->Object));
+
+            Message->Kernel.Handle.Post.Create.Thread.ClientId.UniqueThread =
+                PsGetThreadId(Info->Object);
+
+            Message->Kernel.Handle.Post.Create.Thread.SubProcessTag =
+                KphGetThreadSubProcessTag(Info->Object);
         }
         else
         {
@@ -463,11 +488,19 @@ VOID KphpObPostFillMessage(
 
         if (Info->ObjectType == *PsProcessType)
         {
-            Message->Kernel.Handle.Post.Duplicate.ObjectProcessId = PsGetProcessId(Info->Object);
+            Message->Kernel.Handle.Post.Duplicate.Process.ProcessId =
+                PsGetProcessId(Info->Object);
         }
         else if (Info->ObjectType == *PsThreadType)
         {
-            Message->Kernel.Handle.Post.Duplicate.ObjectThreadId = PsGetThreadId(Info->Object);
+            Message->Kernel.Handle.Post.Duplicate.Thread.ClientId.UniqueProcess =
+                PsGetProcessId(PsGetThreadProcess(Info->Object));
+
+            Message->Kernel.Handle.Post.Duplicate.Thread.ClientId.UniqueThread =
+                PsGetThreadId(Info->Object);
+
+            Message->Kernel.Handle.Post.Duplicate.Thread.SubProcessTag =
+                KphGetThreadSubProcessTag(Info->Object);
         }
         else
         {

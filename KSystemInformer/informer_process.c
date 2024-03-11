@@ -221,6 +221,7 @@ VOID KphpCreateProcessNotifyInformer(
         msg->Kernel.ProcessCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
         msg->Kernel.ProcessCreate.CreatingClientId.UniqueThread = PsGetCurrentThreadId();
         msg->Kernel.ProcessCreate.CreatingProcessStartKey = KphGetCurrentProcessStartKey();
+        msg->Kernel.ProcessCreate.CreatingThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
         msg->Kernel.ProcessCreate.TargetProcessId = Process->ProcessId;
         msg->Kernel.ProcessCreate.TargetProcessStartKey = KphGetProcessStartKey(Process->EProcess);
         msg->Kernel.ProcessCreate.Flags = CreateInfo->Flags;

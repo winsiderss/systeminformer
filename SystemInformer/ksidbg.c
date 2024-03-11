@@ -381,7 +381,7 @@ PPH_STRING KsiDebugLogHandleProcess(
                 Message->Kernel.Handle.Post.GrantedAccess,
                 Message->Kernel.Handle.Post.DesiredAccess,
                 Message->Kernel.Handle.Post.OriginalDesiredAccess,
-                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.ObjectProcessId),
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.Process.ProcessId),
                 HandleToUlong(Message->Kernel.Handle.Post.Duplicate.SourceProcessId),
                 HandleToUlong(Message->Kernel.Handle.Post.Duplicate.TargetProcessId),
                 Message->Kernel.Handle.Post.PreSequence,
@@ -403,7 +403,7 @@ PPH_STRING KsiDebugLogHandleProcess(
                 Message->Kernel.Handle.Post.GrantedAccess,
                 Message->Kernel.Handle.Post.DesiredAccess,
                 Message->Kernel.Handle.Post.OriginalDesiredAccess,
-                HandleToUlong(Message->Kernel.Handle.Post.Create.ObjectProcessId),
+                HandleToUlong(Message->Kernel.Handle.Post.Create.Process.ProcessId),
                 Message->Kernel.Handle.Post.PreSequence,
                 (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.Handle.Post.PreTimeStamp.QuadPart),
                 PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
@@ -426,7 +426,7 @@ PPH_STRING KsiDebugLogHandleProcess(
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Pre.DesiredAccess,
                 Message->Kernel.Handle.Pre.OriginalDesiredAccess,
-                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.ObjectProcessId),
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.Process.ProcessId),
                 HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.SourceProcessId),
                 HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.TargetProcessId)
                 );
@@ -442,7 +442,7 @@ PPH_STRING KsiDebugLogHandleProcess(
                 Message->Kernel.Handle.Object,
                 Message->Kernel.Handle.Pre.DesiredAccess,
                 Message->Kernel.Handle.Pre.OriginalDesiredAccess,
-                HandleToUlong(Message->Kernel.Handle.Pre.Create.ObjectProcessId)
+                HandleToUlong(Message->Kernel.Handle.Pre.Create.Process.ProcessId)
                 );
         }
     }
@@ -465,7 +465,7 @@ PPH_STRING KsiDebugLogHandleThread(
         if (Message->Kernel.Handle.Duplicate)
         {
             result = PhFormatString(
-                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu (duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
+                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu (process %lu, duplicate %lu -> %lu) %llu %llu %ls (0x%08x)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
                 Message->Kernel.Handle.ContextProcessStartKey,
@@ -475,7 +475,8 @@ PPH_STRING KsiDebugLogHandleThread(
                 Message->Kernel.Handle.Post.GrantedAccess,
                 Message->Kernel.Handle.Post.DesiredAccess,
                 Message->Kernel.Handle.Post.OriginalDesiredAccess,
-                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.ObjectThreadId),
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.Thread.ClientId.UniqueThread),
+                HandleToUlong(Message->Kernel.Handle.Post.Duplicate.Thread.ClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.Post.Duplicate.SourceProcessId),
                 HandleToUlong(Message->Kernel.Handle.Post.Duplicate.TargetProcessId),
                 Message->Kernel.Handle.Post.PreSequence,
@@ -487,7 +488,7 @@ PPH_STRING KsiDebugLogHandleThread(
         else
         {
             result = PhFormatString(
-                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu %llu %llu %ls (0x%08x)",
+                L"%04x:%04x:%016llx %c %p %llu granted 0x%08x (desired 0x%08x, original 0x%08x) to thread %lu (process %lu) %llu %llu %ls (0x%08x)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
                 Message->Kernel.Handle.ContextProcessStartKey,
@@ -497,7 +498,8 @@ PPH_STRING KsiDebugLogHandleThread(
                 Message->Kernel.Handle.Post.GrantedAccess,
                 Message->Kernel.Handle.Post.DesiredAccess,
                 Message->Kernel.Handle.Post.OriginalDesiredAccess,
-                HandleToUlong(Message->Kernel.Handle.Post.Create.ObjectThreadId),
+                HandleToUlong(Message->Kernel.Handle.Post.Create.Thread.ClientId.UniqueThread),
+                HandleToUlong(Message->Kernel.Handle.Post.Create.Thread.ClientId.UniqueProcess),
                 Message->Kernel.Handle.Post.PreSequence,
                 (ULONG64)(Message->Header.TimeStamp.QuadPart - Message->Kernel.Handle.Post.PreTimeStamp.QuadPart),
                 PhGetStringOrDefault(statusMessage, L"UNKNOWN"),
@@ -512,7 +514,7 @@ PPH_STRING KsiDebugLogHandleThread(
         if (Message->Kernel.Handle.Duplicate)
         {
             result = PhFormatString(
-                L"%04x:%04x:%016llx %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu (duplicate %lu -> %lu)",
+                L"%04x:%04x:%016llx %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu (process %lu, duplicate %lu -> %lu)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
                 Message->Kernel.Handle.ContextProcessStartKey,
@@ -521,7 +523,8 @@ PPH_STRING KsiDebugLogHandleThread(
                 Message->Kernel.Handle.Sequence,
                 Message->Kernel.Handle.Pre.DesiredAccess,
                 Message->Kernel.Handle.Pre.OriginalDesiredAccess,
-                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.ObjectThreadId),
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.Thread.ClientId.UniqueThread),
+                HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.Thread.ClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.SourceProcessId),
                 HandleToUlong(Message->Kernel.Handle.Pre.Duplicate.TargetProcessId)
                 );
@@ -529,7 +532,7 @@ PPH_STRING KsiDebugLogHandleThread(
         else
         {
             result = PhFormatString(
-                L"%04x:%04x:%016llx %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu",
+                L"%04x:%04x:%016llx %c %p %llu desires 0x%08x (original 0x%08x) to thread %lu (process %lu)",
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueProcess),
                 HandleToUlong(Message->Kernel.Handle.ContextClientId.UniqueThread),
                 Message->Kernel.Handle.ContextProcessStartKey,
@@ -538,7 +541,8 @@ PPH_STRING KsiDebugLogHandleThread(
                 Message->Kernel.Handle.Sequence,
                 Message->Kernel.Handle.Pre.DesiredAccess,
                 Message->Kernel.Handle.Pre.OriginalDesiredAccess,
-                HandleToUlong(Message->Kernel.Handle.Pre.Create.ObjectThreadId)
+                HandleToUlong(Message->Kernel.Handle.Pre.Create.Thread.ClientId.UniqueThread),
+                HandleToUlong(Message->Kernel.Handle.Pre.Create.Thread.ClientId.UniqueProcess)
                 );
         }
     }
