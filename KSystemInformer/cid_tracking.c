@@ -18,7 +18,6 @@ typedef struct _KPH_CID_APC
 {
     KSI_KAPC Apc;
     KEVENT CompletedEvent;
-    PKPH_DYN Dyn;
     PKPH_THREAD_CONTEXT Thread;
 } KPH_CID_APC, *PKPH_CID_APC;
 
@@ -297,11 +296,6 @@ VOID KSIAPI KphpDeleteCidApc(
     if (apc->Thread)
     {
         KphDereferenceObject(apc->Thread);
-    }
-
-    if (apc->Dyn)
-    {
-        KphDereferenceObject(apc->Dyn);
     }
 }
 
@@ -704,15 +698,24 @@ VOID KphpInitializeWSLThreadContext(
 
     PAGED_CODE();
 
-    NT_ASSERT(ThreadContext->EThread == KeGetCurrentThread());
-    NT_ASSERT(ThreadContext->SubsystemType == SubsystemInformationTypeWSL);
-    NT_ASSERT(Dyn->LxpThreadGetCurrent);
-    NT_ASSERT(Dyn->LxpThreadGetCurrent);
-    NT_ASSERT(Dyn->LxPicoThrdInfo != ULONG_MAX);
-    NT_ASSERT(Dyn->LxPicoThrdInfoTID != ULONG_MAX);
-    NT_ASSERT(Dyn->LxPicoProc != ULONG_MAX);
-    NT_ASSERT(Dyn->LxPicoProcInfo != ULONG_MAX);
-    NT_ASSERT(Dyn->LxPicoProcInfoPID != ULONG_MAX);
+    //
+    // We use an APC here to reach into the thread pico context. We could
+    // reach directly into the pico context elsewhere, but reversing shows
+    // intent for possible other pico subsystem providers in the future.
+    // So, we use some "undocumented" APIs in the APC to ask "nicely" for
+    // the correct pico context.
+    //
+
+    if ((ThreadContext->SubsystemType != SubsystemInformationTypeWSL) ||
+        !Dyn->LxpThreadGetCurrent ||
+        (Dyn->LxPicoThrdInfo == ULONG_MAX) ||
+        (Dyn->LxPicoThrdInfoTID == ULONG_MAX) ||
+        (Dyn->LxPicoProc == ULONG_MAX) ||
+        (Dyn->LxPicoProcInfo == ULONG_MAX) ||
+        (Dyn->LxPicoProcInfoPID == ULONG_MAX))
+    {
+        return;
+    }
 
     if (!Dyn->LxpThreadGetCurrent(&picoContext))
     {
@@ -765,6 +768,7 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
     )
 {
     PKPH_CID_APC apc;
+    PKPH_DYN dyn;
 
     PAGED_CODE();
 
@@ -775,37 +779,32 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
 
     apc = CONTAINING_RECORD(Apc, KPH_CID_APC, Apc);
 
-    NT_ASSERT(apc->Dyn);
+    NT_ASSERT(apc->Thread->EThread == KeGetCurrentThread());
 
     //
-    // This call populates the cached sub-process tag.
+    // Populates the cached sub-process tag.
     //
     (VOID)KphGetCurrentThreadSubProcessTag();
 
-    KphpInitializeWSLThreadContext(apc->Dyn, apc->Thread);
+    dyn = KphReferenceDynData();
+    if (dyn)
+    {
+        KphpInitializeWSLThreadContext(dyn, apc->Thread);
+        KphDereferenceObject(dyn);
+    }
 
     KeSetEvent(&apc->CompletedEvent, EVENT_INCREMENT, FALSE);
 }
 
 /**
- * \brief Initializes a thread context parts based dependent on dynamic data.
+ * \brief Initializes thread context parts in the original thread environment.
  *
- * \details This routine checks if initialization is still necessary and if
- * not it returns immediately. Some of our initialization relies on dynamic
- * data and it may not be available when we initially set up the thread
- * context. So this routine enables our system to try to cache later. A nominal
- * pattern will check for parts of the context(s) they are interested in, if
- * they are invalid, a call may be made to this API, then they may be checked
- * again.
- *
- * \param[in] Dyn Dynamic configuration.
  * \param[in] ThreadContext The thread context to initialize.
  * \param[in] Wait If TRUE this routine will try to wait for the APC to
  * complete, otherwise this routine will not wait.
  */
 _IRQL_requires_max_(APC_LEVEL)
-VOID KphpInitializeThreadContextDynData(
-    _In_ PKPH_DYN Dyn,
+VOID KphpInitThreadContextInOriginalEnvironment(
     _In_ PKPH_THREAD_CONTEXT ThreadContext,
     _In_ BOOLEAN Wait
     )
@@ -814,62 +813,6 @@ VOID KphpInitializeThreadContextDynData(
     PKPH_CID_APC apc;
 
     PAGED_CODE();
-
-    apc = NULL;
-
-    //
-    // We use an APC here to reach into the thread pico context. We could
-    // reach directly into the pico context here, but reversing shows
-    // intent for possible other pico subsystem providers in the future.
-    // So, we use some "undocumented" APIs in the APC to ask "nicely" for
-    // the correct pico context.
-    //
-
-    if (ThreadContext->SubsystemType != SubsystemInformationTypeWSL)
-    {
-        //
-        // We don't need to do anything special for non-WSL threads.
-        //
-        status = STATUS_SUCCESS;
-        goto Exit;
-    }
-
-    if (ThreadContext->WSL.ValidThreadId &&
-        ThreadContext->ProcessContext &&
-        ThreadContext->ProcessContext->WSL.ValidProcessId)
-    {
-        //
-        // The necessary information is already valid.
-        //
-        status = STATUS_SUCCESS;
-        goto Exit;
-    }
-    else if (ThreadContext->WSL.ValidThreadId &&
-             !ThreadContext->ProcessContext)
-    {
-        //
-        // This is an unlikely edge cases where we tracked a thread but had
-        // insufficient resources to track the process and already committed
-        // a valid thread WSL ID. There is no point in continuing to try...
-        //
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
-
-    if (!Dyn->LxpThreadGetCurrent ||
-        !Dyn->LxpThreadGetCurrent ||
-        (Dyn->LxPicoThrdInfo == ULONG_MAX) ||
-        (Dyn->LxPicoThrdInfoTID == ULONG_MAX) ||
-        (Dyn->LxPicoProc == ULONG_MAX) ||
-        (Dyn->LxPicoProcInfo == ULONG_MAX) ||
-        (Dyn->LxPicoProcInfoPID == ULONG_MAX))
-    {
-        //
-        // We need this information, it's pointless to continue otherwise.
-        //
-        status = STATUS_NOINTERFACE;
-        goto Exit;
-    }
 
     status = KphCreateObject(KphpCidApcType, sizeof(KPH_CID_APC), &apc, NULL);
     if (!NT_SUCCESS(status))
@@ -884,9 +827,6 @@ VOID KphpInitializeThreadContextDynData(
 
     apc->Thread = ThreadContext;
     KphReferenceObject(apc->Thread);
-
-    apc->Dyn = Dyn;
-    KphReferenceObject(apc->Dyn);
 
     KsiInitializeApc(&apc->Apc,
                      KphDriverObject,
@@ -940,20 +880,6 @@ VOID KphpInitializeThreadContextDynData(
         goto Exit;
     }
 
-    //
-    // Check that we got all the information.
-    //
-    if (!ThreadContext->WSL.ValidThreadId ||
-        !ThreadContext->ProcessContext ||
-        !ThreadContext->ProcessContext->WSL.ValidProcessId)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      TRACKING,
-                      "Failed to get all WSL information");
-
-        status = STATUS_UNSUCCESSFUL;
-    }
-
 Exit:
 
     if (apc)
@@ -987,14 +913,12 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
     )
 {
     NTSTATUS status;
-    PKPH_DYN dyn;
     PKPH_THREAD_CONTEXT thread;
     PETHREAD threadObject;
     HANDLE threadHandle;
 
     PAGED_CODE();
 
-    dyn = NULL;
     thread = Object;
     threadObject = Parameter;
 
@@ -1062,10 +986,9 @@ NTSTATUS KSIAPI KphpInitializeThreadContext(
         KphReleaseRWLock(&thread->ProcessContext->ThreadListLock);
     }
 
-    dyn = KphReferenceDynData();
-    if (dyn)
+    if (!PsIsSystemThread(thread->EThread))
     {
-        KphpInitializeThreadContextDynData(dyn, thread, FALSE);
+        KphpInitThreadContextInOriginalEnvironment(thread, FALSE);
     }
 
     status = STATUS_SUCCESS;
@@ -1075,11 +998,6 @@ Exit:
     if (threadHandle)
     {
         ObCloseHandle(threadHandle, KernelMode);
-    }
-
-    if (dyn)
-    {
-        KphDereferenceObject(dyn);
     }
 
     return status;
@@ -2364,12 +2282,10 @@ NTSTATUS KphQueryInformationProcessContext(
     )
 {
     NTSTATUS status;
-    PKPH_DYN dyn;
     ULONG returnLength;
 
     PAGED_CODE();
 
-    dyn = NULL;
     returnLength = 0;
 
     switch (InformationClass)
@@ -2426,13 +2342,6 @@ NTSTATUS KphQueryInformationProcessContext(
             {
                 PKPH_THREAD_CONTEXT thread;
 
-                dyn = KphReferenceDynData();
-                if (!dyn)
-                {
-                    status = STATUS_NOINTERFACE;
-                    goto Exit;
-                }
-
                 KphAcquireRWLockShared(&Process->ThreadListLock);
 
                 thread = Process->InitialThread;
@@ -2449,7 +2358,7 @@ NTSTATUS KphQueryInformationProcessContext(
                     goto Exit;
                 }
 
-                KphpInitializeThreadContextDynData(dyn, thread, TRUE);
+                KphpInitThreadContextInOriginalEnvironment(thread, TRUE);
 
                 KphDereferenceObject(thread);
             }
@@ -2483,11 +2392,6 @@ Exit:
         *ReturnLength = returnLength;
     }
 
-    if (dyn)
-    {
-        KphDereferenceObject(dyn);
-    }
-
     return status;
 }
 
@@ -2518,12 +2422,10 @@ NTSTATUS KphQueryInformationThreadContext(
     )
 {
     NTSTATUS status;
-    PKPH_DYN dyn;
     ULONG returnLength;
 
     PAGED_CODE();
 
-    dyn = NULL;
     returnLength = 0;
 
     switch (InformationClass)
@@ -2546,14 +2448,7 @@ NTSTATUS KphQueryInformationThreadContext(
 
             if (!Thread->WSL.ValidThreadId)
             {
-                dyn = KphReferenceDynData();
-                if (!dyn)
-                {
-                    status = STATUS_NOINTERFACE;
-                    goto Exit;
-                }
-
-                KphpInitializeThreadContextDynData(dyn, Thread, TRUE);
+                KphpInitThreadContextInOriginalEnvironment(Thread, TRUE);
             }
 
             if (!Thread->WSL.ValidThreadId)
@@ -2583,11 +2478,6 @@ Exit:
     if (ReturnLength)
     {
         *ReturnLength = returnLength;
-    }
-
-    if (dyn)
-    {
-        KphDereferenceObject(dyn);
     }
 
     return status;
