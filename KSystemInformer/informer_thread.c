@@ -143,12 +143,21 @@ VOID KphpCreateThreadNotifyInformer(
         msg->Kernel.ThreadCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
         msg->Kernel.ThreadCreate.CreatingClientId.UniqueThread = PsGetCurrentThreadId();
         msg->Kernel.ThreadCreate.CreatingProcessStartKey = KphGetCurrentProcessStartKey();
+        msg->Kernel.ThreadCreate.CreatingThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
         msg->Kernel.ThreadCreate.TargetClientId.UniqueProcess = ProcessId;
         msg->Kernel.ThreadCreate.TargetClientId.UniqueThread = ThreadId;
         msg->Kernel.ThreadCreate.TargetProcessStartKey = KphGetThreadProcessStartKey(Thread->EThread);
     }
     else if (Type == KphThreadNotifyExecute)
     {
+        PVOID subProcessTag;
+
+        //
+        // Call this even if the informer is disabled since this is the best
+        // place to update the cached sub-process tag in the thread context.
+        //
+        subProcessTag = KphGetCurrentThreadSubProcessTag();
+
         if (!KphInformerEnabled2(ThreadExecute, actorProcess, Thread->ProcessContext))
         {
             goto Exit;
@@ -168,6 +177,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg->Kernel.ThreadExecute.ClientId.UniqueThread = ThreadId;
         NT_ASSERT(ProcessId == PsGetCurrentProcessId());
         msg->Kernel.ThreadExecute.ProcessStartKey = KphGetCurrentProcessStartKey();
+        msg->Kernel.ThreadExecute.ThreadSubProcessTag = subProcessTag;
     }
     else
     {
@@ -193,6 +203,7 @@ VOID KphpCreateThreadNotifyInformer(
         msg->Kernel.ThreadExit.ExitStatus = PsGetThreadExitStatus(Thread->EThread);
         NT_ASSERT(ProcessId == PsGetCurrentProcessId());
         msg->Kernel.ThreadExit.ProcessStartKey = KphGetCurrentProcessStartKey();
+        msg->Kernel.ThreadExit.ThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
     }
 
     if (KphInformerEnabled2(EnableStackTraces, actorProcess, Thread->ProcessContext))

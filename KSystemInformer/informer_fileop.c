@@ -1011,12 +1011,18 @@ VOID KphpFltFillCommonMessage(
     if (Data->Thread)
     {
         PEPROCESS process;
+        BOOLEAN cacheOnly;
 
         process = PsGetThreadProcess(Data->Thread);
 
         Message->Kernel.File.ClientId.UniqueProcess = PsGetProcessId(process);
         Message->Kernel.File.ClientId.UniqueThread = PsGetThreadId(Data->Thread);
         Message->Kernel.File.ProcessStartKey = KphGetProcessStartKey(process);
+
+        cacheOnly = (FlagOn(Data->Iopb->IrpFlags, IRP_PAGING_IO) ||
+                     FlagOn(Data->Iopb->IrpFlags, IRP_SYNCHRONOUS_PAGING_IO));
+
+        Message->Kernel.File.ThreadSubProcessTag = KphGetThreadSubProcessTagEx(Data->Thread, cacheOnly);
     }
 
     Message->Kernel.File.RequestorMode = (Data->RequestorMode != KernelMode);
