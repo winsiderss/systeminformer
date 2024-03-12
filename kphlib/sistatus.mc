@@ -60,4 +60,12 @@ Language     = English
 System Informer dynamic data signature is invalid.
 .
 
+MessageId    = 0x0001
+Facility     = KSystemInformer
+Severity     = Error
+SymbolicName = STATUS_SI_KSIDLL_VERSION_MISMATCH
+Language     = English
+System Informer kernel library version is incompatible.
+.
+
 ;#endif

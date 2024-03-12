@@ -10,6 +10,7 @@
  */
 
 #include <kph.h>
+#include <sistatus.h>
 
 //
 // This library is intended to be an extension of core OS functionality which
@@ -280,6 +281,39 @@ VOID KsiQueueWorkItem(
 
 #pragma warning(suppress: 4996)
     ExQueueWorkItem(&WorkItem->WorkItem, QueueType);
+}
+
+//
+// General Library Functions
+//
+
+_IRQL_requires_max_(PASIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KsiInitialize(
+    _In_ ULONG Version,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_opt_ PVOID Reserved
+    )
+{
+    UNREFERENCED_PARAMETER(DriverObject);
+    UNREFERENCED_PARAMETER(Reserved);
+
+    if (Version != KSIDLL_CURRENT_VERSION)
+    {
+        return STATUS_SI_KSIDLL_VERSION_MISMATCH;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KsiUninitialize(
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ ULONG Reserved
+    )
+{
+    UNREFERENCED_PARAMETER(DriverObject);
+    UNREFERENCED_PARAMETER(Reserved);
 }
 
 NTSTATUS DllUnload(
