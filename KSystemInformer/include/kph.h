@@ -1999,6 +1999,28 @@ VOID KphCleanupVerify(
 #define KSISYSAPI
 #endif
 
+#define KSIDLL_CURRENT_VERSION 1
+
+KSISYSAPI
+_IRQL_requires_max_(PASIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS
+KSIAPI
+KsiInitialize(
+    _In_ ULONG Version,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_opt_ PVOID Reserved
+    );
+
+KSISYSAPI
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+KSIAPI
+KsiUninitialize(
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ ULONG Reserved
+    );
+
 typedef struct _KSI_KAPC
 {
     KAPC Apc;
