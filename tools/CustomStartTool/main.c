@@ -143,7 +143,6 @@ INT WINAPI wWinMain(
     HANDLE processHandle;
     HANDLE jobObjectHandle;
     PPH_STRING fileName;
-    PROCESS_INFORMATION processInfo = { 0 };
     STARTUPINFOEX info = { sizeof(STARTUPINFOEX) };
 
     if (!NT_SUCCESS(PhInitializePhLib(L"CustomStartTool", Instance)))
@@ -176,11 +175,6 @@ INT WINAPI wWinMain(
 
         NtResumeProcess(processHandle);
         NtClose(processHandle);
-    }
-
-    if (processInfo.hThread)
-    {
-        NtClose(processInfo.hThread);
     }
 
     DestroyAttributeList(&info);
