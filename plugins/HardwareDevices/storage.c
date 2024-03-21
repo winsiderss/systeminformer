@@ -1630,3 +1630,29 @@ NTSTATUS DiskDriveQueryPartitionInfo(
 //
 //    return TRUE;
 //}
+
+
+NTSTATUS DiskDriveEnableStatistics(
+    VOID
+    )
+{
+    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Partmgr");
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PhSetValueKeyZ(keyHandle, L"EnableCounterForIoctl", REG_DWORD, &(ULONG){ TRUE }, sizeof(ULONG));
+        NtClose(keyHandle);
+    }
+
+    return status;
+}
