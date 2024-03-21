@@ -32,6 +32,40 @@ static PVOID json_get_object(
     return NULL;
 }
 
+static NTSTATUS PhJsonErrorToNtStatus(
+    _In_ enum json_tokener_error JsonError
+    )
+{
+    switch (JsonError)
+    {
+    case json_tokener_success:
+        return STATUS_SUCCESS;
+    case json_tokener_continue:
+        return STATUS_MORE_ENTRIES;
+    case json_tokener_error_depth:
+        return STATUS_PARTIAL_COPY;
+    case json_tokener_error_parse_eof:
+    case json_tokener_error_parse_unexpected:
+    case json_tokener_error_parse_null:
+    case json_tokener_error_parse_boolean:
+    case json_tokener_error_parse_number:
+    case json_tokener_error_parse_array:
+    case json_tokener_error_parse_object_key_name:
+    case json_tokener_error_parse_object_key_sep:
+    case json_tokener_error_parse_object_value_sep:
+    case json_tokener_error_parse_string:
+    case json_tokener_error_parse_comment:
+    case json_tokener_error_parse_utf8_string:
+        return STATUS_FAIL_CHECK;
+    case json_tokener_error_memory:
+        return STATUS_NO_MEMORY;
+    case json_tokener_error_size:
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
 PVOID PhCreateJsonParser(
     _In_ PSTR JsonString
     )
@@ -304,10 +338,10 @@ PVOID PhCreateJsonArray(
 
 VOID PhAddJsonArrayObject(
     _In_ PVOID Object,
-    _In_ PVOID jsonEntry
+    _In_ PVOID Value
     )
 {
-    json_object_array_add(Object, jsonEntry);
+    json_object_array_add(Object, Value);
 }
 
 PVOID PhGetJsonArrayString(
