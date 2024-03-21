@@ -206,7 +206,7 @@ VOID
 NTAPI
 PhAddJsonArrayObject(
     _In_ PVOID Object,
-    _In_ PVOID jsonEntry
+    _In_ PVOID Value
     );
 
 PHLIBAPI
