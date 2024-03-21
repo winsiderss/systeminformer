@@ -287,7 +287,7 @@ VOID KsiQueueWorkItem(
 // General Library Functions
 //
 
-_IRQL_requires_max_(PASIVE_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KsiInitialize(
     _In_ ULONG Version,
