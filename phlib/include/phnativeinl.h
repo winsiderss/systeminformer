@@ -232,6 +232,22 @@ PhGetProcessDebugObject(
 
 FORCEINLINE
 NTSTATUS
+PhGetProcessEnergyValues(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_EXTENDED_ENERGY_VALUES EnergyValues
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessEnergyValues,
+        EnergyValues,
+        sizeof(PROCESS_EXTENDED_ENERGY_VALUES),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetProcessErrorMode(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG ErrorMode
