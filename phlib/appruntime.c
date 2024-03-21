@@ -20,9 +20,9 @@
 #endif
 
 #ifdef __hstring_h__
-C_ASSERT(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER));
+static_assert(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
 #else
-C_ASSERT(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER));
+static_assert(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
 #endif
 
 PPH_STRING PhCreateStringFromWindowsRuntimeString(
