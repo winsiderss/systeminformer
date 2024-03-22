@@ -90,4 +90,13 @@
 //
 #define STATUS_SI_DYNDATA_INVALID_SIGNATURE ((NTSTATUS)0xE0020004L)
 
+//
+// MessageId: STATUS_SI_KSIDLL_VERSION_MISMATCH
+//
+// MessageText:
+//
+// System Informer kernel library version is incompatible.
+//
+#define STATUS_SI_KSIDLL_VERSION_MISMATCH ((NTSTATUS)0xE0030001L)
+
 #endif

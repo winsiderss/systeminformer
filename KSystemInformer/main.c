@@ -73,10 +73,12 @@ VOID KphpProtectSections(
 
 /**
  * \brief Cleans up the driver state.
+ *
+ * \param[in] DriverObject Driver object of this driver.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpDriverCleanup(
-    VOID
+    _In_ PDRIVER_OBJECT DriverObject
     )
 {
     PAGED_CODE_PASSIVE();
@@ -94,8 +96,9 @@ VOID KphpDriverCleanup(
     KphCleanupSigning();
     KphCleanupVerify();
     KphCleanupHashing();
-    KphCleanupSocket();
     KphCleanupParameters();
+
+    KsiUninitialize(DriverObject, 0);
 }
 
 /**
@@ -114,7 +117,7 @@ VOID DriverUnload(
 
     KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "Driver Unloading...");
 
-    KphpDriverCleanup();
+    KphpDriverCleanup(DriverObject);
 
     KphTracePrint(TRACE_LEVEL_INFORMATION, GENERAL, "Driver Unloaded");
 
@@ -149,6 +152,17 @@ NTSTATUS DriverEntry(
     KphDriverObject->DriverUnload = DriverUnload;
 
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
+
+    status = KsiInitialize(KSIDLL_CURRENT_VERSION, DriverObject, NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "KsiInitialize failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
 
     KphOsVersionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
     status = RtlGetVersion((PRTL_OSVERSIONINFOW)&KphOsVersionInfo);
@@ -231,17 +245,6 @@ NTSTATUS DriverEntry(
                   KphKernelVersion.MinorVersion,
                   KphKernelVersion.BuildNumber,
                   KphKernelVersion.Revision);
-
-    status = KphInitializeSocket();
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphInitializeSocket failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
 
     status = KphInitializeHashing();
     if (!NT_SUCCESS(status))
@@ -405,12 +408,12 @@ Exit:
     }
     else
     {
-        KphpDriverCleanup();
-
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Driver Load Failed: %!STATUS!",
                       status);
+
+        KphpDriverCleanup(DriverObject);
 
         WPP_CLEANUP(DriverObject);
     }

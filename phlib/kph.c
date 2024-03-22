@@ -1915,3 +1915,63 @@ NTSTATUS KphStripProtectedProcessMasks(
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
 }
+
+NTSTATUS KphQueryVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ KPH_MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_opt_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONG MemoryInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQueryVirtualMemory);
+    msg->User.QueryVirtualMemory.ProcessHandle = ProcessHandle;
+    msg->User.QueryVirtualMemory.BaseAddress = BaseAddress;
+    msg->User.QueryVirtualMemory.MemoryInformationClass = MemoryInformationClass;
+    msg->User.QueryVirtualMemory.MemoryInformation = MemoryInformation;
+    msg->User.QueryVirtualMemory.MemoryInformationLength = MemoryInformationLength;
+    msg->User.QueryVirtualMemory.ReturnLength = ReturnLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.QueryVirtualMemory.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQueryHashInformationFile(
+    _In_ HANDLE FileHandle,
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG HashInformationLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQueryHashInformationFile);
+    msg->User.QueryHashInformationFile.FileHandle = FileHandle;
+    msg->User.QueryHashInformationFile.HashingInformation = HashInformation;
+    msg->User.QueryHashInformationFile.HashingInformationLength = HashInformationLength;
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.QueryHashInformationFile.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}

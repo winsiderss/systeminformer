@@ -50,6 +50,7 @@ uf lxcore!LxpSyscall_GETTID
 dt nt!_SECTION u1.ControlArea
 dt nt!_CONTROL_AREA ListHead
 dt nt!_CONTROL_AREA ControlAreaLock
+dt nt!_EPROCESS SectionObject
 
 -->
 <dyn>
@@ -99,6 +100,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x518"  name="EpSectionObject"/>
     </data>
     <data name="10.0.22000.194 - 10.0.22621.493">
         <field value="10"     name="MajorVersion"/>
@@ -145,6 +147,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x518"  name="EpSectionObject"/>
     </data>
     <!-- Windows Server 2022 -->
     <data name="10.0.20348.587 - 10.0.20348.2340">
@@ -192,6 +195,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x518"  name="EpSectionObject"/>
     </data>
     <!-- Windows 10 -->
     <data name="10.0.19041.1586 - 10.0.19041.4170">
@@ -239,6 +243,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x518"  name="EpSectionObject"/>
     </data>
     <data name="10.0.19041.264 - 10.0.19041.1526">
         <field value="10"     name="MajorVersion"/>
@@ -285,6 +290,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x518"  name="EpSectionObject"/>
     </data>
     <data name="10.0.18362.2158 - 10.0.18362.2274">
         <field value="10"     name="MajorVersion"/>
@@ -331,6 +337,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3c0"  name="EpSectionObject"/>
     </data>
     <data name="10.0.18362.693 - 10.0.18362.2094">
         <field value="10"     name="MajorVersion"/>
@@ -377,6 +384,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3c0"  name="EpSectionObject"/>
     </data>
     <data name="10.0.18362.30 - 10.0.18362.657">
         <field value="10"     name="MajorVersion"/>
@@ -423,6 +431,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3c0"  name="EpSectionObject"/>
     </data>
     <data name="10.0.17763.2746 - 10.0.17763.5576">
         <field value="10"     name="MajorVersion"/>
@@ -469,6 +478,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3b8"  name="EpSectionObject"/>
     </data>
     <data name="10.0.17763.1075 - 10.0.17763.2628">
         <field value="10"     name="MajorVersion"/>
@@ -515,6 +525,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3b8"  name="EpSectionObject"/>
     </data>
     <data name="10.0.15063.0 - 10.0.17763.1039">
         <field value="10"     name="MajorVersion"/>
@@ -561,6 +572,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3b8"  name="EpSectionObject"/>
     </data>
     <data name="10.0.14393.5006 - 10.0.14393.5996">
         <field value="10"     name="MajorVersion"/>
@@ -607,6 +619,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3b8"  name="EpSectionObject"/>
     </data>
     <data name="10.0.14393.0 - 10.0.14393.4946">
         <field value="10"     name="MajorVersion"/>
@@ -647,6 +660,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3b8"  name="EpSectionObject"/>
     </data>
     <data name="10.0.10586.0 - 10.0.10586.1540">
         <field value="10"     name="MajorVersion"/>
@@ -687,6 +701,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3b8"  name="EpSectionObject"/>
     </data>
     <data name="10.0.10240.19235 - 10.0.10240.19986">
         <field value="10"     name="MajorVersion"/>
@@ -727,6 +742,7 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3b8"  name="EpSectionObject"/>
     </data>
     <data name="10.0.10240.16384 - 10.0.10240.19204">
         <field value="10"     name="MajorVersion"/>
@@ -767,5 +783,6 @@ dt nt!_CONTROL_AREA ControlAreaLock
         <field value="0x28"   name="MmSectionControlArea"/>
         <field value="0x8"    name="MmControlAreaListHead"/>
         <field value="0x48"   name="MmControlAreaLock"/>
+        <field value="0x3b8"  name="EpSectionObject"/>
     </data>
 </dyn>

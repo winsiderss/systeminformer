@@ -33,7 +33,7 @@ KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const KPH_KEY KphpPublicKeys[] =
 {
     {
-        KphKeyTypeProd,
+        KphKeyTypeProd, // kph
         {
             0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
             0x7C, 0x32, 0xAB, 0xA6, 0x40, 0x79, 0x9C, 0x00,
@@ -44,6 +44,34 @@ static const KPH_KEY KphpPublicKeys[] =
             0xC8, 0xFD, 0x53, 0xDC, 0x00, 0x0D, 0x96, 0x62,
             0xA2, 0x55, 0x38, 0x71, 0xF0, 0x0F, 0xCC, 0x8F,
             0x84, 0xF4, 0x2B, 0x60, 0x38, 0xA6, 0xE7, 0x37,
+        }
+    },
+    {
+        KphKeyTypeTest, // kph-dev
+        {
+           0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
+           0xCA, 0x54, 0x8F, 0x81, 0x2D, 0xB5, 0x8A, 0x0A,
+           0x8A, 0x71, 0xF2, 0x6F, 0x3E, 0xA2, 0x54, 0x7A,
+           0x1C, 0xF6, 0xB8, 0x6A, 0x39, 0xAD, 0x6F, 0xED,
+           0xFC, 0x84, 0x46, 0x7A, 0x29, 0x11, 0xE7, 0x7D,
+           0x19, 0xA8, 0x5F, 0xEB, 0x8C, 0x4A, 0xBB, 0x88,
+           0xFE, 0x19, 0x40, 0xE9, 0xAE, 0xA7, 0xD6, 0x0C,
+           0xED, 0x87, 0x67, 0xB6, 0xD7, 0x57, 0x75, 0x7F,
+           0x96, 0xF2, 0xB0, 0xFF, 0x77, 0x5F, 0x04, 0x41,
+        }
+    },
+    {
+        KphKeyTypeTest, // kph-test
+        {
+	        0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
+            0x25, 0x64, 0x8F, 0xD2, 0x9B, 0x6D, 0x16, 0x6C,
+            0x30, 0x3C, 0x0A, 0x1E, 0xD0, 0x63, 0x78, 0x45,
+            0xD3, 0xDB, 0x13, 0xAD, 0xE2, 0xFD, 0xCF, 0xDC,
+            0xEC, 0x23, 0xF4, 0x26, 0x19, 0xDF, 0x97, 0xBD,
+            0xC8, 0xF0, 0x61, 0x2A, 0xCB, 0x59, 0xAB, 0x1D,
+            0x96, 0xAA, 0xAC, 0x6D, 0x59, 0x45, 0x62, 0xA5,
+            0x13, 0x6C, 0xF0, 0x42, 0x99, 0xF8, 0x90, 0x60,
+            0x47, 0x9C, 0xAD, 0x3B, 0xC6, 0xB5, 0x82, 0x25,
         }
     }
 };
@@ -74,7 +102,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpVerifyHash(
     _In_opt_ BCRYPT_KEY_HANDLE KeyHandle,
-    _In_ PKPH_HASH Hash,
+    _In_ PKPH_HASH_INFORMATION HashInformation,
     _In_ PBYTE Signature,
     _In_ ULONG SignatureLength
     )
@@ -89,8 +117,8 @@ NTSTATUS KphpVerifyHash(
     {
         status = BCryptVerifySignature(KeyHandle,
                                        NULL,
-                                       Hash->Buffer,
-                                       Hash->Size,
+                                       HashInformation->Hash,
+                                       HashInformation->Length,
                                        Signature,
                                        SignatureLength,
                                        0);
@@ -101,8 +129,8 @@ NTSTATUS KphpVerifyHash(
         {
             status = BCryptVerifySignature(KphpPublicKeyHandles[i],
                                            NULL,
-                                           Hash->Buffer,
-                                           Hash->Size,
+                                           HashInformation->Hash,
+                                           HashInformation->Length,
                                            Signature,
                                            SignatureLength,
                                            0);
@@ -190,11 +218,14 @@ NTSTATUS KphVerifyBufferEx(
     )
 {
     NTSTATUS status;
-    KPH_HASH hash;
+    KPH_HASH_INFORMATION hashInfo;
 
     PAGED_CODE_PASSIVE();
 
-    status = KphHashBuffer(Buffer, BufferLength, CALG_SHA_256, &hash);
+    status = KphHashBuffer(Buffer,
+                           BufferLength,
+                           KphHashAlgorithmSha256,
+                           &hashInfo);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -205,7 +236,7 @@ NTSTATUS KphVerifyBufferEx(
         return status;
     }
 
-    status = KphpVerifyHash(KeyHandle, &hash, Signature, SignatureLength);
+    status = KphpVerifyHash(KeyHandle, &hashInfo, Signature, SignatureLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -261,16 +292,19 @@ NTSTATUS KphVerifyFile(
     )
 {
     NTSTATUS status;
-    KPH_HASH hash;
     UNICODE_STRING signatureFileName;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE signatureFileHandle;
+    HANDLE fileHandle;
     IO_STATUS_BLOCK ioStatusBlock;
     BYTE signature[MINCRYPT_MAX_HASH_LEN];
+    ULONG signatureLength;
+    KPH_HASH_INFORMATION hashInfo;
 
     PAGED_CODE_PASSIVE();
 
     signatureFileHandle = NULL;
+    fileHandle = NULL;
     RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
 
     if ((FileName->Length <= KphpSigExtension.Length) ||
@@ -379,7 +413,44 @@ NTSTATUS KphVerifyFile(
 
     NT_ASSERT(ioStatusBlock.Information <= ARRAYSIZE(signature));
 
-    status = KphHashFileByName(FileName, CALG_SHA_256, &hash);
+    signatureLength = (ULONG)ioStatusBlock.Information;
+
+    InitializeObjectAttributes(&objectAttributes,
+                               (PUNICODE_STRING)FileName,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = KphCreateFile(&fileHandle,
+                           FILE_READ_ACCESS | SYNCHRONIZE,
+                           &objectAttributes,
+                           &ioStatusBlock,
+                           NULL,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           NULL,
+                           0,
+                           IO_IGNORE_SHARE_ACCESS_CHECK,
+                           KernelMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphCreateFile failed: %!STATUS!",
+                      status);
+
+        fileHandle = NULL;
+        goto Exit;
+    }
+
+    hashInfo.Algorithm = KphHashAlgorithmSha256;
+
+    status = KphQueryHashInformationFile(fileHandle,
+                                         &hashInfo,
+                                         sizeof(hashInfo),
+                                         KernelMode);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -390,10 +461,7 @@ NTSTATUS KphVerifyFile(
         goto Exit;
     }
 
-    status = KphpVerifyHash(NULL,
-                            &hash,
-                            signature,
-                            (ULONG)ioStatusBlock.Information);
+    status = KphpVerifyHash(NULL, &hashInfo, signature, signatureLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -409,6 +477,11 @@ NTSTATUS KphVerifyFile(
 Exit:
 
     RtlFreeUnicodeString(&signatureFileName);
+
+    if (fileHandle)
+    {
+        ObCloseHandle(fileHandle, KernelMode);
+    }
 
     if (signatureFileHandle)
     {

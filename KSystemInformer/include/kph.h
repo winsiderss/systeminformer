@@ -110,12 +110,64 @@ ULONG64 InterlockedIncrementU64(
 }
 
 FORCEINLINE
+ULONG_PTR InterlockedExchangeULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Value
+    )
+{
+#ifdef _WIN64
+    return (ULONG_PTR)InterlockedExchange64((LONG64*)Target, (LONG64)Value);
+#else
+    return (ULONG_PTR)InterlockedExchange((LONG*)Target, (LONG)Value);
+#endif
+}
+
+FORCEINLINE
 ULONG_PTR InterlockedExchangeAddULongPtr(
     _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
     _In_ ULONG_PTR Value
     )
 {
     return (ULONG_PTR)InterlockedExchangeAddSizeT((SIZE_T*)Target, (SIZE_T)Value);
+}
+
+FORCEINLINE
+BOOLEAN InterlockedBitTestAndResetULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Bit
+    )
+{
+#ifdef _WIN64
+    return InterlockedBitTestAndReset64((LONG64*)Target, (LONG64)Bit);
+#else
+    return InterlockedBitTestAndReset((LONG*)Target, (LONG)Bit);
+#endif
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedCompareExchangeULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Value,
+    _In_ ULONG_PTR Expected
+    )
+{
+#ifdef _WIN64
+    return (ULONG_PTR)InterlockedCompareExchange64((LONG64*)Target,
+                                                   (LONG64)Value,
+                                                   (LONG64)Expected);
+#else
+    return (ULONG_PTR)InterlockedCompareExchange((LONG*)Target,
+                                                 (LONG)Value,
+                                                 (LONG)Expected);
+#endif
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedDecrementULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target
+    )
+{
+    return (ULONG_PTR)InterlockedDecrementSizeT((SIZE_T*)Target);
 }
 
 FORCEINLINE
@@ -193,11 +245,7 @@ if ((string)->Buffer)                                                         \
 
 #define KPH_TIMEOUT(ms) { .QuadPart = (-10000ll * (ms)) }
 
-typedef struct _KPH_SIZED_BUFFER
-{
-    ULONG Size;
-    PBYTE Buffer;
-} KPH_SIZED_BUFFER, *PKPH_SIZED_BUFFER;
+#define KPH_KERNEL_PURGE_EA "$KERNEL.PURGE.SI."
 
 typedef struct _KPH_FILE_VERSION
 {
@@ -510,6 +558,7 @@ typedef struct _KPH_DYN
     ULONG MmSectionControlArea;
     ULONG MmControlAreaListHead;
     ULONG MmControlAreaLock;
+    ULONG EpSectionObject;
 
     PCI_FREE_POLICY_INFO CiFreePolicyInfo;
     PCI_VERIFY_HASH_IN_CATALOG CiVerifyHashInCatalog;
@@ -1121,6 +1170,22 @@ ULONG64 KphGetProcessStartKey(
 #define KphGetCurrentProcessStartKey() KphGetProcessStartKey(PsGetCurrentProcess())
 #define KphGetThreadProcessStartKey(thread) KphGetProcessStartKey(PsGetThreadProcess(thread))
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetCurrentThreadSubProcessTag(
+    VOID
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetThreadSubProcessTagEx(
+    _In_ PETHREAD Thread,
+    _In_ BOOLEAN CacheOnly
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetThreadSubProcessTag(
+    _In_ PETHREAD Thread
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1151,28 +1216,44 @@ _Must_inspect_result_
 NTSTATUS KphQuerySection(
     _In_ HANDLE SectionHandle,
     _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
-    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _Out_writes_bytes_opt_(SectionInformationLength) PVOID SectionInformation,
     _In_ ULONG SectionInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+typedef struct _KPH_VM_TLS_CREATE_DATA_SECTION
+{
+    NTSTATUS Status;
+    HANDLE SectionHandle;
+    LARGE_INTEGER SectionFileSize;
+    KPROCESSOR_MODE AccessMode;
+} KPH_VM_TLS_CREATE_DATA_SECTION, *PKPH_VM_TLS_CREATE_DATA_SECTION;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ KPH_MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_opt_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONG MemoryInformationLength,
     _Out_opt_ PULONG ReturnLength,
     _In_ KPROCESSOR_MODE AccessMode
     );
 
 // hash
 
-typedef struct _KPH_HASH
-{
-    ALG_ID AlgorithmId;
-    ULONG Size;
-    BYTE Buffer[MINCRYPT_MAX_HASH_LEN];
-} KPH_HASH, *PKPH_HASH;
+#define KPH_AUTHENTICODE_HASH_SHA1   0
+#define KPH_AUTHENTICODE_HASH_SHA256 1
+#define KPH_AUTHENTICODE_HASH_MAX    2
 
-typedef struct _KPH_AUTHENTICODE_INFO
+typedef struct _KPH_AUTHENTICODE_INFORMATION
 {
-    BYTE SHA1[MINCRYPT_SHA1_HASH_LEN];
-    BYTE SHA256[MINCRYPT_SHA256_HASH_LEN];
+    KPH_HASH_INFORMATION HashInfo[KPH_AUTHENTICODE_HASH_MAX];
+    ULONG SignatureLength;
     PBYTE Signature;
-    ULONG SignatureSize;
-} KPH_AUTHENTICODE_INFO, *PKPH_AUTHENTICODE_INFO;
+} KPH_AUTHENTICODE_INFORMATION, *PKPH_AUTHENTICODE_INFORMATION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -1200,56 +1281,42 @@ _Must_inspect_result_
 NTSTATUS KphHashBuffer(
     _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
+    _In_ KPH_HASH_ALGORITHM HashAlgorithm,
+    _Out_ PKPH_HASH_INFORMATION HashInformation
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphHashFile(
+NTSTATUS KphQueryHashInformationFile(
     _In_ HANDLE FileHandle,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG HashInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphHashFileByName(
-    _In_ PCUNICODE_STRING FileName,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInfo(
+NTSTATUS KphGetAuthenticodeInformation(
     _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
+    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFORMATION Information
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInfoByFileName(
-    _In_ PCUNICODE_STRING FileName,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeAuthenticodeInfo(
-    _In_freesMem_ PKPH_AUTHENTICODE_INFO Info
+VOID KphFreeAuthenticodeInformation(
+    _In_freesMem_ PKPH_AUTHENTICODE_INFORMATION Information
     );
 
 // sign
 
-typedef struct _KPH_SIGNING_INFO
+typedef struct _KPH_SIGNING_INFORMATION
 {
     PKPH_DYN Dyn;
-    KPH_AUTHENTICODE_INFO Authenticode;
+    KPH_AUTHENTICODE_INFORMATION AuthenticodeInfo;
     MINCRYPT_POLICY_INFO PolicyInfo;
     LARGE_INTEGER SigningTime;
     MINCRYPT_POLICY_INFO TimeStampPolicyInfo;
     UNICODE_STRING CatalogName;
-} KPH_SIGNING_INFO, *PKPH_SIGNING_INFO;
+} KPH_SIGNING_INFORMATION, *PKPH_SIGNING_INFORMATION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -1274,21 +1341,14 @@ VOID KphDereferenceSigningInfrastructure(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetSigningInfo(
-    _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_SIGNING_INFO Info
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetSigningInfoByFileName(
+NTSTATUS KphGetSigningInformation(
     _In_ PCUNICODE_STRING FileName,
-    _Out_allocatesMem_ PKPH_SIGNING_INFO Info
+    _Out_allocatesMem_ PKPH_SIGNING_INFORMATION Information
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeSigningInfo(
-    _In_freesMem_ PKPH_SIGNING_INFO Info
+VOID KphFreeSigningInformation(
+    _In_freesMem_ PKPH_SIGNING_INFORMATION Information
     );
 
 // kphobject
@@ -1601,6 +1661,8 @@ typedef struct _KPH_THREAD_CONTEXT
     CLIENT_ID ClientId;
     CLIENT_ID CreatorClientId;
 
+    PVOID SubProcessTag;
+
     KPH_SESSION_TOKEN_ATOMIC SessionToken;
     KPH_SESSION_TOKEN_ATOMIC RequestSessionToken;
 
@@ -1637,6 +1699,8 @@ typedef struct _KPH_THREAD_CONTEXT
         ULONG ThreadId;
     } WSL;
 
+    PVOID VmTlsCreateDataSection;
+    PVOID VmTlsMappedInformation;
 } KPH_THREAD_CONTEXT, *PKPH_THREAD_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphThreadContextType;
@@ -1934,6 +1998,28 @@ VOID KphCleanupVerify(
 #else
 #define KSISYSAPI
 #endif
+
+#define KSIDLL_CURRENT_VERSION 1
+
+KSISYSAPI
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS
+KSIAPI
+KsiInitialize(
+    _In_ ULONG Version,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_opt_ PVOID Reserved
+    );
+
+KSISYSAPI
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+KSIAPI
+KsiUninitialize(
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ ULONG Reserved
+    );
 
 typedef struct _KSI_KAPC
 {

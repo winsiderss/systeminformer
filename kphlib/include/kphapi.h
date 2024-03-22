@@ -87,6 +87,7 @@ typedef enum _KPH_PROCESS_INFORMATION_CLASS
     KphProcessWSLProcessId,          // q: ULONG
     KphProcessSequenceNumber,        // q: ULONG64
     KphProcessStartKey,              // q: ULONG64
+    KphProcessImageSection,          // q: HANDLE
 } KPH_PROCESS_INFORMATION_CLASS;
 
 typedef enum _KPH_THREAD_INFORMATION_CLASS
@@ -367,6 +368,54 @@ typedef struct _KPH_SECTION_MAPPINGS_INFORMATION
     ULONG NumberOfMappings;
     KPH_SECTION_MAP_ENTRY Mappings[ANYSIZE_ARRAY];
 } KPH_SECTION_MAPPINGS_INFORMATION, *PKPH_SECTION_MAPPINGS_INFORMATION;
+
+// Virtual memory
+
+typedef enum _KPH_MEMORY_INFORMATION_CLASS
+{
+    KphMemoryImageSection,          // q: HANDLE
+    KphMemoryDataSection,           // q: KPH_MEMORY_DATA_SECTION
+    KphMemoryMappedInformation,     // q: KPH_MEMORY_MAPPED_INFORMATION
+} KPH_MEMORY_INFORMATION_CLASS, *PKPH_MEMORY_INFORMATION_CLASS;
+
+typedef struct _KPH_MEMORY_DATA_SECTION
+{
+    HANDLE SectionHandle;
+    LARGE_INTEGER SectionFileSize;
+} KPH_MEMORY_DATA_SECTION, *PKPH_MEMORY_DATA_SECTION;
+
+typedef struct _KPH_MEMORY_MAPPED_INFORMATION
+{
+    PVOID FileObject;
+    PVOID SectionObjectPointers;
+    PVOID DataControlArea;
+    PVOID SharedCacheMap;
+    PVOID ImageControlArea;
+    ULONG UserWritableReferences;
+} KPH_MEMORY_MAPPED_INFORMATION, *PKPH_MEMORY_MAPPED_INFORMATION;
+
+// File
+
+typedef enum _KPH_HASH_ALGORITHM
+{
+    KphHashAlgorithmMd5,
+    KphHashAlgorithmSha1,
+    KphHashAlgorithmSha1Authenticode,
+    KphHashAlgorithmSha256,
+    KphHashAlgorithmSha256Authenticode,
+    KphHashAlgorithmSha384,
+    KphHashAlgorithmSha512,
+    MaxKphHashAlgorithm,
+} KPH_HASH_ALGORITHM, *PKPH_HASH_ALGORITHM;
+
+#define KPH_HASH_ALGORITHM_MAX_LENGTH (512 / 8)
+
+typedef struct _KPH_HASH_INFORMATION
+{
+    KPH_HASH_ALGORITHM Algorithm;
+    ULONG Length;
+    BYTE Hash[KPH_HASH_ALGORITHM_MAX_LENGTH];
+} KPH_HASH_INFORMATION, *PKPH_HASH_INFORMATION;
 
 // Verification
 

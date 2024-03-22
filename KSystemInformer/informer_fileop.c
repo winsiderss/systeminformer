@@ -1011,12 +1011,18 @@ VOID KphpFltFillCommonMessage(
     if (Data->Thread)
     {
         PEPROCESS process;
+        BOOLEAN cacheOnly;
 
         process = PsGetThreadProcess(Data->Thread);
 
         Message->Kernel.File.ClientId.UniqueProcess = PsGetProcessId(process);
         Message->Kernel.File.ClientId.UniqueThread = PsGetThreadId(Data->Thread);
         Message->Kernel.File.ProcessStartKey = KphGetProcessStartKey(process);
+
+        cacheOnly = (FlagOn(Data->Iopb->IrpFlags, IRP_PAGING_IO) ||
+                     FlagOn(Data->Iopb->IrpFlags, IRP_SYNCHRONOUS_PAGING_IO));
+
+        Message->Kernel.File.ThreadSubProcessTag = KphGetThreadSubProcessTagEx(Data->Thread, cacheOnly);
     }
 
     Message->Kernel.File.RequestorMode = (Data->RequestorMode != KernelMode);
@@ -2030,6 +2036,95 @@ Exit:
 }
 
 /**
+ * \brief Handles a request to perform an action inside of the filter.
+ *
+ * \param[in,out] Data The callback data for the operation.
+ * \param[in] FltObjects The related objects for the operation.
+ */
+VOID KphpFltRequestHandler(
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects
+    )
+{
+    PKPH_THREAD_CONTEXT thread;
+
+    //
+    // KphQueryVirtualMemory will use this to create a data section object.
+    // It will do this by issuing a MemoryMappedFilenameInformation. This
+    // results in an IRP_MJ_QUERY_INFORMATION with FileNameInformation. And will
+    // have previously set the one of the "TLS slots" to the address of the
+    // KphQueryVirtualMemory stack to pass information to and from this call.
+    //
+
+    if ((Data->Iopb->MajorFunction != IRP_MJ_QUERY_INFORMATION) ||
+        (Data->Iopb->Parameters.QueryFileInformation.FileInformationClass != FileNameInformation))
+    {
+        return;
+    }
+
+    thread = KphGetCurrentThreadContext();
+    if (!thread)
+    {
+        return;
+    }
+
+    if (thread->VmTlsCreateDataSection)
+    {
+        PKPH_VM_TLS_CREATE_DATA_SECTION tls;
+        NTSTATUS status;
+        OBJECT_ATTRIBUTES objectAttributes;
+        PVOID sectionObject;
+
+        tls = thread->VmTlsCreateDataSection;
+
+        thread->VmTlsCreateDataSection = NULL;
+
+        InitializeObjectAttributes(&objectAttributes,
+                                   NULL,
+                                   (tls->AccessMode ? 0 : OBJ_KERNEL_HANDLE),
+                                   NULL,
+                                   NULL);
+
+        status = FsRtlCreateSectionForDataScan(&tls->SectionHandle,
+                                               &sectionObject,
+                                               &tls->SectionFileSize,
+                                               FltObjects->FileObject,
+                                               SECTION_QUERY | SECTION_MAP_READ,
+                                               &objectAttributes,
+                                               NULL,
+                                               PAGE_READONLY,
+                                               SEC_COMMIT,
+                                               0);
+        if (NT_SUCCESS(status))
+        {
+            ObDereferenceObject(sectionObject);
+        }
+
+        tls->Status = status;
+    }
+    else if (thread->VmTlsMappedInformation)
+    {
+        PKPH_MEMORY_MAPPED_INFORMATION tls;
+
+        tls = thread->VmTlsMappedInformation;
+
+        thread->VmTlsMappedInformation = NULL;
+
+        tls->FileObject = FltObjects->FileObject;
+        tls->SectionObjectPointers = FltObjects->FileObject->SectionObjectPointer;
+        if (FltObjects->FileObject->SectionObjectPointer)
+        {
+            tls->DataControlArea = FltObjects->FileObject->SectionObjectPointer->DataSectionObject;
+            tls->SharedCacheMap = FltObjects->FileObject->SectionObjectPointer->SharedCacheMap;
+            tls->ImageControlArea = FltObjects->FileObject->SectionObjectPointer->ImageSectionObject;
+            tls->UserWritableReferences = MmDoesFileHaveUserWritableReferences(FltObjects->FileObject->SectionObjectPointer);
+        }
+    }
+
+    KphDereferenceObject(thread);
+}
+
+/**
  * \brief Filter pre operation callback for file operations.
  *
  * \param[in,out] Data The callback data for the operation.
@@ -2058,6 +2153,8 @@ FLT_PREOP_CALLBACK_STATUS FLTAPI KphpFltPreOp(
     NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     *CompletionContext = NULL;
+
+    KphpFltRequestHandler(Data, FltObjects);
 
     sequence = InterlockedIncrementU64(&KphpFltSequence);
     callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
@@ -2216,6 +2313,9 @@ Exit:
 
 PAGED_FILE();
 
+/**
+ * \brief Cleans up the file operation filter.
+*/
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpFltCleanupFileOp(
     VOID
@@ -2231,6 +2331,9 @@ VOID KphpFltCleanupFileOp(
     KphDeleteNPagedLookaside(&KphpFltCompletionContextLookaside);
 }
 
+/**
+ * \brief Initializes the file operation filter.
+ */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpFltInitializeFileOp(
     VOID

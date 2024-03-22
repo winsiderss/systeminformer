@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 11;
+        private const UInt32 Version = 12;
 
         private static readonly byte[] SessionTokenPublicKey = new byte[]
         {
@@ -101,6 +101,7 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
     USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
+    USHORT EpSectionObject;              // dt nt!_EPROCESS SectionObject
 }} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
 typedef struct _KPH_DYNDATA
@@ -160,6 +161,7 @@ typedef struct _KPH_DYNDATA
             public UInt16 MmSectionControlArea;
             public UInt16 MmControlAreaListHead;
             public UInt16 MmControlAreaLock;
+            public UInt16 EpSectionObject;
 
             public DynConfig()
             {
@@ -207,6 +209,7 @@ typedef struct _KPH_DYNDATA
                 MmSectionControlArea = ushort.MaxValue;
                 MmControlAreaListHead = ushort.MaxValue;
                 MmControlAreaLock = ushort.MaxValue;
+                EpSectionObject = ushort.MinValue;
             }
         }
 

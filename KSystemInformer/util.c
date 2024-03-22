@@ -304,7 +304,167 @@ ULONG64 KphGetProcessStartKey(
     return key;
 }
 
-PAGED_FILE();
+/**
+ * \brief Retrieves the current thread's sub-process tag.
+ *
+ * \return The current thread's sub-process tag.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetCurrentThreadSubProcessTag(
+    VOID
+    )
+{
+    PKPH_THREAD_CONTEXT thread;
+    PVOID subProcessTag;
+    PTEB teb;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    if (PsIsSystemThread(PsGetCurrentThread()))
+    {
+        return NULL;
+    }
+
+    //
+    // We support lookups at dispatch. To achieve this we cache the last lookup
+    // in the thread context. If we're at dispatch use the cache. Otherwise go
+    // do the lookup and cache the result in the thread context.
+    //
+
+    if (KeGetCurrentIrql() > APC_LEVEL)
+    {
+        subProcessTag = NULL;
+
+        thread = KphGetCurrentThreadContext();
+        if (thread)
+        {
+            subProcessTag = thread->SubProcessTag;
+
+            KphDereferenceObject(thread);
+        }
+
+        return subProcessTag;
+    }
+
+    teb = PsGetCurrentThreadTeb();
+    if (!teb)
+    {
+        return NULL;
+    }
+
+    __try
+    {
+        subProcessTag = teb->SubProcessTag;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return NULL;
+    }
+
+    thread = KphGetCurrentThreadContext();
+    if (thread)
+    {
+        thread->SubProcessTag = subProcessTag;
+
+        KphDereferenceObject(thread);
+    }
+
+    return subProcessTag;
+}
+
+/**
+ * \brief Retrieves a thread's sub-process tag.
+ *
+ * \param[in] Thread The thread to get the sub-process tag of.
+ * \param[in] CacheOnly If TRUE, only the cached value is returned. This is
+ * useful when the caller knows that touching the TEB is not safe.
+ *
+ * \return The thread's sub-process tag.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetThreadSubProcessTagEx(
+    _In_ PETHREAD Thread,
+    _In_ BOOLEAN CacheOnly
+    )
+{
+    PKPH_THREAD_CONTEXT thread;
+    PVOID subProcessTag;
+    PTEB teb;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    if (PsIsSystemThread(Thread))
+    {
+        return NULL;
+    }
+
+    //
+    // We support lookups at dispatch and across process boundaries. To achieve
+    // this we cache the last lookup in the thread context. If we're at dispatch
+    // or across process boundaries use the cache. Otherwise go do the lookup
+    // and cache the result in the thread context. We choose not to attach to
+    // a process to retrieve the information to avoid performance penalties.
+    //
+
+    if (CacheOnly ||
+        (KeGetCurrentIrql() > APC_LEVEL) ||
+        (PsGetThreadProcess(Thread) != PsGetCurrentProcess()))
+    {
+        subProcessTag = NULL;
+
+        thread = KphGetEThreadContext(Thread);
+        if (thread)
+        {
+            subProcessTag = thread->SubProcessTag;
+
+            KphDereferenceObject(thread);
+        }
+
+        return subProcessTag;
+    }
+
+    teb = PsGetThreadTeb(Thread);
+    if (!teb)
+    {
+        return NULL;
+    }
+
+    __try
+    {
+        subProcessTag = teb->SubProcessTag;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return NULL;
+    }
+
+    thread = KphGetEThreadContext(Thread);
+    if (thread)
+    {
+        thread->SubProcessTag = subProcessTag;
+
+        KphDereferenceObject(thread);
+    }
+
+    return subProcessTag;
+}
+
+/**
+ * \brief Retrieves a thread's sub-process tag.
+ *
+ * \param[in] Thread The thread to get the sub-process tag of.
+ *
+ * \return The thread's sub-process tag.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetThreadSubProcessTag(
+    _In_ PETHREAD Thread
+    )
+{
+    NPAGED_CODE_DISPATCH_MAX();
+
+    return KphGetThreadSubProcessTagEx(Thread, FALSE);
+}
 
 /**
  * \brief Initializes rundown object.
@@ -316,7 +476,7 @@ VOID KphInitializeRundown(
     _Out_ PKPH_RUNDOWN Rundown
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     ExInitializeRundownProtection(Rundown);
 }
@@ -332,7 +492,7 @@ VOID KphWaitForRundown(
     _Inout_ PKPH_RUNDOWN Rundown
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     ExWaitForRundownProtectionRelease(Rundown);
 }
@@ -347,7 +507,7 @@ VOID KphInitializeRWLock(
     _Out_ PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltInitializePushLock(Lock);
 }
@@ -362,7 +522,7 @@ VOID KphDeleteRWLock(
     _In_ PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltDeletePushLock(Lock);
 }
@@ -378,7 +538,7 @@ VOID KphAcquireRWLockExclusive(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltAcquirePushLockExclusive(Lock);
 }
@@ -394,7 +554,7 @@ VOID KphAcquireRWLockShared(
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltAcquirePushLockShared(Lock);
 }
@@ -410,10 +570,12 @@ VOID KphReleaseRWLock(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
-    PAGED_CODE();
+    NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
     FltReleasePushLock(Lock);
 }
+
+PAGED_FILE();
 
 /**
  * \brief Acquires a reference to a reference object.

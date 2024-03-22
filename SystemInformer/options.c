@@ -121,7 +121,6 @@ static PPH_LIST SectionList = NULL;
 static PPH_OPTIONS_SECTION CurrentSection = NULL;
 static HWND OptionsTreeControl = NULL;
 static HWND ContainerControl = NULL;
-static HIMAGELIST OptionsTreeImageList = NULL;
 
 // All
 static BOOLEAN RestartRequired = FALSE;
@@ -133,7 +132,6 @@ static HFONT CurrentFontInstance = NULL;
 static HFONT CurrentFontMonospaceInstance = NULL;
 static PPH_STRING NewFontSelection = NULL;
 static PPH_STRING NewFontMonospaceSelection = NULL;
-static HIMAGELIST GeneralListviewImageList = NULL;
 
 // Advanced
 static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
@@ -252,20 +250,36 @@ static PPH_OPTIONS_SECTION PhpTreeViewGetSelectedSection(
 
 static VOID PhpOptionsSetImageList(
     _In_ HWND WindowHandle,
-    _Inout_ HIMAGELIST* Imagelist,
     _In_ BOOLEAN Treeview
     )
 {
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(WindowHandle);
-
-    *Imagelist = PhImageListCreate(2, PhGetDpi(22, dpiValue), ILC_MASK | ILC_COLOR32, 1, 1);
+    HIMAGELIST imageListHandle;
+    LONG dpiValue = PhGetWindowDpi(WindowHandle);
 
     if (Treeview)
-        TreeView_SetImageList(WindowHandle, *Imagelist, TVSIL_NORMAL);
+        imageListHandle = TreeView_GetImageList(WindowHandle, TVSIL_NORMAL);
     else
-        ListView_SetImageList(WindowHandle, *Imagelist, LVSIL_SMALL);
+        imageListHandle = ListView_GetImageList(WindowHandle, LVSIL_NORMAL);
+
+    if (imageListHandle)
+    {
+        PhImageListSetIconSize(imageListHandle, 2, PhGetDpi(24, dpiValue));
+
+        if (Treeview)
+            TreeView_SetImageList(WindowHandle, imageListHandle, TVSIL_NORMAL);
+        else
+            ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_NORMAL); // LVSIL_SMALL
+    }
+    else
+    {
+        if (imageListHandle = PhImageListCreate(2, PhGetDpi(24, dpiValue), ILC_MASK | ILC_COLOR32, 1, 1))
+        {
+            if (Treeview)
+                TreeView_SetImageList(WindowHandle, imageListHandle, TVSIL_NORMAL);
+            else
+                ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_NORMAL); // LVSIL_SMALL
+        }
+    }
 }
 
 INT_PTR CALLBACK PhOptionsDialogProc(
@@ -284,7 +298,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhpOptionsSetImageList(OptionsTreeControl, &OptionsTreeImageList, TRUE);
+            PhpOptionsSetImageList(OptionsTreeControl, TRUE);
 
             //PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
             PhSetControlTheme(OptionsTreeControl, L"explorer");
@@ -367,7 +381,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
         break;
     case WM_DPICHANGED:
         {
-            PhpOptionsSetImageList(OptionsTreeControl, &OptionsTreeImageList, TRUE);
+            PhpOptionsSetImageList(OptionsTreeControl, TRUE);
         }
         break;
     case WM_SIZE:
@@ -1755,7 +1769,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
             ListViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
 
-            PhpOptionsSetImageList(ListViewHandle, &GeneralListviewImageList, FALSE);
+            PhpOptionsSetImageList(ListViewHandle, FALSE);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHENGINE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -1844,7 +1858,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhpOptionsSetImageList(ListViewHandle, &GeneralListviewImageList, FALSE);
+            PhpOptionsSetImageList(ListViewHandle, FALSE);
         }
         break;
     case WM_COMMAND:

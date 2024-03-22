@@ -13,7 +13,18 @@
 
 #include <trace.h>
 
-#define KPH_ATOMIC_OBJECT_LOCKED_MASK (((ULONG_PTR)-1) - 1)
+#ifdef _WIN64
+#define KPH_ATOMIC_OBJECT_REF_SHARED_MAX    7
+#define KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_BIT 3
+#define KPH_ATOMIC_OBJECT_REF_LOCK_MASK     0x000000000000000f
+#define KPH_ATOMIC_OBJECT_REF_OBJECT_MASK   0xfffffffffffffff0
+#else
+#define KPH_ATOMIC_OBJECT_REF_SHARED_MAX    3
+#define KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_BIT 2
+#define KPH_ATOMIC_OBJECT_REF_LOCK_MASK     0x00000007
+#define KPH_ATOMIC_OBJECT_REF_OBJECT_MASK   0xfffffff8
+#endif
+#define KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG (1 << KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_BIT)
 
 //
 // N.B. If more object types are added the array must be expanded.
@@ -199,7 +210,7 @@ PKPH_OBJECT_TYPE KphGetObjectType(
 }
 
 /**
- * \brief Acquires the atomic object reference lock.
+ * \brief Acquires the atomic object reference lock shared.
  *
  * \param[in,out] ObjectRef The object reference to acquire the lock for.
  *
@@ -210,7 +221,7 @@ _Acquires_lock_(*ObjectRef)
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _IRQL_saves_
 _IRQL_raises_(DISPATCH_LEVEL)
-KIRQL KphpAtomicAcquireObjectLock(
+KIRQL KphpAtomicAcquireObjectLockShared(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
 {
@@ -221,23 +232,21 @@ KIRQL KphpAtomicAcquireObjectLock(
     for (;; YieldProcessor())
     {
         ULONG_PTR object;
-        PVOID expected;
-        PVOID locked;
+        ULONG_PTR lock;
 
         object = ObjectRef->Object;
         MemoryBarrier();
 
-        if (object & ~KPH_ATOMIC_OBJECT_LOCKED_MASK)
+        lock = object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK;
+
+        if (lock >= KPH_ATOMIC_OBJECT_REF_SHARED_MAX)
         {
             continue;
         }
 
-        expected = (PVOID)object;
-        locked = (PVOID)((ULONG_PTR)expected | ~KPH_ATOMIC_OBJECT_LOCKED_MASK);
-
-        if (InterlockedCompareExchangePointer((PVOID*)&ObjectRef->Object,
-                                              locked,
-                                              expected) == expected)
+        if (InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
+                                               object + 1,
+                                               object) == object)
         {
             break;
         }
@@ -247,30 +256,102 @@ KIRQL KphpAtomicAcquireObjectLock(
 }
 
 /**
- * \brief Releases the atomic object reference lock.
+ * \brief Releases the atomic object reference lock shared.
  *
  * \param[in,out] ObjectRef The object reference to release the lock of.
  * \param[in] NewIrql The previous IRQL to restore from acquiring the lock.
  */
-_Requires_lock_held_(*Entry)
-_Releases_lock_(*Entry)
+_Requires_lock_held_(*ObjectRef)
+_Releases_lock_(*ObjectRef)
 _IRQL_requires_(DISPATCH_LEVEL)
-VOID KphpAtomicReleaseObjectLock(
-    _Inout_ PKPH_ATOMIC_OBJECT_REF Entry,
+VOID KphpAtomicReleaseObjectLockShared(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
     _In_ _IRQL_restores_ KIRQL NewIrql
     )
 {
     ULONG_PTR object;
-    PVOID unlocked;
 
-    object = Entry->Object;
-    MemoryBarrier();
+    object = InterlockedDecrementULongPtr(&ObjectRef->Object);
 
-    NT_ASSERT(object & ~KPH_ATOMIC_OBJECT_LOCKED_MASK);
+    object = object & KPH_ATOMIC_OBJECT_REF_SHARED_MAX;
 
-    unlocked = (PVOID)(object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
+    NT_ASSERT(object < KPH_ATOMIC_OBJECT_REF_SHARED_MAX);
 
-    InterlockedExchangePointer((PVOID*)&Entry->Object, unlocked);
+    KeLowerIrql(NewIrql);
+}
+
+/**
+ * \brief Acquires the atomic object reference lock exclusive.
+ *
+ * \param[in,out] ObjectRef The object reference to acquire the lock for.
+ *
+ * \return The previous IRQL that should be passed when releasing the lock.
+ */
+_Requires_lock_not_held_(*ObjectRef)
+_Acquires_lock_(*ObjectRef)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_saves_
+_IRQL_raises_(DISPATCH_LEVEL)
+KIRQL KphpAtomicAcquireObjectLockExclusive(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
+    )
+{
+    KIRQL previousIrql;
+    ULONG_PTR object;
+
+    previousIrql = KeRaiseIrqlToDpcLevel();
+
+    for (;; YieldProcessor())
+    {
+        ULONG_PTR locked;
+
+        object = ObjectRef->Object;
+        MemoryBarrier();
+
+        if (object & KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG)
+        {
+            continue;
+        }
+
+        locked = object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
+
+        if (InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
+                                               locked,
+                                               object) == object)
+        {
+            break;
+        }
+    }
+
+    for (; object & KPH_ATOMIC_OBJECT_REF_SHARED_MAX; YieldProcessor())
+    {
+        object = ObjectRef->Object;
+        MemoryBarrier();
+    }
+
+    return previousIrql;
+}
+
+/**
+ * \brief Releases the atomic object reference lock shared.
+ *
+ * \param[in,out] ObjectRef The object reference to release the lock of.
+ * \param[in] NewIrql The previous IRQL to restore from acquiring the lock.
+ */
+_Requires_lock_held_(*ObjectRef)
+_Releases_lock_(*ObjectRef)
+_IRQL_requires_(DISPATCH_LEVEL)
+VOID KphpAtomicReleaseObjectLockExclusive(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_ _IRQL_restores_ KIRQL NewIrql
+    )
+{
+    BOOLEAN result;
+
+    result = InterlockedBitTestAndResetULongPtr(&ObjectRef->Object,
+                                                KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_BIT);
+
+    NT_ASSERT(result);
 
     KeLowerIrql(NewIrql);
 }
@@ -297,15 +378,15 @@ PVOID KphAtomicReferenceObject(
     KIRQL previousIrql;
     PVOID object;
 
-    previousIrql = KphpAtomicAcquireObjectLock(ObjectRef);
+    previousIrql = KphpAtomicAcquireObjectLockShared(ObjectRef);
 
-    object = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
+    object = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
     if (object)
     {
         KphReferenceObject(object);
     }
 
-    KphpAtomicReleaseObjectLock(ObjectRef, previousIrql);
+    KphpAtomicReleaseObjectLockShared(ObjectRef, previousIrql);
 
     return object;
 }
@@ -318,24 +399,27 @@ PVOID KphAtomicReferenceObject(
  *
  * \return The previous object that was managed, NULL if no object was managed.
  */
+_Must_inspect_result_
 PVOID KphpAtomicStoreObjectReference(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
     _In_opt_ PVOID Object
     )
 {
     KIRQL previousIrql;
-    ULONG_PTR object;
     PVOID previous;
+    ULONG_PTR object;
 
-    previousIrql = KphpAtomicAcquireObjectLock(ObjectRef);
+    NT_ASSERT(((ULONG_PTR)Object & KPH_ATOMIC_OBJECT_REF_LOCK_MASK) == 0);
 
-    previous = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_LOCKED_MASK);
+    previousIrql = KphpAtomicAcquireObjectLockExclusive(ObjectRef);
 
-    object = ((ULONG_PTR)Object | ~KPH_ATOMIC_OBJECT_LOCKED_MASK);
+    previous = (PVOID)(ObjectRef->Object & KPH_ATOMIC_OBJECT_REF_OBJECT_MASK);
 
-    InterlockedExchangePointer((PVOID*)&ObjectRef->Object, (PVOID)object);
+    object = (ULONG_PTR)Object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
 
-    KphpAtomicReleaseObjectLock(ObjectRef, previousIrql);
+    InterlockedExchangeULongPtr(&ObjectRef->Object, object);
+
+    KphpAtomicReleaseObjectLockExclusive(ObjectRef, previousIrql);
 
     return previous;
 }

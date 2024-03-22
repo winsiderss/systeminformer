@@ -64,6 +64,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgGetInformerProcessFilter,
     KphMsgSetInformerProcessFilter,
     KphMsgStripProtectedProcessMasks,
+    KphMsgQueryVirtualMemory,
+    KphMsgQueryHashInformationFile,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -342,6 +344,8 @@ typedef struct _KPH_MESSAGE
             KPHM_GET_INFORMER_PROCESS_FILTER GetInformerProcessFilter;
             KPHM_SET_INFORMER_PROCESS_FILTER SetInformerProcessFilter;
             KPHM_STRIP_PROTECTED_PROCESS_MASKS StripProtectedProcessMasks;
+            KPHM_QUERY_VIRTUAL_MEMORY QueryVirtualMemory;
+            KPHM_QUERY_HASH_INFORMATION_FILE QueryHashInformationFile;
         } User;
 
         //
@@ -379,7 +383,7 @@ typedef struct _KPH_MESSAGE
     {
         UCHAR Count;
         KPH_MESSAGE_DYNAMIC_TABLE_ENTRY Entries[8];
-        CHAR Buffer[0x1000 - 348];
+        CHAR Buffer[0x1000 - 356];
     } _Dyn;
 } KPH_MESSAGE, *PKPH_MESSAGE;
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
@@ -396,9 +400,9 @@ typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 C_ASSERT(sizeof(KPH_MESSAGE) <= 0xffff);
 #ifdef _WIN64
 C_ASSERT(sizeof(KPH_MESSAGE) == 0x1000);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 248);
-C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 348);
-C_ASSERT(KPH_MESSAGE_MIN_SIZE == 348);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 256);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer) == 356);
+C_ASSERT(KPH_MESSAGE_MIN_SIZE == 356);
 C_ASSERT(KPH_MESSAGE_MIN_SIZE == FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer));
 #else
 // not supported

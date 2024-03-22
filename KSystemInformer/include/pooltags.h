@@ -50,6 +50,8 @@
 // vm
 
 #define KPH_TAG_COPY_VM                         '0vpK'
+#define KPH_TAG_SECTION_QUERY                   '1vpK'
+#define KPH_TAG_VM_QUERY                        '2vpK'
 
 // debug
 
@@ -57,9 +59,10 @@
 
 // hash
 
-#define KPH_TAG_HASHING_BUFFER                  '0HpK'
+#define KPH_TAG_HASHING_CONTEXT                 '0HpK'
 #define KPH_TAG_AUTHENTICODE_SIG                '1HpK'
 #define KPH_TAG_HASHING_INFRA                   '2HpK'
+#define KPH_TAG_CAPTURED_HASHES                 '3HpK'
 
 // sign
 

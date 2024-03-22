@@ -957,7 +957,7 @@ NTAPI
 PhInitializeBufferStringRef(
     _Out_ PPH_STRINGREF String,
     _Writable_bytes_(Length) _When_(Length != 0, _Notnull_) PWCHAR Buffer,
-    _In_ USHORT Length
+    _In_ SIZE_T Length
     )
 {
     memset(String, 0, sizeof(PH_STRINGREF));

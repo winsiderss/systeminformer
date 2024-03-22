@@ -11,7 +11,7 @@
 
 #include <kphlibbase.h>
 
-#define KPH_DYN_CONFIGURATION_VERSION 11
+#define KPH_DYN_CONFIGURATION_VERSION 12
 
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
@@ -70,6 +70,7 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT MmSectionControlArea;         // dt nt!_SECTION u1.ControlArea
     USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
+    USHORT EpSectionObject;              // dt nt!_EPROCESS SectionObject
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
 typedef struct _KPH_DYNDATA
