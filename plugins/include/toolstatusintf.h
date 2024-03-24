@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2015
+ *     dmex    2015-2024
+ *
+ */
+
 #ifndef _TOOLSTATUSINTF_H
 #define _TOOLSTATUSINTF_H
 
