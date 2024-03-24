@@ -159,7 +159,7 @@ typedef struct _PEB
     ULONG AtlThunkSListPtr32;
     PAPI_SET_NAMESPACE ApiSetMap;
     ULONG TlsExpansionCounter;
-    PVOID TlsBitmap;
+    PRTL_BITMAP TlsBitmap;
     ULONG TlsBitmapBits[2]; // TLS_MINIMUM_AVAILABLE
 
     PVOID ReadOnlySharedMemoryBase;
@@ -201,7 +201,7 @@ typedef struct _PEB
     GDI_HANDLE_BUFFER GdiHandleBuffer;
     PVOID PostProcessInitRoutine;
 
-    PVOID TlsExpansionBitmap;
+    PRTL_BITMAP TlsExpansionBitmap;
     ULONG TlsExpansionBitmapBits[32]; // TLS_EXPANSION_SLOTS
 
     ULONG SessionId;
