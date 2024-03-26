@@ -642,7 +642,7 @@ PerfIsGroupOnInGroupMask(
 //
 //
 //
-// NOTE: In LongHorn we desided to expose some of the flags outside of group 0.
+// NOTE: In LongHorn we decided to expose some of the flags outside of group 0.
 //       We did that by adding the following flags which are treated as aliases:
 //
 //          EVENT_TRACE_FLAG_CSWITCH
@@ -1114,7 +1114,7 @@ PerfIsGroupOnInGroupMask(
 #define WMI_LOG_TYPE_UDP_FAIL                       (EVENT_TRACE_GROUP_UDPIP | EVENT_TRACE_TYPE_CONNFAIL)
 
 //
-// Netowrk events with IPV6
+// Network events with IPV6
 //
 #define WMI_LOG_TYPE_TCPIP_SEND_IPV6                (EVENT_TRACE_GROUP_TCPIP | 0x1A)
 #define WMI_LOG_TYPE_TCPIP_RECEIVE_IPV6             (EVENT_TRACE_GROUP_TCPIP | 0x1B)
@@ -4175,7 +4175,7 @@ typedef struct _PERFINFO_PPM_IDLE_STATE_CHANGE
 //
 // OVERRIDE_ENABLED: The idle transition had force-idle override enabled.
 //
-// MEASURING_EXIT_LATENCY: Exit latency measurment is engaged during the idle
+// MEASURING_EXIT_LATENCY: Exit latency measurement is engaged during the idle
 // transition.
 //
 // WAKE_REQUESTED: Idle transition was accompanied with a request to wake
@@ -4280,7 +4280,7 @@ typedef struct _PERFINFO_PPM_THERMAL_CONSTRAINT{
 } PERFINFO_PPM_THERMAL_CONSTRAINT, *PPERFINFO_PPM_THERMAL_CONSTRAINT;
 
 //
-// File Name realted hooks
+// File Name related hooks
 //
 
 typedef struct _PERFINFO_FILEOBJECT_INFORMATION
@@ -5201,7 +5201,7 @@ typedef struct _PERFINFO_PROCESS_PERFCTR64
 } PERFINFO_PROCESS_PERFCTR64, *PPERFINFO_PROCESS_PERFCTR64;
 
 //
-// Proces In Swap structure.
+// Process In Swap structure.
 //
 
 typedef struct _PERFINFO_PROCESS_INSWAP
@@ -5542,7 +5542,7 @@ typedef struct _ETW_NOTIFICATION_HEADER
     ULONGLONG             Reserved2;
     ULONG                 TargetPID;
     ULONG                 SourcePID;
-    GUID                  DestinationGuid;  // Desctination GUID
+    GUID                  DestinationGuid;  // Destination GUID
     GUID                  SourceGuid;       // Source GUID
 } ETW_NOTIFICATION_HEADER, *PETW_NOTIFICATION_HEADER;
 
