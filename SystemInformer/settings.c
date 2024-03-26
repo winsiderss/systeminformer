@@ -355,6 +355,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");
     PhpAddIntegerSetting(L"KsiClientProcessProtectionLevel", L"0");
     PhpAddStringSetting(L"KsiPreviousTemporaryDriverFile", L"");
+    PhpAddIntegerSetting(L"EnableVerboseDeveloperWindowTitle", L"0");
 }
 
 VOID PhUpdateCachedSettings(
