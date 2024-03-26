@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2016-2023
+ *     dmex    2016-2024
  *
  */
 
@@ -2041,6 +2041,41 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     text = PhGetTreeNewText(context->TreeNewHandle, 0);
                     PhSetClipboardString(hwndDlg, &text->sr);
                     PhDereferenceObject(text);
+                }
+                break;
+            case ID_WINDOW_SETDPI:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        PPH_STRING selectedChoice = NULL;
+
+                        while (PhaChoiceDialog(
+                            hwndDlg,
+                            L"Enter new Window DPI:",
+                            L"Enter new Window DPI:",
+                            NULL,
+                            0,
+                            NULL,
+                            PH_CHOICE_DIALOG_USER_CHOICE,
+                            &selectedChoice,
+                            NULL,
+                            NULL
+                            ))
+                        {
+                            LONG64 value;
+
+                            if (selectedChoice->Length == 0)
+                                continue;
+
+                            if (PhStringToInteger64(&selectedChoice->sr, 0, &value))
+                            {
+                                WepSetWindowToDpiForTesting(selectedNode->WindowHandle, (LONG)value);
+                                break;
+                            }
+                        }
+                    }
                 }
                 break;
             }
