@@ -2573,7 +2573,7 @@ typedef struct _MOUNTDEV_NAME
 {
     USHORT NameLength;
     _Field_size_bytes_(NameLength) WCHAR Name[1];
-} MOUNTDEV_NAME, * PMOUNTDEV_NAME;
+} MOUNTDEV_NAME, *PMOUNTDEV_NAME;
 
 // Output structure for IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATH and IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATHS.
 typedef struct _MOUNTMGR_VOLUME_PATHS
