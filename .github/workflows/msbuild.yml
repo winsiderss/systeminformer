@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build Solution
       shell: cmd
       working-directory: ${{github.workspace}}
@@ -23,7 +23,7 @@ jobs:
   build_driver:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build Driver
       shell: cmd
       working-directory: ${{github.workspace}}
