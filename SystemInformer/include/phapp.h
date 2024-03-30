@@ -34,6 +34,8 @@
 #include <phfwddef.h>
 #include <appsup.h>
 
+#include <minidumpapiset.h>
+
 // main
 
 typedef struct _PH_STARTUP_PARAMETERS
@@ -293,6 +295,12 @@ VOID PhUiAnalyzeWaitThread(
 
 VOID PhUiCreateDumpFileProcess(
     _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ MINIDUMP_TYPE DumpType
+    );
+
+VOID PhShowCreateDumpFileProcessDialog(
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
@@ -499,6 +507,26 @@ HPROPSHEETPAGE PhCreateJobPage(
     );
 
 // kdump
+
+typedef union _PH_LIVE_DUMP_OPTIONS
+{
+    BOOLEAN Flags;
+    struct
+    {
+        BOOLEAN CompressMemoryPages : 1;
+        BOOLEAN IncludeUserSpaceMemory : 1;
+        BOOLEAN IncludeHypervisorPages : 1;
+        BOOLEAN OnlyKernelThreadStacks : 1;
+        BOOLEAN UseDumpStorageStack : 1;
+        BOOLEAN IncludeNonEssentialHypervisorPages : 1;
+        BOOLEAN Spare : 2;
+    };
+} PH_LIVE_DUMP_OPTIONS, *PPH_LIVE_DUMP_OPTIONS;
+
+VOID PhUiCreateLiveDump(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_LIVE_DUMP_OPTIONS Options
+    );
 
 VOID PhShowLiveDumpDialog(
     _In_ HWND ParentWindowHandle

@@ -171,9 +171,17 @@ PPH_PROCESS_MINIDUMP_CONTEXT PhpCreateProcessMiniDumpContext(
 
 VOID PhUiCreateDumpFileProcess(
     _In_ HWND WindowHandle,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ MINIDUMP_TYPE DumpType
     )
 {
+    static ACCESS_MASK processAccess[] =
+    {
+        PROCESS_ALL_ACCESS,
+        PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE | PROCESS_VM_READ,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        PROCESS_QUERY_INFORMATION
+    };
     NTSTATUS status;
     PPH_PROCESS_MINIDUMP_CONTEXT context;
     PPH_STRING fileName;
@@ -191,48 +199,25 @@ VOID PhUiCreateDumpFileProcess(
     context->ProcessId = ProcessItem->ProcessId;
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->FileName = fileName;
+    context->DumpType = DumpType;
 
-    // task manager uses these flags (wj32)
-    if (WindowsVersion >= WINDOWS_10)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(processAccess); i++)
     {
-        context->DumpType =
-            MiniDumpWithFullMemory |
-            MiniDumpWithHandleData |
-            MiniDumpWithUnloadedModules |
-            MiniDumpWithFullMemoryInfo |
-            MiniDumpWithThreadInfo |
-            MiniDumpIgnoreInaccessibleMemory |
-            MiniDumpWithIptTrace;
-
-        if (!NT_SUCCESS(status = PhOpenProcess(
+        if (NT_SUCCESS(status = PhOpenProcess(
             &context->ProcessHandle,
-            PROCESS_ALL_ACCESS,
+            processAccess[i],
             context->ProcessId
             )))
         {
-            goto LimitedDump;
+            break;
         }
     }
-    else
-    {
-LimitedDump:
-        context->DumpType =
-            MiniDumpWithFullMemory |
-            MiniDumpWithHandleData |
-            MiniDumpWithUnloadedModules |
-            MiniDumpWithFullMemoryInfo |
-            MiniDumpWithThreadInfo;
 
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &context->ProcessHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            context->ProcessId
-            )))
-        {
-            PhShowStatus(WindowHandle, L"Unable to open the process", status, 0);
-            PhDereferenceObject(context);
-            return;
-        }
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(WindowHandle, L"Unable to open the process", status, 0);
+        PhDereferenceObject(context);
+        return;
     }
 
 #ifdef _WIN64
@@ -828,4 +813,124 @@ NTSTATUS PhpProcessMiniDumpTaskDialogThread(
     PhDereferenceObject(context);
 
     return STATUS_SUCCESS;
+}
+
+typedef struct _PH_MINIDUMP_OPTION_ENTRY
+{
+    ULONG Id;
+    MINIDUMP_TYPE Type;
+} PH_MINIDUMP_OPTION_ENTRY, *PPH_MINIDUMP_OPTION_ENTRY;
+
+INT_PTR CALLBACK PhpProcDumpDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_MINIDUMP_OPTION_ENTRY options[] =
+    {
+        { IDC_MINIDUMP_NORMAL, MiniDumpNormal },
+        { IDC_MINIDUMP_WITH_DATA_SEGS, MiniDumpWithDataSegs },
+        { IDC_MINIDUMP_WITH_FULL_MEM, MiniDumpWithFullMemory },
+        { IDC_MINIDUMP_WITH_HANDLE_DATA, MiniDumpWithHandleData },
+        { IDC_MINIDUMP_FILTER_MEMORY, MiniDumpFilterMemory },
+        { IDC_MINIDUMP_SCAN_MEMORY, MiniDumpScanMemory },
+        { IDC_MINIDUMP_WITH_UNLOADED_MODULES, MiniDumpWithUnloadedModules },
+        { IDC_MINIDUMP_WITH_INDIRECT_REFERENCED_MEM, MiniDumpWithIndirectlyReferencedMemory },
+        { IDC_MINIDUMP_FILTER_MODULE_PATHS, MiniDumpFilterModulePaths },
+        { IDC_MINIDUMP_WITH_PROC_THRD_DATA, MiniDumpWithProcessThreadData },
+        { IDC_MINIDUMP_WITH_PRIVATE_RW_MEM, MiniDumpWithPrivateReadWriteMemory },
+        { IDC_MINIDUMP_WITHOUT_OPTIONAL_DATA, MiniDumpWithoutOptionalData },
+        { IDC_MINIDUMP_WITH_FULL_MEM_INFO, MiniDumpWithFullMemoryInfo },
+        { IDC_MINIDUMP_WITH_THRD_INFO, MiniDumpWithThreadInfo },
+        { IDC_MINIDUMP_WITH_CODE_SEGS, MiniDumpWithCodeSegs },
+        { IDC_MINIDUMP_WITHOUT_AUXILIARY_STATE, MiniDumpWithoutAuxiliaryState },
+        { IDC_MINIDUMP_WITH_FULL_AUXILIARY_STATE, MiniDumpWithFullAuxiliaryState },
+        { IDC_MINIDUMP_WITH_PRIVATE_WRITE_COPY_MEM, MiniDumpWithPrivateWriteCopyMemory },
+        { IDC_MINIDUMP_IGNORE_INACCESSIBLE_MEM, MiniDumpIgnoreInaccessibleMemory },
+        { IDC_MINIDUMP_WITH_TOKEN_INFO, MiniDumpWithTokenInformation },
+        { IDC_MINIDUMP_WITH_MODULE_HEADERS, MiniDumpWithModuleHeaders },
+        { IDC_MINIDUMP_FILTER_TRIAGE, MiniDumpFilterTriage },
+        { IDC_MINIDUMP_WITH_AVXX_STATE_CONTEXT, MiniDumpWithAvxXStateContext },
+        { IDC_MINIDUMP_WITH_IPT_TRACE, MiniDumpWithIptTrace },
+        { IDC_MINIDUMP_SCAN_INACCESSIBLE_PARTIAL_PAGES, MiniDumpScanInaccessiblePartialPages },
+        { IDC_MINIDUMP_FILTER_WRITE_COMBINE_MEM, MiniDumpFilterWriteCombinedMemory },
+    };
+    PPH_PROCESS_ITEM processItem;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        processItem = (PPH_PROCESS_ITEM)lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, processItem);
+    }
+    else
+    {
+        processItem = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhSetApplicationWindowIcon(hwndDlg);
+
+            PhCenterWindow(hwndDlg, NULL);
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_MINIDUMP_NORMAL), BST_CHECKED);
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            case IDOK:
+                {
+                    MINIDUMP_TYPE dumpType;
+
+                    dumpType = 0;
+
+                    for (ULONG i = 0; i < RTL_NUMBER_OF(options); i++)
+                    {
+                        if (Button_GetCheck(GetDlgItem(hwndDlg, options[i].Id)) == BST_CHECKED)
+                            dumpType |= options[i].Type;
+                    }
+
+                    PhUiCreateDumpFileProcess(hwndDlg, processItem, dumpType);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}
+
+VOID PhShowCreateDumpFileProcessDialog(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_PROCDUMP),
+        WindowHandle,
+        PhpProcDumpDlgProc,
+        ProcessItem
+        );
 }
