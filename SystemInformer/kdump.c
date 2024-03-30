@@ -26,9 +26,10 @@ typedef struct _LIVE_DUMP_CONFIG
             BOOLEAN CompressMemoryPages : 1;
             BOOLEAN IncludeUserSpaceMemory : 1;
             BOOLEAN IncludeHypervisorPages : 1;
-            BOOLEAN IncludeKernelThreadStack : 1;
+            BOOLEAN OnlyKernelThreadStacks : 1;
             BOOLEAN UseDumpStorageStack : 1;
-            BOOLEAN Spare : 2;
+            BOOLEAN IncludeNonEssentialHypervisorPages : 1;
+            BOOLEAN Spare : 1;
         };
     };
 
@@ -45,9 +46,7 @@ NTSTATUS PhpCreateLiveKernelDump(
     SYSDBG_LIVEDUMP_CONTROL_FLAGS flags;
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES pages;
     SYSDBG_LIVEDUMP_SELECTIVE_CONTROL selective;
-
-     // HACK: Give some time for the progress window to become visible. (dmex)
-    PhDelayExecution(2000);
+    ULONG length;
 
     memset(&liveDumpControl, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL));
     memset(&flags, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL_FLAGS));
@@ -62,17 +61,27 @@ NTSTATUS PhpCreateLiveKernelDump(
         flags.IncludeUserSpaceMemoryPages = TRUE;
     if (Context->IncludeHypervisorPages)
         pages.HypervisorPages = TRUE;
+    if (Context->IncludeNonEssentialHypervisorPages)
+        pages.NonEssentialHypervisorPages = TRUE;
 
-    if (Context->IncludeKernelThreadStack)
+    if (Context->OnlyKernelThreadStacks)
     {
+        liveDumpControl.Version = SYSDBG_LIVEDUMP_CONTROL_VERSION_2;
+        flags.SelectiveDump = TRUE;
+        length = sizeof(SYSDBG_LIVEDUMP_CONTROL);
+
         selective.Version = SYSDBG_LIVEDUMP_SELECTIVE_CONTROL_VERSION;
         selective.Size = sizeof(SYSDBG_LIVEDUMP_SELECTIVE_CONTROL);
         selective.ThreadKernelStacks = TRUE;
 
         liveDumpControl.SelectiveControl = &selective;
     }
+    else
+    {
+        liveDumpControl.Version = SYSDBG_LIVEDUMP_CONTROL_VERSION_1;
+        length = RTL_SIZEOF_THROUGH_FIELD(SYSDBG_LIVEDUMP_CONTROL, AddPagesControl);
+    }
 
-    liveDumpControl.Version = SYSDBG_LIVEDUMP_CONTROL_VERSION;
     liveDumpControl.DumpFileHandle = Context->FileHandle;
     liveDumpControl.CancelEventHandle = Context->EventHandle;
     liveDumpControl.Flags = flags;
@@ -81,7 +90,7 @@ NTSTATUS PhpCreateLiveKernelDump(
     status = NtSystemDebugControl(
         SysDbgGetLiveKernelDump,
         &liveDumpControl,
-        WindowsVersion >= WINDOWS_11 ? SYSDBG_LIVEDUMP_CONTROL_SIZE_WIN11 : SYSDBG_LIVEDUMP_CONTROL_SIZE,
+        length,
         NULL,
         0,
         NULL
@@ -333,17 +342,9 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
     {
     case WM_INITDIALOG:
         {
-            BOOLEAN kernelDebuggerEnabled;
-
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, NULL);
-
-            if (NT_SUCCESS(PhGetKernelDebuggerInformation(&kernelDebuggerEnabled, NULL)) && !kernelDebuggerEnabled)
-            {
-                Button_Enable(GetDlgItem(hwndDlg, IDC_USERMODE), FALSE);
-                Button_SetText(GetDlgItem(hwndDlg, IDC_USERMODE), L"Include UserSpace (requires kernel debug enabled)");
-            }
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
@@ -376,8 +377,9 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
                     dumpConfig->CompressMemoryPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_COMPRESS)) == BST_CHECKED;
                     dumpConfig->IncludeUserSpaceMemory = Button_GetCheck(GetDlgItem(hwndDlg, IDC_USERMODE)) == BST_CHECKED;
                     dumpConfig->IncludeHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISOR)) == BST_CHECKED;
-                    dumpConfig->IncludeKernelThreadStack = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DUMPKERNELTHREADSTACKS)) == BST_CHECKED;
+                    dumpConfig->OnlyKernelThreadStacks = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ONLYKERNELTHREADSTACKS)) == BST_CHECKED;
                     dumpConfig->UseDumpStorageStack = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DUMPSTACK)) == BST_CHECKED;
+                    dumpConfig->IncludeNonEssentialHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISORNONESSENTIAL)) == BST_CHECKED;
 
                     dumpConfig->FileName = PhpLiveDumpFileDialogFileName(hwndDlg);
 
@@ -416,8 +418,8 @@ VOID PhShowLiveDumpDialog(
     PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_LIVEDUMP),
-        NULL,
+        ParentWindowHandle,
         PhpLiveDumpDlgProc,
-        ParentWindowHandle
+        NULL
         );
 }
