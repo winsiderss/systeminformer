@@ -11,34 +11,19 @@
 
 #include <phapp.h>
 
-typedef struct _LIVE_DUMP_CONFIG
+typedef struct _PH_LIVE_DUMP_CONFIG
 {
     HWND WindowHandle;
     PPH_STRING FileName;
     NTSTATUS LastStatus;
-
-    union
-    {
-        BOOLEAN Flags;
-        struct
-        {
-            BOOLEAN KernelDumpActive : 1;
-            BOOLEAN CompressMemoryPages : 1;
-            BOOLEAN IncludeUserSpaceMemory : 1;
-            BOOLEAN IncludeHypervisorPages : 1;
-            BOOLEAN OnlyKernelThreadStacks : 1;
-            BOOLEAN UseDumpStorageStack : 1;
-            BOOLEAN IncludeNonEssentialHypervisorPages : 1;
-            BOOLEAN Spare : 1;
-        };
-    };
-
+    BOOLEAN KernelDumpActive;
+    PH_LIVE_DUMP_OPTIONS Options;
     HANDLE FileHandle;
     HANDLE EventHandle;
-} LIVE_DUMP_CONFIG, *PLIVE_DUMP_CONFIG;
+} PH_LIVE_DUMP_CONFIG, *PPH_LIVE_DUMP_CONFIG;
 
 NTSTATUS PhpCreateLiveKernelDump(
-    _In_ PLIVE_DUMP_CONFIG Context
+    _In_ PPH_LIVE_DUMP_CONFIG Context
     )
 {
     NTSTATUS status;
@@ -53,18 +38,18 @@ NTSTATUS PhpCreateLiveKernelDump(
     memset(&pages, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL_ADDPAGES));
     memset(&selective, 0, sizeof(SYSDBG_LIVEDUMP_SELECTIVE_CONTROL));
 
-    if (Context->UseDumpStorageStack)
+    if (Context->Options.UseDumpStorageStack)
         flags.UseDumpStorageStack = TRUE;
-    if (Context->CompressMemoryPages)
+    if (Context->Options.CompressMemoryPages)
         flags.CompressMemoryPagesData = TRUE;
-    if (Context->IncludeUserSpaceMemory)
+    if (Context->Options.IncludeUserSpaceMemory)
         flags.IncludeUserSpaceMemoryPages = TRUE;
-    if (Context->IncludeHypervisorPages)
+    if (Context->Options.IncludeHypervisorPages)
         pages.HypervisorPages = TRUE;
-    if (Context->IncludeNonEssentialHypervisorPages)
+    if (Context->Options.IncludeNonEssentialHypervisorPages)
         pages.NonEssentialHypervisorPages = TRUE;
 
-    if (Context->OnlyKernelThreadStacks)
+    if (Context->Options.OnlyKernelThreadStacks)
     {
         liveDumpControl.Version = SYSDBG_LIVEDUMP_CONTROL_VERSION_2;
         flags.SelectiveDump = TRUE;
@@ -123,7 +108,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PLIVE_DUMP_CONFIG context = (PLIVE_DUMP_CONFIG)dwRefData;
+    PPH_LIVE_DUMP_CONFIG context = (PPH_LIVE_DUMP_CONFIG)dwRefData;
 
     switch (uMsg)
     {
@@ -242,7 +227,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     _In_ PVOID ThreadParameter
     )
 {
-    PLIVE_DUMP_CONFIG context = (PLIVE_DUMP_CONFIG)ThreadParameter;
+    PPH_LIVE_DUMP_CONFIG context = (PPH_LIVE_DUMP_CONFIG)ThreadParameter;
     NTSTATUS status;
     TASKDIALOGCONFIG config;
 
@@ -331,6 +316,29 @@ PPH_STRING PhpLiveDumpFileDialogFileName(
     return fileName;
 }
 
+VOID PhUiCreateLiveDump(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_LIVE_DUMP_OPTIONS Options
+    )
+{
+    PPH_LIVE_DUMP_CONFIG dumpConfig;
+
+    dumpConfig = PhAllocateZero(sizeof(PH_LIVE_DUMP_CONFIG));
+    dumpConfig->Options = *Options;
+    dumpConfig->FileName = PhpLiveDumpFileDialogFileName(ParentWindowHandle);
+
+    if (!PhIsNullOrEmptyString(dumpConfig->FileName))
+    {
+        PhCreateThread2(PhpLiveDumpTaskDialogThread, dumpConfig);
+    }
+    else
+    {
+        if (dumpConfig->FileName)
+            PhDereferenceObject(dumpConfig->FileName);
+        PhFree(dumpConfig);
+    }
+}
+
 INT_PTR CALLBACK PhpLiveDumpDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -365,7 +373,7 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
                 break;
             case IDOK:
                 {
-                    PLIVE_DUMP_CONFIG dumpConfig;
+                    PH_LIVE_DUMP_OPTIONS options;
 
                     if (!PhGetOwnTokenAttributes().Elevated)
                     {
@@ -373,28 +381,16 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
                         break;
                     }
 
-                    dumpConfig = PhAllocateZero(sizeof(LIVE_DUMP_CONFIG));
-                    dumpConfig->CompressMemoryPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_COMPRESS)) == BST_CHECKED;
-                    dumpConfig->IncludeUserSpaceMemory = Button_GetCheck(GetDlgItem(hwndDlg, IDC_USERMODE)) == BST_CHECKED;
-                    dumpConfig->IncludeHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISOR)) == BST_CHECKED;
-                    dumpConfig->OnlyKernelThreadStacks = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ONLYKERNELTHREADSTACKS)) == BST_CHECKED;
-                    dumpConfig->UseDumpStorageStack = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DUMPSTACK)) == BST_CHECKED;
-                    dumpConfig->IncludeNonEssentialHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISORNONESSENTIAL)) == BST_CHECKED;
+                    memset(&options, 0, sizeof(PH_LIVE_DUMP_OPTIONS));
 
-                    dumpConfig->FileName = PhpLiveDumpFileDialogFileName(hwndDlg);
+                    options.CompressMemoryPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_COMPRESS)) == BST_CHECKED;
+                    options.IncludeUserSpaceMemory = Button_GetCheck(GetDlgItem(hwndDlg, IDC_USERMODE)) == BST_CHECKED;
+                    options.IncludeHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISOR)) == BST_CHECKED;
+                    options.OnlyKernelThreadStacks = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ONLYKERNELTHREADSTACKS)) == BST_CHECKED;
+                    options.UseDumpStorageStack = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DUMPSTACK)) == BST_CHECKED;
+                    options.IncludeNonEssentialHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISORNONESSENTIAL)) == BST_CHECKED;
 
-                    if (!PhIsNullOrEmptyString(dumpConfig->FileName))
-                    {
-                        PhCreateThread2(PhpLiveDumpTaskDialogThread, dumpConfig);
-
-                        EndDialog(hwndDlg, IDOK);
-                    }
-                    else
-                    {
-                        if (dumpConfig->FileName)
-                            PhDereferenceObject(dumpConfig->FileName);
-                        PhFree(dumpConfig);
-                    }
+                    PhUiCreateLiveDump(hwndDlg, &options);
                 }
                 break;
             }
