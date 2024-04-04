@@ -938,15 +938,15 @@ static_inline usize fread_safe(void *buf, usize size, FILE *file) {
  *============================================================================*/
 
 static void *default_malloc(void *ctx, usize size) {
-    return malloc(size);
+    return PhAllocateSafe(size);
 }
 
 static void *default_realloc(void *ctx, void *ptr, usize old_size, usize size) {
-    return realloc(ptr, size);
+    return PhReAllocateSafe(ptr, size);
 }
 
 static void default_free(void *ctx, void *ptr) {
-    free(ptr);
+    PhFree(ptr);
 }
 
 static const yyjson_alc YYJSON_DEFAULT_ALC = {

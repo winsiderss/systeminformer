@@ -380,7 +380,7 @@ mxmlNewElement(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ 
   */
 
   if ((node = mxml_new(parent, MXML_ELEMENT)) != NULL)
-    node->value.element.name = strdup(name);
+    node->value.element.name = PhDuplicateBytesZSafe((PSTR)name);
 
   return (node);
 }
@@ -449,7 +449,7 @@ mxmlNewOpaque(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ *
   */
 
   if ((node = mxml_new(parent, MXML_OPAQUE)) != NULL)
-    node->value.opaque = strdup(opaque);
+    node->value.opaque = PhDuplicateBytesZSafe((PSTR)opaque);
 
   return (node);
 }
@@ -568,7 +568,7 @@ mxmlNewText(mxml_node_t *parent,	/* I - Parent node or @code MXML_NO_PARENT@ */
   if ((node = mxml_new(parent, MXML_TEXT)) != NULL)
   {
     node->value.text.whitespace = whitespace;
-    node->value.text.string     = strdup(string);
+    node->value.text.string     = PhDuplicateBytesZSafe((PSTR)string);
   }
 
   return (node);
@@ -772,30 +772,30 @@ mxml_free(mxml_node_t *node)		/* I - Node */
   switch (node->type)
   {
     case MXML_ELEMENT :
-    free(node->value.element.name);
+    PhFree(node->value.element.name);
 
     if (node->value.element.num_attrs)
     {
       for (i = 0; i < node->value.element.num_attrs; i ++)
       {
-        free(node->value.element.attrs[i].name);
-        free(node->value.element.attrs[i].value);
+        PhFree(node->value.element.attrs[i].name);
+        PhFree(node->value.element.attrs[i].value);
       }
 
-          free(node->value.element.attrs);
+          PhFree(node->value.element.attrs);
     }
         break;
     case MXML_INTEGER :
        /* Nothing to do */
         break;
     case MXML_OPAQUE :
-    free(node->value.opaque);
+    PhFree(node->value.opaque);
         break;
     case MXML_REAL :
        /* Nothing to do */
         break;
     case MXML_TEXT :
-    free(node->value.text.string);
+    PhFree(node->value.text.string);
         break;
     case MXML_CUSTOM :
         if (node->value.custom.data &&
@@ -810,7 +810,7 @@ mxml_free(mxml_node_t *node)		/* I - Node */
   * Free this node...
   */
 
-  free(node);
+  PhFree(node);
 }
 
 
@@ -833,7 +833,7 @@ mxml_new(mxml_node_t *parent,		/* I - Parent node */
   * Allocate memory for the node...
   */
 
-  if ((node = calloc(1, sizeof(mxml_node_t))) == NULL)
+  if ((node = PhAllocateSafe(sizeof(mxml_node_t))) == NULL)
   {
 #if MXML_DEBUG > 1
     fputs("    returning NULL\n", stderr);
@@ -841,6 +841,8 @@ mxml_new(mxml_node_t *parent,		/* I - Parent node */
 
     return (NULL);
   }
+
+  memset(node, 0, sizeof(mxml_node_t));
 
 #if MXML_DEBUG > 1
   fprintf(stderr, "    returning %p\n", node);

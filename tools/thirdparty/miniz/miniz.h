@@ -534,6 +534,11 @@ typedef void *const voidpc;
 
 
 #pragma once
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS 1
+#endif
+#include <ph.h>
+
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -586,9 +591,9 @@ typedef struct mz_dummy_time_t_tag
 #define MZ_FREE(x) (void)x, ((void)0)
 #define MZ_REALLOC(p, x) NULL
 #else
-#define MZ_MALLOC(x) malloc(x)
-#define MZ_FREE(x) free(x)
-#define MZ_REALLOC(p, x) realloc(p, x)
+#define MZ_MALLOC(x) PhAllocateSafe(x)
+#define MZ_FREE(x) PhFree(x)
+#define MZ_REALLOC(p, x) PhReAllocateSafe(p, x)
 #endif
 
 #define MZ_MAX(a, b) (((a) > (b)) ? (a) : (b))

@@ -147,7 +147,7 @@ static void		_mxml_destructor(void *g);
 static void
 _mxml_destructor(void *g)		/* I - Global data */
 {
-  free(g);
+  PhFree(g);
 }
 
 
@@ -177,7 +177,7 @@ _mxml_global(void)
 
   if ((global = (_mxml_global_t *)pthread_getspecific(_mxml_key)) == NULL)
   {
-    global = (_mxml_global_t *)calloc(1, sizeof(_mxml_global_t));
+    global = (_mxml_global_t *)PhAllocateSafe(sizeof(_mxml_global_t));
     pthread_setspecific(_mxml_key, global);
 
     global->num_entity_cbs = 1;
@@ -231,12 +231,12 @@ DllMain(HINSTANCE hinst,		/* I - DLL module handle */
 
     case DLL_THREAD_DETACH :		/* Called when a thread terminates */
         if ((global = (_mxml_global_t *)TlsGetValue(_mxml_tls_index)) != NULL)
-          free(global);
+          PhFree(global);
         break;
 
     case DLL_PROCESS_DETACH :		/* Called when library is unloaded */
         if ((global = (_mxml_global_t *)TlsGetValue(_mxml_tls_index)) != NULL)
-          free(global);
+          PhFree(global);
 
         TlsFree(_mxml_tls_index);
         break;
@@ -261,7 +261,7 @@ _mxml_global(void)
 
   if ((global = (_mxml_global_t *)TlsGetValue(_mxml_tls_index)) == NULL)
   {
-    global = (_mxml_global_t *)calloc(1, sizeof(_mxml_global_t));
+    global = (_mxml_global_t *)PhAllocateSafe(sizeof(_mxml_global_t));
 
     global->num_entity_cbs = 1;
     global->entity_cbs[0]  = _mxml_entity_cb;

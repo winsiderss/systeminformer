@@ -73,7 +73,7 @@ mxmlSetCDATA(mxml_node_t *node,		/* I - Node to set */
     return (-1);
   }
 
-  free(node->value.element.name);
+  PhFree(node->value.element.name);
   node->value.element.name = s;
 
   return (0);
@@ -163,13 +163,13 @@ mxmlSetElement(mxml_node_t *node,	/* I - Node to set */
   * Free any old element value and set the new value...
   */
 
-  if ((s = strdup(name)) == NULL)
+  if ((s = PhDuplicateBytesZSafe((PSTR)name)) == NULL)
   {
     mxml_error("Unable to allocate memory for element name.");
     return (-1);
   }
 
-  free(node->value.element.name);
+  PhFree(node->value.element.name);
   node->value.element.name = s;
 
   return (0);
@@ -249,13 +249,13 @@ mxmlSetOpaque(mxml_node_t *node,	/* I - Node to set */
   * Free any old opaque value and set the new value...
   */
 
-  if ((s = strdup(opaque)) == NULL)
+  if ((s = PhDuplicateBytesZSafe((PSTR)opaque)) == NULL)
   {
     mxml_error("Unable to allocate memory for opaque string.");
     return (-1);
   }
 
-  free(node->value.opaque);
+  PhFree(node->value.opaque);
   node->value.opaque = s;
 
   return (0);
@@ -312,7 +312,7 @@ mxmlSetOpaquef(mxml_node_t *node,	/* I - Node to set */
     return (-1);
   }
 
-  free(node->value.opaque);
+  PhFree(node->value.opaque);
   node->value.opaque = s;
 
   return (0);
@@ -396,13 +396,13 @@ mxmlSetText(mxml_node_t *node,		/* I - Node to set */
   * Free any old string value and set the new value...
   */
 
-  if ((s = strdup(string)) == NULL)
+  if ((s = PhDuplicateBytesZSafe((PSTR)string)) == NULL)
   {
     mxml_error("Unable to allocate memory for text string.");
     return (-1);
   }
 
-  free(node->value.text.string);
+  PhFree(node->value.text.string);
 
   node->value.text.whitespace = whitespace;
   node->value.text.string     = s;
@@ -460,7 +460,7 @@ mxmlSetTextf(mxml_node_t *node,		/* I - Node to set */
     return (-1);
   }
 
-  free(node->value.text.string);
+  PhFree(node->value.text.string);
 
   node->value.text.whitespace = whitespace;
   node->value.text.string     = s;

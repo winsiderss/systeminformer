@@ -1,11 +1,13 @@
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 //#if HAVE_CONFIG_H
 //#include <config.h>
 //#endif
-
 #include "data-pool.h"
 #include "maxminddb-compat-util.h"
 #include "maxminddb.h"
-#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -21,6 +23,10 @@
 #endif
 //#include <windows.h>
 #include <ws2ipdef.h>
+#ifndef SSIZE_MAX
+#define SSIZE_MAX INTPTR_MAX
+#endif
+typedef ADDRESS_FAMILY sa_family_t;
 #else
 #include <arpa/inet.h>
 #include <sys/mman.h>
@@ -41,7 +47,7 @@
             abort();                                                           \
         }                                                                      \
         fprintf(stderr, fmt "\n", binary);                                     \
-        free(binary);                                                          \
+        PhFree(binary);                                                          \
     } while (0)
 #define DEBUG_NL fprintf(stderr, "\n")
 #else
@@ -53,10 +59,11 @@
 
 #ifdef MMDB_DEBUG
 char *byte_to_binary(uint8_t byte) {
-    char *bits = calloc(9, sizeof(char));
+    char *bits = PhAllocateSafe(9 * sizeof(char));
     if (NULL == bits) {
         return bits;
     }
+    memset(bits, 0, 9 * sizeof(char));
 
     for (uint8_t i = 0; i < 8; i++) {
         bits[i] = byte & (128 >> i) ? '1' : '0';
@@ -231,7 +238,7 @@ static char *bytes_to_hex(uint8_t const *bytes, uint32_t size);
 
 #define FREE_AND_SET_NULL(p)                                                   \
     {                                                                          \
-        free((void *)(p));                                                     \
+        PhFree((void *)(p));                                                     \
         (p) = NULL;                                                            \
     }
 
@@ -285,18 +292,29 @@ int MMDB_open(PPH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb) {
         goto cleanup;
     }
 
-    uint32_t search_tree_size =
-        mmdb->metadata.node_count * mmdb->full_record_byte_size;
-
-    mmdb->data_section =
-        mmdb->file_content + search_tree_size + MMDB_DATA_SECTION_SEPARATOR;
-    if (search_tree_size + MMDB_DATA_SECTION_SEPARATOR >
-        (uint32_t)mmdb->file_size) {
+    if (!can_multiply(SSIZE_MAX,
+                      mmdb->metadata.node_count,
+                      mmdb->full_record_byte_size)) {
         status = MMDB_INVALID_METADATA_ERROR;
         goto cleanup;
     }
-    mmdb->data_section_size = (uint32_t)mmdb->file_size - search_tree_size -
-                              MMDB_DATA_SECTION_SEPARATOR;
+    ssize_t search_tree_size = (ssize_t)mmdb->metadata.node_count *
+                               (ssize_t)mmdb->full_record_byte_size;
+
+    mmdb->data_section =
+        mmdb->file_content + search_tree_size + MMDB_DATA_SECTION_SEPARATOR;
+    if (mmdb->file_size < MMDB_DATA_SECTION_SEPARATOR ||
+        search_tree_size > mmdb->file_size - MMDB_DATA_SECTION_SEPARATOR) {
+        status = MMDB_INVALID_METADATA_ERROR;
+        goto cleanup;
+    }
+    ssize_t data_section_size =
+        mmdb->file_size - search_tree_size - MMDB_DATA_SECTION_SEPARATOR;
+    if (data_section_size > UINT32_MAX || data_section_size <= 0) {
+        status = MMDB_INVALID_METADATA_ERROR;
+        goto cleanup;
+    }
+    mmdb->data_section_size = (uint32_t)data_section_size;
 
     // Although it is likely not possible to construct a database with valid
     // valid metadata, as parsed above, and a data_section_size less than 3,
@@ -333,14 +351,16 @@ cleanup:
 
 static LPWSTR utf8_to_utf16(const char *utf8_str) {
     int wide_chars = MultiByteToWideChar(CP_UTF8, 0, utf8_str, -1, NULL, 0);
-    wchar_t *utf16_str = (wchar_t *)calloc(wide_chars, sizeof(wchar_t));
+    wchar_t *utf16_str = (wchar_t *)PhAllocateSafe(wide_chars * sizeof(wchar_t));
     if (!utf16_str) {
         return NULL;
     }
 
+    //memset(utf16_str, 0, wide_chars * sizeof(wchar_t));
+
     if (MultiByteToWideChar(CP_UTF8, 0, utf8_str, -1, utf16_str, wide_chars) <
         1) {
-        free(utf16_str);
+        PhFree(utf16_str);
         return NULL;
     }
 
@@ -807,19 +827,21 @@ static int populate_description_metadata(MMDB_s *mmdb,
                               MMDB_INVALID_METADATA_ERROR);
 
     mmdb->metadata.description.descriptions =
-        calloc(map_size, sizeof(MMDB_description_s *));
+        PhAllocateSafe(map_size * sizeof(MMDB_description_s *));
     if (NULL == mmdb->metadata.description.descriptions) {
         status = MMDB_OUT_OF_MEMORY_ERROR;
         goto cleanup;
     }
+    memset(mmdb->metadata.description.descriptions, 0, map_size * sizeof(MMDB_description_s*));
 
     for (uint32_t i = 0; i < map_size; i++) {
         mmdb->metadata.description.descriptions[i] =
-            calloc(1, sizeof(MMDB_description_s));
+            PhAllocateSafe(sizeof(MMDB_description_s));
         if (NULL == mmdb->metadata.description.descriptions[i]) {
             status = MMDB_OUT_OF_MEMORY_ERROR;
             goto cleanup;
         }
+        memset(mmdb->metadata.description.descriptions[i], 0, sizeof(MMDB_description_s));
 
         mmdb->metadata.description.count = i + 1;
         mmdb->metadata.description.descriptions[i]->language = NULL;
@@ -939,7 +961,7 @@ static int find_address_in_search_tree(const MMDB_s *const mmdb,
                                        sa_family_t address_family,
                                        MMDB_lookup_result_s *result) {
     record_info_s record_info = record_info_for_database(mmdb);
-    if (0 == record_info.right_record_offset) {
+    if (record_info.right_record_offset == 0) {
         return MMDB_UNKNOWN_DATABASE_FORMAT_ERROR;
     }
 
@@ -1003,9 +1025,10 @@ static record_info_s record_info_for_database(const MMDB_s *const mmdb) {
         record_info.left_record_getter = &get_uint32;
         record_info.right_record_getter = &get_uint32;
         record_info.right_record_offset = 4;
-    } else {
-        assert(false);
     }
+
+    // Callers must check that right_record_offset is non-zero in case none of
+    // the above conditions matched.
 
     return record_info;
 }
@@ -1019,6 +1042,9 @@ static int find_ipv4_start_node(MMDB_s *const mmdb) {
     }
 
     record_info_s record_info = record_info_for_database(mmdb);
+    if (record_info.right_record_offset == 0) {
+        return MMDB_UNKNOWN_DATABASE_FORMAT_ERROR;
+    }
 
     const uint8_t *search_tree = mmdb->file_content;
     uint32_t node_value = 0;
@@ -1081,7 +1107,7 @@ int MMDB_read_node(const MMDB_s *const mmdb,
                    uint32_t node_number,
                    MMDB_search_node_s *const node) {
     record_info_s record_info = record_info_for_database(mmdb);
-    if (0 == record_info.right_record_offset) {
+    if (record_info.right_record_offset == 0) {
         return MMDB_UNKNOWN_DATABASE_FORMAT_ERROR;
     }
 
@@ -1141,7 +1167,7 @@ int MMDB_vget_value(MMDB_entry_s *const start,
         return MMDB_INVALID_METADATA_ERROR;
     }
 
-    const char **path = calloc(length + 1, sizeof(const char *));
+    const char **path = PhAllocateSafe((length + 1) * sizeof(const char *));
     if (NULL == path) {
         return MMDB_OUT_OF_MEMORY_ERROR;
     }
@@ -1154,7 +1180,7 @@ int MMDB_vget_value(MMDB_entry_s *const start,
 
     int status = MMDB_aget_value(start, entry_data, path);
 
-    free(path);
+    PhFree(path);
 
     return status;
 }
@@ -1576,7 +1602,7 @@ static int decode_one(const MMDB_s *const mmdb,
             abort();
         }
         DEBUG_MSGF("string value: %s", string);
-        free(string);
+        PhFree(string);
 #endif
     } else if (type == MMDB_DATA_TYPE_BYTES) {
         entry_data->bytes = &mem[offset];
@@ -1828,19 +1854,30 @@ static void free_mmdb_struct(MMDB_s *const mmdb) {
          * to cleanup then. */
         //WSACleanup();
 #else
+#if defined(__clang__)
 // This is a const char * that we need to free, which isn't valid. However it
 // would mean changing the public API to fix this.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-qual"
+#endif
         munmap((void *)mmdb->file_content, (size_t)mmdb->file_size);
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
 #endif
     }
 
     if (NULL != mmdb->metadata.database_type) {
+#if defined(__clang__)
 // This is a const char * that we need to free, which isn't valid. However it
 // would mean changing the public API to fix this.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
+#endif
         FREE_AND_SET_NULL(mmdb->metadata.database_type);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     }
 
     free_languages_metadata(mmdb);
@@ -1853,9 +1890,16 @@ static void free_languages_metadata(MMDB_s *mmdb) {
     }
 
     for (size_t i = 0; i < mmdb->metadata.languages.count; i++) {
+#if defined(__clang__)
 // This is a const char * that we need to free, which isn't valid. However it
 // would mean changing the public API to fix this.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
+#endif
         FREE_AND_SET_NULL(mmdb->metadata.languages.names[i]);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     }
     FREE_AND_SET_NULL(mmdb->metadata.languages.names);
 }
@@ -1868,18 +1912,32 @@ static void free_descriptions_metadata(MMDB_s *mmdb) {
     for (size_t i = 0; i < mmdb->metadata.description.count; i++) {
         if (NULL != mmdb->metadata.description.descriptions[i]) {
             if (NULL != mmdb->metadata.description.descriptions[i]->language) {
+#if defined(__clang__)
 // This is a const char * that we need to free, which isn't valid. However it
 // would mean changing the public API to fix this.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
+#endif
                 FREE_AND_SET_NULL(
                     mmdb->metadata.description.descriptions[i]->language);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
             }
 
             if (NULL !=
                 mmdb->metadata.description.descriptions[i]->description) {
+#if defined(__clang__)
 // This is a const char * that we need to free, which isn't valid. However it
 // would mean changing the public API to fix this.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
+#endif
                 FREE_AND_SET_NULL(
                     mmdb->metadata.description.descriptions[i]->description);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
             }
             FREE_AND_SET_NULL(mmdb->metadata.description.descriptions[i]);
         }
@@ -1930,7 +1988,7 @@ dump_entry_data_list(FILE *stream,
 
                 print_indentation(stream, indent);
                 fprintf(stream, "\"%s\": \n", key);
-                free(key);
+                PhFree(key);
 
                 entry_data_list = entry_data_list->next;
                 entry_data_list = dump_entry_data_list(
@@ -1975,7 +2033,7 @@ dump_entry_data_list(FILE *stream,
             }
             print_indentation(stream, indent);
             fprintf(stream, "\"%s\" <utf8_string>\n", string);
-            free(string);
+            PhFree(string);
             entry_data_list = entry_data_list->next;
         } break;
         case MMDB_DATA_TYPE_BYTES: {
@@ -1990,7 +2048,7 @@ dump_entry_data_list(FILE *stream,
 
             print_indentation(stream, indent);
             fprintf(stream, "%s <bytes>\n", hex_string);
-            free(hex_string);
+            PhFree(hex_string);
 
             entry_data_list = entry_data_list->next;
         } break;
@@ -2044,7 +2102,7 @@ dump_entry_data_list(FILE *stream,
                 return NULL;
             }
             fprintf(stream, "0x%s <uint128>\n", hex_string);
-            free(hex_string);
+            PhFree(hex_string);
 #else
             uint64_t high = entry_data_list->entry_data.uint128 >> 64;
             uint64_t low = (uint64_t)entry_data_list->entry_data.uint128;
@@ -2081,10 +2139,11 @@ static char *bytes_to_hex(uint8_t const *bytes, uint32_t size) {
     char *hex_string;
     MAYBE_CHECK_SIZE_OVERFLOW(size, SIZE_MAX / 2 - 1, NULL);
 
-    hex_string = calloc((size * 2) + 1, sizeof(char));
+    hex_string = PhAllocateSafe(((size * 2) + 1) * sizeof(char));
     if (NULL == hex_string) {
         return NULL;
     }
+    memset(hex_string, 0, ((size * 2) + 1) * sizeof(char));
 
     for (uint32_t i = 0; i < size; i++) {
         sprintf(hex_string + (2 * i), "%02X", bytes[i]);

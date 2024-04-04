@@ -10,6 +10,8 @@
 
 #include "config.h"
 
+#include <ph.h>
+
 #include "strerror_override.h"
 
 #include <assert.h>
@@ -310,7 +312,7 @@ int json_object_put(struct json_object *jso)
 static void json_object_generic_delete(struct json_object *jso)
 {
     printbuf_free(jso->_pb);
-    free(jso);
+    PhFree(jso);
 }
 
 static inline struct json_object *json_object_new(enum json_type o_type, size_t alloc_size,
@@ -318,7 +320,7 @@ static inline struct json_object *json_object_new(enum json_type o_type, size_t 
 {
     struct json_object *jso;
 
-    jso = (struct json_object *)malloc(alloc_size);
+    jso = (struct json_object *)PhAllocateSafe(alloc_size);
     if (!jso)
         return NULL;
 
@@ -517,7 +519,7 @@ static size_t json_object_object_to_json_string(struct json_object *jso, struct 
 static void json_object_lh_entry_free(struct lh_entry *ent)
 {
     if (!lh_entry_k_is_constant(ent))
-        free(lh_entry_k(ent));
+        PhFree(lh_entry_k(ent));
     json_object_put((struct json_object *)lh_entry_v(ent));
 }
 
@@ -579,7 +581,7 @@ int json_object_object_add_ex(struct json_object *jso, const char *const key,
     if (!existing_entry)
     {
         const void *const k =
-            (opts & JSON_C_OBJECT_ADD_CONSTANT_KEY) ? (const void *)key : _strdup(key);
+            (opts & JSON_C_OBJECT_ADD_CONSTANT_KEY) ? (const void *)key : PhDuplicateBytesZSafe((PSTR)key);
         if (k == NULL)
             return -1;
         return lh_table_insert_w_hash(JC_OBJECT(jso)->c_object, k, val, hash, opts);
@@ -953,15 +955,15 @@ int json_c_set_serialization_double_format(const char *double_format, int global
 #if defined(HAVE___THREAD)
         if (tls_serialization_float_format)
         {
-            free(tls_serialization_float_format);
+            PhFree(tls_serialization_float_format);
             tls_serialization_float_format = NULL;
         }
 #endif
         if (global_serialization_float_format)
-            free(global_serialization_float_format);
+            PhFree(global_serialization_float_format);
         if (double_format)
         {
-            char *p = _strdup(double_format);
+            char *p = PhDuplicateBytesZSafe((PSTR)double_format);
             if (p == NULL)
             {
                 _json_c_set_last_err("json_c_set_serialization_double_format: "
@@ -980,12 +982,12 @@ int json_c_set_serialization_double_format(const char *double_format, int global
 #if defined(HAVE___THREAD)
         if (tls_serialization_float_format)
         {
-            free(tls_serialization_float_format);
+            PhFree(tls_serialization_float_format);
             tls_serialization_float_format = NULL;
         }
         if (double_format)
         {
-            char *p = _strdup(double_format);
+            char *p = PhDuplicateBytesZSafe(double_format);
             if (p == NULL)
             {
                 _json_c_set_last_err("json_c_set_serialization_double_format: "
@@ -1136,7 +1138,7 @@ struct json_object *json_object_new_double_s(double d, const char *ds)
     if (!jso)
         return NULL;
 
-    new_ds = _strdup(ds);
+    new_ds = PhDuplicateBytesZSafe((PSTR)ds);
     if (!new_ds)
     {
         json_object_generic_delete(jso);
@@ -1169,7 +1171,7 @@ size_t json_object_userdata_to_json_string(struct json_object *jso, struct print
 
 void json_object_free_userdata(struct json_object *jso, void *userdata)
 {
-    free(userdata);
+    PhFree(userdata);
 }
 
 double json_object_get_double(const struct json_object *jso)
@@ -1259,7 +1261,7 @@ static size_t json_object_string_to_json_string(struct json_object *jso, struct 
 static void json_object_string_delete(struct json_object *jso)
 {
     if (JC_STRING(jso)->len < 0)
-        free(JC_STRING(jso)->c_string.pdata);
+        PhFree(JC_STRING(jso)->c_string.pdata);
     json_object_generic_delete(jso);
 }
 
@@ -1356,7 +1358,7 @@ static int _json_object_set_string_len(json_object *jso, const char *s, size_t l
     curlen = JC_STRING(jso)->len;
     if (curlen < 0) {
         if (len == 0) {
-            free(JC_STRING(jso)->c_string.pdata);
+            PhFree(JC_STRING(jso)->c_string.pdata);
             JC_STRING(jso)->len = curlen = 0;
         } else {
             curlen = -curlen;
@@ -1371,11 +1373,11 @@ static int _json_object_set_string_len(json_object *jso, const char *s, size_t l
         // We have no way to return the new ptr from realloc(jso, newlen)
         // and we have no way of knowing whether there's extra room available
         // so we need to stuff a pointer in to pdata :(
-        dstbuf = (char *)malloc(len + 1);
+        dstbuf = (char *)PhAllocateSafe(len + 1);
         if (dstbuf == NULL)
             return 0;
         if (JC_STRING(jso)->len < 0)
-            free(JC_STRING(jso)->c_string.pdata);
+            PhFree(JC_STRING(jso)->c_string.pdata);
         JC_STRING(jso)->c_string.pdata = dstbuf;
         newlen = -(ssize_t)len;
     }
@@ -1470,7 +1472,7 @@ struct json_object *json_object_new_array_ext(int initial_size)
     jso->c_array = array_list_new2(&json_object_array_entry_free, initial_size);
     if (jso->c_array == NULL)
     {
-        free(jso);
+        PhFree(jso);
         return NULL;
     }
     return &jso->base;
@@ -1666,7 +1668,7 @@ static int json_object_copy_serializer_data(struct json_object *src, struct json
     {
         char *p;
         assert(src->_userdata);
-        p = _strdup(src->_userdata);
+        p = PhDuplicateBytesZSafe(src->_userdata);
         if (p == NULL)
         {
             _json_c_set_last_err("json_object_copy_serializer_data: out of memory\n");
