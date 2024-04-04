@@ -669,13 +669,30 @@ VOID EtpNetworkIconUpdateCallback(
     lineDataCount = min(maxDataCount, EtNetworkReceiveHistory.Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
 
-    for (i = 0; i < lineDataCount; i++)
+    if (EtEnableAvxSupport && lineDataCount > 64) // 128
     {
-        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, i);
-        lineData2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, i);
+        FLOAT data1;
+        FLOAT data2;
 
-        if (max < lineData1[i] + lineData2[i])
-            max = lineData1[i] + lineData2[i];
+        PhCopyConvertCircularBufferULONG(&EtNetworkReceiveHistory, lineData1, lineDataCount);
+        PhCopyConvertCircularBufferULONG(&EtNetworkSendHistory, lineData2, lineDataCount);
+
+        data1 = PhMaxMemorySingles(lineData1, lineDataCount);
+        data2 = PhMaxMemorySingles(lineData2, lineDataCount);
+
+        if (max < data1 + data2)
+            max = data1 + data2;
+    }
+    else
+    {
+        for (i = 0; i < lineDataCount; i++)
+        {
+            lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkReceiveHistory, i);
+            lineData2[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&EtNetworkSendHistory, i);
+
+            if (max < lineData1[i] + lineData2[i])
+                max = lineData1[i] + lineData2[i];
+        }
     }
 
     PhDivideSinglesBySingle(lineData1, max, lineDataCount);
@@ -1715,18 +1732,11 @@ VOID EtRegisterToolbarGraphs(
     VOID
     )
 {
-    PPH_PLUGIN toolStatusPlugin;
-    PTOOLSTATUS_INTERFACE ToolStatusInterface = NULL;
+    PTOOLSTATUS_INTERFACE ToolStatusInterface;
 
-    if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
-    {
-        ToolStatusInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
+    EtToolbarGraphsInitializeDpi();
 
-        if (ToolStatusInterface->Version < TOOLSTATUS_INTERFACE_VERSION)
-            ToolStatusInterface = NULL;
-    }
-
-    if (ToolStatusInterface)
+    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_PLUGIN_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
         ToolStatusInterface->RegisterToolbarGraph(
             PluginInstance,

@@ -47,6 +47,7 @@ VOID GraphicsDeviceInitialize(
     GraphicsDevicesList = PhCreateList(1);
     GraphicsDeviceEntryType = PhCreateObjectType(L"GraphicsDeviceEntry", 0, GraphicsDeviceEntryDeleteProcedure);
     GraphicsGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
+    GraphicsEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     GraphicsEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     GraphicsEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     GraphicsPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");

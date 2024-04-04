@@ -604,6 +604,18 @@ LONG PhGetSystemMetrics(
     return GetSystemMetrics(Index);
 }
 
+BOOLEAN PhGetSystemSafeBootMode(
+    VOID
+    )
+{
+    if (WindowsVersion < WINDOWS_NEW)
+    {
+        return !!USER_SHARED_DATA->SafeBootMode;
+    }
+
+    return !!PhGetSystemMetrics(SM_CLEANBOOT, 0);
+}
+
 BOOL PhGetSystemParametersInfo(
     _In_ INT Action,
     _In_ UINT Param1,

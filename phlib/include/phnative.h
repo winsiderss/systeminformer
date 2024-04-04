@@ -2036,6 +2036,13 @@ PhUpdateDosDevicePrefixes(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhFlushVolumeCache(
+    VOID
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhResolveDevicePrefix(

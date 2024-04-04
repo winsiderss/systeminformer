@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -449,6 +449,28 @@ VOID NTAPI PhpEmptySystemFileCacheCommand(
         *ShowError = !NT_SUCCESS(status);
 }
 
+_Function_class_(PH_MEMORY_LIST_COMMAND_CALLBACK)
+VOID NTAPI PhpFlushModifiedFileCacheCommand(
+    _In_ HWND ParentWindow,
+    _Out_ PPH_STRING* Message,
+    _Out_opt_ PBOOLEAN ShowError
+    )
+{
+    NTSTATUS status;
+
+    PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
+    status = PhFlushVolumeCache();
+    PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
+
+    if (NT_SUCCESS(status))
+        *Message = PhCreateString(L"Volume file cache flushed to disk.");
+    else
+        *Message = PhpCreateCommandStatusString(L"Unable to flush volume file cache.", status);
+
+    if (ShowError)
+        *ShowError = !NT_SUCCESS(status);
+}
+
 VOID PhShowMemoryListCommand(
     _In_ HWND ParentWindow,
     _In_ HWND ButtonWindow,
@@ -463,6 +485,7 @@ VOID PhShowMemoryListCommand(
         PhpEmptyRegistryCacheCommand,
         PhpEmptyWorkingSetsCommand,
         PhpFlushModifiedListCommand,
+        PhpFlushModifiedFileCacheCommand,
         PhpPurgeStandbyListCommand,
         PhpPurgeLowPriorityStandbyListCommand,
     };
@@ -477,8 +500,9 @@ VOID PhShowMemoryListCommand(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Empty &registry cache", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 4, L"Empty &working sets", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 5, L"Empty &modified page list", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 6, L"Empty &standby list", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 7, L"Empty &priority 0 standby list", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 6, L"Empty &modified file cache", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 7, L"Empty &standby list", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 8, L"Empty &priority 0 standby list", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, RTL_NUMBER_OF(commands), L"Empty &all", NULL, NULL), ULONG_MAX);
 
     if (ShowTopAlign)

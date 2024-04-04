@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2020-2023
+ *     dmex    2020-2024
  *
  */
 
@@ -110,7 +110,7 @@ typedef struct _FW_EVENT
     PPH_STRING ProcessFileNameWin32;
     PPH_STRING ProcessBaseString;
     PPH_STRING RemoteCountryName;
-    UINT CountryIconIndex;
+    INT32 CountryIconIndex;
 
     PSID UserSid;
     //PSID PackageSid;

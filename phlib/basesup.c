@@ -7680,6 +7680,51 @@ ULONG PhTlsAlloc(
     VOID
     )
 {
+    if (WindowsVersion < WINDOWS_NEW)
+    {
+        PTEB currentTeb;
+        PPEB currentPeb;
+        ULONG i;
+
+        currentTeb = NtCurrentTeb();
+        currentPeb = currentTeb->ProcessEnvironmentBlock;
+        RtlAcquirePebLock();
+
+        for (
+            i = RtlFindClearBitsAndSet(currentPeb->TlsBitmap, 1, 0);
+            ;
+            i = RtlFindClearBitsAndSet(currentPeb->TlsBitmap, 1, 0)
+            )
+        {
+            if (i != ULONG_MAX)
+            {
+                RtlReleasePebLock();
+                currentTeb->TlsSlots[i] = NULL;
+                return i;
+            }
+
+            if (currentTeb->TlsExpansionSlots)
+                break;
+
+            RtlReleasePebLock();
+            currentTeb->TlsExpansionSlots = (PVOID*)RtlAllocateHeap(RtlProcessHeap(), HEAP_ZERO_MEMORY, 0x2000);
+            if (!currentTeb->TlsExpansionSlots) goto CleanupExit;
+            RtlAcquirePebLock();
+        }
+
+        i = RtlFindClearBitsAndSet(currentPeb->TlsExpansionBitmap, 1, 0);
+        RtlReleasePebLock();
+
+        if (i != ULONG_MAX)
+        {
+            currentTeb->TlsExpansionSlots[i] = NULL;
+            return i + TLS_MINIMUM_AVAILABLE;
+        }
+    }
+
+CleanupExit:
+    //RtlSetLastWin32ErrorAndNtStatusFromNtStatus(STATUS_NO_MEMORY);
+    //return ULONG_MAX;
     return TlsAlloc();
 }
 
@@ -7687,7 +7732,7 @@ PVOID PhTlsGetValue(
     _In_ ULONG Index
     )
 {
-    if (Index < TLS_MINIMUM_AVAILABLE)
+    if (WindowsVersion < WINDOWS_NEW && Index < TLS_MINIMUM_AVAILABLE)
     {
         return NtCurrentTeb()->TlsSlots[Index];
     }
@@ -7700,7 +7745,7 @@ NTSTATUS PhTlsSetValue(
     _In_opt_ PVOID Value
     )
 {
-    if (Index < TLS_MINIMUM_AVAILABLE)
+    if (WindowsVersion < WINDOWS_NEW && Index < TLS_MINIMUM_AVAILABLE)
     {
         NtCurrentTeb()->TlsSlots[Index] = Value;
         return STATUS_SUCCESS;
@@ -7713,3 +7758,22 @@ NTSTATUS PhTlsSetValue(
 }
 
 #pragma endregion
+
+ULONG PhGetLastError(
+    VOID
+    )
+{
+    if (WindowsVersion < WINDOWS_NEW)
+        return NtCurrentTeb()->LastErrorValue;
+    return GetLastError();
+}
+
+VOID PhSetLastError(
+    _In_ ULONG ErrorValue
+    )
+{
+    if (WindowsVersion < WINDOWS_NEW)
+        NtCurrentTeb()->LastErrorValue = ErrorValue;
+    else
+        SetLastError(ErrorValue);
+}

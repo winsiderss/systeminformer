@@ -112,7 +112,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
         }
     }
 
-    PhSetListViewSubItem(Context->ListViewHandle, 1, 1, PhaFormatString(L"%lu", SessionId)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, 1, 1, PhaFormatUInt64(SessionId, FALSE)->Buffer);
 
     if (haveWinStationInfo)
     {

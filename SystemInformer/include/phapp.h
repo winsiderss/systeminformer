@@ -152,10 +152,6 @@ VOID PhUnloadPlugins(
     _In_ BOOLEAN SessionEnding
     );
 
-struct _PH_PLUGIN *PhFindPlugin2(
-    _In_ PPH_STRINGREF Name
-    );
-
 // log
 
 #define PH_LOG_ENTRY_PROCESS_FIRST 1
