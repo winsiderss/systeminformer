@@ -1178,6 +1178,24 @@ VOID PhpFillProcessItem(
                 ProcessItem->FileNameWin32 = PhGetFileName(fileName);
             }
         }
+
+        if (ProcessItem->QueryHandle)
+        {
+            if (NT_SUCCESS(PhGetProcessStartKey(ProcessItem->QueryHandle, &ProcessItem->ProcessStartKey)))
+            {
+                PH_FORMAT format[3];
+                PhInitFormatC(&format[0], L'0');
+                PhInitFormatC(&format[1], L'x');
+                PhInitFormatI64X(&format[2], ProcessItem->ProcessStartKey);
+                PhFormatToBuffer(
+                    format,
+                    RTL_NUMBER_OF(format),
+                    ProcessItem->ProcessStartKeyString,
+                    sizeof(ProcessItem->ProcessStartKeyString),
+                    NULL
+                    );
+            }
+        }
     }
 
     // Token information

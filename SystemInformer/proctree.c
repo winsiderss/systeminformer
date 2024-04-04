@@ -240,6 +240,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_TLSBITMAPDELTA, FALSE, L"Thread local storage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_REFERENCEDELTA, FALSE, L"References", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_LXSSPID, FALSE, L"PID (LXSS)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_START_KEY, FALSE, L"Start key", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -2449,6 +2450,12 @@ BEGIN_SORT_FUNCTION(LxssPid)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(StartKey)
+{
+    sortResult = uint64cmp(node1->ProcessItem->ProcessStartKey, node2->ProcessItem->ProcessStartKey);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2593,6 +2600,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(TlsBitmapDelta),
                         SORT_FUNCTION(ReferenceDelta),
                         SORT_FUNCTION(LxssPid),
+                        SORT_FUNCTION(StartKey),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -2659,6 +2667,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_LXSSPID:
                 {
                     PhInitializeStringRefLongHint(&getCellText->Text, processItem->LxssProcessIdString);
+                }
+                break;
+            case PHPRTLC_START_KEY:
+                {
+                    PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessStartKeyString);
                 }
                 break;
             case PHPRTLC_CPU:
