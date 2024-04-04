@@ -179,7 +179,7 @@ INT WINAPI wWinMain(
 
                     AllowSetForegroundWindow(ASFW_ANY);
 
-                    if (PhShellExecuteEx(
+                    if (NT_SUCCESS(PhShellExecuteEx(
                         NULL,
                         PhGetString(applicationFileName),
                         PvFileName->Buffer,
@@ -188,7 +188,7 @@ INT WINAPI wWinMain(
                         PH_SHELL_EXECUTE_DEFAULT,
                         0,
                         NULL
-                        ))
+                        )))
                     {
                         PhExitApplication(STATUS_SUCCESS);
                     }

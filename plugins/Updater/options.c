@@ -12,13 +12,13 @@
 #include "updater.h"
 
 INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -27,7 +27,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                 ULONG64 lastUpdateTimeTicks;
                 PPH_STRING lastUpdateTimeString;
 
-                Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOCHECKBOX), BST_CHECKED);
+                Button_SetCheck(GetDlgItem(WindowHandle, IDC_AUTOCHECKBOX), BST_CHECKED);
 
                 if (lastUpdateTimeString = PhGetStringSetting(SETTING_NAME_LAST_CHECK))
                 {
@@ -46,7 +46,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                         PhQuerySystemTime(&currentTime);
                         timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - lastUpdateTimeTicks));
 
-                        PhSetDialogItemText(hwndDlg, IDC_TEXT, PhaFormatString(
+                        PhSetDialogItemText(WindowHandle, IDC_TEXT, PhaFormatString(
                             L"Last update check: %s (%s ago)",
                             PhGetStringOrEmpty(timeString),
                             PhGetStringOrEmpty(timeRelativeString)
@@ -60,7 +60,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                         if (time.QuadPart > 0)
                         {
                             timeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(time.QuadPart));
-                            PhSetDialogItemText(hwndDlg, IDC_TEXT2, PhaFormatString(
+                            PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
                                 L"Next update check: %s (%s)",
                                 PhGetStringOrEmpty(timeString),
                                 PhGetStringOrEmpty(timeRelativeString)
@@ -68,7 +68,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                         }
                         else
                         {
-                            PhSetDialogItemText(hwndDlg, IDC_TEXT2, PhaFormatString(
+                            PhSetDialogItemText(WindowHandle, IDC_TEXT2, PhaFormatString(
                                 L"Next update check: %s",
                                 PhGetStringOrEmpty(timeString)
                                 )->Buffer);
@@ -81,12 +81,12 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
             {
-                Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOWSTARTPROMPTCHECK), BST_CHECKED);
+                Button_SetCheck(GetDlgItem(WindowHandle, IDC_SHOWSTARTPROMPTCHECK), BST_CHECKED);
             }
 
             if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK_PAGE))
             {
-                Button_SetCheck(GetDlgItem(hwndDlg, IDC_SKIPWELCOMEPAGECHECK), BST_CHECKED);
+                Button_SetCheck(GetDlgItem(WindowHandle, IDC_SKIPWELCOMEPAGECHECK), BST_CHECKED);
             }
         }
         break;
@@ -116,11 +116,11 @@ INT_PTR CALLBACK OptionsDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

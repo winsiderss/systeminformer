@@ -6,16 +6,14 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
 #include <phapp.h>
 #include <phplug.h>
-
-#include <emenu.h>
-
 #include <colmgr.h>
+#include <emenu.h>
 #include <extmgri.h>
 #include <phsvccl.h>
 #include <procprv.h>
@@ -571,18 +569,18 @@ NTSTATUS PhLoadPlugin(
 {
     if (PhPluginsLoadNative)
     {
+        NTSTATUS status;
         PPH_STRING fileName;
-        PVOID baseAddress;
 
         if (fileName = PhResolveDevicePrefix(FileName))
         {
-            baseAddress = LoadLibraryEx(PhGetString(fileName), NULL, 0);
-            PhDereferenceObject(fileName);
-
-            if (baseAddress)
-                return STATUS_SUCCESS;
+            if (LoadLibraryEx(PhGetString(fileName), NULL, 0))
+                status = STATUS_SUCCESS;
             else
-                return PhGetLastWin32ErrorAsNtStatus();
+                status = PhGetLastWin32ErrorAsNtStatus();
+
+            PhDereferenceObject(fileName);
+            return status;
         }
 
         return STATUS_UNSUCCESSFUL;
@@ -737,24 +735,6 @@ PPH_PLUGIN PhRegisterPlugin(
  *
  * \return A plugin instance structure, or NULL if the plugin was not found.
  */
-PPH_PLUGIN PhFindPlugin(
-    _In_ PWSTR Name
-    )
-{
-    PH_STRINGREF name;
-
-    PhInitializeStringRefLongHint(&name, Name);
-
-    return PhFindPlugin2(&name);
-}
-
-/**
- * Locates a plugin instance structure.
- *
- * \param Name The name of the plugin.
- *
- * \return A plugin instance structure, or NULL if the plugin was not found.
- */
 PPH_PLUGIN PhFindPlugin2(
     _In_ PPH_STRINGREF Name
     )
@@ -769,6 +749,47 @@ PPH_PLUGIN PhFindPlugin2(
         return CONTAINING_RECORD(links, PH_PLUGIN, Links);
     else
         return NULL;
+}
+
+/**
+ * Gets a pointer to a plugin's additional information block.
+ *
+ * \param Name The name of the plugin.
+ * \param Version The version of the interface.
+ *
+ * \return The plugin's internal interface.
+ */
+PVOID PhGetPluginInterface(
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ ULONG Version
+    )
+{
+    PPH_PLUGIN plugin;
+    PVOID interface;
+
+    if (plugin = PhFindPlugin2(Name))
+    {
+        interface = PhGetPluginInformation(plugin)->Interface;
+
+        if (Version)
+        {
+            struct
+            {
+                ULONG Version;
+            } *Interface = interface;
+
+            if (Interface->Version <= Version)
+            {
+                return interface;
+            }
+        }
+        else
+        {
+            return interface;
+        }
+    }
+
+    return NULL;
 }
 
 /**

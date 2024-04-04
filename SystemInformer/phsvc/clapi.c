@@ -36,7 +36,7 @@ NTSTATUS PhSvcConnectToServer(
         return STATUS_ADDRESS_ALREADY_EXISTS;
 
     if (PortSectionSize == 0)
-        PortSectionSize = UInt32x32To64(2, 1024 * 1024); // 2 MB
+        PortSectionSize = UInt32x32To64(8, 1024 * 1024); // 8 MB
 
     // Create the port section and connect to the port.
 
@@ -147,7 +147,7 @@ PVOID PhSvcpAllocateHeap(
     if (!PhSvcClPortHeap)
         return NULL;
 
-    memory = RtlAllocateHeap(PhSvcClPortHeap, 0, Size);
+    memory = RtlAllocateHeap(PhSvcClPortHeap, HEAP_ZERO_MEMORY, Size);
 
     if (!memory)
         return NULL;

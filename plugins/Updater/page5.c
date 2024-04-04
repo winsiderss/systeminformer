@@ -55,8 +55,10 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
             }
             else if (buttonId == IDYES)
             {
-                if (!UpdateShellExecute(context, hwndDlg))
+                if (!NT_SUCCESS(UpdateShellExecute(context, hwndDlg)))
+                {
                     return S_FALSE;
+                }
             }
         }
         break;
