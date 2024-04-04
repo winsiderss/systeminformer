@@ -219,7 +219,7 @@ VOID SetupDeleteUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-BOOLEAN SetupExecuteApplication(
+NTSTATUS SetupExecuteApplication(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
