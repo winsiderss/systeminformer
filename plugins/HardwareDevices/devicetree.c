@@ -1558,7 +1558,6 @@ VOID InitializeDevicesTab(
     )
 {
     PH_MAIN_TAB_PAGE page;
-    PPH_PLUGIN toolStatusPlugin;
 
     DeviceTreeType = PhCreateObjectType(L"DevicesTree", 0, DeviceTreeDeleteProcedure);
 
@@ -1586,21 +1585,15 @@ VOID InitializeDevicesTab(
     RtlZeroMemory(&page, sizeof(PH_MAIN_TAB_PAGE));
     PhInitializeStringRef(&page.Name, L"Devices");
     page.Callback = DevicesTabPageCallback;
-
     DevicesAddedTabPage = PhPluginCreateTabPage(&page);
 
-    if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
+    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_PLUGIN_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
-        ToolStatusInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
+        PTOOLSTATUS_TAB_INFO tabInfo;
 
-        if (ToolStatusInterface->Version <= TOOLSTATUS_INTERFACE_VERSION)
-        {
-            PTOOLSTATUS_TAB_INFO tabInfo;
-
-            tabInfo = ToolStatusInterface->RegisterTabInfo(DevicesAddedTabPage->Index);
-            tabInfo->BannerText = L"Search Devices";
-            tabInfo->ActivateContent = ToolStatusActivateContent;
-            tabInfo->GetTreeNewHandle = ToolStatusGetTreeNewHandle;
-        }
+        tabInfo = ToolStatusInterface->RegisterTabInfo(DevicesAddedTabPage->Index);
+        tabInfo->BannerText = L"Search Devices";
+        tabInfo->ActivateContent = ToolStatusActivateContent;
+        tabInfo->GetTreeNewHandle = ToolStatusGetTreeNewHandle;
     }
 }

@@ -707,6 +707,7 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
     case WM_INITDIALOG:
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_RAPLDEVICE_LISTVIEW);
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -763,9 +764,9 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
                 if (!PhTryAcquireReleaseQueuedLockExclusive(&RaplDevicesListLock))
                     break;
 
-                if (listView->uChanged & LVIF_STATE)
+                if (FlagOn(listView->uChanged, LVIF_STATE))
                 {
-                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+                    switch (FlagOn(listView->uNewState, LVIS_STATEIMAGEMASK))
                     {
                     case INDEXTOSTATEIMAGEMASK(2): // checked
                         {

@@ -1344,6 +1344,7 @@ typedef struct _DV_GPU_OPTIONS_CONTEXT
 } DV_GPU_OPTIONS_CONTEXT, *PDV_GPU_OPTIONS_CONTEXT;
 
 extern BOOLEAN GraphicsGraphShowText;
+extern BOOLEAN GraphicsEnableAvxSupport;
 extern BOOLEAN GraphicsEnableScaleGraph;
 extern BOOLEAN GraphicsEnableScaleText;
 extern BOOLEAN GraphicsPropagateCpuUsage;

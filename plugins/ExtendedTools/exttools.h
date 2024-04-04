@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2018-2023
+ *     dmex    2018-2024
  *
  */
 
@@ -122,10 +122,6 @@ extern BOOLEAN EtEnableAvxSupport;
 
 VOID EtLoadSettings(
     VOID
-    );
-
-PPH_STRING PhGetSelectedListViewItemText(
-    _In_ HWND hWnd
     );
 
 // phsvc extensions
@@ -584,11 +580,11 @@ VOID EtInitializeDiskTab(
     );
 
 VOID EtLoadSettingsDiskTreeList(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 VOID EtSaveSettingsDiskTreeList(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 // gpumon
@@ -802,8 +798,8 @@ VOID EtHandlePropertiesInitializing(
 // options
 
 INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -984,6 +980,8 @@ typedef struct _FW_EVENT_ITEM
 
     ULONG LocalAddressStringLength;
     ULONG RemoteAddressStringLength;
+    ULONG LocalPortStringLength;
+    ULONG RemotePortStringLength;
 
     WCHAR LocalAddressString[INET6_ADDRSTRLEN];
     WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
@@ -993,7 +991,7 @@ typedef struct _FW_EVENT_ITEM
     PPH_STRING RuleName;
     PPH_STRING RuleDescription;
     PPH_STRING RemoteCountryName;
-    INT CountryIconIndex;
+    INT32 CountryIconIndex;
 
     PPH_STRING TimeString;
     PPH_STRING TooltipText;

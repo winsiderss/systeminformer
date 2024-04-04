@@ -73,22 +73,28 @@ HRESULT CALLBACK PhpElevateActionCallbackProc(
 
 _Success_(return)
 BOOLEAN PhpShowElevatePrompt(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Message,
-    _Out_ PINT Button
+    _In_ PVOID Context,
+    _Out_ PINT32 Button
     )
 {
-    TASKDIALOGCONFIG config = { sizeof(config) };
-    TASKDIALOG_BUTTON buttons[1];
+    TASKDIALOGCONFIG config;
+    TASKDIALOG_BUTTON buttons[1] =
+    {
+        { IDYES, L"Continue"}
+    };
     INT button;
 
     // Currently the error dialog box is similar to the one displayed
     // when you try to label a drive in Windows Explorer. It's much better
     // than the clunky dialog in PH 1.x.
 
-    config.hwndParent = hWnd;
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.hwndParent = WindowHandle;
     config.hInstance = PhInstanceHandle;
-    config.dwFlags = IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0;
+    config.dwFlags = IsWindowVisible(WindowHandle) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = TD_ERROR_ICON;
     config.pszMainInstruction = PhaConcatStrings2(Message, L".")->Buffer;
@@ -96,16 +102,14 @@ BOOLEAN PhpShowElevatePrompt(
         L"Click Continue to complete this operation.";
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
 
-    buttons[0].nButtonID = IDYES;
-    buttons[0].pszButtonText = L"Continue";
-
     config.cButtons = 1;
     config.pButtons = buttons;
     config.nDefaultButton = IDYES;
 
     config.pfCallback = PhpElevateActionCallbackProc;
+    config.lpCallbackData = (LONG_PTR)Context;
 
-    if (SUCCEEDED(TaskDialogIndirect(
+    if (HR_SUCCESS(TaskDialogIndirect(
         &config,
         &button,
         NULL,
@@ -213,7 +217,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
 /**
  * Shows an error, prompts for elevation, and connects to phsvc.
  *
- * \param hWnd The window to display user interface components on.
+ * \param WindowHandle The window to display user interface components on.
  * \param Message A message describing the operation that failed.
  * \param Status A NTSTATUS value.
  * \param Connected A variable which receives TRUE if the user
@@ -226,7 +230,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
  * FALSE, in which case you need to show your own error message.
  */
 BOOLEAN PhpShowErrorAndConnectToPhSvc(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Message,
     _In_ NTSTATUS Status,
     _Out_ PBOOLEAN Connected
@@ -253,7 +257,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
         return FALSE;
 
     // Try to connect now so we can avoid prompting the user.
-    if (PhUiConnectToPhSvc(hWnd, TRUE))
+    if (PhUiConnectToPhSvc(WindowHandle, TRUE))
     {
         *Connected = TRUE;
         return TRUE;
@@ -261,13 +265,13 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
 
     if (elevationLevel == PromptElevateAction)
     {
-        if (!PhpShowElevatePrompt(hWnd, Message, &button))
+        if (!PhpShowElevatePrompt(WindowHandle, Message, NULL, &button))
             return FALSE;
     }
 
     if (elevationLevel == AlwaysElevateAction || button == IDYES)
     {
-        *Connected = PhUiConnectToPhSvc(hWnd, FALSE);
+        *Connected = PhUiConnectToPhSvc(WindowHandle, FALSE);
     }
 
     return TRUE;

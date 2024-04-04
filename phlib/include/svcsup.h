@@ -50,6 +50,15 @@ PhEnumDependentServices(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhOpenServiceManager(
+    _Out_ PSC_HANDLE ServiceManagerHandle,
+    _In_opt_ PCWSTR DatabaseName,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhOpenService(
     _Out_ PSC_HANDLE ServiceHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -365,10 +374,11 @@ PhGetServiceHandleFileName(
     );
 
 PHLIBAPI
-PPH_STRING
+NTSTATUS
 NTAPI
 PhGetServiceFileName(
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING* ServiceFileName
     );
 
 PHLIBAPI

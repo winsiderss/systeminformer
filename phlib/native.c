@@ -4616,6 +4616,31 @@ NTSTATUS PhGetFileIndexNumber(
         );
 }
 
+NTSTATUS PhGetFileIsRemoteDevice(
+    _In_ HANDLE FileHandle,
+    _Out_ PBOOLEAN FileIsRemoteDevice
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK ioStatusBlock;
+    FILE_IS_REMOTE_DEVICE_INFORMATION fileRemoteInfo;
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &ioStatusBlock,
+        &fileRemoteInfo,
+        sizeof(FILE_IS_REMOTE_DEVICE_INFORMATION),
+        FileIsRemoteDeviceInformation
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileIsRemoteDevice = !!fileRemoteInfo.IsRemote;
+    }
+
+    return status;
+}
+
 NTSTATUS PhSetFileDelete(
     _In_ HANDLE FileHandle
     )
@@ -9061,6 +9086,116 @@ NTSTATUS PhGetVolumePathNamesForVolumeName(
     }
 
     PhFree(inputBuffer);
+
+    return status;
+}
+
+/**
+ * Flush file caches on all volumes.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhFlushVolumeCache(
+    VOID
+    )
+{
+    NTSTATUS status;
+    HANDLE deviceHandle;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    PMOUNTMGR_MOUNT_POINTS objectMountPoints;
+
+    RtlInitUnicodeString(&objectName, MOUNTMGR_DEVICE_NAME);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &deviceHandle,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetVolumeMountPoints(
+        deviceHandle,
+        &objectMountPoints
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    for (ULONG i = 0; i < objectMountPoints->NumberOfMountPoints; i++)
+    {
+        PMOUNTMGR_MOUNT_POINT mountPoint = &objectMountPoints->MountPoints[i];
+        objectName.Length = mountPoint->SymbolicLinkNameLength;
+        objectName.MaximumLength = mountPoint->SymbolicLinkNameLength + sizeof(UNICODE_NULL);
+        objectName.Buffer = PTR_ADD_OFFSET(objectMountPoints, mountPoint->SymbolicLinkNameOffset);
+
+        if (MOUNTMGR_IS_VOLUME_NAME(&objectName)) // \\??\\Volume{1111-2222}
+        {
+            HANDLE volumeHandle;
+
+            InitializeObjectAttributes(
+                &objectAttributes,
+                &objectName,
+                OBJ_CASE_INSENSITIVE,
+                NULL,
+                NULL
+                );
+
+            status = NtCreateFile(
+                &volumeHandle,
+                FILE_WRITE_DATA | SYNCHRONIZE,
+                &objectAttributes,
+                &ioStatusBlock,
+                NULL,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                NULL,
+                0
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                //if (WindowsVersion >= WINDOWS_8)
+                //{
+                //    status = NtFlushBuffersFileEx(volumeHandle, 0, 0, 0, &ioStatusBlock);
+                //}
+                //else
+                {
+                    status = NtFlushBuffersFile(volumeHandle, &ioStatusBlock);
+                }
+
+                NtClose(volumeHandle);
+            }
+
+            if (!NT_SUCCESS(status)) // HACK
+                goto CleanupExit;
+        }
+    }
+
+    PhFree(objectMountPoints);
+
+CleanupExit:
+    NtClose(deviceHandle);
 
     return status;
 }
@@ -14879,6 +15014,36 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     else
     {
         PhFree(ldrInitBlock);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessTelemetryAppSessionGuid(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PGUID TelemetrySessionGuid
+    )
+{
+    NTSTATUS status;
+    PROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
+    ULONG returnLength;
+
+    memset(&telemetryInfo, 0, sizeof(PROCESS_TELEMETRY_ID_INFORMATION));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessTelemetryIdInformation,
+        &telemetryInfo,
+        sizeof(PROCESS_TELEMETRY_ID_INFORMATION),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status) || status == STATUS_BUFFER_OVERFLOW && returnLength)
+    {
+        TelemetrySessionGuid->Data1 = telemetryInfo.ProcessId;
+        TelemetrySessionGuid->Data2 = (USHORT)telemetryInfo.SessionId;
+        TelemetrySessionGuid->Data3 = (USHORT)telemetryInfo.BootId;
+        memcpy(TelemetrySessionGuid->Data4, &telemetryInfo.CreateTime, sizeof(telemetryInfo.CreateTime));
     }
 
     return status;

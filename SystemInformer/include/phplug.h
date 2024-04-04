@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -579,9 +579,53 @@ PhRegisterPlugin(
 PHAPPAPI
 PPH_PLUGIN
 NTAPI
+PhFindPlugin2(
+    _In_ PPH_STRINGREF Name
+    );
+
+/**
+ * Locates a plugin instance structure.
+ *
+ * \param Name The name of the plugin.
+ *
+ * \return A plugin instance structure, or NULL if the plugin was not found.
+ */
+FORCEINLINE
+PPH_PLUGIN
+NTAPI
 PhFindPlugin(
     _In_ PWSTR Name
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhFindPlugin2(&name);
+}
+
+PHAPPAPI
+PVOID
+NTAPI
+PhGetPluginInterface(
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ ULONG Version
     );
+
+FORCEINLINE
+PVOID
+NTAPI
+PhGetPluginInterfaceZ(
+    _In_ PWSTR Name,
+    _In_opt_ ULONG Version
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhGetPluginInterface(&name, Version);
+}
 
 PHAPPAPI
 PPH_PLUGIN_INFORMATION

@@ -192,7 +192,7 @@ INT NTAPI EtFirmwareNameCompareFunction(
     PEFI_ENTRY item1 = Item1;
     PEFI_ENTRY item2 = Item2;
 
-    return PhCompareStringZ(PhGetStringOrEmpty(item1->Name), PhGetStringOrEmpty(item2->Name), TRUE);
+    return PhCompareStringZ(PhGetStringOrEmpty(item1->Name), PhGetStringOrEmpty(item2->Name), FALSE);
 }
 
 INT NTAPI EtFirmwareEntryLengthCompareFunction(
