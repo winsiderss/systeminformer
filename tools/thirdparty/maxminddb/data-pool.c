@@ -1,3 +1,7 @@
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include "data-pool.h"
 #include "maxminddb.h"
 
@@ -5,27 +9,26 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-static bool can_multiply(size_t const, size_t const, size_t const);
-
 // Allocate an MMDB_data_pool_s. It initially has space for size
 // MMDB_entry_data_list_s structs.
 MMDB_data_pool_s *data_pool_new(size_t const size) {
-    MMDB_data_pool_s *const pool = calloc(1, sizeof(MMDB_data_pool_s));
+    MMDB_data_pool_s *const pool = PhAllocateSafe(sizeof(MMDB_data_pool_s));
     if (!pool) {
         return NULL;
     }
-
+    memset(pool, 0, sizeof(MMDB_data_pool_s));
     if (size == 0 ||
         !can_multiply(SIZE_MAX, size, sizeof(MMDB_entry_data_list_s))) {
         data_pool_destroy(pool);
         return NULL;
     }
     pool->size = size;
-    pool->blocks[0] = calloc(pool->size, sizeof(MMDB_entry_data_list_s));
+    pool->blocks[0] = PhAllocateSafe(pool->size * sizeof(MMDB_entry_data_list_s));
     if (!pool->blocks[0]) {
         data_pool_destroy(pool);
         return NULL;
     }
+    memset(pool->blocks[0], 0, pool->size * sizeof(MMDB_entry_data_list_s));
     pool->blocks[0]->pool = pool;
 
     pool->sizes[0] = size;
@@ -39,7 +42,7 @@ MMDB_data_pool_s *data_pool_new(size_t const size) {
 // the given max. max will typically be SIZE_MAX.
 //
 // We want to know if we'll wrap around.
-static bool can_multiply(size_t const max, size_t const m, size_t const n) {
+bool can_multiply(size_t const max, size_t const m, size_t const n) {
     if (m == 0) {
         return false;
     }
@@ -54,10 +57,10 @@ void data_pool_destroy(MMDB_data_pool_s *const pool) {
     }
 
     for (size_t i = 0; i <= pool->index; i++) {
-        free(pool->blocks[i]);
+        PhFree(pool->blocks[i]);
     }
 
-    free(pool);
+    PhFree(pool);
 }
 
 // Claim a new struct from the pool. Doing this may cause the pool's size to
@@ -89,10 +92,11 @@ MMDB_entry_data_list_s *data_pool_alloc(MMDB_data_pool_s *const pool) {
     if (!can_multiply(SIZE_MAX, new_size, sizeof(MMDB_entry_data_list_s))) {
         return NULL;
     }
-    pool->blocks[new_index] = calloc(new_size, sizeof(MMDB_entry_data_list_s));
+    pool->blocks[new_index] = PhAllocateSafe(new_size * sizeof(MMDB_entry_data_list_s));
     if (!pool->blocks[new_index]) {
         return NULL;
     }
+    memset(pool->blocks[new_index], 0, new_size * sizeof(MMDB_entry_data_list_s));
 
     // We don't need to set this, but it's useful for introspection in tests.
     pool->blocks[new_index]->pool = pool;

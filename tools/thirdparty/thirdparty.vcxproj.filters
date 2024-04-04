@@ -52,6 +52,9 @@
     <Filter Include="yyjson">
       <UniqueIdentifier>{1818696b-f7ae-415d-b65d-92ed25a53bb4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="pugixml">
+      <UniqueIdentifier>{689af775-4fa6-4276-8a2f-bd4a87034d2a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -407,6 +410,9 @@
     </ClCompile>
     <ClCompile Include="yyjson\yyjson.c">
       <Filter>yyjson</Filter>
+    </ClCompile>
+    <ClCompile Include="pugixml\pugixml.cpp">
+      <Filter>pugixml</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -779,7 +785,15 @@
     <ClInclude Include="yyjson\yyjson.h">
       <Filter>yyjson</Filter>
     </ClInclude>
-    <ClInclude Include="jsonc\json_pointer_private.h" />
+    <ClInclude Include="jsonc\json_pointer_private.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pugixml\pugiconfig.hpp">
+      <Filter>pugixml</Filter>
+    </ClInclude>
+    <ClInclude Include="pugixml\pugixml.hpp">
+      <Filter>pugixml</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="capstone\arch\AArch64\AArch64GenAsmWriter.inc">

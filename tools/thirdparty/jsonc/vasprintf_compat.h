@@ -45,7 +45,7 @@ static int vasprintf(char **buf, const char *fmt, va_list ap)
         return -1;
     }
 
-    b = (char *)malloc(sizeof(char) * ((size_t)chars + 1));
+    b = (char *)PhAllocateSafe(sizeof(char) * ((size_t)chars + 1));
     if (!b)
     {
         return -1;
@@ -53,7 +53,7 @@ static int vasprintf(char **buf, const char *fmt, va_list ap)
 
     if ((chars = vsprintf(b, fmt, ap)) < 0)
     {
-        free(b);
+        PhFree(b);
     }
     else
     {
