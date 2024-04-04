@@ -608,11 +608,11 @@ VOID SetupDeleteShortcuts(
     }
 }
 
-BOOLEAN SetupExecuteApplication(
+NTSTATUS SetupExecuteApplication(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    BOOLEAN success = FALSE;
+    NTSTATUS status;
     PPH_STRING string;
 
     if (PhIsNullOrEmptyString(Context->SetupInstallPath))
@@ -622,7 +622,7 @@ BOOLEAN SetupExecuteApplication(
 
     if (PhDoesFileExistWin32(PhGetString(string)))
     {
-        success = PhShellExecuteEx(
+        status = PhShellExecuteEx(
             Context->DialogHandle,
             PhGetString(string),
             NULL,
@@ -633,10 +633,13 @@ BOOLEAN SetupExecuteApplication(
             NULL
             );
     }
+    else
+    {
+        status = STATUS_OBJECT_PATH_NOT_FOUND;
+    }
 
     PhDereferenceObject(string);
-
-    return success;
+    return status;
 }
 
 VOID SetupUpgradeSettingsFile(

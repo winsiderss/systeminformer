@@ -4565,6 +4565,9 @@ NTSTATUS PhCreateProcessAsUser(
         WINSTATIONUSERTOKEN userToken;
         ULONG returnLength;
 
+        memset(&userToken, 0, sizeof(WINSTATIONUSERTOKEN));
+        //userToken.ProcessId = NtCurrentProcessId();
+        //userToken.ThreadId = NtCurrentThreadId();
 
         if (!WinStationQueryInformationW(
             WINSTATION_CURRENT_SERVER,
@@ -5130,6 +5133,7 @@ NTSTATUS PhShellExecuteEx(
     if (FlagOn(Flags, PH_SHELL_EXECUTE_ADMIN))
     {
         info.lpVerb = L"runas";
+    }
 
     if (PhShellExecuteWin32(&info))
     {
