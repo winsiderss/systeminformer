@@ -165,7 +165,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
 
     if (elevationLevel == PromptElevateAction)
     {
-        if (!PhpShowElevatePrompt(WindowHandle, Message, NULL, &button))
+        if (!PhpShowElevatePrompt(WindowHandle, Message, &button))
             return FALSE;
     }
 
