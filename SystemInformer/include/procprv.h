@@ -147,6 +147,7 @@ typedef struct _PH_PROCESS_ITEM
     HANDLE ParentProcessId;
     PPH_STRING ProcessName;
     ULONG SessionId;
+    ULONG64 ProcessStartKey;
 
     LARGE_INTEGER CreateTime;
 
@@ -229,6 +230,7 @@ typedef struct _PH_PROCESS_ITEM
     //WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR SessionIdString[PH_INT32_STR_LEN_1];
     WCHAR LxssProcessIdString[PH_INT32_STR_LEN_1];
+    WCHAR ProcessStartKeyString[PH_PTR_STR_LEN_1];
 
     // Dynamic
 
