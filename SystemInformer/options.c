@@ -411,7 +411,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     {
                         ProcessHacker_PrepareForEarlyShutdown();
 
-                        PhResetSettings(hwndDlg);
+                        PhResetSettings(PhMainWndHandle);
 
                         if (!PhIsNullOrEmptyString(PhSettingsFileName))
                             PhSaveSettings(&PhSettingsFileName->sr);

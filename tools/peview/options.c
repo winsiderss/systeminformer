@@ -95,7 +95,7 @@ BOOLEAN PvShellExecuteRestart(
     )
 {
     static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
-    BOOLEAN result;
+    NTSTATUS status;
     PPH_STRING filename;
     PPH_STRING parameters;
 
@@ -108,7 +108,7 @@ BOOLEAN PvShellExecuteRestart(
         &seperator
         );
 
-    result = PhShellExecuteEx(
+    status = PhShellExecuteEx(
         WindowHandle,
         PhGetString(filename),
         PhGetString(parameters),
@@ -122,7 +122,7 @@ BOOLEAN PvShellExecuteRestart(
     PhDereferenceObject(parameters);
     PhDereferenceObject(filename);
 
-    return result;
+    return NT_SUCCESS(status);
 }
 
 VOID PvLoadGeneralPage(

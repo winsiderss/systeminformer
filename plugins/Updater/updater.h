@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2011-2023
+ *     dmex    2011-2024
  *
  */
 
@@ -189,7 +189,7 @@ VOID ShowUpdateFailedDialog(
 
 // updater.c
 
-BOOLEAN UpdateShellExecute(
+NTSTATUS UpdateShellExecute(
     _In_ PPH_UPDATER_CONTEXT Context,
     _In_opt_ HWND WindowHandle
     );
@@ -217,8 +217,8 @@ ULONG64 ParseVersionString(
 // options.c
 
 INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
