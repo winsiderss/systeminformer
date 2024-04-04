@@ -496,6 +496,49 @@ PPH_STRING PhGetListViewItemText(
     return buffer;
 }
 
+//PPH_STRING PhGetListViewItemText(
+//    _In_ HWND ListViewHandle,
+//    _In_ INT Index,
+//    _In_ INT SubIndex
+//    )
+//{
+//    WCHAR buffer[DOS_MAX_PATH_LENGTH] = L"";
+//    LVITEM item;
+//
+//    item.mask = LVIF_TEXT;
+//    item.iItem = Index;
+//    item.iSubItem = SubIndex;
+//    item.pszText = buffer;
+//    item.cchTextMax = RTL_NUMBER_OF(buffer);
+//
+//    if (ListView_GetItem(ListViewHandle, &item))
+//    {
+//        return PhCreateString(buffer);
+//    }
+//
+//    return NULL;
+//}
+
+PPH_STRING PhGetListViewSelectedItemText(
+    _In_ HWND ListViewHandle
+    )
+{
+    INT index;
+
+    index = PhFindListViewItemByFlags(
+        ListViewHandle,
+        INT_ERROR,
+        LVNI_SELECTED
+        );
+
+    if (index != INT_ERROR)
+    {
+        return PhGetListViewItemText(ListViewHandle, index, 0);
+    }
+
+    return NULL;
+}
+
 PPH_STRING PhaGetListViewItemText(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
