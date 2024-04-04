@@ -735,6 +735,24 @@ PPH_PLUGIN PhRegisterPlugin(
  *
  * \return A plugin instance structure, or NULL if the plugin was not found.
  */
+PPH_PLUGIN PhFindPlugin(
+    _In_ PWSTR Name
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRefLongHint(&name, Name);
+
+    return PhFindPlugin2(&name);
+}
+
+/**
+ * Locates a plugin instance structure.
+ *
+ * \param Name The name of the plugin.
+ *
+ * \return A plugin instance structure, or NULL if the plugin was not found.
+ */
 PPH_PLUGIN PhFindPlugin2(
     _In_ PPH_STRINGREF Name
     )
