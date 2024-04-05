@@ -14892,6 +14892,8 @@ NTSTATUS PhGetProcessSequenceNumber(
     if (KphLevel() >= KphLevelLow)
     {
         // The driver exposes this information earlier than ProcessSequenceNumber was introduced.
+        // Where not available it synthesizes it for informer messages, for consistency use it if
+        // it's enabled.
         status = KphQueryInformationProcess(
             ProcessHandle,
             KphProcessSequenceNumber,
@@ -14912,6 +14914,28 @@ NTSTATUS PhGetProcessSequenceNumber(
             NULL
             );
 
+        if (status == STATUS_INVALID_INFO_CLASS)
+        {
+            PROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
+
+            // ProcessTelemetryIdInformation exposes the process sequence number (and process start
+            // key) earlier than ProcessSequenceNumber was introduced.
+            status = NtQueryInformationProcess(
+                ProcessHandle,
+                ProcessTelemetryIdInformation,
+                &telemetryInfo,
+                sizeof(PROCESS_TELEMETRY_ID_INFORMATION),
+                NULL
+                );
+
+            // We don't care about the extra information that ProcessTelemetryIdInformation provides.
+            // The sequence number will have been filled in regardless.
+            if (status == STATUS_BUFFER_OVERFLOW)
+                status = STATUS_SUCCESS;
+
+            sequenceNumber = telemetryInfo.ProcessSequenceNumber;
+        }
+
         if (NT_SUCCESS(status))
         {
             *SequenceNumber = sequenceNumber;
@@ -14931,6 +14955,8 @@ NTSTATUS PhGetProcessStartKey(
     if (KphLevel() >= KphLevelLow)
     {
         // The driver exposes this information earlier than ProcessSequenceNumber was introduced.
+        // Where not available it synthesizes it for informer messages, for consistency use it if
+        // it's enabled.
         status = KphQueryInformationProcess(
             ProcessHandle,
             KphProcessStartKey,
