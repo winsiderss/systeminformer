@@ -422,7 +422,7 @@ static VOID PhpAddSessionsToComboBox(
 
     PhpFreeSessionsComboBox(ComboBoxHandle);
 
-    if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
+    if (WinStationEnumerateW(WINSTATION_CURRENT_SERVER, &sessions, &numberOfSessions))
     {
         for (i = 0; i < numberOfSessions; i++)
         {
@@ -431,7 +431,7 @@ static VOID PhpAddSessionsToComboBox(
             ULONG returnLength;
 
             if (!WinStationQueryInformationW(
-                NULL,
+                WINSTATION_CURRENT_SERVER,
                 sessions[i].SessionId,
                 WinStationInformation,
                 &winStationInfo,
