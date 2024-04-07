@@ -4272,42 +4272,63 @@ NTSTATUS PhGetTokenProcessTrustLevelRID(
 
     if (TrustLevelString)
     {
-        PWSTR protectionTypeString = NULL;
-        PWSTR protectionLevelString = NULL;
+        static PH_STRINGREF ProtectionTypeString[] =
+        {
+            PH_STRINGREF_INIT(L"None"),
+            PH_STRINGREF_INIT(L"Full"),
+            PH_STRINGREF_INIT(L"Lite"),
+        };
+        static PH_STRINGREF ProtectionLevelString[] =
+        {
+            PH_STRINGREF_INIT(L" (None)"),
+            PH_STRINGREF_INIT(L" (WinTcb)"),
+            PH_STRINGREF_INIT(L" (Windows)"),
+            PH_STRINGREF_INIT(L" (StoreApp)"),
+            PH_STRINGREF_INIT(L" (Antimalware)"),
+            PH_STRINGREF_INIT(L" (Authenticode)"),
+        };
+        PPH_STRINGREF protectionTypeString = NULL;
+        PPH_STRINGREF protectionLevelString = NULL;
 
         switch (protectionType)
         {
+        case SECURITY_PROCESS_PROTECTION_TYPE_NONE_RID:
+            protectionTypeString = &ProtectionTypeString[0];
+            break;
         case SECURITY_PROCESS_PROTECTION_TYPE_FULL_RID:
-            protectionTypeString = L"Full";
+            protectionTypeString = &ProtectionTypeString[1];
             break;
         case SECURITY_PROCESS_PROTECTION_TYPE_LITE_RID:
-            protectionTypeString = L"Lite";
+            protectionTypeString = &ProtectionTypeString[2];
             break;
         }
 
         switch (protectionLevel)
         {
+        case SECURITY_PROCESS_PROTECTION_LEVEL_NONE_RID:
+            protectionLevelString = &ProtectionLevelString[0];
+            break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_WINTCB_RID:
-            protectionLevelString = L" (WinTcb)";
+            protectionLevelString = &ProtectionLevelString[1];
             break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_WINDOWS_RID:
-            protectionLevelString = L" (Windows)";
+            protectionLevelString = &ProtectionLevelString[2];
             break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_APP_RID:
-            protectionLevelString = L" (StoreApp)";
+            protectionLevelString = &ProtectionLevelString[3];
             break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_ANTIMALWARE_RID:
-            protectionLevelString = L" (Antimalware)";
+            protectionLevelString = &ProtectionLevelString[4];
             break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_AUTHENTICODE_RID:
-            protectionLevelString = L" (Authenticode)";
+            protectionLevelString = &ProtectionLevelString[5];
             break;
         }
 
         if (protectionTypeString && protectionLevelString)
-            *TrustLevelString = PhConcatStrings2(protectionTypeString, protectionLevelString);
+            *TrustLevelString = PhConcatStringRef2(protectionTypeString, protectionLevelString);
         else
-            *TrustLevelString = PhCreateString(L"Unknown");
+            *TrustLevelString = PhCreateStringZ(L"Unknown");
     }
 
     if (TrustLevelSidString)
