@@ -6894,7 +6894,7 @@ NTSTATUS PhEnumKernelModules(
     )
 {
     NTSTATUS status;
-    PVOID buffer;
+    PRTL_PROCESS_MODULES buffer;
     ULONG bufferSize = 2048;
 
     buffer = PhAllocate(bufferSize);
@@ -6981,23 +6981,35 @@ PPH_STRING PhGetKernelFileName(
     VOID
     )
 {
+    NTSTATUS status;
+    UCHAR buffer[FIELD_OFFSET(RTL_PROCESS_MODULES, Modules) + sizeof(RTL_PROCESS_MODULE_INFORMATION)] = { 0 };
     PRTL_PROCESS_MODULES modules;
-    PPH_STRING fileName = NULL;
+    ULONG modulesLength;
 
-    if (!NT_SUCCESS(PhEnumKernelModules(&modules)))
+    modules = (PRTL_PROCESS_MODULES)buffer;
+    modulesLength = sizeof(buffer);
+
+    status = NtQuerySystemInformation(
+        SystemModuleInformation,
+        modules,
+        modulesLength,
+        &modulesLength
+        );
+
+    if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
+        return NULL;
+    if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
         return NULL;
 
-    if (modules->NumberOfModules >= 1)
-    {
-        fileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
-    }
-
-    PhFree(modules);
-
-    return fileName;
+    return PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
 }
 
-// Kernel filename without the SystemModuleInformation overhead (dmex)
+/**
+ * Gets the file name of the kernel image without the SystemModuleInformation and string conversion overhead.
+ *
+ * \return A pointer to a string containing the kernel image file name. You must free the string
+ * using PhDereferenceObject() when you no longer need it.
+ */
 PPH_STRING PhGetKernelFileName2(
     VOID
     )
@@ -7006,13 +7018,58 @@ PPH_STRING PhGetKernelFileName2(
     {
         static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
 
-        if (PhDoesFileExist(&kernelFileName))
-        {
-            return PhCreateString2(&kernelFileName);
-        }
+        return PhCreateString2(&kernelFileName);
     }
 
     return PhGetKernelFileName();
+}
+
+/**
+ * Gets the file name of the kernel image.
+ *
+ * \return A pointer to a string containing the kernel image file name. You must free the string
+ * using PhDereferenceObject() when you no longer need it.
+ */
+NTSTATUS PhGetKernelFileNameEx(
+    _Out_ PPH_STRING* FileName,
+    _Out_ PVOID* ImageBase,
+    _Out_ ULONG* ImageSize
+    )
+{
+    NTSTATUS status;
+    UCHAR buffer[FIELD_OFFSET(RTL_PROCESS_MODULES, Modules) + sizeof(RTL_PROCESS_MODULE_INFORMATION)] = { 0 };
+    PRTL_PROCESS_MODULES modules;
+    ULONG modulesLength;
+
+    modules = (PRTL_PROCESS_MODULES)buffer;
+    modulesLength = sizeof(buffer);
+
+    status = NtQuerySystemInformation(
+        SystemModuleInformation,
+        modules,
+        modulesLength,
+        &modulesLength
+        );
+
+    if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
+        return status;
+    if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
+        return STATUS_UNSUCCESSFUL;
+
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
+        *FileName = PhCreateString2(&kernelFileName);
+    }
+    else
+    {
+        *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
+    }
+
+    *ImageBase = modules->Modules[0].ImageBase;
+    *ImageSize = modules->Modules[0].ImageSize;
+
+    return STATUS_SUCCESS;
 }
 
 /**

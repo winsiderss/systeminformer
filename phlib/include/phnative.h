@@ -1628,6 +1628,15 @@ PhGetKernelFileName2(
     VOID
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetKernelFileNameEx(
+    _Out_ PPH_STRING* FileName,
+    _Out_ PVOID* ImageBase,
+    _Out_ ULONG* ImageSize
+    );
+
 /**
  * Gets a pointer to the first process information structure in a buffer returned by
  * PhEnumProcesses().
