@@ -1191,6 +1191,23 @@ VOID PhpInitializeSettings(
         }
     }
 
+    if (!PhIsNullOrEmptyString(PhStartupParameters.Channel))
+    {
+        static PH_STRINGREF stableChannel = PH_STRINGREF_INIT(L"release");
+        static PH_STRINGREF previewChannel = PH_STRINGREF_INIT(L"preview");
+        static PH_STRINGREF canaryChannel = PH_STRINGREF_INIT(L"canary");
+        static PH_STRINGREF developerChannel = PH_STRINGREF_INIT(L"developer");
+
+        if (PhEqualStringRef(&PhStartupParameters.Channel->sr, &stableChannel, FALSE))
+            PhSetIntegerSetting(L"ReleaseChannel", PhReleaseChannel);
+        else if (PhEqualStringRef(&PhStartupParameters.Channel->sr, &previewChannel, FALSE))
+            PhSetIntegerSetting(L"ReleaseChannel", PhPreviewChannel);
+        else if (PhEqualStringRef(&PhStartupParameters.Channel->sr, &canaryChannel, FALSE))
+            PhSetIntegerSetting(L"ReleaseChannel", PhCanaryChannel);
+        else if (PhEqualStringRef(&PhStartupParameters.Channel->sr, &developerChannel, FALSE))
+            PhSetIntegerSetting(L"ReleaseChannel", PhDeveloperChannel);
+    }
+
     PhUpdateCachedSettings();
 
     // Apply basic global settings.
@@ -1243,7 +1260,8 @@ typedef enum _PH_COMMAND_ARG
     PH_ARG_SELECTTAB,
     PH_ARG_SYSINFO,
     PH_ARG_KPHSTARTUPHIGH,
-    PH_ARG_KPHSTARTUPMAX
+    PH_ARG_KPHSTARTUPMAX,
+    PH_ARG_CHANNEL,
 } PH_COMMAND_ARG;
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
@@ -1351,6 +1369,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_KPHSTARTUPMAX:
             PhStartupParameters.KphStartupMax = TRUE;
             break;
+        case PH_ARG_CHANNEL:
+            PhSwapReference(&PhStartupParameters.Channel, Value);
+            break;
         }
     }
     else
@@ -1403,7 +1424,8 @@ VOID PhpProcessStartupParameters(
         { PH_ARG_SELECTTAB, L"selecttab", MandatoryArgumentType },
         { PH_ARG_SYSINFO, L"sysinfo", OptionalArgumentType },
         { PH_ARG_KPHSTARTUPHIGH, L"kh", NoArgumentType },
-        { PH_ARG_KPHSTARTUPMAX, L"kx", NoArgumentType }
+        { PH_ARG_KPHSTARTUPMAX, L"kx", NoArgumentType },
+        { PH_ARG_CHANNEL, L"channel", MandatoryArgumentType },
     };
     PH_STRINGREF commandLine;
 
@@ -1436,6 +1458,7 @@ VOID PhpProcessStartupParameters(
             L"-selectpid pid-to-select\n"
             L"-selecttab name-of-tab-to-select\n"
             L"-sysinfo [section-name]\n"
+            L"-channel [channel-name]\n"
             L"-v\n"
             );
 

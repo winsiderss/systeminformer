@@ -11,6 +11,22 @@
 
 #include "setup.h"
 
+#ifdef PH_RELEASE_CHANNEL_ID
+#if PH_RELEASE_CHANNEL_ID == 0
+#define SETUP_UPDATE_URL_PATH L"/update.php?release"
+#elif PH_RELEASE_CHANNEL_ID == 1
+#define SETUP_UPDATE_URL_PATH L"/update.php?preview"
+#elif PH_RELEASE_CHANNEL_ID == 2
+#define SETUP_UPDATE_URL_PATH L"/update.php?canary"
+#elif PH_RELEASE_CHANNEL_ID == 3
+#define SETUP_UPDATE_URL_PATH L"/update.php?developer"
+#endif
+#endif
+
+#ifndef SETUP_UPDATE_URL_PATH
+#error PH_RELEASE_CHANNEL_ID undefined
+#endif
+
 PPH_STRING SetupGetVersion(
     VOID
 )
@@ -80,7 +96,7 @@ BOOLEAN SetupQueryUpdateData(
     if (!PhHttpSocketBeginRequest(
         httpContext,
         NULL,
-        L"/nightly.php?update",
+        SETUP_UPDATE_URL_PATH,
         PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
         ))
     {

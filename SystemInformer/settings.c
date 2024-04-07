@@ -23,6 +23,11 @@ VOID PhAddDefaultSettings(
     VOID
     )
 {
+#ifdef _DEBUG
+    PhpAddIntegerSetting(L"ReleaseChannel", L"3"); // PhDeveloperChannel
+#else
+    PhpAddIntegerSetting(L"ReleaseChannel", L"0"); // PhReleaseChannel
+#endif
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"SRV*C:\\Symbols*https://msdl.microsoft.com/download/symbols");

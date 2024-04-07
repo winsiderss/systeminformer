@@ -13,13 +13,27 @@ namespace CustomBuildTool
 {
     public static class BuildConfig
     {
+        public static readonly SortedDictionary<string, int> Build_Channels = new SortedDictionary<string, int>()
+        {
+            { "release",   0 }, // PhReleaseChannel
+            //{ "preview",   1 }, // PhPreviewChannel
+            { "canary",    2 }, // PhCanaryChannel
+            //{ "developer", 3 }, // PhDeveloperChannel
+        };
+
         public static readonly BuildFile[] Build_Release_Files =
         {
-            new BuildFile("\\systeminformer-build-setup.exe", true), // nightly
-            new BuildFile("\\systeminformer-build-bin.zip", true), // nightly
+            new BuildFile("\\systeminformer-build-release-setup.exe", true),
+            new BuildFile("\\systeminformer-build-release-bin.zip", true),
+            //new BuildFile("\\systeminformer-build-preview-setup.exe", true),
+            //new BuildFile("\\systeminformer-build-preview-bin.zip", true),
+            new BuildFile("\\systeminformer-build-canary-setup.exe", true),
+            new BuildFile("\\systeminformer-build-canary-bin.zip", true),
+            //new BuildFile("\\systeminformer-build-developer-setup.exe", true),
+            //new BuildFile("\\systeminformer-build-developer-bin.zip", true),
             new BuildFile("\\systeminformer-build-src.zip", false),
             new BuildFile("\\systeminformer-build-sdk.zip", false),
-            new BuildFile("\\systeminformer-build-pdb.zip", true), // nightly
+            new BuildFile("\\systeminformer-build-pdb.zip", true),
             //new BuildFile("\\systeminformer-build-checksums.txt", false),
         };
 
@@ -120,7 +134,7 @@ namespace CustomBuildTool
             "verify.h",
             "workqueue.h"
         };
-        
+
         public static readonly string[] Build_Kphlib_Headers =
         {
             "kphapi.h",
@@ -132,12 +146,12 @@ namespace CustomBuildTool
     public readonly struct BuildFile
     {
         public readonly string FileName;
-        public readonly bool UploadNightly;
+        public readonly bool UploadCanary;
 
-        public BuildFile(string Filename, bool UploadNightly)
+        public BuildFile(string Filename, bool UploadCanary)
         {
             this.FileName = Filename;
-            this.UploadNightly = UploadNightly;
+            this.UploadCanary = UploadCanary;
         }
 
         public override string ToString()

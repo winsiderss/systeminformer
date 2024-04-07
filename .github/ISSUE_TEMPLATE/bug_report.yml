@@ -30,7 +30,7 @@ body:
     attributes:
       label: Environment (optional)
       placeholder: |
-        System Informer (stable/nightly) version
+        System Informer version
         Windows version
         Any other information?
       render: shell

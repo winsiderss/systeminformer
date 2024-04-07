@@ -909,6 +909,17 @@ namespace CustomBuildTool
         [JsonPropertyName("setup_length")] public string SetupLength { get; set; }
         [JsonPropertyName("setup_hash")] public string SetupHash { get; set; }
         [JsonPropertyName("setup_sig")] public string SetupSig { get; set; }
+
+
+        [JsonPropertyName("release_bin_url")] public string ReleaseBinUrl { get; set; }
+        [JsonPropertyName("release_bin_length")] public string ReleaseBinLength { get; set; }
+        [JsonPropertyName("release_bin_hash")] public string ReleaseBinHash { get; set; }
+        [JsonPropertyName("release_bin_sig")] public string ReleaseBinSig { get; set; }
+
+        [JsonPropertyName("release_setup_url")] public string ReleaseSetupUrl { get; set; }
+        [JsonPropertyName("release_setup_length")] public string ReleaseSetupLength { get; set; }
+        [JsonPropertyName("release_setup_hash")] public string ReleaseSetupHash { get; set; }
+        [JsonPropertyName("release_setup_sig")] public string ReleaseSetupSig { get; set; }
     }
 
     public class GithubReleasesRequest
