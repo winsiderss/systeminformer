@@ -823,6 +823,12 @@ PVOID PhReAllocate(
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
+    // RtlReAllocateHeap does not behave the same as realloc when Memory is NULL.
+    // For consistency with realloc above and easier drop-in replacements for
+    // realloc, produce the same behavior as realloc. If Memory is NULL, then
+    // allocate a new block.
+    if (!Memory) return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
+
     return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
 #endif
 }
@@ -848,6 +854,12 @@ PVOID PhReAllocateSafe(
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
+    // RtlReAllocateHeap does not behave the same as realloc when Memory is NULL.
+    // For consistency with realloc above and easier drop-in replacements for
+    // realloc, produce the same behavior as realloc. If Memory is NULL, then
+    // allocate a new block.
+    if (!Memory) return RtlAllocateHeap(PhHeapHandle, 0, Size);
+
     return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
 #endif
 }
