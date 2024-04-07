@@ -495,7 +495,6 @@ VOID FwUpdateNodeRemotePortServiceName(
 
 #define SORT_FUNCTION(Column) FwTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl FwTreeNewCompare##Column( \
-    _In_ void* _context, \
     _In_ void const* _elem1, \
     _In_ void const* _elem2 \
     ) \
