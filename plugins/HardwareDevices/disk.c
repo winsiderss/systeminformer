@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2023
+ *     dmex    2015-2024
  *
  */
 
@@ -19,9 +19,9 @@ VOID DiskEntryDeleteProcedure(
 {
     PDV_DISK_ENTRY entry = Object;
 
-    PhAcquireQueuedLockExclusive(&DiskDrivesListLock);
-    PhRemoveItemList(DiskDrivesList, PhFindItemList(DiskDrivesList, entry));
-    PhReleaseQueuedLockExclusive(&DiskDrivesListLock);
+    PhAcquireQueuedLockExclusive(&DiskDevicesListLock);
+    PhRemoveItemList(DiskDevicesList, PhFindItemList(DiskDevicesList, entry));
+    PhReleaseQueuedLockExclusive(&DiskDevicesListLock);
 
     DeleteDiskId(&entry->Id);
     PhClearReference(&entry->DiskName);
@@ -32,28 +32,28 @@ VOID DiskEntryDeleteProcedure(
     AddRemoveDeviceChangeCallback();
 }
 
-VOID DiskDrivesInitialize(
+VOID DiskDevicesInitialize(
     VOID
     )
 {
-    DiskDrivesList = PhCreateList(1);
-    DiskDriveEntryType = PhCreateObjectType(L"DiskDriveEntry", 0, DiskEntryDeleteProcedure);
+    DiskDevicesList = PhCreateList(1);
+    DiskDeviceEntryType = PhCreateObjectType(L"DiskDeviceEntry", 0, DiskEntryDeleteProcedure);
 }
 
-VOID DiskDrivesUpdate(
+VOID DiskDevicesUpdate(
     VOID
     )
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
 
-    PhAcquireQueuedLockShared(&DiskDrivesListLock);
+    PhAcquireQueuedLockShared(&DiskDevicesListLock);
 
-    for (ULONG i = 0; i < DiskDrivesList->Count; i++)
+    for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
         HANDLE deviceHandle;
         PDV_DISK_ENTRY entry;
 
-        entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
+        entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -176,12 +176,12 @@ VOID DiskDrivesUpdate(
         PhDereferenceObjectDeferDelete(entry);
     }
 
-    PhReleaseQueuedLockShared(&DiskDrivesListLock);
+    PhReleaseQueuedLockShared(&DiskDevicesListLock);
 
     runCount++;
 }
 
-VOID DiskDriveUpdateDeviceInfo(
+VOID DiskDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
     _In_ PDV_DISK_ENTRY DiskEntry
     )
@@ -278,7 +278,7 @@ PDV_DISK_ENTRY CreateDiskEntry(
     PDV_DISK_ENTRY entry;
     ULONG sampleCount;
 
-    entry = PhCreateObjectZero(sizeof(DV_DISK_ENTRY), DiskDriveEntryType);
+    entry = PhCreateObjectZero(sizeof(DV_DISK_ENTRY), DiskDeviceEntryType);
     entry->DiskIndex = ULONG_MAX;
     CopyDiskId(&entry->Id, Id);
 
@@ -286,9 +286,9 @@ PDV_DISK_ENTRY CreateDiskEntry(
     PhInitializeCircularBuffer_ULONG64(&entry->ReadBuffer, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&entry->WriteBuffer, sampleCount);
 
-    PhAcquireQueuedLockExclusive(&DiskDrivesListLock);
-    PhAddItemList(DiskDrivesList, entry);
-    PhReleaseQueuedLockExclusive(&DiskDrivesListLock);
+    PhAcquireQueuedLockExclusive(&DiskDevicesListLock);
+    PhAddItemList(DiskDevicesList, entry);
+    PhReleaseQueuedLockExclusive(&DiskDevicesListLock);
 
     AddRemoveDeviceChangeCallback();
 

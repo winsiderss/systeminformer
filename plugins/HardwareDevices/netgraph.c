@@ -246,8 +246,8 @@ VOID NetworkDeviceCreateGraphs(
         );
     Graph_SetTooltip(Context->GraphReceiveHandle, TRUE);
 
-    Context->LabelSendHandle = GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L);
-    Context->LabelReceiveHandle = GetDlgItem(Context->WindowHandle, IDC_CORE_L);
+    Context->LabelSendHandle = GetDlgItem(Context->WindowHandle, IDC_UP_L);
+    Context->LabelReceiveHandle = GetDlgItem(Context->WindowHandle, IDC_DOWN_L);
 }
 
 VOID NetworkDeviceUpdateGraphs(
@@ -552,7 +552,7 @@ VOID NetworkDeviceUpdateAdapterNameText(
     _In_ PDV_NETADAPTER_ENTRY AdapterEntry
     )
 {
-    NetAdapterUpdateDeviceInfo(NULL, AdapterEntry);
+    NetworkDeviceUpdateDeviceInfo(NULL, AdapterEntry);
 }
 
 NTSTATUS NetworkDeviceQueryNameWorkQueueItem(
@@ -623,8 +623,6 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             context->GraphMargin = graphItem->Margin;
 
-            NetworkDeviceInitializeDialogDpi(context);
-
             SetWindowFont(context->AdapterTextLabel, context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetWindowFont(context->AdapterNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
             PhSetWindowText(context->AdapterNameLabel, PhGetStringOrDefault(context->AdapterEntry->AdapterName, L"Unknown"));
@@ -633,6 +631,7 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
             ShowWindow(context->PanelWindowHandle, SW_SHOW);
             PhAddLayoutItemEx(&context->LayoutManager, context->PanelWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
+            NetworkDeviceInitializeDialogDpi(context);
             NetworkDeviceUpdateTitle(context);
             NetworkDeviceCreateGraphs(context);
             NetworkDeviceUpdateGraphs(context);

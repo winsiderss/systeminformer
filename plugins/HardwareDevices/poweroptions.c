@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2023
+ *     dmex    2021-2024
  *
  */
 
@@ -106,8 +106,9 @@ VOID RaplDevicesSaveList(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_RAPL_LIST, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 BOOLEAN FindRaplDeviceEntry(

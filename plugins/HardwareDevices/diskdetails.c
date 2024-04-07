@@ -5,13 +5,13 @@
  *
  * Authors:
  *
- *     dmex    2016-2023
+ *     dmex    2016-2024
  *
  */
 
 #include "devices.h"
 
-VOID DiskDriveAddListViewItems(
+VOID DiskDeviceAddListViewItems(
     _Inout_ PDV_DISK_PAGE_CONTEXT Context
     )
 {
@@ -107,7 +107,7 @@ VOID DiskDriveAddListViewItems(
     }
 }
 
-VOID DiskDriveQuerySmart(
+VOID DiskDeviceQuerySmart(
     _Inout_ PDV_DISK_PAGE_CONTEXT Context
     )
 {
@@ -204,7 +204,7 @@ VOID DiskDriveQuerySmart(
 //    return RGB(0xFF, 0xFF, 0xFF);
 //}
 
-VOID DiskDriveQueryVolumeInfo(
+VOID DiskDeviceQueryVolumeInfo(
     _Inout_ PDV_DISK_PAGE_CONTEXT Context,
     _In_ USHORT Type,
     _In_ INT Column,
@@ -306,7 +306,7 @@ VOID DiskDriveQueryVolumeInfo(
     }
 }
 
-VOID DiskDriveQueryFileSystem(
+VOID DiskDeviceQueryFileSystem(
     _Inout_ PDV_DISK_PAGE_CONTEXT Context,
     _In_ BOOLEAN AddListViewColumns
     )
@@ -374,7 +374,7 @@ VOID DiskDriveQueryFileSystem(
 
         if (DiskDriveQueryFileSystemInfoEx(entry->DeviceHandle, &fsInfoType, &fsInfoBuffer))
         {
-            DiskDriveQueryVolumeInfo(Context, fsInfoType, column, entry->DeviceHandle);
+            DiskDeviceQueryVolumeInfo(Context, fsInfoType, column, entry->DeviceHandle);
 
             switch (fsInfoType)
             {
@@ -476,7 +476,7 @@ VOID DiskDriveQueryFileSystem(
 
             if (DiskDriveQueryFileSystemInfo(entry->DeviceHandle, &fsInfoType, &fsInfoBuffer))
             {
-                DiskDriveQueryVolumeInfo(Context, fsInfoType, column, entry->DeviceHandle);
+                DiskDeviceQueryVolumeInfo(Context, fsInfoType, column, entry->DeviceHandle);
 
                 switch (fsInfoType)
                 {
@@ -544,7 +544,7 @@ VOID DiskDriveQueryFileSystem(
     }
 }
 
-VOID NTAPI DiskDriveProcessesUpdatedHandler(
+VOID NTAPI DiskDeviceProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -557,7 +557,7 @@ VOID NTAPI DiskDriveProcessesUpdatedHandler(
     }
 }
 
-INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
+INT_PTR CALLBACK DiskDeviceFileSystemDetailsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -598,8 +598,8 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 290, L"Property");
             PhSetExtendedListView(context->ListViewHandle);
 
-            DiskDriveAddListViewItems(context);
-            DiskDriveQueryFileSystem(context, TRUE);
+            DiskDeviceAddListViewItems(context);
+            DiskDeviceQueryFileSystem(context, TRUE);
 
             // Note: Load settings after querying devices. (dmex)
             PhLoadListViewColumnsFromSetting(SETTING_NAME_DISK_COUNTERS_COLUMNS, context->ListViewHandle);
@@ -611,7 +611,7 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-                DiskDriveProcessesUpdatedHandler,
+                DiskDeviceProcessesUpdatedHandler,
                 context,
                 &context->ProcessesUpdatedRegistration
                 );
@@ -657,7 +657,7 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
         break;
     case WM_PH_UPDATE_DIALOG:
         {
-            DiskDriveQueryFileSystem(context, FALSE);
+            DiskDeviceQueryFileSystem(context, FALSE);
 
             ListView_RedrawItems(context->ListViewHandle, 0, INT_MAX);
             UpdateWindow(context->ListViewHandle);
@@ -728,7 +728,7 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
     return FALSE;
 }
 
-INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
+INT_PTR CALLBACK DiskDeviceSmartDetailsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -777,7 +777,7 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
             //ExtendedListView_SetItemColorFunction(context->ListViewHandle, PhpColorItemColorFunction);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_SMART_COUNTERS_COLUMNS, context->ListViewHandle);
 
-            DiskDriveQuerySmart(context);
+            DiskDeviceQuerySmart(context);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
@@ -882,7 +882,7 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
     return FALSE;
 }
 
-VOID FreeDiskDriveDetailsContext(
+VOID DiskDeviceFreeDetailsContext(
     _In_ PCOMMON_PAGE_CONTEXT Context
     )
 {
@@ -894,7 +894,7 @@ VOID FreeDiskDriveDetailsContext(
     PhFree(Context);
 }
 
-NTSTATUS ShowDiskDriveDetailsDialogThread(
+NTSTATUS ShowDiskDeviceDetailsDialogThread(
     _In_ PVOID Parameter
     )
 {
@@ -903,21 +903,21 @@ NTSTATUS ShowDiskDriveDetailsDialogThread(
 
     PhSetEvent(&pageContext->SysInfoContext->DetailsWindowInitializedEvent);
 
-    if (propContext = HdCreatePropContext(L"Disk Drive"))
+    if (propContext = HdCreatePropContext(L"Disk Device"))
     {
         PPV_PROPPAGECONTEXT newPage;
 
         // FileSystem page
         newPage = PvCreatePropPageContext(
             MAKEINTRESOURCE(IDD_DISKDRIVE_DETAILS_FILESYSTEM),
-            DiskDriveFileSystemDetailsDlgProc,
+            DiskDeviceFileSystemDetailsDlgProc,
             pageContext);
         PvAddPropPage(propContext, newPage);
 
         // Smart page
         newPage = PvCreatePropPageContext(
             MAKEINTRESOURCE(IDD_DISKDRIVE_DETAILS_SMART),
-            DiskDriveSmartDetailsDlgProc,
+            DiskDeviceSmartDetailsDlgProc,
             pageContext);
         PvAddPropPage(propContext, newPage);
 
@@ -936,7 +936,7 @@ NTSTATUS ShowDiskDriveDetailsDialogThread(
     return STATUS_SUCCESS;
 }
 
-VOID ShowDiskDriveDetailsDialog(
+VOID ShowDiskDeviceDetailsDialog(
     _In_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
@@ -946,7 +946,7 @@ VOID ShowDiskDriveDetailsDialog(
         PCOMMON_PAGE_CONTEXT pageContext;
 
         pageContext = PhAllocateZero(sizeof(COMMON_PAGE_CONTEXT));
-        pageContext->ParentHandle = GetParent(GetParent(Context->WindowHandle));
+        //pageContext->ParentHandle = GetParent(GetParent(Context->WindowHandle));
         pageContext->SysInfoContext = Context;
         pageContext->DiskIndex = Context->DiskEntry->DiskIndex;
         //pageContext->Length = Context->DiskEntry->DiskLength;
@@ -954,7 +954,7 @@ VOID ShowDiskDriveDetailsDialog(
         PhSetReference(&pageContext->DiskName, Context->DiskEntry->DiskName);
         CopyDiskId(&pageContext->DiskId, &Context->DiskEntry->Id);
 
-        if (!NT_SUCCESS(PhCreateThreadEx(&threadHandle, ShowDiskDriveDetailsDialogThread, pageContext)))
+        if (!NT_SUCCESS(PhCreateThreadEx(&threadHandle, ShowDiskDeviceDetailsDialogThread, pageContext)))
         {
             PhShowError(Context->WindowHandle, L"%s", L"Unable to create the window.");
             return;
