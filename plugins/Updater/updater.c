@@ -362,17 +362,13 @@ BOOLEAN QueryUpdateData(
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_BYTES jsonString = NULL;
     PVOID jsonObject;
+    PWSTR urlPath;
 
     if (!PhHttpSocketCreate(&httpContext, NULL))
     {
         Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
-
-    //
-    // TODO configurable nightly/release option.
-    //
-    Context->Type = UpdaterTypeNightly;
 
     if (!PhHttpSocketConnect(
         httpContext,
@@ -384,10 +380,31 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
+    Context->Channel = PhGetIntegerSetting(L"ReleaseChannel");
+
+    switch (Context->Channel)
+    {
+    case PhReleaseChannel:
+        urlPath = L"/update.php?channel=release";
+        break;
+    //case PhPreviewChannel:
+    //    urlPath = L"/update.php?channel=preview";
+    //    break;
+    case PhCanaryChannel:
+        urlPath = L"/update.php?channel=canary";
+        break;
+    //case PhDeveloperChannel:
+    //    urlPath = L"/update.php?channel=developer";
+    //    break;
+    default:
+        Context->ErrorCode = ERROR_UNKNOWN_PATCH;
+        goto CleanupExit;
+    }
+
     if (!PhHttpSocketBeginRequest(
         httpContext,
         NULL,
-        L"/nightly.php?update",
+        urlPath,
         PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
         ))
     {
@@ -638,7 +655,6 @@ NTSTATUS UpdateDownloadThread(
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
-    PUPDATER_HASH_CONTEXT hashContextLegacy = NULL;
     ULONG contentLength = 0;
     USHORT httpPort = 0;
     LARGE_INTEGER timeNow;
@@ -765,12 +781,8 @@ NTSTATUS UpdateDownloadThread(
         }
     }
 
-    assert((context->Type == UpdaterTypeNightly) || (context->Type == UpdaterTypeRelease));
-
     // Initialize hash algorithm.
-    if (!(hashContext = UpdaterInitializeHash(context->Type)))
-        goto CleanupExit;
-    if (!(hashContextLegacy = UpdaterInitializeHash(context->Type + 1)))
+    if (!(hashContext = UpdaterInitializeHash(context->Channel)))
         goto CleanupExit;
 
     // Start the clock.
@@ -795,7 +807,6 @@ NTSTATUS UpdateDownloadThread(
 
         // Update the hash of bytes we downloaded.
         UpdaterUpdateHash(hashContext, httpBuffer, bytesDownloaded);
-        UpdaterUpdateHash(hashContextLegacy, httpBuffer, bytesDownloaded);
 
         // Write the downloaded bytes to disk.
         if (!NT_SUCCESS(NtWriteFile(
@@ -870,21 +881,6 @@ NTSTATUS UpdateDownloadThread(
         }
     }
 
-    if (!signatureSuccess)
-    {
-        hashSuccess = FALSE;
-
-        if (UpdaterVerifyHash(hashContextLegacy, context->SetupFileHash))
-        {
-            hashSuccess = TRUE;
-
-            if (UpdaterVerifySignature(hashContextLegacy, context->SetupFileSignature))
-            {
-                signatureSuccess = TRUE;
-            }
-        }
-    }
-
     if (hashSuccess && signatureSuccess)
     {
         downloadSuccess = TRUE;
@@ -893,8 +889,6 @@ NTSTATUS UpdateDownloadThread(
 CleanupExit:
     if (httpContext)
         PhHttpSocketDestroy(httpContext);
-    if (hashContextLegacy)
-        UpdaterDestroyHash(hashContextLegacy);
     if (hashContext)
         UpdaterDestroyHash(hashContext);
     if (tempFileHandle)
@@ -1199,10 +1193,7 @@ VOID ShowStartupUpdateDialog(
 
     context = CreateUpdateContext(TRUE);
 
-    //
-    // TODO configurable nightly/release option.
-    //
-    context->Type = UpdaterTypeNightly;
+    context->Channel = PhGetIntegerSetting(L"ReleaseChannel");
 
     jsonString = PhGetStringSetting(SETTING_NAME_UPDATE_DATA);
 

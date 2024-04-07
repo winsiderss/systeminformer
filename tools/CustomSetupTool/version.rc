@@ -27,19 +27,19 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\r\n"
     "#include ""../../SystemInformer/include/phappres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\r\n"
     "\0"
@@ -52,7 +52,17 @@ END
 // RCDATA
 //
 #if defined(PH_BUILD_API)
-IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.zip"
+#ifdef PH_RELEASE_CHANNEL_ID
+#if PH_RELEASE_CHANNEL_ID == 0
+IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-release-bin.zip"
+#elif PH_RELEASE_CHANNEL_ID == 1
+IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-preview-bin.zip"
+#elif PH_RELEASE_CHANNEL_ID == 2
+IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-canary-bin.zip"
+#elif PH_RELEASE_CHANNEL_ID == 3
+IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-developer-bin.zip"
+#endif
+#endif
 #endif
 
 /////////////////////////////////////////////////////////////////////////////

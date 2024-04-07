@@ -235,6 +235,11 @@ VOID ShowUpdateFailedDialog(
                 config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
                 PhDereferenceObject(errorMessage);
             }
+            else if (errorMessage = PhGetStatusMessage(0, Context->ErrorCode))
+            {
+                config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
+                PhDereferenceObject(errorMessage);
+            }
             else
             {
                 config.pszContent = L"Click Retry to download the update again.";

@@ -163,8 +163,11 @@ namespace CustomBuildTool
                 if (!Build.CopyTextFiles(true))
                     return;
 
-                if (!Build.BuildBinZip())
-                    return;
+                foreach (var (channel, _) in BuildConfig.Build_Channels)
+                {
+                    if (!Build.BuildBinZip(channel))
+                        return;
+                }
 
                 Build.ShowBuildStats();
                 Build.CopyTextFiles(false);
@@ -191,7 +194,7 @@ namespace CustomBuildTool
 
                 Build.ShowBuildStats();
             }
-            else if (ProgramArgs.ContainsKey("-nightly-build"))
+            else if (ProgramArgs.ContainsKey("-pipeline-build"))
             {
                 Build.SetupBuildEnvironment(true);
 
@@ -212,7 +215,7 @@ namespace CustomBuildTool
                     BuildFlags.BuildDebug | BuildFlags.BuildRelease
                     );
             }
-            else if (ProgramArgs.ContainsKey("-nightly-package"))
+            else if (ProgramArgs.ContainsKey("-pipeline-package"))
             {
                 Build.SetupBuildEnvironment(true);
 
@@ -220,12 +223,15 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(true))
                     Environment.Exit(1);
-                if (!Build.BuildBinZip())
-                    Environment.Exit(1);
-                if (!Build.BuildSetupExe())
-                    Environment.Exit(1);
+                foreach (var (channel, _) in BuildConfig.Build_Channels)
+                {
+                    if (!Build.BuildBinZip(channel))
+                        Environment.Exit(1);
+                    if (!Build.BuildSetupExe(channel))
+                        Environment.Exit(1);
+                }
             }
-            else if (ProgramArgs.ContainsKey("-nightly-deploy"))
+            else if (ProgramArgs.ContainsKey("-pipeline-deploy"))
             {
                 Build.SetupBuildEnvironment(true);
 
@@ -266,10 +272,13 @@ namespace CustomBuildTool
                 if (!Build.CopyTextFiles(true))
                     return;
 
-                if (!Build.BuildBinZip())
-                    return;
-                if (!Build.BuildSetupExe())
-                    return;
+                foreach (var (channel, _) in BuildConfig.Build_Channels)
+                {
+                    if (!Build.BuildBinZip(channel))
+                        Environment.Exit(1);
+                    if (!Build.BuildSetupExe(channel))
+                        Environment.Exit(1);
+                }
                 Build.BuildPdbZip(false);
                 //Build.BuildSdkZip();
                 //Build.BuildSrcZip();

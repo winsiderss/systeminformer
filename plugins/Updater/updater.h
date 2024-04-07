@@ -64,23 +64,6 @@ extern HWND UpdateDialogHandle;
 extern PH_EVENT InitializedEvent;
 extern PPH_PLUGIN PluginInstance;
 
-typedef enum _UPDATER_TYPE
-{
-    InvalidUpdaterType,
-
-    //
-    // N.B. Order here is important.
-    //
-
-    UpdaterTypeNightly,
-    UpdaterTypeNightlyLegacy,
-    UpdaterTypeRelease,
-    UpdaterTypeReleaseLegacy,
-
-    MaxUpdaterType
-
-} UPDATER_TYPE;
-
 typedef struct _PH_UPDATER_CONTEXT
 {
     HWND DialogHandle;
@@ -113,9 +96,8 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING SetupFileDownloadUrl;
     PPH_STRING SetupFileHash;
     PPH_STRING SetupFileSignature;
-    // Nightly builds only
     PPH_STRING CommitHash;
-    UPDATER_TYPE Type;
+    PH_RELEASE_CHANNEL Channel;
 
     // Timer support
     LONG64 ProgressTotal;
@@ -245,7 +227,7 @@ typedef struct _UPDATER_HASH_CONTEXT
 } UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
 
 PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
-    _In_ UPDATER_TYPE Type
+    _In_ PH_RELEASE_CHANNEL Channel
     );
 
 BOOLEAN UpdaterUpdateHash(

@@ -17,6 +17,14 @@ EXTERN_C_START
 
 // begin_phapppub
 
+typedef enum _PH_RELEASE_CHANNEL
+{
+    PhReleaseChannel = 0,
+    PhPreviewChannel = 1, // unused, reserved
+    PhCanaryChannel = 2,
+    PhDeveloperChannel = 3,
+} PH_RELEASE_CHANNEL, *PPH_RELEASE_CHANNEL;
+
 // These macros make sure the C strings can be seamlessly converted into
 // PH_STRINGREFs at compile time, for a small speed boost.
 

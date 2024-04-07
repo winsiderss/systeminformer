@@ -11,6 +11,22 @@
 
 #include "setup.h"
 
+#ifdef PH_RELEASE_CHANNEL_ID
+#if PH_RELEASE_CHANNEL_ID == 0
+#define SETUP_APP_PARAMETERS L"-channel release"
+#elif PH_RELEASE_CHANNEL_ID == 1
+#define SETUP_APP_PARAMETERS L"-channel preview"
+#elif PH_RELEASE_CHANNEL_ID == 2
+#define SETUP_APP_PARAMETERS L"-channel canary"
+#elif PH_RELEASE_CHANNEL_ID == 3
+#define SETUP_APP_PARAMETERS L"-channel developer"
+#endif
+#endif
+
+#ifndef SETUP_APP_PARAMETERS
+#error PH_RELEASE_CHANNEL_ID undefined
+#endif
+
 PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer");
 PH_STRINGREF AppPathsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\SystemInformer.exe");
 PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
@@ -625,7 +641,7 @@ NTSTATUS SetupExecuteApplication(
         status = PhShellExecuteEx(
             Context->DialogHandle,
             PhGetString(string),
-            NULL,
+            SETUP_APP_PARAMETERS,
             NULL,
             SW_SHOW,
             PH_SHELL_EXECUTE_DEFAULT,
