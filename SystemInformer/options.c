@@ -259,7 +259,7 @@ static VOID PhpOptionsSetImageList(
     if (Treeview)
         imageListHandle = TreeView_GetImageList(WindowHandle, TVSIL_NORMAL);
     else
-        imageListHandle = ListView_GetImageList(WindowHandle, LVSIL_NORMAL);
+        imageListHandle = ListView_GetImageList(WindowHandle, LVSIL_SMALL);
 
     if (imageListHandle)
     {
@@ -268,7 +268,7 @@ static VOID PhpOptionsSetImageList(
         if (Treeview)
             TreeView_SetImageList(WindowHandle, imageListHandle, TVSIL_NORMAL);
         else
-            ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_NORMAL); // LVSIL_SMALL
+            ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_SMALL);
     }
     else
     {
@@ -277,7 +277,7 @@ static VOID PhpOptionsSetImageList(
             if (Treeview)
                 TreeView_SetImageList(WindowHandle, imageListHandle, TVSIL_NORMAL);
             else
-                ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_NORMAL); // LVSIL_SMALL
+                ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_SMALL);
         }
     }
 }
