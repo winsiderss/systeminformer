@@ -1207,15 +1207,17 @@ VOID PhMwpOnCommand(
         {
             extern BOOLEAN PhpIsDefaultTaskManager(VOID); // options.c (dmex)
             PPH_STRING taskmgrFileName;
+            PWSTR taskmgrCommandLine;
 
             taskmgrFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\taskmgr.exe"));
+            taskmgrCommandLine = PhGetIntegerSetting(L"TaskmgrWindowState") ? L" -d" : NULL;
 
             if (!PhpIsDefaultTaskManager() && PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {
                 PhShellExecuteEx(
                     WindowHandle,
                     PhGetString(taskmgrFileName),
-                    NULL,
+                    taskmgrCommandLine,
                     NULL,
                     SW_SHOW,
                     0,
@@ -1229,13 +1231,13 @@ VOID PhMwpOnCommand(
                 {
                     if (PhUiConnectToPhSvc(WindowHandle, FALSE))
                     {
-                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), taskmgrCommandLine);
                         PhUiDisconnectFromPhSvc();
                     }
                 }
                 else
                 {
-                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), taskmgrCommandLine);
                 }
             }
         }
