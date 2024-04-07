@@ -92,13 +92,13 @@ extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN NetAdapterEnableNdis;
 extern ULONG NetWindowsVersion;
 
-extern PPH_OBJECT_TYPE NetAdapterEntryType;
-extern PPH_LIST NetworkAdaptersList;
-extern PH_QUEUED_LOCK NetworkAdaptersListLock;
+extern PPH_OBJECT_TYPE NetworkDeviceEntryType;
+extern PPH_LIST NetworkDevicesList;
+extern PH_QUEUED_LOCK NetworkDevicesListLock;
 
-extern PPH_OBJECT_TYPE DiskDriveEntryType;
-extern PPH_LIST DiskDrivesList;
-extern PH_QUEUED_LOCK DiskDrivesListLock;
+extern PPH_OBJECT_TYPE DiskDeviceEntryType;
+extern PPH_LIST DiskDevicesList;
+extern PH_QUEUED_LOCK DiskDevicesListLock;
 
 extern PPH_OBJECT_TYPE RaplDeviceEntryType;
 extern PPH_LIST RaplDevicesList;
@@ -212,7 +212,8 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 
     HWND LabelSendHandle;
     HWND LabelReceiveHandle;
-
+    HWND GroupSendHandle;
+    HWND GroupReceiveHandle;
     HWND GraphSendHandle;
     HWND GraphReceiveHandle;
 
@@ -227,9 +228,6 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 
     PH_GRAPH_STATE GraphSendState;
     PH_GRAPH_STATE GraphReceiveState;
-
-    HWND NetworkSendGroupBox;
-    HWND NetworkReceiveGroupBox;
 
     HWND AdapterNameLabel;
     HWND AdapterTextLabel;
@@ -297,15 +295,15 @@ VOID NetAdaptersLoadList(
 
 // adapter.c
 
-VOID NetAdaptersInitialize(
+VOID NetworkDevicesInitialize(
     VOID
     );
 
-VOID NetAdaptersUpdate(
+VOID NetworkDevicesUpdate(
     VOID
     );
 
-VOID NetAdapterUpdateDeviceInfo(
+VOID NetworkDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
     _In_ PDV_NETADAPTER_ENTRY AdapterEntry
     );
@@ -552,39 +550,57 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
-    HWND GraphHandle;
 
-    PPH_SYSINFO_SECTION SysinfoSection;
-    PH_GRAPH_STATE GraphState;
-    PH_LAYOUT_MANAGER LayoutManager;
-    RECT GraphMargin;
-
-    HWND DiskPathLabel;
-    HWND DiskNameLabel;
-    HWND DiskDrivePanelReadLabel;
-    HWND DiskDrivePanelWriteLabel;
-    HWND DiskDrivePanelTotalLabel;
-    HWND DiskDrivePanelActiveLabel;
-    HWND DiskDrivePanelTimeLabel;
-    HWND DiskDrivePanelBytesLabel;
+    HWND LabelReadHandle;
+    HWND LabelWriteHandle;
+    HWND GroupReadHandle;
+    HWND GroupWriteHandle;
+    HWND GraphReadHandle;
+    HWND GraphWriteHandle;
 
     HANDLE DetailsWindowThreadHandle;
     HWND DetailsWindowDialogHandle;
     PH_EVENT DetailsWindowInitializedEvent;
+
+    PPH_SYSINFO_SECTION SysinfoSection;
+    PH_LAYOUT_MANAGER LayoutManager;
+    RECT GraphMargin;
+    LONG GraphPadding;
+
+    PH_GRAPH_STATE GraphReadState;
+    PH_GRAPH_STATE GraphWriteState;
+
+    HWND DiskPathLabel;
+    HWND DiskNameLabel;
+    HWND DiskDevicePanelReadLabel;
+    HWND DiskDevicePanelWriteLabel;
+    HWND DiskDevicePanelTotalLabel;
+    HWND DiskDevicePanelActiveLabel;
+    HWND DiskDevicePanelTimeLabel;
+    HWND DiskDevicePanelBytesLabel;
 } DV_DISK_SYSINFO_CONTEXT, *PDV_DISK_SYSINFO_CONTEXT;
 
 typedef struct _DV_DISK_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
-    BOOLEAN OptionsChanged;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN OptionsChanged : 1;
+            BOOLEAN UseAlternateMethod : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
     PH_LAYOUT_MANAGER LayoutManager;
 } DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
 
-VOID DiskDrivesInitialize(VOID);
+VOID DiskDevicesInitialize(VOID);
 VOID DiskDrivesLoadList(VOID);
-VOID DiskDrivesUpdate(VOID);
+VOID DiskDevicesUpdate(VOID);
 
-VOID DiskDriveUpdateDeviceInfo(
+VOID DiskDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
     _In_ PDV_DISK_ENTRY DiskEntry
     );
@@ -612,7 +628,7 @@ PDV_DISK_ENTRY CreateDiskEntry(
 
 typedef struct _COMMON_PAGE_CONTEXT
 {
-    HWND ParentHandle;
+    //HWND ParentHandle;
 
     PPH_STRING DiskName;
     DV_DISK_ID DiskId;
@@ -766,7 +782,7 @@ typedef enum _DISKDRIVE_DETAILS_INDEX
     DISKDRIVE_DETAILS_INDEX_FILE_TRIM_BYTES,
 } DISKDRIVE_DETAILS_INDEX;
 
-VOID ShowDiskDriveDetailsDialog(
+VOID ShowDiskDeviceDetailsDialog(
     _In_ PDV_DISK_SYSINFO_CONTEXT Context
     );
 
@@ -1038,11 +1054,11 @@ PWSTR SmartAttributeGetText(
 
 // diskgraph.c
 
-VOID DiskDriveQueueNameUpdate(
+VOID DiskDeviceQueueNameUpdate(
     _In_ PDV_DISK_ENTRY DiskEntry
     );
 
-VOID DiskDriveSysInfoInitializing(
+VOID DiskDeviceSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_DISK_ENTRY DiskEntry
     );
