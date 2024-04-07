@@ -1312,6 +1312,22 @@ PhCreateString2(
     return PhCreateStringEx(String->Buffer, String->Length);
 }
 
+FORCEINLINE
+PPH_STRING
+NTAPI
+PhCreateStringZ(
+    _In_ PCWSTR String
+    )
+{
+    PH_STRINGREF string;
+
+    string.Length = wcslen(String) * sizeof(WCHAR);
+    string.Buffer = (PWSTR)String;
+    //PhInitializeStringRef(&string, (PWSTR)String);
+
+    return PhCreateString2(&string);
+}
+
 #define PH_STRING_TRIM_START_ONLY PH_TRIM_START_ONLY
 #define PH_STRING_TRIM_END_ONLY   PH_TRIM_END_ONLY
 #define PH_STRING_TRIM_MASK       (PH_STRING_TRIM_START_ONLY | PH_STRING_TRIM_END_ONLY)
