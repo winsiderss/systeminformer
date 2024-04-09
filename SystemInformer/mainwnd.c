@@ -895,7 +895,7 @@ VOID PhMwpOnCommand(
         {
             ProcessHacker_PrepareForEarlyShutdown();
 
-            if (PhShellProcessHacker(
+            if (NT_SUCCESS(PhShellProcessHacker(
                 WindowHandle,
                 L"-v -newinstance",
                 SW_SHOW,
@@ -903,7 +903,7 @@ VOID PhMwpOnCommand(
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                 0,
                 NULL
-                ))
+                )))
             {
                 ProcessHacker_Destroy();
             }
@@ -1515,7 +1515,7 @@ VOID PhMwpOnCommand(
                 {
                     ProcessHacker_PrepareForEarlyShutdown();
 
-                    if (PhShellProcessHacker(
+                    if (NT_SUCCESS(PhShellProcessHacker(
                         WindowHandle,
                         NULL,
                         SW_SHOW,
@@ -1523,7 +1523,7 @@ VOID PhMwpOnCommand(
                         PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                         0,
                         NULL
-                        ))
+                        )))
                     {
                         ProcessHacker_Destroy();
                     }

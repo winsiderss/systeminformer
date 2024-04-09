@@ -416,7 +416,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                         if (!PhIsNullOrEmptyString(PhSettingsFileName))
                             PhSaveSettings(&PhSettingsFileName->sr);
 
-                        if (PhShellProcessHacker(
+                        if (NT_SUCCESS(PhShellProcessHacker(
                             PhMainWndHandle,
                             L"-v -newinstance",
                             SW_SHOW,
@@ -424,7 +424,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                             0,
                             NULL
-                            ))
+                            )))
                         {
                             ProcessHacker_Destroy();
                         }
@@ -1557,7 +1557,7 @@ VOID PhShowOptionsRestartRequired(
     {
         ProcessHacker_PrepareForEarlyShutdown();
 
-        if (PhShellProcessHacker(
+        if (NT_SUCCESS(PhShellProcessHacker(
             WindowHandle,
             L"-v -newinstance",
             SW_SHOW,
@@ -1565,7 +1565,7 @@ VOID PhShowOptionsRestartRequired(
             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
             0,
             NULL
-            ))
+            )))
         {
             ProcessHacker_Destroy();
         }

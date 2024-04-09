@@ -1358,7 +1358,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //            case IDC_RESTART:
 //                ProcessHacker_PrepareForEarlyShutdown(PhMainWndHandle);
 //
-//                if (PhShellProcessHacker(
+//                if (NT_SUCCESS(PhShellProcessHacker(
 //                    PhMainWndHandle,
 //                    L"-v -selecttab Disk",
 //                    SW_SHOW,
@@ -1366,7 +1366,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
 //                    0,
 //                    NULL
-//                    ))
+//                    )))
 //                {
 //                    ProcessHacker_Destroy(PhMainWndHandle);
 //                }
