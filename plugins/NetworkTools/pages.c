@@ -99,7 +99,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
             {
                 ProcessHacker_PrepareForEarlyShutdown();
 
-                if (PhShellProcessHacker(
+                if (NT_SUCCESS(PhShellProcessHacker(
                     context->ParentWindowHandle,
                     NULL,
                     SW_SHOWNORMAL,
@@ -107,7 +107,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
                     PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                     0,
                     NULL
-                    ))
+                    )))
                 {
                     ProcessHacker_Destroy();
                 }
