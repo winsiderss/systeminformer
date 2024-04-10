@@ -433,13 +433,13 @@ dt nt!_EPROCESS SectionObject
         <field value="0x48"   name="MmControlAreaLock"/>
         <field value="0x3c0"  name="EpSectionObject"/>
     </data>
-    <data name="10.0.17763.2746 - 10.0.17763.5576">
+    <data name="10.0.17763.2746 - 10.0.17763.5696">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="17763"  name="BuildNumberMin"/>
         <field value="2746"   name="RevisionMin"/>
         <field value="17763"  name="BuildNumberMax"/>
-        <field value="5576"   name="RevisionMax"/>
+        <field value="5696"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x418"  name="EpObjectTable"/>
