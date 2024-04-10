@@ -55,13 +55,13 @@ dt nt!_EPROCESS SectionObject
 -->
 <dyn>
     <!-- Windows 11 -->
-    <data name="10.0.22000.556 - 10.0.22621.3374">
+    <data name="10.0.22000.556 - 10.0.22621.3447">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="22000"  name="BuildNumberMin"/>
         <field value="556"    name="RevisionMin"/>
         <field value="22621"  name="BuildNumberMax"/>
-        <field value="3374"   name="RevisionMax"/>
+        <field value="3447"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
@@ -150,13 +150,13 @@ dt nt!_EPROCESS SectionObject
         <field value="0x518"  name="EpSectionObject"/>
     </data>
     <!-- Windows Server 2022 -->
-    <data name="10.0.20348.587 - 10.0.20348.2340">
+    <data name="10.0.20348.587 - 10.0.20348.2400">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="20348"  name="BuildNumberMin"/>
         <field value="587"    name="RevisionMin"/>
         <field value="20348"  name="BuildNumberMax"/>
-        <field value="2340"   name="RevisionMax"/>
+        <field value="2400"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
@@ -198,13 +198,13 @@ dt nt!_EPROCESS SectionObject
         <field value="0x518"  name="EpSectionObject"/>
     </data>
     <!-- Windows 10 -->
-    <data name="10.0.19041.1586 - 10.0.19041.4239">
+    <data name="10.0.19041.1586 - 10.0.19041.4291">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="19041"  name="BuildNumberMin"/>
         <field value="1586"   name="RevisionMin"/>
         <field value="19041"  name="BuildNumberMax"/>
-        <field value="4239"   name="RevisionMax"/>
+        <field value="4291"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
