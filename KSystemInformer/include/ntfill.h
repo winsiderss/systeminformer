@@ -784,6 +784,8 @@ RtlFindExportedRoutineByName(
 
 // MM
 
+#define SEC_DRIVER_IMAGE 0x00100000
+
 extern POBJECT_TYPE *MmSectionObjectType;
 
 typedef
@@ -1388,6 +1390,8 @@ typedef struct _MINCRYPT_POLICY_INFO
     LARGE_INTEGER ValidToTime;
 } MINCRYPT_POLICY_INFO, *PMINCRYPT_POLICY_INFO;
 
+// rev
+// CiFreePolicyInfo
 typedef
 _Function_class_(CI_FREE_POLICY_INFO)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1398,6 +1402,8 @@ CI_FREE_POLICY_INFO(
     );
 typedef CI_FREE_POLICY_INFO* PCI_FREE_POLICY_INFO;
 
+// rev
+// CiCheckSignedFile (pre 6.1.7601.18519)
 typedef
 _Function_class_(CI_CHECK_SIGNED_FILE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1414,6 +1420,8 @@ CI_CHECK_SIGNED_FILE(
     );
 typedef CI_CHECK_SIGNED_FILE* PCI_CHECK_SIGNED_FILE;
 
+// rev
+// CiCheckSignedFile
 typedef
 _Function_class_(CI_CHECK_SIGNED_FILE_EX)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1432,6 +1440,8 @@ CI_CHECK_SIGNED_FILE_EX(
     );
 typedef CI_CHECK_SIGNED_FILE_EX* PCI_CHECK_SIGNED_FILE_EX;
 
+// rev
+// CiVerifyHashInCatalog (pre 6.1.7601.18519)
 typedef
 _Function_class_(CI_VERIFY_HASH_IN_CATALOG)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1450,6 +1460,8 @@ CI_VERIFY_HASH_IN_CATALOG(
     );
 typedef CI_VERIFY_HASH_IN_CATALOG* PCI_VERIFY_HASH_IN_CATALOG;
 
+// rev
+// CiVerifyHashInCatalog
 typedef
 _Function_class_(CI_VERIFY_HASH_IN_CATALOG_EX)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1469,6 +1481,37 @@ CI_VERIFY_HASH_IN_CATALOG_EX(
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
     );
 typedef CI_VERIFY_HASH_IN_CATALOG_EX* PCI_VERIFY_HASH_IN_CATALOG_EX;
+
+// rev
+#define CI_POLICY_VALID_FLAGS                        0x1BE00078ul
+#define CI_POLICY_DEFAULT                            0x00000000ul
+#define CI_POLICY_REQUIRE_MICROSOFT                  0x00000001ul
+#define CI_POLICY_REQUIRE_SIGNED                     0x00000002ul
+#define CI_POLICY_ALLOW_UNSIGNED                     0x00000004ul
+#define CI_POLICY_CHECK_PROTECTED_PROCESS_EKU        0x00000008ul
+#define CI_POLICY_FORCE_PROTECTED_PROCESS_POLICY     0x00000010ul
+#define CI_POLICY_ACCEPT_ANY_ROOT_CERTIFICATE        0x00000020ul
+#define CI_POLICY_ALLOW_REVOKED_CERTIFICATE          0x00800000ul
+#define CI_POLICY_ALLOW_EXPIRED_REVOKED_CERTIFICATE  0x08000000ul
+
+// rev
+// CiValidateFileObject
+typedef
+_Function_class_(CI_VALIDATE_FILE_OBJECT)
+NTSTATUS
+NTAPI
+CI_VALIDATE_FILE_OBJECT(
+    _In_ PFILE_OBJECT FileObject,
+    _In_ ULONG PolicyFlags,
+    _In_ SE_SIGNING_LEVEL LevelCheck,
+    _Inout_ PMINCRYPT_POLICY_INFO PolicyInfo,
+    _Inout_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo,
+    _Out_ PLARGE_INTEGER SigningTime,
+    _Out_writes_bytes_to_opt_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
+    _Inout_opt_ PULONG ThumbprintSize,
+    _Out_opt_ PULONG ThumbprintAlgorithm
+    );
+typedef CI_VALIDATE_FILE_OBJECT* PCI_VALIDATE_FILE_OBJECT;
 
 // alpc
 
@@ -1653,6 +1696,20 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 
 #define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
 #define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)
+
+#if (NTDDI_VERSION >= NTDDI_WINBLUE)
+NTKERNELAPI
+NTSTATUS
+NTAPI
+SeGetCachedSigningLevel(
+    _In_ PFILE_OBJECT FileObject,
+    _Out_ PULONG Flags,
+    _Out_ PSE_SIGNING_LEVEL SigningLevel,
+    _Out_writes_bytes_to_opt_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
+    _Inout_opt_ PULONG ThumbprintSize,
+    _Out_opt_ PULONG ThumbprintAlgorithm
+    );
+#endif
 
 // schannel.h
 

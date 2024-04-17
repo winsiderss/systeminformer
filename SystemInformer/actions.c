@@ -54,17 +54,17 @@ static PH_PHSVC_MODE PhSvcCurrentMode;
 static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
 
 HRESULT CALLBACK PhpElevateActionCallbackProc(
-    _In_ HWND hwnd,
-    _In_ UINT uNotification,
+    _In_ HWND WindowHandle,
+    _In_ UINT Notification,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _In_ LONG_PTR dwRefData
+    _In_ LONG_PTR Context
     )
 {
-    switch (uNotification)
+    switch (Notification)
     {
     case TDN_CREATED:
-        SendMessage(hwnd, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
+        SendMessage(WindowHandle, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
         break;
     }
 
@@ -73,22 +73,28 @@ HRESULT CALLBACK PhpElevateActionCallbackProc(
 
 _Success_(return)
 BOOLEAN PhpShowElevatePrompt(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Message,
-    _Out_ PINT Button
+    _In_ PVOID Context,
+    _Out_ PINT32 Button
     )
 {
-    TASKDIALOGCONFIG config = { sizeof(config) };
-    TASKDIALOG_BUTTON buttons[1];
+    TASKDIALOGCONFIG config;
+    TASKDIALOG_BUTTON buttons[1] =
+    {
+        { IDYES, L"Continue"}
+    };
     INT button;
 
     // Currently the error dialog box is similar to the one displayed
     // when you try to label a drive in Windows Explorer. It's much better
     // than the clunky dialog in PH 1.x.
 
-    config.hwndParent = hWnd;
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.hwndParent = WindowHandle;
     config.hInstance = PhInstanceHandle;
-    config.dwFlags = IsWindowVisible(hWnd) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0;
+    config.dwFlags = IsWindowVisible(WindowHandle) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainIcon = TD_ERROR_ICON;
     config.pszMainInstruction = PhaConcatStrings2(Message, L".")->Buffer;
@@ -96,16 +102,14 @@ BOOLEAN PhpShowElevatePrompt(
         L"Click Continue to complete this operation.";
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
 
-    buttons[0].nButtonID = IDYES;
-    buttons[0].pszButtonText = L"Continue";
-
     config.cButtons = 1;
     config.pButtons = buttons;
     config.nDefaultButton = IDYES;
 
     config.pfCallback = PhpElevateActionCallbackProc;
+    config.lpCallbackData = (LONG_PTR)Context;
 
-    if (SUCCEEDED(TaskDialogIndirect(
+    if (HR_SUCCESS(TaskDialogIndirect(
         &config,
         &button,
         NULL,
@@ -124,7 +128,7 @@ BOOLEAN PhpShowElevatePrompt(
 /**
  * Shows an error, prompts for elevation, and executes a command.
  *
- * \param hWnd The window to display user interface components on.
+ * \param WindowHandle The window to display user interface components on.
  * \param Message A message describing the operation that failed.
  * \param Status A NTSTATUS value.
  * \param Command The arguments to pass to the new instance of
@@ -137,7 +141,7 @@ BOOLEAN PhpShowElevatePrompt(
  */
 _Success_(return)
 BOOLEAN PhpShowErrorAndElevateAction(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Message,
     _In_ NTSTATUS Status,
     _In_ PWSTR Command,
@@ -165,7 +169,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
 
     if (elevationLevel == PromptElevateAction)
     {
-        if (!PhpShowElevatePrompt(hWnd, Message, &button))
+        if (!PhpShowElevatePrompt(WindowHandle, Message, NULL, &button))
             return FALSE;
     }
 
@@ -175,15 +179,17 @@ BOOLEAN PhpShowErrorAndElevateAction(
         LARGE_INTEGER timeout;
         PROCESS_BASIC_INFORMATION basicInfo;
 
-        if (PhShellProcessHacker(
-            hWnd,
+        status = PhShellProcessHacker(
+            WindowHandle,
             Command,
             SW_SHOW,
             PH_SHELL_EXECUTE_ADMIN,
             PH_SHELL_APP_PROPAGATE_PARAMETERS,
             0,
             &processHandle
-            ))
+            );
+
+        if (NT_SUCCESS(status))
         {
             timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
             status = NtWaitForSingleObject(processHandle, FALSE, &timeout);
@@ -203,7 +209,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
     if (Success)
         *Success = NT_SUCCESS(status);
     if (!NT_SUCCESS(status))
-        PhShowStatus(hWnd, Message, status, 0);
+        PhShowStatus(WindowHandle, Message, status, 0);
 
     return TRUE;
 }
@@ -211,7 +217,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
 /**
  * Shows an error, prompts for elevation, and connects to phsvc.
  *
- * \param hWnd The window to display user interface components on.
+ * \param WindowHandle The window to display user interface components on.
  * \param Message A message describing the operation that failed.
  * \param Status A NTSTATUS value.
  * \param Connected A variable which receives TRUE if the user
@@ -224,7 +230,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
  * FALSE, in which case you need to show your own error message.
  */
 BOOLEAN PhpShowErrorAndConnectToPhSvc(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Message,
     _In_ NTSTATUS Status,
     _Out_ PBOOLEAN Connected
@@ -251,7 +257,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
         return FALSE;
 
     // Try to connect now so we can avoid prompting the user.
-    if (PhUiConnectToPhSvc(hWnd, TRUE))
+    if (PhUiConnectToPhSvc(WindowHandle, TRUE))
     {
         *Connected = TRUE;
         return TRUE;
@@ -259,13 +265,13 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
 
     if (elevationLevel == PromptElevateAction)
     {
-        if (!PhpShowElevatePrompt(hWnd, Message, &button))
+        if (!PhpShowElevatePrompt(WindowHandle, Message, NULL, &button))
             return FALSE;
     }
 
     if (elevationLevel == AlwaysElevateAction || button == IDYES)
     {
-        *Connected = PhUiConnectToPhSvc(hWnd, FALSE);
+        *Connected = PhUiConnectToPhSvc(WindowHandle, FALSE);
     }
 
     return TRUE;
@@ -274,17 +280,17 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
 /**
  * Connects to phsvc.
  *
- * \param hWnd The window to display user interface components on.
+ * \param WindowHandle The window to display user interface components on.
  * \param ConnectOnly TRUE to only try to connect to phsvc, otherwise
  * FALSE to try to elevate and start phsvc if the initial connection
  * attempt failed.
  */
 BOOLEAN PhUiConnectToPhSvc(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ BOOLEAN ConnectOnly
     )
 {
-    return PhUiConnectToPhSvcEx(hWnd, ElevatedPhSvcMode, ConnectOnly);
+    return PhUiConnectToPhSvcEx(WindowHandle, ElevatedPhSvcMode, ConnectOnly);
 }
 
 VOID PhpGetPhSvcPortName(
@@ -310,22 +316,22 @@ VOID PhpGetPhSvcPortName(
 }
 
 BOOLEAN PhpStartPhSvcProcess(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ PH_PHSVC_MODE Mode
     )
 {
     switch (Mode)
     {
     case ElevatedPhSvcMode:
-        if (PhShellProcessHacker(
-            hWnd,
+        if (NT_SUCCESS(PhShellProcessHacker(
+            WindowHandle,
             L"-phsvc",
             SW_HIDE,
             PH_SHELL_EXECUTE_ADMIN,
             0,
             0,
             NULL
-            ))
+            )))
         {
             return TRUE;
         }
@@ -370,8 +376,8 @@ BOOLEAN PhpStartPhSvcProcess(
 
                 if (PhDoesFileExistWin32(PhGetString(fileName)))
                 {
-                    if (PhShellProcessHackerEx(
-                        hWnd,
+                    if (NT_SUCCESS(PhShellProcessHackerEx(
+                        WindowHandle,
                         PhGetString(fileName),
                         L"-phsvc",
                         SW_HIDE,
@@ -379,7 +385,7 @@ BOOLEAN PhpStartPhSvcProcess(
                         0,
                         0,
                         NULL
-                        ))
+                        )))
                     {
                         PhDereferenceObject(fileName);
                         PhDereferenceObject(applicationFileName);
@@ -403,14 +409,14 @@ BOOLEAN PhpStartPhSvcProcess(
 /**
  * Connects to phsvc.
  *
- * \param hWnd The window to display user interface components on.
+ * \param WindowHandle The window to display user interface components on.
  * \param Mode The type of phsvc instance to connect to.
  * \param ConnectOnly TRUE to only try to connect to phsvc, otherwise
  * FALSE to try to elevate and start phsvc if the initial connection
  * attempt failed.
  */
 BOOLEAN PhUiConnectToPhSvcEx(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ PH_PHSVC_MODE Mode,
     _In_ BOOLEAN ConnectOnly
     )
@@ -453,12 +459,12 @@ BOOLEAN PhUiConnectToPhSvcEx(
             {
                 // Prompt for elevation, and then try to connect to the server.
 
-                if (PhpStartPhSvcProcess(hWnd, Mode))
+                if (PhpStartPhSvcProcess(WindowHandle, Mode))
                     started = TRUE;
 
                 if (started)
                 {
-                    ULONG attempts = 50;
+                    ULONG attempts = 10;
 
                     // Try to connect several times because the server may take
                     // a while to initialize.
@@ -469,7 +475,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
                         if (NT_SUCCESS(status))
                             break;
 
-                        PhDelayExecution(100);
+                        PhDelayExecution(1000);
 
                     } while (--attempts != 0);
 

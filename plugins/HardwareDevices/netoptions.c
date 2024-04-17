@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2024
  *
  */
 
@@ -103,11 +103,11 @@ VOID NetAdaptersSaveList(
 
     PhInitializeStringBuilder(&stringBuilder, 260);
 
-    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+    PhAcquireQueuedLockShared(&NetworkDevicesListLock);
 
-    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -145,13 +145,14 @@ VOID NetAdaptersSaveList(
         PhDereferenceObjectDeferDelete(entry);
     }
 
-    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+    PhReleaseQueuedLockShared(&NetworkDevicesListLock);
 
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_INTERFACE_LIST, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 BOOLEAN FindAdapterEntry(
@@ -161,11 +162,11 @@ BOOLEAN FindAdapterEntry(
 {
     BOOLEAN found = FALSE;
 
-    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+    PhAcquireQueuedLockShared(&NetworkDevicesListLock);
 
-    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY currentEntry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        PDV_NETADAPTER_ENTRY currentEntry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
 
         if (!currentEntry)
             continue;
@@ -193,7 +194,7 @@ BOOLEAN FindAdapterEntry(
         }
     }
 
-    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+    PhReleaseQueuedLockShared(&NetworkDevicesListLock);
 
     return found;
 }
@@ -214,9 +215,9 @@ VOID AddNetworkAdapterToListView(
 
     InitializeNetAdapterId(&adapterId, IfIndex, Luid, Guid);
 
-    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -375,7 +376,7 @@ VOID FindNetworkAdapters(
 
         if (GetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) == ERROR_SUCCESS)
         {
-            PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+            PhAcquireQueuedLockShared(&NetworkDevicesListLock);
 
             for (PIP_ADAPTER_ADDRESSES i = buffer; i; i = i->Next)
             {
@@ -413,7 +414,7 @@ VOID FindNetworkAdapters(
                 }
             }
 
-            PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+            PhReleaseQueuedLockShared(&NetworkDevicesListLock);
         }
 
         PhFree(buffer);
@@ -554,7 +555,7 @@ VOID FindNetworkAdapters(
         // Sort the entries
         qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), AdapterEntryCompareFunction);
 
-        PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+        PhAcquireQueuedLockShared(&NetworkDevicesListLock);
         for (ULONG i = 0; i < deviceList->Count; i++)
         {
             PNET_ENUM_ENTRY entry = deviceList->Items[i];
@@ -592,17 +593,17 @@ VOID FindNetworkAdapters(
             // Note: DeviceGuidString is disposed by WM_DESTROY.
             PhFree(entry);
         }
-        PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+        PhReleaseQueuedLockShared(&NetworkDevicesListLock);
     }
 
     // HACK: Show all unknown devices.
-    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+    PhAcquireQueuedLockShared(&NetworkDevicesListLock);
 
-    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
         INT index = INT_ERROR;
         BOOLEAN found = FALSE;
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -658,7 +659,7 @@ VOID FindNetworkAdapters(
         PhDereferenceObjectDeferDelete(entry);
     }
 
-    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+    PhReleaseQueuedLockShared(&NetworkDevicesListLock);
 }
 
 PPH_STRING FindNetworkDeviceInstance(
@@ -881,7 +882,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_PHYSICAL_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             context->ShowHardwareAdapters = TRUE;
@@ -924,7 +925,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDC_SHOW_HIDDEN_ADAPTERS:
+            case IDC_SHOW_HIDDEN_DEVICES:
                 {
                     context->UseAlternateMethod = !context->UseAlternateMethod;
 
@@ -971,7 +972,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             {
                 LPNM_LISTVIEW listView = (LPNM_LISTVIEW)lParam;
 
-                if (!PhTryAcquireReleaseQueuedLockExclusive(&NetworkAdaptersListLock))
+                if (!PhTryAcquireReleaseQueuedLockExclusive(&NetworkDevicesListLock))
                     break;
 
                 if (listView->uChanged & LVIF_STATE)

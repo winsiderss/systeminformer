@@ -253,7 +253,7 @@ PhWritePhTextHeader(
 #define PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY 0x2
 
 PHAPPAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhShellProcessHacker(
     _In_opt_ HWND WindowHandle,
@@ -266,7 +266,7 @@ PhShellProcessHacker(
     );
 // end_phapppub
 
-BOOLEAN PhShellProcessHackerEx(
+NTSTATUS PhShellProcessHackerEx(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,

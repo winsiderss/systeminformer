@@ -15,6 +15,8 @@
 
 #include "config.h"
 
+#include <ph.h>
+
 #include "math_compat.h"
 #include <assert.h>
 #include <errno.h>
@@ -145,8 +147,8 @@ enum json_tokener_error json_tokener_get_error(struct json_tokener *tok)
 }
 
 /* Stuff for decoding unicode sequences */
-#define IS_HIGH_SURROGATE(uc) (((uc)&0xFC00) == 0xD800)
-#define IS_LOW_SURROGATE(uc) (((uc)&0xFC00) == 0xDC00)
+//#define IS_HIGH_SURROGATE(uc) (((uc)&0xFC00) == 0xD800)
+//#define IS_LOW_SURROGATE(uc) (((uc)&0xFC00) == 0xDC00)
 #define DECODE_SURROGATE_PAIR(hi, lo) ((((hi)&0x3FF) << 10) + ((lo)&0x3FF) + 0x10000)
 static unsigned char utf8_replacement_char[3] = {0xEF, 0xBF, 0xBD};
 
@@ -154,20 +156,24 @@ struct json_tokener *json_tokener_new_ex(int depth)
 {
     struct json_tokener *tok;
 
-    tok = (struct json_tokener *)calloc(1, sizeof(struct json_tokener));
+    tok = (struct json_tokener *)PhAllocateSafe(sizeof(struct json_tokener));
     if (!tok)
         return NULL;
-    tok->stack = (struct json_tokener_srec *)calloc(depth, sizeof(struct json_tokener_srec));
+    memset(tok, 0, sizeof(struct json_tokener));
+
+    tok->stack = (struct json_tokener_srec *)PhAllocateSafe(depth * sizeof(struct json_tokener_srec));
     if (!tok->stack)
     {
-        free(tok);
+        PhFree(tok);
         return NULL;
     }
+    memset(tok->stack, 0, depth * sizeof(struct json_tokener_srec));
+
     tok->pb = printbuf_new();
     if (!tok->pb)
     {
-        free(tok->stack);
-        free(tok);
+        PhFree(tok->stack);
+        PhFree(tok);
         return NULL;
     }
     tok->max_depth = depth;
@@ -185,8 +191,8 @@ void json_tokener_free(struct json_tokener *tok)
     json_tokener_reset(tok);
     if (tok->pb)
         printbuf_free(tok->pb);
-    free(tok->stack);
-    free(tok);
+    PhFree(tok->stack);
+    PhFree(tok);
 }
 
 static void json_tokener_reset_level(struct json_tokener *tok, int depth)
@@ -195,7 +201,7 @@ static void json_tokener_reset_level(struct json_tokener *tok, int depth)
     tok->stack[depth].saved_state = json_tokener_state_start;
     json_object_put(tok->stack[depth].current);
     tok->stack[depth].current = NULL;
-    free(tok->stack[depth].obj_field_name);
+    PhFree(tok->stack[depth].obj_field_name);
     tok->stack[depth].obj_field_name = NULL;
 }
 
@@ -357,7 +363,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
         tmplocale = setlocale(LC_NUMERIC, NULL);
         if (tmplocale)
         {
-            oldlocale = _strdup(tmplocale);
+            oldlocale = PhDuplicateBytesZSafe(tmplocale);
             if (oldlocale == NULL)
                 return NULL;
         }
@@ -1201,7 +1207,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
                 {
                     printbuf_memappend_checked(tok->pb, case_start,
                                                str - case_start);
-                    obj_field_name = _strdup(tok->pb->buf);
+                    obj_field_name = PhDuplicateBytesZSafe(tok->pb->buf);
                     if (obj_field_name == NULL)
                     {
                         tok->err = json_tokener_error_memory;
@@ -1255,7 +1261,7 @@ struct json_object *json_tokener_parse_ex(struct json_tokener *tok, const char *
 
         case json_tokener_state_object_value_add:
             json_object_object_add(current, obj_field_name, obj);
-            free(obj_field_name);
+            PhFree(obj_field_name);
             obj_field_name = NULL;
             saved_state = json_tokener_state_object_sep;
             state = json_tokener_state_eatws;
@@ -1309,7 +1315,7 @@ out:
     freelocale(newloc);
 #elif defined(HAVE_SETLOCALE)
     setlocale(LC_NUMERIC, oldlocale);
-    free(oldlocale);
+    PhFree(oldlocale);
 #endif
 
     if (tok->err == json_tokener_success)

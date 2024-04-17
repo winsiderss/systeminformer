@@ -1310,8 +1310,7 @@ PhShellExecute(
 #define PH_SHELL_EXECUTE_PUMP_MESSAGES 0x2
 
 PHLIBAPI
-_Success_(return)
-BOOLEAN
+NTSTATUS
 NTAPI
 PhShellExecuteEx(
     _In_opt_ HWND WindowHandle,

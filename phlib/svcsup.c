@@ -302,6 +302,25 @@ NTSTATUS PhEnumDependentServices(
     return status;
 }
 
+NTSTATUS PhOpenServiceManager(
+    _Out_ PSC_HANDLE ServiceManagerHandle,
+    _In_opt_ PCWSTR DatabaseName,
+    _In_ ACCESS_MASK DesiredAccess
+    )
+{
+    SC_HANDLE serviceManagerHandle;
+
+    if (serviceManagerHandle = OpenSCManager(NULL, DatabaseName, DesiredAccess))
+    {
+        *ServiceManagerHandle = serviceManagerHandle;
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
+}
+
 NTSTATUS PhOpenService(
     _Out_ PSC_HANDLE ServiceHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -333,36 +352,41 @@ NTSTATUS PhOpenServiceKey(
     static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static HANDLE servicesKeyHandle = NULL;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PPH_STRING serviceName;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhOpenKey(&servicesKeyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &servicesKeyName, 0);
+        status = PhOpenKey(&servicesKeyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &servicesKeyName, 0);
         PhEndInitOnce(&initOnce);
     }
 
     if (servicesKeyHandle)
     {
-        return PhOpenKey(KeyHandle, DesiredAccess, servicesKeyHandle, ServiceName, 0);
+        status = PhOpenKey(KeyHandle, DesiredAccess, servicesKeyHandle, ServiceName, 0);
     }
-    else
+
+    if (NT_SUCCESS(status))
     {
-        NTSTATUS status;
-        PPH_STRING keyName;
+        if (serviceName = PhGetServiceKeyName(ServiceName))
+        {
+            status = PhOpenKey(
+                KeyHandle,
+                DesiredAccess,
+                PH_KEY_LOCAL_MACHINE,
+                &serviceName->sr,
+                0
+                );
 
-        keyName = PhGetServiceKeyName(ServiceName);
-
-        status = PhOpenKey(
-            KeyHandle,
-            DesiredAccess,
-            PH_KEY_LOCAL_MACHINE,
-            &keyName->sr,
-            0
-            );
-
-        PhDereferenceObject(keyName);
-
-        return status;
+            PhDereferenceObject(serviceName);
+        }
+        else
+        {
+            status = STATUS_NO_MEMORY;
+        }
     }
+
+    return status;
 }
 
 VOID PhCloseServiceHandle(
@@ -389,7 +413,9 @@ NTSTATUS PhCreateService(
     SC_HANDLE scManagerHandle;
     SC_HANDLE serviceHandle;
 
-    if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
+    status = PhOpenServiceManager(&scManagerHandle, NULL, SC_MANAGER_CREATE_SERVICE);
+
+    if (NT_SUCCESS(status))
     {
         if (serviceHandle = CreateService(
             scManagerHandle,
@@ -416,10 +442,6 @@ NTSTATUS PhCreateService(
         }
 
         PhCloseServiceHandle(scManagerHandle);
-    }
-    else
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
     }
 
     return status;
@@ -1210,8 +1232,9 @@ PPH_STRING PhGetServiceHandleFileName(
     return fileName;
 }
 
-PPH_STRING PhGetServiceFileName(
-    _In_ PPH_STRINGREF ServiceName
+NTSTATUS PhGetServiceFileName(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PPH_STRING* ServiceFileName
     )
 {
     PPH_STRING serviceDllString = NULL;
@@ -1245,12 +1268,14 @@ PPH_STRING PhGetServiceFileName(
 
     if (NT_SUCCESS(status))
     {
-        return serviceDllString;
+        *ServiceFileName = serviceDllString;
+    }
+    else
+    {
+        PhClearReference(&serviceDllString);
     }
 
-    PhClearReference(&serviceDllString);
-
-    return NULL;
+    return status;
 }
 
 NTSTATUS PhpGetServiceDllName(
@@ -1292,6 +1317,10 @@ NTSTATUS PhpGetServiceDllName(
     if (NT_SUCCESS(status))
     {
         *ServiceDll = serviceDllString;
+    }
+    else
+    {
+        PhClearReference(&serviceDllString);
     }
 
     return status;

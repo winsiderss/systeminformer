@@ -177,21 +177,30 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
                 }
                 else
                 {
-                    if (PhShellExecuteEx(
+                    PPH_STRING applicationFileName;
+                    PH_STRINGREF applicationCommandLine;
+
+                    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&applicationCommandLine)))
+                        return S_FALSE;
+                    if (!(applicationFileName = PhGetApplicationFileNameWin32()))
+                        return S_FALSE;
+
+                    if (NT_SUCCESS(PhShellExecuteEx(
                         hwndDlg, 
-                        NtCurrentPeb()->ProcessParameters->ImagePathName.Buffer, 
-                        NtCurrentPeb()->ProcessParameters->CommandLine.Buffer,
+                        PhGetString(applicationFileName),
+                        PhGetStringRefZ(&applicationCommandLine),
                         NULL,
                         SW_SHOW,
                         PH_SHELL_EXECUTE_ADMIN,
                         0,
                         NULL
-                        ))
+                        )))
                     {
-                        NtTerminateProcess(NtCurrentProcess(), STATUS_SUCCESS);
+                        PhExitApplication(STATUS_SUCCESS);
                     }
                     else
                     {
+                        PhDereferenceObject(applicationFileName);
                         return S_FALSE;
                     }
                 }

@@ -5,13 +5,14 @@
  *
  * Authors:
  *
- *     dmex    2022-2023
+ *     dmex    2022-2024
  *
  */
 
 #include "devices.h"
 
 PPH_OBJECT_TYPE GraphicsSysinfoEntryType = NULL;
+BOOLEAN GraphicsEnableAvxSupport = FALSE;
 
 PPH_STRING GraphicsDeviceGetAdapterDescription(
     _In_ PPH_STRING DevicePath
@@ -901,12 +902,33 @@ VOID GraphicsDeviceNotifyFanRpmGraph(
             {
                 FLOAT max = 1000.0f;
 
-                for (i = 0; i < drawInfo->LineDataCount; i++)
+                if (GraphicsEnableAvxSupport && drawInfo->LineDataCount > 128)
                 {
-                    FLOAT data = Context->FanRpmGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&Context->DeviceEntry->FanHistory, i);
+                    FLOAT data;
+
+                    PhCopyConvertCircularBufferULONG(
+                        &Context->DeviceEntry->FanHistory,
+                        Context->FanRpmGraphState.Data1,
+                        drawInfo->LineDataCount
+                        );
+
+                    data = PhMaxMemorySingles(
+                        Context->FanRpmGraphState.Data1,
+                        drawInfo->LineDataCount
+                        );
 
                     if (max < data)
                         max = data;
+                }
+                else
+                {
+                    for (i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT data = Context->FanRpmGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&Context->DeviceEntry->FanHistory, i);
+
+                        if (max < data)
+                            max = data;
+                    }
                 }
 
                 if (max != 0)

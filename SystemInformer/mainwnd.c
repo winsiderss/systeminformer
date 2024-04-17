@@ -758,6 +758,104 @@ static NTSTATUS PhpCloseSecurityStationHandle(
     return STATUS_SUCCESS;
 }
 
+static VOID PhpMwpOnDumpCommand(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+    {
+        PH_LIVE_DUMP_OPTIONS options;
+
+        if (Id == ID_PROCESS_DUMP_CUSTOM)
+        {
+            PhShowLiveDumpDialog(WindowHandle);
+            return;
+        }
+
+        memset(&options, 0, sizeof(PH_LIVE_DUMP_OPTIONS));
+
+        options.UseDumpStorageStack = TRUE;
+        options.CompressMemoryPages = TRUE;
+
+        switch (Id)
+        {
+        case ID_PROCESS_DUMP_MINIMAL:
+            options.OnlyKernelThreadStacks = TRUE;
+            break;
+        default: case ID_PROCESS_DUMP_NORMAL:
+            break;
+        case ID_PROCESS_DUMP_FULL:
+            options.IncludeHypervisorPages = TRUE;
+            options.IncludeNonEssentialHypervisorPages = TRUE;
+            break;
+        }
+
+        PhUiCreateLiveDump(WindowHandle, &options);
+    }
+    else
+    {
+        ULONG dumpType;
+
+        if (Id == ID_PROCESS_DUMP_CUSTOM)
+        {
+            PhShowCreateDumpFileProcessDialog(WindowHandle, ProcessItem);
+            return;
+        }
+
+        switch (Id)
+        {
+        case ID_PROCESS_DUMP_MINIMAL:
+            dumpType =
+                MiniDumpWithDataSegs |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory;
+            break;
+        case ID_PROCESS_DUMP_LIMITED:
+            dumpType =
+                MiniDumpWithFullMemory |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory;
+        default: case ID_PROCESS_DUMP_NORMAL:
+            // task manager uses these flags (wj32)
+            dumpType =
+                MiniDumpWithFullMemory |
+                MiniDumpWithHandleData |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory |
+                MiniDumpWithIptTrace;
+            break;
+        case ID_PROCESS_DUMP_FULL:
+            dumpType =
+                MiniDumpWithDataSegs |
+                MiniDumpWithFullMemory |
+                MiniDumpWithHandleData |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithIndirectlyReferencedMemory |
+                MiniDumpWithProcessThreadData |
+                MiniDumpWithPrivateReadWriteMemory |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithCodeSegs |
+                MiniDumpWithFullAuxiliaryState |
+                MiniDumpWithPrivateWriteCopyMemory |
+                MiniDumpIgnoreInaccessibleMemory |
+                MiniDumpWithTokenInformation |
+                MiniDumpWithModuleHeaders |
+                MiniDumpWithAvxXStateContext |
+                MiniDumpWithIptTrace;
+            break;
+        }
+
+        PhUiCreateDumpFileProcess(WindowHandle, ProcessItem, dumpType);
+    }
+}
+
 VOID PhMwpOnCommand(
     _In_ HWND WindowHandle,
     _In_ ULONG Id
@@ -797,7 +895,7 @@ VOID PhMwpOnCommand(
         {
             ProcessHacker_PrepareForEarlyShutdown();
 
-            if (PhShellProcessHacker(
+            if (NT_SUCCESS(PhShellProcessHacker(
                 WindowHandle,
                 L"-v -newinstance",
                 SW_SHOW,
@@ -805,7 +903,7 @@ VOID PhMwpOnCommand(
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                 0,
                 NULL
-                ))
+                )))
             {
                 ProcessHacker_Destroy();
             }
@@ -1109,15 +1207,17 @@ VOID PhMwpOnCommand(
         {
             extern BOOLEAN PhpIsDefaultTaskManager(VOID); // options.c (dmex)
             PPH_STRING taskmgrFileName;
+            PWSTR taskmgrCommandLine;
 
             taskmgrFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\taskmgr.exe"));
+            taskmgrCommandLine = PhGetIntegerSetting(L"TaskmgrWindowState") ? L" -d" : NULL;
 
             if (!PhpIsDefaultTaskManager() && PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {
                 PhShellExecuteEx(
                     WindowHandle,
                     PhGetString(taskmgrFileName),
-                    NULL,
+                    taskmgrCommandLine,
                     NULL,
                     SW_SHOW,
                     0,
@@ -1131,13 +1231,13 @@ VOID PhMwpOnCommand(
                 {
                     if (PhUiConnectToPhSvc(WindowHandle, FALSE))
                     {
-                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), taskmgrCommandLine);
                         PhUiDisconnectFromPhSvc();
                     }
                 }
                 else
                 {
-                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), taskmgrCommandLine);
                 }
             }
         }
@@ -1415,7 +1515,7 @@ VOID PhMwpOnCommand(
                 {
                     ProcessHacker_PrepareForEarlyShutdown();
 
-                    if (PhShellProcessHacker(
+                    if (NT_SUCCESS(PhShellProcessHacker(
                         WindowHandle,
                         NULL,
                         SW_SHOW,
@@ -1423,7 +1523,7 @@ VOID PhMwpOnCommand(
                         PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                         0,
                         NULL
-                        ))
+                        )))
                     {
                         ProcessHacker_Destroy();
                     }
@@ -1444,14 +1544,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
-    case ID_PROCESS_CREATEDUMPFILE:
+    case ID_PROCESS_DUMP_MINIMAL:
+    case ID_PROCESS_DUMP_LIMITED:
+    case ID_PROCESS_DUMP_NORMAL:
+    case ID_PROCESS_DUMP_FULL:
+    case ID_PROCESS_DUMP_CUSTOM:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
             if (processItem)
             {
                 PhReferenceObject(processItem);
-                PhUiCreateDumpFileProcess(WindowHandle, processItem);
+                PhpMwpOnDumpCommand(WindowHandle, Id, processItem);
                 PhDereferenceObject(processItem);
             }
         }

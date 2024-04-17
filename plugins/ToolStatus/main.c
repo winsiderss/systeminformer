@@ -713,6 +713,67 @@ VOID NTAPI SearchControlCallback(
     PhInvokeCallback(&SearchChangedEvent, (PVOID)SearchMatchHandle);
 }
 
+VOID SetSearchFocus(
+    _In_ HWND hWnd,
+    _In_ BOOLEAN Focus
+    )
+{
+    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
+    {
+        if (Focus)
+        {
+            if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+            {
+                LONG dpiValue;
+
+                dpiValue = PhGetWindowDpi(hWnd);
+
+                if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                    RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(180, dpiValue), 22);
+
+                if (!IsWindowVisible(SearchboxHandle))
+                    ShowWindow(SearchboxHandle, SW_SHOW);
+            }
+
+            SetFocus(SearchboxHandle);
+            Edit_SetSel(SearchboxHandle, 0, -1);
+        }
+        else
+        {
+            HWND tnHandle;
+
+            // Return focus to the treelist.
+            if (tnHandle = GetCurrentTreeNewHandle())
+            {
+                ULONG tnCount = TreeNew_GetFlatNodeCount(tnHandle);
+
+                for (ULONG i = 0; i < tnCount; i++)
+                {
+                    PPH_TREENEW_NODE node = TreeNew_GetFlatNode(tnHandle, i);
+
+                    // Select the first visible node.
+                    if (node->Visible)
+                    {
+                        SetFocus(tnHandle);
+                        TreeNew_SetFocusNode(tnHandle, node);
+                        TreeNew_SetMarkNode(tnHandle, node);
+                        TreeNew_SelectRange(tnHandle, i, i);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+VOID ToggleSearchFocus(
+    _In_ HWND hWnd
+    )
+{
+    // Check if the searchbox is already focused.
+    SetSearchFocus(hWnd, GetFocus() != SearchboxHandle);
+}
+
 LRESULT CALLBACK MainWndSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -815,56 +876,13 @@ LRESULT CALLBACK MainWndSubclassProc(
                 }
                 break;
             case ID_SEARCH:
-                {
-                    // handle keybind Ctrl + K
-                    if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
-                    {
-                        // Check if the searchbox is already focused.
-                        if (GetFocus() == SearchboxHandle)
-                        {
-                            HWND tnHandle;
-
-                            // Return focus to the treelist.
-                            if (tnHandle = GetCurrentTreeNewHandle())
-                            {
-                                ULONG tnCount = TreeNew_GetFlatNodeCount(tnHandle);
-
-                                for (ULONG i = 0; i < tnCount; i++)
-                                {
-                                    PPH_TREENEW_NODE node = TreeNew_GetFlatNode(tnHandle, i);
-
-                                    // Select the first visible node.
-                                    if (node->Visible)
-                                    {
-                                        SetFocus(tnHandle);
-                                        TreeNew_SetFocusNode(tnHandle, node);
-                                        TreeNew_SetMarkNode(tnHandle, node);
-                                        TreeNew_SelectRange(tnHandle, i, i);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
-                            {
-                                LONG dpiValue;
-
-                                dpiValue = PhGetWindowDpi(hWnd);
-
-                                if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-                                    RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(180, dpiValue), 22);
-
-                                if (!IsWindowVisible(SearchboxHandle))
-                                    ShowWindow(SearchboxHandle, SW_SHOW);
-                            }
-
-                            SetFocus(SearchboxHandle);
-                            Edit_SetSel(SearchboxHandle, 0, -1);
-                        }
-                    }
-                }
+                // handle keybind Ctrl + K
+                ToggleSearchFocus(hWnd);
+                goto DefaultWndProc;
+            case ID_SEARCH_TAB:
+                // handle tab when the searchbox is focused
+                if (GetFocus() == SearchboxHandle)
+                    SetSearchFocus(hWnd, FALSE);
                 goto DefaultWndProc;
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {

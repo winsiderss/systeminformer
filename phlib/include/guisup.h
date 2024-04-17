@@ -232,6 +232,13 @@ PhGetSystemMetrics(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetSystemSafeBootMode(
+    VOID
+    );
+
+PHLIBAPI
 BOOL
 NTAPI
 PhGetSystemParametersInfo(

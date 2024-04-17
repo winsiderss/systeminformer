@@ -1040,52 +1040,47 @@ NTSTATUS PhSipLoadMmAddresses(
     _In_ PVOID Parameter
     )
 {
-    PRTL_PROCESS_MODULES kernelModules;
-    PPH_SYMBOL_PROVIDER symbolProvider;
     PPH_STRING kernelFileName;
+    PVOID kernelImageBase;
+    ULONG kernelImageSize;
+    PPH_SYMBOL_PROVIDER symbolProvider;
     PH_SYMBOL_INFORMATION symbolInfo;
 
-    if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
+    if (NT_SUCCESS(PhGetKernelFileNameEx(&kernelFileName, &kernelImageBase, &kernelImageSize)))
     {
-        if (kernelModules->NumberOfModules >= 1)
+        symbolProvider = PhCreateSymbolProvider(NULL);
+        PhLoadSymbolProviderOptions(symbolProvider);
+
+        PhLoadModuleSymbolProvider(
+            symbolProvider,
+            kernelFileName,
+            (ULONG64)kernelImageBase,
+            kernelImageSize
+            );
+
+        if (PhGetSymbolFromName(
+            symbolProvider,
+            L"MmSizeOfPagedPoolInBytes",
+            &symbolInfo
+            ))
         {
-            symbolProvider = PhCreateSymbolProvider(NULL);
-            PhLoadSymbolProviderOptions(symbolProvider);
+            MmSizeOfPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
+        }
 
-            kernelFileName = PH_AUTO(PhConvertUtf8ToUtf16(kernelModules->Modules[0].FullPathName));
-
-            PhLoadModuleSymbolProvider(
-                symbolProvider,
-                kernelFileName,
-                (ULONG64)kernelModules->Modules[0].ImageBase,
-                kernelModules->Modules[0].ImageSize
-                );
-
+        if (WindowsVersion < WINDOWS_8)
+        {
             if (PhGetSymbolFromName(
                 symbolProvider,
-                L"MmSizeOfPagedPoolInBytes",
+                L"MmMaximumNonPagedPoolInBytes",
                 &symbolInfo
                 ))
             {
-                MmSizeOfPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
+                MmMaximumNonPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
             }
-
-            if (WindowsVersion < WINDOWS_8)
-            {
-                if (PhGetSymbolFromName(
-                    symbolProvider,
-                    L"MmMaximumNonPagedPoolInBytes",
-                    &symbolInfo
-                    ))
-                {
-                    MmMaximumNonPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
-                }
-            }
-
-            PhDereferenceObject(symbolProvider);
         }
 
-        PhFree(kernelModules);
+        PhDereferenceObject(symbolProvider);
+        PhDereferenceObject(kernelFileName);
     }
 
     return STATUS_SUCCESS;

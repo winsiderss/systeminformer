@@ -23,7 +23,6 @@
 #define IDC_STAT_BTOTAL                 1008
 #define IDC_DETAILS                     1010
 #define IDC_DETAILS_LIST                1011
-#define IDC_SHOW_HIDDEN_ADAPTERS        1012
 #define IDD_DISKDRIVE_OPTIONS           1013
 #define IDC_SHOW_PHYSICAL_ADAPTERS      1013
 #define IDD_DISKDRIVE_DIALOG            1014
@@ -56,6 +55,9 @@
 #define IDC_PANEL_LAYOUT                1039
 #define IDC_TOTAL_L                     1040
 #define IDC_GPUDEVICE_LISTVIEW          1041
+#define IDC_DOWN_L                      1042
+#define IDC_UP_L                        1043
+#define IDC_SHOW_HIDDEN_DEVICES         1044
 #define IDC_NODES                       1048
 #define IDC_ZDEDICATEDCURRENT_V         1055
 #define IDC_ZDEDICATEDLIMIT_V           1056
@@ -84,9 +86,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        116
+#define _APS_NEXT_RESOURCE_VALUE        118
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1042
+#define _APS_NEXT_CONTROL_VALUE         1045
 #define _APS_NEXT_SYMED_VALUE           109
 #endif
 #endif

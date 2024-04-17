@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2024
  *
  */
 
@@ -283,7 +283,7 @@ VOID RaplDeviceSampleData(
     ULONGLONG lastAbsoluteEnergy;
     ULONGLONG lastAbsoluteTime;
     FLOAT numerator;
-    FLOAT denomenator;
+    FLOAT denominator;
     FLOAT counterValue;
 
     if (DeviceIndex == EV_EMI_DEVICE_INDEX_MAX)
@@ -291,11 +291,11 @@ VOID RaplDeviceSampleData(
         if (DeviceEntry->CurrentProcessorPower && DeviceEntry->CurrentCorePower)
             DeviceEntry->CurrentComponentPower = (DeviceEntry->CurrentProcessorPower - (DeviceEntry->CurrentCorePower + DeviceEntry->CurrentDiscreteGpuPower));
         else
-            DeviceEntry->CurrentComponentPower = 0.0;
+            DeviceEntry->CurrentComponentPower = 0.0f;
 
         DeviceEntry->CurrentTotalPower =
             DeviceEntry->CurrentProcessorPower +
-            DeviceEntry->CurrentCorePower +
+            //DeviceEntry->CurrentCorePower +
             DeviceEntry->CurrentDiscreteGpuPower +
             DeviceEntry->CurrentDramPower;
         return;
@@ -308,12 +308,12 @@ VOID RaplDeviceSampleData(
     DeviceEntry->ChannelData[DeviceIndex].AbsoluteTime = data->AbsoluteTime;
 
     numerator = (FLOAT)lastAbsoluteEnergy - (FLOAT)data->AbsoluteEnergy;
-    denomenator = (FLOAT)(lastAbsoluteTime / 36) - (FLOAT)(data->AbsoluteTime / 36);
+    denominator = (FLOAT)(lastAbsoluteTime / 36) - (FLOAT)(data->AbsoluteTime / 36);
 
-    if (numerator && denomenator)
-        counterValue = numerator / denomenator;
+    if (numerator && denominator)
+        counterValue = numerator / denominator;
     else
-        counterValue = 0.0;
+        counterValue = 0.0f;
 
     switch (DeviceIndex)
     {

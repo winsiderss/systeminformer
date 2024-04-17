@@ -277,6 +277,7 @@ EXPORTS
     PhFindProcessInformationByImageName
     PhGetActiveProcessorCount
     PhGetDeviceType
+    PhGetFileFullAttributesInformation
     PhGetFileName
     PhGetFilePosition
     PhGetFileSize
@@ -500,6 +501,7 @@ EXPORTS
 ; cpysave
     PhGetGenericTreeNewLines
     PhGetListViewItemText
+    PhGetListViewSelectedItemText
     PhGetTreeNewText
 
 ; emenu
@@ -718,6 +720,7 @@ EXPORTS
     PhGetServiceDllParameter
     PhGetServiceErrorControlInteger
     PhGetServiceErrorControlString
+    PhGetServiceFileName
     PhGetServiceNameFromTag
     PhGetServiceStartTypeInteger
     PhGetServiceStartTypeString

@@ -77,6 +77,13 @@ PhGetListViewItemText(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetListViewSelectedItemText(
+    _In_ HWND ListViewHandle
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhaGetListViewItemText(
     _In_ HWND ListViewHandle,
     _In_ INT Index,

@@ -15,6 +15,8 @@
 
 #include "config.h"
 
+#include <ph.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -38,14 +40,16 @@ struct printbuf *printbuf_new(void)
 {
     struct printbuf *p;
 
-    p = (struct printbuf *)calloc(1, sizeof(struct printbuf));
+    p = (struct printbuf *)PhAllocateSafe(sizeof(struct printbuf));
     if (!p)
         return NULL;
+    memset(p, 0, sizeof(struct printbuf));
+
     p->size = 32;
     p->bpos = 0;
-    if (!(p->buf = (char *)malloc(p->size)))
+    if (!(p->buf = (char *)PhAllocateSafe(p->size)))
     {
-        free(p);
+        PhFree(p);
         return NULL;
     }
     p->buf[0] = '\0';
@@ -87,7 +91,7 @@ static int printbuf_extend(struct printbuf *p, size_t min_size)
              "bpos=%d min_size=%d old_size=%d new_size=%d\n",
              p->bpos, min_size, p->size, new_size);
 #endif /* PRINTBUF_DEBUG */
-    if (!(t = (char *)realloc(p->buf, new_size)))
+    if (!(t = (char *)PhReAllocateSafe(p->buf, new_size)))
         return -1;
     p->size = new_size;
     p->buf = t;
@@ -167,7 +171,7 @@ size_t sprintbuf(struct printbuf *p, const char *msg, ...)
         }
         va_end(ap);
         size = printbuf_memappend(p, t, size);
-        free(t);
+        PhFree(t);
     }
     else
     {
@@ -186,7 +190,7 @@ void printbuf_free(struct printbuf *p)
 {
     if (p)
     {
-        free(p->buf);
-        free(p);
+        PhFree(p->buf);
+        PhFree(p);
     }
 }

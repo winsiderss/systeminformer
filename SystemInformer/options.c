@@ -259,7 +259,7 @@ static VOID PhpOptionsSetImageList(
     if (Treeview)
         imageListHandle = TreeView_GetImageList(WindowHandle, TVSIL_NORMAL);
     else
-        imageListHandle = ListView_GetImageList(WindowHandle, LVSIL_NORMAL);
+        imageListHandle = ListView_GetImageList(WindowHandle, LVSIL_SMALL);
 
     if (imageListHandle)
     {
@@ -268,7 +268,7 @@ static VOID PhpOptionsSetImageList(
         if (Treeview)
             TreeView_SetImageList(WindowHandle, imageListHandle, TVSIL_NORMAL);
         else
-            ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_NORMAL); // LVSIL_SMALL
+            ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_SMALL);
     }
     else
     {
@@ -277,7 +277,7 @@ static VOID PhpOptionsSetImageList(
             if (Treeview)
                 TreeView_SetImageList(WindowHandle, imageListHandle, TVSIL_NORMAL);
             else
-                ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_NORMAL); // LVSIL_SMALL
+                ListView_SetImageList(WindowHandle, imageListHandle, LVSIL_SMALL);
         }
     }
 }
@@ -411,12 +411,12 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     {
                         ProcessHacker_PrepareForEarlyShutdown();
 
-                        PhResetSettings(hwndDlg);
+                        PhResetSettings(PhMainWndHandle);
 
                         if (!PhIsNullOrEmptyString(PhSettingsFileName))
                             PhSaveSettings(&PhSettingsFileName->sr);
 
-                        if (PhShellProcessHacker(
+                        if (NT_SUCCESS(PhShellProcessHacker(
                             PhMainWndHandle,
                             L"-v -newinstance",
                             SW_SHOW,
@@ -424,7 +424,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                             0,
                             NULL
-                            ))
+                            )))
                         {
                             ProcessHacker_Destroy();
                         }
@@ -1557,7 +1557,7 @@ VOID PhShowOptionsRestartRequired(
     {
         ProcessHacker_PrepareForEarlyShutdown();
 
-        if (PhShellProcessHacker(
+        if (NT_SUCCESS(PhShellProcessHacker(
             WindowHandle,
             L"-v -newinstance",
             SW_SHOW,
@@ -1565,7 +1565,7 @@ VOID PhShowOptionsRestartRequired(
             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
             0,
             NULL
-            ))
+            )))
         {
             ProcessHacker_Destroy();
         }

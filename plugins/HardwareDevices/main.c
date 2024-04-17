@@ -18,13 +18,13 @@ PPH_PLUGIN PluginInstance = NULL;
 BOOLEAN NetAdapterEnableNdis = FALSE;
 ULONG NetWindowsVersion = WINDOWS_ANCIENT;
 
-PPH_OBJECT_TYPE NetAdapterEntryType = NULL;
-PPH_LIST NetworkAdaptersList = NULL;
-PH_QUEUED_LOCK NetworkAdaptersListLock = PH_QUEUED_LOCK_INIT;
+PPH_OBJECT_TYPE NetworkDeviceEntryType = NULL;
+PPH_LIST NetworkDevicesList = NULL;
+PH_QUEUED_LOCK NetworkDevicesListLock = PH_QUEUED_LOCK_INIT;
 
-PPH_OBJECT_TYPE DiskDriveEntryType = NULL;
-PPH_LIST DiskDrivesList = NULL;
-PH_QUEUED_LOCK DiskDrivesListLock = PH_QUEUED_LOCK_INIT;
+PPH_OBJECT_TYPE DiskDeviceEntryType = NULL;
+PPH_LIST DiskDevicesList = NULL;
+PH_QUEUED_LOCK DiskDevicesListLock = PH_QUEUED_LOCK_INIT;
 
 PPH_OBJECT_TYPE RaplDeviceEntryType = NULL;
 PPH_LIST RaplDevicesList = NULL;
@@ -58,8 +58,8 @@ VOID NTAPI LoadCallback(
     LoadSettings();
 
     GraphicsDeviceInitialize();
-    DiskDrivesInitialize();
-    NetAdaptersInitialize();
+    DiskDevicesInitialize();
+    NetworkDevicesInitialize();
     RaplDeviceInitialize();
 
     GraphicsDevicesLoadList();
@@ -133,8 +133,8 @@ VOID NTAPI ProcessesUpdatedCallback(
     )
 {
     GraphicsDevicesUpdate();
-    DiskDrivesUpdate();
-    NetAdaptersUpdate();
+    DiskDevicesUpdate();
+    NetworkDevicesUpdate();
     RaplDevicesUpdate();
 }
 
@@ -166,34 +166,34 @@ VOID NTAPI SystemInformationInitializingCallback(
 
     PhReleaseQueuedLockShared(&GraphicsDevicesListLock);
 
-    // Disk Drives
+    // Disk Devices
 
-    PhAcquireQueuedLockShared(&DiskDrivesListLock);
+    PhAcquireQueuedLockShared(&DiskDevicesListLock);
 
-    for (ULONG i = 0; i < DiskDrivesList->Count; i++)
+    for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
-        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
+        PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;
 
         if (entry->DevicePresent)
         {
-            DiskDriveSysInfoInitializing(pluginEntry, entry);
+            DiskDeviceSysInfoInitializing(pluginEntry, entry);
         }
 
         PhDereferenceObjectDeferDelete(entry);
     }
 
-    PhReleaseQueuedLockShared(&DiskDrivesListLock);
+    PhReleaseQueuedLockShared(&DiskDevicesListLock);
 
-    // Network Adapters
+    // Network Devices
 
-    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+    PhAcquireQueuedLockShared(&NetworkDevicesListLock);
 
-    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
-        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -206,7 +206,7 @@ VOID NTAPI SystemInformationInitializingCallback(
         PhDereferenceObjectDeferDelete(entry);
     }
 
-    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+    PhReleaseQueuedLockShared(&NetworkDevicesListLock);
 
     // RAPL Devices
 

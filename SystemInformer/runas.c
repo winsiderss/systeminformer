@@ -422,7 +422,7 @@ static VOID PhpAddSessionsToComboBox(
 
     PhpFreeSessionsComboBox(ComboBoxHandle);
 
-    if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
+    if (WinStationEnumerateW(WINSTATION_CURRENT_SERVER, &sessions, &numberOfSessions))
     {
         for (i = 0; i < numberOfSessions; i++)
         {
@@ -431,7 +431,7 @@ static VOID PhpAddSessionsToComboBox(
             ULONG returnLength;
 
             if (!WinStationQueryInformationW(
-                NULL,
+                WINSTATION_CURRENT_SERVER,
                 sessions[i].SessionId,
                 WinStationInformation,
                 &winStationInfo,
@@ -1903,7 +1903,7 @@ BOOLEAN PhRunAsExecuteCommandPrompt(
     commandFileName = PhGetSystemDirectoryWin32Z(L"\\cmd.exe");
     commandDirectory = PhpQueryRunFileParentDirectory(elevated);
 
-    if (PhShellExecuteEx(
+    status = PhShellExecuteEx(
         WindowHandle,
         PhGetString(commandFileName),
         NULL,
@@ -1912,14 +1912,7 @@ BOOLEAN PhRunAsExecuteCommandPrompt(
         PH_SHELL_EXECUTE_DEFAULT,
         0,
         NULL
-        ))
-    {
-        status = STATUS_SUCCESS;
-    }
-    else
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
-    }
+        );
 
     PhClearReference(&commandDirectory);
     PhClearReference(&commandFileName);
@@ -1939,7 +1932,7 @@ NTSTATUS PhRunAsShellExecute(
 
     parentDirectory = PhpQueryRunFileParentDirectory(Elevated);
 
-    if (PhShellExecuteEx(
+    status = PhShellExecuteEx(
         WindowHandle,
         FileName,
         Parameters,
@@ -1948,14 +1941,7 @@ NTSTATUS PhRunAsShellExecute(
         Elevated ? PH_SHELL_EXECUTE_ADMIN : PH_SHELL_EXECUTE_DEFAULT,
         0,
         NULL
-        ))
-    {
-        status = STATUS_SUCCESS;
-    }
-    else
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
-    }
+        );
 
     PhClearReference(&parentDirectory);
 
@@ -2116,7 +2102,7 @@ NTSTATUS PhpRunFileProgram(
             FALSE
             );
 
-        if (WIN32_FROM_NTSTATUS(status) == ERROR_ELEVATION_REQUIRED)
+        if (status == STATUS_ELEVATION_REQUIRED)
         {
             status = PhRunAsShellExecute(
                 Context->WindowHandle,

@@ -1136,6 +1136,11 @@ VOID PhpFillProcessItem(
             ProcessItem->IsWow64 = basicInfo.IsWow64Process;
             ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
         }
+
+        if (NT_SUCCESS(PhGetProcessStartKey(ProcessItem->QueryHandle, &ProcessItem->ProcessStartKey)))
+        {
+            PhPrintPointer(ProcessItem->ProcessStartKeyString, (PVOID)ProcessItem->ProcessStartKey);
+        }
     }
 
     // Process information

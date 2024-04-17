@@ -240,6 +240,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"SysInfoWindowSection", L"");
     PhpAddScalableIntegerPairSetting(L"SysInfoWindowSize", L"@96|620,590");
     PhpAddIntegerSetting(L"SysInfoWindowState", L"1");
+    PhpAddIntegerSetting(L"TaskmgrWindowState", L"0");
     PhpAddIntegerSetting(L"ThinRows", L"0");
     PhpAddStringSetting(L"ThreadTreeListColumns", L"");
     PhpAddStringSetting(L"ThreadTreeListSort", L"1,2"); // 1, DescendingSortOrder

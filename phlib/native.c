@@ -4272,42 +4272,63 @@ NTSTATUS PhGetTokenProcessTrustLevelRID(
 
     if (TrustLevelString)
     {
-        PWSTR protectionTypeString = NULL;
-        PWSTR protectionLevelString = NULL;
+        static PH_STRINGREF ProtectionTypeString[] =
+        {
+            PH_STRINGREF_INIT(L"None"),
+            PH_STRINGREF_INIT(L"Full"),
+            PH_STRINGREF_INIT(L"Lite"),
+        };
+        static PH_STRINGREF ProtectionLevelString[] =
+        {
+            PH_STRINGREF_INIT(L" (None)"),
+            PH_STRINGREF_INIT(L" (WinTcb)"),
+            PH_STRINGREF_INIT(L" (Windows)"),
+            PH_STRINGREF_INIT(L" (StoreApp)"),
+            PH_STRINGREF_INIT(L" (Antimalware)"),
+            PH_STRINGREF_INIT(L" (Authenticode)"),
+        };
+        PPH_STRINGREF protectionTypeString = NULL;
+        PPH_STRINGREF protectionLevelString = NULL;
 
         switch (protectionType)
         {
+        case SECURITY_PROCESS_PROTECTION_TYPE_NONE_RID:
+            protectionTypeString = &ProtectionTypeString[0];
+            break;
         case SECURITY_PROCESS_PROTECTION_TYPE_FULL_RID:
-            protectionTypeString = L"Full";
+            protectionTypeString = &ProtectionTypeString[1];
             break;
         case SECURITY_PROCESS_PROTECTION_TYPE_LITE_RID:
-            protectionTypeString = L"Lite";
+            protectionTypeString = &ProtectionTypeString[2];
             break;
         }
 
         switch (protectionLevel)
         {
+        case SECURITY_PROCESS_PROTECTION_LEVEL_NONE_RID:
+            protectionLevelString = &ProtectionLevelString[0];
+            break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_WINTCB_RID:
-            protectionLevelString = L" (WinTcb)";
+            protectionLevelString = &ProtectionLevelString[1];
             break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_WINDOWS_RID:
-            protectionLevelString = L" (Windows)";
+            protectionLevelString = &ProtectionLevelString[2];
             break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_APP_RID:
-            protectionLevelString = L" (StoreApp)";
+            protectionLevelString = &ProtectionLevelString[3];
             break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_ANTIMALWARE_RID:
-            protectionLevelString = L" (Antimalware)";
+            protectionLevelString = &ProtectionLevelString[4];
             break;
         case SECURITY_PROCESS_PROTECTION_LEVEL_AUTHENTICODE_RID:
-            protectionLevelString = L" (Authenticode)";
+            protectionLevelString = &ProtectionLevelString[5];
             break;
         }
 
         if (protectionTypeString && protectionLevelString)
-            *TrustLevelString = PhConcatStrings2(protectionTypeString, protectionLevelString);
+            *TrustLevelString = PhConcatStringRef2(protectionTypeString, protectionLevelString);
         else
-            *TrustLevelString = PhCreateString(L"Unknown");
+            *TrustLevelString = PhCreateStringZ(L"Unknown");
     }
 
     if (TrustLevelSidString)
@@ -4614,6 +4635,31 @@ NTSTATUS PhGetFileIndexNumber(
         sizeof(FILE_INTERNAL_INFORMATION),
         FileInternalInformation
         );
+}
+
+NTSTATUS PhGetFileIsRemoteDevice(
+    _In_ HANDLE FileHandle,
+    _Out_ PBOOLEAN FileIsRemoteDevice
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK ioStatusBlock;
+    FILE_IS_REMOTE_DEVICE_INFORMATION fileRemoteInfo;
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &ioStatusBlock,
+        &fileRemoteInfo,
+        sizeof(FILE_IS_REMOTE_DEVICE_INFORMATION),
+        FileIsRemoteDeviceInformation
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileIsRemoteDevice = !!fileRemoteInfo.IsRemote;
+    }
+
+    return status;
 }
 
 NTSTATUS PhSetFileDelete(
@@ -6869,7 +6915,7 @@ NTSTATUS PhEnumKernelModules(
     )
 {
     NTSTATUS status;
-    PVOID buffer;
+    PRTL_PROCESS_MODULES buffer;
     ULONG bufferSize = 2048;
 
     buffer = PhAllocate(bufferSize);
@@ -6956,23 +7002,35 @@ PPH_STRING PhGetKernelFileName(
     VOID
     )
 {
+    NTSTATUS status;
+    UCHAR buffer[FIELD_OFFSET(RTL_PROCESS_MODULES, Modules) + sizeof(RTL_PROCESS_MODULE_INFORMATION)] = { 0 };
     PRTL_PROCESS_MODULES modules;
-    PPH_STRING fileName = NULL;
+    ULONG modulesLength;
 
-    if (!NT_SUCCESS(PhEnumKernelModules(&modules)))
+    modules = (PRTL_PROCESS_MODULES)buffer;
+    modulesLength = sizeof(buffer);
+
+    status = NtQuerySystemInformation(
+        SystemModuleInformation,
+        modules,
+        modulesLength,
+        &modulesLength
+        );
+
+    if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
+        return NULL;
+    if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
         return NULL;
 
-    if (modules->NumberOfModules >= 1)
-    {
-        fileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
-    }
-
-    PhFree(modules);
-
-    return fileName;
+    return PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
 }
 
-// Kernel filename without the SystemModuleInformation overhead (dmex)
+/**
+ * Gets the file name of the kernel image without the SystemModuleInformation and string conversion overhead.
+ *
+ * \return A pointer to a string containing the kernel image file name. You must free the string
+ * using PhDereferenceObject() when you no longer need it.
+ */
 PPH_STRING PhGetKernelFileName2(
     VOID
     )
@@ -6981,13 +7039,58 @@ PPH_STRING PhGetKernelFileName2(
     {
         static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
 
-        if (PhDoesFileExist(&kernelFileName))
-        {
-            return PhCreateString2(&kernelFileName);
-        }
+        return PhCreateString2(&kernelFileName);
     }
 
     return PhGetKernelFileName();
+}
+
+/**
+ * Gets the file name of the kernel image.
+ *
+ * \return A pointer to a string containing the kernel image file name. You must free the string
+ * using PhDereferenceObject() when you no longer need it.
+ */
+NTSTATUS PhGetKernelFileNameEx(
+    _Out_ PPH_STRING* FileName,
+    _Out_ PVOID* ImageBase,
+    _Out_ ULONG* ImageSize
+    )
+{
+    NTSTATUS status;
+    UCHAR buffer[FIELD_OFFSET(RTL_PROCESS_MODULES, Modules) + sizeof(RTL_PROCESS_MODULE_INFORMATION)] = { 0 };
+    PRTL_PROCESS_MODULES modules;
+    ULONG modulesLength;
+
+    modules = (PRTL_PROCESS_MODULES)buffer;
+    modulesLength = sizeof(buffer);
+
+    status = NtQuerySystemInformation(
+        SystemModuleInformation,
+        modules,
+        modulesLength,
+        &modulesLength
+        );
+
+    if (status != STATUS_SUCCESS && status != STATUS_INFO_LENGTH_MISMATCH)
+        return status;
+    if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
+        return STATUS_UNSUCCESSFUL;
+
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
+        *FileName = PhCreateString2(&kernelFileName);
+    }
+    else
+    {
+        *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
+    }
+
+    *ImageBase = modules->Modules[0].ImageBase;
+    *ImageSize = modules->Modules[0].ImageSize;
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -9061,6 +9164,116 @@ NTSTATUS PhGetVolumePathNamesForVolumeName(
     }
 
     PhFree(inputBuffer);
+
+    return status;
+}
+
+/**
+ * Flush file caches on all volumes.
+ *
+ * \return Successful or errant status.
+ */
+NTSTATUS PhFlushVolumeCache(
+    VOID
+    )
+{
+    NTSTATUS status;
+    HANDLE deviceHandle;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    PMOUNTMGR_MOUNT_POINTS objectMountPoints;
+
+    RtlInitUnicodeString(&objectName, MOUNTMGR_DEVICE_NAME);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &deviceHandle,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetVolumeMountPoints(
+        deviceHandle,
+        &objectMountPoints
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    for (ULONG i = 0; i < objectMountPoints->NumberOfMountPoints; i++)
+    {
+        PMOUNTMGR_MOUNT_POINT mountPoint = &objectMountPoints->MountPoints[i];
+        objectName.Length = mountPoint->SymbolicLinkNameLength;
+        objectName.MaximumLength = mountPoint->SymbolicLinkNameLength + sizeof(UNICODE_NULL);
+        objectName.Buffer = PTR_ADD_OFFSET(objectMountPoints, mountPoint->SymbolicLinkNameOffset);
+
+        if (MOUNTMGR_IS_VOLUME_NAME(&objectName)) // \\??\\Volume{1111-2222}
+        {
+            HANDLE volumeHandle;
+
+            InitializeObjectAttributes(
+                &objectAttributes,
+                &objectName,
+                OBJ_CASE_INSENSITIVE,
+                NULL,
+                NULL
+                );
+
+            status = NtCreateFile(
+                &volumeHandle,
+                FILE_WRITE_DATA | SYNCHRONIZE,
+                &objectAttributes,
+                &ioStatusBlock,
+                NULL,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                NULL,
+                0
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                //if (WindowsVersion >= WINDOWS_8)
+                //{
+                //    status = NtFlushBuffersFileEx(volumeHandle, 0, 0, 0, &ioStatusBlock);
+                //}
+                //else
+                {
+                    status = NtFlushBuffersFile(volumeHandle, &ioStatusBlock);
+                }
+
+                NtClose(volumeHandle);
+            }
+
+            if (!NT_SUCCESS(status)) // HACK
+                goto CleanupExit;
+        }
+    }
+
+    PhFree(objectMountPoints);
+
+CleanupExit:
+    NtClose(deviceHandle);
 
     return status;
 }
@@ -14757,6 +14970,8 @@ NTSTATUS PhGetProcessSequenceNumber(
     if (KphLevel() >= KphLevelLow)
     {
         // The driver exposes this information earlier than ProcessSequenceNumber was introduced.
+        // Where not available it synthesizes it for informer messages, for consistency use it if
+        // it's enabled.
         status = KphQueryInformationProcess(
             ProcessHandle,
             KphProcessSequenceNumber,
@@ -14777,6 +14992,28 @@ NTSTATUS PhGetProcessSequenceNumber(
             NULL
             );
 
+        if (status == STATUS_INVALID_INFO_CLASS)
+        {
+            PROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
+
+            // ProcessTelemetryIdInformation exposes the process sequence number (and process start
+            // key) earlier than ProcessSequenceNumber was introduced.
+            status = NtQueryInformationProcess(
+                ProcessHandle,
+                ProcessTelemetryIdInformation,
+                &telemetryInfo,
+                sizeof(PROCESS_TELEMETRY_ID_INFORMATION),
+                NULL
+                );
+
+            // We don't care about the extra information that ProcessTelemetryIdInformation provides.
+            // The sequence number will have been filled in regardless.
+            if (status == STATUS_BUFFER_OVERFLOW)
+                status = STATUS_SUCCESS;
+
+            sequenceNumber = telemetryInfo.ProcessSequenceNumber;
+        }
+
         if (NT_SUCCESS(status))
         {
             *SequenceNumber = sequenceNumber;
@@ -14796,6 +15033,8 @@ NTSTATUS PhGetProcessStartKey(
     if (KphLevel() >= KphLevelLow)
     {
         // The driver exposes this information earlier than ProcessSequenceNumber was introduced.
+        // Where not available it synthesizes it for informer messages, for consistency use it if
+        // it's enabled.
         status = KphQueryInformationProcess(
             ProcessHandle,
             KphProcessStartKey,
@@ -14879,6 +15118,36 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     else
     {
         PhFree(ldrInitBlock);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessTelemetryAppSessionGuid(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PGUID TelemetrySessionGuid
+    )
+{
+    NTSTATUS status;
+    PROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
+    ULONG returnLength;
+
+    memset(&telemetryInfo, 0, sizeof(PROCESS_TELEMETRY_ID_INFORMATION));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessTelemetryIdInformation,
+        &telemetryInfo,
+        sizeof(PROCESS_TELEMETRY_ID_INFORMATION),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status) || status == STATUS_BUFFER_OVERFLOW && returnLength)
+    {
+        TelemetrySessionGuid->Data1 = telemetryInfo.ProcessId;
+        TelemetrySessionGuid->Data2 = (USHORT)telemetryInfo.SessionId;
+        TelemetrySessionGuid->Data3 = (USHORT)telemetryInfo.BootId;
+        memcpy(TelemetrySessionGuid->Data4, &telemetryInfo.CreateTime, sizeof(telemetryInfo.CreateTime));
     }
 
     return status;

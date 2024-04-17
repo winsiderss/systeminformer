@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2023
+ *     dmex    2021-2024
  *
  */
 
@@ -106,8 +106,9 @@ VOID RaplDevicesSaveList(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_RAPL_LIST, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 BOOLEAN FindRaplDeviceEntry(
@@ -707,6 +708,7 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
     case WM_INITDIALOG:
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_RAPLDEVICE_LISTVIEW);
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -763,9 +765,9 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
                 if (!PhTryAcquireReleaseQueuedLockExclusive(&RaplDevicesListLock))
                     break;
 
-                if (listView->uChanged & LVIF_STATE)
+                if (FlagOn(listView->uChanged, LVIF_STATE))
                 {
-                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+                    switch (FlagOn(listView->uNewState, LVIS_STATEIMAGEMASK))
                     {
                     case INDEXTOSTATEIMAGEMASK(2): // checked
                         {

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2023
+ *     dmex    2021-2024
  *
  */
 
@@ -678,7 +678,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindGraphicsDevices(context);
@@ -717,7 +717,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDC_SHOW_HIDDEN_ADAPTERS:
+            case IDC_SHOW_HIDDEN_DEVICES:
                 {
                     context->UseAlternateMethod = !context->UseAlternateMethod;
 
@@ -744,9 +744,9 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                 if (!PhTryAcquireReleaseQueuedLockExclusive(&GraphicsDevicesListLock))
                     break;
 
-                if (listView->uChanged & LVIF_STATE)
+                if (FlagOn(listView->uChanged, LVIF_STATE))
                 {
-                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+                    switch (FlagOn(listView->uNewState, LVIS_STATEIMAGEMASK))
                     {
                     case INDEXTOSTATEIMAGEMASK(2): // checked
                         {

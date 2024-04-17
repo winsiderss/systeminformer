@@ -1202,7 +1202,7 @@ VOID PhWritePhTextHeader(
     PhDereferenceObject(timeString);
 }
 
-BOOLEAN PhShellProcessHacker(
+NTSTATUS PhShellProcessHacker(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR Parameters,
     _In_ ULONG ShowWindowType,
@@ -1241,7 +1241,7 @@ VOID PhpAppendCommandLineArgument(
     PhAppendCharStringBuilder(StringBuilder, L'\"');
 }
 
-BOOLEAN PhShellProcessHackerEx(
+NTSTATUS PhShellProcessHackerEx(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
@@ -1252,7 +1252,7 @@ BOOLEAN PhShellProcessHackerEx(
     _Out_opt_ PHANDLE ProcessHandle
     )
 {
-    BOOLEAN result;
+    NTSTATUS status;
     PPH_STRING applicationFileName;
     PH_STRING_BUILDER sb;
     PWSTR parameters;
@@ -1349,7 +1349,7 @@ BOOLEAN PhShellProcessHackerEx(
         parameters = Parameters;
     }
 
-    result = PhShellExecuteEx(
+    status = PhShellExecuteEx(
         WindowHandle,
         FileName ? FileName : PhGetString(applicationFileName),
         parameters,
@@ -1365,7 +1365,7 @@ BOOLEAN PhShellProcessHackerEx(
 
     PhDereferenceObject(applicationFileName);
 
-    return result;
+    return status;
 }
 
 BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
@@ -2137,16 +2137,38 @@ VOID PhShellOpenKey(
 
     if (PhGetOwnTokenAttributes().Elevated)
     {
-        if (!PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, NULL, SW_SHOW, 0, 0, NULL))
+        status = PhShellExecuteEx(
+            WindowHandle,
+            regeditFileName->Buffer,
+            NULL,
+            NULL,
+            SW_SHOW,
+            0,
+            0,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
         {
-            PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
+            PhShowStatus(WindowHandle, L"Unable to execute the program.", status, 0);
         }
     }
     else
     {
-        if (!PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, NULL, SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+        status = PhShellExecuteEx(
+            WindowHandle,
+            regeditFileName->Buffer,
+            NULL,
+            NULL,
+            SW_SHOW,
+            PH_SHELL_EXECUTE_ADMIN,
+            0,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
         {
-            PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
+            PhShowStatus(WindowHandle, L"Unable to execute the program.", status, 0);
         }
     }
 

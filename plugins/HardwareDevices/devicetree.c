@@ -545,6 +545,27 @@ VOID DeviceNodeShowProperties(
         DeviceShowProperties(ParentWindowHandle, deviceItem);
 }
 
+VOID DeviceTreeGetSelectedDeviceItems(
+    _Out_ PPH_DEVICE_ITEM** Devices,
+    _Out_ PULONG NumberOfDevices
+    )
+{
+    PH_ARRAY array;
+
+    PhInitializeArray(&array, sizeof(PVOID), 2);
+
+    for (ULONG i = 0; i < DeviceTree->Nodes->Count; i++)
+    {
+        PDEVICE_NODE node = DeviceTree->Nodes->Items[i];
+
+        if (node->Node.Visible && node->Node.Selected)
+            PhAddItemArray(&array, &node->DeviceItem);
+    }
+
+    *NumberOfDevices = (ULONG)array.Count;
+    *Devices = PhFinalArrayItems(&array);
+}
+
 BOOLEAN NTAPI DeviceTreeCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -677,6 +698,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewContextMenu:
         {
             PDEVICE_TREE activeTree;
+            PPH_DEVICE_ITEM* devices;
+            ULONG numberOfDevices;
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
             PPH_EMENU menu;
             PPH_EMENU subMenu;
@@ -700,6 +723,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
             // We muse reference the active tree here since a new tree could be
             // published on the UI thread after we show the context menu.
             activeTree = PhReferenceObject(DeviceTree);
+
+            DeviceTreeGetSelectedDeviceItems(&devices, &numberOfDevices);
 
             node = (PDEVICE_NODE)contextMenuEvent->Node;
 
@@ -749,29 +774,25 @@ BOOLEAN NTAPI DeviceTreeCallback(
             if (ShowDisabledDeviceInterfaces)
                 showDisabledDeviceInterfaces->Flags |= PH_EMENU_CHECKED;
 
-            if (!node)
+            if (!node || numberOfDevices != 1)
             {
                 PhSetDisabledEMenuItem(gotoServiceItem);
                 PhSetDisabledEMenuItem(subMenu);
                 PhSetDisabledEMenuItem(properties);
             }
-
-            if (gotoServiceItem && node)
+            else
             {
                 PPH_STRING serviceName = PhGetDeviceProperty(node->DeviceItem, PhDevicePropertyService)->AsString;
-
                 if (PhIsNullOrEmptyString(serviceName))
-                {
                     PhSetDisabledEMenuItem(gotoServiceItem);
-                }
             }
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
-                enable->Flags |= PH_EMENU_DISABLED;
-                disable->Flags |= PH_EMENU_DISABLED;
-                restart->Flags |= PH_EMENU_DISABLED;
-                uninstall->Flags |= PH_EMENU_DISABLED;
+                PhSetDisabledEMenuItem(enable);
+                PhSetDisabledEMenuItem(disable);
+                PhSetDisabledEMenuItem(restart);
+                PhSetDisabledEMenuItem(uninstall);
             }
 
             selectedItem = PhShowEMenu(
@@ -794,16 +815,31 @@ BOOLEAN NTAPI DeviceTreeCallback(
                     {
                     case 0:
                     case 1:
-                        if (node->DeviceItem->InstanceId)
-                            republish = HardwareDeviceEnableDisable(hwnd, node->DeviceItem->InstanceId, selectedItem->Id == 0);
+                        {
+                            for (ULONG i = 0; i < numberOfDevices; i++)
+                            {
+                                if (devices[i]->InstanceId)
+                                    republish |= HardwareDeviceEnableDisable(hwnd, devices[i]->InstanceId, selectedItem->Id == 0);
+                            }
+                        }
                         break;
                     case 2:
-                        if (node->DeviceItem->InstanceId)
-                            republish = HardwareDeviceRestart(hwnd, node->DeviceItem->InstanceId);
+                        {
+                            for (ULONG i = 0; i < numberOfDevices; i++)
+                            {
+                                if (devices[i]->InstanceId)
+                                    republish |= HardwareDeviceRestart(hwnd, devices[i]->InstanceId);
+                            }
+                        }
                         break;
                     case 3:
-                        if (node->DeviceItem->InstanceId)
-                            republish = HardwareDeviceUninstall(hwnd, node->DeviceItem->InstanceId);
+                        {
+                            for (ULONG i = 0; i < numberOfDevices; i++)
+                            {
+                                if (devices[i]->InstanceId)
+                                    republish |= HardwareDeviceUninstall(hwnd, devices[i]->InstanceId);
+                            }
+                        }
                         break;
                     case HW_KEY_INDEX_HARDWARE:
                     case HW_KEY_INDEX_SOFTWARE:
@@ -894,6 +930,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
                     PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
             }
 
+            PhFree(devices);
             PhDereferenceObject(activeTree);
         }
         return TRUE;
@@ -1521,7 +1558,6 @@ VOID InitializeDevicesTab(
     )
 {
     PH_MAIN_TAB_PAGE page;
-    PPH_PLUGIN toolStatusPlugin;
 
     DeviceTreeType = PhCreateObjectType(L"DevicesTree", 0, DeviceTreeDeleteProcedure);
 
@@ -1549,21 +1585,15 @@ VOID InitializeDevicesTab(
     RtlZeroMemory(&page, sizeof(PH_MAIN_TAB_PAGE));
     PhInitializeStringRef(&page.Name, L"Devices");
     page.Callback = DevicesTabPageCallback;
-
     DevicesAddedTabPage = PhPluginCreateTabPage(&page);
 
-    if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
+    if (ToolStatusInterface = PhGetPluginInterfaceZ(TOOLSTATUS_PLUGIN_NAME, TOOLSTATUS_INTERFACE_VERSION))
     {
-        ToolStatusInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
+        PTOOLSTATUS_TAB_INFO tabInfo;
 
-        if (ToolStatusInterface->Version <= TOOLSTATUS_INTERFACE_VERSION)
-        {
-            PTOOLSTATUS_TAB_INFO tabInfo;
-
-            tabInfo = ToolStatusInterface->RegisterTabInfo(DevicesAddedTabPage->Index);
-            tabInfo->BannerText = L"Search Devices";
-            tabInfo->ActivateContent = ToolStatusActivateContent;
-            tabInfo->GetTreeNewHandle = ToolStatusGetTreeNewHandle;
-        }
+        tabInfo = ToolStatusInterface->RegisterTabInfo(DevicesAddedTabPage->Index);
+        tabInfo->BannerText = L"Search Devices";
+        tabInfo->ActivateContent = ToolStatusActivateContent;
+        tabInfo->GetTreeNewHandle = ToolStatusGetTreeNewHandle;
     }
 }
