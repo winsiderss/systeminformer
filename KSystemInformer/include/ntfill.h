@@ -1513,6 +1513,28 @@ CI_VALIDATE_FILE_OBJECT(
     );
 typedef CI_VALIDATE_FILE_OBJECT* PCI_VALIDATE_FILE_OBJECT;
 
+// rev
+typedef _Function_class_(CI_ALLOCATE_ROUTINE)
+PVOID
+NTAPI
+CI_ALLOCATE_ROUTINE(
+    _In_ ULONG NumberOfBytes
+    );
+typedef CI_ALLOCATE_ROUTINE* PCI_ALLOCATE_ROUTINE;
+
+// rev
+// CiGetCertPublisherName
+typedef
+_Function_class_(CI_GET_CERT_PUBLISHER_NAME)
+NTSTATUS
+NTAPI
+CI_GET_CERT_PUBLISHER_NAME(
+    _In_ PCRYPT_DER_BLOB Certificate, // MINCRYPT_POLICY_INFO.ChainInfo.ChainElements.Certificate
+    _In_ PCI_ALLOCATE_ROUTINE AllocateRoutine,
+    _Out_ PUNICODE_STRING PublisherName
+    );
+typedef CI_GET_CERT_PUBLISHER_NAME* PCI_GET_CERT_PUBLISHER_NAME;
+
 // alpc
 
 extern POBJECT_TYPE *LpcPortObjectType;
