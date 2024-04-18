@@ -495,6 +495,8 @@ extern PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2 KphDynPsSetCreateProcessNotifyR
 extern PMM_PROTECT_DRIVER_SECTION KphDynMmProtectDriverSection;
 extern PPS_GET_PROCESS_SEQUENCE_NUMBER KphDynPsGetProcessSequenceNumber;
 extern PPS_GET_PROCESS_START_KEY KphDynPsGetProcessStartKey;
+extern PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject;
+extern PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDynamicImport(
