@@ -497,6 +497,7 @@ extern PPS_GET_PROCESS_SEQUENCE_NUMBER KphDynPsGetProcessSequenceNumber;
 extern PPS_GET_PROCESS_START_KEY KphDynPsGetProcessStartKey;
 extern PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject;
 extern PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo;
+extern PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDynamicImport(
