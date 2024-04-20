@@ -61,6 +61,15 @@ namespace CustomBuildTool
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
 
+            var buildDef = Win32.GetEnvironmentVariable("%BUILD_DEFINITIONNAME%");
+            if (!string.IsNullOrWhiteSpace(buildDef))
+            {
+                if (buildDef.Contains("canary", StringComparison.OrdinalIgnoreCase))
+                {
+                    Build.BuildCanary = true;
+                }
+            }
+
             //{
             //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
             //
