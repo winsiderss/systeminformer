@@ -22,6 +22,7 @@ PPS_GET_PROCESS_SEQUENCE_NUMBER KphDynPsGetProcessSequenceNumber = NULL;
 PPS_GET_PROCESS_START_KEY KphDynPsGetProcessStartKey = NULL;
 PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject = NULL;
 PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo = NULL;
+PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
@@ -43,6 +44,7 @@ VOID KphDynamicImport(
     KphDynPsGetProcessStartKey = (PPS_GET_PROCESS_START_KEY)KphGetSystemRoutineAddress(L"PsGetProcessStartKey");
     KphDynCiValidateFileObject = (PCI_VALIDATE_FILE_OBJECT)KphGetRoutineAddress(L"ci.dll", "CiValidateFileObject");
     KphDynCiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
+    KphDynLxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
 }
 
 /**
