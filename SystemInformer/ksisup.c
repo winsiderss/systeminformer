@@ -155,6 +155,7 @@ VOID PhpShowKsiMessage(
     _In_ va_list ArgPtr
     )
 {
+    PPH_STRING versionString;
     PPH_STRING kernelVersion;
     PPH_STRING errorMessage;
     PH_STRING_BUILDER stringBuilder;
@@ -164,8 +165,9 @@ VOID PhpShowKsiMessage(
     if (!Force && !PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
         return;
 
-    errorMessage = NULL;
+    versionString = PhGetApplicationVersionString(FALSE);
     kernelVersion = PhpGetKernelVersionString();
+    errorMessage = NULL;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
@@ -221,23 +223,8 @@ VOID PhpShowKsiMessage(
     PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(kernelVersion, L"Unknown"));
     PhAppendStringBuilder2(&stringBuilder, L"\r\n");
 
-#if (PHAPP_VERSION_REVISION != 0)
-    PhAppendFormatStringBuilder(
-        &stringBuilder,
-        L"System Informer %lu.%lu.%lu (%hs)\r\n",
-        PHAPP_VERSION_MAJOR,
-        PHAPP_VERSION_MINOR,
-        PHAPP_VERSION_REVISION,
-        PHAPP_VERSION_COMMIT
-        );
-#else
-    PhAppendFormatStringBuilder(
-        &stringBuilder,
-        L"System Informer %lu.%lu\r\n",
-        PHAPP_VERSION_MAJOR,
-        PHAPP_VERSION_MINOR
-        );
-#endif
+    PhAppendStringBuilder(&stringBuilder, &versionString->sr);
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
 
     processState = KphGetCurrentProcessState();
     if (processState != 0)
@@ -282,11 +269,9 @@ VOID PhpShowKsiMessage(
         }
     }
 
-    if (errorMessage)
-        PhDereferenceObject(errorMessage);
-
-    if (kernelVersion)
-        PhDereferenceObject(kernelVersion);
+    PhClearReference(&errorMessage);
+    PhClearReference(&kernelVersion);
+    PhDereferenceObject(versionString);
 }
 
 VOID PhShowKsiMessageEx(
