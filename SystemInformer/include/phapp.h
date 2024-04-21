@@ -311,6 +311,10 @@ PPH_STRING PhGetDiagnosticsString(
     VOID
     );
 
+PPH_STRING PhGetApplicationVersionString(
+    _In_ BOOLEAN LinkToCommit
+    );
+
 // affinity
 
 VOID PhShowProcessAffinityDialog(
