@@ -39,7 +39,6 @@ static BOOLEAN KphpCidTrackingInitialized = FALSE;
 static KPH_CID_TABLE KphpCidTable;
 static volatile LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
-static BOOLEAN KphpLsassIsKnown = FALSE;
 static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
 static volatile ULONG64 KphpProcessSequence = 0;
 
@@ -552,18 +551,6 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         KphpSystemProcessContext = process;
     }
 
-    if (!KphpLsassIsKnown)
-    {
-        BOOLEAN isLsass;
-
-        status = KphProcessIsLsass(process->EProcess, &isLsass);
-        if (NT_SUCCESS(status) && isLsass)
-        {
-            process->IsLsass = TRUE;
-            KphpLsassIsKnown = TRUE;
-        }
-    }
-
     status = STATUS_SUCCESS;
 
 Exit:
@@ -594,11 +581,6 @@ VOID KSIAPI KphpDeleteProcessContext(
     process = Object;
 
     KphAtomicAssignObjectReference(&process->SessionToken.Atomic, NULL);
-
-    if (process->IsLsass)
-    {
-        KphpLsassIsKnown = FALSE;
-    }
 
     if (process->Protected)
     {
@@ -2290,38 +2272,6 @@ NTSTATUS KphQueryInformationProcessContext(
 
     switch (InformationClass)
     {
-        case KphProcessContextIsLsass:
-        {
-            BOOLEAN isLsass;
-
-            returnLength = sizeof(BOOLEAN);
-
-            if (!Information || (InformationLength < sizeof(BOOLEAN)))
-            {
-                status = STATUS_INFO_LENGTH_MISMATCH;
-                goto Exit;
-            }
-
-            if (!KphpLsassIsKnown)
-            {
-                status = KphProcessIsLsass(Process->EProcess, &isLsass);
-                if (!NT_SUCCESS(status))
-                {
-                    goto Exit;
-                }
-
-                if (isLsass)
-                {
-                    Process->IsLsass = TRUE;
-                    KphpLsassIsKnown = TRUE;
-                }
-            }
-
-            *(PBOOLEAN)Information = (Process->IsLsass ? TRUE : FALSE);
-
-            status = STATUS_SUCCESS;
-            break;
-        }
         case KphProcessContextWSLProcessId:
         {
             if (Process->SubsystemType != SubsystemInformationTypeWSL)

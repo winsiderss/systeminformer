@@ -194,16 +194,12 @@ NTSTATUS KphpShouldSuppressObjectProtections(
         return STATUS_SUCCESS;
     }
 
-    status = KphQueryInformationProcessContext(Actor,
-                                               KphProcessContextIsLsass,
-                                               &isLsass,
-                                               sizeof(isLsass),
-                                               NULL);
+    status = KphProcessIsLsass(Actor->EProcess, &isLsass);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "KphQueryInformationProcessContext failed: %!STATUS!",
+                      "KphProcessIsLsass failed: %!STATUS!",
                       status);
 
         return status;

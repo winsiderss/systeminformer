@@ -1056,13 +1056,6 @@ BOOLEAN KphSinglePrivilegeCheck(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphProcessIsLsass(
-    _In_ PEPROCESS Process,
-    _Out_ PBOOLEAN IsLsass
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphGetFileVersion(
     _In_ PCUNICODE_STRING FileName,
     _Out_ PKPH_FILE_VERSION Version
@@ -1184,6 +1177,20 @@ PVOID KphGetThreadSubProcessTagEx(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 PVOID KphGetThreadSubProcessTag(
     _In_ PETHREAD Thread
+    );
+
+// lsa
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphProcessIsLsass(
+    _In_ PEPROCESS Process,
+    _Out_ PBOOLEAN IsLsass
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInvalidateLsass(
+    _In_ HANDLE ProcessId
     );
 
 // vm
@@ -1591,11 +1598,10 @@ typedef struct _KPH_PROCESS_CONTEXT
             ULONG VerifiedProcess : 1;
             ULONG SecurelyCreated : 1;
             ULONG Protected : 1;
-            ULONG IsLsass : 1;
             ULONG IsWow64 : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG AllocatedImageName : 1;
-            ULONG Reserved : 23;
+            ULONG Reserved : 24;
         };
     };
 
@@ -1638,7 +1644,6 @@ extern PKPH_OBJECT_TYPE KphProcessContextType;
 
 typedef enum _KPH_PROCESS_CONTEXT_INFORMATION_CLASS
 {
-    KphProcessContextIsLsass,      // q: BOOLEAN
     KphProcessContextWSLProcessId, // q: ULONG
 } KPH_PROCESS_CONTEXT_INFORMATION_CLASS, *PKPH_PROCESS_CONTEXT_INFORMATION_CLASS;
 
