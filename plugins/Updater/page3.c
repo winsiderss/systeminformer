@@ -69,7 +69,32 @@ VOID ShowAvailableDialog(
     config.pfCallback = ShowAvailableCallbackProc;
 
     config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = L"A newer build of System Informer is available.";
+    if (Context->SwitchingChannel)
+    {
+        switch (Context->Channel)
+        {
+        case PhReleaseChannel:
+            config.pszMainInstruction = L"Download the release channel?";
+            break;
+        //case PhPreviewChannel:
+        //    config.pszMainInstruction = L"Download the preview channel?";
+        //    break;
+        case PhCanaryChannel:
+            config.pszMainInstruction = L"Download the canary channel?";
+            break;
+        //case PhDeveloperChannel:
+        //    config.pszMainInstruction = L"Download the developer channel?";
+        //    break;
+        default:
+            config.pszMainInstruction = L"Download the channel?";
+            break;
+        }
+    }
+    else
+    {
+        config.pszMainInstruction = L"A newer build of System Informer is available.";
+    }
+
     config.pszContent = PhaFormatString(L"Version: %s\r\nDownload size: %s\r\n\r\n<A HREF=\"changelog.txt\">View changelog</A>",
         PhGetStringOrEmpty(Context->Version),
         PhGetStringOrEmpty(Context->SetupFileLength)
