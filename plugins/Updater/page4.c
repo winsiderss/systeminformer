@@ -67,7 +67,36 @@ VOID ShowProgressDialog(
     config.pfCallback = ShowProgressCallbackProc;
 
     config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = PhaFormatString(L"Downloading update %s...", PhGetStringOrEmpty(Context->Version))->Buffer;
+    if (Context->SwitchingChannel)
+    {
+        PCWSTR channelName;
+
+        switch (Context->Channel)
+        {
+        case PhReleaseChannel:
+            channelName = L" release";
+            break;
+        //case PhPreviewChannel:
+        //    channelName = L" release";
+        //    break;
+        case PhCanaryChannel:
+            channelName = L" canary";
+            break;
+        //case PhDeveloperChannel:
+        //    channelName = L" developer";
+        //    break;
+        default:
+            channelName = L"";
+            break;
+        }
+
+        config.pszMainInstruction = PhaFormatString(L"Downloading%s channel %s...", channelName, PhGetStringOrEmpty(Context->Version))->Buffer;
+    }
+    else
+    {
+        config.pszMainInstruction = PhaFormatString(L"Downloading update %s...", PhGetStringOrEmpty(Context->Version))->Buffer;
+    }
+
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);

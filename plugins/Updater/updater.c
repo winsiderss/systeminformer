@@ -380,7 +380,8 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
-    Context->Channel = PhGetIntegerSetting(L"ReleaseChannel");
+    if (!Context->SwitchingChannel)
+        Context->Channel = PhGetIntegerSetting(L"ReleaseChannel");
 
     switch (Context->Channel)
     {
@@ -599,6 +600,11 @@ NTSTATUS UpdateCheckThread(
         goto CleanupExit;
     }
 
+    if (context->SwitchingChannel)
+    {
+        // Switching channels, force the update.
+        PostMessage(context->DialogHandle, PH_SHOWUPDATE, 0, 0);
+    }
     if (context->CurrentVersion == context->LatestVersion)
     {
         // User is running the latest version
@@ -1192,8 +1198,6 @@ VOID ShowStartupUpdateDialog(
     PhInitializeAutoPool(&autoPool);
 
     context = CreateUpdateContext(TRUE);
-
-    context->Channel = PhGetIntegerSetting(L"ReleaseChannel");
 
     jsonString = PhGetStringSetting(SETTING_NAME_UPDATE_DATA);
 

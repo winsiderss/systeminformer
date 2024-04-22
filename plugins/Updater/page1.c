@@ -11,9 +11,14 @@
 
 #include "updater.h"
 
-static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+static TASKDIALOG_BUTTON UpdateTaskDialogButtonArray[] =
 {
     { IDOK, L"Check" }
+};
+
+static TASKDIALOG_BUTTON SwitchTaskDialogButtonArray[] =
+{
+    { IDOK, L"Yes" }
 };
 
 HRESULT CALLBACK CheckForUpdatesCallbackProc(
@@ -57,15 +62,51 @@ VOID ShowCheckForUpdatesDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
-    config.pButtons = TaskDialogButtonArray;
-    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
     config.pfCallback = CheckForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = L"Check for an updated System Informer release?";
-    //config.pszContent = L"The updater will check for an updated System Informer release which then can be optionally downloaded and installed.\r\n\r\nClick Check to continue.";
-    config.pszContent = L"Click Check to continue.\r\n";
+    if (Context->SwitchingChannel)
+    {
+        config.pButtons = SwitchTaskDialogButtonArray;
+        config.cButtons = RTL_NUMBER_OF(SwitchTaskDialogButtonArray);
+
+        switch (Context->Channel)
+        {
+        case PhReleaseChannel:
+            config.pszMainInstruction = L"Switch to the System Informer release channel?";
+            break;
+        //case PhPreviewChannel:
+        //    config.pszMainInstruction = L"Switch to the System Informer preview channel?";
+        //    break;
+        case PhCanaryChannel:
+            config.pszMainInstruction = L"Switch to the System Informer canary channel?";
+            break;
+        //case PhDeveloperChannel:
+        //    config.pszMainInstruction = L"Switch to the System Informer developer channel?";
+        //    break;
+        default:
+            config.pszMainInstruction = L"Switch the System Informer update channel?";
+            break;
+        }
+
+        //if (Context->Channel < (PH_RELEASE_CHANNEL)PhGetIntegerSetting(L"ReleaseChannel"))
+        //{
+        //    config.pszContent = L"Downgrading the channel might cause instability.\r\n\r\nClick Yes to continue.\r\n";
+        //}
+        //else
+        {
+            config.pszContent = L"Click Yes to continue.\r\n";
+        }
+    }
+    else
+    {
+        config.pButtons = UpdateTaskDialogButtonArray;
+        config.cButtons = RTL_NUMBER_OF(UpdateTaskDialogButtonArray);
+        config.pszMainInstruction = L"Check for an updated System Informer release?";
+        config.pszContent = L"Click Check to continue.\r\n";
+    }
+
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

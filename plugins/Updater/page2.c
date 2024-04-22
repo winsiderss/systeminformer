@@ -63,7 +63,32 @@ VOID ShowCheckingForUpdatesDialog(
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = L"Checking for an updated release...";
+
+    if (Context->SwitchingChannel)
+    {
+        switch (Context->Channel)
+        {
+        case PhReleaseChannel:
+            config.pszMainInstruction = L"Checking the release channel...";
+            break;
+        //case PhPreviewChannel:
+        //    config.pszMainInstruction = L"Checking the preview channel...";
+        //    break;
+        case PhCanaryChannel:
+            config.pszMainInstruction = L"Checking the canary channel...";
+            break;
+        //case PhDeveloperChannel:
+        //    config.pszMainInstruction = L"Checking the developer channel...";
+        //    break;
+        default:
+            config.pszMainInstruction = L"Checking the channel...";
+            break;
+        }
+    }
+    else
+    {
+        config.pszMainInstruction = L"Checking for an updated release...";
+    }
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

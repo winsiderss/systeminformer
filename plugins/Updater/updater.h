@@ -23,13 +23,19 @@
 
 #include "resource.h"
 
-#define UPDATE_MENUITEM 1001
-#define PH_SHOWDIALOG (WM_APP + 501)
-#define PH_SHOWLATEST (WM_APP + 502)
-#define PH_SHOWNEWEST (WM_APP + 503)
-#define PH_SHOWUPDATE (WM_APP + 504)
+#define UPDATE_MENUITEM_UPDATE  1001
+#define UPDATE_MENUITEM_SWITCH  1002
+#define UPDATE_SWITCH_RELEASE   1003
+#define UPDATE_SWITCH_PREVIEW   1004
+#define UPDATE_SWITCH_CANARY    1005
+#define UPDATE_SWITCH_DEVELOPER 1006
+
+#define PH_SHOWDIALOG  (WM_APP + 501)
+#define PH_SHOWLATEST  (WM_APP + 502)
+#define PH_SHOWNEWEST  (WM_APP + 503)
+#define PH_SHOWUPDATE  (WM_APP + 504)
 #define PH_SHOWINSTALL (WM_APP + 505)
-#define PH_SHOWERROR (WM_APP + 506)
+#define PH_SHOWERROR   (WM_APP + 506)
 
 #define PLUGIN_NAME L"ProcessHacker.UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
@@ -98,6 +104,7 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING SetupFileSignature;
     PPH_STRING CommitHash;
     PH_RELEASE_CHANNEL Channel;
+    BOOLEAN SwitchingChannel;
 
     // Timer support
     LONG64 ProgressTotal;
@@ -182,6 +189,10 @@ BOOLEAN UpdateCheckDirectoryElevationRequired(
 
 VOID ShowUpdateDialog(
     _In_opt_ PPH_UPDATER_CONTEXT Context
+    );
+
+PPH_UPDATER_CONTEXT CreateUpdateContext(
+    _In_ BOOLEAN StartupCheck
     );
 
 VOID StartInitialCheck(
