@@ -605,7 +605,7 @@ NTSTATUS UpdateCheckThread(
         // Switching channels, force the update.
         PostMessage(context->DialogHandle, PH_SHOWUPDATE, 0, 0);
     }
-    if (context->CurrentVersion == context->LatestVersion)
+    else if (context->CurrentVersion == context->LatestVersion)
     {
         // User is running the latest version
         PostMessage(context->DialogHandle, PH_SHOWLATEST, 0, 0);
