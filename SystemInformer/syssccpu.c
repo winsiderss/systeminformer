@@ -1016,6 +1016,7 @@ VOID PhSipNotifyCpuGraph(
                         FLOAT cpuKernel;
                         FLOAT cpuUser;
                         PPH_STRINGREF cpuType;
+                        UCHAR timeStatisticsPosition;
                         PH_FORMAT format[18];
 
                         cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], getTooltipText->Index);
@@ -1082,10 +1083,11 @@ VOID PhSipNotifyCpuGraph(
                             if (PhIsCoreParked(Index))
                             {
                                 PhInitFormatS(&format[16], L"Parked\n");
-                                PhInitFormatSR(&format[17], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-                            } else
+                                timeStatisticsPosition = 17;
+                            }
+                            else
                             {
-                                PhInitFormatSR(&format[16], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                                timeStatisticsPosition = 16;
                             }
                             
                         }
@@ -1096,15 +1098,19 @@ VOID PhSipNotifyCpuGraph(
                             if (PhIsCoreParked(Index))
                             {
                                 PhInitFormatS(&format[14], L"Parked\n");
-                                PhInitFormatSR(&format[15], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                                timeStatisticsPosition = 15;
                             }
                             else
                             {
-                                PhInitFormatSR(&format[14], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                                timeStatisticsPosition = 14;
                             }
                         }
 
-                        PhMoveReference(&CpusGraphState[Index].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        PhInitFormatSR(&format[timeStatisticsPosition],
+                                       PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&CpusGraphState[Index].TooltipText,
+                                        PhFormat(format, timeStatisticsPosition + 1, 0));
                     }
 
                     getTooltipText->Text = CpusGraphState[Index].TooltipText->sr;
