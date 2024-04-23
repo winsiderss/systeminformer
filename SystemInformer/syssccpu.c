@@ -1016,7 +1016,7 @@ VOID PhSipNotifyCpuGraph(
                         FLOAT cpuKernel;
                         FLOAT cpuUser;
                         PPH_STRINGREF cpuType;
-                        PH_FORMAT format[17];
+                        PH_FORMAT format[18];
 
                         cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], getTooltipText->Index);
                         cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[Index], getTooltipText->Index);
@@ -1078,17 +1078,33 @@ VOID PhSipNotifyCpuGraph(
                             format[14].u.String.Length = cpuType->Length;
                             format[14].u.String.Buffer = cpuType->Buffer;
                             PhInitFormatS(&format[15], L"\n");
-                            PhInitFormatSR(&format[16], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
-                            PhMoveReference(&CpusGraphState[Index].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                            if (PhIsCoreParked(Index))
+                            {
+                                PhInitFormatS(&format[16], L"Parked\n");
+                                PhInitFormatSR(&format[17], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                            } else
+                            {
+                                PhInitFormatSR(&format[16], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                            }
+                            
                         }
                         else
                         {
                             PhInitFormatS(&format[13], L"\n");
-                            PhInitFormatSR(&format[14], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
-                            PhMoveReference(&CpusGraphState[Index].TooltipText, PhFormat(format, 15, 0));
+                            if (PhIsCoreParked(Index))
+                            {
+                                PhInitFormatS(&format[14], L"Parked\n");
+                                PhInitFormatSR(&format[15], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                            }
+                            else
+                            {
+                                PhInitFormatSR(&format[14], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                            }
                         }
+
+                        PhMoveReference(&CpusGraphState[Index].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
 
                     getTooltipText->Text = CpusGraphState[Index].TooltipText->sr;
@@ -1903,3 +1919,87 @@ PPH_STRINGREF PhGetHybridProcessorType(
     return NULL;
 }
 #endif
+
+/**
+ * \brief Checks if a specific logical processor (core) in the system is parked.
+ *
+ * This function determines whether a specific logical processor in the system
+ * is parked, meaning it is temporarily unavailable for the thread scheduler.
+ * It utilizes CPU sets functionality available starting with Windows 10.
+ *
+ * \param[in] ProcessorIndex The index of the logical processor to check.
+ *
+ * \return TRUE if the specified logical processor is parked, FALSE otherwise or
+ * in case of failure.
+ */
+BOOLEAN PhIsCoreParked(
+    _In_ ULONG ProcessorIndex
+    )
+{
+    PSYSTEM_CPU_SET_INFORMATION cpuSets = NULL;
+    ULONG returnedLength;
+    HANDLE currentProcess = GetCurrentProcess();
+
+    //
+    // To get core parking status of a specific logical processor in user mode,
+    // the CPU Sets functionality is used, which is available starting with Windows 10.
+    //
+    if (WindowsVersion < WINDOWS_10)
+    {
+        return FALSE;
+    }
+
+    //
+    // There is one CPU Set for each logical processor in the system.
+    //
+    if (ProcessorIndex > (ULONG)(PhSystemProcessorInformation.NumberOfProcessors - 1))
+    {
+        return FALSE;
+    }
+
+    //
+    // Pass NULL with a buffer length of 0 to get the required buffer size.
+    //
+    GetSystemCpuSetInformation(NULL,
+                               0,
+                               &returnedLength,
+                               currentProcess,
+                               0);
+
+    cpuSets = PhAllocate(returnedLength);
+    if (cpuSets == NULL)
+    {
+        return FALSE;
+    }
+
+    //
+    // Get system CPU Set information.
+    //
+    if (!GetSystemCpuSetInformation(cpuSets,
+                                    returnedLength,
+                                    &returnedLength,
+                                    currentProcess,
+                                    0))
+    {
+        goto CleanupExit;
+    }
+
+    //
+    // Check if the set of the target logical processor is parked.
+    //
+    if (cpuSets[ProcessorIndex].CpuSet.Parked) {
+        if (cpuSets)
+        {
+            PhFree(cpuSets);
+        }
+        return TRUE;
+    }
+
+CleanupExit:
+    if (cpuSets)
+    {
+        PhFree(cpuSets);
+    }
+
+    return FALSE;
+}
