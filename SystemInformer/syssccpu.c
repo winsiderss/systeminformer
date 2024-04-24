@@ -1942,9 +1942,10 @@ BOOLEAN PhIsCoreParked(
     _In_ ULONG ProcessorIndex
     )
 {
-    PSYSTEM_CPU_SET_INFORMATION cpuSets = NULL;
-    ULONG returnedLength;
-    HANDLE currentProcess = GetCurrentProcess();
+    PSYSTEM_CPU_SET_INFORMATION cpuSets;
+    ULONG returnedLength = 0;
+    HANDLE process = 0;
+    NTSTATUS status;
 
     //
     // To get core parking status of a specific logical processor in user mode,
@@ -1966,11 +1967,16 @@ BOOLEAN PhIsCoreParked(
     //
     // Pass NULL with a buffer length of 0 to get the required buffer size.
     //
-    GetSystemCpuSetInformation(NULL,
-                               0,
-                               &returnedLength,
-                               currentProcess,
-                               0);
+    status = NtQuerySystemInformationEx(SystemCpuSetInformation,
+                                        &process,
+                                        sizeof(process),
+                                        NULL,
+                                        0,
+                                        &returnedLength);
+    if (!returnedLength)
+    {
+        return FALSE;
+    }
 
     cpuSets = PhAllocate(returnedLength);
     if (cpuSets == NULL)
@@ -1981,11 +1987,14 @@ BOOLEAN PhIsCoreParked(
     //
     // Get system CPU Set information.
     //
-    if (!GetSystemCpuSetInformation(cpuSets,
-                                    returnedLength,
-                                    &returnedLength,
-                                    currentProcess,
-                                    0))
+    status = NtQuerySystemInformationEx(SystemCpuSetInformation,
+                                        &process,
+                                        sizeof(process),
+                                        cpuSets,
+                                        returnedLength,
+                                        &returnedLength);
+
+    if (!NT_SUCCESS(status))
     {
         goto CleanupExit;
     }
@@ -1993,11 +2002,13 @@ BOOLEAN PhIsCoreParked(
     //
     // Check if the set of the target logical processor is parked.
     //
-    if (cpuSets[ProcessorIndex].CpuSet.Parked) {
+    if (cpuSets[ProcessorIndex].CpuSet.Parked)
+    {
         if (cpuSets)
         {
             PhFree(cpuSets);
         }
+
         return TRUE;
     }
 
