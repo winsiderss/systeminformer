@@ -1942,10 +1942,11 @@ BOOLEAN PhIsCoreParked(
     _In_ ULONG ProcessorIndex
     )
 {
-    PSYSTEM_CPU_SET_INFORMATION cpuSets;
+    NTSTATUS status;
+    PSYSTEM_CPU_SET_INFORMATION cpuSets = NULL;
     ULONG returnedLength = 0;
     HANDLE process = 0;
-    NTSTATUS status;
+    DWORD i = 0;
 
     //
     // To get core parking status of a specific logical processor in user mode,
@@ -2000,16 +2001,39 @@ BOOLEAN PhIsCoreParked(
     }
 
     //
-    // Check if the set of the target logical processor is parked.
+    // Iterate through each CPU set to find the target set.
     //
-    if (cpuSets[ProcessorIndex].CpuSet.Parked)
+    PBYTE currentCpuSetPtr = (PBYTE)cpuSets;
+    while (i < returnedLength)
     {
-        if (cpuSets)
+        PSYSTEM_CPU_SET_INFORMATION currentCpuSet = (PSYSTEM_CPU_SET_INFORMATION)currentCpuSetPtr;
+
+        //
+        // The logical processor index of the target set must match the index
+        // of the logical processor passed to the function.
+        //
+        if (currentCpuSet->CpuSet.LogicalProcessorIndex == ProcessorIndex)
         {
-            PhFree(cpuSets);
+            //
+            // If the core set is parked return TRUE.
+            //
+            if (currentCpuSet->CpuSet.Parked)
+            {
+                if (cpuSets)
+                {
+                    PhFree(cpuSets);
+                }
+
+                return TRUE;
+            }
         }
 
-        return TRUE;
+        //
+        // Use the size field to determine the offset to the next CPU set because it's
+        // a variable-sized structure.
+        //
+        currentCpuSetPtr += currentCpuSet->Size;
+        i += currentCpuSet->Size;
     }
 
 CleanupExit:
