@@ -214,7 +214,7 @@ namespace CustomBuildTool
                 Utils.ExecuteGitCommand(BuildWorkingFolder, "fetch --unshallow");
                 BuildBranch = Utils.ExecuteGitCommand(BuildWorkingFolder, "rev-parse --abbrev-ref HEAD");
                 BuildCommit = Utils.ExecuteGitCommand(BuildWorkingFolder, "rev-parse HEAD");
-                BuildCount = Utils.ExecuteGitCommand(BuildWorkingFolder, "rev-list --count {BuildBranch}");
+                BuildCount = Utils.ExecuteGitCommand(BuildWorkingFolder, $"rev-list --count {BuildBranch}");
                 string currentGitTag = Utils.ExecuteGitCommand(BuildWorkingFolder, "describe --abbrev=0 --tags --always");
 
                 if (!string.IsNullOrWhiteSpace(currentGitTag))
