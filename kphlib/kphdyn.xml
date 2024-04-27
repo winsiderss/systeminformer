@@ -55,13 +55,13 @@ dt nt!_EPROCESS SectionObject
 -->
 <dyn>
     <!-- Windows 11 -->
-    <data name="10.0.22000.556 - 10.0.22621.3447">
+    <data name="10.0.22000.556 - 10.0.22621.3527">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="22000"  name="BuildNumberMin"/>
         <field value="556"    name="RevisionMin"/>
         <field value="22621"  name="BuildNumberMax"/>
-        <field value="3447"   name="RevisionMax"/>
+        <field value="3527"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
@@ -198,13 +198,13 @@ dt nt!_EPROCESS SectionObject
         <field value="0x518"  name="EpSectionObject"/>
     </data>
     <!-- Windows 10 -->
-    <data name="10.0.19041.1586 - 10.0.19041.4291">
+    <data name="10.0.19041.1586 - 10.0.19041.4355">
         <field value="10"     name="MajorVersion"/>
         <field value="0"      name="MinorVersion"/>
         <field value="19041"  name="BuildNumberMin"/>
         <field value="1586"   name="RevisionMin"/>
         <field value="19041"  name="BuildNumberMax"/>
-        <field value="4291"   name="RevisionMax"/>
+        <field value="4355"   name="RevisionMax"/>
 
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
