@@ -17,10 +17,10 @@ namespace CustomBuildTool
 
         public static void Main(string[] args)
         {
-            ProgramArgs = ParseArgs(args);
-
             if (!Build.InitializeBuildEnvironment())
                 return;
+
+            ProgramArgs = ParseArgs(args);
 
             if (ProgramArgs.ContainsKey("-cleanup"))
             {
@@ -196,24 +196,23 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-pipeline-build"))
             {
+                BuildFlags flags =
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
+                    BuildFlags.BuildRelease | BuildFlags.BuildVerbose |
+                    BuildFlags.BuildApi;
+
+                if (ProgramArgs.ContainsKey("-msix-build"))
+                    flags |= BuildFlags.BuildMsix;
+
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
-                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
-                    ))
+                if (!Build.BuildSolution("SystemInformer.sln", flags))
                     Environment.Exit(1);
 
-                if (!Build.BuildSolution("plugins\\Plugins.sln",
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
-                    BuildFlags.BuildVerbose | BuildFlags.BuildApi
-                    ))
+                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                     Environment.Exit(1);
 
-                Build.CopyWow64Files( // required after plugin build (dmex)
-                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
-                    BuildFlags.BuildDebug | BuildFlags.BuildRelease
-                    );
+                Build.CopyWow64Files(flags); // required after plugin build (dmex)
             }
             else if (ProgramArgs.ContainsKey("-pipeline-package"))
             {

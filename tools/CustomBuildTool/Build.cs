@@ -15,6 +15,7 @@ namespace CustomBuildTool
     {
         private static DateTime TimeStart;
         public static bool BuildCanary = false;
+        public static bool BuildToolsDebug = false;
         public static bool HaveArm64BuildTools = true;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildWorkingFolder = string.Empty;
@@ -27,6 +28,8 @@ namespace CustomBuildTool
 
         public static bool InitializeBuildEnvironment()
         {
+            Win32.SetErrorMode();
+
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
 
@@ -70,6 +73,11 @@ namespace CustomBuildTool
                 }
             }
 
+            if (Win32.HasEnvironmentVariable("BUILD_DEBUG"))
+            {
+                Build.BuildToolsDebug = true;
+            }
+
             //{
             //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
             //
@@ -94,12 +102,9 @@ namespace CustomBuildTool
         {
             try
             {
-                string currentGitDir = Utils.GetGitWorkPath();
-                string currentGitPath = Utils.GetGitFilePath();
-
-                if (!string.IsNullOrWhiteSpace(currentGitDir) && !string.IsNullOrWhiteSpace(currentGitPath))
+                if (!string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
                 {
-                    string output = Win32.ShellExecute(currentGitPath, $"{currentGitDir} clean -x -d -f", false);
+                    string output = Utils.ExecuteGitCommand(BuildWorkingFolder, "clean -x -d -f");
 
                     Program.PrintColorMessage(output, ConsoleColor.DarkGray);
                 }
@@ -204,20 +209,17 @@ namespace CustomBuildTool
 
         public static void SetupBuildEnvironment(bool ShowBuildInfo)
         {
-            string currentGitDir = Utils.GetGitWorkPath();
-            string currentGitPath = Utils.GetGitFilePath();
-
-            if (!string.IsNullOrWhiteSpace(currentGitDir) && !string.IsNullOrWhiteSpace(currentGitPath))
+            if (!string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
             {
-                Win32.ShellExecute(currentGitPath, $"{currentGitDir} fetch --unshallow");
-                BuildBranch = Win32.ShellExecute(currentGitPath, $"{currentGitDir} rev-parse --abbrev-ref HEAD").Trim();
-                BuildCommit = Win32.ShellExecute(currentGitPath, $"{currentGitDir} rev-parse HEAD").Trim();
-                BuildCount = Win32.ShellExecute(currentGitPath, $"{currentGitDir} rev-list --count {BuildBranch}").Trim();
-                string currentGitTag = Win32.ShellExecute(currentGitPath, $"{currentGitDir} describe --abbrev=0 --tags --always").Trim();
+                Utils.ExecuteGitCommand(BuildWorkingFolder, "fetch --unshallow");
+                BuildBranch = Utils.ExecuteGitCommand(BuildWorkingFolder, "rev-parse --abbrev-ref HEAD");
+                BuildCommit = Utils.ExecuteGitCommand(BuildWorkingFolder, "rev-parse HEAD");
+                BuildCount = Utils.ExecuteGitCommand(BuildWorkingFolder, "rev-list --count {BuildBranch}");
+                string currentGitTag = Utils.ExecuteGitCommand(BuildWorkingFolder, "describe --abbrev=0 --tags --always");
 
                 if (!string.IsNullOrWhiteSpace(currentGitTag))
                 {
-                    BuildRevision = Win32.ShellExecute(currentGitPath, $"{currentGitDir} rev-list --count \"{currentGitTag}..{BuildBranch}\"").Trim();
+                    BuildRevision = Utils.ExecuteGitCommand(BuildWorkingFolder, $"rev-list --count \"{currentGitTag}..{BuildBranch}\"");
                     BuildVersion = $"3.0.{BuildRevision}";
                     BuildLongVersion = $"3.0.{BuildCount}.{BuildRevision}";
                 }
@@ -664,30 +666,41 @@ namespace CustomBuildTool
                 }
             }
 
-            if (BuildCanary && !File.Exists(Verify.GetPath("kph.key")))
+            if (BuildCanary && Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
             {
-                string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
+                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
 
-                if (!string.IsNullOrWhiteSpace(kphKey))
-                {
-                    Verify.Decrypt(Verify.GetPath("kph.s"), Verify.GetPath("kph.key"), kphKey);
-                }
+                if (!string.IsNullOrWhiteSpace(buildKey))
+                    return false;
 
-                if (!File.Exists(Verify.GetPath("kph.key")))
+                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
+
+                if (buildBlob == null)
                 {
-                    Program.PrintColorMessage("[SKIPPED] kph.key not found.", ConsoleColor.Yellow);
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
                     return true;
                 }
-            }
 
-            if (File.Exists(Verify.GetPath("kph.key")))
-            {
                 foreach (string file in files)
                 {
                     if (File.Exists(file))
                     {
-                        if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), $"{BuildWorkingFolder}\\{file}", BuildCanary))
+                        if (!Verify.CreateSignatureFile(buildBlob, $"{BuildWorkingFolder}\\{file}", BuildCanary))
                             return false;
+                    }
+                }
+            }
+            else
+            {
+                if (File.Exists(Verify.GetPath("kph.key")))
+                {
+                    foreach (string file in files)
+                    {
+                        if (File.Exists(file))
+                        {
+                            if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), $"{BuildWorkingFolder}\\{file}", BuildCanary))
+                                return false;
+                        }
                     }
                 }
             }
@@ -703,30 +716,38 @@ namespace CustomBuildTool
                 return true;
             }
 
-            if (BuildCanary && !File.Exists(Verify.GetPath("kph.key")))
+            if (BuildCanary && Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
             {
-                string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
+                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
 
-                if (!string.IsNullOrWhiteSpace(kphKey))
+                if (!string.IsNullOrWhiteSpace(buildKey))
+                    return false;
+
+                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
+
+                if (buildBlob == null)
                 {
-                    Verify.Decrypt(Verify.GetPath("kph.s"), Verify.GetPath("kph.key"), kphKey);
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
+                    return true;
                 }
 
-                if (!File.Exists(Verify.GetPath("kph.key")))
+                return Verify.CreateSignatureFile(buildBlob, PluginName, false);
+            }
+            else
+            {
+                if (File.Exists(Verify.GetPath("kph.key")))
                 {
-                    Program.PrintColorMessage("[SKIPPED] kph.key not found.", ConsoleColor.Yellow);
-                    return true;
+                    return Verify.CreateSignatureFile(Verify.GetPath("kph.key"), PluginName, false);
                 }
             }
 
-            if (File.Exists(Verify.GetPath("kph.key")))
-                return Verify.CreateSignatureFile(Verify.GetPath("kph.key"), PluginName, false);
             return true;
         }
 
         public static bool ResignFiles()
         {
             var files = new List<string>();
+
             foreach (string sigFile in Directory.EnumerateFiles("bin", "*.sig", SearchOption.AllDirectories))
             {
                 var file = Path.ChangeExtension(sigFile, ".dll");
@@ -745,28 +766,36 @@ namespace CustomBuildTool
                     files.Add(file);
             }
 
-            if (BuildCanary && !File.Exists(Verify.GetPath("kph.key")))
+            if (BuildCanary && Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
             {
-                string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
+                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
 
-                if (!string.IsNullOrWhiteSpace(kphKey))
+                if (!string.IsNullOrWhiteSpace(buildKey))
+                    return false;
+
+                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
+
+                if (buildBlob == null)
                 {
-                    Verify.Decrypt(Verify.GetPath("kph.s"), Verify.GetPath("kph.key"), kphKey);
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
+                    return false;
                 }
 
-                if (!File.Exists(Verify.GetPath("kph.key")))
-                {
-                    Program.PrintColorMessage("[SKIPPED] kph.key not found.", ConsoleColor.Yellow);
-                    return true;
-                }
-            }
-
-            if (File.Exists(Verify.GetPath("kph.key")))
-            {
                 foreach (string file in files)
                 {
-                    if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), file, false))
+                    if (!Verify.CreateSignatureFile(buildBlob, file, false))
                         return false;
+                }
+            }
+            else
+            {
+                if (File.Exists(Verify.GetPath("kph.key")))
+                {
+                    foreach (string file in files)
+                    {
+                        if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), file, false))
+                            return false;
+                    }
                 }
             }
 
@@ -833,12 +862,12 @@ namespace CustomBuildTool
                 Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h");
 
                 // Append resource headers with SDK exports
-                string phappContent = File.ReadAllText("sdk\\include\\phappresource.h");
+                string phappContent = Utils.ReadAllText("sdk\\include\\phappresource.h");
 
                 if (!string.IsNullOrWhiteSpace(phappContent))
                 {
                     phappContent = phappContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
-                    File.WriteAllText("sdk\\include\\phappresource.h", phappContent);
+                    Utils.WriteAllText("sdk\\include\\phappresource.h", phappContent);
                 }
             }
             catch (Exception ex)
@@ -871,7 +900,7 @@ namespace CustomBuildTool
                     $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe"
                     );
 
-                Program.PrintColorMessage(new FileInfo($"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe").Length.ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe").ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -900,7 +929,7 @@ namespace CustomBuildTool
                     $"{BuildOutputFolder}\\systeminformer-build-sdk.zip"
                     );
 
-                Program.PrintColorMessage(new FileInfo($"{BuildOutputFolder}\\systeminformer-build-sdk.zip").Length.ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-sdk.zip").ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -913,23 +942,37 @@ namespace CustomBuildTool
 
         public static void CreateSettingsFile(string Channel, string Path)
         {
-            string content = "<settings>\r\n";
-            if (Channel == "release")
-                content += "<setting name=\"ReleaseChannel\">0</setting>\r\n"; // PhReleaseChannel
-            else if (Channel == "preview")
-                content += "<setting name=\"ReleaseChannel\">1</setting>\r\n"; // PhPreviewChannel
-            else if (Channel == "canary")
-                content += "<setting name=\"ReleaseChannel\">2</setting>\r\n"; // PhCanaryChannel
-            else if (Channel == "developer")
-                content += "<setting name=\"ReleaseChannel\">3</setting>\r\n"; // PhDeveloperChannel
+            StringBuilder stringBuilder = new StringBuilder(0x100);
+
+            stringBuilder.AppendLine("<settings>");
+
+            if (string.Equals(Channel, "release", StringComparison.OrdinalIgnoreCase))
+            {
+                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">0</setting>"); // PhReleaseChannel
+            }
+            else if (string.Equals(Channel, "preview", StringComparison.OrdinalIgnoreCase))
+            {
+                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">1</setting>"); // PhPreviewChannel
+            }
+            else if (string.Equals(Channel, "canary", StringComparison.OrdinalIgnoreCase))
+            {
+                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">2</setting>"); // PhCanaryChannel
+            }
+            else if (string.Equals(Channel, "developer", StringComparison.OrdinalIgnoreCase))
+            {
+                stringBuilder.AppendLine("<setting name=\"ReleaseChannel\">3</setting>"); // PhDeveloperChannel
+            }
             else
+            {
                 throw new Exception($"Invalid channel: {Channel}");
-            content += "</settings>";
+            }
+
+            stringBuilder.AppendLine("</settings>");
 
             if (Directory.Exists(Path))
             {
-                Win32.CreateEmptyFile(Path + "\\SystemInformer.exe.settings.xml");
-                File.WriteAllText(Path + "\\SystemInformer.exe.settings.xml", content);
+                Win32.CreateEmptyFile($"\\{Path}SystemInformer.exe.settings.xml");
+                Utils.WriteAllText($"\\{Path}SystemInformer.exe.settings.xml", stringBuilder.ToString());
             }
         }
 
@@ -976,7 +1019,7 @@ namespace CustomBuildTool
                     $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip"
                     );
 
-                Program.PrintColorMessage(new FileInfo($"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip").Length.ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip").ToPrettySize(), ConsoleColor.Green);
             }
             catch (Exception ex)
             {
@@ -1007,7 +1050,7 @@ namespace CustomBuildTool
                         $"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip"
                         );
 
-                    Program.PrintColorMessage(new FileInfo($"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip").Length.ToPrettySize(), ConsoleColor.Green);
+                    Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-setup-package-pdb.zip").ToPrettySize(), ConsoleColor.Green);
                 }
                 else
                 {
@@ -1020,7 +1063,7 @@ namespace CustomBuildTool
                         $"{BuildOutputFolder}\\systeminformer-build-pdb.zip"
                         );
 
-                    Program.PrintColorMessage(new FileInfo($"{BuildOutputFolder}\\systeminformer-build-pdb.zip").Length.ToPrettySize(), ConsoleColor.Green);
+                    Program.PrintColorMessage(Win32.GetFileSize($"{BuildOutputFolder}\\systeminformer-build-pdb.zip").ToPrettySize(), ConsoleColor.Green);
                 }
             }
             catch (Exception ex)
@@ -1064,7 +1107,7 @@ namespace CustomBuildTool
                     $"{BuildOutputFolder}\\systeminformer-build-checksums.txt"
                     );
 
-                File.WriteAllText(
+                Utils.WriteAllText(
                     $"{BuildOutputFolder}\\systeminformer-build-checksums.txt",
                     sb.ToString()
                     );
@@ -1078,49 +1121,44 @@ namespace CustomBuildTool
             return true;
         }
 
+        private static string MsbuildCommandString(string Solution, string Platform, BuildFlags Flags, string Channel = null)
+        {
+            StringBuilder compilerOptions = new StringBuilder(0x100);
+            StringBuilder commandLine = new StringBuilder(0x100);
+
+            if (Flags.HasFlag(BuildFlags.BuildApi))
+                compilerOptions.Append("PH_BUILD_API;");
+            if (Flags.HasFlag(BuildFlags.BuildMsix))
+                compilerOptions.Append("PH_BUILD_MSIX;");
+            if (!string.IsNullOrWhiteSpace(Channel))
+                compilerOptions.Append($"PH_RELEASE_CHANNEL_ID={BuildConfig.Build_Channels[Channel]};");
+            if (!string.IsNullOrWhiteSpace(Build.BuildCommit))
+                compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildCommit.AsSpan(0, 7)}\";");
+            if (!string.IsNullOrWhiteSpace(Build.BuildRevision))
+                compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{Build.BuildRevision}\";");
+            if (!string.IsNullOrWhiteSpace(Build.BuildCount))
+                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildCount}\"");
+
+            commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "quiet")} ");
+            commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
+            commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
+            commandLine.Append(Solution);
+
+            return commandLine.ToString();
+        }
+
         public static bool BuildSolution(string Solution, BuildFlags Flags, string Channel = null)
         {
-            string msbuildExePath = Utils.GetMsbuildFilePath();
-
-            if (!File.Exists(msbuildExePath))
-            {
-                Program.PrintColorMessage("Unable to find MsBuild.", ConsoleColor.Red);
-                return false;
-            }
-
             if (Flags.HasFlag(BuildFlags.Build32bit))
             {
-                StringBuilder compilerOptions = new StringBuilder(0x100);
-                StringBuilder commandLine = new StringBuilder(0x100);
+                string buildCommandLine = MsbuildCommandString(Solution, "Win32", Flags, Channel);
 
                 Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
                 Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
 
-                if (Flags.HasFlag(BuildFlags.BuildApi))
-                    compilerOptions.Append("PH_BUILD_API;");
-                if (Flags.HasFlag(BuildFlags.BuildMsix))
-                    compilerOptions.Append("PH_BUILD_MSIX;");
-                if (!string.IsNullOrWhiteSpace(Channel))
-                    compilerOptions.Append($"PH_RELEASE_CHANNEL_ID={BuildConfig.Build_Channels[Channel]};");
-                if (!string.IsNullOrWhiteSpace(BuildCommit))
-                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.AsSpan(0, 7)}\";");
-                if (!string.IsNullOrWhiteSpace(BuildRevision))
-                    compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
-                if (!string.IsNullOrWhiteSpace(BuildCount))
-                    compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
-
-                commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet /restore ");
-                commandLine.Append("/p:Platform=Win32 /p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release "));
-                commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
-                commandLine.Append(Solution);
-
-                int errorcode = Win32.CreateProcess(
-                    msbuildExePath,
-                    commandLine.ToString(),
-                    out string errorstring
-                    );
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
 
                 if (errorcode != 0)
                 {
@@ -1131,35 +1169,14 @@ namespace CustomBuildTool
 
             if (Flags.HasFlag(BuildFlags.Build64bit))
             {
-                StringBuilder compilerOptions = new StringBuilder(0x100);
-                StringBuilder commandLine = new StringBuilder(0x100);
+                string buildCommandLine = MsbuildCommandString(Solution, "x64", Flags, Channel);
 
                 Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
                 Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
 
-                if (Flags.HasFlag(BuildFlags.BuildApi))
-                    compilerOptions.Append("PH_BUILD_API;");
-                if (Flags.HasFlag(BuildFlags.BuildMsix))
-                    compilerOptions.Append("PH_BUILD_MSIX;");
-                if (!string.IsNullOrWhiteSpace(BuildCommit))
-                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.AsSpan(0, 7)}\";");
-                if (!string.IsNullOrWhiteSpace(BuildRevision))
-                    compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
-                if (!string.IsNullOrWhiteSpace(BuildCount))
-                    compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
-
-                commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet ");
-                commandLine.Append("/p:Platform=x64 /p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release "));
-                commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
-                commandLine.Append(Solution);
-
-                int errorcode = Win32.CreateProcess(
-                    msbuildExePath,
-                    commandLine.ToString(),
-                    out string errorstring
-                    );
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
 
                 if (errorcode != 0)
                 {
@@ -1180,35 +1197,14 @@ namespace CustomBuildTool
 
             if (Flags.HasFlag(BuildFlags.BuildArm64bit))
             {
-                StringBuilder compilerOptions = new StringBuilder(0x100);
-                StringBuilder commandLine = new StringBuilder(0x100);
+                string buildCommandLine = MsbuildCommandString(Solution, "ARM64", Flags, Channel);
 
                 Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
                 Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
 
-                if (Flags.HasFlag(BuildFlags.BuildApi))
-                    compilerOptions.Append("PH_BUILD_API;");
-                if (Flags.HasFlag(BuildFlags.BuildMsix))
-                    compilerOptions.Append("PH_BUILD_MSIX;");
-                if (!string.IsNullOrWhiteSpace(BuildCommit))
-                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.AsSpan(0, 7)}\";");
-                if (!string.IsNullOrWhiteSpace(BuildRevision))
-                    compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
-                if (!string.IsNullOrWhiteSpace(BuildCount))
-                    compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
-
-                commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet ");
-                commandLine.Append("/p:Platform=ARM64 /p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release "));
-                commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
-                commandLine.Append(Solution);
-
-                int errorcode = Win32.CreateProcess(
-                    msbuildExePath,
-                    commandLine.ToString(),
-                    out string errorstring
-                    );
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
 
                 if (errorcode != 0)
                 {
@@ -1240,28 +1236,24 @@ namespace CustomBuildTool
             Info.BinFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip";
             Info.SetupFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe";
 
-            if (!File.Exists(Verify.GetPath($"{Channel}.key")))
-            {
-                // RELEASE_BUILD_KEY, PREVIEW_BUILD_KEY, CANARY_BUILD_KEY, or DEVELOPER_BUILD_KEY
-                string buildKey = Win32.GetEnvironmentVariable($"%{Channel.ToUpper()}_BUILD_KEY%");
-                if (!string.IsNullOrWhiteSpace(buildKey))
-                {
-                    Verify.Decrypt(Verify.GetPath($"{Channel}.s"), Verify.GetPath($"{Channel}.key"), buildKey);
-                }
-            }
+            // RELEASE_BUILD_KEY, PREVIEW_BUILD_KEY, CANARY_BUILD_KEY, or DEVELOPER_BUILD_KEY
 
-            Info.BinSig = Verify.CreateSignatureString(Verify.GetPath($"{Channel}.key"), Info.BinFilename);
-            Info.SetupSig = Verify.CreateSignatureString(Verify.GetPath($"{Channel}.key"), Info.SetupFilename);
+            var buildKey = Win32.GetEnvironmentVariable($"{Channel.ToUpperInvariant()}_BUILD_KEY");
 
-            Win32.DeleteFile(Verify.GetPath($"{Channel}.key"));
+            if (string.IsNullOrWhiteSpace(buildKey))
+                return false;
 
-            if (string.IsNullOrWhiteSpace(Info.BinSig))
+            var buildBlob = Verify.DecryptFileBlob(Verify.GetPath($"{Channel}.s"), buildKey);
+
+            if (buildBlob == null)
+                return false;
+
+            if (!Verify.CreateSignatureString(buildBlob, Info.BinFilename, out Info.BinSig))
             {
                 Program.PrintColorMessage("build-bin.sig not found.", ConsoleColor.Red);
                 return false;
             }
-
-            if (string.IsNullOrWhiteSpace(Info.SetupSig))
+            if (!Verify.CreateSignatureString(buildBlob, Info.SetupFilename, out Info.SetupSig))
             {
                 Program.PrintColorMessage("build-setup.sig not found.", ConsoleColor.Red);
                 return false;
@@ -1269,13 +1261,13 @@ namespace CustomBuildTool
 
             if (File.Exists(Info.BinFilename))
             {
-                Info.BinFileLength = new FileInfo(Info.BinFilename).Length;
+                Info.BinFileLength = Win32.GetFileSize(Info.BinFilename);
                 Info.BinHash = Verify.HashFile(Info.BinFilename);
             }
 
             if (File.Exists(Info.SetupFilename))
             {
-                Info.SetupFileLength = new FileInfo(Info.SetupFilename).Length;
+                Info.SetupFileLength = Win32.GetFileSize(Info.SetupFilename);
                 Info.SetupHash = Verify.HashFile(Info.SetupFilename);
             }
 
@@ -1302,10 +1294,12 @@ namespace CustomBuildTool
 
             if (!BuildCanary)
                 return true;
+            if (Build.BuildToolsDebug)
+                return true;
 
-            buildBuildId = Win32.GetEnvironmentVariable("%BUILD_BUILDID%");
-            buildPostSfUrl = Win32.GetEnvironmentVariable("%BUILD_SF_API%");
-            buildPostSfApiKey = Win32.GetEnvironmentVariable("%BUILD_SF_KEY%");
+            buildBuildId = Win32.GetEnvironmentVariable("BUILD_BUILDID");
+            buildPostSfUrl = Win32.GetEnvironmentVariable("BUILD_SF_API");
+            buildPostSfApiKey = Win32.GetEnvironmentVariable("BUILD_SF_KEY");
 
             if (string.IsNullOrWhiteSpace(buildBuildId))
                 return false;
