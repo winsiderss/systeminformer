@@ -10,7 +10,6 @@
     <CodePage>65001</CodePage>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <PublishAot>true</PublishAot>
     <!--<TrimmerSingleWarn>false</TrimmerSingleWarn>-->
     <ImplicitUsings>enable</ImplicitUsings>
     <DebugType>full</DebugType>
