@@ -352,13 +352,16 @@ VOID FindDiskDrives(
         if (!QueryDiskDeviceInterfaceDescription(deviceInterface, &deviceInstanceHandle, &deviceDescription))
             continue;
 
-        if (Context->UseAlternateMethod && (
-            PhEndsWithStringRef2(&deviceDescription->sr, L"Xvd", TRUE) || // Windows Store Games DRM
-            PhEndsWithStringRef2(&deviceDescription->sr, L"Microsoft Virtual Disk", TRUE)
-            ))
+        if (Context->UseAlternateMethod)
         {
-            PhDereferenceObject(deviceDescription);
-            continue;
+            if (
+                PhEndsWithStringRef2(&deviceDescription->sr, L"Xvd", TRUE) || // Windows Store Games DRM
+                PhEndsWithStringRef2(&deviceDescription->sr, L"Microsoft Virtual Disk", TRUE)
+                )
+            {
+                PhDereferenceObject(deviceDescription);
+                continue;
+            }
         }
 
         // Convert path now to avoid conversion during every interval update. (dmex)
@@ -702,6 +705,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
             context->UseAlternateMethod = TRUE;
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), BST_CHECKED);
+            //Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), BST_CHECKED);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindDiskDrives(context);
@@ -749,6 +753,11 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                     ListView_DeleteAllItems(context->ListViewHandle);
                     FindDiskDrives(context);
                     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+
+                    if (ListView_GetItemCount(context->ListViewHandle) == 0)
+                        PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
+                    else
+                        PhSetWindowStyle(context->ListViewHandle, WS_BORDER, 0);
 
                     //ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }
