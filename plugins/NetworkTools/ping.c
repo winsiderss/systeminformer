@@ -567,7 +567,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                             PhCopyCircularBuffer_FLOAT(&context->PingFailureHistory, context->PingGraphState.Data2, drawInfo->LineDataCount);
 
                             {
-                                FLOAT max = PhGetIntegerSetting(L"EnableGraphMaxScale") ? 0 : (FLOAT)context->MinPingScaling; // minimum scaling
+                                FLOAT max = 0;
 
                                 if (PhGetIntegerSetting(L"EnableAvxSupport") && drawInfo->LineDataCount > 128)
                                 {
@@ -590,8 +590,16 @@ INT_PTR CALLBACK NetworkPingWndProc(
 
                                 if (max != 0)
                                 {
-                                    PhDivideSinglesBySingle(context->PingGraphState.Data1, max, drawInfo->LineDataCount);
-                                    PhDivideSinglesBySingle(context->PingGraphState.Data2, max, drawInfo->LineDataCount);
+                                    FLOAT min = max;
+
+                                    if (!PhGetIntegerSetting(L"EnableGraphMaxScale"))
+                                    {
+                                        if (min < (FLOAT)context->MinPingScaling)
+                                            min = (FLOAT)context->MinPingScaling;
+                                    }
+
+                                    PhDivideSinglesBySingle(context->PingGraphState.Data1, min, drawInfo->LineDataCount);
+                                    PhDivideSinglesBySingle(context->PingGraphState.Data2, min, drawInfo->LineDataCount);
                                 }
 
                                 drawInfo->LabelYFunction = NetworkPingLabelYFunction;
