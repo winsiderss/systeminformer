@@ -51,6 +51,7 @@ extern PWSTR WindowsVersionName;
 #define WINDOWS_11 114 // October, 2021
 #define WINDOWS_11_22H2 115 // September, 2022
 #define WINDOWS_11_23H2 116 // October, 2023
+#define WINDOWS_11_24H2 117 // TBA
 #define WINDOWS_NEW ULONG_MAX
 
 #ifdef DEBUG
