@@ -544,6 +544,7 @@ namespace CustomBuildTool
                 Mode = FileMode.Open,
                 Access = FileAccess.Read,
                 Share = FileShare.Read | FileShare.Delete,
+                Options = FileOptions.SequentialScan,
                 BufferSize = 0x1000
             };
 
@@ -560,6 +561,7 @@ namespace CustomBuildTool
                 Mode = FileMode.Create,
                 Access = FileAccess.Write,
                 Share = FileShare.None,
+                Options = FileOptions.SequentialScan,
                 BufferSize = 0x1000
             };
 
@@ -567,6 +569,30 @@ namespace CustomBuildTool
             {
                 sw.Write(Content);
             }
+        }
+
+        public static byte[] ReadAllBytes(string FileName)
+        {
+            FileStreamOptions options = new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.Read | FileShare.Delete,
+                Options = FileOptions.SequentialScan,
+                BufferSize = 0x1000
+            };
+
+            long length = Win32.GetFileSize(FileName);
+
+            byte[] buffer = new byte[length];
+
+            using (MemoryStream stream = new MemoryStream(buffer, true))
+            using (FileStream sr = new FileStream(FileName, options))
+            {
+                sr.CopyTo(stream);
+            }
+
+            return buffer;
         }
     }
 

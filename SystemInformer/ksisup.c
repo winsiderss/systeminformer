@@ -601,23 +601,44 @@ CleanupExit:
     return status;
 }
 
-PPH_STRING PhGetTemporaryDriverDirectory(
+PPH_STRING PhGetKsiDirectory(
     VOID
     )
 {
-    PH_FORMAT format[2];
-    PPH_STRING tempDriverDirectory;
+    PPH_STRING applicationDirectory;
+    PPH_STRING fileName;
+
+#if defined(PH_BUILD_MSIX)
+    PH_FORMAT format[4];
+    PhInitFormatS(&format[0], L"\\Drivers");
+    PhInitFormatS(&format[1], L"\\SystemInformer");
+    PhInitFormatS(&format[2], L"\\SystemInformer");
+    PhInitFormatSR(&format[3], DriverExtension);
+    fileName = PhFormat(format, RTL_NUMBER_OF(format), MAX_PATH);
+    applicationDirectory = PhGetSystemDirectoryWin32(&fileName->sr);
+    PhDereferenceObject(fileName);
+#else
+    fileName = PhGetApplicationFileNameWin32();
+    applicationDirectory = PhGetBaseNameChangeExtension(&fileName->sr, &DriverExtension);
+    PhDereferenceObject(fileName);
+#endif
+
+    return applicationDirectory;
+}
+
+PPH_STRING PhGetTemporaryKsiDirectory(
+    VOID
+    )
+{
     PPH_STRING applicationDirectory;
 
-    applicationDirectory = PhGetApplicationDirectoryWin32();
-    PhInitFormatSR(&format[0], applicationDirectory->sr);
-    PhInitFormatS(&format[1], L"temp-drivers\\");
+#if defined(PH_BUILD_MSIX)
+    applicationDirectory = PhGetLocalAppDataDirectoryZ(L"temp-drivers\\", FALSE);
+#else
+    applicationDirectory = PhGetApplicationDirectoryFileNameZ(L"temp-drivers\\", FALSE);
+#endif
 
-    tempDriverDirectory = PhFormat(format, RTL_NUMBER_OF(format), MAX_PATH);
-
-    PhDereferenceObject(applicationDirectory);
-
-    return tempDriverDirectory;
+    return applicationDirectory;
 }
 
 NTSTATUS KsiCreateTemporaryDriverFile(
@@ -665,7 +686,6 @@ VOID KsiConnect(
     ULONG dynDataLength;
     PBYTE signature = NULL;
     ULONG signatureLength;
-    PPH_STRING fileName = NULL;
     PPH_STRING ksiFileName = NULL;
     PPH_STRING ksiServiceName = NULL;
     KPH_CONFIG_PARAMETERS config = { 0 };
@@ -675,7 +695,7 @@ VOID KsiConnect(
     PPH_STRING tempDriverDir = NULL;
     KPH_LEVEL level;
 
-    if (tempDriverDir = PhGetTemporaryDriverDirectory())
+    if (tempDriverDir = PhGetTemporaryKsiDirectory())
         PhDeleteDirectoryWin32(&tempDriverDir->sr);
 
     status = KsiGetDynData(&dynData, &dynDataLength, &signature, &signatureLength);
@@ -723,9 +743,7 @@ VOID KsiConnect(
 
     if (!(ksiServiceName = PhGetKsiServiceName()))
         goto CleanupExit;
-    if (!(fileName = PhGetApplicationFileNameWin32()))
-        goto CleanupExit;
-    if (!(ksiFileName = PhGetBaseNameChangeExtension(&fileName->sr, &DriverExtension)))
+    if (!(ksiFileName = PhGetKsiDirectory()))
         goto CleanupExit;
 
     if (!PhDoesFileExistWin32(PhGetString(ksiFileName)))
@@ -901,7 +919,6 @@ CleanupExit:
     PhClearReference(&altitude);
     PhClearReference(&ksiServiceName);
     PhClearReference(&ksiFileName);
-    PhClearReference(&fileName);
     PhClearReference(&tempDriverDir);
 
     if (signature)
