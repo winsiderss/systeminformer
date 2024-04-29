@@ -23,6 +23,7 @@ namespace CustomBuildTool
         public static string BuildCommit = string.Empty;
         public static string BuildVersion = "1.0.0";
         public static string BuildLongVersion = "1.0.0.0";
+        public static string BuildMajorVersion = "3.0";
         public static string BuildCount = string.Empty;
         public static string BuildRevision = string.Empty;
 
@@ -220,8 +221,8 @@ namespace CustomBuildTool
                 if (!string.IsNullOrWhiteSpace(currentGitTag))
                 {
                     BuildRevision = Utils.ExecuteGitCommand(BuildWorkingFolder, $"rev-list --count \"{currentGitTag}..{BuildBranch}\"");
-                    BuildVersion = $"3.0.{BuildRevision}";
-                    BuildLongVersion = $"3.0.{BuildCount}.{BuildRevision}";
+                    BuildVersion = $"{BuildMajorVersion}.{BuildRevision}";
+                    BuildLongVersion = $"{BuildMajorVersion}.{BuildCount}.{BuildRevision}";
                 }
             }
 
@@ -296,27 +297,19 @@ namespace CustomBuildTool
 
         public static bool CopyTextFiles(bool Update)
         {
-            try
+            if (Update)
             {
-                if (Update)
-                {
-                    Win32.CopyIfNewer("README.txt", "bin\\README.txt");
-                    //Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt"); // TODO: Git log
-                    Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
-                    Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
-                }
-                else
-                {
-                    Win32.DeleteFile("bin\\README.txt");
-                    //Win32.DeleteFile("bin\\CHANGELOG.txt");
-                    Win32.DeleteFile("bin\\COPYRIGHT.txt");
-                    Win32.DeleteFile("bin\\LICENSE.txt");
-                }
+                Win32.CopyIfNewer("README.txt", "bin\\README.txt");
+                //Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt"); // TODO: Git log
+                Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
+                Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
             }
-            catch (Exception ex)
+            else
             {
-                Program.PrintColorMessage($"[CopyTextFiles] {ex}", ConsoleColor.Red);
-                return false;
+                Win32.DeleteFile("bin\\README.txt");
+                //Win32.DeleteFile("bin\\CHANGELOG.txt");
+                Win32.DeleteFile("bin\\COPYRIGHT.txt");
+                Win32.DeleteFile("bin\\LICENSE.txt");
             }
 
             return true;
@@ -324,102 +317,94 @@ namespace CustomBuildTool
 
         public static bool CopyWow64Files(BuildFlags Flags)
         {
-            try
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                if (Flags.HasFlag(BuildFlags.Build64bit))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    if (Directory.Exists("bin\\Debug64"))
                     {
-                        if (Directory.Exists("bin\\Debug64"))
-                        {
-                            //Win32.CreateDirectory("bin\\Debug64\\x86");
-                            Win32.CreateDirectory("bin\\Debug64\\x86\\plugins"); // recursive
+                        //Win32.CreateDirectory("bin\\Debug64\\x86");
+                        Win32.CreateDirectory("bin\\Debug64\\x86\\plugins"); // recursive
 
-                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\Debug64\\x86\\SystemInformer.exe");
-                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\Debug64\\x86\\SystemInformer.pdb");
-                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.sig", "bin\\Debug64\\x86\\SystemInformer.sig");
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\Debug64\\x86\\SystemInformer.exe");
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\Debug64\\x86\\SystemInformer.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.sig", "bin\\Debug64\\x86\\SystemInformer.sig");
 
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll");
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb");
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.sig", "bin\\Debug64\\x86\\plugins\\DotNetTools.sig");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.sig", "bin\\Debug64\\x86\\plugins\\DotNetTools.sig");
 
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\Debug64\\x86\\plugins\\ExtendedTools.dll");
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\Debug64\\x86\\plugins\\ExtendedTools.pdb");
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\Debug64\\x86\\plugins\\ExtendedTools.sig");
-                        }
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        if (Directory.Exists("bin\\DebugARM64"))
-                        {
-                            //Win32.CreateDirectory("bin\\DebugARM64\\x86");
-                            Win32.CreateDirectory("bin\\DebugARM64\\x86\\plugins"); // recursive
-
-                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\DebugARM64\\x86\\SystemInformer.exe");
-                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\DebugARM64\\x86\\SystemInformer.pdb");
-                            Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.sig", "bin\\DebugARM64\\x86\\SystemInformer.sig");
-
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.dll");
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.pdb");
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.sig", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.sig");
-
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.dll");
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.pdb");
-                            Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.sig");
-                        }
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\Debug64\\x86\\plugins\\ExtendedTools.dll");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\Debug64\\x86\\plugins\\ExtendedTools.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\Debug64\\x86\\plugins\\ExtendedTools.sig");
                     }
                 }
 
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    if (Directory.Exists("bin\\DebugARM64"))
                     {
-                        if (Directory.Exists("bin\\Release64"))
-                        {
-                            //Win32.CreateDirectory("bin\\Release64\\x86");
-                            Win32.CreateDirectory("bin\\Release64\\x86\\plugins"); // recursive
+                        //Win32.CreateDirectory("bin\\DebugARM64\\x86");
+                        Win32.CreateDirectory("bin\\DebugARM64\\x86\\plugins"); // recursive
 
-                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\Release64\\x86\\SystemInformer.exe");
-                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\Release64\\x86\\SystemInformer.pdb");
-                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.sig", "bin\\Release64\\x86\\SystemInformer.sig");
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\DebugARM64\\x86\\SystemInformer.exe");
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\DebugARM64\\x86\\SystemInformer.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.sig", "bin\\DebugARM64\\x86\\SystemInformer.sig");
 
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\Release64\\x86\\plugins\\DotNetTools.dll");
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\Release64\\x86\\plugins\\DotNetTools.pdb");
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.sig", "bin\\Release64\\x86\\plugins\\DotNetTools.sig");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.dll");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.sig", "bin\\DebugARM64\\x86\\plugins\\DotNetTools.sig");
 
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\Release64\\x86\\plugins\\ExtendedTools.dll");
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\Release64\\x86\\plugins\\ExtendedTools.pdb");
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\Release64\\x86\\plugins\\ExtendedTools.sig");
-                        }
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        if (Directory.Exists("bin\\ReleaseARM64"))
-                        {
-                            //Win32.CreateDirectory("bin\\ReleaseARM64\\x86");
-                            Win32.CreateDirectory("bin\\ReleaseARM64\\x86\\plugins"); // recursive
-
-                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\ReleaseARM64\\x86\\SystemInformer.exe");
-                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\ReleaseARM64\\x86\\SystemInformer.pdb");
-                            Win32.CopyIfNewer("bin\\Release32\\SystemInformer.sig", "bin\\ReleaseARM64\\x86\\SystemInformer.sig");
-
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.dll");
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.pdb");
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.sig", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.sig");
-
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.dll");
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.pdb");
-                            Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.sig");
-                        }
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.dll");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\DebugARM64\\x86\\plugins\\ExtendedTools.sig");
                     }
                 }
             }
-            catch (Exception ex)
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                return false;
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    if (Directory.Exists("bin\\Release64"))
+                    {
+                        //Win32.CreateDirectory("bin\\Release64\\x86");
+                        Win32.CreateDirectory("bin\\Release64\\x86\\plugins"); // recursive
+
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\Release64\\x86\\SystemInformer.exe");
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\Release64\\x86\\SystemInformer.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.sig", "bin\\Release64\\x86\\SystemInformer.sig");
+
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\Release64\\x86\\plugins\\DotNetTools.dll");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\Release64\\x86\\plugins\\DotNetTools.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.sig", "bin\\Release64\\x86\\plugins\\DotNetTools.sig");
+
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\Release64\\x86\\plugins\\ExtendedTools.dll");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\Release64\\x86\\plugins\\ExtendedTools.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\Release64\\x86\\plugins\\ExtendedTools.sig");
+                    }
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    if (Directory.Exists("bin\\ReleaseARM64"))
+                    {
+                        //Win32.CreateDirectory("bin\\ReleaseARM64\\x86");
+                        Win32.CreateDirectory("bin\\ReleaseARM64\\x86\\plugins"); // recursive
+
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\ReleaseARM64\\x86\\SystemInformer.exe");
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\ReleaseARM64\\x86\\SystemInformer.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.sig", "bin\\ReleaseARM64\\x86\\SystemInformer.sig");
+
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.dll");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.sig", "bin\\ReleaseARM64\\x86\\plugins\\DotNetTools.sig");
+
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.dll");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\ReleaseARM64\\x86\\plugins\\ExtendedTools.sig");
+                    }
+                }
             }
 
             return true;
@@ -427,32 +412,24 @@ namespace CustomBuildTool
 
         public static bool CopySidCapsFile(BuildFlags Flags)
         {
-            try
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Debug32"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Debug32\\capslist.txt");
-                    if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Debug64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Debug64\\capslist.txt");
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\DebugARM64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\DebugARM64\\capslist.txt");
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Release32\\capslist.txt");
-                    if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Release64\\capslist.txt");
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\ReleaseARM64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\ReleaseARM64\\capslist.txt");
-                }
+                if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Debug32"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Debug32\\capslist.txt");
+                if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Debug64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Debug64\\capslist.txt");
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\DebugARM64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\DebugARM64\\capslist.txt");
             }
-            catch (Exception ex)
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                return false;
+                if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Release32\\capslist.txt");
+                if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Release64\\capslist.txt");
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\ReleaseARM64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\ReleaseARM64\\capslist.txt");
             }
 
             return true;
@@ -460,32 +437,24 @@ namespace CustomBuildTool
 
         public static bool CopyEtwTraceGuidsFile(BuildFlags Flags)
         {
-            try
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Debug32"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Debug32\\etwguids.txt");
-                    if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Debug64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Debug64\\etwguids.txt");
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\DebugARM64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\DebugARM64\\etwguids.txt");
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Release32\\etwguids.txt");
-                    if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Release64\\etwguids.txt");
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\ReleaseARM64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\ReleaseARM64\\etwguids.txt");
-                }
+                if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Debug32"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Debug32\\etwguids.txt");
+                if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Debug64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Debug64\\etwguids.txt");
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\DebugARM64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\DebugARM64\\etwguids.txt");
             }
-            catch (Exception ex)
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                return false;
+                if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Release32\\etwguids.txt");
+                if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Release64\\etwguids.txt");
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\ReleaseARM64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\ReleaseARM64\\etwguids.txt");
             }
 
             return true;
@@ -493,32 +462,24 @@ namespace CustomBuildTool
 
         public static bool CopyIconFile(BuildFlags Flags)
         {
-            try
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Debug32"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Debug32\\icon.png");
-                    if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Debug64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Debug64\\icon.png");
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\DebugARM64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\DebugARM64\\icon.png");
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Release32\\icon.png");
-                    if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Release64\\icon.png");
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\ReleaseARM64"))
-                        Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\ReleaseARM64\\icon.png");
-                }
+                if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Debug32"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Debug32\\icon.png");
+                if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Debug64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Debug64\\icon.png");
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\DebugARM64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\DebugARM64\\icon.png");
             }
-            catch (Exception ex)
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                return false;
+                if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Release32\\icon.png");
+                if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\Release64\\icon.png");
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit) && Directory.Exists("bin\\ReleaseARM64"))
+                    Win32.CopyIfNewer("SystemInformer\\resources\\systeminformer.png", "bin\\ReleaseARM64\\icon.png");
             }
 
             return true;
@@ -563,71 +524,64 @@ namespace CustomBuildTool
         {
             var files = new List<string>();
 
-            try
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
+                if (Flags.HasFlag(BuildFlags.Build32bit))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    if (Directory.Exists("KSystemInformer\\bin-signed\\i386") && Directory.Exists("bin\\Debug32"))
                     {
-                        if (Directory.Exists("KSystemInformer\\bin-signed\\i386") && Directory.Exists("bin\\Debug32"))
-                        {
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Debug32\\SystemInformer.sys");
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Debug32\\ksi.dll");
-                        }
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        if (Directory.Exists("KSystemInformer\\bin-signed\\amd64") && Directory.Exists("bin\\Debug64"))
-                        {
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Debug64\\SystemInformer.sys");
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Debug64\\ksi.dll");
-                        }
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        if (Directory.Exists("KSystemInformer\\bin-signed\\arm64") && Directory.Exists("bin\\DebugARM64"))
-                        {
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\DebugARM64\\SystemInformer.sys");
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\DebugARM64\\ksi.dll");
-                        }
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Debug32\\SystemInformer.sys");
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Debug32\\ksi.dll");
                     }
                 }
 
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
+                if (Flags.HasFlag(BuildFlags.Build64bit))
                 {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    if (Directory.Exists("KSystemInformer\\bin-signed\\amd64") && Directory.Exists("bin\\Debug64"))
                     {
-                        if (Directory.Exists("KSystemInformer\\bin-signed\\i386") && Directory.Exists("bin\\Release32"))
-                        {
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Release32\\SystemInformer.sys");
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Release32\\ksi.dll");
-                        }
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Debug64\\SystemInformer.sys");
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Debug64\\ksi.dll");
                     }
+                }
 
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    if (Directory.Exists("KSystemInformer\\bin-signed\\arm64") && Directory.Exists("bin\\DebugARM64"))
                     {
-                        if (Directory.Exists("KSystemInformer\\bin-signed\\amd64") && Directory.Exists("bin\\Release64"))
-                        {
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Release64\\SystemInformer.sys");
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Release64\\ksi.dll");
-                        }
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        if (Directory.Exists("KSystemInformer\\bin-signed\\arm64") && Directory.Exists("bin\\ReleaseARM64"))
-                        {
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\ReleaseARM64\\SystemInformer.sys");
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\ReleaseARM64\\ksi.dll");
-                        }
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\DebugARM64\\SystemInformer.sys");
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\DebugARM64\\ksi.dll");
                     }
                 }
             }
-            catch (Exception ex)
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
             {
-                Program.PrintColorMessage($"[ERROR] (CopyKernelDriver) {ex}", ConsoleColor.Red);
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                {
+                    if (Directory.Exists("KSystemInformer\\bin-signed\\i386") && Directory.Exists("bin\\Release32"))
+                    {
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Release32\\SystemInformer.sys");
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Release32\\ksi.dll");
+                    }
+                }
+
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    if (Directory.Exists("KSystemInformer\\bin-signed\\amd64") && Directory.Exists("bin\\Release64"))
+                    {
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Release64\\SystemInformer.sys");
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Release64\\ksi.dll");
+                    }
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    if (Directory.Exists("KSystemInformer\\bin-signed\\arm64") && Directory.Exists("bin\\ReleaseARM64"))
+                    {
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\ReleaseARM64\\SystemInformer.sys");
+                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\ReleaseARM64\\ksi.dll");
+                    }
+                }
             }
 
             if (Flags.HasFlag(BuildFlags.BuildDebug))
@@ -804,76 +758,68 @@ namespace CustomBuildTool
 
         public static bool BuildSdk(BuildFlags Flags)
         {
-            try
+            foreach (string folder in BuildConfig.Build_Sdk_Directories)
             {
-                foreach (string folder in BuildConfig.Build_Sdk_Directories)
-                {
-                    Win32.CreateDirectory(folder);
-                }
-
-                // Copy the plugin SDK headers
-                foreach (string file in BuildConfig.Build_Phnt_Headers)
-                    Win32.CopyIfNewer($"phnt\\include\\{file}", $"sdk\\include\\{file}");
-                foreach (string file in BuildConfig.Build_Phlib_Headers)
-                    Win32.CopyIfNewer($"phlib\\include\\{file}", $"sdk\\include\\{file}");
-                foreach (string file in BuildConfig.Build_Kphlib_Headers)
-                    Win32.CopyIfNewer($"kphlib\\include\\{file}", $"sdk\\include\\{file}");
-
-                // Copy readme
-                Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt");
-                // Copy symbols
-                //Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "sdk\\dbg\\i386\\SystemInformer.pdb");
-                //Win32.CopyIfNewer("bin\\Release64\\SystemInformer.pdb", "sdk\\dbg\\amd64\\SystemInformer.pdb");
-                //Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.pdb", "sdk\\dbg\\arm64\\SystemInformer.pdb");
-                //Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\systeminformer.pdb", "sdk\\dbg\\i386\\ksysteminformer.pdb");
-                //Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\systeminformer.pdb", "sdk\\dbg\\amd64\\ksysteminformer.pdb");
-                //Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\systeminformer.pdb", "sdk\\dbg\\arm64\\ksysteminformer.pdb");
-                //Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\ksi.pdb", "sdk\\dbg\\i386\\ksi.pdb");
-                //Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\ksi.pdb", "sdk\\dbg\\amd64\\ksi.pdb");
-                //Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\ksi.pdb", "sdk\\dbg\\arm64\\ksi.pdb");
-
-                // Copy libs
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib");
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer("bin\\Debug64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib");
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer("bin\\DebugARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib");
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib");
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                        Win32.CopyIfNewer("bin\\Release64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib");
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                        Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib");
-                }
-
-                // Build the SDK
-                HeaderGen.Execute();
-
-                // Copy the resource header
-                Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h");
-                Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h");
-                Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h");
-
-                // Append resource headers with SDK exports
-                string phappContent = Utils.ReadAllText("sdk\\include\\phappresource.h");
-
-                if (!string.IsNullOrWhiteSpace(phappContent))
-                {
-                    phappContent = phappContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
-                    Utils.WriteAllText("sdk\\include\\phappresource.h", phappContent);
-                }
+                Win32.CreateDirectory(folder);
             }
-            catch (Exception ex)
+
+            // Copy the plugin SDK headers
+            foreach (string file in BuildConfig.Build_Phnt_Headers)
+                Win32.CopyIfNewer($"phnt\\include\\{file}", $"sdk\\include\\{file}");
+            foreach (string file in BuildConfig.Build_Phlib_Headers)
+                Win32.CopyIfNewer($"phlib\\include\\{file}", $"sdk\\include\\{file}");
+            foreach (string file in BuildConfig.Build_Kphlib_Headers)
+                Win32.CopyIfNewer($"kphlib\\include\\{file}", $"sdk\\include\\{file}");
+
+            // Copy readme
+            Win32.CopyIfNewer("SystemInformer\\sdk\\readme.txt", "sdk\\readme.txt");
+            // Copy symbols
+            //Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "sdk\\dbg\\i386\\SystemInformer.pdb");
+            //Win32.CopyIfNewer("bin\\Release64\\SystemInformer.pdb", "sdk\\dbg\\amd64\\SystemInformer.pdb");
+            //Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.pdb", "sdk\\dbg\\arm64\\SystemInformer.pdb");
+            //Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\systeminformer.pdb", "sdk\\dbg\\i386\\ksysteminformer.pdb");
+            //Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\systeminformer.pdb", "sdk\\dbg\\amd64\\ksysteminformer.pdb");
+            //Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\systeminformer.pdb", "sdk\\dbg\\arm64\\ksysteminformer.pdb");
+            //Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\ksi.pdb", "sdk\\dbg\\i386\\ksi.pdb");
+            //Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\ksi.pdb", "sdk\\dbg\\amd64\\ksi.pdb");
+            //Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\ksi.pdb", "sdk\\dbg\\arm64\\ksi.pdb");
+
+            // Copy libs
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                return false;
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                    Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib");
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                    Win32.CopyIfNewer("bin\\Debug64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib");
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    Win32.CopyIfNewer("bin\\DebugARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib");
+            }
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            {
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                    Win32.CopyIfNewer("bin\\Release32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib");
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                    Win32.CopyIfNewer("bin\\Release64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib");
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    Win32.CopyIfNewer("bin\\ReleaseARM64\\SystemInformer.lib", "sdk\\lib\\arm64\\SystemInformer.lib");
+            }
+
+            // Build the SDK
+            HeaderGen.Execute();
+
+            // Copy the resource header
+            Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h");
+            Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h");
+            Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h");
+
+            // Append resource headers with SDK exports
+            string phappContent = Utils.ReadAllText("sdk\\include\\phappresource.h");
+
+            if (!string.IsNullOrWhiteSpace(phappContent))
+            {
+                phappContent = phappContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
+                Utils.WriteAllText("sdk\\include\\phappresource.h", phappContent);
             }
 
             return true;
@@ -1123,8 +1069,9 @@ namespace CustomBuildTool
 
         private static string MsbuildCommandString(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
-            StringBuilder compilerOptions = new StringBuilder(0x100);
             StringBuilder commandLine = new StringBuilder(0x100);
+            StringBuilder compilerOptions = new StringBuilder(0x100);
+            StringBuilder linkerOptions = new StringBuilder(0x100);
 
             if (Flags.HasFlag(BuildFlags.BuildApi))
                 compilerOptions.Append("PH_BUILD_API;");
@@ -1138,10 +1085,13 @@ namespace CustomBuildTool
                 compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{Build.BuildRevision}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildCount))
                 compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildCount}\"");
+            if (Flags.HasFlag(BuildFlags.BuildSourceLink))
+                compilerOptions.Append($"/SOURCELINK \"{Build.BuildWorkingFolder}\"\\sourcelink.json\"");
 
             commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "quiet")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
             commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
+            commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
             commandLine.Append(Solution);
 
             return commandLine.ToString();
@@ -1149,67 +1099,82 @@ namespace CustomBuildTool
 
         public static bool BuildSolution(string Solution, BuildFlags Flags, string Channel = null)
         {
-            if (Flags.HasFlag(BuildFlags.Build32bit))
+            if (Flags.HasFlag(BuildFlags.BuildSourceLink))
             {
-                string buildCommandLine = MsbuildCommandString(Solution, "Win32", Flags, Channel);
+                Build.BuildSourceLink(true);
+            }
 
-                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
-                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
-                Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
-                Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
-
-                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
-
-                if (errorcode != 0)
+            try
+            {
+               if (Flags.HasFlag(BuildFlags.Build32bit))
                 {
-                    Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                    return false;
+                    string buildCommandLine = MsbuildCommandString(Solution, "Win32", Flags, Channel);
+
+                    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                    Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                    Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
+                    Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+                    int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
+
+                    if (errorcode != 0)
+                    {
+                        Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                        return false;
+                    }
+                }
+
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    string buildCommandLine = MsbuildCommandString(Solution, "x64", Flags, Channel);
+
+                    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                    Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                    Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
+                    Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+                    int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
+
+                    if (errorcode != 0)
+                    {
+                        Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                        return false;
+                    }
+                }
+
+                if (!HaveArm64BuildTools)
+                {
+                    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                    Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                    Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
+                    Program.PrintColorMessage(")... ", ConsoleColor.Cyan, false, Flags);
+                    Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
+                    return true;
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    string buildCommandLine = MsbuildCommandString(Solution, "ARM64", Flags, Channel);
+
+                    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                    Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                    Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
+                    Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+                    int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
+
+                    if (errorcode != 0)
+                    {
+                        Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                        return false;
+                    }
                 }
             }
-
-            if (Flags.HasFlag(BuildFlags.Build64bit))
+            finally
             {
-                string buildCommandLine = MsbuildCommandString(Solution, "x64", Flags, Channel);
-
-                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
-                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
-                Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
-                Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
-
-                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
-
-                if (errorcode != 0)
+                if (Flags.HasFlag(BuildFlags.BuildSourceLink))
                 {
-                    Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                    return false;
-                }
-            }
-
-            if (!HaveArm64BuildTools)
-            {
-                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
-                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
-                Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
-                Program.PrintColorMessage(")... ", ConsoleColor.Cyan, false, Flags);
-                Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
-                return true;
-            }
-
-            if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-            {
-                string buildCommandLine = MsbuildCommandString(Solution, "ARM64", Flags, Channel);
-
-                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
-                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
-                Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
-                Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
-
-                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
-
-                if (errorcode != 0)
-                {
-                    Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                    return false;
+                    Build.BuildSourceLink(false);
                 }
             }
 
@@ -1488,5 +1453,213 @@ namespace CustomBuildTool
             return mirror;
         }
 
+        private static void BuildMsixPackageManifest(BuildFlags Flags)
+        {
+            if (Flags.HasFlag(BuildFlags.Build32bit))
+            {
+                // Create the package manifest.
+
+                if (File.Exists("tools\\msix\\PackageTemplate.msix.xml"))
+                {
+                    string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
+
+                    msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
+                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
+                    msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
+
+                    Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
+                }
+            }
+
+            if (Flags.HasFlag(BuildFlags.Build64bit))
+            {
+                // Create the package manifest.
+
+                if (File.Exists("tools\\msix\\PackageTemplate.msix.xml"))
+                {
+                    string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
+
+                    msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x64");
+                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
+                    msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
+
+                    Utils.WriteAllText("tools\\msix\\MsixManifest64.xml", msixManifestString);
+                }
+            }
+        }
+
+        private static void BuildMsixPackageMapping(BuildFlags Flags)
+        {
+            // Create the package mapping file.
+
+            if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists("bin\\Release32"))
+            {
+                StringBuilder packageMap32 = new StringBuilder(0x100);
+                packageMap32.AppendLine("[Files]");
+                packageMap32.AppendLine($"\"tools\\msix\\MsixManifest32.xml\" \"AppxManifest.xml\"");
+                packageMap32.AppendLine($"\"tools\\msix\\Square44x44Logo.png\" \"Assets\\Square44x44Logo.png\"");
+                packageMap32.AppendLine($"\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
+                packageMap32.AppendLine($"\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
+
+                var filesToAdd = Directory.GetFiles("bin\\Release32", "*", SearchOption.AllDirectories);
+                foreach (string filePath in filesToAdd)
+                {
+                    if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".lib", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".manifest", StringComparison.OrdinalIgnoreCase)
+                        )
+                    {
+                        continue;
+                    }
+
+                    packageMap32.AppendLine($"\"{filePath}\" \"{filePath.Substring("bin\\Release32\\".Length)}\"");
+                }
+
+                Utils.WriteAllText("tools\\msix\\MsixPackage32.map", packageMap32.ToString());
+            }
+
+            // Create the package mapping file.
+
+            if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists("bin\\Release64"))
+            {
+                StringBuilder packageMap64 = new StringBuilder(0x100);
+                packageMap64.AppendLine("[Files]");
+                packageMap64.AppendLine("\"tools\\msix\\MsixManifest64.xml\" \"AppxManifest.xml\"");
+                packageMap64.AppendLine("\"tools\\msix\\Square44x44Logo.png\" \"Assets\\Square44x44Logo.png\"");
+                packageMap64.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
+                packageMap64.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
+
+                var filesToAdd = Directory.GetFiles("bin\\Release64", "*", SearchOption.AllDirectories);
+                foreach (string filePath in filesToAdd)
+                {
+                    // Ignore junk files
+                    if (filePath.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".iobj", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".ipdb", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".exp", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".lib", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
+                        filePath.EndsWith(".manifest", StringComparison.OrdinalIgnoreCase)
+                        )
+                    {
+                        continue;
+                    }
+
+                    packageMap64.AppendLine($"\"{filePath}\" \"{filePath.Substring("bin\\Release64\\".Length)}\"");
+                }
+
+                Utils.WriteAllText("tools\\msix\\MsixPackage64.map", packageMap64.ToString());
+            }
+        }
+
+        public static void BuildStorePackage(BuildFlags Flags)
+        {
+            Program.PrintColorMessage("Building package.msixbundle...", ConsoleColor.Cyan);
+
+            BuildMsixPackageManifest(Flags);
+            BuildMsixPackageMapping(Flags);
+
+            // Create the MSIX package.
+
+            if (Flags.HasFlag(BuildFlags.Build32bit))
+            {
+                if (File.Exists("tools\\msix\\MsixPackage32.map"))
+                {
+                    Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x32.appx");
+                    Win32.CreateDirectory(BuildOutputFolder);
+
+                    var result = Utils.ExecuteMsixCommand(
+                        $"pack /o /f tools\\msix\\MsixPackage32.map " +
+                        $"/p {BuildOutputFolder}\\systeminformer-build-package-x32.appx"
+                        );
+
+                    Program.PrintColorMessage(result, ConsoleColor.DarkGray);
+                }
+            }
+
+            if (Flags.HasFlag(BuildFlags.Build64bit))
+            {
+                if (File.Exists("tools\\msix\\MsixPackage64.map"))
+                {
+                    Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package-x64.appx");
+                    Win32.CreateDirectory(BuildOutputFolder);
+
+                    var result = Utils.ExecuteMsixCommand(
+                        $"pack /o /f tools\\msix\\MsixPackage64.map " +
+                        $"/p {BuildOutputFolder}\\systeminformer-build-package-x64.msix"
+                        );
+
+                    Program.PrintColorMessage(result, ConsoleColor.DarkGray);
+                }
+            }
+
+            // Create the bundle package.
+            if (
+                File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x32.msix") &&
+                File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix")
+                )
+            {
+                StringBuilder bundleMap = new StringBuilder(0x100);
+                bundleMap.AppendLine("[Files]");
+                bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
+                bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
+
+                Utils.WriteAllText("tools\\msix\\bundle.map", bundleMap.ToString());
+            }
+
+            if (File.Exists("tools\\msix\\bundle.map"))
+            {
+                Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle");
+
+                var result = Utils.ExecuteMsixCommand(
+                    $"bundle /f tools\\msix\\bundle.map " +
+                    $"/p {BuildOutputFolder}\\systeminformer-build-package.msixbundle"
+                    );
+
+                Program.PrintColorMessage($"{result}", ConsoleColor.DarkGray);
+            }
+            else
+            {
+                if (File.Exists($"{BuildOutputFolder}\\systeminformer-build-package-x64.msix"))
+                {
+                    File.Move(
+                        $"{BuildOutputFolder}\\systeminformer-build-package-x64.msix",
+                        $"{BuildOutputFolder}\\systeminformer-build-package.msix"
+                        );
+                }
+            }
+
+            Win32.DeleteFile("tools\\msix\\MsixManifest32.xml");
+            Win32.DeleteFile("tools\\msix\\MsixManifest64.xml");
+            Win32.DeleteFile("tools\\msix\\MsixPackage32.map");
+            Win32.DeleteFile("tools\\msix\\MsixPackage64.map");
+            Win32.DeleteFile("tools\\msix\\bundle.map");
+        }
+
+        public static void BuildSourceLink(bool BuildSourceLink)
+        {
+            if (BuildSourceLink)
+            {
+                if (!string.IsNullOrEmpty(Build.BuildCommit))
+                {
+                    string directory = Build.BuildOutputFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
+                    string value =
+                        $"{{ \"documents\": {{ " +
+                        $"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
+                        $"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
+                        $"}} }}";
+
+                    Utils.WriteAllText($"{Build.BuildWorkingFolder}\\sourcelink.json", value);
+                }
+            }
+            else
+            {
+                Win32.DeleteFile($"{Build.BuildWorkingFolder}\\sourcelink.json");
+            }
+        }
     }
 }

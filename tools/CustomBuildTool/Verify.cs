@@ -9,9 +9,6 @@
  *
  */
 
-using System.Threading.Channels;
-using static CustomBuildTool.NativeMethods;
-
 namespace CustomBuildTool
 {
     public static class Verify
@@ -89,7 +86,7 @@ namespace CustomBuildTool
 
             return null;
         }
-        
+
         public static byte[] DecryptFileBlob(string FileName, string Secret)
         {
             if (!File.Exists(FileName))

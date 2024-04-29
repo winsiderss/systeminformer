@@ -215,6 +215,9 @@ typedef struct _KPH_DYNDATA
 
         public static void Execute(string OutDir)
         {
+            if (!File.Exists(Verify.GetPath("kph.key")))
+                return;
+
             string manifestFile = "kphlib\\kphdyn.xml";
             string headerFile = "kphlib\\include\\kphdyn.h";
             string sourceFile = "kphlib\\kphdyn.c";
@@ -224,12 +227,18 @@ typedef struct _KPH_DYNDATA
             Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
 
             if (!GenerateHeader(headerFile))
+            {
+                Program.PrintColorMessage("Dynamic configuration is invalid!", ConsoleColor.Red);
                 return;
+            }
 
             Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
 
             if (!GenerateSource(manifestFile, sourceFile))
+            {
+                Program.PrintColorMessage("Dynamic configuration is invalid!", ConsoleColor.Red);
                 return;
+            }
 
             if (string.IsNullOrWhiteSpace(OutDir))
                 return;
@@ -359,100 +368,14 @@ typedef struct _KPH_DYNDATA
             out string SigData
             )
         {
-            List<DynConfig> configList = new List<DynConfig>(10);
-            List<string> configNames = new List<string>(10);
             byte[] configbuffer = null;
             byte[] signedbuffer = null;
 
-            var xml = new XmlDocument();
-            xml.Load(ManifestFile);
-
-            var dyn = xml.SelectSingleNode("/dyn");
-            var nodes = dyn?.SelectNodes("data");
-
-            if (nodes == null)
+            if (!GenerateConfig(ManifestFile, out configbuffer))
             {
-                Program.PrintColorMessage("Invalid config.", ConsoleColor.Red);
                 ConfigData = null;
                 SigData = null;
                 return false;
-            }
-
-            foreach (XmlNode data in nodes)
-            {
-                var config = new DynConfig();
-                var configName = data.Attributes?.GetNamedItem("name")?.Value;
-                var fields = data.SelectNodes("field");
-
-                if (fields == null)
-                {
-                    Program.PrintColorMessage("Invalid config.", ConsoleColor.Red);
-                    ConfigData = null;
-                    SigData = null;
-                    return false;
-                }
-
-                Program.PrintColorMessage(configName, ConsoleColor.Cyan);
-
-                foreach (XmlNode field in fields)
-                {
-                    string name = field.Attributes?.GetNamedItem("name")?.Value;
-                    string value = field.Attributes?.GetNamedItem("value")?.Value;
-
-                    if (string.IsNullOrEmpty(name))
-                        continue;
-                    if (string.IsNullOrEmpty(value))
-                        continue;
-
-                    FieldInfo member = typeof(DynConfig).GetField(name);
-
-                    if (member == null)
-                    {
-                        Program.PrintColorMessage("Invalid config.", ConsoleColor.Red);
-                        ConfigData = null;
-                        SigData = null;
-                        return false;
-                    }
-
-                    if (value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                    {
-                        value = Convert.ToUInt64(value, 16).ToString();
-                    }
-                    else if (value.Equals("-1", StringComparison.OrdinalIgnoreCase) && member.FieldType == typeof(ushort))
-                    {
-                        value = ushort.MaxValue.ToString();
-                    }
-
-                    member.SetValueDirect(__makeref(config), Convert.ChangeType(value, member.FieldType));
-
-                    configList.Add(config);
-                    configNames.Add(configName);
-                }
-            }
-
-            if (!Validate(configList, configNames))
-            {
-                Program.PrintColorMessage("Invalid config.", ConsoleColor.Red);
-                ConfigData = null;
-                SigData = null;
-                return false;
-            }
-
-            using (MemoryStream stream = new MemoryStream())
-            using (BinaryWriter writer = new BinaryWriter(stream))
-            {
-                //
-                // Write the version and count first, then the blocks.
-                // This conforms with KPH_DYNDATA defined above.
-                // Write the version, session token public key, and count first,
-                // then the blocks. This conforms with KPH_DYNDATA defined above.
-                //
-                writer.Write(Version);
-                writer.Write(SessionTokenPublicKey);
-                writer.Write((uint)configList.Count);
-                writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(configList)));
-
-                configbuffer = stream.ToArray();
             }
 
             signedbuffer = Verify.SignData(Verify.GetPath("kph.key"), configbuffer);
@@ -462,7 +385,7 @@ typedef struct _KPH_DYNDATA
             return true;
         }
            
-        private static void GenerateConfig(
+        private static bool GenerateConfig(
             string ManifestFile,
             out byte[] ConfigBytes
             )
@@ -504,9 +427,9 @@ typedef struct _KPH_DYNDATA
 
             if (!Validate(configs, configNames))
             {
-                throw new Exception("Dynamic configuration is invalid!");
+                ConfigBytes = null;
+                return false;
             }
-
 
             using (var stream = new MemoryStream())
             using (var writer = new BinaryWriter(stream))
@@ -522,6 +445,8 @@ typedef struct _KPH_DYNDATA
 
                 ConfigBytes = stream.ToArray();
             }
+
+            return true;
         }
 
         private static bool Validate(List<DynConfig> Configs, List<string> ConfigNames)
