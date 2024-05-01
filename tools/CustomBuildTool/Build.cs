@@ -524,64 +524,71 @@ namespace CustomBuildTool
         {
             var files = new List<string>();
 
-            if (Flags.HasFlag(BuildFlags.BuildDebug))
+            try
             {
-                if (Flags.HasFlag(BuildFlags.Build32bit))
+                if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
-                    if (Directory.Exists("KSystemInformer\\bin-signed\\i386") && Directory.Exists("bin\\Debug32"))
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
                     {
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Debug32\\SystemInformer.sys");
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Debug32\\ksi.dll");
+                        if (Directory.Exists("KSystemInformer\\bin-signed\\i386") && Directory.Exists("bin\\Debug32"))
+                        {
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Debug32\\SystemInformer.sys");
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Debug32\\ksi.dll");
+                        }
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        if (Directory.Exists("KSystemInformer\\bin-signed\\amd64") && Directory.Exists("bin\\Debug64"))
+                        {
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Debug64\\SystemInformer.sys");
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Debug64\\ksi.dll");
+                        }
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (Directory.Exists("KSystemInformer\\bin-signed\\arm64") && Directory.Exists("bin\\DebugARM64"))
+                        {
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\DebugARM64\\SystemInformer.sys");
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\DebugARM64\\ksi.dll");
+                        }
                     }
                 }
 
-                if (Flags.HasFlag(BuildFlags.Build64bit))
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
-                    if (Directory.Exists("KSystemInformer\\bin-signed\\amd64") && Directory.Exists("bin\\Debug64"))
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
                     {
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Debug64\\SystemInformer.sys");
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Debug64\\ksi.dll");
+                        if (Directory.Exists("KSystemInformer\\bin-signed\\i386") && Directory.Exists("bin\\Release32"))
+                        {
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Release32\\SystemInformer.sys");
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Release32\\ksi.dll");
+                        }
                     }
-                }
 
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                {
-                    if (Directory.Exists("KSystemInformer\\bin-signed\\arm64") && Directory.Exists("bin\\DebugARM64"))
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
                     {
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\DebugARM64\\SystemInformer.sys");
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\DebugARM64\\ksi.dll");
+                        if (Directory.Exists("KSystemInformer\\bin-signed\\amd64") && Directory.Exists("bin\\Release64"))
+                        {
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Release64\\SystemInformer.sys");
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Release64\\ksi.dll");
+                        }
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (Directory.Exists("KSystemInformer\\bin-signed\\arm64") && Directory.Exists("bin\\ReleaseARM64"))
+                        {
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\ReleaseARM64\\SystemInformer.sys");
+                            Win32.CopyVersionIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\ReleaseARM64\\ksi.dll");
+                        }
                     }
                 }
             }
-
-            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            catch (Exception ex)
             {
-                if (Flags.HasFlag(BuildFlags.Build32bit))
-                {
-                    if (Directory.Exists("KSystemInformer\\bin-signed\\i386") && Directory.Exists("bin\\Release32"))
-                    {
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Release32\\SystemInformer.sys");
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Release32\\ksi.dll");
-                    }
-                }
-
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                {
-                    if (Directory.Exists("KSystemInformer\\bin-signed\\amd64") && Directory.Exists("bin\\Release64"))
-                    {
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Release64\\SystemInformer.sys");
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Release64\\ksi.dll");
-                    }
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                {
-                    if (Directory.Exists("KSystemInformer\\bin-signed\\arm64") && Directory.Exists("bin\\ReleaseARM64"))
-                    {
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\ReleaseARM64\\SystemInformer.sys");
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\ReleaseARM64\\ksi.dll");
-                    }
-                }
+                Program.PrintColorMessage($"[ERROR] (CopyKernelDriver) {ex}", ConsoleColor.Red);
             }
 
             if (Flags.HasFlag(BuildFlags.BuildDebug))
