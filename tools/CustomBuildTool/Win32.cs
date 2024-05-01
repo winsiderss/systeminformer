@@ -208,34 +208,6 @@ namespace CustomBuildTool
                 Win32.CreateDirectory(directory);
             }
 
-            //if (SourceFile.EndsWith(".sys", StringComparison.OrdinalIgnoreCase))
-            //{
-            //    if (!File.Exists(DestinationFile))
-            //    {
-            //        File.Copy(SourceFile, DestinationFile, true);
-            //    }
-            //    else
-            //    {
-            //        FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo(SourceFile);
-            //        FileVersionInfo newInfo = FileVersionInfo.GetVersionInfo(DestinationFile);
-            //        var currentInfoVersion = new Version(currentInfo.FileVersion);
-            //        var newInfoVersion = new Version(newInfo.FileVersion);
-
-            //        if (
-            //            currentInfoVersion > newInfoVersion ||
-            //            File.GetLastWriteTime(SourceFile) > File.GetLastWriteTime(DestinationFile)
-            //            )
-            //        {
-            //            File.Copy(SourceFile, DestinationFile, true);
-            //        }
-            //    }
-            //}
-            //else
-            //{
-            //    if (File.GetLastWriteTime(SourceFile) > File.GetLastWriteTime(DestinationFile))
-            //        File.Copy(SourceFile, DestinationFile, true);
-            //}
-
             if (File.Exists(DestinationFile))
             {
                 FileInfo sourceFile = new FileInfo(SourceFile);
@@ -244,6 +216,41 @@ namespace CustomBuildTool
                 if (
                     sourceFile.CreationTimeUtc > destinationFile.CreationTimeUtc ||
                     sourceFile.LastWriteTimeUtc > destinationFile.LastWriteTimeUtc
+                    )
+                {
+                    File.Copy(SourceFile, DestinationFile, true);
+                }
+            }
+            else
+            {
+                File.Copy(SourceFile, DestinationFile, true);
+            }
+        }
+        
+        public static void CopyVersionIfNewer(string SourceFile, string DestinationFile)
+        {
+            if (!File.Exists(SourceFile))
+                return;
+
+            {
+                string directory = Path.GetDirectoryName(DestinationFile);
+
+                if (string.IsNullOrWhiteSpace(directory))
+                    return;
+
+                Win32.CreateDirectory(directory);
+            }
+
+            if (File.Exists(DestinationFile))
+            {
+                FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo(SourceFile);
+                FileVersionInfo newInfo = FileVersionInfo.GetVersionInfo(DestinationFile);
+                var currentInfoVersion = new Version(currentInfo.FileVersion);
+                var newInfoVersion = new Version(newInfo.FileVersion);
+
+                if (
+                    currentInfoVersion > newInfoVersion ||
+                    File.GetLastWriteTime(SourceFile) > File.GetLastWriteTime(DestinationFile)
                     )
                 {
                     File.Copy(SourceFile, DestinationFile, true);
