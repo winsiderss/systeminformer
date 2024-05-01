@@ -1093,7 +1093,7 @@ namespace CustomBuildTool
             if (!string.IsNullOrWhiteSpace(Build.BuildCount))
                 compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildCount}\"");
             if (Flags.HasFlag(BuildFlags.BuildSourceLink))
-                compilerOptions.Append($"/SOURCELINK \"{Build.BuildWorkingFolder}\"\\sourcelink.json\"");
+                linkerOptions.Append($"/SOURCELINK \"{Build.BuildWorkingFolder}\"\\sourcelink.json\"");
 
             commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "quiet")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
