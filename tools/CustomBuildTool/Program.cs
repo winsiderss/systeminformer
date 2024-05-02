@@ -204,12 +204,14 @@ namespace CustomBuildTool
                 BuildFlags flags =
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
                     BuildFlags.BuildRelease | BuildFlags.BuildVerbose |
-                    BuildFlags.BuildApi | BuildFlags.BuildSourceLink;
+                    BuildFlags.BuildApi;
 
                 if (ProgramArgs.ContainsKey("-msix-build"))
                     flags |= BuildFlags.BuildMsix;
 
                 Build.SetupBuildEnvironment(true);
+
+                Build.CopySourceLink();
 
                 if (!Build.BuildSolution("SystemInformer.sln", flags))
                     Environment.Exit(1);
@@ -258,7 +260,7 @@ namespace CustomBuildTool
                 BuildFlags flags =
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
                     BuildFlags.BuildRelease | BuildFlags.BuildVerbose | BuildFlags.BuildApi | 
-                    BuildFlags.BuildMsix | BuildFlags.BuildSourceLink;
+                    BuildFlags.BuildMsix;
 
                 Build.SetupBuildEnvironment(true);
 
@@ -326,20 +328,5 @@ namespace CustomBuildTool
                 Console.Write(Message);
             Console.ResetColor();
         }
-    }
-
-    [Flags]
-    public enum BuildFlags
-    {
-        None,
-        Build32bit = 1,
-        Build64bit = 2,
-        BuildArm64bit = 4,
-        BuildDebug = 8,
-        BuildRelease = 16,
-        BuildVerbose = 32,
-        BuildApi = 64,
-        BuildMsix = 128,
-        BuildSourceLink = 8192
     }
 }

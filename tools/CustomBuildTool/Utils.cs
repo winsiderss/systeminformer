@@ -733,4 +733,18 @@ namespace CustomBuildTool
             return chosenValue;
         }
     }
+
+    [Flags]
+    public enum BuildFlags
+    {
+        None,
+        Build32bit = 1,
+        Build64bit = 2,
+        BuildArm64bit = 4,
+        BuildDebug = 8,
+        BuildRelease = 16,
+        BuildVerbose = 32,
+        BuildApi = 64,
+        BuildMsix = 128,
+    }
 }
