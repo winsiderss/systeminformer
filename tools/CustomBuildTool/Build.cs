@@ -26,6 +26,7 @@ namespace CustomBuildTool
         public static string BuildMajorVersion = "3.0";
         public static string BuildCount = string.Empty;
         public static string BuildRevision = string.Empty;
+        public static string BuildSourceLink = string.Empty;
 
         public static bool InitializeBuildEnvironment()
         {
@@ -924,8 +925,8 @@ namespace CustomBuildTool
 
             if (Directory.Exists(Path))
             {
-                Win32.CreateEmptyFile($"\\{Path}SystemInformer.exe.settings.xml");
-                Utils.WriteAllText($"\\{Path}SystemInformer.exe.settings.xml", stringBuilder.ToString());
+                Win32.CreateEmptyFile($"{Path}\\SystemInformer.exe.settings.xml");
+                Utils.WriteAllText($"{Path}\\SystemInformer.exe.settings.xml", stringBuilder.ToString());
             }
         }
 
@@ -943,6 +944,7 @@ namespace CustomBuildTool
             catch (Exception ex)
             {
                 Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
+                return false;
             }
 
             //try
@@ -1092,8 +1094,8 @@ namespace CustomBuildTool
                 compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{Build.BuildRevision}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildCount))
                 compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildCount}\"");
-            if (Flags.HasFlag(BuildFlags.BuildSourceLink))
-                linkerOptions.Append($"/SOURCELINK \"{Build.BuildWorkingFolder}\"\\sourcelink.json\"");
+            if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
+                linkerOptions.Append($"/SOURCELINK \"{Build.BuildSourceLink}\"");
 
             commandLine.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "quiet")} ");
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
@@ -1106,82 +1108,67 @@ namespace CustomBuildTool
 
         public static bool BuildSolution(string Solution, BuildFlags Flags, string Channel = null)
         {
-            if (Flags.HasFlag(BuildFlags.BuildSourceLink))
+            if (Flags.HasFlag(BuildFlags.Build32bit))
             {
-                Build.BuildSourceLink(true);
+                string buildCommandLine = MsbuildCommandString(Solution, "Win32", Flags, Channel);
+
+                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
+                Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
+
+                if (errorcode != 0)
+                {
+                    Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    return false;
+                }
             }
 
-            try
+            if (Flags.HasFlag(BuildFlags.Build64bit))
             {
-               if (Flags.HasFlag(BuildFlags.Build32bit))
+                string buildCommandLine = MsbuildCommandString(Solution, "x64", Flags, Channel);
+
+                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
+                Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
+
+                if (errorcode != 0)
                 {
-                    string buildCommandLine = MsbuildCommandString(Solution, "Win32", Flags, Channel);
-
-                    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
-                    Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
-                    Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
-                    Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
-
-                    int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
-
-                    if (errorcode != 0)
-                    {
-                        Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                        return false;
-                    }
-                }
-
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                {
-                    string buildCommandLine = MsbuildCommandString(Solution, "x64", Flags, Channel);
-
-                    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
-                    Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
-                    Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
-                    Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
-
-                    int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
-
-                    if (errorcode != 0)
-                    {
-                        Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                        return false;
-                    }
-                }
-
-                if (!HaveArm64BuildTools)
-                {
-                    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
-                    Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
-                    Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
-                    Program.PrintColorMessage(")... ", ConsoleColor.Cyan, false, Flags);
-                    Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
-                    return true;
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                {
-                    string buildCommandLine = MsbuildCommandString(Solution, "ARM64", Flags, Channel);
-
-                    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
-                    Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
-                    Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
-                    Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
-
-                    int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
-
-                    if (errorcode != 0)
-                    {
-                        Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                        return false;
-                    }
+                    Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    return false;
                 }
             }
-            finally
+
+            if (!HaveArm64BuildTools)
             {
-                if (Flags.HasFlag(BuildFlags.BuildSourceLink))
+                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
+                Program.PrintColorMessage(")... ", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
+                return true;
+            }
+
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+            {
+                string buildCommandLine = MsbuildCommandString(Solution, "ARM64", Flags, Channel);
+
+                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
+                Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+                int errorcode = Utils.ExecuteMsbuildCommand(buildCommandLine, out string errorstring);
+
+                if (errorcode != 0)
                 {
-                    Build.BuildSourceLink(false);
+                    Program.PrintColorMessage($"[ERROR] ({errorcode}) {errorstring}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    return false;
                 }
             }
 
@@ -1647,25 +1634,19 @@ namespace CustomBuildTool
             Win32.DeleteFile("tools\\msix\\bundle.map");
         }
 
-        public static void BuildSourceLink(bool BuildSourceLink)
+        public static void CopySourceLink()
         {
-            if (BuildSourceLink)
+            if (!string.IsNullOrEmpty(Build.BuildCommit))
             {
-                if (!string.IsNullOrEmpty(Build.BuildCommit))
-                {
-                    string directory = Build.BuildOutputFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
-                    string value =
-                        $"{{ \"documents\": {{ " +
-                        $"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
-                        $"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
-                        $"}} }}";
+                Build.BuildSourceLink = $"{Build.BuildOutputFolder}\\sourcelink.json";
+                string directory = Build.BuildOutputFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
+                string value =
+                    $"{{ \"documents\": {{ " +
+                    $"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
+                    $"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
+                    $"}} }}";
 
-                    Utils.WriteAllText($"{Build.BuildWorkingFolder}\\sourcelink.json", value);
-                }
-            }
-            else
-            {
-                Win32.DeleteFile($"{Build.BuildWorkingFolder}\\sourcelink.json");
+                Utils.WriteAllText(Build.BuildSourceLink, value);
             }
         }
     }
