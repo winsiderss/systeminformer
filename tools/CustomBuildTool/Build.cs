@@ -1638,8 +1638,8 @@ namespace CustomBuildTool
         {
             if (!string.IsNullOrEmpty(Build.BuildCommit))
             {
-                Build.BuildSourceLink = $"{Build.BuildOutputFolder}\\sourcelink.json";
-                string directory = Build.BuildOutputFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
+                Build.BuildSourceLink = $"{Build.BuildWorkingFolder}\\sourcelink.json";
+                string directory = Build.BuildWorkingFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
                 string value =
                     $"{{ \"documents\": {{ " +
                     $"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
