@@ -710,6 +710,9 @@ namespace CustomBuildTool
         {
             var files = new List<string>();
 
+            if (!Directory.Exists("bin"))
+                return false;
+
             foreach (string sigFile in Directory.EnumerateFiles("bin", "*.sig", SearchOption.AllDirectories))
             {
                 var file = Path.ChangeExtension(sigFile, ".dll");
