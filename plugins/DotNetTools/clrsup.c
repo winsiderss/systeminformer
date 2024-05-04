@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2011-2023
+ *     dmex    2011-2024
  *
  */
 
@@ -1192,6 +1192,17 @@ static VOID DnCleanupDacAuxiliaryProvider(
     PhClearReference(&dataTarget->DaccorePath);
 }
 
+static BOOLEAN DnClrVerifyFileIsChainedToMicrosoft(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    if (PhGetIntegerSetting(SETTING_NAME_DOT_NET_VERIFYSIGNATURE))
+    {
+        return PhVerifyFileIsChainedToMicrosoft(FileName, NativeFileName);
+    }
+
+    return TRUE;
 static BOOLEAN DnpMscordaccoreDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
@@ -1326,7 +1337,7 @@ TryAppLocal:
     if (!mscordacBaseAddress && dataTargetDirectory)
     {
         PPH_STRING fileName;
-
+ 
         // We couldn't find any compatible versions of the CLR installed. Try loading
         // the version of the CLR included with the application after checking the
         // digital signature was from Microsoft. (dmex)
@@ -1338,7 +1349,7 @@ TryAppLocal:
 
         PhMoveReference(&fileName, PhGetFileName(fileName));
 
-        if (PhVerifyFileIsChainedToMicrosoft(&fileName->sr, FALSE))
+        if (DnClrVerifyFileIsChainedToMicrosoft(&fileName->sr, FALSE))
         {
             HANDLE processHandle;
             HANDLE tokenHandle = NULL;
@@ -1440,7 +1451,7 @@ TryAppLocal:
 
                 if (NT_SUCCESS(status))
                 {
-                    if (PhVerifyFileIsChainedToMicrosoft(&fileName->sr, FALSE))
+                    if (DnClrVerifyFileIsChainedToMicrosoft(&fileName->sr, FALSE))
                     {
                         mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
                     }
