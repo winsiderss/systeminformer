@@ -215,7 +215,7 @@ typedef struct _KPH_DYNDATA
 
         public static void Execute(string OutDir)
         {
-            if (!File.Exists(Verify.GetPath("kph.key")))
+            if (!Win32.HasEnvironmentVariable("KPH_BUILD_KEY") || !File.Exists(Verify.GetPath("kph.key")))
                 return;
 
             string manifestFile = "kphlib\\kphdyn.xml";
@@ -241,7 +241,10 @@ typedef struct _KPH_DYNDATA
             }
 
             if (string.IsNullOrWhiteSpace(OutDir))
+            {
+                Program.PrintColorMessage("Dynamic configuration is invalid!", ConsoleColor.Red);
                 return;
+            }
 
             string configFile = $"{OutDir}\\ksidyn.bin";
 
@@ -250,7 +253,38 @@ typedef struct _KPH_DYNDATA
             Directory.CreateDirectory(OutDir);
             File.WriteAllBytes(configFile, config);
             Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
-            Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile);
+
+            if (Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
+            {
+                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
+
+                if (!string.IsNullOrWhiteSpace(buildKey))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
+                    return;
+                }
+
+                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
+
+                if (buildBlob == null)
+                {
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
+                    return;
+                }
+
+                if (!Verify.CreateSignatureFile(buildBlob, configFile))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Blob failed.", ConsoleColor.Yellow);
+                    return;
+                }
+            }
+            else
+            {
+                if (!File.Exists(Verify.GetPath("kph.key")))
+                    return;
+
+                Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile);
+            }
         }
 
         private static bool GenerateHeader(string FileName)
@@ -368,8 +402,8 @@ typedef struct _KPH_DYNDATA
             out string SigData
             )
         {
-            byte[] configbuffer = null;
-            byte[] signedbuffer = null;
+            byte[] configbuffer;
+            byte[] signedbuffer;
 
             if (!GenerateConfig(ManifestFile, out configbuffer))
             {
@@ -378,7 +412,42 @@ typedef struct _KPH_DYNDATA
                 return false;
             }
 
-            signedbuffer = Verify.SignData(Verify.GetPath("kph.key"), configbuffer);
+            if (Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
+            {
+                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
+
+                if (!string.IsNullOrWhiteSpace(buildKey))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
+                    ConfigData = null;
+                    SigData = null;
+                    return false;
+                }
+
+                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
+
+                if (buildBlob == null)
+                {
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
+                    ConfigData = null;
+                    SigData = null;
+                    return false;
+                }
+
+                signedbuffer = Verify.SignData(buildBlob, configbuffer);
+            }
+            else
+            {
+                if (!File.Exists(Verify.GetPath("kph.key")))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
+                    ConfigData = null;
+                    SigData = null;
+                    return false;
+                }
+
+                signedbuffer = Verify.SignData(Verify.GetPath("kph.key"), configbuffer);
+            }
 
             ConfigData = BufferToString(configbuffer);
             SigData = BufferToString(signedbuffer);

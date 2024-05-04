@@ -260,6 +260,19 @@ namespace CustomBuildTool
             return buffer;
         }
 
+        public static byte[] SignData(byte[] Blob, ReadOnlySpan<byte> Buffer)
+        {
+            byte[] buffer;
+
+            using (CngKey cngkey = CngKey.Import(Blob, CngKeyBlobFormat.GenericPrivateBlob))
+            using (ECDsaCng ecdsa = new ECDsaCng(cngkey))
+            {
+                buffer = ecdsa.SignData(Buffer, HashAlgorithmName.SHA256);
+            }
+
+            return buffer;
+        }
+
         public static byte[] SignData(byte[] Blob, Stream Buffer)
         {
             byte[] buffer;
@@ -273,7 +286,7 @@ namespace CustomBuildTool
             return buffer;
         }
 
-        public static unsafe void GenerateKeys(out byte[] PrivateKeyBlob, out byte[] PublicKeyBlob)
+        public static void GenerateKeys(out byte[] PrivateKeyBlob, out byte[] PublicKeyBlob)
         {
             using (ECDsaCng cng = new ECDsaCng(256))
             {
