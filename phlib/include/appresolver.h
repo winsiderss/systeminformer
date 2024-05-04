@@ -14,23 +14,23 @@
 
 EXTERN_C_START
 
-HRESULT PhAppResolverGetAppIdForProcess(
+HRESULT NTAPI PhAppResolverGetAppIdForProcess(
     _In_ HANDLE ProcessId,
     _Out_ PPH_STRING *ApplicationUserModelId
     );
 
-HRESULT PhAppResolverGetAppIdForWindow(
+HRESULT NTAPI PhAppResolverGetAppIdForWindow(
     _In_ HWND WindowHandle,
     _Out_ PPH_STRING *ApplicationUserModelId
     );
 
-HRESULT PhAppResolverActivateAppId(
+HRESULT NTAPI PhAppResolverActivateAppId(
     _In_ PPH_STRING ApplicationUserModelId,
     _In_opt_ PWSTR CommandLine,
     _Out_opt_ HANDLE *ProcessId
     );
 
-HRESULT PhAppResolverPackageTerminateProcess(
+HRESULT NTAPI PhAppResolverPackageTerminateProcess(
     _In_ PPH_STRING PackageFullName
     );
 
@@ -40,36 +40,36 @@ typedef struct _PH_PACKAGE_TASK_ENTRY
     GUID TaskGuid;
 } PH_PACKAGE_TASK_ENTRY, *PPH_PACKAGE_TASK_ENTRY;
 
-PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
+PPH_LIST NTAPI PhAppResolverEnumeratePackageBackgroundTasks(
     _In_ PPH_STRING PackageFullName
     );
 
-HRESULT PhAppResolverPackageStopSessionRedirection(
+HRESULT NTAPI PhAppResolverPackageStopSessionRedirection(
     _In_ PPH_STRING PackageFullName
     );
 
-PPH_STRING PhGetAppContainerName(
+PPH_STRING NTAPI PhGetAppContainerName(
     _In_ PSID AppContainerSid
     );
 
-PPH_STRING PhGetAppContainerSidFromName(
+PPH_STRING NTAPI PhGetAppContainerSidFromName(
     _In_ PWSTR AppContainerName
     );
 
-PPH_STRING PhGetAppContainerPackageName(
+PPH_STRING NTAPI PhGetAppContainerPackageName(
     _In_ PSID Sid
     );
 
-BOOLEAN PhIsPackageCapabilitySid(
+BOOLEAN NTAPI PhIsPackageCapabilitySid(
     _In_ PSID AppContainerSid,
     _In_ PSID Sid
     );
 
-PPH_STRING PhGetPackagePath(
+PPH_STRING NTAPI PhGetPackagePath(
     _In_ PPH_STRING PackageFullName
     );
 
-PPH_LIST PhGetPackageAssetsFromResourceFile(
+PPH_LIST NTAPI PhGetPackageAssetsFromResourceFile(
     _In_ PWSTR FilePath
     );
 
@@ -85,18 +85,18 @@ typedef struct _PH_APPUSERMODELID_ENUM_ENTRY
     PPH_STRING SmallLogoPath;
 } PH_APPUSERMODELID_ENUM_ENTRY, *PPH_APPUSERMODELID_ENUM_ENTRY;
 
-PPH_LIST PhEnumApplicationUserModelIds(
+PPH_LIST NTAPI PhEnumApplicationUserModelIds(
     VOID
     );
 
-HRESULT PhAppResolverGetPackageResourceFilePath(
+HRESULT NTAPI PhAppResolverGetPackageResourceFilePath(
     _In_ PCWSTR PackageFullName,
     _In_ PCWSTR Key,
     _Out_ PWSTR* FilePath
     );
 
 _Success_(return)
-BOOLEAN PhAppResolverGetPackageIcon(
+BOOLEAN NTAPI PhAppResolverGetPackageIcon(
     _In_ HANDLE ProcessId,
     _In_ PPH_STRING PackageFullName,
     _Out_opt_ HICON* IconLarge,
@@ -106,23 +106,23 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
 // Immersive PLM task support
 
-HRESULT PhAppResolverBeginCrashDumpTask(
+HRESULT NTAPI PhAppResolverBeginCrashDumpTask(
     _In_ HANDLE ProcessId,
     _Out_ HANDLE* TaskHandle
     );
 
-HRESULT PhAppResolverBeginCrashDumpTaskByHandle(
+HRESULT NTAPI PhAppResolverBeginCrashDumpTaskByHandle(
     _In_ HANDLE ProcessHandle,
     _Out_ HANDLE* TaskHandle
     );
 
-HRESULT PhAppResolverEndCrashDumpTask(
+HRESULT NTAPI PhAppResolverEndCrashDumpTask(
     _In_ HANDLE TaskHandle
     );
 
 // Desktop Bridge
 
-HRESULT PhCreateProcessDesktopPackage(
+HRESULT NTAPI PhCreateProcessDesktopPackage(
     _In_ PWSTR ApplicationUserModelId,
     _In_ PWSTR Executable,
     _In_ PWSTR Arguments,

@@ -412,13 +412,13 @@ C_ASSERT(KPH_MESSAGE_MIN_SIZE == FIELD_OFFSET(KPH_MESSAGE, _Dyn.Buffer));
 
 EXTERN_C_START
 
-VOID KphMsgInit(
+VOID NTAPI KphMsgInit(
     _Out_writes_bytes_(KPH_MESSAGE_MIN_SIZE) PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_ID MessageId
     );
 
 _Must_inspect_result_
-NTSTATUS KphMsgValidate(
+NTSTATUS NTAPI KphMsgValidate(
     _In_ PCKPH_MESSAGE Message
     );
 

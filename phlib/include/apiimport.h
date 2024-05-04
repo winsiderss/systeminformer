@@ -229,7 +229,7 @@ typedef VOID (WINAPI* _UnsubscribeServiceChangeNotifications)(
     _In_ PSC_NOTIFICATION_REGISTRATION pSubscription
     );
 
-#define PH_DECLARE_IMPORT(Name) _##Name Name##_Import(VOID)
+#define PH_DECLARE_IMPORT(Name) _##Name NTAPI Name##_Import(VOID)
 
 PH_DECLARE_IMPORT(NtQueryInformationEnlistment);
 PH_DECLARE_IMPORT(NtQueryInformationResourceManager);

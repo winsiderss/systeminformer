@@ -14,7 +14,7 @@
 #include <kphdyn.h>
 
 _Must_inspect_result_
-NTSTATUS KphDynDataGetConfiguration(
+NTSTATUS NTAPI KphDynDataGetConfiguration(
     _In_ PKPH_DYNDATA DynData,
     _In_ ULONG DynDataLength,
     _In_ USHORT MajorVersion,
