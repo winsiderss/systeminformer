@@ -255,7 +255,7 @@ typedef struct _KPH_DYNDATA
 
             Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
 
-            if (Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
+            if (Build.BuildCanary && Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
             {
                 var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
 

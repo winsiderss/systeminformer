@@ -66,7 +66,7 @@ namespace CustomBuildTool
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
 
-            var buildDef = Win32.GetEnvironmentVariable("%BUILD_DEFINITIONNAME%");
+            var buildDef = Win32.GetEnvironmentVariable("SYSTEM_DEFINITIONNAME");
             if (!string.IsNullOrWhiteSpace(buildDef))
             {
                 if (buildDef.Contains("canary", StringComparison.OrdinalIgnoreCase))
@@ -75,7 +75,7 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.HasEnvironmentVariable("BUILD_DEBUG"))
+            if (Win32.HasEnvironmentVariable("SYSTEM_DEBUG"))
             {
                 Build.BuildToolsDebug = true;
             }
