@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2015-2021
+ *     dmex    2015-2024
  *
  */
 
@@ -27,6 +27,7 @@
 #define SETTING_NAME_DOT_NET_COUNTERS_COLUMNS (PLUGIN_NAME L".DotNetListColumns")
 #define SETTING_NAME_DOT_NET_COUNTERS_SORTCOLUMN (PLUGIN_NAME L".DotNetListSort")
 #define SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES (PLUGIN_NAME L".DotNetListGroupStates")
+#define SETTING_NAME_DOT_NET_VERIFYSIGNATURE (PLUGIN_NAME L".DotNetVerifySignature")
 
 extern PPH_PLUGIN PluginInstance;
 
