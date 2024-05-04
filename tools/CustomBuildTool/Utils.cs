@@ -594,6 +594,25 @@ namespace CustomBuildTool
 
             return buffer;
         }
+
+        public static void WriteAllBytes(string FileName, byte[] Buffer)
+        {
+            FileStreamOptions options = new FileStreamOptions
+            {
+                Mode = FileMode.Create,
+                Access = FileAccess.Write,
+                Share = FileShare.Write | FileShare.Delete,
+                Options = FileOptions.SequentialScan,
+                PreallocationSize = Buffer.LongLength,
+                BufferSize = 0x1000,
+            };
+
+            using (MemoryStream stream = new MemoryStream(Buffer, true))
+            using (FileStream filestream = new FileStream(FileName, options))
+            {
+                stream.CopyTo(filestream);
+            }
+        }
     }
 
     public class BuildUpdateRequest

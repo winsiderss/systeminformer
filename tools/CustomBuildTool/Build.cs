@@ -186,18 +186,15 @@ namespace CustomBuildTool
 
                         if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (File.Exists(path))
-                            {
-                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
 
-                                try
-                                {
-                                    File.Delete(path);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                                }
+                            try
+                            {
+                                Win32.DeleteFile(path);
+                            }
+                            catch (Exception ex)
+                            {
+                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
                             }
                         }
                     }

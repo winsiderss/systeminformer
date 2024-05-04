@@ -215,16 +215,15 @@ typedef struct _KPH_DYNDATA
 
         public static void Execute(string OutDir)
         {
-            if (!Win32.HasEnvironmentVariable("KPH_BUILD_KEY") || !File.Exists(Verify.GetPath("kph.key")))
-                return;
-
             string manifestFile = "kphlib\\kphdyn.xml";
             string headerFile = "kphlib\\include\\kphdyn.h";
             string sourceFile = "kphlib\\kphdyn.c";
 
-            GenerateConfig(manifestFile, out byte[] config);
-
-            Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
+            if (!GenerateConfig(manifestFile, out byte[] config))
+            {
+                Program.PrintColorMessage("Dynamic configuration is invalid!", ConsoleColor.Red);
+                return;
+            }
 
             if (!GenerateHeader(headerFile))
             {
@@ -232,26 +231,28 @@ typedef struct _KPH_DYNDATA
                 return;
             }
 
-            Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
+            Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
 
-            if (!GenerateSource(manifestFile, sourceFile))
+            if (!GenerateSource(sourceFile, config))
             {
                 Program.PrintColorMessage("Dynamic configuration is invalid!", ConsoleColor.Red);
                 return;
             }
 
+            Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
+
             if (string.IsNullOrWhiteSpace(OutDir))
             {
-                Program.PrintColorMessage("Dynamic configuration is invalid!", ConsoleColor.Red);
+                Program.PrintColorMessage("Dynamic configuration path invalid.", ConsoleColor.Red);
                 return;
             }
 
             string configFile = $"{OutDir}\\ksidyn.bin";
 
-            if (File.Exists(configFile))
-                File.Delete(configFile);
+            Win32.DeleteFile(configFile);
             Directory.CreateDirectory(OutDir);
             File.WriteAllBytes(configFile, config);
+
             Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
 
             if (Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
@@ -281,9 +282,16 @@ typedef struct _KPH_DYNDATA
             else
             {
                 if (!File.Exists(Verify.GetPath("kph.key")))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
                     return;
+                }
 
-                Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile);
+                if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile))
+                {
+                    Program.PrintColorMessage("[SKIPPED] Blob failed.", ConsoleColor.Yellow);
+                    return;
+                }
             }
         }
 
@@ -321,23 +329,7 @@ typedef struct _KPH_DYNDATA
             return true;
         }
 
-        //StringBuilder sb = new StringBuilder(8192);
-        //    sb.AppendLine(FileHeader);
-        //    sb.AppendLine();
-        //    sb.AppendLine("#pragma once");
-        //    sb.AppendLine();
-        //    sb.AppendLine(Includes);
-        //    sb.AppendLine();
-        //    sb.AppendLine(DynConfigC);
-        //    sb.AppendLine();
-        //    sb.AppendLine("#ifdef _WIN64");
-        //    sb.AppendLine("extern CONST BYTE KphDynData[];");
-        //    sb.AppendLine("extern CONST ULONG KphDynDataLength;");
-        //    sb.AppendLine("#endif");
-        //    return sb.ToString();
-        //}
-
-        private static bool GenerateSource(string ManifestFile, string FileName)
+        private static bool GenerateSource(string FileName, byte[] Config)
         {
             FileStreamOptions options = new FileStreamOptions
             {
@@ -348,9 +340,6 @@ typedef struct _KPH_DYNDATA
                 //Options = FileOptions.SequentialScan
             };
 
-            if (!LoadConfig(ManifestFile, out string Config, out string Sig))
-                return false;
-
             using (StreamWriter sw = new StreamWriter(FileName, Utils.UTF8NoBOM, options))
             {
                 sw.WriteLine(FileHeader);
@@ -360,7 +349,7 @@ typedef struct _KPH_DYNDATA
                 sw.WriteLine("#ifdef _WIN64");
                 sw.WriteLine("CONST BYTE KphDynData[] =");
                 sw.WriteLine("{");
-                sw.Write(Config);
+                sw.Write(BytesToString(Config));
                 sw.WriteLine("};");
                 sw.WriteLine();
                 sw.WriteLine("CONST ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
@@ -372,88 +361,14 @@ typedef struct _KPH_DYNDATA
             Debug.Assert(filesizeondisk == options.PreallocationSize, "Update PreallocationSize");
 #endif
             return true;
-
-            //StringBuilder sb = new StringBuilder(16348);
-            //sb.AppendLine(FileHeader);
-            //sb.AppendLine();
-            //sb.AppendLine(Includes);
-            //sb.AppendLine();
-            //sb.AppendLine("#ifdef _WIN64");
-            //sb.AppendLine("CONST BYTE KphDynData[] =");
-            //sb.AppendLine("{");
-            //sb.Append(Config);
-            //sb.AppendLine("};");
-            //sb.AppendLine();
-            //sb.AppendLine("CONST ULONG KphDynDataLength = ARRAYSIZE(KphDynData);");
-            //sb.AppendLine("#endif");
-            //return sb.ToString();
         }
 
         /// <summary>
         /// This function generates a config structure for the current platform from XML
         /// </summary>
         /// <param name="ManifestFile">The configuration file.</param>
-        /// <param name="ConfigData">The configuration file.</param>
-        /// <param name="SigData"></param>
+        /// <param name="ConfigBytes">The configuration buffer.</param>
         /// <returns></returns>
-        private static bool LoadConfig(
-            string ManifestFile,
-            out string ConfigData,
-            out string SigData
-            )
-        {
-            byte[] configbuffer;
-            byte[] signedbuffer;
-
-            if (!GenerateConfig(ManifestFile, out configbuffer))
-            {
-                ConfigData = null;
-                SigData = null;
-                return false;
-            }
-
-            if (Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
-            {
-                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
-
-                if (!string.IsNullOrWhiteSpace(buildKey))
-                {
-                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
-                    ConfigData = null;
-                    SigData = null;
-                    return false;
-                }
-
-                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
-
-                if (buildBlob == null)
-                {
-                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
-                    ConfigData = null;
-                    SigData = null;
-                    return false;
-                }
-
-                signedbuffer = Verify.SignData(buildBlob, configbuffer);
-            }
-            else
-            {
-                if (!File.Exists(Verify.GetPath("kph.key")))
-                {
-                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
-                    ConfigData = null;
-                    SigData = null;
-                    return false;
-                }
-
-                signedbuffer = Verify.SignData(Verify.GetPath("kph.key"), configbuffer);
-            }
-
-            ConfigData = BufferToString(configbuffer);
-            SigData = BufferToString(signedbuffer);
-            return true;
-        }
-           
         private static bool GenerateConfig(
             string ManifestFile,
             out byte[] ConfigBytes
