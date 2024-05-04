@@ -1203,6 +1203,8 @@ static BOOLEAN DnClrVerifyFileIsChainedToMicrosoft(
     }
 
     return TRUE;
+}
+
 static BOOLEAN DnpMscordaccoreDirectoryCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
