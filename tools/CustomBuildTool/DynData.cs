@@ -44,10 +44,6 @@ namespace CustomBuildTool
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
 
-#define KPH_DYN_CI_INVALID ((SHORT)-1)
-#define KPH_DYN_CI_V1      ((SHORT)1)
-#define KPH_DYN_CI_V2      ((SHORT)2)
-
 #define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH { SessionTokenPublicKey.Length }
 
 #include <pshpack1.h>
@@ -69,7 +65,6 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT OtIndex;                      // dt nt!_OBJECT_TYPE Index
     USHORT ObDecodeShift;                // dt nt!_HANDLE_TABLE_ENTRY ObjectPointerBits
     USHORT ObAttributesShift;            // dt nt!_HANDLE_TABLE_ENTRY Attributes
-    USHORT CiVersion;                    // ci.dll exports version
     USHORT AlpcCommunicationInfo;        // dt nt!_ALPC_PORT CommunicationInfo
     USHORT AlpcOwnerProcess;             // dt nt!_ALPC_PORT OwnerProcess
     USHORT AlpcConnectionPort;           // dt nt!_ALPC_COMMUNICATION_INFO ConnectionPort
@@ -128,7 +123,6 @@ typedef struct _KPH_DYNDATA
             public UInt16 OtIndex;
             public UInt16 ObDecodeShift;
             public UInt16 ObAttributesShift;
-            public UInt16 CiVersion;
             public UInt16 AlpcCommunicationInfo;
             public UInt16 AlpcOwnerProcess;
             public UInt16 AlpcConnectionPort;
@@ -175,7 +169,6 @@ typedef struct _KPH_DYNDATA
                 OtIndex = ushort.MaxValue;
                 ObDecodeShift = ushort.MaxValue;
                 ObAttributesShift = ushort.MaxValue;
-                CiVersion = ushort.MaxValue;
                 AlpcCommunicationInfo = ushort.MaxValue;
                 AlpcOwnerProcess = ushort.MaxValue;
                 AlpcConnectionPort = ushort.MaxValue;

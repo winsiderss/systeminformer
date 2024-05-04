@@ -269,7 +269,6 @@
     <ClCompile Include="protection.c" />
     <ClCompile Include="qrydrv.c" />
     <ClCompile Include="session_token.c" />
-    <ClCompile Include="sign.c" />
     <ClCompile Include="system.c" />
     <ClCompile Include="thread.c" />
     <ClCompile Include="util.c" />

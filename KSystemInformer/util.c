@@ -2320,3 +2320,113 @@ NTSTATUS KphDominationAndPrivilegeCheck(
                               ProcessTarget,
                               AccessMode);
 }
+
+/**
+ * \brief Retrieves the signing level of a file object.
+ *
+ * \param[in] FileObject The file object to query.
+ * \param[out] SigningLevel Receives the signing level of the file object.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetSigningLevel(
+    _In_ PFILE_OBJECT FileObject,
+    _Out_ PSE_SIGNING_LEVEL SigningLevel
+    )
+{
+    NTSTATUS status;
+    ULONG flags;
+    MINCRYPT_POLICY_INFO policyInfo;
+    MINCRYPT_POLICY_INFO timeStampPolicyInfo;
+    LARGE_INTEGER signingTime;
+    UCHAR thumbprint[MINCRYPT_MAX_HASH_LEN];
+    ULONG thumbprintSize;
+    ULONG thumbprintAlgorithm;
+    ANSI_STRING issuer;
+    ANSI_STRING subject;
+
+    PAGED_CODE_PASSIVE();
+
+    status = SeGetCachedSigningLevel(FileObject,
+                                     &flags,
+                                     SigningLevel,
+                                     NULL,
+                                     NULL,
+                                     NULL);
+    if (NT_SUCCESS(status) && (*SigningLevel != SE_SIGNING_LEVEL_UNCHECKED))
+    {
+        return status;
+    }
+
+    //
+    // Invoke CI to update the cache.
+    //
+
+    if (!KphDynCiValidateFileObject || !KphDynCiFreePolicyInfo)
+    {
+        return STATUS_NOINTERFACE;
+    }
+
+    RtlZeroMemory(&policyInfo, sizeof(policyInfo));
+    RtlZeroMemory(&timeStampPolicyInfo, sizeof(timeStampPolicyInfo));
+    thumbprintSize = sizeof(thumbprint);
+    thumbprintAlgorithm = 0;
+
+    status = KphDynCiValidateFileObject(FileObject,
+                                        CI_POLICY_ACCEPT_ANY_ROOT_CERTIFICATE,
+                                        SE_SIGNING_LEVEL_UNCHECKED,
+                                        &policyInfo,
+                                        &timeStampPolicyInfo,
+                                        &signingTime,
+                                        thumbprint,
+                                        &thumbprintSize,
+                                        &thumbprintAlgorithm);
+
+    if (policyInfo.ChainInfo &&
+        RTL_CONTAINS_FIELD(policyInfo.ChainInfo, policyInfo.ChainInfo->Size, ChainElements) &&
+        policyInfo.ChainInfo->ChainElements &&
+        policyInfo.ChainInfo->NumberOfChainElements)
+    {
+        issuer.Buffer = policyInfo.ChainInfo->ChainElements[0].Issuer.Buffer;
+        issuer.Length = policyInfo.ChainInfo->ChainElements[0].Issuer.Length;
+        issuer.MaximumLength = issuer.Length;
+
+        subject.Buffer = policyInfo.ChainInfo->ChainElements[0].Subject.Buffer;
+        subject.Length = policyInfo.ChainInfo->ChainElements[0].Subject.Length;
+        subject.MaximumLength = subject.Length;
+    }
+    else
+    {
+        RtlZeroMemory(&issuer, sizeof(issuer));
+        RtlZeroMemory(&subject, sizeof(subject));
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  PROTECTION,
+                  "CiValidateFileObject: \"%wZ\" 0x%08lx \"%Z\" \"%Z\" "
+                  "%!STATUS! %!STATUS!",
+                  &FileObject->FileName,
+                  policyInfo.PolicyBits,
+                  &subject,
+                  &issuer,
+                  policyInfo.VerificationStatus,
+                  status);
+
+    KphDynCiFreePolicyInfo(&policyInfo);
+    KphDynCiFreePolicyInfo(&timeStampPolicyInfo);
+
+    status = SeGetCachedSigningLevel(FileObject,
+                                     &flags,
+                                     SigningLevel,
+                                     NULL,
+                                     NULL,
+                                     NULL);
+    if (!NT_SUCCESS(status))
+    {
+        *SigningLevel = SE_SIGNING_LEVEL_UNCHECKED;
+    }
+
+    return status;
+}

@@ -278,24 +278,32 @@ NTSTATUS KphVerifyBuffer(
                              SignatureLength);
 }
 
+#define KphpVerifyValidFileName(FileName)                                      \
+    (((FileName)->Length > KphpSigExtension.Length) &&                         \
+     ((FileName)->Buffer[0] == L'\\'))
+
 /**
- * \brief Verifies that a file matches the provided signature.
+ * \brief Verifies a file object.
  *
- * \param[in] FileName File name of file to verify.
+ * \param[in] FileObject File object to verify.
+ * \param[in] FileName Optional file name to use for verification, if not
+ * provided the file name is looked up from the file object.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphVerifyFile(
-    _In_ PCUNICODE_STRING FileName
+NTSTATUS KphVerifyFileObject(
+    _In_ PFILE_OBJECT FileObject,
+    _In_opt_ PCUNICODE_STRING FileName
     )
 {
     NTSTATUS status;
+    PCUNICODE_STRING fileName;
+    PUNICODE_STRING localFileName;
     UNICODE_STRING signatureFileName;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE signatureFileHandle;
-    HANDLE fileHandle;
     IO_STATUS_BLOCK ioStatusBlock;
     BYTE signature[MINCRYPT_MAX_HASH_LEN];
     ULONG signatureLength;
@@ -303,23 +311,42 @@ NTSTATUS KphVerifyFile(
 
     PAGED_CODE_PASSIVE();
 
-    signatureFileHandle = NULL;
-    fileHandle = NULL;
+    localFileName = NULL;
     RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
+    signatureFileHandle = NULL;
 
-    if ((FileName->Length <= KphpSigExtension.Length) ||
-        (FileName->Buffer[0] != L'\\'))
+    if (FileName)
+    {
+        fileName = FileName;
+    }
+    else
+    {
+        status = KphGetNameFileObject(FileObject, &localFileName);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          VERIFY,
+                          "KphGetNameFileObject failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        fileName = localFileName;
+    }
+
+    if (!KphpVerifyValidFileName(fileName))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       VERIFY,
                       "File name is invalid \"%wZ\"",
-                      FileName);
+                      fileName);
 
         status = STATUS_OBJECT_NAME_INVALID;
         goto Exit;
     }
 
-    status = RtlDuplicateUnicodeString(0, FileName, &signatureFileName);
+    status = RtlDuplicateUnicodeString(0, fileName, &signatureFileName);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -415,6 +442,86 @@ NTSTATUS KphVerifyFile(
 
     signatureLength = (ULONG)ioStatusBlock.Information;
 
+    hashInfo.Algorithm = KphHashAlgorithmSha256;
+
+    status = KphQueryHashInformationFileObject(FileObject,
+                                               &hashInfo,
+                                               sizeof(hashInfo));
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphQueryHashInformationFileObject failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = KphpVerifyHash(NULL, &hashInfo, signature, signatureLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphpVerifyHash failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (signatureFileHandle)
+    {
+        ObCloseHandle(signatureFileHandle, KernelMode);
+    }
+
+    RtlFreeUnicodeString(&signatureFileName);
+
+    if (localFileName)
+    {
+        KphFreeNameFileObject(localFileName);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Verifies a file by name.
+ *
+ * \param[in] FileName File name to verify.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyFile(
+    _In_ PCUNICODE_STRING FileName
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    HANDLE fileHandle;
+    PFILE_OBJECT fileObject;
+
+    PAGED_CODE_PASSIVE();
+
+    fileObject = NULL;
+    fileHandle = NULL;
+
+    if (!KphpVerifyValidFileName(FileName))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "File name is invalid \"%wZ\"",
+                      FileName);
+
+        status = STATUS_OBJECT_NAME_INVALID;
+        goto Exit;
+    }
+
     InitializeObjectAttributes(&objectAttributes,
                                (PUNICODE_STRING)FileName,
                                OBJ_KERNEL_HANDLE,
@@ -445,47 +552,35 @@ NTSTATUS KphVerifyFile(
         goto Exit;
     }
 
-    hashInfo.Algorithm = KphHashAlgorithmSha256;
-
-    status = KphQueryHashInformationFile(fileHandle,
-                                         &hashInfo,
-                                         sizeof(hashInfo),
-                                         KernelMode);
+    status = ObReferenceObjectByHandle(fileHandle,
+                                       0,
+                                       *IoFileObjectType,
+                                       KernelMode,
+                                       &fileObject,
+                                       NULL);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "KphHashFileByName failed: %!STATUS!",
+                      HASH,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
+        fileObject = NULL;
         goto Exit;
     }
 
-    status = KphpVerifyHash(NULL, &hashInfo, signature, signatureLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      VERIFY,
-                      "KphpVerifyHash failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = STATUS_SUCCESS;
+    status = KphVerifyFileObject(fileObject, FileName);
 
 Exit:
 
-    RtlFreeUnicodeString(&signatureFileName);
+    if (fileObject)
+    {
+        ObDereferenceObject(fileObject);
+    }
 
     if (fileHandle)
     {
         ObCloseHandle(fileHandle, KernelMode);
-    }
-
-    if (signatureFileHandle)
-    {
-        ObCloseHandle(signatureFileHandle, KernelMode);
     }
 
     return status;

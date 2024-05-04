@@ -93,7 +93,6 @@ VOID KphpDriverCleanup(
     KphFltUnregister();
     KphCidCleanup();
     KphCleanupDynData();
-    KphCleanupSigning();
     KphCleanupVerify();
     KphCleanupHashing();
     KphCleanupParameters();
@@ -263,17 +262,6 @@ NTSTATUS DriverEntry(
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Failed to initialize verify: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    status = KphInitializeSigning();
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Failed to initialize signing: %!STATUS!",
                       status);
 
         goto Exit;
