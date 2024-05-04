@@ -568,7 +568,6 @@ typedef struct _KPH_DYN
     PCI_CHECK_SIGNED_FILE CiCheckSignedFile;
     PCI_VERIFY_HASH_IN_CATALOG_EX CiVerifyHashInCatalogEx;
     PCI_CHECK_SIGNED_FILE_EX CiCheckSignedFileEx;
-    PLXP_THREAD_GET_CURRENT LxpThreadGetCurrent;
 
     BCRYPT_KEY_HANDLE SessionTokenPublicKeyHandle;
 } KPH_DYN, *PKPH_DYN;
