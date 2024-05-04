@@ -269,7 +269,7 @@ namespace CustomBuildTool
         /// <returns>The value of the environment variable specified by variable, or null if the environment variable is not found.</returns>
         public static string GetEnvironmentVariable(string Name)
         {
-            return Environment.ExpandEnvironmentVariables(Name).Replace(Name, string.Empty, StringComparison.OrdinalIgnoreCase);
+            return Environment.GetEnvironmentVariable(Name, EnvironmentVariableTarget.Process);
         }
 
         /// <summary>
@@ -280,7 +280,7 @@ namespace CustomBuildTool
         /// <returns>True if the environment variable was found.</returns>
         public static bool GetEnvironmentVariable(string Name, out string Value)
         {
-            Value = Environment.ExpandEnvironmentVariables(Name).Replace(Name, string.Empty, StringComparison.OrdinalIgnoreCase);
+            Value = Environment.GetEnvironmentVariable(Name, EnvironmentVariableTarget.Process);
 
             return !string.IsNullOrWhiteSpace(Value);
         }
@@ -296,12 +296,22 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Retrieves the value of an environment variable from the current process.
+        /// </summary>
+        /// <param name="Name">The name of the environment variable.</param>
+        /// <returns>True if the environment variable was found.</returns>
+        public static string ExpandEnvironmentVariables(string Name)
+        {
+            return Environment.ExpandEnvironmentVariables(Name).Replace(Name, string.Empty, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
         /// Returns the current kernel version information.
         /// </summary>
         /// <returns>The version number of the file or null if the file doesn't exist.</returns>
         public static string GetKernelVersion()
         {
-            string filePath = GetEnvironmentVariable("%SystemRoot%\\System32\\ntoskrnl.exe");
+            string filePath = ExpandEnvironmentVariables("%SystemRoot%\\System32\\ntoskrnl.exe");
 
             if (File.Exists(filePath))
             {

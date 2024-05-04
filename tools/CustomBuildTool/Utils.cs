@@ -129,7 +129,7 @@ namespace CustomBuildTool
 
                 foreach (string path in vswherePathArray)
                 {
-                    string file = Environment.ExpandEnvironmentVariables(path);
+                    string file = Win32.ExpandEnvironmentVariables(path);
 
                     if (File.Exists(file))
                     {
@@ -223,7 +223,7 @@ namespace CustomBuildTool
 
                 foreach (string path in GitPathArray)
                 {
-                    string file = Environment.ExpandEnvironmentVariables(path);
+                    string file = Win32.ExpandEnvironmentVariables(path);
 
                     if (File.Exists(file))
                     {
@@ -284,7 +284,7 @@ namespace CustomBuildTool
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
-            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\Include");
+            string kitsPath = Win32.ExpandEnvironmentVariables($"{kitsRoot}\\Include");
 
             if (Directory.Exists(kitsPath))
             {
@@ -320,7 +320,7 @@ namespace CustomBuildTool
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
-            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
+            string kitsPath = Win32.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
 
             if (Directory.Exists(kitsPath))
             {
@@ -356,7 +356,7 @@ namespace CustomBuildTool
         {
             List<string> versions = new List<string>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
-            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
+            string kitsPath = Win32.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
 
             if (Directory.Exists(kitsPath))
             {
@@ -443,7 +443,7 @@ namespace CustomBuildTool
                 if (string.IsNullOrWhiteSpace(sdkRootPath))
                     return null;
 
-                makeAppxPath = Environment.ExpandEnvironmentVariables($"{sdkRootPath}\\x64\\MakeAppx.exe");
+                makeAppxPath = Win32.ExpandEnvironmentVariables($"{sdkRootPath}\\x64\\MakeAppx.exe");
 
                 if (!File.Exists(makeAppxPath))
                     return null;
