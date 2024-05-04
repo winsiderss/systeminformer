@@ -52,7 +52,7 @@ VOID PhpExecuteCallbackForAllPlugins(
     );
 
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
-BOOLEAN PhPluginsLoadNative = TRUE;
+BOOLEAN PhPluginsLoadNative = FALSE;
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static ULONG NextPluginId = IDPLUGINS + 1;
 static PH_STRINGREF PhpDefaultPluginName[] =
@@ -191,39 +191,9 @@ PPH_STRING PhpGetPluginDirectoryPath(
     VOID
     )
 {
-    PPH_STRING pluginsDirectory;
-    PPH_STRING applicationDirectory;
-    SIZE_T returnLength;
-    PH_FORMAT format[2];
-    WCHAR pluginsDirectoryBuffer[MAX_PATH];
+    static PH_STRINGREF pluginsDirectory = PH_STRINGREF_INIT(L"plugins\\");
 
-    applicationDirectory = PhGetApplicationDirectory();
-    PhInitFormatSR(&format[0], applicationDirectory->sr);
-    PhInitFormatS(&format[1], L"plugins\\");
-
-    if (PhFormatToBuffer(
-        format,
-        RTL_NUMBER_OF(format),
-        pluginsDirectoryBuffer,
-        sizeof(pluginsDirectoryBuffer),
-        &returnLength
-        ))
-    {
-        PH_STRINGREF pluginsDirectoryPath;
-
-        pluginsDirectoryPath.Buffer = pluginsDirectoryBuffer;
-        pluginsDirectoryPath.Length = returnLength - sizeof(UNICODE_NULL);
-
-        pluginsDirectory = PhCreateString2(&pluginsDirectoryPath);
-    }
-    else
-    {
-        pluginsDirectory = PhFormat(format, RTL_NUMBER_OF(format), MAX_PATH);
-    }
-
-    PhDereferenceObject(applicationDirectory);
-
-    return pluginsDirectory;
+    return PhGetApplicationDirectoryFileName(&pluginsDirectory, PhPluginsLoadNative);
 }
 
 //PPH_STRING PhpGetPluginDirectoryPath(
@@ -438,7 +408,7 @@ VOID PhLoadPlugins(
     PPH_STRING pluginsDirectory;
     PPH_LIST pluginLoadErrors;
 
-    PhPluginsLoadNative = !PhGetIntegerSetting(L"EnablePluginsNative");
+    PhPluginsLoadNative = !!PhGetIntegerSetting(L"EnablePluginsNative");
 
     if (!(pluginsDirectory = PhpGetPluginDirectoryPath()))
         return;
@@ -567,26 +537,21 @@ NTSTATUS PhLoadPlugin(
     _In_ PPH_STRINGREF FileName
     )
 {
+    NTSTATUS status;
+
     if (PhPluginsLoadNative)
     {
-        NTSTATUS status;
-        PPH_STRING fileName;
-
-        if (fileName = PhResolveDevicePrefix(FileName))
-        {
-            if (LoadLibraryEx(PhGetString(fileName), NULL, 0))
-                status = STATUS_SUCCESS;
-            else
-                status = PhGetLastWin32ErrorAsNtStatus();
-
-            PhDereferenceObject(fileName);
-            return status;
-        }
-
-        return STATUS_UNSUCCESSFUL;
+        status = PhLoadPluginImage(FileName, NULL);
+    }
+    else
+    {
+        if (LoadLibraryEx(PhGetStringRefZ(FileName), NULL, 0))
+            status = STATUS_SUCCESS;
+        else
+            status = PhGetLastWin32ErrorAsNtStatus();
     }
 
-    return PhLoadPluginImage(FileName, NULL);
+    return status;
 }
 
 VOID PhInvokeCallbackForAllPlugins(
