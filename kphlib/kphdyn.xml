@@ -41,7 +41,6 @@ dt nt!_KTHREAD OtherOperationCount
 dt nt!_KTHREAD ReadTransferCount
 dt nt!_KTHREAD WriteTransferCount
 dt nt!_KTHREAD OtherTransferCount
-lxcore.sys exports version
 uf lxcore!LxpSyscall_GETPID
 uf lxcore!LxpSyscall_GETPID
 uf lxcore!LxpSyscall_GETPID
@@ -91,7 +90,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x398"  name="KtReadTransferCount"/>
         <field value="0x3a0"  name="KtWriteTransferCount"/>
         <field value="0x3a8"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -138,7 +136,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x398"  name="KtReadTransferCount"/>
         <field value="0x3a0"  name="KtWriteTransferCount"/>
         <field value="0x3a8"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -186,7 +183,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x398"  name="KtReadTransferCount"/>
         <field value="0x3a0"  name="KtWriteTransferCount"/>
         <field value="0x3a8"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -234,7 +230,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x398"  name="KtReadTransferCount"/>
         <field value="0x3a0"  name="KtWriteTransferCount"/>
         <field value="0x3a8"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -281,7 +276,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x398"  name="KtReadTransferCount"/>
         <field value="0x3a0"  name="KtWriteTransferCount"/>
         <field value="0x3a8"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -328,7 +322,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x5c0"  name="KtReadTransferCount"/>
         <field value="0x5c8"  name="KtWriteTransferCount"/>
         <field value="0x5d0"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -375,7 +368,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x5c0"  name="KtReadTransferCount"/>
         <field value="0x5c8"  name="KtWriteTransferCount"/>
         <field value="0x5d0"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -422,7 +414,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x5c0"  name="KtReadTransferCount"/>
         <field value="0x5c8"  name="KtWriteTransferCount"/>
         <field value="0x5d0"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -469,7 +460,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x5c0"  name="KtReadTransferCount"/>
         <field value="0x5c8"  name="KtWriteTransferCount"/>
         <field value="0x5d0"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -516,7 +506,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x5c0"  name="KtReadTransferCount"/>
         <field value="0x5c8"  name="KtWriteTransferCount"/>
         <field value="0x5d0"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -563,7 +552,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x5c0"  name="KtReadTransferCount"/>
         <field value="0x5c8"  name="KtWriteTransferCount"/>
         <field value="0x5d0"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>
@@ -610,7 +598,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x5c0"  name="KtReadTransferCount"/>
         <field value="0x5c8"  name="KtWriteTransferCount"/>
         <field value="0x5d0"  name="KtOtherTransferCount"/>
-        <field value="1"      name="LxVersion"/>
         <field value="0x80"   name="LxPicoProc"/>
         <field value="0x10"   name="LxPicoProcInfo"/>
         <field value="0x10"   name="LxPicoProcInfoPID"/>

@@ -689,7 +689,7 @@ VOID KphpInitializeWSLThreadContext(
     //
 
     if ((ThreadContext->SubsystemType != SubsystemInformationTypeWSL) ||
-        !Dyn->LxpThreadGetCurrent ||
+        !KphDynLxpThreadGetCurrent ||
         (Dyn->LxPicoThrdInfo == ULONG_MAX) ||
         (Dyn->LxPicoThrdInfoTID == ULONG_MAX) ||
         (Dyn->LxPicoProc == ULONG_MAX) ||
@@ -699,7 +699,7 @@ VOID KphpInitializeWSLThreadContext(
         return;
     }
 
-    if (!Dyn->LxpThreadGetCurrent(&picoContext))
+    if (!KphDynLxpThreadGetCurrent(&picoContext))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,

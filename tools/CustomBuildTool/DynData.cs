@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 12;
+        private const UInt32 Version = 13;
 
         private static readonly byte[] SessionTokenPublicKey = new byte[]
         {
@@ -48,9 +48,6 @@ $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
 #define KPH_DYN_CI_V1      ((SHORT)1)
 #define KPH_DYN_CI_V2      ((SHORT)2)
 
-#define KPH_DYN_LX_INVALID ((SHORT)-1)
-#define KPH_DYN_LX_V1      ((SHORT)1)
-
 #define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH { SessionTokenPublicKey.Length }
 
 #include <pshpack1.h>
@@ -59,10 +56,10 @@ typedef struct _KPH_DYN_CONFIGURATION
 {{
     USHORT MajorVersion;
     USHORT MinorVersion;
-    USHORT BuildNumberMin;               // -1 to ignore
-    USHORT RevisionMin;                  // -1 to ignore
-    USHORT BuildNumberMax;               // -1 to ignore
-    USHORT RevisionMax;                  // -1 to ignore
+    USHORT BuildNumberMin;
+    USHORT RevisionMin;
+    USHORT BuildNumberMax;
+    USHORT RevisionMax;
 
     USHORT EgeGuid;                      // dt nt!_ETW_GUID_ENTRY Guid
     USHORT EpObjectTable;                // dt nt!_EPROCESS ObjectTable
@@ -92,7 +89,6 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT KtReadTransferCount;          // dt nt!_KTHREAD ReadTransferCount
     USHORT KtWriteTransferCount;         // dt nt!_KTHREAD WriteTransferCount
     USHORT KtOtherTransferCount;         // dt nt!_KTHREAD OtherTransferCount
-    USHORT LxVersion;                    // lxcore.sys exports version
     USHORT LxPicoProc;                   // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoProcInfo;               // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID
@@ -152,7 +148,6 @@ typedef struct _KPH_DYNDATA
             public UInt16 KtReadTransferCount;
             public UInt16 KtWriteTransferCount;
             public UInt16 KtOtherTransferCount;
-            public UInt16 LxVersion;
             public UInt16 LxPicoProc;
             public UInt16 LxPicoProcInfo;
             public UInt16 LxPicoProcInfoPID;
@@ -200,7 +195,6 @@ typedef struct _KPH_DYNDATA
                 KtReadTransferCount = ushort.MaxValue;
                 KtWriteTransferCount = ushort.MaxValue;
                 KtOtherTransferCount = ushort.MaxValue;
-                LxVersion = ushort.MaxValue;
                 LxPicoProc = ushort.MaxValue;
                 LxPicoProcInfo = ushort.MaxValue;
                 LxPicoProcInfoPID = ushort.MaxValue;

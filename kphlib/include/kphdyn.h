@@ -11,14 +11,11 @@
 
 #include <kphlibbase.h>
 
-#define KPH_DYN_CONFIGURATION_VERSION 12
+#define KPH_DYN_CONFIGURATION_VERSION 13
 
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
 #define KPH_DYN_CI_V2      ((SHORT)2)
-
-#define KPH_DYN_LX_INVALID ((SHORT)-1)
-#define KPH_DYN_LX_V1      ((SHORT)1)
 
 #define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH 72
 
@@ -28,10 +25,10 @@ typedef struct _KPH_DYN_CONFIGURATION
 {
     USHORT MajorVersion;
     USHORT MinorVersion;
-    USHORT BuildNumberMin;               // -1 to ignore
-    USHORT RevisionMin;                  // -1 to ignore
-    USHORT BuildNumberMax;               // -1 to ignore
-    USHORT RevisionMax;                  // -1 to ignore
+    USHORT BuildNumberMin;
+    USHORT RevisionMin;
+    USHORT BuildNumberMax;
+    USHORT RevisionMax;
 
     USHORT EgeGuid;                      // dt nt!_ETW_GUID_ENTRY Guid
     USHORT EpObjectTable;                // dt nt!_EPROCESS ObjectTable
@@ -61,7 +58,6 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT KtReadTransferCount;          // dt nt!_KTHREAD ReadTransferCount
     USHORT KtWriteTransferCount;         // dt nt!_KTHREAD WriteTransferCount
     USHORT KtOtherTransferCount;         // dt nt!_KTHREAD OtherTransferCount
-    USHORT LxVersion;                    // lxcore.sys exports version
     USHORT LxPicoProc;                   // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoProcInfo;               // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID

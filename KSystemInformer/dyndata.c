@@ -128,11 +128,6 @@ NTSTATUS KSIAPI KphpInitializeDynData(
         dyn->CiVerifyHashInCatalogEx = (PCI_VERIFY_HASH_IN_CATALOG_EX)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
     }
 
-    if (init->Config->LxVersion == KPH_DYN_LX_V1)
-    {
-        dyn->LxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
-    }
-
     KPH_LOAD_DYNITEM(AlpcCommunicationInfo);
     KPH_LOAD_DYNITEM(AlpcOwnerProcess);
     KPH_LOAD_DYNITEM(AlpcConnectionPort);
