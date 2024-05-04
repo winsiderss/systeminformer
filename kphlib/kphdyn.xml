@@ -21,7 +21,6 @@ dt nt!_OBJECT_TYPE Name
 dt nt!_OBJECT_TYPE Index
 dt nt!_HANDLE_TABLE_ENTRY ObjectPointerBits
 dt nt!_HANDLE_TABLE_ENTRY Attributes
-ci.dll exports version
 dt nt!_ALPC_PORT CommunicationInfo
 dt nt!_ALPC_PORT OwnerProcess
 dt nt!_ALPC_COMMUNICATION_INFO ConnectionPort
@@ -70,7 +69,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -116,7 +114,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -163,7 +160,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -210,7 +206,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -256,7 +251,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -302,7 +296,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -348,7 +341,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -394,7 +386,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -440,7 +431,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -486,7 +476,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -532,7 +521,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -578,7 +566,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -624,7 +611,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -665,7 +651,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -706,7 +691,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>
@@ -747,7 +731,6 @@ dt nt!_EPROCESS SectionObject
         <field value="0x28"   name="OtIndex"/>
         <field value="16"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
-        <field value="2"      name="CiVersion"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
         <field value="0x0"    name="AlpcConnectionPort"/>

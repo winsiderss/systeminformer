@@ -114,20 +114,6 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM(OtIndex);
     KPH_LOAD_DYNITEM(ObDecodeShift);
     KPH_LOAD_DYNITEM(ObAttributesShift);
-
-    if (init->Config->CiVersion == KPH_DYN_CI_V1)
-    {
-        dyn->CiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
-        dyn->CiCheckSignedFile = (PCI_CHECK_SIGNED_FILE)KphGetRoutineAddress(L"ci.dll", "CiCheckSignedFile");
-        dyn->CiVerifyHashInCatalog = (PCI_VERIFY_HASH_IN_CATALOG)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
-    }
-    else if (init->Config->CiVersion == KPH_DYN_CI_V2)
-    {
-        dyn->CiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
-        dyn->CiCheckSignedFileEx = (PCI_CHECK_SIGNED_FILE_EX)KphGetRoutineAddress(L"ci.dll", "CiCheckSignedFile");
-        dyn->CiVerifyHashInCatalogEx = (PCI_VERIFY_HASH_IN_CATALOG_EX)KphGetRoutineAddress(L"ci.dll", "CiVerifyHashInCatalog");
-    }
-
     KPH_LOAD_DYNITEM(AlpcCommunicationInfo);
     KPH_LOAD_DYNITEM(AlpcOwnerProcess);
     KPH_LOAD_DYNITEM(AlpcConnectionPort);
