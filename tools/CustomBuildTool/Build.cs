@@ -66,7 +66,7 @@ namespace CustomBuildTool
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
 
-            var buildDef = Win32.GetEnvironmentVariable("SYSTEM_DEFINITIONNAME");
+            var buildDef = Win32.GetEnvironmentVariable("BUILD_DEFINITIONNAME");
             if (!string.IsNullOrWhiteSpace(buildDef))
             {
                 if (buildDef.Contains("canary", StringComparison.OrdinalIgnoreCase))
@@ -507,15 +507,13 @@ namespace CustomBuildTool
 
             try
             {
-                DynData.Execute(OutDir);
+                return DynData.Execute(OutDir, BuildCanary);
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
                 return false;
             }
-
-            return true;
         }
 
         public static bool CopyKernelDriver(BuildFlags Flags)
@@ -625,43 +623,11 @@ namespace CustomBuildTool
                 }
             }
 
-            if (BuildCanary && Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
+            foreach (string file in files)
             {
-                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
-
-                if (!string.IsNullOrWhiteSpace(buildKey))
+                var fileName = $"{BuildWorkingFolder}\\{file}";
+                if (File.Exists(fileName) && !Verify.CreateSigFile("kph", fileName, BuildCanary))
                     return false;
-
-                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
-
-                if (buildBlob == null)
-                {
-                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
-                    return true;
-                }
-
-                foreach (string file in files)
-                {
-                    if (File.Exists(file))
-                    {
-                        if (!Verify.CreateSignatureFile(buildBlob, $"{BuildWorkingFolder}\\{file}", BuildCanary))
-                            return false;
-                    }
-                }
-            }
-            else
-            {
-                if (File.Exists(Verify.GetPath("kph.key")))
-                {
-                    foreach (string file in files)
-                    {
-                        if (File.Exists(file))
-                        {
-                            if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), $"{BuildWorkingFolder}\\{file}", BuildCanary))
-                                return false;
-                        }
-                    }
-                }
             }
 
             return true;
@@ -675,32 +641,7 @@ namespace CustomBuildTool
                 return true;
             }
 
-            if (BuildCanary && Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
-            {
-                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
-
-                if (!string.IsNullOrWhiteSpace(buildKey))
-                    return false;
-
-                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
-
-                if (buildBlob == null)
-                {
-                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
-                    return true;
-                }
-
-                return Verify.CreateSignatureFile(buildBlob, PluginName, false);
-            }
-            else
-            {
-                if (File.Exists(Verify.GetPath("kph.key")))
-                {
-                    return Verify.CreateSignatureFile(Verify.GetPath("kph.key"), PluginName, false);
-                }
-            }
-
-            return true;
+            return Verify.CreateSigFile("kph", PluginName, BuildCanary);
         }
 
         public static bool ResignFiles()
@@ -728,37 +669,10 @@ namespace CustomBuildTool
                     files.Add(file);
             }
 
-            if (BuildCanary && Win32.HasEnvironmentVariable("KPH_BUILD_KEY"))
+            foreach (string file in files)
             {
-                var buildKey = Win32.GetEnvironmentVariable("KPH_BUILD_KEY");
-
-                if (!string.IsNullOrWhiteSpace(buildKey))
+                if (!Verify.CreateSigFile("kph", file, BuildCanary))
                     return false;
-
-                var buildBlob = Verify.DecryptFileBlob(Verify.GetPath("kph.s"), buildKey);
-
-                if (buildBlob == null)
-                {
-                    Program.PrintColorMessage("[SKIPPED] Blob not found.", ConsoleColor.Yellow);
-                    return false;
-                }
-
-                foreach (string file in files)
-                {
-                    if (!Verify.CreateSignatureFile(buildBlob, file, false))
-                        return false;
-                }
-            }
-            else
-            {
-                if (File.Exists(Verify.GetPath("kph.key")))
-                {
-                    foreach (string file in files)
-                    {
-                        if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), file, false))
-                            return false;
-                    }
-                }
             }
 
             return true;
@@ -1195,26 +1109,15 @@ namespace CustomBuildTool
             Info.BinFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip";
             Info.SetupFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe";
 
-            // RELEASE_BUILD_KEY, PREVIEW_BUILD_KEY, CANARY_BUILD_KEY, or DEVELOPER_BUILD_KEY
-
-            var buildKey = Win32.GetEnvironmentVariable($"{Channel.ToUpperInvariant()}_BUILD_KEY");
-
-            if (string.IsNullOrWhiteSpace(buildKey))
-                return false;
-
-            var buildBlob = Verify.DecryptFileBlob(Verify.GetPath($"{Channel}.s"), buildKey);
-
-            if (buildBlob == null)
-                return false;
-
-            if (!Verify.CreateSignatureString(buildBlob, Info.BinFilename, out Info.BinSig))
+            if (!Verify.CreateSigString(Channel, Info.BinFilename, out Info.BinSig))
             {
-                Program.PrintColorMessage("build-bin.sig not found.", ConsoleColor.Red);
+                Program.PrintColorMessage("failed to create bin signature string", ConsoleColor.Red);
                 return false;
             }
-            if (!Verify.CreateSignatureString(buildBlob, Info.SetupFilename, out Info.SetupSig))
+
+            if (!Verify.CreateSigString(Channel, Info.SetupFilename, out Info.SetupSig))
             {
-                Program.PrintColorMessage("build-setup.sig not found.", ConsoleColor.Red);
+                Program.PrintColorMessage("failed to create setup signature string", ConsoleColor.Red);
                 return false;
             }
 
