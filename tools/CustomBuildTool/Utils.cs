@@ -76,7 +76,7 @@ namespace CustomBuildTool
                 return 3; // file not found.
             }
 
-            return Win32.CreateProcess(file, Command, out OutputString);
+            return Win32.CreateProcess(file, Command, out OutputString, false);
         }
 
         public static string ExecuteVsWhereCommand(string Command)
