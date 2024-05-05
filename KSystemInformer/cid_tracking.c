@@ -2217,6 +2217,11 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     processState |= KPH_PROCESS_HAS_FILE_OBJECT;
 
+    if (!Process->FileObject->WriteAccess || !Process->FileObject->SharedWrite)
+    {
+        processState |= KPH_PROCESS_NO_WRITABLE_FILE_OBJECT;
+    }
+
     if (!IoGetTransactionParameterBlock(Process->FileObject))
     {
         processState |= KPH_PROCESS_NO_FILE_TRANSACTION;
