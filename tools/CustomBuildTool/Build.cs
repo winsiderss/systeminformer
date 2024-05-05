@@ -242,16 +242,16 @@ namespace CustomBuildTool
             if (ShowBuildInfo)
             {
                 Program.PrintColorMessage("Windows: ", ConsoleColor.DarkGray, false);
-                Program.PrintColorMessage(Win32.GetKernelVersion(), ConsoleColor.Green, true);
+                Program.PrintColorMessage(Win32.GetKernelVersion(), ConsoleColor.Green);
 
                 var instance = VisualStudio.GetVisualStudioInstance();
                 if (instance != null)
                 {
                     Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Utils.GetWindowsSdkVersion(), ConsoleColor.Green, true);
+                    Program.PrintColorMessage(Utils.GetWindowsSdkVersion(), ConsoleColor.Green);
                     //Program.PrintColorMessage(Utils.GetWindowsSdkVersion() + " (" + instance.GetWindowsSdkFullVersion() + ")", ConsoleColor.Green, true);
                     Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(instance.Name, ConsoleColor.Green, true);
+                    Program.PrintColorMessage(instance.Name, ConsoleColor.Green);
                     //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.Green, true);
                     HaveArm64BuildTools = instance.HasARM64BuildToolsComponents;
                 }
@@ -273,7 +273,7 @@ namespace CustomBuildTool
                     Program.PrintColorMessage("]", ConsoleColor.DarkGray, false);
                 }
 
-                Program.PrintColorMessage(Environment.NewLine, ConsoleColor.DarkGray, true);
+                Program.PrintColorMessage(Environment.NewLine, ConsoleColor.DarkGray);
             }
         }
 
@@ -1395,10 +1395,10 @@ namespace CustomBuildTool
             {
                 StringBuilder packageMap32 = new StringBuilder(0x100);
                 packageMap32.AppendLine("[Files]");
-                packageMap32.AppendLine($"\"tools\\msix\\MsixManifest32.xml\" \"AppxManifest.xml\"");
-                packageMap32.AppendLine($"\"tools\\msix\\Square44x44Logo.png\" \"Assets\\Square44x44Logo.png\"");
-                packageMap32.AppendLine($"\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
-                packageMap32.AppendLine($"\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
+                packageMap32.AppendLine("\"tools\\msix\\MsixManifest32.xml\" \"AppxManifest.xml\"");
+                packageMap32.AppendLine("\"tools\\msix\\Square44x44Logo.png\" \"Assets\\Square44x44Logo.png\"");
+                packageMap32.AppendLine("\"tools\\msix\\Square50x50Logo.png\" \"Assets\\Square50x50Logo.png\"");
+                packageMap32.AppendLine("\"tools\\msix\\Square150x150Logo.png\" \"Assets\\Square150x150Logo.png\"");
 
                 var filesToAdd = Directory.GetFiles("bin\\Release32", "*", SearchOption.AllDirectories);
                 foreach (string filePath in filesToAdd)
