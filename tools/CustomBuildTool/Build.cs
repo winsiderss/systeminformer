@@ -667,6 +667,8 @@ namespace CustomBuildTool
 
                 if (File.Exists(file))
                     files.Add(file);
+
+                File.Delete(sigFile);
             }
 
             foreach (string file in files)
