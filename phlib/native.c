@@ -9927,6 +9927,15 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     PH_MODULE_INFO moduleInfo;
     BOOLEAN cont;
 
+    if (WindowsVersion >= WINDOWS_11_24H2)
+    {
+        // Assign pseudo address on 24H2 (dmex)
+        if (Module->DllBase == 0)
+        {
+            Module->DllBase = (PVOID)(ULONG64_MAX - context->BaseAddressHashtable->Count + 1);
+        }
+    }
+
     // Check if we have a duplicate base address.
     if (PhFindEntryHashtable(context->BaseAddressHashtable, &Module->DllBase))
     {
@@ -9988,6 +9997,15 @@ VOID PhpRtlModulesToGenericModules(
     for (i = 0; i < Modules->NumberOfModules; i++)
     {
         module = &Modules->Modules[i];
+
+        if (WindowsVersion >= WINDOWS_11_24H2)
+        {
+            // Assign pseudo address on 24H2 (dmex)
+            if (module->ImageBase == 0)
+            {
+                module->ImageBase = (PVOID)(ULONG64_MAX - i);
+            }
+        }
 
         // Check if we have a duplicate base address.
         if (PhFindEntryHashtable(BaseAddressHashtable, &module->ImageBase))
@@ -10058,6 +10076,15 @@ VOID PhpRtlModulesExToGenericModules(
 
     while (module->NextOffset != 0)
     {
+        if (WindowsVersion >= WINDOWS_11_24H2)
+        {
+            // Assign pseudo address on 24H2 (dmex)
+            if (module->BaseInfo.ImageBase == 0)
+            {
+                module->BaseInfo.ImageBase = (PVOID)(ULONG64_MAX - BaseAddressHashtable->Count + 1);
+            }
+        } 
+
         // Check if we have a duplicate base address.
         if (PhFindEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase))
         {
