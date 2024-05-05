@@ -226,7 +226,7 @@ namespace CustomBuildTool
                 File.Copy(SourceFile, DestinationFile, true);
             }
         }
-        
+
         public static void CopyVersionIfNewer(string SourceFile, string DestinationFile)
         {
             if (!File.Exists(SourceFile))

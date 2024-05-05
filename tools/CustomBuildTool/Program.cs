@@ -29,11 +29,14 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-encrypt"))
             {
-                Verify.Encrypt(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"]);
+                if (!Verify.EncryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"]))
+                {
+                    Environment.Exit(1);
+                }
             }
             else if (ProgramArgs.ContainsKey("-decrypt"))
             {
-                if (!Verify.Decrypt(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"]))
+                if (!Verify.DecryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"]))
                 {
                     Environment.Exit(1);
                 }
@@ -129,8 +132,8 @@ namespace CustomBuildTool
                 }
                 else
                 {
-                    BuildFlags flags = 
-                        BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit | 
+                    BuildFlags flags =
+                        BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
                         BuildFlags.BuildDebug | BuildFlags.BuildRelease;
 
                     Build.CopySidCapsFile(flags);
@@ -259,7 +262,7 @@ namespace CustomBuildTool
             {
                 BuildFlags flags =
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
-                    BuildFlags.BuildRelease | BuildFlags.BuildVerbose | BuildFlags.BuildApi | 
+                    BuildFlags.BuildRelease | BuildFlags.BuildVerbose | BuildFlags.BuildApi |
                     BuildFlags.BuildMsix;
 
                 Build.SetupBuildEnvironment(true);
