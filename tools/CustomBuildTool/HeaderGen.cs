@@ -244,7 +244,7 @@ namespace CustomBuildTool
 
         public bool Equals(HeaderFile other)
         {
-            return this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
+            return other != null && this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

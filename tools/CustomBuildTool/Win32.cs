@@ -124,9 +124,9 @@ namespace CustomBuildTool
                 Share = FileShare.None
             };
 
-            using (FileStream file = new FileStream(FileName, options))
+            using (FileStream file = new FileStream(FileName, options)) 
             {
-                file.Dispose();
+                file.Close();
             }
         }
 
@@ -316,7 +316,7 @@ namespace CustomBuildTool
             if (File.Exists(filePath))
             {
                 FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(filePath);
-                return versionInfo.FileVersion ?? null;
+                return versionInfo.FileVersion;
             }
 
             return null;

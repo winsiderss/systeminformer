@@ -410,7 +410,7 @@ namespace CustomBuildTool
 
         public bool Equals(GithubRelease other)
         {
-            return this.ReleaseId.Equals(other.ReleaseId, StringComparison.OrdinalIgnoreCase);
+            return other != null && this.ReleaseId.Equals(other.ReleaseId, StringComparison.OrdinalIgnoreCase);
         }
 
         public int CompareTo(object obj)
@@ -419,7 +419,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is GithubRelease package)
-                return this.ReleaseId.CompareTo(package.ReleaseId);
+                return string.Compare(this.ReleaseId, package.ReleaseId, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -429,7 +429,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return this.ReleaseId.CompareTo(obj.ReleaseId);
+            return string.Compare(this.ReleaseId, obj.ReleaseId, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -467,7 +467,7 @@ namespace CustomBuildTool
 
         public bool Equals(GithubReleaseAsset other)
         {
-            return this.Filename.Equals(other.Filename, StringComparison.OrdinalIgnoreCase);
+            return other != null && this.Filename.Equals(other.Filename, StringComparison.OrdinalIgnoreCase);
         }
 
         public int CompareTo(object obj)
@@ -476,7 +476,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is GithubReleaseAsset package)
-                return this.Filename.CompareTo(package.Filename);
+                return string.Compare(this.Filename, package.Filename, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -486,7 +486,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return this.Filename.CompareTo(obj.Filename);
+            return string.Compare(this.Filename, obj.Filename, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
