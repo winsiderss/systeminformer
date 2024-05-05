@@ -1507,9 +1507,9 @@ CI_VALIDATE_FILE_OBJECT(
     _Inout_ PMINCRYPT_POLICY_INFO PolicyInfo,
     _Inout_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo,
     _Out_ PLARGE_INTEGER SigningTime,
-    _Out_writes_bytes_to_opt_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
-    _Inout_opt_ PULONG ThumbprintSize,
-    _Out_opt_ PULONG ThumbprintAlgorithm
+    _Out_writes_bytes_to_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
+    _Inout_ PULONG ThumbprintSize,
+    _Out_ PULONG ThumbprintAlgorithm
     );
 typedef CI_VALIDATE_FILE_OBJECT* PCI_VALIDATE_FILE_OBJECT;
 
