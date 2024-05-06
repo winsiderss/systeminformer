@@ -53,6 +53,80 @@ dt nt!_EPROCESS SectionObject
 -->
 <dyn>
     <!-- Windows 11 -->
+    <data min="10.0.26100.1" max="10.0.26100.268">
+        <field arch="amd64" value="0x28"   name="EgeGuid"/>
+        <field arch="amd64" value="0x300"  name="EpObjectTable"/>
+        <field arch="amd64" value="0x20"   name="EreGuidEntry"/>
+        <field arch="amd64" value="0x30"   name="HtHandleContentionEvent"/>
+        <field arch="amd64" value="0x10"   name="OtName"/>
+        <field arch="amd64" value="0x28"   name="OtIndex"/>
+        <field arch="amd64" value="16"     name="ObDecodeShift"/>
+        <field arch="amd64" value="17"     name="ObAttributesShift"/>
+        <field arch="amd64" value="0x10"   name="AlpcCommunicationInfo"/>
+        <field arch="amd64" value="0x18"   name="AlpcOwnerProcess"/>
+        <field arch="amd64" value="0x0"    name="AlpcConnectionPort"/>
+        <field arch="amd64" value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field arch="amd64" value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field arch="amd64" value="0x28"   name="AlpcHandleTable"/>
+        <field arch="amd64" value="0x8"    name="AlpcHandleTableLock"/>
+        <field arch="amd64" value="0x100"  name="AlpcAttributes"/>
+        <field arch="amd64" value="0x0"    name="AlpcAttributesFlags"/>
+        <field arch="amd64" value="0x38"   name="AlpcPortContext"/>
+        <field arch="amd64" value="0x160"  name="AlpcPortObjectLock"/>
+        <field arch="amd64" value="0x190"  name="AlpcSequenceNo"/>
+        <field arch="amd64" value="0x1a0"  name="AlpcState"/>
+        <field arch="amd64" value="0x380"  name="KtReadOperationCount"/>
+        <field arch="amd64" value="0x388"  name="KtWriteOperationCount"/>
+        <field arch="amd64" value="0x390"  name="KtOtherOperationCount"/>
+        <field arch="amd64" value="0x398"  name="KtReadTransferCount"/>
+        <field arch="amd64" value="0x3a0"  name="KtWriteTransferCount"/>
+        <field arch="amd64" value="0x3a8"  name="KtOtherTransferCount"/>
+        <field arch="amd64" value="0x80"   name="LxPicoProc"/>
+        <field arch="amd64" value="0x10"   name="LxPicoProcInfo"/>
+        <field arch="amd64" value="0x10"   name="LxPicoProcInfoPID"/>
+        <field arch="amd64" value="0x10"   name="LxPicoThrdInfo"/>
+        <field arch="amd64" value="0x10"   name="LxPicoThrdInfoTID"/>
+        <field arch="amd64" value="0x28"   name="MmSectionControlArea"/>
+        <field arch="amd64" value="0x8"    name="MmControlAreaListHead"/>
+        <field arch="amd64" value="0x48"   name="MmControlAreaLock"/>
+        <field arch="amd64" value="0x2a8"  name="EpSectionObject"/>
+        <field arch="arm64" value="0x28"   name="EgeGuid"/>
+        <field arch="arm64" value="0x2f0"  name="EpObjectTable"/>
+        <field arch="arm64" value="0x20"   name="EreGuidEntry"/>
+        <field arch="arm64" value="0x30"   name="HtHandleContentionEvent"/>
+        <field arch="arm64" value="0x10"   name="OtName"/>
+        <field arch="arm64" value="0x28"   name="OtIndex"/>
+        <field arch="arm64" value="16"     name="ObDecodeShift"/>
+        <field arch="arm64" value="17"     name="ObAttributesShift"/>
+        <field arch="arm64" value="0x10"   name="AlpcCommunicationInfo"/>
+        <field arch="arm64" value="0x18"   name="AlpcOwnerProcess"/>
+        <field arch="arm64" value="0x0"    name="AlpcConnectionPort"/>
+        <field arch="arm64" value="0x8"    name="AlpcServerCommunicationPort"/>
+        <field arch="arm64" value="0x10"   name="AlpcClientCommunicationPort"/>
+        <field arch="arm64" value="0x28"   name="AlpcHandleTable"/>
+        <field arch="arm64" value="0x8"    name="AlpcHandleTableLock"/>
+        <field arch="arm64" value="0x100"  name="AlpcAttributes"/>
+        <field arch="arm64" value="0x0"    name="AlpcAttributesFlags"/>
+        <field arch="arm64" value="0x38"   name="AlpcPortContext"/>
+        <field arch="arm64" value="0x160"  name="AlpcPortObjectLock"/>
+        <field arch="arm64" value="0x190"  name="AlpcSequenceNo"/>
+        <field arch="arm64" value="0x1a0"  name="AlpcState"/>
+        <field arch="arm64" value="0x3a0"  name="KtReadOperationCount"/>
+        <field arch="arm64" value="0x3a8"  name="KtWriteOperationCount"/>
+        <field arch="arm64" value="0x3b0"  name="KtOtherOperationCount"/>
+        <field arch="arm64" value="0x3b8"  name="KtReadTransferCount"/>
+        <field arch="arm64" value="0x3c0"  name="KtWriteTransferCount"/>
+        <field arch="arm64" value="0x3c8"  name="KtOtherTransferCount"/>
+        <field arch="arm64" value="0x80"   name="LxPicoProc"/>
+        <field arch="arm64" value="0x10"   name="LxPicoProcInfo"/>
+        <field arch="arm64" value="0x10"   name="LxPicoProcInfoPID"/>
+        <field arch="arm64" value="0x10"   name="LxPicoThrdInfo"/>
+        <field arch="arm64" value="0x10"   name="LxPicoThrdInfoTID"/>
+        <field arch="arm64" value="0x28"   name="MmSectionControlArea"/>
+        <field arch="arm64" value="0x8"    name="MmControlAreaListHead"/>
+        <field arch="arm64" value="0x48"   name="MmControlAreaLock"/>
+        <field arch="arm64" value="0x298"  name="EpSectionObject"/>
+    </data>
     <data min="10.0.22000.556" max="10.0.22621.3593">
         <field value="0x28"   name="EgeGuid"/>
         <field value="0x570"  name="EpObjectTable"/>
