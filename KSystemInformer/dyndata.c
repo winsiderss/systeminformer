@@ -98,6 +98,13 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     init = Parameter;
 
 #define KPH_LOAD_DYNITEM(x) dyn->##x = C_2sTo4(init->Config->##x)
+#if defined(_AMD64_)
+#define KPH_LOAD_DYNITEM_ARCH(x) dyn->##x = C_2sTo4(init->Config->ArchAMD64.##x)
+#elif defined(_ARM64_)
+#define KPH_LOAD_DYNITEM_ARCH(x) dyn->##x = C_2sTo4(init->Config->ArchARM64.##x)
+#else
+#error Unsupported architecture
+#endif
 
     KPH_LOAD_DYNITEM(MajorVersion);
     KPH_LOAD_DYNITEM(MinorVersion);
@@ -106,42 +113,42 @@ NTSTATUS KSIAPI KphpInitializeDynData(
     KPH_LOAD_DYNITEM(BuildNumberMax);
     KPH_LOAD_DYNITEM(BuildNumberMin);
 
-    KPH_LOAD_DYNITEM(EgeGuid);
-    KPH_LOAD_DYNITEM(EpObjectTable);
-    KPH_LOAD_DYNITEM(EreGuidEntry);
-    KPH_LOAD_DYNITEM(HtHandleContentionEvent);
-    KPH_LOAD_DYNITEM(OtName);
-    KPH_LOAD_DYNITEM(OtIndex);
-    KPH_LOAD_DYNITEM(ObDecodeShift);
-    KPH_LOAD_DYNITEM(ObAttributesShift);
-    KPH_LOAD_DYNITEM(AlpcCommunicationInfo);
-    KPH_LOAD_DYNITEM(AlpcOwnerProcess);
-    KPH_LOAD_DYNITEM(AlpcConnectionPort);
-    KPH_LOAD_DYNITEM(AlpcServerCommunicationPort);
-    KPH_LOAD_DYNITEM(AlpcClientCommunicationPort);
-    KPH_LOAD_DYNITEM(AlpcHandleTable);
-    KPH_LOAD_DYNITEM(AlpcHandleTableLock);
-    KPH_LOAD_DYNITEM(AlpcAttributes);
-    KPH_LOAD_DYNITEM(AlpcAttributesFlags);
-    KPH_LOAD_DYNITEM(AlpcPortContext);
-    KPH_LOAD_DYNITEM(AlpcPortObjectLock);
-    KPH_LOAD_DYNITEM(AlpcSequenceNo);
-    KPH_LOAD_DYNITEM(AlpcState);
-    KPH_LOAD_DYNITEM(KtReadOperationCount);
-    KPH_LOAD_DYNITEM(KtWriteOperationCount);
-    KPH_LOAD_DYNITEM(KtOtherOperationCount);
-    KPH_LOAD_DYNITEM(KtReadTransferCount);
-    KPH_LOAD_DYNITEM(KtWriteTransferCount);
-    KPH_LOAD_DYNITEM(KtOtherTransferCount);
-    KPH_LOAD_DYNITEM(LxPicoProc);
-    KPH_LOAD_DYNITEM(LxPicoProcInfo);
-    KPH_LOAD_DYNITEM(LxPicoProcInfoPID);
-    KPH_LOAD_DYNITEM(LxPicoThrdInfo);
-    KPH_LOAD_DYNITEM(LxPicoThrdInfoTID);
-    KPH_LOAD_DYNITEM(MmSectionControlArea);
-    KPH_LOAD_DYNITEM(MmControlAreaListHead);
-    KPH_LOAD_DYNITEM(MmControlAreaLock);
-    KPH_LOAD_DYNITEM(EpSectionObject);
+    KPH_LOAD_DYNITEM_ARCH(EgeGuid);
+    KPH_LOAD_DYNITEM_ARCH(EpObjectTable);
+    KPH_LOAD_DYNITEM_ARCH(EreGuidEntry);
+    KPH_LOAD_DYNITEM_ARCH(HtHandleContentionEvent);
+    KPH_LOAD_DYNITEM_ARCH(OtName);
+    KPH_LOAD_DYNITEM_ARCH(OtIndex);
+    KPH_LOAD_DYNITEM_ARCH(ObDecodeShift);
+    KPH_LOAD_DYNITEM_ARCH(ObAttributesShift);
+    KPH_LOAD_DYNITEM_ARCH(AlpcCommunicationInfo);
+    KPH_LOAD_DYNITEM_ARCH(AlpcOwnerProcess);
+    KPH_LOAD_DYNITEM_ARCH(AlpcConnectionPort);
+    KPH_LOAD_DYNITEM_ARCH(AlpcServerCommunicationPort);
+    KPH_LOAD_DYNITEM_ARCH(AlpcClientCommunicationPort);
+    KPH_LOAD_DYNITEM_ARCH(AlpcHandleTable);
+    KPH_LOAD_DYNITEM_ARCH(AlpcHandleTableLock);
+    KPH_LOAD_DYNITEM_ARCH(AlpcAttributes);
+    KPH_LOAD_DYNITEM_ARCH(AlpcAttributesFlags);
+    KPH_LOAD_DYNITEM_ARCH(AlpcPortContext);
+    KPH_LOAD_DYNITEM_ARCH(AlpcPortObjectLock);
+    KPH_LOAD_DYNITEM_ARCH(AlpcSequenceNo);
+    KPH_LOAD_DYNITEM_ARCH(AlpcState);
+    KPH_LOAD_DYNITEM_ARCH(KtReadOperationCount);
+    KPH_LOAD_DYNITEM_ARCH(KtWriteOperationCount);
+    KPH_LOAD_DYNITEM_ARCH(KtOtherOperationCount);
+    KPH_LOAD_DYNITEM_ARCH(KtReadTransferCount);
+    KPH_LOAD_DYNITEM_ARCH(KtWriteTransferCount);
+    KPH_LOAD_DYNITEM_ARCH(KtOtherTransferCount);
+    KPH_LOAD_DYNITEM_ARCH(LxPicoProc);
+    KPH_LOAD_DYNITEM_ARCH(LxPicoProcInfo);
+    KPH_LOAD_DYNITEM_ARCH(LxPicoProcInfoPID);
+    KPH_LOAD_DYNITEM_ARCH(LxPicoThrdInfo);
+    KPH_LOAD_DYNITEM_ARCH(LxPicoThrdInfoTID);
+    KPH_LOAD_DYNITEM_ARCH(MmSectionControlArea);
+    KPH_LOAD_DYNITEM_ARCH(MmControlAreaListHead);
+    KPH_LOAD_DYNITEM_ARCH(MmControlAreaLock);
+    KPH_LOAD_DYNITEM_ARCH(EpSectionObject);
 
     status = KphVerifyCreateKey(&dyn->SessionTokenPublicKeyHandle,
                                 init->Data->SessionTokenPublicKey,

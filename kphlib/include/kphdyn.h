@@ -17,15 +17,8 @@
 
 #include <pshpack1.h>
 
-typedef struct _KPH_DYN_CONFIGURATION
+typedef struct _KPH_DYN_CONFIGURATION_ARCH
 {
-    USHORT MajorVersion;
-    USHORT MinorVersion;
-    USHORT BuildNumberMin;
-    USHORT RevisionMin;
-    USHORT BuildNumberMax;
-    USHORT RevisionMax;
-
     USHORT EgeGuid;                      // dt nt!_ETW_GUID_ENTRY Guid
     USHORT EpObjectTable;                // dt nt!_EPROCESS ObjectTable
     USHORT EreGuidEntry;                 // dt nt!_ETW_REG_ENTRY GuidEntry
@@ -62,6 +55,18 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
     USHORT EpSectionObject;              // dt nt!_EPROCESS SectionObject
+} KPH_DYN_CONFIGURATION_ARCH, *PKPH_DYN_CONFIGURATION_ARCH;
+
+typedef struct _KPH_DYN_CONFIGURATION
+{
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT BuildNumberMin;
+    USHORT RevisionMin;
+    USHORT BuildNumberMax;
+    USHORT RevisionMax;
+    KPH_DYN_CONFIGURATION_ARCH ArchAMD64;
+    KPH_DYN_CONFIGURATION_ARCH ArchARM64;
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
 typedef struct _KPH_DYNDATA
