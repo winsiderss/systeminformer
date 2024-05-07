@@ -3061,9 +3061,10 @@ BOOLEAN PhGetSystemResourcesFileName(
                 return TRUE;
             }
         }
+
+        PhClearReference(&fileName);
     }
 
-    PhClearReference(&fileName);
     return FALSE;
 }
 
