@@ -210,6 +210,14 @@ PhLocalSystemTimeToLargeInteger(
     _In_ PSYSTEMTIME SystemTime
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSystemTimeToTzSpecificLocalTime(
+    _In_ CONST SYSTEMTIME* UniversalTime,
+    _Out_ PSYSTEMTIME LocalTime
+    );
+
 // Error messages
 
 PHLIBAPI

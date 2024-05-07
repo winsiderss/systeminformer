@@ -163,6 +163,7 @@ EXPORTS
     PhfWaitForBarrier
     PhfWaitForEvent
     PhfWaitForRundownProtection
+    PhGetLastError
     PhGetPrimeNumber
     PhHashBytes
     PhHashStringRef
@@ -331,6 +332,7 @@ EXPORTS
     PhOpenThreadProcess
     PhOpenProcessToken
     PhPeekNamedPipe
+    PhQueryEnvironmentVariable
     PhQueryFullAttributesFileWin32
     PhQueryKey
     PhQueryValueKey
@@ -465,7 +467,9 @@ EXPORTS
     PhShowFileDialog
     PhShowMessage
     PhShowMessage2
+    PhShowMessageOneTime
     PhShowStatus
+    PhSystemTimeToTzSpecificLocalTime
     PhStringToGuid
     PhSystemTimeToLargeInteger
     PhTaskbarListCreate
