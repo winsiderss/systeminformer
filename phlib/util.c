@@ -433,6 +433,34 @@ BOOLEAN PhLocalSystemTimeToLargeInteger(
     return TRUE;
 }
 
+BOOLEAN PhSystemTimeToTzSpecificLocalTime(
+    _In_ CONST SYSTEMTIME* UniversalTime,
+    _Out_ PSYSTEMTIME LocalTime
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* SystemTimeToTzSpecificLocalTimeEx_I)(
+        _In_opt_ CONST DYNAMIC_TIME_ZONE_INFORMATION * lpTimeZoneInformation,
+        _In_ CONST SYSTEMTIME * lpUniversalTime,
+        _Out_ LPSYSTEMTIME lpLocalTime
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        SystemTimeToTzSpecificLocalTimeEx_I = PhGetDllProcedureAddress(L"kernel32.dll", "SystemTimeToTzSpecificLocalTimeEx", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    memset(LocalTime, 0, sizeof(SYSTEMTIME));
+
+    if (SystemTimeToTzSpecificLocalTimeEx_I)
+    {
+        return !!SystemTimeToTzSpecificLocalTimeEx_I(NULL, UniversalTime, LocalTime);
+    }
+
+    return !!SystemTimeToTzSpecificLocalTime(NULL, UniversalTime, LocalTime);
+}
+
 /**
  * Gets a string stored in a DLL's message table.
  *
