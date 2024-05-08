@@ -41,9 +41,9 @@ namespace CustomBuildTool
                     Environment.Exit(1);
                 }
             }
-            else if (ProgramArgs.ContainsKey("-dyndata"))
+            else if (ProgramArgs.TryGetValue("-dyndata", out string ArgDynData))
             {
-                if (!Build.BuildDynamicData(ProgramArgs["-dyndata"]))
+                if (!Build.BuildDynamicData(ArgDynData))
                 {
                     Environment.Exit(1);
                 }
@@ -57,96 +57,56 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-sdk"))
             {
-                if (ProgramArgs.ContainsKey("-x64"))
-                {
-                    if (ProgramArgs.ContainsKey("-release"))
-                    {
-                        BuildFlags flags = BuildFlags.Build64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose;
+                Build.SetupBuildEnvironment(false);
 
-                        Build.CopySidCapsFile(flags);
-                        Build.CopyEtwTraceGuidsFile(flags);
-                        Build.CopyIconFile(flags);
-                        Build.BuildSdk(flags);
-                        Build.CopyKernelDriver(flags);
-                        Build.CopyWow64Files(flags);
-                    }
+                BuildFlags flags = BuildFlags.BuildVerbose;
+
+                if (ProgramArgs.ContainsKey("-Debug"))
+                {
+                    if (ProgramArgs.ContainsKey("-Win32"))
+                        flags |= BuildFlags.BuildDebug | BuildFlags.Build32bit;
+                    else if (ProgramArgs.ContainsKey("-x64"))
+                        flags |= BuildFlags.BuildDebug | BuildFlags.Build64bit;
+                    else if (ProgramArgs.ContainsKey("-arm64"))
+                        flags |= BuildFlags.BuildDebug | BuildFlags.BuildArm64bit;
                     else
                     {
-                        BuildFlags flags = BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose;
-
-                        Build.CopySidCapsFile(flags);
-                        Build.CopyEtwTraceGuidsFile(flags);
-                        Build.CopyIconFile(flags);
-                        Build.BuildSdk(flags);
-                        Build.CopyKernelDriver(flags);
-                        Build.CopyWow64Files(flags);
+                        Environment.Exit(1);
                     }
                 }
-                else if (ProgramArgs.ContainsKey("-win32"))
+                else if (ProgramArgs.ContainsKey("-release"))
                 {
-                    if (ProgramArgs.ContainsKey("-release"))
-                    {
-                        BuildFlags flags = BuildFlags.Build32bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose;
-
-                        Build.CopySidCapsFile(flags);
-                        Build.CopyEtwTraceGuidsFile(flags);
-                        Build.CopyIconFile(flags);
-                        Build.BuildSdk(flags);
-                        Build.CopyKernelDriver(flags);
-                    }
+                    if (ProgramArgs.ContainsKey("-Win32"))
+                        flags |= BuildFlags.BuildRelease | BuildFlags.Build32bit;
+                    else if (ProgramArgs.ContainsKey("-x64"))
+                        flags |= BuildFlags.BuildRelease | BuildFlags.Build64bit;
+                    else if (ProgramArgs.ContainsKey("-arm64"))
+                        flags |= BuildFlags.BuildRelease | BuildFlags.BuildArm64bit;
                     else
                     {
-                        BuildFlags flags = BuildFlags.Build32bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose;
-
-                        Build.CopySidCapsFile(flags);
-                        Build.CopyEtwTraceGuidsFile(flags);
-                        Build.CopyIconFile(flags);
-                        Build.BuildSdk(flags);
-                        Build.CopyKernelDriver(flags);
-                    }
-                }
-                else if (ProgramArgs.ContainsKey("-arm64"))
-                {
-                    if (ProgramArgs.ContainsKey("-release"))
-                    {
-                        BuildFlags flags = BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose;
-
-                        Build.CopySidCapsFile(flags);
-                        Build.CopyEtwTraceGuidsFile(flags);
-                        Build.CopyIconFile(flags);
-                        Build.BuildSdk(flags);
-                        Build.CopyKernelDriver(flags);
-                        Build.CopyWow64Files(flags);
-                    }
-                    else
-                    {
-                        BuildFlags flags = BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose;
-
-                        Build.CopySidCapsFile(flags);
-                        Build.CopyEtwTraceGuidsFile(flags);
-                        Build.CopyIconFile(flags);
-                        Build.BuildSdk(flags);
-                        Build.CopyKernelDriver(flags);
-                        Build.CopyWow64Files(flags);
+                        Environment.Exit(1);
                     }
                 }
                 else
                 {
-                    BuildFlags flags =
-                        BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit |
-                        BuildFlags.BuildDebug | BuildFlags.BuildRelease;
-
-                    Build.CopySidCapsFile(flags);
-                    Build.CopyEtwTraceGuidsFile(flags);
-                    Build.CopyIconFile(flags);
-                    Build.BuildSdk(flags);
-                    Build.CopyKernelDriver(flags);
-                    Build.CopyWow64Files(flags);
+                    Environment.Exit(1);
                 }
+
+                if (!Build.CopyResourceFiles(flags))
+                    Environment.Exit(1);
+
+                if (!Build.BuildSdk(flags))
+                    Environment.Exit(1);
+
+                if (!Build.CopyKernelDriver(flags))
+                    Environment.Exit(1);
+
+                if (!Build.CopyWow64Files(flags))
+                    Environment.Exit(1);
             }
-            else if (ProgramArgs.ContainsKey("-sign_plugin"))
+            else if (ProgramArgs.TryGetValue("-sign_plugin", out string SignPluginArg))
             {
-                if (!Build.SignPlugin(ProgramArgs["-sign_plugin"]))
+                if (!Build.SignPlugin(SignPluginArg))
                 {
                     Environment.Exit(1);
                 }
@@ -171,17 +131,17 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(false);
 
                 if (!Build.BuildSolution("SystemInformer.sln", flags))
-                    return;
+                    Environment.Exit(1);
                 if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
-                    return;
+                    Environment.Exit(1);
 
                 if (!Build.CopyTextFiles(true))
-                    return;
+                    Environment.Exit(1);
 
                 foreach (var (channel, _) in BuildConfig.Build_Channels)
                 {
                     if (!Build.BuildBinZip(channel))
-                        return;
+                        Environment.Exit(1);
                 }
 
                 Build.ShowBuildStats();
@@ -214,7 +174,7 @@ namespace CustomBuildTool
 
                 Build.SetupBuildEnvironment(true);
 
-                Build.CopySourceLink();
+                Build.CopySourceLink(true);
 
                 if (!Build.BuildSolution("SystemInformer.sln", flags))
                     Environment.Exit(1);
@@ -274,9 +234,9 @@ namespace CustomBuildTool
                     Environment.Exit(1);
 
                 if (!Build.CopyWow64Files(flags)) // required after plugin build (dmex)
-                    return;
+                    Environment.Exit(1);
                 if (!Build.CopyTextFiles(true))
-                    return;
+                    Environment.Exit(1);
 
                 Build.BuildStorePackage(flags);
 
@@ -297,8 +257,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                     return;
 
-                Build.CopyWow64Files(flags);
-
+                if (!Build.CopyWow64Files(flags))
+                    return;
                 if (!Build.CopyTextFiles(true))
                     return;
 

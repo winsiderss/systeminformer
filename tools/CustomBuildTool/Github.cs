@@ -41,12 +41,13 @@ namespace CustomBuildTool
 
                 byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, GithubReleasesRequestContext.Default.GithubReleasesRequest);
 
-                if (buildPostString == null || buildPostString.LongLength == 0)
+                if (buildPostString.LongLength == 0)
                     return null;
 
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -117,6 +118,7 @@ namespace CustomBuildTool
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -214,6 +216,7 @@ namespace CustomBuildTool
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -294,6 +297,7 @@ namespace CustomBuildTool
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
