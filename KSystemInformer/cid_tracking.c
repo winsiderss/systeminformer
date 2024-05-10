@@ -2074,9 +2074,11 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
 
     PAGED_CODE_PASSIVE();
 
-    if (Process->ImageFileName && !Process->VerifiedProcess)
+    if (Process->ImageFileName &&
+        Process->FileObject &&
+        !Process->VerifiedProcess)
     {
-        status = KphVerifyFile(Process->ImageFileName);
+        status = KphVerifyFile(Process->ImageFileName, Process->FileObject);
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       VERIFY,

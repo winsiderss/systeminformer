@@ -389,7 +389,7 @@ NTSTATUS KphVerifyFileObject(
 
     InitializeObjectAttributes(&objectAttributes,
                                &signatureFileName,
-                               OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                NULL,
                                NULL);
 
@@ -401,7 +401,9 @@ NTSTATUS KphVerifyFileObject(
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ,
                            FILE_OPEN,
-                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           (FILE_NON_DIRECTORY_FILE |
+                            FILE_SYNCHRONOUS_IO_NONALERT |
+                            FILE_COMPLETE_IF_OPLOCKED),
                            NULL,
                            0,
                            IO_IGNORE_SHARE_ACCESS_CHECK,
@@ -415,6 +417,17 @@ NTSTATUS KphVerifyFileObject(
                       status);
 
         signatureFileHandle = NULL;
+        goto Exit;
+    }
+    else if (status == STATUS_OPLOCK_BREAK_IN_PROGRESS)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "Failed to open signature file \"%wZ\": %!STATUS!",
+                      &signatureFileName,
+                      status);
+
+        status = STATUS_SHARING_VIOLATION;
         goto Exit;
     }
 
@@ -491,13 +504,17 @@ Exit:
  * \brief Verifies a file by name.
  *
  * \param[in] FileName File name to verify.
+ * \param[in] FileObject Optional file object to use for verification. If
+ * provided the opened file object is checked to match. This is useful when the
+ * file object is known but not in a state where you can use it directly.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyFile(
-    _In_ PCUNICODE_STRING FileName
+    _In_ PCUNICODE_STRING FileName,
+    _In_opt_ PFILE_OBJECT FileObject
     )
 {
     NTSTATUS status;
@@ -524,7 +541,7 @@ NTSTATUS KphVerifyFile(
 
     InitializeObjectAttributes(&objectAttributes,
                                (PUNICODE_STRING)FileName,
-                               OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                NULL,
                                NULL);
 
@@ -536,7 +553,9 @@ NTSTATUS KphVerifyFile(
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                            FILE_OPEN,
-                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           (FILE_NON_DIRECTORY_FILE |
+                            FILE_SYNCHRONOUS_IO_NONALERT |
+                            FILE_COMPLETE_IF_OPLOCKED),
                            NULL,
                            0,
                            IO_IGNORE_SHARE_ACCESS_CHECK,
@@ -551,6 +570,16 @@ NTSTATUS KphVerifyFile(
         fileHandle = NULL;
         goto Exit;
     }
+    else if (status == STATUS_OPLOCK_BREAK_IN_PROGRESS)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphCreateFile failed: %!STATUS!",
+                      status);
+
+        status = STATUS_SHARING_VIOLATION;
+        goto Exit;
+    }
 
     status = ObReferenceObjectByHandle(fileHandle,
                                        0,
@@ -561,11 +590,21 @@ NTSTATUS KphVerifyFile(
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
+                      VERIFY,
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
         fileObject = NULL;
+        goto Exit;
+    }
+
+    if (FileObject && !KphIsSameFile(FileObject, fileObject))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "File objects do not match!");
+
+        status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 

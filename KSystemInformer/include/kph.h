@@ -1939,7 +1939,8 @@ NTSTATUS KphVerifyFileObject(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyFile(
-    _In_ PCUNICODE_STRING FileName
+    _In_ PCUNICODE_STRING FileName,
+    _In_opt_ PFILE_OBJECT FileObject
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
