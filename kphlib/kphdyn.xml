@@ -60,7 +60,7 @@ dt nt!_EPROCESS SectionObject
         <field arch="amd64" value="0x30"   name="HtHandleContentionEvent"/>
         <field arch="amd64" value="0x10"   name="OtName"/>
         <field arch="amd64" value="0x28"   name="OtIndex"/>
-        <field arch="amd64" value="16"     name="ObDecodeShift"/>
+        <field arch="amd64" value="20"     name="ObDecodeShift"/>
         <field arch="amd64" value="17"     name="ObAttributesShift"/>
         <field arch="amd64" value="0x10"   name="AlpcCommunicationInfo"/>
         <field arch="amd64" value="0x18"   name="AlpcOwnerProcess"/>
@@ -96,7 +96,7 @@ dt nt!_EPROCESS SectionObject
         <field arch="arm64" value="0x30"   name="HtHandleContentionEvent"/>
         <field arch="arm64" value="0x10"   name="OtName"/>
         <field arch="arm64" value="0x28"   name="OtIndex"/>
-        <field arch="arm64" value="16"     name="ObDecodeShift"/>
+        <field arch="arm64" value="20"     name="ObDecodeShift"/>
         <field arch="arm64" value="17"     name="ObAttributesShift"/>
         <field arch="arm64" value="0x10"   name="AlpcCommunicationInfo"/>
         <field arch="arm64" value="0x18"   name="AlpcOwnerProcess"/>
@@ -134,7 +134,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -172,7 +172,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -211,7 +211,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -250,7 +250,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -288,7 +288,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -326,7 +326,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -364,7 +364,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -402,7 +402,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -440,7 +440,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -478,7 +478,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -516,7 +516,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -554,7 +554,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -592,7 +592,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -625,7 +625,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -658,7 +658,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>
@@ -691,7 +691,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x30"   name="HtHandleContentionEvent"/>
         <field value="0x10"   name="OtName"/>
         <field value="0x28"   name="OtIndex"/>
-        <field value="16"     name="ObDecodeShift"/>
+        <field value="20"     name="ObDecodeShift"/>
         <field value="17"     name="ObAttributesShift"/>
         <field value="0x10"   name="AlpcCommunicationInfo"/>
         <field value="0x18"   name="AlpcOwnerProcess"/>

@@ -43,6 +43,46 @@ ExfUnblockPushLock(
     _Inout_opt_ PEX_PUSH_LOCK_WAIT_BLOCK WaitBlock
     );
 
+/*
+0:000> dt ntoskrnl!_HANDLE_TABLE_ENTRY
+   +0x000 VolatileLowValue : Int8B
+   +0x000 LowValue         : Int8B
+   +0x000 InfoTable        : Ptr64 _HANDLE_TABLE_ENTRY_INFO
+   +0x008 HighValue        : Int8B
+   +0x008 NextFreeHandleEntry : Ptr64 _HANDLE_TABLE_ENTRY
+   +0x008 LeafHandleValue  : _EXHANDLE
+   +0x000 RefCountField    : Int8B
+   +0x000 Unlocked         : Pos 0, 1 Bit
+   +0x000 RefCnt           : Pos 1, 16 Bits
+   +0x000 Attributes       : Pos 17, 3 Bits
+   +0x000 ObjectPointerBits : Pos 20, 44 Bits
+   +0x008 GrantedAccessBits : Pos 0, 25 Bits
+   +0x008 NoRightsUpgrade  : Pos 25, 1 Bit
+   +0x008 Spare1           : Pos 26, 6 Bits
+   +0x00c Spare2           : Uint4B
+
+0:000> dt ntkrla57!_HANDLE_TABLE_ENTRY
+   +0x000 VolatileLowValue : Int8B
+   +0x000 LowValue         : Int8B
+   +0x000 InfoTable        : Ptr64 _HANDLE_TABLE_ENTRY_INFO
+   +0x008 HighValue        : Int8B
+   +0x008 NextFreeHandleEntry : Ptr64 _HANDLE_TABLE_ENTRY
+   +0x008 LeafHandleValue  : _EXHANDLE
+   +0x000 RefCountField    : Int8B
+   +0x000 Unlocked         : Pos 0, 1 Bit
+   +0x000 RefCnt           : Pos 1, 7 Bits
+   +0x000 Attributes       : Pos 8, 3 Bits
+   +0x000 ObjectPointerBits : Pos 11, 53 Bits
+   +0x008 GrantedAccessBits : Pos 0, 25 Bits
+   +0x008 NoRightsUpgrade  : Pos 25, 1 Bit
+   +0x008 Spare1           : Pos 26, 6 Bits
+   +0x00c Spare2           : Uint4B
+*/
+//
+// N.B. We define HANDLE_TABLE_ENTRY this way to allow for dynamic data to
+// support different kernels (see above). The number of ObjectPointerBits are
+// different for LA57.
+//
 typedef struct _HANDLE_TABLE_ENTRY
 {
     union
