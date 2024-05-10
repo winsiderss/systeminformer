@@ -169,7 +169,7 @@ VOID KphCommsSendNPagedMessageAsync(
     item->NonPaged = TRUE;
     item->TargetClientProcess = NULL;
 
-    KeInsertHeadQueue(&KphpMessageQueue, &item->Entry);
+    KeInsertQueue(&KphpMessageQueue, &item->Entry);
 
     KphReleaseRundown(&KphpCommsRundown);
 }
@@ -1106,7 +1106,7 @@ VOID KphpCommsSendMessageAsync(
     item->NonPaged = FALSE;
     item->TargetClientProcess = TargetClientProcess;
 
-    KeInsertHeadQueue(&KphpMessageQueue, &item->Entry);
+    KeInsertQueue(&KphpMessageQueue, &item->Entry);
 
     KphReleaseRundown(&KphpCommsRundown);
 }
