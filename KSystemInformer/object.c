@@ -31,20 +31,32 @@ KPH_PROTECTED_DATA_SECTION_RO_POP();
 _Must_inspect_result_
 PVOID KphObpDecodeObject(
     _In_ PKPH_DYN Dyn,
-    _In_ PVOID Object
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
 #if (defined _M_X64) || (defined _M_ARM64)
     if (Dyn->ObDecodeShift != ULONG_MAX)
     {
-        return (PVOID)(((LONG_PTR)Object >> Dyn->ObDecodeShift) & ~(ULONG_PTR)0xf);
+        LONG_PTR object;
+
+        object = (LONG_PTR)(HandleTableEntry->Object);
+
+        //
+        // Decode the object pointer, shift back up the lower nibble to zeros.
+        // N.B. LA57 is special but the way we define HANDLE_TABLE_ENTRY and
+        // use dynamic data supports it.
+        //
+        object >>= Dyn->ObDecodeShift;
+        object <<= 4;
+
+        return (PVOID)object;
     }
     else
     {
         return NULL;
     }
 #else
-    return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
+    return (PVOID)((ULONG_PTR)(HandleTableEntry->Object) & ~OBJ_HANDLE_ATTRIBUTES);
 #endif
 }
 
@@ -328,7 +340,7 @@ BOOLEAN KphpEnumerateProcessHandlesCallbck(
 
     context = Context;
 
-    objectHeader = KphObpDecodeObject(context->Dyn, HandleTableEntry->Object);
+    objectHeader = KphObpDecodeObject(context->Dyn, HandleTableEntry);
     handleInfo.Handle = Handle;
     handleInfo.Object = objectHeader ? &objectHeader->Body : NULL;
     handleInfo.GrantedAccess = ObpDecodeGrantedAccess(HandleTableEntry->GrantedAccess);

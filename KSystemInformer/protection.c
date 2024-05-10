@@ -258,7 +258,7 @@ BOOLEAN KSIAPI KphpEnumProcessHandlesForProtection(
         return FALSE;
     }
 
-    objectHeader = KphObpDecodeObject(parameter->Dyn, HandleTableEntry->Object);
+    objectHeader = KphObpDecodeObject(parameter->Dyn, HandleTableEntry);
     if (!objectHeader)
     {
         //
