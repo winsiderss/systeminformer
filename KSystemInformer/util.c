@@ -575,6 +575,49 @@ VOID KphReleaseRWLock(
     FltReleasePushLock(Lock);
 }
 
+/**
+ * \brief Checks if two file objects are associated with the same data.
+ *
+ * \param[in] FirstFileObject The first file object to check.
+ * \param[in] SecondFileObject The second file object to check.
+ *
+ * \return TRUE if the files are the same, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphIsSameFile(
+    _In_ PFILE_OBJECT FirstFileObject,
+    _In_ PFILE_OBJECT SecondFileObject
+    )
+{
+    PSECTION_OBJECT_POINTERS first;
+    PSECTION_OBJECT_POINTERS second;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    first = FirstFileObject->SectionObjectPointer;
+    second = SecondFileObject->SectionObjectPointer;
+
+    if (first != second)
+    {
+        return FALSE;
+    }
+
+    if (!first)
+    {
+        return TRUE;
+    }
+
+    if ((first->DataSectionObject != second->DataSectionObject) ||
+        (first->SharedCacheMap != second->SharedCacheMap) ||
+        (first->ImageSectionObject != second->ImageSectionObject))
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 PAGED_FILE();
 
 /**

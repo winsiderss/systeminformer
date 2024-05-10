@@ -948,6 +948,13 @@ VOID KphReleaseRWLock(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphIsSameFile(
+    _In_ PFILE_OBJECT FirstFileObject,
+    _In_ PFILE_OBJECT SecondFileObject
+    );
+
 typedef struct _KPH_REFERENCE
 {
     volatile LONG Count;

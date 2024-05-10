@@ -1282,7 +1282,7 @@ NTSTATUS KphpReOpenImageFile(
 
     InitializeObjectAttributes(&objectAttributes,
                                fileName,
-                               OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                NULL,
                                NULL);
 
@@ -1294,7 +1294,9 @@ NTSTATUS KphpReOpenImageFile(
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ,
                            FILE_OPEN,
-                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           (FILE_NON_DIRECTORY_FILE |
+                            FILE_SYNCHRONOUS_IO_NONALERT |
+                            FILE_COMPLETE_IF_OPLOCKED),
                            NULL,
                            0,
                            IO_IGNORE_SHARE_ACCESS_CHECK,
@@ -1307,6 +1309,16 @@ NTSTATUS KphpReOpenImageFile(
                       status);
 
         fileHandle = NULL;
+        goto Exit;
+    }
+    else if (status == STATUS_OPLOCK_BREAK_IN_PROGRESS)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphCreateFile failed: %!STATUS!",
+                      status);
+
+        status = STATUS_SHARING_VIOLATION;
         goto Exit;
     }
 
@@ -1386,6 +1398,30 @@ VOID KphpApplyImageProtections(
     fileObject = NULL;
     fileName = NULL;
 
+    if (FileObject->WriteAccess || FileObject->SharedWrite)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "%wZ (%lu) image \"%wZ\" is writable",
+                      &Process->ImageName,
+                      HandleToULong(Process->ProcessId),
+                      &FileObject->FileName);
+
+        goto Exit;
+    }
+
+    if (IoGetTransactionParameterBlock(FileObject))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "%wZ (%lu) image \"%wZ\" is in a transaction",
+                      &Process->ImageName,
+                      HandleToULong(Process->ProcessId),
+                      &FileObject->FileName);
+
+        goto Exit;
+    }
+
     if (!FileObject->SectionObjectPointer ||
         MmDoesFileHaveUserWritableReferences(FileObject->SectionObjectPointer))
     {
@@ -1407,8 +1443,24 @@ VOID KphpApplyImageProtections(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
-                      "KphpReOpenImageFile failed: %!STATUS!",
+                      "KphpReOpenImageFile: %wZ (%lu) \"%wZ\": %!STATUS!",
+                      &Process->ImageName,
+                      HandleToULong(Process->ProcessId),
+                      &FileObject->FileName,
                       status);
+
+        goto Exit;
+    }
+
+    if (!KphIsSameFile(FileObject, fileObject))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "KphIsSameFile failed: %wZ (%lu) \"%wZ\" \"%wZ\"",
+                      &Process->ImageName,
+                      HandleToULong(Process->ProcessId),
+                      &FileObject->FileName,
+                      fileName);
 
         goto Exit;
     }
