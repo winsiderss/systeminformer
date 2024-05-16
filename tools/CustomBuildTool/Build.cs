@@ -66,10 +66,9 @@ namespace CustomBuildTool
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
 
-            var buildDef = Win32.GetEnvironmentVariable("BUILD_DEFINITIONNAME");
-            if (!string.IsNullOrWhiteSpace(buildDef))
+            if (Win32.GetEnvironmentVariable("BUILD_DEFINITIONNAME", out string build_definition))
             {
-                if (buildDef.Contains("canary", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(build_definition, "canary", StringComparison.OrdinalIgnoreCase))
                 {
                     Build.BuildCanary = true;
                 }
@@ -1100,7 +1099,7 @@ namespace CustomBuildTool
             string buildPostSfUrl;
             string buildPostSfApiKey;
 
-            if (!BuildCanary)
+            if (!Build.BuildCanary)
                 return true;
             if (Build.BuildToolsDebug)
                 return true;

@@ -197,7 +197,10 @@ namespace CustomBuildTool
         public static void CopyIfNewer(string SourceFile, string DestinationFile)
         {
             if (!File.Exists(SourceFile))
+            {
+                Program.PrintColorMessage($"[CopyIfNewer-FileNotFound] {SourceFile}", ConsoleColor.Yellow);
                 return;
+            }
 
             {
                 string directory = Path.GetDirectoryName(DestinationFile);
@@ -230,7 +233,10 @@ namespace CustomBuildTool
         public static void CopyVersionIfNewer(string SourceFile, string DestinationFile)
         {
             if (!File.Exists(SourceFile))
+            {
+                Program.PrintColorMessage($"[CopyVersionIfNewer-FileNotFound] {SourceFile}", ConsoleColor.Yellow);
                 return;
+            }
 
             {
                 string directory = Path.GetDirectoryName(DestinationFile);
