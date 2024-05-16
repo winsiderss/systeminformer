@@ -120,7 +120,7 @@ BOOLEAN EtpDiskPageCallback(
 
             EtInitializeDiskTreeList(hwnd);
 
-            if (!EtEtwEnabled)
+            //if (!EtEtwEnabled) // always show status (dmex)
             {
                 if (EtEtwStatus != ERROR_SUCCESS)
                 {
