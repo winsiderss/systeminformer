@@ -213,7 +213,7 @@ typedef struct _KPH_DYNDATA
             }
         }
 
-        public static void Execute(string OutDir)
+        public static bool Execute(string OutDir, bool StrictChecks)
         {
             string manifestFile = "kphlib\\kphdyn.xml";
             string headerFile = "kphlib\\include\\kphdyn.h";
@@ -221,22 +221,22 @@ typedef struct _KPH_DYNDATA
 
             GenerateConfig(manifestFile, out byte[] config);
 
-            File.WriteAllText(headerFile, GenerateHeader());
+            Utils.WriteAllText(headerFile, GenerateHeader());
             Program.PrintColorMessage($"Dynamic header -> {headerFile}", ConsoleColor.Cyan);
-            File.WriteAllText(sourceFile, GenerateSource(BytesToString(config)));
+            Utils.WriteAllText(sourceFile, GenerateSource(BytesToString(config)));
             Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
 
             if (OutDir.Length == 0)
-                return;
+                return true;
 
             string configFile = $"{OutDir}\\ksidyn.bin";
 
             if (File.Exists(configFile))
                 File.Delete(configFile);
             Directory.CreateDirectory(OutDir);
-            File.WriteAllBytes(configFile, config);
+            Utils.WriteAllBytes(configFile, config);
             Program.PrintColorMessage($"Dynamic config -> {configFile}", ConsoleColor.Cyan);
-            Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile);
+            return Verify.CreateSigFile("kph", configFile, StrictChecks);
         }
 
         private static string GenerateHeader()

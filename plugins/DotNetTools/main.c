@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2015-2023
+ *     dmex    2015-2024
  *
  */
 
@@ -211,7 +211,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DOT_NET_CATEGORY_INDEX, L"5" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_SORTCOLUMN, L"" },
-                { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES, L"" }
+                { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_GROUPSTATES, L"" },
+                { IntegerSettingType, SETTING_NAME_DOT_NET_VERIFYSIGNATURE, L"1" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

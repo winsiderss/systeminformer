@@ -433,6 +433,34 @@ BOOLEAN PhLocalSystemTimeToLargeInteger(
     return TRUE;
 }
 
+BOOLEAN PhSystemTimeToTzSpecificLocalTime(
+    _In_ CONST SYSTEMTIME* UniversalTime,
+    _Out_ PSYSTEMTIME LocalTime
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* SystemTimeToTzSpecificLocalTimeEx_I)(
+        _In_opt_ CONST DYNAMIC_TIME_ZONE_INFORMATION * lpTimeZoneInformation,
+        _In_ CONST SYSTEMTIME * lpUniversalTime,
+        _Out_ LPSYSTEMTIME lpLocalTime
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        SystemTimeToTzSpecificLocalTimeEx_I = PhGetDllProcedureAddress(L"kernel32.dll", "SystemTimeToTzSpecificLocalTimeEx", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    memset(LocalTime, 0, sizeof(SYSTEMTIME));
+
+    if (SystemTimeToTzSpecificLocalTimeEx_I)
+    {
+        return !!SystemTimeToTzSpecificLocalTimeEx_I(NULL, UniversalTime, LocalTime);
+    }
+
+    return !!SystemTimeToTzSpecificLocalTime(NULL, UniversalTime, LocalTime);
+}
+
 /**
  * Gets a string stored in a DLL's message table.
  *
@@ -3476,8 +3504,26 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     return PhGetTemporaryDirectory(&randomAlphaString);
 }
 
+PPH_STRING PhGetLocalAppDataDirectory(
+    _In_opt_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    PPH_STRING localAppDataFileName = NULL;
+    PPH_STRING localAppDataDirectory;
+
+    if (localAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_LocalAppData, L"\\SystemInformer\\", NativeFileName))
+    {
+        if (!FileName) return localAppDataDirectory;
+        localAppDataFileName = PhConcatStringRef2(&localAppDataDirectory->sr, FileName);
+        PhReferenceObject(localAppDataDirectory);
+    }
+
+    return localAppDataFileName;
+}
+
 PPH_STRING PhGetRoamingAppDataDirectory(
-    _In_ PPH_STRINGREF FileName,
+    _In_opt_ PPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -3486,6 +3532,7 @@ PPH_STRING PhGetRoamingAppDataDirectory(
 
     if (roamingAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\", NativeFileName))
     {
+        if (!FileName) return roamingAppDataDirectory;
         roamingAppDataFileName = PhConcatStringRef2(&roamingAppDataDirectory->sr, FileName);
         PhReferenceObject(roamingAppDataDirectory);
     }

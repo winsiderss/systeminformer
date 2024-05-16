@@ -828,14 +828,15 @@ typedef struct _TS_COUNTER
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationFreeMemory(
     _In_ PVOID Buffer
     );
 
 // rev
+NTSYSAPI
 HANDLE
-WINAPI
+NTAPI
 WinStationOpenServerW(
     _In_opt_ PWSTR ServerName
     );
@@ -843,7 +844,7 @@ WinStationOpenServerW(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationCloseServer(
     _In_ HANDLE ServerHandle
     );
@@ -851,7 +852,7 @@ WinStationCloseServer(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationServerPing(
     _In_opt_ HANDLE ServerHandle
     );
@@ -859,7 +860,7 @@ WinStationServerPing(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationGetTermSrvCountersValue(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG Count,
@@ -868,7 +869,7 @@ WinStationGetTermSrvCountersValue(
 
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationShutdownSystem(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ShutdownFlags // WSD_*
@@ -877,7 +878,7 @@ WinStationShutdownSystem(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationWaitSystemEvent(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG EventMask, // WEVENT_*
@@ -887,7 +888,7 @@ WinStationWaitSystemEvent(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle,
@@ -897,7 +898,7 @@ WinStationRegisterConsoleNotification(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationUnRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle
@@ -906,8 +907,9 @@ WinStationUnRegisterConsoleNotification(
 // Sessions
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationEnumerateW(
     _In_opt_ HANDLE ServerHandle,
     _Out_ PSESSIONIDW *SessionIds,
@@ -916,7 +918,7 @@ WinStationEnumerateW(
 
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationQueryInformationW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -929,7 +931,7 @@ WinStationQueryInformationW(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationSetInformationW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -940,7 +942,7 @@ WinStationSetInformationW(
 
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationNameFromLogonIdW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -950,7 +952,7 @@ WinStationNameFromLogonIdW(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 LogonIdFromWinStationNameW(
     _In_opt_ HANDLE ServerHandle,
     _In_ PWSTR pWinStationName,
@@ -960,7 +962,7 @@ LogonIdFromWinStationNameW(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationSendMessageW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -976,7 +978,7 @@ WinStationSendMessageW(
 
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationConnectW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -987,7 +989,7 @@ WinStationConnectW(
 
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationDisconnect(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -997,7 +999,7 @@ WinStationDisconnect(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationReset(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -1007,7 +1009,7 @@ WinStationReset(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationShadow(
     _In_opt_ HANDLE ServerHandle,
     _In_ PWSTR TargetServerName,
@@ -1019,7 +1021,7 @@ WinStationShadow(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationShadowStop(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -1031,7 +1033,7 @@ WinStationShadowStop(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationEnumerateProcesses(
     _In_opt_ HANDLE ServerHandle,
     _Out_ PVOID *Processes
@@ -1040,7 +1042,7 @@ WinStationEnumerateProcesses(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationGetAllProcesses(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG Level,
@@ -1051,7 +1053,7 @@ WinStationGetAllProcesses(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationFreeGAPMemory(
     _In_ ULONG Level,
     _In_ PTS_ALL_PROCESSES_INFO Processes,
@@ -1061,7 +1063,7 @@ WinStationFreeGAPMemory(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationTerminateProcess(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ProcessId,
@@ -1070,7 +1072,7 @@ WinStationTerminateProcess(
 
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationGetProcessSid(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ProcessId,
@@ -1086,7 +1088,7 @@ WinStationGetProcessSid(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationSwitchToServicesSession(
     VOID
     );
@@ -1094,7 +1096,7 @@ WinStationSwitchToServicesSession(
 // rev
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationRevertFromServicesSession(
     VOID
     );
@@ -1104,7 +1106,7 @@ WinStationRevertFromServicesSession(
 // Misc.
 NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 _WinStationWaitForConnect(
     VOID
     );

@@ -2140,15 +2140,6 @@ IDB_SEARCH_INACTIVE_MODERN_DARK  PNG            "resources\\search_modern_dark.p
 IDR_RT_MANIFEST         RT_MANIFEST             "SystemInformer.manifest"
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_OBJMAPPINGS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
 
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////

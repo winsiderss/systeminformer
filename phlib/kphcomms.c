@@ -771,6 +771,8 @@ NTSTATUS KphCommsStart(
         if (!NT_SUCCESS(status))
             goto Exit;
 
+        NtSetEventBoostPriority(KphpCommsMessages[i].Overlapped.hEvent);
+
         RtlZeroMemory(&KphpCommsMessages[i].Overlapped,
             FIELD_OFFSET(OVERLAPPED, hEvent));
 

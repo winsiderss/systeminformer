@@ -3923,6 +3923,20 @@ PhTlsSetValue(
     _In_opt_ PVOID Value
     );
 
+PHLIBAPI
+ULONG
+NTAPI
+PhGetLastError(
+    VOID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetLastError(
+    _In_ ULONG ErrorValue
+    );
+
 // Auto-dereference convenience functions
 
 FORCEINLINE

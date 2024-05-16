@@ -4211,11 +4211,7 @@ VOID PhMwpClearLastNotificationDetails(
     VOID
     )
 {
-    if (PhMwpLastNotificationType &
-        (PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE | PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP))
-    {
-        PhClearReference(&PhMwpLastNotificationDetails.ServiceName);
-    }
+    PhClearReference(&PhMwpLastNotificationDetails.ServiceName);
 
     PhMwpLastNotificationType = 0;
     memset(&PhMwpLastNotificationDetails, 0, sizeof(PhMwpLastNotificationDetails));

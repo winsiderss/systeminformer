@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2019-2023
+ *     dmex    2019-2024
  *
  */
 
@@ -65,8 +65,12 @@ BOOLEAN PhGetWslDistributionFromPath(
                 0
                 )))
             {
-                PPH_STRING lxssBasePathName = PhQueryRegistryStringZ(subKeyHandle, L"BasePath");
-                PhMoveReference(&lxssBasePathName, PhDosPathNameToNtPathName(&lxssBasePathName->sr));
+                PPH_STRING lxssBasePathName;
+
+                if (lxssBasePathName = PhQueryRegistryStringZ(subKeyHandle, L"BasePath"))
+                {
+                    PhMoveReference(&lxssBasePathName, PhDosPathNameToNtPathName(&lxssBasePathName->sr));
+                }
 
                 if (lxssBasePathName && PhStartsWithStringRef(FileName, &lxssBasePathName->sr, TRUE))
                 {

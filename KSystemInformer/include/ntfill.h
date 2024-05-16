@@ -1485,9 +1485,10 @@ typedef CI_VERIFY_HASH_IN_CATALOG_EX* PCI_VERIFY_HASH_IN_CATALOG_EX;
 // rev
 #define CI_POLICY_VALID_FLAGS                        0x1BE00078ul
 #define CI_POLICY_DEFAULT                            0x00000000ul
-#define CI_POLICY_REQUIRE_MICROSOFT                  0x00000001ul
-#define CI_POLICY_REQUIRE_SIGNED                     0x00000002ul
-#define CI_POLICY_ALLOW_UNSIGNED                     0x00000004ul
+#define CI_POLICY_REQUIRE_MICROSOFT                  0x00000001ul // ? legacy
+#define CI_POLICY_REQUIRE_SIGNED                     0x00000002ul // ? legacy
+#define CI_POLICY_ALLOW_UNSIGNED                     0x00000004ul // ? legacy
+#define CI_POLICY_REJECT_UNSIGNED                    0x80000000ul // ? legacy
 #define CI_POLICY_CHECK_PROTECTED_PROCESS_EKU        0x00000008ul
 #define CI_POLICY_FORCE_PROTECTED_PROCESS_POLICY     0x00000010ul
 #define CI_POLICY_ACCEPT_ANY_ROOT_CERTIFICATE        0x00000020ul
@@ -1507,9 +1508,9 @@ CI_VALIDATE_FILE_OBJECT(
     _Inout_ PMINCRYPT_POLICY_INFO PolicyInfo,
     _Inout_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo,
     _Out_ PLARGE_INTEGER SigningTime,
-    _Out_writes_bytes_to_opt_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
-    _Inout_opt_ PULONG ThumbprintSize,
-    _Out_opt_ PULONG ThumbprintAlgorithm
+    _Out_writes_bytes_to_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
+    _Inout_ PULONG ThumbprintSize,
+    _Out_ PULONG ThumbprintAlgorithm
     );
 typedef CI_VALIDATE_FILE_OBJECT* PCI_VALIDATE_FILE_OBJECT;
 

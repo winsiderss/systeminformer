@@ -11,101 +11,98 @@
 
 namespace CustomBuildTool
 {
-    public unsafe static class VisualStudio
+    public static unsafe class VisualStudio
     {
-        private static List<VisualStudioInstance> VisualStudioInstanceList;
+        private static readonly List<VisualStudioInstance> VisualStudioInstanceList;
 
         static VisualStudio()
         {
-            if (VisualStudioInstanceList == null)
+            VisualStudioInstanceList = new List<VisualStudioInstance>();
+
+            if (NativeLibrary.TryLoad(GetLibraryPath(), out IntPtr baseAddress))
             {
-                VisualStudioInstanceList = new List<VisualStudioInstance>();
-
-                if (NativeLibrary.TryLoad(GetLibraryPath(), out IntPtr baseAddress))
+                if (NativeLibrary.TryGetExport(baseAddress, "GetSetupConfiguration", out IntPtr ExportAddressPtr))
                 {
-                    if (NativeLibrary.TryGetExport(baseAddress, "GetSetupConfiguration", out IntPtr ExportAddressPtr))
-                    {
-                        var GetSetupConfiguration_I = (delegate* unmanaged[Stdcall]<IntPtr*, IntPtr, uint>)ExportAddressPtr;
-                        IntPtr SetupConfigurationInterfacePtr;
-                        IntPtr SetupConfiguration2InterfacePtr;
-                        IntPtr EnumSetupInstancesInterfacePtr;
-                        IntPtr SetupInstancePtr;
-                        IntPtr SetupInstance2Ptr;
-                        uint instancesFetched;
+                    var GetSetupConfiguration_I = (delegate* unmanaged[Stdcall]<IntPtr*, IntPtr, uint>)ExportAddressPtr;
+                    IntPtr SetupConfigurationInterfacePtr;
+                    IntPtr SetupConfiguration2InterfacePtr;
+                    IntPtr EnumSetupInstancesInterfacePtr;
+                    IntPtr SetupInstancePtr;
+                    IntPtr SetupInstance2Ptr;
+                    uint instancesFetched;
 
-                        if (GetSetupConfiguration_I(
-                            &SetupConfigurationInterfacePtr,
-                            IntPtr.Zero
+                    if (GetSetupConfiguration_I(
+                        &SetupConfigurationInterfacePtr,
+                        IntPtr.Zero
+                        ) == NativeMethods.HRESULT_S_OK)
+                    {
+                        var setupInterface = *(ISetupConfigurationVTable**)SetupConfigurationInterfacePtr;
+
+                        if (setupInterface->QueryInterface(
+                            SetupConfigurationInterfacePtr,
+                            IID_ISetupConfiguration2,
+                            &SetupConfiguration2InterfacePtr
                             ) == NativeMethods.HRESULT_S_OK)
                         {
-                            var setupInterface = *(ISetupConfigurationVTable**)SetupConfigurationInterfacePtr;
+                            var setupConfiguration = *(ISetupConfiguration2VTable**)SetupConfiguration2InterfacePtr;
 
-                            if (setupInterface->QueryInterface(
-                                SetupConfigurationInterfacePtr,
-                                IID_ISetupConfiguration2,
-                                &SetupConfiguration2InterfacePtr
+                            if (setupConfiguration->EnumAllInstances(
+                                SetupConfiguration2InterfacePtr,
+                                &EnumSetupInstancesInterfacePtr
                                 ) == NativeMethods.HRESULT_S_OK)
                             {
-                                var setupConfiguration = *(ISetupConfiguration2VTable**)SetupConfiguration2InterfacePtr;
+                                var enumSetupInstances = *(IEnumSetupInstancesVTable**)EnumSetupInstancesInterfacePtr;
 
-                                if (setupConfiguration->EnumAllInstances(
-                                    SetupConfiguration2InterfacePtr,
-                                    &EnumSetupInstancesInterfacePtr
-                                    ) == NativeMethods.HRESULT_S_OK)
+                                while (true)
                                 {
-                                    var enumSetupInstances = *(IEnumSetupInstancesVTable**)EnumSetupInstancesInterfacePtr;
+                                    if (enumSetupInstances->Next(EnumSetupInstancesInterfacePtr, 1, &SetupInstancePtr, &instancesFetched) != NativeMethods.HRESULT_S_OK)
+                                        break;
+                                    if (instancesFetched == 0)
+                                        break;
 
-                                    while (true)
+                                    var setupInstance = *(ISetupInstanceVTable**)SetupInstancePtr;
+
+                                    if (setupInstance->QueryInterface(
+                                        SetupInstancePtr,
+                                        IID_ISetupInstance2,
+                                        &SetupInstance2Ptr
+                                        ) == NativeMethods.HRESULT_S_OK)
                                     {
-                                        if (enumSetupInstances->Next(EnumSetupInstancesInterfacePtr, 1, &SetupInstancePtr, &instancesFetched) != NativeMethods.HRESULT_S_OK)
-                                            break;
-                                        if (instancesFetched == 0)
-                                            break;
-
-                                        var setupInstance = *(ISetupInstanceVTable**)SetupInstancePtr;
-
-                                        if (setupInstance->QueryInterface(
-                                            SetupInstancePtr,
-                                            IID_ISetupInstance2,
-                                            &SetupInstance2Ptr
-                                            ) == NativeMethods.HRESULT_S_OK)
-                                        {
-                                            var setupInstance2 = *(ISetupInstance2VTable**)SetupInstance2Ptr;
-                                            VisualStudioInstanceList.Add(new VisualStudioInstance(setupInstance2, SetupInstance2Ptr));
-                                            setupInstance2->Release(SetupInstance2Ptr);
-                                        }
-
-                                        setupInstance->Release(SetupInstancePtr);
+                                        var setupInstance2 = *(ISetupInstance2VTable**)SetupInstance2Ptr;
+                                        VisualStudioInstanceList.Add(new VisualStudioInstance(setupInstance2, SetupInstance2Ptr));
+                                        setupInstance2->Release(SetupInstance2Ptr);
                                     }
 
-                                    enumSetupInstances->Release(EnumSetupInstancesInterfacePtr);
+                                    setupInstance->Release(SetupInstancePtr);
                                 }
 
-                                setupConfiguration->Release(SetupConfigurationInterfacePtr);
+                                enumSetupInstances->Release(EnumSetupInstancesInterfacePtr);
                             }
 
-                            setupInterface->Release(SetupConfigurationInterfacePtr);
+                            setupConfiguration->Release(SetupConfigurationInterfacePtr);
                         }
-                    }
 
-                    NativeLibrary.Free(baseAddress);
+                        setupInterface->Release(SetupConfigurationInterfacePtr);
+                    }
                 }
 
-                VisualStudioInstanceList.Sort((p1, p2) =>
-                {
-                    if (Version.TryParse(p1.InstallationVersion, out Version version1) && Version.TryParse(p2.InstallationVersion, out Version version2))
-                    {
-                        if (version1 < version2)
-                            return 1;
-                        else if (version1 > version2)
-                            return -1;
-
-                        return version1.CompareTo(version2);
-                    }
-
-                    return 1;
-                });
+                NativeLibrary.Free(baseAddress);
             }
+
+            VisualStudioInstanceList.Sort((p1, p2) =>
+            {
+                if (Version.TryParse(p1.InstallationVersion, out Version version1) && Version.TryParse(p2.InstallationVersion, out Version version2))
+                {
+                    if (version1 < version2)
+                        return 1;
+                    else if (version1 > version2)
+                        return -1;
+
+                    return version1.CompareTo(version2);
+                }
+
+                return 1;
+            });
         }
 
         public static VisualStudioInstance GetVisualStudioInstance()
@@ -146,6 +143,14 @@ namespace CustomBuildTool
             else
                 path = "C:\\ProgramData\\Microsoft\\VisualStudio\\Setup\\x86\\Microsoft.VisualStudio.Setup.Configuration.Native.dll";
 
+            if (!File.Exists(path))
+            {
+                if (Environment.Is64BitProcess)
+                    path = "C:\\ProgramData\\Microsoft\\VisualStudio\\Setup\\x64\\Microsoft.VisualStudio.Setup.Configuration.NativeMethods.dll";
+                else
+                    path = "C:\\ProgramData\\Microsoft\\VisualStudio\\Setup\\x86\\Microsoft.VisualStudio.Setup.Configuration.NativeMethods.dll";
+            }
+
             return path;
         }
     }
@@ -157,7 +162,7 @@ namespace CustomBuildTool
         public string Path { get; }
         public string InstallationVersion { get; }
         //public string InstanceId { get; }
-        public InstanceState State { get; }
+        public uint State { get; }
         public List<VisualStudioPackage> Packages { get; }
         public bool HasARM64BuildToolsComponents { get; }
 
@@ -174,7 +179,7 @@ namespace CustomBuildTool
             IntPtr DisplayNamePtr;
             IntPtr SetupPackagesArrayPtr;
             IntPtr SetupPackagePtr;
-            uint State;
+            uint SetupPackageState;
 
             //if (FromInstance->GetInstanceId(SetupInstancePtr, out IntPtr InstancePtr) == NativeMethods.HRESULT_S_OK && InstancePtr != IntPtr.Zero)
             //{
@@ -201,9 +206,9 @@ namespace CustomBuildTool
                 this.DisplayName = Marshal.PtrToStringBSTR(DisplayNamePtr);
             }
 
-            if (FromInstance->GetState(SetupInstancePtr, &State) == NativeMethods.HRESULT_S_OK)
+            if (FromInstance->GetState(SetupInstancePtr, &SetupPackageState) == NativeMethods.HRESULT_S_OK)
             {
-                this.State = (InstanceState)State;
+                this.State = SetupPackageState;
             }
 
             this.Packages = new List<VisualStudioPackage>();
@@ -235,8 +240,8 @@ namespace CustomBuildTool
 
             // https://learn.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-community
 
-            this.HasARM64BuildToolsComponents = 
-                this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase)) && 
+            this.HasARM64BuildToolsComponents =
+                this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase)) &&
                 this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", StringComparison.OrdinalIgnoreCase));
         }
 
@@ -380,7 +385,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is VisualStudioInstance instance)
-                return this.Name.CompareTo(instance.Name);
+                return string.Compare(this.Name, instance.Name, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -390,7 +395,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return this.Name.CompareTo(obj.Name);
+            return string.Compare(this.Name, obj.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -426,7 +431,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is VisualStudioPackage package)
-                return this.Id.CompareTo(package.Id);
+                return string.Compare(this.Id, package.Id, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -436,7 +441,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return this.Id.CompareTo(obj.Id);
+            return string.Compare(this.Id, obj.Id, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -449,34 +454,6 @@ namespace CustomBuildTool
         NoRebootRequired = 4u,
         NoErrors = 8u,
         Complete = 4294967295u
-    }
-
-    public static unsafe partial class NativeMethods
-    {
-        public const uint HRESULT_S_OK = 0u;
-        public const uint HRESULT_S_FALSE = 1u;
-
-        public static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(unchecked((int)0x80000002));
-        public static readonly IntPtr HKEY_CURRENT_USER = new IntPtr(unchecked((int)0x80000001));
-        public static readonly uint KEY_READ = 0x20019u;
-
-        [LibraryImport("advapi32.dll", StringMarshalling = StringMarshalling.Utf16)]
-        public static partial uint RegOpenKeyExW(IntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, IntPtr* KeyHandle);
-
-        [LibraryImport("advapi32.dll", StringMarshalling = StringMarshalling.Utf16)]
-        public static partial uint RegQueryValueExW(IntPtr KeyHandle, string ValueName, IntPtr Reserved, int* DataType, IntPtr DataBuffer, int* DataLength);
-
-        [LibraryImport("advapi32.dll")]
-        public static partial uint RegCloseKey(IntPtr KeyHandle);
-
-        [LibraryImport("oleaut32.dll")]
-        public static partial uint SafeArrayGetLBound(IntPtr psa, uint nDim, out uint lLBound);
-
-        [LibraryImport("oleaut32.dll")]
-        public static partial uint SafeArrayGetUBound(IntPtr psa, uint nDim, out uint lUBound);
-
-        [LibraryImport("oleaut32.dll")]
-        public static partial uint SafeArrayGetElement(IntPtr psa, uint* rgIndices, IntPtr* pv);
     }
 
     [StructLayout(LayoutKind.Sequential)]

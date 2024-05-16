@@ -54,6 +54,7 @@
 #define PHNT_WIN11 114
 #define PHNT_WIN11_22H2 115
 #define PHNT_WIN11_23H2 116
+#define PHNT_WIN11_24H2 117
 
 #ifndef PHNT_MODE
 #define PHNT_MODE PHNT_MODE_USER
@@ -111,6 +112,7 @@ extern "C" {
 #include <ntsam.h>
 
 #include <ntmisc.h>
+#include <ntwmi.h>
 
 #include <ntzwapi.h>
 

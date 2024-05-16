@@ -210,6 +210,14 @@ PhLocalSystemTimeToLargeInteger(
     _In_ PSYSTEMTIME SystemTime
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSystemTimeToTzSpecificLocalTime(
+    _In_ CONST SYSTEMTIME* UniversalTime,
+    _Out_ PSYSTEMTIME LocalTime
+    );
+
 // Error messages
 
 PHLIBAPI
@@ -1022,8 +1030,30 @@ PhGetTemporaryDirectoryRandomAlphaFileName(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetLocalAppDataDirectory(
+    _In_opt_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
+    );
+
+FORCEINLINE
+PPH_STRING
+PhGetLocalAppDataDirectoryZ(
+    _In_ PWSTR String,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+
+    return PhGetLocalAppDataDirectory(&string, NativeFileName);
+}
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetRoamingAppDataDirectory(
-    _In_ PPH_STRINGREF FileName,
+    _In_opt_ PPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     );
 
