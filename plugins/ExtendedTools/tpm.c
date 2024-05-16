@@ -193,6 +193,144 @@ NTSTATUS EtTpmReadPublic(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS TpmOpen(
+    _Out_ PHANDLE FileHandle
+    )
+{
+    static PH_STRINGREF deviceName = PH_STRINGREF_INIT(L"\\Device\\TPM");
+    NTSTATUS status;
+
+    status = PhCreateFile(
+        FileHandle,
+        &deviceName,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    return status;
+}
+
+NTSTATUS TpmDeviceIoControl(
+    _In_ HANDLE DeviceHandle,
+    _In_ ULONG IoControlCode,
+    _In_ PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _In_ PVOID OutputBuffer,
+    _Out_opt_ PULONG OutputBufferLength
+    )
+{
+    NTSTATUS status;
+    ULONG outputBufferLength = 0;
+    HANDLE eventHandle;
+    IO_STATUS_BLOCK ioStatusBlock;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    if (OutputBufferLength)
+        outputBufferLength = *OutputBufferLength;
+
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    status = NtCreateEvent(
+        &eventHandle,
+        EVENT_ALL_ACCESS,
+        &objectAttributes,
+        NotificationEvent,
+        FALSE
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = NtDeviceIoControlFile(
+            DeviceHandle,
+            eventHandle,
+            NULL,
+            NULL,
+            &ioStatusBlock,
+            IoControlCode,
+            InputBuffer,
+            InputBufferLength,
+            OutputBuffer,
+            outputBufferLength
+            );
+
+        if (status == STATUS_PENDING)
+        {
+            status = NtWaitForSingleObject(DeviceHandle, FALSE, NULL);
+
+            if (NT_SUCCESS(status))
+            {
+                status = ioStatusBlock.Status;
+            }
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            if (OutputBufferLength)
+                *OutputBufferLength = (ULONG)ioStatusBlock.Information;
+        }
+
+        NtClose(eventHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS TpmGetDeviceInfo(
+    _Out_ PTPM_DEVICE_INFO Info
+    )
+{
+    NTSTATUS status;
+    HANDLE deviceHandle;
+    ULONG deviceInfoLength;
+    TPM_DEVICE_INFO deviceInfo;
+
+    deviceInfoLength = sizeof(TPM_DEVICE_INFO);
+    memset(&deviceInfo, 0, sizeof(TPM_DEVICE_INFO));
+
+    status = TpmOpen(&deviceHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        status = TpmDeviceIoControl(
+            deviceHandle,
+            0x22C01C,
+            NULL,
+            0,
+            &deviceInfo,
+            &deviceInfoLength
+            );
+
+        NtClose(deviceHandle);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        memcpy(Info, &deviceInfo, sizeof(TPM_DEVICE_INFO));
+    }
+
+    return status;
+}
+
+BOOLEAN EtTpmIsReady(
+    VOID
+    )
+{
+    TPM_DEVICE_INFO info;
+
+    // unclear if there is a better way to check if the TPM is ready
+
+    if (EtWindowsVersion < WINDOWS_11 || EtWindowsVersion == WINDOWS_NEW)
+    {
+        return Tbsi_GetDeviceInfo(sizeof(info), &info) == TBS_SUCCESS;
+    }
+    else
+    {
+        return TpmGetDeviceInfo(&info) == STATUS_SUCCESS;
+    }
+}
+
 PPH_STRING EtMakeTpmAttributesString(
     _In_ TPMA_NV Attributes
     )
@@ -470,19 +608,16 @@ INT_PTR CALLBACK EtTpmDlgProc(
     return FALSE;
 }
 
-BOOLEAN EtTpmIsReady(
-    VOID
-    )
-{
-    TPM_DEVICE_INFO info;
-    // unclear if there is a better way to check if the TPM is ready
-    return Tbsi_GetDeviceInfo(sizeof(info), &info) == TBS_SUCCESS;
-}
-
 VOID EtShowTpmDialog(
     _In_ HWND ParentWindowHandle
     )
 {
+    if (!EtTpmIsReady())
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to query the TPM", STATUS_TPM_FAIL, 0);
+        return;
+    }
+
     PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_TPM),
