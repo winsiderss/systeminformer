@@ -66,17 +66,19 @@ namespace CustomBuildTool
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
 
-            if (Win32.GetEnvironmentVariable("BUILD_DEFINITIONNAME", out string build_definition))
+            if (Win32.GetEnvironmentVariable("SYSTEM_BUILD", out string build_definition))
             {
                 if (string.Equals(build_definition, "canary", StringComparison.OrdinalIgnoreCase))
                 {
                     Build.BuildCanary = true;
+                    Program.PrintColorMessage("[CANARY BUILD]", ConsoleColor.Cyan);
                 }
             }
 
             if (Win32.HasEnvironmentVariable("SYSTEM_DEBUG"))
             {
                 Build.BuildToolsDebug = true;
+                Program.PrintColorMessage("[DEBUG BUILD]", ConsoleColor.Cyan);
             }
 
             //{
