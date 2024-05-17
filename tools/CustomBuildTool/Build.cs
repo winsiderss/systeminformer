@@ -75,10 +75,13 @@ namespace CustomBuildTool
                 }
             }
 
-            if (Win32.HasEnvironmentVariable("SYSTEM_DEBUG"))
+            if (Win32.GetEnvironmentVariable("SYSTEM_DEBUG", out string build_debug))
             {
-                Build.BuildToolsDebug = true;
-                Program.PrintColorMessage("[DEBUG BUILD]", ConsoleColor.Cyan);
+                if (string.Equals(build_debug, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    Build.BuildToolsDebug = true;
+                    Program.PrintColorMessage("[DEBUG BUILD]", ConsoleColor.Cyan);
+                }
             }
 
             //{
@@ -1097,26 +1100,15 @@ namespace CustomBuildTool
 
         public static bool BuildDeployUpdateConfig()
         {
-            string buildBuildId;
-            string buildPostSfUrl;
-            string buildPostSfApiKey;
-
             if (!Build.BuildCanary)
                 return true;
             if (Build.BuildToolsDebug)
                 return true;
-
-            buildBuildId = Win32.GetEnvironmentVariable("BUILD_BUILDID");
-            buildPostSfUrl = Win32.GetEnvironmentVariable("BUILD_SF_API");
-            buildPostSfApiKey = Win32.GetEnvironmentVariable("BUILD_SF_KEY");
-
-            if (string.IsNullOrWhiteSpace(buildBuildId))
+            if (!Win32.GetEnvironmentVariable("BUILD_BUILDID", out string buildBuildId))
                 return false;
-            if (string.IsNullOrWhiteSpace(buildPostSfUrl))
+            if (!Win32.GetEnvironmentVariable("BUILD_SF_API", out string buildPostSfUrl))
                 return false;
-            if (string.IsNullOrWhiteSpace(buildPostSfApiKey))
-                return false;
-            if (string.IsNullOrWhiteSpace(BuildVersion))
+            if (!Win32.GetEnvironmentVariable("BUILD_SF_KEY", out string buildPostSfApiKey))
                 return false;
 
             Program.PrintColorMessage($"{Environment.NewLine}Uploading build artifacts... {BuildVersion}", ConsoleColor.Cyan);
