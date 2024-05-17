@@ -1966,13 +1966,13 @@ BOOLEAN PhIsCoreParked(
         NULL
         )))
     {
-        for (NOTHING;
-             RTL_CONTAINS_FIELD(cpuSetInfo, cpuSetInfo->Size, CpuSet);
-             cpuSetInfo = PTR_ADD_OFFSET(cpuSetInfo, cpuSetInfo->Size))
+        for (PSYSTEM_CPU_SET_INFORMATION info = cpuSetInfo;
+             RTL_CONTAINS_FIELD(info, info->Size, CpuSet);
+             info = PTR_ADD_OFFSET(info, info->Size))
         {
-            if (cpuSetInfo->CpuSet.LogicalProcessorIndex == ProcessorIndex)
+            if (info->CpuSet.LogicalProcessorIndex == ProcessorIndex)
             {
-                isParked = cpuSetInfo->CpuSet.Parked;
+                isParked = info->CpuSet.Parked;
                 break;
             }
         }
