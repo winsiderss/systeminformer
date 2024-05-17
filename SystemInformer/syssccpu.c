@@ -1016,29 +1016,29 @@ VOID PhSipNotifyCpuGraph(
                         FLOAT cpuKernel;
                         FLOAT cpuUser;
                         PPH_STRINGREF cpuType;
-                        UCHAR timeStatisticsPosition;
-                        PH_FORMAT format[18];
+                        PH_FORMAT format[20];
+                        ULONG count = 0;
 
                         cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], getTooltipText->Index);
                         cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[Index], getTooltipText->Index);
 
                         // %.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s
-                        PhInitFormatF(&format[0], ((DOUBLE)cpuKernel + cpuUser) * 100, PhMaxPrecisionUnit);
-                        PhInitFormatS(&format[1], L"% (K: ");
-                        PhInitFormatF(&format[2], (DOUBLE)cpuKernel * 100, PhMaxPrecisionUnit);
-                        PhInitFormatS(&format[3], L"%, U: ");
-                        PhInitFormatF(&format[4], (DOUBLE)cpuUser * 100, PhMaxPrecisionUnit);
-                        PhInitFormatS(&format[5], L"%)");
-                        PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhSipGetMaxCpuString(getTooltipText->Index))->sr);
-                        PhInitFormatS(&format[7], L"\nCPU ");
+                        PhInitFormatF(&format[count++], ((DOUBLE)cpuKernel + cpuUser) * 100, PhMaxPrecisionUnit);
+                        PhInitFormatS(&format[count++], L"% (K: ");
+                        PhInitFormatF(&format[count++], (DOUBLE)cpuKernel * 100, PhMaxPrecisionUnit);
+                        PhInitFormatS(&format[count++], L"%, U: ");
+                        PhInitFormatF(&format[count++], (DOUBLE)cpuUser * 100, PhMaxPrecisionUnit);
+                        PhInitFormatS(&format[count++], L"%)");
+                        PhInitFormatSR(&format[count++], PH_AUTO_T(PH_STRING, PhSipGetMaxCpuString(getTooltipText->Index))->sr);
+                        PhInitFormatS(&format[count++], L"\nCPU ");
 
                         if (PhSystemProcessorInformation.SingleProcessorGroup)
                         {
-                            PhInitFormatU(&format[8], Index);
-                            PhInitFormatS(&format[9], L", Core ");
-                            PhInitFormatU(&format[10], PhSipGetProcessorRelationshipIndex(RelationProcessorCore, Index));
-                            PhInitFormatS(&format[11], L", Socket ");
-                            PhInitFormatU(&format[12], PhSipGetProcessorRelationshipIndex(RelationProcessorPackage, Index));
+                            PhInitFormatU(&format[count++], Index);
+                            PhInitFormatS(&format[count++], L", Core ");
+                            PhInitFormatU(&format[count++], PhSipGetProcessorRelationshipIndex(RelationProcessorCore, Index));
+                            PhInitFormatS(&format[count++], L", Socket ");
+                            PhInitFormatU(&format[count++], PhSipGetProcessorRelationshipIndex(RelationProcessorPackage, Index));
                         }
                         else
                         {
@@ -1047,70 +1047,50 @@ VOID PhSipNotifyCpuGraph(
 
                             if (NT_SUCCESS(PhGetProcessorNumberFromIndex(Index, &processorNumber)))
                             {
-                                PhInitFormatU(&format[8], processorNumber.Number);
-                                PhInitFormatS(&format[9], L", Group ");
-                                PhInitFormatU(&format[10], processorNumber.Group);
+                                PhInitFormatU(&format[count++], processorNumber.Number);
+                                PhInitFormatS(&format[count++], L", Group ");
+                                PhInitFormatU(&format[count++], processorNumber.Group);
 
                                 if (PhGetNumaProcessorNode(&processorNumber, &processorNode))
                                 {
-                                    PhInitFormatS(&format[11], L", Node ");
-                                    PhInitFormatU(&format[12], processorNode);
+                                    PhInitFormatS(&format[count++], L", Node ");
+                                    PhInitFormatU(&format[count++], processorNode);
                                 }
                                 else
                                 {
-                                    PhInitFormatS(&format[11], L", Node ");
-                                    PhInitFormatU(&format[12], 0);
+                                    PhInitFormatS(&format[count++], L", Node ");
+                                    PhInitFormatU(&format[count++], 0);
                                 }
                             }
                             else
                             {
-                                PhInitFormatU(&format[8], Index);
-                                PhInitFormatS(&format[9], L", Group ");
-                                PhInitFormatU(&format[10], ULONG_MAX);
-                                PhInitFormatS(&format[11], L", Node ");
-                                PhInitFormatU(&format[12], ULONG_MAX);
+                                PhInitFormatU(&format[count++], Index);
+                                PhInitFormatS(&format[count++], L", Group ");
+                                PhInitFormatU(&format[count++], ULONG_MAX);
+                                PhInitFormatS(&format[count++], L", Node ");
+                                PhInitFormatU(&format[count++], ULONG_MAX);
                             }
                         }
 
                         if (cpuType = PhGetHybridProcessorType(Index))
                         {
-                            PhInitFormatS(&format[13], L", ");
-                            format[14].Type = StringFormatType;
-                            format[14].u.String.Length = cpuType->Length;
-                            format[14].u.String.Buffer = cpuType->Buffer;
-                            PhInitFormatS(&format[15], L"\n");
+                            PhInitFormatS(&format[count++], L", ");
+                            PhInitFormatSR(&format[count++], *cpuType);
+                            PhInitFormatS(&format[count++], L"\n");
 
                             if (PhIsCoreParked(Index))
-                            {
-                                PhInitFormatS(&format[16], L"Parked\n");
-                                timeStatisticsPosition = 17;
-                            }
-                            else
-                            {
-                                timeStatisticsPosition = 16;
-                            }
-                            
+                                PhInitFormatS(&format[count++], L"Parked\n");
                         }
                         else
                         {
-                            PhInitFormatS(&format[13], L"\n");
+                            PhInitFormatS(&format[count++], L"\n");
 
                             if (PhIsCoreParked(Index))
-                            {
-                                PhInitFormatS(&format[14], L"Parked\n");
-                                timeStatisticsPosition = 15;
-                            }
-                            else
-                            {
-                                timeStatisticsPosition = 14;
-                            }
+                                PhInitFormatS(&format[count++], L"Parked\n");
                         }
 
-                        PhInitFormatSR(&format[timeStatisticsPosition],
-                                       PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                        PhMoveReference(&CpusGraphState[Index].TooltipText,
-                                        PhFormat(format, timeStatisticsPosition + 1, 0));
+                        PhInitFormatSR(&format[count++], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                        PhMoveReference(&CpusGraphState[Index].TooltipText, PhFormat(format, count, 0));
                     }
 
                     getTooltipText->Text = CpusGraphState[Index].TooltipText->sr;
@@ -1942,105 +1922,63 @@ BOOLEAN PhIsCoreParked(
     _In_ ULONG ProcessorIndex
     )
 {
-    NTSTATUS status;
-    PSYSTEM_CPU_SET_INFORMATION cpuSets = NULL;
-    ULONG returnedLength = 0;
-    HANDLE process = 0;
-    DWORD i = 0;
+    ULONG returnLength;
+    BOOLEAN isParked;
+    PSYSTEM_CPU_SET_INFORMATION cpuSetInfo;
 
-    //
-    // To get core parking status of a specific logical processor in user mode,
-    // the CPU Sets functionality is used, which is available starting with Windows 10.
-    //
     if (WindowsVersion < WINDOWS_10)
-    {
         return FALSE;
-    }
 
     //
-    // There is one CPU Set for each logical processor in the system.
+    // MSDN: https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-system_cpu_set_information
+    // This is a variable-sized structure designed for future expansion. When iterating over
+    // this structure, use the size field to determine the offset to the next structure.
     //
-    if (ProcessorIndex > (ULONG)(PhSystemProcessorInformation.NumberOfProcessors - 1))
-    {
+    // N.B. The kernel returns the size even in the last element, we over-allocate by the
+    // Size offset and check it to minimize instructions (jxy-s).
+    //
+
+    returnLength = 0;
+
+    NtQuerySystemInformationEx(
+        SystemCpuSetInformation,
+        &(HANDLE){NULL},
+        sizeof(HANDLE),
+        NULL,
+        0,
+        &returnLength
+        );
+
+    if (!returnLength)
         return FALSE;
-    }
 
-    //
-    // Pass NULL with a buffer length of 0 to get the required buffer size.
-    //
-    status = NtQuerySystemInformationEx(SystemCpuSetInformation,
-                                        &process,
-                                        sizeof(process),
-                                        NULL,
-                                        0,
-                                        &returnedLength);
-    if (!returnedLength)
+    returnLength += RTL_SIZEOF_THROUGH_FIELD(SYSTEM_CPU_SET_INFORMATION, Size);
+
+    isParked = FALSE;
+    cpuSetInfo = PhAllocateZero(returnLength);
+
+    if (NT_SUCCESS(NtQuerySystemInformationEx(
+        SystemCpuSetInformation,
+        &(HANDLE){NULL},
+        sizeof(HANDLE),
+        cpuSetInfo,
+        returnLength,
+        NULL
+        )))
     {
-        return FALSE;
-    }
-
-    cpuSets = PhAllocate(returnedLength);
-    if (cpuSets == NULL)
-    {
-        return FALSE;
-    }
-
-    //
-    // Get system CPU Set information.
-    //
-    status = NtQuerySystemInformationEx(SystemCpuSetInformation,
-                                        &process,
-                                        sizeof(process),
-                                        cpuSets,
-                                        returnedLength,
-                                        &returnedLength);
-
-    if (!NT_SUCCESS(status))
-    {
-        goto CleanupExit;
-    }
-
-    //
-    // Iterate through each CPU set to find the target set.
-    //
-    PBYTE currentCpuSetPtr = (PBYTE)cpuSets;
-    while (i < returnedLength)
-    {
-        PSYSTEM_CPU_SET_INFORMATION currentCpuSet = (PSYSTEM_CPU_SET_INFORMATION)currentCpuSetPtr;
-
-        //
-        // The logical processor index of the target set must match the index
-        // of the logical processor passed to the function.
-        //
-        if (currentCpuSet->CpuSet.LogicalProcessorIndex == ProcessorIndex)
+        for (NOTHING;
+             RTL_CONTAINS_FIELD(cpuSetInfo, cpuSetInfo->Size, CpuSet);
+             cpuSetInfo = PTR_ADD_OFFSET(cpuSetInfo, cpuSetInfo->Size))
         {
-            //
-            // If the core set is parked return TRUE.
-            //
-            if (currentCpuSet->CpuSet.Parked)
+            if (cpuSetInfo->CpuSet.LogicalProcessorIndex == ProcessorIndex)
             {
-                if (cpuSets)
-                {
-                    PhFree(cpuSets);
-                }
-
-                return TRUE;
+                isParked = cpuSetInfo->CpuSet.Parked;
+                break;
             }
         }
-
-        //
-        // Use the size field to determine the offset to the next CPU set because it's
-        // a variable-sized structure.
-        //
-        currentCpuSetPtr += currentCpuSet->Size;
-        i += currentCpuSet->Size;
     }
 
-CleanupExit:
-    if (cpuSets)
-    {
-        PhFree(cpuSets);
-    }
+    PhFree(cpuSetInfo);
 
-    return FALSE;
+    return isParked;
 }
