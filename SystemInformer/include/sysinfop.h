@@ -318,6 +318,10 @@ PPH_STRINGREF PhGetHybridProcessorType(
     _In_ ULONG ProcessorIndex
     );
 
+BOOLEAN PhIsCoreParked(
+    _In_ ULONG ProcessorIndex
+    );
+
 // Memory section
 
 BOOLEAN PhSipMemorySectionCallback(
