@@ -466,7 +466,7 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::QueryInterface(
     }
     if (InterfaceId == __uuidof(IUnknown))
     {
-        *Interface = static_cast<IUnknown*>(this);
+        *Interface = static_cast<void*>(this);
         AddRef();
         return S_OK;
     }
