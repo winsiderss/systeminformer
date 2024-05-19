@@ -4381,6 +4381,25 @@ RtlReplaceSystemDirectoryInPath(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+// rev from Wow64DetermineEnvironment
+NTSYSAPI
+USHORT
+NTAPI
+RtlWow64GetCurrentMachine(
+    VOID
+    );
+
+// rev from Wow64DetermineEnvironment
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWow64IsWowGuestMachineSupported(
+    _In_ USHORT NativeMachine,
+    _Out_ PBOOLEAN IsWowGuestMachineSupported
+    );
+#endif
+
 #if (PHNT_VERSION >= PHNT_WIN10_21H2)
 // rev
 NTSYSAPI
