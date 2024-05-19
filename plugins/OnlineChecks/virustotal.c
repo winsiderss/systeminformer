@@ -931,9 +931,9 @@ NTSTATUS QueryServiceFileName(
     {
         PPH_STRING serviceImagePath;
 
-        serviceType = PhQueryRegistryUlong(keyHandle, L"Type");
+        serviceType = PhQueryRegistryUlongZ(keyHandle, L"Type");
 
-        if (serviceImagePath = PhQueryRegistryString(keyHandle, L"ImagePath"))
+        if (serviceImagePath = PhQueryRegistryStringZ(keyHandle, L"ImagePath"))
         {
             PPH_STRING expandedString;
 

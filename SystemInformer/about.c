@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -21,6 +21,7 @@
 #include <phappres.h>
 #include <phsettings.h>
 #include <procprv.h>
+#include <settings.h>
 #include <srvprv.h>
 #include <thrdprv.h>
 
@@ -37,31 +38,16 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PPH_STRING appName;
+            PPH_STRING versionString;
 
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, PhMainWndHandle);
 
-#if (PHAPP_VERSION_REVISION != 0)
-            appName = PhFormatString(
-                L"System Informer %lu.%lu.%lu (<a href=\"https://github.com/winsiderss/systeminformer/commit/%hs\">%hs</a>)",
-                PHAPP_VERSION_MAJOR,
-                PHAPP_VERSION_MINOR,
-                PHAPP_VERSION_REVISION,
-                PHAPP_VERSION_COMMIT,
-                PHAPP_VERSION_COMMIT
-                );
-#else
-            appName = PhFormatString(
-                L"System Informer %lu.%lu",
-                PHAPP_VERSION_MAJOR,
-                PHAPP_VERSION_MINOR
-                );
-#endif
-
-            PhSetDialogItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
-            PhDereferenceObject(appName);
+            versionString = PhGetApplicationVersionString(TRUE);
+            PhMoveReference(&versionString, PhConcatStringRefZ(&versionString->sr, L"\r\n"));
+            PhSetDialogItemText(hwndDlg, IDC_ABOUT_NAME, versionString->Buffer);
+            PhDereferenceObject(versionString);
 
             PhSetDialogItemText(hwndDlg, IDC_CREDITS,
                 L"Thanks to:\n"
@@ -73,20 +59,17 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 L"    <a href=\"https://github.com/winsiderss/systeminformer/graphs/contributors\">Contributors</a> - thank you for your additions!\n"
                 L"    Donors - thank you for your support!\n\n"
                 L"System Informer uses the following components:\n"
+                L"    <a href=\"https://github.com/GameTechDev/PresentMon\">PresentMon</a> by Intel Corporation\n"
                 L"    <a href=\"https://github.com/michaelrsweet/mxml\">Mini-XML</a> by Michael Sweet\n"
-                L"    <a href=\"https://www.pcre.org\">PCRE</a>\n"
-                L"    <a href=\"https://github.com/json-c/json-c\">json-c</a>\n"
+                L"    <a href=\"https://github.com/PCRE2Project/pcre2\">PCRE2</a> by Philip Hazel\n"
+                L"    <a href=\"https://github.com/json-c/json-c\">json-c</a> by Michael Clark\n"
                 L"    MD5 code by Jouni Malinen\n"
                 L"    SHA1 code by Filip Navara, based on code by Steve Reid\n"
-                L"    <a href=\"http://www.famfamfam.com/lab/icons/silk\">Silk icons</a>\n"
-                L"    <a href=\"https://www.fatcow.com/free-icons\">Farm-fresh web icons</a>\n"
                 );
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
             PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
-            if (PhEnableThemeSupport)
-                PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
@@ -184,27 +167,17 @@ PPH_STRING PhGetDiagnosticsString(
     VOID
     )
 {
+    PPH_STRING versionString;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 50);
 
-#if (PHAPP_VERSION_REVISION != 0)
-    PhAppendFormatStringBuilder(&stringBuilder,
-        L"System Informer\r\nVersion: %lu.%lu.%lu (%hs)\r\n\r\n",
-        PHAPP_VERSION_MAJOR,
-        PHAPP_VERSION_MINOR,
-        PHAPP_VERSION_REVISION,
-        PHAPP_VERSION_COMMIT
-        );
-#else
-    PhAppendFormatStringBuilder(&stringBuilder,
-        L"System Informer\r\nVersion: %lu.%lu\r\n\r\n",
-        PHAPP_VERSION_MAJOR,
-        PHAPP_VERSION_MINOR
-        );
-#endif
+    versionString = PhGetApplicationVersionString(FALSE);
+    PhAppendStringBuilder(&stringBuilder, &versionString->sr);
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+    PhDereferenceObject(versionString);
 
-    PhAppendFormatStringBuilder(&stringBuilder, L"OBJECT INFORMATION\r\n");
+    PhAppendStringBuilder2(&stringBuilder, L"OBJECT INFORMATION\r\n");
 
 #define OBJECT_TYPE_COUNT(Type) PhAppendFormatStringBuilder(&stringBuilder, \
     TEXT(#Type) L": %lu objects\r\n", PhpGetObjectTypeObjectCount(Type))
@@ -235,4 +208,65 @@ PPH_STRING PhGetDiagnosticsString(
     OBJECT_TYPE_COUNT(PhImageListItemType);
 
     return PhFinalStringBuilderString(&stringBuilder);
+}
+
+PPH_STRING PhGetApplicationVersionString(
+    _In_ BOOLEAN LinkToCommit
+    )
+{
+    PCWSTR channelName;
+
+    switch (PhGetIntegerSetting(L"ReleaseChannel"))
+    {
+    case PhReleaseChannel:
+        channelName = L"";
+        break;
+    case PhPreviewChannel:
+        channelName = L" Preview";
+        break;
+    case PhCanaryChannel:
+        channelName = L" Canary";
+        break;
+    case PhDeveloperChannel:
+        channelName = L" Developer";
+        break;
+    default:
+        channelName = L" Unknown";
+        break;
+    }
+
+#if (PHAPP_VERSION_REVISION != 0)
+    if (LinkToCommit)
+    {
+        return PhFormatString(
+            L"System Informer %lu.%lu.%lu (<a href=\"https://github.com/winsiderss/systeminformer/commit/%hs\">%hs</a>)%ls",
+            PHAPP_VERSION_MAJOR,
+            PHAPP_VERSION_MINOR,
+            PHAPP_VERSION_REVISION,
+            PHAPP_VERSION_COMMIT,
+            PHAPP_VERSION_COMMIT,
+            channelName
+            );
+    }
+    else
+    {
+        return PhFormatString(
+            L"System Informer %lu.%lu.%lu (%hs)%ls",
+            PHAPP_VERSION_MAJOR,
+            PHAPP_VERSION_MINOR,
+            PHAPP_VERSION_REVISION,
+            PHAPP_VERSION_COMMIT,
+            channelName
+            );
+    }
+#else
+    UNREFERENCED_PARAMETER(LinkToCommit);
+
+    return PhFormatString(
+        L"System Informer %lu.%lu%ls",
+        PHAPP_VERSION_MAJOR,
+        PHAPP_VERSION_MINOR,
+        channelName
+        );
+#endif
 }

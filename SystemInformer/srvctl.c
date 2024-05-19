@@ -6,13 +6,12 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2019
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
 #include <phplug.h>
-#include <phsettings.h>
 #include <svcsup.h>
 #include <settings.h>
 #include <emenu.h>
@@ -35,11 +34,6 @@ typedef struct _PH_SERVICES_CONTEXT
 } PH_SERVICES_CONTEXT, *PPH_SERVICES_CONTEXT;
 
 #define WM_PH_SERVICE_PAGE_MODIFIED (WM_APP + 106)
-
-VOID NTAPI ServiceModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
 
 INT_PTR CALLBACK PhpServicesPageProc(
     _In_ HWND hwndDlg,
@@ -90,22 +84,18 @@ HWND PhCreateServiceListControl(
     return windowHandle;
 }
 
-static VOID NTAPI ServiceModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+VOID NTAPI ServiceModifiedHandler(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
     PPH_SERVICES_CONTEXT servicesContext = (PPH_SERVICES_CONTEXT)Context;
+    PPH_SERVICE_MODIFIED_DATA copy;
 
-    if (serviceModifiedData && servicesContext)
-    {
-        PPH_SERVICE_MODIFIED_DATA copy;
+    copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
 
-        copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
-
-        PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_PAGE_MODIFIED, 0, (LPARAM)copy);
-    }
+    PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_PAGE_MODIFIED, 0, (LPARAM)copy);
 }
 
 VOID PhpFixProcessServicesControls(
@@ -165,10 +155,7 @@ VOID PhpFixProcessServicesControls(
             break;
         }
 
-        if (serviceHandle = PhOpenService(
-            ServiceItem->Name->Buffer,
-            SERVICE_QUERY_CONFIG
-            ))
+        if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(ServiceItem->Name))))
         {
             if (description = PhGetServiceDescription(serviceHandle))
             {
@@ -176,7 +163,7 @@ VOID PhpFixProcessServicesControls(
                 PhDereferenceObject(description);
             }
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
     }
     else
@@ -244,17 +231,17 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, serviceItem->Name->Buffer, serviceItem);
                 PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, serviceItem->DisplayName->Buffer);
 
-                if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+                if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name))))
                 {
                     PPH_STRING fileName;
 
-                    if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
+                    if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
                     {
                         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(fileName));
                         PhDereferenceObject(fileName);
                     }
 
-                    CloseServiceHandle(serviceHandle);
+                    PhCloseServiceHandle(serviceHandle);
                 }
             }
 
@@ -400,7 +387,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
             if (ListView_GetSelectedCount(context->ListViewHandle) == 1)
                 serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
 
-            if (serviceModifiedData->Service == serviceItem)
+            if (serviceModifiedData->ServiceItem == serviceItem)
             {
                 PhpFixProcessServicesControls(hwndDlg, serviceItem);
             }
@@ -430,7 +417,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 

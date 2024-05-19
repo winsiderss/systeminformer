@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -118,12 +118,12 @@ VOID PhShowProcessMitigationPolicyDialog(
                 }
             }
 
-            DialogBoxParam(
+            PhDialogBox(
                 PhInstanceHandle,
                 MAKEINTRESOURCE(IDD_MITIGATION),
                 ParentWindowHandle,
                 PhpProcessMitigationPolicyDlgProc,
-                (LPARAM)&context
+                &context
                 );
 
             for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)
@@ -270,13 +270,13 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
         break;
     case WM_DESTROY:
         {
-            ULONG index = -1;
+            INT index = INT_ERROR;
 
             while ((index = PhFindListViewItemByFlags(
                 context->ListViewHandle,
                 index,
                 LVNI_ALL
-                )) != -1)
+                )) != INT_ERROR)
             {
                 PMITIGATION_POLICY_ENTRY entry;
 

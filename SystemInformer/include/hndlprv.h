@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_HNDLPRV_H
 #define PH_HNDLPRV_H
 
@@ -27,6 +39,7 @@ typedef struct _PH_HANDLE_ITEM
 
     WCHAR HandleString[PH_PTR_STR_LEN_1];
     WCHAR GrantedAccessString[PH_PTR_STR_LEN_1];
+    WCHAR ObjectString[PH_PTR_STR_LEN_1];
 } PH_HANDLE_ITEM, *PPH_HANDLE_ITEM;
 
 typedef struct _PH_HANDLE_PROVIDER
@@ -64,13 +77,6 @@ PPH_HANDLE_ITEM PhReferenceHandleItem(
 
 VOID PhDereferenceAllHandleItems(
     _In_ PPH_HANDLE_PROVIDER HandleProvider
-    );
-
-NTSTATUS PhEnumHandlesGeneric(
-    _In_ HANDLE ProcessId,
-    _In_ HANDLE ProcessHandle,
-    _Out_ PSYSTEM_HANDLE_INFORMATION_EX *Handles,
-    _Out_ PBOOLEAN FilterNeeded
     );
 
 VOID PhHandleProviderUpdate(

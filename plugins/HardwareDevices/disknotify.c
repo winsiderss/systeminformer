@@ -5,24 +5,23 @@
  *
  * Authors:
  *
- *     dmex    2016-2018
+ *     dmex    2016-2024
  *
  */
 
 #include "devices.h"
-#include <dbt.h>
 
 BOOLEAN MainWndDeviceChangeRegistrationEnabled = FALSE;
 PH_CALLBACK_REGISTRATION MainWndDeviceChangeEventRegistration;
 
 VOID NTAPI HardwareDevicesDeviceChangeCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PMSG message = Parameter;
 
-    if (!message)
+    if (message->message != WM_DEVICECHANGE)
         return;
 
     switch (message->wParam)
@@ -30,19 +29,19 @@ VOID NTAPI HardwareDevicesDeviceChangeCallback(
     case DBT_DEVICEARRIVAL: // Drive letter added
     case DBT_DEVICEREMOVECOMPLETE: // Drive letter removed
         {
-            DEV_BROADCAST_HDR* deviceBroadcast = (DEV_BROADCAST_HDR*)message->lParam;
+            PDEV_BROADCAST_HDR deviceBroadcast = (PDEV_BROADCAST_HDR)message->lParam;
 
             if (deviceBroadcast->dbch_devicetype == DBT_DEVTYP_VOLUME)
             {
                 //PDEV_BROADCAST_VOLUME deviceVolume = (PDEV_BROADCAST_VOLUME)deviceBroadcast;
 
-                PhAcquireQueuedLockShared(&DiskDrivesListLock);
+                PhAcquireQueuedLockShared(&DiskDevicesListLock);
 
-                for (ULONG i = 0; i < DiskDrivesList->Count; i++)
+                for (ULONG i = 0; i < DiskDevicesList->Count; i++)
                 {
                     PDV_DISK_ENTRY entry;
 
-                    entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
+                    entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
 
                     if (!entry)
                         continue;
@@ -51,13 +50,16 @@ VOID NTAPI HardwareDevicesDeviceChangeCallback(
                     entry->DiskIndex = ULONG_MAX;
                     // Reset the DiskIndexName so we can re-query the name on the next interval update.
                     PhClearReference(&entry->DiskIndexName);
+                    // Submit the query to the work queue.
+                    DiskDeviceQueueNameUpdate(entry);
 
                     PhDereferenceObjectDeferDelete(entry);
                 }
 
-                PhReleaseQueuedLockShared(&DiskDrivesListLock);
+                PhReleaseQueuedLockShared(&DiskDevicesListLock);
             }
         }
+        break;
     }
 }
 
@@ -70,7 +72,7 @@ VOID AddRemoveDeviceChangeCallback(
         return;
 
     // Add the subclass only when disks are being monitored, remove when no longer needed.
-    if (DiskDrivesList->Count)
+    if (DiskDevicesList->Count)
     {
         if (!MainWndDeviceChangeRegistrationEnabled)
         {

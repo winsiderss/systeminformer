@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_THRDPRV_H
 #define PH_THRDPRV_H
 
@@ -39,6 +51,13 @@ typedef struct _PH_THREAD_ITEM
 
     BOOLEAN IsGuiThread;
     BOOLEAN JustResolved;
+    WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
+    WCHAR LxssThreadIdString[PH_INT32_STR_LEN_1];
+
+    IO_COUNTERS IoCounters;
+
+    ULONG LxssThreadId;
+    BOOLEAN PowerThrottling;
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;
 
 typedef enum _PH_KNOWN_PROCESS_TYPE PH_KNOWN_PROCESS_TYPE;

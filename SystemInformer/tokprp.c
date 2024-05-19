@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2012
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -17,12 +17,12 @@
 #include <emenu.h>
 #include <hndlinfo.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <secedit.h>
 #include <settings.h>
+#include <symprv.h>
 #include <workqueue.h>
 #include <phsettings.h>
-
-#include <userenv.h>
 
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
 {
@@ -45,21 +45,16 @@ typedef enum _PH_PROCESS_TOKEN_INDEX
     PH_PROCESS_TOKEN_INDEX_STATUS,
     PH_PROCESS_TOKEN_INDEX_DESCRIPTION,
     PH_PROCESS_TOKEN_INDEX_SID,
+    PH_PROCESS_TOKEN_INDEX_TYPE
 } PH_PROCESS_TOKEN_INDEX;
 
 typedef struct _PHP_TOKEN_PAGE_LISTVIEW_ITEM
 {
     PH_PROCESS_TOKEN_CATEGORY ItemCategory;
-    union
-    {
-        PSID_AND_ATTRIBUTES TokenGroup;
-        PLUID_AND_ATTRIBUTES TokenPrivilege;
-        struct
-        {
-            PH_PROCESS_TOKEN_FLAG ItemFlag;
-            BOOLEAN ItemFlagState;
-        };
-    };
+    PSID_AND_ATTRIBUTES TokenGroup;
+    PLUID_AND_ATTRIBUTES TokenPrivilege;
+    PH_PROCESS_TOKEN_FLAG ItemFlag;
+    BOOLEAN ItemFlagState;
 } PHP_TOKEN_PAGE_LISTVIEW_ITEM, *PPHP_TOKEN_PAGE_LISTVIEW_ITEM;
 
 typedef struct _PHP_TOKEN_USER_RESOLVE_CONTEXT
@@ -75,19 +70,22 @@ typedef struct _PHP_TOKEN_GROUP_RESOLVE_CONTEXT
     PSID TokenGroupSid;
 } PHP_TOKEN_GROUP_RESOLVE_CONTEXT, *PPHP_TOKEN_GROUP_RESOLVE_CONTEXT;
 
-typedef struct _ATTRIBUTE_NODE
+typedef struct _PH_TOKEN_ATTRIBUTE_NODE
 {
     PH_TREENEW_NODE Node;
     PPH_LIST Children;
     PPH_STRING Text;
-} ATTRIBUTE_NODE, *PATTRIBUTE_NODE;
+    PPH_STRING Value;
+} PH_TOKEN_ATTRIBUTE_NODE, *PPH_TOKEN_ATTRIBUTE_NODE;
 
-typedef struct _ATTRIBUTE_TREE_CONTEXT
+typedef struct _PH_TOKEN_ATTRIBUTE_TREE_CONTEXT
 {
     HWND WindowHandle;
     PPH_LIST RootList;
     PPH_LIST NodeList;
-} ATTRIBUTE_TREE_CONTEXT, *PATTRIBUTE_TREE_CONTEXT;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+} PH_TOKEN_ATTRIBUTE_TREE_CONTEXT, *PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT;
 
 typedef struct _TOKEN_PAGE_CONTEXT
 {
@@ -98,18 +96,47 @@ typedef struct _TOKEN_PAGE_CONTEXT
 
     HWND ListViewHandle;
     HIMAGELIST ListViewImageList;
+    PH_LAYOUT_MANAGER LayoutManager;
+    BOOLEAN SinglePageContext;
 
     PTOKEN_GROUPS Groups;
     PTOKEN_GROUPS RestrictedSids;
     PTOKEN_PRIVILEGES Privileges;
     PTOKEN_GROUPS Capabilities;
 
-    ATTRIBUTE_TREE_CONTEXT CapsTreeContext;
-    ATTRIBUTE_TREE_CONTEXT ClaimsTreeContext;
-    ATTRIBUTE_TREE_CONTEXT AuthzTreeContext;
+    PH_TOKEN_ATTRIBUTE_TREE_CONTEXT CapsTreeContext;
+    PH_TOKEN_ATTRIBUTE_TREE_CONTEXT ClaimsTreeContext;
+    PH_TOKEN_ATTRIBUTE_TREE_CONTEXT AuthzTreeContext;
+    PH_TOKEN_ATTRIBUTE_TREE_CONTEXT AppPolicyTreeContext;
 } TOKEN_PAGE_CONTEXT, *PTOKEN_PAGE_CONTEXT;
 
-PH_ACCESS_ENTRY GroupDescriptionEntries[6] =
+static PH_KEY_VALUE_PAIR PhElevationTypePairs[] =
+{
+    SIP(SREF(L"Unknown"), 0),
+    SIP(SREF(L"No (Default)"), TokenElevationTypeDefault),
+    SIP(SREF(L"No (Full)"), TokenElevationTypeFull),
+    SIP(SREF(L"No (Limited)"), TokenElevationTypeLimited),
+    SIP(SREF(L"Yes"), 4),
+    SIP(SREF(L"Yes (Default)"), 4 + TokenElevationTypeDefault),
+    SIP(SREF(L"Yes (Full)"), 4 + TokenElevationTypeFull),
+    SIP(SREF(L"Yes (Limited)"), 4 + TokenElevationTypeLimited),
+};
+
+static PH_KEY_VALUE_PAIR PhImpersonationLevelPairs[] =
+{
+    SIP(L"Anonymous", SecurityAnonymous),
+    SIP(L"Identification", SecurityIdentification),
+    SIP(L"Impersonation", SecurityImpersonation),
+    SIP(L"Delegation", SecurityDelegation),
+};
+
+static PH_KEY_VALUE_PAIR PhTokenTypePairs[] =
+{
+    SIP(L"Primary", TokenPrimary),
+    SIP(L"Impersonation", TokenImpersonation),
+};
+
+CONST PH_ACCESS_ENTRY PhpGroupDescriptionEntries[6] =
 {
     { NULL, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED, FALSE, FALSE, L"Integrity" },
     { NULL, SE_GROUP_LOGON_ID, FALSE, FALSE, L"Logon Id" },
@@ -166,9 +193,9 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 INT_PTR CALLBACK PhpTokenClaimsPageProc(
@@ -192,12 +219,79 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 PPH_STRING PhpGetTokenFolderPath(
     _In_ HANDLE TokenHandle
     );
 PPH_STRING PhpGetTokenRegistryPath(
     _In_ HANDLE TokenHandle
     );
+
+NTSTATUS PhpTokenDialogThread(
+    _In_ PVOID Context
+    )
+{
+    PH_AUTO_POOL autoPool;
+    LPPROPSHEETPAGE propSheetPage;
+
+    PhInitializeAutoPool(&autoPool);
+
+    propSheetPage = PhAllocateZero(sizeof(PROPSHEETPAGE));
+    propSheetPage->lParam = (LPARAM)Context;
+
+    PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_OBJTOKEN),
+        NULL,
+        PhpTokenPageProc,
+        propSheetPage
+        );
+
+    PhDeleteAutoPool(&autoPool);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhCreateTokenDialog(
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ HANDLE ProcessId,
+    _In_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+    HANDLE tokenHandle = NULL;
+
+    if (!NT_SUCCESS(NtDuplicateObject(
+        NtCurrentProcess(),
+        Context,
+        NtCurrentProcess(),
+        &tokenHandle,
+        0,
+        0,
+        DUPLICATE_SAME_ACCESS | DUPLICATE_SAME_ATTRIBUTES
+        )))
+    {
+        PhShowError(NULL, L"%s", "Unable to duplicate the token.");
+        return;
+    }
+
+    tokenPageContext = PhCreateAlloc(sizeof(TOKEN_PAGE_CONTEXT));
+    memset(tokenPageContext, 0, sizeof(TOKEN_PAGE_CONTEXT));
+    tokenPageContext->OpenObject = OpenObject;
+    tokenPageContext->Context = tokenHandle;
+    //tokenPageContext->HookProc = HookProc;
+    tokenPageContext->ProcessId = ProcessId;
+    tokenPageContext->SinglePageContext = TRUE;
+
+    PhCreateThread2(PhpTokenDialogThread, tokenPageContext);
+}
 
 VOID PhShowTokenProperties(
     _In_ HWND ParentWindowHandle,
@@ -207,25 +301,7 @@ VOID PhShowTokenProperties(
     _In_opt_ PWSTR Title
     )
 {
-    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    HPROPSHEETPAGE pages[1];
-
-    propSheetHeader.dwFlags =
-        PSH_NOAPPLYNOW |
-        PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE |
-        PSH_USECALLBACK;
-    propSheetHeader.hInstance = PhInstanceHandle;
-    propSheetHeader.hwndParent = ParentWindowHandle;
-    propSheetHeader.pszCaption = Title ? Title : L"Token";
-    propSheetHeader.nPages = 1;
-    propSheetHeader.nStartPage = 0;
-    propSheetHeader.phpage = pages;
-    propSheetHeader.pfnCallback = PhpTokenSheetProc;
-
-    pages[0] = PhCreateTokenPage(OpenObject, ProcessId, Context, NULL);
-
-    PhModalPropertySheet(&propSheetHeader);
+    PhCreateTokenDialog(OpenObject, ProcessId, Context, NULL);
 }
 
 INT CALLBACK PhpTokenSheetProc(
@@ -310,25 +386,25 @@ PPH_STRING PhGetGroupAttributesString(
 {
     PPH_STRING string;
 
-    if (Attributes & (SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
-        if (Attributes & SE_GROUP_ENABLED)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED))
             string = PhCreateString(L"Enabled (as a group)");
         else
             string = PhReferenceEmptyString();
     }
     else
     {
-        if (Attributes & SE_GROUP_ENABLED)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED))
         {
-            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
                 string = PhCreateString(L"Enabled");
             else
                 string = PhCreateString(L"Enabled (modified)");
         }
         else
         {
-            if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
                 string = PhCreateString(L"Disabled (modified)");
             else
                 string = PhCreateString(L"Disabled");
@@ -337,34 +413,93 @@ PPH_STRING PhGetGroupAttributesString(
 
     if (Restricted)
     {
-        PPH_STRING prefixString = string;
-        string = PhConcatStrings2(prefixString->Buffer, L" (restricted)");
-        PhDereferenceObject(prefixString);
+        PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (restricted)"));
     }
 
     return string;
+}
+
+COLORREF PhGetGroupAttributesColorDark(
+    _In_ ULONG Attributes
+    )
+{
+    if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    {
+        if (!FlagOn(Attributes, SE_GROUP_ENABLED))
+            return RGB(0, 26, 0);
+    }
+
+    if (FlagOn(Attributes, SE_GROUP_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
+            return RGB(0, 26, 0);
+        else
+            return RGB(0, 102, 0);
+    }
+    else
+    {
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
+            return RGB(122, 77, 84);
+        else
+            return RGB(43, 12, 15);
+    }
+}
+
+COLORREF PhGetPrivilegeAttributesColorDark(
+    _In_ ULONG Attributes
+    )
+{
+    if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
+    {
+        return RGB(0, 0, 0);
+    }
+
+    if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
+            return RGB(0, 26, 0);
+        else
+            return RGB(0, 102, 0);
+    }
+    else
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
+            return RGB(122, 77, 84);
+        else
+            return RGB(43, 12, 15);
+    }
+}
+
+COLORREF PhGetDangerousFlagColorDark(
+    _In_ BOOLEAN FlagState
+    )
+{
+    if (FlagState)
+        return RGB(0xc0, 0xf0, 0xc0);
+    else
+        return RGB(0xf0, 0xc0, 0xc0);
 }
 
 COLORREF PhGetGroupAttributesColor(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & (SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
     {
-        if (!(Attributes & SE_GROUP_ENABLED))
+        if (!FlagOn(Attributes, SE_GROUP_ENABLED))
             return RGB(0xe0, 0xf0, 0xe0);
     }
 
-    if (Attributes & SE_GROUP_ENABLED)
+    if (FlagOn(Attributes, SE_GROUP_ENABLED))
     {
-        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
             return RGB(0xe0, 0xf0, 0xe0);
         else
             return RGB(0xc0, 0xf0, 0xc0);
     }
     else
     {
-        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
             return RGB(0xf0, 0xc0, 0xc0);
         else
             return RGB(0xf0, 0xe0, 0xe0);
@@ -375,16 +510,21 @@ COLORREF PhGetPrivilegeAttributesColor(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & SE_PRIVILEGE_ENABLED)
+    if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        return RGB(0xc0, 0xc0, 0xc0);
+    }
+
+    if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return RGB(0xe0, 0xf0, 0xe0);
         else
             return RGB(0xc0, 0xf0, 0xc0);
     }
     else
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return RGB(0xf0, 0xc0, 0xc0);
         else
             return RGB(0xf0, 0xe0, 0xe0);
@@ -393,7 +533,7 @@ COLORREF PhGetPrivilegeAttributesColor(
 
 COLORREF PhGetDangerousFlagColor(
     _In_ BOOLEAN FlagState
-)
+    )
 {
     if (FlagState)
         return RGB(0xc0, 0xf0, 0xc0);
@@ -409,66 +549,123 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
 {
     PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry = Param;
 
-    if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
-        return PhGetDangerousFlagColor(entry->ItemFlagState);
-    else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
-        return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);
+    if (PhEnableThemeSupport)
+    {
+        if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
+            return PhGetDangerousFlagColorDark(entry->ItemFlagState);
+        else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+            return PhGetPrivilegeAttributesColorDark(entry->TokenPrivilege->Attributes);
+        else
+            return PhGetGroupAttributesColorDark(entry->TokenGroup->Attributes);
+    }
     else
-        return PhGetGroupAttributesColor(entry->TokenGroup->Attributes);
+    {
+        if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
+            return PhGetDangerousFlagColor(entry->ItemFlagState);
+        else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+            return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);
+        else
+            return PhGetGroupAttributesColor(entry->TokenGroup->Attributes);
+    }
 }
 
 PWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
     )
 {
-    if (Attributes & SE_PRIVILEGE_ENABLED)
+    if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        return L"Removed";
+    }
+
+    if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return L"Enabled";
         else
             return L"Enabled (modified)";
     }
     else
     {
-        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
             return L"Disabled (modified)";
         else
             return L"Disabled";
     }
 }
 
-PPH_STRING PhGetElevationTypeString(
+_Success_(return)
+BOOLEAN PhGetElevationTypeString(
     _In_ BOOLEAN IsElevated,
-    _In_ TOKEN_ELEVATION_TYPE ElevationType
+    _In_ TOKEN_ELEVATION_TYPE ElevationType,
+    _Out_ PPH_STRINGREF* ElevationTypeString
     )
 {
-    PH_STRING_BUILDER sb;
+    PPH_STRINGREF string;
 
-    PhInitializeStringBuilder(&sb, 13);
+    if (PhFindStringSiKeyValuePairs(
+        PhElevationTypePairs,
+        sizeof(PhElevationTypePairs),
+        (IsElevated ? 4 : 0) + (ULONG)ElevationType,
+        (PWSTR*)&string
+        ))
+    {
+        *ElevationTypeString = string;
+        return TRUE;
+    }
 
-    PhAppendStringBuilder2(&sb, IsElevated ? L"Yes" : L"No");
+    return FALSE;
+}
 
-    if (ElevationType == TokenElevationTypeFull)
-        PhAppendStringBuilder2(&sb, L" (Full)");
-    else if (ElevationType == TokenElevationTypeLimited)
-        PhAppendStringBuilder2(&sb, L" (Limited)");
-    else
-        PhAppendStringBuilder2(&sb, L" (Default)");
+_Success_(return)
+BOOLEAN PhGetImpersonationLevelString(
+    _In_ SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+    _Out_ PWSTR* ImpersonationLevelString
+    )
+{
+    if (PhFindStringSiKeyValuePairs(
+        PhImpersonationLevelPairs,
+        sizeof(PhImpersonationLevelPairs),
+        ImpersonationLevel,
+        ImpersonationLevelString
+        ))
+    {
+        return TRUE;
+    }
 
-    return PhFinalStringBuilderString(&sb);
+    return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhGetTokenTypeString(
+    _In_ TOKEN_TYPE TokenType,
+    _Out_ PWSTR* TokenTypeString
+    )
+{
+    if (PhFindStringSiKeyValuePairs(
+        PhTokenTypePairs,
+        sizeof(PhTokenTypePairs),
+        TokenType,
+        TokenTypeString
+        ))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 VOID PhpTokenPageFreeListViewEntries(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         TokenPageContext->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry;
 
@@ -484,16 +681,16 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     )
 {
     PPHP_TOKEN_GROUP_RESOLVE_CONTEXT context = ThreadParameter;
-    PPH_STRING sidString = NULL;
+    PPH_STRING sidString;
     INT lvItemIndex;
 
     lvItemIndex = PhFindListViewItemByParam(
         context->ListViewHandle,
-        -1,
+        INT_ERROR,
         context->LvItem
         );
 
-    if (lvItemIndex != -1)
+    if (lvItemIndex != INT_ERROR)
     {
         if (sidString = PhGetSidFullName(context->TokenGroupSid, TRUE, NULL))
         {
@@ -513,14 +710,25 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
         }
         else
         {
-            ULONG subAuthority;
-
-            subAuthority = *RtlSubAuthoritySid(context->TokenGroupSid, 0);
-            //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
-
-            if (subAuthority == SECURITY_UMFD_BASE_RID)
+            if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(context->TokenGroupSid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY))
             {
-                PhMoveReference(&sidString, PhCreateString(L"Font Driver Host\\UMFD"));
+                ULONG subAuthority = *PhSubAuthoritySid(context->TokenGroupSid, 0);
+
+                switch (subAuthority)
+                {
+                case SECURITY_UMFD_BASE_RID:
+                    PhMoveReference(&sidString, PhCreateString(L"Font Driver Host\\UMFD"));
+                    break;
+                }
+            }
+            else if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(context->TokenGroupSid), PhIdentifierAuthoritySid(PhSeCloudActiveDirectorySid())))
+            {
+                ULONG subAuthority = *PhSubAuthoritySid(context->TokenGroupSid, 0);
+
+                if (subAuthority == 1)
+                {
+                    PhMoveReference(&sidString, PhGetAzureDirectoryObjectSid(context->TokenGroupSid));
+                }
             }
         }
 
@@ -533,6 +741,8 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
         {
             PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_NAME, L"[Unknown SID]");
         }
+
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_TYPE, (PWSTR)PhGetSidAccountTypeString(context->TokenGroupSid));
     }
 
     PhFree(context->TokenGroupSid);
@@ -575,8 +785,8 @@ VOID PhpUpdateSidsFromTokenGroups(
 
         descriptionString = PhGetAccessString(
             Groups->Groups[i].Attributes,
-            GroupDescriptionEntries,
-            RTL_NUMBER_OF(GroupDescriptionEntries)
+            (PPH_ACCESS_ENTRY)PhpGroupDescriptionEntries,
+            RTL_NUMBER_OF(PhpGroupDescriptionEntries)
             );
 
         if (descriptionString)
@@ -597,7 +807,7 @@ VOID PhpUpdateSidsFromTokenGroups(
             tokenGroupResolve = PhAllocateZero(sizeof(PHP_TOKEN_GROUP_RESOLVE_CONTEXT));
             tokenGroupResolve->ListViewHandle = ListViewHandle;
             tokenGroupResolve->LvItem = lvitem;
-            tokenGroupResolve->TokenGroupSid = PhAllocateCopy(Groups->Groups[i].Sid, RtlLengthSid(Groups->Groups[i].Sid));
+            tokenGroupResolve->TokenGroupSid = PhAllocateCopy(Groups->Groups[i].Sid, PhLengthSid(Groups->Groups[i].Sid));
 
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpTokenGroupResolveWorker, tokenGroupResolve);
         }
@@ -633,6 +843,62 @@ BOOLEAN PhpUpdateTokenGroups(
     TokenPageContext->Groups = groups;
 
     return TRUE;
+}
+
+NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
+    _In_ PPOLICY_PRIVILEGE_DEFINITION Privileges,
+    _In_ ULONG NumberOfPrivileges,
+    _In_opt_ PVOID Context
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext = Context;
+    INT lvItemIndex;
+
+    if (!tokenPageContext->Privileges)
+        return STATUS_UNSUCCESSFUL;
+
+    for (ULONG i = 0; i < NumberOfPrivileges; i++)
+    {
+        PPH_STRING privilegeName;
+        PPH_STRING privilegeDisplayName;
+        PPHP_TOKEN_PAGE_LISTVIEW_ITEM lvitem;
+
+        for (ULONG j = 0; j < tokenPageContext->Privileges->PrivilegeCount; j++)
+        {
+            if (RtlIsEqualLuid(&tokenPageContext->Privileges->Privileges[j].Luid, &Privileges[i].LocalValue))
+            {
+                continue;
+            }
+        }
+
+        privilegeName = PhCreateStringFromUnicodeString(&Privileges[i].Name);
+        privilegeDisplayName = NULL;
+        PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
+
+        lvitem = PhAllocateZero(sizeof(PHP_TOKEN_PAGE_LISTVIEW_ITEM));
+        lvitem->ItemCategory = PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES;
+        lvitem->TokenPrivilege = PhAllocateZero(sizeof(LUID_AND_ATTRIBUTES));
+        lvitem->TokenPrivilege->Luid = Privileges[i].LocalValue;
+        lvitem->TokenPrivilege->Attributes = SE_PRIVILEGE_REMOVED;
+
+        // Name
+        lvItemIndex = PhAddListViewGroupItem(
+            tokenPageContext->ListViewHandle,
+            PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES,
+            MAXINT,
+            PhGetString(privilegeName),
+            lvitem
+            );
+        // Status
+        PhSetListViewSubItem(tokenPageContext->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_STATUS, PhGetPrivilegeAttributesString(lvitem->TokenPrivilege->Attributes));
+        // Description
+        PhSetListViewSubItem(tokenPageContext->ListViewHandle, lvItemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetStringOrEmpty(privilegeDisplayName));
+
+        if (privilegeDisplayName) PhDereferenceObject(privilegeDisplayName);
+        PhDereferenceObject(privilegeName);
+    }
+
+    return STATUS_SUCCESS;
 }
 
 BOOLEAN PhpUpdateTokenPrivileges(
@@ -690,6 +956,11 @@ BOOLEAN PhpUpdateTokenPrivileges(
         PhFree(TokenPageContext->Privileges);
 
     TokenPageContext->Privileges = privileges;
+
+    if (PhGetIntegerSetting(L"EnableTokenRemovedPrivileges"))
+    {
+        PhEnumeratePrivileges(PhpEnumeratePrivilegesCallback, TokenPageContext);
+    }
 
     return TRUE;
 }
@@ -774,7 +1045,7 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
         }
     }
 
-    if (NT_SUCCESS(PhGetTokenIsUIAccessEnabled(TokenHandle, &isUIAccess)))
+    if (NT_SUCCESS(PhGetTokenUIAccess(TokenHandle, &isUIAccess)))
     {
         // The presence of UIAccess flag is considered dangerous (diversenok)
         if (isUIAccess)
@@ -814,6 +1085,14 @@ static NTSTATUS NTAPI PhpTokenUserResolveWorker(
         PhSetWindowText(context->WindowHandle, fullUserName->Buffer);
         PhDereferenceObject(fullUserName);
     }
+    else
+    {
+        if (fullUserName = PhGetAzureDirectoryObjectSid(context->TokenUserSid))
+        {
+            PhSetWindowText(context->WindowHandle, fullUserName->Buffer);
+            PhDereferenceObject(fullUserName);
+        }
+    }
 
     PhFree(context->TokenUserSid);
     PhFree(context);
@@ -830,15 +1109,104 @@ static VOID PhpTokenSetImageList(
 
     dpiValue = PhGetWindowDpi(WindowHandle);
 
-    if (TokenPageContext->ListViewImageList) PhImageListDestroy(TokenPageContext->ListViewImageList);
-    TokenPageContext->ListViewImageList = PhImageListCreate(
-        2,
-        PhGetDpi(20, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1, 1
-        );
+    if (TokenPageContext->ListViewImageList)
+    {
+        PhImageListSetIconSize(
+            TokenPageContext->ListViewImageList,
+            2,
+            PhGetDpi(20, dpiValue)
+            );
+    }
+    else
+    {
+        TokenPageContext->ListViewImageList = PhImageListCreate(
+            2,
+            PhGetDpi(20, dpiValue),
+            ILC_MASK | ILC_COLOR32,
+            1, 1
+            );
+    }
 
     ListView_SetImageList(TokenPageContext->ListViewHandle, TokenPageContext->ListViewImageList, LVSIL_SMALL);
+}
+
+INT PhpGetTokenPrivilegeSortingIndex(
+    _In_ ULONG Attributes
+    )
+{
+    if (FlagOn(Attributes, SE_PRIVILEGE_REMOVED))
+        return 4;
+    else
+    {
+        if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED))
+        {
+            if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
+                return 0;
+            else
+                return 1;
+        }
+        else
+        {
+            if (FlagOn(Attributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
+                return 2;
+            else
+                return 3;
+        }
+    }
+}
+
+INT PhpGetTokenGroupSortingIndex(
+    _In_ ULONG Attributes
+    )
+{
+    if (FlagOn(Attributes, SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    {
+        if (!FlagOn(Attributes, SE_GROUP_ENABLED))
+            return 0;
+    }
+
+    if (FlagOn(Attributes, SE_GROUP_ENABLED))
+    {
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
+            return 1;
+        else
+            return 2;
+    }
+    else
+    {
+        if (FlagOn(Attributes, SE_GROUP_ENABLED_BY_DEFAULT))
+            return 3;
+        else
+            return 4;
+    }
+}
+
+INT NTAPI PhpTokenStatusColumnCompareFunction(
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_TOKEN_PAGE_LISTVIEW_ITEM item1 = Item1;
+    PPHP_TOKEN_PAGE_LISTVIEW_ITEM item2 = Item2;
+    ULONG value1;
+    ULONG value2;
+
+    if (item1->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+        value1 = PhpGetTokenPrivilegeSortingIndex(item1->TokenPrivilege->Attributes);
+    else if (item1->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+        value1 = PhpGetTokenGroupSortingIndex(item1->TokenGroup->Attributes);
+    else
+        value1 = 0;
+
+    if (item2->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+        value2 = PhpGetTokenPrivilegeSortingIndex(item2->TokenPrivilege->Attributes);
+    else if (item2->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_GROUPS)
+        value2 = PhpGetTokenGroupSortingIndex(item2->TokenGroup->Attributes);
+    else
+        value2 = 0;
+
+    return uintcmp(value1, value2);
 }
 
 INT_PTR CALLBACK PhpTokenPageProc(
@@ -875,8 +1243,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Status");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 170, L"Description");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"SID");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Type");
 
             PhSetExtendedListView(tokenPageContext->ListViewHandle);
+            ExtendedListView_SetCompareFunction(tokenPageContext->ListViewHandle, 1, PhpTokenStatusColumnCompareFunction);
             ExtendedListView_SetItemColorFunction(tokenPageContext->ListViewHandle, PhpTokenGroupColorFunction);
             ListView_EnableGroupView(tokenPageContext->ListViewHandle, TRUE);
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS, L"Dangerous Flags");
@@ -886,7 +1256,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
             PhLoadListViewGroupStatesFromSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(L"TokenGroupsListViewSort", tokenPageContext->ListViewHandle);
-
             PhpTokenSetImageList(hwndDlg, tokenPageContext);
 
             PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
@@ -898,17 +1267,17 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 tokenPageContext->Context // ProcessId
                 )))
             {
-                PTOKEN_USER tokenUser;
+                PH_TOKEN_USER tokenUser;
                 PPH_STRING stringUserSid;
-                ULONG sessionId;
-                BOOLEAN isElevated;
-                TOKEN_ELEVATION_TYPE elevationType;
-                PPH_STRING tokenElevated = NULL;
+                ULONG tokenSessionId = ULONG_MAX;
+                BOOLEAN tokenElevation = FALSE;
+                TOKEN_ELEVATION_TYPE tokenElevationType = 0;
+                PPH_STRINGREF tokenElevationTypeString;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
-                PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+                PH_TOKEN_APPCONTAINER tokenAppContainer;
                 PPH_STRING appContainerName;
-                PPH_STRING appContainerSid;
+                PPH_STRING appContainerSidString;
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
@@ -924,29 +1293,31 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                         tokenUserResolve = PhAllocateZero(sizeof(PHP_TOKEN_USER_RESOLVE_CONTEXT));
                         tokenUserResolve->WindowHandle = GetDlgItem(hwndDlg, IDC_USER);
-                        tokenUserResolve->TokenUserSid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                        tokenUserResolve->TokenUserSid = PhAllocateCopy(tokenUser.User.Sid, PhLengthSid(tokenUser.User.Sid));
 
                         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpTokenUserResolveWorker, tokenUserResolve);
                     }
 
-                    if (stringUserSid = PhSidToStringSid(tokenUser->User.Sid))
+                    if (stringUserSid = PhSidToStringSid(tokenUser.User.Sid))
                     {
                         PhSetDialogItemText(hwndDlg, IDC_USERSID, stringUserSid->Buffer);
                         PhDereferenceObject(stringUserSid);
                     }
-
-                    PhFree(tokenUser);
                 }
 
-                if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
-                    PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
+                PhGetTokenSessionId(tokenHandle, &tokenSessionId);
+                PhGetTokenElevation(tokenHandle, &tokenElevation);
+                PhGetTokenElevationType(tokenHandle, &tokenElevationType);
 
-                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
-                    NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                {
-                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
-                }
-                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"N/A"));
+                if (tokenSessionId != ULONG_MAX)
+                    PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, tokenSessionId, FALSE);
+                else
+                    PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
+
+                if (PhGetElevationTypeString(tokenElevation, tokenElevationType, &tokenElevationTypeString))
+                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringRefZ(tokenElevationTypeString));
+                else
+                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, L"Unknown");
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -970,17 +1341,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (WindowsVersion >= WINDOWS_8)
                 {
                     appContainerName = NULL;
-                    appContainerSid = NULL;
+                    appContainerSidString = NULL;
 
-                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
                     {
-                        if (appContainerInfo->TokenAppContainer)
-                        {
-                            appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
-                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
-                        }
-
-                        PhFree(appContainerInfo);
+                        appContainerName = PhGetAppContainerName(tokenAppContainer.AppContainer.Sid);
+                        appContainerSidString = PhSidToStringSid(tokenAppContainer.AppContainer.Sid);
                     }
 
                     if (appContainerName)
@@ -994,10 +1360,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PhDereferenceObject(appContainerName);
                     }
 
-                    if (appContainerSid)
+                    if (appContainerSidString)
                     {
-                        PhSetDialogItemText(hwndDlg, IDC_USERSID, appContainerSid->Buffer);
-                        PhDereferenceObject(appContainerSid);
+                        PhSetDialogItemText(hwndDlg, IDC_USERSID, appContainerSidString->Buffer);
+                        PhDereferenceObject(appContainerSidString);
                     }
                 }
 
@@ -1015,6 +1381,29 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 NtClose(tokenHandle);
             }
 
+            if (tokenPageContext->SinglePageContext)
+            {
+                LPPROPSHEETPAGE page = (LPPROPSHEETPAGE)lParam;
+                if (page) PhFree(page);
+
+                PhSetApplicationWindowIcon(hwndDlg);
+                PhSetWindowText(hwndDlg, L"Linked Token");
+
+                PhInitializeLayoutManager(&tokenPageContext->LayoutManager, hwndDlg);
+                PhAddLayoutItem(&tokenPageContext->LayoutManager, tokenPageContext->ListViewHandle, NULL, PH_ANCHOR_ALL);
+                PhAddLayoutItem(&tokenPageContext->LayoutManager, GetDlgItem(hwndDlg, IDC_DEFAULTPERM), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddLayoutItem(&tokenPageContext->LayoutManager, GetDlgItem(hwndDlg, IDC_PERMISSIONS), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddLayoutItem(&tokenPageContext->LayoutManager, GetDlgItem(hwndDlg, IDC_INTEGRITY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddLayoutItem(&tokenPageContext->LayoutManager, GetDlgItem(hwndDlg, IDC_ADVANCED), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+                if (PhGetIntegerPairSetting(L"TokenWindowPosition").X)
+                    PhLoadWindowPlacementFromSetting(L"TokenWindowPosition", L"TokenWindowSize", hwndDlg);
+                else
+                    PhCenterWindow(hwndDlg, NULL);
+
+                PhSetDialogFocus(hwndDlg, tokenPageContext->ListViewHandle);
+            }
+
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
@@ -1024,6 +1413,18 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSaveListViewGroupStatesToSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
             PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
+            if (tokenPageContext->SinglePageContext)
+            {
+                PhSaveWindowPlacementToSetting(L"TokenWindowPosition", L"TokenWindowSize", hwndDlg);
+                PhDeleteLayoutManager(&tokenPageContext->LayoutManager);
+
+                if (tokenPageContext->Context)
+                {
+                    NtClose(tokenPageContext->Context);
+                    tokenPageContext->Context = NULL;
+                }
+            }
+
             PhpTokenPageFreeListViewEntries(tokenPageContext);
 
             if (tokenPageContext->ListViewImageList) PhImageListDestroy(tokenPageContext->ListViewImageList);
@@ -1032,7 +1433,16 @@ INT_PTR CALLBACK PhpTokenPageProc(
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
         }
         break;
+    case WM_SIZE:
+        {
+            if (tokenPageContext->SinglePageContext)
+            {
+                PhLayoutManagerLayout(&tokenPageContext->LayoutManager);
+            }
+        }
+        break;
     case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhpTokenSetImageList(hwndDlg, tokenPageContext);
         }
@@ -1041,6 +1451,15 @@ INT_PTR CALLBACK PhpTokenPageProc(
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
+            case IDCANCEL:
+            case IDOK:
+                {
+                    if (tokenPageContext->SinglePageContext)
+                    {
+                        EndDialog(hwndDlg, IDOK);
+                    }
+                }
+                break;
             case ID_PRIVILEGE_ENABLE:
             case ID_PRIVILEGE_DISABLE:
             case ID_PRIVILEGE_RESET:
@@ -1113,21 +1532,27 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             switch (GET_WM_COMMAND_ID(wParam, lParam))
                             {
                             case ID_PRIVILEGE_ENABLE:
-                                newAttributes |= SE_PRIVILEGE_ENABLED;
+                                {
+                                    SetFlag(newAttributes, SE_PRIVILEGE_ENABLED);
+                                }
                                 break;
                             case ID_PRIVILEGE_DISABLE:
-                                newAttributes &= ~SE_PRIVILEGE_ENABLED;
+                                {
+                                    ClearFlag(newAttributes, SE_PRIVILEGE_ENABLED);
+                                }
                                 break;
                             case ID_PRIVILEGE_RESET:
                                 {
-                                    if (newAttributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
-                                        newAttributes |= SE_PRIVILEGE_ENABLED;
+                                    if (FlagOn(newAttributes, SE_PRIVILEGE_ENABLED_BY_DEFAULT))
+                                        SetFlag(newAttributes, SE_PRIVILEGE_ENABLED);
                                     else
-                                        newAttributes &= ~SE_PRIVILEGE_ENABLED;
+                                        ClearFlag(newAttributes, SE_PRIVILEGE_ENABLED);
                                 }
                                 break;
                             case ID_PRIVILEGE_REMOVE:
-                                newAttributes = SE_PRIVILEGE_REMOVED;
+                                {
+                                    newAttributes = SE_PRIVILEGE_REMOVED;
+                                }
                                 break;
                             }
 
@@ -1140,11 +1565,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             {
                                 INT lvItemIndex = PhFindListViewItemByParam(
                                     tokenPageContext->ListViewHandle,
-                                    -1,
+                                    INT_ERROR,
                                     listViewItems[i]
                                     );
 
-                                if (lvItemIndex != -1)
+                                if (lvItemIndex != INT_ERROR)
                                 {
                                     if (GET_WM_COMMAND_ID(wParam, lParam) != ID_PRIVILEGE_REMOVE)
                                     {
@@ -1286,11 +1711,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 attributesString = PhGetGroupAttributesString(newAttributes, FALSE);
                                 lvItemIndex = PhFindListViewItemByParam(
                                     tokenPageContext->ListViewHandle,
-                                    -1,
+                                    INT_ERROR,
                                     listViewItems[i]
                                     );
 
-                                if (lvItemIndex != -1)
+                                if (lvItemIndex != INT_ERROR)
                                 {
                                     // Refresh the status text (and background color).
                                     listViewItems[i]->TokenGroup->Attributes = newAttributes;
@@ -1393,17 +1818,17 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         ExtendedListView_SetRedraw(tokenPageContext->ListViewHandle, FALSE);
 
-                        status = PhSetTokenUIAccessEnabled(tokenHandle, FALSE);
+                        status = PhSetTokenUIAccess(tokenHandle, FALSE);
 
                         if (NT_SUCCESS(status))
                         {
                             INT lvItemIndex = PhFindListViewItemByParam(
                                 tokenPageContext->ListViewHandle,
-                                -1,
+                                INT_ERROR,
                                 listViewItems[0]
                                 );
 
-                            if (lvItemIndex != -1)
+                            if (lvItemIndex != INT_ERROR)
                             {
                                 ListView_DeleteItem(tokenPageContext->ListViewHandle, lvItemIndex);
                             }
@@ -1465,9 +1890,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySecureProcessRID, L"Protected", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatorySystemRID, L"System", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryHighRID, L"High", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryMediumPlusRID, L"Medium +", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryMediumRID, L"Medium", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryLowRID, L"Low", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, MandatoryUntrustedRID, L"Untrusted", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"Custom...", NULL, NULL), ULONG_MAX);
 
                     integrityLevelRID = ULONG_MAX;
 
@@ -1497,7 +1925,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                     menuItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
                                     customLevelPosition = 0; // The integrity level is a well-known one. No need to add a new menu item.
                                 }
-                                else if (menuItem->Id > (ULONG)integrityLevelRID)
+                                else if (menuItem->Id > (ULONG)integrityLevelRID && menuItem->Id != USHRT_MAX)
                                 {
                                     PhSetDisabledEMenuItem(menuItem);
                                     customLevelPosition = i + 1;
@@ -1544,6 +1972,44 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             FALSE
                             ))
                         {
+                            ULONG integrityLevel = ULONG_MAX;
+
+                            if (selectedItem->Id == USHRT_MAX)
+                            {
+                                PPH_STRING selectedChoice = NULL;
+                                ULONG64 integer = 0;
+
+                                while (PhaChoiceDialog(
+                                    hwndDlg,
+                                    L"Integrity Level",
+                                    L"Enter a custom integrity level:",
+                                    NULL,
+                                    0,
+                                    NULL,
+                                    PH_CHOICE_DIALOG_USER_CHOICE,
+                                    &selectedChoice,
+                                    NULL,
+                                    NULL
+                                    ))
+                                {
+                                    if (PhStringToInteger64(&selectedChoice->sr, 0, &integer))
+                                    {
+                                        if ((ULONG)integer < (ULONG)integrityLevelRID)
+                                        {
+                                            integrityLevel = (ULONG)integer;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (integrityLevel == ULONG_MAX)
+                                    goto CleanupExit;
+                            }
+                            else
+                            {
+                                integrityLevel = selectedItem->Id;
+                            }
+
                             if (NT_SUCCESS(status = tokenPageContext->OpenObject(
                                 &tokenHandle,
                                 TOKEN_QUERY | TOKEN_ADJUST_DEFAULT,
@@ -1556,8 +2022,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 TOKEN_MANDATORY_LABEL mandatoryLabel;
 
                                 newSid = (PSID)newSidBuffer;
-                                RtlInitializeSid(newSid, &mandatoryLabelAuthority, 1);
-                                *RtlSubAuthoritySid(newSid, 0) = selectedItem->Id;
+                                PhInitializeSid(newSid, &mandatoryLabelAuthority, 1);
+                                *PhSubAuthoritySid(newSid, 0) = integrityLevel;
                                 mandatoryLabel.Label.Sid = newSid;
                                 mandatoryLabel.Label.Attributes = SE_GROUP_INTEGRITY;
 
@@ -1587,13 +2053,13 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         }
                     }
 
+                CleanupExit:
                     PhDestroyEMenu(menu);
                 }
                 break;
             case IDC_ADVANCED:
                 {
                     HANDLE tokenHandle;
-                    HANDLE processHandle;
                     BOOLEAN tokenIsAppContainer = FALSE;
 
                     if (NT_SUCCESS(tokenPageContext->OpenObject(
@@ -1603,25 +2069,17 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         )))
                     {
                         PhGetTokenIsAppContainer(tokenHandle, &tokenIsAppContainer);
-                        NtClose(tokenHandle);
-                    }
 
-                    // Secondary check for desktop containers. (dmex)
-                    if (!tokenIsAppContainer)
-                    {
-                        if (NT_SUCCESS(PhOpenProcess(
-                            &processHandle,
-                            PROCESS_QUERY_LIMITED_INFORMATION,
-                            tokenPageContext->Context  // ProcessId
-                            )))
+                        if (!tokenIsAppContainer)
                         {
-                            PPH_STRING packageName = PhGetProcessPackageFullName(processHandle);
+                            PPH_STRING packageName = PhGetTokenPackageFullName(tokenHandle);
 
                             tokenIsAppContainer = !PhIsNullOrEmptyString(packageName);
 
                             PhClearReference(&packageName);
-                            NtClose(processHandle);
                         }
+
+                        NtClose(tokenHandle);
                     }
 
                     PhpShowTokenAdvancedProperties(hwndDlg, tokenPageContext, tokenIsAppContainer);
@@ -1663,22 +2121,36 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(tokenPageContext->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(tokenPageContext->ListViewHandle, &listviewItems, &numberOfItems);
 
                 if (numberOfItems != 0)
                 {
                     BOOLEAN hasMixedCategories = FALSE;
+                    BOOLEAN hasRemovedItems = FALSE;
                     PH_PROCESS_TOKEN_CATEGORY currentCategory = listviewItems[0]->ItemCategory;
                     ULONG i;
 
-                    for (i = 1; i < numberOfItems; i++)
+                    for (i = 0; i < numberOfItems; i++)
                     {
                         if (listviewItems[i]->ItemCategory != currentCategory)
                         {
                             hasMixedCategories = TRUE;
                             break;
+                        }
+                    }
+
+                    if (currentCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+                    {
+                        for (i = 0; i < numberOfItems; i++)
+                        {
+                            if (listviewItems[i]->TokenPrivilege &&
+                                FlagOn(listviewItems[i]->TokenPrivilege->Attributes, SE_PRIVILEGE_REMOVED))
+                            {
+                                hasRemovedItems = TRUE;
+                                break;
+                            }
                         }
                     }
 
@@ -1695,6 +2167,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_RESET, L"Re&set", NULL, NULL), ULONG_MAX);
                                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PRIVILEGE_REMOVE, L"&Remove", NULL, NULL), ULONG_MAX);
                                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+
+                                if (hasRemovedItems)
+                                {
+                                    PhSetFlagsAllEMenuItems(menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                                }
                             }
                             break;
                         case PH_PROCESS_TOKEN_CATEGORY_GROUPS:
@@ -1755,6 +2232,24 @@ INT_PTR CALLBACK PhpTokenPageProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        {
+            if (tokenPageContext->SinglePageContext)
+                return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        }
+        break;
+    case WM_CTLCOLORDLG:
+        {
+            if (tokenPageContext->SinglePageContext)
+                return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        }
+        break;
+    case WM_CTLCOLORSTATIC:
+        {
+            if (tokenPageContext->SinglePageContext)
+                return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        }
+        break;
     }
 
     return FALSE;
@@ -1767,7 +2262,7 @@ VOID PhpShowTokenAdvancedProperties(
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    HPROPSHEETPAGE pages[6];
+    HPROPSHEETPAGE pages[7];
     PROPSHEETPAGE page;
     ULONG numberOfPages;
 
@@ -1840,6 +2335,18 @@ VOID PhpShowTokenAdvancedProperties(
         page.lParam = (LPARAM)Context;
         pages[numberOfPages++] = CreatePropertySheetPage(&page);
 
+        // AppModel Policy
+
+        memset(&page, 0, sizeof(PROPSHEETPAGE));
+        page.dwSize = sizeof(PROPSHEETPAGE);
+        page.dwFlags = PSP_USETITLE;
+        page.pszTemplate = MAKEINTRESOURCE(IDD_TOKAPPPOLICY);
+        page.hInstance = PhInstanceHandle;
+        page.pszTitle = L"Policy";
+        page.pfnDlgProc = PhpTokenAppPolicyPageProc;
+        page.lParam = (LPARAM)Context;
+        pages[numberOfPages++] = CreatePropertySheetPage(&page);
+
         // (Token) Attributes
 
         memset(&page, 0, sizeof(PROPSHEETPAGE));
@@ -1893,7 +2400,9 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PPH_STRING tokenOwnerName = NULL;
             PPH_STRING tokenPrimaryGroupName = NULL;
             ULONG tokenSessionId = ULONG_MAX;
-            PPH_STRING tokenElevated = NULL;
+            BOOLEAN tokenElevation = FALSE;
+            TOKEN_ELEVATION_TYPE tokenElevationType = 0;
+            PPH_STRINGREF tokenElevationTypeString;
             BOOLEAN hasLinkedToken = FALSE;
             PWSTR tokenVirtualization = L"N/A";
             PWSTR tokenUIAccess = L"Unknown";
@@ -1909,43 +2418,36 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 tokenPageContext->Context // ProcessId
                 )))
             {
-                PTOKEN_USER tokenUser;
-                PTOKEN_OWNER tokenOwner;
+                PH_TOKEN_USER tokenUser;
+                PH_TOKEN_OWNER tokenOwner;
                 PTOKEN_PRIMARY_GROUP tokenPrimaryGroup;
-                TOKEN_ELEVATION_TYPE elevationType;
-                BOOLEAN isElevated;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 BOOLEAN isUIAccessEnabled;
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
-                    tokenUserName = PH_AUTO(PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL));
-                    tokenUserSid = PH_AUTO(PhSidToStringSid(tokenUser->User.Sid));
-
-                    PhFree(tokenUser);
+                    tokenUserName = PH_AUTO(PhGetSidFullName(tokenUser.User.Sid, TRUE, NULL));
+                    tokenUserSid = PH_AUTO(PhSidToStringSid(tokenUser.User.Sid));
                 }
 
                 if (NT_SUCCESS(PhGetTokenOwner(tokenHandle, &tokenOwner)))
                 {
-                    tokenOwnerName = PH_AUTO(PhGetSidFullName(tokenOwner->Owner, TRUE, NULL));
-                    PhFree(tokenOwner);
+                    tokenOwnerName = PH_AUTO(PhGetSidFullName(tokenOwner.Owner.Sid, TRUE, NULL));
                 }
 
                 if (NT_SUCCESS(PhGetTokenPrimaryGroup(tokenHandle, &tokenPrimaryGroup)))
                 {
-                    tokenPrimaryGroupName = PH_AUTO(PhGetSidFullName(
-                        tokenPrimaryGroup->PrimaryGroup, TRUE, NULL));
+                    tokenPrimaryGroupName = PH_AUTO(PhGetSidFullName(tokenPrimaryGroup->PrimaryGroup, TRUE, NULL));
                     PhFree(tokenPrimaryGroup);
                 }
 
                 PhGetTokenSessionId(tokenHandle, &tokenSessionId);
+                PhGetTokenElevation(tokenHandle, &tokenElevation);
 
-                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
-                    NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &tokenElevationType)))
                 {
-                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
-                    hasLinkedToken = elevationType != TokenElevationTypeDefault;
+                    hasLinkedToken = tokenElevationType != TokenElevationTypeDefault;
                 }
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
@@ -1963,7 +2465,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                     }
                 }
 
-                if (NT_SUCCESS(PhGetTokenIsUIAccessEnabled(tokenHandle, &isUIAccessEnabled)))
+                if (NT_SUCCESS(PhGetTokenUIAccess(tokenHandle, &isUIAccessEnabled)))
                 {
                     tokenUIAccess = isUIAccessEnabled ? L"Enabled": L"Disabled";
                 }
@@ -2005,14 +2507,17 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             else
                 PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
 
-            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"N/A"));
+            if (PhGetElevationTypeString(tokenElevation, tokenElevationType, &tokenElevationTypeString))
+                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringRefZ(tokenElevationTypeString));
+            else
+                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, L"Unknown");
+
             PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
             PhSetDialogItemText(hwndDlg, IDC_UIACCESS, tokenUIAccess);
             PhSetDialogItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
             PhSetDialogItemText(hwndDlg, IDC_SOURCELUID, tokenSourceLuid);
 
-            if (!hasLinkedToken)
-                ShowWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), SW_HIDE);
+            EnableWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), !!hasLinkedToken);
 
             if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
                 PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
@@ -2106,7 +2611,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     case WM_INITDIALOG:
         {
             HANDLE tokenHandle;
-            ULONG listViewGroupIndex = 0;
+            INT listViewGroupIndex = 0;
             PWSTR tokenType = L"Unknown";
             PWSTR tokenImpersonationLevel = L"Unknown";
             WCHAR tokenLuid[PH_PTR_STR_LEN_1] = { L"Unknown" };
@@ -2121,6 +2626,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PPH_STRING tokenTrustLevelNameString;
             PPH_STRING tokenProfilePathString;
             PPH_STRING tokenProfileRegistryString;
+            PPH_STRING tokenSystemIdForPublisher = NULL;
+            PPH_STRING tokenSystemIdForUser = NULL;
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -2159,38 +2666,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 
                 if (NT_SUCCESS(PhGetTokenStatistics(tokenHandle, &statistics)))
                 {
-                    switch (statistics.TokenType)
-                    {
-                    case TokenPrimary:
-                        tokenType = L"Primary";
-                        break;
-                    case TokenImpersonation:
-                        tokenType = L"Impersonation";
-                        break;
-                    }
-
-                    if (statistics.TokenType == TokenImpersonation)
-                    {
-                        switch (statistics.ImpersonationLevel)
-                        {
-                        case SecurityAnonymous:
-                            tokenImpersonationLevel = L"Anonymous";
-                            break;
-                        case SecurityIdentification:
-                            tokenImpersonationLevel = L"Identification";
-                            break;
-                        case SecurityImpersonation:
-                            tokenImpersonationLevel = L"Impersonation";
-                            break;
-                        case SecurityDelegation:
-                            tokenImpersonationLevel = L"Delegation";
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        tokenImpersonationLevel = L"N/A";
-                    }
+                    PhGetTokenTypeString(statistics.TokenType, &tokenType);
+                    PhGetImpersonationLevelString(statistics.ImpersonationLevel, &tokenImpersonationLevel);
 
                     PhPrintPointer(tokenLuid, UlongToPtr(statistics.TokenId.LowPart));
                     PhPrintPointer(authenticationLuid, UlongToPtr(statistics.AuthenticationId.LowPart));
@@ -2268,6 +2745,27 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 NtClose(tokenHandle);
             }
 
+            if (SUCCEEDED(PhGetProcessSystemIdentification(
+                tokenPageContext->Context, // ProcessId,
+                &tokenSystemIdForPublisher,
+                &tokenSystemIdForUser
+                )))
+            {
+                INT systemIdGroupIndex;
+                INT systemIdPublisherIndex;
+                INT systemIdUserIndex;
+
+                systemIdGroupIndex = PhAddListViewGroup(context->ListViewHandle, listViewGroupIndex++, L"System ID");
+                systemIdPublisherIndex = PhAddListViewGroupItem(context->ListViewHandle, systemIdGroupIndex, MAXINT, L"HWID (Publisher)", NULL);
+                systemIdUserIndex = PhAddListViewGroupItem(context->ListViewHandle, systemIdGroupIndex, MAXINT, L"HWID (User)", NULL);
+
+                PhSetListViewSubItem(context->ListViewHandle, systemIdPublisherIndex, 1, PhGetStringOrDefault(tokenSystemIdForPublisher, L"N/A"));
+                PhSetListViewSubItem(context->ListViewHandle, systemIdUserIndex, 1, PhGetStringOrDefault(tokenSystemIdForUser, L"N/A"));
+
+                PhClearReference(&tokenSystemIdForPublisher);
+                PhClearReference(&tokenSystemIdForUser);
+            }
+
             PhSetListViewSubItem(context->ListViewHandle, 0, 1, tokenType);
             PhSetListViewSubItem(context->ListViewHandle, 1, 1, tokenImpersonationLevel);
             PhSetListViewSubItem(context->ListViewHandle, 2, 1, tokenLuid);
@@ -2276,7 +2774,6 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
             PhSetListViewSubItem(context->ListViewHandle, 5, 1, tokenOriginLogonSession);
             PhSetListViewSubItem(context->ListViewHandle, 6, 1, PhGetStringOrDefault(memoryUsed, L"Unknown"));
             PhSetListViewSubItem(context->ListViewHandle, 7, 1, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
-
             PhSetListViewSubItem(context->ListViewHandle, 8, 1, PhGetStringOrDefault(tokenNamedObjectPathString, L"Unknown"));
             PhSetListViewSubItem(context->ListViewHandle, 9, 1, PhGetStringOrDefault(tokenSecurityDescriptorString, L"Unknown"));
 
@@ -2317,7 +2814,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
@@ -2373,27 +2870,20 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    PATTRIBUTE_TREE_CONTEXT context = Context;
-    PATTRIBUTE_NODE node;
-
-    if (!context)
-        return FALSE;
+    PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT context = Context;
+    PPH_TOKEN_ATTRIBUTE_NODE node;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
-            node = (PATTRIBUTE_NODE)getChildren->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)getChildren->Node;
 
             if (!node)
             {
@@ -2410,11 +2900,7 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            if (!isLeaf)
-                break;
-
-            node = (PATTRIBUTE_NODE)isLeaf->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = node->Children->Count == 0;
         }
@@ -2422,11 +2908,7 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-
-            if (!getCellText)
-                break;
-
-            node = (PATTRIBUTE_NODE)getCellText->Node;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)getCellText->Node;
 
             if (getCellText->Id == 0)
                 getCellText->Text = PhGetStringRef(node->Text);
@@ -2437,9 +2919,6 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -2460,9 +2939,6 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            if (!contextMenuEvent)
-                break;
-
             SendMessage(
                 context->WindowHandle,
                 WM_CONTEXTMENU,
@@ -2476,16 +2952,16 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     return FALSE;
 }
 
-PATTRIBUTE_NODE PhpAddAttributeNode(
-    _In_ PATTRIBUTE_TREE_CONTEXT Context,
-    _In_opt_ PATTRIBUTE_NODE Parent,
+PPH_TOKEN_ATTRIBUTE_NODE PhpAddAttributeNode(
+    _In_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
+    _In_opt_ PPH_TOKEN_ATTRIBUTE_NODE Parent,
     _In_opt_ _Assume_refs_(1) PPH_STRING Text
     )
 {
-    PATTRIBUTE_NODE node;
+    PPH_TOKEN_ATTRIBUTE_NODE node;
 
-    node = PhAllocate(sizeof(ATTRIBUTE_NODE));
-    memset(node, 0, sizeof(ATTRIBUTE_NODE));
+    node = PhAllocate(sizeof(PH_TOKEN_ATTRIBUTE_NODE));
+    memset(node, 0, sizeof(PH_TOKEN_ATTRIBUTE_NODE));
     PhInitializeTreeNewNode(&node->Node);
 
     node->Children = PhCreateList(2);
@@ -2503,32 +2979,34 @@ PATTRIBUTE_NODE PhpAddAttributeNode(
 }
 
 VOID PhpDestroyAttributeNode(
-    _In_ PATTRIBUTE_NODE Node
+    _In_ PPH_TOKEN_ATTRIBUTE_NODE Node
     )
 {
     PhDereferenceObject(Node->Children);
     PhClearReference(&Node->Text);
+    PhClearReference(&Node->Value);
     PhFree(Node);
 }
 
 VOID PhpRemoveAttributeNode(
-    _In_ PATTRIBUTE_TREE_CONTEXT Context,
-    _In_ PATTRIBUTE_NODE Node
+    _In_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
+    _In_ PPH_TOKEN_ATTRIBUTE_NODE Node
     )
 {
     ULONG index;
 
-    if ((index = PhFindItemList(Context->NodeList, Node)) != -1)
+    if ((index = PhFindItemList(Context->NodeList, Node)) != ULONG_MAX)
         PhRemoveItemList(Context->NodeList, index);
-    if ((index = PhFindItemList(Context->RootList, Node)) != -1)
+    if ((index = PhFindItemList(Context->RootList, Node)) != ULONG_MAX)
         PhRemoveItemList(Context->RootList, index);
 
     PhpDestroyAttributeNode(Node);
 }
 
+_Success_(return)
 BOOLEAN PhpGetSelectedAttributeTreeNodes(
-    _Inout_ PATTRIBUTE_TREE_CONTEXT Context,
-    _Out_ PATTRIBUTE_NODE **Nodes,
+    _Inout_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
+    _Out_ PPH_TOKEN_ATTRIBUTE_NODE **Nodes,
     _Out_ PULONG NumberOfNodes
     )
 {
@@ -2536,7 +3014,7 @@ BOOLEAN PhpGetSelectedAttributeTreeNodes(
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        PATTRIBUTE_NODE node = (PATTRIBUTE_NODE)Context->NodeList->Items[i];
+        PPH_TOKEN_ATTRIBUTE_NODE node = (PPH_TOKEN_ATTRIBUTE_NODE)Context->NodeList->Items[i];
 
         if (node->Node.Selected)
         {
@@ -2558,7 +3036,7 @@ BOOLEAN PhpGetSelectedAttributeTreeNodes(
 }
 
 VOID PhpInitializeAttributeTreeContext(
-    _Out_ PATTRIBUTE_TREE_CONTEXT Context,
+    _Out_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
     _In_ HWND WindowHandle,
     _In_ HWND TreeNewHandle
     )
@@ -2570,11 +3048,13 @@ VOID PhpInitializeAttributeTreeContext(
     PhSetControlTheme(TreeNewHandle, L"explorer");
     TreeNew_SetCallback(TreeNewHandle, PhpAttributeTreeNewCallback, Context);
     //TreeNew_GetViewParts(TreeNewHandle, &parts); // column width = (parts.ClientRect.right - parts.VScrollWidth) // TODO: VScrollWidth not set during INITDIALOG. (dmex)
+    TreeNew_SetRedraw(TreeNewHandle, FALSE);
     PhAddTreeNewColumnEx2(TreeNewHandle, 0, TRUE, L"Attributes", 200, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 }
 
 VOID PhpDeleteAttributeTreeContext(
-    _Inout_ PATTRIBUTE_TREE_CONTEXT Context
+    _Inout_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context
     )
 {
     ULONG i;
@@ -2616,7 +3096,7 @@ BOOLEAN PhpAddTokenCapabilities(
     {
         for (i = 0; i < TokenPageContext->Capabilities->GroupCount; i++)
         {
-            PATTRIBUTE_NODE node;
+            PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING name;
             ULONG subAuthoritiesCount;
             ULONG subAuthority;
@@ -2636,83 +3116,73 @@ BOOLEAN PhpAddTokenCapabilities(
                 PhDereferenceObject(name);
             }
 
-            subAuthoritiesCount = *RtlSubAuthorityCountSid(TokenPageContext->Capabilities->Groups[i].Sid);
-            subAuthority = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 0);
+            subAuthoritiesCount = *PhSubAuthorityCountSid(TokenPageContext->Capabilities->Groups[i].Sid);
+            subAuthority = *PhSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 0);
 
-            // RtlIdentifierAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid) == (BYTE[])SECURITY_APP_PACKAGE_AUTHORITY
-            if (subAuthority == SECURITY_CAPABILITY_BASE_RID)
+            if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_APP_PACKAGE_AUTHORITY))
             {
-                if (subAuthoritiesCount == SECURITY_APP_PACKAGE_RID_COUNT)
+                if (subAuthority == SECURITY_CAPABILITY_BASE_RID)
                 {
-                    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
-
-                    //if (*RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1) == SECURITY_CAPABILITY_APP_RID)
-                    //    continue;
-
-                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                    if (subAuthoritiesCount == SECURITY_APP_PACKAGE_RID_COUNT)
                     {
-                        if (appContainerInfo->TokenAppContainer)
+                        PH_TOKEN_APPCONTAINER tokenAppContainer;
+
+                        //if (*PhSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1) == SECURITY_CAPABILITY_APP_RID)
+                        //    continue;
+
+                        if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
                         {
-                            if (PhIsPackageCapabilitySid(appContainerInfo->TokenAppContainer, TokenPageContext->Capabilities->Groups[i].Sid))
+                            if (PhIsPackageCapabilitySid(tokenAppContainer.AppContainer.Sid, TokenPageContext->Capabilities->Groups[i].Sid))
                             {
-                                HANDLE processHandle;
+                                static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
 
-                                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, TokenPageContext->Context)))
+                                if (name = PhGetTokenPackageFullName(tokenHandle))
                                 {
-                                    static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
-
-                                    if (name = PhGetProcessPackageFullName(processHandle))
-                                    {
-                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&packageNameStringRef, &name->sr));
-                                        PhDereferenceObject(name);
-                                    }
-                                    else
-                                    {
-                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhCreateString2(&packageNameStringRef));
-                                    }
-
-                                    NtClose(processHandle);
+                                    PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&packageNameStringRef, &name->sr));
+                                    PhDereferenceObject(name);
+                                }
+                                else
+                                {
+                                    PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhCreateString2(&packageNameStringRef));
                                 }
                             }
                         }
-
-                        PhFree(appContainerInfo);
                     }
-                }
-                else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
-                {
-                    PPH_STRING capabilityName;
-                    union
+                    else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
                     {
-                        GUID Guid;
-                        struct
+                        PPH_STRING capabilityName;
+                        union
                         {
-                            ULONG Data1;
-                            ULONG Data2;
-                            ULONG Data3;
-                            ULONG Data4;
-                        };
-                    } capabilityGuid;
+                            GUID Guid;
+                            struct
+                            {
+                                ULONG Data1;
+                                ULONG Data2;
+                                ULONG Data3;
+                                ULONG Data4;
+                            };
+                        } capabilityGuid;
 
-                    capabilityGuid.Data1 = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1);
-                    capabilityGuid.Data2 = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 2);
-                    capabilityGuid.Data3 = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 3);
-                    capabilityGuid.Data4 = *RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 4);
+                        capabilityGuid.Data1 = *PhSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1);
+                        capabilityGuid.Data2 = *PhSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 2);
+                        capabilityGuid.Data3 = *PhSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 3);
+                        capabilityGuid.Data4 = *PhSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 4);
 
-                    if (name = PhFormatGuid(&capabilityGuid.Guid))
-                    {
-                        static PH_STRINGREF guidNameStringRef = PH_STRINGREF_INIT(L"Guid: ");
-                        static PH_STRINGREF capabilityNameStringRef = PH_STRINGREF_INIT(L"Capability: ");
-
-                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&guidNameStringRef, &name->sr));
-
-                        if (capabilityName = PhGetCapabilityGuidName(name))
+                        if (name = PhFormatGuid(&capabilityGuid.Guid))
                         {
-                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&capabilityNameStringRef, &capabilityName->sr));
-                            PhDereferenceObject(capabilityName);
+                            static PH_STRINGREF guidNameStringRef = PH_STRINGREF_INIT(L"Guid: ");
+                            static PH_STRINGREF capabilityNameStringRef = PH_STRINGREF_INIT(L"Capability: ");
+
+                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&guidNameStringRef, &name->sr));
+
+                            if (capabilityName = PhGetCapabilityGuidName(name))
+                            {
+                                PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&capabilityNameStringRef, &capabilityName->sr));
+                                PhDereferenceObject(capabilityName);
+                            }
+
+                            PhDereferenceObject(name);
                         }
-
-                        PhDereferenceObject(name);
                     }
                 }
             }
@@ -2751,7 +3221,9 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
 
             PhSetControlTheme(tnHandle, L"explorer");
             TreeNew_SetCallback(tnHandle, PhpAttributeTreeNewCallback, &tokenPageContext->CapsTreeContext);
+            TreeNew_SetRedraw(tnHandle, FALSE);
             PhAddTreeNewColumnEx2(tnHandle, 0, TRUE, L"Capabilities", 200, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+            TreeNew_SetRedraw(tnHandle, TRUE);
 
             TreeNew_SetEmptyText(tnHandle, &PhpEmptyTokenCapabilitiesText, 0);
             TreeNew_SetRedraw(tnHandle, FALSE);
@@ -2783,7 +3255,7 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
-            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            PPH_TOKEN_ATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
             if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->CapsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
@@ -2919,7 +3391,7 @@ PPH_STRING PhFormatClaimSecurityAttributeValue(
             Attribute->Values.pFqbn[ValueIndex].Name);
     case CLAIM_SECURITY_ATTRIBUTE_TYPE_SID:
         {
-            if (RtlValidSid(Attribute->Values.pOctetString[ValueIndex].pValue))
+            if (PhValidSid(Attribute->Values.pOctetString[ValueIndex].pValue))
             {
                 PPH_STRING name;
 
@@ -2974,7 +3446,7 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
             Attribute->Values.pFqbn[ValueIndex].Name.Buffer);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_SID:
         {
-            if (RtlValidSid(Attribute->Values.pOctetString[ValueIndex].pValue))
+            if (PhValidSid(Attribute->Values.pOctetString[ValueIndex].pValue))
             {
                 PPH_STRING name;
 
@@ -3003,7 +3475,7 @@ BOOLEAN PhpAddTokenClaimAttributes(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ HWND tnHandle,
     _In_ BOOLEAN DeviceClaims,
-    _In_ PATTRIBUTE_NODE Parent
+    _In_ PPH_TOKEN_ATTRIBUTE_NODE Parent
     )
 {
     HANDLE tokenHandle;
@@ -3023,7 +3495,7 @@ BOOLEAN PhpAddTokenClaimAttributes(
         for (i = 0; i < info->AttributeCount; i++)
         {
             PCLAIM_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-            PATTRIBUTE_NODE node;
+            PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING temp;
 
             // Attribute
@@ -3076,8 +3548,8 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
     {
     case WM_INITDIALOG:
         {
-            PATTRIBUTE_NODE userNode;
-            PATTRIBUTE_NODE deviceNode;
+            PPH_TOKEN_ATTRIBUTE_NODE userNode;
+            PPH_TOKEN_ATTRIBUTE_NODE deviceNode;
 
             PhpInitializeAttributeTreeContext(&tokenPageContext->ClaimsTreeContext, hwndDlg, tnHandle);
 
@@ -3124,7 +3596,7 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
-            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            PPH_TOKEN_ATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
             if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->ClaimsTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
@@ -3192,12 +3664,12 @@ BOOLEAN PhpAddTokenAttributes(
         )))
         return FALSE;
 
-    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+    if (NT_SUCCESS(PhGetTokenSecurityAttributes(tokenHandle, &info)))
     {
         for (i = 0; i < info->AttributeCount; i++)
         {
             PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-            PATTRIBUTE_NODE node;
+            PPH_TOKEN_ATTRIBUTE_NODE node;
             PPH_STRING temp;
 
             // Attribute
@@ -3282,7 +3754,7 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
             PPH_EMENU menu;
             PPH_EMENU_ITEM selectedItem;
-            PATTRIBUTE_NODE *attributeObjectNodes = NULL;
+            PPH_TOKEN_ATTRIBUTE_NODE *attributeObjectNodes = NULL;
             ULONG numberOfAttributeObjectNodes = 0;
 
             if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->AuthzTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
@@ -3342,33 +3814,39 @@ PPH_STRING PhpGetTokenFolderPath(
     PPH_STRING profileFolderPath = NULL;
     PPH_STRING profileKeyPath = NULL;
     PPH_STRING tokenUserSid;
-    PTOKEN_USER tokenUser;
+    PH_TOKEN_USER tokenUser;
 
     if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
     {
-        ULONG subAuthority;
-
-        subAuthority = *RtlSubAuthoritySid(tokenUser->User.Sid, 0);
-        //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
-
-        if (subAuthority == SECURITY_UMFD_BASE_RID)
+        if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(tokenUser.User.Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY))
         {
-            if (tokenUserSid = PhSidToStringSid(&PhSeLocalSystemSid))
+            ULONG subAuthority = *PhSubAuthoritySid(tokenUser.User.Sid, 0);
+
+            if (subAuthority == SECURITY_UMFD_BASE_RID)
             {
-                profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
-                PhDereferenceObject(tokenUserSid);
+                if (tokenUserSid = PhSidToStringSid((PSID)&PhSeLocalSystemSid))
+                {
+                    profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
+                    PhDereferenceObject(tokenUserSid);
+                }
+            }
+            else
+            {
+                if (tokenUserSid = PhSidToStringSid(tokenUser.User.Sid))
+                {
+                    profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
+                    PhDereferenceObject(tokenUserSid);
+                }
             }
         }
         else
         {
-            if (tokenUserSid = PhSidToStringSid(tokenUser->User.Sid))
+            if (tokenUserSid = PhSidToStringSid(tokenUser.User.Sid))
             {
                 profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
                 PhDereferenceObject(tokenUserSid);
             }
         }
-
-        PhFree(tokenUser);
     }
 
     if (profileKeyPath)
@@ -3385,7 +3863,7 @@ PPH_STRING PhpGetTokenFolderPath(
         {
             PPH_STRING profileImagePath;
 
-            if (profileFolderPath = PhQueryRegistryString(keyHandle, L"ProfileImagePath"))
+            if (profileFolderPath = PhQueryRegistryStringZ(keyHandle, L"ProfileImagePath"))
             {
                 if (profileImagePath = PhExpandEnvironmentStrings(&profileFolderPath->sr))
                 {
@@ -3416,12 +3894,11 @@ PPH_STRING PhpGetTokenRegistryPath(
 {
     PPH_STRING profileRegistryPath = NULL;
     PPH_STRING tokenUserSid = NULL;
-    PTOKEN_USER tokenUser;
+    PH_TOKEN_USER tokenUser;
 
     if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
     {
-        tokenUserSid = PhSidToStringSid(tokenUser->User.Sid);
-        PhFree(tokenUser);
+        tokenUserSid = PhSidToStringSid(tokenUser.User.Sid);
     }
 
     if (tokenUserSid)
@@ -3453,71 +3930,111 @@ PPH_STRING PhpGetTokenRegistryPath(
 
 PPH_STRING PhpGetTokenAppContainerFolderPath(
     _In_ HANDLE TokenHandle,
-    _In_ PSID TokenAppContainerSid
+    _In_opt_ PSID TokenAppContainerSid
     )
 {
-    PPH_STRING appContainerFolderPath = NULL;
-    PPH_STRING appContainerSid = NULL;
-    PWSTR folderPath = NULL;
-
-    appContainerSid = PhSidToStringSid(TokenAppContainerSid);
-
-    if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
+    if (PhGetTokenIsFullTrustPackage(TokenHandle))
     {
-        if (GetAppContainerFolderPath_Import())
+        PPH_STRING packageLocalAppData = PhGetKnownFolderPathEx(
+            &FOLDERID_LocalAppData,
+            PH_KF_FLAG_FORCE_PACKAGE_REDIRECTION,
+            TokenHandle,
+            NULL
+            );
+        PPH_STRING localAppData = PhGetKnownFolderPathEx(
+            &FOLDERID_LocalAppData,
+            0,
+            NULL,
+            NULL
+            );
+
+        if (PhEqualString(packageLocalAppData, localAppData, TRUE))
         {
-            if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
-            {
-                appContainerFolderPath = PhCreateString(folderPath);
-                CoTaskMemFree(folderPath);
-            }
+            PhDereferenceObject(localAppData);
+            PhDereferenceObject(packageLocalAppData);
+            return NULL;
         }
 
-        PhRevertImpersonationToken(NtCurrentThread());
+        PhDereferenceObject(localAppData);
+
+        return packageLocalAppData;
     }
-
-    PhDereferenceObject(appContainerSid);
-
-    // Workaround for pseudo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
-    if (PhIsNullOrEmptyString(appContainerFolderPath))
+    else if (TokenAppContainerSid)
     {
-        PTOKEN_USER tokenUser;
+        PPH_STRING appContainerFolderPath;
+        //PWSTR folderPath = NULL;
 
-        if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
+        appContainerFolderPath = PhGetKnownFolderPathEx(
+            &FOLDERID_LocalAppData,
+            PH_KF_FLAG_FORCE_APPCONTAINER_REDIRECTION,
+            TokenHandle,
+            NULL
+            );
+
+        //if (PhIsNullOrEmptyString(appContainerFolderPath))
+        //{
+        //    if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
+        //    {
+        //        if (GetAppContainerFolderPath_Import())
+        //        {
+        //            PPH_STRING appContainerSid = PhSidToStringSid(TokenAppContainerSid);
+        //
+        //            if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
+        //            {
+        //                assert(PhEqualString2(appContainerFolderPath, folderPath, TRUE));
+        //                CoTaskMemFree(folderPath);
+        //            }
+        //
+        //            PhDereferenceObject(appContainerSid);
+        //        }
+        //
+        //        PhRevertImpersonationToken(NtCurrentThread());
+        //    }
+        //}
+
+        // Workaround for pseudo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
+        if (PhIsNullOrEmptyString(appContainerFolderPath))
         {
-            ULONG subAuthority;
-            PPH_STRING tokenProfilePathString;
-            PPH_STRING appContainerName;
+            PH_TOKEN_USER tokenUser;
 
-            subAuthority = *RtlSubAuthoritySid(tokenUser->User.Sid, 0);
-            //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
-
-            if (subAuthority == SECURITY_UMFD_BASE_RID)
+            if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
             {
-                if (tokenProfilePathString = PhpGetTokenFolderPath(TokenHandle))
+                ULONG subAuthority;
+                PPH_STRING tokenProfilePathString;
+                PPH_STRING appContainerName;
+
+                subAuthority = *PhSubAuthoritySid(tokenUser.User.Sid, 0);
+                //PhIdentifierAuthoritySid(tokenUser.User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
+
+                if (subAuthority == SECURITY_UMFD_BASE_RID)
                 {
-                    if (appContainerName = PhGetAppContainerName(TokenAppContainerSid))
+                    if (tokenProfilePathString = PhpGetTokenFolderPath(TokenHandle))
                     {
-                        static PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
+                        if (appContainerName = PhGetAppContainerName(TokenAppContainerSid))
+                        {
+                            static PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
 
-                        PhMoveReference(&appContainerFolderPath, PhConcatStringRef3(
-                            &tokenProfilePathString->sr,
-                            &appDataPackagePath,
-                            &appContainerName->sr
-                            ));
+                            PhMoveReference(&appContainerFolderPath, PhConcatStringRef3(
+                                &tokenProfilePathString->sr,
+                                &appDataPackagePath,
+                                &appContainerName->sr
+                                ));
 
-                        PhDereferenceObject(appContainerName);
+                            PhDereferenceObject(appContainerName);
+                        }
+
+                        PhDereferenceObject(tokenProfilePathString);
                     }
-
-                    PhDereferenceObject(tokenProfilePathString);
                 }
             }
-
-            PhFree(tokenUser);
         }
-    }
 
-    return appContainerFolderPath;
+        return appContainerFolderPath;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 PPH_STRING PhpGetTokenAppContainerRegistryPath(
@@ -3537,15 +4054,7 @@ PPH_STRING PhpGetTokenAppContainerRegistryPath(
 
     if (registryHandle)
     {
-        PhGetHandleInformation(
-            NtCurrentProcess(),
-            registryHandle,
-            ULONG_MAX,
-            NULL,
-            NULL,
-            NULL,
-            &appContainerRegistryPath
-            );
+        PhQueryObjectName(registryHandle, &appContainerRegistryPath);
 
         NtClose(registryHandle);
     }
@@ -3586,9 +4095,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
         {
             HANDLE tokenHandle;
             BOOLEAN isLessPrivilegedAppContainer = FALSE;
-            WCHAR appContainerNumberString[PH_INT64_STR_LEN_1] = L"Unknown";
             PPH_STRING tokenNamedObjectPathString = NULL;
-            HANDLE processHandle;
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -3626,27 +4133,24 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 tokenPageContext->Context // ProcessId
                 )))
             {
-                PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
                 APPCONTAINER_SID_TYPE appContainerSidType = InvalidAppContainerSidType;
+                PH_TOKEN_APPCONTAINER tokenAppContainer;
                 PSID appContainerSidParent = NULL;
                 PPH_STRING appContainerName = NULL;
-                PPH_STRING appContainerSid = NULL;
+                PPH_STRING appContainerSidString = NULL;
                 ULONG appContainerNumber;
+                PPH_STRING packageFullName;
+                PPH_STRING packagePath;
 
-                if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
                 {
-                    if (appContainerInfo->TokenAppContainer)
-                    {
-                        if (RtlGetAppContainerSidType_Import())
-                            RtlGetAppContainerSidType_Import()(appContainerInfo->TokenAppContainer, &appContainerSidType);
-                        if (RtlGetAppContainerParent_Import())
-                            RtlGetAppContainerParent_Import()(appContainerInfo->TokenAppContainer, &appContainerSidParent);
+                    if (RtlGetAppContainerSidType_Import())
+                        RtlGetAppContainerSidType_Import()(tokenAppContainer.AppContainer.Sid, &appContainerSidType);
+                    if (RtlGetAppContainerParent_Import())
+                        RtlGetAppContainerParent_Import()(tokenAppContainer.AppContainer.Sid, &appContainerSidParent);
 
-                        appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
-                        appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
-                    }
-
-                    PhFree(appContainerInfo);
+                    appContainerName = PhGetAppContainerName(tokenAppContainer.AppContainer.Sid);
+                    appContainerSidString = PhSidToStringSid(tokenAppContainer.AppContainer.Sid);
                 }
 
                 if (appContainerName)
@@ -3663,50 +4167,25 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 case ParentAppContainerSidType:
                     PhSetListViewSubItem(context->ListViewHandle, 1, 1, L"Parent");
                     break;
-                default:
-                    PhSetListViewSubItem(context->ListViewHandle, 1, 1, L"Unknown");
-                    break;
                 }
 
-                if (appContainerSid)
+                if (appContainerSidString)
                 {
-                    PhSetListViewSubItem(context->ListViewHandle, 2, 1, appContainerSid->Buffer);
-                    PhDereferenceObject(appContainerSid);
+                    PhSetListViewSubItem(context->ListViewHandle, 2, 1, appContainerSidString->Buffer);
+                    PhDereferenceObject(appContainerSidString);
                 }
 
-                if (NT_SUCCESS(PhGetTokenAppContainerNumber(tokenHandle, &appContainerNumber)))
+                if (!PhGetTokenIsFullTrustPackage(tokenHandle))
                 {
-                    PhPrintUInt32(appContainerNumberString, appContainerNumber);
-                    PhSetListViewSubItem(context->ListViewHandle, 3, 1, appContainerNumberString);
-                }
-
-                // TODO: TokenIsLessPrivilegedAppContainer
-                {
-                    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://NOALLAPPPKG");
-                    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
-
-                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+                    if (NT_SUCCESS(PhGetTokenAppContainerNumber(tokenHandle, &appContainerNumber)))
                     {
-                        for (ULONG i = 0; i < info->AttributeCount; i++)
-                        {
-                            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-                            PH_STRINGREF attributeNameSr;
+                        WCHAR string[PH_INT64_STR_LEN_1] = L"Unknown";
 
-                            PhUnicodeStringToStringRef(&attribute->Name, &attributeNameSr);
-
-                            if (PhEqualStringRef(&attributeNameSr, &attributeName, FALSE))
-                            {
-                                if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64)
-                                {
-                                    isLessPrivilegedAppContainer = TRUE; // (*attribute->Values.pUint64 == 1);
-                                    break;
-                                }
-                            }
-                        }
-
-                        PhFree(info);
+                        PhPrintUInt32(string, appContainerNumber);
+                        PhSetListViewSubItem(context->ListViewHandle, 3, 1, string);
                     }
 
+                    PhGetTokenIsLessPrivilegedAppContainer(tokenHandle, &isLessPrivilegedAppContainer);
                     PhSetListViewSubItem(context->ListViewHandle, 4, 1, isLessPrivilegedAppContainer ? L"True" : L"False");
                 }
 
@@ -3724,28 +4203,16 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                         PhDereferenceObject(appContainerName);
                     }
 
-                    if (appContainerSid = PhSidToStringSid(appContainerSidParent))
+                    if (appContainerSidString = PhSidToStringSid(appContainerSidParent))
                     {
-                        PhSetListViewSubItem(context->ListViewHandle, 7, 1, appContainerSid->Buffer);
-                        PhDereferenceObject(appContainerSid);
+                        PhSetListViewSubItem(context->ListViewHandle, 7, 1, appContainerSidString->Buffer);
+                        PhDereferenceObject(appContainerSidString);
                     }
 
-                    RtlFreeSid(appContainerSidParent);
+                    PhFreeSid(appContainerSidParent);
                 }
 
-                NtClose(tokenHandle);
-            }
-
-            if (NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                tokenPageContext->Context // ProcessId
-                )))
-            {
-                PPH_STRING packageFullName;
-                PPH_STRING packagePath;
-
-                if (packageFullName = PhGetProcessPackageFullName(processHandle))
+                if (packageFullName = PhGetTokenPackageFullName(tokenHandle))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, 8, 1, packageFullName->Buffer);
 
@@ -3758,28 +4225,41 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                     PhDereferenceObject(packageFullName);
                 }
 
-                NtClose(processHandle);
+                NtClose(tokenHandle);
             }
 
-            if (NT_SUCCESS(tokenPageContext->OpenObject(
+            tokenHandle = NULL;
+
+            if (!NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE,
                 tokenPageContext->Context // ProcessId
                 )))
             {
-                PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
-                PPH_STRING appContainerFolderPath = NULL;
-                PPH_STRING appContainerRegistryPath = NULL;
-
-                if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                if (!NT_SUCCESS(tokenPageContext->OpenObject(
+                    &tokenHandle,
+                    TOKEN_QUERY | TOKEN_IMPERSONATE,
+                    tokenPageContext->Context // ProcessId
+                    )))
                 {
-                    if (appContainerInfo->TokenAppContainer)
-                    {
-                        appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, appContainerInfo->TokenAppContainer);
-                    }
-
-                    PhFree(appContainerInfo);
+                    tokenPageContext->OpenObject(
+                        &tokenHandle,
+                        TOKEN_QUERY,
+                        tokenPageContext->Context // ProcessId
+                        );
                 }
+            }
+
+            if (tokenHandle)
+            {
+                PH_TOKEN_APPCONTAINER tokenAppContainer;
+                PPH_STRING appContainerFolderPath;
+                PPH_STRING appContainerRegistryPath;
+
+                if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
+                    appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, tokenAppContainer.AppContainer.Sid);
+                else
+                    appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, NULL);
 
                 if (appContainerFolderPath)
                 {
@@ -3828,7 +4308,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 
@@ -3874,6 +4354,1524 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
                 PhFree(listviewItems);
             }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+typedef enum _AppModelPolicy_Type
+{
+    AppModelPolicy_Type_LifecycleManager = 1,
+    AppModelPolicy_Type_AppDataAccess = 2,
+    AppModelPolicy_Type_WindowingModel = 3,
+    AppModelPolicy_Type_DllSearchOrder = 4,
+    AppModelPolicy_Type_Fusion = 5,
+    AppModelPolicy_Type_NonWindowsCodecLoading = 6,
+    AppModelPolicy_Type_ProcessEnd = 7,
+    AppModelPolicy_Type_BeginThreadInit = 8,
+    AppModelPolicy_Type_DeveloperInformation = 9,
+    AppModelPolicy_Type_CreateFileAccess = 10,
+    AppModelPolicy_Type_ImplicitPackageBreakaway_Internal = 11,
+    AppModelPolicy_Type_ProcessActivationShim = 12,
+    AppModelPolicy_Type_AppKnownToStateRepository = 13,
+    AppModelPolicy_Type_AudioManagement = 14,
+    AppModelPolicy_Type_PackageMayContainPublicComRegistrations = 15,
+    AppModelPolicy_Type_PackageMayContainPrivateComRegistrations = 16,
+    AppModelPolicy_Type_LaunchCreateProcessExtensions = 17,
+    AppModelPolicy_Type_ClrCompat = 18,
+    AppModelPolicy_Type_LoaderIgnoreAlteredSearchForRelativePath = 19,
+    AppModelPolicy_Type_ImplicitlyActivateClassicAAAServersAsIU = 20,
+    AppModelPolicy_Type_ComClassicCatalog = 21,
+    AppModelPolicy_Type_ComUnmarshaling = 22,
+    AppModelPolicy_Type_ComAppLaunchPerfEnhancements = 23,
+    AppModelPolicy_Type_ComSecurityInitialization = 24,
+    AppModelPolicy_Type_RoInitializeSingleThreadedBehavior = 25,
+    AppModelPolicy_Type_ComDefaultExceptionHandling = 26,
+    AppModelPolicy_Type_ComOopProxyAgility = 27,
+    AppModelPolicy_Type_AppServiceLifetime = 28,
+    AppModelPolicy_Type_WebPlatform = 29,
+    AppModelPolicy_Type_WinInetStoragePartitioning = 30,
+    AppModelPolicy_Type_IndexerProtocolHandlerHost = 31, // since RS2
+    AppModelPolicy_Type_LoaderIncludeUserDirectories = 32,
+    AppModelPolicy_Type_ConvertAppContainerToRestrictedAppContainer = 33,
+    AppModelPolicy_Type_PackageMayContainPrivateMapiProvider = 34,
+    AppModelPolicy_Type_AdminProcessPackageClaims = 35, // since RS3
+    AppModelPolicy_Type_RegistryRedirectionBehavior = 36,
+    AppModelPolicy_Type_BypassCreateProcessAppxExtension = 37,
+    AppModelPolicy_Type_KnownFolderRedirection = 38,
+    AppModelPolicy_Type_PrivateActivateAsPackageWinrtClasses = 39,
+    AppModelPolicy_Type_AppPrivateFolderRedirection = 40,
+    AppModelPolicy_Type_GlobalSystemAppDataAccess = 41,
+    AppModelPolicy_Type_ConsoleHandleInheritance = 42, // since RS4
+    AppModelPolicy_Type_ConsoleBufferAccess = 43,
+    AppModelPolicy_Type_ConvertCallerTokenToUserTokenForDeployment = 44,
+    AppModelPolicy_Type_ShellExecuteRetrieveIdentityFromCurrentProcess = 45, // since RS5
+    AppModelPolicy_Type_CodeIntegritySigning = 46, // since 19H1
+    AppModelPolicy_Type_PTCActivation = 47,
+    AppModelPolicy_Type_ComIntraPackageRpcCall = 48, // since 20H1
+    AppModelPolicy_Type_LoadUser32ShimOnWindowsCoreOS = 49,
+    AppModelPolicy_Type_SecurityCapabilitiesOverride = 50,
+    AppModelPolicy_Type_CurrentDirectoryOverride = 51,
+    AppModelPolicy_Type_ComTokenMatchingForAAAServers = 52,
+    AppModelPolicy_Type_UseOriginalFileNameInTokenFQBNAttribute = 53,
+    AppModelPolicy_Type_LoaderIncludeAlternateForwarders = 54,
+    AppModelPolicy_Type_PullPackageDependencyData = 55,
+    AppModelPolicy_Type_AppInstancingErrorBehavior = 56, // since WIN11
+    AppModelPolicy_Type_BackgroundTaskRegistrationType = 57,
+    AppModelPolicy_Type_ModsPowerNotification = 58,
+    AppModelPolicy_Type_Count = 58,
+} AppModelPolicy_Type;
+
+typedef enum _AppModelPolicy_PolicyValue
+{
+    AppModelPolicy_LifecycleManager_Unmanaged = 0x10000,
+    AppModelPolicy_LifecycleManager_ManagedByPLM = 0x10001,
+    AppModelPolicy_LifecycleManager_ManagedByEM = 0x10002,
+    AppModelPolicy_AppDataAccess_Allowed = 0x20000,
+    AppModelPolicy_AppDataAccess_Denied = 0x20001,
+    AppModelPolicy_WindowingModel_Hwnd = 0x30000,
+    AppModelPolicy_WindowingModel_CoreWindow = 0x30001,
+    AppModelPolicy_WindowingModel_LegacyPhone = 0x30002,
+    AppModelPolicy_WindowingModel_None = 0x30003,
+    AppModelPolicy_DllSearchOrder_Traditional = 0x40000,
+    AppModelPolicy_DllSearchOrder_PackageGraphBased = 0x40001,
+    AppModelPolicy_Fusion_Full = 0x50000,
+    AppModelPolicy_Fusion_Limited = 0x50001,
+    AppModelPolicy_NonWindowsCodecLoading_Allowed = 0x60000,
+    AppModelPolicy_NonWindowsCodecLoading_Denied = 0x60001,
+    AppModelPolicy_ProcessEnd_TerminateProcess = 0x70000,
+    AppModelPolicy_ProcessEnd_ExitProcess = 0x70001,
+    AppModelPolicy_BeginThreadInit_RoInitialize = 0x80000,
+    AppModelPolicy_BeginThreadInit_None = 0x80001,
+    AppModelPolicy_DeveloperInformation_UI = 0x90000,
+    AppModelPolicy_DeveloperInformation_None = 0x90001,
+    AppModelPolicy_CreateFileAccess_Full = 0xa0000,
+    AppModelPolicy_CreateFileAccess_Limited = 0xa0001,
+    AppModelPolicy_ImplicitPackageBreakaway_Allowed = 0xb0000,
+    AppModelPolicy_ImplicitPackageBreakaway_Denied = 0xb0001,
+    AppModelPolicy_ImplicitPackageBreakaway_DeniedByApp = 0xb0002,
+    AppModelPolicy_ProcessActivationShim_None = 0xc0000,
+    AppModelPolicy_ProcessActivationShim_PackagedCWALauncher = 0xc0001,
+    AppModelPolicy_AppKnownToStateRepository_Known = 0xd0000,
+    AppModelPolicy_AppKnownToStateRepository_Unknown = 0xd0001,
+    AppModelPolicy_AudioManagement_Unmanaged = 0xe0000,
+    AppModelPolicy_AudioManagement_ManagedByPBM = 0xe0001,
+    AppModelPolicy_PackageMayContainPublicComRegistrations_Yes = 0xf0000,
+    AppModelPolicy_PackageMayContainPublicComRegistrations_No = 0xf0001,
+    AppModelPolicy_PackageMayContainPrivateComRegistrations_None = 0x100000,
+    AppModelPolicy_PackageMayContainPrivateComRegistrations_PrivateHive = 0x100001,
+    AppModelPolicy_LaunchCreateProcessExtensions_None = 0x110000,
+    AppModelPolicy_LaunchCreateProcessExtensions_RegisterWithPsm = 0x110001,
+    AppModelPolicy_LaunchCreateProcessExtensions_RegisterWithDesktopAppX = 0x110002,
+    AppModelPolicy_LaunchCreateProcessExtensions_RegisterWithDesktopAppXNoHeliumContainer = 0x110003,
+    AppModelPolicy_ClrCompat_Others = 0x120000,
+    AppModelPolicy_ClrCompat_ClassicDesktop = 0x120001,
+    AppModelPolicy_ClrCompat_Universal = 0x120002,
+    AppModelPolicy_ClrCompat_PackagedDesktop = 0x120003,
+    AppModelPolicy_LoaderIgnoreAlteredSearchForRelativePath_False = 0x130000,
+    AppModelPolicy_LoaderIgnoreAlteredSearchForRelativePath_True = 0x130001,
+    AppModelPolicy_ImplicitlyActivateClassicAAAServersAsIU_Yes = 0x140000,
+    AppModelPolicy_ImplicitlyActivateClassicAAAServersAsIU_No = 0x140001,
+    AppModelPolicy_ComClassicCatalog_MachineHiveAndUserHive = 0x150000,
+    AppModelPolicy_ComClassicCatalog_MachineHiveOnly = 0x150001,
+    AppModelPolicy_ComUnmarshaling_ForceStrongUnmarshaling = 0x160000,
+    AppModelPolicy_ComUnmarshaling_ApplicationManaged = 0x160001,
+    AppModelPolicy_ComAppLaunchPerfEnhancements_Enabled = 0x170000,
+    AppModelPolicy_ComAppLaunchPerfEnhancements_Disabled = 0x170001,
+    AppModelPolicy_ComSecurityInitialization_ApplicationManaged = 0x180000,
+    AppModelPolicy_ComSecurityInitialization_SystemManaged = 0x180001,
+    AppModelPolicy_RoInitializeSingleThreadedBehavior_ASTA = 0x190000,
+    AppModelPolicy_RoInitializeSingleThreadedBehavior_STA = 0x190001,
+    AppModelPolicy_ComDefaultExceptionHandling_HandleAll = 0x1a0000,
+    AppModelPolicy_ComDefaultExceptionHandling_HandleNone = 0x1a0001,
+    AppModelPolicy_ComOopProxyAgility_Agile = 0x1b0000,
+    AppModelPolicy_ComOopProxyAgility_NonAgile = 0x1b0001,
+    AppModelPolicy_AppServiceLifetime_StandardTimeout = 0x1c0000,
+    AppModelPolicy_AppServiceLifetime_ExtensibleTimeout = 0x1c0001,
+    AppModelPolicy_AppServiceLifetime_ExtendedForSamePackage = 0x1c0002,
+    AppModelPolicy_WebPlatform_Edge = 0x1d0000,
+    AppModelPolicy_WebPlatform_Legacy = 0x1d0001,
+    AppModelPolicy_WinInetStoragePartitioning_Isolated = 0x1e0000,
+    AppModelPolicy_WinInetStoragePartitioning_SharedWithAppContainer = 0x1e0001,
+    AppModelPolicy_IndexerProtocolHandlerHost_PerUser = 0x1f0000,
+    AppModelPolicy_IndexerProtocolHandlerHost_PerApp = 0x1f0001,
+    AppModelPolicy_LoaderIncludeUserDirectories_False = 0x200000,
+    AppModelPolicy_LoaderIncludeUserDirectories_True = 0x200001,
+    AppModelPolicy_ConvertAppContainerToRestrictedAppContainer_False = 0x210000,
+    AppModelPolicy_ConvertAppContainerToRestrictedAppContainer_True = 0x210001,
+    AppModelPolicy_PackageMayContainPrivateMapiProvider_None = 0x220000,
+    AppModelPolicy_PackageMayContainPrivateMapiProvider_PrivateHive = 0x220001,
+    AppModelPolicy_AdminProcessPackageClaims_None = 0x230000,
+    AppModelPolicy_AdminProcessPackageClaims_Caller = 0x230001,
+    AppModelPolicy_RegistryRedirectionBehavior_None = 0x240000,
+    AppModelPolicy_RegistryRedirectionBehavior_CopyOnWrite = 0x240001,
+    AppModelPolicy_BypassCreateProcessAppxExtension_False = 0x250000,
+    AppModelPolicy_BypassCreateProcessAppxExtension_True = 0x250001,
+    AppModelPolicy_KnownFolderRedirection_Isolated = 0x260000,
+    AppModelPolicy_KnownFolderRedirection_RedirectToPackage = 0x260001,
+    AppModelPolicy_PrivateActivateAsPackageWinrtClasses_AllowNone = 0x270000,
+    AppModelPolicy_PrivateActivateAsPackageWinrtClasses_AllowFullTrust = 0x270001,
+    AppModelPolicy_PrivateActivateAsPackageWinrtClasses_AllowNonFullTrust = 0x270002,
+    AppModelPolicy_AppPrivateFolderRedirection_None = 0x280000,
+    AppModelPolicy_AppPrivateFolderRedirection_AppPrivate = 0x280001,
+    AppModelPolicy_GlobalSystemAppDataAccess_Normal = 0x290000,
+    AppModelPolicy_GlobalSystemAppDataAccess_Virtualized = 0x290001,
+    AppModelPolicy_ConsoleHandleInheritance_ConsoleOnly = 0x2a0000,
+    AppModelPolicy_ConsoleHandleInheritance_All = 0x2a0001,
+    AppModelPolicy_ConsoleBufferAccess_RestrictedUnidirectional = 0x2b0000,
+    AppModelPolicy_ConsoleBufferAccess_Unrestricted = 0x2b0001,
+    AppModelPolicy_ConvertCallerTokenToUserTokenForDeployment_UserCallerToken = 0x2c0000,
+    AppModelPolicy_ConvertCallerTokenToUserTokenForDeployment_ConvertTokenToUserToken = 0x2c0001,
+    AppModelPolicy_ShellExecuteRetrieveIdentityFromCurrentProcess_False = 0x2d0000,
+    AppModelPolicy_ShellExecuteRetrieveIdentityFromCurrentProcess_True = 0x2d0001,
+    AppModelPolicy_CodeIntegritySigning_Default = 0x2e0000,
+    AppModelPolicy_CodeIntegritySigning_OriginBased = 0x2e0001,
+    AppModelPolicy_CodeIntegritySigning_OriginBasedForDev = 0x2e0002,
+    AppModelPolicy_PTCActivation_Default = 0x2f0000,
+    AppModelPolicy_PTCActivation_AllowActivationInBrokerForMediumILContainer = 0x2f0001,
+    AppModelPolicy_Type_ComIntraPackageRpcCall_NoWake = 0x300000,
+    AppModelPolicy_Type_ComIntraPackageRpcCall_Wake = 0x300001,
+    AppModelPolicy_LoadUser32ShimOnWindowsCoreOS_True = 0x310000,
+    AppModelPolicy_LoadUser32ShimOnWindowsCoreOS_False = 0x310001,
+    AppModelPolicy_SecurityCapabilitiesOverride_None = 0x320000,
+    AppModelPolicy_SecurityCapabilitiesOverride_PackageCapabilities = 0x320001,
+    AppModelPolicy_CurrentDirectoryOverride_None = 0x330000,
+    AppModelPolicy_CurrentDirectoryOverride_PackageInstallDirectory = 0x330001,
+    AppModelPolicy_ComTokenMatchingForAAAServers_DontUseNtCompareTokens = 0x340000,
+    AppModelPolicy_ComTokenMatchingForAAAServers_UseNtCompareTokens = 0x340001,
+    AppModelPolicy_UseOriginalFileNameInTokenFQBNAttribute_False = 0x350000,
+    AppModelPolicy_UseOriginalFileNameInTokenFQBNAttribute_True = 0x350001,
+    AppModelPolicy_LoaderIncludeAlternateForwarders_False = 0x360000,
+    AppModelPolicy_LoaderIncludeAlternateForwarders_True = 0x360001,
+    AppModelPolicy_PullPackageDependencyData_False = 0x370000,
+    AppModelPolicy_PullPackageDependencyData_True = 0x370001,
+    AppModelPolicy_AppInstancingErrorBehavior_SuppressErrors = 0x380000,
+    AppModelPolicy_AppInstancingErrorBehavior_RaiseErrors = 0x380001,
+    AppModelPolicy_BackgroundTaskRegistrationType_Unsupported = 0x390000,
+    AppModelPolicy_BackgroundTaskRegistrationType_Manifested = 0x390001,
+    AppModelPolicy_BackgroundTaskRegistrationType_Win32Clsid = 0x390002,
+    AppModelPolicy_Type_ModsPowerNotification_Disabled = 0x3a0000,
+    AppModelPolicy_Type_ModsPowerNotification_Enabled = 0x3a0001,
+    AppModelPolicy_Type_ModsPowerNotification_QueryDam = 0x3a0002,
+} AppModelPolicy_PolicyValue;
+
+#define WM_PH_APPMODEL_SYMBOL_RESULT (WM_APP + 101)
+
+NTSTATUS PhGetAppModelPolicy(
+    _In_ HANDLE TokenHandle,
+    _In_ AppModelPolicy_Type PolicyType,
+    _Out_ AppModelPolicy_PolicyValue* PolicyValue
+    )
+{
+    static NTSTATUS (NTAPI* GetAppModelPolicy_I)(
+        _In_ HANDLE TokenHandle,
+        _In_ AppModelPolicy_Type PolicyType,
+        _Out_ AppModelPolicy_PolicyValue* PolicyValue
+        ) = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_SYMBOL_PROVIDER symbolProvider;
+        PH_SYMBOL_INFORMATION symbolInfo;
+        PVOID baseAddress;
+        ULONG sizeOfImage;
+        PPH_STRING fileName;
+
+        symbolProvider = PhCreateSymbolProvider(NULL);
+        PhLoadSymbolProviderOptions(symbolProvider);
+
+        if (PhGetLoaderEntryDataZ(L"kernelbase.dll", &baseAddress, &sizeOfImage, &fileName))
+        {
+            PhLoadModuleSymbolProvider(symbolProvider, fileName, (ULONG64)baseAddress, sizeOfImage);
+            PhDereferenceObject(fileName);
+        }
+
+        if (PhGetSymbolFromName(symbolProvider, L"GetAppModelPolicy", &symbolInfo))
+        {
+            if (NT_SUCCESS(PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), (PVOID)symbolInfo.Address)))
+            {
+                GetAppModelPolicy_I = (PVOID)symbolInfo.Address;
+            }
+        }
+
+        PhDereferenceObject(symbolProvider);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (GetAppModelPolicy_I)
+    {
+        // GetAppModelPolicy doesn't perform range checks and will read out-of-bound
+        // and return garbage if we ask it about a not-yet-supported policy type (diversenok)
+        if ((PolicyType >= AppModelPolicy_Type_AppInstancingErrorBehavior && WindowsVersion < WINDOWS_11) ||
+            (PolicyType >= AppModelPolicy_Type_ComIntraPackageRpcCall && WindowsVersion < WINDOWS_10_20H1) ||
+            (PolicyType >= AppModelPolicy_Type_CodeIntegritySigning && WindowsVersion < WINDOWS_10_19H1) ||
+            (PolicyType >= AppModelPolicy_Type_ShellExecuteRetrieveIdentityFromCurrentProcess && WindowsVersion < WINDOWS_10_RS5) ||
+            (PolicyType >= AppModelPolicy_Type_ConsoleHandleInheritance && WindowsVersion < WINDOWS_10_RS4) ||
+            (PolicyType >= AppModelPolicy_Type_AdminProcessPackageClaims && WindowsVersion < WINDOWS_10_RS3) ||
+            (PolicyType >= AppModelPolicy_Type_IndexerProtocolHandlerHost && WindowsVersion < WINDOWS_10_RS2))
+        {
+            return STATUS_INVALID_INFO_CLASS;
+        }
+
+        return GetAppModelPolicy_I(TokenHandle, PolicyType, PolicyValue);
+    }
+
+    return STATUS_PROCEDURE_NOT_FOUND;
+}
+
+static NTSTATUS PhGetAppModelPolicySymbolDownloadThread(
+    _In_ PVOID Context
+    )
+{
+    AppModelPolicy_PolicyValue result;
+
+    if (PhGetAppModelPolicy(
+        PhGetOwnTokenAttributes().TokenHandle,
+        AppModelPolicy_Type_DllSearchOrder,
+        &result
+        ) != STATUS_PROCEDURE_NOT_FOUND)
+    {
+        PostMessage(Context, WM_PH_APPMODEL_SYMBOL_RESULT, 0, TRUE);
+    }
+    else
+    {
+        PostMessage(Context, WM_PH_APPMODEL_SYMBOL_RESULT, 0, FALSE);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhEnumTokenAppModelPolicy(
+    _In_ PTOKEN_PAGE_CONTEXT TokenPageContext
+    )
+{
+    HANDLE TokenHandle;
+    AppModelPolicy_PolicyValue result;
+
+    if (!NT_SUCCESS(TokenPageContext->OpenObject(
+        &TokenHandle,
+        TOKEN_QUERY,
+        TokenPageContext->Context // ProcessId
+        )))
+    {
+        return;
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LifecycleManager, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LifecycleManager"));
+
+        switch (result)
+        {
+        case AppModelPolicy_LifecycleManager_Unmanaged:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Unmanaged"));
+            break;
+        case AppModelPolicy_LifecycleManager_ManagedByPLM:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ManagedByPLM"));
+            break;
+        case AppModelPolicy_LifecycleManager_ManagedByEM:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ManagedByEM"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppDataAccess, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppDataAccess"));
+
+        switch (result)
+        {
+        case AppModelPolicy_AppDataAccess_Allowed:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Allowed"));
+            break;
+        case AppModelPolicy_AppDataAccess_Denied:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Denied"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_WindowingModel, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WindowingModel"));
+
+        switch (result)
+        {
+        case AppModelPolicy_WindowingModel_Hwnd:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Hwnd"));
+            break;
+        case AppModelPolicy_WindowingModel_CoreWindow:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"CoreWindow"));
+            break;
+        case AppModelPolicy_WindowingModel_LegacyPhone:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"LegacyPhone"));
+            break;
+        case AppModelPolicy_WindowingModel_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_DllSearchOrder, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"DllSearchOrder"));
+
+        switch (result)
+        {
+        case AppModelPolicy_DllSearchOrder_Traditional:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Traditional"));
+            break;
+        case AppModelPolicy_DllSearchOrder_PackageGraphBased:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PackageGraphBased"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_Fusion, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"Fusion"));
+
+        switch (result)
+        {
+        case AppModelPolicy_Fusion_Full:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Full"));
+            break;
+        case AppModelPolicy_Fusion_Limited:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Limited"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_NonWindowsCodecLoading, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"NonWindowsCodecLoading"));
+
+        switch (result)
+        {
+        case AppModelPolicy_NonWindowsCodecLoading_Allowed:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Allowed"));
+            break;
+        case AppModelPolicy_NonWindowsCodecLoading_Denied:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Denied"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ProcessEnd, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ProcessEnd"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ProcessEnd_TerminateProcess:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"TerminateProcess"));
+            break;
+        case AppModelPolicy_ProcessEnd_ExitProcess:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ExitProcess"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_BeginThreadInit, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BeginThreadInit"));
+
+        switch (result)
+        {
+        case AppModelPolicy_BeginThreadInit_RoInitialize:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"RoInitialize"));
+            break;
+        case AppModelPolicy_BeginThreadInit_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_DeveloperInformation, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"DeveloperInformation"));
+
+        switch (result)
+        {
+        case AppModelPolicy_DeveloperInformation_UI:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"UI"));
+            break;
+        case AppModelPolicy_DeveloperInformation_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_CreateFileAccess, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CreateFileAccess"));
+
+        switch (result)
+        {
+        case AppModelPolicy_CreateFileAccess_Full:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Full"));
+            break;
+        case AppModelPolicy_CreateFileAccess_Limited:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Limited"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ImplicitPackageBreakaway_Internal, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ImplicitPackageBreakaway"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ImplicitPackageBreakaway_Allowed:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Allowed"));
+            break;
+        case AppModelPolicy_ImplicitPackageBreakaway_Denied:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Denied"));
+            break;
+        case AppModelPolicy_ImplicitPackageBreakaway_DeniedByApp:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"DeniedByApp"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ProcessActivationShim, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ProcessActivationShim"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ProcessActivationShim_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_ProcessActivationShim_PackagedCWALauncher:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PackagedCWALauncher"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppKnownToStateRepository, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppKnownToStateRepository"));
+
+        switch (result)
+        {
+        case AppModelPolicy_AppKnownToStateRepository_Known:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Known"));
+            break;
+        case AppModelPolicy_AppKnownToStateRepository_Unknown:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Unknown"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AudioManagement, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AudioManagement"));
+
+        switch (result)
+        {
+        case AppModelPolicy_AudioManagement_Unmanaged:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Unmanaged"));
+            break;
+        case AppModelPolicy_AudioManagement_ManagedByPBM:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ManagedByPBM"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PackageMayContainPublicComRegistrations, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPublicComRegistrations"));
+
+        switch (result)
+        {
+        case AppModelPolicy_PackageMayContainPublicComRegistrations_Yes:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Yes"));
+            break;
+        case AppModelPolicy_PackageMayContainPublicComRegistrations_No:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"No"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PackageMayContainPrivateComRegistrations, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPrivateComRegistrations"));
+
+        switch (result)
+        {
+        case AppModelPolicy_PackageMayContainPrivateComRegistrations_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_PackageMayContainPrivateComRegistrations_PrivateHive:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PrivateHive"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LaunchCreateProcessExtensions, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LaunchCreateProcessExtensions"));
+
+        switch (result)
+        {
+        case AppModelPolicy_LaunchCreateProcessExtensions_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_LaunchCreateProcessExtensions_RegisterWithPsm:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"RegisterWithPsm"));
+            break;
+        case AppModelPolicy_LaunchCreateProcessExtensions_RegisterWithDesktopAppX:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"RegisterWithDesktopAppX"));
+            break;
+        case AppModelPolicy_LaunchCreateProcessExtensions_RegisterWithDesktopAppXNoHeliumContainer:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"RegisterWithDesktopAppXNoHeliumContainer"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ClrCompat, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ClrCompat"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ClrCompat_Others:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Others"));
+            break;
+        case AppModelPolicy_ClrCompat_ClassicDesktop:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ClassicDesktop"));
+            break;
+        case AppModelPolicy_ClrCompat_Universal:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Universal"));
+            break;
+        case AppModelPolicy_ClrCompat_PackagedDesktop:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PackagedDesktop"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LoaderIgnoreAlteredSearchForRelativePath, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"IgnoreAlteredSearchForRelativePath"));
+
+        switch (result)
+        {
+        case AppModelPolicy_LoaderIgnoreAlteredSearchForRelativePath_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        case AppModelPolicy_LoaderIgnoreAlteredSearchForRelativePath_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ImplicitlyActivateClassicAAAServersAsIU, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ImplicitlyActivateClassicAAAServersAsIU"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ImplicitlyActivateClassicAAAServersAsIU_Yes:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Yes"));
+            break;
+        case AppModelPolicy_ImplicitlyActivateClassicAAAServersAsIU_No:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"No"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComClassicCatalog, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComClassicCatalog"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ComClassicCatalog_MachineHiveAndUserHive:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"MachineHiveAndUserHive"));
+            break;
+        case AppModelPolicy_ComClassicCatalog_MachineHiveOnly:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"MachineHiveOnly"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComUnmarshaling, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComUnmarshaling"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ComUnmarshaling_ForceStrongUnmarshaling:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ForceStrongUnmarshaling"));
+            break;
+        case AppModelPolicy_ComUnmarshaling_ApplicationManaged:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ApplicationManaged"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComAppLaunchPerfEnhancements, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComAppLaunchPerfEnhancements"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ComAppLaunchPerfEnhancements_Enabled:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Enabled"));
+            break;
+        case AppModelPolicy_ComAppLaunchPerfEnhancements_Disabled:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Disabled"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComSecurityInitialization, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComSecurityInitialization"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ComSecurityInitialization_ApplicationManaged:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ApplicationManaged"));
+            break;
+        case AppModelPolicy_ComSecurityInitialization_SystemManaged:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"SystemManaged"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_RoInitializeSingleThreadedBehavior, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"RoInitializeSingleThreadedBehavior"));
+
+        switch (result)
+        {
+        case AppModelPolicy_RoInitializeSingleThreadedBehavior_ASTA:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ASTA"));
+            break;
+        case AppModelPolicy_RoInitializeSingleThreadedBehavior_STA:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"STA"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComDefaultExceptionHandling, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComDefaultExceptionHandling"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ComDefaultExceptionHandling_HandleAll:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"All"));
+            break;
+        case AppModelPolicy_ComDefaultExceptionHandling_HandleNone:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComOopProxyAgility, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComOopProxyAgility"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ComOopProxyAgility_Agile:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Agile"));
+            break;
+        case AppModelPolicy_ComOopProxyAgility_NonAgile:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"NonAgile"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppServiceLifetime, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppServiceLifetime"));
+
+        switch (result)
+        {
+        case AppModelPolicy_AppServiceLifetime_StandardTimeout:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"StandardTimeout"));
+            break;
+        case AppModelPolicy_AppServiceLifetime_ExtensibleTimeout:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ExtensibleTimeout"));
+            break;
+        case AppModelPolicy_AppServiceLifetime_ExtendedForSamePackage:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ExtendedForSamePackage"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_WebPlatform, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WebPlatform"));
+
+        switch (result)
+        {
+        case AppModelPolicy_WebPlatform_Edge:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Edge"));
+            break;
+        case AppModelPolicy_WebPlatform_Legacy:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Legacy"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_WinInetStoragePartitioning, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"WinInetStoragePartitioning"));
+
+        switch (result)
+        {
+        case AppModelPolicy_WinInetStoragePartitioning_Isolated:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Isolated"));
+            break;
+        case AppModelPolicy_WinInetStoragePartitioning_SharedWithAppContainer:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"SharedWithAppContainer"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_IndexerProtocolHandlerHost, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"IndexerProtocolHandlerHost"));
+
+        switch (result)
+        {
+        case AppModelPolicy_IndexerProtocolHandlerHost_PerUser:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PerUser"));
+            break;
+        case AppModelPolicy_IndexerProtocolHandlerHost_PerApp:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PerApp"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LoaderIncludeUserDirectories, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoaderIncludeUserDirectories"));
+
+        switch (result)
+        {
+        case AppModelPolicy_LoaderIncludeUserDirectories_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        case AppModelPolicy_LoaderIncludeUserDirectories_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ConvertAppContainerToRestrictedAppContainer, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConvertAppContainerToRestrictedAppContainer"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ConvertAppContainerToRestrictedAppContainer_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        case AppModelPolicy_ConvertAppContainerToRestrictedAppContainer_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PackageMayContainPrivateMapiProvider, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PackageMayContainPrivateMapiProvider"));
+
+        switch (result)
+        {
+        case AppModelPolicy_PackageMayContainPrivateMapiProvider_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_PackageMayContainPrivateMapiProvider_PrivateHive:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PrivateHive"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AdminProcessPackageClaims, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AdminProcessPackageClaims"));
+
+        switch (result)
+        {
+        case AppModelPolicy_AdminProcessPackageClaims_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_AdminProcessPackageClaims_Caller:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Caller"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_RegistryRedirectionBehavior, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"RegistryRedirectionBehavior"));
+
+        switch (result)
+        {
+        case AppModelPolicy_RegistryRedirectionBehavior_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_RegistryRedirectionBehavior_CopyOnWrite:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"CopyOnWrite"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_BypassCreateProcessAppxExtension, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BypassCreateProcessAppxExtension"));
+
+        switch (result)
+        {
+        case AppModelPolicy_BypassCreateProcessAppxExtension_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        case AppModelPolicy_BypassCreateProcessAppxExtension_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_KnownFolderRedirection, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"KnownFolderRedirection"));
+
+        switch (result)
+        {
+        case AppModelPolicy_KnownFolderRedirection_Isolated:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Isolated"));
+            break;
+        case AppModelPolicy_KnownFolderRedirection_RedirectToPackage:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"RedirectToPackage"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PrivateActivateAsPackageWinrtClasses, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PrivateActivateAsPackageWinrtClasses"));
+
+        switch (result)
+        {
+        case AppModelPolicy_PrivateActivateAsPackageWinrtClasses_AllowNone:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"AllowNone"));
+            break;
+        case AppModelPolicy_PrivateActivateAsPackageWinrtClasses_AllowFullTrust:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"AllowFullTrust"));
+            break;
+        case AppModelPolicy_PrivateActivateAsPackageWinrtClasses_AllowNonFullTrust:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"AllowNonFullTrust"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppPrivateFolderRedirection, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppPrivateFolderRedirection"));
+
+        switch (result)
+        {
+        case AppModelPolicy_AppPrivateFolderRedirection_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_AppPrivateFolderRedirection_AppPrivate:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"AppPrivate"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_GlobalSystemAppDataAccess, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"GlobalSystemAppDataAccess"));
+
+        switch (result)
+        {
+        case AppModelPolicy_GlobalSystemAppDataAccess_Normal:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Normal"));
+            break;
+        case AppModelPolicy_GlobalSystemAppDataAccess_Virtualized:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Virtualized"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ConsoleHandleInheritance, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConsoleHandleInheritance"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ConsoleHandleInheritance_ConsoleOnly:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ConsoleOnly"));
+            break;
+        case AppModelPolicy_ConsoleHandleInheritance_All:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"All"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ConsoleBufferAccess, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConsoleBufferAccess"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ConsoleBufferAccess_RestrictedUnidirectional:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"RestrictedUnidirectional"));
+            break;
+        case AppModelPolicy_ConsoleBufferAccess_Unrestricted:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Unrestricted"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ConvertCallerTokenToUserTokenForDeployment, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ConvertCallerTokenToUserTokenForDeployment"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ConvertCallerTokenToUserTokenForDeployment_UserCallerToken:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"UserCallerToken"));
+            break;
+        case AppModelPolicy_ConvertCallerTokenToUserTokenForDeployment_ConvertTokenToUserToken:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"ConvertTokenToUserToken"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ShellExecuteRetrieveIdentityFromCurrentProcess, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ShellExecuteRetrieveIdentityFromCurrentProcess"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ShellExecuteRetrieveIdentityFromCurrentProcess_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        case AppModelPolicy_ShellExecuteRetrieveIdentityFromCurrentProcess_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_CodeIntegritySigning, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CodeIntegritySigning"));
+
+        switch (result)
+        {
+        case AppModelPolicy_CodeIntegritySigning_Default:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Default"));
+            break;
+        case AppModelPolicy_CodeIntegritySigning_OriginBased:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"OriginBased"));
+            break;
+        case AppModelPolicy_CodeIntegritySigning_OriginBasedForDev:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"OriginBasedForDev"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PTCActivation, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PTCActivation"));
+
+        switch (result)
+        {
+        case AppModelPolicy_PTCActivation_Default:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Default"));
+            break;
+        case AppModelPolicy_PTCActivation_AllowActivationInBrokerForMediumILContainer:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"AllowActivationInBrokerForMediumIL"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComIntraPackageRpcCall, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComIntraPackageRpcCall"));
+
+        switch (result)
+        {
+        case AppModelPolicy_Type_ComIntraPackageRpcCall_NoWake:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"NoWake"));
+            break;
+        case AppModelPolicy_Type_ComIntraPackageRpcCall_Wake:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Wake"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LoadUser32ShimOnWindowsCoreOS, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoadUser32ShimOnWindowsCoreOS"));
+
+        switch (result)
+        {
+        case AppModelPolicy_LoadUser32ShimOnWindowsCoreOS_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        case AppModelPolicy_LoadUser32ShimOnWindowsCoreOS_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_SecurityCapabilitiesOverride, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"SecurityCapabilitiesOverride"));
+
+        switch (result)
+        {
+        case AppModelPolicy_SecurityCapabilitiesOverride_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_SecurityCapabilitiesOverride_PackageCapabilities:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PackageCapabilities"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_CurrentDirectoryOverride, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"CurrentDirectoryOverride"));
+
+        switch (result)
+        {
+        case AppModelPolicy_CurrentDirectoryOverride_None:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"None"));
+            break;
+        case AppModelPolicy_CurrentDirectoryOverride_PackageInstallDirectory:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"PackageInstallDirectory"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ComTokenMatchingForAAAServers, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ComTokenMatching"));
+
+        switch (result)
+        {
+        case AppModelPolicy_ComTokenMatchingForAAAServers_DontUseNtCompareTokens:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"DontUseNtCompareTokens"));
+            break;
+        case AppModelPolicy_ComTokenMatchingForAAAServers_UseNtCompareTokens:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"UseNtCompareTokens"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_UseOriginalFileNameInTokenFQBNAttribute, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"UseOriginalFileNameInTokenFQBN"));
+
+        switch (result)
+        {
+        case AppModelPolicy_UseOriginalFileNameInTokenFQBNAttribute_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        case AppModelPolicy_UseOriginalFileNameInTokenFQBNAttribute_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_LoaderIncludeAlternateForwarders, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"LoaderIncludeAlternateForwarders"));
+
+        switch (result)
+        {
+        case AppModelPolicy_LoaderIncludeAlternateForwarders_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        case AppModelPolicy_LoaderIncludeAlternateForwarders_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_PullPackageDependencyData, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PullPackageDependencyData"));
+
+        switch (result)
+        {
+        case AppModelPolicy_PullPackageDependencyData_False:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"False"));
+            break;
+        case AppModelPolicy_PullPackageDependencyData_True:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"True"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppInstancingErrorBehavior, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppInstancingErrorBehavior"));
+
+        switch (result)
+        {
+        case AppModelPolicy_AppInstancingErrorBehavior_SuppressErrors:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"SuppressErrors"));
+            break;
+        case AppModelPolicy_AppInstancingErrorBehavior_RaiseErrors:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"RaiseErrors"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_BackgroundTaskRegistrationType, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"BackgroundTaskRegistrationType"));
+
+        switch (result)
+        {
+        case AppModelPolicy_BackgroundTaskRegistrationType_Unsupported:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Unsupported"));
+            break;
+        case AppModelPolicy_BackgroundTaskRegistrationType_Manifested:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Manifested"));
+            break;
+        case AppModelPolicy_BackgroundTaskRegistrationType_Win32Clsid:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Win32Clsid"));
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_ModsPowerNotification, &result)))
+    {
+        PPH_TOKEN_ATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"ModsPowerNotification"));
+
+        switch (result)
+        {
+        case AppModelPolicy_Type_ModsPowerNotification_Disabled:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Disabled"));
+            break;
+        case AppModelPolicy_Type_ModsPowerNotification_Enabled:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"Enabled"));
+            break;
+        case AppModelPolicy_Type_ModsPowerNotification_QueryDam:
+            PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, node, PhCreateString(L"QueryDam"));
+            break;
+        }
+    }
+
+    NtClose(TokenHandle);
+}
+
+#define SORT_FUNCTION(Column) PhpAppPolicyTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpAppPolicyTreeNewCompare##Column( \
+    _In_ void *_context, \
+    _In_ const void *_elem1, \
+    _In_ const void *_elem2 \
+    ) \
+{ \
+    PPH_TOKEN_ATTRIBUTE_NODE node1 = *(PPH_TOKEN_ATTRIBUTE_NODE*)_elem1; \
+    PPH_TOKEN_ATTRIBUTE_NODE node2 = *(PPH_TOKEN_ATTRIBUTE_NODE*)_elem2; \
+    int sortResult = 0;
+
+#define END_SORT_FUNCTION \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)node1->Node.Index, (ULONG_PTR)node2->Node.Index); \
+    \
+    return PhModifySort(sortResult, ((PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT)_context)->TreeNewSortOrder); \
+}
+
+BEGIN_SORT_FUNCTION(Name)
+{
+    sortResult = PhCompareStringWithNull(node1->Text, node2->Text, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Value)
+{
+    sortResult = PhCompareStringWithNull(node1->Text, node2->Text, TRUE);
+}
+END_SORT_FUNCTION
+
+BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
+    _In_ HWND hwnd,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT context = Context;
+    PPH_TOKEN_ATTRIBUTE_NODE node;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)getChildren->Node;
+
+            if (context->TreeNewSortOrder == NoSortOrder)
+            {
+                if (!node)
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE*)context->RootList->Items;
+                    getChildren->NumberOfChildren = context->RootList->Count;
+                }
+                else
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE*)node->Children->Items;
+                    getChildren->NumberOfChildren = node->Children->Count;
+                }
+            }
+            else
+            {
+                if (!node)
+                {
+                    static PVOID sortFunctions[] =
+                    {
+                        SORT_FUNCTION(Name),
+                        SORT_FUNCTION(Value)
+                    };
+                    int (__cdecl* sortFunction)(void*, const void*, const void*);
+
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == 2, "SortFunctions must equal maximum.");
+
+                    if (context->TreeNewSortColumn < 2)
+                        sortFunction = sortFunctions[context->TreeNewSortColumn];
+                    else
+                        sortFunction = NULL;
+
+                    if (sortFunction)
+                    {
+                        qsort_s(context->RootList->Items, context->RootList->Count, sizeof(PVOID), sortFunction, context);
+                    }
+
+                    getChildren->Children = (PPH_TREENEW_NODE*)context->RootList->Items;
+                    getChildren->NumberOfChildren = context->RootList->Count;
+                }
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)isLeaf->Node;
+
+            isLeaf->IsLeaf = TRUE;
+        }
+        return TRUE;
+    case TreeNewGetCellText:
+        {
+            PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
+            node = (PPH_TOKEN_ATTRIBUTE_NODE)getCellText->Node;
+
+            if (getCellText->Id == 0)
+                getCellText->Text = PhGetStringRef(node->Text);
+            else if (getCellText->Id == 1)
+            {
+                if (PhIsNullOrEmptyString(node->Value))
+                {
+                    PH_STRING_BUILDER stringBuilder;
+
+                    PhInitializeStringBuilder(&stringBuilder, 64);
+
+                    for (ULONG i = 0; i < node->Children->Count; i++)
+                    {
+                        PhAppendStringBuilder(&stringBuilder, &((PPH_TOKEN_ATTRIBUTE_NODE)node->Children->Items[i])->Text->sr);
+                        PhAppendStringBuilder2(&stringBuilder, L", ");
+                    }
+
+                    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+                    node->Value = PhFinalStringBuilderString(&stringBuilder);
+                }
+
+                getCellText->Text = PhGetStringRef(node->Value);
+            }
+            else
+                return FALSE;
+        }
+        return TRUE;
+    case TreeNewSortChanged:
+        {
+            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
+            // Force a rebuild to sort the items.
+            TreeNew_NodesStructured(hwnd);
+        }
+        return TRUE;
+    case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    PPH_STRING text;
+
+                    text = PhGetTreeNewText(hwnd, 0);
+                    PhSetClipboardString(hwnd, &text->sr);
+                    PhDereferenceObject(text);
+                }
+                break;
+            }
+        }
+        return TRUE;
+    case TreeNewContextMenu:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
+
+            SendMessage(context->WindowHandle, WM_CONTEXTMENU, 0, (LPARAM)contextMenuEvent);
+        }
+        return TRUE;
+    case TreeNewHeaderRightClick:
+        {
+            PH_TN_COLUMN_MENU_DATA data;
+
+            data.TreeNewHandle = hwnd;
+            data.MouseEvent = Parameter1;
+            data.DefaultSortColumn = 0;
+            data.DefaultSortOrder = AscendingSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
+
+            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            PhHandleTreeNewColumnMenu(&data);
+            PhDeleteTreeNewColumnMenu(&data);
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static PH_STRINGREF PhAppPolicyLoadingText = PH_STRINGREF_INIT(L"Initializing kernelbase symbols...");
+static PH_STRINGREF PhAppPolicyEmptyText = PH_STRINGREF_INIT(L"There are no policies to display.");
+
+INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+    HWND tnHandle;
+
+    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!tokenPageContext)
+        return FALSE;
+
+    tnHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            tokenPageContext->AppPolicyTreeContext.WindowHandle = hwndDlg;
+            tokenPageContext->AppPolicyTreeContext.NodeList = PhCreateList(10);
+            tokenPageContext->AppPolicyTreeContext.RootList = PhCreateList(10);
+
+            PhSetControlTheme(tnHandle, L"explorer");
+            TreeNew_SetCallback(tnHandle, PhpAppPolicyTreeNewCallback, &tokenPageContext->AppPolicyTreeContext);
+            TreeNew_SetRedraw(tnHandle, FALSE);
+            PhAddTreeNewColumnEx2(tnHandle, 0, TRUE, L"Policy", 220, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+            PhAddTreeNewColumnEx2(tnHandle, 1, TRUE, L"Value", 150, PH_ALIGN_LEFT, 1, 0, TN_COLUMN_FLAG_NODPISCALEONADD);
+            TreeNew_SetRedraw(tnHandle, TRUE);
+            TreeNew_SetSort(tnHandle, 0, AscendingSortOrder);
+
+            TreeNew_SetEmptyText(tnHandle, &PhAppPolicyLoadingText, 0);
+            PhCreateThread2(PhGetAppModelPolicySymbolDownloadThread, hwndDlg);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpDeleteAttributeTreeContext(&tokenPageContext->AppPolicyTreeContext);
+        }
+        break;
+    case WM_PH_APPMODEL_SYMBOL_RESULT:
+        {
+            BOOLEAN result = (BOOLEAN)lParam;
+
+            if (result)
+            {
+                TreeNew_SetEmptyText(tnHandle, &PhAppPolicyEmptyText, 0);
+                TreeNew_SetRedraw(tnHandle, FALSE);
+                PhEnumTokenAppModelPolicy(tokenPageContext);
+                TreeNew_NodesStructured(tnHandle);
+                TreeNew_SetRedraw(tnHandle, TRUE);
+            }
+            else
+            {
+                TreeNew_SetEmptyText(tnHandle, &PhAppPolicyEmptyText, 0);
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
+            PPH_EMENU menu;
+            PPH_EMENU_ITEM selectedItem;
+            PPH_TOKEN_ATTRIBUTE_NODE* attributeObjectNodes = NULL;
+            ULONG numberOfAttributeObjectNodes = 0;
+
+            if (!PhpGetSelectedAttributeTreeNodes(&tokenPageContext->AppPolicyTreeContext, &attributeObjectNodes, &numberOfAttributeObjectNodes))
+                break;
+
+            if (numberOfAttributeObjectNodes != 0)
+            {
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"Copy", NULL, NULL), ULONG_MAX);
+                PhInsertCopyCellEMenuItem(menu, IDC_COPY, tnHandle, contextMenuEvent->Column);
+
+                selectedItem = PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    contextMenuEvent->Location.x,
+                    contextMenuEvent->Location.y
+                    );
+
+                if (selectedItem && selectedItem->Id != ULONG_MAX)
+                {
+                    if (!PhHandleCopyCellEMenuItem(selectedItem))
+                    {
+                        switch (selectedItem->Id)
+                        {
+                        case IDC_COPY:
+                            {
+                                PPH_STRING text;
+
+                                text = PhGetTreeNewText(tnHandle, 0);
+                                PhSetClipboardString(tnHandle, &text->sr);
+                                PhDereferenceObject(text);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                PhDestroyEMenu(menu);
+            }
+
+            PhFree(attributeObjectNodes);
         }
         break;
     }

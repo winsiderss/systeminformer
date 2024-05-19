@@ -62,6 +62,7 @@
 #define SEC_HUGE_PAGES 0x00020000
 #define SEC_PARTITION_OWNER_HANDLE 0x00040000
 #define SEC_64K_PAGES 0x00080000
+#define SEC_DRIVER_IMAGE 0x00100000 // rev
 #define SEC_BASED 0x00200000
 #define SEC_NO_CHANGE 0x00400000
 #define SEC_FILE 0x00800000
@@ -79,18 +80,17 @@
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-// private
 typedef enum _MEMORY_INFORMATION_CLASS
 {
-    MemoryBasicInformation, // MEMORY_BASIC_INFORMATION
-    MemoryWorkingSetInformation, // MEMORY_WORKING_SET_INFORMATION
-    MemoryMappedFilenameInformation, // UNICODE_STRING
-    MemoryRegionInformation, // MEMORY_REGION_INFORMATION
-    MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION // since VISTA
-    MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION // since WIN8
-    MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
+    MemoryBasicInformation, // q: MEMORY_BASIC_INFORMATION
+    MemoryWorkingSetInformation, // q: MEMORY_WORKING_SET_INFORMATION
+    MemoryMappedFilenameInformation, // q: UNICODE_STRING
+    MemoryRegionInformation, // q: MEMORY_REGION_INFORMATION
+    MemoryWorkingSetExInformation, // q: MEMORY_WORKING_SET_EX_INFORMATION // since VISTA
+    MemorySharedCommitInformation, // q: MEMORY_SHARED_COMMIT_INFORMATION // since WIN8
+    MemoryImageInformation, // q: MEMORY_IMAGE_INFORMATION
     MemoryRegionInformationEx, // MEMORY_REGION_INFORMATION
-    MemoryPrivilegedBasicInformation,
+    MemoryPrivilegedBasicInformation, // MEMORY_BASIC_INFORMATION
     MemoryEnclaveImageInformation, // MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
     MemoryBasicInformationCapped, // 10
     MemoryPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
@@ -421,8 +421,8 @@ typedef enum _SECTION_INFORMATION_CLASS
 {
     SectionBasicInformation, // q; SECTION_BASIC_INFORMATION
     SectionImageInformation, // q; SECTION_IMAGE_INFORMATION
-    SectionRelocationInformation, // q; PVOID RelocationAddress // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
-    SectionOriginalBaseInformation, // PVOID BaseAddress
+    SectionRelocationInformation, // q; ULONG_PTR RelocationDelta // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
+    SectionOriginalBaseInformation, // q; PVOID BaseAddress // since REDSTONE
     SectionInternalImageInformation, // SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
     MaxSectionInfoClass
 } SECTION_INFORMATION_CLASS;
@@ -519,12 +519,15 @@ typedef enum _SECTION_INHERIT
 #define MEM_EXECUTE_OPTION_PERMANENT 0x8
 #define MEM_EXECUTE_OPTION_EXECUTE_DISPATCH_ENABLE 0x10
 #define MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE 0x20
-#define MEM_EXECUTE_OPTION_VALID_FLAGS 0x3f
+#define MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION 0x40
+#define MEM_EXECUTE_OPTION_VALID_FLAGS 0x7f
 
 // Virtual memory
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+_Must_inspect_result_
+_When_(return == 0, __drv_allocatesMem(mem))
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -538,7 +541,10 @@ NtAllocateVirtualMemory(
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
-NTSYSAPI
+
+_Must_inspect_result_
+_When_(return == 0, __drv_allocatesMem(mem))
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAllocateVirtualMemoryEx(
@@ -550,6 +556,7 @@ NtAllocateVirtualMemoryEx(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
+
 #endif
 
 NTSYSCALLAPI
@@ -575,7 +582,7 @@ NtReadVirtualMemory(
 
 #if (PHNT_VERSION >= PHNT_WIN11)
 // rev
-NTSYSAPI
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReadVirtualMemoryEx(
@@ -622,6 +629,8 @@ NtQueryVirtualMemory(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
+typedef struct _IO_STATUS_BLOCK* PIO_STATUS_BLOCK;
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -629,7 +638,7 @@ NtFlushVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _Inout_ PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
-    _Out_ struct _IO_STATUS_BLOCK* IoStatus
+    _Out_ PIO_STATUS_BLOCK IoStatus
     );
 
 #endif
@@ -648,7 +657,19 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
     VmRemoveFromWorkingSetInformation,
     MaxVmInfoClass
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
+#else
+#define VmPrefetchInformation 0x0
+#define VmPagePriorityInformation 0x1
+#define VmCfgCallTargetInformation 0x2
+#define VmPageDirtyStateInformation 0x3
+#define VmImageHotPatchInformation 0x4
+#define VmPhysicalContiguityInformation 0x5
+#define VmVirtualMachinePrepopulateInformation 0x6
+#define VmRemoveFromWorkingSetInformation 0x7
+#define MaxVmInfoClass 0x8
+#endif
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef struct _MEMORY_RANGE_ENTRY
 {
     PVOID VirtualAddress;
@@ -678,8 +699,8 @@ NtSetInformationVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
     _In_ ULONG_PTR NumberOfEntries,
-    _In_reads_ (NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
-    _In_reads_bytes_ (VmInformationLength) PVOID VmInformation,
+    _In_reads_(NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
+    _In_reads_bytes_(VmInformationLength) PVOID VmInformation,
     _In_ ULONG VmInformationLength
     );
 
@@ -770,7 +791,7 @@ NtMapViewOfSection(
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
-NTSYSAPI
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtMapViewOfSectionEx(
@@ -781,7 +802,7 @@ NtMapViewOfSectionEx(
     _Inout_ PSIZE_T ViewSize,
     _In_ ULONG AllocationType,
     _In_ ULONG Win32Protect,
-    _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
+    _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
 #endif
@@ -974,7 +995,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreatePartition(
-    _In_ HANDLE ParentPartitionHandle,
+    _In_opt_ HANDLE ParentPartitionHandle,
     _Out_ PHANDLE PartitionHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
@@ -1114,6 +1135,7 @@ NtFlushWriteBuffer(
 
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 // Enclave support
 
 NTSYSCALLAPI
@@ -1158,25 +1180,37 @@ NtInitializeEnclave(
     );
 
 // rev
+#define TERMINATE_ENCLAVE_VALID_FLAGS     0x00000005ul
+#define TERMINATE_ENCLAVE_FLAG_NO_WAIT    0x00000001ul
+#define TERMINATE_ENCLAVE_FLAG_WAIT_ERROR 0x00000004ul // STATUS_PENDING -> STATUS_ENCLAVE_NOT_TERMINATED
+
+// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtTerminateEnclave(
     _In_ PVOID BaseAddress,
-    _In_ BOOLEAN WaitForThread
+    _In_ ULONG Flags // TERMINATE_ENCLAVE_FLAG_*
     );
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+
+// rev
+#define ENCLAVE_CALL_VALID_FLAGS  0x00000001ul
+#define ENCLAVE_CALL_FLAG_NO_WAIT 0x00000001ul
+
 // rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCallEnclave(
     _In_ PENCLAVE_ROUTINE Routine,
-    _In_ PVOID Parameter,
-    _In_ BOOLEAN WaitForThread,
-    _Out_opt_ PVOID *ReturnValue
+    _In_ PVOID Reserved,              // reserved for dispatch (RtlEnclaveCallDispatch)
+    _In_ ULONG Flags,                 // ENCLAVE_CALL_FLAG_*
+    _Inout_ PVOID* RoutineParamReturn // input routine parameter, output routine return value
     );
+#endif
+
 #endif
 
 #endif

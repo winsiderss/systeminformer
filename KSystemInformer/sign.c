@@ -5,29 +5,30 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
 
 typedef struct _KPH_SIGNING_INFRASTRUCTURE
 {
-    KPH_AUTHENTICODE_INFO HalAuthenticode;
+    KPH_AUTHENTICODE_INFORMATION HalAuthenticode;
     volatile SIZE_T CatalogsAreLoadedCalls;
-
 } KPH_SIGNING_INFRASTRUCTURE, *PKPH_SIGNING_INFRASTRUCTURE;
 
-static UNICODE_STRING KphpSigningInfraName = RTL_CONSTANT_STRING(L"KphSigningInfrastructure");
-static PKPH_OBJECT_TYPE KphpSigningInfraType = NULL;
+KPH_PROTECTED_DATA_SECTION_RO_PUSH();
+static const UNICODE_STRING KphpSigningInfraName = RTL_CONSTANT_STRING(L"KphSigningInfrastructure");
+static const UNICODE_STRING KphpHalFileName = RTL_CONSTANT_STRING(L"\\SystemRoot\\System32\\hal.dll");
+KPH_PROTECTED_DATA_SECTION_RO_POP();
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_SIGNING_INFRASTRUCTURE KphpSigningInfra = NULL;
+static PKPH_OBJECT_TYPE KphpSigningInfraType = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
-
-static UNICODE_STRING KphpHalFileName = RTL_CONSTANT_STRING(L"\\SystemRoot\\System32\\hal.dll");
 
 /**
  * \brief Allocates signing infrastructure object.
@@ -62,7 +63,11 @@ NTSTATUS KSIAPI KphpInitSigningInfra(
     _In_opt_ PVOID Parameter
     )
 {
+    NTSTATUS status;
     PKPH_SIGNING_INFRASTRUCTURE infra;
+    HANDLE fileHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
 
     PAGED_CODE();
 
@@ -70,8 +75,35 @@ NTSTATUS KSIAPI KphpInitSigningInfra(
 
     infra = Object;
 
-    return KphGetAuthenticodeInfoByFileName(&KphpHalFileName,
-                                            &infra->HalAuthenticode);
+    InitializeObjectAttributes(&objectAttributes,
+                               (PUNICODE_STRING)&KphpHalFileName,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = KphCreateFile(&fileHandle,
+                           FILE_READ_ACCESS | SYNCHRONIZE,
+                           &objectAttributes,
+                           &ioStatusBlock,
+                           NULL,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           NULL,
+                           0,
+                           IO_IGNORE_SHARE_ACCESS_CHECK,
+                           KernelMode);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    status = KphGetAuthenticodeInformation(fileHandle, &infra->HalAuthenticode);
+
+    ObCloseHandle(fileHandle, KernelMode);
+
+    return status;
 }
 
 /**
@@ -90,7 +122,7 @@ VOID KSIAPI KphpDeleteSigningInfra(
 
     infra = Object;
 
-    KphFreeAuthenticodeInfo(&infra->HalAuthenticode);
+    KphFreeAuthenticodeInformation(&infra->HalAuthenticode);
 }
 
 /**
@@ -111,6 +143,7 @@ VOID KSIAPI KphpFreeSigningInfra(
 /**
  * \brief Internal function resetting signing info between calls.
  *
+ * \param[in] Dyn Dynamic configuration.
  * \param[in] PolicyInfo The policy info to reset.
  * \param[in] SigningTime The signing time to reset.
  * \param[in] TimeStampPolicyInfo The time stamp policy info to reset.
@@ -119,25 +152,26 @@ VOID KSIAPI KphpFreeSigningInfra(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpResetSigningInfo(
+    _In_ PKPH_DYN Dyn,
     _Inout_opt_ PMINCRYPT_POLICY_INFO PolicyInfo,
     _Inout_opt_ PLARGE_INTEGER SigningTime,
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo,
     _Inout_opt_ PUNICODE_STRING CatalogName
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphDynCiFreePolicyInfo);
+    NT_ASSERT(Dyn->CiFreePolicyInfo);
 
     if (PolicyInfo)
     {
-        KphDynCiFreePolicyInfo(PolicyInfo);
+        Dyn->CiFreePolicyInfo(PolicyInfo);
         RtlZeroMemory(PolicyInfo, sizeof(*PolicyInfo));
     }
 
     if (TimeStampPolicyInfo)
     {
-        KphDynCiFreePolicyInfo(TimeStampPolicyInfo);
+        Dyn->CiFreePolicyInfo(TimeStampPolicyInfo);
         RtlZeroMemory(TimeStampPolicyInfo, sizeof(*TimeStampPolicyInfo));
     }
 
@@ -146,7 +180,7 @@ VOID KphpResetSigningInfo(
         SigningTime->QuadPart = 0;
     }
 
-    if (CatalogName && CatalogName->Buffer)
+    if (CatalogName)
     {
         RtlFreeUnicodeString(CatalogName);
         RtlZeroMemory(CatalogName, sizeof(*CatalogName));
@@ -156,58 +190,68 @@ VOID KphpResetSigningInfo(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpCiCheckSignedFile(
-    _In_ PKPH_AUTHENTICODE_INFO Info,
+    _In_ PKPH_DYN Dyn,
+    _In_ PKPH_AUTHENTICODE_INFORMATION Information,
     _Inout_opt_ PMINCRYPT_POLICY_INFO PolicyInfo,
     _Out_opt_ PLARGE_INTEGER SigningTime,
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
     )
 {
-    PAGED_PASSIVE();
+    PKPH_HASH_INFORMATION hashInfoSha1;
+    PKPH_HASH_INFORMATION hashInfoSha256;
 
-    NT_ASSERT(KphDynCiFreePolicyInfo);
-    NT_ASSERT(Info->Signature);
-    NT_ASSERT(Info->SignatureSize > 0);
+    PAGED_CODE_PASSIVE();
 
-    if (KphDynCiCheckSignedFileEx)
+    hashInfoSha1 = &Information->HashInfo[KPH_AUTHENTICODE_HASH_SHA1];
+    hashInfoSha256 = &Information->HashInfo[KPH_AUTHENTICODE_HASH_SHA256];
+
+    NT_ASSERT(Dyn->CiFreePolicyInfo);
+    NT_ASSERT(hashInfoSha1->Algorithm == KphHashAlgorithmSha1Authenticode);
+    NT_ASSERT(hashInfoSha256->Algorithm == KphHashAlgorithmSha256Authenticode);
+    NT_ASSERT(Information->SignatureLength > 0);
+    NT_ASSERT(Information->Signature);
+
+    if (Dyn->CiCheckSignedFileEx)
     {
         NTSTATUS status;
 
-        status = KphDynCiCheckSignedFileEx(Info->SHA256,
-                                           ARRAYSIZE(Info->SHA256),
-                                           CALG_SHA_256,
-                                           Info->Signature,
-                                           Info->SignatureSize,
-                                           PolicyInfo,
-                                           SigningTime,
-                                           TimeStampPolicyInfo);
+        status = Dyn->CiCheckSignedFileEx(hashInfoSha256->Hash,
+                                          hashInfoSha256->Length,
+                                          CALG_SHA_256,
+                                          Information->Signature,
+                                          Information->SignatureLength,
+                                          PolicyInfo,
+                                          SigningTime,
+                                          TimeStampPolicyInfo);
         if (status == STATUS_INVALID_IMAGE_HASH)
         {
-            KphpResetSigningInfo(PolicyInfo,
+            KphpResetSigningInfo(Dyn,
+                                 PolicyInfo,
                                  SigningTime,
                                  TimeStampPolicyInfo,
                                  NULL);
 
-            status = KphDynCiCheckSignedFileEx(Info->SHA1,
-                                               ARRAYSIZE(Info->SHA1),
-                                               CALG_SHA1,
-                                               Info->Signature,
-                                               Info->SignatureSize,
-                                               PolicyInfo,
-                                               SigningTime,
-                                               TimeStampPolicyInfo);
+            status = Dyn->CiCheckSignedFileEx(hashInfoSha1->Hash,
+                                              hashInfoSha1->Length,
+                                              CALG_SHA1,
+                                              Information->Signature,
+                                              Information->SignatureLength,
+                                              PolicyInfo,
+                                              SigningTime,
+                                              TimeStampPolicyInfo);
         }
 
         return status;
     }
 
-    if (KphDynCiCheckSignedFile)
+    if (Dyn->CiCheckSignedFile)
     {
-        return KphDynCiCheckSignedFile(Info->SHA1,
-                                       Info->Signature,
-                                       Info->SignatureSize,
-                                       PolicyInfo,
-                                       SigningTime,
-                                       TimeStampPolicyInfo);
+        return Dyn->CiCheckSignedFile(hashInfoSha1->Hash,
+                                      Information->Signature,
+                                      Information->SignatureLength,
+                                      PolicyInfo,
+                                      SigningTime,
+                                      TimeStampPolicyInfo);
     }
 
     return STATUS_NOINTERFACE;
@@ -216,7 +260,8 @@ NTSTATUS KphpCiCheckSignedFile(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpCiVerifyHashInCatalog(
-    _In_ PKPH_AUTHENTICODE_INFO Info,
+    _In_ PKPH_DYN Dyn,
+    _In_ PKPH_AUTHENTICODE_INFORMATION Information,
     _In_ BOOLEAN ReloadCatalogs,
     _In_ BOOLEAN SecureProcess,
     _In_ ULONG AcceptRoots,
@@ -226,56 +271,66 @@ NTSTATUS KphpCiVerifyHashInCatalog(
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
     )
 {
-    PAGED_PASSIVE();
+    PKPH_HASH_INFORMATION hashInfoSha1;
+    PKPH_HASH_INFORMATION hashInfoSha256;
 
-    NT_ASSERT(KphDynCiFreePolicyInfo);
+    PAGED_CODE_PASSIVE();
 
-    if (KphDynCiVerifyHashInCatalogEx)
+    hashInfoSha1 = &Information->HashInfo[KPH_AUTHENTICODE_HASH_SHA1];
+    hashInfoSha256 = &Information->HashInfo[KPH_AUTHENTICODE_HASH_SHA256];
+
+    NT_ASSERT(Dyn->CiFreePolicyInfo);
+    NT_ASSERT(hashInfoSha1->Algorithm == KphHashAlgorithmSha1Authenticode);
+    NT_ASSERT(hashInfoSha256->Algorithm == KphHashAlgorithmSha256Authenticode);
+
+    if (Dyn->CiVerifyHashInCatalogEx)
     {
         NTSTATUS status;
 
-        status = KphDynCiVerifyHashInCatalogEx(Info->SHA256,
-                                               ARRAYSIZE(Info->SHA256),
-                                               CALG_SHA_256,
-                                               ReloadCatalogs,
-                                               SecureProcess,
-                                               AcceptRoots,
-                                               PolicyInfo,
-                                               CatalogName,
-                                               SigningTime,
-                                               TimeStampPolicyInfo);
+
+        status = Dyn->CiVerifyHashInCatalogEx(hashInfoSha256->Hash,
+                                              hashInfoSha256->Length,
+                                              CALG_SHA_256,
+                                              ReloadCatalogs,
+                                              SecureProcess,
+                                              AcceptRoots,
+                                              PolicyInfo,
+                                              CatalogName,
+                                              SigningTime,
+                                              TimeStampPolicyInfo);
         if (status == STATUS_INVALID_IMAGE_HASH)
         {
-            KphpResetSigningInfo(PolicyInfo,
+            KphpResetSigningInfo(Dyn,
+                                 PolicyInfo,
                                  SigningTime,
                                  TimeStampPolicyInfo,
                                  CatalogName);
 
-            status = KphDynCiVerifyHashInCatalogEx(Info->SHA1,
-                                                   ARRAYSIZE(Info->SHA1),
-                                                   CALG_SHA1,
-                                                   ReloadCatalogs,
-                                                   SecureProcess,
-                                                   AcceptRoots,
-                                                   PolicyInfo,
-                                                   CatalogName,
-                                                   SigningTime,
-                                                   TimeStampPolicyInfo);
+            status = Dyn->CiVerifyHashInCatalogEx(hashInfoSha1->Hash,
+                                                  hashInfoSha1->Length,
+                                                  CALG_SHA1,
+                                                  ReloadCatalogs,
+                                                  SecureProcess,
+                                                  AcceptRoots,
+                                                  PolicyInfo,
+                                                  CatalogName,
+                                                  SigningTime,
+                                                  TimeStampPolicyInfo);
         }
 
         return status;
     }
 
-    if (KphDynCiVerifyHashInCatalog)
+    if (Dyn->CiVerifyHashInCatalog)
     {
-        return KphDynCiVerifyHashInCatalog(Info->SHA1,
-                                           ReloadCatalogs,
-                                           SecureProcess,
-                                           AcceptRoots,
-                                           PolicyInfo,
-                                           CatalogName,
-                                           SigningTime,
-                                           TimeStampPolicyInfo);
+        return Dyn->CiVerifyHashInCatalog(hashInfoSha1->Hash,
+                                          ReloadCatalogs,
+                                          SecureProcess,
+                                          AcceptRoots,
+                                          PolicyInfo,
+                                          CatalogName,
+                                          SigningTime,
+                                          TimeStampPolicyInfo);
     }
 
     return STATUS_NOINTERFACE;
@@ -295,7 +350,7 @@ NTSTATUS KphInitializeSigning(
     NTSTATUS status;
     KPH_OBJECT_TYPE_INFO typeInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     typeInfo.Allocate = KphpAllocateSigningInfra;
     typeInfo.Initialize = KphpInitSigningInfra;
@@ -326,7 +381,7 @@ VOID KphCleanupSigning(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphpSigningInfra)
     {
@@ -369,19 +424,21 @@ VOID KphDereferenceSigningInfrastructure(
 /**
  * \brief Determines if the signing catalogs are loaded.
  *
+ * \param[in] Dyn Dynamic configuration.
+ *
  * \return TRUE if they are loaded, FALSE otherwise.
  */
 BOOLEAN KphpSigningCatalogsAreLoaded(
-    VOID
+    _In_ PKPH_DYN Dyn
     )
 {
     NTSTATUS status;
     MINCRYPT_POLICY_INFO policyInfo;
     MINCRYPT_POLICY_INFO timeStampPolicyInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphDynCiFreePolicyInfo);
+    NT_ASSERT(Dyn->CiFreePolicyInfo);
     NT_ASSERT(KphpSigningInfra);
 
     if (InterlockedIncrementSizeT(&KphpSigningInfra->CatalogsAreLoadedCalls) == 1)
@@ -395,7 +452,8 @@ BOOLEAN KphpSigningCatalogsAreLoaded(
     RtlZeroMemory(&policyInfo, sizeof(policyInfo));
     RtlZeroMemory(&timeStampPolicyInfo, sizeof(timeStampPolicyInfo));
 
-    status = KphpCiVerifyHashInCatalog(&KphpSigningInfra->HalAuthenticode,
+    status = KphpCiVerifyHashInCatalog(Dyn,
+                                       &KphpSigningInfra->HalAuthenticode,
                                        FALSE,
                                        FALSE,
                                        0xffffffff,
@@ -404,8 +462,8 @@ BOOLEAN KphpSigningCatalogsAreLoaded(
                                        NULL,
                                        &timeStampPolicyInfo);
 
-    KphDynCiFreePolicyInfo(&policyInfo);
-    KphDynCiFreePolicyInfo(&timeStampPolicyInfo);
+    Dyn->CiFreePolicyInfo(&policyInfo);
+    Dyn->CiFreePolicyInfo(&timeStampPolicyInfo);
 
     return NT_SUCCESS(status);
 }
@@ -413,63 +471,76 @@ BOOLEAN KphpSigningCatalogsAreLoaded(
 /**
  * \brief Populated signing information with info from code integrity.
  *
- * \param[in,out] Info Signing info to populate.
+ * \param[in] Dyn Dynamic configuration.
+ * \param[in,out] Information Signing info to populate.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpPopulateCiInfo(
-    _Inout_ PKPH_SIGNING_INFO Info
+    _In_ PKPH_DYN Dyn,
+    _Inout_ PKPH_SIGNING_INFORMATION Information
     )
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphDynCiFreePolicyInfo);
+    NT_ASSERT(Dyn->CiFreePolicyInfo);
 
-    if (Info->Authenticode.Signature)
+    if (Information->AuthenticodeInfo.Signature)
     {
-        NT_ASSERT(Info->Authenticode.SignatureSize > 0);
+        NT_ASSERT(Information->AuthenticodeInfo.SignatureLength > 0);
 
-        status = KphpCiCheckSignedFile(&Info->Authenticode,
-                                       &Info->PolicyInfo,
-                                       &Info->SigningTime,
-                                       &Info->TimeStampPolicyInfo);
+        status = KphpCiCheckSignedFile(Dyn,
+                                       &Information->AuthenticodeInfo,
+                                       &Information->PolicyInfo,
+                                       &Information->SigningTime,
+                                       &Information->TimeStampPolicyInfo);
     }
     else
     {
-        status = KphpCiVerifyHashInCatalog(&Info->Authenticode,
+        status = KphpCiVerifyHashInCatalog(Dyn,
+                                           &Information->AuthenticodeInfo,
                                            FALSE,
                                            FALSE,
                                            0xffffffff,
-                                           &Info->PolicyInfo,
-                                           &Info->CatalogName,
-                                           &Info->SigningTime,
-                                           &Info->TimeStampPolicyInfo);
+                                           &Information->PolicyInfo,
+                                           &Information->CatalogName,
+                                           &Information->SigningTime,
+                                           &Information->TimeStampPolicyInfo);
         if ((status == STATUS_INVALID_IMAGE_HASH) &&
-            !KphpSigningCatalogsAreLoaded())
+            !KphpSigningCatalogsAreLoaded(Dyn))
         {
             //
             // Try again with ReloadCatalogs TRUE.
             //
 
-            KphpResetSigningInfo(&Info->PolicyInfo,
-                                 &Info->SigningTime,
-                                 &Info->TimeStampPolicyInfo,
-                                 &Info->CatalogName);
+            KphpResetSigningInfo(Dyn,
+                                 &Information->PolicyInfo,
+                                 &Information->SigningTime,
+                                 &Information->TimeStampPolicyInfo,
+                                 &Information->CatalogName);
 
-            status = KphpCiVerifyHashInCatalog(&Info->Authenticode,
+            status = KphpCiVerifyHashInCatalog(Dyn,
+                                               &Information->AuthenticodeInfo,
                                                TRUE,
                                                FALSE,
                                                0xffffffff,
-                                               &Info->PolicyInfo,
-                                               &Info->CatalogName,
-                                               &Info->SigningTime,
-                                               &Info->TimeStampPolicyInfo);
+                                               &Information->PolicyInfo,
+                                               &Information->CatalogName,
+                                               &Information->SigningTime,
+                                               &Information->TimeStampPolicyInfo);
         }
     }
+
+    //
+    // Callers of these APIs are required to *always* free the returned info
+    // regardless of the return status.
+    //
+    Information->Dyn = Dyn;
+    KphReferenceObject(Information->Dyn);
 
     return status;
 }
@@ -479,97 +550,110 @@ NTSTATUS KphpPopulateCiInfo(
  * *must always* free the returned information to KphFreeSigningInfo regardless
  * of the return status. The signing information may be partially-filled.
  *
- * \param[in] FileHandle File handle to the file to signing info signing of.
- * \param[out] Info Signing information output.
+ * \param[in] FileName The name of the file to signing info signing of.
+ * \param[out] Information Signing information output.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetSigningInfo(
-    _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_SIGNING_INFO Info
+NTSTATUS KphGetSigningInformation(
+    _In_ PCUNICODE_STRING FileName,
+    _Out_allocatesMem_ PKPH_SIGNING_INFORMATION Information
     )
 {
     NTSTATUS status;
+    PKPH_DYN dyn;
+    HANDLE fileHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
-    RtlZeroMemory(Info, sizeof(*Info));
+    fileHandle = NULL;
 
-    if (!KphDynCiFreePolicyInfo)
+    RtlZeroMemory(Information, sizeof(*Information));
+
+    dyn = KphReferenceDynData();
+    if (!dyn || !dyn->CiFreePolicyInfo)
     {
-        return STATUS_NOINTERFACE;
+        status = STATUS_NOINTERFACE;
+        goto Exit;
     }
 
-    status = KphGetAuthenticodeInfo(FileHandle, &Info->Authenticode);
+    InitializeObjectAttributes(&objectAttributes,
+                               (PUNICODE_STRING)FileName,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = KphCreateFile(&fileHandle,
+                           FILE_READ_ACCESS | SYNCHRONIZE,
+                           &objectAttributes,
+                           &ioStatusBlock,
+                           NULL,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           NULL,
+                           0,
+                           IO_IGNORE_SHARE_ACCESS_CHECK,
+                           KernelMode);
     if (!NT_SUCCESS(status))
     {
-        return status;
+        fileHandle = NULL;
+        goto Exit;
     }
 
-    return KphpPopulateCiInfo(Info);
-}
-
-/**
- * \brief Retrieves the signing information about a file, if any. The caller
- * *must always* free the returned information to KphFreeSigningInfo regardless
- * of the return status. The signing information may be partially-filled.
- *
- * \param[in] FileName File name of the file to signing info signing of.
- * \param[out] Info Signing information output.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetSigningInfoByFileName(
-    _In_ PUNICODE_STRING FileName,
-    _Out_allocatesMem_ PKPH_SIGNING_INFO Info
-    )
-{
-    NTSTATUS status;
-
-    PAGED_PASSIVE();
-
-    RtlZeroMemory(Info, sizeof(*Info));
-
-    if (!KphDynCiFreePolicyInfo)
-    {
-        return STATUS_NOINTERFACE;
-    }
-
-    status = KphGetAuthenticodeInfoByFileName(FileName, &Info->Authenticode);
+    status = KphGetAuthenticodeInformation(fileHandle,
+                                           &Information->AuthenticodeInfo);
     if (!NT_SUCCESS(status))
     {
-        return status;
+        goto Exit;
     }
 
-    return KphpPopulateCiInfo(Info);
+    status = KphpPopulateCiInfo(dyn, Information);
+
+Exit:
+
+    if (fileHandle)
+    {
+        ObCloseHandle(fileHandle, KernelMode);
+    }
+
+    if (dyn)
+    {
+        KphDereferenceObject(dyn);
+    }
+
+    return status;
 }
 
 /**
  * \brief Frees signing information.
  *
- * \param[in] Info Signing information to free.
+ * \param[in] Information Signing information to free.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeSigningInfo(
-    _In_freesMem_ PKPH_SIGNING_INFO Info
+VOID KphFreeSigningInformation(
+    _In_freesMem_ PKPH_SIGNING_INFORMATION Information
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
-    if (Info->CatalogName.Buffer)
+    RtlFreeUnicodeString(&Information->CatalogName);
+
+    if (Information->Dyn)
     {
-        RtlFreeUnicodeString(&Info->CatalogName);
+        if (Information->Dyn->CiFreePolicyInfo)
+        {
+            Information->Dyn->CiFreePolicyInfo(&Information->PolicyInfo);
+            Information->Dyn->CiFreePolicyInfo(&Information->TimeStampPolicyInfo);
+        }
+
+        KphDereferenceObject(Information->Dyn);
     }
 
-    if (KphDynCiFreePolicyInfo)
-    {
-        KphDynCiFreePolicyInfo(&Info->PolicyInfo);
-        KphDynCiFreePolicyInfo(&Info->TimeStampPolicyInfo);
-    }
-
-    KphFreeAuthenticodeInfo(&Info->Authenticode);
+    KphFreeAuthenticodeInformation(&Information->AuthenticodeInfo);
 }

@@ -1,6 +1,7 @@
 #pragma code_page(65001)
 
 #include <windows.h>
+#include <sistatus.rc>
 
 #define VER_COMMA 3,2,0,0
 #define VER_STR "3.2\0"
@@ -41,6 +42,7 @@ BEGIN
             VALUE "CompanyName",      VER_COMPANYNAME_STR
             VALUE "FileDescription",  VER_FILEDESCRIPTION_STR
             VALUE "FileVersion",      VER_FILEVERSION_STR
+            VALUE "InternalName",     VER_ORIGINALFILENAME_STR
             VALUE "LegalCopyright",   VER_LEGALCOPYRIGHT_STR
             VALUE "OriginalFilename", VER_ORIGINALFILENAME_STR
             VALUE "ProductName",      VER_PRODUCTNAME_STR

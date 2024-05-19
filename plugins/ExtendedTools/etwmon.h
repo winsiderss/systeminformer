@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef ETWMON_H
 #define ETWMON_H
 
@@ -50,6 +62,12 @@ typedef struct
 
 #define KERNEL_FILE_KEYWORD_FILENAME 0x10
 #define KERNEL_FILE_KEYWORD_FILEIO 0x20
+#define KERNEL_FILE_KEYWORD_OP_END 0x40
+#define KERNEL_FILE_KEYWORD_READ 0x100
+#define KERNEL_FILE_KEYWORD_WRITE 0x200
+#define KERNEL_FILE_KEYWORD_DELETE_PATH 0x400
+#define KERNEL_FILE_KEYWORD_RENAME_SETLINK_PATH 0x800
+#define KERNEL_FILE_KEYWORD_CREATE_NEW_FILE 0x1000
 
 // etwmon
 
@@ -69,7 +87,7 @@ VOID EtStopEtwSession(
     VOID
     );
 
-ULONG EtStartEtwRundown(
+VOID EtStartEtwRundown(
     VOID
     );
 

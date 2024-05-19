@@ -21,7 +21,7 @@
 #include <procprv.h>
 
 VOID PhInsertHandleObjectPropertiesEMenuItems(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertBeforeId,
     _In_ BOOLEAN EnableShortcut,
     _In_ PPH_HANDLE_ITEM_INFO Info

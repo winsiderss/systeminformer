@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -14,6 +14,8 @@
 #include <procprp.h>
 #include <procprpp.h>
 
+#include <emenu.h>
+#include <mapimg.h>
 #include <secedit.h>
 #include <verify.h>
 
@@ -24,10 +26,25 @@
 #include <procprv.h>
 #include <settings.h>
 
-#include <shellapi.h>
+static PH_KEY_VALUE_PAIR PhProtectedTypeStrings[] =
+{
+    SIP(L"None", PsProtectedTypeNone),
+    SIP(L"Light", PsProtectedTypeProtectedLight),
+    SIP(L"Full", PsProtectedTypeProtected),
+};
 
-static PWSTR ProtectedSignerStrings[] =
-    { L"", L" (Authenticode)", L" (CodeGen)", L" (Antimalware)", L" (Lsa)", L" (Windows)", L" (WinTcb)", L" (WinSystem)", L" (StoreApp)" };
+static PH_KEY_VALUE_PAIR PhProtectedSignerStrings[] =
+{
+    SIP(L" ", PsProtectedSignerNone),
+    SIP(L" (Authenticode)", PsProtectedSignerAuthenticode),
+    SIP(L" (CodeGen)", PsProtectedSignerCodeGen),
+    SIP(L" (Antimalware)", PsProtectedSignerAntimalware),
+    SIP(L" (Lsa)", PsProtectedSignerLsa),
+    SIP(L" (Windows)", PsProtectedSignerWindows),
+    SIP(L" (WinTcb)", PsProtectedSignerWinTcb),
+    SIP(L" (WinSystem)", PsProtectedSignerWinSystem),
+    SIP(L" (StoreApp)", PsProtectedSignerApp),
+};
 
 PPH_STRING PhGetProcessItemProtectionText(
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -37,29 +54,11 @@ PPH_STRING PhGetProcessItemProtectionText(
     {
         if (WindowsVersion >= WINDOWS_8_1)
         {
-            PWSTR type;
-            PWSTR signer;
+            PWSTR type = L"Unknown";
+            PWSTR signer = L"";
 
-            switch (ProcessItem->Protection.Type)
-            {
-            case PsProtectedTypeNone:
-                type = L"None";
-                break;
-            case PsProtectedTypeProtectedLight:
-                type = L"Light";
-                break;
-            case PsProtectedTypeProtected:
-                type = L"Full";
-                break;
-            default:
-                type = L"Unknown";
-                break;
-            }
-
-            if (ProcessItem->Protection.Signer < sizeof(ProtectedSignerStrings) / sizeof(PWSTR))
-                signer = ProtectedSignerStrings[ProcessItem->Protection.Signer];
-            else
-                signer = L"";
+            PhFindStringSiKeyValuePairs(PhProtectedTypeStrings, sizeof(PhProtectedTypeStrings), ProcessItem->Protection.Type, &type);
+            PhFindStringSiKeyValuePairs(PhProtectedSignerStrings, sizeof(PhProtectedSignerStrings), ProcessItem->Protection.Signer, &signer);
 
             // Isolated User Mode (IUM) (dmex)
             if (ProcessItem->Protection.Type == PsProtectedTypeNone && ProcessItem->IsSecureProcess)
@@ -86,36 +85,58 @@ PPH_STRING PhGetProcessItemImageTypeText(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    USHORT architecture = IMAGE_FILE_MACHINE_UNKNOWN;
+    ULONG chpeVersion = 0;
     PWSTR arch = L"";
     PWSTR bits = L"";
 
-    switch (ProcessItem->Architecture)
+    if (ProcessItem->FileName)
+    {
+        PH_MAPPED_IMAGE mappedImage;
+
+#ifdef _ARM64_
+        if (NT_SUCCESS(PhLoadMappedImageEx(&ProcessItem->FileName->sr, NULL, &mappedImage)))
+        {
+            architecture = mappedImage.NtHeaders->FileHeader.Machine;
+            if (architecture == IMAGE_FILE_MACHINE_AMD64 || architecture == IMAGE_FILE_MACHINE_ARM64)
+                chpeVersion = PhGetMappedImageCHPEVersion(&mappedImage);
+            PhUnloadMappedImage(&mappedImage);
+        }
+#else
+        if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessItem->FileName->sr, NULL, &mappedImage)))
+        {
+            architecture = mappedImage.NtHeaders->FileHeader.Machine;
+            PhUnloadMappedImage(&mappedImage);
+        }
+#endif
+    }
+
+    if (architecture == IMAGE_FILE_MACHINE_UNKNOWN)
+        PhGetProcessArchitecture(ProcessItem->QueryHandle, &architecture);
+
+    switch (architecture)
     {
     case IMAGE_FILE_MACHINE_I386:
         arch = L"I386 ";
         break;
     case IMAGE_FILE_MACHINE_AMD64:
-        arch = L"AMD64 ";
+        arch = chpeVersion ? L"AMD64 (ARM64X) " : L"AMD64 ";
         break;
     case IMAGE_FILE_MACHINE_ARMNT:
         arch = L"ARM ";
         break;
     case IMAGE_FILE_MACHINE_ARM64:
-        arch = L"ARM64 ";
+        arch = chpeVersion ? L"ARM64 (ARM64X) " : L"ARM64 ";
         break;
+    default:
+        arch = L"N/A ";
     }
 
 #if _WIN64
-    if (ProcessItem->IsWow64Valid)
-    {
-        bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
-    }
+    bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
 #else
     bits = L"(32-bit)";
 #endif
-
-    if (arch[0] == UNICODE_NULL && bits[0] == UNICODE_NULL)
-        return PhCreateString(L"N/A");
 
     return PhConcatStrings2(arch, bits);
 }
@@ -237,7 +258,7 @@ typedef struct _PH_PROCGENERAL_CONTEXT
     HICON ProgramIcon;
 } PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
 
-VOID PhSetIcons(
+VOID PphProcessGeneralDlgUpdateIcons(
     _In_ HWND hwndDlg
     )
 {
@@ -287,13 +308,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PPH_STRING curDir = NULL;
             PPH_PROCESS_ITEM parentProcess;
             CLIENT_ID clientId;
+            PPH_STRING fileNameWin32 = NULL;
 
             context = propPageContext->Context = PhAllocateZero(sizeof(PH_PROCGENERAL_CONTEXT));
             context->WindowHandle = hwndDlg;
             context->StartedLabelHandle = GetDlgItem(hwndDlg, IDC_STARTED);
             context->Enabled = TRUE;
 
-            PhSetIcons(hwndDlg);
+            PphProcessGeneralDlgUpdateIcons(hwndDlg);
 
             // File
 
@@ -306,11 +328,22 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
             else
             {
-                PhSetDialogItemText(hwndDlg, IDC_NAME, processItem->ProcessName->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(processItem->ProcessName));
+            }
+
+            if (processItem->QueryHandle)
+            {
+                PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32);
+                PH_AUTO(fileNameWin32);
+            }
+            else
+            {
+                fileNameWin32 = processItem->FileName ? PhGetFileName(processItem->FileName) : NULL;
+                PH_AUTO(fileNameWin32);
             }
 
             PhSetDialogItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
-            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileNameWin32));
+            PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(fileNameWin32));
             PhSetDialogItemText(hwndDlg, IDC_FILENAMEWIN32, PhpGetStringOrNa(processItem->FileName));
 
             {
@@ -501,28 +534,29 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, PH_AUTO_T(PH_STRING, PhGetProcessItemImageTypeText(processItem))->Buffer);
 
-            if (PhEnableThemeSupport)
-                PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
-            SetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
             if (context->ProgramIcon)
             {
                 DestroyIcon(context->ProgramIcon);
             }
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            PhSetIcons(hwndDlg);
+            PphProcessGeneralDlgUpdateIcons(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:
@@ -551,6 +585,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_MITIGATION), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWMITIGATION), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INTEGRITY), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESS), dialogItem, PH_ANCHOR_ALL);
@@ -563,30 +598,52 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_INSPECT:
+            case IDC_INSPECT2:
                 {
-                    if (processItem->FileNameWin32)
+                    if (processItem->FileName)
                     {
-                        PhShellExecuteUserString(
-                            hwndDlg,
-                            L"ProgramInspectExecutables",
-                            processItem->FileNameWin32->Buffer,
-                            FALSE,
-                            L"Make sure the PE Viewer executable file is present."
-                            );
+                        if (
+                            !PhIsNullOrEmptyString(processItem->FileName) &&
+                            PhDoesFileExist(&processItem->FileName->sr)
+                            )
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"ProgramInspectExecutables",
+                                PhGetString(processItem->FileName),
+                                FALSE,
+                                L"Make sure the PE Viewer executable file is present."
+                                );
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
+                        }
                     }
                 }
                 break;
             case IDC_OPENFILENAME:
+            case IDC_OPENFILENAME2:
                 {
-                    if (processItem->FileNameWin32)
+                    if (processItem->FileName)
                     {
-                        PhShellExecuteUserString(
-                            hwndDlg,
-                            L"FileBrowseExecutable",
-                            processItem->FileNameWin32->Buffer,
-                            FALSE,
-                            L"Make sure the Explorer executable file is present."
-                            );
+                        if (
+                            !PhIsNullOrEmptyString(processItem->FileName) &&
+                            PhDoesFileExist(&processItem->FileName->sr)
+                            )
+                        {
+                            PhShellExecuteUserString(
+                                hwndDlg,
+                                L"FileBrowseExecutable",
+                                PhGetString(processItem->FileName),
+                                FALSE,
+                                L"Make sure the Explorer executable file is present."
+                                );
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to locate the file.", STATUS_NOT_FOUND, 0);
+                        }
                     }
                 }
                 break;
@@ -595,32 +652,32 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     if (processItem->CommandLine)
                     {
                         PPH_STRING commandLineString;
-                        INT stringArgCount;
-                        PWSTR* stringArgList;
+                        PPH_LIST commandLineList;
 
-                        if (stringArgList = CommandLineToArgvW(processItem->CommandLine->Buffer, &stringArgCount))
+                        if (commandLineList = PhCommandLineToList(PhGetString(processItem->CommandLine)))
                         {
                             PH_STRING_BUILDER sb;
 
                             PhInitializeStringBuilder(&sb, 260);
 
-                            for (INT i = 0; i < stringArgCount; i++)
+                            for (ULONG i = 0; i < commandLineList->Count; i++)
                             {
-                                PhAppendFormatStringBuilder(&sb, L"[%d] %s\r\n\r\n", i, stringArgList[i]);
+                                PhAppendFormatStringBuilder(&sb, L"[%d] %s\r\n\r\n", i, PhGetString(commandLineList->Items[i]));
                             }
 
-                            PhAppendFormatStringBuilder(&sb, L"[FULL] %s\r\n", processItem->CommandLine->Buffer);
+                            PhAppendFormatStringBuilder(&sb, L"[FULL] %s\r\n", PhGetString(processItem->CommandLine));
 
                             commandLineString = PhFinalStringBuilderString(&sb);
 
-                            LocalFree(stringArgList);
+                            PhDereferenceObjects(commandLineList->Items, commandLineList->Count);
+                            PhDereferenceObject(commandLineList);
                         }
                         else
                         {
                             commandLineString = PhReferenceObject(processItem->CommandLine);
                         }
 
-                        PhShowInformationDialog(hwndDlg, commandLineString->Buffer, 0);
+                        PhShowInformationDialog(hwndDlg, PhGetString(commandLineString), 0);
 
                         PhDereferenceObject(commandLineString);
                     }
@@ -665,6 +722,136 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         NULL,
                         processItem->ProcessId
                         );
+                }
+                break;
+            case IDC_INTEGRITY:
+                {
+                    NTSTATUS status;
+                    HANDLE processHandle = NULL;
+                    ACCESS_MASK mandatoryPolicy = 0;
+                    PPH_EMENU_ITEM selectedItem;
+                    PPH_EMENU menu;
+                    RECT rect;
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_INTEGRITY), &rect);
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"No-Write-Up", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"No-Read-Up", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"No-Execute-Up", NULL, NULL), ULONG_MAX);
+
+                    status = PhOpenProcess(
+                        &processHandle,
+                        READ_CONTROL | WRITE_OWNER,
+                        processItem->ProcessId
+                        );
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        status = PhOpenProcess(
+                            &processHandle,
+                            READ_CONTROL,
+                            processItem->ProcessId
+                            );
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        status = PhGetProcessMandatoryPolicy(processHandle, &mandatoryPolicy);
+
+                        if (NT_SUCCESS(status))
+                        {
+                            if (FlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP))
+                            {
+                                PhSetFlagsEMenuItem(menu, 1, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                            }
+
+                            if (FlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_READ_UP))
+                            {
+                                PhSetFlagsEMenuItem(menu, 2, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                            }
+
+                            if (FlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP))
+                            {
+                                PhSetFlagsEMenuItem(menu, 3, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+                            }
+                        }
+                    }
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        for (ULONG i = 0; i < menu->Items->Count; i++)
+                        {
+                            PhSetDisabledEMenuItem(menu->Items->Items[i]);
+                        }
+                    }
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id != ULONG_MAX)
+                    {
+                        if (PhShowConfirmMessage(
+                            hwndDlg,
+                            L"update",
+                            L"the integrity label",
+                            L"Altering the integrity label for a process may produce undesirable results, instability or data corruption.",
+                            FALSE
+                            ))
+                        {
+                            switch (selectedItem->Id)
+                            {
+                            case 1:
+                                {
+                                    if (BooleanFlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP))
+                                        ClearFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP);
+                                    else
+                                        SetFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP);
+
+                                    status = PhSetProcessMandatoryPolicy(processHandle, mandatoryPolicy);
+                                }
+                                break;
+                            case 2:
+                                {
+                                    if (BooleanFlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_READ_UP))
+                                        ClearFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_READ_UP);
+                                    else
+                                        SetFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_READ_UP);
+
+                                    status = PhSetProcessMandatoryPolicy(processHandle, mandatoryPolicy);
+                                }
+                                break;
+                            case 3:
+                                {
+                                    if (BooleanFlagOn(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP))
+                                        ClearFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP);
+                                    else
+                                        SetFlag(mandatoryPolicy, SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP);
+
+                                    status = PhSetProcessMandatoryPolicy(processHandle, mandatoryPolicy);
+                                }
+                                break;
+                            }
+                        }
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to set the integrity label", status, 0);
+                        }
+                    }
+
+                    if (processHandle)
+                    {
+                        NtClose(processHandle);
+                    }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }
@@ -734,33 +921,40 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         break;
     case WM_TIMER:
         {
-            if (!(context->Enabled && GetFocus() != context->StartedLabelHandle))
+            switch (wParam)
+            {
+            case PH_WINDOW_TIMER_DEFAULT:
+                {
+                    if (!(context->Enabled && GetFocus() != context->StartedLabelHandle))
+                        break;
+
+                    if (processItem->CreateTime.QuadPart != 0)
+                    {
+                        LARGE_INTEGER startTime;
+                        LARGE_INTEGER currentTime;
+                        SYSTEMTIME startTimeFields;
+                        PPH_STRING startTimeRelativeString;
+                        PPH_STRING startTimeString;
+
+                        startTime = processItem->CreateTime;
+                        PhQuerySystemTime(&currentTime);
+                        startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
+
+                        PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
+                        startTimeString = PhaFormatDateTime(&startTimeFields);
+
+                        PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
+                            L"%s ago (%s)",
+                            startTimeRelativeString->Buffer,
+                            startTimeString->Buffer
+                            )->Buffer);
+                    }
+                    else
+                    {
+                        PhSetWindowText(context->StartedLabelHandle, L"N/A");
+                    }
+                }
                 break;
-
-            if (processItem->CreateTime.QuadPart != 0)
-            {
-                LARGE_INTEGER startTime;
-                LARGE_INTEGER currentTime;
-                SYSTEMTIME startTimeFields;
-                PPH_STRING startTimeRelativeString;
-                PPH_STRING startTimeString;
-
-                startTime = processItem->CreateTime;
-                PhQuerySystemTime(&currentTime);
-                startTimeRelativeString = PH_AUTO(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
-
-                PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
-                startTimeString = PhaFormatDateTime(&startTimeFields);
-
-                PhSetWindowText(context->StartedLabelHandle, PhaFormatString(
-                    L"%s ago (%s)",
-                    startTimeRelativeString->Buffer,
-                    startTimeString->Buffer
-                    )->Buffer);
-            }
-            else
-            {
-                PhSetWindowText(context->StartedLabelHandle, L"N/A");
             }
         }
         break;

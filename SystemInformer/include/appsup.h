@@ -1,12 +1,24 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016-2017
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_APPSUP_H
 #define PH_APPSUP_H
 
-extern GUID XP_CONTEXT_GUID;
-extern GUID VISTA_CONTEXT_GUID;
-extern GUID WIN7_CONTEXT_GUID;
-extern GUID WIN8_CONTEXT_GUID;
-extern GUID WINBLUE_CONTEXT_GUID;
-extern GUID WIN10_CONTEXT_GUID;
+DEFINE_GUID(XP_CONTEXT_GUID, 0xbeb1b341, 0x6837, 0x4c83, 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b);
+DEFINE_GUID(VISTA_CONTEXT_GUID, 0xe2011457, 0x1546, 0x43c5, 0xa5, 0xfe, 0x00, 0x8d, 0xee, 0xe3, 0xd3, 0xf0);
+DEFINE_GUID(WIN7_CONTEXT_GUID, 0x35138b9a, 0x5d96, 0x4fbd, 0x8e, 0x2d, 0xa2, 0x44, 0x02, 0x25, 0xf9, 0x3a);
+DEFINE_GUID(WIN8_CONTEXT_GUID, 0x4a2f28e3, 0x53b9, 0x4441, 0xba, 0x9c, 0xd6, 0x9d, 0x4a, 0x4a, 0x6e, 0x38);
+DEFINE_GUID(WINBLUE_CONTEXT_GUID, 0x1f676c76, 0x80e1, 0x4239, 0x95, 0xbb, 0x83, 0xd0, 0xf6, 0xd0, 0xda, 0x78);
+DEFINE_GUID(WIN10_CONTEXT_GUID, 0x8e0f7a12, 0xbfb3, 0x4fe8, 0xb9, 0xa5, 0x48, 0xfd, 0x50, 0xa1, 0x5a, 0x9a);
 
 // begin_phapppub
 PHAPPAPI
@@ -26,6 +38,13 @@ PhIsProcessSuspended(
 BOOLEAN
 NTAPI
 PhIsProcessBackground(
+    _In_ ULONG PriorityClass
+    );
+
+PHAPPAPI
+PPH_STRINGREF
+NTAPI
+PhGetProcessPriorityClassString(
     _In_ ULONG PriorityClass
     );
 // end_phapppub
@@ -54,7 +73,7 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     ExplorerProcessType, // explorer
     UmdfHostProcessType, // wudfhost
     NtVdmHostProcessType, // ntvdm
-    EdgeProcessType, // Microsoft Edge
+    //EdgeProcessType, // Microsoft Edge
     WmiProviderHostType,
     MaximumProcessType,
     KnownProcessTypeMask = 0xffff,
@@ -97,8 +116,8 @@ typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
     } ComSurrogate;
 } PH_KNOWN_PROCESS_COMMAND_LINE, *PPH_KNOWN_PROCESS_COMMAND_LINE;
 
-PHAPPAPI
 _Success_(return)
+PHAPPAPI
 BOOLEAN
 NTAPI
 PhaGetProcessKnownCommandLine(
@@ -107,11 +126,6 @@ PhaGetProcessKnownCommandLine(
     _Out_ PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
     );
 // end_phapppub
-
-PPH_STRING PhGetServiceRelevantFileName(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ SC_HANDLE ServiceHandle
-    );
 
 PPH_STRING PhEscapeStringForDelimiter(
     _In_ PPH_STRING String,
@@ -239,7 +253,7 @@ PhWritePhTextHeader(
 #define PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY 0x2
 
 PHAPPAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhShellProcessHacker(
     _In_opt_ HWND WindowHandle,
@@ -252,7 +266,7 @@ PhShellProcessHacker(
     );
 // end_phapppub
 
-BOOLEAN PhShellProcessHackerEx(
+NTSTATUS PhShellProcessHackerEx(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PWSTR FileName,
     _In_opt_ PWSTR Parameters,
@@ -269,6 +283,8 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
     );
 
 // begin_phapppub
+typedef struct _PH_EMENU_ITEM* PPH_EMENU_ITEM;
+
 typedef struct _PH_TN_COLUMN_MENU_DATA
 {
     HWND TreeNewHandle;
@@ -276,8 +292,8 @@ typedef struct _PH_TN_COLUMN_MENU_DATA
     ULONG DefaultSortColumn;
     PH_SORT_ORDER DefaultSortOrder;
 
-    struct _PH_EMENU_ITEM *Menu;
-    struct _PH_EMENU_ITEM *Selection;
+    PPH_EMENU_ITEM Menu;
+    PPH_EMENU_ITEM Selection;
     ULONG ProcessedId;
 } PH_TN_COLUMN_MENU_DATA, *PPH_TN_COLUMN_MENU_DATA;
 
@@ -396,7 +412,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhInsertCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND TreeNewHandle,
     _In_ PPH_TREENEW_COLUMN Column
@@ -406,7 +422,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhHandleCopyCellEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     );
 
 typedef struct _PH_COPY_ITEM_CONTEXT
@@ -421,7 +437,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhInsertCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ PPH_EMENU_ITEM Menu,
     _In_ ULONG InsertAfterId,
     _In_ HWND ListViewHandle
     );
@@ -430,24 +446,40 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhHandleCopyListViewEMenuItem(
-    _In_ struct _PH_EMENU_ITEM *SelectedItem
+    _In_ PPH_EMENU_ITEM SelectedItem
     );
-// end_phapppub
 
-BOOLEAN PhShellOpenKey2(
+PHAPPAPI
+VOID
+NTAPI
+PhShellOpenKey(
     _In_ HWND WindowHandle,
     _In_ PPH_STRING KeyName
     );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhShellOpenKey2(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING KeyName
+    );
+// end_phapppub
 
 PPH_STRING PhPcre2GetErrorMessage(
     _In_ INT ErrorCode
     );
 
-HBITMAP PhGetShieldBitmap(
-    _In_ LONG dpiValue
+// begin_phapppub
+PHAPPAPI
+HBITMAP
+NTAPI
+PhGetShieldBitmap(
+    _In_ LONG WindowDpi,
+    _In_opt_ LONG Width,
+    _In_opt_ LONG Height
     );
 
-// begin_phapppub
 PHAPPAPI
 HICON
 NTAPI
@@ -456,9 +488,57 @@ PhGetApplicationIcon(
     );
 
 PHAPPAPI
+HICON
+NTAPI
+PhGetApplicationIconEx(
+    _In_ BOOLEAN SmallIcon,
+    _In_opt_ LONG WindowDpi
+    );
+
+PHAPPAPI
 VOID
 NTAPI
 PhSetApplicationWindowIcon(
+    _In_ HWND WindowHandle
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhSetApplicationWindowIconEx(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhSetWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_opt_ HICON SmallIcon,
+    _In_opt_ HICON LargeIcon,
+    _In_ BOOLEAN CleanupIcon
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDestroyWindowIcon(
+    _In_ HWND WindowHandle
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhSetStaticWindowIcon(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDeleteStaticWindowIcon(
     _In_ HWND WindowHandle
     );
 // end_phapppub
@@ -478,6 +558,10 @@ HRESULT PhCreateAdminTask(
     _In_ PPH_STRINGREF FileName
     );
 
+NTSTATUS PhRunAsAdminTaskUIAccess(
+    VOID
+    );
+
 // begin_phapppub
 PHAPPAPI
 BOOLEAN
@@ -487,13 +571,35 @@ PhWordMatchStringRef(
     _In_ PPH_STRINGREF Text
     );
 
-PHAPPAPI
+FORCEINLINE
 BOOLEAN
 NTAPI
 PhWordMatchStringZ(
     _In_ PPH_STRING SearchText,
     _In_ PWSTR Text
-    );
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRef(&text, Text);
+
+    return PhWordMatchStringRef(&SearchText->sr, &text);
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhWordMatchStringLongHintZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRefLongHint(&text, Text);
+
+    return PhWordMatchStringRef(&SearchText->sr, &text);
+}
 
 PHAPPAPI
 PVOID
@@ -526,7 +632,7 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
             PhSetWindowContext(hwndDlg, ContextHash, context);
         }
         break;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             context = PhGetWindowContext(hwndDlg, ContextHash);
             PhRemoveWindowContext(hwndDlg, ContextHash);

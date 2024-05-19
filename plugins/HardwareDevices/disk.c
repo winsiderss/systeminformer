@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2020
+ *     dmex    2015-2024
  *
  */
 
@@ -19,9 +19,9 @@ VOID DiskEntryDeleteProcedure(
 {
     PDV_DISK_ENTRY entry = Object;
 
-    PhAcquireQueuedLockExclusive(&DiskDrivesListLock);
-    PhRemoveItemList(DiskDrivesList, PhFindItemList(DiskDrivesList, entry));
-    PhReleaseQueuedLockExclusive(&DiskDrivesListLock);
+    PhAcquireQueuedLockExclusive(&DiskDevicesListLock);
+    PhRemoveItemList(DiskDevicesList, PhFindItemList(DiskDevicesList, entry));
+    PhReleaseQueuedLockExclusive(&DiskDevicesListLock);
 
     DeleteDiskId(&entry->Id);
     PhClearReference(&entry->DiskName);
@@ -32,28 +32,28 @@ VOID DiskEntryDeleteProcedure(
     AddRemoveDeviceChangeCallback();
 }
 
-VOID DiskDrivesInitialize(
+VOID DiskDevicesInitialize(
     VOID
     )
 {
-    DiskDrivesList = PhCreateList(1);
-    DiskDriveEntryType = PhCreateObjectType(L"DiskDriveEntry", 0, DiskEntryDeleteProcedure);
+    DiskDevicesList = PhCreateList(1);
+    DiskDeviceEntryType = PhCreateObjectType(L"DiskDeviceEntry", 0, DiskEntryDeleteProcedure);
 }
 
-VOID DiskDrivesUpdate(
+VOID DiskDevicesUpdate(
     VOID
     )
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
 
-    PhAcquireQueuedLockShared(&DiskDrivesListLock);
+    PhAcquireQueuedLockShared(&DiskDevicesListLock);
 
-    for (ULONG i = 0; i < DiskDrivesList->Count; i++)
+    for (ULONG i = 0; i < DiskDevicesList->Count; i++)
     {
         HANDLE deviceHandle;
         PDV_DISK_ENTRY entry;
 
-        entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
+        entry = PhReferenceObjectSafe(DiskDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -61,7 +61,7 @@ VOID DiskDrivesUpdate(
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
             &entry->Id.DevicePath->sr,
-            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_READ_ATTRIBUTES | SYNCHRONIZE, // (PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES)
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
             FILE_OPEN,
@@ -136,18 +136,6 @@ VOID DiskDrivesUpdate(
                 PhClearReference(&entry->DiskIndexName);
             }
 
-            if (runCount > 1)
-            {
-                // Delay the first query for the disk name, index and type.
-                //   1) This information is not needed until the user opens the sysinfo window.
-                //   2) Try not to query this information while opening the sysinfo window (e.g. delay).
-                //   3) Try not to query this information during startup (e.g. delay).
-                //
-                // Note: If the user opens the Sysinfo window before we query the disk info,
-                // we have a second check in diskgraph.c that queries the information on demand.
-                DiskDriveUpdateDeviceInfo(deviceHandle, entry);
-            }
-
             NtClose(deviceHandle);
         }
         else
@@ -188,17 +176,17 @@ VOID DiskDrivesUpdate(
         PhDereferenceObjectDeferDelete(entry);
     }
 
-    PhReleaseQueuedLockShared(&DiskDrivesListLock);
+    PhReleaseQueuedLockShared(&DiskDevicesListLock);
 
     runCount++;
 }
 
-VOID DiskDriveUpdateDeviceInfo(
+VOID DiskDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
     _In_ PDV_DISK_ENTRY DiskEntry
     )
 {
-    if (!DiskEntry->DiskName || DiskEntry->DiskIndex == ULONG_MAX)
+    if (PhIsNullOrEmptyString(DiskEntry->DiskName) || DiskEntry->DiskIndex == ULONG_MAX)
     {
         HANDLE deviceHandle = NULL;
 
@@ -211,7 +199,7 @@ VOID DiskDriveUpdateDeviceInfo(
             PhCreateFile(
                 &deviceHandle,
                 &DiskEntry->Id.DevicePath->sr,
-                FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                FILE_READ_ATTRIBUTES | SYNCHRONIZE, // (PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES)
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 FILE_OPEN,
@@ -221,7 +209,7 @@ VOID DiskDriveUpdateDeviceInfo(
 
         if (deviceHandle)
         {
-            if (!DiskEntry->DiskName)
+            if (PhIsNullOrEmptyString(DiskEntry->DiskName))
             {
                 PPH_STRING diskName = NULL;
 
@@ -290,7 +278,7 @@ PDV_DISK_ENTRY CreateDiskEntry(
     PDV_DISK_ENTRY entry;
     ULONG sampleCount;
 
-    entry = PhCreateObjectZero(sizeof(DV_DISK_ENTRY), DiskDriveEntryType);
+    entry = PhCreateObjectZero(sizeof(DV_DISK_ENTRY), DiskDeviceEntryType);
     entry->DiskIndex = ULONG_MAX;
     CopyDiskId(&entry->Id, Id);
 
@@ -298,9 +286,9 @@ PDV_DISK_ENTRY CreateDiskEntry(
     PhInitializeCircularBuffer_ULONG64(&entry->ReadBuffer, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&entry->WriteBuffer, sampleCount);
 
-    PhAcquireQueuedLockExclusive(&DiskDrivesListLock);
-    PhAddItemList(DiskDrivesList, entry);
-    PhReleaseQueuedLockExclusive(&DiskDrivesListLock);
+    PhAcquireQueuedLockExclusive(&DiskDevicesListLock);
+    PhAddItemList(DiskDevicesList, entry);
+    PhReleaseQueuedLockExclusive(&DiskDevicesListLock);
 
     AddRemoveDeviceChangeCallback();
 

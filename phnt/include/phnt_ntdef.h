@@ -53,6 +53,8 @@ typedef CLONG *PCLONG;
 
 typedef PCSTR PCSZ;
 
+typedef PVOID* PPVOID;
+
 // Specific
 
 typedef UCHAR KIRQL, *PKIRQL;
@@ -72,6 +74,9 @@ typedef struct _LARGE_INTEGER_128
 #define NT_INFORMATION(Status) ((((ULONG)(Status)) >> 30) == 1)
 #define NT_WARNING(Status) ((((ULONG)(Status)) >> 30) == 2)
 #define NT_ERROR(Status) ((((ULONG)(Status)) >> 30) == 3)
+
+#define NT_CUSTOMER_SHIFT 29
+#define NT_CUSTOMER(Status) ((((ULONG)(Status)) >> NT_CUSTOMER_SHIFT) & 1)
 
 #define NT_FACILITY_MASK 0xfff
 #define NT_FACILITY_SHIFT 16
@@ -129,12 +134,23 @@ typedef struct _UNICODE_STRING
 {
     USHORT Length;
     USHORT MaximumLength;
-    _Field_size_bytes_part_(MaximumLength, Length) PWCH Buffer;
+    _Field_size_bytes_part_opt_(MaximumLength, Length) PWCH Buffer;
 } UNICODE_STRING, *PUNICODE_STRING;
 
 typedef const UNICODE_STRING *PCUNICODE_STRING;
 
 #define RTL_CONSTANT_STRING(s) { sizeof(s) - sizeof((s)[0]), sizeof(s), s }
+
+#define DECLARE_CONST_UNICODE_STRING(_var, _str) \
+const WCHAR _var ## _buffer[] = _str; \
+const UNICODE_STRING _var = { sizeof(_str) - sizeof(WCHAR), sizeof(_str), (PWCH) _var ## _buffer }
+
+#define DECLARE_GLOBAL_CONST_UNICODE_STRING(_var, _str) \
+extern const DECLSPEC_SELECTANY UNICODE_STRING _var = RTL_CONSTANT_STRING(_str)
+
+#define DECLARE_UNICODE_STRING_SIZE(_var, _size) \
+WCHAR _var ## _buffer[_size]; \
+UNICODE_STRING _var = { 0, (_size) * sizeof(WCHAR) , _var ## _buffer }
 
 // Balanced tree node
 
@@ -191,19 +207,20 @@ typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
 
 // Object attributes
 
-#define OBJ_PROTECT_CLOSE 0x00000001
-#define OBJ_INHERIT 0x00000002
-#define OBJ_AUDIT_OBJECT_CLOSE 0x00000004
-#define OBJ_PERMANENT 0x00000010
-#define OBJ_EXCLUSIVE 0x00000020
-#define OBJ_CASE_INSENSITIVE 0x00000040
-#define OBJ_OPENIF 0x00000080
-#define OBJ_OPENLINK 0x00000100
-#define OBJ_KERNEL_HANDLE 0x00000200
-#define OBJ_FORCE_ACCESS_CHECK 0x00000400
-#define OBJ_IGNORE_IMPERSONATED_DEVICEMAP 0x00000800
-#define OBJ_DONT_REPARSE 0x00001000
-#define OBJ_VALID_ATTRIBUTES 0x00001ff2
+#define OBJ_PROTECT_CLOSE                   0x00000001L
+#define OBJ_INHERIT                         0x00000002L
+#define OBJ_AUDIT_OBJECT_CLOSE              0x00000004L
+#define OBJ_NO_RIGHTS_UPGRADE               0x00000008L
+#define OBJ_PERMANENT                       0x00000010L
+#define OBJ_EXCLUSIVE                       0x00000020L
+#define OBJ_CASE_INSENSITIVE                0x00000040L
+#define OBJ_OPENIF                          0x00000080L
+#define OBJ_OPENLINK                        0x00000100L
+#define OBJ_KERNEL_HANDLE                   0x00000200L
+#define OBJ_FORCE_ACCESS_CHECK              0x00000400L
+#define OBJ_IGNORE_IMPERSONATED_DEVICEMAP   0x00000800L
+#define OBJ_DONT_REPARSE                    0x00001000L
+#define OBJ_VALID_ATTRIBUTES                0x00001FF2L
 
 typedef struct _OBJECT_ATTRIBUTES
 {
@@ -320,7 +337,10 @@ typedef struct _KSYSTEM_TIME
 
 #include <poppack.h>
 
-// NT macros used to test, set and clear flags
+#ifndef AFFINITY_MASK
+#define AFFINITY_MASK(n) ((KAFFINITY)1 << (n))
+#endif
+
 #ifndef FlagOn
 #define FlagOn(_F, _SF) ((_F) & (_SF))
 #endif
@@ -334,6 +354,12 @@ typedef struct _KSYSTEM_TIME
 #define ClearFlag(_F, _SF) ((_F) &= ~(_SF))
 #endif
 
+#endif
+
+#if defined(_WIN64)
+#define POINTER_ALIGNMENT DECLSPEC_ALIGN(8)
+#else
+#define POINTER_ALIGNMENT
 #endif
 
 #endif

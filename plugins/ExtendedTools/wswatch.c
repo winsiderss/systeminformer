@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2018-2022
+ *     dmex    2018-2024
  *
  */
 
@@ -62,45 +62,43 @@ VOID EtShowWsWatchDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     PWS_WATCH_CONTEXT context;
+    HANDLE processHandle;
 
-    context = PhAllocateZero(sizeof(WS_WATCH_CONTEXT));
-    context->RefCount = 1;
-    context->ProcessItem = PhReferenceObject(ProcessItem);
-    context->ProcessId = ProcessItem->ProcessId;
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        ProcessItem->ProcessId
+        );
 
-    if (PH_IS_REAL_PROCESS_ID(context->ProcessId))
+    if (!NT_SUCCESS(status))
     {
         status = PhOpenProcess(
-            &context->ProcessHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            context->ProcessId
+            &processHandle,
+            MAXIMUM_ALLOWED,
+            ProcessItem->ProcessId
             );
-
-        if (!NT_SUCCESS(status))
-        {
-            status = PhOpenProcess(
-                &context->ProcessHandle,
-                MAXIMUM_ALLOWED,
-                context->ProcessId
-                );
-        }
     }
 
     if (!NT_SUCCESS(status))
     {
         PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
-        EtpDereferenceWsWatchContext(context);
         return;
     }
 
-    DialogBoxParam(
+    context = PhAllocateZero(sizeof(WS_WATCH_CONTEXT));
+    context->RefCount = 1;
+    context->ProcessItem = PhReferenceObject(ProcessItem);
+    context->ProcessId = ProcessItem->ProcessId;
+    context->ProcessHandle = processHandle;
+
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WSWATCH),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
         EtpWsWatchDlgProc,
-        (LPARAM)context
+        context
         );
 }
 
@@ -219,7 +217,7 @@ static PPH_STRING EtpGetBasicSymbol(
 
     modBase = PhGetModuleFromAddress(SymbolProvider, Address, &fileName);
 
-    if (!fileName)
+    if (PhIsNullOrEmptyString(fileName))
     {
         symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
@@ -268,24 +266,27 @@ static VOID EtpProcessSymbolLookupResults(
         result = CONTAINING_RECORD(listEntry, SYMBOL_LOOKUP_RESULT, ListEntry);
         listEntry = listEntry->Next;
 
-        lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, -1, result->Address);
+        lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, result->Address);
 
-        PhSetListViewSubItem(
-            Context->ListViewHandle,
-            lvItemIndex,
-            0,
-            PhGetString(result->Symbol)
-            );
+        if (lvItemIndex != INT_ERROR)
+        {
+            PhSetListViewSubItem(
+                Context->ListViewHandle,
+                lvItemIndex,
+                0,
+                PhGetString(result->Symbol)
+                );
 
-        if (result->FileName)
-            PhMoveReference(&result->FileName, PhGetFileName(result->FileName));
+            if (result->FileName)
+                PhMoveReference(&result->FileName, PhGetFileName(result->FileName));
 
-        PhSetListViewSubItem(
-            Context->ListViewHandle,
-            lvItemIndex,
-            1,
-            PhGetString(result->FileName)
-            );
+            PhSetListViewSubItem(
+                Context->ListViewHandle,
+                lvItemIndex,
+                1,
+                PhGetString(result->FileName)
+                );
+        }
 
         PhDereferenceObject(result->Symbol);
         PhFree(result);
@@ -371,7 +372,7 @@ static BOOLEAN EtpUpdateWsWatch(
         {
             newCount = PtrToUlong(*entry) + 1;
             *entry = UlongToPtr(newCount);
-            lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, -1, wsWatchInfo->BasicInfo.FaultingPc);
+            lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, wsWatchInfo->BasicInfo.FaultingPc);
         }
         else
         {
@@ -412,15 +413,31 @@ SkipBuffer:
     return result;
 }
 
-static BOOLEAN NTAPI EnumGenericModulesCallback(
+PPH_STRING EtpCreateWindowTitle(
+    _In_ PWS_WATCH_CONTEXT Context
+    )
+{
+    PPH_STRING windowTitle;
+    PH_FORMAT format[6];
+
+    windowTitle = PhGetWindowText(Context->WindowHandle);
+    PhInitFormatSR(&format[0], windowTitle->sr);
+    PhInitFormatS(&format[1], L": ");
+    PhInitFormatSR(&format[2], Context->ProcessItem->ProcessName->sr);
+    PhInitFormatS(&format[3], L" (");
+    PhInitFormatU(&format[4], HandleToUlong(Context->ProcessItem->ProcessId));
+    PhInitFormatS(&format[5], L")");
+    PhMoveReference(&windowTitle, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+    return windowTitle;
+}
+
+static BOOLEAN NTAPI EtpWsWatchEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PWS_WATCH_CONTEXT context = Context;
-
-    if (!context)
-        return TRUE;
 
     // If we're loading kernel module symbols for a process other than
     // System, ignore modules which are in user space. This may happen
@@ -458,9 +475,6 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -515,7 +529,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 context->ProcessId,
                 context->ProcessHandle,
                 0,
-                EnumGenericModulesCallback,
+                EtpWsWatchEnumGenericModulesCallback,
                 context
                 );
             context->LoadingSymbolsForProcessId = SYSTEM_PROCESS_ID;
@@ -523,7 +537,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 SYSTEM_PROCESS_ID,
                 NULL,
                 0,
-                EnumGenericModulesCallback,
+                EtpWsWatchEnumGenericModulesCallback,
                 context
                 );
 
@@ -534,21 +548,25 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 // WS Watch is already enabled for the process. Enable updating.
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_WSWATCHENABLED), SW_SHOW);
-                SetTimer(hwndDlg, 1, 1000, NULL);
+                PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
             }
             else
             {
                 // WS Watch has not yet been enabled for the process.
             }
 
+            PhSetWindowText(context->WindowHandle, PH_AUTO_T(PH_STRING, EtpCreateWindowTitle(context))->Buffer);
+
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             context->Destroying = TRUE;
 
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
             PhSaveListViewColumnsToSetting(SETTING_NAME_WSWATCH_COLUMNS, context->ListViewHandle);
             PhSaveWindowPlacementToSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, hwndDlg);
@@ -598,7 +616,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                     {
                         EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
                         ShowWindow(GetDlgItem(hwndDlg, IDC_WSWATCHENABLED), SW_SHOW);
-                        SetTimer(hwndDlg, 1, 1000, NULL);
+                        PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
                     }
                     else
                     {
@@ -626,9 +644,9 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                             INT lvItemIndex;
                             PPH_STRING fileNameWin32;
 
-                            lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, -1, entry);
+                            lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, entry);
 
-                            if (lvItemIndex == -1)
+                            if (lvItemIndex == INT_ERROR)
                                 break;
 
                             fileNameWin32 = PhGetListViewItemText(context->ListViewHandle, lvItemIndex, 1);
@@ -664,7 +682,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         {
             switch (wParam)
             {
-            case 1:
+            case PH_WINDOW_TIMER_DEFAULT:
                 EtpUpdateWsWatch(hwndDlg, context);
                 break;
             }
@@ -683,11 +701,11 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             point.y = GET_Y_LPARAM(lParam);
 
             if (point.x == -1 && point.y == -1)
-                PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
             if (!(listviewItem = PhGetSelectedListViewItemParam(context->ListViewHandle)))
                 break;
-            if ((lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, -1, listviewItem)) == -1)
+            if ((lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, listviewItem)) == INT_ERROR)
                 break;
 
             fileNameWin32 = PhGetListViewItemText(context->ListViewHandle, lvItemIndex, 1);

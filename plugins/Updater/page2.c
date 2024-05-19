@@ -25,9 +25,19 @@ HRESULT CALLBACK CheckingForUpdatesCallbackProc(
     {
     case TDN_NAVIGATED:
         {
+            PhSetEvent(&InitializedEvent);
+
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            context->ProgressMarquee = TRUE;
 
+#ifndef FORCE_NO_STATUS_TIMER
+            if (!context->ProgressTimer)
+            {
+                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                context->ProgressTimer = TRUE;
+            }
+#endif
             PhReferenceObject(context);
             PhCreateThread2(UpdateCheckThread, context);
         }
@@ -53,7 +63,32 @@ VOID ShowCheckingForUpdatesDialog(
     config.lpCallbackData = (LONG_PTR)Context;
 
     config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = L"Checking for an updated release...";
+
+    if (Context->SwitchingChannel)
+    {
+        switch (Context->Channel)
+        {
+        case PhReleaseChannel:
+            config.pszMainInstruction = L"Checking the release channel...";
+            break;
+        //case PhPreviewChannel:
+        //    config.pszMainInstruction = L"Checking the preview channel...";
+        //    break;
+        case PhCanaryChannel:
+            config.pszMainInstruction = L"Checking the canary channel...";
+            break;
+        //case PhDeveloperChannel:
+        //    config.pszMainInstruction = L"Checking the developer channel...";
+        //    break;
+        default:
+            config.pszMainInstruction = L"Checking the channel...";
+            break;
+        }
+    }
+    else
+    {
+        config.pszMainInstruction = L"Checking for an updated release...";
+    }
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

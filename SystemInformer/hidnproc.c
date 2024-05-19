@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2019-2021
+ *     dmex    2019-2023
  *
  */
 
@@ -32,15 +32,12 @@
 #include <phapp.h>
 #include <apiimport.h>
 #include <hidnproc.h>
-
-#include <evntcons.h>
-
 #include <kphuser.h>
-
 #include <mainwnd.h>
 #include <procprv.h>
 #include <settings.h>
 #include <phsettings.h>
+#include <emenu.h>
 
 INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     _In_ HWND hwndDlg,
@@ -61,6 +58,7 @@ BOOLEAN NTAPI PhpHiddenProcessesCallback(
     );
 
 PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
+    _In_ HWND WindowHandle,
     _In_ PPH_HIDDEN_PROCESS_ENTRY Entry
     );
 
@@ -80,11 +78,12 @@ VOID PhShowHiddenProcessesDialog(
 {
     if (!PhHiddenProcessesWindowHandle)
     {
-        PhHiddenProcessesWindowHandle = CreateDialog(
+        PhHiddenProcessesWindowHandle = PhCreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_HIDDENPROCESSES),
             NULL,
-            PhpHiddenProcessesDlgProc
+            PhpHiddenProcessesDlgProc,
+            NULL
             );
     }
 
@@ -154,6 +153,8 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -268,7 +269,7 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                             for (i = 0; i < numberOfEntries; i++)
                             {
-                                if (ProcessesMethod == BruteForceScanMethod)
+                                if (ProcessesMethod == BruteForceScanMethod || ProcessesMethod == ProcessHandleScanMethod)
                                 {
                                     status = PhOpenProcess(
                                         &processHandle,
@@ -344,7 +345,7 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                             0
                             )))
                         {
-                            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
+                            PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
                             PhWritePhTextHeader(fileStream);
                             PhWriteStringAsUtf8FileStream2(fileStream, L"Method: ");
                             PhWriteStringAsUtf8FileStream2(fileStream,
@@ -424,7 +425,7 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                         {
                             PPH_PROCESS_ITEM processItem;
 
-                            if (processItem = PhpCreateProcessItemForHiddenProcess(entry))
+                            if (processItem = PhpCreateProcessItemForHiddenProcess(hwndDlg, entry))
                             {
                                 ProcessHacker_ShowProcessProperties(processItem);
                                 PhDereferenceObject(processItem);
@@ -452,6 +453,70 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == PhHiddenProcessesListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID* listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(PhHiddenProcessesListViewHandle, &point);
+
+                PhGetSelectedListViewItemParams(PhHiddenProcessesListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, PhHiddenProcessesListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        BOOLEAN handled = FALSE;
+
+                        handled = PhHandleCopyListViewEMenuItem(item);
+
+                        //if (!handled && PhPluginsEnabled)
+                        //    handled = PhPluginTriggerEMenuItem(&menuInfo, item);
+
+                        if (!handled)
+                        {
+                            switch (item->Id)
+                            {
+                            case IDC_COPY:
+                                PhCopyListView(PhHiddenProcessesListViewHandle);
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
         {
             if ((HWND)lParam == GetDlgItem(hwndDlg, IDC_DESCRIPTION))
@@ -461,18 +526,19 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     SetTextColor((HDC)wParam, RGB(0xff, 0x00, 0x00));
                 }
 
-                SetBkColor((HDC)wParam, GetSysColor(COLOR_3DFACE));
+                SetBkColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
 
-                return (INT_PTR)GetSysColorBrush(COLOR_3DFACE);
+                return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
             }
+
+            return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
         }
-        break;
     }
 
     return FALSE;
 }
 
-static COLORREF NTAPI PhpHiddenProcessesColorFunction(
+COLORREF NTAPI PhpHiddenProcessesColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
@@ -492,7 +558,7 @@ static COLORREF NTAPI PhpHiddenProcessesColorFunction(
     return GetSysColor(COLOR_WINDOW);
 }
 
-static BOOLEAN NTAPI PhpHiddenProcessesCallback(
+BOOLEAN NTAPI PhpHiddenProcessesCallback(
     _In_ PPH_HIDDEN_PROCESS_ENTRY Process,
     _In_opt_ PVOID Context
     )
@@ -505,11 +571,13 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
 
     if (entry->FileName)
         PhReferenceObject(entry->FileName);
+    if (entry->FileNameWin32)
+        PhReferenceObject(entry->FileNameWin32);
 
     PhAddItemList(ProcessesList, entry);
 
     lvItemIndex = PhAddListViewItem(PhHiddenProcessesListViewHandle, MAXINT,
-        PhGetStringOrDefault(entry->FileName, L"(unknown)"), entry);
+        PhGetStringOrDefault(entry->FileNameWin32, L"(unknown)"), entry);
     PhPrintUInt32(pidString, HandleToUlong(entry->ProcessId));
     PhSetListViewSubItem(PhHiddenProcessesListViewHandle, lvItemIndex, 1, pidString);
 
@@ -521,7 +589,8 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
     return TRUE;
 }
 
-static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
+PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
+    _In_ HWND WindowHandle,
     _In_ PPH_HIDDEN_PROCESS_ENTRY Entry
     )
 {
@@ -565,6 +634,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     // Set up the file name and process name.
 
     PhSwapReference(&processItem->FileName, Entry->FileName);
+    PhSwapReference(&processItem->FileNameWin32, Entry->FileNameWin32);
 
     if (processItem->FileName)
     {
@@ -575,7 +645,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
         processItem->ProcessName = PhCreateString(L"Unknown");
     }
 
-    if (ProcessesMethod == BruteForceScanMethod)
+    if (ProcessesMethod == BruteForceScanMethod || ProcessesMethod == ProcessHandleScanMethod)
     {
         status = PhOpenProcess(
             &processHandle,
@@ -634,10 +704,10 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
     if (processItem->FileName)
     {
-        dpiValue = PhGetWindowDpi(PhGetMainWindowHandle());
+        dpiValue = PhGetWindowDpi(WindowHandle);
 
         // Small icon, large icon.
-        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, dpiValue))
+        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, processItem->ProcessId, processItem->PackageFullName, dpiValue))
         {
             processItem->SmallIconIndex = processItem->IconEntry->SmallIconIndex;
             processItem->LargeIconIndex = processItem->IconEntry->LargeIconIndex;
@@ -740,12 +810,12 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
                 &fileName
                 )))
             {
-                entry.FileName = PhGetFileName(fileName);
-                PhDereferenceObject(fileName);
+                entry.FileName = fileName;
+                entry.FileNameWin32 = PhGetFileName(fileName);
 
                 if (times.ExitTime.QuadPart != 0)
                     entry.Type = TerminatedProcess;
-                else if (PhFindItemList(pids, UlongToHandle(pid)) != -1)
+                else if (PhFindItemList(pids, UlongToHandle(pid)) != ULONG_MAX)
                     entry.Type = NormalProcess;
                 else
                     entry.Type = HiddenProcess;
@@ -753,6 +823,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
                 if (!Callback(&entry, Context))
                     stop = TRUE;
 
+                PhDereferenceObject(entry.FileNameWin32);
                 PhDereferenceObject(entry.FileName);
             }
 
@@ -765,10 +836,10 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
             if (NT_SUCCESS(status2 = PhGetProcessImageFileNameByProcessId(UlongToHandle(pid), &fileName)))
             {
                 entry.ProcessId = UlongToHandle(pid);
-                entry.FileName = PhGetFileName(fileName);
-                PhDereferenceObject(fileName);
+                entry.FileName = fileName;
+                entry.FileNameWin32 = PhGetFileName(fileName);
 
-                if (PhFindItemList(pids, UlongToHandle(pid)) != -1)
+                if (PhFindItemList(pids, UlongToHandle(pid)) != ULONG_MAX)
                     entry.Type = NormalProcess;
                 else
                     entry.Type = HiddenProcess;
@@ -776,6 +847,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
                 if (!Callback(&entry, Context))
                     stop = TRUE;
 
+                PhDereferenceObject(entry.FileNameWin32);
                 PhDereferenceObject(entry.FileName);
             }
         }
@@ -787,6 +859,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
         {
             entry.ProcessId = UlongToHandle(pid);
             entry.FileName = NULL;
+            entry.FileNameWin32 = NULL;
             entry.Type = UnknownProcess;
 
             if (!Callback(&entry, Context))
@@ -839,12 +912,12 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
             &fileName
             )))
         {
-            entry.FileName = PhGetFileName(fileName);
-            PhDereferenceObject(fileName);
+            entry.FileName = fileName;
+            entry.FileNameWin32 = PhGetFileName(fileName);
 
             if (times.ExitTime.QuadPart != 0)
                 entry.Type = TerminatedProcess;
-            else if (context && PhFindItemList(context->Pids, Handle->ProcessId) != -1)
+            else if (context && PhFindItemList(context->Pids, Handle->ProcessId) != ULONG_MAX)
                 entry.Type = NormalProcess;
             else
                 entry.Type = HiddenProcess;
@@ -852,6 +925,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
             if (context && !context->Callback(&entry, context->Context))
                 cont = FALSE;
 
+            PhDereferenceObject(entry.FileNameWin32);
             PhDereferenceObject(entry.FileName);
         }
 
@@ -861,6 +935,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
     if (!NT_SUCCESS(status))
     {
         entry.FileName = NULL;
+        entry.FileNameWin32 = NULL;
         entry.Type = UnknownProcess;
 
         if (context && !context->Callback(&entry, context->Context))
@@ -906,94 +981,93 @@ NTSTATUS PhpEnumHiddenProcessesCsrHandles(
     return status;
 }
 
+typedef struct _PH_ENUM_NEXT_PROCESS_CONTEXT
+{
+    PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback;
+    PVOID Context;
+} PH_ENUM_NEXT_PROCESS_CONTEXT, *PPH_ENUM_NEXT_PROCESS_CONTEXT;
+
+NTSTATUS NTAPI PhpEnumNextProcessHandles(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID Context
+    )
+{
+    PPH_ENUM_NEXT_PROCESS_CONTEXT context = Context;
+    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
+    NTSTATUS status;
+    PVOID processes = NULL;
+
+    status = PhGetProcessExtendedBasicInformation(ProcessHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhEnumProcesses(&processes);
+
+        if (NT_SUCCESS(status))
+        {
+            if (!PhFindProcessInformation(processes, basicInfo.BasicInfo.UniqueProcessId))
+            {
+                PH_HIDDEN_PROCESS_ENTRY entry;
+                PPH_STRING fileName;
+
+                entry.ProcessId = basicInfo.BasicInfo.UniqueProcessId;
+
+                if (NT_SUCCESS(PhGetProcessImageFileName(ProcessHandle, &fileName)))
+                {
+                    entry.FileName = fileName;
+                    entry.FileNameWin32 = PhGetFileName(fileName);
+                    entry.Type = HiddenProcess;
+
+                    if (basicInfo.IsProcessDeleting)
+                        entry.Type = TerminatedProcess;
+
+                    if (!context->Callback(&entry, Context))
+                        goto CleanupExit;
+
+                    PhDereferenceObject(entry.FileNameWin32);
+                    PhDereferenceObject(entry.FileName);
+                }
+                else
+                {
+                    entry.FileName = NULL;
+                    entry.FileNameWin32 = NULL;
+                    entry.Type = UnknownProcess;
+
+                    if (!context->Callback(&entry, Context))
+                        goto CleanupExit;
+                }
+            }
+        }
+    }
+
+CleanupExit:
+    if (processes)
+    {
+        PhFree(processes);
+    }
+
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS PhpEnumHiddenProcessHandles(
     _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
-    HANDLE processHandle;
+    PH_ENUM_NEXT_PROCESS_CONTEXT context;
 
-    if (!NT_SUCCESS(status = NtGetNextProcess(
+    context.Callback = Callback;
+    context.Context = Context;
+
+    status = PhEnumNextProcess(
         NULL,
         PROCESS_QUERY_LIMITED_INFORMATION,
-        0,
-        0,
-        &processHandle
-        )))
-        return status;
-
-    while (TRUE)
-    {
-        PVOID processes;
-        HANDLE enumProcessHandle;
-        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
-
-        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
-        {
-            if (NT_SUCCESS(PhEnumProcesses(&processes)))
-            {
-                if (!PhFindProcessInformation(processes, basicInfo.BasicInfo.UniqueProcessId))
-                {
-                    PH_HIDDEN_PROCESS_ENTRY entry;
-                    PPH_STRING fileName;
-
-                    entry.ProcessId = basicInfo.BasicInfo.UniqueProcessId;
-
-                    if (NT_SUCCESS(PhGetProcessImageFileName(processHandle, &fileName)))
-                    {
-                        entry.FileName = PhGetFileName(fileName);
-                        PhDereferenceObject(fileName);
-                        entry.Type = HiddenProcess;
-
-                        if (basicInfo.IsProcessDeleting)
-                            entry.Type = TerminatedProcess;
-
-                        if (!Callback(&entry, Context))
-                            break;
-
-                        PhDereferenceObject(entry.FileName);
-                    }
-                    else
-                    {
-                        entry.FileName = NULL;
-                        entry.Type = UnknownProcess;
-
-                        if (!Callback(&entry, Context))
-                            break;
-                    }
-                }
-
-                PhFree(processes);
-            }
-        }
-
-        if (NT_SUCCESS(status = NtGetNextProcess(
-            processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            0,
-            0,
-            &enumProcessHandle
-            )))
-        {
-            NtClose(processHandle);
-            processHandle = enumProcessHandle;
-        }
-        else
-        {
-            NtClose(processHandle);
-            break;
-        }
-    }
-
-    if (status == STATUS_NO_MORE_ENTRIES)
-        status = STATUS_SUCCESS; // HACK
+        PhpEnumNextProcessHandles,
+        &context
+        );
 
     return status;
-#else
-    return STATUS_UNSUCCESSFUL;
-#endif
 }
 
 NTSTATUS PhpEnumHiddenSubKeyHandles(
@@ -1007,24 +1081,21 @@ NTSTATUS PhpEnumHiddenSubKeyHandles(
     UNICODE_STRING subkeyName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    if (!NtQueryOpenSubKeysEx_Import())
-        return STATUS_UNSUCCESSFUL;
-
     bufferSize = 0x200;
     buffer = PhAllocate(bufferSize);
 
+    RtlInitUnicodeString(&subkeyName, L"\\REGISTRY");
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &subkeyName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
     while (TRUE)
     {
-        RtlInitUnicodeString(&subkeyName, L"\\REGISTRY");
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &subkeyName,
-            OBJ_CASE_INSENSITIVE,
-            NULL,
-            NULL
-            );
-
-        status = NtQueryOpenSubKeysEx_Import()(
+        status = NtQueryOpenSubKeysEx(
             &objectAttributes,
             bufferSize,
             buffer,
@@ -1067,8 +1138,8 @@ NTSTATUS PhpEnumHiddenSubKeyHandles(
                         {
                             PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-                            process.FileName = PhGetFileName(fileName);
-                            PhDereferenceObject(fileName);
+                            process.FileName = fileName;
+                            process.FileNameWin32 = PhGetFileName(fileName);
                             process.Type = HiddenProcess;
 
                             if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
@@ -1080,11 +1151,13 @@ NTSTATUS PhpEnumHiddenSubKeyHandles(
                             if (!Callback(&process, Context))
                                 break;
 
+                            PhDereferenceObject(process.FileNameWin32);
                             PhDereferenceObject(process.FileName);
                         }
                         else
                         {
                             process.FileName = NULL;
+                            process.FileNameWin32 = NULL;
                             process.Type = UnknownProcess;
 
                             if (!Callback(&process, Context))
@@ -1106,18 +1179,20 @@ NTSTATUS PhpEnumHiddenSubKeyHandles(
 
                 if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
                 {
-                    process.FileName = PhGetFileName(fileName);
-                    PhDereferenceObject(fileName);
+                    process.FileName = fileName;
+                    process.FileNameWin32 = PhGetFileName(fileName);
                     process.Type = HiddenProcess;
 
                     if (!Callback(&process, Context))
                         break;
 
+                    PhDereferenceObject(process.FileNameWin32);
                     PhDereferenceObject(process.FileName);
                 }
                 else
                 {
                     process.FileName = NULL;
+                    process.FileNameWin32 = NULL;
                     process.Type = UnknownProcess;
 
                     if (!Callback(&process, Context))
@@ -1135,13 +1210,13 @@ NTSTATUS PhpEnumHiddenSubKeyHandles(
 }
 
 #define PH_FIRST_ETW_GUID(TraceGuid) \
-    (((PTRACE_GUID_INFO)(TraceGuid))->InstanceCount ? \
-    ((PTRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET(TraceGuid, \
-    sizeof(TRACE_GUID_INFO))) : NULL)
+    (((PETW_TRACE_GUID_INFO)(TraceGuid))->InstanceCount ? \
+    ((PETW_TRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET(TraceGuid, \
+    sizeof(ETW_TRACE_GUID_INFO))) : NULL)
 #define PH_NEXT_ETW_GUID(TraceGuid) \
-    (((PTRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset ? \
-    (PTRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET((TraceGuid), \
-    ((PTRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset) : NULL)
+    (((PETW_TRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset ? \
+    (PETW_TRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET((TraceGuid), \
+    ((PETW_TRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset) : NULL)
 
 NTSTATUS PhpEnumEtwGuidHandles(
     _In_ PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
@@ -1153,7 +1228,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
     ULONG traceGuidListLength = 0;
 
     status = PhTraceControl(
-        TraceControlEnumTraceGuidList,
+        EtwEnumTraceGuidList,
         NULL,
         0,
         &traceGuidList,
@@ -1165,10 +1240,10 @@ NTSTATUS PhpEnumEtwGuidHandles(
         for (ULONG i = 0; i < traceGuidListLength / sizeof(GUID); i++)
         {
             GUID providerGuid = traceGuidList[i];
-            PTRACE_GUID_INFO traceGuidInfo;
+            PETW_TRACE_GUID_INFO traceGuidInfo;
 
             status = PhTraceControl(
-                TraceControlGetTraceGuidInfo,
+                EtwGetTraceGuidInfo,
                 &providerGuid,
                 sizeof(GUID),
                 &traceGuidInfo,
@@ -1177,7 +1252,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
 
             if (NT_SUCCESS(status))
             {
-                PTRACE_PROVIDER_INSTANCE_INFO instance;
+                PETW_TRACE_PROVIDER_INSTANCE_INFO instance;
                 HANDLE processHandle;
                 PVOID processes;
 
@@ -1203,8 +1278,8 @@ NTSTATUS PhpEnumEtwGuidHandles(
                                 {
                                     PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-                                    process.FileName = PhGetFileName(fileName);
-                                    PhDereferenceObject(fileName);
+                                    process.FileName = fileName;
+                                    process.FileNameWin32 = PhGetFileName(fileName);
                                     process.Type = HiddenProcess;
 
                                     if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
@@ -1216,11 +1291,13 @@ NTSTATUS PhpEnumEtwGuidHandles(
                                     if (!Callback(&process, Context))
                                         break;
 
+                                    PhDereferenceObject(process.FileNameWin32);
                                     PhDereferenceObject(process.FileName);
                                 }
                                 else
                                 {
                                     process.FileName = NULL;
+                                    process.FileNameWin32 = NULL;
                                     process.Type = UnknownProcess;
 
                                     if (!Callback(&process, Context))
@@ -1242,18 +1319,20 @@ NTSTATUS PhpEnumEtwGuidHandles(
 
                         if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
                         {
-                            process.FileName = PhGetFileName(fileName);
-                            PhDereferenceObject(fileName);
+                            process.FileName = fileName;
+                            process.FileNameWin32 = PhGetFileName(fileName);
                             process.Type = HiddenProcess;
 
                             if (!Callback(&process, Context))
                                 break;
 
+                            PhDereferenceObject(process.FileNameWin32);
                             PhDereferenceObject(process.FileName);
                         }
                         else
                         {
                             process.FileName = NULL;
+                            process.FileNameWin32 = NULL;
                             process.Type = UnknownProcess;
 
                             if (!Callback(&process, Context))
@@ -1341,8 +1420,8 @@ NTSTATUS PhpEnumNtdllHandles(
                             {
                                 PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
 
-                                process.FileName = PhGetFileName(fileName);
-                                PhDereferenceObject(fileName);
+                                process.FileName = fileName;
+                                process.FileNameWin32 = PhGetFileName(fileName);
                                 process.Type = HiddenProcess;
 
                                 if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(processHandle, &basicInfo)))
@@ -1354,11 +1433,13 @@ NTSTATUS PhpEnumNtdllHandles(
                                 if (!Callback(&process, Context))
                                     break;
 
+                                PhDereferenceObject(process.FileNameWin32);
                                 PhDereferenceObject(process.FileName);
                             }
                             else
                             {
                                 process.FileName = NULL;
+                                process.FileNameWin32 = NULL;
                                 process.Type = UnknownProcess;
 
                                 if (!Callback(&process, Context))
@@ -1380,18 +1461,20 @@ NTSTATUS PhpEnumNtdllHandles(
 
                     if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(process.ProcessId, &fileName)))
                     {
-                        process.FileName = PhGetFileName(fileName);
-                        PhDereferenceObject(fileName);
+                        process.FileName = fileName;
+                        process.FileNameWin32 = PhGetFileName(fileName);
                         process.Type = HiddenProcess;
 
                         if (!Callback(&process, Context))
                             break;
 
+                        PhDereferenceObject(process.FileNameWin32);
                         PhDereferenceObject(process.FileName);
                     }
                     else
                     {
                         process.FileName = NULL;
+                        process.FileNameWin32 = NULL;
                         process.Type = UnknownProcess;
 
                         if (!Callback(&process, Context))
@@ -1590,7 +1673,7 @@ NTSTATUS PhEnumCsrProcessHandles(
                     continue;
 
                 // Avoid duplicate PIDs.
-                if (PhFindItemList(pids, handle.ProcessId) != -1)
+                if (PhFindItemList(pids, handle.ProcessId) != ULONG_MAX)
                     continue;
 
                 PhAddItemList(pids, handle.ProcessId);

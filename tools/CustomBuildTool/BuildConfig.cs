@@ -13,13 +13,27 @@ namespace CustomBuildTool
 {
     public static class BuildConfig
     {
-        public static readonly List<BuildFile> Build_Release_Files = new List<BuildFile>
+        public static readonly SortedDictionary<string, int> Build_Channels = new SortedDictionary<string, int>()
         {
-            new BuildFile("\\systeminformer-build-setup.exe", true), // nightly
-            new BuildFile("\\systeminformer-build-bin.zip", true), // nightly
+            { "release",   0 }, // PhReleaseChannel
+            //{ "preview",   1 }, // PhPreviewChannel
+            { "canary",    2 }, // PhCanaryChannel
+            //{ "developer", 3 }, // PhDeveloperChannel
+        };
+
+        public static readonly BuildFile[] Build_Release_Files =
+        {
+            new BuildFile("\\systeminformer-build-release-setup.exe", true),
+            new BuildFile("\\systeminformer-build-release-bin.zip", true),
+            //new BuildFile("\\systeminformer-build-preview-setup.exe", true),
+            //new BuildFile("\\systeminformer-build-preview-bin.zip", true),
+            new BuildFile("\\systeminformer-build-canary-setup.exe", true),
+            new BuildFile("\\systeminformer-build-canary-bin.zip", true),
+            //new BuildFile("\\systeminformer-build-developer-setup.exe", true),
+            //new BuildFile("\\systeminformer-build-developer-bin.zip", true),
             new BuildFile("\\systeminformer-build-src.zip", false),
             new BuildFile("\\systeminformer-build-sdk.zip", false),
-            new BuildFile("\\systeminformer-build-pdb.zip", false),
+            new BuildFile("\\systeminformer-build-pdb.zip", true),
             //new BuildFile("\\systeminformer-build-checksums.txt", false),
         };
 
@@ -32,6 +46,7 @@ namespace CustomBuildTool
             "sdk\\dbg\\arm64",
             "sdk\\lib\\amd64",
             "sdk\\lib\\i386",
+            "sdk\\lib\\arm64",
             //"sdk\\samples\\SamplePlugin",
             //"sdk\\samples\\SamplePlugin\\bin\\Release32"
         };
@@ -43,6 +58,7 @@ namespace CustomBuildTool
             "ntdbg.h",
             "ntexapi.h",
             "ntgdi.h",
+            "ntimage.h",
             "ntioapi.h",
             "ntkeapi.h",
             "ntldr.h",
@@ -60,8 +76,10 @@ namespace CustomBuildTool
             "ntrtl.h",
             "ntsam.h",
             "ntseapi.h",
+            "ntsxs.h",
             "nttmapi.h",
             "nttp.h",
+            "ntwmi.h",
             "ntwow64.h",
             "ntxcapi.h",
             "ntzwapi.h",
@@ -90,10 +108,11 @@ namespace CustomBuildTool
             "hexedit.h",
             "hndlinfo.h",
             "json.h",
-            "kphapi.h",
             "kphuser.h",
+            "kphcomms.h",
             "lsasup.h",
             "mapimg.h",
+            "mapldr.h",
             "ph.h",
             "phbase.h",
             "phbasesup.h",
@@ -116,17 +135,24 @@ namespace CustomBuildTool
             "verify.h",
             "workqueue.h"
         };
+
+        public static readonly string[] Build_Kphlib_Headers =
+        {
+            "kphapi.h",
+            "kphmsg.h",
+            "kphmsgdefs.h",
+        };
     }
 
-    public struct BuildFile
+    public readonly struct BuildFile
     {
-        public string FileName;
-        public bool UploadNightly;
+        public readonly string FileName;
+        public readonly bool UploadCanary;
 
-        public BuildFile(string Filename, bool UploadNightly)
+        public BuildFile(string Filename, bool UploadCanary)
         {
             this.FileName = Filename;
-            this.UploadNightly = UploadNightly;
+            this.UploadCanary = UploadCanary;
         }
 
         public override string ToString()

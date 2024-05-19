@@ -1,11 +1,29 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2016-2023
+ *
+ */
+
 #ifndef PHLIB_SETTINGS_H
 #define PHLIB_SETTINGS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 // begin_phapppub
+
+typedef enum _PH_RELEASE_CHANNEL
+{
+    PhReleaseChannel = 0,
+    PhPreviewChannel = 1, // unused, reserved
+    PhCanaryChannel = 2,
+    PhDeveloperChannel = 3,
+} PH_RELEASE_CHANNEL, *PPH_RELEASE_CHANNEL;
 
 // These macros make sure the C strings can be seamlessly converted into
 // PH_STRINGREFs at compile time, for a small speed boost.
@@ -335,6 +353,10 @@ VOID PhClearIgnoredSettings(
     VOID
     );
 
+ULONG PhCountIgnoredSettings(
+    VOID
+    );
+
 VOID PhConvertIgnoredSettings(
     VOID
     );
@@ -459,8 +481,6 @@ PhSaveCustomColorList(
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

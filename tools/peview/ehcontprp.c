@@ -167,7 +167,7 @@ INT_PTR CALLBACK PvpPeEhContDlgProc(
 
             PvEnumerateEHContinuationEntries(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -176,6 +176,7 @@ INT_PTR CALLBACK PvpPeEhContDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;

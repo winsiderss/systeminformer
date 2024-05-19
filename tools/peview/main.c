@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -28,6 +28,28 @@ BOOLEAN NTAPI PvpCommandLineCallback(
         PhSwapReference(&PvFileName, Value);
 
     return TRUE;
+}
+
+NTSTATUS PvpConnectKph(
+    VOID
+    )
+{
+    NTSTATUS status;
+    PPH_STRING portName = NULL;
+
+    status = KphInitialize();
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // TODO: get the current configured port name from the main binary, settings aren't shared.
+    //if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
+        PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
+
+    status = KphCommsStart(&portName->sr, NULL);
+
+    PhDereferenceObject(portName);
+
+    return status;
 }
 
 INT WINAPI wWinMain(
@@ -113,6 +135,8 @@ INT WINAPI wWinMain(
     PvInitializeSettings();
     PvPropInitialization();
     PhTreeNewInitialization();
+    PvInitializeSuperclassControls();
+    PvpConnectKph();
 
     if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
         return 1;
@@ -155,15 +179,16 @@ INT WINAPI wWinMain(
 
                     AllowSetForegroundWindow(ASFW_ANY);
 
-                    if (PhShellExecuteEx(
+                    if (NT_SUCCESS(PhShellExecuteEx(
                         NULL,
                         PhGetString(applicationFileName),
                         PvFileName->Buffer,
+                        NULL,
                         SW_SHOWNORMAL,
-                        PH_SHELL_EXECUTE_NOZONECHECKS,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         0,
                         NULL
-                        ))
+                        )))
                     {
                         PhExitApplication(STATUS_SUCCESS);
                     }
@@ -179,6 +204,9 @@ INT WINAPI wWinMain(
 
     if (PhIsNullOrEmptyString(PvFileName))
         return 1;
+
+    // Note: Resolve the filename when we're passed a native device prefix (dmex)
+    PhMoveReference(&PvFileName, PhGetFileName(PvFileName));
 
 #ifdef DEBUG
     if (!PhDoesFileExistWin32(PhGetString(PvFileName)))
@@ -272,10 +300,9 @@ INT WINAPI wWinMain(
                     status = STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT;
                     break;
                 }
-            }
 
-            if (NT_SUCCESS(status))
                 PhUnloadMappedImage(&PvMappedImage);
+            }
         }
 
         if (!NT_SUCCESS(status))
@@ -301,7 +328,7 @@ ULONG CALLBACK PvUnhandledExceptionCallback(
     PPH_STRING message;
 
     if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
-        errorMessage = PhGetStatusMessage(0, WIN32_FROM_NTSTATUS(ExceptionInfo->ExceptionRecord->ExceptionCode));
+        errorMessage = PhGetStatusMessage(0, PhNtStatusToDosError(ExceptionInfo->ExceptionRecord->ExceptionCode));
     else
         errorMessage = PhGetStatusMessage(ExceptionInfo->ExceptionRecord->ExceptionCode, 0);
 
@@ -336,7 +363,7 @@ BOOLEAN PvInitializeExceptionPolicy(
 
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
-        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        ClearFlag(errorMode, SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
 

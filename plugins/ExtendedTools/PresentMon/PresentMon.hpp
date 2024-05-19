@@ -38,7 +38,7 @@ struct SwapChainData
     std::shared_ptr<PresentEvent> mPresentHistory[PRESENT_HISTORY_MAX_COUNT];
     ULONG mPresentHistoryCount = 0;
     ULONG mNextPresentIndex = 0;
-    ULONG mLastDisplayedPresentIndex = 0;
+    ULONG mLastDisplayedPresentIndex = 0; // UINT32_MAX if none displayed
 };
 
 struct ProcessInfo
@@ -60,4 +60,3 @@ VOID DequeueAnalyzedInfo(std::vector<std::shared_ptr<PresentEvent>>* presentEven
 DOUBLE QpcDeltaToSeconds(_In_ ULONGLONG qpcDelta);
 ULONGLONG SecondsDeltaToQpc(_In_ DOUBLE secondsDelta);
 DOUBLE QpcToSeconds(_In_ ULONGLONG qpc);
-

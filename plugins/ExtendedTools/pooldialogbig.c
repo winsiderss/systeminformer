@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -278,11 +278,11 @@ VOID EtShowBigPoolDialog(
     _In_ PPOOL_ITEM PoolItem
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_BIGPOOL),
         NULL,
         EtBigPoolMonDlgProc,
-        (LPARAM)PoolItem
+        PoolItem
         );
 }

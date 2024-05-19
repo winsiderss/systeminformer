@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_NETLIST_H
 #define PH_NETLIST_H
 
@@ -6,17 +18,17 @@
 // Columns
 
 #define PHNETLC_PROCESS 0
-#define PHNETLC_LOCALADDRESS 1
-#define PHNETLC_LOCALPORT 2
-#define PHNETLC_REMOTEADDRESS 3
-#define PHNETLC_REMOTEPORT 4
-#define PHNETLC_PROTOCOL 5
-#define PHNETLC_STATE 6
-#define PHNETLC_OWNER 7
-#define PHNETLC_TIMESTAMP 8
-#define PHNETLC_LOCALHOSTNAME 9
-#define PHNETLC_REMOTEHOSTNAME 10
-#define PHNETLC_PID 11
+#define PHNETLC_PID 1
+#define PHNETLC_LOCALADDRESS 2
+#define PHNETLC_LOCALPORT 3
+#define PHNETLC_REMOTEADDRESS 4
+#define PHNETLC_REMOTEPORT 5
+#define PHNETLC_PROTOCOL 6
+#define PHNETLC_STATE 7
+#define PHNETLC_OWNER 8
+#define PHNETLC_TIMESTAMP 9
+#define PHNETLC_LOCALHOSTNAME 10
+#define PHNETLC_REMOTEHOSTNAME 11
 #define PHNETLC_TIMELINE 12
 #define PHNETLC_MAXIMUM 13
 
@@ -31,7 +43,7 @@ typedef struct _PH_NETWORK_NODE
 
     PPH_STRING ProcessNameText;
     PPH_STRING TimeStampText;
-    PPH_STRING PidText;
+    WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
 // end_phapppub
 
     PPH_STRING TooltipText;
@@ -48,7 +60,7 @@ VOID PhNetworkTreeListInitialization(
     );
 
 VOID PhInitializeNetworkTreeList(
-    _In_ HWND hwnd
+    _In_ HWND TreeNewHandle
     );
 
 VOID PhLoadSettingsNetworkTreeList(
@@ -61,7 +73,7 @@ VOID PhSaveSettingsNetworkTreeList(
 
 // begin_phapppub
 PHAPPAPI
-struct _PH_TN_FILTER_SUPPORT *
+PPH_TN_FILTER_SUPPORT
 NTAPI
 PhGetFilterSupportNetworkTreeList(
     VOID
@@ -111,6 +123,14 @@ VOID PhSelectAndEnsureVisibleNetworkNode(
     _In_ PPH_NETWORK_NODE NetworkNode
     );
 
+VOID PhInvalidateAllNetworkNodes(
+    VOID
+    );
+
+VOID PhInvalidateAllNetworkNodesHostnames(
+    VOID
+    );
+
 VOID PhCopyNetworkList(
     VOID
     );
@@ -118,6 +138,10 @@ VOID PhCopyNetworkList(
 VOID PhWriteNetworkList(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ ULONG Mode
+    );
+
+PPH_LIST PhDuplicateNetworkNodeList(
+    VOID
     );
 
 #endif

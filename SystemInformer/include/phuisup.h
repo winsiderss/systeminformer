@@ -21,7 +21,6 @@ typedef struct _PH_SH_STATE
     HANDLE StateListHandle;
     ULONG64 TickCount;
 } PH_SH_STATE, *PPH_SH_STATE;
-// end_phapppub
 
 FORCEINLINE VOID PhChangeShStateTn(
     _Inout_ PPH_TREENEW_NODE Node,
@@ -107,7 +106,6 @@ FORCEINLINE VOID PhChangeShStateTn(
         } \
     } while (0)
 
-// begin_phapppub
 // Provider event queues
 
 typedef enum _PH_PROVIDER_EVENT_TYPE

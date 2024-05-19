@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2020
+ *     dmex    2016-2023
  *
  */
 
@@ -27,7 +27,15 @@ HRESULT CALLBACK ShowProgressCallbackProc(
         {
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            context->ProgressMarquee = TRUE;
 
+#ifndef FORCE_NO_STATUS_TIMER
+            if (!context->ProgressTimer)
+            {
+                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                context->ProgressTimer = TRUE;
+            }
+#endif
             PhReferenceObject(context);
             PhCreateThread2(UpdateDownloadThread, context);
         }
@@ -59,7 +67,36 @@ VOID ShowProgressDialog(
     config.pfCallback = ShowProgressCallbackProc;
 
     config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = PhaFormatString(L"Downloading update %s...", PhGetStringOrEmpty(Context->Version))->Buffer;
+    if (Context->SwitchingChannel)
+    {
+        PCWSTR channelName;
+
+        switch (Context->Channel)
+        {
+        case PhReleaseChannel:
+            channelName = L" release";
+            break;
+        //case PhPreviewChannel:
+        //    channelName = L" release";
+        //    break;
+        case PhCanaryChannel:
+            channelName = L" canary";
+            break;
+        //case PhDeveloperChannel:
+        //    channelName = L" developer";
+        //    break;
+        default:
+            channelName = L"";
+            break;
+        }
+
+        config.pszMainInstruction = PhaFormatString(L"Downloading%s channel %s...", channelName, PhGetStringOrEmpty(Context->Version))->Buffer;
+    }
+    else
+    {
+        config.pszMainInstruction = PhaFormatString(L"Downloading update %s...", PhGetStringOrEmpty(Context->Version))->Buffer;
+    }
+
     config.pszContent = L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);

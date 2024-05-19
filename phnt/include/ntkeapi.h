@@ -138,7 +138,7 @@ NtCallbackReturn(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
-VOID
+NTSTATUS
 NTAPI
 NtFlushProcessWriteBuffers(
     VOID

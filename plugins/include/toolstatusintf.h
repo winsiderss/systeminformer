@@ -1,10 +1,22 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2015
+ *     dmex    2015-2024
+ *
+ */
+
 #ifndef _TOOLSTATUSINTF_H
 #define _TOOLSTATUSINTF_H
 
 #define TOOLSTATUS_PLUGIN_NAME L"ProcessHacker.ToolStatus"
-#define TOOLSTATUS_INTERFACE_VERSION 1
+#define TOOLSTATUS_INTERFACE_VERSION 2
 
-typedef PPH_STRING (NTAPI *PTOOLSTATUS_GET_SEARCHBOX_TEXT)(
+typedef ULONG_PTR (NTAPI *PTOOLSTATUS_GET_SEARCH_MATCH_HANDLE)(
     VOID
     );
 
@@ -39,17 +51,20 @@ typedef PTOOLSTATUS_TAB_INFO (NTAPI *PTOOLSTATUS_REGISTER_TAB_INFO)(
 #define TOOLSTATUS_GRAPH_ENABLED 0x1
 #define TOOLSTATUS_GRAPH_UNAVAILABLE 0x2
 
+typedef struct _PH_TOOLBAR_GRAPH* PPH_TOOLBAR_GRAPH;
+typedef struct _PH_PLUGIN* PPH_PLUGIN;
+
 #define TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(ToolStatusGraphCallbackName) \
 VOID ToolStatusGraphCallbackName( \
-    _In_ struct _PH_TOOLBAR_GRAPH *Graph, \
+    _In_ PPH_TOOLBAR_GRAPH Graph, \
     _In_ HWND GraphHandle, \
     _In_ PPH_GRAPH_STATE GraphState, \
     _In_ LPNMHDR Header, \
-    _In_opt_ PVOID Context \
+    _In_ PVOID Context \
     )
 
 typedef VOID (NTAPI *PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK)(
-    _In_ struct _PH_TOOLBAR_GRAPH *Graph,
+    _In_ PPH_TOOLBAR_GRAPH Graph,
     _In_ HWND GraphHandle,
     _In_ PPH_GRAPH_STATE GraphState,
     _In_ LPNMHDR Header,
@@ -57,7 +72,7 @@ typedef VOID (NTAPI *PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK)(
     );
 
 typedef VOID (NTAPI *PTOOLSTATUS_REGISTER_TOOLBAR_GRAPH)(
-    _In_ struct _PH_PLUGIN *Plugin,
+    _In_ PPH_PLUGIN Plugin,
     _In_ ULONG Id,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
@@ -68,7 +83,7 @@ typedef VOID (NTAPI *PTOOLSTATUS_REGISTER_TOOLBAR_GRAPH)(
 typedef struct _TOOLSTATUS_INTERFACE
 {
     ULONG Version;
-    PTOOLSTATUS_GET_SEARCHBOX_TEXT GetSearchboxText;
+    PTOOLSTATUS_GET_SEARCH_MATCH_HANDLE GetSearchMatchHandle;
     PTOOLSTATUS_WORD_MATCH WordMatch;
     PTOOLSTATUS_REGISTER_TAB_SEARCH RegisterTabSearchDeprecated;
     PPH_CALLBACK SearchChangedEvent;

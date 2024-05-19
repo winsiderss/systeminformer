@@ -11,11 +11,10 @@
 #define IDD_PROCHANDLES                 106
 #define IDD_PROCENVIRONMENT             107
 #define IDD_THRDSTACK                   108
+#define IDD_THRDSTACKS                  109
 #define IDC_CPU                         112
 #define IDC_PRIVATEBYTES                113
 #define IDC_IO                          114
-#define IDB_CROSS                       117
-#define IDB_TICK                        118
 #define IDC_MEMORY                      120
 #define IDD_ABOUT                       121
 #define IDC_NEWOBJECTS                  121
@@ -90,9 +89,9 @@
 #define IDD_MINIINFO                    207
 #define IDD_MINIINFO_LIST               210
 #define IDD_MITIGATION                  215
+#define IDD_TOKAPPPOLICY                216
 #define IDI_PIN                         216
 #define IDI_FOLDER                      217
-#define IDI_PENCIL                      218
 #define IDI_MAGNIFIER                   219
 #define IDD_EDITENV                     221
 #define IDB_SEARCH_ACTIVE               223
@@ -109,9 +108,23 @@
 #define IDD_RUNFILEDLG                  253
 #define IDD_LIVEDUMP                    254
 #define IDD_HEAPS                       255
+#define IDD_PROCDUMP                    256
 #define IDD_PROCVDMHOST                 257
 #define IDD_OPTSYMBOLS                  258
+#define IDD_OBJMAPPINGS                 258
 #define IDI_UACSHIELD                   261
+#define IDD_RUNPACKAGE                  263
+#define IDD_MODIFIEDPAGES               264
+#define IDB_SEARCH_ACTIVE_SMALL         265
+#define IDB_SEARCH_INACTIVE_SMALL       266
+#define IDB_SEARCH_REGEX_MODERN_DARK    267
+#define IDB_SEARCH_REGEX_MODERN_LIGHT   268
+#define IDB_SEARCH_CASE_MODERN_DARK     269
+#define IDB_SEARCH_CASE_MODERN_LIGHT    270
+#define IDB_SEARCH_ACTIVE_MODERN_DARK   271
+#define IDB_SEARCH_ACTIVE_MODERN_LIGHT  272
+#define IDB_SEARCH_INACTIVE_MODERN_DARK 273
+#define IDB_SEARCH_INACTIVE_MODERN_LIGHT 274
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -371,8 +384,11 @@
 #define IDC_GROUPCPU                    1198
 #define IDC_GROUPPRIVATEBYTES           1199
 #define IDC_GROUPIO                     1200
+#define IDC_UNDO                        1201
 #define IDC_ONEGRAPHPERCPU              1202
 #define IDC_ALWAYSONTOP                 1203
+#define IDC_PASTE                       1204
+#define IDC_CUT                         1205
 #define IDC_COPY                        1206
 #define IDC_INACTIVE                    1207
 #define IDC_ACTIVE                      1208
@@ -399,6 +415,7 @@
 #define IDC_TOGGLEELEVATION             1254
 #define IDC_TOGGLESUSPENDED             1255
 #define IDC_TRUSTEDINSTALLER            1255
+#define IDC_TOGGLEUIACCESS              1256
 #define IDC_PARENT                      1263
 #define IDC_PROCESSNAME                 1264
 #define IDC_SERVICES_LAYOUT             1266
@@ -514,6 +531,9 @@
 #define IDC_SECTION                     1375
 #define IDC_REGEX                       1377
 #define IDC_DESCRIPTIONLABEL            1378
+#define IDC_IOREAD_L                    1378
+#define IDC_IOWRITE_L                   1379
+#define IDC_IOOTHER_L                   1380
 #define IDC_VIEWCOMMANDLINE             1381
 #define IDC_DELETE                      1382
 #define IDC_EDIT                        1383
@@ -543,9 +563,40 @@
 #define IDC_USERMODE                    1413
 #define IDC_HYPERVISOR                  1414
 #define IDC_SIZESINBYTES                1415
-#define IDC_DUMPKERNELTHREADSTACKS      1415
 #define IDC_FONTMONOSPACE               1416
+#define IDC_ONLYKERNELTHREADSTACKS      1417
+#define IDC_HYPERVISORNONESSENTIAL      1418
+#define IDC_MINIDUMP_NORMAL                          1419
+#define IDC_MINIDUMP_WITH_DATA_SEGS                  1420
+#define IDC_MINIDUMP_WITH_FULL_MEM                   1421
+#define IDC_MINIDUMP_WITH_HANDLE_DATA                1422
+#define IDC_MINIDUMP_FILTER_MEMORY                   1423
+#define IDC_MINIDUMP_SCAN_MEMORY                     1424
+#define IDC_MINIDUMP_WITH_UNLOADED_MODULES           1425
+#define IDC_MINIDUMP_WITH_INDIRECT_REFERENCED_MEM    1426
+#define IDC_MINIDUMP_FILTER_MODULE_PATHS             1427
+#define IDC_MINIDUMP_WITH_PROC_THRD_DATA             1428
+#define IDC_MINIDUMP_WITH_PRIVATE_RW_MEM             1429
+#define IDC_MINIDUMP_WITHOUT_OPTIONAL_DATA           1430
+#define IDC_MINIDUMP_WITH_FULL_MEM_INFO              1431
+#define IDC_MINIDUMP_WITH_THRD_INFO                  1432
+#define IDC_MINIDUMP_WITH_CODE_SEGS                  1433
+#define IDC_MINIDUMP_WITHOUT_AUXILIARY_STATE         1434
+#define IDC_MINIDUMP_WITH_FULL_AUXILIARY_STATE       1435
+#define IDC_MINIDUMP_WITH_PRIVATE_WRITE_COPY_MEM     1436
+#define IDC_MINIDUMP_IGNORE_INACCESSIBLE_MEM         1437
+#define IDC_MINIDUMP_WITH_TOKEN_INFO                 1438
+#define IDC_MINIDUMP_WITH_MODULE_HEADERS             1439
+#define IDC_MINIDUMP_FILTER_TRIAGE                   1440
+#define IDC_MINIDUMP_WITH_AVXX_STATE_CONTEXT         1441
+#define IDC_MINIDUMP_WITH_IPT_TRACE                  1442
+#define IDC_MINIDUMP_SCAN_INACCESSIBLE_PARTIAL_PAGES 1443
+#define IDC_MINIDUMP_FILTER_WRITE_COMBINE_MEM        1444
 #define ID_HACKER_EXIT                  40001
+#define ID_PROCESS_DUMP_MINIMAL         40002
+#define ID_PROCESS_DUMP_LIMITED         40003
+#define ID_PROCESS_DUMP_NORMAL          40004
+#define ID_PROCESS_DUMP_FULL            40005
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007
 #define ID_PROCESS_SUSPEND              40008
@@ -557,6 +608,7 @@
 #define ID_THREAD_PERMISSIONS           40015
 #define ID_THREAD_TOKEN                 40016
 #define ID_ANALYZE_WAIT                 40018
+#define ID_PROCESS_DUMP_CUSTOM          40019
 #define ID_PRIORITY_TIMECRITICAL        40020
 #define ID_PRIORITY_HIGHEST             40021
 #define ID_PRIORITY_ABOVENORMAL         40022
@@ -579,7 +631,6 @@
 #define ID_PROCESS_MISCELLANEOUS        40041
 #define ID_PROCESS_WINDOW               40042
 #define ID_PROCESS_PAGEPRIORITY         40043
-#define ID_PROCESS_BOOST                40044
 #define ID_PRIORITY_REALTIME            40048
 #define ID_PRIORITY_HIGH                40049
 #define ID_MISCELLANEOUS_ECOMODE        40050
@@ -604,6 +655,7 @@
 #define ID_HACKER_RUNASADMINISTRATOR    40077
 #define ID_HACKER_RUNAS                 40078
 #define ID_HACKER_SHOWDETAILSFORALLPROCESSES 40079
+#define ID_HACKER_RUNASPACKAGE          40080
 #define ID_HACKER_FINDHANDLESORDLLS     40082
 #define ID_HACKER_OPTIONS               40083
 #define ID_PROCESS_FREEZE               40084
@@ -614,6 +666,7 @@
 #define ID_TRAYICONS_COMMITHISTORY      40096
 #define ID_TRAYICONS_PHYSICALMEMORYHISTORY 40097
 #define ID_VIEW_REFRESH                 40098
+#define ID_TOOLS_THREADSTACKS           40100
 #define ID_TOOLS_CREATESERVICE          40101
 #define ID_TOOLS_HIDDENPROCESSES        40102
 #define ID_TOOLS_INSPECTEXECUTABLEFILE  40103
@@ -689,6 +742,8 @@
 #define ID_MISCELLANEOUS_GDIHANDLES     40188
 #define ID_MISCELLANEOUS_HEAPS          40189
 #define ID_ESC_EXIT                     40190
+#define ID_NOTIFICATIONS_ARRIVEDDEVICES 40191
+#define ID_NOTIFICATIONS_REMOVEDDEVICES 40192
 #define ID_PROCESS_COPY                 40194
 #define ID_THREAD_COPY                  40195
 #define ID_NETWORK_COPY                 40197
@@ -710,6 +765,7 @@
 #define ID_TAB_PREV                     40224
 #define ID_MISCELLANEOUS_RUNAS          40229
 #define ID_MISCELLANEOUS_RUNASTHISUSER  40230
+#define ID_MISCELLANEOUS_PAGESMODIFIED  40231
 #define ID_VIEW_HIDEPROCESSESFROMOTHERUSERS 40232
 #define ID_THREAD_AFFINITY              40233
 #define ID_THREAD_BOOST                 40234
@@ -717,6 +773,7 @@
 #define ID_VIEW_UPDATEAUTOMATICALLY     40235
 #define ID_HACKER_RUNASLIMITEDUSER      40236
 #define ID_USER_REMOTECONTROL           40237
+#define ID_VIEW_HIDEMICROSOFTPROCESSES  40238
 #define ID_PAGEPRIORITY_NORMAL          40239
 #define ID_PAGEPRIORITY_BELOWNORMAL     40240
 #define ID_PAGEPRIORITY_MEDIUM          40241
@@ -726,10 +783,6 @@
 #define ID_MODULE_OPENFILELOCATION      40247
 #define ID_PROCESS_OPENFILELOCATION     40248
 #define ID_MISCELLANEOUS_REDUCEWORKINGSET 40249
-#define ID_EMPTY_EMPTYWORKINGSETS       40250
-#define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40251
-#define ID_EMPTY_EMPTYSTANDBYLIST       40252
-#define ID_EMPTY_EMPTYPRIORITY0STANDBYLIST 40253
 #define IDC_BACK                        40255
 #define ID_VIEW_ORGANIZECOLUMNSETS      40256
 #define ID_VIEW_SAVECOLUMNSET           40257
@@ -766,9 +819,6 @@
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 40289
 #define ID_TOOLS_STARTRESOURCEMONITOR   40290
 #define IDC_MAXSCREEN                   40293
-#define ID_EMPTY_COMPRESSIONSTORE       40294
-#define ID_EMPTY_COMBINEMEMORYLISTS     40295
-#define ID_EMPTY_SYSTEMFILECACHE        40296
 #define ID_PRIVILEGE_RESET              40296
 #define ID_GROUP_ENABLE                 40297
 #define ID_THREAD_CRITICAL              40297
@@ -778,8 +828,15 @@
 #define ID_TOOLS_RDP_PERMISSIONS        40301
 #define ID_TOOLS_PWR_PERMISSIONS        40302
 #define ID_TOOLS_WMI_PERMISSIONS        40303
-#define ID_UIACCESS_REMOVE              40304
-#define ID_TOOLS_LIVEDUMP               40305
+#define ID_TOOLS_DESKTOP_PERMISSIONS    40304
+#define ID_TOOLS_STATION_PERMISSIONS    40305
+#define ID_UIACCESS_REMOVE              40306
+#define ID_TOOLS_LIVEDUMP               40307
+#define ID_NOTIFICATIONS_ENABLEDELAYSTART 40308
+#define ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT 40309
+#define ID_NOTIFICATIONS_RESETPERSISTLAYOUT 40310
+#define ID_NOTIFICATIONS_ENABLETRANSPARENTICONS 40311
+#define ID_NOTIFICATIONS_ENABLESINGLECLICKICONS 40312
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 
@@ -787,9 +844,9 @@
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        265
+#define _APS_NEXT_RESOURCE_VALUE        273
 #define _APS_NEXT_COMMAND_VALUE         40298
-#define _APS_NEXT_CONTROL_VALUE         1415
+#define _APS_NEXT_CONTROL_VALUE         1418
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif

@@ -18,6 +18,7 @@ VOID PhSvcpFreeHeap(
     _In_ PVOID Memory
     );
 
+_Success_(return != NULL)
 PVOID PhSvcpCreateString(
     _In_opt_ PVOID String,
     _In_ SIZE_T Length,
@@ -42,7 +43,7 @@ NTSTATUS PhSvcCallUnloadDriver(
     );
 
 NTSTATUS PhSvcCallControlProcess(
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_ PHSVC_API_CONTROLPROCESS_COMMAND Command,
     _In_ ULONG Argument
     );

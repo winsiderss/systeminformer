@@ -52,7 +52,6 @@ typedef struct _PH_HANDLE_NODE
 
     PPH_STRING GrantedAccessSymbolicText;
     WCHAR FileShareAccessText[4];
-    WCHAR ObjectString[PH_PTR_STR_LEN_1];
 // begin_phapppub
 } PH_HANDLE_NODE, *PPH_HANDLE_NODE;
 // end_phapppub

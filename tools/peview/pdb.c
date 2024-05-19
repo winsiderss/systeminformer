@@ -11,10 +11,11 @@
 
 #include <peview.h>
 #include <symprv.h>
-#include <uxtheme.h>
 
 #include <dbghelp.h>
-#include "dia2.h"
+#define COM_NO_WINDOWS_H 1
+#include "../thirdparty/winsdk/dia2.h"
+#include "../thirdparty/winsdk/dia3.h"
 
 ULONG SearchResultsAddIndex = 0;
 PPH_LIST SearchResults = NULL;
@@ -210,7 +211,7 @@ VOID PrintLocation(
 
     if (IDiaSymbol_get_locationType(IDiaSymbol, &dwLocType) != S_OK)
     {
-        PhAppendFormatStringBuilder(StringBuilder, L"symbol in optmized code");
+        PhAppendFormatStringBuilder(StringBuilder, L"symbol in optimized code");
         return;
     }
 
@@ -929,6 +930,24 @@ VOID PePdbPrintDiaSymbol(
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
             PhPrintInt64(symbol->Index, symbol->UniqueId);
 
+            if (symbolRva)
+            {
+                PIMAGE_SECTION_HEADER directorySection = NULL;
+
+                PhMappedImageRvaToVa(&PvMappedImage, symbolRva, &directorySection);
+
+                if (directorySection)
+                {
+                    symbol->Characteristics = directorySection->Characteristics;
+                    PhGetMappedImageSectionName(
+                        directorySection,
+                        symbol->SectionName,
+                        RTL_NUMBER_OF(symbol->SectionName),
+                        &symbol->SectionNameLength
+                        );
+                }
+            }
+
             PhAcquireQueuedLockExclusive(&SearchResultsLock);
             PhAddItemList(SearchResults, symbol);
             PhReleaseQueuedLockExclusive(&SearchResultsLock);
@@ -1022,6 +1041,24 @@ VOID PePdbPrintDiaSymbol(
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
             PhPrintInt64(symbol->Index, symbol->UniqueId);
 
+            if (symbolRva)
+            {
+                PIMAGE_SECTION_HEADER directorySection = NULL;
+
+                PhMappedImageRvaToVa(&PvMappedImage, symbolRva, &directorySection);
+
+                if (directorySection)
+                {
+                    symbol->Characteristics = directorySection->Characteristics;
+                    PhGetMappedImageSectionName(
+                        directorySection,
+                        symbol->SectionName,
+                        RTL_NUMBER_OF(symbol->SectionName),
+                        &symbol->SectionNameLength
+                        );
+                }
+            }
+
             PhAcquireQueuedLockExclusive(&SearchResultsLock);
             PhAddItemList(SearchResults, symbol);
             PhReleaseQueuedLockExclusive(&SearchResultsLock);
@@ -1046,6 +1083,24 @@ VOID PePdbPrintDiaSymbol(
             //SymbolInfo_SymbolLocationStr(SymbolInfo, symbol->Pointer);
             PhPrintPointer(symbol->Pointer, UlongToPtr(symbolRva));
             PhPrintInt64(symbol->Index, symbol->UniqueId);
+
+            if (symbolRva)
+            {
+                PIMAGE_SECTION_HEADER directorySection = NULL;
+
+                PhMappedImageRvaToVa(&PvMappedImage, symbolRva, &directorySection);
+
+                if (directorySection)
+                {
+                    symbol->Characteristics = directorySection->Characteristics;
+                    PhGetMappedImageSectionName(
+                        directorySection,
+                        symbol->SectionName,
+                        RTL_NUMBER_OF(symbol->SectionName),
+                        &symbol->SectionNameLength
+                        );
+                }
+            }
 
             //if (SymbolInfo->Name[0]) // HACK
             //{
@@ -1373,7 +1428,6 @@ PPH_STRING PdbGetSymbolDetails(
     {
         IDiaEnumSymbols* idiaEnumSymbols;
         IDiaSymbol* idiaGlobalSymbol;
-        IDiaSymbol* idiaSymbol;
         ULONG count;
 
         if (IDiaSession_get_globalScope(

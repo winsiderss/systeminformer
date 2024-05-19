@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -14,7 +14,9 @@
 #include <hndlinfo.h>
 #include <json.h>
 #include <kphuser.h>
+#include <mapldr.h>
 #include <lsasup.h>
+
 #include <devquery.h>
 #include <devpkey.h>
 
@@ -108,6 +110,8 @@ NTSTATUS PhpCallWithTimeoutThreadStart(
     _In_ PVOID Parameter
     );
 
+BOOLEAN PhEnableProcessHandlePnPDeviceNameSupport = FALSE;
+
 static PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER] = { 0 };
 static PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = PhStdGetClientIdName;
 
@@ -175,7 +179,7 @@ NTSTATUS PhpGetObjectBasicInformation(
 }
 
 NTSTATUS PhpGetObjectTypeName(
-    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _In_ ULONG ObjectTypeNumber,
     _Out_ PPH_STRING *TypeName
@@ -257,7 +261,7 @@ NTSTATUS PhpGetObjectTypeName(
         }
 
         if (returnLength == 0)
-            return status;
+            return STATUS_UNSUCCESSFUL;
 
         buffer = PhAllocate(returnLength);
 
@@ -389,6 +393,28 @@ NTSTATUS PhpGetObjectName(
     PhFree(buffer);
 
     return status;
+}
+
+NTSTATUS PhQueryObjectName(
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING *ObjectName
+    )
+{
+    if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
+        return STATUS_INVALID_HANDLE;
+
+    return PhpGetObjectName(NtCurrentProcess(), Handle, FALSE, ObjectName);
+}
+
+NTSTATUS PhQueryObjectBasicInformation(
+    _In_ HANDLE Handle,
+    _Out_ POBJECT_BASIC_INFORMATION BasicInformation
+    )
+{
+    if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
+        return STATUS_INVALID_HANDLE;
+
+    return PhpGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
 }
 
 NTSTATUS PhpGetEtwObjectName(
@@ -576,20 +602,6 @@ PPH_STRING PhGetPnPDeviceName(
     _In_ PPH_STRING ObjectName
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI* DevGetObjects_I)(
-        _In_ DEV_OBJECT_TYPE ObjectType,
-        _In_ ULONG QueryFlags,
-        _In_ ULONG cRequestedProperties,
-        _In_reads_opt_(cRequestedProperties) const DEVPROPCOMPKEY *pRequestedProperties,
-        _In_ ULONG cFilterExpressionCount,
-        _In_reads_opt_(cFilterExpressionCount) const DEVPROP_FILTER_EXPRESSION *pFilter,
-        _Out_ PULONG pcObjectCount,
-        _Outptr_result_buffer_maybenull_(*pcObjectCount) const DEV_OBJECT **ppObjects) = NULL;
-    static HRESULT (WINAPI* DevFreeObjects_I)(
-        _In_ ULONG cObjectCount,
-        _In_reads_(cObjectCount) const DEV_OBJECT *pObjects) = NULL;
-
     PPH_STRING objectPnPDeviceName = NULL;
     ULONG deviceCount = 0;
     PDEV_OBJECT deviceObjects = NULL;
@@ -597,22 +609,6 @@ PPH_STRING PhGetPnPDeviceName(
     DEVPROP_FILTER_EXPRESSION deviceFilter[1];
     DEVPROPERTY deviceFilterProperty;
     DEVPROPCOMPKEY deviceFilterCompoundProp;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID cfgmgr32;
-
-        if (cfgmgr32 = PhLoadLibrary(L"cfgmgr32.dll"))
-        {
-            DevGetObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevGetObjects", 0);
-            DevFreeObjects_I = PhGetDllBaseProcedureAddress(cfgmgr32, "DevFreeObjects", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!(DevGetObjects_I && DevFreeObjects_I))
-        return NULL;
 
     memset(deviceProperties, 0, sizeof(deviceProperties));
     deviceProperties[0].Key = DEVPKEY_NAME;
@@ -635,7 +631,7 @@ PPH_STRING PhGetPnPDeviceName(
     deviceFilter[0].Operator = DEVPROP_OPERATOR_EQUALS_IGNORE_CASE;
     deviceFilter[0].Property = deviceFilterProperty;
 
-    if (SUCCEEDED(DevGetObjects_I(
+    if (HR_SUCCESS(PhDevGetObjects(
         DevObjectTypeDevice,
         DevQueryFlagNone,
         RTL_NUMBER_OF(deviceProperties),
@@ -706,7 +702,7 @@ PPH_STRING PhGetPnPDeviceName(
                 PhDereferenceObject(deviceName);
         }
 
-        DevFreeObjects_I(deviceCount, deviceObjects);
+        PhDevFreeObjects(deviceCount, deviceObjects);
     }
 
     return objectPnPDeviceName;
@@ -735,13 +731,12 @@ PPH_STRING PhFormatNativeKeyName(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PTOKEN_USER tokenUser;
+        PH_TOKEN_USER tokenUser;
         PPH_STRING stringSid = NULL;
 
         if (NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenUser)))
         {
-            stringSid = PhSidToStringSid(tokenUser->User.Sid);
-            PhFree(tokenUser);
+            stringSid = PhSidToStringSid(tokenUser.User.Sid);
         }
 
         if (stringSid)
@@ -864,7 +859,7 @@ PPH_STRING PhStdGetClientIdNameEx(
     {
         if (ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
         {
-            if (processName = PhGetKernelFileName())
+            if (processName = PhGetKernelFileName2())
             {
                 PhMoveReference(&processName, PhGetBaseName(processName));
                 processNameRef.Length = processName->Length;
@@ -1004,8 +999,7 @@ NTSTATUS PhpGetBestObjectName(
     PPH_STRING bestObjectName = NULL;
     PPH_GET_CLIENT_ID_NAME handleGetClientIdName = PhHandleGetClientIdName;
 
-    if (PhEqualString2(TypeName, L"EtwRegistration", TRUE) ||
-        PhEqualString2(TypeName, L"EtwConsumer", TRUE))
+    if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
     {
         if (KphLevel() >= KphLevelMed)
         {
@@ -1029,14 +1023,17 @@ NTSTATUS PhpGetBestObjectName(
     else if (PhEqualString2(TypeName, L"File", TRUE))
     {
         // Convert the file name to a DOS file name.
-        bestObjectName = PhResolveDevicePrefix(ObjectName);
+        bestObjectName = PhResolveDevicePrefix(&ObjectName->sr);
 
         if (!bestObjectName)
         {
-            if (PhStartsWithString2(ObjectName, L"\\Device\\", TRUE))
+            if (PhEnableProcessHandlePnPDeviceNameSupport)
             {
-                // The device might be a PDO... Query the PnP manager for the friendly name of the device. (dmex)
-                bestObjectName = PhGetPnPDeviceName(ObjectName);
+                if (PhStartsWithString2(ObjectName, L"\\Device\\", TRUE))
+                {
+                    // The device might be a PDO... Query the PnP manager for the friendly name of the device. (dmex)
+                    bestObjectName = PhGetPnPDeviceName(ObjectName);
+                }
             }
 
             if (!bestObjectName)
@@ -1256,7 +1253,7 @@ NTSTATUS PhpGetBestObjectName(
 
         if (NT_SUCCESS(status))
         {
-            bestObjectName = PhResolveDevicePrefix(fileName);
+            bestObjectName = PhResolveDevicePrefix(&fileName->sr);
             PhDereferenceObject(fileName);
         }
         else
@@ -1521,7 +1518,7 @@ NTSTATUS PhpGetBestObjectName(
     else if (PhEqualString2(TypeName, L"Token", TRUE))
     {
         HANDLE dupHandle;
-        PTOKEN_USER tokenUser = NULL;
+        PH_TOKEN_USER tokenUser = { 0 };
         TOKEN_STATISTICS statistics = { 0 };
 
         status = NtDuplicateObject(
@@ -1544,7 +1541,7 @@ NTSTATUS PhpGetBestObjectName(
         {
             PPH_STRING fullName;
 
-            fullName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
+            fullName = PhGetSidFullName(tokenUser.User.Sid, TRUE, NULL);
 
             if (fullName)
             {
@@ -1558,8 +1555,6 @@ NTSTATUS PhpGetBestObjectName(
                 bestObjectName = PhFormat(format, 4, fullName->Length + 8 + 16 + 16);
                 PhDereferenceObject(fullName);
             }
-
-            PhFree(tokenUser);
         }
 
         NtClose(dupHandle);
@@ -1599,92 +1594,76 @@ NTSTATUS PhpGetBestObjectName(
 
         if (commsInfo.ClientCommunicationPort.OwnerProcessId == processInfo.UniqueProcessId)
         {
-            PhInitFormatS(&format[formatCount], L"Client: ");
-            formatCount++;
+            PhInitFormatS(&format[formatCount++], L"Client: ");
             if (commsInfo.ServerCommunicationPort.OwnerProcessId)
             {
-                PhInitFormatS(&format[formatCount], L"Connection to ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Connection to ");
                 clientId.UniqueProcess = commsInfo.ServerCommunicationPort.OwnerProcessId;
                 clientId.UniqueThread = 0;
                 name = PhStdGetClientIdName(&clientId);
             }
             else if (commsInfo.ClientCommunicationPort.ConnectionRefused)
             {
-                PhInitFormatS(&format[formatCount], L"Refused ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Refused ");
             }
             else if (commsInfo.ClientCommunicationPort.Closed)
             {
-                PhInitFormatS(&format[formatCount], L"Closed ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Closed ");
             }
             else if (commsInfo.ClientCommunicationPort.Disconnected)
             {
-                PhInitFormatS(&format[formatCount], L"Disconnected ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Disconnected ");
             }
             else if (commsInfo.ClientCommunicationPort.ConnectionPending)
             {
-                PhInitFormatS(&format[formatCount], L"Pending ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Pending ");
             }
         }
         else if (commsInfo.ServerCommunicationPort.OwnerProcessId == processInfo.UniqueProcessId)
         {
-            PhInitFormatS(&format[formatCount], L"Server: ");
-            formatCount++;
+            PhInitFormatS(&format[formatCount++], L"Server: ");
             if (commsInfo.ClientCommunicationPort.OwnerProcessId)
             {
-                PhInitFormatS(&format[formatCount], L" Connection from ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L" Connection from ");
                 clientId.UniqueProcess = commsInfo.ClientCommunicationPort.OwnerProcessId;
                 clientId.UniqueThread = 0;
                 name = PhStdGetClientIdName(&clientId);
             }
             else if (commsInfo.ClientCommunicationPort.ConnectionRefused)
             {
-                PhInitFormatS(&format[formatCount], L"Refused ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Refused ");
             }
             else if (commsInfo.ServerCommunicationPort.Closed)
             {
-                PhInitFormatS(&format[formatCount], L"Closed ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Closed ");
             }
             else if (commsInfo.ServerCommunicationPort.Disconnected)
             {
-                PhInitFormatS(&format[formatCount], L"Disconnected ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Disconnected ");
             }
             else if (commsInfo.ServerCommunicationPort.ConnectionPending)
             {
-                PhInitFormatS(&format[formatCount], L"Pending ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L"Pending ");
             }
         }
         else if (commsInfo.ConnectionPort.OwnerProcessId == processInfo.UniqueProcessId)
         {
-            PhInitFormatS(&format[formatCount], L"Connection: ");
-            formatCount++;
+            PhInitFormatS(&format[formatCount++], L"Connection: ");
         }
 
         if (name)
         {
-            PhInitFormatSR(&format[formatCount], name->sr);
-            formatCount++;
+            PhInitFormatSR(&format[formatCount++], name->sr);
 
             if (namesInfo && namesInfo->ConnectionPort.Length > 0)
             {
-                PhInitFormatS(&format[formatCount], L" on ");
-                formatCount++;
+                PhInitFormatS(&format[formatCount++], L" on ");
             }
         }
 
         if (namesInfo && namesInfo->ConnectionPort.Length > 0)
         {
-            PhInitFormatUCS(&format[formatCount], &namesInfo->ConnectionPort);
-            formatCount++;
+            PhInitFormatUCS(&format[formatCount++], &namesInfo->ConnectionPort);
         }
 
         if (formatCount > 0)
@@ -1806,7 +1785,7 @@ NTSTATUS PhGetHandleInformationEx(
 {
     NTSTATUS status = STATUS_SUCCESS;
     NTSTATUS subStatus = STATUS_SUCCESS;
-    HANDLE dupHandle = NULL;
+    HANDLE objectHandle = NULL;
     PPH_STRING typeName = NULL;
     PPH_STRING objectName = NULL;
     PPH_STRING bestObjectName = NULL;
@@ -1830,7 +1809,7 @@ NTSTATUS PhGetHandleInformationEx(
                 ProcessHandle,
                 Handle,
                 NtCurrentProcess(),
-                &dupHandle,
+                &objectHandle,
                 0,
                 0,
                 0
@@ -1841,8 +1820,12 @@ NTSTATUS PhGetHandleInformationEx(
         }
         else
         {
-            dupHandle = Handle;
+            objectHandle = Handle;
         }
+    }
+    else
+    {
+        objectHandle = Handle;
     }
 
     // Get basic information.
@@ -1850,7 +1833,7 @@ NTSTATUS PhGetHandleInformationEx(
     {
         status = PhpGetObjectBasicInformation(
             ProcessHandle,
-            useKph ? Handle : dupHandle,
+            objectHandle,
             BasicInformation
             );
 
@@ -1865,7 +1848,7 @@ NTSTATUS PhGetHandleInformationEx(
     // Get the type name.
     status = PhpGetObjectTypeName(
         ProcessHandle,
-        useKph ? Handle : dupHandle,
+        objectHandle,
         ObjectTypeNumber,
         &typeName
         );
@@ -1883,12 +1866,12 @@ NTSTATUS PhGetHandleInformationEx(
     {
         status = PhpGetObjectName(
             ProcessHandle,
-            useKph ? Handle : dupHandle,
+            objectHandle,
             TRUE,
             &objectName
             );
     }
-    else if ((PhEqualString2(typeName, L"EtwRegistration", TRUE) || PhEqualString2(typeName, L"EtwConsumer", TRUE)) && useKph)
+    else if (PhEqualString2(typeName, L"EtwRegistration", TRUE) && useKph)
     {
         status = PhpGetEtwObjectName(
             ProcessHandle,
@@ -1901,7 +1884,7 @@ NTSTATUS PhGetHandleInformationEx(
         // Query the object normally.
         status = PhpGetObjectName(
             ProcessHandle,
-            useKph ? Handle : dupHandle,
+            objectHandle,
             FALSE,
             &objectName
             );
@@ -1956,8 +1939,8 @@ CleanupExit:
             PhSetReference(BestObjectName, bestObjectName);
     }
 
-    if (dupHandle && ProcessHandle != NtCurrentProcess())
-        NtClose(dupHandle);
+    if (!useKph && objectHandle && ProcessHandle != NtCurrentProcess())
+        NtClose(objectHandle);
 
     PhClearReference(&typeName);
     PhClearReference(&objectName);
@@ -2003,6 +1986,41 @@ NTSTATUS PhEnumObjectTypes(
     }
 
     *ObjectTypes = (POBJECT_TYPES_INFORMATION)buffer;
+
+    return status;
+}
+
+NTSTATUS PhGetObjectTypeMask(
+    _In_ PPH_STRINGREF TypeName,
+    _Out_ PGENERIC_MAPPING GenericMapping
+    )
+{
+    NTSTATUS status = STATUS_NOT_FOUND;
+    POBJECT_TYPES_INFORMATION objectTypes;
+    POBJECT_TYPE_INFORMATION objectType;
+
+    if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
+    {
+        objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
+
+        for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
+        {
+            PH_STRINGREF typeName;
+
+            PhUnicodeStringToStringRef(&objectType->TypeName, &typeName);
+
+            if (PhEqualStringRef(&typeName, TypeName, TRUE))
+            {
+                *GenericMapping = objectType->GenericMapping;
+                status = STATUS_SUCCESS;
+                break;
+            }
+
+            objectType = PH_NEXT_OBJECT_TYPE(objectType);
+        }
+
+        PhFree(objectTypes);
+    }
 
     return status;
 }
@@ -2187,13 +2205,13 @@ NTSTATUS PhpCallWithTimeout(
         NtClearEvent(ThreadContext->StartEventHandle);
         NtClearEvent(ThreadContext->CompletedEventHandle);
 
-        if (!NT_SUCCESS(status = RtlCreateUserThread(
+        if (!NT_SUCCESS(status = PhCreateUserThread(
             NtCurrentProcess(),
             NULL,
-            FALSE,
             0,
             0,
-            32 * 1024,
+            UInt32x32To64(32, 1024),
+            0,
             PhpCallWithTimeoutThreadStart,
             ThreadContext,
             &ThreadContext->ThreadHandle,

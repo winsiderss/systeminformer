@@ -5,12 +5,12 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
+#include <informer.h>
 #include <comms.h>
 #include <kphmsgdyn.h>
 
@@ -24,15 +24,14 @@ typedef struct _KPH_DBG_PRINT_SLOT
     ULONG ComponentId;
     ULONG Level;
     USHORT Length;
-    CHAR Buffer[3 * 1024];
-
+    CHAR Buffer[FIELD_SIZE(KPH_MESSAGE, _Dyn.Buffer)];
 } KPH_DBG_PRINT_SLOT, *PKPH_DBG_PRINT_SLOT;
 
 static BOOLEAN KphpDbgPrintInitialized = FALSE;
 static KSPIN_LOCK KphpDbgPrintLock;
 static ULONG KphpDbgPrintSlotNext = 0;
 static ULONG KphpDbgPrintSlotCount = 0;
-static PKPH_DBG_PRINT_SLOT KphpDbgPrintSlots;
+static PKPH_DBG_PRINT_SLOT KphpDbgPrintSlots = NULL;
 
 /**
  * \brief Flushes the debug print slots to the communication port.
@@ -44,6 +43,7 @@ VOID KphpDebugPrintFlush(
     for (ULONG i = 0; i < KphpDbgPrintSlotNext; i++)
     {
         NTSTATUS status;
+        USHORT remaining;
         ANSI_STRING output;
         PKPH_MESSAGE msg;
         PKPH_DBG_PRINT_SLOT slot;
@@ -53,7 +53,7 @@ VOID KphpDebugPrintFlush(
         msg = KphAllocateNPagedMessage();
         if (!msg)
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to allocate message");
             continue;
@@ -66,14 +66,23 @@ VOID KphpDebugPrintFlush(
         msg->Kernel.DebugPrint.ComponentId = slot->ComponentId;
         msg->Kernel.DebugPrint.Level = slot->Level;
 
-        output.Length = slot->Length;
+        remaining = KphMsgDynRemaining(msg);
+
+        if (slot->Length > remaining)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          INFORMER,
+                          "Truncated debug print line");
+        }
+
+        output.Length = min(slot->Length, remaining);
         output.MaximumLength = slot->Length;
         output.Buffer = slot->Buffer;
 
         status = KphMsgDynAddAnsiString(msg, KphMsgFieldOutput, &output);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_WARNING,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "KphMsgDynAddAnsiString failed: %!STATUS!",
                           status);
@@ -94,7 +103,7 @@ VOID KphpDebugPrintFlush(
  * \param SystemArgument2 Unused
  */
 _IRQL_requires_same_
-VOID KphpDebugPrintDpc (
+VOID KphpDebugPrintDpc(
     _In_ PKDPC Dpc,
     _In_opt_ PVOID DeferredContext,
     _In_opt_ PVOID SystemArgument1,
@@ -133,12 +142,7 @@ VOID KphpDebugPrintCallback(
 {
     PKPH_DBG_PRINT_SLOT slot;
 
-    NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL);
-
-    if (!KphInformerSettings.DebugPrint)
-    {
-        return;
-    }
+    NPAGED_CODE_DISPATCH_MIN();
 
     slot = NULL;
 
@@ -151,7 +155,7 @@ VOID KphpDebugPrintCallback(
 
     if (KphpDbgPrintSlotNext >= KphpDbgPrintSlotCount)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Out of debug print slots!");
         goto Exit;
@@ -167,9 +171,9 @@ VOID KphpDebugPrintCallback(
     slot->Length = min(Output->Length, ARRAYSIZE(slot->Buffer));
     RtlCopyMemory(slot->Buffer, Output->Buffer, slot->Length);
 
-    if (slot->Length != Output->Length)
+    if (Output->Length > ARRAYSIZE(slot->Buffer))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Truncated debug print line");
     }
@@ -198,6 +202,8 @@ NTSTATUS KphDebugInformerStart(
     NTSTATUS status;
     ULONG count;
 
+    NPAGED_CODE_PASSIVE();
+
     NT_ASSERT(KphpDbgPrintSlotNext == 0);
     NT_ASSERT(!KphpDbgPrintInitialized);
 
@@ -208,7 +214,7 @@ NTSTATUS KphDebugInformerStart(
                                           KPH_TAG_DBG_SLOTS);
     if (!KphpDbgPrintSlots)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate slots for debug print callback");
 
@@ -230,7 +236,7 @@ NTSTATUS KphDebugInformerStart(
     status = DbgSetDebugPrintCallback(KphpDebugPrintCallback, TRUE);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to register debug print callback: %!STATUS!",
                       status);
@@ -251,7 +257,7 @@ Exit:
 
         if (KphpDbgPrintSlots)
         {
-            ExFreePoolWithTag(KphpDbgPrintSlots, KPH_TAG_DBG_SLOTS);
+            KphFree(KphpDbgPrintSlots, KPH_TAG_DBG_SLOTS);
             KphpDbgPrintSlots = NULL;
         }
     }
@@ -269,6 +275,8 @@ VOID KphDebugInformerStop(
 {
     KIRQL oldIrql;
 
+    NPAGED_CODE_PASSIVE();
+
     if (!KphpDbgPrintInitialized)
     {
         return;
@@ -278,18 +286,7 @@ VOID KphDebugInformerStop(
 
     for (ULONG i = 0; i < KphpDbgPrintSlotCount; i++)
     {
-        if (KphDynKeRemoveQueueDpcEx)
-        {
-            KphDynKeRemoveQueueDpcEx(&KphpDbgPrintSlots[i].Dpc, TRUE);
-        }
-        else
-        {
-            //
-            // This produces a small chance that we haven't completely returned
-            // from the DPC routine.
-            //
-            KeRemoveQueueDpc(&KphpDbgPrintSlots[i].Dpc);
-        }
+        KeRemoveQueueDpcEx(&KphpDbgPrintSlots[i].Dpc, TRUE);
     }
 
     KeAcquireSpinLock(&KphpDbgPrintLock, &oldIrql);
@@ -297,7 +294,7 @@ VOID KphDebugInformerStop(
     KphpDebugPrintFlush();
 
     KphpDbgPrintSlotCount = 0;
-    ExFreePoolWithTag(KphpDbgPrintSlots, KPH_TAG_DBG_SLOTS);
+    KphFree(KphpDbgPrintSlots, KPH_TAG_DBG_SLOTS);
     KphpDbgPrintSlots = NULL;
 
     KeReleaseSpinLock(&KphpDbgPrintLock, oldIrql);

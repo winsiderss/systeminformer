@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_TREENEWP_H
 #define _PH_TREENEWP_H
 
@@ -70,7 +82,6 @@ typedef struct _PH_TREENEW_CONTEXT
 
     HFONT Font;
     HCURSOR Cursor;
-    HCURSOR DividerCursor;
 
     RECT ClientRect;
     LONG HeaderHeight;
@@ -157,6 +168,10 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG SystemDragY;
     RECT DragRect;
 
+    LONG WindowDpi;
+    LONG SmallIconWidth;
+    LONG SmallIconHeight;
+
     LONG EnableRedraw;
     HRGN SuspendUpdateRegion;
 
@@ -179,8 +194,17 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG HeaderHotColumn : 16; // HACK (dmex)
         };
     };
+
     HTHEME HeaderThemeHandle;
     HFONT HeaderBoldFontHandle;
+    HDC HeaderBufferedDc;
+    HBITMAP HeaderBufferedOldBitmap;
+    HBITMAP HeaderBufferedBitmap;
+    RECT HeaderBufferedContextRect;
+
+    ULONG HeaderColumnCacheMax;
+    PPH_STRINGREF HeaderStringCache;
+    PVOID HeaderTextCache;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -239,6 +263,11 @@ VOID PhTnpOnSettingChange(
     );
 
 VOID PhTnpOnThemeChanged(
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpOnDpiChanged(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context
     );
@@ -516,6 +545,7 @@ VOID PhTnpAutoSizeColumnHeader(
 
 // Nodes
 
+_Success_(return)
 BOOLEAN PhTnpGetNodeChildren(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_opt_ PPH_TREENEW_NODE Node,
@@ -528,6 +558,7 @@ BOOLEAN PhTnpIsNodeLeaf(
     _In_ PPH_TREENEW_NODE Node
     );
 
+_Success_(return)
 BOOLEAN PhTnpGetCellText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_NODE Node,
@@ -722,7 +753,7 @@ VOID PhTnpInitializeTooltips(
 VOID PhTnpGetTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Outptr_ PWSTR *Text
     );
 
 BOOLEAN PhTnpPrepareTooltipShow(
@@ -748,7 +779,7 @@ VOID PhTnpGetHeaderTooltipText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ BOOLEAN Fixed,
     _In_ PPOINT Point,
-    _Out_ PWSTR *Text
+    _Outptr_ PWSTR *Text
     );
 
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
@@ -802,14 +833,10 @@ VOID PhTnpGetMessagePos(
 BOOLEAN PhTnpGetColumnHeaderText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_COLUMN Column,
-    _In_ PWSTR TextCache,
-    _In_ ULONG TextCacheSize,
     _Out_ PPH_STRINGREF Text
     );
 
 // Macros
-
-#define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented
 
 #define TNP_CELL_LEFT_MARGIN 6
 #define TNP_CELL_RIGHT_MARGIN 6

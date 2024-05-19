@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -23,6 +23,7 @@
 #include <svcsup.h>
 #include <symprv.h>
 #include <workqueue.h>
+#include <kphuser.h>
 
 #include <extmgri.h>
 #include <procprv.h>
@@ -139,7 +140,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
             threadProvider->ProcessHandle = threadProvider->SymbolProvider->ProcessHandle;
     }
 
-    RtlInitializeSListHead(&threadProvider->QueryListHead);
+    PhInitializeSListHead(&threadProvider->QueryListHead);
     PhInitializeQueuedLock(&threadProvider->LoadSymbolsLock);
 
     threadProvider->RunId = 1;
@@ -221,13 +222,11 @@ VOID PhSetTerminatingThreadProvider(
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
 
-    if (!context)
-        return FALSE;
     if (context->ThreadProvider->Terminating)
         return FALSE;
 
@@ -252,13 +251,11 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 
 static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
 
-    if (!context)
-        return FALSE;
     if (context->ThreadProvider->Terminating)
         return FALSE;
 
@@ -340,9 +337,7 @@ VOID PhLoadSymbolsThreadProvider(
         {
             if (kernelModules->NumberOfModules > 0)
             {
-                PPH_STRING fileName;
-
-                fileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
+                PPH_STRING fileName = PhConvertUtf8ToUtf16(kernelModules->Modules[0].FullPathName);
 
                 PhLoadModuleSymbolProvider(
                     ThreadProvider->SymbolProvider,
@@ -350,6 +345,7 @@ VOID PhLoadSymbolsThreadProvider(
                     (ULONG64)kernelModules->Modules[0].ImageBase,
                     kernelModules->Modules[0].ImageSize
                     );
+
                 PhDereferenceObject(fileName);
             }
 
@@ -373,6 +369,8 @@ PPH_THREAD_ITEM PhCreateThreadItem(
         );
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
+
+    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 
@@ -484,7 +482,7 @@ NTSTATUS PhpThreadQueryWorker(
     newSymbolsLoading = _InterlockedIncrement(&data->ThreadProvider->SymbolsLoading);
 
     if (newSymbolsLoading == 1)
-        PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, (PVOID)TRUE);
+        PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, UlongToPtr(TRUE));
 
     if (data->ThreadProvider->SymbolsLoadedRunId == 0)
         PhLoadSymbolsThreadProvider(data->ThreadProvider);
@@ -676,7 +674,7 @@ static NTSTATUS PhpGetThreadCycleTime(
     {
         if (HandleToUlong(ThreadItem->ThreadId) < PhSystemProcessorInformation.NumberOfProcessors)
         {
-            *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].QuadPart;
+            *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].CycleTime;
             return STATUS_SUCCESS;
         }
     }
@@ -756,6 +754,23 @@ VOID PhpThreadProviderUpdate(
         // The process doesn't exist anymore. Pretend it does but has no threads.
         process = &localProcess;
         process->NumberOfThreads = 0;
+
+        //
+        // We want dbghelp.dll to release the symbol files so that the exited process symbols can
+        // be rebuilt. This is most common for developers building, inspecting with system informer,
+        // then rebuilding without closing the process properties dialog.
+        //
+        // There are downstream dependencies on the symbol provider and the process handle from it,
+        // so we can't just dereference it immediately here.
+        //
+        // PhUnregisterSymbolProvider will unregister this symbol provider from dbghelp.dll which
+        // will get it to release the symbol files. This gives us the desired result without
+        // breaking downstream logic. The consequence is that symbol resolution downstream will
+        // fail cleanly, but it shouldn't matter in this path as it relies on being able to query
+        // information about the process threads, which no longer exist.
+        //
+        if (threadProvider->SymbolProvider)
+            PhUnregisterSymbolProvider(threadProvider->SymbolProvider);
     }
 
     threads = process->Threads;
@@ -869,7 +884,7 @@ VOID PhpThreadProviderUpdate(
 
         if (!threadItem)
         {
-            PVOID startAddress = NULL;
+            ULONG_PTR startAddress = 0;
 
             threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
             threadItem->CreateTime = thread->CreateTime;
@@ -956,6 +971,39 @@ VOID PhpThreadProviderUpdate(
                 GUITHREADINFO info = { sizeof(GUITHREADINFO) };
 
                 threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
+            }
+
+            if (WindowsVersion >= WINDOWS_10_22H2 && threadItem->ThreadHandle)
+            {
+                if (KphLevel() >= KphLevelMed) // threadItem->IsSubsystemProcess
+                {
+                    ULONG lxssThreadId;
+
+                    if (NT_SUCCESS(KphQueryInformationThread(
+                        threadItem->ThreadHandle,
+                        KphThreadWSLThreadId,
+                        &lxssThreadId,
+                        sizeof(ULONG),
+                        NULL
+                        )))
+                    {
+                        threadItem->LxssThreadId = lxssThreadId;
+                        PhPrintUInt32(threadItem->LxssThreadIdString, lxssThreadId);
+                    }
+                }
+            }
+
+            if (WindowsVersion >= WINDOWS_11_22H2 && threadItem->ThreadHandle)
+            {
+                POWER_THROTTLING_THREAD_STATE powerThrottlingState;
+                if (NT_SUCCESS(PhGetThreadPowerThrottlingState(threadItem->ThreadHandle, &powerThrottlingState)))
+                {
+                    if (powerThrottlingState.ControlMask & POWER_THROTTLING_THREAD_EXECUTION_SPEED &&
+                        powerThrottlingState.StateMask & POWER_THROTTLING_THREAD_EXECUTION_SPEED)
+                    {
+                        threadItem->PowerThrottling = TRUE;
+                    }
+                }
             }
 
             PhpQueueThreadQuery(threadProvider, threadItem);
@@ -1164,6 +1212,18 @@ VOID PhpThreadProviderUpdate(
 
                 if (threadItem->IsGuiThread != oldIsGuiThread)
                     modified = TRUE;
+            }
+
+            if (!threadItem->ThreadHandle || KphLevel() < KphLevelMed ||
+                !NT_SUCCESS(KphQueryInformationThread(
+                    threadItem->ThreadHandle,
+                    KphThreadIoCounters,
+                    &threadItem->IoCounters,
+                    sizeof(IO_COUNTERS),
+                    NULL
+                    )))
+            {
+                RtlZeroMemory(&threadItem->IoCounters, sizeof(IO_COUNTERS));
             }
 
             threadItem->JustResolved = FALSE;

@@ -17,29 +17,49 @@ typedef struct _PVP_PE_EXCEPTION_CONTEXT
     HWND ListViewHandle;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
+    ULONG ExceptionsFlags;
 } PVP_PE_EXCEPTION_CONTEXT, *PPVP_PE_EXCEPTION_CONTEXT;
 
-VOID PvEnumerateExceptionEntries(
-    _In_ HWND WindowHandle,
-    _In_ HWND ListViewHandle
+USHORT PvGetExceptionsImageMachine(
+    _In_ PPVP_PE_EXCEPTION_CONTEXT Context
     )
 {
-    ULONG count = 0;
-    ULONG imageMachine;
-    PH_MAPPED_IMAGE_EXCEPTIONS exceptions;
+    USHORT imageMachine;
 
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         imageMachine = PvMappedImage.NtHeaders32->FileHeader.Machine;
     else
         imageMachine = PvMappedImage.NtHeaders->FileHeader.Machine;
 
-    if (!NT_SUCCESS(PhGetMappedImageExceptions(&PvMappedImage, &exceptions)))
+    if (Context->ExceptionsFlags && PH_GET_IMAGE_EXCEPTIONS_ARM64X)
+    {
+        if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
+            imageMachine = IMAGE_FILE_MACHINE_AMD64;
+        else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
+            imageMachine = IMAGE_FILE_MACHINE_AMD64;
+    }
+
+    return imageMachine;
+}
+
+VOID PvEnumerateExceptionEntries(
+    _In_ HWND WindowHandle,
+    _In_ PPVP_PE_EXCEPTION_CONTEXT Context
+    )
+{
+    ULONG count = 0;
+    ULONG imageMachine;
+    PH_MAPPED_IMAGE_EXCEPTIONS exceptions;
+
+    imageMachine = PvGetExceptionsImageMachine(Context);
+
+    if (!NT_SUCCESS(PhGetMappedImageExceptionsEx(&PvMappedImage, &exceptions, Context->ExceptionsFlags)))
     {
         return;
     }
 
-    ExtendedListView_SetRedraw(ListViewHandle, FALSE);
-    ListView_DeleteAllItems(ListViewHandle);
+    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
+    ListView_DeleteAllItems(Context->ListViewHandle);
 
     if (imageMachine == IMAGE_FILE_MACHINE_I386)
     {
@@ -52,10 +72,10 @@ VOID PvEnumerateExceptionEntries(
             WCHAR value[PH_INT64_STR_LEN_1];
 
             PhPrintUInt64(value, ++count);
-            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
+            lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, value, NULL);
 
             PhPrintPointer(value, UlongToPtr(entry));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, value);
 
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
@@ -68,7 +88,7 @@ VOID PvEnumerateExceptionEntries(
 
             if (symbolName)
             {
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, symbolName->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, symbolName->Buffer);
                 PhDereferenceObject(symbolName);
             }
 
@@ -94,7 +114,7 @@ VOID PvEnumerateExceptionEntries(
                         NULL
                         ))
                     {
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, sectionName);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, sectionName);
                     }
                 }
             }
@@ -104,22 +124,22 @@ VOID PvEnumerateExceptionEntries(
     {
         for (ULONG i = 0; i < exceptions.NumberOfEntries; i++)
         {
-            PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64));
+            PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY));
             INT lvItemIndex;
             PPH_STRING symbol;
             PPH_STRING symbolName = NULL;
             WCHAR value[PH_INT64_STR_LEN_1];
 
             PhPrintUInt64(value, ++count);
-            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, entry);
+            lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, value, entry);
 
             PhPrintPointer(value, UlongToPtr(entry->BeginAddress));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, value);
             PhPrintPointer(value, UlongToPtr(entry->EndAddress));
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, value);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, value);
             PhPrintPointer(value, UlongToPtr(entry->UnwindData)); // UnwindInfoAddress
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
-            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(entry->EndAddress - entry->BeginAddress, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, value);
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, PhaFormatSize(entry->EndAddress - entry->BeginAddress, ULONG_MAX)->Buffer);
 
             symbol = PhGetSymbolFromAddress(
                 PvSymbolProvider,
@@ -132,7 +152,7 @@ VOID PvEnumerateExceptionEntries(
 
             if (symbolName)
             {
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, symbolName->Buffer);
+                PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, symbolName->Buffer);
                 PhDereferenceObject(symbolName);
             }
 
@@ -158,7 +178,7 @@ VOID PvEnumerateExceptionEntries(
                         NULL
                         ))
                     {
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, sectionName);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, sectionName);
                     }
                 }
             }
@@ -166,11 +186,114 @@ VOID PvEnumerateExceptionEntries(
     }
     else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
     {
-        /* Todo */
+        for (ULONG i = 0; i < exceptions.NumberOfEntries; i++)
+        {
+            PIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY));
+            INT lvItemIndex;
+            PPH_STRING symbol;
+            PPH_STRING symbolName = NULL;
+            WCHAR value[PH_INT64_STR_LEN_1];
+
+            PhPrintUInt64(value, ++count);
+            lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, value, entry);
+
+            PhPrintPointer(value, UlongToPtr(entry->BeginAddress));
+            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, value);
+
+            switch (entry->Flag)
+            {
+            case PdataRefToFullXdata: // 0 (union is UnwindData)
+                {
+                    IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA* data;
+
+                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"Full");
+
+                    PhPrintPointer(value, UlongToPtr(entry->UnwindData));
+                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 4, value);
+
+                    data = (IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA*)PhMappedImageRvaToVa(&PvMappedImage, entry->UnwindData, NULL);
+                    if (data && data->Version == 0)
+                    {
+                        ULONG functionLength = data->FunctionLength << 2;
+
+                        PhPrintPointer(value, PTR_ADD_OFFSET(UlongToPtr(entry->BeginAddress), functionLength));
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, value);
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, PhaFormatSize(functionLength, ULONG_MAX)->Buffer);
+                    }
+                }
+                break;
+            case PdataPackedUnwindFunction: // 1
+                {
+                    ULONG functionLength = entry->FunctionLength << 2;
+
+                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"Function");
+                    PhPrintPointer(value, PTR_ADD_OFFSET(UlongToPtr(entry->BeginAddress), functionLength));
+                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, value);
+                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, PhaFormatSize(functionLength, ULONG_MAX)->Buffer);
+                }
+                break;
+            case PdataPackedUnwindFragment: // 2
+                {
+                    ULONG functionLength = entry->FunctionLength << 2;
+
+                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"Fragment");
+                    PhPrintPointer(value, PTR_ADD_OFFSET(UlongToPtr(entry->BeginAddress), functionLength));
+                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, value);
+                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 5, PhaFormatSize(functionLength, ULONG_MAX)->Buffer);
+                }
+                break;
+            case 3: // undocumented
+                PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"Reserved"); // ?
+            default:
+                break;
+            }
+
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, entry->BeginAddress),
+                NULL,
+                NULL,
+                &symbolName,
+                NULL
+                );
+
+            if (symbolName)
+            {
+                PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 6, symbolName->Buffer);
+                PhDereferenceObject(symbolName);
+            }
+
+            if (symbol) PhDereferenceObject(symbol);
+
+            if (entry->BeginAddress)
+            {
+                PIMAGE_SECTION_HEADER directorySection;
+
+                directorySection = PhMappedImageRvaToSection(
+                    &PvMappedImage,
+                    entry->BeginAddress
+                    );
+
+                if (directorySection)
+                {
+                    WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+
+                    if (PhGetMappedImageSectionName(
+                        directorySection,
+                        sectionName,
+                        RTL_NUMBER_OF(sectionName),
+                        NULL
+                        ))
+                    {
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, sectionName);
+                    }
+                }
+            }
+        }
     }
 
-    //ExtendedListView_SortItems(ListViewHandle);
-    ExtendedListView_SetRedraw(ListViewHandle, TRUE);
+    //ExtendedListView_SortItems(Context->ListViewHandle);
+    ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
 
 INT NTAPI PvpPeExceptionSizeCompareFunctionAmd64(
@@ -179,8 +302,8 @@ INT NTAPI PvpPeExceptionSizeCompareFunctionAmd64(
     _In_ PVOID Context
     )
 {
-    PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry1 = Item1;
-    PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry2 = Item2;
+    PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY entry1 = Item1;
+    PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY entry2 = Item2;
 
     return uintptrcmp((ULONG_PTR)entry1->EndAddress - entry1->BeginAddress, (ULONG_PTR)entry2->EndAddress - entry2->BeginAddress);
 }
@@ -203,6 +326,25 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
         {
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+
+            if (context->PropSheetContext->Context)
+            {
+                PPV_EXCEPTIONS_PAGECONTEXT exceptionsPageContext = context->PropSheetContext->Context;
+
+                context->ExceptionsFlags = PtrToUlong(exceptionsPageContext->Context);
+
+                if (exceptionsPageContext->FreePropPageContext)
+                {
+                    PhFree(exceptionsPageContext);
+                    exceptionsPageContext = NULL;
+
+                    PhFree(context->PropSheetContext);
+                    context->PropSheetContext = NULL;
+
+                    PhFree(propSheetPage);
+                    propSheetPage = NULL;
+                }
+            }
         }
     }
     else
@@ -228,10 +370,7 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
 
-            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                imageMachine = PvMappedImage.NtHeaders32->FileHeader.Machine;
-            else
-                imageMachine = PvMappedImage.NtHeaders->FileHeader.Machine;
+            imageMachine = PvGetExceptionsImageMachine(context);
 
             if (imageMachine == IMAGE_FILE_MACHINE_I386)
             {
@@ -244,7 +383,7 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
             {
                 PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"RVA (start)");
                 PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RVA (end)");
-                PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 200, L"Data");
+                PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Data");
                 PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
                 PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Section");
@@ -254,15 +393,23 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
             {
-                /* Todo */
+                PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Type");
+                PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"RVA (start)");
+                PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"RVA (end)");
+                PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Data");
+                PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Size");
+                PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 200, L"Symbol");
+                PhAddListViewColumn(context->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"Section");
+
+                PhLoadListViewColumnsFromSetting(L"ImageExceptionsArm64ListViewColumns", context->ListViewHandle);
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PvEnumerateExceptionEntries(hwndDlg, context->ListViewHandle);
+            PvEnumerateExceptionEntries(hwndDlg, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -284,11 +431,12 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
             {
-                /* Todo */
+                PhSaveListViewColumnsToSetting(L"ImageExceptionsArm64ListViewColumns", context->ListViewHandle);
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;

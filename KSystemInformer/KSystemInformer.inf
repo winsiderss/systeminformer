@@ -15,30 +15,19 @@ ClassGuid    = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
 Provider     = SystemInformer
 DriverVer    = 09/01/2022,3.0.0000.0000
 CatalogFile  = KSystemInformer.cat
+PnpLockdown  = 1
 
 [DestinationDirs]
-DefaultDestDir = 12
-
-[DefaultInstall.nt]
-CopyFiles = SystemInformer.DriverFiles
-
-[DefaultInstall.nt.Services]
-AddService = KSystemInformer,,SystemInformer.Service
-
-[DefaultUninstall.nt]
-DelFiles = SystemInformer.DriverFiles
-
-[DefaultUninstall.nt.Services]
-DelService = KSystemInformer,0x200
+DefaultDestDir = 13
 
 [SystemInformer.Service]
 DisplayName    = KSystemInformer 
 ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
-ServiceBinary  = %12%\systeminformer.sys
+ServiceBinary  = %13%\systeminformer.sys
 
-[SystemInformer.DriverFiles]
+[SystemInformer.CopyFiles]
 systeminformer.sys
 ksi.dll
 
@@ -51,3 +40,23 @@ ksi.dll = 1,,
 
 [Strings]
 DiskId1 = "KSystemInformer Disk #1"
+
+;
+; AMD64 Section
+;
+
+[DefaultInstall.NTamd64]
+CopyFiles = SystemInformer.CopyFiles
+
+[DefaultInstall.NTamd64.Services]
+AddService = KSystemInformer,,SystemInformer.Service
+
+;
+; ARM64 Section
+;
+
+[DefaultInstall.NTarm64]
+CopyFiles = SystemInformer.CopyFiles
+
+[DefaultInstall.NTarm64.Services]
+AddService = KSystemInformer,,SystemInformer.Service

@@ -39,6 +39,9 @@
     <ClCompile Include="svcpnp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="svcpkg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extsrv.h">

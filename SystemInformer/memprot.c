@@ -37,16 +37,16 @@ VOID PhShowMemoryProtectDialog(
     context.ProcessItem = ProcessItem;
     context.MemoryItem = MemoryItem;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_MEMPROTECT),
         ParentWindowHandle,
         PhpMemoryProtectDlgProc,
-        (LPARAM)&context
+        &context
         );
 }
 
-static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
+INT_PTR CALLBACK PhpMemoryProtectDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

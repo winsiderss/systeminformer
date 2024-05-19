@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2024
  *
  */
 
@@ -88,39 +88,32 @@ VOID RaplDevicesUpdate(
 
             if (entry->DeviceHandle && !entry->CheckedDeviceSupport)
             {
-                IO_STATUS_BLOCK isb;
                 EMI_METADATA_SIZE metadataSize;
                 EMI_METADATA_V2* metadata;
 
                 memset(&metadataSize, 0, sizeof(EMI_METADATA_SIZE));
 
-                if (NT_SUCCESS(NtDeviceIoControlFile(
+                if (NT_SUCCESS(PhDeviceIoControlFile(
                     entry->DeviceHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
                     IOCTL_EMI_GET_METADATA_SIZE,
                     NULL,
                     0,
                     &metadataSize,
-                    sizeof(EMI_METADATA_SIZE)
+                    sizeof(EMI_METADATA_SIZE),
+                    NULL
                     )))
                 {
                     metadata = PhAllocate(metadataSize.MetadataSize);
                     memset(metadata, 0, metadataSize.MetadataSize);
 
-                    if (NT_SUCCESS(NtDeviceIoControlFile(
+                    if (NT_SUCCESS(PhDeviceIoControlFile(
                         entry->DeviceHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &isb,
                         IOCTL_EMI_GET_METADATA,
                         NULL,
                         0,
                         metadata,
-                        metadataSize.MetadataSize
+                        metadataSize.MetadataSize,
+                        NULL
                         )))
                     {
                         EMI_CHANNEL_V2* channels = metadata->Channels;
@@ -132,16 +125,16 @@ VOID RaplDevicesUpdate(
                         {
                             entry->ChannelDataBufferLength = sizeof(EMI_CHANNEL_MEASUREMENT_DATA) * metadata->ChannelCount;
 
-                            for (ULONG i = 0; i < metadata->ChannelCount; i++)
+                            for (ULONG j = 0; j < metadata->ChannelCount; j++)
                             {
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PKG", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PP0", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PP1", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_DRAM", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = j;
 
                                 channels = EMI_CHANNEL_V2_NEXT_CHANNEL(channels);
                             }
@@ -169,24 +162,19 @@ VOID RaplDevicesUpdate(
         {
             if (entry->DeviceSupported)
             {
-                IO_STATUS_BLOCK isb;
-
                 if (!entry->ChannelDataBuffer)
                 {
                     entry->ChannelDataBuffer = PhAllocateZero(entry->ChannelDataBufferLength);
                 }
 
-                if (entry->ChannelDataBuffer && NT_SUCCESS(NtDeviceIoControlFile(
+                if (entry->ChannelDataBuffer && NT_SUCCESS(PhDeviceIoControlFile(
                     entry->DeviceHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
                     IOCTL_EMI_GET_MEASUREMENT,
                     NULL,
                     0,
                     entry->ChannelDataBuffer,
-                    entry->ChannelDataBufferLength
+                    entry->ChannelDataBufferLength,
+                    NULL
                     )))
                 {
                     RaplDeviceSampleData(entry, entry->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_PACKAGE);
@@ -295,7 +283,7 @@ VOID RaplDeviceSampleData(
     ULONGLONG lastAbsoluteEnergy;
     ULONGLONG lastAbsoluteTime;
     FLOAT numerator;
-    FLOAT denomenator;
+    FLOAT denominator;
     FLOAT counterValue;
 
     if (DeviceIndex == EV_EMI_DEVICE_INDEX_MAX)
@@ -303,11 +291,11 @@ VOID RaplDeviceSampleData(
         if (DeviceEntry->CurrentProcessorPower && DeviceEntry->CurrentCorePower)
             DeviceEntry->CurrentComponentPower = (DeviceEntry->CurrentProcessorPower - (DeviceEntry->CurrentCorePower + DeviceEntry->CurrentDiscreteGpuPower));
         else
-            DeviceEntry->CurrentComponentPower = 0.0;
+            DeviceEntry->CurrentComponentPower = 0.0f;
 
         DeviceEntry->CurrentTotalPower =
             DeviceEntry->CurrentProcessorPower +
-            DeviceEntry->CurrentCorePower +
+            //DeviceEntry->CurrentCorePower +
             DeviceEntry->CurrentDiscreteGpuPower +
             DeviceEntry->CurrentDramPower;
         return;
@@ -320,12 +308,12 @@ VOID RaplDeviceSampleData(
     DeviceEntry->ChannelData[DeviceIndex].AbsoluteTime = data->AbsoluteTime;
 
     numerator = (FLOAT)lastAbsoluteEnergy - (FLOAT)data->AbsoluteEnergy;
-    denomenator = (FLOAT)(lastAbsoluteTime / 36) - (FLOAT)(data->AbsoluteTime / 36);
+    denominator = (FLOAT)(lastAbsoluteTime / 36) - (FLOAT)(data->AbsoluteTime / 36);
 
-    if (numerator && denomenator)
-        counterValue = numerator / denomenator;
+    if (numerator && denominator)
+        counterValue = numerator / denominator;
     else
-        counterValue = 0.0;
+        counterValue = 0.0f;
 
     switch (DeviceIndex)
     {

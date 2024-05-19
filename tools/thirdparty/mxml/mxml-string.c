@@ -15,6 +15,7 @@
 
 #include "config.h"
 
+#include <ph.h>
 
 /*
  * The va_copy macro is part of C99, but many compilers don't implement it.
@@ -68,7 +69,7 @@ _mxml_strdup(const char *s)		/* I - String to duplicate */
   if (s == NULL)
     return (NULL);
 
-  if ((t = malloc(strlen(s) + 1)) == NULL)
+  if ((t = PhAllocateSafe(strlen(s) + 1)) == NULL)
     return (NULL);
 
   return (strcpy(t, s));
@@ -541,7 +542,7 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
     * Hey, the formatted string fits in the tiny buffer, so just dup that...
     */
 
-    return (strdup(temp));
+    return (PhDuplicateBytesZSafe(temp));
   }
 #  endif /* _WIN32 */
 
@@ -549,7 +550,7 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
   * Allocate memory for the whole thing and reformat to the new buffer...
   */
 
-  if ((buffer = calloc(1, bytes + 1)) != NULL)
+  if ((buffer = PhAllocateSafe(bytes + 1)) != NULL)
     vsnprintf(buffer, bytes + 1, format, ap);
 
  /*

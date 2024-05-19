@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -39,12 +39,14 @@ static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static ULONG NeedsSelectPid = 0;
+static ULONG ProcessEndToScrollTo = 0;
 static PPH_PROCESS_NODE ProcessToScrollTo = NULL;
 static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
+static PPH_TN_FILTER_ENTRY MicrosoftSignedFilterEntry = NULL;
 
 BOOLEAN PhMwpProcessesPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
@@ -101,12 +103,15 @@ BOOLEAN PhMwpProcessesPageCallback(
 
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"&Hide processes from other users", NULL, NULL), startIndex);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide si&gned processes", NULL, NULL), startIndex + 1);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), startIndex + 2);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), startIndex + 3);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEMICROSOFTPROCESSES, L"Hide &system processes", NULL, NULL), startIndex + 2);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), startIndex + 3);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), startIndex + 4);
 
-            if (PhCsHideOtherUserProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
+            if (PhGetIntegerSetting(L"HideOtherUserProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhGetIntegerSetting(L"HideSignedProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
+                menuItem->Flags |= PH_EMENU_CHECKED;
+            if (PhGetIntegerSetting(L"HideMicrosoftProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEMICROSOFTPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhCsScrollToNewProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SCROLLTONEWPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
@@ -124,8 +129,8 @@ BOOLEAN PhMwpProcessesPageCallback(
                 }
             }
 
-            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), startIndex + 4);
-            PhInsertEMenuItem(menu, menuItem = PhCreateEMenuItem(0, ID_VIEW_ORGANIZECOLUMNSETS, L"Organi&ze column sets...", NULL, NULL), startIndex + 5);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), startIndex + 5);
+            PhInsertEMenuItem(menu, menuItem = PhCreateEMenuItem(0, ID_VIEW_ORGANIZECOLUMNSETS, L"Organi&ze column sets...", NULL, NULL), startIndex + 6);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SAVECOLUMNSET, L"Sa&ve column set...", NULL, NULL), startIndex + 6);
             PhInsertEMenuItem(menu, columnSetMenuItem = PhCreateEMenuItem(0, 0, L"Loa&d column set", NULL, NULL), startIndex + 7);
 
@@ -161,10 +166,14 @@ BOOLEAN PhMwpProcessesPageCallback(
         {
             PhLoadSettingsProcessTreeList();
 
-            CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
+            if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
+                CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
 
             if (PhGetIntegerSetting(L"HideSignedProcesses"))
                 SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
+
+            if (PhGetIntegerSetting(L"HideMicrosoftProcesses"))
+                MicrosoftSignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpMicrosoftProcessTreeFilter, NULL);
         }
         return TRUE;
     case MainTabPageSaveSettings:
@@ -220,12 +229,23 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     VOID
     )
 {
-    PhCsHideOtherUserProcesses = !PhGetIntegerSetting(L"HideOtherUserProcesses");
-    PhSetIntegerSetting(L"HideOtherUserProcesses", PhCsHideOtherUserProcesses);
+    if (!CurrentUserFilterEntry)
+    {
+        CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
+    }
+    else
+    {
+        PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), CurrentUserFilterEntry);
+        CurrentUserFilterEntry = NULL;
 
-    PhExpandAllProcessNodes(TRUE);
+        // Expand the nodes to ensure that they will be visible to the user. (dmex)
+        PhExpandAllProcessNodes(TRUE);
+        PhDeselectAllProcessNodes();
+    }
 
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+
+    PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
 }
 
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
@@ -235,14 +255,11 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    if (PhCsHideOtherUserProcesses)
-    {
-        if (!processNode->ProcessItem->Sid)
-            return FALSE;
+    if (!processNode->ProcessItem->Sid)
+        return FALSE;
 
-        if (!RtlEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
-            return FALSE;
-    }
+    if (!PhEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
+        return FALSE;
 
     return TRUE;
 }
@@ -270,11 +287,38 @@ VOID PhMwpToggleSignedProcessTreeFilter(
     {
         PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), SignedFilterEntry);
         SignedFilterEntry = NULL;
+
+        // Expand the nodes to ensure that they will be visible to the user. (dmex)
+        PhExpandAllProcessNodes(TRUE);
+        PhDeselectAllProcessNodes();
     }
 
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 
     PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
+}
+
+VOID PhMwpToggleMicrosoftProcessTreeFilter(
+    VOID
+    )
+{
+    if (!MicrosoftSignedFilterEntry)
+    {
+        MicrosoftSignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpMicrosoftProcessTreeFilter, NULL);
+    }
+    else
+    {
+        PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), MicrosoftSignedFilterEntry);
+        MicrosoftSignedFilterEntry = NULL;
+
+        // Expand the nodes to ensure that they will be visible to the user. (dmex)
+        PhExpandAllProcessNodes(TRUE);
+        PhDeselectAllProcessNodes();
+    }
+
+    PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+
+    PhSetIntegerSetting(L"HideMicrosoftProcesses", !!MicrosoftSignedFilterEntry);
 }
 
 BOOLEAN PhMwpSignedProcessTreeFilter(
@@ -286,6 +330,37 @@ BOOLEAN PhMwpSignedProcessTreeFilter(
 
     if (processNode->ProcessItem->VerifyResult == VrTrusted)
         return FALSE;
+
+    return TRUE;
+}
+
+BOOLEAN PhMwpMicrosoftProcessTreeFilter(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
+
+    if (PhEnableProcessQueryStage2)
+    {
+        if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
+        {
+            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+
+            if (PhEqualStringRef(&processNode->ProcessItem->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
+                return FALSE;
+        }
+    }
+    else
+    {
+        if (!PhIsNullOrEmptyString(processNode->ProcessItem->VersionInfo.CompanyName))
+        {
+            static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
+
+            if (PhStartsWithStringRef(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
+                return FALSE;
+        }
+    }
 
     return TRUE;
 }
@@ -360,18 +435,16 @@ BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
 
 VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ PPH_EMENU Menu,
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_ BOOLEAN SetPriority,
     _In_ BOOLEAN SetIoPriority,
-    _In_ BOOLEAN SetPagePriority,
-    _In_ BOOLEAN SetPriorityBoost
+    _In_ BOOLEAN SetPagePriority
     )
 {
     HANDLE processHandle;
-    UCHAR priorityClass = 0;
+    UCHAR priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
     IO_PRIORITY_HINT ioPriority = ULONG_MAX;
     ULONG pagePriority = ULONG_MAX;
-    BOOLEAN priorityBoost = FALSE;
     ULONG id = 0;
 
     if (NT_SUCCESS(PhOpenProcess(
@@ -382,7 +455,13 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     {
         if (SetPriority)
         {
-            PhGetProcessPriority(processHandle, &priorityClass);
+            if (!NT_SUCCESS(PhGetProcessPriority(
+                processHandle,
+                &priorityClass
+                )))
+            {
+                priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
+            }
         }
 
         if (SetIoPriority)
@@ -407,15 +486,10 @@ VOID PhMwpSetProcessMenuPriorityChecks(
             }
         }
 
-        if (SetPriorityBoost)
-        {
-            PhGetProcessPriorityBoost(processHandle, &priorityBoost);
-        }
-
         NtClose(processHandle);
     }
 
-    if (SetPriority)
+    if (SetPriority && priorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
     {
         switch (priorityClass)
         {
@@ -505,12 +579,6 @@ VOID PhMwpSetProcessMenuPriorityChecks(
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
     }
-
-    if (SetPriorityBoost && priorityBoost)
-    {
-        PhSetFlagsEMenuItem(Menu, ID_PROCESS_BOOST,
-            PH_EMENU_CHECKED, PH_EMENU_CHECKED);
-    }
 }
 
 VOID PhMwpInitializeProcessMenu(
@@ -579,6 +647,18 @@ VOID PhMwpInitializeProcessMenu(
                 {
                     PhSetFlagsEMenuItem(Menu, ID_MISCELLANEOUS_SETCRITICAL, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
                 }
+            }
+        }
+
+        // Disable Terminate/Suspend/Resume tree when the process has no children.
+        {
+            PPH_PROCESS_NODE node = PhFindProcessNode(Processes[0]->ProcessId);
+
+            if (node && !(node->Children && node->Children->Count))
+            {
+                PhEnableEMenuItem(Menu, ID_PROCESS_TERMINATETREE, FALSE);
+                PhEnableEMenuItem(Menu, ID_PROCESS_SUSPENDTREE, FALSE);
+                PhEnableEMenuItem(Menu, ID_PROCESS_RESUMETREE, FALSE);
             }
         }
 
@@ -722,7 +802,7 @@ VOID PhMwpInitializeProcessMenu(
     // Priority
     if (NumberOfProcesses == 1)
     {
-        PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0]->ProcessId, TRUE, TRUE, TRUE, TRUE);
+        PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0]->ProcessId, TRUE, TRUE, TRUE);
     }
 
     item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_WINDOW);
@@ -760,7 +840,7 @@ VOID PhMwpInitializeProcessMenu(
 }
 
 PPH_EMENU PhpCreateProcessMenu(
-    VOID
+    _In_ BOOLEAN SystemProcess
     )
 {
     PPH_EMENU menu;
@@ -777,12 +857,44 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_THAW, L"Thaw", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESTART, L"Res&tart", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_CREATEDUMPFILE, L"Create dump fi&le...", NULL, NULL), ULONG_MAX);
+
+    if (SystemProcess)
+    {
+        PPH_EMENU kernelMinimal;
+
+        menuItem = PhCreateEMenuItem(0, ID_PROCESS_CREATEDUMPFILE, L"Create live kernel dump fi&le", NULL, NULL);
+        PhInsertEMenuItem(menuItem, kernelMinimal = PhCreateEMenuItem(0, ID_PROCESS_DUMP_MINIMAL, L"&Minimal...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_NORMAL, L"&Normal...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_FULL, L"&Full...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_CUSTOM, L"&Custom...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+
+        if (!PhGetOwnTokenAttributes().Elevated)
+        {
+            menuItem->Flags |= PH_EMENU_DISABLED;
+        }
+        else if (WindowsVersion < WINDOWS_11)
+        {
+            // Minimal only captures thread stacks, not supported before Windows 11
+            kernelMinimal->Flags |= PH_EMENU_DISABLED;
+        }
+    }
+    else
+    {
+        menuItem = PhCreateEMenuItem(0, ID_PROCESS_CREATEDUMPFILE, L"Create dump fi&le", NULL, NULL);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_MINIMAL, L"&Minimal...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_LIMITED, L"&Limited...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_NORMAL, L"&Normal...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_FULL, L"&Full...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_DUMP_CUSTOM, L"&Custom...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+    }
+
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_DEBUG, L"De&bug", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_VIRTUALIZATION, L"Virtuali&zation", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_BOOST, L"&Boost", NULL, NULL), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, NULL);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, NULL), ULONG_MAX);
@@ -814,9 +926,11 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ECOMODE, L"Efficiency mode", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_GDIHANDLES, L"GDI &handles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_HEAPS, L"Heaps", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_PAGESMODIFIED, L"Modified pages", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_REDUCEWORKINGSET, L"Reduce working &set", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_RUNAS, L"&Run as...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_RUNASTHISUSER, L"Run &as this user...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_VIRTUALIZATION, L"Virtuali&zation", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_WINDOW, L"&Window", NULL, NULL);
@@ -853,7 +967,11 @@ VOID PhShowProcessContextMenu(
         PPH_EMENU menu;
         PPH_EMENU_ITEM item;
 
-        menu = PhpCreateProcessMenu();
+        if (numberOfProcesses == 1 && processes[0]->ProcessId == SYSTEM_PROCESS_ID)
+            menu = PhpCreateProcessMenu(TRUE);
+        else
+            menu = PhpCreateProcessMenu(FALSE);
+
         PhSetFlagsEMenuItem(menu, ID_PROCESS_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
         PhMwpInitializeProcessMenu(menu, processes, numberOfProcesses);
@@ -897,8 +1015,8 @@ VOID PhShowProcessContextMenu(
 }
 
 VOID NTAPI PhMwpProcessAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -910,8 +1028,8 @@ VOID NTAPI PhMwpProcessAddedHandler(
 }
 
 VOID NTAPI PhMwpProcessModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -920,8 +1038,8 @@ VOID NTAPI PhMwpProcessModifiedHandler(
 }
 
 VOID NTAPI PhMwpProcessRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -932,8 +1050,8 @@ VOID NTAPI PhMwpProcessRemovedHandler(
 }
 
 VOID NTAPI PhMwpProcessesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     ProcessHacker_Invoke(PhMwpOnProcessesUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
@@ -1027,6 +1145,9 @@ VOID PhMwpOnProcessModified(
     )
 {
     PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+
+    if (SignedFilterEntry || MicrosoftSignedFilterEntry) // HACK: Invalidate filters when modified (dmex)
+        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 }
 
 VOID PhMwpOnProcessRemoved(
@@ -1034,6 +1155,7 @@ VOID PhMwpOnProcessRemoved(
     )
 {
     PPH_PROCESS_NODE processNode;
+    ULONG processNodeIndex = 0;
     ULONG exitStatus = 0;
 
     if (ProcessItem->QueryHandle)
@@ -1080,10 +1202,16 @@ VOID PhMwpOnProcessRemoved(
     }
 
     processNode = PhFindProcessNode(ProcessItem->ProcessId);
+    processNodeIndex = processNode->Node.Index;
     PhRemoveProcessNode(processNode);
 
     if (ProcessToScrollTo == processNode) // shouldn't happen, but just in case
         ProcessToScrollTo = NULL;
+
+    if (PhCsScrollToRemovedProcesses)
+    {
+        ProcessEndToScrollTo = processNodeIndex;
+    }
 }
 
 VOID PhMwpOnProcessesUpdated(
@@ -1131,9 +1259,6 @@ VOID PhMwpOnProcessesUpdated(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
     }
 
-    if (SignedFilterEntry)
-        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
-
     if (count != 0)
         TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, TRUE);
 
@@ -1152,5 +1277,16 @@ VOID PhMwpOnProcessesUpdated(
     {
         TreeNew_EnsureVisible(PhMwpProcessTreeNewHandle, &ProcessToScrollTo->Node);
         ProcessToScrollTo = NULL;
+    }
+
+    if (ProcessEndToScrollTo)
+    {
+        count = TreeNew_GetFlatNodeCount(PhMwpProcessTreeNewHandle);
+
+        if (ProcessEndToScrollTo > count)
+            ProcessEndToScrollTo = count;
+
+        TreeNew_EnsureVisibleIndex(PhMwpProcessTreeNewHandle, ProcessEndToScrollTo);
+        ProcessEndToScrollTo = 0;
     }
 }

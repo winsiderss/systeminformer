@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2018-2022
+ *     dmex    2018-2024
  *
  */
 
@@ -15,8 +15,10 @@
 
 #include <phdk.h>
 #include <phappresource.h>
-#include <workqueue.h>
 #include <settings.h>
+#include <mapldr.h>
+#include <workqueue.h>
+
 #include <math.h>
 
 #include "resource.h"
@@ -44,11 +46,14 @@ __has_include (<d3dkmthk.h>)
 
 #define PH_RECORD_MAX_USAGE 1
 
-extern PPH_PLUGIN PluginInstance;
+EXTERN_C PPH_PLUGIN PluginInstance;
 extern LIST_ENTRY EtProcessBlockListHead;
 extern LIST_ENTRY EtNetworkBlockListHead;
 extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
+
+EXTERN_C ULONG EtWindowsVersion;
+EXTERN_C BOOLEAN EtIsExecutingInWow64;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
 extern USHORT EtMaxPrecisionUnit;
@@ -56,11 +61,13 @@ extern BOOLEAN EtGraphShowText;
 extern BOOLEAN EtEnableScaleGraph;
 extern BOOLEAN EtEnableScaleText;
 extern BOOLEAN EtPropagateCpuUsage;
+extern BOOLEAN EtEnableAvxSupport;
 
 #define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
 #define SETTING_NAME_ENABLE_GPUPERFCOUNTERS (PLUGIN_NAME L".EnableGpuPerformanceCounters")
+#define SETTING_NAME_ENABLE_DISKPERFCOUNTERS (PLUGIN_NAME L".EnableDiskPerformanceCounters")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (PLUGIN_NAME L".EnableEtwMonitor")
 #define SETTING_NAME_ENABLE_GPU_MONITOR (PLUGIN_NAME L".EnableGpuMonitor")
 #define SETTING_NAME_ENABLE_FPS_MONITOR (PLUGIN_NAME L".EnableFpsMonitor")
@@ -81,6 +88,9 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_FW_TREE_LIST_COLUMNS (PLUGIN_NAME L".FwTreeColumns")
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
+#define SETTING_NAME_FW_IGNORE_LOOPBACK (PLUGIN_NAME L".FwIgnoreLoopback")
+#define SETTING_NAME_FW_IGNORE_ALLOW (PLUGIN_NAME L".FwIgnoreAllow")
+#define SETTING_NAME_FW_SESSION_GUID (PLUGIN_NAME L".FwSessionGuid")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
 #define SETTING_NAME_WCT_TREE_LIST_COLUMNS (PLUGIN_NAME L".WaitChainTreeListColumns")
 #define SETTING_NAME_WCT_WINDOW_POSITION (PLUGIN_NAME L".WaitChainWindowPosition")
@@ -93,6 +103,7 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_PIPE_ENUM_WINDOW_POSITION (PLUGIN_NAME L".PipeEnumWindowPosition")
 #define SETTING_NAME_PIPE_ENUM_WINDOW_SIZE (PLUGIN_NAME L".PipeEnumWindowSize")
 #define SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS (PLUGIN_NAME L".PipeEnumListViewColumns")
+#define SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS_WITH_KSI (PLUGIN_NAME L".PipeEnumListViewColumnsWithKsi")
 #define SETTING_NAME_FIRMWARE_WINDOW_POSITION (PLUGIN_NAME L".FirmwareWindowPosition")
 #define SETTING_NAME_FIRMWARE_WINDOW_SIZE (PLUGIN_NAME L".FirmwareWindowSize")
 #define SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS (PLUGIN_NAME L".FirmwareListViewColumns")
@@ -105,13 +116,12 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_POOL_TREE_LIST_SORT (PLUGIN_NAME L".PoolTreeViewSort")
 #define SETTING_NAME_BIGPOOL_WINDOW_POSITION (PLUGIN_NAME L".BigPoolWindowPosition")
 #define SETTING_NAME_BIGPOOL_WINDOW_SIZE (PLUGIN_NAME L".BigPoolWindowSize")
+#define SETTING_NAME_TPM_WINDOW_POSITION (PLUGIN_NAME L".TpmWindowPosition")
+#define SETTING_NAME_TPM_WINDOW_SIZE (PLUGIN_NAME L".TpmWindowSize")
+#define SETTING_NAME_TPM_LISTVIEW_COLUMNS (PLUGIN_NAME L".TpmListViewColumns")
 
 VOID EtLoadSettings(
     VOID
-    );
-
-PPH_STRING PhGetSelectedListViewItemText(
-    _In_ HWND hWnd
     );
 
 // phsvc extensions
@@ -154,6 +164,7 @@ typedef struct _ET_DISK_ITEM
     ULONG FreshTime;
 
     HANDLE ProcessId;
+    PVOID FileObject;
     PPH_STRING FileName;
     PPH_STRING FileNameWin32;
     PPH_STRING ProcessName;
@@ -186,13 +197,13 @@ typedef struct _ET_DISK_ITEM
 // Disk node
 
 #define ETDSTNC_NAME 0
-#define ETDSTNC_FILE 1
-#define ETDSTNC_READRATEAVERAGE 2
-#define ETDSTNC_WRITERATEAVERAGE 3
-#define ETDSTNC_TOTALRATEAVERAGE 4
-#define ETDSTNC_IOPRIORITY 5
-#define ETDSTNC_RESPONSETIME 6
-#define ETDSTNC_PID 7
+#define ETDSTNC_PID 1
+#define ETDSTNC_FILE 2
+#define ETDSTNC_READRATEAVERAGE 3
+#define ETDSTNC_WRITERATEAVERAGE 4
+#define ETDSTNC_TOTALRATEAVERAGE 5
+#define ETDSTNC_IOPRIORITY 6
+#define ETDSTNC_RESPONSETIME 7
 #define ETDSTNC_ORIGINALNAME 8
 #define ETDSTNC_MAXIMUM 9
 
@@ -549,7 +560,7 @@ PET_DISK_ITEM EtCreateDiskItem(
 
 PET_DISK_ITEM EtReferenceDiskItem(
     _In_ HANDLE ProcessId,
-    _In_ PPH_STRING FileName
+    _In_ PVOID FileObject
     );
 
 PPH_STRING EtFileObjectToFileName(
@@ -569,11 +580,11 @@ VOID EtInitializeDiskTab(
     );
 
 VOID EtLoadSettingsDiskTreeList(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 VOID EtSaveSettingsDiskTreeList(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 // gpumon
@@ -749,6 +760,15 @@ VOID EtGpuMiniInformationInitializing(
 
 // iconext
 
+typedef struct _TB_GRAPH_CONTEXT
+{
+    LONG GraphDpi;
+    ULONG GraphColor1;
+    ULONG GraphColor2;
+} TB_GRAPH_CONTEXT, *PTB_GRAPH_CONTEXT;
+
+extern BOOLEAN EtTrayIconTransparencyEnabled;
+
 VOID EtLoadTrayIconGuids(
     VOID
     );
@@ -778,8 +798,8 @@ VOID EtHandlePropertiesInitializing(
 // options
 
 INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -894,22 +914,21 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_REMOTEADDRESSCLASS,
     FW_COLUMN_LOCALADDRESSSSCOPE,
     FW_COLUMN_REMOTEADDRESSSCOPE,
+    FW_COLUMN_ORIGINALNAME,
+    FW_COLUMN_LOCALSERVICENAME,
+    FW_COLUMN_REMOTESERVICENAME,
     FW_COLUMN_MAXIMUM
 } FW_COLUMN_TYPE;
 
-typedef struct _BOOT_WINDOW_CONTEXT
+typedef enum _FW_EVENT_DIRECTION
 {
-    HWND ListViewHandle;
-    HWND SearchHandle;
-
-    PH_LAYOUT_MANAGER LayoutManager;
-
-    HFONT NormalFontHandle;
-    HFONT BoldFontHandle;
-
-    HWND PluginMenuActive;
-    UINT PluginMenuActiveId;
-} BOOT_WINDOW_CONTEXT, *PBOOT_WINDOW_CONTEXT;
+    FW_EVENT_DIRECTION_NONE,
+    FW_EVENT_DIRECTION_INBOUND,
+    FW_EVENT_DIRECTION_OUTBOUND,
+    FW_EVENT_DIRECTION_FORWARD,
+    FW_EVENT_DIRECTION_BIDIRECTIONAL,
+    FW_EVENT_DIRECTION_MAX
+} FW_EVENT_DIRECTION;
 
 typedef struct _FW_EVENT_ITEM
 {
@@ -926,15 +945,17 @@ typedef struct _FW_EVENT_ITEM
         struct
         {
             BOOLEAN Loopback : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN Spare : 3;
+            BOOLEAN LocalPortServiceResolved : 1;
+            BOOLEAN RemotePortServiceResolved : 1;
             BOOLEAN LocalHostnameResolved : 1;
             BOOLEAN RemoteHostnameResolved : 1;
         };
     };
 
-    LONG JustResolved;
+    volatile LONG JustResolved;
 
-    ULONG Direction;
+    FW_EVENT_DIRECTION Direction;
     ULONG Type; // FWPM_NET_EVENT_TYPE
     ULONG IpProtocol;
     ULONG ScopeId;
@@ -959,6 +980,8 @@ typedef struct _FW_EVENT_ITEM
 
     ULONG LocalAddressStringLength;
     ULONG RemoteAddressStringLength;
+    ULONG LocalPortStringLength;
+    ULONG RemotePortStringLength;
 
     WCHAR LocalAddressString[INET6_ADDRSTRLEN];
     WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
@@ -968,10 +991,13 @@ typedef struct _FW_EVENT_ITEM
     PPH_STRING RuleName;
     PPH_STRING RuleDescription;
     PPH_STRING RemoteCountryName;
-    UINT CountryIconIndex;
+    INT32 CountryIconIndex;
 
     PPH_STRING TimeString;
     PPH_STRING TooltipText;
+
+    PH_STRINGREF LocalPortServiceName;
+    PH_STRINGREF RemotePortServiceName;
 
     PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
 } FW_EVENT_ITEM, *PFW_EVENT_ITEM;
@@ -984,8 +1010,16 @@ VOID EtFwMonitorUninitialize(
     VOID
     );
 
+ULONG EtFwMonitorEnumEvents(
+    VOID
+    );
+
 VOID EtInitializeFirewallTab(
     VOID
+    );
+
+VOID InitializeFwTreeListDpi(
+    _In_ HWND TreeNewHandle
     );
 
 VOID LoadSettingsFwTreeList(
@@ -993,7 +1027,7 @@ VOID LoadSettingsFwTreeList(
     );
 
 VOID SaveSettingsFwTreeList(
-    _In_ HWND TreeNewHandle
+    VOID
     );
 
 _Success_(return)
@@ -1019,18 +1053,71 @@ VOID EtFwDrawCountryIcon(
     );
 
 VOID EtFwShowPingWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
 VOID EtFwShowTracerWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
 VOID EtFwShowWhoisWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
-typedef ULONG (WINAPI* _FwpmNetEventSubscribe)(
+_Success_(return)
+BOOLEAN EtFwLookupPortServiceName(
+    _In_ ULONG Port,
+    _Out_ PPH_STRINGREF ServiceName
+    );
+
+typedef struct _SEC_WINNT_AUTH_IDENTITY_W SEC_WINNT_AUTH_IDENTITY_W, *PSEC_WINNT_AUTH_IDENTITY_W;
+typedef struct FWPM_SESSION0_ FWPM_SESSION0;
+
+typedef ULONG (WINAPI* _FwpmEngineOpen0)(
+    _In_opt_ const wchar_t* serverName,
+    _In_ UINT32 authnService,
+    _In_opt_ SEC_WINNT_AUTH_IDENTITY_W* authIdentity,
+    _In_opt_ const FWPM_SESSION0* session,
+    _Out_ HANDLE* engineHandle
+    );
+
+typedef ULONG (WINAPI* _FwpmEngineClose0)(
+    _Inout_ HANDLE engineHandle
+    );
+
+typedef VOID (WINAPI* _FwpmFreeMemory0)(
+    _Inout_ PVOID* p
+    );
+
+typedef enum FWPM_ENGINE_OPTION_ FWPM_ENGINE_OPTION;
+typedef struct FWP_VALUE0_ FWP_VALUE0;
+
+typedef ULONG (WINAPI* _FwpmEngineSetOption0)(
+    _In_ HANDLE engineHandle,
+    _In_ FWPM_ENGINE_OPTION option,
+    _In_ const FWP_VALUE0* newValue
+    );
+
+typedef struct FWPM_FILTER0_ FWPM_FILTER0;
+
+typedef ULONG (WINAPI* _FwpmFilterGetById0)(
+   _In_ HANDLE engineHandle,
+   _In_ UINT64 id,
+   _Outptr_ FWPM_FILTER0** filter
+   );
+
+typedef struct FWPM_LAYER0_ FWPM_LAYER0;
+
+typedef ULONG (WINAPI* _FwpmLayerGetById0)(
+   _In_ HANDLE engineHandle,
+   _In_ UINT16 id,
+   _Outptr_ FWPM_LAYER0** layer
+   );
+
+typedef ULONG (WINAPI* _FwpmNetEventSubscribe4)(
     _In_ HANDLE engineHandle,
     _In_ PVOID subscription,
     _In_ PVOID callback,
@@ -1038,12 +1125,37 @@ typedef ULONG (WINAPI* _FwpmNetEventSubscribe)(
     _Out_ HANDLE* eventsHandle
     );
 
+typedef ULONG (WINAPI* _FwpmNetEventUnsubscribe0)(
+    _In_ HANDLE engineHandle,
+    _Inout_ HANDLE eventsHandle
+    );
+
+typedef struct FWPM_NET_EVENT_ENUM_TEMPLATE0_ FWPM_NET_EVENT_ENUM_TEMPLATE0;
+
+typedef ULONG (WINAPI* _FwpmNetEventCreateEnumHandle0)(
+    _In_ HANDLE engineHandle,
+    _In_opt_ const FWPM_NET_EVENT_ENUM_TEMPLATE0* enumTemplate,
+    _Out_ HANDLE* enumHandle
+    );
+
+typedef ULONG (WINAPI* _FwpmNetEventDestroyEnumHandle0)(
+   _In_ HANDLE engineHandle,
+   _Inout_ HANDLE enumHandle
+   );
+
+typedef ULONG (WINAPI* _FwpmNetEventEnum5)(
+    _In_ HANDLE engineHandle,
+    _In_ HANDLE enumHandle,
+    _In_ UINT32 numEntriesRequested,
+    _Out_ PVOID** entries,
+    _Out_ UINT32* numEntriesReturned
+    );
+
 // ETW Microsoft-Windows-WFP::DirectionMap
 #define FWP_DIRECTION_MAP_INBOUND 0x3900
 #define FWP_DIRECTION_MAP_OUTBOUND 0x3901
 #define FWP_DIRECTION_MAP_FORWARD 0x3902
 #define FWP_DIRECTION_MAP_BIDIRECTIONAL 0x3903
-EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_v4mappedprefix = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 };
 
 VOID InitializeFwTreeList(
     _In_ HWND hwnd
@@ -1064,8 +1176,8 @@ VOID UpdateFwNode(
 BOOLEAN NTAPI FwTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_opt_ PVOID Context
     );
 
@@ -1113,8 +1225,8 @@ VOID ShowFwContextMenu(
     );
 
 VOID NTAPI FwItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI FwItemModifiedHandler(
@@ -1162,22 +1274,14 @@ VOID EtProcessFramesPropertiesInitializing(
 
 // wct
 
-PVOID EtWaitChainContextCreate(
-    VOID
-    );
-
-VOID EtShowWaitChainDialog(
+VOID EtShowWaitChainProcessDialog(
     _In_ HWND ParentWindowHandle,
-    _In_ PVOID Context
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
-VOID NTAPI WctProcessMenuInitializingCallback(
-    _In_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-VOID NTAPI WctThreadMenuInitializingCallback(
-    _In_ PVOID Parameter,
-    _In_opt_ PVOID Context
+VOID EtShowWaitChainThreadDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_THREAD_ITEM ThreadItem
     );
 
 // reparse
@@ -1197,6 +1301,7 @@ VOID EtShowPipeEnumDialog(
 
 typedef struct _UEFI_WINDOW_CONTEXT
 {
+    HWND WindowHandle;
     HWND ListViewHandle;
     HWND ParentWindowHandle;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -1204,6 +1309,7 @@ typedef struct _UEFI_WINDOW_CONTEXT
 
 typedef struct _EFI_ENTRY
 {
+    ULONG Attributes;
     ULONG Length;
     PPH_STRING Name;
     PPH_STRING GuidString;
@@ -1227,6 +1333,16 @@ VOID EtShowObjectManagerDialog(
 // poolmon
 
 VOID EtShowPoolTableDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
+// tpm
+
+BOOLEAN EtTpmIsReady(
+    VOID
+    );
+
+VOID EtShowTpmDialog(
     _In_ HWND ParentWindowHandle
     );
 

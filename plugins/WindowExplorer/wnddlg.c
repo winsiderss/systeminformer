@@ -6,19 +6,22 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2016-2022
+ *     dmex    2016-2024
  *
  */
 
 #include "wndexp.h"
+#include <commdlg.h>
 
 typedef struct _WINDOWS_CONTEXT
 {
     HWND TreeNewHandle;
     HWND SearchBoxHandle;
+    HFONT TreeWindowFont;
 
     HWND FindWindowButtonHandle;
     WNDPROC FindWindowButtonWindowProc;
+    PH_CALLBACK_REGISTRATION WindowNotifyCallbackRegistration;
 
     WE_WINDOW_TREE_CONTEXT TreeContext;
     WE_WINDOW_SELECTOR Selector;
@@ -264,16 +267,13 @@ PWE_WINDOW_NODE WepAddChildWindowNode(
 
 BOOLEAN CALLBACK WepEnumChildWindowsProc(
     _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PWE_WINDOW_ENUM_CONTEXT context = (PWE_WINDOW_ENUM_CONTEXT)Context;
     PWE_WINDOW_NODE childNode;
     ULONG processId = 0;
     ULONG threadId = 0;
-
-    if (!context)
-        return TRUE;
 
     threadId = GetWindowThreadProcessId(WindowHandle, &processId);
 
@@ -564,6 +564,7 @@ PPH_EMENU WepCreateWindowMenu(
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MINIMIZE, L"Minimize", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_MAXIMIZE, L"Maximize", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_CLOSE, L"Close", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_DESTROY, L"Destroy", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_VISIBLE, L"Visible", NULL, NULL), ULONG_MAX);
@@ -585,11 +586,13 @@ PPH_EMENU WepCreateWindowMenu(
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_INSPECT, L"&Inspect", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_SETDPI, L"DPI", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_OPENFILELOCATION, L"Open &file location", NULL, NULL), ULONG_MAX);
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_HIGHLIGHT, L"Highlight", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_GOTOTHREAD, L"Go to thread", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_GOTOPROCESS, L"Go to process...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_GOTOTHREAD, L"Go to thread...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuItem(0, ID_WINDOW_PROPERTIES, L"Properties", NULL, NULL), ULONG_MAX);
 
     PhInsertEMenuItem(WindowMenu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -612,7 +615,7 @@ LRESULT CALLBACK WepFindWindowButtonSubclassProc(
 
     switch (uMsg)
     {
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
         PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         break;
@@ -654,6 +657,133 @@ BOOLEAN WepWindowEndTask(
     return !!EndTask_I(WindowHandle, FALSE, Force);
 }
 
+static VOID WepSetWindowToDpiForTesting(
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDPI
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *NtUserForceWindowToDpiForTest_I)(
+        _In_ HWND hwnd,
+        _Out_ UINT32 dpi
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HANDLE baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"win32u.dll"))
+        {
+            NtUserForceWindowToDpiForTest_I = PhGetProcedureAddress(baseAddress, "NtUserForceWindowToDpiForTest", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (NtUserForceWindowToDpiForTest_I)
+    {
+        NtUserForceWindowToDpiForTest_I(WindowHandle, WindowDPI);
+    }
+}
+
+VOID WepDestroyRemoteWindow(
+    _In_ HWND WindowHandle,
+    _In_ HWND TargetWindow,
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE processHandle = NULL;
+
+    // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+    if (PhWindowsVersion >= WINDOWS_8 && PhWindowsVersion <= WINDOWS_8_1)
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_ALL_ACCESS,
+            ProcessId
+            );
+    }
+
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+            PROCESS_VM_READ | SYNCHRONIZE,
+            ProcessId
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhDestroyWindowRemote(
+            processHandle,
+            TargetWindow
+            );
+
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(WindowHandle, L"Unable to destroy the window.", status, 0);
+    }
+}
+
+VOID NTAPI WepWindowNotifyEventChangeCallback(
+    _In_ PVOID Parameter,
+    _In_ PWINDOWS_CONTEXT Context
+    )
+{
+    PMSG message = Parameter;
+
+    switch (message->wParam)
+    {
+    case WM_DPICHANGED:
+        {
+            if (Context->TreeWindowFont) DeleteFont(Context->TreeWindowFont);
+            Context->TreeWindowFont = PhDuplicateFont(ProcessHacker_GetFont());
+
+            SetWindowFont(Context->TreeNewHandle, Context->TreeWindowFont, TRUE);
+        }
+        break;
+    }
+}
+
+VOID NTAPI WepWindowsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+)
+{
+    PWE_WINDOW_NODE lastSelectedNode;
+    PWINDOWS_CONTEXT context = Context;
+
+    assert(context);
+
+    context->TreeContext.SearchMatchHandle = MatchHandle;
+
+    if (!context->TreeContext.SearchMatchHandle)
+    {
+        lastSelectedNode = WeGetSelectedWindowNode(&context->TreeContext);
+    }
+    else
+    {
+        WeExpandAllWindowNodes(&context->TreeContext, TRUE);
+        lastSelectedNode = NULL;
+    }
+
+    PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+
+    TreeNew_NodesStructured(context->TreeNewHandle);
+
+    if (lastSelectedNode)
+    {
+        TreeNew_EnsureVisible(context->TreeNewHandle, &lastSelectedNode->Node);
+    }
+}
+
 INT_PTR CALLBACK WepWindowsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -686,13 +816,30 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
             context->FindWindowButtonHandle = GetDlgItem(hwndDlg, IDC_FINDWINDOW);
+            context->TreeWindowFont = PhDuplicateFont(ProcessHacker_GetFont());
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent),
+                WepWindowNotifyEventChangeCallback,
+                context,
+                &context->WindowNotifyCallbackRegistration
+                );
 
             PhSetApplicationWindowIcon(hwndDlg);
             PhSetWindowText(hwndDlg, PH_AUTO_T(PH_STRING, WepGetWindowTitleForSelector(&context->Selector))->Buffer);
 
-            PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchBoxHandle,
+                L"Search Windows (Ctrl+K)",
+                WepWindowsSearchControlCallback,
+                context
+                );
+
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
             TreeNew_SetEmptyText(context->TreeNewHandle, &WepEmptyWindowsText, 0);
+            SetWindowFont(context->TreeNewHandle, context->TreeWindowFont, TRUE);
+            WeInitializeWindowTreeImageList(&context->TreeContext, &context->Selector);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHEDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -717,6 +864,15 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &context->WindowNotifyCallbackRegistration);
+
+            if (context->TreeWindowFont)
+            {
+                DeleteFont(context->TreeWindowFont);
+            }
+
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
+
             PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -740,33 +896,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
-
-                    if (!PhEqualString(context->TreeContext.SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->TreeContext.SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->TreeContext.SearchboxText))
-                            WeExpandAllWindowNodes(&context->TreeContext, TRUE);
-
-                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
-
-                        TreeNew_NodesStructured(context->TreeNewHandle);
-                        // PhInvokeCallback(&SearchChangedEvent, SearchboxText);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
@@ -774,6 +903,23 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case IDC_REFRESH:
                 {
+
+
+
+                    //FINDREPLACE fr;       // common dialog box structure
+                    //WCHAR szFindWhat[80] = { 0 };  // buffer receiving string
+                    //HWND hdlg = NULL;     // handle to Find dialog box
+
+                    //// Initialize FINDREPLACE
+                    //ZeroMemory(&fr, sizeof(fr));
+                    //fr.lStructSize = sizeof(fr);
+                    //fr.hwndOwner = hwndDlg;
+                    //fr.lpstrFindWhat = szFindWhat;
+                    //fr.wFindWhatLen = 40;
+                    //fr.Flags = 0;
+
+                    //hdlg = FindText(&fr);
+
                     WepRefreshWindows(context);
 
                     PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
@@ -954,6 +1100,28 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         //WepWindowEndTask(selectedNode->WindowHandle, TRUE);
                         PostMessage(selectedNode->WindowHandle, WM_CLOSE, 0, 0);
+
+                        WepRefreshWindows(context);
+                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+                        TreeNew_NodesStructured(context->TreeNewHandle);
+                    }
+                }
+                break;
+            case ID_WINDOW_DESTROY:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        WepDestroyRemoteWindow(
+                            hwndDlg,
+                            selectedNode->WindowHandle,
+                            selectedNode->ClientId.UniqueProcess
+                            );
+
+                        WepRefreshWindows(context);
+                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+                        TreeNew_NodesStructured(context->TreeNewHandle);
                     }
                 }
                 break;
@@ -1051,7 +1219,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                         context->HighlightingWindow = selectedNode->WindowHandle;
                         context->HighlightingWindowCount = 10;
-                        SetTimer(hwndDlg, 9, 100, NULL);
+                        PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
                     }
                 }
                 break;
@@ -1070,6 +1238,32 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                                 PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
                                 PhShowProcessProperties(propContext);
                                 PhDereferenceObject(propContext);
+                            }
+
+                            PhDereferenceObject(processItem);
+                        }
+                        else
+                        {
+                            PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_GOTOPROCESS:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+                    PPH_PROCESS_ITEM processItem;
+                    PPH_PROCESS_NODE processNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (processItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
+                        {
+                            if (processNode = PhFindProcessNode(processItem->ProcessId))
+                            {
+                                ProcessHacker_SelectTabPage(0);
+                                PhSelectAndEnsureVisibleProcessNode(processNode);
+                                ProcessHacker_ToggleVisible(FALSE);
                             }
 
                             PhDereferenceObject(processItem);
@@ -1131,7 +1325,10 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly);
+                        if (!WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly, &selectedNode->ClientId))
+                        {
+                            PhShowError(hwndDlg, L"%s", L"The window does not exist.");
+                        }
                     }
                 }
                 break;
@@ -1144,6 +1341,41 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     PhDereferenceObject(text);
                 }
                 break;
+            case ID_WINDOW_SETDPI:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        PPH_STRING selectedChoice = NULL;
+
+                        while (PhaChoiceDialog(
+                            hwndDlg,
+                            L"Enter new Window DPI:",
+                            L"Enter new Window DPI:",
+                            NULL,
+                            0,
+                            NULL,
+                            PH_CHOICE_DIALOG_USER_CHOICE,
+                            &selectedChoice,
+                            NULL,
+                            NULL
+                            ))
+                        {
+                            LONG64 value;
+
+                            if (selectedChoice->Length == 0)
+                                continue;
+
+                            if (PhStringToInteger64(&selectedChoice->sr, 0, &value))
+                            {
+                                WepSetWindowToDpiForTesting(selectedNode->WindowHandle, (LONG)value);
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
             }
         }
         break;
@@ -1151,12 +1383,12 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         {
             switch (wParam)
             {
-            case 9:
+            case PH_WINDOW_TIMER_DEFAULT:
                 {
                     WeInvertWindowBorder(context->HighlightingWindow);
 
                     if (--context->HighlightingWindowCount == 0)
-                        KillTimer(hwndDlg, 9);
+                        PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
                 }
                 break;
             }
@@ -1191,7 +1423,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             SetCapture(hwndDlg);
 
             // Set the cursor.
-            SetCursor(LoadCursor(NULL, IDC_CROSS));
+            PhSetCursor(PhLoadCursor(NULL, IDC_CROSS));
 
             // Send the window to the bottom.
             SetWindowPos(hwndDlg, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1255,7 +1487,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 context->TargetingCompleted = TRUE;
 
                 // Reset the original cursor.
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 // Bring the window back to the top, and preserve the Always on Top setting.
                 SetWindowPos(hwndDlg, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1333,6 +1565,25 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     return FALSE;
 }
 
+VOID NTAPI WepWindowsPageSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PWINDOWS_CONTEXT context = Context;
+
+    assert(context);
+
+    context->TreeContext.SearchMatchHandle = MatchHandle;
+
+    if (!context->TreeContext.SearchMatchHandle)
+        WeExpandAllWindowNodes(&context->TreeContext, TRUE);
+
+    PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+
+    TreeNew_NodesStructured(context->TreeNewHandle);
+}
+
 INT_PTR CALLBACK WepWindowsPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1361,9 +1612,17 @@ INT_PTR CALLBACK WepWindowsPageProc(
             context->SearchBoxHandle = GetDlgItem(hwndDlg, IDC_SEARCHEDIT);
             context->FindWindowButtonHandle = GetDlgItem(hwndDlg, IDC_FINDWINDOW);
 
-            PhCreateSearchControl(hwndDlg, context->SearchBoxHandle, L"Search Windows (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchBoxHandle,
+                L"Search Windows (Ctrl+K)",
+                WepWindowsPageSearchControlCallback,
+                context
+                );
+
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
             TreeNew_SetEmptyText(context->TreeNewHandle, &WepEmptyWindowsText, 0);
+            WeInitializeWindowTreeImageList(&context->TreeContext, &context->Selector);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHEDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -1396,33 +1655,6 @@ INT_PTR CALLBACK WepWindowsPageProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchBoxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchBoxHandle));
-
-                    if (!PhEqualString(context->TreeContext.SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->TreeContext.SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->TreeContext.SearchboxText))
-                            WeExpandAllWindowNodes(&context->TreeContext, TRUE);
-
-                        PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
-
-                        TreeNew_NodesStructured(context->TreeNewHandle);
-                        // PhInvokeCallback(&SearchChangedEvent, SearchboxText);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_REFRESH:
@@ -1607,6 +1839,20 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     }
                 }
                 break;
+            case ID_WINDOW_DESTROY:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        WepDestroyRemoteWindow(
+                            hwndDlg,
+                            selectedNode->WindowHandle,
+                            selectedNode->ClientId.UniqueProcess
+                            );
+                    }
+                }
+                break;
             case ID_WINDOW_VISIBLE:
                 {
                     PWE_WINDOW_NODE selectedNode;
@@ -1701,28 +1947,28 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                         context->HighlightingWindow = selectedNode->WindowHandle;
                         context->HighlightingWindowCount = 10;
-                        SetTimer(hwndDlg, 9, 100, NULL);
+                        PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
                     }
                 }
                 break;
             case ID_WINDOW_GOTOTHREAD:
                 {
                     PWE_WINDOW_NODE selectedNode;
-                    PPH_PROCESS_ITEM processItem;
+                    PPH_PROCESS_ITEM selectedProcessItem;
                     PPH_PROCESS_PROPCONTEXT propContext;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (processItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
+                        if (selectedProcessItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
                         {
-                            if (propContext = PhCreateProcessPropContext(WeGetMainWindowHandle(), processItem))
+                            if (propContext = PhCreateProcessPropContext(WeGetMainWindowHandle(), selectedProcessItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
                                 PhShowProcessProperties(propContext);
                                 PhDereferenceObject(propContext);
                             }
 
-                            PhDereferenceObject(processItem);
+                            PhDereferenceObject(selectedProcessItem);
                         }
                         else
                         {
@@ -1780,7 +2026,12 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     PWE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
-                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly);
+                    {
+                        if (!WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly, &selectedNode->ClientId))
+                        {
+                            PhShowError(hwndDlg, L"%s", L"The window does not exist.");
+                        }
+                    }
                 }
                 break;
             case ID_WINDOW_COPY:
@@ -1792,6 +2043,41 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     PhDereferenceObject(text);
                 }
                 break;
+            case ID_WINDOW_SETDPI:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        PPH_STRING selectedChoice = NULL;
+
+                        while (PhaChoiceDialog(
+                            hwndDlg,
+                            L"Enter new Window DPI:",
+                            L"Enter new Window DPI:",
+                            NULL,
+                            0,
+                            NULL,
+                            PH_CHOICE_DIALOG_USER_CHOICE,
+                            &selectedChoice,
+                            NULL,
+                            NULL
+                            ))
+                        {
+                            LONG64 value;
+
+                            if (selectedChoice->Length == 0)
+                                continue;
+
+                            if (PhStringToInteger64(&selectedChoice->sr, 0, &value))
+                            {
+                                WepSetWindowToDpiForTesting(selectedNode->WindowHandle, (LONG)value);
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
             }
         }
         break;
@@ -1799,12 +2085,12 @@ INT_PTR CALLBACK WepWindowsPageProc(
         {
             switch (wParam)
             {
-            case 9:
+            case PH_WINDOW_TIMER_DEFAULT:
                 {
                     WeInvertWindowBorder(context->HighlightingWindow);
 
                     if (--context->HighlightingWindowCount == 0)
-                        KillTimer(hwndDlg, 9);
+                        PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
                 }
                 break;
             }
@@ -1843,7 +2129,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             SetCapture(hwndDlg);
 
             // Set the cursor.
-            SetCursor(LoadCursor(NULL, IDC_CROSS));
+            PhSetCursor(PhLoadCursor(NULL, IDC_CROSS));
 
             // Send the window to the bottom.
             SetWindowPos(GetParent(hwndDlg), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1907,7 +2193,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 context->TargetingCompleted = TRUE;
 
                 // Reset the original cursor.
-                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
                 // Bring the window back to the top, and preserve the Always on Top setting.
                 SetWindowPos(GetParent(hwndDlg), HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);

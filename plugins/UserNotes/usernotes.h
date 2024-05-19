@@ -28,6 +28,7 @@
 #define INTENT_PROCESS_AFFINITY 0x20
 #define INTENT_PROCESS_PAGEPRIORITY 0x40
 #define INTENT_PROCESS_BOOST 0x80
+#define INTENT_PROCESS_EFFICIENCY 0x100
 
 typedef enum _USERNOTES_COMMAND_ID
 {
@@ -39,6 +40,7 @@ typedef enum _USERNOTES_COMMAND_ID
     PROCESS_IO_PRIORITY_SAVE_IFEO,
     PROCESS_HIGHLIGHT_ID,
     PROCESS_COLLAPSE_ID,
+    PROCESS_AFFINITY_ID,
     PROCESS_AFFINITY_SAVE_ID,
     PROCESS_AFFINITY_SAVE_FOR_THIS_COMMAND_LINE_ID,
     PROCESS_PAGE_PRIORITY_SAVE_ID,
@@ -47,6 +49,9 @@ typedef enum _USERNOTES_COMMAND_ID
     PROCESS_BOOST_PRIORITY_ID,
     PROCESS_BOOST_PRIORITY_SAVE_ID,
     PROCESS_BOOST_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID,
+    PROCESS_EFFICIENCY_ID,
+    PROCESS_EFFICIENCY_SAVE_ID,
+    PROCESS_EFFICIENCY_SAVE_FOR_THIS_COMMAND_LINE_ID,
     FILE_PRIORITY_SAVE_IFEO,
     FILE_IO_PRIORITY_SAVE_IFEO,
     FILE_PAGE_PRIORITY_SAVE_IFEO,
@@ -70,7 +75,8 @@ typedef struct _PROCESS_EXTENSION
             BOOLEAN SkipPagePriority : 1;
             BOOLEAN SkipIoPriority : 1;
             BOOLEAN SkipBoostPriority : 1;
-            BOOLEAN Spare : 2;
+            BOOLEAN SkipEfficiency : 1;
+            BOOLEAN Spare : 1;
         };
     };
 } PROCESS_EXTENSION, *PPROCESS_EXTENSION;
@@ -96,14 +102,31 @@ typedef struct _SERVICE_COMMENT_PAGE_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } SERVICE_COMMENT_PAGE_CONTEXT, *PSERVICE_COMMENT_PAGE_CONTEXT;
 
+PDB_OBJECT FindDbObjectForProcess(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Intent
+    );
+
+VOID DeleteDbObjectForProcessIfUnused(
+    _In_ PDB_OBJECT Object
+    );
+
+VOID InvalidateProcessComments(
+    VOID
+    );
+
+VOID InvalidateServiceComments(
+    VOID
+    );
+
 VOID SearchChangedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
 INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );

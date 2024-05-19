@@ -6,13 +6,12 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
 #include <settings.h>
-#include <phsettings.h>
 
 typedef struct _COLUMNS_DIALOG_CONTEXT
 {
@@ -30,10 +29,12 @@ typedef struct _COLUMNS_DIALOG_CONTEXT
     HWND ActiveWindowHandle;
     HWND SearchInactiveHandle;
     HWND SearchActiveHandle;
+    HWND HideWindowHandle;
+    HWND ShowWindowHandle;
+    HWND MoveUpHandle;
+    HWND MoveDownHandle;
     PPH_LIST InactiveListArray;
     PPH_LIST ActiveListArray;
-    PPH_STRING InactiveSearchboxText;
-    PPH_STRING ActiveSearchboxText;
 } COLUMNS_DIALOG_CONTEXT, *PCOLUMNS_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpColumnsDlgProc(
@@ -60,12 +61,12 @@ VOID PhShowChooseColumnsDialog(
     else
         return;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CHOOSECOLUMNS),
         ParentWindowHandle,
         PhpColumnsDlgProc,
-        (LPARAM)&context
+        &context
         );
 
     PhDereferenceObject(context.Columns);
@@ -110,29 +111,11 @@ static ULONG IndexOfStringInList(
     return ULONG_MAX;
 }
 
-static HFONT PhpColumnsGetCurrentFont(
-    _In_ HWND hwnd
-    )
-{
-    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
-    HFONT font;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(hwnd);
-
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
-        font = CreateFontIndirect(&metrics.lfMessageFont);
-    else
-        font = NULL;
-
-    return font;
-}
-
 VOID PhpColumnsResetListBox(
     _In_ HWND ListBoxHandle,
-    _In_ PPH_STRING SearchboxText,
+    _In_ ULONG_PTR MatchHandle,
     _In_ PPH_LIST Array,
-    _In_ PVOID CompareFunction
+    _In_opt_ PVOID CompareFunction
     )
 {
     SendMessage(ListBoxHandle, WM_SETREDRAW, FALSE, 0);
@@ -142,7 +125,7 @@ VOID PhpColumnsResetListBox(
     if (CompareFunction)
         qsort_s(Array->Items, Array->Count, sizeof(ULONG_PTR), CompareFunction, NULL);
 
-    if (PhIsNullOrEmptyString(SearchboxText))
+    if (!MatchHandle)
     {
         for (ULONG i = 0; i < Array->Count; i++)
         {
@@ -159,7 +142,7 @@ VOID PhpColumnsResetListBox(
 
             PhInitializeStringRefLongHint(&text, Array->Items[i]);
 
-            if (PhWordMatchStringRef(&SearchboxText->sr, &text))
+            if (PhSearchControlMatch(MatchHandle, &text))
             {
                 ListBox_InsertString(ListBoxHandle, index, Array->Items[i]);
                 index++;
@@ -169,6 +152,41 @@ VOID PhpColumnsResetListBox(
 
     SendMessage(ListBoxHandle, WM_SETREDRAW, TRUE, 0);
 }
+
+VOID NTAPI PhpInactiveColumnsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PCOLUMNS_DIALOG_CONTEXT context = Context;
+
+    assert(context);
+
+    PhpColumnsResetListBox(
+        context->InactiveWindowHandle,
+        MatchHandle,
+        context->InactiveListArray,
+        PhpInactiveColumnsCompareNameTn
+        );
+}
+
+VOID NTAPI PhpActiveColumnsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PCOLUMNS_DIALOG_CONTEXT context = Context;
+
+    assert(context);
+
+    PhpColumnsResetListBox(
+        context->ActiveWindowHandle,
+        MatchHandle,
+        context->ActiveListArray,
+        NULL
+        );
+}
+
 
 INT_PTR CALLBACK PhpColumnsDlgProc(
     _In_ HWND hwndDlg,
@@ -211,22 +229,37 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             context->ActiveWindowHandle = GetDlgItem(hwndDlg, IDC_ACTIVE);
             context->SearchInactiveHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
             context->SearchActiveHandle = GetDlgItem(hwndDlg, IDC_FILTER);
+            context->HideWindowHandle = GetDlgItem(hwndDlg, IDC_HIDE);
+            context->ShowWindowHandle = GetDlgItem(hwndDlg, IDC_SHOW);
+            context->MoveUpHandle = GetDlgItem(hwndDlg, IDC_MOVEUP);
+            context->MoveDownHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->InactiveListArray = PhCreateList(1);
             context->ActiveListArray = PhCreateList(1);
-            context->ControlFont = PhpColumnsGetCurrentFont(hwndDlg);
-            context->InactiveSearchboxText = PhReferenceEmptyString();
-            context->ActiveSearchboxText = PhReferenceEmptyString();
+            context->ControlFont = PhCreateMessageFont(dpiValue); // PhDuplicateFont(PhTreeWindowFont)
 
-            PhCreateSearchControl(hwndDlg, context->SearchInactiveHandle, L"Inactive columns...");
-            PhCreateSearchControl(hwndDlg, context->SearchActiveHandle, L"Active columns...");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchInactiveHandle,
+                L"Inactive columns...",
+                PhpInactiveColumnsSearchControlCallback,
+                context
+                );
+
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchActiveHandle,
+                L"Active columns...",
+                PhpActiveColumnsSearchControlCallback,
+                context
+                );
 
             ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, dpiValue));
             ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, dpiValue));
 
-            Button_Enable(GetDlgItem(hwndDlg, IDC_HIDE), FALSE);
-            Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW), FALSE);
-            Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEUP), FALSE);
-            Button_Enable(GetDlgItem(hwndDlg, IDC_MOVEDOWN), FALSE);
+            Button_Enable(context->HideWindowHandle, FALSE);
+            Button_Enable(context->ShowWindowHandle, FALSE);
+            Button_Enable(context->MoveUpHandle, FALSE);
+            Button_Enable(context->MoveDownHandle, FALSE);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -288,7 +321,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
             PhpColumnsResetListBox(
                 context->InactiveWindowHandle,
-                NULL,
+                0,
                 context->InactiveListArray,
                 PhpInactiveColumnsCompareNameTn
                 );
@@ -334,10 +367,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 PhDereferenceObject(context->InactiveListArray);
             if (context->ActiveListArray)
                 PhDereferenceObject(context->ActiveListArray);
-            if (context->InactiveSearchboxText)
-                PhDereferenceObject(context->InactiveSearchboxText);
-            if (context->ActiveSearchboxText)
-                PhDereferenceObject(context->ActiveSearchboxText);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
@@ -345,7 +374,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
     case WM_DPICHANGED:
         {
             if (context->ControlFont) DeleteFont(context->ControlFont);
-            context->ControlFont = PhpColumnsGetCurrentFont(hwndDlg);
+            context->ControlFont = PhCreateMessageFont(LOWORD(wParam));
 
             ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
             ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
@@ -353,40 +382,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) == context->SearchInactiveHandle)
-                    {
-                        PPH_STRING newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchInactiveHandle));
-
-                        if (!PhEqualString(context->InactiveSearchboxText, newSearchboxText, FALSE))
-                        {
-                            PhSwapReference(&context->InactiveSearchboxText, newSearchboxText);
-
-                            PhpColumnsResetListBox(
-                                context->InactiveWindowHandle, context->InactiveSearchboxText,
-                                context->InactiveListArray, PhpInactiveColumnsCompareNameTn);
-                        }
-                    }
-                    else if (GET_WM_COMMAND_HWND(wParam, lParam) == context->SearchActiveHandle)
-                    {
-                        PPH_STRING newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchActiveHandle));
-
-                        if (!PhEqualString(context->ActiveSearchboxText, newSearchboxText, FALSE))
-                        {
-                            PhSwapReference(&context->ActiveSearchboxText, newSearchboxText);
-
-                            PhpColumnsResetListBox(
-                                context->ActiveWindowHandle, context->ActiveSearchboxText,
-                                context->ActiveListArray, NULL);
-                        }
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
@@ -394,11 +389,13 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDOK:
                 {
-                    #define ORDER_LIMIT 200
+                    #define ORDER_LIMIT 210
                     ULONG i;
                     INT orderArray[ORDER_LIMIT];
                     INT maxOrder;
-
+#ifdef DEBUG
+                    assert(TreeNew_GetColumnCount(context->ControlHandle) < ORDER_LIMIT); // bump ORDER_LIMIT macro (dmex)
+#endif
                     memset(orderArray, 0, sizeof(orderArray));
                     maxOrder = 0;
 
@@ -451,7 +448,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         {
                             INT sel = ListBox_GetCurSel(context->InactiveWindowHandle);
 
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_SHOW), sel != LB_ERR);
+                            EnableWindow(context->ShowWindowHandle, sel != LB_ERR);
                         }
                         break;
                     }
@@ -473,9 +470,9 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                             if (sel != LB_ERR)
                             {
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_HIDE), sel != 0);
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
+                                EnableWindow(context->HideWindowHandle, sel != 0);
+                                EnableWindow(context->MoveUpHandle, sel != 0);
+                                EnableWindow(context->MoveDownHandle, sel != count - 1);
                             }
                         }
                         break;
@@ -561,7 +558,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 // Add to list in the same position as the inactive list
                                 ListBox_InsertString(context->InactiveWindowHandle, lb_index, item);
 
-                                PhpColumnsResetListBox(context->InactiveWindowHandle, context->InactiveSearchboxText, context->InactiveListArray, PhpInactiveColumnsCompareNameTn);
+                                PhpColumnsResetListBox(context->InactiveWindowHandle, 0, context->InactiveListArray, PhpInactiveColumnsCompareNameTn);
                             }
 
                             count--;
@@ -610,8 +607,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 ListBox_InsertString(context->ActiveWindowHandle, sel, item);
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
 
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
+                                EnableWindow(context->MoveUpHandle, sel != 0);
+                                EnableWindow(context->MoveDownHandle, sel != count - 1);
                             }
                         }
 
@@ -647,8 +644,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 ListBox_InsertString(context->ActiveWindowHandle, sel, item);
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
 
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
-                                EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
+                                EnableWindow(context->MoveUpHandle, sel != 0);
+                                EnableWindow(context->MoveDownHandle, sel != count - 1);
                             }
                         }
 
@@ -671,7 +668,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  HDC bufferDc;
                  HBITMAP bufferBitmap;
                  HBITMAP oldBufferBitmap;
-                 HFONT oldFontHandle;
                  PPH_STRING string;
                  RECT bufferRect =
                  {
@@ -695,9 +691,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                  bufferDc = CreateCompatibleDC(drawInfo->hDC);
                  bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
-                 oldFontHandle = SelectFont(bufferDc, PhTreeWindowFont);
-
                  oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+
                  SelectFont(bufferDc, context->ControlFont);
                  SetBkMode(bufferDc, TRANSPARENT);
 
@@ -736,7 +731,6 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                      SRCCOPY
                      );
 
-                 SelectFont(bufferDc, oldFontHandle);
                  SelectBitmap(bufferDc, oldBufferBitmap);
                  DeleteBitmap(bufferBitmap);
                  DeleteDC(bufferDc);

@@ -5,16 +5,16 @@
  *
  * Authors:
  *
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
 #include "toolstatus.h"
-#include "commonutil.h"
 
 SIZE ToolBarImageSize = { 16, 16 };
 HIMAGELIST ToolBarImageList = NULL;
 HFONT ToolbarWindowFont = NULL;
+BOOLEAN ToolbarInitialized = FALSE;
 TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS] =
 {
     // Default toolbar buttons (displayed)
@@ -56,7 +56,7 @@ VOID RebarBandInsert(
 
     if (ToolStatusConfig.ToolBarLocked)
     {
-        rebarBandInfo.fStyle |= RBBS_NOGRIPPER;
+        SetFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
     }
 
     if ((index = (UINT)SendMessage(RebarHandle, RB_IDTOINDEX, REBAR_BAND_ID_SEARCHBOX, 0)) != UINT_MAX)
@@ -101,33 +101,47 @@ VOID RebarCreateOrUpdateWindow(
     {
         if (!ToolBarImageList || DpiChanged)
         {
-            LONG dpiValue;
+            LONG windowDpi = PhGetWindowDpi(PhMainWndHandle);
 
-            dpiValue = PhGetWindowDpi(PhMainWndHandle);
-            ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-            ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+            if (ToolStatusConfig.ToolBarLargeIcons)
+            {
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXICON, windowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYICON, windowDpi);
+            }
+            else
+            {
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, windowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, windowDpi);
+            }
 
-            if (ToolBarImageList) PhImageListDestroy(ToolBarImageList);
-            ToolBarImageList = PhImageListCreate(
-                ToolBarImageSize.cx,
-                ToolBarImageSize.cy,
-                ILC_MASK | ILC_COLOR32,
-                0, 0
-                );
+            if (ToolBarImageList)
+            {
+                PhImageListSetIconSize(ToolBarImageList, ToolBarImageSize.cx, ToolBarImageSize.cy);
+            }
+            else
+            {
+                ToolBarImageList = PhImageListCreate(
+                    ToolBarImageSize.cx,
+                    ToolBarImageSize.cy,
+                    ILC_MASK | ILC_COLOR32,
+                    MAX_DEFAULT_TOOLBAR_ITEMS,
+                    MAX_DEFAULT_IMAGELIST_ITEMS
+                    );
+            }
         }
 
         if (DpiChanged)
         {
-            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+            if (ToolBarHandle)
+            {
+                SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
 
-            // Remove all buttons.
-            INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+                // Remove all buttons.
+                ToolbarRemoveButons();
 
-            while (buttonCount--)
-                SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
-
-            // Re-add/update buttons.
-            ToolbarLoadButtonSettings();
+                // Re-add/update buttons.
+                ToolbarLoadButtonSettings();
+            }
         }
     }
 
@@ -178,8 +192,8 @@ VOID RebarCreateOrUpdateWindow(
             ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
             LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
 
-            if (RebarBandExists (REBAR_BAND_ID_TOOLBAR))
-                RebarBandRemove (REBAR_BAND_ID_TOOLBAR);
+            if (RebarBandExists(REBAR_BAND_ID_TOOLBAR))
+                RebarBandRemove(REBAR_BAND_ID_TOOLBAR);
 
             RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), __max(HIWORD(toolbarButtonSize), toolbarButtonHeight));
 
@@ -192,29 +206,32 @@ VOID RebarCreateOrUpdateWindow(
 
     if (ToolStatusConfig.SearchBoxEnabled && !SearchboxHandle)
     {
-        SearchboxText = PhReferenceEmptyString();
         ProcessTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterCallback, NULL);
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
-
-        if (RebarHandle && PhGetIntegerSetting(L"EnableThemeSupport"))
-        {
-            PhInitializeWindowThemeRebar(RebarHandle);
-        }
 
         if (SearchboxHandle = CreateWindowEx(
             WS_EX_CLIENTEDGE,
             WC_EDIT,
             NULL,
             WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            0,
+            0,
+            3,
+            3,
             RebarHandle,
             NULL,
             NULL,
             NULL
             ))
         {
-            PhCreateSearchControl(RebarHandle, SearchboxHandle, L"Search Processes (Ctrl+K)");
+            PhCreateSearchControl(
+                RebarHandle,
+                SearchboxHandle,
+                L"Search Processes (Ctrl+K)",
+                SearchControlCallback,
+                NULL
+                );
         }
     }
 
@@ -225,7 +242,10 @@ VOID RebarCreateOrUpdateWindow(
             STATUSCLASSNAME,
             NULL,
             WS_CHILD | CCS_BOTTOM | SBARS_SIZEGRIP,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            0,
+            0,
+            3,
+            3,
             PhMainWndHandle,
             NULL,
             NULL,
@@ -246,11 +266,6 @@ VOID RebarCreateOrUpdateWindow(
             {
                 SendMessage(StatusBarHandle, SB_SETMINHEIGHT, height, 0);
             }
-        }
-
-        if (StatusBarHandle && PhGetIntegerSetting(L"EnableThemeSupport"))
-        {
-            PhInitializeWindowThemeStatusBar(StatusBarHandle);
         }
     }
 
@@ -277,7 +292,7 @@ VOID RebarCreateOrUpdateWindow(
 
             dpiValue = PhGetWindowDpi(RebarHandle);
 
-            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(180, dpiValue), height);
+            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(215, dpiValue), height);
         }
 
         if (!IsWindowVisible(SearchboxHandle))
@@ -316,6 +331,8 @@ VOID RebarCreateOrUpdateWindow(
         if (StatusBarHandle && IsWindowVisible(StatusBarHandle))
             ShowWindow(StatusBarHandle, SW_HIDE);
     }
+
+    ToolbarInitialized = TRUE;
 }
 
 VOID ToolbarLoadSettings(
@@ -326,8 +343,8 @@ VOID ToolbarLoadSettings(
 
     if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle)
     {
-        INT index = 0;
-        INT buttonCount = 0;
+        INT index;
+        INT buttonCount;
 
         buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
@@ -340,7 +357,7 @@ VOID ToolbarLoadSettings(
             };
 
             // Get settings for first button
-            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
+            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
                 break;
 
             // Skip separator buttons
@@ -383,7 +400,7 @@ VOID ToolbarLoadSettings(
                 {
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
-                        buttonInfo.fsState &= ~TBSTATE_ENABLED;
+                        ClearFlag(buttonInfo.fsState, TBSTATE_ENABLED);
                     }
                 }
                 break;
@@ -392,13 +409,13 @@ VOID ToolbarLoadSettings(
                     // Set the pressed state
                     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
                     {
-                        buttonInfo.fsState |= TBSTATE_PRESSED;
+                        SetFlag(buttonInfo.fsState, TBSTATE_PRESSED);
                     }
                 }
                 break;
             case TIDC_POWERMENUDROPDOWN:
                 {
-                    buttonInfo.fsStyle |= BTNS_WHOLEDROPDOWN;
+                    SetFlag(buttonInfo.fsStyle, BTNS_WHOLEDROPDOWN);
                 }
                 break;
             }
@@ -439,7 +456,17 @@ VOID ToolbarLoadSettings(
     }
 
     // Invoke the LayoutPaddingCallback.
-    SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
+    InvalidateMainWindowLayout();
+}
+
+VOID ToolbarRemoveButons(
+    VOID
+    )
+{
+    INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+    while (buttonCount--)
+        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
 }
 
 VOID ToolbarResetSettings(
@@ -447,17 +474,14 @@ VOID ToolbarResetSettings(
     )
 {
     // Remove all buttons.
-    INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-
-    while (buttonCount--)
-        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+    ToolbarRemoveButons();
 
     // Add the default buttons.
     ToolbarLoadDefaultButtonSettings();
 }
 
 PWSTR ToolbarGetText(
-    _In_ INT CommandID
+    _In_ UINT CommandID
     )
 {
     switch (CommandID)
@@ -501,200 +525,164 @@ HBITMAP ToolbarLoadImageFromIcon(
 }
 
 HBITMAP ToolbarGetImage(
-    _In_ INT CommandID,
+    _In_ UINT CommandID,
     _In_ LONG DpiValue
     )
 {
+    ULONG id = ULONG_MAX;
+
     switch (CommandID)
     {
     case PHAPP_ID_VIEW_REFRESH:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_ARROW_REFRESH_MODERN_LIGHT;
                 else
                     id = IDB_ARROW_REFRESH_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_ARROW_REFRESH), DpiValue);
+            else
+            {
+                id = IDI_ARROW_REFRESH;
+            }
         }
         break;
     case PHAPP_ID_HACKER_OPTIONS:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_COG_EDIT_MODERN_LIGHT;
                 else
                     id = IDB_COG_EDIT_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_COG_EDIT), DpiValue);
+            else
+            {
+                id = IDI_COG_EDIT;
+            }
         }
         break;
     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_FIND_MODERN_LIGHT;
                 else
                     id = IDB_FIND_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_FIND), DpiValue);
+            else
+            {
+                id = IDI_FIND;
+            }
         }
         break;
     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_CHART_LINE_MODERN_LIGHT;
                 else
                     id = IDB_CHART_LINE_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CHART_LINE), DpiValue);
+            else
+            {
+                id = IDI_CHART_LINE;
+            }
         }
         break;
     case TIDC_FINDWINDOW:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_TBAPPLICATION_MODERN_LIGHT;
                 else
                     id = IDB_TBAPPLICATION_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_TBAPPLICATION), DpiValue);
+            else
+            {
+                id = IDI_TBAPPLICATION;
+            }
         }
         break;
     case TIDC_FINDWINDOWTHREAD:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_APPLICATION_GO_MODERN_LIGHT;
                 else
                     id = IDB_APPLICATION_GO_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GO), DpiValue);
+            else
+            {
+                id = IDI_APPLICATION_GO;
+            }
         }
         break;
     case TIDC_FINDWINDOWKILL:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_CROSS_MODERN_LIGHT;
                 else
                     id = IDB_CROSS_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CROSS), DpiValue);
+            else
+            {
+                id = IDI_CROSS;
+            }
         }
         break;
     case PHAPP_ID_VIEW_ALWAYSONTOP:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_APPLICATION_GET_MODERN_LIGHT;
                 else
                     id = IDB_APPLICATION_GET_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GET), DpiValue);
+            else
+            {
+                id = IDI_APPLICATION_GET;
+            }
         }
         break;
     case TIDC_POWERMENUDROPDOWN:
         {
             if (ToolStatusConfig.ModernIcons)
             {
-                ULONG id;
-
                 if (PhGetIntegerSetting(L"EnableThemeSupport"))
                     id = IDB_LIGHTBULB_OFF_MODERN_LIGHT;
                 else
                     id = IDB_LIGHTBULB_OFF_MODERN_DARK;
-
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
-
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_LIGHTBULB_OFF), DpiValue);
+            else
+            {
+                id = IDI_LIGHTBULB_OFF;
+            }
         }
         break;
     case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
         {
-            HICON shieldIcon;
-            HBITMAP toolbarBitmap = NULL;
-
-            shieldIcon = PhLoadIcon(
-                NtCurrentPeb()->ImageBaseAddress, // HACK
-                MAKEINTRESOURCE(PHAPP_IDI_UACSHIELD),
-                PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
-                0,
-                0,
-                DpiValue
-                );
-
-            if (!shieldIcon)
-            {
-                shieldIcon = PhLoadIcon(
-                    NULL,
-                    IDI_SHIELD,
-                    PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
-                    0,
-                    0,
-                    DpiValue
-                    );
-            }
-
-            if (shieldIcon)
-            {
-                toolbarBitmap = PhIconToBitmap(shieldIcon, ToolBarImageSize.cx, ToolBarImageSize.cy);
-                DestroyIcon(shieldIcon);
-            }
-
-            return toolbarBitmap;
+            return PhGetShieldBitmap(DpiValue, ToolBarImageSize.cx, ToolBarImageSize.cy);
         }
         break;
+    }
+
+    if (id != ULONG_MAX)
+    {
+        if (ToolStatusConfig.ModernIcons)
+        {
+            return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
+        }
+
+        return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), DpiValue);
     }
 
     return NULL;
@@ -706,12 +694,13 @@ VOID ToolbarLoadDefaultButtonSettings(
 {
     LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
-    // Pre-cache the images in the Toolbar array
-    for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+    // Pre-cache the images in the Toolbar array.
+
+    for (UINT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
     {
         HBITMAP bitmap;
 
-        if (ToolbarButtons[i].fsStyle & BTNS_SEP)
+        if (FlagOn(ToolbarButtons[i].fsStyle, BTNS_SEP))
             continue;
 
         if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand, dpiValue))
@@ -728,7 +717,7 @@ VOID ToolbarLoadDefaultButtonSettings(
 
         // Note: We have to set the string here because TBIF_TEXT doesn't update
         // the button text length when the button is disabled. (dmex)
-        ToolbarButtons[i].iString = (INT_PTR)ToolbarGetText(i);
+        ToolbarButtons[i].iString = (INT_PTR)(PVOID)ToolbarGetText(i);
     }
 
     // Load default settings
@@ -740,7 +729,7 @@ VOID ToolbarLoadButtonSettings(
     )
 {
     INT count;
-    ULONG64 countInteger;
+    LONG64 countInteger;
     PPH_STRING settingsString;
     PTBBUTTON buttonArray;
     PH_STRINGREF remaining;
@@ -774,12 +763,13 @@ VOID ToolbarLoadButtonSettings(
     dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     // Allocate the button array
-    buttonArray = PhAllocate(count * sizeof(TBBUTTON));
+    buttonArray = _malloca(count * sizeof(TBBUTTON));
+    if (!buttonArray) goto CleanupExit;
     memset(buttonArray, 0, count * sizeof(TBBUTTON));
 
     for (INT index = 0; index < count; index++)
     {
-        ULONG64 commandInteger;
+        LONG64 commandInteger;
         PH_STRINGREF commandIdPart;
 
         if (remaining.Length == 0)
@@ -797,7 +787,7 @@ VOID ToolbarLoadButtonSettings(
             buttonArray[index].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
             // Note: We have to set the string here because TBIF_TEXT doesn't update
             // the button text length when the button is disabled. (dmex)
-            buttonArray[index].iString = (INT_PTR)ToolbarGetText((INT)commandInteger);
+            buttonArray[index].iString = (INT_PTR)(PVOID)ToolbarGetText((UINT)commandInteger);
         }
         else
         {
@@ -805,13 +795,13 @@ VOID ToolbarLoadButtonSettings(
         }
 
         // Pre-cache the image in the Toolbar array on startup.
-        for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+        for (UINT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
         {
             if (ToolbarButtons[i].idCommand == buttonArray[index].idCommand)
             {
                 HBITMAP bitmap;
 
-                if (buttonArray[index].fsStyle & BTNS_SEP)
+                if (FlagOn(buttonArray[index].fsStyle, BTNS_SEP))
                     continue;
 
                 if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand, dpiValue))
@@ -830,12 +820,11 @@ VOID ToolbarLoadButtonSettings(
         }
     }
 
-    for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
-        SendMessage(ToolBarHandle, TB_DELETEBUTTON, i, 0);
+    ToolbarRemoveButons();
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, count, (LPARAM)buttonArray);
 
-    PhFree(buttonArray);
+    _freea(buttonArray);
 
 CleanupExit:
     PhClearReference(&settingsString);
@@ -845,8 +834,8 @@ VOID ToolbarSaveButtonSettings(
     VOID
     )
 {
-    INT index = 0;
-    INT count = 0;
+    INT index;
+    INT count;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
@@ -868,7 +857,7 @@ VOID ToolbarSaveButtonSettings(
             TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
         };
 
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
             break;
 
         PhAppendFormatStringBuilder(
@@ -881,16 +870,17 @@ VOID ToolbarSaveButtonSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_TOOLBAR_CONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID ReBarLoadLayoutSettings(
     VOID
     )
 {
-    UINT index = 0;
-    UINT count = 0;
+    UINT index;
+    UINT count;
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
@@ -907,9 +897,9 @@ VOID ReBarLoadLayoutSettings(
         PH_STRINGREF idPart;
         PH_STRINGREF cxPart;
         PH_STRINGREF stylePart;
-        ULONG64 idInteger;
-        ULONG64 cxInteger;
-        ULONG64 styleInteger;
+        LONG64 idInteger;
+        LONG64 cxInteger;
+        LONG64 styleInteger;
         UINT oldBandIndex;
         REBARBANDINFO rebarBandInfo =
         {
@@ -950,8 +940,8 @@ VOID ReBarSaveLayoutSettings(
     VOID
     )
 {
-    UINT index = 0;
-    UINT count = 0;
+    UINT index;
+    UINT count;
     PPH_STRING settingsString;
     PH_STRING_BUILDER stringBuilder;
 
@@ -969,19 +959,19 @@ VOID ReBarSaveLayoutSettings(
 
         SendMessage(RebarHandle, RB_GETBANDINFO, index, (LPARAM)&rebarBandInfo);
 
-        if (rebarBandInfo.fStyle & RBBS_GRIPPERALWAYS)
+        if (FlagOn(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS))
         {
-            rebarBandInfo.fStyle &= ~RBBS_GRIPPERALWAYS;
+            ClearFlag(rebarBandInfo.fStyle, RBBS_GRIPPERALWAYS);
         }
 
-        if (rebarBandInfo.fStyle & RBBS_NOGRIPPER)
+        if (FlagOn(rebarBandInfo.fStyle, RBBS_NOGRIPPER))
         {
-            rebarBandInfo.fStyle &= ~RBBS_NOGRIPPER;
+            ClearFlag(rebarBandInfo.fStyle, RBBS_NOGRIPPER);
         }
 
-        if (rebarBandInfo.fStyle & RBBS_FIXEDSIZE)
+        if (FlagOn(rebarBandInfo.fStyle, RBBS_FIXEDSIZE))
         {
-            rebarBandInfo.fStyle &= ~RBBS_FIXEDSIZE;
+            ClearFlag(rebarBandInfo.fStyle, RBBS_FIXEDSIZE);
         }
 
         PhAppendFormatStringBuilder(
@@ -996,8 +986,9 @@ VOID ReBarSaveLayoutSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_REBAR_CONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID RebarAdjustBandHeightLayout(

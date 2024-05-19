@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -17,9 +17,8 @@
 #include <memsrch.h>
 #include <procprv.h>
 #include <settings.h>
-#include <phsettings.h>
 
-#include "..\tools\thirdparty\pcre\pcre2.h"
+#include "../tools/thirdparty/pcre/pcre2.h"
 
 #define FILTER_CONTAINS 1
 #define FILTER_CONTAINS_IGNORECASE 2
@@ -61,12 +60,12 @@ VOID PhShowMemoryResultsDialog(
     for (i = 0; i < Results->Count; i++)
         PhReferenceMemoryResult(Results->Items[i]);
 
-    windowHandle = CreateDialogParam(
+    windowHandle = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_MEMRESULTS),
         NULL,
         PhpMemoryResultsDlgProc,
-        (LPARAM)context
+        context
         );
     ShowWindow(windowHandle, SW_SHOW);
     SetForegroundWindow(windowHandle);
@@ -121,7 +120,7 @@ static VOID FilterResults(
 
     results = Context->Results;
 
-    SetCursor(LoadCursor(NULL, IDC_WAIT));
+    PhSetCursor(PhLoadCursor(NULL, IDC_WAIT));
 
     while (PhaChoiceDialog(
         hwndDlg,
@@ -243,7 +242,7 @@ static VOID FilterResults(
         }
     }
 
-    SetCursor(LoadCursor(NULL, IDC_ARROW));
+    PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 }
 
 INT_PTR CALLBACK PhpMemoryResultsDlgProc(
@@ -436,7 +435,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             0
                             )))
                         {
-                            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
+                            PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
                             PhWritePhTextHeader(fileStream);
 
                             string = PhpGetStringForSelectedResults(GetDlgItem(hwndDlg, IDC_LIST), context->Results, TRUE);

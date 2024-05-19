@@ -11,7 +11,6 @@
 
 #include <peview.h>
 #include <mapimg.h>
-#include <uxtheme.h>
 
 INT_PTR CALLBACK PvpLibExportsDlgProc(
     _In_ HWND hwndDlg,
@@ -157,7 +156,7 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
 
             ExtendedListView_SortItems(lvHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

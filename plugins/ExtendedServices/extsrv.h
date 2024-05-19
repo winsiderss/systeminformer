@@ -1,9 +1,22 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2015
+ *     dmex    2015-2023
+ *
+ */
+
 #ifndef ES_EXTSRV_H
 #define ES_EXTSRV_H
 
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
+#include <mapldr.h>
 
 #include "resource.h"
 
@@ -14,20 +27,18 @@ extern PPH_PLUGIN PluginInstance;
 #define PLUGIN_NAME L"ProcessHacker.ExtendedServices"
 #define SETTING_NAME_ENABLE_SERVICES_MENU (PLUGIN_NAME L".EnableServicesMenu")
 
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
-
 // depend
 
 INT_PTR CALLBACK EspServiceDependenciesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK EspServiceDependentsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -41,8 +52,8 @@ typedef NTSTATUS (NTAPI *_RtlCreateServiceSid)(
     );
 
 INT_PTR CALLBACK EspServiceOtherDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -50,15 +61,15 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 // recovery
 
 INT_PTR CALLBACK EspServiceRecoveryDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK EspServiceRecovery2DlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -66,7 +77,7 @@ INT_PTR CALLBACK EspServiceRecovery2DlgProc(
 // srvprgrs
 
 VOID EsRestartServiceWithProgress(
-    _In_ HWND hWnd,
+    _In_ HWND ParentWindowHandle,
     _In_ PPH_SERVICE_ITEM ServiceItem,
     _In_ SC_HANDLE ServiceHandle
     );
@@ -118,7 +129,7 @@ VOID EsLoadServiceTriggerInfo(
 _Success_(return)
 BOOLEAN EsSaveServiceTriggerInfo(
     _In_ PES_TRIGGER_CONTEXT Context,
-    _Out_opt_ PULONG Win32Result
+    _Out_opt_ PNTSTATUS NtResult
     );
 
 #define ES_TRIGGER_EVENT_NEW 1
@@ -134,8 +145,8 @@ VOID EsHandleEventServiceTrigger(
 // triggpg
 
 INT_PTR CALLBACK EspServiceTriggersDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -143,8 +154,17 @@ INT_PTR CALLBACK EspServiceTriggersDlgProc(
 // pnp
 
 INT_PTR CALLBACK EspPnPServiceDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+// package
+
+INT_PTR CALLBACK EspPackageServiceDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );

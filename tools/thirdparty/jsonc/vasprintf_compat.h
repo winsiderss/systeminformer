@@ -1,13 +1,6 @@
 #ifndef __vasprintf_compat_h
 #define __vasprintf_compat_h
 
-#pragma warning(push)
-#pragma warning(disable: 4996)
-
-#ifndef WIN32
-#define WIN32
-#endif
-
 /**
  * @file
  * @brief Do not use, json-c internal, may be changed or removed at any time.
@@ -52,7 +45,7 @@ static int vasprintf(char **buf, const char *fmt, va_list ap)
         return -1;
     }
 
-    b = (char *)malloc(sizeof(char) * ((size_t)chars + 1));
+    b = (char *)PhAllocateSafe(sizeof(char) * ((size_t)chars + 1));
     if (!b)
     {
         return -1;
@@ -60,7 +53,7 @@ static int vasprintf(char **buf, const char *fmt, va_list ap)
 
     if ((chars = vsprintf(b, fmt, ap)) < 0)
     {
-        free(b);
+        PhFree(b);
     }
     else
     {
@@ -70,7 +63,5 @@ static int vasprintf(char **buf, const char *fmt, va_list ap)
     return chars;
 }
 #endif /* !HAVE_VASPRINTF */
-
-#pragma warning(pop)
 
 #endif /* __vasprintf_compat_h */

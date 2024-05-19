@@ -157,7 +157,7 @@ BOOLEAN PhpEqualFileNameAndUserName(
 
     return
         otherFileName && PhEqualString(otherFileName, FileName, TRUE) &&
-        otherUserSid && RtlEqualSid(otherUserSid, UserSid);
+        otherUserSid && PhEqualSid(otherUserSid, UserSid);
 }
 
 PPHP_PROCESS_DATA PhpFindGroupRoot(
@@ -233,7 +233,7 @@ VOID PhpAddGroupMembersFromRoot(
 
         if ((processData = PhFindItemSimpleHashtable2(ProcessDataHashtable, node->ProcessId)) &&
             PhpEqualFileNameAndUserName(fileName, userSid, node->ProcessItem, Flags) &&
-            node->ProcessItem->Sid && RtlEqualSid(node->ProcessItem->Sid, userSid) &&
+            node->ProcessItem->Sid && PhEqualSid(node->ProcessItem->Sid, userSid) &&
             !processData->WindowHandle)
         {
             PhpAddGroupMembersFromRoot(processData, List, ProcessDataHashtable, Flags);

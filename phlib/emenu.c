@@ -6,13 +6,12 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2019
+ *     dmex    2019-2023
  *
  */
 
 #include <ph.h>
 #include <emenu.h>
-#include <settings.h>
 #include <guisup.h>
 
 static const PH_FLAG_MAPPING EMenuTypeMappings[] =
@@ -158,6 +157,7 @@ PPH_EMENU_ITEM PhFindEMenuItem(
  *
  * \return The found menu item, or NULL if the menu item could not be found.
  */
+_Success_(return != NULL)
 PPH_EMENU_ITEM PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
@@ -175,7 +175,7 @@ PPH_EMENU_ITEM PhFindEMenuItemEx(
         return NULL;
 
     if (Text && (Flags & PH_EMENU_FIND_LITERAL))
-        PhInitializeStringRef(&searchText, Text);
+        PhInitializeStringRefLongHint(&searchText, Text);
 
     for (i = 0; i < Item->Items->Count; i++)
     {
@@ -187,7 +187,7 @@ PPH_EMENU_ITEM PhFindEMenuItemEx(
             {
                 PH_STRINGREF text;
 
-                PhInitializeStringRef(&text, item->Text);
+                PhInitializeStringRefLongHint(&text, item->Text);
 
                 if (Flags & PH_EMENU_FIND_STARTSWITH)
                 {
@@ -456,15 +456,10 @@ HMENU PhEMenuToHMenu(
         menuInfo.fMask = MIM_STYLE;
         menuInfo.dwStyle = MNS_CHECKORBMP;
 
-        if (WindowsVersion < WINDOWS_10_19H2 && PhGetIntegerSetting(L"EnableThemeSupport"))
+        if ((WindowsVersion < WINDOWS_10_19H2 || PhEnableThemeAcrylicSupport) && PhEnableThemeSupport)
         {
-            static HBRUSH themeBrush = NULL;
-
-            if (!themeBrush)
-                themeBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
-
             menuInfo.fMask |= MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
-            menuInfo.hbrBack = themeBrush;
+            menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
         }
 
         SetMenuInfo(menuHandle, &menuInfo);
@@ -532,7 +527,7 @@ VOID PhEMenuToHMenu2(
 
             if (WindowsVersion < WINDOWS_10_19H2)
             {
-                if (!PhGetIntegerSetting(L"EnableThemeSupport"))
+                if (!PhEnableThemeSupport)
                     menuItemInfo.fMask |= MIIM_BITMAP;
             }
             else
@@ -590,7 +585,7 @@ VOID PhEMenuToHMenu2(
         // Themes
         if (WindowsVersion < WINDOWS_10_19H2)
         {
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhEnableThemeSupport)
             {
                 menuItemInfo.fType |= MFT_OWNERDRAW;
             }
@@ -599,14 +594,14 @@ VOID PhEMenuToHMenu2(
         {
             if (item->Flags & PH_EMENU_MAINMENU)
             {
-                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                if (PhEnableThemeSupport)
                 {
                     menuItemInfo.fType |= MFT_OWNERDRAW;
                 }
             }
         }
 
-        InsertMenuItem(MenuHandle, MAXINT, TRUE, &menuItemInfo);
+        InsertMenuItem(MenuHandle, MAXUINT, TRUE, &menuItemInfo);
     }
 }
 
@@ -621,19 +616,19 @@ VOID PhHMenuToEMenuItem(
     _In_ HMENU MenuHandle
     )
 {
-    ULONG i;
-    ULONG count;
+    INT i;
+    INT count;
 
     count = GetMenuItemCount(MenuHandle);
 
-    if (count == -1)
+    if (count == INT_ERROR)
         return;
 
     for (i = 0; i < count; i++)
     {
         MENUITEMINFO menuItemInfo;
         PPH_EMENU_ITEM menuItem;
-        WCHAR buffer[MAX_PATH];
+        WCHAR buffer[MAX_PATH] = L"";
 
         menuItemInfo.cbSize = sizeof(menuItemInfo);
         menuItemInfo.fMask = MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_SUBMENU;
@@ -686,7 +681,7 @@ VOID PhLoadResourceEMenuItem(
     _Inout_ PPH_EMENU_ITEM MenuItem,
     _In_ HINSTANCE InstanceHandle,
     _In_ PWSTR Resource,
-    _In_ ULONG SubMenuIndex
+    _In_ INT SubMenuIndex
     )
 {
     HMENU menu;
@@ -694,7 +689,7 @@ VOID PhLoadResourceEMenuItem(
 
     menu = PhLoadMenu(InstanceHandle, Resource);
 
-    if (SubMenuIndex != ULONG_MAX)
+    if (SubMenuIndex != INT_ERROR)
         realMenu = GetSubMenu(menu, SubMenuIndex);
     else
         realMenu = menu;
@@ -874,4 +869,58 @@ VOID PhModifyEMenuItem(
         Item->Flags &= ~PH_EMENU_BITMAP_OWNED;
         Item->Flags |= OwnedFlags & PH_EMENU_BITMAP_OWNED;
     }
+}
+
+VOID PhSetHMenuStyle(
+    _In_ HMENU Menu,
+    _In_ BOOLEAN MainMenu
+    )
+{
+    MENUINFO menuInfo;
+
+    memset(&menuInfo, 0, sizeof(MENUINFO));
+    menuInfo.cbSize = sizeof(MENUINFO);
+    menuInfo.fMask = MIM_STYLE;
+    menuInfo.dwStyle = MNS_CHECKORBMP;
+
+    if (MainMenu)
+    {
+        if (PhEnableThemeSupport)
+        {
+            menuInfo.fMask |= MIM_BACKGROUND;
+            menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
+        }
+    }
+    else
+    {
+        if ((WindowsVersion < WINDOWS_10_19H2 || PhEnableThemeAcrylicSupport) && PhEnableThemeSupport)
+        {
+            menuInfo.fMask |= MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
+            menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
+        }
+    }
+
+    SetMenuInfo(Menu, &menuInfo);
+}
+
+VOID PhSetHMenuNotify(
+    _In_ HMENU MenuHandle
+    )
+{
+    MENUINFO menuInfo;
+
+    memset(&menuInfo, 0, sizeof(MENUINFO));
+    menuInfo.cbSize = sizeof(MENUINFO);
+    menuInfo.fMask = MIM_STYLE;
+    menuInfo.dwStyle = MNS_NOTIFYBYPOS;
+
+    SetMenuInfo(MenuHandle, &menuInfo);
+}
+
+VOID PhDeleteHMenu(
+    _In_ HMENU Menu
+    )
+{
+    while (DeleteMenu(Menu, 0, MF_BYPOSITION))
+        NOTHING;
 }

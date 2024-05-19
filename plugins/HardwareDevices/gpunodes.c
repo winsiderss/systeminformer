@@ -127,12 +127,6 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhFree(context);
-        }
     }
 
     if (context == NULL)
@@ -249,6 +243,12 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             PostQuitMessage(0);
         }
         break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
+        }
+        break;
     case WM_SIZE:
         {
             HDWP deferHandle;
@@ -266,7 +266,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             if (!(context->GraphState && context->GraphHandle))
                 break;
 
-            for (ULONG i = 0; i < context->NumberOfNodes; i++)
+            for (i = 0; i < context->NumberOfNodes; i++)
             {
                 context->GraphState[i].Valid = FALSE;
                 context->GraphState[i].TooltipIndex = ULONG_MAX;

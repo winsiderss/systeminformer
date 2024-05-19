@@ -95,7 +95,7 @@ BOOLEAN PvShellExecuteRestart(
     )
 {
     static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
-    BOOLEAN result;
+    NTSTATUS status;
     PPH_STRING filename;
     PPH_STRING parameters;
 
@@ -108,12 +108,13 @@ BOOLEAN PvShellExecuteRestart(
         &seperator
         );
 
-    result = PhShellExecuteEx(
+    status = PhShellExecuteEx(
         WindowHandle,
         PhGetString(filename),
         PhGetString(parameters),
+        NULL,
         SW_SHOW,
-        0,
+        PH_SHELL_EXECUTE_DEFAULT,
         0,
         NULL
         );
@@ -121,7 +122,7 @@ BOOLEAN PvShellExecuteRestart(
     PhDereferenceObject(parameters);
     PhDereferenceObject(filename);
 
-    return result;
+    return NT_SUCCESS(status);
 }
 
 VOID PvLoadGeneralPage(
@@ -184,7 +185,7 @@ VOID PvGeneralPageSave(
     {
         if (PhShowMessage2(
             Context->WindowHandle,
-            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+            TD_YES_BUTTON | TD_NO_BUTTON,
             TD_INFORMATION_ICON,
             L"One or more options you have changed requires a restart of PE Viewer.",
             L"Do you want to restart PE Viewer now?"
@@ -260,12 +261,13 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
             PvLoadGeneralPage(context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            NOTHING;
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_DPICHANGED:
@@ -291,7 +293,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
                 {
                     if (PhShowMessage2(
                         hwndDlg,
-                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
                         TD_WARNING_ICON,
                         L"Do you want to reset all settings and restart PE Viewer?",
                         L""
@@ -312,7 +314,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
                 {
                     if (PhShowMessage2(
                         hwndDlg,
-                        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                        TD_YES_BUTTON | TD_NO_BUTTON,
                         TD_INFORMATION_ICON,
                         L"Do you want to clean up unused settings?",
                         L""
@@ -344,7 +346,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
                     lvHitInfo.pt = itemActivate->ptAction;
 
-                    if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != -1)
+                    if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != INT_ERROR)
                     {
                         // Ignore click notifications for the listview checkbox region.
                         if (!(lvHitInfo.flags & LVHT_ONITEMSTATEICON))
@@ -381,10 +383,11 @@ VOID PvShowOptionsWindow(
     _In_ HWND ParentWindow
     )
 {
-    DialogBox(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_OPTIONS),
         ParentWindow,
-        PvOptionsWndProc
+        PvOptionsWndProc,
+        NULL
         );
 }

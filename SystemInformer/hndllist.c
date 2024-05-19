@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2013
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -49,9 +49,9 @@ LONG PhpHandleTreeNewPostSortFunction(
 BOOLEAN NTAPI PhpHandleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 VOID PhInitializeHandleList(
@@ -447,16 +447,13 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI PhpHandleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPH_HANDLE_LIST_CONTEXT context = Context;
     PPH_HANDLE_NODE node;
-
-    if (!context)
-        return FALSE;
 
     if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
@@ -466,9 +463,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
 
             if (!getChildren->Node)
             {
@@ -485,6 +479,8 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     SORT_FUNCTION(FileShareAccess)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PHHNTLC_MAXIMUM, "SortFunctions must equal maximum.");
 
                 if (!PhCmForwardSort(
                     (PPH_TREENEW_NODE *)context->NodeList->Items,
@@ -518,9 +514,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
-            if (!isLeaf)
-                break;
-
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
@@ -528,9 +521,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_HANDLE_ITEM handleItem;
-
-            if (!getCellText)
-                break;
 
             node = (PPH_HANDLE_NODE)getCellText->Node;
             handleItem = node->HandleItem;
@@ -544,16 +534,11 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(handleItem->BestObjectName);
                 break;
             case PHHNTLC_HANDLE:
-                PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
                 PhInitializeStringRefLongHint(&getCellText->Text, handleItem->HandleString);
                 break;
             case PHHNTLC_OBJECTADDRESS:
-                {
-                    if (handleItem->Object)
-                        PhPrintPointer(node->ObjectString, handleItem->Object);
-
-                    PhInitializeStringRefLongHint(&getCellText->Text, node->ObjectString);
-                }
+                if (handleItem->Object)
+                    PhInitializeStringRefLongHint(&getCellText->Text, handleItem->ObjectString);
                 break;
             case PHHNTLC_ATTRIBUTES:
                 switch (handleItem->Attributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
@@ -570,7 +555,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 }
                 break;
             case PHHNTLC_GRANTEDACCESS:
-                PhPrintPointer(handleItem->GrantedAccessString, UlongToPtr(handleItem->GrantedAccess));
                 PhInitializeStringRefLongHint(&getCellText->Text, handleItem->GrantedAccessString);
                 break;
             case PHHNTLC_GRANTEDACCESSSYMBOLIC:
@@ -624,9 +608,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             PPH_HANDLE_ITEM handleItem;
 
-            if (!getNodeColor)
-                break;
-
             node = (PPH_HANDLE_NODE)getNodeColor->Node;
             handleItem = node->HandleItem;
 
@@ -650,9 +631,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {

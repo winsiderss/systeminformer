@@ -5,23 +5,249 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
+#include <informer.h>
 #include <comms.h>
 #include <kphmsgdyn.h>
 
 #include <trace.h>
 
+typedef union _KPH_OB_OPTIONS
+{
+    UCHAR Flags;
+    struct
+    {
+        UCHAR PreEnabled : 1;
+        UCHAR PostEnabled : 1;
+        UCHAR EnableStackTraces : 1;
+        UCHAR Spare : 5;
+    };
+} KPH_OB_OPTIONS, *PKPH_OB_OPTIONS;
+
+typedef struct _KPH_OB_CALL_CONTEXT
+{
+    ULONG64 PreSequence;
+    LARGE_INTEGER PreTimeStamp;
+    KPH_OB_OPTIONS Options;
+    ACCESS_MASK DesiredAccess;
+    ACCESS_MASK OriginalDesiredAccess;
+    HANDLE SourceProcessId;
+    HANDLE TargetProcessId;
+} KPH_OB_CALL_CONTEXT, *PKPH_OB_CALL_CONTEXT;
+
+KPH_PROTECTED_DATA_SECTION_PUSH();
+static PVOID KphpObRegistrationHandle = NULL;
+KPH_PROTECTED_DATA_SECTION_POP();
+static PAGED_LOOKASIDE_LIST KphpObCallContextLookaside = { 0 };
+
 PAGED_FILE();
 
-static PVOID KphpObRegistrationHandle = NULL;
+static ULONG64 KphpObSequence = 0;
 
 /**
- * \brief Populates object name in a message for registered object callbacks.
+ * \brief Retrieves the object operation options.
+ *
+ * \param[in] Info Object manager pre-operation callback information.
+ *
+ * \return The object operation options.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+KPH_OB_OPTIONS KphpObGetOptions(
+    _In_ POB_PRE_OPERATION_INFORMATION Info
+    )
+{
+    KPH_OB_OPTIONS options;
+    PKPH_PROCESS_CONTEXT process;
+
+    PAGED_CODE_PASSIVE();
+
+    options.Flags = 0;
+
+    if (Info->KernelHandle)
+    {
+        process = KphGetSystemProcessContext();
+    }
+    else
+    {
+        process = KphGetCurrentProcessContext();
+    }
+
+#define KPH_OB_SETTING(name)                                                  \
+    if (KphInformerEnabled(HandlePre##name, process))                         \
+    {                                                                         \
+        options.PreEnabled = TRUE;                                            \
+    }                                                                         \
+    if (KphInformerEnabled(HandlePost##name, process))                        \
+    {                                                                         \
+        options.PostEnabled = TRUE;                                           \
+    }
+
+    if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
+    {
+        if (Info->ObjectType == *PsProcessType)
+        {
+            KPH_OB_SETTING(CreateProcess);
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            KPH_OB_SETTING(CreateThread);
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+
+            KPH_OB_SETTING(CreateDesktop);
+        }
+    }
+    else
+    {
+        if (Info->ObjectType == *PsProcessType)
+        {
+            KPH_OB_SETTING(DuplicateProcess);
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            KPH_OB_SETTING(DuplicateThread);
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+
+            KPH_OB_SETTING(DuplicateDesktop);
+        }
+    }
+
+    if (options.PreEnabled || options.PostEnabled)
+    {
+        options.EnableStackTraces = KphInformerEnabled(EnableStackTraces, process);
+    }
+
+    if (process)
+    {
+        KphDereferenceObject(process);
+    }
+
+    return options;
+}
+
+/**
+ * \brief Retrieves the message ID for the object pre-operation callback.
+ *
+ * \param[in] Info Object manager pre-operation callback information.
+ *
+ * \return The message ID for the callback.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+KPH_MESSAGE_ID KphpObPreGetMessageId(
+    _In_ POB_PRE_OPERATION_INFORMATION Info
+    )
+{
+    KPH_MESSAGE_ID messageId;
+
+    PAGED_CODE_PASSIVE();
+
+    if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
+    {
+        if (Info->ObjectType == *PsProcessType)
+        {
+            messageId = KphMsgHandlePreCreateProcess;
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            messageId = KphMsgHandlePreCreateThread;
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+
+            messageId = KphMsgHandlePreCreateDesktop;
+        }
+    }
+    else
+    {
+        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
+
+        if (Info->ObjectType == *PsProcessType)
+        {
+            messageId = KphMsgHandlePreDuplicateProcess;
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            messageId = KphMsgHandlePreDuplicateThread;
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+
+            messageId = KphMsgHandlePreDuplicateDesktop;
+        }
+    }
+
+    return messageId;
+}
+
+/**
+ * \brief Retrieves the message ID for the object post-operation callback.
+ *
+ * \param[in] Info Object manager post-operation callback information.
+ *
+ * \return The message ID for the callback.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+KPH_MESSAGE_ID KphpObPostGetMessageId(
+    _In_ POB_POST_OPERATION_INFORMATION Info
+    )
+{
+    KPH_MESSAGE_ID messageId;
+
+    PAGED_CODE_PASSIVE();
+
+    if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
+    {
+        if (Info->ObjectType == *PsProcessType)
+        {
+            messageId = KphMsgHandlePostCreateProcess;
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            messageId = KphMsgHandlePostCreateThread;
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+
+            messageId = KphMsgHandlePostCreateDesktop;
+        }
+    }
+    else
+    {
+        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
+
+        if (Info->ObjectType == *PsProcessType)
+        {
+            messageId = KphMsgHandlePostDuplicateProcess;
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            messageId = KphMsgHandlePostDuplicateThread;
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+
+            messageId = KphMsgHandlePostDuplicateDesktop;
+        }
+    }
+
+    return messageId;
+}
+
+/**
+ * \brief Copes the object name into a message for registered object callbacks.
  *
  * \details Used to populate the desktop name for desktop object callbacks.
  *
@@ -29,46 +255,45 @@ static PVOID KphpObRegistrationHandle = NULL;
  * \param[in] Object The object for which the name is populated in the message.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpPopulateObjectNameInMessage(
+VOID KphpObCopyObjectName(
     _Inout_ PKPH_MESSAGE Message,
     _In_ PVOID Object
     )
 {
     NTSTATUS status;
-    BYTE stackBuffer[MAX_PATH + sizeof(OBJECT_NAME_INFORMATION)];
-    PBYTE buffer;
     POBJECT_NAME_INFORMATION info;
     ULONG length;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
-    buffer = NULL;
+    info = NULL;
 
-    info = (POBJECT_NAME_INFORMATION)stackBuffer;
-    length = ARRAYSIZE(stackBuffer);
-
-    status = ObQueryNameString(Object, info, length, &length);
-    if ((status == STATUS_INFO_LENGTH_MISMATCH) ||
-        (status == STATUS_BUFFER_TOO_SMALL))
+    status = ObQueryNameString(Object, NULL, 0, &length);
+    if ((status != STATUS_INFO_LENGTH_MISMATCH) &&
+        (status != STATUS_BUFFER_TOO_SMALL))
     {
-        buffer = KphAllocatePaged(length, KPH_TAG_INFORMER_OB_NAME);
-        if (!buffer)
-        {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          INFORMER,
-                          "Failed to allocate buffer for object name");
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "ObQueryNameString: %!STATUS!",
+                      status);
 
-            goto Exit;
-        }
-
-        info = (POBJECT_NAME_INFORMATION)buffer;
-
-        status = ObQueryNameString(Object, info, length, &length);
+        goto Exit;
     }
 
+    info = KphAllocatePaged(length, KPH_TAG_OB_OBJECT_NAME);
+    if (!info)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "Failed to allocate buffer for object name");
+
+        goto Exit;
+    }
+
+    status = ObQueryNameString(Object, info, length, &length);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ObQueryNameString failed: %!STATUS!",
                       status);
@@ -81,7 +306,7 @@ VOID KphpPopulateObjectNameInMessage(
                                        &info->Name);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "KphMsgDynAddUnicodeString failed: %!STATUS!",
                       status);
@@ -89,751 +314,375 @@ VOID KphpPopulateObjectNameInMessage(
 
 Exit:
 
-    if (buffer)
+    if (info)
     {
-        KphFree(buffer, KPH_TAG_INFORMER_OB_NAME);
+        KphFree(info, KPH_TAG_OB_OBJECT_NAME);
     }
 }
 
 /**
- * \brief Object manager pre-operation process handle create callback.
+ * \brief Fills the object pre-operation callback message.
  *
- * \param[in] Context Not used.
- * \param[in,out] Info The object pre-operation information.
- *
- * \return OB_PREOP_SUCCESS
+ * \param[in,out] Message The message to populate.
+ * \param[in] Info Object manager pre-operation callback information.
  */
-_Function_class_(POB_PRE_OPERATION_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleCreate(
-    _In_ PVOID Context,
-    _Inout_ POB_PRE_OPERATION_INFORMATION Info
+VOID KphpObPreFillMessage(
+    _Inout_ PKPH_MESSAGE Message,
+    _In_ POB_PRE_OPERATION_INFORMATION Info
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
+    Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
+    Message->Kernel.Handle.ContextProcessStartKey = KphGetCurrentProcessStartKey();
+    Message->Kernel.Handle.Flags = Info->Flags;
+    Message->Kernel.Handle.Object = Info->Object;
+
+    if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
+    {
+        POB_PRE_CREATE_HANDLE_INFORMATION params;
+
+        params = &Info->Parameters->CreateHandleInformation;
+
+        Message->Kernel.Handle.Pre.DesiredAccess = params->DesiredAccess;
+        Message->Kernel.Handle.Pre.OriginalDesiredAccess = params->OriginalDesiredAccess;
+
+        if (Info->ObjectType == *PsProcessType)
+        {
+            Message->Kernel.Handle.Pre.Create.Process.ProcessId =
+                PsGetProcessId(Info->Object);
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            Message->Kernel.Handle.Pre.Create.Thread.ClientId.UniqueProcess =
+                PsGetProcessId(PsGetThreadProcess(Info->Object));
+
+            Message->Kernel.Handle.Pre.Create.Thread.ClientId.UniqueThread =
+                PsGetThreadId(Info->Object);
+
+            Message->Kernel.Handle.Pre.Create.Thread.SubProcessTag =
+                KphGetThreadSubProcessTag(Info->Object);
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+            KphpObCopyObjectName(Message, Info->Object);
+        }
+    }
+    else
+    {
+        POB_PRE_DUPLICATE_HANDLE_INFORMATION params;
+
+        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
+
+        params = &Info->Parameters->DuplicateHandleInformation;
+
+        Message->Kernel.Handle.Duplicate = TRUE;
+
+        Message->Kernel.Handle.Pre.DesiredAccess = params->DesiredAccess;
+        Message->Kernel.Handle.Pre.OriginalDesiredAccess = params->OriginalDesiredAccess;
+
+        Message->Kernel.Handle.Pre.Duplicate.SourceProcessId = PsGetProcessId(params->SourceProcess);
+        Message->Kernel.Handle.Pre.Duplicate.TargetProcessId = PsGetProcessId(params->TargetProcess);
+
+        if (Info->ObjectType == *PsProcessType)
+        {
+            Message->Kernel.Handle.Pre.Duplicate.Process.ProcessId =
+                PsGetProcessId(Info->Object);
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            Message->Kernel.Handle.Pre.Duplicate.Thread.ClientId.UniqueProcess =
+                PsGetProcessId(PsGetThreadProcess(Info->Object));
+
+            Message->Kernel.Handle.Pre.Duplicate.Thread.ClientId.UniqueThread =
+                PsGetThreadId(Info->Object);
+
+            Message->Kernel.Handle.Pre.Duplicate.Thread.SubProcessTag =
+                KphGetThreadSubProcessTag(Info->Object);
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+            KphpObCopyObjectName(Message, Info->Object);
+        }
+    }
+}
+
+/**
+ * \brief Fills the object post-operation callback message.
+ *
+ * \param[in,out] Message The message to populate.
+ * \param[in] Info Object manager post-operation callback information.
+ * \param[in] Context The object call context.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpObPostFillMessage(
+    _Inout_ PKPH_MESSAGE Message,
+    _In_ POB_POST_OPERATION_INFORMATION Info,
+    _In_ PKPH_OB_CALL_CONTEXT Context
+    )
+{
+    PAGED_CODE_PASSIVE();
+
+    Message->Kernel.Handle.ContextClientId.UniqueProcess = PsGetCurrentProcessId();
+    Message->Kernel.Handle.ContextClientId.UniqueThread = PsGetCurrentThreadId();
+    Message->Kernel.Handle.ContextProcessStartKey = KphGetCurrentProcessStartKey();
+    Message->Kernel.Handle.ContextThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
+    Message->Kernel.Handle.Flags = Info->Flags;
+    Message->Kernel.Handle.Object = Info->Object;
+
+    Message->Kernel.Handle.PostOperation = TRUE;
+    Message->Kernel.Handle.Post.PreSequence = Context->PreSequence;
+    Message->Kernel.Handle.Post.PreTimeStamp = Context->PreTimeStamp;
+    Message->Kernel.Handle.Post.ReturnStatus = Info->ReturnStatus;
+    Message->Kernel.Handle.Post.DesiredAccess = Context->DesiredAccess;
+    Message->Kernel.Handle.Post.OriginalDesiredAccess = Context->OriginalDesiredAccess;
+
+    if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
+    {
+        POB_POST_CREATE_HANDLE_INFORMATION params;
+
+        params = &Info->Parameters->CreateHandleInformation;
+
+        Message->Kernel.Handle.Post.GrantedAccess = params->GrantedAccess;
+
+        if (Info->ObjectType == *PsProcessType)
+        {
+            Message->Kernel.Handle.Post.Create.Process.ProcessId =
+                PsGetProcessId(Info->Object);
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            Message->Kernel.Handle.Post.Create.Thread.ClientId.UniqueProcess =
+                PsGetProcessId(PsGetThreadProcess(Info->Object));
+
+            Message->Kernel.Handle.Post.Create.Thread.ClientId.UniqueThread =
+                PsGetThreadId(Info->Object);
+
+            Message->Kernel.Handle.Post.Create.Thread.SubProcessTag =
+                KphGetThreadSubProcessTag(Info->Object);
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+            KphpObCopyObjectName(Message, Info->Object);
+        }
+    }
+    else
+    {
+        POB_POST_DUPLICATE_HANDLE_INFORMATION params;
+
+        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
+
+        params = &Info->Parameters->DuplicateHandleInformation;
+
+        Message->Kernel.Handle.Duplicate = TRUE;
+
+        Message->Kernel.Handle.Post.GrantedAccess = params->GrantedAccess;
+
+        Message->Kernel.Handle.Post.Duplicate.SourceProcessId = Context->SourceProcessId;
+        Message->Kernel.Handle.Post.Duplicate.TargetProcessId = Context->TargetProcessId;
+
+        if (Info->ObjectType == *PsProcessType)
+        {
+            Message->Kernel.Handle.Post.Duplicate.Process.ProcessId =
+                PsGetProcessId(Info->Object);
+        }
+        else if (Info->ObjectType == *PsThreadType)
+        {
+            Message->Kernel.Handle.Post.Duplicate.Thread.ClientId.UniqueProcess =
+                PsGetProcessId(PsGetThreadProcess(Info->Object));
+
+            Message->Kernel.Handle.Post.Duplicate.Thread.ClientId.UniqueThread =
+                PsGetThreadId(Info->Object);
+
+            Message->Kernel.Handle.Post.Duplicate.Thread.SubProcessTag =
+                KphGetThreadSubProcessTag(Info->Object);
+        }
+        else
+        {
+            NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
+            KphpObCopyObjectName(Message, Info->Object);
+        }
+    }
+}
+
+/**
+ * \brief Sends an object post-operation callback message.
+ *
+ * \param[in] Info Object manager post-operation callback information.
+ * \param[in] Sequence The sequence number for the message.
+ * \param[in] Context The object call context.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpObPostOpSend(
+    _In_ POB_POST_OPERATION_INFORMATION Info,
+    _In_ ULONG64 Sequence,
+    _In_ PKPH_OB_CALL_CONTEXT Context
     )
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *PsProcessType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
-
-    KphApplyObProtections(Info);
-
-    if (!KphInformerSettings.ProcessHandlePreCreate)
-    {
-        return OB_PREOP_SUCCESS;
-    }
+    PAGED_CODE_PASSIVE();
 
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
-        return OB_PREOP_SUCCESS;
+        return;
     }
 
-    KphMsgInit(msg, KphMsgProcessHandlePreCreate);
+    KphMsgInit(msg, KphpObPostGetMessageId(Info));
 
-    msg->Kernel.ProcessHandlePreCreate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.ProcessHandlePreCreate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.ProcessHandlePreCreate.Flags = Info->Flags;
-    msg->Kernel.ProcessHandlePreCreate.DesiredAccess =
-        Info->Parameters->CreateHandleInformation.DesiredAccess;
-    msg->Kernel.ProcessHandlePreCreate.OriginalDesiredAccess =
-        Info->Parameters->CreateHandleInformation.OriginalDesiredAccess;
-    msg->Kernel.ProcessHandlePreCreate.ObjectProcessId =
-        PsGetProcessId(Info->Object);
+    msg->Kernel.Handle.Sequence = Sequence;
 
-    if (KphInformerSettings.EnableStackTraces)
+    KphpObPostFillMessage(msg, Info, Context);
+
+    if (Context->Options.EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
-
-    return OB_PREOP_SUCCESS;
 }
 
 /**
- * \brief Object manager post-operation process handle create callback.
+ * \brief Object manager post-operation callback.
  *
  * \param[in] Context Not used.
  * \param[in] Info The object post-operation information.
  */
 _Function_class_(POB_POST_OPERATION_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpObPostProcessHandleCreate(
+VOID KphpObPostOp(
     _In_ PVOID Context,
     _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
-    PKPH_MESSAGE msg;
+    PKPH_OB_CALL_CONTEXT context;
+    ULONG64 sequence;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
-    NT_ASSERT(Info->ObjectType == *PsProcessType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
+    sequence = InterlockedIncrementU64(&KphpObSequence);
 
-    if (!KphInformerSettings.ProcessHandlePostCreate)
+    context = Info->CallContext;
+    if (context)
     {
-        return;
+        KphpObPostOpSend(Info, sequence, context);
+
+        KphFreeToPagedLookaside(&KphpObCallContextLookaside, context);
     }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return;
-    }
-
-    KphMsgInit(msg, KphMsgProcessHandlePostCreate);
-
-    msg->Kernel.ProcessHandlePostCreate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.ProcessHandlePostCreate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.ProcessHandlePostCreate.Flags = Info->Flags;
-    msg->Kernel.ProcessHandlePostCreate.ReturnStatus = Info->ReturnStatus;
-    msg->Kernel.ProcessHandlePostCreate.GrantedAccess =
-        Info->Parameters->CreateHandleInformation.GrantedAccess;
-    msg->Kernel.ProcessHandlePostCreate.ObjectProcessId =
-        PsGetProcessId(Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
 }
 
 /**
- * \brief Object manager pre-operation process handle duplicate callback.
+ * \brief Sets the object callback call context for the post-operation to use.
  *
- * \param[in] Context Not used.
- * \param[in,out] Info The object pre-operation information.
- *
- * \return OB_PREOP_SUCCESS
+ * \param[in] Info Object manager pre-operation callback information.
+ * \param[in] Options Object operation options to use.
+ * \param[in] Sequence The pre-operation sequence number.
+ * \param[in] TimeStamp The pre-operation time stamp.
  */
-_Function_class_(POB_PRE_OPERATION_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleDuplicate(
-    _In_ PVOID Context,
-    _Inout_ POB_PRE_OPERATION_INFORMATION Info
+VOID KphpObPreOpSetCallContext(
+    _In_ POB_PRE_OPERATION_INFORMATION Info,
+    _In_ PKPH_OB_OPTIONS Options,
+    _In_ ULONG64 Sequence,
+    _In_ PLARGE_INTEGER TimeStamp
+    )
+{
+    PKPH_OB_CALL_CONTEXT context;
+
+    PAGED_CODE_PASSIVE();
+
+    context = KphAllocateFromPagedLookaside(&KphpObCallContextLookaside);
+    if (!context)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      INFORMER,
+                      "Failed to allocate call context");
+
+        return;
+    }
+
+    context->PreSequence = Sequence;
+    context->PreTimeStamp = *TimeStamp;
+    context->Options.Flags = Options->Flags;
+
+    if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
+    {
+        POB_PRE_CREATE_HANDLE_INFORMATION params;
+
+        params = &Info->Parameters->CreateHandleInformation;
+
+        context->DesiredAccess = params->DesiredAccess;
+        context->OriginalDesiredAccess = params->OriginalDesiredAccess;
+    }
+    else
+    {
+        POB_PRE_DUPLICATE_HANDLE_INFORMATION params;
+
+        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
+
+        params = &Info->Parameters->DuplicateHandleInformation;
+
+        context->DesiredAccess = params->DesiredAccess;
+        context->OriginalDesiredAccess = params->OriginalDesiredAccess;
+        context->SourceProcessId = PsGetProcessId(params->SourceProcess);
+        context->TargetProcessId = PsGetProcessId(params->TargetProcess);
+    }
+
+    Info->CallContext = context;
+}
+
+/**
+ * \brief Sends an object pre-operation callback message.
+ *
+ * \param[in] Info Object manager pre-operation callback information.
+ * \param[in] Options Object operation options to use.
+ * \param[in] Sequence The sequence number for the message.
+ * \param[out] TimeStamp Receives the time stamp of the pre-operation message.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpObPreOpSend(
+    _In_ POB_PRE_OPERATION_INFORMATION Info,
+    _In_ PKPH_OB_OPTIONS Options,
+    _In_ ULONG64 Sequence,
+    _Out_ PLARGE_INTEGER TimeStamp
     )
 {
     PKPH_MESSAGE msg;
 
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *PsProcessType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-    KphApplyObProtections(Info);
-
-    if (!KphInformerSettings.ProcessHandlePreDuplicate)
-    {
-        return OB_PREOP_SUCCESS;
-    }
+    PAGED_CODE_PASSIVE();
 
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
 
-        return OB_PREOP_SUCCESS;
-    }
-
-    KphMsgInit(msg, KphMsgProcessHandlePreDuplicate);
-
-    msg->Kernel.ProcessHandlePreDuplicate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.ProcessHandlePreDuplicate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.ProcessHandlePreDuplicate.Flags = Info->Flags;
-    msg->Kernel.ProcessHandlePreDuplicate.DesiredAccess =
-        Info->Parameters->DuplicateHandleInformation.DesiredAccess;
-    msg->Kernel.ProcessHandlePreDuplicate.OriginalDesiredAccess =
-        Info->Parameters->DuplicateHandleInformation.OriginalDesiredAccess;
-    msg->Kernel.ProcessHandlePreDuplicate.SourceProcessId =
-        PsGetProcessId(Info->Parameters->DuplicateHandleInformation.SourceProcess);
-    msg->Kernel.ProcessHandlePreDuplicate.TargetProcessId =
-        PsGetProcessId(Info->Parameters->DuplicateHandleInformation.TargetProcess);
-    msg->Kernel.ProcessHandlePreDuplicate.ObjectProcessId =
-        PsGetProcessId(Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-
-    return OB_PREOP_SUCCESS;
-}
-
-/**
- * \brief Object manager post-operation process handle duplicate callback.
- *
- * \param[in] Context Not used.
- * \param[in] Info The object post-operation information.
- */
-_Function_class_(POB_POST_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpObPostProcessHandleDuplicate(
-    _In_ PVOID Context,
-    _In_ POB_POST_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *PsProcessType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-    if (!KphInformerSettings.ProcessHandlePostDuplicate)
-    {
+        KeQuerySystemTime(TimeStamp);
         return;
     }
 
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
+    KphMsgInit(msg, KphpObPreGetMessageId(Info));
 
-        return;
-    }
+    *TimeStamp = msg->Header.TimeStamp;
 
-    KphMsgInit(msg, KphMsgProcessHandlePostDuplicate);
+    msg->Kernel.Handle.Sequence = Sequence;
 
-    msg->Kernel.ProcessHandlePostDuplicate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.ProcessHandlePostDuplicate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.ProcessHandlePostDuplicate.Flags = Info->Flags;
-    msg->Kernel.ProcessHandlePostDuplicate.ReturnStatus = Info->ReturnStatus;
-    msg->Kernel.ProcessHandlePostDuplicate.GrantedAccess =
-        Info->Parameters->CreateHandleInformation.GrantedAccess;
-    msg->Kernel.ProcessHandlePostDuplicate.ObjectProcessId =
-        PsGetProcessId(Info->Object);
+    KphpObPreFillMessage(msg, Info);
 
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-}
-
-/**
- * \brief Object manager pre-operation thread handle create callback.
- *
- * \param[in] Context Not used.
- * \param[in,out] Info The object pre-operation information.
- *
- * \return OB_PREOP_SUCCESS
- */
-_Function_class_(POB_PRE_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleCreate(
-    _In_ PVOID Context,
-    _Inout_ POB_PRE_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    KphApplyObProtections(Info);
-
-    NT_ASSERT(Info->ObjectType == *PsThreadType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
-
-    if (!KphInformerSettings.ThreadHandlePreCreate)
-    {
-        return OB_PREOP_SUCCESS;
-    }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return OB_PREOP_SUCCESS;
-    }
-
-    KphMsgInit(msg, KphMsgThreadHandlePreCreate);
-
-    msg->Kernel.ThreadHandlePreCreate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.ThreadHandlePreCreate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.ThreadHandlePreCreate.Flags = Info->Flags;
-    msg->Kernel.ThreadHandlePreCreate.DesiredAccess =
-        Info->Parameters->CreateHandleInformation.DesiredAccess;
-    msg->Kernel.ThreadHandlePreCreate.OriginalDesiredAccess =
-        Info->Parameters->CreateHandleInformation.OriginalDesiredAccess;
-    msg->Kernel.ThreadHandlePreCreate.ObjectThreadId =
-        PsGetThreadId(Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-
-    return OB_PREOP_SUCCESS;
-}
-
-/**
- * \brief Object manager post-operation thread handle create callback.
- *
- * \param[in] Context Not used.
- * \param[in] Info The object post-operation information.
- */
-_Function_class_(POB_POST_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpObPostThreadHandleCreate(
-    _In_ PVOID Context,
-    _In_ POB_POST_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *PsThreadType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
-
-    if (!KphInformerSettings.ThreadHandlePostCreate)
-    {
-        return;
-    }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return;
-    }
-
-    KphMsgInit(msg, KphMsgThreadHandlePostCreate);
-
-    msg->Kernel.ThreadHandlePostCreate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.ThreadHandlePostCreate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.ThreadHandlePostCreate.Flags = Info->Flags;
-    msg->Kernel.ThreadHandlePostCreate.ReturnStatus = Info->ReturnStatus;
-    msg->Kernel.ThreadHandlePostCreate.GrantedAccess =
-        Info->Parameters->CreateHandleInformation.GrantedAccess;
-    msg->Kernel.ThreadHandlePostCreate.ObjectThreadId =
-        PsGetThreadId(Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-}
-
-/**
- * \brief Object manager pre-operation thread handle duplicate callback.
- *
- * \param[in] Context Not used.
- * \param[in,out] Info The object pre-operation information.
- *
- * \return OB_PREOP_SUCCESS
- */
-_Function_class_(POB_PRE_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleDuplicate(
-    _In_ PVOID Context,
-    _Inout_ POB_PRE_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    KphApplyObProtections(Info);
-
-    NT_ASSERT(Info->ObjectType == *PsThreadType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-    if (!KphInformerSettings.ThreadHandlePreDuplicate)
-    {
-        return OB_PREOP_SUCCESS;
-    }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return OB_PREOP_SUCCESS;
-    }
-
-    KphMsgInit(msg, KphMsgThreadHandlePreDuplicate);
-
-    msg->Kernel.ThreadHandlePreDuplicate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.ThreadHandlePreDuplicate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.ThreadHandlePreDuplicate.Flags = Info->Flags;
-    msg->Kernel.ThreadHandlePreDuplicate.DesiredAccess =
-        Info->Parameters->DuplicateHandleInformation.DesiredAccess;
-    msg->Kernel.ThreadHandlePreDuplicate.OriginalDesiredAccess =
-        Info->Parameters->DuplicateHandleInformation.OriginalDesiredAccess;
-    msg->Kernel.ThreadHandlePreDuplicate.SourceProcessId =
-        PsGetProcessId(Info->Parameters->DuplicateHandleInformation.SourceProcess);
-    msg->Kernel.ThreadHandlePreDuplicate.TargetProcessId =
-        PsGetProcessId(Info->Parameters->DuplicateHandleInformation.TargetProcess);
-    msg->Kernel.ThreadHandlePreDuplicate.ObjectThreadId =
-        PsGetThreadId(Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-
-    return OB_PREOP_SUCCESS;
-}
-
-/**
- * \brief Object manager post-operation thread handle duplicate callback.
- *
- * \param[in] Context Not used.
- * \param[in] Info The object post-operation information.
- */
-_Function_class_(POB_POST_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpObPostThreadHandleDuplicate(
-    _In_ PVOID Context,
-    _In_ POB_POST_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *PsThreadType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-    if (!KphInformerSettings.ThreadHandlePostDuplicate)
-    {
-        return;
-    }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return;
-    }
-
-    KphMsgInit(msg, KphMsgThreadHandlePostDuplicate);
-
-    msg->Kernel.ThreadHandlePostDuplicate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.ThreadHandlePostDuplicate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.ThreadHandlePostDuplicate.Flags = Info->Flags;
-    msg->Kernel.ThreadHandlePostDuplicate.ReturnStatus = Info->ReturnStatus;
-    msg->Kernel.ThreadHandlePostDuplicate.GrantedAccess =
-        Info->Parameters->CreateHandleInformation.GrantedAccess;
-    msg->Kernel.ThreadHandlePostDuplicate.ObjectThreadId =
-        PsGetThreadId(Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-}
-
-/**
- * \brief Object manager pre-operation desktop handle create callback.
- *
- * \param[in] Context Not used.
- * \param[in,out] Info The object pre-operation information.
- *
- * \return OB_PREOP_SUCCESS
- */
-_Function_class_(POB_PRE_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleCreate(
-    _In_ PVOID Context,
-    _Inout_ POB_PRE_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
-
-    if (!KphInformerSettings.DesktopHandlePreCreate)
-    {
-        return OB_PREOP_SUCCESS;
-    }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return OB_PREOP_SUCCESS;
-    }
-
-    KphMsgInit(msg, KphMsgDesktopHandlePreCreate);
-
-    msg->Kernel.DesktopHandlePreCreate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.DesktopHandlePreCreate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.DesktopHandlePreCreate.Flags = Info->Flags;
-    msg->Kernel.DesktopHandlePreCreate.DesiredAccess =
-        Info->Parameters->CreateHandleInformation.DesiredAccess;
-    msg->Kernel.DesktopHandlePreCreate.OriginalDesiredAccess =
-        Info->Parameters->CreateHandleInformation.OriginalDesiredAccess;
-
-    KphpPopulateObjectNameInMessage(msg, Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-
-    return OB_PREOP_SUCCESS;
-}
-
-/**
- * \brief Object manager post-operation desktop handle create callback.
- *
- * \param[in] Context Not used.
- * \param[in] Info The object post-operation information.
- */
-_Function_class_(POB_POST_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpObPostDesktopHandleCreate(
-    _In_ PVOID Context,
-    _In_ POB_POST_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_CREATE);
-
-    if (!KphInformerSettings.DesktopHandlePostCreate)
-    {
-        return;
-    }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return;
-    }
-
-    KphMsgInit(msg, KphMsgDesktopHandlePostCreate);
-
-    msg->Kernel.DesktopHandlePostCreate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.DesktopHandlePostCreate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.DesktopHandlePostCreate.Flags = Info->Flags;
-    msg->Kernel.DesktopHandlePostCreate.ReturnStatus = Info->ReturnStatus;
-    msg->Kernel.DesktopHandlePostCreate.GrantedAccess =
-        Info->Parameters->CreateHandleInformation.GrantedAccess;
-
-    KphpPopulateObjectNameInMessage(msg, Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-}
-
-/**
- * \brief Object manager pre-operation desktop handle duplicate callback.
- *
- * \param[in] Context Not used.
- * \param[in,out] Info The object pre-operation information.
- *
- * \return OB_PREOP_SUCCESS
- */
-_Function_class_(POB_PRE_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleDuplicate(
-    _In_ PVOID Context,
-    _Inout_ POB_PRE_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-    if (!KphInformerSettings.DesktopHandlePreDuplicate)
-    {
-        return OB_PREOP_SUCCESS;
-    }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return OB_PREOP_SUCCESS;
-    }
-
-    KphMsgInit(msg, KphMsgDesktopHandlePreDuplicate);
-
-    msg->Kernel.DesktopHandlePreDuplicate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.DesktopHandlePreDuplicate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.DesktopHandlePreDuplicate.Flags = Info->Flags;
-    msg->Kernel.DesktopHandlePreDuplicate.DesiredAccess =
-        Info->Parameters->DuplicateHandleInformation.DesiredAccess;
-    msg->Kernel.DesktopHandlePreDuplicate.OriginalDesiredAccess =
-        Info->Parameters->DuplicateHandleInformation.OriginalDesiredAccess;
-    msg->Kernel.DesktopHandlePreDuplicate.SourceProcessId =
-        PsGetProcessId(Info->Parameters->DuplicateHandleInformation.SourceProcess);
-    msg->Kernel.DesktopHandlePreDuplicate.TargetProcessId =
-        PsGetProcessId(Info->Parameters->DuplicateHandleInformation.TargetProcess);
-
-    KphpPopulateObjectNameInMessage(msg, Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
-    {
-        KphCaptureStackInMessage(msg);
-    }
-
-    KphCommsSendMessageAsync(msg);
-
-    return OB_PREOP_SUCCESS;
-}
-
-/**
- * \brief Object manager post-operation desktop handle duplicate callback.
- *
- * \param[in] Context Not used.
- * \param[in] Info The object post-operation information.
- */
-_Function_class_(POB_POST_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpObPostDesktopHandleDuplicate(
-    _In_ PVOID Context,
-    _In_ POB_POST_OPERATION_INFORMATION Info
-    )
-{
-    PKPH_MESSAGE msg;
-
-    PAGED_PASSIVE();
-
-    UNREFERENCED_PARAMETER(Context);
-
-    NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-    if (!KphInformerSettings.DesktopHandlePostDuplicate)
-    {
-        return;
-    }
-
-    msg = KphAllocateMessage();
-    if (!msg)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      INFORMER,
-                      "Failed to allocate message");
-
-        return;
-    }
-
-    KphMsgInit(msg, KphMsgDesktopHandlePostDuplicate);
-
-    msg->Kernel.DesktopHandlePostDuplicate.ContextClientId.UniqueProcess =
-        PsGetCurrentProcessId();
-    msg->Kernel.DesktopHandlePostDuplicate.ContextClientId.UniqueThread =
-        PsGetCurrentThreadId();
-    msg->Kernel.DesktopHandlePostDuplicate.Flags = Info->Flags;
-    msg->Kernel.DesktopHandlePostDuplicate.ReturnStatus = Info->ReturnStatus;
-    msg->Kernel.DesktopHandlePostDuplicate.GrantedAccess =
-        Info->Parameters->CreateHandleInformation.GrantedAccess;
-
-    KphpPopulateObjectNameInMessage(msg, Info->Object);
-
-    if (KphInformerSettings.EnableStackTraces)
+    if (Options->EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);
     }
@@ -851,105 +700,44 @@ VOID KphpObPostDesktopHandleDuplicate(
  */
 _Function_class_(POB_PRE_OPERATION_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
-OB_PREOP_CALLBACK_STATUS KphpObPreCallback(
+OB_PREOP_CALLBACK_STATUS KphpObPreOp(
     _In_ PVOID Context,
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
-    PAGED_PASSIVE();
+    KPH_OB_OPTIONS options;
+    ULONG64 sequence;
+    LARGE_INTEGER timeStamp;
 
-    if (Info->ObjectType == *PsProcessType)
-    {
-        if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
-        {
-            return KphpObPreProcessHandleCreate(Context, Info);
-        }
-
-        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-        return KphpObPreProcessHandleDuplicate(Context, Info);
-    }
-
-    if (Info->ObjectType == *PsThreadType)
-    {
-        if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
-        {
-            return KphpObPreThreadHandleCreate(Context, Info);
-        }
-
-        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-        return KphpObPreThreadHandleDuplicate(Context, Info);
-    }
-
-    NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
-
-    if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
-    {
-        return KphpObPreDesktopHandleCreate(Context, Info);
-    }
-
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-    return KphpObPreDesktopHandleDuplicate(Context, Info);
-}
-
-/**
- * \brief Object manager post-operation callback.
- *
- * \param[in] Context Not used.
- * \param[in] Info The object post-operation information.
- */
-_Function_class_(POB_POST_OPERATION_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpObPostCallback(
-    _In_ PVOID Context,
-    _In_ POB_POST_OPERATION_INFORMATION Info
-    )
-{
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(Context);
 
-    if (Info->ObjectType == *PsProcessType)
+    KphApplyObProtections(Info);
+
+    sequence = InterlockedIncrementU64(&KphpObSequence);
+
+    options = KphpObGetOptions(Info);
+
+    if (options.PreEnabled)
     {
-        if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
-        {
-            KphpObPostProcessHandleCreate(Context, Info);
-            return;
-        }
-
-        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-        KphpObPostProcessHandleDuplicate(Context, Info);
-        return;
+        KphpObPreOpSend(Info, &options, sequence, &timeStamp);
+    }
+    else
+    {
+        //
+        // Pre operations aren't enabled, but we need the time stamp for the
+        // post operation to use.
+        //
+        KeQuerySystemTime(&timeStamp);
     }
 
-    if (Info->ObjectType == *PsThreadType)
+    if (options.PostEnabled)
     {
-        if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
-        {
-            KphpObPostThreadHandleCreate(Context, Info);
-            return;
-        }
-
-        NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-        KphpObPostThreadHandleDuplicate(Context, Info);
-        return;
+        KphpObPreOpSetCallContext(Info, &options, sequence, &timeStamp);
     }
 
-    NT_ASSERT(Info->ObjectType == *ExDesktopObjectType);
-
-    if (Info->Operation == OB_OPERATION_HANDLE_CREATE)
-    {
-        KphpObPostDesktopHandleCreate(Context, Info);
-        return;
-    }
-
-    NT_ASSERT(Info->Operation == OB_OPERATION_HANDLE_DUPLICATE);
-
-    KphpObPostDesktopHandleDuplicate(Context, Info);
+    return OB_PREOP_SUCCESS;
 }
 
 /**
@@ -966,53 +754,50 @@ NTSTATUS KphObjectInformerStart(
     NTSTATUS status;
     OB_CALLBACK_REGISTRATION callbackRegistration;
     OB_OPERATION_REGISTRATION operationRegistration[3];
-    USHORT operationCount;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(KphDynAltitude);
+    NT_ASSERT(KphAltitude);
 
     RtlZeroMemory(operationRegistration, sizeof(operationRegistration));
 
     operationRegistration[0].ObjectType = PsProcessType;
     operationRegistration[0].Operations = OB_OPERATION_HANDLE_CREATE | OB_OPERATION_HANDLE_DUPLICATE;
-    operationRegistration[0].PreOperation = KphpObPreCallback;
-    operationRegistration[0].PostOperation = KphpObPostCallback;
+    operationRegistration[0].PreOperation = KphpObPreOp;
+    operationRegistration[0].PostOperation = KphpObPostOp;
 
     operationRegistration[1].ObjectType = PsThreadType;
     operationRegistration[1].Operations = OB_OPERATION_HANDLE_CREATE | OB_OPERATION_HANDLE_DUPLICATE;
-    operationRegistration[1].PreOperation = KphpObPreCallback;
-    operationRegistration[1].PostOperation = KphpObPostCallback;
+    operationRegistration[1].PreOperation = KphpObPreOp;
+    operationRegistration[1].PostOperation = KphpObPostOp;
 
-    operationCount = 2;
-
-    if (KphOsVersion >= KphWin10)
-    {
-        operationRegistration[2].ObjectType = ExDesktopObjectType;
-        operationRegistration[2].Operations = OB_OPERATION_HANDLE_CREATE | OB_OPERATION_HANDLE_DUPLICATE;
-        operationRegistration[2].PreOperation = KphpObPreCallback;
-        operationRegistration[2].PostOperation = KphpObPostCallback;
-
-        operationCount++;
-    }
+    operationRegistration[2].ObjectType = ExDesktopObjectType;
+    operationRegistration[2].Operations = OB_OPERATION_HANDLE_CREATE | OB_OPERATION_HANDLE_DUPLICATE;
+    operationRegistration[2].PreOperation = KphpObPreOp;
+    operationRegistration[2].PostOperation = KphpObPostOp;
 
     callbackRegistration.Version = OB_FLT_REGISTRATION_VERSION;
-    callbackRegistration.OperationRegistrationCount = operationCount;
-    callbackRegistration.Altitude.Buffer = KphDynAltitude->Buffer;
-    callbackRegistration.Altitude.Length = KphDynAltitude->Length;
-    callbackRegistration.Altitude.MaximumLength = KphDynAltitude->MaximumLength;
+    callbackRegistration.OperationRegistrationCount = ARRAYSIZE(operationRegistration);
+    callbackRegistration.Altitude.Buffer = KphAltitude->Buffer;
+    callbackRegistration.Altitude.Length = KphAltitude->Length;
+    callbackRegistration.Altitude.MaximumLength = KphAltitude->MaximumLength;
     callbackRegistration.RegistrationContext = NULL;
     callbackRegistration.OperationRegistration = operationRegistration;
+
+    KphInitializePagedLookaside(&KphpObCallContextLookaside,
+                                sizeof(KPH_OB_CALL_CONTEXT),
+                                KPH_TAG_OB_CALL_CONTEXT);
 
     status = ObRegisterCallbacks(&callbackRegistration,
                                  &KphpObRegistrationHandle);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "ObRegisterCallbacks failed: %!STATUS!",
                       status);
 
+        KphDeletePagedLookaside(&KphpObCallContextLookaside);
         KphpObRegistrationHandle = NULL;
     }
 
@@ -1027,11 +812,11 @@ VOID KphObjectInformerStop(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphpObRegistrationHandle)
     {
         ObUnRegisterCallbacks(KphpObRegistrationHandle);
-        KphpObRegistrationHandle = NULL;
+        KphDeletePagedLookaside(&KphpObCallContextLookaside);
     }
 }

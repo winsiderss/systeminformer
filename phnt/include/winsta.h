@@ -7,6 +7,17 @@
 #ifndef _WINSTA_H
 #define _WINSTA_H
 
+// Specifies the current server.
+#define WINSTATION_CURRENT_SERVER         ((HANDLE)NULL)
+#define WINSTATION_CURRENT_SERVER_HANDLE  ((HANDLE)NULL)
+#define WINSTATION_CURRENT_SERVER_NAME    (NULL)
+
+// Specifies the current session (SessionId)
+#define WINSTATION_CURRENT_SESSION ((ULONG)-1)
+
+// Specifies any-session (SessionId)
+#define WINSTATION_ANY_SESSION ((ULONG)-2)
+
 // Access rights
 
 #define WINSTATION_QUERY 0x00000001 // WinStationQueryInformation
@@ -56,7 +67,6 @@
 #define CLIENTNAME_LENGTH 20
 #define CLIENTADDRESS_LENGTH 30
 #define IMEFILENAME_LENGTH 32
-#define DIRECTORY_LENGTH 256
 #define CLIENTLICENSE_LENGTH 32
 #define CLIENTMODEM_LENGTH 40
 #define CLIENT_PRODUCT_ID_LENGTH 32
@@ -128,11 +138,11 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationBeep,
     WinStationEncryptionOff,
     WinStationEncryptionPerm,
-    WinStationNtSecurity,
+    WinStationNtSecurity, // s; (open secure desktop ctrl+alt+del)
     WinStationUserToken, // WINSTATIONUSERTOKEN
     WinStationUnused1,
     WinStationVideoData, // WINSTATIONVIDEODATA
-    WinStationInitialProgram,
+    WinStationInitialProgram, // s; (set current process as initial program)
     WinStationCd, // CDCONFIG
     WinStationSystemTrace,
     WinStationVirtualData,
@@ -149,9 +159,9 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationLastReconnectType, // ULONG
     WinStationDisallowAutoReconnect, // BOOLEAN
     WinStationMprNotifyInfo,
-    WinStationExecSrvSystemPipe,
-    WinStationSmartCardAutoLogon,
-    WinStationIsAdminLoggedOn,
+    WinStationExecSrvSystemPipe, // WCHAR[48]
+    WinStationSmartCardAutoLogon, // BOOLEAN
+    WinStationIsAdminLoggedOn, // BOOLEAN
     WinStationReconnectedFromId, // ULONG
     WinStationEffectsPolicy, // ULONG
     WinStationType, // ULONG
@@ -816,52 +826,59 @@ typedef struct _TS_COUNTER
 #define SERVERNAME_CURRENT ((PWSTR)NULL)
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationFreeMemory(
     _In_ PVOID Buffer
     );
 
 // rev
+NTSYSAPI
 HANDLE
-WINAPI
+NTAPI
 WinStationOpenServerW(
     _In_opt_ PWSTR ServerName
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationCloseServer(
     _In_ HANDLE ServerHandle
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationServerPing(
     _In_opt_ HANDLE ServerHandle
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationGetTermSrvCountersValue(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG Count,
     _Inout_ PTS_COUNTER Counters // set counter IDs before calling
     );
 
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationShutdownSystem(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ShutdownFlags // WSD_*
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationWaitSystemEvent(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG EventMask, // WEVENT_*
@@ -869,8 +886,9 @@ WinStationWaitSystemEvent(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle,
@@ -878,8 +896,9 @@ WinStationRegisterConsoleNotification(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationUnRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle
@@ -888,16 +907,18 @@ WinStationUnRegisterConsoleNotification(
 // Sessions
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationEnumerateW(
     _In_opt_ HANDLE ServerHandle,
     _Out_ PSESSIONIDW *SessionIds,
     _Out_ PULONG Count
     );
 
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationQueryInformationW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -908,8 +929,9 @@ WinStationQueryInformationW(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationSetInformationW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -918,8 +940,9 @@ WinStationSetInformationW(
     _In_ ULONG WinStationInformationLength
     );
 
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationNameFromLogonIdW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -927,8 +950,19 @@ WinStationNameFromLogonIdW(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
+LogonIdFromWinStationNameW(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ PWSTR pWinStationName,
+    _Out_ PULONG SessionId
+    );
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
 WinStationSendMessageW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -942,8 +976,9 @@ WinStationSendMessageW(
     _In_ BOOLEAN DoNotWait
     );
 
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationConnectW(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -952,8 +987,9 @@ WinStationConnectW(
     _In_ BOOLEAN bWait
     );
 
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationDisconnect(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -961,8 +997,9 @@ WinStationDisconnect(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationReset(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -970,8 +1007,9 @@ WinStationReset(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationShadow(
     _In_opt_ HANDLE ServerHandle,
     _In_ PWSTR TargetServerName,
@@ -981,8 +1019,9 @@ WinStationShadow(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationShadowStop(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
@@ -992,16 +1031,18 @@ WinStationShadowStop(
 // Processes
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationEnumerateProcesses(
     _In_opt_ HANDLE ServerHandle,
     _Out_ PVOID *Processes
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationGetAllProcesses(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG Level,
@@ -1010,8 +1051,9 @@ WinStationGetAllProcesses(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationFreeGAPMemory(
     _In_ ULONG Level,
     _In_ PTS_ALL_PROCESSES_INFO Processes,
@@ -1019,16 +1061,18 @@ WinStationFreeGAPMemory(
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationTerminateProcess(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ProcessId,
     _In_ ULONG ExitCode
     );
 
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationGetProcessSid(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ProcessId,
@@ -1042,15 +1086,17 @@ WinStationGetProcessSid(
 #if (PHNT_VERSION >= PHNT_VISTA)
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationSwitchToServicesSession(
     VOID
     );
 
 // rev
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 WinStationRevertFromServicesSession(
     VOID
     );
@@ -1058,11 +1104,67 @@ WinStationRevertFromServicesSession(
 #endif
 
 // Misc.
-
+NTSYSAPI
 BOOLEAN
-WINAPI
+NTAPI
 _WinStationWaitForConnect(
     VOID
+    );
+
+// rev
+NTSYSAPI
+HANDLE
+NTAPI
+WinStationVirtualOpen(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ PCSTR Name
+    );
+
+// rev
+NTSYSAPI
+HANDLE
+NTAPI
+WinStationVirtualOpenEx(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ PCSTR Name,
+    _In_ ULONG Flags
+    );
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationIsCurrentSessionRemoteable(
+    _Out_ PBOOLEAN IsRemoteable
+    );
+
+EXTERN_C DECLSPEC_SELECTANY CONST GUID PROPERTY_TYPE_GET_MONITOR_CONFIG = { 0x865D5285, 0xF70A, 0x4ECF, { 0x8B, 0x28, 0x51, 0x2F, 0xE0, 0xAA, 0x2D, 0x53 } };
+EXTERN_C DECLSPEC_SELECTANY CONST GUID PROPERTY_TYPE_CORRELATIONID_GUID = { 0x9A363F8E, 0x1902, 0x40DA, { 0xA2, 0xCC, 0x56, 0x4F, 0x09, 0x40, 0xAD, 0xE3 } };
+
+typedef struct _TS_PROPERTY_INFORMATION
+{
+    ULONG Length;
+    PVOID Buffer;
+} TS_PROPERTY_INFORMATION, *PTS_PROPERTY_INFORMATION;
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetConnectionProperty(
+    _In_ ULONG SessionId,
+    _In_ PCGUID PropertyType,
+    _Out_ PTS_PROPERTY_INFORMATION PropertyBuffer
+    );
+
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationFreePropertyValue(
+    _In_ PVOID PropertyBuffer
     );
 
 #endif

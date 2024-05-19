@@ -5,16 +5,73 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
-#include <dyndata.h>
 
 #include <trace.h>
 
 PAGED_FILE();
+
+/**
+ * \brief Checks if a file handle is safe to issue a query through.
+ *
+ * \details Expects to be stack attached to the process that owns the handle.
+ *
+ * \param[in] FileHandle The file handle to check.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpCheckFileHandleForQuery(
+    _In_ HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    PFILE_OBJECT fileObject;
+
+    PAGED_CODE_PASSIVE();
+
+    //
+    // We are stack attached and "invading" the process to perform the query.
+    // If the file object is "Busy" it means it's a synchronous file object
+    // that is currently servicing an I/O request. If we were to issue another
+    // request the call would block until the other completes. Since we don't
+    // control this handle it's possible the call will never complete.
+    //
+    // This check isn't perfect, there is still a race, but it's narrower and
+    // makes it safer and faster for the client. As this stands it's a pretty
+    // gross hack, but we get value out of these APIs, so the hack is better
+    // than nothing.
+    //
+    // TODO(jxy-s) investigate other options to close or eliminate the race
+    //
+
+    status = ObReferenceObjectByHandle(FileHandle,
+                                       0,
+                                       *IoFileObjectType,
+                                       KernelMode,
+                                       &fileObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed %!STATUS!",
+                      status);
+
+        return status;
+    }
+
+    status = fileObject->Busy ? STATUS_POSSIBLE_DEADLOCK : STATUS_SUCCESS;
+
+    ObDereferenceObject(fileObject);
+
+    return status;
+}
 
 /**
  * \brief Queries file information.
@@ -48,7 +105,7 @@ NTSTATUS KphQueryInformationFile(
     PVOID buffer;
     BYTE stackBuffer[64];
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
     buffer = NULL;
@@ -82,7 +139,7 @@ NTSTATUS KphQueryInformationFile(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -106,6 +163,7 @@ NTSTATUS KphQueryInformationFile(
 
     if (FileInformationLength <= ARRAYSIZE(stackBuffer))
     {
+        RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
         buffer = stackBuffer;
     }
     else
@@ -119,11 +177,15 @@ NTSTATUS KphQueryInformationFile(
     }
 
     KeStackAttachProcess(process, &apcState);
-    status = ZwQueryInformationFile(FileHandle,
-                                    &ioStatusBlock,
-                                    buffer,
-                                    FileInformationLength,
-                                    FileInformationClass);
+    status = KphpCheckFileHandleForQuery(FileHandle);
+    if (NT_SUCCESS(status))
+    {
+        status = ZwQueryInformationFile(FileHandle,
+                                        &ioStatusBlock,
+                                        buffer,
+                                        FileInformationLength,
+                                        FileInformationClass);
+    }
     KeUnstackDetachProcess(&apcState);
     if (NT_SUCCESS(status))
     {
@@ -193,7 +255,7 @@ NTSTATUS KphQueryVolumeInformationFile(
     PVOID buffer;
     BYTE stackBuffer[64];
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     process = NULL;
     buffer = NULL;
@@ -227,7 +289,7 @@ NTSTATUS KphQueryVolumeInformationFile(
                                        NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
                       "ObReferenceObjectByHandle failed %!STATUS!",
                       status);
@@ -251,6 +313,7 @@ NTSTATUS KphQueryVolumeInformationFile(
 
     if (FsInformationLength <= ARRAYSIZE(stackBuffer))
     {
+        RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
         buffer = stackBuffer;
     }
     else
@@ -264,11 +327,15 @@ NTSTATUS KphQueryVolumeInformationFile(
     }
 
     KeStackAttachProcess(process, &apcState);
-    status = ZwQueryVolumeInformationFile(FileHandle,
-                                          &ioStatusBlock,
-                                          buffer,
-                                          FsInformationLength,
-                                          FsInformationClass);
+    status = KphpCheckFileHandleForQuery(FileHandle);
+    if (NT_SUCCESS(status))
+    {
+        status = ZwQueryVolumeInformationFile(FileHandle,
+                                              &ioStatusBlock,
+                                              buffer,
+                                              FsInformationLength,
+                                              FsInformationClass);
+    }
     KeUnstackDetachProcess(&apcState);
     if (NT_SUCCESS(status))
     {
@@ -302,6 +369,103 @@ Exit:
     {
         ObDereferenceObject(process);
     }
+
+    return status;
+}
+
+/**
+ * \brief Creates a file.
+ *
+ * \param[out] FileHandle Populated with file handle on success.
+ * \param[in] DesiredAccess The desired access to the file.
+ * \param[in] ObjectAttributes Object attributes for the create.
+ * \param[out] IoStatusBlock Receives final completion status and information.
+ * \param[in] AllocationSize Optional allocation size, in bytes, for the file.
+ * \param[in] FileAttributes Explicitly specified attributes are applied only
+ * when the file is created, superseded, or, in some cases, overwritten.
+ * \param[in] ShareAccess Specifies the type of share access to the file that
+ * the caller would like.
+ * \param[in] CreateDisposition Value that determines how the file should be
+ * handled when the file already exists.
+ * \param[in] CreateOptions Specifies the options to be applied when creating
+ * or opening the file.
+ * \param[in] EaBuffer Optional pointer to an EA buffer.
+ * \param[in] EaLength Length of EA buffer.
+ * \param[in] Options Specifies options to be used during the generation of
+ * the create request.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
+    _In_ ULONG EaLength,
+    _In_ ULONG Options,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+
+    PAGED_CODE_PASSIVE();
+
+    if (AccessMode != KernelMode)
+    {
+        if (ExGetPreviousMode() == KernelMode)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "Unexpected previous mode");
+
+            NT_ASSERT(ExGetPreviousMode() != KernelMode);
+            status = STATUS_INVALID_LEVEL;
+            goto Exit;
+        }
+
+        if (Options & ~(IO_OPEN_TARGET_DIRECTORY |
+                        IO_STOP_ON_SYMLINK |
+                        IO_IGNORE_SHARE_ACCESS_CHECK))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "Invalid options 0x%lx",
+                          Options);
+
+            status = STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
+    }
+    else
+    {
+        Options |= (IO_NO_PARAMETER_CHECKING | IO_CHECK_CREATE_PARAMETERS);
+    }
+
+    status = IoCreateFile(FileHandle,
+                          DesiredAccess,
+                          ObjectAttributes,
+                          IoStatusBlock,
+                          AllocationSize,
+                          FileAttributes,
+                          ShareAccess,
+                          CreateDisposition,
+                          CreateOptions,
+                          EaBuffer,
+                          EaLength,
+                          CreateFileTypeNone,
+                          NULL,
+                          Options);
+
+Exit:
 
     return status;
 }

@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2016-2023
+ *
+ */
+
 #ifndef PH_PROCPRV_H
 #define PH_PROCPRV_H
 
@@ -10,6 +22,8 @@ extern PH_QUEUED_LOCK PhProcessRecordListLock;
 extern ULONG PhStatisticsSampleCount;
 extern BOOLEAN PhEnablePurgeProcessRecords;
 extern BOOLEAN PhEnableCycleCpuUsage;
+extern BOOLEAN PhEnableInterruptCpuUsage;
+extern BOOLEAN PhEnablePackageIconSupport;
 
 typedef enum _PH_PROCESS_PROVIDER_FLAG
 {
@@ -50,8 +64,8 @@ extern ULONG PhTotalHandles;
 extern ULONG PhTotalCpuQueueLength;
 
 extern ULONG64 PhCpuTotalCycleDelta;
-extern PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
-extern PLARGE_INTEGER PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
+extern PSYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION PhCpuIdleCycleTime; // cycle time for Idle
+extern PSYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
 extern PH_UINT64_DELTA PhCpuIdleCycleDelta;
 extern PH_UINT64_DELTA PhCpuSystemCycleDelta;
 
@@ -110,9 +124,6 @@ extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #define PH_PROCESS_ITEM_REMOVED 0x1
 // end_phapppub
 
-#define PH_INTEGRITY_STR_LEN 10
-#define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
-
 // begin_phapppub
 typedef enum _VERIFY_RESULT VERIFY_RESULT;
 typedef struct _PH_PROCESS_RECORD *PPH_PROCESS_RECORD;
@@ -136,6 +147,7 @@ typedef struct _PH_PROCESS_ITEM
     HANDLE ParentProcessId;
     PPH_STRING ProcessName;
     ULONG SessionId;
+    ULONG64 ProcessStartKey;
 
     LARGE_INTEGER CreateTime;
 
@@ -191,23 +203,24 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsSuspended : 1;
             ULONG IsWow64 : 1;
             ULONG IsImmersive : 1;
-            ULONG IsWow64Valid : 1;
             ULONG IsPartiallySuspended : 1;
             ULONG IsProtectedHandle : 1;
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
+            ULONG IsPackagedProcess : 1;
+            ULONG IsUIAccessEnabled : 1;
             ULONG IsControlFlowGuardEnabled : 1;
             ULONG IsCetEnabled : 1;
             ULONG IsXfgEnabled : 1;
             ULONG IsXfgAuditEnabled : 1;
-            ULONG Spare : 11;
+            ULONG Spare : 10;
         };
     };
 
     // Misc.
 
-    ULONG JustProcessed;
+    volatile LONG JustProcessed;
     PH_EVENT Stage1Event;
 
     PPH_POINTER_LIST ServiceList;
@@ -216,6 +229,8 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR SessionIdString[PH_INT32_STR_LEN_1];
+    WCHAR LxssProcessIdString[PH_INT32_STR_LEN_1];
+    WCHAR ProcessStartKeyString[PH_PTR_STR_LEN_1];
 
     // Dynamic
 
@@ -278,7 +293,7 @@ typedef struct _PH_PROCESS_ITEM
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
 
-    USHORT Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
+    ULONG LxssProcessId;
 
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
@@ -328,13 +343,6 @@ PhGetClientIdNameEx(
     _In_ PCLIENT_ID ClientId,
     _In_opt_ PPH_STRING ProcessName
     );
-
-PHAPPAPI
-PWSTR
-NTAPI
-PhGetProcessPriorityClassString(
-    _In_ ULONG PriorityClass
-    );
 // end_phapppub
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
@@ -346,7 +354,7 @@ PHAPPAPI
 PPH_PROCESS_ITEM
 NTAPI
 PhReferenceProcessItem(
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     );
 
 PHAPPAPI
@@ -380,6 +388,7 @@ VOID PhFlushVerifyCache(
 
 // begin_phapppub
 PHAPPAPI
+_Success_(return)
 BOOLEAN
 NTAPI
 PhGetStatisticsTime(
@@ -472,7 +481,8 @@ PHAPPAPI
 VOID
 NTAPI
 PhProcessImageListInitialization(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
     );
 
 PHAPPAPI
@@ -481,7 +491,9 @@ NTAPI
 PhImageListExtractIcon(
     _In_ PPH_STRING FileName,
     _In_ BOOLEAN NativeFileName,
-    _In_ LONG dpiValue
+    _In_opt_ HANDLE ProcessId,
+    _In_opt_ PPH_STRING PackageFullName,
+    _In_ LONG SystemDpi
     );
 
 PHAPPAPI
@@ -504,6 +516,14 @@ HIMAGELIST
 NTAPI
 PhGetProcessSmallImageList(
     VOID
+    );
+
+// Note: Can only be called from same thread as process provider. (dmex)
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhDuplicateProcessInformation(
+    _Out_ PPVOID ProcessInformation
     );
 // end_phapppub
 

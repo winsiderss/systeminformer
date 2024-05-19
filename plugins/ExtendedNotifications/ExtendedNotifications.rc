@@ -19,7 +19,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
-
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -84,6 +83,23 @@ BEGIN
     LTEXT           "Examples:\nWdi*\nseclogon",IDC_INFO,7,186,241,36
 END
 
+IDD_DEVICES DIALOGEX 0, 0, 255, 229
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Devices"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "You can configure devices for which notifications are displayed. Wildcards can be used, and ordering is considered.",IDC_STATIC,7,7,241,19
+    LISTBOX         IDC_LIST,7,30,187,118,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Move up",IDC_MOVEUP,198,30,50,14
+    PUSHBUTTON      "Move down",IDC_MOVEDOWN,198,47,50,14
+    EDITTEXT        IDC_TEXT,7,152,147,12,ES_AUTOHSCROLL
+    CONTROL         "Include",IDC_INCLUDE,"Button",BS_AUTORADIOBUTTON,163,153,39,10
+    CONTROL         "Exclude",IDC_EXCLUDE,"Button",BS_AUTORADIOBUTTON,207,153,41,10
+    PUSHBUTTON      "Add/Update",IDC_ADD,145,168,50,14
+    PUSHBUTTON      "Remove",IDC_REMOVE,198,168,50,14
+    LTEXT           "Examples:\nUSB*\n*Keyboard*",IDC_INFO,7,186,241,36
+END
+
 IDD_LOGGING DIALOGEX 0, 0, 255, 69
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Logging"
@@ -121,6 +137,14 @@ BEGIN
         BOTTOMMARGIN, 222
     END
 
+    IDD_DEVICES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 248
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 222
+    END
+
     IDD_LOGGING, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -132,6 +156,56 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 3,7,0,0
+ PRODUCTVERSION 3,7,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileDescription", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileVersion", "3.7.0.0"
+            VALUE "InternalName", "ExtendedNotifications.dll"
+            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "OriginalFilename", "ExtendedNotifications.dll"
+            VALUE "ProductName", "⟆Ⴘ⟆𝜏∈ⲙ ᓰﬡ⨍ᗝᖇⲙ∈ᖇ"
+            VALUE "ProductVersion", "3.7.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
 

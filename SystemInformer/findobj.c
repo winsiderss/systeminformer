@@ -6,12 +6,11 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <cpysave.h>
 #include <emenu.h>
 #include <hndlinfo.h>
@@ -26,8 +25,6 @@
 #include <procprv.h>
 #include <proctree.h>
 #include <settings.h>
-
-#include "..\tools\thirdparty\pcre\pcre2.h"
 
 #define WM_PH_SEARCH_SHOWDIALOG (WM_APP + 801)
 #define WM_PH_SEARCH_FINISHED (WM_APP + 802)
@@ -58,15 +55,11 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
     HANDLE SearchThreadHandle;
 
     BOOLEAN SearchStop;
-    PPH_STRING SearchString;
     PPH_STRING SearchTypeString;
-    pcre2_code *SearchRegexCompiledExpression;
-    pcre2_match_data *SearchRegexMatchData;
+    ULONG_PTR SearchMatchHandle;
     PPH_LIST SearchResults;
     ULONG SearchResultsAddIndex;
     PH_QUEUED_LOCK SearchResultsLock;
-    ULONG64 SearchPointer;
-    BOOLEAN UseSearchPointer;
 } PH_HANDLE_SEARCH_CONTEXT, *PPH_HANDLE_SEARCH_CONTEXT;
 
 typedef enum _PHP_OBJECT_RESULT_TYPE
@@ -317,26 +310,19 @@ VOID PhpUpdateHandleObjectNode(
 BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPH_HANDLE_SEARCH_CONTEXT context = Context;
     PPH_HANDLE_OBJECT_TREE_ROOT_NODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPH_HANDLE_OBJECT_TREE_ROOT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -352,6 +338,8 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
                     SORT_FUNCTION(GrantedAccess),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
 
                 if (context->TreeNewSortColumn < PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
@@ -371,10 +359,6 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPH_HANDLE_OBJECT_TREE_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -383,10 +367,6 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPH_HANDLE_OBJECT_TREE_ROOT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -422,10 +402,6 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPH_HANDLE_OBJECT_TREE_ROOT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -441,9 +417,6 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -485,7 +458,7 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
+            data.DefaultSortOrder = NoSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
@@ -577,6 +550,8 @@ VOID PhpInitializeHandleObjectTree(
 
     TreeNew_SetCallback(Context->TreeNewHandle, PhpHandleObjectTreeNewCallback, Context);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
+
     // Default columns
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_PROCESS, TRUE, L"Process", 100, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 1, 0);
@@ -586,6 +561,8 @@ VOID PhpInitializeHandleObjectTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_OBJECTADDRESS, FALSE, L"Object address", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_GRANTEDACCESS, FALSE, L"Granted access", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
 
@@ -783,7 +760,7 @@ VOID PhpFindObjectAddResultEntries(
 
                 PhPrintPointer(grantedAccessString, UlongToPtr(searchResult->Info.GrantedAccess));
                 PhMoveReference(&objectNode->GrantedAccessSymbolicText, PhFormatString(
-                    L"%s (0x%s)",
+                    L"%s (%s)",
                     PhGetString(objectNode->GrantedAccessSymbolicText),
                     grantedAccessString
                     ));
@@ -823,22 +800,7 @@ static BOOLEAN MatchSearchString(
     _In_ PPH_STRINGREF Input
     )
 {
-    if (Context->SearchRegexCompiledExpression && Context->SearchRegexMatchData)
-    {
-        return pcre2_match(
-            Context->SearchRegexCompiledExpression,
-            Input->Buffer,
-            Input->Length / sizeof(WCHAR),
-            0,
-            0,
-            Context->SearchRegexMatchData,
-            NULL
-            ) >= 0;
-    }
-    else
-    {
-        return PhFindStringInStringRef(Input, &Context->SearchString->sr, TRUE) != SIZE_MAX;
-    }
+    return PhSearchControlMatch(Context->SearchMatchHandle, Input);
 }
 
 static BOOLEAN MatchTypeString(
@@ -888,8 +850,11 @@ static NTSTATUS NTAPI SearchHandleFunction(
         upperBestObjectName = PhUpperString(bestObjectName);
         upperTypeName = PhUpperString(typeName);
 
-        if (((MatchSearchString(context, &upperObjectName->sr) || MatchSearchString(context, &upperBestObjectName->sr)) && MatchTypeString(context, &upperTypeName->sr)) ||
-            (context->UseSearchPointer && (handleContext->HandleInfo->Object == (PVOID)context->SearchPointer || handleContext->HandleInfo->HandleValue == context->SearchPointer)))
+        if (((MatchSearchString(context, &upperObjectName->sr) ||
+              MatchSearchString(context, &upperBestObjectName->sr)) &&
+             MatchTypeString(context, &upperTypeName->sr)) ||
+            PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->Object) ||
+            PhSearchControlMatchPointer(context->SearchMatchHandle, (PVOID)handleContext->HandleInfo->HandleValue))
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
 
@@ -938,6 +903,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 {
     PSEARCH_MODULE_CONTEXT moduleContext = Context;
     PPH_HANDLE_SEARCH_CONTEXT context;
+    PPH_STRING filenameWin32;
     PPH_STRING upperFileName;
     PPH_STRING upperOriginalFileName;
 
@@ -946,11 +912,13 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
     context = moduleContext->WindowContext;
 
-    upperFileName = PhUpperString(Module->FileNameWin32);
+    filenameWin32 = PhGetFileName(Module->FileName);
+    upperFileName = PhUpperString(filenameWin32);
     upperOriginalFileName = PhUpperString(Module->FileName);
 
-    if ((MatchSearchString(context, &upperFileName->sr) || MatchSearchString(context, &upperOriginalFileName->sr)) ||
-        (context->UseSearchPointer && Module->BaseAddress == (PVOID)context->SearchPointer))
+    if ((MatchSearchString(context, &upperFileName->sr) ||
+         MatchSearchString(context, &upperOriginalFileName->sr)) ||
+         PhSearchControlMatchPointer(context->SearchMatchHandle, Module->BaseAddress))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
         PWSTR typeName;
@@ -973,7 +941,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
         searchResult->Handle = (HANDLE)Module->BaseAddress;
         searchResult->TypeName = PhCreateString(typeName);
-        PhSetReference(&searchResult->BestObjectName, Module->FileNameWin32);
+        PhSetReference(&searchResult->BestObjectName, filenameWin32);
         PhSetReference(&searchResult->ObjectName, Module->FileName);
 
         PhAcquireQueuedLockExclusive(&context->SearchResultsLock);
@@ -983,6 +951,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
     PhDereferenceObject(upperOriginalFileName);
     PhDereferenceObject(upperFileName);
+    PhDereferenceObject(filenameWin32);
 
     return TRUE;
 }
@@ -1000,13 +969,8 @@ NTSTATUS PhpFindObjectsThreadStart(
     ULONG i;
 
     // Refuse to search with no filter.
-    if (context->SearchString->Length == 0)
+    if (!context->SearchMatchHandle)
         goto Exit;
-
-    // Try to get a search pointer from the search string.
-    context->UseSearchPointer = PhStringToInteger64(&context->SearchString->sr, 0, &context->SearchPointer);
-
-    PhMoveReference(&context->SearchString, PhUpperString(context->SearchString));
 
     if (NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
     {
@@ -1024,10 +988,7 @@ NTSTATUS PhpFindObjectsThreadStart(
 
             if (PhBeginInitOnce(&initOnce))
             {
-                static PH_STRINGREF fileTypeName = PH_STRINGREF_INIT(L"File");
-
-                fileObjectTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
-
+                fileObjectTypeIndex = PhGetObjectTypeNumberZ(L"File");
                 PhEndInitOnce(&initOnce);
             }
         }
@@ -1179,7 +1140,6 @@ VOID PhpFindObjectsDeleteProcedure(
 {
     PPH_HANDLE_SEARCH_CONTEXT context = Object;
 
-    PhClearReference(&context->SearchString);
     PhClearReference(&context->SearchTypeString);
 }
 
@@ -1200,6 +1160,18 @@ PPH_HANDLE_SEARCH_CONTEXT PhCreateFindObjectContext(
     memset(context, 0, sizeof(PH_HANDLE_SEARCH_CONTEXT));
 
     return context;
+}
+
+VOID NTAPI PhpFindObjectsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_HANDLE_SEARCH_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
 }
 
 INT_PTR CALLBACK PhpFindObjectsDlgProc(
@@ -1239,14 +1211,19 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhRegisterDialog(hwndDlg);
-            PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Find Handles or DLLs");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchWindowHandle,
+                L"Find Handles or DLLs",
+                PhpFindObjectsSearchControlCallback,
+                context
+                );
             PhpPopulateObjectTypes(context);
             PhpInitializeHandleObjectTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TypeWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
             PhAddLayoutItem(&context->LayoutManager, context->SearchWindowHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REGEX), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
 
@@ -1266,10 +1243,9 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->SearchResults = PhCreateList(128);
             context->SearchResultsAddIndex = 0;
 
-            SetTimer(hwndDlg, 1, 1000, NULL);
+            PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -1278,7 +1254,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             context->SearchStop = TRUE;
 
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
             if (context->SearchThreadHandle)
             {
@@ -1287,19 +1263,6 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 context->SearchThreadHandle = NULL;
             }
 
-            if (context->SearchRegexCompiledExpression)
-            {
-                pcre2_code_free(context->SearchRegexCompiledExpression);
-                context->SearchRegexCompiledExpression = NULL;
-            }
-
-            if (context->SearchRegexMatchData)
-            {
-                pcre2_match_data_free(context->SearchRegexMatchData);
-                context->SearchRegexMatchData = NULL;
-            }
-
-            PhSetIntegerSetting(L"FindObjRegex", Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED);
             PhSaveWindowPlacementToSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
 
             PhUnregisterWindowCallback(hwndDlg);
@@ -1342,7 +1305,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             if (context->SearchThreadHandle)
             {
-                SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
+                PhSetCursor(PhLoadCursor(NULL, IDC_APPSTARTING));
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
                 return TRUE;
             }
@@ -1376,46 +1339,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                     if (!context->SearchThreadHandle)
                     {
-                        PhMoveReference(&context->SearchString, PhGetWindowText(context->SearchWindowHandle));
                         PhMoveReference(&context->SearchTypeString, PhGetWindowText(context->TypeWindowHandle));
-
-                        if (context->SearchRegexCompiledExpression)
-                        {
-                            pcre2_code_free(context->SearchRegexCompiledExpression);
-                            context->SearchRegexCompiledExpression = NULL;
-                        }
-
-                        if (context->SearchRegexMatchData)
-                        {
-                            pcre2_match_data_free(context->SearchRegexMatchData);
-                            context->SearchRegexMatchData = NULL;
-                        }
-
-                        if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_REGEX)) == BST_CHECKED)
-                        {
-                            int errorCode;
-                            PCRE2_SIZE errorOffset;
-
-                            context->SearchRegexCompiledExpression = pcre2_compile(
-                                context->SearchString->Buffer,
-                                context->SearchString->Length / sizeof(WCHAR),
-                                PCRE2_CASELESS | PCRE2_DOTALL,
-                                &errorCode,
-                                &errorOffset,
-                                NULL
-                                );
-
-                            if (!context->SearchRegexCompiledExpression)
-                            {
-                                PhShowError2(hwndDlg, L"Unable to compile the regular expression.", L"\"%s\" at position %zu.",
-                                    PhGetStringOrDefault(PH_AUTO(PhPcre2GetErrorMessage(errorCode)), L"Unknown error"),
-                                    errorOffset
-                                    );
-                                break;
-                            }
-
-                            context->SearchRegexMatchData = pcre2_match_data_create_from_pattern(context->SearchRegexCompiledExpression, NULL);
-                        }
 
                         // Clean up previous results.
 
@@ -1433,7 +1357,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                         PhSetDialogItemText(hwndDlg, IDOK, L"Cancel");
 
-                        SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
+                        PhSetCursor(PhLoadCursor(NULL, IDC_APPSTARTING));
                     }
                     else
                     {
@@ -1495,8 +1419,22 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                 {
                     PPH_HANDLE_OBJECT_TREE_ROOT_NODE *handleObjectNodes = NULL;
                     ULONG numberOfHandleObjectNodes = 0;
+                    BOOLEAN allCanBeClosed = TRUE;
 
                     if (!PhpGetSelectedHandleObjectNodes(context, &handleObjectNodes, &numberOfHandleObjectNodes))
+                        break;
+
+                    // Check the item called by TreeNewKeyDown is valid (dmex)
+                    for (ULONG i = 0; i < numberOfHandleObjectNodes; i++)
+                    {
+                        if (handleObjectNodes[i]->ResultType != HandleSearchResult)
+                        {
+                            allCanBeClosed = FALSE;
+                            break;
+                        }
+                    }
+
+                    if (!allCanBeClosed)
                         break;
 
                     if (numberOfHandleObjectNodes != 0 && PhShowConfirmMessage(
@@ -1713,11 +1651,18 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_TIMER:
         {
-            if (!context->SearchThreadHandle)
-                break;
+            switch (wParam)
+            {
+            case PH_WINDOW_TIMER_DEFAULT:
+                {
+                    if (!context->SearchThreadHandle)
+                        break;
 
-            // Update the search results.
-            PhpFindObjectAddResultEntries(context);
+                    // Update the search results.
+                    PhpFindObjectAddResultEntries(context);
+                }
+                break;
+            }
         }
         break;
     case WM_PH_SEARCH_FINISHED:
@@ -1740,7 +1685,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhSetDialogItemText(hwndDlg, IDOK, L"Find");
             EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
 
-            SetCursor(LoadCursor(NULL, IDC_ARROW));
+            PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
             if ((NTSTATUS)wParam == STATUS_INSUFFICIENT_RESOURCES)
             {

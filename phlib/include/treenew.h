@@ -12,9 +12,11 @@ extern "C" {
 
 typedef struct _PH_TREENEW_CREATEPARAMS
 {
+    ULONG Size;
     COLORREF TextColor;
     COLORREF FocusColor;
     COLORREF SelectionColor;
+    ULONG RowHeight;
     // Add new fields here.
 } PH_TREENEW_CREATEPARAMS, *PPH_TREENEW_CREATEPARAMS;
 
@@ -364,6 +366,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
     PH_STRINGREF String;
 } PH_TREENEW_SEARCH_EVENT, *PPH_TREENEW_SEARCH_EVENT;
 
+#define PH_TREENEW_HEADER_TEXT_SIZE_MAX 0x40
+
 typedef struct _PH_TREENEW_GET_HEADER_TEXT
 {
     PPH_TREENEW_COLUMN Column;
@@ -371,6 +375,13 @@ typedef struct _PH_TREENEW_GET_HEADER_TEXT
     PWSTR TextCache;
     ULONG TextCacheSize;
 } PH_TREENEW_GET_HEADER_TEXT, *PPH_TREENEW_GET_HEADER_TEXT;
+
+typedef struct _PH_TREENEW_SET_HEADER_CACHE
+{
+    ULONG HeaderTreeColumnMax;
+    PVOID HeaderTreeColumnStringCache;
+    PVOID HeaderTreeColumnTextCache;
+} PH_TREENEW_SET_HEADER_CACHE, *PPH_TREENEW_SET_HEADER_CACHE;
 
 #define TNM_FIRST (WM_USER + 1)
 #define TNM_SETCALLBACK (WM_USER + 1)
@@ -420,7 +431,10 @@ typedef struct _PH_TREENEW_GET_HEADER_TEXT
 #define TNM_ISFLATNODEVALID (WM_USER + 45)
 #define TNM_THEMESUPPORT (WM_USER + 46)
 #define TNM_SETIMAGELIST (WM_USER + 47)
-#define TNM_LAST (WM_USER + 48)
+#define TNM_SETCOLUMNTEXTCACHE (WM_USER + 48)
+#define TNM_ENSUREVISIBLEINDEX (WM_USER + 49)
+#define TNM_GETVISIBLECOLUMN (WM_USER + 50)
+#define TNM_LAST (WM_USER + 51)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -552,10 +566,19 @@ typedef struct _PH_TREENEW_GET_HEADER_TEXT
     ((BOOLEAN)SendMessage((hWnd), TNM_ISFLATNODEVALID, 0, 0))
 
 #define TreeNew_ThemeSupport(hWnd, Enable) \
-    SendMessage((hWnd), TNM_THEMESUPPORT, (WPARAM)(Enable), 0);
+    SendMessage((hWnd), TNM_THEMESUPPORT, (WPARAM)(Enable), 0)
 
 #define TreeNew_SetImageList(hWnd, ImageListHandle) \
-    SendMessage((hWnd), TNM_SETIMAGELIST, (WPARAM)(ImageListHandle), 0);
+    SendMessage((hWnd), TNM_SETIMAGELIST, (WPARAM)(ImageListHandle), 0)
+
+#define TreeNew_SetColumnTextCache(hWnd, Cache) \
+    SendMessage((hWnd), TNM_SETCOLUMNTEXTCACHE, (WPARAM)(Cache), 0)
+
+#define TreeNew_EnsureVisibleIndex(hWnd, Index) \
+    SendMessage((hWnd), TNM_ENSUREVISIBLEINDEX, 0, (LPARAM)(Index))
+
+#define TreeNew_GetVisibleColumn(hWnd, Index, Column) \
+    SendMessage((hWnd), TNM_GETVISIBLECOLUMN, (WPARAM)(Index), (LPARAM)(Column))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {

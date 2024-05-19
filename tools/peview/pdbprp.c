@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -27,14 +27,44 @@ VOID PvDestroySymbolNode(
     _In_ PPV_SYMBOL_NODE Node
     );
 
+VOID PvLoadSettingsSymbolsList(
+    _In_ PPDB_SYMBOL_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+    PPH_STRING sortSettings;
+
+    settings = PhGetStringSetting(L"SymbolsTreeListColumns");
+    sortSettings = PhGetStringSetting(L"SymbolsTreeListSort");
+    Context->Flags = PhGetIntegerSetting(L"SymbolsTreeListFlags");
+
+    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
+
+    PhDereferenceObject(settings);
+    PhDereferenceObject(sortSettings);
+}
+
+VOID PvSaveSettingsSymbolsList(
+    _In_ PPDB_SYMBOL_CONTEXT Context
+    )
+{
+    PPH_STRING settings;
+    PPH_STRING sortSettings;
+
+    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
+
+    PhSetIntegerSetting(L"SymbolsTreeListFlags", Context->Flags);
+    PhSetStringSetting2(L"SymbolsTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"SymbolsTreeListSort", &sortSettings->sr);
+
+    PhDereferenceObject(settings);
+    PhDereferenceObject(sortSettings);
+}
+
 VOID PvDeleteSymbolTree(
     _In_ PPDB_SYMBOL_CONTEXT Context
     )
 {
-    PPH_STRING settings = PhCmSaveSettings(Context->TreeNewHandle);
-    PhSetStringSetting2(L"PdbTreeListColumns", &settings->sr);
-    PhDereferenceObject(settings);
-
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
         PvDestroySymbolNode(Context->NodeList->Items[i]);
@@ -135,6 +165,40 @@ VOID PvDestroySymbolNode(
     PhFree(Node);
 }
 
+VOID PvSetOptionsSymbolsList(
+    _Inout_ PPDB_SYMBOL_CONTEXT Context,
+    _In_ ULONG Options
+    )
+{
+    switch (Options)
+    {
+    case PV_SYMBOL_TREE_MENU_ITEM_HIDE_WRITE:
+        Context->HideWriteSection = !Context->HideWriteSection;
+        break;
+    case PV_SYMBOL_TREE_MENU_ITEM_HIDE_EXECUTE:
+        Context->HideExecuteSection = !Context->HideExecuteSection;
+        break;
+    case PV_SYMBOL_TREE_MENU_ITEM_HIDE_CODE:
+        Context->HideCodeSection = !Context->HideCodeSection;
+        break;
+    case PV_SYMBOL_TREE_MENU_ITEM_HIDE_READ:
+        Context->HideReadSection = !Context->HideReadSection;
+        break;
+    case PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_WRITE:
+        Context->HighlightWriteSection = !Context->HighlightWriteSection;
+        break;
+    case PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE:
+        Context->HighlightExecuteSection = !Context->HighlightExecuteSection;
+        break;
+    case PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_CODE:
+        Context->HighlightCodeSection = !Context->HighlightCodeSection;
+        break;
+    case PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_READ:
+        Context->HighlightReadSection = !Context->HighlightReadSection;
+        break;
+    }
+}
+
 #define SORT_FUNCTION(Column) PvSymbolTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PvSymbolTreeNewCompare##Column( \
     _In_ void *_context, \
@@ -151,6 +215,19 @@ VOID PvDestroySymbolNode(
         sortResult = uintptrcmp((ULONG_PTR)node1->UniqueId, (ULONG_PTR)node2->UniqueId); \
     \
     return PhModifySort(sortResult, ((PPDB_SYMBOL_CONTEXT)_context)->TreeNewSortOrder); \
+}
+
+LONG PvSymbolsTreeNewPostSortFunction(
+    _In_ LONG Result,
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ PH_SORT_ORDER SortOrder
+    )
+{
+    if (Result == 0)
+        Result = uintptrcmp((ULONG_PTR)((PPV_SYMBOL_NODE)Node1)->UniqueId, (ULONG_PTR)((PPV_SYMBOL_NODE)Node2)->UniqueId);
+
+    return PhModifySort(Result, SortOrder);
 }
 
 BEGIN_SORT_FUNCTION(Index)
@@ -192,29 +269,47 @@ BEGIN_SORT_FUNCTION(Size)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Section)
+{
+    if (node1->SectionNameLength && node2->SectionNameLength)
+    {
+        PH_STRINGREF text1;
+        PH_STRINGREF text2;
+
+        text1.Length = (node1->SectionNameLength - 1) * sizeof(WCHAR);
+        text1.Buffer = node1->SectionName;
+        text2.Length = (node2->SectionNameLength - 1) * sizeof(WCHAR);
+        text2.Buffer = node2->SectionName;
+
+        sortResult = PhCompareStringRef(&text1, &text2, TRUE);
+    }
+    else if (!node1->SectionNameLength)
+    {
+        return !node2->SectionNameLength ? 0 : 1;
+    }
+    else
+    {
+        return -1;
+    }
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PvSymbolTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPDB_SYMBOL_CONTEXT context = Context;
     PPV_SYMBOL_NODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPV_SYMBOL_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -226,9 +321,12 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
                     SORT_FUNCTION(VA),
                     SORT_FUNCTION(Symbol),
                     SORT_FUNCTION(Data),
-                    SORT_FUNCTION(Size)
+                    SORT_FUNCTION(Size),
+                    SORT_FUNCTION(Section),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                static_assert(RTL_NUMBER_OF(sortFunctions) == TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
                 if (context->TreeNewSortColumn < TREE_COLUMN_ITEM_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
@@ -248,10 +346,6 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPV_SYMBOL_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -260,10 +354,6 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPV_SYMBOL_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -339,6 +429,19 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
                     }
                 }
                 break;
+            case TREE_COLUMN_ITEM_SECTION:
+                {
+                    if (node->SectionNameLength != 0)
+                    {
+                        getCellText->Text.Length = (node->SectionNameLength - 1) * sizeof(WCHAR);
+                        getCellText->Text.Buffer = node->SectionName;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -349,13 +452,20 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPV_SYMBOL_NODE)getNodeColor->Node;
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            if (!node)
+                NOTHING; // Dummy
+            else if (context->HighlightWriteSection && node->Characteristics & IMAGE_SCN_MEM_WRITE)
+                getNodeColor->BackColor = RGB(0xf0, 0xa0, 0xa0);
+            else if (context->HighlightExecuteSection && node->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+                getNodeColor->BackColor = RGB(0xff, 0x93, 0x14);
+            else if (context->HighlightCodeSection && node->Characteristics & IMAGE_SCN_CNT_CODE)
+                getNodeColor->BackColor = RGB(0xe0, 0xf0, 0xe0);
+            else if (context->HighlightReadSection && node->Characteristics & IMAGE_SCN_MEM_READ)
+                getNodeColor->BackColor = RGB(0xc0, 0xf0, 0xc0);
+
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
@@ -367,9 +477,6 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -492,8 +599,6 @@ VOID PvInitializeSymbolTree(
     _In_ HWND TreeNewHandle
     )
 {
-    PPH_STRING settings;
-
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPV_SYMBOL_NODE),
         SymbolNodeHashtableCompareFunction,
@@ -515,50 +620,16 @@ VOID PvInitializeSymbolTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_NAME, TRUE, L"Symbol", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_NAME, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_SYMBOL, TRUE, L"Data", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_SYMBOL, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_SIZE, TRUE, L"Size", 40, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_SIZE, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, TREE_COLUMN_ITEM_SECTION, TRUE, L"Section", 40, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_SECTION, 0, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
 
-    settings = PhGetStringSetting(L"PdbTreeListColumns");
-    PhCmLoadSettings(TreeNewHandle, &settings->sr);
-    PhDereferenceObject(settings);
+    PhCmInitializeManager(&Context->Cm, TreeNewHandle, TREE_COLUMN_ITEM_MAXIMUM, PvSymbolsTreeNewPostSortFunction);
+
+    PvLoadSettingsSymbolsList(Context);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
-}
-
-BOOLEAN WordMatchStringRef(
-    _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN WordMatchStringZ(
-    _In_ PPDB_SYMBOL_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-    return WordMatchStringRef(Context, &text);
 }
 
 BOOLEAN PvSymbolTreeFilterCallback(
@@ -572,72 +643,92 @@ BOOLEAN PvSymbolTreeFilterCallback(
     //if (node->Address == 0)
     //    return TRUE;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (context->HideWriteSection && node->Characteristics & IMAGE_SCN_MEM_WRITE)
+        return FALSE;
+    if (context->HideExecuteSection && node->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+        return FALSE;
+    if (context->HideCodeSection && node->Characteristics & IMAGE_SCN_CNT_CODE)
+        return FALSE;
+    if (context->HideReadSection && node->Characteristics & IMAGE_SCN_MEM_READ)
+        return FALSE;
+
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     switch (node->Type)
     {
     case PV_SYMBOL_TYPE_FUNCTION:
-        if (WordMatchStringZ(context, L"FUNCTION"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"FUNCTION"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_SYMBOL:
-        if (WordMatchStringZ(context, L"SYMBOL"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"SYMBOL"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_LOCAL_VAR:
-        if (WordMatchStringZ(context, L"LOCAL_VAR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"LOCAL_VAR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_STATIC_LOCAL_VAR:
-        if (WordMatchStringZ(context, L"STATIC_LOCAL_VAR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"STATIC_LOCAL_VAR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_PARAMETER:
-        if (WordMatchStringZ(context, L"PARAMETER"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"PARAMETER"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_OBJECT_PTR:
-        if (WordMatchStringZ(context, L"OBJECT_PTR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"OBJECT_PTR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_STATIC_VAR:
-        if (WordMatchStringZ(context, L"STATIC_VAR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"STATIC_VAR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_GLOBAL_VAR:
-        if (WordMatchStringZ(context, L"GLOBAL_VAR"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"GLOBAL_VAR"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_STRUCT:
-        if (WordMatchStringZ(context, L"MEMBER"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"MEMBER"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_STATIC_MEMBER:
-        if (WordMatchStringZ(context, L"STATIC_MEMBER"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"STATIC_MEMBER"))
             return TRUE;
         break;
     case PV_SYMBOL_TYPE_CONSTANT:
-        if (WordMatchStringZ(context, L"CONSTANT"))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, L"CONSTANT"))
             return TRUE;
         break;
     }
 
     if (!PhIsNullOrEmptyString(node->Name))
     {
-        if (WordMatchStringRef(context, &node->Name->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->Name->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->Data))
     {
-        if (WordMatchStringRef(context, &node->Data->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->Data->sr))
             return TRUE;
     }
 
     if (node->Pointer[0])
     {
-        if (WordMatchStringZ(context, node->Pointer))
+        if (PvSearchControlMatchZ(context->SearchMatchHandle, node->Pointer))
+            return TRUE;
+    }
+
+    if (node->SectionNameLength != 0)
+    {
+        PH_STRINGREF text;
+
+        text.Length = (node->SectionNameLength - 1) * sizeof(WCHAR);
+        text.Buffer = node->SectionName;
+
+        if (PvSearchControlMatch(context->SearchMatchHandle, &text))
             return TRUE;
     }
 
@@ -669,6 +760,23 @@ VOID PvAddPendingSymbolNodes(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
+HANDLE PvSymbolGetGlobalTimerQueue(
+    VOID
+    )
+{
+    static HANDLE PhTimerQueueHandle = NULL;
+    static PH_INITONCE PhTimerQueueHandleInitOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&PhTimerQueueHandleInitOnce))
+    {
+        RtlCreateTimerQueue(&PhTimerQueueHandle);
+
+        PhEndInitOnce(&PhTimerQueueHandleInitOnce);
+    }
+
+    return PhTimerQueueHandle;
+}
+
 VOID CALLBACK PvSymbolTreeUpdateCallback(
     _In_ PPDB_SYMBOL_CONTEXT Context,
     _In_ BOOLEAN TimerOrWaitFired
@@ -679,7 +787,21 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
 
     PvAddPendingSymbolNodes(Context);
 
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
+    RtlUpdateTimer(PvSymbolGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
+}
+
+VOID NTAPI PvpSymbolsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPDB_SYMBOL_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    PhApplyTreeNewFilters(GetSymbolListFilterSupport(context));
 }
 
 INT_PTR CALLBACK PvpSymbolsDlgProc(
@@ -717,9 +839,13 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
 
-            PvCreateSearchControl(context->SearchHandle, L"Search Symbols (Ctrl+K)");
+            PvCreateSearchControl(
+                context->SearchHandle,
+                L"Search Symbols (Ctrl+K)",
+                PvpSymbolsSearchControlCallback,
+                context
+                );
 
             PvInitializeSymbolTree(context, hwndDlg, context->TreeNewHandle);
             PvConfigTreeBorders(context->TreeNewHandle);
@@ -737,7 +863,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             PhCreateThread2(PeDumpFileSymbols, context);
 
             RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
+                PvSymbolGetGlobalTimerQueue(),
                 &context->UpdateTimerHandle,
                 PvSymbolTreeUpdateCallback,
                 context,
@@ -746,21 +872,23 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
                 0
                 );
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
             if (context->UpdateTimerHandle)
             {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                RtlDeleteTimer(PvSymbolGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
                 context->UpdateTimerHandle = NULL;
             }
 
+            PvSaveSettingsSymbolsList(context);
             PvDeleteSymbolTree(context);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -782,26 +910,78 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case EN_CHANGE:
+            case IDC_SETTINGS:
                 {
-                    PPH_STRING newSearchboxText;
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM writableMenuItem;
+                    PPH_EMENU_ITEM executableMenuItem;
+                    PPH_EMENU_ITEM codeMenuItem;
+                    PPH_EMENU_ITEM readMenuItem;
+                    PPH_EMENU_ITEM highlightWriteMenuItem;
+                    PPH_EMENU_ITEM highlightExecuteMenuItem;
+                    PPH_EMENU_ITEM highlightCodeMenuItem;
+                    PPH_EMENU_ITEM highlightReadMenuItem;
+                    PPH_EMENU_ITEM selectedItem;
 
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
 
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
+                    writableMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_WRITE, L"Hide writable", NULL, NULL);
+                    executableMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_EXECUTE, L"Hide executable", NULL, NULL);
+                    codeMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_CODE, L"Hide code", NULL, NULL);
+                    readMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIDE_READ, L"Hide readable", NULL, NULL);
+                    highlightWriteMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_WRITE, L"Highlight writable", NULL, NULL);
+                    highlightExecuteMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE, L"Highlight executable", NULL, NULL);
+                    highlightCodeMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_CODE, L"Highlight code", NULL, NULL);
+                    highlightReadMenuItem = PhCreateEMenuItem(0, PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_READ, L"Highlight readable", NULL, NULL);
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, writableMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, executableMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, codeMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, readMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightWriteMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightExecuteMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightCodeMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightReadMenuItem, ULONG_MAX);
+
+                    if (context->HideWriteSection)
+                        writableMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideExecuteSection)
+                        executableMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideCodeSection)
+                        codeMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideReadSection)
+                        readMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightWriteSection)
+                        highlightWriteMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightExecuteSection)
+                        highlightExecuteMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightCodeSection)
+                        highlightCodeMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightReadSection)
+                        highlightReadMenuItem->Flags |= PH_EMENU_CHECKED;
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
                     {
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchboxText))
-                        {
-                            //PhExpandAllProcessNodes(TRUE);
-                            //PhDeselectAllProcessNodes();
-                        }
-
-                        PhApplyTreeNewFilters(GetSymbolListFilterSupport(context));
+                        PvSetOptionsSymbolsList(context, selectedItem->Id);
+                        PvSaveSettingsSymbolsList(context);
+                        PhApplyTreeNewFilters(&context->FilterSupport);
                     }
+
+                    PhDestroyEMenu(menu);
                 }
                 break;
             }
@@ -823,7 +1003,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         {
             if (context->UpdateTimerHandle)
             {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                RtlDeleteTimer(PvSymbolGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
                 context->UpdateTimerHandle = NULL;
             }
 

@@ -46,9 +46,9 @@ mxmlIndexDelete(mxml_index_t *ind)	/* I - Index to delete */
   * Free memory...
   */
 
-  free(ind->attr);
-  free(ind->nodes);
-  free(ind);
+  PhFree(ind->attr);
+  PhFree(ind->nodes);
+  PhFree(ind);
 }
 
 
@@ -324,18 +324,20 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   * Create a new index...
   */
 
-  if ((ind = calloc(1, sizeof(mxml_index_t))) == NULL)
+  if ((ind = PhAllocateSafe(sizeof(mxml_index_t))) == NULL)
   {
     mxml_error("Unable to allocate memory for index.");
     return (NULL);
   }
 
+  memset(ind, 0, sizeof(mxml_index_t));
+
   if (attr)
   {
-    if ((ind->attr = strdup(attr)) == NULL)
+    if ((ind->attr = PhDuplicateBytesZSafe((PSTR)attr)) == NULL)
     {
       mxml_error("Unable to allocate memory for index attribute.");
-      free(ind);
+      PhFree(ind);
       return (NULL);
     }
   }
@@ -350,9 +352,9 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
     if (ind->num_nodes >= ind->alloc_nodes)
     {
       if (!ind->alloc_nodes)
-        temp = malloc(64 * sizeof(mxml_node_t *));
+        temp = PhAllocateSafe(64 * sizeof(mxml_node_t *));
       else
-        temp = realloc(ind->nodes, (ind->alloc_nodes + 64) * sizeof(mxml_node_t *));
+        temp = PhReAllocateSafe(ind->nodes, (ind->alloc_nodes + 64) * sizeof(mxml_node_t *));
 
       if (!temp)
       {

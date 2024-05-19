@@ -6,19 +6,18 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
 #include <ph.h>
 #include <secedit.h>
-#include <wmistr.h>
 #include <wbemcli.h>
 #include <wtsapi32.h>
 
-#define ACCESS_ENTRIES(Type) static PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
+#define ACCESS_ENTRIES(Type) static const PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
 #define ACCESS_ENTRY(Type, HasSynchronize) \
-   { TEXT(#Type), Ph##Type##AccessEntries, sizeof(Ph##Type##AccessEntries), HasSynchronize }
+   { TEXT(#Type), (PPH_ACCESS_ENTRY)Ph##Type##AccessEntries, sizeof(Ph##Type##AccessEntries), HasSynchronize }
 
 typedef struct _PH_SPECIFIC_TYPE
 {
@@ -171,7 +170,7 @@ ACCESS_ENTRIES(Key)
     { L"Full control", KEY_ALL_ACCESS, TRUE, TRUE },
     { L"Read", KEY_READ, TRUE, FALSE },
     { L"Write", KEY_WRITE, TRUE, FALSE },
-    { L"Execute", KEY_EXECUTE, TRUE, FALSE },
+    //{ L"Execute", KEY_EXECUTE, TRUE, FALSE }, // KEY_EXECUTE has the same value as KEY_READ (dmex)
     { L"Enumerate subkeys", KEY_ENUMERATE_SUB_KEYS, FALSE, TRUE },
     { L"Query values", KEY_QUERY_VALUE, FALSE, TRUE },
     { L"Notify", KEY_NOTIFY, FALSE, TRUE },
@@ -820,7 +819,7 @@ BOOLEAN PhGetAccessEntries(
     }
     else
     {
-        *AccessEntries = PhAllocateCopy(PhStandardAccessEntries, sizeof(PhStandardAccessEntries));
+        *AccessEntries = PhAllocateCopy((PVOID)PhStandardAccessEntries, sizeof(PhStandardAccessEntries));
         *NumberOfAccessEntries = sizeof(PhStandardAccessEntries) / sizeof(PH_ACCESS_ENTRY);
     }
 
@@ -835,7 +834,7 @@ static int __cdecl PhpAccessEntryCompare(
     PPH_ACCESS_ENTRY entry1 = (PPH_ACCESS_ENTRY)elem1;
     PPH_ACCESS_ENTRY entry2 = (PPH_ACCESS_ENTRY)elem2;
 
-    return intcmp(PhCountBits(entry2->Access), PhCountBits(entry1->Access));
+    return uintcmp(PhCountBits(entry2->Access), PhCountBits(entry1->Access));
 }
 
 /**

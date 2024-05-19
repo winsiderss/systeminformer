@@ -1,9 +1,19 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_SYMPRV_H
 #define _PH_SYMPRV_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
 extern PH_CALLBACK PhSymbolEventCallback;
@@ -97,6 +107,16 @@ PhGetModuleFromAddress(
     _Out_opt_ PPH_STRING *FileName
     );
 
+typedef struct _PH_SYMBOL_MODULE *PPH_SYMBOL_MODULE;
+
+PHLIBAPI
+PPH_SYMBOL_MODULE
+NTAPI
+PhGetSymbolModuleFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address
+    );
+
 _Success_(return != NULL)
 PHLIBAPI
 PPH_STRING
@@ -143,10 +163,21 @@ PhLoadFileNameSymbolProvider(
 PHLIBAPI
 VOID
 NTAPI
-PhLoadModulesForProcessSymbolProvider(
+PhLoadSymbolProviderModules(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ HANDLE ProcessId
     );
+
+PHLIBAPI
+VOID
+NTAPI
+PhLoadModulesForVirtualSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_opt_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle
+    );
+
+#define PH_SYMOPT_UNDNAME 0x1
 
 PHLIBAPI
 VOID
@@ -261,10 +292,8 @@ PhWriteMiniDumpProcess(
 
 // High-level stack walking
 
-#define PH_THREAD_STACK_FRAME_I386 0x1
-#define PH_THREAD_STACK_FRAME_AMD64 0x2
-#define PH_THREAD_STACK_FRAME_KERNEL 0x4
-#define PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT 0x100
+#define PH_THREAD_STACK_FRAME_KERNEL           0x0001
+#define PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT 0x0002
 
 /** Contains information about a thread stack frame. */
 typedef struct _PH_THREAD_STACK_FRAME
@@ -275,12 +304,13 @@ typedef struct _PH_THREAD_STACK_FRAME
     PVOID StackAddress;
     PVOID BStoreAddress;
     PVOID Params[4];
-    ULONG Flags;
+    USHORT Machine;
+    USHORT Flags;
     ULONG InlineFrameContext;
 } PH_THREAD_STACK_FRAME, *PPH_THREAD_STACK_FRAME;
 
-#define PH_WALK_I386_STACK 0x1
-#define PH_WALK_AMD64_STACK 0x2
+#define PH_WALK_USER_STACK 0x1
+#define PH_WALK_USER_WOW64_STACK 0x2
 #define PH_WALK_KERNEL_STACK 0x10
 
 /**
@@ -348,6 +378,16 @@ PhEnumerateSymbols(
     _In_opt_ PCWSTR Mask,
     _In_ PPH_ENUMERATE_SYMBOLS_CALLBACK EnumSymbolsCallback,
     _In_opt_ PVOID UserContext
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetSymbolProviderDiaSource(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 BaseOfDll,
+    _Out_ PVOID* DiaSource
     );
 
 _Success_(return)
@@ -464,8 +504,46 @@ PhGetLineFromInlineContext(
 //    _In_ PPH_LIST InlineSymbolList
 //    );
 
-#ifdef __cplusplus
-}
-#endif
+typedef struct _PH_DIA_SYMBOL_INFORMATION
+{
+    ULONG64 FunctionLength;
+    PPH_STRING UndecoratedName;
+    PPH_STRING SymbolInformation;
+    PPH_STRING SymbolLangugage;
+} PH_DIA_SYMBOL_INFORMATION, *PPH_DIA_SYMBOL_INFORMATION;
+
+_Success_(return)
+BOOLEAN PhGetDiaSymbolInformation(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address,
+    _Out_ PPH_DIA_SYMBOL_INFORMATION SymbolInformation
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhUnregisterSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
+// symprv_std.cpp (dmex)
+
+EXTERN_C VOID PhPrintCurrentStacktrace(
+    VOID
+    );
+
+EXTERN_C PPH_STRING PhGetStacktraceAsString(
+    VOID
+    );
+
+EXTERN_C PPH_STRING PhGetStacktraceSymbolFromAddress(
+    _In_ PVOID Address
+    );
+
+EXTERN_C PPH_STRING PhGetObjectTypeStacktraceToString(
+    _In_ PVOID Object
+    );
+
+EXTERN_C_END
 
 #endif

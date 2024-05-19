@@ -20,6 +20,7 @@
 #define IDD_VALUE                       109
 #define IDD_SRVTRIGGERS                 110
 #define IDD_SRVPNP                      111
+#define IDD_SRVPACKAGE                  112
 #define IDC_SERVICES_LAYOUT             1001
 #define IDC_MESSAGE                     1002
 #define IDC_FIRSTFAILURE                1003
@@ -59,16 +60,22 @@
 #define IDC_ADD                         1043
 #define IDC_SERVICESID                  1044
 #define IDC_SIDTYPE                     1045
-#define IDC_COMBO2                      1046
 #define IDC_PROTECTION                  1046
+#define IDC_SHAREDSTATE                 1048
+#define IDC_REGISOLATED                 1049
+#define IDC_AUMID                       1050
+#define IDC_ISOLATEDSTATE               1051
+#define IDC_REGSHARED                   1052
+#define IDC_PACKAGENAME                 1055
+#define IDC_CANCELBTN                   1058
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_RESOURCE_VALUE        114
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1047
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

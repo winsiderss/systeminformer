@@ -5,6 +5,7 @@
 #define IDD_PROCESSES                   101
 #define IDD_SERVICES                    102
 #define IDD_LOGGING                     103
+#define IDD_DEVICES                     104
 #define IDC_INCLUDE                     1006
 #define IDC_EXCLUDE                     1007
 #define IDC_REMOVE                      1008

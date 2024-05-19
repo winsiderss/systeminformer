@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2015-2021
+ *     dmex    2015-2023
  *
  */
 
 #include "nettools.h"
 #include "tracert.h"
-#include <commonutil.h>
 
 PPH_OBJECT_TYPE TracertTreeNodeItemType;
 
@@ -28,8 +27,6 @@ VOID NTAPI TracertTreeNodeItemDeleteProcedure(
         PhDereferenceObject(tracertNode->HostnameString);
     if (tracertNode->IpAddressString)
         PhDereferenceObject(tracertNode->IpAddressString);
-    if (tracertNode->RemoteCountryCode)
-        PhDereferenceObject(tracertNode->RemoteCountryCode);
     if (tracertNode->RemoteCountryName)
         PhDereferenceObject(tracertNode->RemoteCountryName);
 
@@ -55,7 +52,7 @@ PTRACERT_ROOT_NODE TracertTreeCreateNode(
     PhInitializeTreeNewNode(&tracertNode->Node);
 
     tracertNode->UniqueId = NextUniqueId++; // used to stabilize sorting
-    tracertNode->CountryIconIndex = INT_MAX;
+    tracertNode->CountryIconIndex = INT_ERROR;
 
     return tracertNode;
 }
@@ -303,26 +300,19 @@ VOID UpdateTracertNodePingText(
 BOOLEAN NTAPI TracertTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PNETWORK_TRACERT_CONTEXT context = Context;
     PTRACERT_ROOT_NODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PTRACERT_ROOT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -339,6 +329,8 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                     SORT_FUNCTION(Country),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                static_assert(RTL_NUMBER_OF(sortFunctions) == TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
                 if (context->TreeNewSortColumn < TREE_COLUMN_ITEM_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
@@ -358,10 +350,6 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PTRACERT_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -370,10 +358,6 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PTRACERT_ROOT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -415,10 +399,6 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PTRACERT_ROOT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -435,9 +415,6 @@ BOOLEAN NTAPI TracertTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            if (!contextMenuEvent)
-                break;
-
             SendMessage(
                 context->WindowHandle,
                 WM_COMMAND,
@@ -452,7 +429,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
+            data.DefaultSortColumn = TREE_COLUMN_ITEM_TTL;
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
@@ -472,14 +449,8 @@ BOOLEAN NTAPI TracertTreeNewCallback(
     case TreeNewCustomDraw:
         {
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
-            HDC hdc;
-            RECT rect;
-
-            if (!customDraw)
-                break;
-
-            hdc = customDraw->Dc;
-            rect = customDraw->CellRect;
+            HDC hdc = customDraw->Dc;
+            RECT rect = customDraw->CellRect;
             node = (PTRACERT_ROOT_NODE)customDraw->Node;
 
             // Check if this is the country column
@@ -498,10 +469,10 @@ BOOLEAN NTAPI TracertTreeNewCallback(
 
             if (node->RemoteCountryCode && node->RemoteCountryName)
             {
-                if (node->CountryIconIndex == INT_MAX)
+                if (node->CountryIconIndex == INT_ERROR)
                     node->CountryIconIndex = LookupCountryIcon(node->RemoteCountryCode);
 
-                if (node->CountryIconIndex != INT_MAX)
+                if (node->CountryIconIndex != INT_ERROR)
                 {
                     DrawCountryIcon(hdc, rect, node->CountryIconIndex);
                     rect.left += 16 + 2;
@@ -559,6 +530,7 @@ PTRACERT_ROOT_NODE GetSelectedTracertNode(
     return NULL;
 }
 
+_Success_(return)
 BOOLEAN GetSelectedTracertNodes(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _Out_ PTRACERT_ROOT_NODE **Nodes,
@@ -614,6 +586,7 @@ VOID InitializeTracertTree(
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
     TreeNew_SetCallback(Context->TreeNewHandle, TracertTreeNewCallback, Context);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, TRUE, L"TTL", 30, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING1, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING1, DT_RIGHT);
@@ -627,6 +600,7 @@ VOID InitializeTracertTree(
     //for (INT i = 0; i < MAX_PINGS; i++)
     //    PhAddTreeNewColumn(context->TreeNewHandle, i + 1, i + 1, i + 1, LVCFMT_RIGHT, 50, L"Time");
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, AscendingSortOrder);
 
     TracertLoadSettingsTreeList(Context);

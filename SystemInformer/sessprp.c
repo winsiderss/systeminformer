@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2018-2022
+ *     dmex    2018-2024
  *
  */
 
@@ -21,8 +21,6 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
-
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
 static PH_KEY_VALUE_PAIR PhpConnectStatePairs[] =
 {
@@ -43,12 +41,12 @@ VOID PhShowSessionProperties(
     _In_ ULONG SessionId
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_SESSION),
         PhCsForceNoParent ? NULL : ParentWindowHandle,
         PhpSessionPropertiesDlgProc,
-        (LPARAM)SessionId
+        UlongToPtr(SessionId)
         );
 }
 
@@ -74,7 +72,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
     // Query basic session information
 
     haveWinStationInfo = WinStationQueryInformationW(
-        NULL,
+        WINSTATION_CURRENT_SERVER,
         SessionId,
         WinStationInformation,
         &winStationInfo,
@@ -85,7 +83,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
     // Query client information
 
     haveClientInfo = WinStationQueryInformationW(
-        NULL,
+        WINSTATION_CURRENT_SERVER,
         SessionId,
         WinStationClient,
         &clientInfo,
@@ -114,7 +112,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
         }
     }
 
-    PhSetListViewSubItem(Context->ListViewHandle, 1, 1, PhaFormatString(L"%lu", SessionId)->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, 1, 1, PhaFormatUInt64(SessionId, FALSE)->Buffer);
 
     if (haveWinStationInfo)
     {
@@ -182,7 +180,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
         if (clientInfo.ClientAddressFamily == AF_INET6)
         {
             ULONG addressLength = RTL_NUMBER_OF(addressString);
-            struct in6_addr address;
+            IN6_ADDR address;
             ULONG i;
             PUSHORT in;
             PUSHORT out;
@@ -213,148 +211,6 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
             );
     }
 }
-
-//VOID PhpSessionPropertiesQuerySamAccountInfo(
-//    _In_ PPHP_SESSION_PROPERTIES_CONTEXT Context,
-//    _In_ ULONG SessionId
-//    )
-//{
-//    NTSTATUS status;
-//    WINSTATIONINFORMATION stationInfo;
-//    PPOLICY_ACCOUNT_DOMAIN_INFO lsaDomainInfo = NULL;
-//    PUSER_LOGON_INFORMATION samLogonInfo = NULL;
-//    LSA_OBJECT_ATTRIBUTES objectAttributes;
-//    LSA_HANDLE lookupPolicyHandle = NULL;
-//    SAM_HANDLE lookupServerHandle = NULL;
-//    SAM_HANDLE lookupDomainHandle = NULL;
-//    SAM_HANDLE lookupUserHandle = NULL;
-//    SAM_HANDLE groupHandle = NULL;
-//    UNICODE_STRING unicodeString;
-//    PULONG lookupRelativeId = NULL;
-//    PSID_NAME_USE Use = NULL;
-//    PUSER_ACCOUNT_INFORMATION UserInfo = NULL;
-//    ULONG returnLength;
-//
-//    if (!WinStationQueryInformationW(
-//        NULL,
-//        SessionId,
-//        WinStationInformation,
-//        &stationInfo,
-//        sizeof(WINSTATIONINFORMATION),
-//        &returnLength
-//        ))
-//    {
-//        goto CleanupExit;
-//    }
-//
-//    RtlInitUnicodeString(&unicodeString, stationInfo.Domain);
-//    InitializeObjectAttributes(
-//        &objectAttributes,
-//        NULL,
-//        OBJ_CASE_INSENSITIVE,
-//        NULL,
-//        NULL
-//        );
-//
-//    status = LsaOpenPolicy(
-//        &unicodeString,
-//        &objectAttributes,
-//        POLICY_VIEW_LOCAL_INFORMATION,
-//        &lookupPolicyHandle
-//        );
-//
-//    if (!NT_SUCCESS(status))
-//        goto CleanupExit;
-//
-//    status = LsaQueryInformationPolicy(
-//        lookupPolicyHandle,
-//        PolicyAccountDomainInformation,
-//        &lsaDomainInfo
-//        );
-//
-//    if (!NT_SUCCESS(status))
-//        goto CleanupExit;
-//
-//    InitializeObjectAttributes(
-//        &objectAttributes,
-//        NULL,
-//        OBJ_CASE_INSENSITIVE,
-//        NULL,
-//        NULL
-//        );
-//
-//    status = SamConnect(
-//        &unicodeString,
-//        &lookupServerHandle,
-//        SAM_SERVER_CONNECT | SAM_SERVER_LOOKUP_DOMAIN,
-//        &objectAttributes
-//        );
-//
-//    if (!NT_SUCCESS(status))
-//        goto CleanupExit;
-//
-//    status = SamOpenDomain(
-//        lookupServerHandle,
-//        DOMAIN_LOOKUP | DOMAIN_READ_OTHER_PARAMETERS,
-//        lsaDomainInfo->DomainSid,
-//        &lookupDomainHandle
-//        );
-//
-//    if (!NT_SUCCESS(status))
-//        goto CleanupExit;
-//
-//    RtlInitUnicodeString(&unicodeString, stationInfo.UserName);
-//    status = SamLookupNamesInDomain(
-//        lookupDomainHandle,
-//        1,
-//        &unicodeString,
-//        &lookupRelativeId,
-//        &Use
-//        );
-//
-//    if (!NT_SUCCESS(status))
-//        goto CleanupExit;
-//
-//    status = SamOpenUser(
-//        lookupDomainHandle,
-//        USER_READ_GENERAL | USER_READ_PREFERENCES |
-//        USER_READ_LOGON | USER_READ_ACCOUNT |
-//        USER_LIST_GROUPS | USER_READ_GROUP_INFORMATION,
-//        lookupRelativeId[0],
-//        &lookupUserHandle
-//        );
-//
-//    if (!NT_SUCCESS(status))
-//        goto CleanupExit;
-//
-//    if (NT_SUCCESS(SamQueryInformationUser(
-//        lookupUserHandle,
-//        UserAllInformation,
-//        &samLogonInfo
-//        )))
-//    {
-//        SamFreeMemory(samLogonInfo);
-//    }
-//
-//CleanupExit:
-//
-//    if (Use)
-//        SamFreeMemory(Use);
-//    if (lookupRelativeId)
-//        SamFreeMemory(lookupRelativeId);
-//
-//    if (lookupUserHandle)
-//        SamCloseHandle(lookupUserHandle);
-//    if (lookupDomainHandle)
-//        SamCloseHandle(lookupDomainHandle);
-//    if (lookupServerHandle)
-//        SamCloseHandle(lookupServerHandle);
-//
-//    if (lsaDomainInfo)
-//        LsaFreeMemory(lsaDomainInfo);
-//    if (lookupPolicyHandle)
-//        LsaClose(lookupPolicyHandle);
-//}
 
 INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
     _In_ HWND hwndDlg,
@@ -392,7 +248,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 150, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Value");
-            //PhSetExtendedListView(context->ListViewHandle);
+            PhSetExtendedListView(context->ListViewHandle);
 
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhAddListViewGroup(context->ListViewHandle, 0, L"User");
@@ -461,7 +317,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 

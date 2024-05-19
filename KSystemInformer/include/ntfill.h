@@ -3,14 +3,11 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #pragma once
-#include <kphosver.h>
-extern ULONG KphDynObDecodeShift;
-extern ULONG KphDynObAttributesShift;
 
 typedef struct _CLIENT_ID32
 {
@@ -25,6 +22,16 @@ typedef struct _CLIENT_ID64
 } CLIENT_ID64, *PCLIENT_ID64;
 
 // EX
+
+typedef struct _EX_FAST_REF
+{
+    union
+    {
+        PVOID Object;
+        ULONG_PTR RefCnt : 4;
+        ULONG_PTR Value;
+    };
+} EX_FAST_REF, *PEX_FAST_REF;
 
 typedef struct _EX_PUSH_LOCK_WAIT_BLOCK *PEX_PUSH_LOCK_WAIT_BLOCK;
 
@@ -53,19 +60,6 @@ typedef struct _HANDLE_TABLE_ENTRY
 
 typedef struct _HANDLE_TABLE HANDLE_TABLE, *PHANDLE_TABLE;
 
-typedef
-_Function_class_(EX_ENUM_HANDLE_CALLBACK_61)
-_Must_inspect_result_
-BOOLEAN
-NTAPI
-EX_ENUM_HANDLE_CALLBACK_61(
-    _Inout_ PHANDLE_TABLE_ENTRY HandleTableEntry,
-    _In_ HANDLE Handle,
-    _In_opt_ PVOID Context
-    );
-typedef EX_ENUM_HANDLE_CALLBACK_61* PEX_ENUM_HANDLE_CALLBACK_61;
-
-// since WIN8
 typedef
 _Function_class_(EX_ENUM_HANDLE_CALLBACK)
 _Must_inspect_result_
@@ -115,17 +109,6 @@ ZwQuerySection(
 extern POBJECT_TYPE *IoDriverObjectType;
 extern POBJECT_TYPE *IoDeviceObjectType;
 
-typedef
-_Function_class_(IO_QUERY_FULL_DRIVER_PATH)
-_IRQL_always_function_max_(APC_LEVEL)
-NTSTATUS
-NTAPI
-IO_QUERY_FULL_DRIVER_PATH(
-    _In_ PDRIVER_OBJECT DriverObject,
-    _Out_ PUNICODE_STRING FullPath
-    );
-typedef IO_QUERY_FULL_DRIVER_PATH *PIO_QUERY_FULL_DRIVER_PATH;
-
 // KE
 
 typedef enum _KAPC_ENVIRONMENT
@@ -134,7 +117,6 @@ typedef enum _KAPC_ENVIRONMENT
     AttachedApcEnvironment,
     CurrentApcEnvironment,
     InsertApcEnvironment
-
 } KAPC_ENVIRONMENT, *PKAPC_ENVIRONMENT;
 
 typedef
@@ -203,9 +185,18 @@ KeInsertQueueApc(
 NTKERNELAPI
 BOOLEAN
 NTAPI
-KeTestAlertThread (
+KeTestAlertThread(
     _In_ KPROCESSOR_MODE Mode
     );
+
+typedef
+_Function_class_(KE_REMOVE_QUEUE_APC)
+BOOLEAN
+NTAPI
+KE_REMOVE_QUEUE_APC(
+    _Inout_ PKAPC Apc
+    );
+typedef KE_REMOVE_QUEUE_APC* PKE_REMOVE_QUEUE_APC;
 
 // OB
 
@@ -220,11 +211,11 @@ KeTestAlertThread (
 // GrantedAccess in the table entry is the low 25 bits
 #define OBJ_GRANTED_ACCESS_MASK 0x01ffffff
 
-#define ObpDecodeGrantedAccess(Access) \
-    ((Access) & OBJ_GRANTED_ACCESS_MASK)
+#define ObpDecodeGrantedAccess(Access) ((Access) & OBJ_GRANTED_ACCESS_MASK)
 
 FORCEINLINE
-VOID ObpSetGrantedAccess(
+VOID
+ObpSetGrantedAccess(
     _Inout_ PACCESS_MASK GrantedAccess,
     _In_ ACCESS_MASK Access
     )
@@ -233,60 +224,6 @@ VOID ObpSetGrantedAccess(
     // Preserve the high bits and only set the low 25 bits.
     //
     *GrantedAccess = (Access | (*GrantedAccess & ~OBJ_GRANTED_ACCESS_MASK));
-}
-
-FORCEINLINE
-PVOID ObpDecodeObject(
-    _In_ PVOID Object
-    )
-{
-#if (defined _M_X64) || (defined _M_ARM64)
-    if (KphOsVersion >= KphWin8)
-    {
-        if (KphDynObDecodeShift != ULONG_MAX)
-        {
-            return (PVOID)(((LONG_PTR)Object >> KphDynObDecodeShift) & ~(ULONG_PTR)0xf);
-        }
-        else
-        {
-            return NULL;
-        }
-    }
-    else
-    {
-        return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
-    }
-#else
-    return (PVOID)((ULONG_PTR)Object & ~OBJ_HANDLE_ATTRIBUTES);
-#endif
-}
-
-FORCEINLINE
-ULONG ObpGetHandleAttributes(
-    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
-    )
-{
-#if (defined _M_X64) || (defined _M_ARM64)
-    if (KphOsVersion >= KphWin8)
-    {
-        if (KphDynObAttributesShift != ULONG_MAX)
-        {
-            return (ULONG)(HandleTableEntry->Value >> KphDynObAttributesShift) & 0x3;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-    else
-    {
-        return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) |
-            ((HandleTableEntry->GrantedAccess & ObpAccessProtectCloseBit) ? OBJ_PROTECT_CLOSE : 0);
-    }
-#else
-    return (HandleTableEntry->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) |
-        ((HandleTableEntry->GrantedAccess & ObpAccessProtectCloseBit) ? OBJ_PROTECT_CLOSE : 0);
-#endif
 }
 
 typedef struct _OBJECT_CREATE_INFORMATION OBJECT_CREATE_INFORMATION, *POBJECT_CREATE_INFORMATION;
@@ -390,6 +327,21 @@ ObDuplicateObject(
     _In_ ULONG Options,
     _In_ KPROCESSOR_MODE PreviousMode
     );
+
+// CM
+
+#if (NTDDI_VERSION < NTDDI_WIN10_FE)
+typedef struct _REG_SAVE_MERGED_KEY_INFORMATION
+{
+    PVOID Object;
+    HANDLE FileHandle;
+    PVOID HighKeyObject;
+    PVOID LowKeyObject;
+    PVOID CallContext;
+    PVOID ObjectContext;
+    PVOID Reserved;
+} REG_SAVE_MERGED_KEY_INFORMATION, *PREG_SAVE_MERGED_KEY_INFORMATION;
+#endif
 
 // LDR
 
@@ -501,7 +453,6 @@ typedef struct _KLDR_DATA_TABLE_ENTRY
     };
     ULONG SizeOfImageNotRounded;
     ULONG TimeDateStamp;
-
 } KLDR_DATA_TABLE_ENTRY, *PKLDR_DATA_TABLE_ENTRY;
 
 // PS
@@ -583,16 +534,6 @@ PsResumeProcess(
     _In_ PEPROCESS Process
     );
 
-typedef
-_Function_class_(PS_GET_THREAD_EXIT_STATUS)
-_IRQL_requires_max_(APC_LEVEL)
-NTSTATUS
-NTAPI
-PS_GET_THREAD_EXIT_STATUS(
-    _In_ PETHREAD Thread
-    );
-typedef PS_GET_THREAD_EXIT_STATUS* PPS_GET_THREAD_EXIT_STATUS;
-
 typedef struct _PS_PROTECTION
 {
     union
@@ -605,7 +546,6 @@ typedef struct _PS_PROTECTION
             UCHAR Signer : 4;
         };
     };
-
 } PS_PROTECTION, *PPS_PROTECTION;
 
 typedef enum _PS_PROTECTED_TYPE
@@ -628,17 +568,16 @@ typedef enum _PS_PROTECTED_SIGNER
     PsProtectedSignerWinSystem,
     PsProtectedSignerApp,
     PsProtectedSignerMax
-
 } PS_PROTECTED_SIGNER, *PPS_PROTECTED_SIGNER;
 
-typedef
-_Function_class_(PS_GET_PROCESS_PROTECTION)
+#if (NTDDI_VERSION >= NTDDI_WIN10)
+NTKERNELAPI
 PS_PROTECTION
 NTAPI
-PS_GET_PROCESS_PROTECTION(
+PsGetProcessProtection(
     _In_ PEPROCESS Process
     );
-typedef PS_GET_PROCESS_PROTECTION* PPS_GET_PROCESS_PROTECTION;
+#endif
 
 typedef
 _Function_class_(PS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX)
@@ -669,25 +608,6 @@ PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2(
     );
 typedef PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2* PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2;
 
-#if (NTDDI_VERSION < NTDDI_WINTHRESHOLD)
-typedef enum _PSCREATETHREADNOTIFYTYPE
-{
-    PsCreateThreadNotifyNonSystem = 0,
-    PsCreateThreadNotifySubsystems = 1
-
-} PSCREATETHREADNOTIFYTYPE;
-#endif
-
-typedef
-_Function_class_(PS_SET_CREATE_THREAD_NOTIFY_ROUTINE_EX)
-NTSTATUS
-NTAPI
-PS_SET_CREATE_THREAD_NOTIFY_ROUTINE_EX(
-    _In_ PSCREATETHREADNOTIFYTYPE NotifyType,
-    _In_ PVOID NotifyInformation
-    );
-typedef PS_SET_CREATE_THREAD_NOTIFY_ROUTINE_EX* PPS_SET_CREATE_THREAD_NOTIFY_ROUTINE_EX;
-
 #ifndef PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE
 #define PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE            0x1
 #endif
@@ -708,7 +628,7 @@ PsGetProcessInheritedFromUniqueProcessId(
     _In_ PEPROCESS Process
     );
 
-#if _WIN64
+#ifdef _WIN64
 
 NTKERNELAPI
 PVOID
@@ -725,6 +645,13 @@ PsGetCurrentProcessWow64Process(
     );
 
 #endif
+
+NTKERNELAPI
+PVOID
+NTAPI
+PsGetThreadTeb(
+    _In_ PETHREAD Thread
+    );
 
 NTKERNELAPI
 BOOLEAN
@@ -748,6 +675,62 @@ ZwSetInformationProcess(
 
 #define ThreadPowerThrottlingState     49
 #define ThreadNameInformation          38
+#define ThreadExplicitCaseSensitivity  43
+
+#if (NTDDI_VERSION >= NTDDI_WIN10)
+extern PLIST_ENTRY PsLoadedModuleList;
+extern PERESOURCE PsLoadedModuleResource;
+#endif
+
+typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
+{
+    PROCESS_MITIGATION_POLICY Policy;
+    union
+    {
+        PROCESS_MITIGATION_ASLR_POLICY ASLRPolicy;
+        PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY StrictHandleCheckPolicy;
+        PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY SystemCallDisablePolicy;
+        PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY ExtensionPointDisablePolicy;
+        PROCESS_MITIGATION_DYNAMIC_CODE_POLICY DynamicCodePolicy;
+        PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY ControlFlowGuardPolicy;
+        PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY SignaturePolicy;
+        PROCESS_MITIGATION_FONT_DISABLE_POLICY FontDisablePolicy;
+        PROCESS_MITIGATION_IMAGE_LOAD_POLICY ImageLoadPolicy;
+        PROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY SystemCallFilterPolicy;
+        PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY PayloadRestrictionPolicy;
+        PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy;
+        PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy;
+        PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy;
+        PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY RedirectionTrustPolicy;
+        PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY UserPointerAuthPolicy;
+        PROCESS_MITIGATION_SEHOP_POLICY SEHOPPolicy;
+    };
+} PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
+
+NTKERNELAPI
+PUCHAR
+NTAPI
+PsGetProcessImageFileName(
+    _In_ PEPROCESS Process
+    );
+
+typedef
+_Function_class_(PS_GET_PROCESS_SEQUENCE_NUMBER)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONGLONG
+PS_GET_PROCESS_SEQUENCE_NUMBER(
+    _In_ PEPROCESS Process
+    );
+typedef PS_GET_PROCESS_SEQUENCE_NUMBER* PPS_GET_PROCESS_SEQUENCE_NUMBER;
+
+typedef
+_Function_class_(PS_GET_PROCESS_START_KEY)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONGLONG
+PS_GET_PROCESS_START_KEY(
+    _In_ PEPROCESS Process
+    );
+typedef PS_GET_PROCESS_START_KEY* PPS_GET_PROCESS_START_KEY;
 
 // RTL
 
@@ -755,17 +738,28 @@ ZwSetInformationProcess(
 #define RTL_MAX_DRIVE_LETTERS 32
 #endif
 
-// Sensible limit that may or may not correspond to the actual Windows value.
-#define MAX_STACK_DEPTH 256
-
 #define RTL_WALK_USER_MODE_STACK 0x00000001
-#define RTL_WALK_VALID_FLAGS 0x00000001
+#define RTL_WALK_VALID_FLAGS     0x00000001
+
+#define RTL_STACK_WALKING_MODE_FRAMES_TO_SKIP_SHIFT 8
 
 NTKERNELAPI
 PIMAGE_NT_HEADERS
 NTAPI
 RtlImageNtHeader(
     _In_ PVOID Base
+    );
+
+#define RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK 0x00000001
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+RtlImageNtHeaderEx(
+    _In_ ULONG Flags,
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PIMAGE_NT_HEADERS* OutHeaders
     );
 
 NTKERNELAPI
@@ -778,40 +772,19 @@ RtlImageDirectoryEntryToData(
     _Out_ PULONG Size
     );
 
-typedef
-_Function_class_(RTL_FIND_EXPORTED_ROUTINE_BY_NAME)
+#if (NTDDI_VERSION >= NTDDI_WIN10)
+NTKERNELAPI
 PVOID
 NTAPI
-RTL_FIND_EXPORTED_ROUTINE_BY_NAME(
+RtlFindExportedRoutineByName(
     _In_ PVOID BaseAddress,
     _In_z_ PCSTR RoutineName
     );
-typedef RTL_FIND_EXPORTED_ROUTINE_BY_NAME* PRTL_FIND_EXPORTED_ROUTINE_BY_NAME;
-
-typedef
-_Function_class_(RTL_IMAGE_NT_HEADER_EX)
-NTSTATUS
-NTAPI
-RTL_IMAGE_NT_HEADER_EX(
-    _In_ ULONG Flags,
-    _In_ PVOID Base,
-    _In_ ULONG64 Size,
-    _Out_ PIMAGE_NT_HEADERS* OutHeaders
-    );
-typedef RTL_IMAGE_NT_HEADER_EX* PRTL_IMAGE_NT_HEADER_EX;
-
-typedef
-_Function_class_(KE_REMOVE_QUEUE_DPC_EX)
-_IRQL_requires_max_(HIGH_LEVEL)
-BOOLEAN
-NTAPI
-KE_REMOVE_QUEUE_DPC_EX(
-    _Inout_ PRKDPC Dpc,
-    _In_ BOOLEAN WaitIfActive
-    );
-typedef KE_REMOVE_QUEUE_DPC_EX* PKE_REMOVE_QUEUE_DPC_EX;
+#endif
 
 // MM
+
+#define SEC_DRIVER_IMAGE 0x00100000
 
 extern POBJECT_TYPE *MmSectionObjectType;
 
@@ -830,10 +803,376 @@ typedef MM_PROTECT_DRIVER_SECTION* PMM_PROTECT_DRIVER_SECTION;
 #define MM_PROTECT_DRIVER_SECTION_VALID_FLAGS \
     (MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD)
 
-// SE
+typedef struct _MMVAD_FLAGS
+{
+    ULONG Lock : 1;
+    ULONG LockContended : 1;
+    ULONG DeleteInProgress : 1;
+    ULONG NoChange : 1;
+    ULONG VadType : 3;
+    ULONG Protection : 5;
+    ULONG PreferredNode : 7;
+    ULONG PageSize : 2;
+    ULONG PrivateMemory : 1;
+} MMVAD_FLAGS, *PMMVAD_FLAGS;
 
-#define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
-#define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)
+typedef struct _MM_PRIVATE_VAD_FLAGS
+{
+    ULONG Lock : 1;
+    ULONG LockContended : 1;
+    ULONG DeleteInProgress : 1;
+    ULONG NoChange : 1;
+    ULONG VadType : 3;
+    ULONG Protection : 5;
+    ULONG PreferredNode : 7;
+    ULONG PageSize : 2;
+    ULONG PrivateMemoryAlwaysSet : 1;
+    ULONG WriteWatch : 1;
+    ULONG FixedLargePageSize : 1;
+    ULONG ZeroFillPagesOptional : 1;
+    ULONG Graphics : 1;
+    ULONG Enclave : 1;
+    ULONG ShadowStack : 1;
+    ULONG PhysicalMemoryPfnsReferenced : 1;
+} MM_PRIVATE_VAD_FLAGS, *PMM_PRIVATE_VAD_FLAGS;
+
+typedef struct _MM_GRAPHICS_VAD_FLAGS
+{
+    ULONG Lock : 1;
+    ULONG LockContended : 1;
+    ULONG DeleteInProgress : 1;
+    ULONG NoChange : 1;
+    ULONG VadType : 3;
+    ULONG Protection : 5;
+    ULONG PreferredNode : 7;
+    ULONG PageSize : 2;
+    ULONG PrivateMemoryAlwaysSet : 1;
+    ULONG WriteWatch : 1;
+    ULONG FixedLargePageSize : 1;
+    ULONG ZeroFillPagesOptional : 1;
+    ULONG GraphicsAlwaysSet : 1;
+    ULONG GraphicsUseCoherentBus : 1;
+    ULONG GraphicsNoCache : 1;
+    ULONG GraphicsPageProtection : 3;
+} MM_GRAPHICS_VAD_FLAGS, *PMM_GRAPHICS_VAD_FLAGS;
+
+typedef struct _MM_SHARED_VAD_FLAGS
+{
+    ULONG Lock : 1;
+    ULONG LockContended : 1;
+    ULONG DeleteInProgress : 1;
+    ULONG NoChange : 1;
+    ULONG VadType : 3;
+    ULONG Protection : 5;
+    ULONG PreferredNode : 7;
+    ULONG PageSize : 2;
+    ULONG PrivateMemoryAlwaysClear : 1;
+    ULONG PrivateFixup : 1;
+    ULONG HotPatchState : 2;
+} MM_SHARED_VAD_FLAGS, *PMM_SHARED_VAD_FLAGS;
+
+typedef struct _MMVAD_FLAGS1
+{
+    ULONG CommitCharge : 31;
+    ULONG MemCommit : 1;
+}MMVAD_FLAGS1, *PMMVAD_FLAGS1;
+
+typedef struct _MMVAD_SHORT
+{
+    union
+    {
+        struct
+        {
+            struct _MMVAD_SHORT* NextVad;
+            PVOID ExtraCreateInfo;
+        };
+        RTL_BALANCED_NODE VadNode;
+    };
+    ULONG StartingVpn;
+    ULONG EndingVpn;
+#ifdef _WIN64
+    UCHAR StartingVpnHigh;
+    UCHAR EndingVpnHigh;
+    UCHAR CommitChargeHigh;
+    union
+    {
+        UCHAR SpareNT64VadUChar;
+        struct // LA57
+        {
+            UCHAR EndingVpnHigher : 4;
+            UCHAR CommitChargeHigher : 4;
+        };
+    };
+#endif
+    LONG ReferenceCount;
+    EX_PUSH_LOCK PushLock;
+    union
+    {
+        ULONG LongFlags;
+        MMVAD_FLAGS VadFlags;
+        MM_PRIVATE_VAD_FLAGS PrivateVadFlags;
+        MM_GRAPHICS_VAD_FLAGS GraphicsVadFlags;
+        MM_SHARED_VAD_FLAGS SharedVadFlags;
+        volatile ULONG VolatileVadLong;
+    } u;
+    union
+    {
+        ULONG LongFlags1;
+        MMVAD_FLAGS1 VadFlags1;
+    } u1;
+#ifdef _WIN64
+    union
+    {
+        ULONG_PTR EventListULongPtr;
+        UCHAR StartingVpnHigher : 4; // LA57
+    } u5;
+#else
+    PVOID EventList; // PMI_VAD_EVENT_BLOCK
+#endif
+} MMVAD_SHORT, *PMMVAD_SHORT;
+
+FORCEINLINE
+PVOID
+MiGetVadShortStartAddress(
+    _In_ PMMVAD_SHORT Vad
+    )
+{
+#ifdef _WIN64
+    ULONG_PTR higher = Vad->u5.StartingVpnHigher;
+    ULONG_PTR high = Vad->StartingVpnHigh;
+    ULONG_PTR low = Vad->StartingVpn;
+    return (PVOID)((low | ((high | (higher << 8)) << 32)) << PAGE_SHIFT);
+#else
+    return (PVOID)((ULONG_PTR)Vad->StartingVpn << PAGE_SHIFT);
+#endif
+}
+
+FORCEINLINE
+PVOID
+MiGetVadShortEndAddress(
+    _In_ PMMVAD_SHORT Vad
+    )
+{
+#ifdef _WIN64
+    ULONG_PTR higher = Vad->EndingVpnHigher;
+    ULONG_PTR high = Vad->EndingVpnHigh;
+    ULONG_PTR low = Vad->EndingVpn;
+    return (PVOID)(((low + 1) | ((high | (higher << 8)) << 32)) << PAGE_SHIFT);
+#else
+    return (PVOID)(((ULONG_PTR)Vad->StartingVpn + 1) << PAGE_SHIFT);
+#endif
+}
+
+typedef struct _MMVAD_FLAGS2
+{
+    ULONG FileOffset : 24;
+    ULONG Large : 1;
+    ULONG TrimBehind : 1;
+    ULONG Inherit : 1;
+    ULONG NoValidationNeeded : 1;
+    ULONG PrivateDemandZero : 1;
+    ULONG Spare : 3;
+} MMVAD_FLAGS2, *PMMVAD_FLAGS2;
+
+typedef struct _MI_VAD_SEQUENTIAL_INFO
+{
+    ULONGLONG Length : 12;
+    ULONGLONG Vpn : 52;
+} MI_VAD_SEQUENTIAL_INFO, *PMI_VAD_SEQUENTIAL_INFO;
+
+typedef struct _MMEXTEND_INFO
+{
+    ULONGLONG CommittedSize;
+    ULONG ReferenceCount;
+} MMEXTEND_INFO, *PMMEXTEND_INFO;
+
+typedef struct _MMPTE_HIGHLOW
+{
+    ULONG LowPart;
+    ULONG HighPart;
+} MMPTE_HIGHLOW, *PMMPTE_HIGHLOW;
+
+typedef struct _MMPTE_HARDWARE
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG Dirty1 : 1;
+    ULONGLONG Owner : 1;
+    ULONGLONG WriteThrough : 1;
+    ULONGLONG CacheDisable : 1;
+    ULONGLONG Accessed : 1;
+    ULONGLONG Dirty : 1;
+    ULONGLONG LargePage : 1;
+    ULONGLONG Global : 1;
+    ULONGLONG CopyOnWrite : 1;
+    ULONGLONG Unused : 1;
+    ULONGLONG Write : 1;
+    ULONGLONG PageFrameNumber : 40;
+    ULONGLONG ReservedForSoftware : 4;
+    ULONGLONG WsleAge : 4;
+    ULONGLONG WsleProtection : 3;
+    ULONGLONG NoExecute : 1;
+} MMPTE_HARDWARE, *PMMPTE_HARDWARE;
+
+typedef struct _MMPTE_PROTOTYPE
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG DemandFillProto : 1;
+    ULONGLONG HiberVerifyConverted : 1;
+    ULONGLONG ReadOnly : 1;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Combined : 1;
+    ULONGLONG Unused1 : 4;
+    LONGLONG ProtoAddress : 48;
+} MMPTE_PROTOTYPE, * PMMPTE_PROTOTYPE;
+
+typedef struct _MMPTE_SOFTWARE
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG PageFileReserved : 1;
+    ULONGLONG PageFileAllocated : 1;
+    ULONGLONG ColdPage : 1;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Transition : 1;
+    ULONGLONG PageFileLow : 4;
+    ULONGLONG UsedPageTableEntries : 10;
+    ULONGLONG ShadowStack : 1;
+    ULONGLONG OnStandbyLookaside : 1;
+    ULONGLONG Unused : 4;
+    ULONGLONG PageFileHigh : 32;
+} MMPTE_SOFTWARE, * PMMPTE_SOFTWARE;
+
+typedef struct _MMPTE_TIMESTAMP
+{
+    ULONGLONG MustBeZero : 1;
+    ULONGLONG Unused : 3;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Transition : 1;
+    ULONGLONG PageFileLow : 4;
+    ULONGLONG Reserved : 16;
+    ULONGLONG GlobalTimeStamp : 32;
+} MMPTE_TIMESTAMP, *PMMPTE_TIMESTAMP;
+
+typedef struct _MMPTE_TRANSITION
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG Write : 1;
+    ULONGLONG OnStandbyLookaside : 1;
+    ULONGLONG IoTracker : 1;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Transition : 1;
+    ULONGLONG PageFrameNumber : 40;
+    ULONGLONG Unused : 12;
+} MMPTE_TRANSITION, *PMMPTE_TRANSITION;
+
+typedef struct _MMPTE_SUBSECTION
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG Unused0 : 2;
+    ULONGLONG OnStandbyLookaside : 1;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG ColdPage : 1;
+    ULONGLONG Unused2 : 3;
+    ULONGLONG ExecutePrivilege : 1;
+    LONGLONG SubsectionAddress : 48;
+} MMPTE_SUBSECTION, * PMMPTE_SUBSECTION;
+
+typedef struct _MMPTE_LIST
+{
+    ULONGLONG Valid : 1;
+    ULONGLONG OneEntry : 1;
+    ULONGLONG filler0 : 2;
+    ULONGLONG SwizzleBit : 1;
+    ULONGLONG Protection : 5;
+    ULONGLONG Prototype : 1;
+    ULONGLONG Transition : 1;
+    ULONGLONG filler1 : 16;
+    ULONGLONG NextEntry : 36;
+} MMPTE_LIST, *PMMPTE_LIST;
+
+typedef struct _MMPTE
+{
+    union
+    {
+        ULONGLONG Long;
+        volatile ULONGLONG VolatileLong;
+#ifndef _WIN64
+        MMPTE_HIGHLOW HighLow;
+#endif
+        MMPTE_HARDWARE Hard;
+        MMPTE_PROTOTYPE Proto;
+        MMPTE_SOFTWARE Soft;
+        MMPTE_TIMESTAMP TimeStamp;
+        MMPTE_TRANSITION Trans;
+        MMPTE_SUBSECTION Subsect;
+        MMPTE_LIST List;
+    } u;
+} MMPTE, *PMMPTE;
+
+typedef struct _MMVAD
+{
+    struct _MMVAD_SHORT Core;
+    union
+    {
+        ULONG LongFlags2;
+        MMVAD_FLAGS2 VadFlags2;
+    } u2;
+    PVOID Subsection; // PSUBSECTION
+    PMMPTE FirstPrototypePte;
+    PMMPTE LastContiguousPte;
+    LIST_ENTRY ViewLinks;
+    union
+    {
+        PEPROCESS VadsProcess;
+        UCHAR ViewMapType : 3; // VIEW_MAP_TYPE_*
+    };
+    union
+    {
+        MI_VAD_SEQUENTIAL_INFO SequentialVa;
+        PMMEXTEND_INFO ExtendedInfo;
+    } u4;
+    PFILE_OBJECT FileObject; // since WIN10
+} MMVAD, *PMMVAD;
+
+FORCEINLINE
+PVOID
+MiGetVadStartAddress(
+    _In_ PMMVAD Vad
+    )
+{
+    return MiGetVadShortStartAddress(&Vad->Core);
+}
+
+FORCEINLINE
+PVOID
+MiGetVadEndAddress(
+    _In_ PMMVAD Vad
+    )
+{
+    return MiGetVadShortEndAddress(&Vad->Core);
+}
+
+NTKERNELAPI
+NTSTATUS
+MmCreateSection(
+    _Out_ PVOID* SectionObject,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PLARGE_INTEGER MaximumSize,
+    _In_ ULONG SectionPageProtection,
+    _In_ ULONG AllocationAttributes,
+    _In_opt_ HANDLE FileHandle,
+    _In_opt_ PFILE_OBJECT FileObject
+    );
 
 // CI
 
@@ -997,7 +1336,6 @@ typedef enum _MINCRYPT_KNOWN_ROOT
     MincryptRootMicrosoftECCDevelopmentRoot2018,
     MincryptRootMicrosoftECCProduct2018,
     MincryptRootMicrosoftECCProduct2017
-
 } MINCRYPT_KNOWN_ROOT;
 
 typedef struct _MINCRYPT_STRING
@@ -1006,7 +1344,6 @@ typedef struct _MINCRYPT_STRING
     USHORT Length;
     UCHAR Asn1EncodingTag;
     UCHAR Spare[1];
-
 } MINCRYPT_STRING, *PMINCRYPT_STRING;
 
 typedef struct _MINCRYPT_CHAIN_ELEMENT
@@ -1017,7 +1354,6 @@ typedef struct _MINCRYPT_CHAIN_ELEMENT
     MINCRYPT_STRING Subject;
     MINCRYPT_STRING Issuer;
     CRYPT_DER_BLOB Certificate;
-
 } MINCRYPT_CHAIN_ELEMENT, *PMINCRYPT_CHAIN_ELEMENT;
 
 typedef struct _MINCRYPT_CHAIN_INFO
@@ -1035,7 +1371,6 @@ typedef struct _MINCRYPT_CHAIN_INFO
     MINCRYPT_KNOWN_ROOT KnownRoot;
     CRYPT_ATTR_BLOB AuthenticodeAttributes;
     UCHAR PlatformManifest[MINCRYPT_SHA256_HASH_LEN];
-
 } MINCRYPT_CHAIN_INFO, *PMINCRYPT_CHAIN_INFO;
 
 typedef struct _MINCRYPT_POLICY_INFO
@@ -1053,9 +1388,10 @@ typedef struct _MINCRYPT_POLICY_INFO
 
     LARGE_INTEGER ValidFromTime;
     LARGE_INTEGER ValidToTime;
-
 } MINCRYPT_POLICY_INFO, *PMINCRYPT_POLICY_INFO;
 
+// rev
+// CiFreePolicyInfo
 typedef
 _Function_class_(CI_FREE_POLICY_INFO)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1066,6 +1402,8 @@ CI_FREE_POLICY_INFO(
     );
 typedef CI_FREE_POLICY_INFO* PCI_FREE_POLICY_INFO;
 
+// rev
+// CiCheckSignedFile (pre 6.1.7601.18519)
 typedef
 _Function_class_(CI_CHECK_SIGNED_FILE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1082,6 +1420,8 @@ CI_CHECK_SIGNED_FILE(
     );
 typedef CI_CHECK_SIGNED_FILE* PCI_CHECK_SIGNED_FILE;
 
+// rev
+// CiCheckSignedFile
 typedef
 _Function_class_(CI_CHECK_SIGNED_FILE_EX)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1100,6 +1440,8 @@ CI_CHECK_SIGNED_FILE_EX(
     );
 typedef CI_CHECK_SIGNED_FILE_EX* PCI_CHECK_SIGNED_FILE_EX;
 
+// rev
+// CiVerifyHashInCatalog (pre 6.1.7601.18519)
 typedef
 _Function_class_(CI_VERIFY_HASH_IN_CATALOG)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1118,6 +1460,8 @@ CI_VERIFY_HASH_IN_CATALOG(
     );
 typedef CI_VERIFY_HASH_IN_CATALOG* PCI_VERIFY_HASH_IN_CATALOG;
 
+// rev
+// CiVerifyHashInCatalog
 typedef
 _Function_class_(CI_VERIFY_HASH_IN_CATALOG_EX)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1138,13 +1482,67 @@ CI_VERIFY_HASH_IN_CATALOG_EX(
     );
 typedef CI_VERIFY_HASH_IN_CATALOG_EX* PCI_VERIFY_HASH_IN_CATALOG_EX;
 
+// rev
+#define CI_POLICY_VALID_FLAGS                        0x1BE00078ul
+#define CI_POLICY_DEFAULT                            0x00000000ul
+#define CI_POLICY_REQUIRE_MICROSOFT                  0x00000001ul // ? legacy
+#define CI_POLICY_REQUIRE_SIGNED                     0x00000002ul // ? legacy
+#define CI_POLICY_ALLOW_UNSIGNED                     0x00000004ul // ? legacy
+#define CI_POLICY_REJECT_UNSIGNED                    0x80000000ul // ? legacy
+#define CI_POLICY_CHECK_PROTECTED_PROCESS_EKU        0x00000008ul
+#define CI_POLICY_FORCE_PROTECTED_PROCESS_POLICY     0x00000010ul
+#define CI_POLICY_ACCEPT_ANY_ROOT_CERTIFICATE        0x00000020ul
+#define CI_POLICY_ALLOW_REVOKED_CERTIFICATE          0x00800000ul
+#define CI_POLICY_ALLOW_EXPIRED_REVOKED_CERTIFICATE  0x08000000ul
+
+// rev
+// CiValidateFileObject
+typedef
+_Function_class_(CI_VALIDATE_FILE_OBJECT)
+NTSTATUS
+NTAPI
+CI_VALIDATE_FILE_OBJECT(
+    _In_ PFILE_OBJECT FileObject,
+    _In_ ULONG PolicyFlags,
+    _In_ SE_SIGNING_LEVEL LevelCheck,
+    _Inout_ PMINCRYPT_POLICY_INFO PolicyInfo,
+    _Inout_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo,
+    _Out_ PLARGE_INTEGER SigningTime,
+    _Out_writes_bytes_to_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
+    _Inout_ PULONG ThumbprintSize,
+    _Out_ PULONG ThumbprintAlgorithm
+    );
+typedef CI_VALIDATE_FILE_OBJECT* PCI_VALIDATE_FILE_OBJECT;
+
+// rev
+typedef _Function_class_(CI_ALLOCATE_ROUTINE)
+PVOID
+NTAPI
+CI_ALLOCATE_ROUTINE(
+    _In_ ULONG NumberOfBytes
+    );
+typedef CI_ALLOCATE_ROUTINE* PCI_ALLOCATE_ROUTINE;
+
+// rev
+// CiGetCertPublisherName
+typedef
+_Function_class_(CI_GET_CERT_PUBLISHER_NAME)
+NTSTATUS
+NTAPI
+CI_GET_CERT_PUBLISHER_NAME(
+    _In_ PCRYPT_DER_BLOB Certificate, // MINCRYPT_POLICY_INFO.ChainInfo.ChainElements.Certificate
+    _In_ PCI_ALLOCATE_ROUTINE AllocateRoutine,
+    _Out_ PUNICODE_STRING PublisherName
+    );
+typedef CI_GET_CERT_PUBLISHER_NAME* PCI_GET_CERT_PUBLISHER_NAME;
+
 // alpc
 
 extern POBJECT_TYPE *LpcPortObjectType;
 #define AlpcPortObjectType LpcPortObjectType
 
 #define PORT_CONNECT 0x0001
-#define PORT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1)
+#define PORT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | PORT_CONNECT)
 
 typedef struct _PORT_MESSAGE
 {
@@ -1231,8 +1629,476 @@ ZwAlpcConnectPort(
     _In_ ULONG Flags,
     _In_opt_ PSID RequiredServerSid,
     _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
-    _Inout_opt_ PULONG BufferLength,
+    _Inout_opt_ PSIZE_T BufferLength,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
     _In_opt_ PLARGE_INTEGER Timeout
     );
+
+// LXCORE
+
+typedef
+_Function_class_(LXP_PROCESS_GET_CURRENT)
+_Must_inspect_result_
+BOOLEAN
+NTAPI
+LXP_PROCESS_GET_CURRENT(
+    _Out_ PVOID* Thread
+    );
+typedef LXP_PROCESS_GET_CURRENT* PLXP_PROCESS_GET_CURRENT;
+
+typedef
+_Function_class_(LXP_THREAD_GET_CURRENT)
+_Must_inspect_result_
+BOOLEAN
+NTAPI
+LXP_THREAD_GET_CURRENT(
+    _Out_ PVOID* Thread
+    );
+typedef LXP_THREAD_GET_CURRENT* PLXP_THREAD_GET_CURRENT;
+
+// CFG
+
+//
+// Define flags for setting process CFG valid call target entries.
+//
+
+//
+// Call target should be made valid.  If not set, the call target is made
+// invalid.  Input flag.
+//
+
+#define CFG_CALL_TARGET_VALID                               (0x00000001)
+
+//
+// Call target has been successfully processed.  Used to report to the caller
+// how much progress has been made.  Output flag.
+//
+
+#define CFG_CALL_TARGET_PROCESSED                           (0x00000002)
+
+//
+// Call target should be made valid only if it is suppressed export.
+// What this flag means is that it can *only* be used on a cell which is
+// currently in the CFG export suppressed state (only considered for export
+// suppressed processes and not legacy CFG processes!), and it is also
+// allowed to be used even if the process is a restricted (i.e. no ACG) process.
+//
+
+#define CFG_CALL_TARGET_CONVERT_EXPORT_SUPPRESSED_TO_VALID  (0x00000004)
+
+//
+// Call target should be made into an XFG call target.
+//
+
+#define CFG_CALL_TARGET_VALID_XFG                           (0x00000008)
+
+//
+// Call target should be made valid only if it is already an XFG target
+// in a process which has XFG audit mode enabled.
+//
+
+#define CFG_CALL_TARGET_CONVERT_XFG_TO_CFG                  (0x00000010)
+
+typedef struct _CFG_CALL_TARGET_INFO {
+    ULONG_PTR Offset;
+    ULONG_PTR Flags;
+} CFG_CALL_TARGET_INFO, *PCFG_CALL_TARGET_INFO;
+
+typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
+{
+    ULONG NumberOfEntries;
+    ULONG Reserved;
+    PULONG NumberOfEntriesProcessed;
+    PCFG_CALL_TARGET_INFO CallTargetInfo;
+    PVOID Section; // since REDSTONE5
+    ULONGLONG FileOffset;
+} CFG_CALL_TARGET_LIST_INFORMATION, *PCFG_CALL_TARGET_LIST_INFORMATION;
+
+// SE
+
+#define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
+#define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)
+
+#if (NTDDI_VERSION >= NTDDI_WINBLUE)
+NTKERNELAPI
+NTSTATUS
+NTAPI
+SeGetCachedSigningLevel(
+    _In_ PFILE_OBJECT FileObject,
+    _Out_ PULONG Flags,
+    _Out_ PSE_SIGNING_LEVEL SigningLevel,
+    _Out_writes_bytes_to_opt_(*ThumbprintSize, *ThumbprintSize) PUCHAR Thumbprint,
+    _Inout_opt_ PULONG ThumbprintSize,
+    _Out_opt_ PULONG ThumbprintAlgorithm
+    );
+#endif
+
+// schannel.h
+
+#define UNISP_NAME_A    "Microsoft Unified Security Protocol Provider"
+#define UNISP_NAME_W    L"Microsoft Unified Security Protocol Provider"
+
+#define SSL2SP_NAME_A    "Microsoft SSL 2.0"
+#define SSL2SP_NAME_W    L"Microsoft SSL 2.0"
+
+#define SSL3SP_NAME_A    "Microsoft SSL 3.0"
+#define SSL3SP_NAME_W    L"Microsoft SSL 3.0"
+
+#define TLS1SP_NAME_A    "Microsoft TLS 1.0"
+#define TLS1SP_NAME_W    L"Microsoft TLS 1.0"
+
+#define PCT1SP_NAME_A    "Microsoft PCT 1.0"
+#define PCT1SP_NAME_W    L"Microsoft PCT 1.0"
+
+#define SCHANNEL_NAME_A  "Schannel"
+#define SCHANNEL_NAME_W  L"Schannel"
+
+#define DEFAULT_TLS_SSP_NAME_A  "Default TLS SSP"
+#define DEFAULT_TLS_SSP_NAME_W  L"Default TLS SSP"
+
+#ifdef UNICODE
+
+#define UNISP_NAME  UNISP_NAME_W
+#define PCT1SP_NAME  PCT1SP_NAME_W
+#define SSL2SP_NAME  SSL2SP_NAME_W
+#define SSL3SP_NAME  SSL3SP_NAME_W
+#define TLS1SP_NAME  TLS1SP_NAME_W
+#define SCHANNEL_NAME  SCHANNEL_NAME_W
+#define DEFAULT_TLS_SSP_NAME  DEFAULT_TLS_SSP_NAME_W
+
+#else
+
+#define UNISP_NAME  UNISP_NAME_A
+#define PCT1SP_NAME  PCT1SP_NAME_A
+#define SSL2SP_NAME  SSL2SP_NAME_A
+#define SSL3SP_NAME  SSL3SP_NAME_A
+#define TLS1SP_NAME  TLS1SP_NAME_A
+#define SCHANNEL_NAME  SCHANNEL_NAME_A
+#define DEFAULT_TLS_SSP_NAME  DEFAULT_TLS_SSP_NAME_A
+
+#endif
+
+#define SP_PROT_PCT1_SERVER             0x00000001
+#define SP_PROT_PCT1_CLIENT             0x00000002
+#define SP_PROT_PCT1                    (SP_PROT_PCT1_SERVER | SP_PROT_PCT1_CLIENT)
+
+#define SP_PROT_SSL2_SERVER             0x00000004
+#define SP_PROT_SSL2_CLIENT             0x00000008
+#define SP_PROT_SSL2                    (SP_PROT_SSL2_SERVER | SP_PROT_SSL2_CLIENT)
+
+#define SP_PROT_SSL3_SERVER             0x00000010
+#define SP_PROT_SSL3_CLIENT             0x00000020
+#define SP_PROT_SSL3                    (SP_PROT_SSL3_SERVER | SP_PROT_SSL3_CLIENT)
+
+#define SP_PROT_TLS1_SERVER             0x00000040
+#define SP_PROT_TLS1_CLIENT             0x00000080
+#define SP_PROT_TLS1                    (SP_PROT_TLS1_SERVER | SP_PROT_TLS1_CLIENT)
+
+#define SP_PROT_SSL3TLS1_CLIENTS        (SP_PROT_TLS1_CLIENT | SP_PROT_SSL3_CLIENT)
+#define SP_PROT_SSL3TLS1_SERVERS        (SP_PROT_TLS1_SERVER | SP_PROT_SSL3_SERVER)
+#define SP_PROT_SSL3TLS1                (SP_PROT_SSL3 | SP_PROT_TLS1)
+
+#define SP_PROT_UNI_SERVER              0x40000000
+#define SP_PROT_UNI_CLIENT              0x80000000
+#define SP_PROT_UNI                     (SP_PROT_UNI_SERVER | SP_PROT_UNI_CLIENT)
+
+#define SP_PROT_ALL                     0xffffffff
+#define SP_PROT_NONE                    0
+#define SP_PROT_CLIENTS                 (SP_PROT_PCT1_CLIENT | SP_PROT_SSL2_CLIENT | SP_PROT_SSL3_CLIENT | SP_PROT_UNI_CLIENT | SP_PROT_TLS1_CLIENT)
+#define SP_PROT_SERVERS                 (SP_PROT_PCT1_SERVER | SP_PROT_SSL2_SERVER | SP_PROT_SSL3_SERVER | SP_PROT_UNI_SERVER | SP_PROT_TLS1_SERVER)
+
+
+#define SP_PROT_TLS1_0_SERVER           SP_PROT_TLS1_SERVER
+#define SP_PROT_TLS1_0_CLIENT           SP_PROT_TLS1_CLIENT
+#define SP_PROT_TLS1_0                  (SP_PROT_TLS1_0_SERVER | \
+                                         SP_PROT_TLS1_0_CLIENT)
+
+#define SP_PROT_TLS1_1_SERVER           0x00000100
+#define SP_PROT_TLS1_1_CLIENT           0x00000200
+#define SP_PROT_TLS1_1                  (SP_PROT_TLS1_1_SERVER | \
+                                         SP_PROT_TLS1_1_CLIENT)
+
+#define SP_PROT_TLS1_2_SERVER           0x00000400
+#define SP_PROT_TLS1_2_CLIENT           0x00000800
+#define SP_PROT_TLS1_2                  (SP_PROT_TLS1_2_SERVER | \
+                                         SP_PROT_TLS1_2_CLIENT)
+
+#define SP_PROT_TLS1_3_SERVER           0x00001000
+#define SP_PROT_TLS1_3_CLIENT           0x00002000
+#define SP_PROT_TLS1_3                  (SP_PROT_TLS1_3_SERVER | \
+                                         SP_PROT_TLS1_3_CLIENT)
+
+#define SP_PROT_DTLS_SERVER             0x00010000
+#define SP_PROT_DTLS_CLIENT             0x00020000
+#define SP_PROT_DTLS                    (SP_PROT_DTLS_SERVER | \
+                                         SP_PROT_DTLS_CLIENT)
+
+#define SP_PROT_DTLS1_0_SERVER          SP_PROT_DTLS_SERVER
+#define SP_PROT_DTLS1_0_CLIENT          SP_PROT_DTLS_CLIENT
+#define SP_PROT_DTLS1_0                 (SP_PROT_DTLS1_0_SERVER | SP_PROT_DTLS1_0_CLIENT)
+
+#define SP_PROT_DTLS1_2_SERVER          0x00040000
+#define SP_PROT_DTLS1_2_CLIENT          0x00080000
+#define SP_PROT_DTLS1_2                 (SP_PROT_DTLS1_2_SERVER | SP_PROT_DTLS1_2_CLIENT)
+
+#define SP_PROT_DTLS1_X_SERVER          (SP_PROT_DTLS1_0_SERVER | \
+                                         SP_PROT_DTLS1_2_SERVER)
+
+#define SP_PROT_DTLS1_X_CLIENT          (SP_PROT_DTLS1_0_CLIENT | \
+                                         SP_PROT_DTLS1_2_CLIENT)
+
+#define SP_PROT_DTLS1_X                 (SP_PROT_DTLS1_X_SERVER | \
+                                         SP_PROT_DTLS1_X_CLIENT)
+
+#define SP_PROT_TLS1_1PLUS_SERVER       (SP_PROT_TLS1_1_SERVER | \
+                                         SP_PROT_TLS1_2_SERVER | \
+                                         SP_PROT_TLS1_3_SERVER)
+#define SP_PROT_TLS1_1PLUS_CLIENT       (SP_PROT_TLS1_1_CLIENT | \
+                                         SP_PROT_TLS1_2_CLIENT | \
+                                         SP_PROT_TLS1_3_CLIENT)
+
+#define SP_PROT_TLS1_1PLUS              (SP_PROT_TLS1_1PLUS_SERVER | \
+                                         SP_PROT_TLS1_1PLUS_CLIENT)
+
+#define SP_PROT_TLS1_3PLUS_SERVER       SP_PROT_TLS1_3_SERVER
+#define SP_PROT_TLS1_3PLUS_CLIENT       SP_PROT_TLS1_3_CLIENT
+#define SP_PROT_TLS1_3PLUS              (SP_PROT_TLS1_3PLUS_SERVER | \
+                                         SP_PROT_TLS1_3PLUS_CLIENT)
+
+#define SP_PROT_TLS1_X_SERVER           (SP_PROT_TLS1_0_SERVER | \
+                                         SP_PROT_TLS1_1_SERVER | \
+                                         SP_PROT_TLS1_2_SERVER | \
+                                         SP_PROT_TLS1_3_SERVER)
+#define SP_PROT_TLS1_X_CLIENT           (SP_PROT_TLS1_0_CLIENT | \
+                                         SP_PROT_TLS1_1_CLIENT | \
+                                         SP_PROT_TLS1_2_CLIENT | \
+                                         SP_PROT_TLS1_3_CLIENT)
+#define SP_PROT_TLS1_X                  (SP_PROT_TLS1_X_SERVER | \
+                                         SP_PROT_TLS1_X_CLIENT)
+
+#define SP_PROT_SSL3TLS1_X_CLIENTS      (SP_PROT_TLS1_X_CLIENT | \
+                                         SP_PROT_SSL3_CLIENT)
+#define SP_PROT_SSL3TLS1_X_SERVERS      (SP_PROT_TLS1_X_SERVER | \
+                                         SP_PROT_SSL3_SERVER)
+#define SP_PROT_SSL3TLS1_X              (SP_PROT_SSL3 | SP_PROT_TLS1_X)
+
+#define SP_PROT_X_CLIENTS               (SP_PROT_CLIENTS | \
+                                         SP_PROT_TLS1_X_CLIENT | \
+                                         SP_PROT_DTLS1_X_CLIENT)
+#define SP_PROT_X_SERVERS               (SP_PROT_SERVERS | \
+                                         SP_PROT_TLS1_X_SERVER | \
+                                         SP_PROT_DTLS1_X_SERVER)
+
+#define SCH_CRED_NO_SYSTEM_MAPPER                    0x00000002
+#define SCH_CRED_NO_SERVERNAME_CHECK                 0x00000004
+#define SCH_CRED_MANUAL_CRED_VALIDATION              0x00000008
+#define SCH_CRED_NO_DEFAULT_CREDS                    0x00000010
+#define SCH_CRED_AUTO_CRED_VALIDATION                0x00000020
+#define SCH_CRED_USE_DEFAULT_CREDS                   0x00000040
+#define SCH_CRED_DISABLE_RECONNECTS                  0x00000080
+
+#define SCH_CRED_REVOCATION_CHECK_END_CERT           0x00000100
+#define SCH_CRED_REVOCATION_CHECK_CHAIN              0x00000200
+#define SCH_CRED_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 0x00000400
+#define SCH_CRED_IGNORE_NO_REVOCATION_CHECK          0x00000800
+#define SCH_CRED_IGNORE_REVOCATION_OFFLINE           0x00001000
+
+#define SCH_CRED_RESTRICTED_ROOTS                    0x00002000
+#define SCH_CRED_REVOCATION_CHECK_CACHE_ONLY         0x00004000
+#define SCH_CRED_CACHE_ONLY_URL_RETRIEVAL            0x00008000
+
+#define SCH_CRED_MEMORY_STORE_CERT                   0x00010000
+
+#define SCH_CRED_CACHE_ONLY_URL_RETRIEVAL_ON_CREATE  0x00020000
+
+#define SCH_SEND_ROOT_CERT                           0x00040000
+#define SCH_CRED_SNI_CREDENTIAL                      0x00080000
+#define SCH_CRED_SNI_ENABLE_OCSP                     0x00100000
+#define SCH_SEND_AUX_RECORD                          0x00200000
+#define SCH_USE_STRONG_CRYPTO                        0x00400000
+#define SCH_USE_PRESHAREDKEY_ONLY                    0x00800000
+#define SCH_USE_DTLS_ONLY                            0x01000000
+#define SCH_ALLOW_NULL_ENCRYPTION                    0x02000000
+
+#define SCHANNEL_RENEGOTIATE    0   // renegotiate a connection
+#define SCHANNEL_SHUTDOWN       1   // gracefully close down a connection
+#define SCHANNEL_ALERT          2   // build an error message
+#define SCHANNEL_SESSION        3   // session control
+
+#define SCH_CRED_V1              0x00000001
+#define SCH_CRED_V2              0x00000002  // for legacy code
+#define SCH_CRED_VERSION         0x00000002  // for legacy code
+#define SCH_CRED_V3              0x00000003  // for legacy code
+#define SCHANNEL_CRED_VERSION    0x00000004  // for legacy code
+#define SCH_CREDENTIALS_VERSION  0x00000005
+
+typedef struct _SCHANNEL_CRED
+{
+    DWORD           dwVersion;      // always SCHANNEL_CRED_VERSION
+    DWORD           cCreds;
+    //PCCERT_CONTEXT *paCred;
+    PVOID           paCred;
+    //HCERTSTORE      hRootStore;
+    PVOID           hRootStore;
+
+    DWORD           cMappers;
+    struct _HMAPPER **aphMappers;
+
+    DWORD           cSupportedAlgs;
+    ALG_ID *        palgSupportedAlgs;
+
+    DWORD           grbitEnabledProtocols;
+    DWORD           dwMinimumCipherStrength;
+    DWORD           dwMaximumCipherStrength;
+    DWORD           dwSessionLifespan;
+    DWORD           dwFlags;
+    DWORD           dwCredFormat;
+} SCHANNEL_CRED, *PSCHANNEL_CRED;
+
+typedef enum _eTlsAlgorithmUsage
+{
+    TlsParametersCngAlgUsageKeyExchange,          // Key exchange algorithm. RSA, ECHDE, DHE, etc.
+    TlsParametersCngAlgUsageSignature,            // Signature algorithm. RSA, DSA, ECDSA, etc.
+    TlsParametersCngAlgUsageCipher,               // Encryption algorithm. AES, DES, RC4, etc.
+    TlsParametersCngAlgUsageDigest,               // Digest of cipher suite. SHA1, SHA256, SHA384, etc.
+    TlsParametersCngAlgUsageCertSig               // Signature and/or hash used to sign certificate. RSA, DSA, ECDSA, SHA1, SHA256, etc.
+} eTlsAlgorithmUsage;
+
+//
+// SCH_CREDENTIALS structures
+//
+typedef struct _CRYPTO_SETTINGS
+{
+    eTlsAlgorithmUsage  eAlgorithmUsage;         // How this algorithm is being used.
+    UNICODE_STRING      strCngAlgId;             // CNG algorithm identifier.
+    DWORD               cChainingModes;          // Set to 0 if CNG algorithm does not have a chaining mode.
+    PUNICODE_STRING     rgstrChainingModes;      // Set to NULL if CNG algorithm does not have a chaining mode.
+    DWORD               dwMinBitLength;          // Blacklist key sizes less than this. Set to 0 if not defined or CNG algorithm implies bit length.
+    DWORD               dwMaxBitLength;          // Blacklist key sizes greater than this. Set to 0 if not defined or CNG algorithm implies bit length.
+} CRYPTO_SETTINGS, *PCRYPTO_SETTINGS;
+
+typedef struct _TLS_PARAMETERS
+{
+    DWORD               cAlpnIds;                // Valid for server applications only. Must be zero otherwise. Number of ALPN IDs in rgstrAlpnIds; set to 0 if applies to all.
+    PUNICODE_STRING     rgstrAlpnIds;            // Valid for server applications only. Must be NULL otherwise. Array of ALPN IDs that the following settings apply to; set to NULL if applies to all.
+    DWORD               grbitDisabledProtocols;  // List protocols you DO NOT want negotiated.
+    DWORD               cDisabledCrypto;         // Number of CRYPTO_SETTINGS structures; set to 0 if there are none.
+    PCRYPTO_SETTINGS    pDisabledCrypto;         // Array of CRYPTO_SETTINGS structures; set to NULL if there are none;
+    DWORD               dwFlags;                 // Optional flags to pass; set to 0 if there are none.
+} TLS_PARAMETERS, *PTLS_PARAMETERS;
+
+#define TLS_PARAMS_OPTIONAL 0x00000001           // Valid for server applications only. Must be zero otherwise.
+                                                 // TLS_PARAMETERS that will only be honored if they do not cause this server to terminate the handshake.
+
+typedef struct _SCH_CREDENTIALS
+{
+    DWORD               dwVersion;               // Always SCH_CREDENTIALS_VERSION.
+    DWORD               dwCredFormat;
+    DWORD               cCreds;
+    //PCCERT_CONTEXT     *paCred;
+    PVOID               *paCred;
+    //HCERTSTORE          hRootStore;
+    PVOID               hRootStore;
+
+    DWORD               cMappers;
+    struct _HMAPPER   **aphMappers;
+
+    DWORD               dwSessionLifespan;
+    DWORD               dwFlags;
+    DWORD               cTlsParameters;
+    PTLS_PARAMETERS     pTlsParameters;
+} SCH_CREDENTIALS, *PSCH_CREDENTIALS;
+
+#define SCH_CRED_MAX_SUPPORTED_PARAMETERS 16
+#define SCH_CRED_MAX_SUPPORTED_ALPN_IDS 16
+#define SCH_CRED_MAX_SUPPORTED_CRYPTO_SETTINGS 16
+#define SCH_CRED_MAX_SUPPORTED_CHAINING_MODES 16
+
+#define SECPKG_ATTR_ISSUER_LIST          0x50   // (OBSOLETE) returns SecPkgContext_IssuerListInfo
+#define SECPKG_ATTR_REMOTE_CRED          0x51   // (OBSOLETE) returns SecPkgContext_RemoteCredentialInfo
+#define SECPKG_ATTR_LOCAL_CRED           0x52   // (OBSOLETE) returns SecPkgContext_LocalCredentialInfo
+#define SECPKG_ATTR_REMOTE_CERT_CONTEXT  0x53   // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_LOCAL_CERT_CONTEXT   0x54   // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_ROOT_STORE           0x55   // returns HCERTCONTEXT to the root store
+#define SECPKG_ATTR_SUPPORTED_ALGS       0x56   // returns SecPkgCred_SupportedAlgs
+#define SECPKG_ATTR_CIPHER_STRENGTHS     0x57   // returns SecPkgCred_CipherStrengths
+#define SECPKG_ATTR_SUPPORTED_PROTOCOLS  0x58   // returns SecPkgCred_SupportedProtocols
+#define SECPKG_ATTR_ISSUER_LIST_EX       0x59   // returns SecPkgContext_IssuerListInfoEx
+#define SECPKG_ATTR_CONNECTION_INFO      0x5a   // returns SecPkgContext_ConnectionInfo
+#define SECPKG_ATTR_EAP_KEY_BLOCK        0x5b   // returns SecPkgContext_EapKeyBlock
+#define SECPKG_ATTR_MAPPED_CRED_ATTR     0x5c   // returns SecPkgContext_MappedCredAttr
+#define SECPKG_ATTR_SESSION_INFO         0x5d   // returns SecPkgContext_SessionInfo
+#define SECPKG_ATTR_APP_DATA             0x5e   // sets/returns SecPkgContext_SessionAppData
+#define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
+#define SECPKG_ATTR_CLIENT_CERT_POLICY   0x60   // sets    SecPkgCred_ClientCertCtlPolicy
+#define SECPKG_ATTR_CC_POLICY_RESULT     0x61   // returns SecPkgContext_ClientCertPolicyResult
+#define SECPKG_ATTR_USE_NCRYPT           0x62   // Sets the CRED_FLAG_USE_NCRYPT_PROVIDER FLAG on cred group
+#define SECPKG_ATTR_LOCAL_CERT_INFO      0x63   // returns SecPkgContext_CertInfo
+#define SECPKG_ATTR_CIPHER_INFO          0x64   // returns new CNG SecPkgContext_CipherInfo
+#define SECPKG_ATTR_EAP_PRF_INFO         0x65   // sets    SecPkgContext_EapPrfInfo
+#define SECPKG_ATTR_SUPPORTED_SIGNATURES 0x66   // returns SecPkgContext_SupportedSignatures
+#define SECPKG_ATTR_REMOTE_CERT_CHAIN    0x67   // returns PCCERT_CONTEXT
+#define SECPKG_ATTR_UI_INFO              0x68   // sets SEcPkgContext_UiInfo
+#define SECPKG_ATTR_EARLY_START          0x69   // sets SecPkgContext_EarlyStart
+#define SECPKG_ATTR_KEYING_MATERIAL_INFO 0x6a   // sets SecPkgContext_KeyingMaterialInfo
+#define SECPKG_ATTR_KEYING_MATERIAL      0x6b   // returns SecPkgContext_KeyingMaterial
+#define SECPKG_ATTR_SRTP_PARAMETERS      0x6c   // returns negotiated SRTP parameters
+#define SECPKG_ATTR_TOKEN_BINDING        0x6d   // returns SecPkgContext_TokenBinding
+#define SECPKG_ATTR_CONNECTION_INFO_EX   0x6e   // returns SecPkgContext_ConnectionInfoEx
+#define SECPKG_ATTR_KEYING_MATERIAL_TOKEN_BINDING 0x6f // returns SecPkgContext_KeyingMaterial specific to Token Binding
+#define SECPKG_ATTR_KEYING_MATERIAL_INPROC        0x70 // returns SecPkgContext_KeyingMaterial_Inproc
+#define SECPKG_ATTR_CERT_CHECK_RESULT        0x71 // returns SecPkgContext_CertificateValidationResult, use during and after SSPI handshake loop
+#define SECPKG_ATTR_CERT_CHECK_RESULT_INPROC 0x72 // returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
+#define SECPKG_ATTR_SESSION_TICKET_KEYS      0x73 // sets    SecPkgCred_SessionTicketKeys
+#define SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC 0x74 // returns CERT_BLOB, use only after SSPI handshake loop
+#define SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT 0x75 // returns CERT_BLOB, use during and after SSPI handshake loop
+
+typedef struct _SecPkgContext_ConnectionInfo
+{
+    DWORD   dwProtocol;
+    ALG_ID  aiCipher;
+    DWORD   dwCipherStrength;
+    ALG_ID  aiHash;
+    DWORD   dwHashStrength;
+    ALG_ID  aiExch;
+    DWORD   dwExchStrength;
+} SecPkgContext_ConnectionInfo, *PSecPkgContext_ConnectionInfo;
+
+#define SZ_ALG_MAX_SIZE 64
+
+#define SECPKGCONTEXT_CONNECTION_INFO_EX_V1   1
+
+typedef struct _SecPkgContext_ConnectionInfoEx
+{
+    DWORD   dwVersion;
+    DWORD   dwProtocol;
+    WCHAR   szCipher[SZ_ALG_MAX_SIZE];
+    DWORD   dwCipherStrength;
+    WCHAR   szHash[SZ_ALG_MAX_SIZE];
+    DWORD   dwHashStrength;
+    WCHAR   szExchange[SZ_ALG_MAX_SIZE];
+    DWORD   dwExchStrength;
+} SecPkgContext_ConnectionInfoEx, *PSecPkgContext_ConnectionInfoEx;
+
+#define SECPKGCONTEXT_CIPHERINFO_V1 1
+
+typedef struct _SecPkgContext_CipherInfo
+{
+
+    DWORD dwVersion;
+    DWORD dwProtocol;
+    DWORD dwCipherSuite;
+    DWORD dwBaseCipherSuite;
+    WCHAR szCipherSuite[SZ_ALG_MAX_SIZE];
+    WCHAR szCipher[SZ_ALG_MAX_SIZE];
+    DWORD dwCipherLen;
+    DWORD dwCipherBlockLen;    // in bytes
+    WCHAR szHash[SZ_ALG_MAX_SIZE];
+    DWORD dwHashLen;
+    WCHAR szExchange[SZ_ALG_MAX_SIZE];
+    DWORD dwMinExchangeLen;
+    DWORD dwMaxExchangeLen;
+    WCHAR szCertificate[SZ_ALG_MAX_SIZE];
+    DWORD dwKeyType;
+} SecPkgContext_CipherInfo, *PSecPkgContext_CipherInfo;

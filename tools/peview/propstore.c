@@ -85,7 +85,8 @@ VOID PvpPeEnumerateFilePropStore(
                 if (SUCCEEDED(IPropertyStore_GetAt(propstore, i, &propkey)))
                 {
                     INT lvItemIndex;
-                    PROPVARIANT propKeyVariant = { 0 };
+                    IPropertyDescription* propertyDescriptionPtr = NULL;
+                    PROPVARIANT propKeyVariant;
                     PWSTR propKeyName;
                     WCHAR number[PH_INT32_STR_LEN_1];
 
@@ -94,23 +95,7 @@ VOID PvpPeEnumerateFilePropStore(
 
                     if (SUCCEEDED(PSGetNameFromPropertyKey(&propkey, &propKeyName)))
                     {
-                        IPropertyDescription* propertyDescriptionPtr = NULL;
-
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, propKeyName);
-
-                        if (SUCCEEDED(PSGetPropertyDescriptionByName(propKeyName, &IID_IPropertyDescription, &propertyDescriptionPtr)))
-                        {
-                            PWSTR propertyLabel = NULL;
-
-                            if (SUCCEEDED(IPropertyDescription_GetDisplayName(propertyDescriptionPtr, &propertyLabel)))
-                            {
-                                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, propertyLabel);
-                                CoTaskMemFree(propertyLabel);
-                            }
-
-                            IPropertyDescription_Release(propertyDescriptionPtr);
-                        }
-
                         CoTaskMemFree(propKeyName);
                     }
                     else
@@ -123,6 +108,8 @@ VOID PvpPeEnumerateFilePropStore(
                             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Unknown");
                     }
 
+                    PropVariantInit(&propKeyVariant);
+
                     if (SUCCEEDED(IPropertyStore_GetValue(propstore, &propkey, &propKeyVariant)))
                     {
                         if (SUCCEEDED(PSFormatForDisplayAlloc(&propkey, &propKeyVariant, PDFF_DEFAULT, &propKeyName)))
@@ -132,6 +119,19 @@ VOID PvpPeEnumerateFilePropStore(
                         }
 
                         PropVariantClear(&propKeyVariant);
+                    }
+
+                    if (SUCCEEDED(PSGetPropertyDescription(&propkey, &IID_IPropertyDescription, &propertyDescriptionPtr)))
+                    {
+                        PWSTR propertyLabel = NULL;
+
+                        if (SUCCEEDED(IPropertyDescription_GetDisplayName(propertyDescriptionPtr, &propertyLabel)))
+                        {
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, propertyLabel);
+                            CoTaskMemFree(propertyLabel);
+                        }
+
+                        IPropertyDescription_Release(propertyDescriptionPtr);
                     }
                 }
             }
@@ -195,7 +195,7 @@ INT_PTR CALLBACK PvpPePropStoreDlgProc(
             PvpPeEnumerateFilePropStore(context->ListViewHandle);
             //ExtendedListView_SortItems(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -204,6 +204,7 @@ INT_PTR CALLBACK PvpPePropStoreDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;

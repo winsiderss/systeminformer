@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -45,12 +45,12 @@ BOOLEAN PhShowChooseProcessDialog(
     context.Message = Message;
     context.ProcessId = NULL;
 
-    if (DialogBoxParam(
+    if (PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CHOOSEPROCESS),
         ParentWindowHandle,
         PhpChooseProcessDlgProc,
-        (LPARAM)&context
+        &context
         ) == IDOK)
     {
         *ProcessId = context.ProcessId;
@@ -106,14 +106,13 @@ static VOID PhpRefreshProcessList(
         if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, process->UniqueProcessId)))
         {
             HANDLE tokenHandle;
-            PTOKEN_USER user;
+            PH_TOKEN_USER tokenUser;
 
             if (NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
             {
-                if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
+                if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
-                    userName = PhGetSidFullName(user->User.Sid, TRUE, NULL);
-                    PhFree(user);
+                    userName = PhGetSidFullName(tokenUser.User.Sid, TRUE, NULL);
                 }
 
                 NtClose(tokenHandle);
@@ -124,11 +123,11 @@ static VOID PhpRefreshProcessList(
 
         if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID && !userName)
         {
-            PhSetReference(&userName, PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL));
+            PhSetReference(&userName, PhGetSidFullName((PSID)&PhSeLocalSystemSid, TRUE, NULL));
         }
 
         if (process->UniqueProcessId == SYSTEM_PROCESS_ID)
-            fileName = PhGetKernelFileName();
+            fileName = PhGetKernelFileName2();
         else if (PH_IS_REAL_PROCESS_ID(process->UniqueProcessId))
             PhGetProcessImageFileNameByProcessId(process->UniqueProcessId, &fileName);
 
@@ -179,13 +178,23 @@ static VOID PhpChooseProcessSetImagelist(
 
     dpiValue = PhGetWindowDpi(context->ListViewHandle);
 
-    if (context->ImageList) PhImageListDestroy(context->ImageList);
-    context->ImageList = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        0, 40
-        );
+    if (context->ImageList)
+    {
+        PhImageListSetIconSize(
+            context->ImageList,
+            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+            PhGetSystemMetrics(SM_CYSMICON, dpiValue)
+            );
+    }
+    else
+    {
+        context->ImageList = PhImageListCreate(
+            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+            ILC_MASK | ILC_COLOR32,
+            0, 40
+            );
+    }
 
     ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
 }

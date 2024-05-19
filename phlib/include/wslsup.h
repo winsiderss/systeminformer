@@ -5,21 +5,18 @@
  *
  * Authors:
  *
- *     dmex    2019
+ *     dmex    2019-2023
  *
  */
 
 #ifndef _PH_WSLSUP_H
 #define _PH_WSLSUP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
-_Success_(return)
 BOOLEAN PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     );
 
 _Success_(return)
@@ -29,8 +26,6 @@ BOOLEAN PhCreateProcessLxss(
     _Out_ PPH_STRING *Result
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2015-2021
+ *     dmex    2015-2023
  *
  */
 
@@ -24,13 +24,6 @@ static PWSTR CustomizeSearchDisplayStrings[] =
     L"Always show",
     L"Hide when inactive (Ctrl+K)",
     // L"Auto-hide"
-};
-
-static PWSTR CustomizeThemeOptionsStrings[] =
-{
-    L"None",
-    L"Black",
-    L"Blue"
 };
 
 BOOLEAN CustomizeToolbarItemExists(
@@ -65,11 +58,10 @@ VOID CustomizeInsertToolbarButton(
     TBBUTTON button;
 
     memset(&button, 0, sizeof(TBBUTTON));
-
     button.idCommand = ItemContext->IdCommand;
     button.iBitmap = I_IMAGECALLBACK;
     button.fsState = TBSTATE_ENABLED;
-    button.iString = (INT_PTR)ToolbarGetText(ItemContext->IdCommand);
+    button.iString = (INT_PTR)(PVOID)ToolbarGetText(ItemContext->IdCommand);
 
     if (ItemContext->IsSeparator)
     {
@@ -174,7 +166,7 @@ VOID CustomizeRemoveToolbarItem(
         ListBox_AddItemData(Context->AvailableListHandle, button);
     }
 
-    SendMessage(Context->DialogHandle, WM_COMMAND, MAKEWPARAM(IDC_CURRENT, LBN_SELCHANGE), 0);
+    SendMessage(Context->WindowHandle, WM_COMMAND, MAKEWPARAM(IDC_CURRENT, LBN_SELCHANGE), 0);
 }
 
 VOID CustomizeMoveToolbarItem(
@@ -271,7 +263,6 @@ VOID CustomizeLoadToolbarItems(
     INT index = 0;
     INT count = 0;
     PBUTTON_CONTEXT context;
-    LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     CustomizeFreeToolbarItems(Context);
 
@@ -299,7 +290,7 @@ VOID CustomizeLoadToolbarItems(
             }
             else
             {
-                context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand, dpiValue);
+                context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand, Context->WindowDpi);
             }
 
             ListBox_AddItemData(Context->CurrentListHandle, context);
@@ -319,7 +310,7 @@ VOID CustomizeLoadToolbarItems(
         context = PhAllocateZero(sizeof(BUTTON_CONTEXT));
         context->IsRemovable = TRUE;
         context->IdCommand = button.idCommand;
-        context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand, dpiValue);
+        context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand, Context->WindowDpi);
 
         ListBox_AddItemData(Context->AvailableListHandle, context);
     }
@@ -355,8 +346,8 @@ VOID CustomizeLoadToolbarSettings(
     _In_ PCUSTOMIZE_CONTEXT Context
     )
 {
-    HWND toolbarCombo = GetDlgItem(Context->DialogHandle, IDC_TEXTOPTIONS);
-    HWND searchboxCombo = GetDlgItem(Context->DialogHandle, IDC_SEARCHOPTIONS);
+    HWND toolbarCombo = GetDlgItem(Context->WindowHandle, IDC_TEXTOPTIONS);
+    HWND searchboxCombo = GetDlgItem(Context->WindowHandle, IDC_SEARCHOPTIONS);
 
     PhAddComboBoxStrings(
         toolbarCombo,
@@ -371,9 +362,9 @@ VOID CustomizeLoadToolbarSettings(
     ComboBox_SetCurSel(toolbarCombo, PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE));
     ComboBox_SetCurSel(searchboxCombo, PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE));
 
-    Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_MODERN),
+    Button_SetCheck(GetDlgItem(Context->WindowHandle, IDC_ENABLE_MODERN),
         ToolStatusConfig.ModernIcons ? BST_CHECKED : BST_UNCHECKED);
-    Button_SetCheck(GetDlgItem(Context->DialogHandle, IDC_ENABLE_AUTOHIDE_MENU),
+    Button_SetCheck(GetDlgItem(Context->WindowHandle, IDC_ENABLE_AUTOHIDE_MENU),
         ToolStatusConfig.AutoHideMenu ? BST_CHECKED : BST_UNCHECKED);
 
     if (!ToolStatusConfig.SearchBoxEnabled)
@@ -389,7 +380,6 @@ VOID CustomizeResetImages(
     INT index = 0;
     INT count = 0;
     PBUTTON_CONTEXT button;
-    LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     if ((count = ListBox_GetCount(Context->CurrentListHandle)) != LB_ERR)
     {
@@ -405,7 +395,7 @@ VOID CustomizeResetImages(
                         button->IconHandle = NULL;
                     }
 
-                    button->IconHandle = CustomizeGetToolbarIcon(Context, button->IdCommand, dpiValue);
+                    button->IconHandle = CustomizeGetToolbarIcon(Context, button->IdCommand, Context->WindowDpi);
                 }
             }
         }
@@ -425,7 +415,7 @@ VOID CustomizeResetImages(
                         button->IconHandle = NULL;
                     }
 
-                    button->IconHandle = CustomizeGetToolbarIcon(Context, button->IdCommand, dpiValue);
+                    button->IconHandle = CustomizeGetToolbarIcon(Context, button->IdCommand, Context->WindowDpi);
                 }
             }
         }
@@ -454,11 +444,9 @@ HICON CustomizeGetToolbarIcon(
 }
 
 VOID CustomizeResetToolbarImages(
-    VOID
+    _In_ PCUSTOMIZE_CONTEXT Context
     )
 {
-    LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
-
     // Reset the image cache with the new icons.
     // TODO: Move function to Toolbar.c
     for (UINT index = 0; index < RTL_NUMBER_OF(ToolbarButtons); index++)
@@ -467,7 +455,7 @@ VOID CustomizeResetToolbarImages(
         {
             HBITMAP bitmap;
 
-            if (bitmap = ToolbarGetImage(ToolbarButtons[index].idCommand, dpiValue))
+            if (bitmap = ToolbarGetImage(ToolbarButtons[index].idCommand, Context->WindowDpi))
             {
                 PhImageListReplace(
                     ToolBarImageList,
@@ -510,24 +498,21 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
     {
     case WM_INITDIALOG:
         {
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(hwndDlg);
-
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            context->DialogHandle = hwndDlg;
+            context->WindowHandle = hwndDlg;
             context->AvailableListHandle = GetDlgItem(hwndDlg, IDC_AVAILABLE);
             context->CurrentListHandle = GetDlgItem(hwndDlg, IDC_CURRENT);
             context->MoveUpButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEUP);
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
-            context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
 
-            context->CXWidth = PhGetDpi(16, dpiValue);
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
+            context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
+            context->CXWidth = PhGetDpi(16, context->WindowDpi);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -552,7 +537,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            PhSetDialogFocus(context->DialogHandle, context->CurrentListHandle);
+            PhSetDialogFocus(context->WindowHandle, context->CurrentListHandle);
         }
         break;
     case WM_DESTROY:
@@ -574,26 +559,30 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 DeleteFont(context->FontHandle);
         }
         break;
-    case WM_DPICHANGED:
-        {
-            context->CXWidth = PhGetDpi(16, LOWORD(wParam));
-
-            ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
-
-            {
-                LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
-                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
-            }
-
-            CustomizeResetImages(context);
-        }
-        break;
     case WM_NCDESTROY:
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            context->WindowDpi = LOWORD(wParam);
+            if (context->FontHandle) DeleteFont(context->FontHandle);
+            context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
+            context->CXWidth = PhGetDpi(16, context->WindowDpi);
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
+
+            {
+                // TODO: The icon DPI must equal the main window toolbar but the DPI
+                // for the main window doesn't get updated until after we return. (dmex)
+                //LONG dpi = PhGetWindowDpi(PhMainWndHandle);
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, context->WindowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, context->WindowDpi);
+            }
+
+            CustomizeResetImages(context);
         }
         break;
     case WM_COMMAND:
@@ -836,7 +825,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                         ToolbarLoadSettings(FALSE);
 
                         CustomizeResetImages(context);
-                        CustomizeResetToolbarImages();
+                        CustomizeResetToolbarImages(context);
                         //CustomizeLoadItems(context);
                     }
                 }
@@ -888,7 +877,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 BOOLEAN isSelected = (drawInfo->itemState & ODS_SELECTED) == ODS_SELECTED;
                 BOOLEAN isFocused = (drawInfo->itemState & ODS_FOCUS) == ODS_FOCUS;
 
-                if (drawInfo->itemID == LB_ERR)
+                if (drawInfo->itemID == UINT_MAX)
                     break;
 
                 if (!(itemContext = (PBUTTON_CONTEXT)ListBox_GetItemData(drawInfo->hwndItem, drawInfo->itemID)))
@@ -930,10 +919,13 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
                 if (itemContext->IdCommand != 0)
                 {
+                    PWSTR stringBuffer = ToolbarGetText(itemContext->IdCommand);
+                    SIZE_T stringLength = PhCountStringZ(stringBuffer);
+
                     DrawText(
                         bufferDc,
-                        ToolbarGetText(itemContext->IdCommand),
-                        -1,
+                        stringBuffer,
+                        (INT)stringLength,
                         &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                         );
@@ -943,7 +935,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                     DrawText(
                         bufferDc,
                         L"Separator",
-                        -1,
+                        sizeof(L"Separator") / sizeof(WCHAR),
                         &bufferRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                         );
@@ -981,13 +973,14 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 }
 
 VOID ToolBarShowCustomizeDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_CUSTOMIZE_TB),
-        PhMainWndHandle,
-        CustomizeToolbarDialogProc
+        ParentWindowHandle,
+        CustomizeToolbarDialogProc,
+        NULL
         );
 }

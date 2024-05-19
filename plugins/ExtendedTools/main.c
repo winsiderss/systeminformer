@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2018-2022
+ *     dmex    2018-2024
  *
  */
 
@@ -51,6 +51,8 @@ EXTENDEDTOOLS_INTERFACE PluginInterface =
     EtLookupTotalGpuAdapterEngineUtilization
 };
 
+ULONG EtWindowsVersion = WINDOWS_ANCIENT;
+BOOLEAN EtIsExecutingInWow64 = FALSE;
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
 ULONG EtUpdateInterval = 0;
@@ -59,12 +61,16 @@ BOOLEAN EtGraphShowText = FALSE;
 BOOLEAN EtEnableScaleGraph = FALSE;
 BOOLEAN EtEnableScaleText = FALSE;
 BOOLEAN EtPropagateCpuUsage = FALSE;
+BOOLEAN EtEnableAvxSupport = FALSE;
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    EtWindowsVersion = PhWindowsVersion;
+    EtIsExecutingInWow64 = PhIsExecutingInWow64();
+
     EtLoadSettings();
 
     EtEtwStatisticsInitialization();
@@ -73,11 +79,16 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI UnloadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
-    EtSaveSettingsDiskTreeList();
+    BOOLEAN SessionEnding = (BOOLEAN)PtrToUlong(Parameter);
+
+    // Skip ETW when the system is shutting down. (dmex)
+    if (SessionEnding)
+        return;
+
     EtEtwStatisticsUninitialization();
     EtFramesMonitorUninitialization();
 }
@@ -133,6 +144,7 @@ VOID NTAPI MenuItemCallback(
                 ((PPH_MODULE_ITEM)menuItem->Context)->Name
                 );
         }
+        break;
     case ID_REPARSE_POINTS:
     case ID_REPARSE_OBJID:
     case ID_REPARSE_SDDL:
@@ -140,9 +152,14 @@ VOID NTAPI MenuItemCallback(
             EtShowReparseDialog(menuItem->OwnerWindow, UlongToPtr(menuItem->Id));
         }
         break;
-    case ID_WCT_MENUITEM:
+    case ID_PROCESS_WAITCHAIN:
         {
-            EtShowWaitChainDialog(menuItem->OwnerWindow, menuItem->Context);
+            EtShowWaitChainProcessDialog(menuItem->OwnerWindow, menuItem->Context);
+        }
+        break;
+    case ID_THREAD_WAITCHAIN:
+        {
+            EtShowWaitChainThreadDialog(menuItem->OwnerWindow, menuItem->Context);
         }
         break;
     case ID_PIPE_ENUM:
@@ -163,6 +180,11 @@ VOID NTAPI MenuItemCallback(
     case ID_POOL_TABLE:
         {
             EtShowPoolTableDialog(menuItem->OwnerWindow);
+        }
+        break;
+    case ID_TPM:
+        {
+            EtShowTpmDialog(menuItem->OwnerWindow);
         }
         break;
     }
@@ -200,6 +222,7 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM systemMenu;
     PPH_EMENU_ITEM bootMenuItem;
+    PPH_EMENU_ITEM tpmMenuItem;
     PPH_EMENU_ITEM reparsePointsMenu;
     PPH_EMENU_ITEM reparseObjIdMenu;
     PPH_EMENU_ITEM reparseSsdlMenu;
@@ -215,6 +238,7 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, tpmMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_TPM, L"&Trusted Platform Module", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparsePointsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_POINTS, L"NTFS Reparse Points", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparseObjIdMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_OBJID, L"NTFS Object Identifiers", NULL), ULONG_MAX);
@@ -223,9 +247,15 @@ VOID NTAPI MainMenuInitializingCallback(
     if (!PhGetOwnTokenAttributes().Elevated)
     {
         bootMenuItem->Flags |= PH_EMENU_DISABLED;
+        tpmMenuItem->Flags |= PH_EMENU_DISABLED;
         reparsePointsMenu->Flags |= PH_EMENU_DISABLED;
         reparseObjIdMenu->Flags |= PH_EMENU_DISABLED;
         reparseSsdlMenu->Flags |= PH_EMENU_DISABLED;
+    }
+
+    if (EtWindowsVersion < WINDOWS_8)
+    {
+        PhSetEnabledEMenuItem(tpmMenuItem, FALSE);
     }
 }
 
@@ -236,6 +266,7 @@ VOID NTAPI MainWindowShowingCallback(
 {
     EtInitializeDiskTab();
     EtInitializeFirewallTab();
+
     EtRegisterToolbarGraphs();
 
     EtFramesMonitorStart();
@@ -249,7 +280,6 @@ VOID NTAPI ProcessesUpdatedCallback(
     if (ProcessesUpdatedCount != 3)
     {
         ProcessesUpdatedCount++;
-        return;
     }
 }
 
@@ -284,8 +314,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     PPH_PROCESS_ITEM processItem;
     ULONG flags;
     PPH_EMENU_ITEM miscMenu;
-
-    WctProcessMenuInitializingCallback(Parameter, Context);
+    PPH_EMENU_ITEM menuItem;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
         processItem = menuInfo->u.Process.Processes[0];
@@ -313,6 +342,14 @@ VOID NTAPI ProcessMenuInitializingCallback(
     {
         PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_UNLOADEDMODULES, L"&Unloaded modules", processItem), ULONG_MAX);
         PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WSWATCH, L"&WS watch", processItem), ULONG_MAX);
+        menuItem = PhPluginCreateEMenuItem(PluginInstance, flags, ID_PROCESS_WAITCHAIN, L"Wait Chain Tra&versal", processItem);
+        PhInsertEMenuItem(miscMenu, menuItem, ULONG_MAX);
+
+        if (!processItem || !processItem->QueryHandle || processItem->ProcessId == NtCurrentProcessId())
+            menuItem->Flags |= PH_EMENU_DISABLED;
+
+        if (!PhGetOwnTokenAttributes().Elevated)
+            menuItem->Flags |= PH_EMENU_DISABLED;
     }
 }
 
@@ -325,8 +362,6 @@ VOID NTAPI ThreadMenuInitializingCallback(
     PPH_THREAD_ITEM threadItem;
     ULONG insertIndex;
     PPH_EMENU_ITEM menuItem;
-
-    WctThreadMenuInitializingCallback(Parameter, Context);
 
     if (menuInfo->u.Thread.NumberOfThreads == 1)
         threadItem = menuInfo->u.Thread.Threads[0];
@@ -344,6 +379,19 @@ VOID NTAPI ThreadMenuInitializingCallback(
     if (!threadItem)
         PhSetDisabledEMenuItem(menuItem);
     if (menuInfo->u.Thread.ProcessId == SYSTEM_IDLE_PROCESS_ID)
+        PhSetDisabledEMenuItem(menuItem);
+
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_ANALYZE_WAIT))
+        insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
+    else
+        insertIndex = ULONG_MAX;
+
+    menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_WAITCHAIN, L"Wait Chain Tra&versal", threadItem);
+    PhInsertEMenuItem(menuInfo->Menu, menuItem, insertIndex);
+
+    if (!threadItem)
+        PhSetDisabledEMenuItem(menuItem);
+    if (menuInfo->u.Thread.ProcessId == SYSTEM_IDLE_PROCESS_ID || menuInfo->u.Thread.ProcessId == NtCurrentProcessId())
         PhSetDisabledEMenuItem(menuItem);
 }
 
@@ -420,7 +468,7 @@ VOID NTAPI SystemInformationInitializingCallback(
 {
     if (EtGpuEnabled)
         EtGpuSystemInformationInitializing(Parameter);
-    if (EtEtwEnabled && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
+    if (EtEtwEnabled && PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
         EtEtwSystemInformationInitializing(Parameter);
 }
 
@@ -508,14 +556,12 @@ VOID NTAPI NetworkItemsUpdatedCallback(
 }
 
 VOID NTAPI ProcessStatsEventCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_PROCESS_STATS_EVENT event = Parameter;
 
-    if (!event)
-        return;
     if (event->Version)
         return;
 
@@ -643,179 +689,267 @@ VOID NTAPI ProcessStatsEventCallback(
 
                     if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUTOTALDEDICATED])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->GpuDedicatedUsage, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->GpuDedicatedUsage);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUTOTALSHARED])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->GpuSharedUsage, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->GpuSharedUsage);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUTOTALCOMMIT])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->GpuCommitUsage, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->GpuCommitUsage);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUTOTAL])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->GpuDedicatedUsage + block->GpuSharedUsage + block->GpuCommitUsage, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->GpuDedicatedUsage + block->GpuSharedUsage + block->GpuCommitUsage);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADS])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatUInt64(block->DiskReadCount, TRUE);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatI64U(&format[0], block->DiskReadCount);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADBYTES])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->DiskReadRawDelta.Value, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->DiskReadRawDelta.Value);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADBYTESDELTA])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->DiskReadRawDelta.Delta, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->DiskReadRawDelta.Delta);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITES])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatUInt64(block->DiskWriteCount, TRUE);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatI64U(&format[0], block->DiskWriteCount);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTES])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->DiskWriteRawDelta.Value, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->DiskWriteRawDelta.Value);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTESDELTA])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->DiskWriteRawDelta.Delta, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->DiskWriteRawDelta.Delta);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKTOTAL])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatUInt64(block->DiskReadCount + block->DiskWriteCount, TRUE);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatI64U(&format[0], block->DiskReadCount + block->DiskWriteCount);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTES])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->DiskReadRawDelta.Value + block->DiskWriteRawDelta.Value, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->DiskReadRawDelta.Value + block->DiskWriteRawDelta.Value);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTESDELTA])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADS])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatUInt64(block->NetworkReceiveCount, TRUE);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatI64U(&format[0], block->NetworkReceiveCount);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTES])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->NetworkReceiveRawDelta.Value, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->NetworkReceiveRawDelta.Value);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTESDELTA])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->NetworkReceiveRawDelta.Delta, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->NetworkReceiveRawDelta.Delta);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITES])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatUInt64(block->NetworkSendCount, TRUE);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatI64U(&format[0], block->NetworkSendCount);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTES])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->NetworkSendRawDelta.Value, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->NetworkSendRawDelta.Value);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTESDELTA])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->NetworkSendRawDelta.Delta, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->NetworkSendRawDelta.Delta);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKTOTAL])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatUInt64(block->NetworkReceiveCount + block->NetworkSendCount, TRUE);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatI64U(&format[0], block->NetworkReceiveCount + block->NetworkSendCount);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTES])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->NetworkReceiveRawDelta.Value + block->NetworkSendRawDelta.Value, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->NetworkReceiveRawDelta.Value + block->NetworkSendRawDelta.Value);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                     else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTESDELTA])
                     {
-                        PPH_STRING value;
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        value = PhFormatSize(block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta, ULONG_MAX);
-                        wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
-                        PhDereferenceObject(value);
+                        PhInitFormatSize(&format[0], block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
                     }
                 }
             }
@@ -834,34 +968,8 @@ VOID EtLoadSettings(
     EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     EtEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
-}
-
-PPH_STRING PhGetSelectedListViewItemText(
-    _In_ HWND hWnd
-    )
-{
-    INT index = PhFindListViewItemByFlags(
-        hWnd,
-        -1,
-        LVNI_SELECTED
-        );
-
-    if (index != -1)
-    {
-        WCHAR buffer[DOS_MAX_PATH_LENGTH] = L"";
-
-        LVITEM item;
-        item.mask = LVIF_TEXT;
-        item.iItem = index;
-        item.iSubItem = 0;
-        item.pszText = buffer;
-        item.cchTextMax = ARRAYSIZE(buffer);
-
-        if (ListView_GetItem(hWnd, &item))
-            return PhCreateString(buffer);
-    }
-
-    return NULL;
+    EtEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
+    EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
 }
 
 VOID NTAPI SettingsUpdatedCallback(
@@ -1054,6 +1162,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPUPERFCOUNTERS, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_DISKPERFCOUNTERS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"0" },
@@ -1074,6 +1183,9 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_FW_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
+                { IntegerSettingType, SETTING_NAME_FW_IGNORE_LOOPBACK, L"1" },
+                { IntegerSettingType, SETTING_NAME_FW_IGNORE_ALLOW, L"0" },
+                { StringSettingType, SETTING_NAME_FW_SESSION_GUID, L"" },
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
                 { StringSettingType, SETTING_NAME_WCT_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_WCT_WINDOW_POSITION, L"0,0" },
@@ -1086,6 +1198,7 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS_WITH_KSI, L"" },
                 { IntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_SIZE, L"@96|490,340" },
                 { StringSettingType, SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, L"" },
@@ -1098,6 +1211,9 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_POOL_TREE_LIST_SORT, L"0,0" },
                 { IntegerPairSettingType, SETTING_NAME_BIGPOOL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_BIGPOOL_WINDOW_SIZE, L"@96|510,380" },
+                { IntegerPairSettingType, SETTING_NAME_TPM_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_TPM_WINDOW_SIZE, L"@96|490,340" },
+                { StringSettingType, SETTING_NAME_TPM_LISTVIEW_COLUMNS, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

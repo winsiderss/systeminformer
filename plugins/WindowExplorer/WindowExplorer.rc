@@ -19,24 +19,23 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
-
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\r\n"
     "\0"
@@ -70,12 +69,16 @@ BEGIN
     CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_TABSTOP,0,0,271,224
 END
 
-IDD_WNDGENERAL DIALOGEX 0, 0, 271, 224
+IDD_WNDGENERAL DIALOGEX 0, 0, 273, 224
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "General"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_WINDOWINFO,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_TABSTOP,0,0,271,224
+    CONTROL         "",IDC_WINDOWINFO,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_TABSTOP,0,44,271,179
+    ICON            "",IDC_WINDOWICON,10,12,21,20
+    GROUPBOX        "Window",IDC_WINDOWGROUPBOX,3,1,263,40
+    EDITTEXT        IDC_WINDOWTEXT,40,11,218,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    EDITTEXT        IDC_APPIDTEXT,40,24,221,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
 END
 
 IDD_WNDPROPLIST DIALOGEX 0, 0, 271, 224
@@ -91,6 +94,19 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Preview"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
+END
+
+IDD_WNDPROPEDIT DIALOGEX 0, 0, 311, 177
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Name:",IDC_STATIC,7,8,21,8
+    EDITTEXT        IDC_NAME,38,7,266,12,ES_AUTOHSCROLL
+    LTEXT           "Value:",IDC_STATIC,7,25,21,8
+    EDITTEXT        IDC_VALUE,38,24,266,128,ES_MULTILINE | WS_VSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,200,156,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,254,156,50,14
 END
 
 
@@ -117,8 +133,7 @@ BEGIN
 
     IDD_WNDGENERAL, DIALOG
     BEGIN
-        RIGHTMARGIN, 233
-        BOTTOMMARGIN, 147
+        RIGHTMARGIN, 271
     END
 
     IDD_WNDPROPLIST, DIALOG
@@ -129,10 +144,68 @@ BEGIN
     IDD_WNDPREVIEW, DIALOG
     BEGIN
     END
+
+    IDD_WNDPROPEDIT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 3,7,0,0
+ PRODUCTVERSION 3,7,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileDescription", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileVersion", "3.7.0.0"
+            VALUE "InternalName", "WindowExplorer.dll"
+            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "OriginalFilename", "WindowExplorer.dll"
+            VALUE "ProductName", "⟆Ⴘ⟆𝜏∈ⲙ ᓰﬡ⨍ᗝᖇⲙ∈ᖇ"
+            VALUE "ProductVersion", "3.7.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
 

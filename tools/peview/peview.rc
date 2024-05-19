@@ -3,6 +3,7 @@
 #pragma code_page(65001)
 
 #include "resource.h"
+#include <sistatus.rc>
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -25,19 +26,18 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
-    "\r\n"
     "\0"
 END
 
@@ -353,6 +353,22 @@ BEGIN
         TOPMARGIN, 3
         BOTTOMMARGIN, 277
     END
+
+    IDD_PECLRTABLES, DIALOG
+    BEGIN
+        LEFTMARGIN, 3
+        RIGHTMARGIN, 297
+        TOPMARGIN, 3
+        BOTTOMMARGIN, 277
+    END
+
+    IDD_PEVERSIONINFO, DIALOG
+    BEGIN
+        LEFTMARGIN, 3
+        RIGHTMARGIN, 297
+        TOPMARGIN, 3
+        BOTTOMMARGIN, 277
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -395,7 +411,7 @@ CAPTION "Imports"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,3,21,294,256,WS_EX_CLIENTEDGE
-    EDITTEXT        IDC_TREESEARCH,156,3,141,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TREESEARCH,150,3,147,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Options",IDC_SETTINGS,3,3,50,14,WS_DISABLED
 END
 
@@ -405,7 +421,7 @@ CAPTION "Exports"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,3,21,294,256,WS_EX_CLIENTEDGE
-    EDITTEXT        IDC_TREESEARCH,156,3,141,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TREESEARCH,150,3,147,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Options",IDC_SETTINGS,3,3,50,14,WS_DISABLED
 END
 
@@ -422,19 +438,23 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "CLR"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Runtime Version:",IDC_STATIC,9,12,55,8
+    LTEXT           "Runtime version:",IDC_STATIC,9,12,55,8
     LTEXT           "Static",IDC_RUNTIMEVERSION,83,12,214,8
-    LTEXT           "Flags:",IDC_STATIC,9,24,20,8
-    EDITTEXT        IDC_FLAGS,81,24,209,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Version String:",IDC_STATIC,9,37,48,8
-    LTEXT           "Static",IDC_VERSIONSTRING,83,37,214,8
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,3,91,294,186
-    LTEXT           "Sections:",IDC_STATIC,5,82,30,8
-    LTEXT           "MVID:",IDC_STATIC,9,50,21,8
-    EDITTEXT        IDC_MVIDSTRING,81,50,209,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "PublicKeyToken:",IDC_STATIC,9,64,59,8
-    EDITTEXT        IDC_TOKENSTRING,81,64,209,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    GROUPBOX        "CLR",IDC_CLRGROUP,3,3,294,77
+    LTEXT           "Flags:",IDC_STATIC,9,38,20,8
+    LTEXT           "Version:",IDC_STATIC,9,51,27,8
+    LTEXT           "Static",IDC_VERSIONSTRING,83,51,214,8
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,3,126,294,151
+    LTEXT           "Sections:",IDC_STATIC,3,115,30,8
+    LTEXT           "MVID:",IDC_STATIC,9,64,21,8
+    EDITTEXT        IDC_MVIDSTRING,81,64,209,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "PublicKeyToken:",IDC_STATIC,9,78,59,8
+    EDITTEXT        IDC_TOKENSTRING,81,78,209,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    GROUPBOX        "CLR",IDC_CLRGROUP,3,3,294,108
+    LTEXT           "Target version:",IDC_STATIC,9,25,50,8
+    LTEXT           "Static",IDC_TARGETVERSION,83,25,207,8
+    LTEXT           "Static",IDC_FLAGS,83,38,207,8
+    LTEXT           "Entry point:",IDC_STATIC,9,92,59,8
+    EDITTEXT        IDC_ENTRYPOINTSTRING,81,92,209,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
 END
 
 IDD_PELOADCONFIG DIALOGEX 0, 0, 300, 280
@@ -459,8 +479,8 @@ CAPTION "Symbols"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,3,21,295,256,WS_EX_CLIENTEDGE
-    EDITTEXT        IDC_TREESEARCH,157,3,141,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "Options",IDC_SETTINGS,3,3,50,14,WS_DISABLED
+    EDITTEXT        IDC_TREESEARCH,150,3,148,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Options",IDC_SETTINGS,3,3,50,14
 END
 
 IDD_PERESOURCES DIALOGEX 0, 0, 300, 280
@@ -469,7 +489,7 @@ CAPTION "Resources"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,3,21,294,256,WS_EX_CLIENTEDGE
-    EDITTEXT        IDC_TREESEARCH,156,3,141,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TREESEARCH,150,3,147,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Options",IDC_SETTINGS,3,3,50,14,WS_DISABLED
 END
 
@@ -584,7 +604,7 @@ CAPTION "Directories"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,3,21,294,256,WS_EX_CLIENTEDGE
-    EDITTEXT        IDC_TREESEARCH,156,3,141,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TREESEARCH,150,3,147,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Options",IDC_SETTINGS,3,3,50,14,WS_DISABLED
 END
 
@@ -617,7 +637,7 @@ CAPTION "Sections"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,3,21,294,256,WS_EX_CLIENTEDGE
-    EDITTEXT        IDC_TREESEARCH,156,3,141,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TREESEARCH,150,3,147,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Options",IDC_SETTINGS,3,3,50,14
 END
 
@@ -627,10 +647,10 @@ CAPTION "Security"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,3,21,295,256,WS_EX_CLIENTEDGE
-    EDITTEXT        IDC_TREESEARCH,157,3,141,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TREESEARCH,150,3,148,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Options",IDC_GOTO,3,3,50,14,WS_DISABLED
     PUSHBUTTON      "Refresh",IDC_RESET,55,3,50,14
-    LTEXT           "Static",IDC_NAME,108,6,47,8,NOT WS_VISIBLE
+    LTEXT           "Static",IDC_NAME,108,6,42,8,NOT WS_VISIBLE
 END
 
 IDD_PEEHCONT DIALOGEX 0, 0, 300, 280
@@ -663,7 +683,7 @@ CAPTION "Layout"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_TREELIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | 0x2,3,21,295,256,WS_EX_CLIENTEDGE
-    EDITTEXT        IDC_TREESEARCH,157,3,141,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TREESEARCH,150,3,148,14,ES_AUTOHSCROLL
     PUSHBUTTON      "Options",IDC_SETTINGS,3,3,50,14,WS_DISABLED
 END
 
@@ -751,6 +771,22 @@ BEGIN
     CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,3,3,294,274
 END
 
+IDD_PECLRTABLES DIALOGEX 0, 0, 300, 280
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "CLR Tables"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,3,3,294,274
+END
+
+IDD_PEVERSIONINFO DIALOGEX 0, 0, 300, 280
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Links"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,3,3,294,274
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -767,9 +803,16 @@ IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
 // PNG
 //
 
-IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
-
-IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
+IDB_SEARCH_ACTIVE                PNG            "resources\\active_search.png"
+IDB_SEARCH_INACTIVE              PNG            "resources\\inactive_search.png"
+IDB_SEARCH_REGEX_MODERN_DARK     PNG            "resources\\regex_modern_dark.png"
+IDB_SEARCH_REGEX_MODERN_LIGHT    PNG            "resources\\regex_modern_light.png"
+IDB_SEARCH_CASE_MODERN_DARK      PNG            "resources\\case_sensitive_modern_dark.png"
+IDB_SEARCH_CASE_MODERN_LIGHT     PNG            "resources\\case_sensitive_modern_light.png"
+IDB_SEARCH_ACTIVE_MODERN_LIGHT   PNG            "resources\\search_stop_modern_light.png"
+IDB_SEARCH_ACTIVE_MODERN_DARK    PNG            "resources\\search_stop_modern_dark.png"
+IDB_SEARCH_INACTIVE_MODERN_LIGHT PNG            "resources\\search_modern_light.png"
+IDB_SEARCH_INACTIVE_MODERN_DARK  PNG            "resources\\search_modern_dark.png"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -792,15 +835,4 @@ IDR_RT_MANIFEST         RT_MANIFEST             "peview.manifest"
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
 

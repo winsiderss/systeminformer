@@ -321,7 +321,7 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                 LARGE_INTEGER time; \
                 SYSTEMTIME systemTime; \
                 \
-                RtlSecondsSince1970ToTime((Config)->TimeDateStamp, &time); \
+                PhSecondsSince1970ToTime((Config)->TimeDateStamp, &time); \
                 PhLargeIntegerToLocalSystemTime(&systemTime, &time); \
                 \
                 ADD_VALUE(L"Time stamp", (Config)->TimeDateStamp ? PhaFormatDateTime(&systemTime)->Buffer : L"0"); \
@@ -448,12 +448,14 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(L"ImageLoadCfgListViewColumns", context->ListViewHandle);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:

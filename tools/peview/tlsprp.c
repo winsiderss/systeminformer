@@ -124,7 +124,7 @@ INT_PTR CALLBACK PvpPeTlsDlgProc(
             PvpPeEnumerateTlsCallbacks(context->ListViewHandle);
             //ExtendedListView_SortItems(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -133,6 +133,7 @@ INT_PTR CALLBACK PvpPeTlsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;

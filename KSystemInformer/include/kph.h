@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
@@ -17,6 +17,7 @@
 #include <fltKernel.h>
 #include <ntimage.h>
 #include <bcrypt.h>
+#include <wsk.h>
 #include <pooltags.h>
 #define PHNT_MODE PHNT_MODE_KERNEL
 #include <phnt.h>
@@ -25,25 +26,45 @@
 #include <ntldr.h>
 #include <ntwow64.h>
 #include <kphapi.h>
-#include <kphosver.h>
 
 #define KSIAPI NTAPI
 
-#define PAGED_PASSIVE()\
-    PAGED_CODE()\
+#define PAGED_CODE_PASSIVE()                                                  \
+    PAGED_CODE()                                                              \
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#define NPAGED_CODE_PASSIVE()                                                 \
+    NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL)
+#define NPAGED_CODE_APC_MAX()                                                 \
+    NT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL)
+#define NPAGED_CODE_DISPATCH_MAX()                                            \
+    NT_ASSERT(KeGetCurrentIrql() <= DISPATCH_LEVEL)
+#define NPAGED_CODE_DISPATCH_MIN()                                            \
+    NT_ASSERT(KeGetCurrentIrql() >= DISPATCH_LEVEL)
 
-#define PAGED_FILE() \
-    __pragma(bss_seg("PAGEBBS"))\
-    __pragma(code_seg("PAGE"))\
-    __pragma(data_seg("PAGEDATA"))\
+//
+// N.B. This decorates code to indicate that the code supports up to APC_LEVEL
+// but is in a non-paged segment since it can be called in a paging I/O path.
+// Code in this path should also only allocate from non-paged pool to avoid
+// deadlocks.
+//
+#define NPAGED_CODE_APC_MAX_FOR_PAGING_IO() NPAGED_CODE_APC_MAX()
+
+#define PAGED_FILE()                                                          \
+    __pragma(bss_seg("PAGEBBS"))                                              \
+    __pragma(code_seg("PAGE"))                                                \
+    __pragma(data_seg("PAGEDATA"))                                            \
     __pragma(const_seg("PAGERO"))
 
-#define KPH_PROTECTED_DATA_SECTION_PUSH() \
-    __pragma(data_seg(push))\
+#define KPH_PROTECTED_DATA_SECTION_PUSH()                                     \
+    __pragma(data_seg(push))                                                  \
     __pragma(data_seg("KSIDATA"))
-#define KPH_PROTECTED_DATA_SECTION_POP() \
+#define KPH_PROTECTED_DATA_SECTION_POP()                                      \
     __pragma(data_seg(pop))
+#define KPH_PROTECTED_DATA_SECTION_RO_PUSH()                                  \
+    __pragma(const_seg(push))                                                 \
+    __pragma(const_seg("KSIRO"))
+#define KPH_PROTECTED_DATA_SECTION_RO_POP()                                   \
+    __pragma(const_seg(pop))
 
 #define _Outptr_allocatesMem_ _Outptr_result_nullonfailure_ __drv_allocatesMem(Mem)
 #define _Out_allocatesMem_ _Out_ __drv_allocatesMem(Mem)
@@ -58,15 +79,128 @@
 #define MAX_PATH 260
 #endif
 
-#define InterlockedExchangeAddULongPtr(target, value) (ULONG_PTR)InterlockedExchangeAddSizeT((SIZE_T*)target, (SIZE_T)value)
-#define InterlockedIncrementSSizeT(target) (SSIZE_T)InterlockedIncrementSizeT((SIZE_T*)target)
-#define InterlockedDecrementSSizeT(target) (SSIZE_T)InterlockedDecrementSizeT((SIZE_T*)target)
-#define InterlockedCompareExchangeSizeT(target, value, expected)\
-    (SIZE_T)InterlockedCompareExchangePointer((PVOID*)Target, (PVOID)Value, (PVOID)expected)
+FORCEINLINE
+ULONG64 InterlockedExchangeU64(
+    _Inout_ _Interlocked_operand_ volatile ULONG64* Target,
+    _In_ ULONG64 Value
+    )
+{
+    return (ULONG64)InterlockedExchange64((LONG64*)Target, (LONG64)Value);
+}
+
+
+FORCEINLINE
+ULONG64 InterlockedCompareExchangeU64(
+    _Inout_ _Interlocked_operand_ volatile ULONG64* Target,
+    _In_ ULONG64 Value,
+    _In_ ULONG64 Expected
+    )
+{
+    return (ULONG64)InterlockedCompareExchange64((LONG64*)Target,
+                                                 (LONG64)Value,
+                                                 (LONG64)Expected);
+}
+
+FORCEINLINE
+ULONG64 InterlockedIncrementU64(
+    _Inout_ _Interlocked_operand_ volatile ULONG64* Target
+    )
+{
+    return (ULONG64)InterlockedIncrement64((LONG64*)Target);
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedExchangeULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Value
+    )
+{
+#ifdef _WIN64
+    return (ULONG_PTR)InterlockedExchange64((LONG64*)Target, (LONG64)Value);
+#else
+    return (ULONG_PTR)InterlockedExchange((LONG*)Target, (LONG)Value);
+#endif
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedExchangeAddULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Value
+    )
+{
+    return (ULONG_PTR)InterlockedExchangeAddSizeT((SIZE_T*)Target, (SIZE_T)Value);
+}
+
+FORCEINLINE
+BOOLEAN InterlockedBitTestAndResetULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Bit
+    )
+{
+#ifdef _WIN64
+    return InterlockedBitTestAndReset64((LONG64*)Target, (LONG64)Bit);
+#else
+    return InterlockedBitTestAndReset((LONG*)Target, (LONG)Bit);
+#endif
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedCompareExchangeULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target,
+    _In_ ULONG_PTR Value,
+    _In_ ULONG_PTR Expected
+    )
+{
+#ifdef _WIN64
+    return (ULONG_PTR)InterlockedCompareExchange64((LONG64*)Target,
+                                                   (LONG64)Value,
+                                                   (LONG64)Expected);
+#else
+    return (ULONG_PTR)InterlockedCompareExchange((LONG*)Target,
+                                                 (LONG)Value,
+                                                 (LONG)Expected);
+#endif
+}
+
+FORCEINLINE
+ULONG_PTR InterlockedDecrementULongPtr(
+    _Inout_ _Interlocked_operand_ volatile ULONG_PTR* Target
+    )
+{
+    return (ULONG_PTR)InterlockedDecrementSizeT((SIZE_T*)Target);
+}
+
+FORCEINLINE
+SSIZE_T InterlockedIncrementSSizeT(
+    _Inout_ _Interlocked_operand_ volatile SSIZE_T* Target
+    )
+{
+    return (SSIZE_T)InterlockedIncrementSizeT((SIZE_T*)Target);
+}
+
+FORCEINLINE
+SSIZE_T InterlockedDecrementSSizeT(
+    _Inout_ _Interlocked_operand_ volatile SSIZE_T* Target
+    )
+{
+    return (SSIZE_T)InterlockedDecrementSizeT((SIZE_T*)Target);
+}
+
+FORCEINLINE
+SIZE_T InterlockedCompareExchangeSizeT(
+    _Inout_ _Interlocked_operand_ volatile SIZE_T* Target,
+    _In_ SIZE_T Value,
+    _In_ SIZE_T Expected
+    )
+{
+    return (SIZE_T)InterlockedCompareExchangePointer((PVOID*)Target,
+                                                     (PVOID)Value,
+                                                     (PVOID)Expected);
+}
 
 FORCEINLINE
 SIZE_T InterlockedExchangeIfGreaterSizeT(
-    _In_ volatile SIZE_T* Target,
+    _Inout_ _Interlocked_operand_ volatile SIZE_T* Target,
     _In_ SIZE_T Value
     )
 {
@@ -75,6 +209,7 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
     for (;;)
     {
         expected = *Target;
+        MemoryBarrier();
 
         if (Value <= expected)
         {
@@ -92,52 +227,152 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
     return expected;
 }
 
-#define ProbeOutputType(pointer, type)\
-_Pragma("warning(suppress : 6001)")\
+#define ProbeOutputType(pointer, type)                                        \
+_Pragma("warning(suppress : 6001)")                                           \
 ProbeForWrite(pointer, sizeof(type), TYPE_ALIGNMENT(type))
+
+#define ProbeInputType(pointer, type)                                         \
+_Pragma("warning(suppress : 6001)")                                           \
+ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
-#define RebaseUnicodeString(string, oldBase, newBase)\
-(string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer));
+#define RebaseUnicodeString(string, oldBase, newBase)                         \
+if ((string)->Buffer)                                                         \
+{                                                                             \
+    (string)->Buffer = Add2Ptr(newBase, PtrOffset(oldBase, (string)->Buffer));\
+}
 
-typedef struct _KPH_SIZED_BUFFER
+#define KPH_TIMEOUT(ms) { .QuadPart = (-10000ll * (ms)) }
+
+#define KPH_KERNEL_PURGE_EA "$KERNEL.PURGE.SI."
+
+typedef struct _KPH_FILE_VERSION
 {
-    ULONG Size;
-    PBYTE Buffer;
-
-} KPH_SIZED_BUFFER, *PKPH_SIZED_BUFFER;
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT BuildNumber;
+    USHORT Revision;
+} KPH_FILE_VERSION, *PKPH_FILE_VERSION;
 
 // main
 
 extern PDRIVER_OBJECT KphDriverObject;
-extern KPH_INFORMER_SETTINGS KphInformerSettings;
-extern BOOLEAN KphIgnoreDebuggerPresence;
+extern RTL_OSVERSIONINFOEXW KphOsVersionInfo;
+extern KPH_FILE_VERSION KphKernelVersion;
+extern BOOLEAN KphIgnoreProtectionsSuppressed;
+extern BOOLEAN KphIgnoreTestSigningEnabled;
 extern SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo;
+extern SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo;
 
 FORCEINLINE
-BOOLEAN KphKdPresent(
+BOOLEAN KphInDeveloperMode(
     VOID
     )
 {
-    if (KphIgnoreDebuggerPresence)
-    {
-        return FALSE;
-    }
-
     if (KphSecureBootInfo.SecureBootCapable &&
         KphSecureBootInfo.SecureBootEnabled)
     {
         return FALSE;
     }
 
-    return !KD_DEBUGGER_NOT_PRESENT;
+    if (!KD_DEBUGGER_ENABLED)
+    {
+        return FALSE;
+    }
+
+    if (!FlagOn(KphCodeIntegrityInfo.CodeIntegrityOptions,
+                CODEINTEGRITY_OPTION_TESTSIGN))
+    {
+        return FALSE;
+    }
+
+    return TRUE;
 }
+
+FORCEINLINE
+BOOLEAN KphProtectionsSuppressed(
+    VOID
+    )
+{
+    if (KphIgnoreProtectionsSuppressed)
+    {
+        return FALSE;
+    }
+
+    return KphInDeveloperMode();
+}
+
+FORCEINLINE
+BOOLEAN KphTestSigningEnabled(
+    VOID
+    )
+{
+    if (KphIgnoreTestSigningEnabled)
+    {
+        return FALSE;
+    }
+
+    return KphInDeveloperMode();
+}
+
+// parameters
+
+extern PUNICODE_STRING KphAltitude;
+extern PUNICODE_STRING KphPortName;
+extern KPH_PARAMETER_FLAGS KphParameterFlags;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupParameters(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeParameters(
+    _In_ PCUNICODE_STRING RegistryPath
+    );
 
 // alloc
 
+//
+// Always use wrapped allocators, unless explicitly necessary.
+//
+// This helps catch programmer error. Deprecate the original ones here, the
+// allocation infrastructure will internally suppress the deprecated warnings.
+//
+#pragma deprecated(ExAllocateCacheAwareRundownProtection)
+#pragma deprecated(ExAllocateFromLookasideListEx)
+#pragma deprecated(ExAllocateFromNPagedLookasideList)
+#pragma deprecated(ExAllocateFromPagedLookasideList)
+#pragma deprecated(ExAllocatePool)
+#pragma deprecated(ExAllocatePool2)
+#pragma deprecated(ExAllocatePool3)
+#pragma deprecated(ExAllocatePoolPriorityUninitialized)
+#pragma deprecated(ExAllocatePoolPriorityZero)
+#pragma deprecated(ExAllocatePoolQuotaUninitialized)
+#pragma deprecated(ExAllocatePoolQuotaZero)
+#pragma deprecated(ExAllocatePoolUninitialized)
+#pragma deprecated(ExAllocatePoolWithQuota)
+#pragma deprecated(ExAllocatePoolWithQuotaTag)
+#pragma deprecated(ExAllocatePoolWithTag)
+#pragma deprecated(ExAllocatePoolWithTagPriority)
+#pragma deprecated(ExAllocatePoolZero)
+#pragma deprecated(ExFreePool)
+#pragma deprecated(ExFreePool2)
+#pragma deprecated(ExFreePoolWithTag)
+#pragma deprecated(ExFreeToLookasideListEx)
+#pragma deprecated(ExFreeToNPagedLookasideList)
+#pragma deprecated(ExFreeToPagedLookasideList)
+#pragma deprecated(ExDeleteLookasideListEx)
+#pragma deprecated(ExDeleteNPagedLookasideList)
+#pragma deprecated(ExDeletePagedLookasideList)
+#pragma deprecated(ExInitializeLookasideListEx)
+#pragma deprecated(ExInitializeNPagedLookasideList)
+#pragma deprecated(ExInitializePagedLookasideList)
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphInitializeAlloc(
+_Must_inspect_result_
+NTSTATUS KphInitializeAlloc(
     VOID
     );
 
@@ -255,6 +490,12 @@ VOID KphFreeToNPagedLookasideObject(
 
 // dynimp
 
+extern PPS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX KphDynPsSetLoadImageNotifyRoutineEx;
+extern PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2 KphDynPsSetCreateProcessNotifyRoutineEx2;
+extern PMM_PROTECT_DRIVER_SECTION KphDynMmProtectDriverSection;
+extern PPS_GET_PROCESS_SEQUENCE_NUMBER KphDynPsGetProcessSequenceNumber;
+extern PPS_GET_PROCESS_START_KEY KphDynPsGetProcessStartKey;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphDynamicImport(
     VOID
@@ -266,21 +507,92 @@ PVOID KphGetSystemRoutineAddress(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-PVOID KphFindExportedRoutineByName(
-    _In_ PVOID BaseAddress,
-    _In_z_ PCSTR RoutineName
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 PVOID KphGetRoutineAddress(
     _In_z_ PCWSTR ModuleName,
     _In_z_ PCSTR RoutineName
     );
 
+// dyndata
+
+typedef struct _KPH_DYN
+{
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT BuildNumberMin;
+    USHORT RevisionMin;
+    USHORT BuildNumberMax;
+    USHORT RevisionMax;
+
+    ULONG EgeGuid;
+    ULONG EpObjectTable;
+    ULONG EreGuidEntry;
+    ULONG HtHandleContentionEvent;
+    ULONG OtName;
+    ULONG OtIndex;
+    ULONG ObDecodeShift;
+    ULONG ObAttributesShift;
+    ULONG AlpcCommunicationInfo;
+    ULONG AlpcOwnerProcess;
+    ULONG AlpcConnectionPort;
+    ULONG AlpcServerCommunicationPort;
+    ULONG AlpcClientCommunicationPort;
+    ULONG AlpcHandleTable;
+    ULONG AlpcHandleTableLock;
+    ULONG AlpcAttributes;
+    ULONG AlpcAttributesFlags;
+    ULONG AlpcPortContext;
+    ULONG AlpcPortObjectLock;
+    ULONG AlpcSequenceNo;
+    ULONG AlpcState;
+    ULONG KtReadOperationCount;
+    ULONG KtWriteOperationCount;
+    ULONG KtOtherOperationCount;
+    ULONG KtReadTransferCount;
+    ULONG KtWriteTransferCount;
+    ULONG KtOtherTransferCount;
+    ULONG LxPicoProc;
+    ULONG LxPicoProcInfo;
+    ULONG LxPicoProcInfoPID;
+    ULONG LxPicoThrdInfo;
+    ULONG LxPicoThrdInfoTID;
+    ULONG MmSectionControlArea;
+    ULONG MmControlAreaListHead;
+    ULONG MmControlAreaLock;
+    ULONG EpSectionObject;
+
+    PCI_FREE_POLICY_INFO CiFreePolicyInfo;
+    PCI_VERIFY_HASH_IN_CATALOG CiVerifyHashInCatalog;
+    PCI_CHECK_SIGNED_FILE CiCheckSignedFile;
+    PCI_VERIFY_HASH_IN_CATALOG_EX CiVerifyHashInCatalogEx;
+    PCI_CHECK_SIGNED_FILE_EX CiCheckSignedFileEx;
+    PLXP_THREAD_GET_CURRENT LxpThreadGetCurrent;
+
+    BCRYPT_KEY_HANDLE SessionTokenPublicKeyHandle;
+} KPH_DYN, *PKPH_DYN;
+
+_Must_inspect_result_
+PKPH_DYN KphReferenceDynData(
+    VOID
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
-NTSTATUS KphLocateKernelImage(
-    _Out_ PVOID* ImageBase,
-    _Out_ PSIZE_T ImageSize
+_Must_inspect_result_
+NTSTATUS KphActivateDynData(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeDynData(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupDynData(
+    VOID
     );
 
 // object
@@ -293,11 +605,26 @@ NTSTATUS KphLocateKernelImage(
 
 #define IsKernelHandle(Handle) ((LONG_PTR)(Handle) < 0)
 #define MakeKernelHandle(Handle) ((HANDLE)((ULONG_PTR)(Handle) | KERNEL_HANDLE_BIT))
+#define IsPseudoHandle(Handle) (((ULONG_PTR)(Handle) <= (ULONG_PTR)-1) && \
+                                ((ULONG_PTR)(Handle) >= (ULONG_PTR)-6))
+
+_Must_inspect_result_
+PVOID KphObpDecodeObject(
+    _In_ PKPH_DYN Dyn,
+    _In_ PVOID Object
+    );
+
+_Must_inspect_result_
+ULONG KphObpGetHandleAttributes(
+    _In_ PKPH_DYN Dyn,
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
+    );
 
 _Acquires_lock_(Process)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphReferenceProcessHandleTable(
+    _In_ PKPH_DYN Dyn,
     _In_ PEPROCESS Process,
     _Outptr_result_nullonfailure_ PHANDLE_TABLE* HandleTable
     );
@@ -342,7 +669,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameObject(
     _In_ PVOID Object,
-    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _Out_writes_bytes_opt_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
     _In_ ULONG BufferLength,
     _Out_ PULONG ReturnLength
     );
@@ -351,7 +678,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryNameFileObject(
     _In_ PFILE_OBJECT FileObject,
-    _Out_writes_bytes_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    _Out_writes_bytes_opt_(BufferLength) POBJECT_NAME_INFORMATION Buffer,
     _In_ ULONG BufferLength,
     _Out_ PULONG ReturnLength
     );
@@ -396,6 +723,15 @@ NTSTATUS KphDuplicateObject(
     _In_ HANDLE SourceHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE TargetHandle,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCompareObjects(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FirstObjectHandle,
+    _In_ HANDLE SecondObjectHandle,
     _In_ KPROCESSOR_MODE AccessMode
     );
 
@@ -457,13 +793,6 @@ NTSTATUS KphSetInformationProcess(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetProcessProtection(
-    _In_ PEPROCESS Process,
-    _Out_ PPS_PROTECTION Protection
-    );
-
 // qrydrv
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -499,16 +828,6 @@ NTSTATUS KphOpenThread(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphOpenThreadToken(
-    _In_ HANDLE ThreadHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ BOOLEAN OpenAsSelf,
-    _Out_ PHANDLE TokenHandle,
-    _In_ KPROCESSOR_MODE AccessMode
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -517,48 +836,17 @@ NTSTATUS KphOpenThreadProcess(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphInitializeStackBackTrace(
-    VOID
-    );
-
-#define KPH_STACK_TRACE_CAPTURE_USER_STACK 0x00000001
-
-_IRQL_requires_max_(APC_LEVEL)
-_Success_(return != 0)
-ULONG KphCaptureStackBackTrace(
-    _In_ ULONG FramesToSkip,
-    _In_ ULONG FramesToCapture,
-    _In_opt_ ULONG Flags,
-    _Out_writes_(FramesToCapture) PVOID *BackTrace,
-    _Out_opt_ PULONG BackTraceHash
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphCaptureStackBackTraceThread(
-    _In_ PETHREAD Thread,
-    _In_ ULONG FramesToSkip,
-    _In_ ULONG FramesToCapture,
-    _Out_writes_(FramesToCapture) PVOID *BackTrace,
-    _Out_opt_ PULONG CapturedFrames,
-    _Out_opt_ PULONG BackTraceHash,
-    _In_ KPROCESSOR_MODE AccessMode,
-    _In_ ULONG Flags,
-    _In_opt_ PLARGE_INTEGER Timeout
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     _In_ HANDLE ThreadHandle,
     _In_ ULONG FramesToSkip,
     _In_ ULONG FramesToCapture,
-    _Out_writes_(FramesToCapture) PVOID *BackTrace,
-    _Out_opt_ PULONG CapturedFrames,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Out_ PULONG CapturedFrames,
     _Out_opt_ PULONG BackTraceHash,
-    _In_ KPROCESSOR_MODE AccessMode,
     _In_ ULONG Flags,
-    _In_opt_ PLARGE_INTEGER Timeout
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -571,16 +859,46 @@ NTSTATUS KphSetInformationThread(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // util
+
+_Must_inspect_result_
+INT KphCompareMemory(
+    _In_reads_bytes_(Length) PVOID Buffer1,
+    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_ SIZE_T Length
+    );
+#pragma deprecated(memcmp)
+#pragma deprecated(RtlCompareMemory)
+
+_Must_inspect_result_
+BOOLEAN KphEqualMemory(
+    _In_reads_bytes_(Length) PVOID Buffer1,
+    _In_reads_bytes_(Length) PVOID Buffer2,
+    _In_ SIZE_T Length
+    );
+#pragma deprecated(RtlEqualMemory)
+
+_Must_inspect_result_
+PVOID KphSearchMemory(
+    _In_reads_bytes_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength,
+    _In_reads_bytes_(PatternLength) PVOID Pattern,
+    _In_ ULONG PatternLength
+    );
 
 typedef EX_RUNDOWN_REF KPH_RUNDOWN;
 typedef KPH_RUNDOWN* PKPH_RUNDOWN;
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-ULONG KphCaptureStack(
-    _Out_ PVOID* Frames,
-    _In_ ULONG Count
-    );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
@@ -634,15 +952,23 @@ VOID KphReleaseRWLock(
     _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock
     );
 
+typedef struct _KPH_REFERENCE
+{
+    volatile LONG Count;
+} KPH_REFERENCE, *PKPH_REFERENCE;
+
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetSystemModules(
-    _Outptr_allocatesMem_ PRTL_PROCESS_MODULES *Modules
+NTSTATUS KphAcquireReference(
+    _Inout_ PKPH_REFERENCE Reference,
+    _Out_opt_ PLONG PreviousCount
     );
 
 _IRQL_requires_max_(APC_LEVEL)
-VOID KphFreeSystemModules(
-    _In_freesMem_ PRTL_PROCESS_MODULES Modules
+_Must_inspect_result_
+NTSTATUS KphReleaseReference(
+    _Inout_ PKPH_REFERENCE Reference,
+    _Out_opt_ PLONG PreviousCount
     );
 
 _IRQL_requires_max_(APC_LEVEL)
@@ -654,22 +980,9 @@ NTSTATUS KphValidateAddressForSystemModules(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetProcessMappedFileName(
-    _In_ HANDLE ProcessHandle,
-    _In_ PVOID BaseAddress,
-    _Outptr_allocatesMem_ PUNICODE_STRING* FileName
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-VOID KphFreeProcessMappedFileName(
-    _In_freesMem_ PUNICODE_STRING FileName
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
 NTSTATUS KphQueryRegistryString(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Outptr_allocatesMem_ PUNICODE_STRING* String
     );
 
@@ -682,7 +995,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryRegistryBinary(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Outptr_allocatesMem_ PBYTE* Buffer,
     _Out_ PULONG Length
     );
@@ -696,90 +1009,24 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphQueryRegistryULong(
     _In_ HANDLE KeyHandle,
-    _In_ PUNICODE_STRING ValueName,
+    _In_ PCUNICODE_STRING ValueName,
     _Out_ PULONG Value
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS
-KphImageNtHeader(
-    _In_ PVOID Base,
-    _In_ ULONG64 Size,
-    _Out_ PIMAGE_NT_HEADERS* OutHeaders
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphPtrAddOffset(
-    _Inout_ PVOID* Pointer,
-    _In_ SIZE_T Offset
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphAdvancePointer(
-    _Inout_ PVOID* Pointer,
-    _In_ PVOID EndPointer,
-    _In_ SIZE_T Offset
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphAdvanceBuffer(
-    _Inout_ PVOID* Pointer,
-    _Inout_ PSIZE_T Size,
-    _In_ SIZE_T Offset
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphMappedImageRvaToSection(
-    _In_ PIMAGE_SECTION_HEADER SectionHeaders,
-    _In_ ULONG NumberOfSections,
-    _In_ ULONG Rva,
-    _Out_ PIMAGE_SECTION_HEADER* Section
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphMappedImageRvaToVa(
-    _In_ PVOID MappedBase,
-    _In_ SIZE_T ViewSize,
-    _In_ PIMAGE_SECTION_HEADER SectionHeaders,
-    _In_ ULONG NumberOfSections,
-    _In_ ULONG Rva,
-    _Out_ PVOID* Va
     );
 
 #define KPH_MAP_IMAGE    0x00000001ul
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphMapViewOfFileInSystemProcess(
+NTSTATUS KphMapViewInSystem(
     _In_ HANDLE FileHandle,
     _In_ ULONG Flags,
     _Outptr_result_bytebuffer_(*ViewSize) PVOID *MappedBase,
-    _Inout_ PSIZE_T ViewSize,
-    _Out_ PKAPC_STATE ApcState
+    _Inout_ PSIZE_T ViewSize
     );
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)
-VOID KphUnmapViewInSystemProcess(
-    _In_ PVOID MappedBase,
-    _In_ PKAPC_STATE ApcState
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetProcessModules(
-    _In_ PEPROCESS Process,
-    _Outptr_allocatesMem_ PRTL_PROCESS_MODULES *Modules
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeProcessModules(
-    _In_freesMem_ PRTL_PROCESS_MODULES Modules
+VOID KphUnmapViewInSystem(
+    _In_ PVOID MappedBase
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -792,11 +1039,6 @@ NTSTATUS KphGetNameFileObject(
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphFreeNameFileObject(
     _In_freesMem_ PUNICODE_STRING FileName
-    );
-
-_IRQL_requires_max_(APC_LEVEL)
-NTSTATUS KphGetThreadExitStatus(
-    _In_ PETHREAD Thread
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -812,21 +1054,136 @@ BOOLEAN KphSinglePrivilegeCheck(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
-_IRQL_requires_max_(APC_LEVEL)
-BOOLEAN KphSuffixUnicodeString(
-    _In_ PUNICODE_STRING Suffix,
-    _In_ PUNICODE_STRING String,
-    _In_ BOOLEAN CaseInSensitive
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphProcessIsLsass(
+    _In_ PEPROCESS Process,
+    _Out_ PBOOLEAN IsLsass
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN KphProcessIsLsass(
+_Must_inspect_result_
+NTSTATUS KphGetFileVersion(
+    _In_ PCUNICODE_STRING FileName,
+    _Out_ PKPH_FILE_VERSION Version
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetKernelVersion(
+    _Out_ PKPH_FILE_VERSION Version
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGuardGrantSuppressedCallAccess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDisableXfgOnTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetFileNameFinalComponent(
+    _In_ PCUNICODE_STRING FileName,
+    _Out_ PUNICODE_STRING FinalComponent
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetProcessImageName(
+    _In_ PEPROCESS Process,
+    _Out_allocatesMem_ PUNICODE_STRING ImageName
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphFreeProcessImageName(
+    _In_freesMem_ PUNICODE_STRING ImageName
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenParametersKey(
+    _In_ PCUNICODE_STRING RegistryPath,
+    _Out_ PHANDLE KeyHandle
+    );
+
+typedef struct _KPH_URL_INFORMATION
+{
+    //
+    // http://www.example.com:8080/path/index.html?key=x&v=1#Something
+    // |--|   |-------------| |--||--------------||--------||--------|
+    // Scheme   Domain Name   Port     Path       Parameters  Anchor
+    //        |------------------|
+    //             Authority
+    //
+
+    ANSI_STRING Scheme;
+    ANSI_STRING Authority;
+    ANSI_STRING Path;
+    ANSI_STRING Parameters;
+    ANSI_STRING Anchor;
+    ANSI_STRING DomainName;
+    ANSI_STRING Port;
+} KPH_URL_INFORMATION, *PKPH_URL_INFORMATION;
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphParseUrlInformation(
+    _In_ PANSI_STRING Url,
+    _Out_ PKPH_URL_INFORMATION UrlInfo
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDominationCheck(
+    _In_ PEPROCESS Process,
+    _In_ PEPROCESS ProcessTarget,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDominationAndPrivilegeCheck(
+    _In_ ULONG Privileges,
+    _In_ PETHREAD Thread,
+    _In_ PEPROCESS ProcessTarget,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG64 KphGetProcessSequenceNumber(
     _In_ PEPROCESS Process
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSTATUS KphLocateKernelRevision(
-    _Out_ PUSHORT Revision
+_IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG64 KphGetProcessStartKey(
+    _In_ PEPROCESS Process
+    );
+
+#define KphGetCurrentProcessStartKey() KphGetProcessStartKey(PsGetCurrentProcess())
+#define KphGetThreadProcessStartKey(thread) KphGetProcessStartKey(PsGetThreadProcess(thread))
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetCurrentThreadSubProcessTag(
+    VOID
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetThreadSubProcessTagEx(
+    _In_ PETHREAD Thread,
+    _In_ BOOLEAN CacheOnly
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+PVOID KphGetThreadSubProcessTag(
+    _In_ PETHREAD Thread
     );
 
 // vm
@@ -854,24 +1211,49 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQuerySection(
+    _In_ HANDLE SectionHandle,
+    _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_writes_bytes_opt_(SectionInformationLength) PVOID SectionInformation,
+    _In_ ULONG SectionInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+typedef struct _KPH_VM_TLS_CREATE_DATA_SECTION
+{
+    NTSTATUS Status;
+    HANDLE SectionHandle;
+    LARGE_INTEGER SectionFileSize;
+    KPROCESSOR_MODE AccessMode;
+} KPH_VM_TLS_CREATE_DATA_SECTION, *PKPH_VM_TLS_CREATE_DATA_SECTION;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ KPH_MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_opt_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONG MemoryInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // hash
 
-typedef struct _KPH_HASH
-{
-    ALG_ID AlgorithmId;
-    ULONG Size;
-    BYTE Buffer[MINCRYPT_MAX_HASH_LEN];
+#define KPH_AUTHENTICODE_HASH_SHA1   0
+#define KPH_AUTHENTICODE_HASH_SHA256 1
+#define KPH_AUTHENTICODE_HASH_MAX    2
 
-} KPH_HASH, *PKPH_HASH;
-
-typedef struct _KPH_AUTHENTICODE_INFO
+typedef struct _KPH_AUTHENTICODE_INFORMATION
 {
-    BYTE SHA1[MINCRYPT_SHA1_HASH_LEN];
-    BYTE SHA256[MINCRYPT_SHA256_HASH_LEN];
+    KPH_HASH_INFORMATION HashInfo[KPH_AUTHENTICODE_HASH_MAX];
+    ULONG SignatureLength;
     PBYTE Signature;
-    ULONG SignatureSize;
-
-} KPH_AUTHENTICODE_INFO, *PKPH_AUTHENTICODE_INFO;
+} KPH_AUTHENTICODE_INFORMATION, *PKPH_AUTHENTICODE_INFORMATION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -899,56 +1281,42 @@ _Must_inspect_result_
 NTSTATUS KphHashBuffer(
     _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
+    _In_ KPH_HASH_ALGORITHM HashAlgorithm,
+    _Out_ PKPH_HASH_INFORMATION HashInformation
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphHashFile(
+NTSTATUS KphQueryHashInformationFile(
     _In_ HANDLE FileHandle,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG HashInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphHashFileByName(
-    _In_ PUNICODE_STRING FileName,
-    _In_ ALG_ID AlgorithmId,
-    _Out_ PKPH_HASH Hash
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInfo(
+NTSTATUS KphGetAuthenticodeInformation(
     _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
+    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFORMATION Information
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInfoByFileName(
-    _In_ PUNICODE_STRING FileName,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFO Info
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeAuthenticodeInfo(
-    _In_freesMem_ PKPH_AUTHENTICODE_INFO Info
+VOID KphFreeAuthenticodeInformation(
+    _In_freesMem_ PKPH_AUTHENTICODE_INFORMATION Information
     );
 
 // sign
 
-typedef struct _KPH_SIGNING_INFO
+typedef struct _KPH_SIGNING_INFORMATION
 {
-    KPH_AUTHENTICODE_INFO Authenticode;
+    PKPH_DYN Dyn;
+    KPH_AUTHENTICODE_INFORMATION AuthenticodeInfo;
     MINCRYPT_POLICY_INFO PolicyInfo;
     LARGE_INTEGER SigningTime;
     MINCRYPT_POLICY_INFO TimeStampPolicyInfo;
     UNICODE_STRING CatalogName;
-
-} KPH_SIGNING_INFO, *PKPH_SIGNING_INFO;
+} KPH_SIGNING_INFORMATION, *PKPH_SIGNING_INFORMATION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -973,21 +1341,14 @@ VOID KphDereferenceSigningInfrastructure(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetSigningInfo(
-    _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_SIGNING_INFO Info
+NTSTATUS KphGetSigningInformation(
+    _In_ PCUNICODE_STRING FileName,
+    _Out_allocatesMem_ PKPH_SIGNING_INFORMATION Information
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphGetSigningInfoByFileName(
-    _In_ PUNICODE_STRING FileName,
-    _Out_allocatesMem_ PKPH_SIGNING_INFO Info
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeSigningInfo(
-    _In_freesMem_ PKPH_SIGNING_INFO Info
+VOID KphFreeSigningInformation(
+    _In_freesMem_ PKPH_SIGNING_INFORMATION Information
     );
 
 // kphobject
@@ -998,7 +1359,6 @@ typedef struct _KPH_OBJECT_HEADER
     UCHAR TypeIndex;
 
     QUAD Body;
-
 } KPH_OBJECT_HEADER, *PKPH_OBJECT_HEADER;
 
 #define KphObjectToObjectHeader(x) ((PKPH_OBJECT_HEADER)CONTAINING_RECORD((PCHAR)Object, KPH_OBJECT_HEADER, Body))
@@ -1050,7 +1410,6 @@ typedef struct _KPH_OBJECT_TYPE_INFO
     PKPH_TYPE_INITIALIZE_PROCEDURE Initialize;
     PKPH_TYPE_DELETE_PROCEDURE Delete;
     PKPH_TYPE_FREE_PROCEDURE Free;
-
 } KPH_OBJECT_TYPE_INFO, *PKPH_OBJECT_TYPE_INFO;
 
 typedef struct _KPH_OBJECT_TYPE
@@ -1060,62 +1419,167 @@ typedef struct _KPH_OBJECT_TYPE
     volatile SIZE_T TotalNumberOfObjects;
     volatile SIZE_T HighWaterNumberOfObjects;
     KPH_OBJECT_TYPE_INFO TypeInfo;
-
 } KPH_OBJECT_TYPE, *PKPH_OBJECT_TYPE;
 
-VOID
-KphCreateObjectType(
-    _In_ PUNICODE_STRING TypeName,
+VOID KphCreateObjectType(
+    _In_ PCUNICODE_STRING TypeName,
     _In_ PKPH_OBJECT_TYPE_INFO TypeInfo,
     _Outptr_ PKPH_OBJECT_TYPE* ObjectType
     );
 
 _Must_inspect_result_
-NTSTATUS
-KphCreateObject(
+NTSTATUS KphCreateObject(
     _In_ PKPH_OBJECT_TYPE ObjectType,
     _In_ ULONG ObjectBodySize,
     _Outptr_result_nullonfailure_ PVOID* Object,
     _In_opt_ PVOID Parameter
     );
 
-VOID
-KphReferenceObject(
+VOID KphReferenceObject(
     _In_ PVOID Object
     );
 
-VOID
-KphDereferenceObject(
+VOID KphDereferenceObject(
     _In_ PVOID Object
     );
 
 _Must_inspect_result_
-PKPH_OBJECT_TYPE
-KphGetObjectType(
+PKPH_OBJECT_TYPE KphGetObjectType(
     _In_ PVOID Object
+    );
+
+typedef struct _KPH_ATOMIC_OBJECT_REF
+{
+    volatile ULONG_PTR Object;
+} KPH_ATOMIC_OBJECT_REF, *PKPH_ATOMIC_OBJECT_REF;
+
+#define KPH_ATOMIC_OBJECT_REF_INIT { .Object = 0 }
+
+_Must_inspect_result_
+PVOID KphAtomicReferenceObject(
+    _In_ PKPH_ATOMIC_OBJECT_REF ObjectRef
+    );
+
+VOID KphAtomicAssignObjectReference(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_opt_ PVOID Object
+    );
+
+_Must_inspect_result_
+PVOID KphAtomicMoveObjectReference(
+    _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef,
+    _In_opt_ PVOID Object
+    );
+
+// cid_table
+
+typedef struct _KPH_CID_TABLE_ENTRY
+{
+    KPH_ATOMIC_OBJECT_REF ObjectRef;
+} KPH_CID_TABLE_ENTRY, *PKPH_CID_TABLE_ENTRY;
+
+typedef struct _KPH_CID_TABLE
+{
+    KSPIN_LOCK Lock;
+    volatile ULONG_PTR Table;
+} KPH_CID_TABLE, *PKPH_CID_TABLE;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCidTableCreate(
+    _Out_ PKPH_CID_TABLE Table
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidTableDelete(
+    _In_ PKPH_CID_TABLE Table
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidAssignObject(
+    _Inout_ PKPH_CID_TABLE_ENTRY Entry,
+    _In_opt_ PVOID Object
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PVOID KphCidReferenceObject(
+    _In_ PKPH_CID_TABLE_ENTRY Entry
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_CID_TABLE_ENTRY KphCidGetEntry(
+    _In_ HANDLE Cid,
+    _Inout_ PKPH_CID_TABLE Table
+    );
+
+typedef
+_Function_class_(KPH_CID_ENUMERATE_CALLBACK)
+BOOLEAN
+KSIAPI
+KPH_CID_ENUMERATE_CALLBACK(
+    _In_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    );
+typedef KPH_CID_ENUMERATE_CALLBACK* PKPH_CID_ENUMERATE_CALLBACK;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidEnumerate(
+    _In_ PKPH_CID_TABLE Table,
+    _In_ PKPH_CID_ENUMERATE_CALLBACK Callback,
+    _In_opt_ PVOID Parameter
+    );
+
+typedef
+_Function_class_(KPH_CID_RUNDOWN_CALLBACK)
+VOID
+KSIAPI
+KPH_CID_RUNDOWN_CALLBACK(
+    _In_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    );
+typedef KPH_CID_RUNDOWN_CALLBACK* PKPH_CID_RUNDOWN_CALLBACK;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphCidRundown(
+    _In_ PKPH_CID_TABLE Table,
+    _In_ PKPH_CID_RUNDOWN_CALLBACK Callback,
+    _In_opt_ PVOID Parameter
     );
 
 // cid_tracking
 
-#define KPH_PROTECED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS |\
-                                   PROCESS_TERMINATE |\
-                                   PROCESS_SUSPEND_RESUME)
-#define KPH_PROTECED_THREAD_MASK (KPH_THREAD_READ_ACCESS |\
-                                  THREAD_TERMINATE |\
-                                  THREAD_SUSPEND_RESUME |\
-                                  THREAD_RESUME)
+#define KPH_PROTECTED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS                  |\
+                                    PROCESS_TERMINATE                        |\
+                                    PROCESS_SUSPEND_RESUME)
+#define KPH_PROTECTED_THREAD_MASK  (KPH_THREAD_READ_ACCESS                   |\
+                                    THREAD_TERMINATE                         |\
+                                    THREAD_SUSPEND_RESUME                    |\
+                                    THREAD_RESUME)
+
+typedef union _KPH_SESSION_TOKEN_ATOMIC
+{
+    struct _KPH_SESSION_TOKEN* Token;
+    KPH_ATOMIC_OBJECT_REF Atomic;
+} KPH_SESSION_TOKEN_ATOMIC, *PKPH_SESSION_TOKEN_ATOMIC;
 
 typedef struct _KPH_PROCESS_CONTEXT
 {
     PEPROCESS EProcess;
 
     HANDLE ProcessId;
+    ULONG64 SequenceNumber;
     CLIENT_ID CreatorClientId;
 
     PUNICODE_STRING ImageFileName;
+    UNICODE_STRING ImageName;
     PFILE_OBJECT FileObject;
 
     volatile SIZE_T NumberOfImageLoads;
+
+    KPH_SESSION_TOKEN_ATOMIC SessionToken;
+    KPH_INFORMER_SETTINGS InformerFilter;
 
     union
     {
@@ -1129,13 +1593,17 @@ typedef struct _KPH_PROCESS_CONTEXT
             ULONG Protected : 1;
             ULONG IsLsass : 1;
             ULONG IsWow64 : 1;
-            ULONG Reserved : 25;
+            ULONG IsSubsystemProcess : 1;
+            ULONG AllocatedImageName : 1;
+            ULONG Reserved : 23;
         };
     };
 
     KPH_RWLOCK ThreadListLock;
+    struct _KPH_THREAD_CONTEXT* InitialThread;
     SIZE_T NumberOfThreads;
     LIST_ENTRY ThreadListHead;
+    SIZE_T NumberOfUnlinkedThreads;
 
     //
     // Masks are only valid if Protected flag is set.
@@ -1154,9 +1622,35 @@ typedef struct _KPH_PROCESS_CONTEXT
 
     PKNORMAL_ROUTINE ApcNoopRoutine;
 
+    SUBSYSTEM_INFORMATION_TYPE SubsystemType;
+
+    //
+    // SubsystemInformationTypeWSL information
+    //
+    struct
+    {
+        BOOLEAN ValidProcessId;
+        ULONG ProcessId;
+    } WSL;
 } KPH_PROCESS_CONTEXT, *PKPH_PROCESS_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphProcessContextType;
+
+typedef enum _KPH_PROCESS_CONTEXT_INFORMATION_CLASS
+{
+    KphProcessContextIsLsass,      // q: BOOLEAN
+    KphProcessContextWSLProcessId, // q: ULONG
+} KPH_PROCESS_CONTEXT_INFORMATION_CLASS, *PKPH_PROCESS_CONTEXT_INFORMATION_CLASS;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryInformationProcessContext(
+    _In_ PKPH_PROCESS_CONTEXT Process,
+    _In_ KPH_PROCESS_CONTEXT_INFORMATION_CLASS InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
+    _In_ ULONG InformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
 
 typedef struct _KPH_THREAD_CONTEXT
 {
@@ -1166,6 +1660,11 @@ typedef struct _KPH_THREAD_CONTEXT
 
     CLIENT_ID ClientId;
     CLIENT_ID CreatorClientId;
+
+    PVOID SubProcessTag;
+
+    KPH_SESSION_TOKEN_ATOMIC SessionToken;
+    KPH_SESSION_TOKEN_ATOMIC RequestSessionToken;
 
     union
     {
@@ -1177,7 +1676,8 @@ typedef struct _KPH_THREAD_CONTEXT
             ULONG ExitNotification : 1;
             ULONG InThreadList : 1;
             ULONG IsCreatingProcess : 1;
-            ULONG Reserved : 27;
+            ULONG CapturingUserModeStack : 1;
+            ULONG Reserved : 26;
         };
     };
 
@@ -1188,9 +1688,37 @@ typedef struct _KPH_THREAD_CONTEXT
     //
     HANDLE IsCreatingProcessId;
 
+    SUBSYSTEM_INFORMATION_TYPE SubsystemType;
+
+    //
+    // SubsystemInformationTypeWSL information
+    //
+    struct
+    {
+        BOOLEAN ValidThreadId;
+        ULONG ThreadId;
+    } WSL;
+
+    PVOID VmTlsCreateDataSection;
+    PVOID VmTlsMappedInformation;
 } KPH_THREAD_CONTEXT, *PKPH_THREAD_CONTEXT;
 
 extern PKPH_OBJECT_TYPE KphThreadContextType;
+
+typedef enum _KPH_THREAD_CONTEXT_INFORMATION_CLASS
+{
+    KphThreadContextWSLThreadId,  // q: ULONG
+} KPH_THREAD_CONTEXT_INFORMATION_CLASS, *PKPH_THREAD_CONTEXT_INFORMATION_CLASS;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryInformationThreadContext(
+    _In_ PKPH_THREAD_CONTEXT Thread,
+    _In_ KPH_THREAD_CONTEXT_INFORMATION_CLASS InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
+    _In_ ULONG InformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -1214,19 +1742,33 @@ VOID KphCidMarkPopulated(
     VOID
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphGetSystemProcessContext(
+    VOID
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 PKPH_PROCESS_CONTEXT KphGetProcessContext(
     _In_ HANDLE ProcessId
     );
 
-#define KphGetCurrentProcessContext() KphGetProcessContext(PsGetCurrentProcessId())
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+PKPH_PROCESS_CONTEXT KphGetEProcessContext(
+    _In_ PEPROCESS Process
+    );
 
-_IRQL_requires_max_(APC_LEVEL)
+#define KphGetCurrentProcessContext() KphGetEProcessContext(PsGetCurrentProcess())
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphGetThreadContext(
     _In_ HANDLE ThreadId
     );
+
+#define KphGetEThreadContext(thread) KphGetThreadContext(PsGetThreadId(thread))
 
 #define KphGetCurrentThreadContext() KphGetThreadContext(PsGetCurrentThreadId())
 
@@ -1305,6 +1847,29 @@ VOID KphEnumerateCidContexts(
     _In_opt_ PVOID Parameter
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCheckProcessApcNoopRoutine(
+    _In_ PKPH_PROCESS_CONTEXT ProcessContext
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphVerifyProcessAndProtectIfAppropriate(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+_Maybenull_
+PUNICODE_STRING KphGetThreadImageName(
+    _In_ PKPH_THREAD_CONTEXT Thread
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+KPH_PROCESS_STATE KphGetProcessState(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    );
+
 // protection
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1326,6 +1891,11 @@ VOID KphStopProtectingProcess(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphIsProtectedProcess(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphApplyObProtections(
     _Inout_ POB_PRE_OPERATION_INFORMATION Info
     );
@@ -1336,17 +1906,63 @@ VOID KphApplyImageProtections(
     _In_ PIMAGE_INFO_EX ImageInfo
     );
 
-// verify
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphInitializeVerify(
+NTSTATUS KphAcquireDriverUnloadProtection(
+    _Out_opt_ PLONG PreviousCount
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphReleaseDriverUnloadProtection(
+    _Out_opt_ PLONG PreviousCount
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+LONG KphGetDriverUnloadProtectionCount(
     VOID
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphCleanupVerify(
+FORCEINLINE
+BOOLEAN KphIsDriverUnloadProtected(
     VOID
+    )
+{
+    return (KphGetDriverUnloadProtectionCount() > 0);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphStripProtectedProcessMasks(
+    _In_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK ProcessAllowedMask,
+    _In_ ACCESS_MASK ThreadAllowedMask,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+// verify
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphVerifyCloseKey(
+    _In_ BCRYPT_KEY_HANDLE KeyHandle
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyCreateKey(
+    _Out_ BCRYPT_KEY_HANDLE* KeyHandle,
+    _In_ PBYTE KeyMaterial,
+    _In_ ULONG KeyMaterialLength
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyBufferEx(
+    _In_opt_ BCRYPT_KEY_HANDLE KeyHandle,
+    _In_ PBYTE Buffer,
+    _In_ ULONG BufferLength,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1361,20 +1977,18 @@ NTSTATUS KphVerifyBuffer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyFile(
-    _In_ PUNICODE_STRING FileName
+    _In_ PCUNICODE_STRING FileName
     );
 
-_IRQL_requires_max_(APC_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphDominationCheck(
-    _In_ PEPROCESS Process,
-    _In_ PEPROCESS ProcessTarget,
-    _In_ KPROCESSOR_MODE AccessMode
+NTSTATUS KphInitializeVerify(
+    VOID
     );
 
-_IRQL_requires_max_(APC_LEVEL)
-KPH_PROCESS_STATE KphGetProcessState(
-    _In_ PKPH_PROCESS_CONTEXT Process
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupVerify(
+    VOID
     );
 
 // ksi.dll
@@ -1385,6 +1999,28 @@ KPH_PROCESS_STATE KphGetProcessState(
 #define KSISYSAPI
 #endif
 
+#define KSIDLL_CURRENT_VERSION 1
+
+KSISYSAPI
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS
+KSIAPI
+KsiInitialize(
+    _In_ ULONG Version,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_opt_ PVOID Reserved
+    );
+
+KSISYSAPI
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+KSIAPI
+KsiUninitialize(
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ ULONG Reserved
+    );
+
 typedef struct _KSI_KAPC
 {
     KAPC Apc;
@@ -1392,15 +2028,14 @@ typedef struct _KSI_KAPC
     PVOID InternalRoutine;
     PVOID InternalCleanup;
     PVOID InternalContext;
-
 } KSI_KAPC, *PKSI_KAPC;
 
 typedef enum _KSI_KAPC_CLEANUP_REASON
 {
     KsiApcCleanupKernel,
     KsiApcCleanupNormal,
-    KsiApcCleanupRundown
-
+    KsiApcCleanupRundown,
+    KsiApcCleanupRemoved
 } KSI_KAPC_CLEANUP_REASON;
 
 typedef
@@ -1452,10 +2087,55 @@ KSISYSAPI
 BOOLEAN
 KSIAPI
 KsiInsertQueueApc(
-    _In_ PKSI_KAPC Apc,
+    _Inout_ PKSI_KAPC Apc,
     _In_opt_ PVOID SystemArgument1,
     _In_opt_ PVOID SystemArgument2,
     _In_ KPRIORITY PriorityBoost
+    );
+
+KSISYSAPI
+NTSTATUS
+KSIAPI
+KsiRemoveQueueApc(
+    _Inout_ PKSI_KAPC Apc
+    );
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_same_
+_Function_class_(KSI_WORK_QUEUE_ROUTINE)
+VOID
+KSI_WORK_QUEUE_ROUTINE(
+    _In_opt_ PVOID Parameter
+    );
+typedef KSI_WORK_QUEUE_ROUTINE *PKSI_WORK_QUEUE_ROUTINE;
+
+typedef struct _KSI_WORK_QUEUE_ITEM
+{
+    WORK_QUEUE_ITEM WorkItem;
+    PDRIVER_OBJECT DriverObject;
+    PKSI_WORK_QUEUE_ROUTINE Routine;
+    PVOID Parameter;
+} KSI_WORK_QUEUE_ITEM, *PKSI_WORK_QUEUE_ITEM;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KSISYSAPI
+VOID
+KSIAPI
+KsiInitializeWorkItem(
+    _Out_ PKSI_WORK_QUEUE_ITEM WorkItem,
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PKSI_WORK_QUEUE_ROUTINE Routine,
+    _In_opt_ PVOID Parameter
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+KSISYSAPI
+VOID
+KSIAPI
+KsiQueueWorkItem(
+    _Inout_ PKSI_WORK_QUEUE_ITEM WorkItem,
+    _In_ WORK_QUEUE_TYPE QueueType
     );
 
 // system
@@ -1509,6 +2189,24 @@ NTSTATUS KphQueryVolumeInformationFile(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
+    _In_ ULONG EaLength,
+    _In_ ULONG Options,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 // knowndll
 
 extern PVOID KphNtDllBaseAddress;
@@ -1516,5 +2214,288 @@ extern PVOID KphNtDllRtlSetBits;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS KphInitializeKnownDll(
+    VOID
+    );
+
+// socket
+
+typedef PVOID KPH_SOCKET_HANDLE;
+typedef PVOID* PKPH_SOCKET_HANDLE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphInitializeSocket(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphCleanupSocket(
+    VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetAddressInfo(
+    _In_ PCUNICODE_STRING NodeName,
+    _In_opt_ PCUNICODE_STRING ServiceName,
+    _In_opt_ PADDRINFOEXW Hints,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Outptr_allocatesMem_ PADDRINFOEXW* AddressInfo
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphFreeAddressInfo(
+    _In_freesMem_ PADDRINFOEXW AddressInfo
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphSocketClose(
+    _In_freesMem_ KPH_SOCKET_HANDLE Socket
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketConnect(
+    _In_ USHORT SocketType,
+    _In_ ULONG Protocol,
+    _In_ PSOCKADDR LocalAddress,
+    _In_ PSOCKADDR RemoteAddress,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Outptr_allocatesMem_ PKPH_SOCKET_HANDLE Socket
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketSend(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketRecv(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length
+    );
+
+typedef PVOID KPH_TLS_HANDLE;
+typedef PVOID* PKPH_TLS_HANDLE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphSocketTlsClose(
+    _In_freesMem_ KPH_TLS_HANDLE Tls
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketTlsCreate(
+    _Outptr_allocatesMem_ PKPH_TLS_HANDLE Tls
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketTlsHandshake(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ KPH_TLS_HANDLE Tls,
+    _In_ PCUNICODE_STRING TargetName
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphSocketTlsShutdown(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_ KPH_TLS_HANDLE Tls
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketTlsSend(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ KPH_TLS_HANDLE Tls,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSocketTlsRecv(
+    _In_ KPH_SOCKET_HANDLE Socket,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ KPH_TLS_HANDLE Tls,
+    _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length
+    );
+
+// http
+
+typedef enum _KPH_HTTP_VERSION
+{
+    InvalidKphHttpVersion,
+    KphHttpVersion10,
+    KphHttpVersion11,
+    MaxKphHttpVersion,
+} KPH_HTTP_VERSION, *PKPH_HTTP_VERSION;
+
+typedef struct _KPH_HTTP_HEADER_ITEM
+{
+    ANSI_STRING Key;
+    ANSI_STRING Value;
+} KPH_HTTP_HEADER_ITEM, *PKPH_HTTP_HEADER_ITEM;
+typedef const KPH_HTTP_HEADER_ITEM* PCKPH_HTTP_HEADER_ITEM;
+
+typedef struct _KPH_HTTP_RESPONSE
+{
+    KPH_HTTP_VERSION Version;
+    USHORT StatusCode;
+    ANSI_STRING StatusMessage;
+    PVOID Body;
+    ULONG BodyLength;
+    ULONG HeaderItemCount;
+    KPH_HTTP_HEADER_ITEM HeaderItems[ANYSIZE_ARRAY];
+} KPH_HTTP_RESPONSE, *PKPH_HTTP_RESPONSE;
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphHttpFreeResponse(
+    _In_freesMem_ PKPH_HTTP_RESPONSE Response
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHttpParseResponse(
+    _In_ PVOID Buffer,
+    _In_ ULONG Length,
+    _Outptr_allocatesMem_ PKPH_HTTP_RESPONSE* Response
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHttpBuildRequest(
+    _In_ const ANSI_STRING* Method,
+    _In_ const ANSI_STRING* Host,
+    _In_ const ANSI_STRING* Path,
+    _In_ const ANSI_STRING* Parameters,
+    _In_opt_ PCKPH_HTTP_HEADER_ITEM HeaderItems,
+    _In_ ULONG HeaderItemCount,
+    _In_opt_ PVOID Body,
+    _In_ ULONG BodyLength,
+    _Out_writes_bytes_to_opt_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length
+    );
+
+// download
+// download
+
+typedef PVOID KPH_DOWNLOAD_HANDLE;
+typedef PVOID* PKPH_DOWNLOAD_HANDLE;
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDownloadBinary(
+    _In_ PANSI_STRING Url,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ ULONG MaxRedirects,
+    _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length,
+    _Outptr_allocatesMem_ PKPH_DOWNLOAD_HANDLE Handle
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDownloadBinaryContinue(
+    _In_ KPH_DOWNLOAD_HANDLE Handle,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_writes_bytes_to_(*Length, *Length) PVOID Buffer,
+    _Inout_ PULONG Length
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphDownloadBinaryClose(
+    _In_ KPH_DOWNLOAD_HANDLE Handle
+    );
+
+// back_trace
+
+#define KPH_STACK_BACK_TRACE_USER_MODE   0x00000001ul
+#define KPH_STACK_BACK_TRACE_SKIP_KPH    0x00000002ul
+#define KPH_STACK_BACK_TRACE_NO_SENTINEL 0x00000004ul
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphInitializeStackBackTrace(
+    VOID
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != 0)
+ULONG KphCaptureStackBackTrace(
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCaptureStackBackTraceThread(
+    _In_ PETHREAD Thread,
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_(FramesToCapture) PVOID* BackTrace,
+    _Out_ PULONG CapturedFrames,
+    _Out_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+// session_token
+
+typedef struct _KPH_SESSION_TOKEN
+{
+    KPH_SESSION_ACCESS_TOKEN AccessToken;
+    volatile LONG UseCount;
+} KPH_SESSION_TOKEN, *PKPH_SESSION_TOKEN;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphRequestSessionAccessToken(
+    _Out_ PKPH_SESSION_ACCESS_TOKEN AccessToken,
+    _In_ PLARGE_INTEGER Expiry,
+    _In_ ULONG Privileges,
+    _In_ LONG Uses
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphAssignProcessSessionToken(
+    _In_ HANDLE ProcessHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphAssignThreadSessionToken(
+    _In_ HANDLE ThreadHandle,
+    _In_ PBYTE Signature,
+    _In_ ULONG SignatureLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphSessionTokenPrivilegeCheck(
+    _In_ PKPH_THREAD_CONTEXT Thread,
+    _In_ ULONG Privileges
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphInitializeSessionToken(
     VOID
     );

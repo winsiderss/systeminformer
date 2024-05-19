@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -25,9 +25,15 @@ HRESULT PhCreateAdminTask(
     )
 {
     static PH_STRINGREF taskTimeLimit = PH_STRINGREF_INIT(L"PT0S");
+#if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
+    static PH_STRINGREF taskArguments = PH_STRINGREF_INIT(L"$(Arg0)");
+#endif
     HRESULT status;
     BSTR taskNameString = NULL;
     BSTR taskFileNameString = NULL;
+#if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
+    BSTR taskArgumentsString = NULL;
+#endif
     BSTR taskFolderString = NULL;
     BSTR taskTimeLimitString = NULL;
     VARIANT empty = { VT_EMPTY };
@@ -59,6 +65,9 @@ HRESULT PhCreateAdminTask(
     taskFileNameString = SysAllocStringLen(FileName->Buffer, (UINT32)FileName->Length / sizeof(WCHAR));
     taskFolderString = SysAllocStringLen(PhNtPathSeperatorString.Buffer, (UINT32)PhNtPathSeperatorString.Length / sizeof(WCHAR));
     taskTimeLimitString = SysAllocStringLen(taskTimeLimit.Buffer, (UINT32)taskTimeLimit.Length / sizeof(WCHAR));
+#if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
+    taskArgumentsString = SysAllocStringLen(taskArguments.Buffer, (UINT32)taskArguments.Length / sizeof(WCHAR));
+#endif
 
     status = ITaskService_Connect(
         taskService,
@@ -189,6 +198,16 @@ HRESULT PhCreateAdminTask(
     if (FAILED(status))
         goto CleanupExit;
 
+#if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
+    status = IExecAction_put_Arguments(
+        taskExecAction,
+        taskArgumentsString
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+#endif
+
     ITaskFolder_DeleteTask(
         taskFolder,
         taskNameString,
@@ -235,6 +254,10 @@ CleanupExit:
         SysFreeString(taskNameString);
     if (taskFileNameString)
         SysFreeString(taskFileNameString);
+#if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
+    if (taskArgumentsString)
+        SysFreeString(taskArgumentsString);
+#endif
     if (taskFolderString)
         SysFreeString(taskFolderString);
 
@@ -313,6 +336,7 @@ HRESULT PhRunAsAdminTask(
     BSTR taskNameString = NULL;
     BSTR taskFolderString = NULL;
     VARIANT empty = { VT_EMPTY };
+    VARIANT params = { VT_EMPTY };
     ITaskService* taskService = NULL;
     ITaskFolder* taskFolder = NULL;
     IRegisteredTask* taskRegisteredTask = NULL;
@@ -360,9 +384,22 @@ HRESULT PhRunAsAdminTask(
     if (FAILED(status))
         goto CleanupExit;
 
+#if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
+    if (CommandLine)
+    {
+        PH_STRINGREF commandline;
+
+        if (NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandline)))
+        {
+            V_VT(&params) = VT_BSTR;
+            V_BSTR(&params) = SysAllocStringLen(commandline.Buffer, (UINT32)commandline.Length / sizeof(WCHAR));
+        }
+    }
+#endif
+
     status = IRegisteredTask_RunEx(
         taskRegisteredTask,
-        empty,
+        params,
         TASK_RUN_AS_SELF,
         0,
         NULL,
@@ -379,10 +416,75 @@ CleanupExit:
         ITaskFolder_Release(taskFolder);
     if (taskService)
         ITaskService_Release(taskService);
+#if (PH_ADMIN_TASK_FORWARD_COMMANDLINE_UNPRIVILEGED)
+    if (V_BSTR(&params))
+        SysFreeString(V_BSTR(&params));
+#endif
     if (taskFolderString)
         SysFreeString(taskFolderString);
     if (taskNameString)
         SysFreeString(taskNameString);
+
+    return status;
+}
+
+NTSTATUS PhRunAsAdminTaskUIAccess(
+    VOID
+    )
+{
+    NTSTATUS status;
+    BOOLEAN tokenIsUIAccess;
+    ULONG sessionId;
+    ULONG processId;
+    HWND windowHandle;
+    PPH_STRING fileName;
+
+    if (!PhGetOwnTokenAttributes().Elevated)
+        return STATUS_UNSUCCESSFUL;
+
+    if (!NT_SUCCESS(PhGetTokenUIAccess(
+        PhGetOwnTokenAttributes().TokenHandle,
+        &tokenIsUIAccess
+        )) || tokenIsUIAccess)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    fileName = PhGetApplicationFileNameWin32();
+
+    if (PhIsNullOrEmptyString(fileName))
+        return STATUS_UNSUCCESSFUL;
+
+    // Query the user desktop from the current shell window.
+
+    if (!(windowHandle = GetShellWindow()))
+        return STATUS_UNSUCCESSFUL;
+
+    if (!GetWindowThreadProcessId(windowHandle, &processId))
+        return STATUS_UNSUCCESSFUL;
+
+    // Query the session from the current process.
+
+    status = PhGetProcessSessionId(NtCurrentProcess(), &sessionId);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhExecuteRunAsCommand3(
+        NULL,
+        fileName->Buffer,
+        NULL,
+        NULL,
+        LOGON32_LOGON_INTERACTIVE,
+        UlongToHandle(processId),
+        sessionId,
+        NULL,
+        TRUE,
+        FALSE,
+        TRUE
+        );
+
+    PhDereferenceObject(fileName);
 
     return status;
 }

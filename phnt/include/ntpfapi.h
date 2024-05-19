@@ -96,6 +96,54 @@ typedef struct _PF_SYSTEM_SUPERFETCH_PARAMETERS
     ULONG ScenarioPrefetchTimeoutHiberBoot;
 } PF_SYSTEM_SUPERFETCH_PARAMETERS, *PPF_SYSTEM_SUPERFETCH_PARAMETERS;
 
+// rev
+typedef enum _PF_EVENT_TYPE
+{
+    PfEventTypeImageLoad = 0,
+    PfEventTypeAppLaunch = 1,
+    PfEventTypeStartTrace = 2,
+    PfEventTypeEndTrace = 3,
+    PfEventTypeTimestamp = 4,
+    PfEventTypeOperation = 5,
+    PfEventTypeRepurpose = 6,
+    PfEventTypeForegroundProcess = 7,
+    PfEventTypeTimeRange = 8,
+    PfEventTypeUserInput = 9,
+    PfEventTypeFileAccess = 10,
+    PfEventTypeUnmap = 11,
+    PfEventTypeUtilization = 11,
+    PfEventTypeMemInfo = 12,
+    PfEventTypeFileDelete = 13,
+    PfEventTypeAppExit = 14,
+    PfEventTypeSystemTime = 15,
+    PfEventTypePower = 16,
+    PfEventTypeSessionChange = 17,
+    PfEventTypeHardFaultTimeStamp = 18,
+    PfEventTypeVirtualFree = 19,
+    PfEventTypePerfInfo = 20,
+    PfEventTypeProcessSnapshot = 21,
+    PfEventTypeUserSnapshot = 22,
+    PfEventTypeStreamSequenceNumber = 23,
+    PfEventTypeFileTruncate = 24,
+    PfEventTypeFileRename = 25,
+    PfEventTypeFileCreate = 26,
+    PfEventTypeAgCxContext = 27,
+    PfEventTypePowerAction = 28,
+    PfEventTypeHardFaultTS = 29,
+    PfEventTypeRobustInfo = 30,
+    PfEventTypeFileDefrag = 31,
+    PfEventTypeMax = 32
+} PF_EVENT_TYPE;
+
+// rev
+typedef struct _PF_LOG_EVENT_DATA
+{
+    ULONG EventType : 5; // PF_EVENT_TYPE
+    ULONG Flags : 2;
+    ULONG DataSize : 25;
+    PVOID EventData;
+} PF_LOG_EVENT_DATA, *PPF_LOG_EVENT_DATA;
+
 #define PF_PFN_PRIO_REQUEST_VERSION 1
 #define PF_PFN_PRIO_REQUEST_QUERY_MEMORY_LIST 0x1
 #define PF_PFN_PRIO_REQUEST_VALID_FLAGS 0x1
@@ -151,8 +199,13 @@ typedef struct _PF_PRIVSOURCE_INFO
     ULONG Spare : 28;
 } PF_PRIVSOURCE_INFO, *PPF_PRIVSOURCE_INFO;
 
+// rev
 #define PF_PRIVSOURCE_QUERY_REQUEST_VERSION 8
+#define PF_PRIVSOURCE_QUERY_REQUEST_FLAGS_QUERYWSPAGES 0x1
+#define PF_PRIVSOURCE_QUERY_REQUEST_FLAGS_QUERYCOMPRESSEDPAGES 0x2
+#define PF_PRIVSOURCE_QUERY_REQUEST_FLAGS_QUERYSKIPPAGES 0x4 // ??
 
+// rev
 typedef struct _PF_PRIVSOURCE_QUERY_REQUEST
 {
     ULONG Version;
@@ -161,6 +214,7 @@ typedef struct _PF_PRIVSOURCE_QUERY_REQUEST
     PF_PRIVSOURCE_INFO InfoArray[1];
 } PF_PRIVSOURCE_QUERY_REQUEST, *PPF_PRIVSOURCE_QUERY_REQUEST;
 
+// rev
 typedef enum _PF_PHASED_SCENARIO_TYPE
 {
     PfScenarioTypeNone,
@@ -170,8 +224,10 @@ typedef enum _PF_PHASED_SCENARIO_TYPE
     PfScenarioTypeMax
 } PF_PHASED_SCENARIO_TYPE;
 
+// rev
 #define PF_SCENARIO_PHASE_INFO_VERSION 4
 
+// rev
 typedef struct _PF_SCENARIO_PHASE_INFO
 {
     ULONG Version;
@@ -182,6 +238,7 @@ typedef struct _PF_SCENARIO_PHASE_INFO
     ULONG FUSUserId;
 } PF_SCENARIO_PHASE_INFO, *PPF_SCENARIO_PHASE_INFO;
 
+// rev
 typedef struct _PF_MEMORY_LIST_NODE
 {
     ULONGLONG Node : 8;
@@ -192,6 +249,52 @@ typedef struct _PF_MEMORY_LIST_NODE
     ULONGLONG FreePageCount;
     ULONGLONG ModifiedPageCount;
 } PF_MEMORY_LIST_NODE, *PPF_MEMORY_LIST_NODE;
+
+// rev
+typedef struct _PF_ROBUST_PROCESS_ENTRY
+{
+    ULONG ImagePathHash;
+    ULONG Pid;
+    ULONG Alignment;
+} PF_ROBUST_PROCESS_ENTRY, *PPF_ROBUST_PROCESS_ENTRY;
+
+// rev
+typedef struct _PF_ROBUST_FILE_ENTRY
+{
+    ULONG FilePathHash;
+} PF_ROBUST_FILE_ENTRY, *PPF_ROBUST_FILE_ENTRY;
+
+// rev
+typedef enum _PF_ROBUSTNESS_CONTROL_COMMAND
+{
+    PfRpControlUpdate = 0,
+    PfRpControlReset = 1,
+    PfRpControlRobustAllStart = 2,
+    PfRpControlRobustAllStop = 3,
+    PfRpControlCommandMax = 4
+} PF_ROBUSTNESS_CONTROL_COMMAND;
+
+// rev
+#define PF_ROBUSTNESS_CONTROL_VERSION 1
+
+// rev
+typedef struct _PF_ROBUSTNESS_CONTROL
+{
+    ULONG Version;
+    PF_ROBUSTNESS_CONTROL_COMMAND Command;
+    ULONG DeprioProcessCount;
+    ULONG ExemptProcessCount;
+    ULONG DeprioFileCount;
+    ULONG ExemptFileCount;
+    PF_ROBUST_PROCESS_ENTRY ProcessEntries[1];
+    PF_ROBUST_FILE_ENTRY FileEntries[1];
+} PF_ROBUSTNESS_CONTROL, *PPF_ROBUSTNESS_CONTROL;
+
+// rev
+typedef struct _PF_TIME_CONTROL
+{
+    LONG TimeAdjustment;
+} PF_TIME_CONTROL, *PPF_TIME_CONTROL;
 
 #define PF_MEMORY_LIST_INFO_VERSION 1
 
@@ -228,48 +331,111 @@ typedef struct _PF_PHYSICAL_MEMORY_RANGE_INFO_V2
     PF_PHYSICAL_MEMORY_RANGE Ranges[ANYSIZE_ARRAY];
 } PF_PHYSICAL_MEMORY_RANGE_INFO_V2, *PPF_PHYSICAL_MEMORY_RANGE_INFO_V2;
 
-// begin_rev
-
+// rev
 #define PF_REPURPOSED_BY_PREFETCH_INFO_VERSION 1
 
+// rev
 typedef struct _PF_REPURPOSED_BY_PREFETCH_INFO
 {
     ULONG Version;
-    ULONG RepurposedByPrefetch;
+    SIZE_T RepurposedByPrefetch;
 } PF_REPURPOSED_BY_PREFETCH_INFO, *PPF_REPURPOSED_BY_PREFETCH_INFO;
 
-// end_rev
+// rev
+#define PF_VIRTUAL_QUERY_VERSION 1
 
+// rev
+typedef struct _PF_VIRTUAL_QUERY
+{
+    ULONG Version;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG FaultInPageTables : 1;
+            ULONG ReportPageTables : 1;
+            ULONG Spare : 30;
+        };
+    };
+    PVOID QueryBuffer; // MEMORY_WORKING_SET_EX_INFORMATION[NumberOfPages] (input: VirtualAddress[], output: VirtualAttributes[])
+    SIZE_T QueryBufferSize; // NumberOfPages * sizeof(MEMORY_WORKING_SET_EX_INFORMATION)
+    HANDLE ProcessHandle;
+} PF_VIRTUAL_QUERY, *PPF_VIRTUAL_QUERY;
+
+// rev
+#define PF_MIN_WS_AGE_RATE_CONTROL_VERSION 1
+
+// rev
+typedef struct _PF_MIN_WS_AGE_RATE_CONTROL
+{
+    ULONG Version;
+    ULONG SecondsToOldestAge;
+} PF_MIN_WS_AGE_RATE_CONTROL, *PPF_MIN_WS_AGE_RATE_CONTROL;
+
+// rev
+#define PF_DEPRIORITIZE_OLD_PAGES_VERSION 3
+
+// rev
+typedef struct _PF_DEPRIORITIZE_OLD_PAGES
+{
+    ULONG Version;
+    HANDLE ProcessHandle;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG TargetPriority : 4;
+            ULONG TrimPages : 2;
+            ULONG Spare : 26;
+        };
+    };
+} PF_DEPRIORITIZE_OLD_PAGES, *PPF_DEPRIORITIZE_OLD_PAGES;
+
+// rev
+#define PF_GPU_UTILIZATION_INFO_VERSION 1
+
+// rev
+typedef struct _PF_GPU_UTILIZATION_INFO
+{
+    ULONG Version;
+    ULONG SessionId;
+    ULONGLONG GpuTime;
+} PF_GPU_UTILIZATION_INFO, *PPF_GPU_UTILIZATION_INFO;
+
+// rev
 typedef enum _SUPERFETCH_INFORMATION_CLASS
 {
     SuperfetchRetrieveTrace = 1, // q: CHAR[]
     SuperfetchSystemParameters, // q: PF_SYSTEM_SUPERFETCH_PARAMETERS
-    SuperfetchLogEvent,
-    SuperfetchGenerateTrace,
+    SuperfetchLogEvent, // s: PF_LOG_EVENT_DATA
+    SuperfetchGenerateTrace, // s: NULL
     SuperfetchPrefetch,
     SuperfetchPfnQuery, // q: PF_PFN_PRIO_REQUEST
     SuperfetchPfnSetPriority,
     SuperfetchPrivSourceQuery, // q: PF_PRIVSOURCE_QUERY_REQUEST
     SuperfetchSequenceNumberQuery, // q: ULONG
     SuperfetchScenarioPhase, // 10
-    SuperfetchWorkerPriority,
+    SuperfetchWorkerPriority, // s: KPRIORITY
     SuperfetchScenarioQuery, // q: PF_SCENARIO_PHASE_INFO
     SuperfetchScenarioPrefetch,
-    SuperfetchRobustnessControl,
-    SuperfetchTimeControl,
+    SuperfetchRobustnessControl, // s: PF_ROBUSTNESS_CONTROL
+    SuperfetchTimeControl, // s: PF_TIME_CONTROL
     SuperfetchMemoryListQuery, // q: PF_MEMORY_LIST_INFO
     SuperfetchMemoryRangesQuery, // q: PF_PHYSICAL_MEMORY_RANGE_INFO
     SuperfetchTracingControl,
     SuperfetchTrimWhileAgingControl,
-    SuperfetchRepurposedByPrefetch, // q: PF_REPURPOSED_BY_PREFETCH_INFO // rev
+    SuperfetchRepurposedByPrefetch, // q: PF_REPURPOSED_BY_PREFETCH_INFO // 20
     SuperfetchChannelPowerRequest,
     SuperfetchMovePages,
-    SuperfetchVirtualQuery,
+    SuperfetchVirtualQuery, // q: PF_VIRTUAL_QUERY
     SuperfetchCombineStatsQuery,
-    SuperfetchSetMinWsAgeRate,
-    SuperfetchDeprioritizeOldPagesInWs,
-    SuperfetchFileExtentsQuery,
-    SuperfetchGpuUtilizationQuery, // PF_GPU_UTILIZATION_INFO
+    SuperfetchSetMinWsAgeRate, // s: PF_MIN_WS_AGE_RATE_CONTROL
+    SuperfetchDeprioritizeOldPagesInWs, // s: PF_DEPRIORITIZE_OLD_PAGES
+    SuperfetchFileExtentsQuery, // q: PF_FILE_EXTENTS_INFO
+    SuperfetchGpuUtilizationQuery, // q: PF_GPU_UTILIZATION_INFO
+    SuperfetchPfnSet, // s: PF_PFN_PRIO_REQUEST // since WIN11
     SuperfetchInformationMax
 } SUPERFETCH_INFORMATION_CLASS;
 

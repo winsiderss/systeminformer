@@ -137,21 +137,42 @@ PhDereferenceObjectEx(
     _In_ BOOLEAN DeferDelete
     );
 
-PHLIBAPI
+
+/**
+ * References an array of objects.
+ *
+ * \param Objects An array of objects.
+ * \param NumberOfObjects The number of elements in \a Objects.
+ */
+FORCEINLINE
 VOID
 NTAPI
 PhReferenceObjects(
     _In_reads_(NumberOfObjects) PVOID *Objects,
     _In_ ULONG NumberOfObjects
-    );
+    )
+{
+    for (ULONG i = 0; i < NumberOfObjects; i++)
+        PhReferenceObject(Objects[i]);
+}
 
-PHLIBAPI
+/**
+ * Dereferences an array of objects.
+ *
+ * \param Objects An array of objects.
+ * \param NumberOfObjects The number of elements in \a Objects.
+ */
+FORCEINLINE
 VOID
 NTAPI
 PhDereferenceObjects(
     _In_reads_(NumberOfObjects) PVOID *Objects,
     _In_ ULONG NumberOfObjects
-    );
+    )
+{
+    for (ULONG i = 0; i < NumberOfObjects; i++)
+        PhDereferenceObject(Objects[i]);
+}
 
 PHLIBAPI
 PPH_OBJECT_TYPE

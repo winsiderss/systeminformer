@@ -19,7 +19,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
-
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -44,7 +43,6 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
@@ -56,7 +54,7 @@ CAPTION "Network Adapters"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_NETADAPTERS_LISTVIEW,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_TABSTOP,7,20,251,133
-    CONTROL         "Show hidden adapters",IDC_SHOW_HIDDEN_ADAPTERS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,159,87,10
+    CONTROL         "Show hidden adapters",IDC_SHOW_HIDDEN_DEVICES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,159,87,10
     LTEXT           "Select network devices to show on the system information window:",IDC_STATIC,7,7,230,8
     CONTROL         "Show physical adapters",IDC_SHOW_PHYSICAL_ADAPTERS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,99,159,91,10
@@ -96,20 +94,23 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Disk Drives"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_DISKDRIVE_LISTVIEW,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_TABSTOP,7,20,251,150
+    CONTROL         "",IDC_DISKDRIVE_LISTVIEW,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_TABSTOP,7,20,251,133
     LTEXT           "Select disk devices to show on the system information window:",IDC_STATIC,7,7,216,8
+    CONTROL         "Show hidden devices",IDC_SHOW_HIDDEN_DEVICES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,159,83,10
 END
 
-IDD_DISKDRIVE_DIALOG DIALOGEX 0, 0, 315, 135
+IDD_DISKDRIVE_DIALOG DIALOGEX 0, 0, 315, 186
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "",IDC_GRAPH_LAYOUT,0,21,314,60,NOT WS_VISIBLE | WS_BORDER
-    LTEXT           "Disk",IDC_DISKMOUNTPATH,0,0,105,21
-    LTEXT           "Panel layout",IDC_LAYOUT,0,98,314,36,NOT WS_VISIBLE
-    RTEXT           "Disk name",IDC_DISKNAME,107,4,207,16,SS_WORDELLIPSIS
+    LTEXT           "DISK",IDC_TITLE,0,0,72,21
+    RTEXT           "DISK",IDC_DEVICENAME,83,4,232,16,SS_WORDELLIPSIS
+    LTEXT           "Panel layout",IDC_PANEL_LAYOUT,0,147,315,39,NOT WS_VISIBLE
+    LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,111,NOT WS_VISIBLE
+    LTEXT           "Read:",IDC_UP_L,73,0,20,8
+    LTEXT           "Write:",IDC_DOWN_L,73,5,21,8
 END
 
 IDD_DISKDRIVE_PANEL DIALOGEX 0, 0, 416, 50
@@ -132,8 +133,8 @@ BEGIN
     RTEXT           "Static",IDC_STAT_RESPONSETIME,65,22,62,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_STAT_BYTESDELTA,65,33,62,8,SS_ENDELLIPSIS
     GROUPBOX        "Statistics",IDC_STATIC,278,0,136,33
-    LTEXT           "Queue depth",IDC_STATIC,287,11,48,8
-    LTEXT           "Split count",IDC_STATIC,287,22,45,8
+    LTEXT           "Queue delta",IDC_STATIC,287,11,48,8
+    LTEXT           "Split total",IDC_STATIC,287,22,45,8
     RTEXT           "Static",IDC_STAT_QUEUELENGTH,344,11,62,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_STAT_SPLITCOUNT,344,22,62,8,SS_ENDELLIPSIS
 END
@@ -154,16 +155,18 @@ BEGIN
     CONTROL         "",IDC_DETAILS_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_TABSTOP,0,0,309,265
 END
 
-IDD_NETADAPTER_DIALOG DIALOGEX 0, 0, 315, 135
+IDD_NETADAPTER_DIALOG DIALOGEX 0, 0, 315, 186
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "",IDC_GRAPH_LAYOUT,0,21,314,60,NOT WS_VISIBLE | WS_BORDER
-    LTEXT           "Adapter",IDC_ADAPTERTEXT,0,0,238,21
-    LTEXT           "Panel layout",IDC_LAYOUT,0,98,314,36,NOT WS_VISIBLE
-    RTEXT           "Adapter name",IDC_ADAPTERNAME,107,4,207,16,SS_WORDELLIPSIS
+    LTEXT           "NET",IDC_TITLE,0,0,72,21
+    RTEXT           "NET",IDC_DEVICENAME,83,4,232,16,SS_WORDELLIPSIS
+    LTEXT           "Panel layout",IDC_PANEL_LAYOUT,0,147,315,39,NOT WS_VISIBLE
+    LTEXT           "Graph layout",IDC_GRAPH_LAYOUT,0,22,315,111,NOT WS_VISIBLE
+    LTEXT           "Send:",IDC_UP_L,73,0,20,8
+    LTEXT           "Receive:",IDC_DOWN_L,73,5,29,8
 END
 
 IDD_RAPLDEVICE_DIALOG DIALOGEX 0, 0, 315, 186
@@ -266,8 +269,36 @@ CAPTION "Graphics Devices"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "",IDC_GPUDEVICE_LISTVIEW,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_TABSTOP,7,20,251,133
-    CONTROL         "Show hidden adapters",IDC_SHOW_HIDDEN_ADAPTERS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,159,87,10
+    CONTROL         "Show hidden adapters",IDC_SHOW_HIDDEN_DEVICES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,159,87,10
     LTEXT           "Select graphics devices to show on the system information window:",IDC_STATIC,7,7,230,8
+END
+
+IDD_DEVICE_GENERAL DIALOGEX 0, 0, 309, 265
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "General"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_DEVICE_INFO,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_TABSTOP,0,44,309,221
+    ICON            "",IDC_DEVICE_ICON,10,12,20,20
+    GROUPBOX        "Device",IDC_DEVICE_GROUPBOX,3,1,301,40
+    EDITTEXT        IDC_DEVICE_NAME,40,11,218,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    EDITTEXT        IDC_DEVICE_MANUFACTURER,40,24,221,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+END
+
+IDD_DEVICE_PROPERTIES DIALOGEX 0, 0, 309, 265
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_DEVICE_PROPERTIES_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_TABSTOP,0,0,309,265
+END
+
+IDD_DEVICE_INTERFACES DIALOGEX 0, 0, 309, 265
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Interfaces"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_DEVICE_INTERFACES_INFO,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_TABSTOP,0,0,309,265
 END
 
 
@@ -307,8 +338,6 @@ BEGIN
 
     IDD_DISKDRIVE_DIALOG, DIALOG
     BEGIN
-        RIGHTMARGIN, 314
-        BOTTOMMARGIN, 134
     END
 
     IDD_DISKDRIVE_PANEL, DIALOG
@@ -327,8 +356,6 @@ BEGIN
 
     IDD_NETADAPTER_DIALOG, DIALOG
     BEGIN
-        RIGHTMARGIN, 314
-        BOTTOMMARGIN, 134
     END
 
     IDD_RAPLDEVICE_DIALOG, DIALOG
@@ -377,10 +404,61 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 170
     END
+
+    IDD_DEVICE_GENERAL, DIALOG
+    BEGIN
+    END
+
+    IDD_DEVICE_PROPERTIES, DIALOG
+    BEGIN
+    END
+
+    IDD_DEVICE_INTERFACES, DIALOG
+    BEGIN
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 3,7,0,0
+ PRODUCTVERSION 3,7,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileDescription", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "FileVersion", "3.7.0.0"
+            VALUE "InternalName", "HardwareDevices.dll"
+            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "OriginalFilename", "HardwareDevices.dll"
+            VALUE "ProductName", "⟆Ⴘ⟆𝜏∈ⲙ ᓰﬡ⨍ᗝᖇⲙ∈ᖇ"
+            VALUE "ProductVersion", "3.7.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
+
 

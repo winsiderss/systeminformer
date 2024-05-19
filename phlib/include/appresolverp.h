@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2019
+ *     dmex    2017-2023
  *
  */
 
@@ -13,24 +13,24 @@
 #define _PH_APPRESOLVER_P_H
 
 // "660B90C8-73A9-4B58-8CAE-355B7F55341B"
-static CLSID CLSID_StartMenuCacheAndAppResolver_I = { 0x660B90C8, 0x73A9, 0x4B58,{ 0x8C, 0xAE, 0x35, 0x5B, 0x7F, 0x55, 0x34, 0x1B } };
+DEFINE_GUID(CLSID_StartMenuCacheAndAppResolver_I, 0x660B90C8, 0x73A9, 0x4B58, 0x8C, 0xAE, 0x35, 0x5B, 0x7F, 0x55, 0x34, 0x1B);
 // "46A6EEFF-908E-4DC6-92A6-64BE9177B41C"
-static IID IID_IApplicationResolver61_I = { 0x46A6EEFF, 0x908E, 0x4DC6,{ 0x92, 0xA6, 0x64, 0xBE, 0x91, 0x77, 0xB4, 0x1c } };
+DEFINE_GUID(IID_IApplicationResolver61_I, 0x46A6EEFF, 0x908E, 0x4DC6, 0x92, 0xA6, 0x64, 0xBE, 0x91, 0x77, 0xB4, 0x1c);
 // "DE25675A-72DE-44b4-9373-05170450C140"
-static IID IID_IApplicationResolver62_I = { 0xDE25675A, 0x72DE, 0x44b4,{ 0x93, 0x73, 0x05, 0x17, 0x04, 0x50, 0xC1, 0x40 } };
+DEFINE_GUID(IID_IApplicationResolver62_I, 0xDE25675A, 0x72DE, 0x44b4, 0x93, 0x73, 0x05, 0x17, 0x04, 0x50, 0xC1, 0x40);
 // "33F71155-C2E9-4FFE-9786-A32D98577CFF"
-static IID IID_IStartMenuAppItems61_I = { 0x33F71155, 0xC2E9, 0x4FFE,{ 0x97, 0x86, 0xA3, 0x2D, 0x98, 0x57, 0x7C, 0xFF } };
+DEFINE_GUID(IID_IStartMenuAppItems61_I, 0x33F71155, 0xC2E9, 0x4FFE, 0x97, 0x86, 0xA3, 0x2D, 0x98, 0x57, 0x7C, 0xFF);
 // "02C5CCF3-805F-4654-A7B7-340A74335365"
-static IID IID_IStartMenuAppItems62_I = { 0x02C5CCF3, 0x805F, 0x4654,{ 0xA7, 0xB7, 0x34, 0x0A, 0x74, 0x33, 0x53, 0x65 } };
+DEFINE_GUID(IID_IStartMenuAppItems62_I, 0x02C5CCF3, 0x805F, 0x4654, 0xA7, 0xB7, 0x34, 0x0A, 0x74, 0x33, 0x53, 0x65);
 
 // "DBCE7E40-7345-439D-B12C-114A11819A09"
-static CLSID CLSID_MrtResourceManager_I = { 0xDBCE7E40, 0x7345, 0x439D,{ 0xB1, 0x2C, 0x11, 0x4A, 0x11, 0x81, 0x9A, 0x09 } };
+DEFINE_GUID(CLSID_MrtResourceManager_I, 0xDBCE7E40, 0x7345, 0x439D, 0xB1, 0x2C, 0x11, 0x4A, 0x11, 0x81, 0x9A, 0x09);
 // "130A2F65-2BE7-4309-9A58-A9052FF2B61C"
-static IID IID_IMrtResourceManager_I = { 0x130A2F65, 0x2BE7, 0x4309,{ 0x9A, 0x58, 0xA9, 0x05, 0x2F, 0xF2, 0xB6, 0x1C } };
+DEFINE_GUID(IID_IMrtResourceManager_I, 0x130A2F65, 0x2BE7, 0x4309, 0x9A, 0x58, 0xA9, 0x05, 0x2F, 0xF2, 0xB6, 0x1C);
 // "E3C22B30-8502-4B2F-9133-559674587E51"
-static IID IID_IResourceContext_I = { 0xE3C22B30, 0x8502, 0x4B2F,{ 0x91, 0x33, 0x55, 0x96, 0x74, 0x58, 0x7E, 0x51 } };
+DEFINE_GUID(IID_IResourceContext_I, 0xE3C22B30, 0x8502, 0x4B2F, 0x91, 0x33, 0x55, 0x96, 0x74, 0x58, 0x7E, 0x51);
 // "6E21E72B-B9B0-42AE-A686-983CF784EDCD"
-static IID IID_IResourceMap_I = { 0x6E21E72B, 0xB9B0, 0x42AE,{ 0xA6, 0x86, 0x98, 0x3C, 0xF7, 0x84, 0xED, 0xCD } };
+DEFINE_GUID(IID_IResourceMap_I, 0x6E21E72B, 0xB9B0, 0x42AE, 0xA6, 0x86, 0x98, 0x3C, 0xF7, 0x84, 0xED, 0xCD);
 
 static HRESULT (WINAPI* AppContainerDeriveSidFromMoniker_I)( // DeriveAppContainerSidFromAppContainerName
     _In_ PCWSTR AppContainerName,
@@ -55,11 +55,6 @@ static HRESULT (WINAPI* AppContainerUnregisterSid_I)(
 
 static BOOL (WINAPI* AppContainerFreeMemory_I)(
     _Frees_ptr_opt_ PVOID Memory
-    ) = NULL;
-
-static HRESULT (WINAPI* AppPolicyGetWindowingModel_I)(
-    _In_ HANDLE ProcessTokenHandle,
-    _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
     ) = NULL;
 
 // rev
@@ -89,6 +84,95 @@ static NTSTATUS (NTAPI* PsmGetPackageFullNameFromKey_I)(
     _Out_ PVOID NameBuffer,
     _Inout_ PULONG NameLength
     ) = NULL;
+
+// "168EB462-775F-42AE-9111-D714B2306C2E"
+DEFINE_GUID(CLSID_IDesktopAppXActivator_I, 0x168EB462, 0x775F, 0x42AE, 0x91, 0x11, 0xD7, 0x14, 0xB2, 0x30, 0x6C, 0x2E);
+// "72e3a5b0-8fea-485c-9f8b-822b16dba17f"
+DEFINE_GUID(IID_IDesktopAppXActivator1_I, 0x72e3a5b0, 0x8fea, 0x485c, 0x9f, 0x8b, 0x82, 0x2b, 0x16, 0xdb, 0xa1, 0x7f);
+// "F158268A-D5A5-45CE-99CF-00D6C3F3FC0A"
+DEFINE_GUID(IID_IDesktopAppXActivator2_I, 0xF158268A, 0xD5A5, 0x45CE, 0x99, 0xCF, 0x00, 0xD6, 0xC3, 0xF3, 0xFC, 0x0A);
+
+typedef enum _DESKTOP_APPX_ACTIVATE_OPTIONS
+{
+    DAXAO_NONE = 0,
+    DAXAO_ELEVATE = 1,
+    DAXAO_NONPACKAGED_EXE = 2,
+    DAXAO_NONPACKAGED_EXE_PROCESS_TREE = 4,
+    DAXAO_NONPACKAGED_EXE_FLAGS = 6,
+    DAXAO_NO_ERROR_UI = 8,
+    DAXAO_CHECK_FOR_APPINSTALLER_UPDATES = 16,
+    DAXAO_CENTENNIAL_PROCESS = 32,
+    DAXAO_UNIVERSAL_PROCESS = 64,
+    DAXAO_WIN32ALACARTE_PROCESS = 128,
+    DAXAO_RUNTIME_BEHAVIOR_FLAGS = 224,
+    DAXAO_PARTIAL_TRUST = 256,
+    DAXAO_UNIVERSAL_CONSOLE = 512,
+    DAXAO_APP_SILO = 1024,
+    DAXAO_TRUST_LEVEL_FLAGS = 1280
+} DESKTOP_APPX_ACTIVATE_OPTIONS, *PDESKTOP_APPX_ACTIVATE_OPTIONS;
+
+#undef INTERFACE
+#define INTERFACE IDesktopAppXActivator
+DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
+{
+    BEGIN_INTERFACE
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    // IDesktopAppXActivator1
+
+    STDMETHOD(Activate)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR PackageRelativeExecutable,
+        _In_ PWSTR Arguments,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    STDMETHOD(ActivateWithOptions)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_ ULONG ActivationOptions, // DESKTOP_APPX_ACTIVATE_OPTIONS
+        _In_opt_ ULONG ParentProcessId,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    // IDesktopAppXActivator2
+
+    STDMETHOD(ActivateWithOptionsAndArgs)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_opt_ ULONG ParentProcessId,
+        _In_opt_ PVOID ActivatedEventArgs,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    STDMETHOD(ActivateWithOptionsArgsWorkingDirectoryShowWindow)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_ ULONG ActivationOptions, // DESKTOP_APPX_ACTIVATE_OPTIONS
+        _In_opt_ ULONG ParentProcessId,
+        _In_opt_ PVOID ActivatedEventArgs,
+        _In_ PWSTR WorkingDirectory,
+        _In_ ULONG ShowWindow,
+        _Out_ PHANDLE ProcessHandle) PURE;
+
+    END_INTERFACE
+};
+
+#define IDesktopAppXActivator_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+#define IDesktopAppXActivator_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IDesktopAppXActivator_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IDesktopAppXActivator_ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle) \
+    ((This)->lpVtbl->ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle))
 
 typedef enum _START_MENU_APP_ITEMS_FLAGS
 {
@@ -314,8 +398,8 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
     // IStartMenuAppItems61
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
-        _In_ REFIID riid,
-        _Outptr_ IEnumObjects **ppvObject
+        _In_ REFIID riid, // IID_IEnumObjects, IID_IObjectCollection
+        _Outptr_ PVOID *ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
@@ -352,8 +436,8 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
     // IStartMenuAppItems62
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
-        _In_ REFIID riid,
-        _Outptr_ IEnumObjects **ppvObject
+        _In_ REFIID riid, // IID_IEnumObjects, IID_IObjectCollection
+        _Outptr_ PVOID *ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
@@ -525,13 +609,13 @@ DECLARE_INTERFACE_IID(IResourceMap, IUnknown)
     ((This)->lpVtbl->GetFilePathForContextByUri(This))
 
 // Note: Documented PKEY_AppUserModel_XYZ keys can be found in propkey.h
+DEFINE_PROPERTYKEY(PKEY_AppUserModel_ID, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 5);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_HostEnvironment, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 14);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageInstallPath, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 15);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFamilyName, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 17);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_ParentID, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 19);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFullName, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 21);
 // PKEY_AppUserModel_ExcludeFromShowInNewInstall {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 8
-//2 PKEY_AppUserModel_ID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 5
 //3 PKEY_AppUserModel_IsDestListSeparator {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 6
 //4 PKEY_AppUserModel_IsDualMode {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 11
 //5 PKEY_AppUserModel_PreventPinning {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 9
@@ -540,19 +624,14 @@ DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFullName, 0x9F4C2855, 0x9F79, 0x4B39
 //8 PKEY_AppUserModel_RelaunchIconResource {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 3
 //9 PKEY_AppUserModel_StartPinOption {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 12
 //10 PKEY_AppUserModel_ToastActivatorCLSID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 26
-//11 PKEY_AppUserModel_PackageInstallPath {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 15
 //12 PKEY_AppUserModel_RecordState {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 16
-//13 PKEY_AppUserModel_PackageFullName {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 21
 //14 PKEY_AppUserModel_DestListProvidedTitle {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 27
 //15 PKEY_AppUserModel_DestListProvidedDescription {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 28
-//16 PKEY_AppUserModel_ParentID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 19
-//17 PKEY_AppUserModel_HostEnvironment {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 14
 //18 PKEY_AppUserModel_Relevance {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 13
 //19 PKEY_AppUserModel_PackageRelativeApplicationID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 22
 //20 PKEY_AppUserModel_ExcludedFromLauncher {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 23
 //21 PKEY_AppUserModel_DestListLogoUri {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 29
 //22 PKEY_AppUserModel_ActivationContext {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 20
-//23 PKEY_AppUserModel_PackageFamilyName {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 17
 //24 PKEY_AppUserModel_BestShortcut {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 10
 //25 PKEY_AppUserModel_IsDestListLink {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 7
 //26 PKEY_AppUserModel_InstalledBy {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 18
@@ -578,9 +657,9 @@ DEFINE_PROPERTYKEY(PKEY_Tile_EncodedTargetPath, 0x86D40B4D, 0x9069, 0x443C, 0x81
 // Immersive PLM task support
 
 // "07fc2b94-5285-417e-8ac3-c2ce5240b0fa"
-static CLSID CLSID_OSTaskCompletion_I = { 0x07fc2b94, 0x5285, 0x417e, { 0x8a, 0xc3, 0xc2, 0xce, 0x52, 0x40, 0xb0, 0xfa } };
+DEFINE_GUID(CLSID_OSTaskCompletion_I, 0x07fc2b94, 0x5285, 0x417e, 0x8a, 0xc3, 0xc2, 0xce, 0x52, 0x40, 0xb0, 0xfa);
 // "c7e40572-c36a-43ea-9a40-f3b168da5558"
-static IID IID_IOSTaskCompletion_I = { 0xc7e40572, 0xc36a, 0x43ea, { 0x9a, 0x40, 0xf3, 0xb1, 0x68, 0xda, 0x55, 0x58 } };
+DEFINE_GUID(IID_IOSTaskCompletion_I, 0xc7e40572, 0xc36a, 0x43ea, 0x9a, 0x40, 0xf3, 0xb1, 0x68, 0xda, 0x55, 0x58);
 
 typedef enum _PLM_TASKCOMPLETION_CATEGORY_FLAGS
 {
@@ -716,5 +795,417 @@ static HRESULT (WINAPI* EdpGetContextForProcess_I)(
 static VOID (WINAPI* EdpFreeContext_I)(
     _In_ PEDP_CONTEXT EdpContext
     ) = NULL;
+
+// Properties
+
+// private
+typedef struct _PACKAGE_CONTEXT_REFERENCE
+{
+    void * reserved;
+} * PACKAGE_CONTEXT_REFERENCE;
+
+// private
+typedef enum PackageProperty
+{
+    PackageProperty_Name = 1,                  // q: WCHAR[]
+    PackageProperty_Version = 2,               // q: WCHAR[]
+    PackageProperty_Architecture = 3,          // q: ULONG (PROCESSOR_ARCHITECTURE_*)
+    PackageProperty_ResourceId = 4,            // q: WCHAR[]
+    PackageProperty_Publisher = 5,             // q: WCHAR[]
+    PackageProperty_PublisherId = 6,           // q: WCHAR[]
+    PackageProperty_FamilyName = 7,            // q: WCHAR[]
+    PackageProperty_FullName = 8,              // q: WCHAR[]
+    PackageProperty_Flags = 9,                 // q: ULONG
+    PackageProperty_InstalledLocation = 10,    // q: WCHAR[]
+    PackageProperty_DisplayName = 11,          // q: WCHAR[]
+    PackageProperty_PublisherDisplayName = 12, // q: WCHAR[]
+    PackageProperty_Description = 13,          // q: WCHAR[]
+    PackageProperty_Logo = 14,                 // q: WCHAR[]
+    PackageProperty_PackageOrigin = 15         // q: PackageOrigin
+} PackageProperty;
+
+// private
+typedef struct _PACKAGE_APPLICATION_CONTEXT_REFERENCE
+{
+    void * reserved;
+} * PACKAGE_APPLICATION_CONTEXT_REFERENCE;
+
+// private
+typedef enum PackageApplicationProperty
+{
+    PackageApplicationProperty_Aumid = 1,                        // q: WCHAR[]
+    PackageApplicationProperty_Praid = 2,                        // q: WCHAR[]
+    PackageApplicationProperty_DisplayName = 3,                  // q: WCHAR[]
+    PackageApplicationProperty_Description = 4,                  // q: WCHAR[]
+    PackageApplicationProperty_Logo = 5,                         // q: WCHAR[]
+    PackageApplicationProperty_SmallLogo = 6,                    // q: WCHAR[]
+    PackageApplicationProperty_ForegroundText = 7,               // q: ULONG
+    PackageApplicationProperty_ForegroundTextString = 8,         // q: WCHAR[]
+    PackageApplicationProperty_BackgroundColor = 9,              // q: ULONG
+    PackageApplicationProperty_StartPage = 10,                   // q: WCHAR[]
+    PackageApplicationProperty_ContentURIRulesCount = 11,        // q: ULONG
+    PackageApplicationProperty_ContentURIRules = 12,             // q: WCHAR[] (multi-sz)
+    PackageApplicationProperty_StaticContentURIRulesCount = 13,  // q: ULONG
+    PackageApplicationProperty_StaticContentURIRules = 14,       // q: WCHAR[] (multi-sz)
+    PackageApplicationProperty_DynamicContentURIRulesCount = 15, // q: ULONG
+    PackageApplicationProperty_DynamicContentURIRules = 16       // q: WCHAR[] (multi-sz)
+} PackageApplicationProperty;
+
+// private
+typedef struct _PACKAGE_RESOURCES_CONTEXT_REFERENCE
+{
+    void * reserved;
+} * PACKAGE_RESOURCES_CONTEXT_REFERENCE;
+
+// private
+typedef enum PackageResourcesProperty
+{
+    PackageResourcesProperty_DisplayName = 1,
+    PackageResourcesProperty_PublisherDisplayName = 2,
+    PackageResourcesProperty_Description = 3,
+    PackageResourcesProperty_Logo = 4,
+    PackageResourcesProperty_SmallLogo = 5,
+    PackageResourcesProperty_StartPage = 6
+} PackageResourcesProperty;
+
+// private
+typedef struct _PACKAGE_SECURITY_CONTEXT_REFERENCE
+{
+    void * reserved;
+} * PACKAGE_SECURITY_CONTEXT_REFERENCE;
+
+// private
+typedef enum PackageSecurityProperty
+{
+    PackageSecurityProperty_SecurityFlags = 1,     // q: ULONG
+    PackageSecurityProperty_AppContainerSID = 2,   // q: Sid
+    PackageSecurityProperty_CapabilitiesCount = 3, // q: ULONG
+    PackageSecurityProperty_Capabilities = 4       // q: Sid[]
+} PackageSecurityProperty;
+
+// private
+typedef struct _TARGET_PLATFORM_CONTEXT_REFERENCE
+{
+    void * reserved;
+} * TARGET_PLATFORM_CONTEXT_REFERENCE;
+
+// private
+typedef enum TargetPlatformProperty
+{
+    TargetPlatformProperty_Platform = 1,   // q: ULONG
+    TargetPlatformProperty_MinVersion = 2, // q: PACKAGE_VERSION
+    TargetPlatformProperty_MaxVersion = 3  // q: PACKAGE_VERSION
+} TargetPlatformProperty;
+
+// private
+typedef struct _PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE
+{
+    void * reserved;
+} * PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE;
+
+// private
+typedef enum PackageGlobalizationProperty
+{
+    PackageGlobalizationProperty_ForceUtf8 = 1,                // q: ULONG
+    PackageGlobalizationProperty_UseWindowsDisplayLanguage = 2 // q: ULONG
+} PackageGlobalizationProperty;
+
+#if (PHNT_VERSION >= PHNT_WINBLUE)
+
+// Package Properties
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetCurrentPackageContext(
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_CONTEXT_REFERENCE *PackageContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageContext(
+    _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_CONTEXT_REFERENCE *PackageContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageProperty(
+    _In_ PACKAGE_CONTEXT_REFERENCE PackageContext,
+    _In_ PackageProperty PropertyId,
+    _Inout_ PULONG BufferSize,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackagePropertyString(
+    _In_ PACKAGE_CONTEXT_REFERENCE PackageContext,
+    _In_ PackageProperty PropertyId,
+    _Inout_ PULONG BufferLength,
+    _Out_writes_(BufferLength) PWSTR Buffer
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageOSMaxVersionTested(
+    _In_ PACKAGE_CONTEXT_REFERENCE PackageContext,
+    _Out_ ULONGLONG *OSMaxVersionTested // PACKAGE_VERSION
+    );
+
+// Package Application Properties
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetCurrentPackageApplicationContext(
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_APPLICATION_CONTEXT_REFERENCE *PackageApplicationContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageApplicationContext(
+    _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_APPLICATION_CONTEXT_REFERENCE *PackageApplicationContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageApplicationProperty(
+    _In_ PACKAGE_APPLICATION_CONTEXT_REFERENCE PackageApplicationContext,
+    _In_ PackageApplicationProperty PropertyId,
+    _Inout_ PULONG BufferSize,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageApplicationPropertyString(
+    _In_ PACKAGE_APPLICATION_CONTEXT_REFERENCE PackageApplicationContext,
+    _In_ PackageApplicationProperty PropertyId,
+    _Inout_ PULONG BufferLength,
+    _Out_writes_(BufferLength) PWSTR Buffer
+    );
+
+// Package Resource Properties
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetCurrentPackageResourcesContext(
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_RESOURCES_CONTEXT_REFERENCE *PackageResourcesContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageResourcesContext(
+    _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_RESOURCES_CONTEXT_REFERENCE *PackageResourcesContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetCurrentPackageApplicationResourcesContext(
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_APPLICATION_CONTEXT_REFERENCE *PackageResourcesContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageApplicationResourcesContext(
+    _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_APPLICATION_CONTEXT_REFERENCE *PackageResourcesContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageResourcesProperty(
+    _In_ PACKAGE_APPLICATION_CONTEXT_REFERENCE PackageResourcesContext,
+    _In_ PackageResourcesProperty PropertyId,
+    _Inout_ PULONG BufferSize,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    );
+
+// Package Security Properties
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetCurrentPackageSecurityContext(
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_SECURITY_CONTEXT_REFERENCE *PackageSecurityContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageSecurityContext(
+    _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_SECURITY_CONTEXT_REFERENCE *PackageSecurityContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageSecurityProperty(
+    _In_ PACKAGE_SECURITY_CONTEXT_REFERENCE PackageSecurityContext,
+    _In_ PackageSecurityProperty PropertyId,
+    _Inout_ PULONG BufferSize,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    );
+
+#endif // PHNT_VERSION >= PHNT_WINBLUE
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+
+// Target Platform Properties
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetCurrentTargetPlatformContext(
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ TARGET_PLATFORM_CONTEXT_REFERENCE *TargetPlatformContext
+    );
+
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetTargetPlatformContext(
+    _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ TARGET_PLATFORM_CONTEXT_REFERENCE *TargetPlatformContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageTargetPlatformProperty(
+    _In_ TARGET_PLATFORM_CONTEXT_REFERENCE TargetPlatformContext,
+    _In_ TargetPlatformProperty PropertyId,
+    _Inout_ PULONG BufferSize,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    );
+
+#endif // PHNT_VERSION >= PHNT_THRESHOLD
+
+#if (PHNT_VERSION >= PHNT_20H1)
+
+// rev
+WINBASEAPI
+HRESULT
+WINAPI
+GetCurrentPackageInfo3(
+    _In_ const UINT32 flags,
+    _In_ ULONG packagePathType, // PackagePathType
+    _Inout_ UINT32* bufferLength,
+    _Out_writes_bytes_opt_(*bufferLength) BYTE* buffer,
+    _Out_opt_ UINT32* count
+    );
+
+// Package Globalization Properties
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetCurrentPackageGlobalizationContext(
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE *PackageGlobalizationContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageGlobalizationContext(
+    _In_ PVOID PackageInfoReference, // PACKAGE_INFO_REFERENCE
+    _In_ ULONG Index,
+    _Reserved_ ULONG_PTR Unused,
+    _Out_ PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE *PackageGlobalizationContext
+    );
+
+// rev
+WINBASEAPI
+_Success_(return == ERROR_SUCCESS)
+LONG
+WINAPI
+GetPackageGlobalizationProperty(
+    _In_ PACKAGE_GLOBALIZATION_CONTEXT_REFERENCE PackageGlobalizationContext,
+    _In_ PackageGlobalizationProperty PropertyId,
+    _Inout_ PULONG BufferSize,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer
+    );
+
+#endif // PHNT_VERSION >= PHNT_20H1
 
 #endif

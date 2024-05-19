@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2011-2019
+ *     dmex    2011-2023
  *
  */
 
@@ -46,41 +46,93 @@ VOID NTAPI MainWindowShowingCallback(
 }
 
 VOID NTAPI MainMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_EMENU_ITEM channelMenuItem;
+    PPH_EMENU_ITEM releaseMenuItem;
+    //PPH_EMENU_ITEM previewMenuItem;
+    PPH_EMENU_ITEM canaryMenuItem;
+    //PPH_EMENU_ITEM developerMenuItem;
 
     // Check this menu is the Help menu
-    if (!menuInfo || menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_HELP)
+    if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_HELP)
         return;
 
-    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for &updates", NULL), 0);
+    channelMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM_SWITCH, L"Switch update &channel", NULL);
+    PhInsertEMenuItem(channelMenuItem, releaseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_RELEASE, L"Release", NULL), ULONG_MAX);
+    //PhInsertEMenuItem(channelMenuItem, previewMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_PREVIEW, L"Preview", NULL), ULONG_MAX);
+    PhInsertEMenuItem(channelMenuItem, canaryMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_CANARY, L"Canary", NULL), ULONG_MAX);
+    //PhInsertEMenuItem(channelMenuItem, developerMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_DEVELOPER, L"Developer", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuInfo->Menu, channelMenuItem, 0);
+    PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM_UPDATE, L"Check for &updates", NULL), 0);
+
+    switch (PhGetIntegerSetting(L"ReleaseChannel"))
+    {
+    case PhReleaseChannel:
+        releaseMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+        break;
+    //case PhPreviewChannel:
+    //    previewMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+    //    break;
+    case PhCanaryChannel:
+        canaryMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+        break;
+    //case PhDeveloperChannel:
+    //    developerMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+    //    break;
+    default:
+        break;
+    }
 }
 
 VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+    PH_RELEASE_CHANNEL channel;
+    PPH_UPDATER_CONTEXT context;
 
-    if (menuItem && menuItem->Id == UPDATE_MENUITEM)
+    switch (menuItem->Id)
     {
+    case UPDATE_MENUITEM_UPDATE:
         ShowUpdateDialog(NULL);
+        return;
+    case UPDATE_SWITCH_RELEASE:
+        channel = PhReleaseChannel;
+        break;
+    //case UPDATE_SWITCH_PREVIEW:
+    //    channel = PhPreviewChannel;
+    //    break;
+    case UPDATE_SWITCH_CANARY:
+        channel = PhCanaryChannel;
+        break;
+    //case UPDATE_SWITCH_DEVELOPER:
+    //    channel = PhDeveloperChannel;
+    //    break;
+    default:
+        return;
+    }
+
+    if (PhGetIntegerSetting(L"ReleaseChannel") != channel)
+    {
+        context = CreateUpdateContext(FALSE);
+        context->Channel = channel;
+        context->SwitchingChannel = TRUE;
+        ShowUpdateDialog(context);
     }
 }
 
 VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
-
-    if (!optionsEntry)
-        return;
 
     optionsEntry->CreateSection(
         L"Updater",
@@ -113,6 +165,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_UPDATE_MODE, L"0" },
                 { IntegerSettingType, SETTING_NAME_UPDATE_AVAILABLE, L"0" },
                 { StringSettingType, SETTING_NAME_UPDATE_DATA, L"" },
+                { IntegerSettingType, SETTING_NAME_AUTO_CHECK_PAGE, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
@@ -149,7 +202,7 @@ LOGICAL DllMain(
                 &PluginShowOptionsCallbackRegistration
                 );
 
-            PhAddSettings(settings, RTL_NUMBER_OF(settings));
+            PhAddSettings(settings, ARRAYSIZE(settings));
         }
         break;
     }

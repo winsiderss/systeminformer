@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2013-2022
+ *     dmex    2013-2023
  *
  */
 
@@ -20,7 +20,7 @@ VOID RichEditSetText(
     _In_ PWSTR Text
     )
 {
-    if (!!PhGetIntegerSetting(L"EnableThemeSupport"))
+    if (PhGetIntegerSetting(L"EnableThemeSupport"))
     {
         CHARFORMAT cf;
 
@@ -56,9 +56,7 @@ PPH_STRING TrimString(
     )
 {
     static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L"  ");
-    PH_STRINGREF sr = String->sr;
-    PhTrimStringRef(&sr, &whitespace, 0);
-    return PhCreateString2(&sr);
+    return PhCreateString3(&String->sr, 0, &whitespace);
 }
 
 PPH_STRING TrimString2(
@@ -66,9 +64,7 @@ PPH_STRING TrimString2(
     )
 {
     static PH_STRINGREF whitespace = PH_STRINGREF_INIT(L"\n\n");
-    PH_STRINGREF sr = String->sr;
-    PhTrimStringRef(&sr, &whitespace, 0);
-    return PhCreateString2(&sr);
+    return PhCreateString3(&String->sr, 0, &whitespace);
 }
 
 _Success_(return)
@@ -181,8 +177,8 @@ BOOLEAN WhoisExtractServerUrl(
 
     whoisServerName = PhSubstring(
         WhoisResponse,
-        whoisServerHostnameIndex + wcslen(L"whois:"),
-        whoisServerHostnameLength - wcslen(L"whois:")
+        whoisServerHostnameIndex + (RTL_NUMBER_OF(L"whois:") - 1),
+        whoisServerHostnameLength - (RTL_NUMBER_OF(L"whois:") - 1)
         );
 
     if (WhoisServerAddress)
@@ -217,8 +213,8 @@ BOOLEAN WhoisExtractReferralServer(
 
     whoisServerName = PhSubstring(
         WhoisResponse,
-        whoisServerHostnameIndex + wcslen(L"ReferralServer:"),
-        whoisServerHostnameLength - wcslen(L"ReferralServer:")
+        whoisServerHostnameIndex + (RTL_NUMBER_OF(L"ReferralServer:") - 1),
+        whoisServerHostnameLength - (RTL_NUMBER_OF(L"ReferralServer:") - 1)
         );
 
     whoisServerHostname = TrimString(whoisServerName);
@@ -273,15 +269,311 @@ BOOLEAN WhoisExtractReferralServer(
     return FALSE;
 }
 
+SOCKET WhoisDualStackSocketCreate(
+    VOID
+    )
+{
+    SOCKET socketHandle;
+
+    socketHandle = WSASocket(
+        AF_INET6,
+        SOCK_STREAM,
+        IPPROTO_TCP,
+        NULL,
+        0,
+        WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT
+        );
+
+    if (socketHandle == INVALID_SOCKET)
+        return INVALID_SOCKET;
+
+    if (setsockopt(
+        socketHandle,
+        IPPROTO_IPV6,
+        IPV6_V6ONLY,
+        (PCSTR)&(INT){ FALSE },
+        sizeof(INT)
+        ) == SOCKET_ERROR)
+    {
+        closesocket(socketHandle);
+        socketHandle = INVALID_SOCKET;
+    }
+
+    return socketHandle;
+}
+
+_Success_(return)
+BOOLEAN WhoisDualStackSocketConnectByAddressList(
+    _In_ PDNS_RECORD DnsRecordList,
+    _In_ USHORT ServerPort,
+    _In_ BOOLEAN Ipv6Support,
+    _Out_ SOCKET* SocketHandle
+    )
+{
+    BOOLEAN success = FALSE;
+    SOCKET socketHandle = INVALID_SOCKET;
+    ULONG socketAddressListSize = 0;
+    ULONG socketAddressListBytes = 0;
+    PSOCKADDR_IN6 socketAddressArray = NULL;
+    PSOCKET_ADDRESS_LIST socketAddressList = NULL;
+    INT dnsRecordListCount = 0;
+    INT socketAddressCount = 0;
+
+    for (PDNS_RECORD i = DnsRecordList; i; i = i->pNext)
+    {
+        dnsRecordListCount += 1;
+    }
+
+    socketAddressArray = PhAllocate(dnsRecordListCount * sizeof(SOCKADDR_IN6));
+    memset(socketAddressArray, 0, dnsRecordListCount * sizeof(SOCKADDR_IN6));
+
+    socketAddressListSize = SIZEOF_SOCKET_ADDRESS_LIST(dnsRecordListCount) + (dnsRecordListCount * sizeof(SOCKADDR_STORAGE));
+    socketAddressList = PhAllocate(socketAddressListSize);
+    memset(socketAddressList, 0, socketAddressListSize);
+
+    for (PDNS_RECORD i = DnsRecordList; i; i = i->pNext)
+    {
+        if (i->wType == DNS_TYPE_A)
+        {
+            SOCKADDR_IN remoteAddress;
+
+            memset(&remoteAddress, 0, sizeof(SOCKADDR_IN));
+            remoteAddress.sin_family = AF_INET;
+            remoteAddress.sin_port = _byteswap_ushort(ServerPort);
+            memcpy_s(
+                &remoteAddress.sin_addr.s_addr,
+                sizeof(remoteAddress.sin_addr.s_addr),
+                &i->Data.A.IpAddress,
+                sizeof(i->Data.A.IpAddress)
+                );
+
+            IN6ADDR_SETV4MAPPED(
+                &socketAddressArray[socketAddressCount],
+                &remoteAddress.sin_addr,
+                IN4ADDR_SCOPE_ID(&remoteAddress),
+                remoteAddress.sin_port
+                );
+
+            socketAddressList->Address[socketAddressCount].lpSockaddr = (PSOCKADDR)&socketAddressArray[socketAddressCount];
+            socketAddressList->Address[socketAddressCount].iSockaddrLength = sizeof(SOCKADDR_IN6);
+            socketAddressCount++;
+        }
+        else if (i->wType == DNS_TYPE_AAAA && Ipv6Support)
+        {
+            SOCKADDR_IN6 remoteAddress;
+
+            memset(&remoteAddress, 0, sizeof(SOCKADDR_IN6));
+            remoteAddress.sin6_family = AF_INET6;
+            remoteAddress.sin6_port = _byteswap_ushort(ServerPort);
+            memcpy_s(
+                remoteAddress.sin6_addr.s6_addr,
+                sizeof(remoteAddress.sin6_addr.s6_addr),
+                i->Data.AAAA.Ip6Address.IP6Byte,
+                sizeof(i->Data.AAAA.Ip6Address.IP6Byte)
+                );
+
+            IN6ADDR_SETSOCKADDR(
+                &socketAddressArray[socketAddressCount],
+                &remoteAddress.sin6_addr,
+                remoteAddress.sin6_scope_struct,
+                remoteAddress.sin6_port
+                );
+
+            socketAddressList->Address[socketAddressCount].lpSockaddr = (PSOCKADDR)&socketAddressArray[socketAddressCount];
+            socketAddressList->Address[socketAddressCount].iSockaddrLength = sizeof(SOCKADDR_IN6);
+            socketAddressCount++;
+        }
+    }
+
+    socketAddressList->iAddressCount = socketAddressCount;
+
+    if ((socketHandle = WhoisDualStackSocketCreate()) == INVALID_SOCKET)
+        goto CleanupExit;
+
+    if (WSAIoctl(
+        socketHandle,
+        SIO_ADDRESS_LIST_SORT,
+        socketAddressList,
+        socketAddressListSize,
+        socketAddressList,
+        socketAddressListSize,
+        &socketAddressListBytes,
+        NULL,
+        NULL
+        ) == SOCKET_ERROR)
+    {
+        goto CleanupExit;
+    }
+
+    if (!WSAConnectByList(
+        socketHandle,
+        socketAddressList,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+        ))
+    {
+        goto CleanupExit;
+    }
+
+    success = TRUE;
+
+CleanupExit:
+    if (socketAddressList)
+    {
+        PhFree(socketAddressList);
+    }
+
+    if (socketAddressArray)
+    {
+        PhFree(socketAddressArray);
+    }
+
+    if (success)
+    {
+        *SocketHandle = socketHandle;
+    }
+    else
+    {
+        if (socketHandle)
+            closesocket(socketHandle);
+    }
+
+    return success;
+}
+
+_Success_(return)
+BOOLEAN WhoisConnectByAddressList(
+    _In_ PDNS_RECORD DnsRecordList,
+    _In_ USHORT ServerPort,
+    _In_ BOOLEAN Ipv6Support,
+    _Out_ SOCKET* SocketHandle
+    )
+{
+    SOCKET socketHandle = INVALID_SOCKET;
+
+    for (PDNS_RECORD i = DnsRecordList; i; i = i->pNext)
+    {
+        if (i->wType == DNS_TYPE_A)
+        {
+            SOCKADDR_IN remoteAddr;
+
+            memset(&remoteAddr, 0, sizeof(SOCKADDR_IN));
+            remoteAddr.sin_family = AF_INET;
+            remoteAddr.sin_port = _byteswap_ushort(ServerPort);
+            memcpy_s(
+                &remoteAddr.sin_addr.s_addr,
+                sizeof(remoteAddr.sin_addr.s_addr),
+                &i->Data.A.IpAddress,
+                sizeof(i->Data.A.IpAddress)
+                );
+
+            if ((socketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
+            {
+                ULONG bestInterfaceIndex;
+
+                if (GetBestInterfaceEx((PSOCKADDR)&remoteAddr, &bestInterfaceIndex) == ERROR_SUCCESS)
+                {
+                    MIB_IPFORWARD_ROW2 bestAddressRoute = { 0 };
+                    SOCKADDR_INET destinationAddress = { 0 };
+                    SOCKADDR_INET bestSourceAddress = { 0 };
+
+                    destinationAddress.si_family = AF_INET;
+                    destinationAddress.Ipv4 = remoteAddr;
+
+                    if (GetBestRoute2(
+                        NULL,
+                        bestInterfaceIndex,
+                        NULL,
+                        &destinationAddress,
+                        0,
+                        &bestAddressRoute,
+                        &bestSourceAddress
+                        ) == ERROR_SUCCESS)
+                    {
+                        bind(socketHandle, (PSOCKADDR)&bestSourceAddress.Ipv4, sizeof(bestSourceAddress.Ipv4));
+                    }
+                }
+
+                if (WSAConnect(socketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
+                    break;
+
+                closesocket(socketHandle);
+                socketHandle = INVALID_SOCKET;
+            }
+        }
+        else if (i->wType == DNS_TYPE_AAAA && Ipv6Support)
+        {
+            SOCKADDR_IN6 remoteAddr;
+
+            memset(&remoteAddr, 0, sizeof(SOCKADDR_IN6));
+            remoteAddr.sin6_family = AF_INET6;
+            remoteAddr.sin6_port = _byteswap_ushort(ServerPort);
+            memcpy_s(
+                remoteAddr.sin6_addr.s6_addr,
+                sizeof(remoteAddr.sin6_addr.s6_addr),
+                i->Data.AAAA.Ip6Address.IP6Byte,
+                sizeof(i->Data.AAAA.Ip6Address.IP6Byte)
+                );
+
+            if ((socketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
+            {
+                ULONG bestInterfaceIndex;
+
+                if (GetBestInterfaceEx((PSOCKADDR)&remoteAddr, &bestInterfaceIndex) == ERROR_SUCCESS)
+                {
+                    MIB_IPFORWARD_ROW2 bestAddressRoute = { 0 };
+                    SOCKADDR_INET destinationAddress = { 0 };
+                    SOCKADDR_INET bestSourceAddress = { 0 };
+
+                    destinationAddress.si_family = AF_INET6;
+                    destinationAddress.Ipv6 = remoteAddr;
+
+                    if (GetBestRoute2(
+                        NULL,
+                        bestInterfaceIndex,
+                        NULL,
+                        &destinationAddress,
+                        0,
+                        &bestAddressRoute,
+                        &bestSourceAddress
+                        ) == ERROR_SUCCESS)
+                    {
+                        bind(socketHandle, (PSOCKADDR)&bestSourceAddress.Ipv6, sizeof(bestSourceAddress.Ipv6));
+                    }
+                }
+
+                if (WSAConnect(socketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN6), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
+                    break;
+
+                closesocket(socketHandle);
+                socketHandle = INVALID_SOCKET;
+            }
+        }
+    }
+
+    if (socketHandle != INVALID_SOCKET)
+    {
+        *SocketHandle = socketHandle;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 _Success_(return)
 BOOLEAN WhoisConnectServer(
     _In_ PWSTR WhoisServerAddress,
     _In_ USHORT WhoisServerPort,
     _In_ USHORT DnsQueryMessageType,
+    _In_ BOOLEAN Ipv6Support,
     _Out_ SOCKET* WhoisServerSocketHandle
     )
 {
-    SOCKET whoisSocketHandle = INVALID_SOCKET;
+    SOCKET socketHandle;
     PDNS_RECORD dnsRecordList;
 
     if (PhGetIntegerSetting(L"EnableNetworkResolveDoH"))
@@ -305,113 +597,21 @@ BOOLEAN WhoisConnectServer(
     if (!dnsRecordList)
         return FALSE;
 
-    for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+    if (WhoisDualStackSocketConnectByAddressList(dnsRecordList, WhoisServerPort, Ipv6Support, &socketHandle))
     {
-        if (dnsRecord->wType == DNS_TYPE_A)
-        {
-            SOCKADDR_IN remoteAddr;
+        PhDnsFree(dnsRecordList);
+        *WhoisServerSocketHandle = socketHandle;
+        return TRUE;
+    }
 
-            memset(&remoteAddr, 0, sizeof(SOCKADDR_IN));
-            remoteAddr.sin_family = AF_INET;
-            remoteAddr.sin_port = _byteswap_ushort(WhoisServerPort);
-            memcpy_s(
-                &remoteAddr.sin_addr.s_addr,
-                sizeof(remoteAddr.sin_addr.s_addr),
-                &dnsRecord->Data.A.IpAddress,
-                sizeof(dnsRecord->Data.A.IpAddress)
-                );
-
-            if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
-            {
-                ULONG bestInterfaceIndex;
-
-                if (GetBestInterfaceEx((PSOCKADDR)&remoteAddr, &bestInterfaceIndex) == ERROR_SUCCESS)
-                {
-                    MIB_IPFORWARD_ROW2 bestAddressRoute = { 0 };
-                    SOCKADDR_INET destinationAddress = { 0 };
-                    SOCKADDR_INET bestSourceAddress = { 0 };
-
-                    destinationAddress.si_family = AF_INET;
-                    destinationAddress.Ipv4 = remoteAddr;
-
-                    if (GetBestRoute2(
-                        NULL,
-                        bestInterfaceIndex,
-                        NULL,
-                        &destinationAddress,
-                        0,
-                        &bestAddressRoute,
-                        &bestSourceAddress
-                        ) == ERROR_SUCCESS)
-                    {
-                        bind(whoisSocketHandle, (PSOCKADDR)&bestSourceAddress.Ipv4, sizeof(bestSourceAddress.Ipv4));
-                    }
-                }
-
-                if (WSAConnect(whoisSocketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
-                    break;
-
-                closesocket(whoisSocketHandle);
-                whoisSocketHandle = INVALID_SOCKET;
-            }
-        }
-        else if (dnsRecord->wType == DNS_TYPE_AAAA)
-        {
-            SOCKADDR_IN6 remoteAddr;
-
-            memset(&remoteAddr, 0, sizeof(SOCKADDR_IN6));
-            remoteAddr.sin6_family = AF_INET6;
-            remoteAddr.sin6_port = _byteswap_ushort(WhoisServerPort);
-            memcpy_s(
-                remoteAddr.sin6_addr.s6_addr,
-                sizeof(remoteAddr.sin6_addr.s6_addr),
-                dnsRecord->Data.AAAA.Ip6Address.IP6Byte,
-                sizeof(dnsRecord->Data.AAAA.Ip6Address.IP6Byte)
-                );
-
-            if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
-            {
-                ULONG bestInterfaceIndex;
-
-                if (GetBestInterfaceEx((PSOCKADDR)&remoteAddr, &bestInterfaceIndex) == ERROR_SUCCESS)
-                {
-                    MIB_IPFORWARD_ROW2 bestAddressRoute = { 0 };
-                    SOCKADDR_INET destinationAddress = { 0 };
-                    SOCKADDR_INET bestSourceAddress = { 0 };
-
-                    destinationAddress.si_family = AF_INET6;
-                    destinationAddress.Ipv6 = remoteAddr;
-
-                    if (GetBestRoute2(
-                        NULL,
-                        bestInterfaceIndex,
-                        NULL,
-                        &destinationAddress,
-                        0,
-                        &bestAddressRoute,
-                        &bestSourceAddress
-                        ) == ERROR_SUCCESS)
-                    {
-                        bind(whoisSocketHandle, (PSOCKADDR)&bestSourceAddress.Ipv6, sizeof(bestSourceAddress.Ipv6));
-                    }
-                }
-
-                if (WSAConnect(whoisSocketHandle, (PSOCKADDR)&remoteAddr, sizeof(SOCKADDR_IN6), NULL, NULL, NULL, NULL) != SOCKET_ERROR)
-                    break;
-
-                closesocket(whoisSocketHandle);
-                whoisSocketHandle = INVALID_SOCKET;
-            }
-        }
+    if (WhoisConnectByAddressList(dnsRecordList, WhoisServerPort, Ipv6Support, &socketHandle))
+    {
+        PhDnsFree(dnsRecordList);
+        *WhoisServerSocketHandle = socketHandle;
+        return TRUE;
     }
 
     PhDnsFree(dnsRecordList);
-
-    if (whoisSocketHandle != INVALID_SOCKET)
-    {
-        *WhoisServerSocketHandle = whoisSocketHandle;
-        return TRUE;
-    }
 
     return FALSE;
 }
@@ -421,6 +621,7 @@ BOOLEAN WhoisQueryServer(
     _In_ PWSTR WhoisServerAddress,
     _In_ USHORT WhoisServerPort,
     _In_ PWSTR WhoisQueryAddress,
+    _In_ BOOLEAN Ipv6Support,
     _Out_ PPH_STRING* WhoisQueryResponse
     )
 {
@@ -434,9 +635,17 @@ BOOLEAN WhoisQueryServer(
     if (WhoisServerPort == 0)
         return FALSE;
 
-    if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_AAAA, &whoisSocketHandle))
+    if (Ipv6Support)
     {
-        if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_A, &whoisSocketHandle))
+        if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_AAAA, TRUE, &whoisSocketHandle))
+        {
+            if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_A, FALSE, &whoisSocketHandle))
+                return FALSE;
+        }
+    }
+    else
+    {
+        if (!WhoisConnectServer(WhoisServerAddress, WhoisServerPort, DNS_TYPE_A, FALSE, &whoisSocketHandle))
             return FALSE;
     }
 
@@ -498,7 +707,7 @@ NTSTATUS NetworkWhoisThreadStart(
         SendMessage(context->WindowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhCreateString(L"Connecting to whois.iana.org..."));
     }
 
-    if (!WhoisQueryServer(L"whois.iana.org", IPPORT_WHOIS, context->IpAddressString, &whoisResponse))
+    if (!WhoisQueryServer(L"whois.iana.org", IPPORT_WHOIS, context->RemoteAddressString, context->Ipv6Support, &whoisResponse))
     {
         PhAppendFormatStringBuilder(&stringBuilder, L"Connection to whois.iana.org failed.\n");
         goto CleanupExit;
@@ -518,7 +727,8 @@ NTSTATUS NetworkWhoisThreadStart(
     if (WhoisQueryServer(
         PhGetString(whoisServerName),
         IPPORT_WHOIS,
-        context->IpAddressString,
+        context->RemoteAddressString,
+        context->Ipv6Support,
         &whoisResponse
         ))
     {
@@ -547,7 +757,8 @@ NTSTATUS NetworkWhoisThreadStart(
             if (WhoisQueryServer(
                 PhGetString(whoisReferralServerName),
                 whoisReferralServerPort,
-                context->IpAddressString,
+                context->RemoteAddressString,
+                context->Ipv6Support,
                 &whoisReferralResponse
                 ))
             {
@@ -609,6 +820,39 @@ VOID WhoisSetTextFont(
     }
 }
 
+VOID WhoisParseAddressString(
+    _In_ PNETWORK_WHOIS_CONTEXT Context
+    )
+{
+    ULONG remoteAddressStringLength = RTL_NUMBER_OF(Context->RemoteAddressString);
+
+    if (Context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
+    {
+        if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+            &Context->RemoteEndpoint.Address.InAddr,
+            0,
+            Context->RemoteAddressString,
+            &remoteAddressStringLength
+            )))
+        {
+            Context->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+        }
+    }
+    else
+    {
+        if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+            &Context->RemoteEndpoint.Address.In6Addr,
+            0,
+            0,
+            Context->RemoteAddressString,
+            &remoteAddressStringLength
+            )))
+        {
+            Context->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+        }
+    }
+}
+
 INT_PTR CALLBACK WhoisDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -627,7 +871,7 @@ INT_PTR CALLBACK WhoisDlgProc(
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
-        if (uMsg == WM_DESTROY)
+        if (uMsg == WM_NCDESTROY)
         {
             PhSaveWindowPlacementToSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -638,8 +882,6 @@ INT_PTR CALLBACK WhoisDlgProc(
 
             context->WindowHandle = NULL;
             PhDereferenceObject(context);
-
-            PostQuitMessage(0);
         }
     }
 
@@ -652,20 +894,13 @@ INT_PTR CALLBACK WhoisDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->RichEditHandle = GetDlgItem(hwndDlg, IDC_NETOUTPUTEDIT);
+            context->Ipv6Support = !!PhGetIntegerSetting(SETTING_NAME_WHOIS_IPV6_SUPPORT);
 
             PhSetApplicationWindowIcon(hwndDlg);
             WhoisSetTextFont(context);
+            WhoisParseAddressString(context);
 
-            if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-            {
-                RtlIpv4AddressToString(&context->RemoteEndpoint.Address.InAddr, context->IpAddressString);
-            }
-            else if (context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
-            {
-                RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
-            }
-
-            PhSetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
+            PhSetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->RemoteAddressString)->Buffer);
 
             //SendMessage(context->RichEditHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
             SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
@@ -673,6 +908,7 @@ INT_PTR CALLBACK WhoisDlgProc(
             SendMessage(context->RichEditHandle, EM_SETWORDWRAPMODE, WBF_WORDWRAP, 0);
             //context->FontHandle = PhCreateCommonFont(-11, FW_MEDIUM, context->RichEditHandle);
             SendMessage(context->RichEditHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(4, 0));
+            SendMessage(context->RichEditHandle, EM_SETREADONLY, TRUE, 0);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);
@@ -680,12 +916,17 @@ INT_PTR CALLBACK WhoisDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_WHOIS_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle);
+                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             PhReferenceObject(context);
             PhCreateThread2(NetworkWhoisThreadStart, (PVOID)context);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PostQuitMessage(0);
         }
         break;
     case WM_COMMAND:
@@ -899,31 +1140,41 @@ PNETWORK_WHOIS_CONTEXT CreateWhoisContext(
 }
 
 VOID ShowWhoisWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
-    PNETWORK_WHOIS_CONTEXT context = CreateWhoisContext();
+    PNETWORK_WHOIS_CONTEXT context;
 
-    RtlCopyMemory(
+    context = CreateWhoisContext();
+    context->ParentWindowHandle = ParentWindowHandle;
+
+    memcpy_s(
         &context->RemoteEndpoint,
+        sizeof(context->RemoteEndpoint),
         &NetworkItem->RemoteEndpoint,
-        sizeof(PH_IP_ENDPOINT)
+        sizeof(NetworkItem->RemoteEndpoint)
         );
 
-    PhCreateThread2(NetworkWhoisDialogThreadStart, (PVOID)context);
+    PhCreateThread2(NetworkWhoisDialogThreadStart, context);
 }
 
 VOID ShowWhoisWindowFromAddress(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     )
 {
-    PNETWORK_WHOIS_CONTEXT context = CreateWhoisContext();
+    PNETWORK_WHOIS_CONTEXT context;
 
-    RtlCopyMemory(
+    context = CreateWhoisContext();
+    context->ParentWindowHandle = ParentWindowHandle;
+
+    memcpy_s(
         &context->RemoteEndpoint,
+        sizeof(context->RemoteEndpoint),
         &RemoteEndpoint,
-        sizeof(PH_IP_ENDPOINT)
+        sizeof(RemoteEndpoint)
         );
 
-    PhCreateThread2(NetworkWhoisDialogThreadStart, (PVOID)context);
+    PhCreateThread2(NetworkWhoisDialogThreadStart, context);
 }

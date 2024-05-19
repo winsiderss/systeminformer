@@ -12,13 +12,11 @@
 #ifndef _PH_BCD_H
 #define _PH_BCD_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 NTSTATUS PhBcdOpenObject(
     _In_ HANDLE StoreHandle,
-    _In_ PGUID Identifier,
+    _In_ PCGUID Identifier,
     _Out_ PHANDLE ObjectHandle
     );
 
@@ -67,8 +65,6 @@ VOID PhBcdDestroyBootApplicationList(
     _In_ PPH_LIST ObjectApplicationList
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

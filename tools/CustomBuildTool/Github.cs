@@ -18,8 +18,8 @@ namespace CustomBuildTool
 
         static Github()
         {
-            BaseUrl = Win32.GetEnvironmentVariable("%APPVEYOR_GITHUB_MIRROR_API%");
-            BaseToken = Win32.GetEnvironmentVariable("%APPVEYOR_GITHUB_MIRROR_KEY%");
+            BaseUrl = Win32.GetEnvironmentVariable("GITHUB_MIRROR_API");
+            BaseToken = Win32.GetEnvironmentVariable("GITHUB_MIRROR_KEY");
         }
 
         public static GithubReleasesResponse CreateRelease(string Version)
@@ -41,12 +41,13 @@ namespace CustomBuildTool
 
                 byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, GithubReleasesRequestContext.Default.GithubReleasesRequest);
 
-                if (buildPostString == null || buildPostString.LongLength == 0)
+                if (buildPostString.LongLength == 0)
                     return null;
 
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -117,6 +118,7 @@ namespace CustomBuildTool
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -214,6 +216,7 @@ namespace CustomBuildTool
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -294,6 +297,7 @@ namespace CustomBuildTool
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+                    httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -410,7 +414,7 @@ namespace CustomBuildTool
 
         public bool Equals(GithubRelease other)
         {
-            return this.ReleaseId.Equals(other.ReleaseId, StringComparison.OrdinalIgnoreCase);
+            return other != null && this.ReleaseId.Equals(other.ReleaseId, StringComparison.OrdinalIgnoreCase);
         }
 
         public int CompareTo(object obj)
@@ -419,7 +423,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is GithubRelease package)
-                return this.ReleaseId.CompareTo(package.ReleaseId);
+                return string.Compare(this.ReleaseId, package.ReleaseId, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -429,7 +433,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return this.ReleaseId.CompareTo(obj.ReleaseId);
+            return string.Compare(this.ReleaseId, obj.ReleaseId, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -467,7 +471,7 @@ namespace CustomBuildTool
 
         public bool Equals(GithubReleaseAsset other)
         {
-            return this.Filename.Equals(other.Filename, StringComparison.OrdinalIgnoreCase);
+            return other != null && this.Filename.Equals(other.Filename, StringComparison.OrdinalIgnoreCase);
         }
 
         public int CompareTo(object obj)
@@ -476,7 +480,7 @@ namespace CustomBuildTool
                 return 1;
 
             if (obj is GithubReleaseAsset package)
-                return this.Filename.CompareTo(package.Filename);
+                return string.Compare(this.Filename, package.Filename, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
@@ -486,7 +490,7 @@ namespace CustomBuildTool
             if (obj == null)
                 return 1;
 
-            return this.Filename.CompareTo(obj.Filename);
+            return string.Compare(this.Filename, obj.Filename, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

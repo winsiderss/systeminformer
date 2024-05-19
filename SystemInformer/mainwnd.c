@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -15,6 +15,7 @@
 
 #include <cpysave.h>
 #include <emenu.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
 #include <lsasup.h>
 #include <svcsup.h>
@@ -35,6 +36,7 @@
 #include <settings.h>
 #include <srvlist.h>
 #include <srvprv.h>
+#include <notiftoast.h>
 
 #include <mainwndp.h>
 
@@ -57,6 +59,8 @@ static BOOLEAN DelayedLoadCompleted = FALSE;
 static PH_CALLBACK_DECLARE(LayoutPaddingCallback);
 static RECT LayoutPadding = { 0, 0, 0, 0 };
 static BOOLEAN LayoutPaddingValid = TRUE;
+static LONG LayoutWindowDpi = 96;
+static LONG LayoutBorderSize = 0;
 
 static HWND TabControlHandle = NULL;
 static PPH_LIST PageList = NULL;
@@ -67,206 +71,82 @@ static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
 static ULONG SelectedUserSessionId = ULONG_MAX;
 
-PPH_STRING PhGetMainWindowTitle(
-    VOID
-    )
-{
-    PH_STRING_BUILDER stringBuilder;
-    PPH_STRING currentUserName;
-
-    if (!PhGetIntegerSetting(L"EnableWindowText"))
-    {
-        return NULL;
-    }
-
-    PhInitializeStringBuilder(&stringBuilder, 100);
-    PhAppendStringBuilder2(&stringBuilder, PhApplicationName);
-
-    if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
-    {
-        PhAppendStringBuilder2(&stringBuilder, L" [");
-        PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
-        PhAppendCharStringBuilder(&stringBuilder, L']');
-        PhDereferenceObject(currentUserName);
-    }
-
-    switch (KphLevel())
-    {
-    case KphLevelMax:
-        PhAppendStringBuilder2(&stringBuilder, L"++");
-        break;
-    case KphLevelHigh:
-        PhAppendStringBuilder2(&stringBuilder, L"+");
-        break;
-    case KphLevelMed:
-        PhAppendStringBuilder2(&stringBuilder, L"~");
-        break;
-    case KphLevelLow:
-        PhAppendStringBuilder2(&stringBuilder, L"-");
-        break;
-    case KphLevelMin:
-        PhAppendStringBuilder2(&stringBuilder, L"--");
-        break;
-    }
-
-    if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
-        PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
-
-    return PhFinalStringBuilderString(&stringBuilder);
-}
-
 BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
     )
 {
     RTL_ATOM windowAtom;
-    PPH_STRING windowName;
-    PH_RECTANGLE windowRectangle = {0};
-    RECT rect;
-    HMENU windowMenuHandle = NULL;
-    LONG dpiValue;
+    PH_RECTANGLE windowRectangle;
+    RECT windowRect;
+    LONG windowDpi;
 
     // Set FirstRun default settings.
 
     if (PhGetIntegerSetting(L"FirstRun"))
         PhSetIntegerSetting(L"FirstRun", FALSE);
 
-    // Initialize the window.
+    // Initialize the window class.
 
     if ((windowAtom = PhMwpInitializeWindowClass()) == INVALID_ATOM)
         return FALSE;
 
+    // Initialize the window size and position.
+
+    memset(&windowRectangle, 0, sizeof(PH_RECTANGLE));
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
+    windowRect = PhRectangleToRect(windowRectangle);
+    windowDpi = PhGetMonitorDpi(&windowRect);
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, windowDpi).Pair;
+    PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
-    rect = PhRectangleToRect(windowRectangle);
-    dpiValue = PhGetMonitorDpi(&rect);
+    // Initialize the window.
 
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue).Pair;
-
-    // Create the window title.
-    windowName = PhGetMainWindowTitle();
-    if (!windowName)
-    {
-        PhApplicationName = L" "; // Remove dialog window title when disabled (dmex)
-    }
-
-    // Create the window.
     PhMainWndHandle = CreateWindow(
         MAKEINTATOM(windowAtom),
-        PhGetString(windowName),
-        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+        NULL,
+        WS_OVERLAPPEDWINDOW | (PhEnableDeferredLayout ? 0 : WS_CLIPCHILDREN),
         windowRectangle.Left,
         windowRectangle.Top,
         windowRectangle.Width,
         windowRectangle.Height,
         NULL,
         NULL,
-        NULL,
+        PhInstanceHandle,
         NULL
         );
 
     if (!PhMainWndHandle)
         return FALSE;
 
-    if (windowName)
-    {
-        PhSetApplicationWindowIcon(PhMainWndHandle);
-        PhDereferenceObject(windowName);
-    }
+    // Initialize window metrics.
+    PhMwpInitializeMetrics(PhMainWndHandle);
 
-    // Choose a more appropriate rectangle for the window.
-    PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
-    MoveWindow(
-        PhMainWndHandle,
-        windowRectangle.Left, windowRectangle.Top,
-        windowRectangle.Width, windowRectangle.Height,
-        FALSE
-        );
-    UpdateWindow(PhMainWndHandle);
-
-    // Allow WM_PH_ACTIVATE to pass through UIPI. (wj32)
-    if (PhGetOwnTokenAttributes().Elevated)
-    {
-        ChangeWindowMessageFilterEx(PhMainWndHandle, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
-    }
-
-    // Initialize child controls.
+    // Initialize window controls.
     PhMwpInitializeControls(PhMainWndHandle);
 
-    PhMwpOnSettingChange(PhMainWndHandle);
+    // Initialize window fonts.
+    PhMwpOnSettingChange(PhMainWndHandle, 0, NULL);
 
+    // Initialize window settings.
     PhMwpLoadSettings(PhMainWndHandle);
-    PhLogInitialization();
 
-    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport); // HACK
+    // Initialize window theme.
+    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport);
 
-    // Create the main menu. This has to be done after initializing the window theme
-    // (subclassing the main window) because Windows 10 doesn't forward WM_MEASUREITEM
-    // messages to window subclasses for menus created with CreateMenu and set with SetMenu
-    // (and only when the DPI is above 100%) unlike previous versions of Windows. (dmex)
-    if (windowMenuHandle = CreateMenu())
-    {
-        SetMenu(PhMainWndHandle, windowMenuHandle);
-        PhEMenuToHMenu2(windowMenuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
-        PhMwpInitializeMainMenu(windowMenuHandle);
-        if (PhEnableThemeSupport) PhInitializeWindowThemeMainMenu(windowMenuHandle);
-    }
+    // Initialize window menu.
+    PhMwpInitializeMainMenu(PhMainWndHandle);
 
-    // Initialize the main providers.
+    // Initialize providers.
     PhMwpInitializeProviders();
+
+    // Perform window layout.
+    PhMwpSelectionChangedTabControl(INT_ERROR);
+
+    // Perform main window showing.
+    PhMwpShowWindow(ShowCommand);
 
     // Queue delayed init functions.
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, PhMainWndHandle);
-
-    // Perform a layout.
-    PhMwpSelectionChangedTabControl(ULONG_MAX);
-    PhMwpOnSize(PhMainWndHandle);
-
-    if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfIconsEnabled())
-        ShowCommand = SW_HIDE;
-    if (PhStartupParameters.ShowVisible)
-        ShowCommand = SW_SHOW;
-
-    if (PhGetIntegerSetting(L"MainWindowState") == SW_MAXIMIZE)
-    {
-        if (ShowCommand != SW_HIDE)
-        {
-            ShowCommand = SW_MAXIMIZE;
-        }
-        else
-        {
-            // We can't maximize it while having it hidden. Set it as pending.
-            NeedsMaximize = TRUE;
-        }
-    }
-
-    if (PhPluginsEnabled)
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing), IntToPtr(ShowCommand));
-
-    if (PhStartupParameters.SelectTab)
-    {
-        PPH_MAIN_TAB_PAGE page = PhMwpFindPage(&PhStartupParameters.SelectTab->sr);
-
-        if (page)
-            PhMwpSelectPage(page->Index);
-    }
-    else
-    {
-        if (PhGetIntegerSetting(L"MainWindowTabRestoreEnabled"))
-            PhMwpSelectPage(PhGetIntegerSetting(L"MainWindowTabRestoreIndex"));
-    }
-
-    if (PhStartupParameters.SysInfo)
-        PhShowSystemInformationDialog(PhStartupParameters.SysInfo->Buffer);
-
-    if (ShowCommand != SW_HIDE)
-    {
-        ShowWindow(PhMainWndHandle, ShowCommand);
-        SetForegroundWindow(PhMainWndHandle);
-    }
-
-    if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
-        PhPinMiniInformation(MiniInfoManualPinType, 1, 0, PH_MINIINFO_LOAD_POSITION, NULL, NULL);
 
     return TRUE;
 }
@@ -280,46 +160,19 @@ LRESULT CALLBACK PhMwpWndProc(
 {
     switch (uMsg)
     {
-    case WM_CREATE:
-        {
-            PhProcessImageListInitialization(hWnd);
-        }
-        break;
     case WM_DESTROY:
         {
             PhMwpOnDestroy(hWnd);
         }
         break;
-    case WM_DPICHANGED:
-        {
-            if (PhGetIntegerSetting(L"EnableWindowText"))
-            {
-                PhSetApplicationWindowIcon(PhMainWndHandle);
-            }
-
-            PhProcessImageListInitialization(hWnd);
-            TreeNew_SetImageList(PhMwpProcessTreeNewHandle, PhProcessSmallImageList);
-            TreeNew_SetImageList(PhMwpServiceTreeNewHandle, PhProcessSmallImageList);
-            TreeNew_SetImageList(PhMwpNetworkTreeNewHandle, PhProcessSmallImageList);
-
-            PhMwpOnSettingChange(hWnd);
-
-            PhMwpInvokeUpdateWindowFont(NULL);
-            if (PhGetIntegerSetting(L"EnableMonospaceFont"))
-                PhMwpInvokeUpdateWindowFontMonospace(hWnd, NULL);
-            InvalidateRect(hWnd, NULL, TRUE);
-
-            PhDpiChangedForwardChildWindows(hWnd);
-        }
-        break;
     case WM_ENDSESSION:
         {
-            PhMwpOnEndSession(hWnd);
+            PhMwpOnEndSession(hWnd, !!wParam, (ULONG)lParam);
         }
         break;
     case WM_SETTINGCHANGE:
         {
-            PhMwpOnSettingChange(hWnd);
+            PhMwpOnSettingChange(hWnd, (ULONG)wParam, (PWSTR)lParam);
         }
         break;
     case WM_COMMAND:
@@ -350,7 +203,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_SIZE:
         {
-            PhMwpOnSize(hWnd);
+            PhMwpOnSize(hWnd, (UINT)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         }
         break;
     case WM_SIZING:
@@ -360,7 +213,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_SETFOCUS:
         {
-            PhMwpOnSetFocus();
+            PhMwpOnSetFocus(hWnd);
         }
         break;
     case WM_NOTIFY:
@@ -373,15 +226,23 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DEVICECHANGE:
         {
-            MSG message;
-
-            memset(&message, 0, sizeof(MSG));
-            message.hwnd = hWnd;
-            message.message = uMsg;
-            message.wParam = wParam;
-            message.lParam = lParam;
-
-            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &message);
+            PhMwpOnDeviceChanged(hWnd, wParam, lParam);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhMwpOnDpiChanged(hWnd);
+        }
+        break;
+    case WM_NCPAINT:
+    case WM_NCACTIVATE:
+        {
+            if (WindowsVersion >= WINDOWS_10 && !PhEnableThemeSupport)
+            {
+                LRESULT result = DefWindowProc(hWnd, uMsg, wParam, lParam);
+                PhWindowThemeMainMenuBorder(hWnd);
+                return result;
+            }
         }
         break;
     }
@@ -407,9 +268,64 @@ RTL_ATOM PhMwpInitializeWindowClass(
     wcex.hInstance = PhInstanceHandle;
     className = PhaGetStringSetting(L"MainWindowClassName");
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+
+    if (PhEnableWindowText)
+    {
+        wcex.hIcon = PhGetApplicationIcon(FALSE);
+        wcex.hIconSm = PhGetApplicationIcon(TRUE);
+    }
 
     return RegisterClassEx(&wcex);
+}
+
+PPH_STRING PhMwpInitializeWindowTitle(
+    VOID
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING currentUserName;
+
+    if (!PhEnableWindowText)
+    {
+        PhApplicationName = L" ";
+        return NULL;
+    }
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+    PhAppendStringBuilder2(&stringBuilder, PhApplicationName);
+
+    if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+    {
+        PhAppendStringBuilder2(&stringBuilder, L" [");
+        PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
+        PhAppendCharStringBuilder(&stringBuilder, L']');
+        PhDereferenceObject(currentUserName);
+    }
+
+    switch (KphLevelEx(FALSE))
+    {
+    case KphLevelMax:
+        PhAppendStringBuilder2(&stringBuilder, L"++");
+        break;
+    case KphLevelHigh:
+        PhAppendStringBuilder2(&stringBuilder, L"+");
+        break;
+    case KphLevelMed:
+        PhAppendStringBuilder2(&stringBuilder, L"~");
+        break;
+    case KphLevelLow:
+        PhAppendStringBuilder2(&stringBuilder, L"-");
+        break;
+    case KphLevelMin:
+        PhAppendStringBuilder2(&stringBuilder, L"--");
+        break;
+    }
+
+    if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
+        PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 VOID PhMwpInitializeProviders(
@@ -439,6 +355,68 @@ VOID PhMwpInitializeProviders(
     PhStartProviderThread(&PhTertiaryProviderThread);
 }
 
+VOID PhMwpShowWindow(
+    _In_ INT ShowCommand
+    )
+{
+    if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && PhNfIconsEnabled())
+        ShowCommand = SW_HIDE;
+    if (PhStartupParameters.ShowVisible)
+        ShowCommand = SW_SHOW;
+
+    if (PhGetIntegerSetting(L"MainWindowState") == SW_MAXIMIZE)
+    {
+        if (ShowCommand != SW_HIDE)
+        {
+            ShowCommand = SW_MAXIMIZE;
+        }
+        else
+        {
+            // We can't maximize it while having it hidden. Set it as pending.
+            NeedsMaximize = TRUE;
+        }
+    }
+
+    if (PhPluginsEnabled)
+    {
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing), IntToPtr(ShowCommand));
+    }
+
+    if (PhStartupParameters.SelectTab)
+    {
+        PPH_MAIN_TAB_PAGE page;
+
+        if (page = PhMwpFindPage(&PhStartupParameters.SelectTab->sr))
+        {
+            PhMwpSelectPage(page->Index);
+        }
+    }
+    else
+    {
+        if (PhGetIntegerSetting(L"MainWindowTabRestoreEnabled"))
+        {
+            PhMwpSelectPage(PhGetIntegerSetting(L"MainWindowTabRestoreIndex"));
+        }
+    }
+
+    if (PhStartupParameters.SysInfo)
+    {
+        PhShowSystemInformationDialog(PhGetString(PhStartupParameters.SysInfo));
+    }
+
+    if (ShowCommand != SW_HIDE)
+    {
+        ShowWindow(PhMainWndHandle, ShowCommand);
+        UpdateWindow(PhMainWndHandle);
+        SetForegroundWindow(PhMainWndHandle);
+    }
+
+    if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
+    {
+        PhPinMiniInformation(MiniInfoManualPinType, 1, 0, PH_MINIINFO_LOAD_POSITION, NULL, NULL);
+    }
+}
+
 VOID PhMwpApplyUpdateInterval(
     _In_ ULONG Interval
     )
@@ -446,6 +424,16 @@ VOID PhMwpApplyUpdateInterval(
     PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
     PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
     PhSetIntervalProviderThread(&PhTertiaryProviderThread, Interval);
+}
+
+VOID PhMwpInitializeMetrics(
+    _In_ HWND WindowHandle
+    )
+{
+    LayoutWindowDpi = PhGetWindowDpi(WindowHandle);
+    LayoutBorderSize = PhGetSystemMetrics(SM_CXBORDER, LayoutWindowDpi);
+
+    PhProcessImageListInitialization(WindowHandle, LayoutWindowDpi);
 }
 
 VOID PhMwpInitializeControls(
@@ -456,7 +444,7 @@ VOID PhMwpInitializeControls(
     ULONG treelistBorder;
     ULONG treelistCustomColors;
     ULONG treelistCustomHeaderDraw;
-    PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+    PH_TREENEW_CREATEPARAMS treelistCreateParams = { sizeof(PH_TREENEW_CREATEPARAMS) };
 
     thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
     treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhEnableThemeSupport) ? WS_BORDER : 0;
@@ -468,6 +456,11 @@ VOID PhMwpInitializeControls(
         treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
         treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
         treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
+    }
+
+    if (PhGetIntegerSetting(L"TreeListCustomRowSize"))
+    {
+        treelistCreateParams.RowHeight = PhGetIntegerSetting(L"TreeListCustomRowSize");
     }
 
     TabControlHandle = CreateWindow(
@@ -540,18 +533,6 @@ VOID PhMwpInitializeControls(
     PhNetworkTreeListInitialization();
     PhInitializeNetworkTreeList(PhMwpNetworkTreeNewHandle);
 
-    if (PhGetIntegerSetting(L"TreeListCustomRowSize"))
-    {
-        ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
-
-        if (treelistCustomRowSize < 15)
-            treelistCustomRowSize = 15;
-
-        TreeNew_SetRowHeight(PhMwpProcessTreeNewHandle, treelistCustomRowSize);
-        TreeNew_SetRowHeight(PhMwpServiceTreeNewHandle, treelistCustomRowSize);
-        TreeNew_SetRowHeight(PhMwpNetworkTreeNewHandle, treelistCustomRowSize);
-    }
-
     CurrentPage = PageList->Items[0];
 }
 
@@ -559,6 +540,14 @@ NTSTATUS PhMwpLoadStage1Worker(
     _In_ PVOID Parameter
     )
 {
+    // Initialize the window title. (handled by PhMwpOnSetFocus) (dmex)
+    //PPH_STRING windowTitle;
+    //if (windowTitle = PhMwpInitializeWindowTitle())
+    //{
+    //    PhSetWindowText((HWND)Parameter, PhGetString(windowTitle));
+    //    PhDereferenceObject(windowTitle);
+    //}
+
     // If the update interval is too large, the user might have to wait a while before seeing some types of
     // process-related data. We force an update by boosting the provider shortly after the program
     // starts up to make things appear more quickly.
@@ -579,15 +568,22 @@ NTSTATUS PhMwpLoadStage1Worker(
         // programs registered for late shutdown, so when services delay shutdown they won't be shown
         // to the user while we are shown and this has caused some users to blame us instead. (dmex)
 
-        //SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
-        SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
+        PhSetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
     }
+
+    // Allow WM_PH_ACTIVATE to pass through UIPI. (wj32)
+    if (PhGetOwnTokenAttributes().Elevated)
+    {
+        ChangeWindowMessageFilterEx((HWND)Parameter, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
+    }
+
+    // N.B. Devices tab is handled by the HardwareDevices plug-in. The provider is managed internally
+    // such that we can handle notifications and dispatch them to other plug-ins. Here we initialize
+    // only the device notifications. (jxy-s).
+    PhMwpInitializeDeviceNotifications();
 
     DelayedLoadCompleted = TRUE;
     //PostMessage((HWND)Parameter, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
-
-    //if (PhEnableThemeSupport)
-    DrawMenuBar(PhMainWndHandle);
 
     return STATUS_SUCCESS;
 }
@@ -600,10 +596,11 @@ VOID PhMwpOnDestroy(
 
     // Notify pages and plugins that we are shutting down.
 
+    PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(FALSE), NULL); // disable providers (dmex)
     PhMwpNotifyAllPages(MainTabPageDestroy, NULL, NULL);
 
     if (PhPluginsEnabled)
-        PhUnloadPlugins();
+        PhUnloadPlugins(FALSE);
 
     if (!PhMainWndEarlyExit)
         PhMwpSaveSettings(WindowHandle);
@@ -614,26 +611,65 @@ VOID PhMwpOnDestroy(
 }
 
 VOID PhMwpOnEndSession(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN SessionEnding,
+    _In_ ULONG Reason
     )
 {
-    PhMwpOnDestroy(WindowHandle);
+    if (!SessionEnding)
+        return;
+
+    PhMainWndExiting = TRUE;
+
+    // Notify pages and plugins that we are shutting down.
+    // This callback must only perform the bare minimum cleanup. (dmex)
+
+    PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(FALSE), NULL); // disable providers (dmex)
+
+    if (PhPluginsEnabled)
+        PhUnloadPlugins(TRUE);
+
+    PhMwpSaveSettings(WindowHandle);
+
+    PhExitApplication(STATUS_SUCCESS);
 }
 
 VOID PhMwpOnSettingChange(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle,
+    _In_opt_ ULONG Action,
+    _In_opt_ PWSTR Metric
     )
 {
-    PhInitializeFont(hwnd);
+    PhInitializeFont(WindowHandle);
 
     if (PhGetIntegerSetting(L"EnableMonospaceFont"))
     {
-        PhInitializeMonospaceFont(hwnd);
+        PhInitializeMonospaceFont(WindowHandle);
     }
 
-    //if (TabControlHandle)
+    if (Action == 0 && Metric)
+    {
+        // Reload environment variables
+
+        if (PhEqualStringZ(Metric, L"Environment", TRUE))
+        {
+            // Reload the environment so when the user starts
+            // processes via the run menu they're created
+            // with the correct environment variables. (dmex)
+            PhRegenerateUserEnvironment(NULL, TRUE);
+        }
+
+        // Reload dark theme metrics
+
+        //if (PhEqualStringZ(Metric, L"ImmersiveColorSet", TRUE))
+        //{
+        //    NOTHING;
+        //}
+    }
+
+    //if (Action == SPI_SETNONCLIENTMETRICS && Metric && PhEqualStringZ(Metric, L"WindowMetrics", TRUE))
     //{
-    //    SetWindowFont(TabControlHandle, PhApplicationFont, TRUE);
+    //    // Reload non-client metrics
     //}
 }
 
@@ -661,6 +697,163 @@ static NTSTATUS PhpOpenSecurityDummyHandle(
     )
 {
     return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpOpenSecurityDesktopHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    HDESK desktopHandle;
+
+    if (desktopHandle = OpenDesktop(
+        L"Default",
+        0,
+        FALSE,
+        MAXIMUM_ALLOWED
+        ))
+    {
+        *Handle = desktopHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseSecurityDesktopHandle(
+    _In_ PVOID Context
+    )
+{
+    CloseDesktop(Context);
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpOpenSecurityStationHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    HWINSTA stationHandle;
+
+    if (stationHandle = OpenWindowStation(
+        L"WinSta0",
+        FALSE,
+        MAXIMUM_ALLOWED
+        ))
+    {
+        *Handle = stationHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseSecurityStationHandle(
+    _In_ PVOID Context
+    )
+{
+    CloseWindowStation(Context);
+    return STATUS_SUCCESS;
+}
+
+static VOID PhpMwpOnDumpCommand(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+    {
+        PH_LIVE_DUMP_OPTIONS options;
+
+        if (Id == ID_PROCESS_DUMP_CUSTOM)
+        {
+            PhShowLiveDumpDialog(WindowHandle);
+            return;
+        }
+
+        memset(&options, 0, sizeof(PH_LIVE_DUMP_OPTIONS));
+
+        options.UseDumpStorageStack = TRUE;
+        options.CompressMemoryPages = TRUE;
+
+        switch (Id)
+        {
+        case ID_PROCESS_DUMP_MINIMAL:
+            options.OnlyKernelThreadStacks = TRUE;
+            break;
+        default: case ID_PROCESS_DUMP_NORMAL:
+            break;
+        case ID_PROCESS_DUMP_FULL:
+            options.IncludeHypervisorPages = TRUE;
+            options.IncludeNonEssentialHypervisorPages = TRUE;
+            break;
+        }
+
+        PhUiCreateLiveDump(WindowHandle, &options);
+    }
+    else
+    {
+        ULONG dumpType;
+
+        if (Id == ID_PROCESS_DUMP_CUSTOM)
+        {
+            PhShowCreateDumpFileProcessDialog(WindowHandle, ProcessItem);
+            return;
+        }
+
+        switch (Id)
+        {
+        case ID_PROCESS_DUMP_MINIMAL:
+            dumpType =
+                MiniDumpWithDataSegs |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory;
+            break;
+        case ID_PROCESS_DUMP_LIMITED:
+            dumpType =
+                MiniDumpWithFullMemory |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory;
+        default: case ID_PROCESS_DUMP_NORMAL:
+            // task manager uses these flags (wj32)
+            dumpType =
+                MiniDumpWithFullMemory |
+                MiniDumpWithHandleData |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory |
+                MiniDumpWithIptTrace;
+            break;
+        case ID_PROCESS_DUMP_FULL:
+            dumpType =
+                MiniDumpWithDataSegs |
+                MiniDumpWithFullMemory |
+                MiniDumpWithHandleData |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithIndirectlyReferencedMemory |
+                MiniDumpWithProcessThreadData |
+                MiniDumpWithPrivateReadWriteMemory |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithCodeSegs |
+                MiniDumpWithFullAuxiliaryState |
+                MiniDumpWithPrivateWriteCopyMemory |
+                MiniDumpIgnoreInaccessibleMemory |
+                MiniDumpWithTokenInformation |
+                MiniDumpWithModuleHeaders |
+                MiniDumpWithAvxXStateContext |
+                MiniDumpWithIptTrace;
+            break;
+        }
+
+        PhUiCreateDumpFileProcess(WindowHandle, ProcessItem, dumpType);
+    }
 }
 
 VOID PhMwpOnCommand(
@@ -693,11 +886,16 @@ VOID PhMwpOnCommand(
             PhShowRunAsDialog(WindowHandle, NULL);
         }
         break;
+    case ID_HACKER_RUNASPACKAGE:
+        {
+            PhShowRunAsPackageDialog(WindowHandle);
+        }
+        break;
     case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
         {
             ProcessHacker_PrepareForEarlyShutdown();
 
-            if (PhShellProcessHacker(
+            if (NT_SUCCESS(PhShellProcessHacker(
                 WindowHandle,
                 L"-v -newinstance",
                 SW_SHOW,
@@ -705,7 +903,7 @@ VOID PhMwpOnCommand(
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                 0,
                 NULL
-                ))
+                )))
             {
                 ProcessHacker_Destroy();
             }
@@ -760,7 +958,7 @@ VOID PhMwpOnCommand(
                     else
                         mode = PH_EXPORT_MODE_TABS;
 
-                    PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
+                    PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
                     PhWritePhTextHeader(fileStream);
 
                     exportContent.FileStream = fileStream;
@@ -821,8 +1019,19 @@ VOID PhMwpOnCommand(
     case ID_NOTIFICATIONS_STOPPEDSERVICES:
     case ID_NOTIFICATIONS_DELETEDSERVICES:
     case ID_NOTIFICATIONS_MODIFIEDSERVICES:
+    case ID_NOTIFICATIONS_ARRIVEDDEVICES:
+    case ID_NOTIFICATIONS_REMOVEDDEVICES:
         {
             PhMwpExecuteNotificationMenuCommand(WindowHandle, Id);
+        }
+        break;
+    case ID_NOTIFICATIONS_RESETPERSISTLAYOUT:
+    case ID_NOTIFICATIONS_ENABLEDELAYSTART:
+    case ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT:
+    case ID_NOTIFICATIONS_ENABLETRANSPARENTICONS:
+    case ID_NOTIFICATIONS_ENABLESINGLECLICKICONS:
+        {
+            PhMwpExecuteNotificationSettingsMenuCommand(WindowHandle, Id);
         }
         break;
     case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
@@ -833,6 +1042,11 @@ VOID PhMwpOnCommand(
     case ID_VIEW_HIDESIGNEDPROCESSES:
         {
             PhMwpToggleSignedProcessTreeFilter();
+        }
+        break;
+    case ID_VIEW_HIDEMICROSOFTPROCESSES:
+        {
+            PhMwpToggleMicrosoftProcessTreeFilter();
         }
         break;
     case ID_VIEW_SCROLLTONEWPROCESSES:
@@ -938,6 +1152,11 @@ VOID PhMwpOnCommand(
             PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, (PVOID)PhMwpUpdateAutomatically, NULL);
         }
         break;
+    case ID_TOOLS_THREADSTACKS:
+        {
+            PhShowThreadStacksDialog();
+        }
+        break;
     case ID_TOOLS_CREATESERVICE:
         {
             PhShowCreateServiceDialog(WindowHandle);
@@ -987,17 +1206,18 @@ VOID PhMwpOnCommand(
     case ID_TOOLS_STARTTASKMANAGER:
         {
             extern BOOLEAN PhpIsDefaultTaskManager(VOID); // options.c (dmex)
-            PPH_STRING systemDirectory;
             PPH_STRING taskmgrFileName;
+            PWSTR taskmgrCommandLine;
 
-            systemDirectory = PH_AUTO(PhGetSystemDirectory());
-            taskmgrFileName = PH_AUTO(PhConcatStringRefZ(&systemDirectory->sr, L"\\taskmgr.exe"));
+            taskmgrFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\taskmgr.exe"));
+            taskmgrCommandLine = PhGetIntegerSetting(L"TaskmgrWindowState") ? L" -d" : NULL;
 
             if (!PhpIsDefaultTaskManager() && PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {
                 PhShellExecuteEx(
                     WindowHandle,
                     PhGetString(taskmgrFileName),
+                    taskmgrCommandLine,
                     NULL,
                     SW_SHOW,
                     0,
@@ -1011,24 +1231,22 @@ VOID PhMwpOnCommand(
                 {
                     if (PhUiConnectToPhSvc(WindowHandle, FALSE))
                     {
-                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), taskmgrCommandLine);
                         PhUiDisconnectFromPhSvc();
                     }
                 }
                 else
                 {
-                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), taskmgrCommandLine);
                 }
             }
         }
         break;
     case ID_TOOLS_STARTRESOURCEMONITOR:
         {
-            PPH_STRING systemDirectory;
             PPH_STRING perfmonFileName;
 
-            systemDirectory = PH_AUTO(PhGetSystemDirectory());
-            perfmonFileName = PH_AUTO(PhConcatStringRefZ(&systemDirectory->sr, L"\\perfmon.exe"));
+            perfmonFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\perfmon.exe"));
 
             if (PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {
@@ -1036,6 +1254,7 @@ VOID PhMwpOnCommand(
                     WindowHandle,
                     PhGetString(perfmonFileName),
                     L" /res",
+                    NULL,
                     SW_SHOW,
                     0,
                     0,
@@ -1103,6 +1322,30 @@ VOID PhMwpOnCommand(
                 L"WmiDefault",
                 PhpOpenSecurityDummyHandle,
                 NULL,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_DESKTOP_PERMISSIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"Current Window Desktop",
+                L"Desktop",
+                PhpOpenSecurityDesktopHandle,
+                PhpCloseSecurityDesktopHandle,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_STATION_PERMISSIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"Current Window Station",
+                L"WindowStation",
+                PhpOpenSecurityStationHandle,
+                PhpCloseSecurityStationHandle,
                 NULL
                 );
         }
@@ -1272,15 +1515,15 @@ VOID PhMwpOnCommand(
                 {
                     ProcessHacker_PrepareForEarlyShutdown();
 
-                    if (PhShellProcessHacker(
-                        PhMainWndHandle,
+                    if (NT_SUCCESS(PhShellProcessHacker(
+                        WindowHandle,
                         NULL,
                         SW_SHOW,
-                        PH_SHELL_EXECUTE_NOZONECHECKS,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                         0,
                         NULL
-                        ))
+                        )))
                     {
                         ProcessHacker_Destroy();
                     }
@@ -1301,14 +1544,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
-    case ID_PROCESS_CREATEDUMPFILE:
+    case ID_PROCESS_DUMP_MINIMAL:
+    case ID_PROCESS_DUMP_LIMITED:
+    case ID_PROCESS_DUMP_NORMAL:
+    case ID_PROCESS_DUMP_FULL:
+    case ID_PROCESS_DUMP_CUSTOM:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
             if (processItem)
             {
                 PhReferenceObject(processItem);
-                PhUiCreateDumpFileProcess(WindowHandle, processItem);
+                PhpMwpOnDumpCommand(WindowHandle, Id, processItem);
                 PhDereferenceObject(processItem);
             }
         }
@@ -1350,29 +1597,6 @@ VOID PhMwpOnCommand(
                 PhReferenceObject(processItem);
                 PhShowProcessAffinityDialog(WindowHandle, processItem, NULL);
                 PhDereferenceObject(processItem);
-            }
-        }
-        break;
-    case ID_PROCESS_BOOST:
-        {
-            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
-
-            if (processItem)
-            {
-                BOOLEAN priorityBoost = FALSE;
-                HANDLE processHandle;
-
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_QUERY_LIMITED_INFORMATION,
-                    processItem->ProcessId
-                    )))
-                {
-                    PhGetProcessPriorityBoost(processHandle, &priorityBoost);
-                    NtClose(processHandle);
-                }
-
-                PhUiSetBoostPriorityProcess(PhMainWndHandle, processItem, !priorityBoost);
             }
         }
         break;
@@ -1419,7 +1643,7 @@ VOID PhMwpOnCommand(
             if (processItem)
             {
                 PhReferenceObject(processItem);
-                PhShowProcessHeapsDialog(PhMainWndHandle, processItem);
+                PhShowProcessHeapsDialog(WindowHandle, processItem);
                 PhDereferenceObject(processItem);
             }
         }
@@ -1491,6 +1715,18 @@ VOID PhMwpOnCommand(
             if (processItem)
             {
                 PhShowRunAsDialog(WindowHandle, processItem->ProcessId);
+            }
+        }
+        break;
+    case ID_MISCELLANEOUS_PAGESMODIFIED:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhShowImagePageModifiedDialog(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
             }
         }
         break;
@@ -1589,10 +1825,11 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (processItem &&
-                !PhIsNullOrEmptyString(processItem->FileNameWin32) &&
-                PhDoesFileExistWin32(PhGetString(processItem->FileNameWin32)
-                ))
+            if (
+                processItem &&
+                !PhIsNullOrEmptyString(processItem->FileName) &&
+                PhDoesFileExist(&processItem->FileName->sr)
+                )
             {
                 PhReferenceObject(processItem);
                 PhShellExecuteUserString(
@@ -1655,9 +1892,7 @@ VOID PhMwpOnCommand(
 
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
-
             PhUiStartServices(WindowHandle, serviceItems, numberOfServiceItems);
-
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
         }
@@ -1669,9 +1904,7 @@ VOID PhMwpOnCommand(
 
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
-
             PhUiContinueServices(WindowHandle, serviceItems, numberOfServiceItems);
-
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
         }
@@ -1683,9 +1916,7 @@ VOID PhMwpOnCommand(
 
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
-
             PhUiPauseServices(WindowHandle, serviceItems, numberOfServiceItems);
-
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
         }
@@ -1697,9 +1928,7 @@ VOID PhMwpOnCommand(
 
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
-
             PhUiStopServices(WindowHandle, serviceItems, numberOfServiceItems);
-
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
         }
@@ -1721,28 +1950,38 @@ VOID PhMwpOnCommand(
         break;
     case ID_SERVICE_OPENKEY:
         {
-            static PH_STRINGREF hklm = PH_STRINGREF_INIT(L"HKLM\\");
-
             PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
 
             if (serviceItem)
             {
                 HANDLE keyHandle;
-                PPH_STRING serviceKeyName = PH_AUTO(PhGetServiceKeyName(&serviceItem->Name->sr));
 
-                if (NT_SUCCESS(PhOpenKey(
+                if (NT_SUCCESS(PhOpenServiceKey(
                     &keyHandle,
                     KEY_READ,
-                    PH_KEY_LOCAL_MACHINE,
-                    &serviceKeyName->sr,
-                    0
+                    &serviceItem->Name->sr
                     )))
                 {
                     PPH_STRING hklmServiceKeyName;
 
-                    hklmServiceKeyName = PH_AUTO(PhConcatStringRef2(&hklm, &serviceKeyName->sr));
-                    PhShellOpenKey2(WindowHandle, hklmServiceKeyName);
+                    if (NT_SUCCESS(PhQueryObjectName(keyHandle, &hklmServiceKeyName)))
+                    {
+                        PhMoveReference(&hklmServiceKeyName, PhFormatNativeKeyName(hklmServiceKeyName));
+
+                        PhShellOpenKey2(WindowHandle, hklmServiceKeyName);
+
+                        PhDereferenceObject(hklmServiceKeyName);
+                    }
+                    else
+                    {
+                        PhShowError(WindowHandle, L"%s", L"The service does not exist.");
+                    }
+
                     NtClose(keyHandle);
+                }
+                else
+                {
+                    PhShowError(WindowHandle, L"%s", L"The service does not exist.");
                 }
             }
         }
@@ -1752,11 +1991,11 @@ VOID PhMwpOnCommand(
             PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
             SC_HANDLE serviceHandle;
 
-            if (serviceItem && (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG)))
+            if (serviceItem && NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(serviceItem->Name))))
             {
                 PPH_STRING fileName;
 
-                if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
+                if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
                 {
                     PhShellExecuteUserString(
                         WindowHandle,
@@ -1768,7 +2007,7 @@ VOID PhMwpOnCommand(
                     PhDereferenceObject(fileName);
                 }
 
-                CloseServiceHandle(serviceHandle);
+                PhCloseServiceHandle(serviceHandle);
             }
         }
         break;
@@ -1953,7 +2192,6 @@ VOID PhMwpOnInitMenuPopup(
 {
     ULONG i;
     BOOLEAN found;
-    MENUINFO menuInfo;
     PPH_EMENU menu;
 
     found = FALSE;
@@ -1971,26 +2209,14 @@ VOID PhMwpOnInitMenuPopup(
         return;
 
     // Delete all items in this submenu.
-    while (DeleteMenu(Menu, 0, MF_BYPOSITION))
-        NOTHING;
+    PhDeleteHMenu(Menu);
 
     // Delete the previous EMENU for this submenu.
     if (SubMenuObjects[Index])
         PhDestroyEMenu(SubMenuObjects[Index]);
 
     // Make sure the menu style is set correctly.
-    memset(&menuInfo, 0, sizeof(MENUINFO));
-    menuInfo.cbSize = sizeof(MENUINFO);
-    menuInfo.fMask = MIM_STYLE;
-    menuInfo.dwStyle = MNS_CHECKORBMP;
-
-    if (PhEnableThemeSupport)
-    {
-        menuInfo.fMask |= MIM_BACKGROUND;
-        menuInfo.hbrBack = PhMenuBackgroundBrush;
-    }
-
-    SetMenuInfo(Menu, &menuInfo);
+    PhSetHMenuStyle(Menu, TRUE);
 
     menu = PhpCreateMainMenu(Index);
     PhMwpInitializeSubMenu(WindowHandle, menu, Index);
@@ -2009,10 +2235,16 @@ VOID PhMwpOnInitMenuPopup(
 }
 
 VOID PhMwpOnSize(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ UINT State,
+    _In_ LONG Width,
+    _In_ LONG Height
     )
 {
-    if (!IsMinimized(WindowHandle))
+    //if (!(Width && Height))
+    //    return;
+
+    if (State != SIZE_MINIMIZED)
     {
         HDWP deferHandle;
 
@@ -2031,15 +2263,16 @@ VOID PhMwpOnSizing(
 }
 
 VOID PhMwpOnSetFocus(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
-    PPH_STRING windowTitle = PhGetMainWindowTitle();
+    PPH_STRING windowTitle;
 
-    SetWindowText(PhMainWndHandle, PhGetString(windowTitle));
-
-    if (windowTitle)
+    if (windowTitle = PhMwpInitializeWindowTitle())
+    {
+        PhSetWindowText(WindowHandle, PhGetString(windowTitle));
         PhDereferenceObject(windowTitle);
+    }
 
     if (CurrentPage->WindowHandle)
         SetFocus(CurrentPage->WindowHandle);
@@ -2059,7 +2292,76 @@ BOOLEAN PhMwpOnNotify(
     return FALSE;
 }
 
-ULONG_PTR PhMwpOnUserMessage(
+VOID PhMwpOnDeviceChanged(
+    _In_ HWND WindowHandle,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (wParam)
+    {
+    case DBT_DEVICEARRIVAL: // Drive letter added
+    //case DBT_DEVICEREMOVECOMPLETE: // Drive letter removed
+        {
+            PDEV_BROADCAST_HDR deviceBroadcast = (PDEV_BROADCAST_HDR)lParam;
+
+            if (deviceBroadcast->dbch_devicetype == DBT_DEVTYP_VOLUME)
+            {
+                PhUpdateDosDevicePrefixes();
+            }
+        }
+        break;
+    }
+
+    {
+        MSG message;
+
+        memset(&message, 0, sizeof(MSG));
+        message.hwnd = WindowHandle;
+        message.message = WM_DEVICECHANGE;
+        message.wParam = wParam;
+        message.lParam = lParam;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &message);
+    }
+}
+
+VOID PhMwpOnDpiChanged(
+    _In_ HWND WindowHandle
+    )
+{
+    PhGuiSupportUpdateSystemMetrics(WindowHandle);
+
+    PhMwpInitializeMetrics(WindowHandle);
+
+    if (PhEnableWindowText)
+    {
+        //PhSetApplicationWindowIcon(WindowHandle);
+        PhSetApplicationWindowIconEx(WindowHandle, LayoutWindowDpi);
+    }
+
+    PhMwpOnSettingChange(WindowHandle, 0, NULL);
+
+    PhMwpInvokeUpdateWindowFont(NULL);
+    if (PhGetIntegerSetting(L"EnableMonospaceFont"))
+        PhMwpInvokeUpdateWindowFontMonospace(WindowHandle, NULL);
+
+    PhMwpNotifyAllPages(MainTabPageDpiChanged, NULL, NULL);
+
+    InvalidateRect(WindowHandle, NULL, TRUE);
+
+    {
+        MSG message;
+
+        memset(&message, 0, sizeof(MSG));
+        message.hwnd = WindowHandle;
+        message.message = WM_DPICHANGED;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackWindowNotifyEvent), &message);
+    }
+}
+
+LRESULT PhMwpOnUserMessage(
     _In_ HWND WindowHandle,
     _In_ ULONG Message,
     _In_ ULONG_PTR WParam,
@@ -2125,16 +2427,21 @@ VOID PhMwpLoadSettings(
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
+#ifdef _ARM64_
+    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableArmCycleCpuUsage");
+#else
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
-    PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
+#endif
     PhEnableNetworkBoundConnections = !!PhGetIntegerSetting(L"EnableNetworkBoundConnections");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
-    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhEnableTooltipSupport = !!PhGetIntegerSetting(L"EnableTooltipSupport");
     PhEnableImageCoherencySupport = !!PhGetIntegerSetting(L"EnableImageCoherencySupport");
     PhEnableLinuxSubsystemSupport = !!PhGetIntegerSetting(L"EnableLinuxSubsystemSupport");
+    PhEnablePackageIconSupport = !!PhGetIntegerSetting(L"EnablePackageIconSupport");
+    PhEnableSecurityAdvancedDialog = !!PhGetIntegerSetting(L"EnableSecurityAdvancedDialog");
+    PhEnableProcessHandlePnPDeviceNameSupport = !!PhGetIntegerSetting(L"EnableProcessHandlePnPDeviceNameSupport");
     PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
@@ -2157,6 +2464,8 @@ VOID PhMwpLoadSettings(
     PhNfLoadStage1();
 
     PhMwpNotifyAllPages(MainTabPageLoadSettings, NULL, NULL);
+
+    PhLogInitialization();
 }
 
 VOID PhMwpSaveSettings(
@@ -2164,14 +2473,6 @@ VOID PhMwpSaveSettings(
     )
 {
     PhMwpNotifyAllPages(MainTabPageSaveSettings, NULL, NULL);
-
-    PhNfSaveSettings();
-    PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
-
-    if (PhGetIntegerSetting(L"MainWindowTabRestoreEnabled"))
-    {
-        PhSetIntegerSetting(L"MainWindowTabRestoreIndex", TabCtrl_GetCurSel(TabControlHandle));
-    }
 
     PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", WindowHandle);
     PhMwpSaveWindowState(WindowHandle);
@@ -2235,10 +2536,32 @@ VOID PhMwpLayout(
     GetClientRect(PhMainWndHandle, &rect);
     PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
 
-    SetWindowPos(TabControlHandle, NULL,
-        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-        SWP_NOACTIVATE | SWP_NOZORDER);
-    UpdateWindow(TabControlHandle);
+    if (PhEnableDeferredLayout)
+    {
+        *DeferHandle = DeferWindowPos(
+            *DeferHandle,
+            TabControlHandle,
+            HWND_BOTTOM,
+            rect.left,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
+    }
+    else
+    {
+        SetWindowPos(
+            TabControlHandle,
+            NULL,
+            rect.left,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
+        UpdateWindow(TabControlHandle);
+    }
 
     PhMwpLayoutTabControl(DeferHandle);
 }
@@ -2327,7 +2650,7 @@ BOOLEAN PhMwpExecuteComputerCommand(
     return FALSE;
 }
 
-BOOL PhMwpIsWindowOverlapped(
+BOOLEAN PhMwpIsWindowOverlapped(
     _In_ HWND WindowHandle
     )
 {
@@ -2398,7 +2721,7 @@ PPH_EMENU PhpCreateComputerMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN_UPDATE, L"Update and shut down", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, ID_COMPUTER_RESTARTFWOPTIONS, L"Restart to firmware options", NULL, NULL), ULONG_MAX);
     if (PhGetIntegerSetting(L"EnableShutdownBootMenu"))
@@ -2425,13 +2748,14 @@ PPH_EMENU PhpCreateComputerMenu(
     return menuItem;
 }
 
-PPH_EMENU PhpCreateHackerMenu(
+PPH_EMENU PhpCreateSystemMenu(
     _In_ PPH_EMENU HackerMenu,
     _In_ BOOLEAN DelayLoadMenu
     )
 {
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_RUN, L"&Run...\bCtrl+R", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_RUNAS, L"Run &as...\bCtrl+Shift+R", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_RUNASPACKAGE, L"Run as &package...\bCtrl+Shift+P", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_SHOWDETAILSFORALLPROCESSES, L"Show &details for all processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(HackerMenu, PhCreateEMenuItem(0, ID_HACKER_SAVE, L"&Save...\bCtrl+S", NULL, NULL), ULONG_MAX);
@@ -2495,6 +2819,7 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_CREATESERVICE, L"&Create service...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_LIVEDUMP, L"&Create live dump...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_INSPECTEXECUTABLEFILE, L"Inspect e&xecutable file...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_THREADSTACKS, L"&Search thread stacks", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_HIDDENPROCESSES, L"&Hidden processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -2507,6 +2832,8 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_SCM_PERMISSIONS, L"Service Control Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_RDP_PERMISSIONS, L"Terminal Server Listener", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_WMI_PERMISSIONS, L"WMI Root Namespace", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_DESKTOP_PERMISSIONS, L"Current Window Desktop", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_STATION_PERMISSIONS, L"Current Window Station", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, menuItem, ULONG_MAX);
 
     return ToolsMenu;
@@ -2549,8 +2876,8 @@ PPH_EMENU PhpCreateMainMenu(
 
     switch (SubMenuIndex)
     {
-    case PH_MENU_ITEM_LOCATION_HACKER:
-        return PhpCreateHackerMenu(menu, FALSE);
+    case PH_MENU_ITEM_LOCATION_SYSTEM:
+        return PhpCreateSystemMenu(menu, FALSE);
     case PH_MENU_ITEM_LOCATION_VIEW:
         return PhpCreateViewMenu(menu);
     case PH_MENU_ITEM_LOCATION_TOOLS:
@@ -2564,11 +2891,11 @@ PPH_EMENU PhpCreateMainMenu(
             PPH_EMENU_ITEM menuItem;
             menu->Flags |= PH_EMENU_MAINMENU;
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HACKER, L"&System", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_SYSTEM, L"&System", NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
-            //PhInsertEMenuItem(menu, PhpCreateHackerMenu(menuItem, TRUE), ULONG_MAX);
+            //PhInsertEMenuItem(menu, PhpCreateSystemMenu(menuItem, TRUE), ULONG_MAX);
 
             menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_VIEW, L"&View", NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
@@ -2601,22 +2928,26 @@ PPH_EMENU PhpCreateMainMenu(
 }
 
 VOID PhMwpInitializeMainMenu(
-    _In_ HMENU Menu
+    _In_ HWND WindowHandle
     )
 {
-    MENUINFO menuInfo;
-    ULONG i;
+    HMENU menuHandle;
 
-    memset(&menuInfo, 0, sizeof(MENUINFO));
-    menuInfo.cbSize = sizeof(MENUINFO);
-    menuInfo.fMask = MIM_STYLE;
-    menuInfo.dwStyle = MNS_NOTIFYBYPOS; //| MNS_AUTODISMISS; Flag is unusable on Win10 - Github #547 (dmex).
+    // Initialize the menu.
 
-    SetMenuInfo(Menu, &menuInfo);
+    if (!(menuHandle = CreateMenu()))
+        return;
 
-    for (i = 0; i < RTL_NUMBER_OF(SubMenuHandles); i++)
+    PhEMenuToHMenu2(menuHandle, PhpCreateMainMenu(ULONG_MAX), 0, NULL);
+    PhInitializeWindowThemeMainMenu(menuHandle);
+    PhSetHMenuNotify(menuHandle);
+    SetMenu(WindowHandle, menuHandle);
+
+    // Initialize the submenu.
+
+    for (INT i = 0; i < RTL_NUMBER_OF(SubMenuHandles); i++)
     {
-        SubMenuHandles[i] = GetSubMenu(Menu, i);
+        SubMenuHandles[i] = GetSubMenu(menuHandle, i);
     }
 }
 
@@ -2658,6 +2989,7 @@ VOID PhMwpDispatchMenuCommand(
 
                 icon = menuItem->Context;
                 PhNfSetVisibleIcon(icon, !(icon->Flags & PH_NF_ICON_ENABLED));
+                PhNfSaveSettings();
             }
 
             return;
@@ -2785,6 +3117,11 @@ PPH_EMENU PhpCreateNotificationMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_STOPPEDSERVICES, L"St&opped services", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_DELETEDSERVICES, L"&Deleted services", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_MODIFIEDSERVICES, L"&Modified services", NULL, NULL), ULONG_MAX);
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ARRIVEDDEVICES, L"&Arrived devices", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_REMOVEDDEVICES, L"&Removed devices", NULL, NULL), ULONG_MAX);
+    }
 
     for (i = PH_NOTIFY_MINIMUM; i != PH_NOTIFY_MAXIMUM; i <<= 1)
     {
@@ -2813,6 +3150,12 @@ PPH_EMENU PhpCreateNotificationMenu(
             case PH_NOTIFY_SERVICE_MODIFIED:
                 id = ID_NOTIFICATIONS_MODIFIEDSERVICES;
                 break;
+            case PH_NOTIFY_DEVICE_ARRIVED:
+                id = ID_NOTIFICATIONS_ARRIVEDDEVICES;
+                break;
+            case PH_NOTIFY_DEVICE_REMOVED:
+                id = ID_NOTIFICATIONS_REMOVEDDEVICES;
+                break;
             }
 
             PhSetFlagsEMenuItem(menuItem, id, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
@@ -2830,10 +3173,12 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     switch (Id)
     {
     case ID_NOTIFICATIONS_ENABLEALL:
-        PhMwpNotifyIconNotifyMask |= PH_NOTIFY_VALID_MASK;
+        SetFlag(PhMwpNotifyIconNotifyMask, PH_NOTIFY_VALID_MASK);
+        PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
         return TRUE;
     case ID_NOTIFICATIONS_DISABLEALL:
-        PhMwpNotifyIconNotifyMask &= ~PH_NOTIFY_VALID_MASK;
+        ClearFlag(PhMwpNotifyIconNotifyMask, PH_NOTIFY_VALID_MASK);
+        PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
         return TRUE;
     case ID_NOTIFICATIONS_NEWPROCESSES:
     case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
@@ -2842,8 +3187,10 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     case ID_NOTIFICATIONS_STOPPEDSERVICES:
     case ID_NOTIFICATIONS_DELETEDSERVICES:
     case ID_NOTIFICATIONS_MODIFIEDSERVICES:
+    case ID_NOTIFICATIONS_ARRIVEDDEVICES:
+    case ID_NOTIFICATIONS_REMOVEDDEVICES:
         {
-            ULONG bit;
+            ULONG bit = 0;
 
             switch (Id)
             {
@@ -2868,9 +3215,113 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
             case ID_NOTIFICATIONS_MODIFIEDSERVICES:
                 bit = PH_NOTIFY_SERVICE_MODIFIED;
                 break;
+            case ID_NOTIFICATIONS_ARRIVEDDEVICES:
+                bit = PH_NOTIFY_DEVICE_ARRIVED;
+                break;
+            case ID_NOTIFICATIONS_REMOVEDDEVICES:
+                bit = PH_NOTIFY_DEVICE_REMOVED;
+                break;
             }
 
             PhMwpNotifyIconNotifyMask ^= bit;
+            PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+PPH_EMENU PhpCreateNotificationSettingsMenu(
+    VOID
+    )
+{
+    PPH_EMENU_ITEM menuItem;
+
+    menuItem = PhCreateEMenuItem(0, 0, L"Settings", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLEDELAYSTART, L"Enable initialization delay", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT, L"Enable persistent layout", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLETRANSPARENTICONS, L"Enable transparent icons", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLESINGLECLICKICONS, L"Enable single click icons", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_RESETPERSISTLAYOUT, L"Reset persistent layout", NULL, NULL), ULONG_MAX);
+
+    if (PhGetIntegerSetting(L"IconTrayLazyStartDelay"))
+    {
+        PhSetFlagsEMenuItem(menuItem, ID_NOTIFICATIONS_ENABLEDELAYSTART, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (PhGetIntegerSetting(L"IconTrayPersistGuidEnabled"))
+    {
+        PhSetFlagsEMenuItem(menuItem, ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (PhGetIntegerSetting(L"IconTransparencyEnabled"))
+    {
+        PhSetFlagsEMenuItem(menuItem, ID_NOTIFICATIONS_ENABLETRANSPARENTICONS, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (PhGetIntegerSetting(L"IconSingleClick"))
+    {
+        PhSetFlagsEMenuItem(menuItem, ID_NOTIFICATIONS_ENABLESINGLECLICKICONS, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    return menuItem;
+}
+
+BOOLEAN PhMwpExecuteNotificationSettingsMenuCommand(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case ID_NOTIFICATIONS_RESETPERSISTLAYOUT:
+        {
+            EXTERN_C VOID PhNfLoadGuids(VOID);
+
+            PhSetStringSetting(L"IconTrayGuids", L"");
+
+            PhNfLoadGuids();
+
+            PhShowOptionsRestartRequired(WindowHandle);
+        }
+        return TRUE;
+    case ID_NOTIFICATIONS_ENABLEDELAYSTART:
+        {
+            BOOLEAN lazyTrayIconStartDelayEnabled = !!PhGetIntegerSetting(L"IconTrayLazyStartDelay");
+
+            PhSetIntegerSetting(L"IconTrayLazyStartDelay", !lazyTrayIconStartDelayEnabled);
+
+            PhShowOptionsRestartRequired(WindowHandle);
+        }
+        return TRUE;
+    case ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT:
+        {
+            BOOLEAN persistentTrayIconLayoutEnabled = !!PhGetIntegerSetting(L"IconTrayPersistGuidEnabled");
+
+            PhSetIntegerSetting(L"IconTrayPersistGuidEnabled", !persistentTrayIconLayoutEnabled);
+
+            PhShowOptionsRestartRequired(WindowHandle);
+        }
+        return TRUE;
+    case ID_NOTIFICATIONS_ENABLETRANSPARENTICONS:
+        {
+            BOOLEAN transparentTrayIconsEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
+
+            EXTERN_C BOOLEAN PhNfTransparencyEnabled;
+            PhNfTransparencyEnabled = !transparentTrayIconsEnabled;
+
+            PhSetIntegerSetting(L"IconTransparencyEnabled", !transparentTrayIconsEnabled);
+
+            PhShowOptionsRestartRequired(WindowHandle);
+        }
+        return TRUE;
+    case ID_NOTIFICATIONS_ENABLESINGLECLICKICONS:
+        {
+            BOOLEAN singleClickTrayIconsEnabled = !!PhGetIntegerSetting(L"IconSingleClick");
+
+            PhSetIntegerSetting(L"IconSingleClick", !singleClickTrayIconsEnabled);
         }
         return TRUE;
     }
@@ -2888,6 +3339,7 @@ PPH_EMENU PhpCreateIconMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_SHOWHIDEPROCESSHACKER, L"&Show/Hide System Informer", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_SYSTEMINFORMATION, L"System &information", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhpCreateNotificationMenu(), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhpCreateNotificationSettingsMenu(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESSES_DUMMY, L"&Processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhpCreateComputerMenu(FALSE), ULONG_MAX);
@@ -2904,9 +3356,14 @@ VOID PhMwpInitializeSubMenu(
 {
     PPH_EMENU_ITEM menuItem;
 
-    if (Index == PH_MENU_ITEM_LOCATION_HACKER) // Hacker
+    if (Index == PH_MENU_ITEM_LOCATION_SYSTEM)
     {
-        // Fix some menu items.
+        if (WindowsVersion < WINDOWS_10)
+        {
+            if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_RUNASPACKAGE))
+                PhDestroyEMenuItem(menuItem);
+        }
+
         if (PhGetOwnTokenAttributes().Elevated)
         {
             if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_RUNASADMINISTRATOR))
@@ -2916,25 +3373,23 @@ VOID PhMwpInitializeSubMenu(
         }
         else
         {
-            HBITMAP shieldBitmap;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(hwnd);
-
-            if (shieldBitmap = PhGetShieldBitmap(dpiValue))
+            if (PhGetIntegerSetting(L"EnableBitmapSupport"))
             {
-                if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
-                    menuItem->Bitmap = shieldBitmap;
+                HBITMAP shieldBitmap;
+
+                if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, 0, 0))
+                {
+                    if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
+                        menuItem->Bitmap = shieldBitmap;
+                }
             }
         }
 
-        // Fix up the Computer menu.
         PhMwpSetupComputerMenu(Menu);
     }
-    else if (Index == PH_MENU_ITEM_LOCATION_VIEW) // View
+    else if (Index == PH_MENU_ITEM_LOCATION_VIEW)
     {
         PPH_EMENU_ITEM trayIconsMenuItem;
-        PPH_EMENU_ITEM menuItem;
         ULONG id = ULONG_MAX;
         ULONG placeholderIndex = ULONG_MAX;
 
@@ -2943,6 +3398,7 @@ VOID PhMwpInitializeSubMenu(
             // Add menu items for the registered tray icons.
 
             PhInsertEMenuItem(trayIconsMenuItem, PhpCreateNotificationMenu(), ULONG_MAX);
+            PhInsertEMenuItem(trayIconsMenuItem, PhpCreateNotificationSettingsMenu(), ULONG_MAX);
             PhInsertEMenuItem(trayIconsMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
 
             for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
@@ -3012,7 +3468,7 @@ VOID PhMwpInitializeSubMenu(
         if (PhMwpUpdateAutomatically && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_VIEW_UPDATEAUTOMATICALLY)))
             menuItem->Flags |= PH_EMENU_CHECKED;
     }
-    else if (Index == PH_MENU_ITEM_LOCATION_TOOLS) // Tools
+    else if (Index == PH_MENU_ITEM_LOCATION_TOOLS)
     {
         if (WindowsVersion < WINDOWS_8_1)
         {
@@ -3029,11 +3485,8 @@ VOID PhMwpInitializeSubMenu(
         if (PhGetIntegerSetting(L"EnableBitmapSupport"))
         {
             HBITMAP shieldBitmap;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(hwnd);
-
-            if (shieldBitmap = PhGetShieldBitmap(dpiValue))
+            if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, 0, 0))
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
@@ -3070,7 +3523,6 @@ VOID PhMwpLayoutTabControl(
 {
     RECT rect;
     RECT tabrect;
-    LONG dpiValue;
 
     if (!LayoutPaddingValid)
     {
@@ -3085,15 +3537,13 @@ VOID PhMwpLayoutTabControl(
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
-        dpiValue = PhGetWindowDpi(PhMainWndHandle);
-
         // Remove the tabctrl padding (dmex)
         *DeferHandle = DeferWindowPos(
             *DeferHandle,
             CurrentPage->WindowHandle,
             NULL,
             rect.left,
-            tabrect.top - PhGetSystemMetrics(SM_CXBORDER, dpiValue),
+            tabrect.top - LayoutBorderSize,
             rect.right - rect.left,
             (tabrect.bottom - tabrect.top) + (rect.bottom - tabrect.bottom),
             SWP_NOACTIVATE | SWP_NOZORDER
@@ -3101,6 +3551,8 @@ VOID PhMwpLayoutTabControl(
     }
 }
 
+#pragma warning(push)
+#pragma warning(disable:26454) // The TCN_SEL definitions are negative unsigned (disable useless warning) (dmex)
 VOID PhMwpNotifyTabControl(
     _In_ NMHDR *Header
     )
@@ -3114,12 +3566,13 @@ VOID PhMwpNotifyTabControl(
         PhMwpSelectionChangedTabControl(OldTabIndex);
     }
 }
+#pragma warning(pop)
 
 VOID PhMwpSelectionChangedTabControl(
-    _In_ ULONG OldIndex
+    _In_ INT32 OldIndex
     )
 {
-    ULONG selectedIndex;
+    INT selectedIndex;
     HDWP deferHandle;
     ULONG i;
 
@@ -3143,7 +3596,7 @@ VOID PhMwpSelectionChangedTabControl(
             // Create the tab page window if it doesn't exist. (wj32)
             if (!page->WindowHandle && !page->CreateWindowCalled)
             {
-                if (page->Callback(page, MainTabPageCreateWindow, &page->WindowHandle, NULL))
+                if (page->Callback(page, MainTabPageCreateWindow, &page->WindowHandle, PhMainWndHandle))
                     page->CreateWindowCalled = TRUE;
 
                 if (page->WindowHandle)
@@ -3175,6 +3628,9 @@ VOID PhMwpSelectionChangedTabControl(
 
     EndDeferWindowPos(deferHandle);
 
+    if (OldIndex != INT_ERROR && PhGetIntegerSetting(L"MainWindowTabRestoreEnabled") && IsWindowVisible(TabControlHandle))
+        PhSetIntegerSetting(L"MainWindowTabRestoreIndex", selectedIndex);
+
     if (PhPluginsEnabled)
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged), IntToPtr(selectedIndex));
 }
@@ -3185,7 +3641,7 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
 {
     PPH_MAIN_TAB_PAGE page;
     PPH_STRING name;
-    HDWP deferHandle;
+    //HDWP deferHandle;
 
     page = PhAllocateZero(sizeof(PH_MAIN_TAB_PAGE));
     page->Name = Template->Name;
@@ -3202,9 +3658,9 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
     page->Callback(page, MainTabPageCreate, NULL, NULL);
 
     // The tab control might need multiple lines, so we need to refresh the layout.
-    deferHandle = BeginDeferWindowPos(1);
-    PhMwpLayoutTabControl(&deferHandle);
-    EndDeferWindowPos(deferHandle);
+    //deferHandle = BeginDeferWindowPos(1);
+    //PhMwpLayoutTabControl(&deferHandle);
+    //EndDeferWindowPos(deferHandle);
 
     return page;
 }
@@ -3246,7 +3702,7 @@ PPH_MAIN_TAB_PAGE PhMwpCreateInternalPage(
     PH_MAIN_TAB_PAGE page;
 
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
-    PhInitializeStringRef(&page.Name, Name);
+    PhInitializeStringRefLongHint(&page.Name, Name);
     page.Flags = Flags;
     page.Callback = Callback;
 
@@ -3262,10 +3718,13 @@ VOID PhMwpNotifyAllPages(
     ULONG i;
     PPH_MAIN_TAB_PAGE page;
 
-    for (i = 0; i < PageList->Count; i++)
+    if (PageList)
     {
-        page = PageList->Items[i];
-        page->Callback(page, Message, Parameter1, Parameter2);
+        for (i = 0; i < PageList->Count; i++)
+        {
+            page = PageList->Items[i];
+            page->Callback(page, Message, Parameter1, Parameter2);
+        }
     }
 }
 
@@ -3292,7 +3751,7 @@ static int __cdecl IconProcessesNameCompare(
 }
 
 VOID PhAddMiniProcessMenuItems(
-    _Inout_ struct _PH_EMENU_ITEM *Menu,
+    _Inout_ PPH_EMENU_ITEM Menu,
     _In_ HANDLE ProcessId
     )
 {
@@ -3306,8 +3765,6 @@ VOID PhAddMiniProcessMenuItems(
 
     priorityMenu = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, ProcessId);
 
-    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PROCESS_BOOST, L"Boost", NULL, ProcessId), ULONG_MAX);
-    PhInsertEMenuItem(priorityMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"&Above normal", NULL, ProcessId), ULONG_MAX);
@@ -3347,13 +3804,13 @@ VOID PhAddMiniProcessMenuItems(
     if (ioPriorityMenu)
         PhInsertEMenuItem(Menu, ioPriorityMenu, ULONG_MAX);
 
-    PhMwpSetProcessMenuPriorityChecks(Menu, ProcessId, TRUE, TRUE, FALSE, TRUE);
+    PhMwpSetProcessMenuPriorityChecks(Menu, ProcessId, TRUE, TRUE, FALSE);
 
     PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_PROPERTIES, L"P&roperties", NULL, ProcessId), ULONG_MAX);
 }
 
 BOOLEAN PhHandleMiniProcessMenuItem(
-    _Inout_ struct _PH_EMENU_ITEM *MenuItem
+    _Inout_ PPH_EMENU_ITEM MenuItem
     )
 {
     switch (MenuItem->Id)
@@ -3388,22 +3845,6 @@ BOOLEAN PhHandleMiniProcessMenuItem(
                     break;
                 }
 
-                PhDereferenceObject(processItem);
-            }
-            else
-            {
-                PhShowError(PhMainWndHandle, L"%s", L"The process does not exist.");
-            }
-        }
-        break;
-    case ID_PROCESS_BOOST:
-        {
-            HANDLE processId = MenuItem->Context;
-            PPH_PROCESS_ITEM processItem;
-
-            if (processItem = PhReferenceProcessItem(processId))
-            {
-                PhUiSetBoostPriorityProcess(PhMainWndHandle, processItem, !(MenuItem->Flags & PH_EMENU_CHECKED));
                 PhDereferenceObject(processItem);
             }
             else
@@ -3467,14 +3908,6 @@ VOID PhMwpAddIconProcesses(
     ULONG numberOfProcessItems;
     PPH_LIST processList;
     PPH_PROCESS_ITEM processItem;
-    LONG dpiValue;
-    INT width;
-    INT height;
-
-    dpiValue = PhGetWindowDpi(PhMainWndHandle);
-
-    width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-    height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     PhEnumProcessItems(&processItems, &numberOfProcessItems);
     processList = PhCreateList(numberOfProcessItems);
@@ -3499,7 +3932,7 @@ VOID PhMwpAddIconProcesses(
 
         if (
             processItem->CpuUsage == 0 ||
-            (processItem->Sid && !RtlEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid))
+            (processItem->Sid && !PhEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid))
             )
         {
             PhRemoveItemList(processList, i);
@@ -3552,7 +3985,7 @@ VOID PhMwpAddIconProcesses(
 
         if (icon = PhGetImageListIcon(processItem->SmallIconIndex, FALSE))
         {
-            iconBitmap = PhIconToBitmap(icon, width, height);
+            iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
             DestroyIcon(icon);
         }
 
@@ -3569,6 +4002,7 @@ VOID PhMwpAddIconProcesses(
 }
 
 VOID PhShowIconContextMenu(
+    _In_ HWND WindowHandle,
     _In_ POINT Location
     )
 {
@@ -3600,14 +4034,14 @@ VOID PhShowIconContextMenu(
 
     if (PhPluginsEnabled)
     {
-        PhPluginInitializeMenuInfo(&menuInfo, menu, PhMainWndHandle, 0);
+        PhPluginInitializeMenuInfo(&menuInfo, menu, WindowHandle, 0);
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackIconMenuInitializing), &menuInfo);
     }
 
-    SetForegroundWindow(PhMainWndHandle); // window must be foregrounded so menu will disappear properly
+    SetForegroundWindow(WindowHandle); // window must be foregrounded so menu will disappear properly (wj32)
     item = PhShowEMenu(
         menu,
-        PhMainWndHandle,
+        WindowHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_TOP,
         Location.x,
@@ -3625,10 +4059,13 @@ VOID PhShowIconContextMenu(
             handled = PhHandleMiniProcessMenuItem(item);
 
         if (!handled)
-            handled = PhMwpExecuteComputerCommand(PhMainWndHandle, item->Id);
+            handled = PhMwpExecuteComputerCommand(WindowHandle, item->Id);
 
         if (!handled)
-            handled = PhMwpExecuteNotificationMenuCommand(PhMainWndHandle, item->Id);
+            handled = PhMwpExecuteNotificationMenuCommand(WindowHandle, item->Id);
+
+        if (!handled)
+            handled = PhMwpExecuteNotificationSettingsMenuCommand(WindowHandle, item->Id);
 
         if (!handled)
         {
@@ -3638,10 +4075,10 @@ VOID PhShowIconContextMenu(
                 ProcessHacker_ToggleVisible(FALSE);
                 break;
             case ID_ICON_SYSTEMINFORMATION:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
+                SendMessage(WindowHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
                 break;
             case ID_ICON_EXIT:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
+                SendMessage(WindowHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
                 break;
             }
         }
@@ -3650,12 +4087,86 @@ VOID PhShowIconContextMenu(
     PhDestroyEMenu(menu);
 }
 
+VOID NTAPI PhpToastCallback(
+    _In_ HRESULT Result,
+    _In_ PH_TOAST_REASON Reason,
+    _In_ PVOID Context
+    )
+{
+    if (Reason == PhToastReasonActivated)
+        PhShowDetailsForIconNotification();
+}
+
+BOOLEAN PhpShowToastNotification(
+    _In_ PWSTR Title,
+    _In_ PWSTR Text,
+    _In_ ULONG Timeout
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING iconFileName = NULL;
+    BOOLEAN result;
+    PPH_STRING toastXml;
+
+    if (!PhGetIntegerSetting(L"ToastNotifyEnabled"))
+        return FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_STRING applicationDir;
+
+        if (applicationDir = PhGetApplicationDirectoryWin32())
+        {
+            iconFileName = PhConcatStringRefZ(&applicationDir->sr, L"icon.png");
+            if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
+                PhClearReference(&iconFileName);
+            PhDereferenceObject(applicationDir);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!iconFileName)
+        return FALSE;
+
+    if (PhInitializeToastRuntime() != S_OK)
+        return FALSE;
+
+    toastXml = PhFormatString(
+        L"<toast>\r\n"
+        L"    <visual>\r\n"
+        L"       <binding template=\"ToastImageAndText02\">\r\n"
+        L"            <image id=\"1\" src=\"%s\" alt=\"red graphic\"/>\r\n"
+        L"            <text id=\"1\">%ls</text>\r\n"
+        L"            <text id=\"2\">%ls</text>\r\n"
+        L"        </binding>\r\n"
+        L"    </visual>\r\n"
+        L"</toast>",
+        PhGetString(iconFileName),
+        Title,
+        Text
+        );
+
+    result = SUCCEEDED(PhShowToast(
+        L"System Informer",
+        PhGetString(toastXml),
+        Timeout * 1000,
+        PhpToastCallback,
+        NULL
+        ));
+
+    PhDereferenceObject(toastXml);
+
+    return result;
+}
+
 VOID PhShowIconNotification(
     _In_ PWSTR Title,
     _In_ PWSTR Text
     )
 {
-    PhNfShowBalloonTip(Title, Text, 10);
+    if (!PhpShowToastNotification(Title, Text, 10))
+        PhNfShowBalloonTip(Title, Text, 10);
 }
 
 VOID PhShowDetailsForIconNotification(
@@ -3700,11 +4211,7 @@ VOID PhMwpClearLastNotificationDetails(
     VOID
     )
 {
-    if (PhMwpLastNotificationType &
-        (PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE | PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP))
-    {
-        PhClearReference(&PhMwpLastNotificationDetails.ServiceName);
-    }
+    PhClearReference(&PhMwpLastNotificationDetails.ServiceName);
 
     PhMwpLastNotificationType = 0;
     memset(&PhMwpLastNotificationDetails, 0, sizeof(PhMwpLastNotificationDetails));
@@ -3758,7 +4265,6 @@ VOID PhMwpInvokeUpdateWindowFont(
     HFONT newFont;
     PPH_STRING fontHexString;
     LOGFONT font;
-    LONG dpiValue;
 
     fontHexString = PhaGetStringSetting(L"Font");
 
@@ -3767,16 +4273,14 @@ VOID PhMwpInvokeUpdateWindowFont(
         PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
         )
     {
+        font.lfHeight = PhGetDpi(font.lfHeight, LayoutWindowDpi);
+
         if (!(newFont = CreateFontIndirect(&font)))
             return;
     }
     else
     {
-        dpiValue = PhGetWindowDpi(PhMainWndHandle);
-
-        if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &font, dpiValue))
-            return;
-        if (!(newFont = CreateFontIndirect(&font)))
+        if (!(newFont = PhCreateIconTitleFont(LayoutWindowDpi)))
             return;
     }
 
@@ -3806,6 +4310,8 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
         PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
         )
     {
+        font.lfHeight = PhGetDpi(font.lfHeight, LayoutWindowDpi);
+
         if (!(newFont = CreateFontIndirect(&font)))
             return;
     }
@@ -3894,19 +4400,6 @@ BOOLEAN PhMwpPluginNotifyEvent(
 }
 
 // Exports for plugin support (dmex)
-HWND PhGetMainWindowHandle(
-    VOID
-    )
-{
-    return PhMainWndHandle;
-}
-
-ULONG PhGetWindowsVersion(
-    VOID
-    )
-{
-    return WindowsVersion;
-}
 
 PVOID PhPluginInvokeWindowCallback(
     _In_ PH_MAINWINDOW_CALLBACK_TYPE Event,
@@ -4024,7 +4517,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_GET_UPDATE_AUTOMATICALLY:
         {
-            return (PVOID)PhMwpUpdateAutomatically;
+            return (PVOID)UlongToPtr(PhMwpUpdateAutomatically);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY:
@@ -4033,6 +4526,31 @@ PVOID PhPluginInvokeWindowCallback(
             {
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_UPDATEAUTOMATICALLY, 0);
             }
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_BASE:
+        {
+            return (PVOID)PhInstanceHandle;
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE:
+        {
+            return (PVOID)PhMwpWndProc; // (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE:
+        {
+            return (PVOID)PhMainWndHandle;
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_VERSION:
+        {
+            return UlongToPtr(WindowsVersion);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE:
+        {
+            return (PVOID)UlongToPtr(PhPortableEnabled);
         }
         break;
     }

@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_MODPRV_H
 #define PH_MODPRV_H
 
@@ -16,9 +28,11 @@ typedef struct _PH_MODULE_ITEM
     USHORT LoadReason;
     USHORT LoadCount;
     PPH_STRING Name;
-    PPH_STRING FileNameWin32;
     PPH_STRING FileName;
     PH_IMAGE_VERSION_INFO VersionInfo;
+    ULONG EnclaveType;
+    PVOID EnclaveBaseAddress;
+    SIZE_T EnclaveSize;
 
     union
     {
@@ -36,6 +50,8 @@ typedef struct _PH_MODULE_ITEM
     enum _VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
 
+    USHORT ImageMachine;
+    ULONG ImageCHPEVersion;
     ULONG ImageTimeDateStamp;
     USHORT ImageCharacteristics;
     USHORT ImageDllCharacteristics;
@@ -52,6 +68,7 @@ typedef struct _PH_MODULE_ITEM
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR ParentBaseAddressString[PH_PTR_STR_LEN_1];
     WCHAR EntryPointAddressString[PH_PTR_STR_LEN_1];
+    WCHAR EnclaveBaseAddressString[PH_PTR_STR_LEN_1];
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER
@@ -76,12 +93,13 @@ typedef struct _PH_MODULE_PROVIDER
         struct
         {
             BOOLEAN HaveFirst : 1;
-            BOOLEAN ControlFlowGuardEnabled : 1;
+            BOOLEAN IsHandleValid : 1;
             BOOLEAN IsSubsystemProcess : 1;
+            BOOLEAN ControlFlowGuardEnabled : 1;
             BOOLEAN CetEnabled : 1;
             BOOLEAN CetStrictModeEnabled : 1;
             BOOLEAN ZeroPadAddresses : 1;
-            BOOLEAN Spare : 2;
+            BOOLEAN Spare : 1;
         };
     };
     UCHAR ImageCoherencyScanLevel;
@@ -96,6 +114,13 @@ PPH_MODULE_ITEM PhCreateModuleItem(
     VOID
     );
 
+PPH_MODULE_ITEM PhReferenceModuleItemEx(
+    _In_ PPH_MODULE_PROVIDER ModuleProvider,
+    _In_ PVOID BaseAddress,
+    _In_opt_ PVOID EnclaveBaseAddress,
+    _In_opt_ PPH_STRING FileName
+    );
+
 PPH_MODULE_ITEM PhReferenceModuleItem(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
     _In_ PVOID BaseAddress
@@ -107,6 +132,18 @@ VOID PhDereferenceAllModuleItems(
 
 VOID PhModuleProviderUpdate(
     _In_ PVOID Object
+    );
+
+PPH_STRINGREF PhGetModuleTypeName(
+    _In_ ULONG ModuleType
+    );
+
+PPH_STRINGREF PhGetModuleLoadReasonTypeName(
+    _In_ USHORT LoadReason
+    );
+
+PPH_STRINGREF PhGetModuleEnclaveTypeName(
+    _In_ ULONG EnclaveType
     );
 
 #endif

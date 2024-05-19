@@ -12,8 +12,8 @@
 #include <peview.h>
 #include "colmgr.h"
 
-#include "..\thirdparty\ssdeep\fuzzy.h"
-#include "..\thirdparty\tlsh\tlsh_wrapper.h"
+#include "../thirdparty/ssdeep/fuzzy.h"
+#include "../thirdparty/tlsh/tlsh_wrapper.h"
 
 static PH_STRINGREF EmptySectionsText = PH_STRINGREF_INIT(L"There are no sections to display.");
 static PH_STRINGREF LoadingSectionsText = PH_STRINGREF_INIT(L"Loading sections from image...");
@@ -76,7 +76,7 @@ typedef struct _PV_SECTION_CONTEXT
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
 
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_STRING TreeText;
 
     PH_LAYOUT_MANAGER LayoutManager;
@@ -273,7 +273,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
     {
         PPV_SECTION_NODE sectionNode;
         ULONG sectionNameLength = 0;
-        WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+        WCHAR sectionName[PH_INT64_STR_LEN_1];
         WCHAR value[PH_INT64_STR_LEN_1];
 
         sectionNode = PhAllocateZero(sizeof(PV_SECTION_NODE));
@@ -288,7 +288,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             &sectionNameLength
             ))
         {
-            sectionNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR));
+            sectionNode->SectionNameString = PhCreateStringEx(sectionName, sectionNameLength * sizeof(WCHAR) - sizeof(UNICODE_NULL));
         }
 
         // RAW
@@ -315,27 +315,11 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
         if (PvMappedImage.Sections[i].VirtualAddress && PvMappedImage.Sections[i].SizeOfRawData)
         {
-            __try
-            {
-                PVOID imageSectionData;
-                PH_HASH_CONTEXT hashContext;
-                UCHAR hash[32];
+            PVOID imageSectionData;
 
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
-                {
-                    PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                    PhUpdateHash(&hashContext, imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
-
-                    if (PhFinalHash(&hashContext, hash, 16, NULL))
-                    {
-                        sectionNode->HashString = PhBufferToHexString(hash, 16);
-                    }
-                }
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
+            if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
             {
-                //sectionNode->HashString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->HashString = PvHashBuffer(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
             }
 
             __try
@@ -345,14 +329,16 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
                 {
-                    imageSectionEntropy = PvCalculateEntropyBuffer(
+                    if (PhCalculateEntropy(
                         imageSectionData,
                         PvMappedImage.Sections[i].SizeOfRawData,
+                        &imageSectionEntropy,
                         NULL
-                        );
-
-                    sectionNode->SectionEntropy = imageSectionEntropy;
-                    sectionNode->EntropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
+                        ))
+                    {
+                        sectionNode->SectionEntropy = imageSectionEntropy;
+                        sectionNode->EntropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0);
+                    }
                 }
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
@@ -425,6 +411,26 @@ NTSTATUS PvpPeSectionsEnumerateThread(
     return STATUS_SUCCESS;
 }
 
+VOID NTAPI PvpPeSectionsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPV_SECTION_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    if (!context->SearchMatchHandle)
+    {
+        //PhExpandAllNodes(TRUE);
+        //PhDeselectAllNodes();
+    }
+
+    PhApplyTreeNewFilters(&context->FilterSupport);
+}
+
 INT_PTR CALLBACK PvPeSectionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -460,10 +466,14 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
             context->DialogHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
             context->SearchResults = PhCreateList(1);
 
-            PvCreateSearchControl(context->SearchHandle, L"Search Sections (Ctrl+K)");
+            PvCreateSearchControl(
+                context->SearchHandle,
+                L"Search Sections (Ctrl+K)",
+                PvpPeSectionsSearchControlCallback,
+                context
+                );
 
             PvInitializeSectionTree(context, hwndDlg, context->TreeNewHandle);
             PhAddTreeNewFilter(&context->FilterSupport, PvSectionTreeFilterCallback, context);
@@ -478,13 +488,15 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
 
             PhCreateThread2(PvpPeSectionsEnumerateThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
             PhSaveSettingsSectionList(context);
             PvDeleteSectionTree(context);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -517,30 +529,6 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchboxText))
-                        {
-                            //PhExpandAllNodes(TRUE);
-                            //PhDeselectAllNodes();
-                        }
-
-                        PhApplyTreeNewFilters(&context->FilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_SETTINGS:
@@ -1042,6 +1030,8 @@ BOOLEAN NTAPI PvSectionTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PV_SECTION_TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
+
                 if (context->TreeNewSortColumn < PV_SECTION_TREE_COLUMN_ITEM_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
                 else
@@ -1292,41 +1282,6 @@ VOID PvInitializeSectionTree(
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
 }
 
-BOOLEAN PvSectionWordMatchStringRef(
-    _In_ PPV_SECTION_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PvSectionWordMatchStringZ(
-    _In_ PPV_SECTION_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-    return PvSectionWordMatchStringRef(Context, &text);
-}
-
 BOOLEAN PvSectionTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1344,84 +1299,84 @@ BOOLEAN PvSectionTreeFilterCallback(
     if (context->HideReadSection && node->Characteristics & IMAGE_SCN_MEM_READ)
         return FALSE;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (!PhIsNullOrEmptyString(node->UniqueIdString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->UniqueIdString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->UniqueIdString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->SectionNameString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->SectionNameString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->SectionNameString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RawStartString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->RawStartString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RawStartString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RawEndString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->RawEndString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RawEndString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RawSizeString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->RawSizeString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RawSizeString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RvaStartString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->RvaStartString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RvaStartString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RvaEndString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->RvaEndString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RvaEndString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->RvaSizeString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->RvaSizeString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->RvaSizeString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->CharacteristicsString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->CharacteristicsString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->CharacteristicsString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->HashString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->HashString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->HashString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->EntropyString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->EntropyString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->EntropyString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->SsdeepString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->SsdeepString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->SsdeepString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->TlshString))
     {
-        if (PvSectionWordMatchStringRef(context, &node->TlshString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->TlshString->sr))
             return TRUE;
     }
 

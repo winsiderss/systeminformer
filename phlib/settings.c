@@ -548,19 +548,6 @@ _May_raise_ VOID PhSetStringRefSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-_May_raise_ VOID PhSetBinarySetting(
-    _In_ PWSTR Name,
-    _In_ PVOID Buffer,
-    _In_ ULONG Length
-    )
-{
-    PPH_STRING binaryString;
-
-    binaryString = PhBufferToHexString((PUCHAR)Buffer, Length);
-    PhSetStringSetting(Name, binaryString->Buffer);
-    PhDereferenceObject(binaryString);
-}
-
 VOID PhpFreeIgnoredSetting(
     _In_ PPH_SETTING Setting
     )
@@ -596,16 +583,26 @@ VOID PhClearIgnoredSettings(
     PhpClearIgnoredSettings();
 }
 
+ULONG PhCountIgnoredSettings(
+    VOID
+    )
+{
+    ULONG count;
+
+    PhAcquireQueuedLockShared(&PhSettingsLock);
+    count = PhIgnoredSettings->Count;
+    PhReleaseQueuedLockShared(&PhSettingsLock);
+
+    return count;
+}
+
 VOID PhConvertIgnoredSettings(
     VOID
     )
 {
     PPH_SETTING ignoredSetting;
     PPH_SETTING setting;
-    LONG dpiValue;
     ULONG i;
-
-    dpiValue = PhGetSystemDpi();
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -623,7 +620,7 @@ VOID PhConvertIgnoredSettings(
                 setting->Type,
                 &((PPH_STRING)ignoredSetting->u.Pointer)->sr,
                 ignoredSetting->u.Pointer,
-                dpiValue,
+                PhSystemDpi,
                 setting
                 ))
             {
@@ -631,7 +628,7 @@ VOID PhConvertIgnoredSettings(
                     setting->Type,
                     &setting->DefaultValue,
                     NULL,
-                    dpiValue,
+                    PhSystemDpi,
                     setting
                     );
             }
@@ -656,11 +653,8 @@ NTSTATUS PhLoadSettings(
     PPH_SETTING setting;
     PPH_STRING settingName;
     PPH_STRING settingValue;
-    LONG dpiValue;
 
     PhpClearIgnoredSettings();
-
-    dpiValue = PhGetSystemDpi();
 
     if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName, &topNode)))
         return status;
@@ -688,7 +682,7 @@ NTSTATUS PhLoadSettings(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
-                        dpiValue,
+                        PhSystemDpi,
                         setting
                         ))
                     {
@@ -696,7 +690,7 @@ NTSTATUS PhLoadSettings(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
-                            dpiValue,
+                            PhSystemDpi,
                             setting
                             );
                     }
@@ -858,16 +852,13 @@ VOID PhAddSetting(
     )
 {
     PH_SETTING setting;
-    LONG dpiValue;
 
     setting.Type = Type;
     setting.Name = *Name;
     setting.DefaultValue = *DefaultValue;
     memset(&setting.u, 0, sizeof(setting.u));
 
-    dpiValue = PhGetSystemDpi();
-
-    PhSettingFromString(Type, &setting.DefaultValue, NULL, dpiValue, &setting);
+    PhSettingFromString(Type, &setting.DefaultValue, NULL, PhSystemDpi, &setting);
 
     PhAddEntryHashtable(PhSettingsHashtable, &setting);
 }
@@ -913,19 +904,18 @@ VOID PhLoadWindowPlacementFromSetting(
     _In_ HWND WindowHandle
     )
 {
-    PH_RECTANGLE windowRectangle = {0};
-    LONG dpiValue = 0;
-
     if (PositionSettingName && SizeSettingName)
     {
+        PH_RECTANGLE windowRectangle = { 0 };
+        LONG dpi;
         RECT rect;
         RECT rectForAdjust;
 
         windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
         rect = PhRectangleToRect(windowRectangle);
-        dpiValue = PhGetMonitorDpi(&rect);
+        dpi = PhGetMonitorDpi(&rect);
 
-        windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpiValue).Pair;
+        windowRectangle.Size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi).Pair;
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
         // Let the window adjust for the minimum size if needed.
@@ -938,9 +928,11 @@ VOID PhLoadWindowPlacementFromSetting(
     }
     else
     {
+        PH_RECTANGLE windowRectangle;
         PH_INTEGER_PAIR position;
         PH_INTEGER_PAIR size;
         ULONG flags;
+        LONG dpi;
 
         flags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER;
 
@@ -955,11 +947,10 @@ VOID PhLoadWindowPlacementFromSetting(
             position.Y = 0;
         }
 
-        dpiValue = PhGetWindowDpi(WindowHandle);
-
         if (SizeSettingName)
         {
-            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpiValue).Pair;
+            dpi = PhGetWindowDpi(WindowHandle);
+            size = PhGetScalableIntegerPairSetting(SizeSettingName, TRUE, dpi).Pair;
             flags &= ~SWP_NOSIZE;
         }
         else
@@ -993,7 +984,7 @@ VOID PhSaveWindowPlacementToSetting(
     PH_RECTANGLE windowRectangle;
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
     RECT rect;
-    LONG dpiValue;
+    LONG dpi;
 
     GetWindowPlacement(WindowHandle, &placement);
     windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
@@ -1006,13 +997,12 @@ VOID PhSaveWindowPlacementToSetting(
     }
 
     rect = PhRectangleToRect(windowRectangle);
-
-    dpiValue = PhGetWindowDpi(WindowHandle); // PhGetMonitorDpi(&rect);
+    dpi = PhGetMonitorDpi(&rect); // PhGetWindowDpi(WindowHandle);
 
     if (PositionSettingName)
         PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
     if (SizeSettingName)
-        PhSetScalableIntegerPairSetting2(SizeSettingName, windowRectangle.Size, dpiValue);
+        PhSetScalableIntegerPairSetting2(SizeSettingName, windowRectangle.Size, dpi);
 }
 
 BOOLEAN PhLoadListViewColumnSettings(
@@ -1026,12 +1016,17 @@ BOOLEAN PhLoadListViewColumnSettings(
     ULONG orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
     ULONG maxOrder;
     ULONG scale;
-    LONG dpiValue;
+    LONG dpi;
+
+#ifdef DEBUG
+    HWND headerHandle = ListView_GetHeader(ListViewHandle);
+    assert(Header_GetItemCount(headerHandle) < ORDER_LIMIT);
+#endif
 
     if (PhIsNullOrEmptyString(Settings))
         return FALSE;
 
-    dpiValue = PhGetWindowDpi(ListViewHandle);
+    dpi = PhGetWindowDpi(ListViewHandle);
 
     remainingPart = Settings->sr;
     columnIndex = 0;
@@ -1053,7 +1048,7 @@ BOOLEAN PhLoadListViewColumnSettings(
     }
     else
     {
-        scale = dpiValue;
+        scale = dpi;
     }
 
     while (remainingPart.Length != 0)
@@ -1098,8 +1093,8 @@ BOOLEAN PhLoadListViewColumnSettings(
 
         width = (LONG)integer;
 
-        if (scale != dpiValue && scale != 0)
-            width = PhMultiplyDivideSigned(width, dpiValue, scale);
+        if (scale != dpi && scale != 0)
+            width = PhMultiplyDivideSigned(width, dpi, scale);
 
         lvColumn.mask = LVCF_WIDTH;
         lvColumn.cx = width;

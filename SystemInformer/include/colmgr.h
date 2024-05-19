@@ -49,7 +49,7 @@ PPH_CM_COLUMN PhCmCreateColumn(
     _In_ struct _PH_PLUGIN *Plugin,
     _In_ ULONG SubId,
     _In_opt_ PVOID Context,
-    _In_ PVOID SortFunction
+    _In_opt_ PVOID SortFunction
     );
 
 PPH_CM_COLUMN PhCmFindColumn(
@@ -66,8 +66,8 @@ VOID PhCmSetNotifyPlugin(
 BOOLEAN PhCmForwardMessage(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_ PPH_CM_MANAGER Manager
     );
 

@@ -5,16 +5,14 @@
  *
  * Authors:
  *
- *     wj32    2021
+ *     dmex    2021
  *
  */
 
 #ifndef FRAMECACHE_H
 #define FRAMECACHE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 typedef struct _ET_FPS_COUNTER
 {
@@ -94,9 +92,7 @@ VOID StopFpsTraceSession(
     VOID
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif
 

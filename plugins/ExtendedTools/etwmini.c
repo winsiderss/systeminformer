@@ -31,8 +31,8 @@ VOID EtEtwMiniInformationInitializing(
 BOOLEAN EtpDiskListSectionCallback(
     _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -57,9 +57,6 @@ BOOLEAN EtpDiskListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
-            if (!sortList)
-                break;
-
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_PROCESS_NODE), EtpDiskListSectionProcessCompareFunction);
         }
@@ -71,9 +68,6 @@ BOOLEAN EtpDiskListSectionCallback(
             ULONG64 diskReadDelta;
             ULONG64 diskWriteDelta;
             ULONG i;
-
-            if (!assignSortData)
-                break;
 
             processes = assignSortData->ProcessGroup->Processes;
             diskReadDelta = 0;
@@ -95,9 +89,6 @@ BOOLEAN EtpDiskListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
-            if (!sortList)
-                break;
-
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_MINIINFO_LIST_SECTION_SORT_DATA), EtpDiskListSectionNodeCompareFunction);
         }
@@ -109,9 +100,6 @@ BOOLEAN EtpDiskListSectionCallback(
             ULONG64 diskReadDelta;
             ULONG64 diskWriteDelta;
             PH_FORMAT format[1];
-
-            if (!getUsageText)
-                break;
 
             processes = getUsageText->ProcessGroup->Processes;
             diskReadDelta = getUsageText->SortData->UserData[0];
@@ -163,8 +151,8 @@ int __cdecl EtpDiskListSectionNodeCompareFunction(
 BOOLEAN EtpNetworkListSectionCallback(
     _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -189,9 +177,6 @@ BOOLEAN EtpNetworkListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
-            if (!sortList)
-                break;
-
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_PROCESS_NODE), EtpNetworkListSectionProcessCompareFunction);
         }
@@ -203,9 +188,6 @@ BOOLEAN EtpNetworkListSectionCallback(
             ULONG64 networkReceiveDelta;
             ULONG64 networkSendDelta;
             ULONG i;
-
-            if (!assignSortData)
-                break;
 
             processes = assignSortData->ProcessGroup->Processes;
             networkReceiveDelta = 0;
@@ -227,9 +209,6 @@ BOOLEAN EtpNetworkListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
-            if (!sortList)
-                break;
-
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_MINIINFO_LIST_SECTION_SORT_DATA), EtpNetworkListSectionNodeCompareFunction);
         }
@@ -241,9 +220,6 @@ BOOLEAN EtpNetworkListSectionCallback(
             ULONG64 networkReceiveDelta;
             ULONG64 networkSendDelta;
             PH_FORMAT format[1];
-
-            if (!getUsageText)
-                break;
 
             processes = getUsageText->ProcessGroup->Processes;
             networkReceiveDelta = getUsageText->SortData->UserData[0];

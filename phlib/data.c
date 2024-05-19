@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -15,37 +15,147 @@
 
 // SIDs
 
-SID PhSeNobodySid = { SID_REVISION, 1, SECURITY_NULL_SID_AUTHORITY, { SECURITY_NULL_RID } };
+CONST SID PhSeNobodySid = { SID_REVISION, 1, SECURITY_NULL_SID_AUTHORITY, { SECURITY_NULL_RID } };
 
-SID PhSeEveryoneSid = { SID_REVISION, 1, SECURITY_WORLD_SID_AUTHORITY, { SECURITY_WORLD_RID } };
+CONST SID PhSeEveryoneSid = { SID_REVISION, 1, SECURITY_WORLD_SID_AUTHORITY, { SECURITY_WORLD_RID } };
 
-SID PhSeLocalSid = { SID_REVISION, 1, SECURITY_LOCAL_SID_AUTHORITY, { SECURITY_LOCAL_RID } };
+CONST SID PhSeLocalSid = { SID_REVISION, 1, SECURITY_LOCAL_SID_AUTHORITY, { SECURITY_LOCAL_RID } };
 
-SID PhSeCreatorOwnerSid = { SID_REVISION, 1, SECURITY_CREATOR_SID_AUTHORITY, { SECURITY_CREATOR_OWNER_RID } };
-SID PhSeCreatorGroupSid = { SID_REVISION, 1, SECURITY_CREATOR_SID_AUTHORITY, { SECURITY_CREATOR_GROUP_RID } };
+CONST SID PhSeCreatorOwnerSid = { SID_REVISION, 1, SECURITY_CREATOR_SID_AUTHORITY, { SECURITY_CREATOR_OWNER_RID } };
+CONST SID PhSeCreatorGroupSid = { SID_REVISION, 1, SECURITY_CREATOR_SID_AUTHORITY, { SECURITY_CREATOR_GROUP_RID } };
 
-SID PhSeDialupSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_DIALUP_RID } };
-SID PhSeNetworkSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_NETWORK_RID } };
-SID PhSeBatchSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_BATCH_RID } };
-SID PhSeInteractiveSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_INTERACTIVE_RID } };
-SID PhSeServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_SERVICE_RID } };
-SID PhSeAnonymousLogonSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_ANONYMOUS_LOGON_RID } };
-SID PhSeProxySid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_PROXY_RID } };
-SID PhSeAuthenticatedUserSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_AUTHENTICATED_USER_RID } };
-SID PhSeRestrictedCodeSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_RESTRICTED_CODE_RID } };
-SID PhSeTerminalServerUserSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_TERMINAL_SERVER_RID } };
-SID PhSeRemoteInteractiveLogonSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_REMOTE_LOGON_RID } };
-SID PhSeLocalSystemSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_LOCAL_SYSTEM_RID } };
-SID PhSeLocalServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_LOCAL_SERVICE_RID } };
-SID PhSeNetworkServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_NETWORK_SERVICE_RID } };
+CONST SID PhSeDialupSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_DIALUP_RID } };
+CONST SID PhSeNetworkSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_NETWORK_RID } };
+CONST SID PhSeBatchSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_BATCH_RID } };
+CONST SID PhSeInteractiveSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_INTERACTIVE_RID } };
+CONST SID PhSeServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_SERVICE_RID } };
+CONST SID PhSeAnonymousLogonSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_ANONYMOUS_LOGON_RID } };
+CONST SID PhSeProxySid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_PROXY_RID } };
+CONST SID PhSeAuthenticatedUserSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_AUTHENTICATED_USER_RID } };
+CONST SID PhSeRestrictedCodeSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_RESTRICTED_CODE_RID } };
+CONST SID PhSeTerminalServerUserSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_TERMINAL_SERVER_RID } };
+CONST SID PhSeRemoteInteractiveLogonSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_REMOTE_LOGON_RID } };
+CONST SID PhSeLocalSystemSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_LOCAL_SYSTEM_RID } };
+CONST SID PhSeLocalServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_LOCAL_SERVICE_RID } };
+CONST SID PhSeNetworkServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY_NETWORK_SERVICE_RID } };
+
+PSID PhSeAdministratorsSid( // WinBuiltinAdministratorsSid (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID administratorsSid = (PSID)administratorsSidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(administratorsSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
+        *PhSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *PhSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    assert(PhLengthSid(administratorsSid) == sizeof(administratorsSidBuffer));
+
+    return administratorsSid;
+}
+
+PSID PhSeUsersSid( // WinBuiltinUsersSid (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR usersSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID usersSid = (PSID)usersSidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(usersSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_NT_AUTHORITY }, 2);
+        *PhSubAuthoritySid(usersSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+        *PhSubAuthoritySid(usersSid, 1) = DOMAIN_ALIAS_RID_USERS;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    assert(PhLengthSid(usersSid) == sizeof(usersSidBuffer));
+
+    return usersSid;
+}
+
+PSID PhSeAnyPackageSid( // WinBuiltinAnyPackageSid (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR anyAppPackagesSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID anyAppPackagesSid = (PSID)anyAppPackagesSidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(anyAppPackagesSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_APP_PACKAGE_AUTHORITY }, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+        *PhSubAuthoritySid(anyAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
+        *PhSubAuthoritySid(anyAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    assert(PhLengthSid(anyAppPackagesSid) == sizeof(anyAppPackagesSidBuffer));
+
+    return anyAppPackagesSid;
+}
+
+PSID PhSeInternetExplorerSid( // S-1-15-3-4096 (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR internetExplorerSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[2])];
+    PSID internetExplorerSid = (PSID)internetExplorerSidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(internetExplorerSid, &(SID_IDENTIFIER_AUTHORITY){ SECURITY_APP_PACKAGE_AUTHORITY }, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+        *PhSubAuthoritySid(internetExplorerSid, 0) = SECURITY_CAPABILITY_BASE_RID;
+        *PhSubAuthoritySid(internetExplorerSid, 1) = SECURITY_CAPABILITY_INTERNET_EXPLORER;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    assert(PhLengthSid(internetExplorerSid) == sizeof(internetExplorerSidBuffer));
+
+    return internetExplorerSid;
+}
+
+PSID PhSeCloudActiveDirectorySid( // S-1-12-1 (dmex)
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static UCHAR activeDirectorySidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG[1])];
+    PSID activeDirectorySid = (PSID)activeDirectorySidBuffer;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhInitializeSid(activeDirectorySid, &(SID_IDENTIFIER_AUTHORITY){ 0, 0, 0, 0, 0, 12 }, 1);
+        *PhSubAuthoritySid(activeDirectorySid, 0) = 1;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    assert(PhLengthSid(activeDirectorySid) == sizeof(activeDirectorySidBuffer));
+
+    return activeDirectorySid;
+}
 
 // Unicode
 
+DECLSPEC_SELECTANY CONST
 PH_STRINGREF PhUnicodeByteOrderMark = PH_STRINGREF_INIT(L"\ufeff");
 
 // Characters
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 BOOLEAN PhCharIsPrintable[256] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, /* 0 - 15 */ // TAB, LF and CR are printable
@@ -67,7 +177,7 @@ BOOLEAN PhCharIsPrintable[256] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 /* 240 - 255 */
 };
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 ULONG PhCharToInteger[256] =
 {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 0 - 15 */
@@ -89,7 +199,7 @@ ULONG PhCharToInteger[256] =
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 /* 240 - 255 */
 };
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 CHAR PhIntegerToChar[69] =
     "0123456789" /* 0 - 9 */
     "abcdefghijklmnopqrstuvwxyz" /* 10 - 35 */
@@ -99,7 +209,7 @@ CHAR PhIntegerToChar[69] =
     "{|}~" /* 65 - 68 */
     ;
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 CHAR PhIntegerToCharUpper[69] =
     "0123456789" /* 0 - 9 */
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ" /* 10 - 35 */
@@ -111,7 +221,7 @@ CHAR PhIntegerToCharUpper[69] =
 
 // CRC32 (IEEE 802.3)
 
-DECLSPEC_SELECTANY
+DECLSPEC_SELECTANY CONST
 ULONG PhCrc32Table[256] =
 {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -150,85 +260,90 @@ ULONG PhCrc32Table[256] =
 
 // Enums
 
-DECLSPEC_SELECTANY
-WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes] =
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhIoPriorityHintNames[MaxIoPriorityTypes] =
 {
-    L"Very low",
-    L"Low",
-    L"Normal",
-    L"High",
-    L"Critical"
+    PH_STRINGREF_INIT(L"Very low"),
+    PH_STRINGREF_INIT(L"Low"),
+    PH_STRINGREF_INIT(L"Normal"),
+    PH_STRINGREF_INIT(L"High"),
+    PH_STRINGREF_INIT(L"Critical"),
 };
 
-DECLSPEC_SELECTANY
-WCHAR *PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhPagePriorityNames[MEMORY_PRIORITY_NORMAL + 1] =
 {
-    L"Lowest",
-    L"Very low",
-    L"Low",
-    L"Medium",
-    L"Below normal",
-    L"Normal"
+    PH_STRINGREF_INIT(L"Lowest"),
+    PH_STRINGREF_INIT(L"Very low"),
+    PH_STRINGREF_INIT(L"Low"),
+    PH_STRINGREF_INIT(L"Medium"),
+    PH_STRINGREF_INIT(L"Below normal"),
+    PH_STRINGREF_INIT(L"Normal"),
 };
 
-DECLSPEC_SELECTANY
-WCHAR *PhKThreadStateNames[MaximumThreadState] =
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhKThreadStateNames[MaximumThreadState] =
 {
-    L"Initialized",
-    L"Ready",
-    L"Running",
-    L"Standby",
-    L"Terminated",
-    L"Waiting",
-    L"Transition",
-    L"DeferredReady",
-    L"GateWait",
-    L"WaitingForProcessInSwap"
+    PH_STRINGREF_INIT(L"Initialized"),
+    PH_STRINGREF_INIT(L"Ready"),
+    PH_STRINGREF_INIT(L"Running"),
+    PH_STRINGREF_INIT(L"Standby"),
+    PH_STRINGREF_INIT(L"Terminated"),
+    PH_STRINGREF_INIT(L"Waiting"),
+    PH_STRINGREF_INIT(L"Transition"),
+    PH_STRINGREF_INIT(L"DeferredReady"),
+    PH_STRINGREF_INIT(L"GateWait"),
+    PH_STRINGREF_INIT(L"WaitingForProcessInSwap"),
 };
 
-DECLSPEC_SELECTANY
-WCHAR *PhKWaitReasonNames[MaximumWaitReason] =
+DECLSPEC_SELECTANY CONST
+PH_STRINGREF PhKWaitReasonNames[MaximumWaitReason] =
 {
-    L"Executive",
-    L"FreePage",
-    L"PageIn",
-    L"PoolAllocation",
-    L"DelayExecution",
-    L"Suspended",
-    L"UserRequest",
-    L"WrExecutive",
-    L"WrFreePage",
-    L"WrPageIn",
-    L"WrPoolAllocation",
-    L"WrDelayExecution",
-    L"WrSuspended",
-    L"WrUserRequest",
-    L"WrEventPair",
-    L"WrQueue",
-    L"WrLpcReceive",
-    L"WrLpcReply",
-    L"WrVirtualMemory",
-    L"WrPageOut",
-    L"WrRendezvous",
-    L"WrKeyedEvent",
-    L"WrTerminated",
-    L"WrProcessInSwap",
-    L"WrCpuRateControl",
-    L"WrCalloutStack",
-    L"WrKernel",
-    L"WrResource",
-    L"WrPushLock",
-    L"WrMutex",
-    L"WrQuantumEnd",
-    L"WrDispatchInt",
-    L"WrPreempted",
-    L"WrYieldExecution",
-    L"WrFastMutex",
-    L"WrGuardedMutex",
-    L"WrRundown",
-    L"WrAlertByThreadId",
-    L"WrDeferredPreempt",
-    L"WrPhysicalFault",
-    L"WrIoRing",
-    L"WrMdlCache",
+    PH_STRINGREF_INIT(L"Executive"),
+    PH_STRINGREF_INIT(L"FreePage"),
+    PH_STRINGREF_INIT(L"PageIn"),
+    PH_STRINGREF_INIT(L"PoolAllocation"),
+    PH_STRINGREF_INIT(L"DelayExecution"),
+    PH_STRINGREF_INIT(L"Suspended"),
+    PH_STRINGREF_INIT(L"UserRequest"),
+    PH_STRINGREF_INIT(L"WrExecutive"),
+    PH_STRINGREF_INIT(L"WrFreePage"),
+    PH_STRINGREF_INIT(L"WrPageIn"),
+    PH_STRINGREF_INIT(L"WrPoolAllocation"),
+    PH_STRINGREF_INIT(L"WrDelayExecution"),
+    PH_STRINGREF_INIT(L"WrSuspended"),
+    PH_STRINGREF_INIT(L"WrUserRequest"),
+    PH_STRINGREF_INIT(L"WrEventPair"),
+    PH_STRINGREF_INIT(L"WrQueue"),
+    PH_STRINGREF_INIT(L"WrLpcReceive"),
+    PH_STRINGREF_INIT(L"WrLpcReply"),
+    PH_STRINGREF_INIT(L"WrVirtualMemory"),
+    PH_STRINGREF_INIT(L"WrPageOut"),
+    PH_STRINGREF_INIT(L"WrRendezvous"),
+    PH_STRINGREF_INIT(L"WrKeyedEvent"),
+    PH_STRINGREF_INIT(L"WrTerminated"),
+    PH_STRINGREF_INIT(L"WrProcessInSwap"),
+    PH_STRINGREF_INIT(L"WrCpuRateControl"),
+    PH_STRINGREF_INIT(L"WrCalloutStack"),
+    PH_STRINGREF_INIT(L"WrKernel"),
+    PH_STRINGREF_INIT(L"WrResource"),
+    PH_STRINGREF_INIT(L"WrPushLock"),
+    PH_STRINGREF_INIT(L"WrMutex"),
+    PH_STRINGREF_INIT(L"WrQuantumEnd"),
+    PH_STRINGREF_INIT(L"WrDispatchInt"),
+    PH_STRINGREF_INIT(L"WrPreempted"),
+    PH_STRINGREF_INIT(L"WrYieldExecution"),
+    PH_STRINGREF_INIT(L"WrFastMutex"),
+    PH_STRINGREF_INIT(L"WrGuardedMutex"),
+    PH_STRINGREF_INIT(L"WrRundown"),
+    PH_STRINGREF_INIT(L"WrAlertByThreadId"),
+    PH_STRINGREF_INIT(L"WrDeferredPreempt"),
+    PH_STRINGREF_INIT(L"WrPhysicalFault"),
+    PH_STRINGREF_INIT(L"WrIoRing"),
+    PH_STRINGREF_INIT(L"WrMdlCache"),
 };
+
+static_assert(ARRAYSIZE(PhIoPriorityHintNames) == MaxIoPriorityTypes, "PhIoPriorityHintNames must equal MaxIoPriorityTypes");
+static_assert(ARRAYSIZE(PhPagePriorityNames) == MEMORY_PRIORITY_NORMAL + 1, "PhPagePriorityNames must equal MEMORY_PRIORITY");
+static_assert(ARRAYSIZE(PhKThreadStateNames) == MaximumThreadState, "PhKThreadStateNames must equal MaximumThreadState");
+static_assert(ARRAYSIZE(PhKWaitReasonNames) == MaximumWaitReason, "PhKWaitReasonNames must equal MaximumWaitReason");

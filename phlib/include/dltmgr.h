@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2011
+ *
+ */
+
 #ifndef _PH_DLTMGR_H
 #define _PH_DLTMGR_H
 

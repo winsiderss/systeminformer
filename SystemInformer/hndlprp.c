@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -93,14 +93,14 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
-    ULONG ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
+    INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
 } HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
 
 #define PH_FILEMODE_ASYNC 0x01000000
 #define PhFileModeUpdAsyncFlag(mode) \
-    (mode & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? mode &~ PH_FILEMODE_ASYNC: mode | PH_FILEMODE_ASYNC)
+    ((mode) & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? (mode) &~ PH_FILEMODE_ASYNC: (mode) | PH_FILEMODE_ASYNC)
 
-PH_ACCESS_ENTRY FileModeAccessEntries[6] =
+CONST PH_ACCESS_ENTRY FileModeAccessEntries[6] =
 {
     { L"FILE_FLAG_OVERLAPPED", PH_FILEMODE_ASYNC, FALSE, FALSE, L"Asynchronous" },
     { L"FILE_FLAG_WRITE_THROUGH", FILE_WRITE_THROUGH, FALSE, FALSE, L"Write through" },
@@ -120,7 +120,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 static NTSTATUS PhpDuplicateHandleFromProcess(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PHANDLE_PROPERTIES_CONTEXT context = Context;
@@ -128,9 +128,6 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     HANDLE processHandle;
 
     *Handle = NULL;
-
-    if (!context)
-        return STATUS_UNSUCCESSFUL;
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
@@ -263,6 +260,13 @@ NTSTATUS PhpShowHandlePropertiesThread(
             context.ProcessId,
             &context,
             NULL
+            );
+    }
+    else if (PhEqualString2(handleContext->HandleItem->TypeName, L"Section", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateMappingsPage(
+            handleContext->ProcessId,
+            handleContext->HandleItem->Handle
             );
     }
 
@@ -453,7 +457,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
                 );
         }
     }
-    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE) || PhEqualString2(Context->HandleItem->TypeName, L"EtwConsumer", TRUE))
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
         PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_ETW, L"Event trace information");
         Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME] = PhAddListViewGroupItem(
@@ -739,7 +743,6 @@ VOID PhpUpdateHandleGeneral(
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
-#if (PHNT_VERSION >= PHNT_WIN7)
         NTSTATUS status;
         HANDLE processHandle = NULL;
 
@@ -1102,9 +1105,8 @@ VOID PhpUpdateHandleGeneral(
                 }
             }
         }
-#endif
     }
-    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE) || PhEqualString2(Context->HandleItem->TypeName, L"EtwConsumer", TRUE))
+    else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
         PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ETWORIGINALNAME], 1, PhGetString(Context->HandleItem->ObjectName));
     }
@@ -1189,7 +1191,7 @@ VOID PhpUpdateHandleGeneral(
                 // it only if none of synchronous flags are present. That's why we need PhFileModeUpdAsyncFlag.
                 fileModeAccessStr = PhGetAccessString(
                     PhFileModeUpdAsyncFlag(fileModeInfo.Mode),
-                    FileModeAccessEntries,
+                    (PPH_ACCESS_ENTRY)FileModeAccessEntries,
                     RTL_NUMBER_OF(FileModeAccessEntries)
                     );
 
@@ -1395,7 +1397,7 @@ VOID PhpUpdateHandleGeneral(
                     // it only if none of synchronous flags are present. That's why we need PhFileModeUpdAsyncFlag.
                     fileModeAccessStr = PhGetAccessString(
                         PhFileModeUpdAsyncFlag(fileModeInfo.Mode),
-                        FileModeAccessEntries,
+                        (PPH_ACCESS_ENTRY)FileModeAccessEntries,
                         RTL_NUMBER_OF(FileModeAccessEntries)
                         );
 
@@ -1613,7 +1615,7 @@ VOID PhpUpdateHandleGeneral(
             {
                 PPH_STRING newFileName;
 
-                if (newFileName = PhResolveDevicePrefix(fileName))
+                if (newFileName = PhResolveDevicePrefix(&fileName->sr))
                 {
                     PhDereferenceObject(fileName);
                     fileName = newFileName;
@@ -2133,7 +2135,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
 

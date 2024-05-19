@@ -65,6 +65,7 @@ typedef struct _PORT_DATA_INFORMATION
 #define LPC_DEBUG_EVENT 8
 #define LPC_ERROR_EVENT 9
 #define LPC_CONNECTION_REQUEST 10
+#define LPC_CONTINUATION_REQUIRED 0x2000
 
 #define LPC_KERNELMODE_MESSAGE (CSHORT)0x8000
 #define LPC_NO_IMPERSONATE (CSHORT)0x4000
@@ -804,7 +805,7 @@ NtAlpcConnectPort(
     _In_ ULONG Flags,
     _In_opt_ PSID RequiredServerSid,
     _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
-    _Inout_opt_ PULONG BufferLength,
+    _Inout_opt_ PSIZE_T BufferLength,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
     _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
     _In_opt_ PLARGE_INTEGER Timeout
@@ -945,8 +946,8 @@ NTAPI
 AlpcInitializeMessageAttribute(
     _In_ ULONG AttributeFlags,
     _Out_opt_ PALPC_MESSAGE_ATTRIBUTES Buffer,
-    _In_ ULONG BufferSize,
-    _Out_ PULONG RequiredBufferSize
+    _In_ SIZE_T BufferSize,
+    _Out_ PSIZE_T RequiredBufferSize
     );
 
 NTSYSAPI

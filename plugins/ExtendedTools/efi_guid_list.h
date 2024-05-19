@@ -14,9 +14,9 @@
 
 struct _EFI_GUID_TABLE
 {
-    PWSTR Name;
-    GUID Guid;
-} table[] =
+    PCWSTR Name;
+    const GUID Guid;
+} const table[] =
 {
     // dmex: 77fa9abd-0359-4d32-bd60-28f4e78f784b
     { L"EFI_WINNT_OS", { 0x77fa9abd, 0x0359, 0x4d32, { 0xbd, 0x60, 0x28, 0xf4, 0xe7, 0x8f, 0x78, 0x4b } } },

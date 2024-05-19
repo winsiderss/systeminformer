@@ -5,13 +5,13 @@
  *
  * Authors:
  *
- *     jxy-s   2022
+ *     jxy-s   2022-2023
  *
  */
 
 #include <kph.h>
+#include <informer.h>
 #include <comms.h>
-#include <dyndata.h>
 #include <kphmsgdyn.h>
 
 #include <trace.h>
@@ -30,7 +30,7 @@ VOID KphpPerformImageTracking(
     _In_ PIMAGE_INFO_EX ImageInfo
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(ImageInfo);
 
@@ -53,31 +53,36 @@ VOID KphpLoadImageNotifyInformer(
     )
 {
     NTSTATUS status;
+    PKPH_PROCESS_CONTEXT targetProcess;
+    PKPH_PROCESS_CONTEXT actorProcess;
     PKPH_MESSAGE msg;
     PUNICODE_STRING fileName;
     BOOLEAN freeFileName;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
-    if (!KphInformerSettings.ImageLoad)
+    actorProcess = KphGetCurrentProcessContext();
+    targetProcess = KphGetProcessContext(ProcessId);
+
+    if (!KphInformerEnabled2(ImageLoad, actorProcess, targetProcess))
     {
-        return;
+        goto Exit;
     }
 
     msg = KphAllocateMessage();
     if (!msg)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to allocate message");
-        return;
+        goto Exit;
     }
 
     freeFileName = TRUE;
     status = KphGetNameFileObject(ImageInfo->FileObject, &fileName);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_WARNING,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "KphGetNameFileObject failed: %!STATUS!",
                       status);
@@ -90,18 +95,30 @@ VOID KphpLoadImageNotifyInformer(
 
     msg->Kernel.ImageLoad.LoadingClientId.UniqueProcess = PsGetCurrentProcessId();
     msg->Kernel.ImageLoad.LoadingClientId.UniqueThread = PsGetCurrentThreadId();
+    msg->Kernel.ImageLoad.LoadingProcessStartKey = KphGetCurrentProcessStartKey();
+    msg->Kernel.ImageLoad.LoadingThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
     msg->Kernel.ImageLoad.TargetProcessId = ProcessId;
     msg->Kernel.ImageLoad.Properties = ImageInfo->ImageInfo.Properties;
     msg->Kernel.ImageLoad.ImageBase = ImageInfo->ImageInfo.ImageBase;
     msg->Kernel.ImageLoad.ImageSelector = ImageInfo->ImageInfo.ImageSelector;
     msg->Kernel.ImageLoad.ImageSectionNumber = ImageInfo->ImageInfo.ImageSectionNumber;
+    msg->Kernel.ImageLoad.FileObject = ImageInfo->FileObject;
+
+    if (targetProcess)
+    {
+        ULONG64 startKey;
+
+        startKey = KphGetProcessStartKey(targetProcess->EProcess);
+
+        msg->Kernel.ImageLoad.TargetProcessStartKey = startKey;
+    }
 
     if (fileName)
     {
         status = KphMsgDynAddUnicodeString(msg, KphMsgFieldFileName, fileName);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_WARNING,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "KphMsgDynAddUnicodeString failed: %!STATUS!",
                           status);
@@ -112,13 +129,25 @@ VOID KphpLoadImageNotifyInformer(
             KphFreeNameFileObject(fileName);
         }
     }
-    
-    if (KphInformerSettings.EnableStackTraces)
+
+    if (KphInformerEnabled2(EnableStackTraces, actorProcess, targetProcess))
     {
         KphCaptureStackInMessage(msg);
     }
 
     KphCommsSendMessageAsync(msg);
+
+Exit:
+
+    if (targetProcess)
+    {
+        KphDereferenceObject(targetProcess);
+    }
+
+    if (actorProcess)
+    {
+        KphDereferenceObject(actorProcess);
+    }
 }
 
 /**
@@ -139,7 +168,7 @@ VOID KphpLoadImageNotifyRoutine(
     PKPH_PROCESS_CONTEXT process;
     PIMAGE_INFO_EX imageInfo;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     UNREFERENCED_PARAMETER(FullImageName);
     NT_ASSERT(ImageInfo->ExtendedInfoPresent);
@@ -172,7 +201,7 @@ NTSTATUS KphImageInformerStart(
 {
     NTSTATUS status;
 
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     if (KphDynPsSetLoadImageNotifyRoutineEx)
     {
@@ -181,7 +210,7 @@ NTSTATUS KphImageInformerStart(
                                     PS_IMAGE_NOTIFY_CONFLICTING_ARCHITECTURE);
         if (!NT_SUCCESS(status))
         {
-            KphTracePrint(TRACE_LEVEL_ERROR,
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
                           INFORMER,
                           "Failed to register image notify routine: %!STATUS!",
                           status);
@@ -194,7 +223,7 @@ NTSTATUS KphImageInformerStart(
     status = PsSetLoadImageNotifyRoutine(KphpLoadImageNotifyRoutine);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
                       "Failed to register image notify routine: %!STATUS!",
                       status);
@@ -212,7 +241,7 @@ VOID KphImageInformerStop(
     VOID
     )
 {
-    PAGED_PASSIVE();
+    PAGED_CODE_PASSIVE();
 
     PsRemoveLoadImageNotifyRoutine(KphpLoadImageNotifyRoutine);
 }

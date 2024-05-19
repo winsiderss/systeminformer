@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2020-2022
+ *     dmex    2020-2023
  *
  */
 
@@ -14,7 +14,6 @@
 #include <phsettings.h>
 #include <phsvccl.h>
 #include <actions.h>
-#include <appresolver.h>
 #include <emenu.h>
 #include <mainwnd.h>
 #include <procprv.h>
@@ -157,12 +156,12 @@ VOID PhShowProcessHeapsDialog(
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->IsWow64 = !!ProcessItem->IsWow64;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_HEAPS),
         NULL,
         PhpProcessHeapsDlgProc,
-        (LPARAM)context
+        context
         );
 }
 
@@ -387,7 +386,7 @@ PWSTR PhGetProcessHeapClassText(
         return L"CSRSS Port Heap";
     }
 
-    return L"Unknown";
+    return L"Unknown Heap";
 }
 
 VOID PhpEnumerateProcessHeaps(
@@ -871,7 +870,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
                 selectedCount = ListView_GetSelectedCount(context->ListViewHandle);
                 heapInfo = PhGetSelectedListViewItemParam(context->ListViewHandle);

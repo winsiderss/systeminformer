@@ -6,12 +6,13 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2016-2021
+ *     dmex    2016-2023
  *
  */
 
 #include <phapp.h>
 #include <phsettings.h>
+#include <settings.h>
 
 typedef struct _PH_INFORMATION_CONTEXT
 {
@@ -49,13 +50,15 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
         {
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TEXT), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            if (PhGetIntegerPairSetting(L"InformationWindowPosition").X)
+                PhLoadWindowPlacementFromSetting(NULL, L"InformationWindowSize", hwndDlg);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             context->MinimumSize = (RECT){ -1, -1, -1, -1 };
 
@@ -81,6 +84,8 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveWindowPlacementToSetting(L"InformationWindowPosition", L"InformationWindowSize", hwndDlg);
+
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
@@ -131,7 +136,6 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     PVOID fileDialog;
 
                     fileDialog = PhCreateSaveFileDialog();
-
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
                     PhSetFileDialogFileName(fileDialog, L"Information.txt");
 
@@ -154,8 +158,8 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                         {
                             PH_STRINGREF string;
 
-                            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
-                            PhInitializeStringRef(&string, context->String);
+                            PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
+                            PhInitializeStringRefLongHint(&string, context->String);
                             PhWriteStringAsUtf8FileStream(fileStream, &string);
                             PhDereferenceObject(fileStream);
                         }
@@ -203,11 +207,11 @@ VOID PhShowInformationDialog(
     context.String = String;
     context.Flags = Flags;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_INFORMATION),
         ParentWindowHandle,
         PhpInformationDlgProc,
-        (LPARAM)&context
+        &context
         );
 }

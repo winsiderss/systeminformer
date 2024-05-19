@@ -1,10 +1,10 @@
-[![Build status](https://img.shields.io/github/workflow/status/winsiderss/systeminformer/continuous-integration?style=for-the-badge)](https://github.com/winsiderss/systeminformer/actions/workflows/msbuild.yml)
+[![Build status](https://img.shields.io/github/actions/workflow/status/winsiderss/systeminformer/msbuild.yml?branch=master&style=for-the-badge)](https://github.com/winsiderss/systeminformer/actions/workflows/msbuild.yml)
 [![Build contributors](https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue)](https://github.com/winsiderss/systeminformer/graphs/contributors)
 [![Licence](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue)](https://opensource.org/licenses/MIT)
 [![Github stats](https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=winsiderss&repository=systeminformer)
-[![SourceForge stats](https://img.shields.io/sourceforge/dt/systeminformer.svg?style=for-the-badge&color=red)](https://sourceforge.net/projects/systeminformer/files/stats/timeline?dates=2008-10-01%20to%202020-09-01&period=monthly)
+[![SourceForge stats](https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=red)](https://sourceforge.net/projects/processhacker/files/stats/timeline?period=monthly)
 
-<img align="left" src="SystemInformer/resources/systeminformer.png" width="128" height="128"> 
+<img align="left" src="https://github.com/winsiderss/systeminformer/raw/master/SystemInformer/resources/systeminformer-128x128.png" width="128" height="128" style="max-width: 100%;padding-right: 20px;">
 
 ## System Informer
 
@@ -14,7 +14,7 @@ A free, powerful, multi-purpose tool that helps you monitor system resources, de
 
 ## System requirements
 
-Windows 7 or higher, 32-bit or 64-bit.
+Windows 10 or higher, 32-bit or 64-bit.
 
 ## Features
 

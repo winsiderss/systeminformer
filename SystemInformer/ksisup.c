@@ -6,24 +6,87 @@
  * Authors:
  *
  *     jxy-s   2022
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
 #include <phapp.h>
 #include <kphuser.h>
 #include <kphcomms.h>
+#include <kphdyndata.h>
 #include <settings.h>
 #include <json.h>
+#include <phappres.h>
+#include <sistatus.h>
 
 #include <ksisup.h>
-#include <phsettings.h>
+
+static PH_STRINGREF DriverExtension = PH_STRINGREF_INIT(L".sys");
+
+#ifdef DEBUG
+//#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
+
+extern // ksidbg.c
+VOID KsiDebugLogMessage(
+    _In_ PCKPH_MESSAGE Message
+    );
+
+extern // ksidbg.c
+VOID KsiDebugLogInitialize(
+    VOID
+    );
+
+extern // ksidbg.c
+VOID KsiDebugLogDestroy(
+    VOID
+    );
+#endif
+
+BOOLEAN KsiEnableLoadNative = FALSE;
+BOOLEAN KsiEnableLoadFilter = FALSE;
+PPH_STRING KsiKernelVersion = NULL;
+
+PPH_STRING PhpGetKernelVersionString(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_STRING fileName;
+        PH_IMAGE_VERSION_INFO versionInfo;
+
+        if (fileName = PhGetKernelFileName2())
+        {
+            if (PhInitializeImageVersionInfoEx(&versionInfo, &fileName->sr, FALSE))
+            {
+                KsiKernelVersion = versionInfo.FileVersion;
+
+                versionInfo.FileVersion = NULL;
+                PhDeleteImageVersionInfo(&versionInfo);
+            }
+
+            PhDereferenceObject(fileName);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (KsiKernelVersion)
+        return PhReferenceObject(KsiKernelVersion);
+
+    return NULL;
+}
 
 VOID PhShowKsiStatus(
     VOID
     )
 {
     KPH_PROCESS_STATE processState;
+
+    if (!PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
+        return;
 
     processState = KphGetCurrentProcessState();
 
@@ -68,118 +131,204 @@ VOID PhShowKsiStatus(
 
         if (PhShowMessageOneTime(
             NULL,
-            TDCBF_OK_BUTTON,
+            TD_OK_BUTTON,
             TD_ERROR_ICON,
             L"Access to the kernel driver is restricted.",
             L"%s",
             PhGetString(infoString)
             ))
         {
-            PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
+            PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
 
         PhDereferenceObject(infoString);
     }
 }
 
-VOID PhShowKsiError(
-    _In_ PWSTR Message,
-    _In_opt_ NTSTATUS Status
+VOID PhpShowKsiMessage(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PWSTR Icon,
+    _In_opt_ NTSTATUS Status,
+    _In_ BOOLEAN Force,
+    _In_ PWSTR Title,
+    _In_ PWSTR Format,
+    _In_ va_list ArgPtr
     )
 {
-    if (Status == STATUS_NO_SUCH_FILE)
-    {
-        if (PhShowMessageOneTime(
-            NULL,
-            TDCBF_OK_BUTTON,
-            TD_ERROR_ICON,
-            Message,
-            L"%s",
-            L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-            ))
-        {
-            PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
-        }
-    }
-    else
-    {
-        PPH_STRING errorMessage;
-        PPH_STRING statusMessage;
+    PPH_STRING versionString;
+    PPH_STRING kernelVersion;
+    PPH_STRING errorMessage;
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING messageString;
+    ULONG processState;
 
-        if (!(errorMessage = PhGetStatusMessage(Status, 0)))
-            errorMessage = PhGetStatusMessage(0, Status);
+    if (!Force && !PhGetIntegerSetting(L"KsiEnableWarnings") || PhStartupParameters.PhSvc)
+        return;
+
+    versionString = PhGetApplicationVersionString(FALSE);
+    kernelVersion = PhpGetKernelVersionString();
+    errorMessage = NULL;
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    PhAppendFormatStringBuilder_V(&stringBuilder, Format, ArgPtr);
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
+
+    if (Status != 0)
+    {
+        switch (Status)
+        {
+        case STATUS_NO_SUCH_FILE:
+            errorMessage = PhCreateString(L"The file does not exist.");
+            break;
+        default:
+            if (!(errorMessage = PhGetStatusMessage(Status, 0)))
+                errorMessage = PhGetStatusMessage(0, Status);
+            break;
+        }
 
         if (errorMessage)
         {
-            statusMessage = PhConcatStrings(
-                3,
-                PhGetString(errorMessage),
-                L"\r\n\r\n",
-                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-                );
+            PH_STRINGREF firstPart;
+            PH_STRINGREF secondPart;
 
-            if (PhShowMessageOneTime(
-                NULL,
-                TDCBF_OK_BUTTON,
-                TD_ERROR_ICON,
-                Message,
-                L"%s",
-                PhGetString(statusMessage)
-                ))
+            // sanitize format specifiers
+
+            secondPart = errorMessage->sr;
+            while (PhSplitStringRefAtChar(&secondPart, L'%', &firstPart, &secondPart))
             {
-                PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
+                PhAppendStringBuilder(&stringBuilder, &firstPart);
+                PhAppendStringBuilder2(&stringBuilder, L"%%");
             }
 
-            PhDereferenceObject(statusMessage);
-            PhDereferenceObject(errorMessage);
+            PhAppendStringBuilder(&stringBuilder, &firstPart);
         }
         else
         {
-            if (PhShowMessageOneTime(
-                NULL,
-                TDCBF_OK_BUTTON,
-                TD_ERROR_ICON,
-                Message,
-                L"%s",
-                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-                ))
-            {
-                PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
-            }
+            PhAppendStringBuilder2(&stringBuilder, L"Unknown error.");
+        }
+
+        PhAppendFormatStringBuilder(&stringBuilder, L" (0x%08x)", Status);
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
+    }
+
+    PhAppendFormatStringBuilder(
+        &stringBuilder,
+        L"%ls %ls\r\n",
+        WindowsVersionName,
+        WindowsVersionString
+        );
+
+    PhAppendStringBuilder2(&stringBuilder, L"Windows Kernel ");
+    PhAppendStringBuilder2(&stringBuilder, PhGetStringOrDefault(kernelVersion, L"Unknown"));
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+
+    PhAppendStringBuilder(&stringBuilder, &versionString->sr);
+    PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+
+    processState = KphGetCurrentProcessState();
+    if (processState != 0)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Process State ");
+        PhAppendFormatStringBuilder(&stringBuilder, L"0x%08x", processState);
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+    }
+
+    if (Force && !PhGetIntegerSetting(L"KsiEnableWarnings"))
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Driver warnings are disabled.");
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+    }
+
+    if (PhEndsWithString2(stringBuilder.String, L"\r\n", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    messageString = PhFinalStringBuilderString(&stringBuilder);
+
+    if (Force)
+    {
+        PhShowMessage2(
+            WindowHandle,
+            TD_OK_BUTTON,
+            Icon,
+            Title,
+            PhGetString(messageString)
+            );
+    }
+    else
+    {
+        if (PhShowMessageOneTime(
+            WindowHandle,
+            TD_OK_BUTTON,
+            Icon,
+            Title,
+            PhGetString(messageString)
+            ))
+        {
+            PhSetIntegerSetting(L"KsiEnableWarnings", FALSE);
         }
     }
+
+    PhClearReference(&errorMessage);
+    PhClearReference(&kernelVersion);
+    PhDereferenceObject(versionString);
 }
 
-static VOID NTAPI KsiCommsCallback(
-    _In_ ULONG_PTR ReplyToken,
-    _In_ PCKPH_MESSAGE Message
+VOID PhShowKsiMessageEx(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PWSTR Icon,
+    _In_opt_ NTSTATUS Status,
+    _In_ BOOLEAN Force,
+    _In_ PWSTR Title,
+    _In_ PWSTR Format,
+    ...
     )
 {
-    PPH_FREE_LIST freelist;
-    PKPH_MESSAGE msg;
+    va_list argptr;
 
-    if (Message->Header.MessageId != KphMsgProcessCreate)
-    {
-        return;
-    }
+    va_start(argptr, Format);
+    PhpShowKsiMessage(WindowHandle, Icon, Status, Force, Title, Format, argptr);
+    va_end(argptr);
+}
 
-    freelist = KphGetMessageFreeList();
+VOID PhShowKsiMessage(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PWSTR Icon,
+    _In_ PWSTR Title,
+    _In_ PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
 
-    msg = PhAllocateFromFreeList(freelist);
-    KphMsgInit(msg, KphMsgProcessCreate);
-    msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
-    KphCommsReplyMessage(ReplyToken, msg);
-
-    PhFreeToFreeList(freelist, msg);
+    va_start(argptr, Format);
+    PhpShowKsiMessage(WindowHandle, Icon, 0, TRUE, Title, Format, argptr);
+    va_end(argptr);
 }
 
 NTSTATUS PhRestartSelf(
     _In_ PPH_STRINGREF AdditionalCommandLine
     )
 {
+#ifndef DEBUG
+#define DEFAULT_MITIGATION_POLICY_FLAGS \
+    (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON)
+#define DEFAULT_MITIGATION_POLICY_FLAGS2 \
+    (PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_STRICT_CONTROL_FLOW_GUARD_ALWAYS_ON | \
+     PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON)
+     // PROCESS_CREATION_MITIGATION_POLICY2_BLOCK_NON_CET_BINARIES_ALWAYS_ON
+     // PROCESS_CREATION_MITIGATION_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_ON
+#endif
     NTSTATUS status;
     PH_STRINGREF commandlineSr;
     PPH_STRING commandline;
+    STARTUPINFOEX startupInfo;
 
     status = PhGetProcessCommandLineStringRef(&commandlineSr);
 
@@ -191,23 +340,60 @@ NTSTATUS PhRestartSelf(
         AdditionalCommandLine
         );
 
-    status = PhCreateProcessWin32(
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+
+#ifndef DEBUG
+    status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (WindowsVersion >= WINDOWS_10_22H2)
+    {
+        status = PhUpdateProcThreadAttribute(
+            startupInfo.lpAttributeList,
+            PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+            &(ULONG64[2]){ DEFAULT_MITIGATION_POLICY_FLAGS, DEFAULT_MITIGATION_POLICY_FLAGS2 },
+            sizeof(ULONG64[2])
+            );
+    }
+    else
+    {
+        status = PhUpdateProcThreadAttribute(
+            startupInfo.lpAttributeList,
+            PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+            &(ULONG64[1]) { DEFAULT_MITIGATION_POLICY_FLAGS },
+            sizeof(ULONG64[1])
+            );
+    }
+#endif
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhCreateProcessWin32Ex(
         NULL,
         PhGetString(commandline),
         NULL,
         NULL,
-        0,
+        &startupInfo.StartupInfo,
+        PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+        NULL,
         NULL,
         NULL,
         NULL
         );
 
-    PhDereferenceObject(commandline);
-
     if (NT_SUCCESS(status))
     {
         PhExitApplication(STATUS_SUCCESS);
     }
+
+    if (startupInfo.lpAttributeList)
+        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+
+    PhDereferenceObject(commandline);
 
     return status;
 }
@@ -226,7 +412,14 @@ BOOLEAN PhDoesOldKsiExist(
 
     if (fileName = PhConcatStringRef2(&applicationDirectory->sr, &ksiOld))
     {
-        result = PhDoesFileExist(&fileName->sr);
+        if (result = PhDoesFileExist(&fileName->sr))
+        {
+            // If the file exists try to delete it. If we can't a reboot is
+            // still required since it's likely still mapped into the kernel.
+            if (NT_SUCCESS(PhDeleteFile(&fileName->sr)))
+                result = FALSE;
+        }
+
         PhDereferenceObject(fileName);
     }
 
@@ -240,7 +433,7 @@ PPH_STRING PhGetKsiServiceName(
 {
     PPH_STRING string;
 
-    string = PhGetStringSetting(L"KphServiceName");
+    string = PhGetStringSetting(L"KsiServiceName");
 
     if (PhIsNullOrEmptyString(string))
     {
@@ -251,125 +444,719 @@ PPH_STRING PhGetKsiServiceName(
     return string;
 }
 
-VOID PhInitializeKsi(
+BOOLEAN KsiCommsCallback(
+    _In_ ULONG_PTR ReplyToken,
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+#ifdef DEBUG
+    KsiDebugLogMessage(Message);
+#endif
+
+    if (Message->Header.MessageId != KphMsgRequiredStateFailure)
+    {
+        return FALSE;
+    }
+
+    if (Message->Kernel.RequiredStateFailure.ClientId.UniqueProcess == NtCurrentProcessId())
+    {
+        // force the cached value to be updated
+        KphLevelEx(FALSE);
+    }
+
+    return TRUE;
+}
+
+NTSTATUS KsiReadConfiguration(
+    _In_ PWSTR FileName,
+    _Out_ PBYTE* Data,
+    _Out_ PULONG Length
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fileName;
+    HANDLE fileHandle;
+
+    *Data = NULL;
+    *Length = 0;
+
+    status = STATUS_NO_SUCH_FILE;
+
+    fileName = PhGetApplicationDirectoryFileNameZ(FileName, TRUE);
+    if (fileName)
+    {
+        if (NT_SUCCESS(status = PhCreateFile(
+            &fileHandle,
+            &fileName->sr,
+            FILE_GENERIC_READ,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            status = PhGetFileData(fileHandle, Data, Length);
+
+            NtClose(fileHandle);
+        }
+
+        PhDereferenceObject(fileName);
+    }
+
+    return status;
+}
+
+NTSTATUS KsiValidateDynamicConfiguration(
+    _In_ PBYTE DynData,
+    _In_ ULONG DynDataLength
+    )
+{
+    NTSTATUS status;
+    PPH_STRING fileName;
+    PVOID versionInfo;
+    VS_FIXEDFILEINFO* fileInfo;
+
+    status = STATUS_NO_SUCH_FILE;
+
+    if (fileName = PhGetKernelFileName2())
+    {
+        if (versionInfo = PhGetFileVersionInfoEx(&fileName->sr))
+        {
+            if (fileInfo = PhGetFileVersionFixedInfo(versionInfo))
+            {
+                status = KphDynDataGetConfiguration(
+                    (PKPH_DYNDATA)DynData,
+                    DynDataLength,
+                    HIWORD(fileInfo->dwFileVersionMS),
+                    LOWORD(fileInfo->dwFileVersionMS),
+                    HIWORD(fileInfo->dwFileVersionLS),
+                    LOWORD(fileInfo->dwFileVersionLS),
+                    NULL
+                    );
+            }
+
+            PhFree(versionInfo);
+        }
+
+        PhDereferenceObject(fileName);
+    }
+
+    return status;
+}
+
+NTSTATUS KsiGetDynData(
+    _Out_ PBYTE* DynData,
+    _Out_ PULONG DynDataLength,
+    _Out_ PBYTE* Signature,
+    _Out_ PULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    PBYTE data = NULL;
+    ULONG dataLength;
+    PBYTE sig = NULL;
+    ULONG sigLength;
+
+    // TODO download dynamic data from server
+
+    *DynData = NULL;
+    *DynDataLength = 0;
+    *Signature = NULL;
+    *SignatureLength = 0;
+
+    status = KsiReadConfiguration(L"ksidyn.bin", &data, &dataLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = KsiValidateDynamicConfiguration(data, dataLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = KsiReadConfiguration(L"ksidyn.sig", &sig, &sigLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!sigLength)
+    {
+        status = STATUS_SI_DYNDATA_INVALID_SIGNATURE;
+        goto CleanupExit;
+    }
+
+    *DynDataLength = dataLength;
+    *DynData = data;
+    data = NULL;
+
+    *SignatureLength = sigLength;
+    *Signature = sig;
+    sig = NULL;
+
+    status = STATUS_SUCCESS;
+
+CleanupExit:
+    if (data)
+        PhFree(data);
+    if (sig)
+        PhFree(sig);
+
+    return status;
+}
+
+PPH_STRING PhGetKsiDirectory(
     VOID
     )
 {
-    static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
+    PPH_STRING applicationDirectory;
+    PPH_STRING fileName;
+
+#if defined(PH_BUILD_MSIX)
+    PH_FORMAT format[4];
+    PhInitFormatS(&format[0], L"\\Drivers");
+    PhInitFormatS(&format[1], L"\\SystemInformer");
+    PhInitFormatS(&format[2], L"\\SystemInformer");
+    PhInitFormatSR(&format[3], DriverExtension);
+    fileName = PhFormat(format, RTL_NUMBER_OF(format), MAX_PATH);
+    applicationDirectory = PhGetSystemDirectoryWin32(&fileName->sr);
+    PhDereferenceObject(fileName);
+#else
+    fileName = PhGetApplicationFileNameWin32();
+    applicationDirectory = PhGetBaseNameChangeExtension(&fileName->sr, &DriverExtension);
+    PhDereferenceObject(fileName);
+#endif
+
+    return applicationDirectory;
+}
+
+PPH_STRING PhGetTemporaryKsiDirectory(
+    VOID
+    )
+{
+    PPH_STRING applicationDirectory;
+
+#if defined(PH_BUILD_MSIX)
+    applicationDirectory = PhGetLocalAppDataDirectoryZ(L"temp-drivers\\", FALSE);
+#else
+    applicationDirectory = PhGetApplicationDirectoryFileNameZ(L"temp-drivers\\", FALSE);
+#endif
+
+    return applicationDirectory;
+}
+
+NTSTATUS KsiCreateTemporaryDriverFile(
+    _In_ PPH_STRING FileName,
+    _In_ PPH_STRING TempDirectory,
+    _Out_ PPH_STRING* TempFileName
+    )
+{
     NTSTATUS status;
-    PPH_STRING fileName = NULL;
+    PH_FORMAT format[4];
+    PPH_STRING tempFileName;
+    LARGE_INTEGER timeStamp;
+
+    *TempFileName = NULL;
+
+    PhQuerySystemTime(&timeStamp);
+
+    PhInitFormatSR(&format[0], TempDirectory->sr);
+    PhInitFormatS(&format[1], L"SystemInformer");
+    PhInitFormatI64X(&format[2], timeStamp.QuadPart);
+    PhInitFormatSR(&format[3], DriverExtension);
+
+    tempFileName = PhFormat(format, RTL_NUMBER_OF(format), MAX_PATH);
+
+    if (NT_SUCCESS(status = PhCreateDirectoryWin32(&TempDirectory->sr)))
+    {
+        if (NT_SUCCESS(status = PhCopyFileWin32(PhGetString(FileName), PhGetString(tempFileName), TRUE)))
+        {
+            *TempFileName = tempFileName;
+            tempFileName = NULL;
+        }
+    }
+
+    PhClearReference(&tempFileName);
+
+    return status;
+}
+
+VOID KsiConnect(
+    _In_opt_ HWND WindowHandle
+    )
+{
+    NTSTATUS status;
+    PBYTE dynData = NULL;
+    ULONG dynDataLength;
+    PBYTE signature = NULL;
+    ULONG signatureLength;
     PPH_STRING ksiFileName = NULL;
     PPH_STRING ksiServiceName = NULL;
+    KPH_CONFIG_PARAMETERS config = { 0 };
+    PPH_STRING objectName = NULL;
+    PPH_STRING portName = NULL;
+    PPH_STRING altitude = NULL;
+    PPH_STRING tempDriverDir = NULL;
+    KPH_LEVEL level;
 
-    if (WindowsVersion < WINDOWS_10 || WindowsVersion == WINDOWS_NEW)
-        return;
-    if (!PhGetOwnTokenAttributes().Elevated)
-        return;
+    if (tempDriverDir = PhGetTemporaryKsiDirectory())
+        PhDeleteDirectoryWin32(&tempDriverDir->sr);
 
-    if (PhDoesOldKsiExist())
+    status = KsiGetDynData(&dynData, &dynDataLength, &signature, &signatureLength);
+
+    if (status == STATUS_SI_DYNDATA_UNSUPPORTED_KERNEL)
     {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-        {
-            PhShowKsiError(
-                L"Unable to load kernel driver, the last System Informer update requires a reboot.",
-                STATUS_PENDING 
-                );
-        }
-        return;
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not yet supported on this kernel "
+            L"version. Request support by submitting a GitHub issue with "
+            L"the Windows Kernel version."
+            );
+        goto CleanupExit;
+    }
+
+    if (status == STATUS_NO_SUCH_FILE)
+    {
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The dynamic configuration was not found."
+            );
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_ERROR_ICON,
+            status,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"Failed to access the dynamic configuration."
+            );
+        goto CleanupExit;
     }
 
     if (!(ksiServiceName = PhGetKsiServiceName()))
         goto CleanupExit;
-    if (!(fileName = PhGetApplicationFileNameWin32()))
-        goto CleanupExit;
-    if (!(ksiFileName = PhGetBaseNamePathWithExtension(fileName, &driverExtension)))
+    if (!(ksiFileName = PhGetKsiDirectory()))
         goto CleanupExit;
 
-    if (PhDoesFileExistWin32(PhGetString(ksiFileName)))
+    if (!PhDoesFileExistWin32(PhGetString(ksiFileName)))
     {
-        KPH_CONFIG_PARAMETERS config = { 0 };
-        PPH_STRING objectName = NULL;
-        PPH_STRING portName = NULL;
-        PPH_STRING altitudeName = NULL;
-        BOOLEAN disableImageLoadProtection = FALSE;
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver was not found."
+            );
+        goto CleanupExit;
+    }
 
-        if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KphObjectName")))
-            PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
-        if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KphPortName")))
-            PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
-        if (PhIsNullOrEmptyString(altitudeName = PhGetStringSetting(L"KphAltitude")))
-            PhMoveReference(&altitudeName, PhCreateString(KPH_ALTITUDE_NAME));
-        disableImageLoadProtection = !!PhGetIntegerSetting(L"KphDisableImageLoadProtection");
+    if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KsiObjectName")))
+        PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
+    if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
+        PhClearReference(&portName);
+    if (PhIsNullOrEmptyString(altitude = PhGetStringSetting(L"KsiAltitude")))
+        PhClearReference(&altitude);
 
-        config.FileName = &ksiFileName->sr;
-        config.ServiceName = &ksiServiceName->sr;
-        config.ObjectName = &objectName->sr;
-        config.PortName = &portName->sr;
-        config.Altitude = &altitudeName->sr;
-        config.DisableImageLoadProtection = disableImageLoadProtection;
-        config.Callback = KsiCommsCallback;
-        status = KphConnect(&config);
+    config.FileName = &ksiFileName->sr;
+    config.ServiceName = &ksiServiceName->sr;
+    config.ObjectName = &objectName->sr;
+    config.PortName = (portName ? &portName->sr : NULL);
+    config.Altitude = (altitude ? &altitude->sr : NULL);
+    config.Flags.Flags = 0;
+    config.Flags.DisableImageLoadProtection = !!PhGetIntegerSetting(L"KsiDisableImageLoadProtection");
+    config.Flags.RandomizedPoolTag = !!PhGetIntegerSetting(L"KsiRandomizedPoolTag");
+    config.Flags.DynDataNoEmbedded = !!PhGetIntegerSetting(L"KsiDynDataNoEmbedded");
+    config.Callback = KsiCommsCallback;
 
-        if (NT_SUCCESS(status))
+    config.EnableNativeLoad = KsiEnableLoadNative;
+    config.EnableFilterLoad = KsiEnableLoadFilter;
+
+    status = KphConnect(&config);
+
+    if (status == STATUS_NO_SUCH_FILE)
+    {
+        PPH_STRING tempFileName;
+
+        //
+        // N.B. We know the driver file exists from the check above. This
+        // error indicates that the kernel driver is still mapped but
+        // unloaded.
+        //
+        // The chain of calls and resulting return status is this:
+        // IopLoadDriver
+        // -> MmLoadSystemImage -> STATUS_IMAGE_ALREADY_LOADED
+        // -> ObOpenObjectByName -> STATUS_OBJECT_NAME_NOT_FOUND
+        // -> STATUS_DRIVER_FAILED_PRIOR_UNLOAD -> STATUS_NO_SUCH_FILE
+        //
+        // The driver object has been made temporary and the underlying
+        // section will be unmapped by the kernel when it is safe to do so.
+        // This generally happens when the pinned module is holding the
+        // driver in memory until some code finishes executing. This can
+        // also happen if another misbehaving driver is leaking or holding
+        // a reference to the driver object.
+        //
+        // To continue to provide a good user experience, we will attempt copy
+        // the driver to another file and load it again. First, try to use an
+        // existing temporary driver file, if one exists.
+        //
+
+        tempFileName = PhGetStringSetting(L"KsiPreviousTemporaryDriverFile");
+        if (tempFileName)
         {
-            KPH_LEVEL level = KphLevel();
-
-            if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
+            if (PhDoesFileExistWin32(PhGetString(tempFileName)))
             {
-                if ((level == KphLevelHigh) &&
-                    !PhStartupParameters.KphStartupMax)
-                {
-                    PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
-                    PhRestartSelf(&commandline);
-                }
+                config.FileName = &tempFileName->sr;
 
-                if ((level < KphLevelHigh) &&
-                    !PhStartupParameters.KphStartupMax &&
-                    !PhStartupParameters.KphStartupHigh)
-                {
-                    PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
-                    PhRestartSelf(&commandline);
-                }
+                status = KphConnect(&config);
+            }
+
+            PhDereferenceObject(tempFileName);
+        }
+
+        if (!NT_SUCCESS(status) && tempDriverDir)
+        {
+            if (NT_SUCCESS(status = KsiCreateTemporaryDriverFile(ksiFileName, tempDriverDir, &tempFileName)))
+            {
+                PhSetStringSetting(L"KsiPreviousTemporaryDriverFile", PhGetString(tempFileName));
+
+                config.FileName = &tempFileName->sr;
+
+                status = KphConnect(&config);
+
+                PhDereferenceObject(tempFileName);
             }
         }
-        else
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowKsiMessageEx(
+            WindowHandle,
+            TD_ERROR_ICON,
+            status,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"Unable to load the kernel driver service."
+            );
+        goto CleanupExit;
+    }
+
+    KphActivateDynData(dynData, dynDataLength, signature, signatureLength);
+
+    level = KphLevelEx(FALSE);
+
+    if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
+    {
+        if ((level == KphLevelHigh) &&
+            !PhStartupParameters.KphStartupMax)
         {
-            if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
-                PhShowKsiError(L"Unable to load the kernel driver service.", status);
+            PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
+            status = PhRestartSelf(&commandline);
         }
 
-        PhClearReference(&objectName);
+        if ((level < KphLevelHigh) &&
+            !PhStartupParameters.KphStartupMax &&
+            !PhStartupParameters.KphStartupHigh)
+        {
+            PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
+            status = PhRestartSelf(&commandline);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowKsiMessageEx(
+                WindowHandle,
+                TD_ERROR_ICON,
+                status,
+                FALSE,
+                L"Unable to load kernel driver",
+                L"Unable to restart."
+                );
+            goto CleanupExit;
+        }
     }
-    else
+
+    if (level == KphLevelMax)
     {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-            PhShowKsiError(L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
+        ACCESS_MASK process = 0;
+        ACCESS_MASK thread = 0;
+
+        if (PhGetIntegerSetting(L"KsiEnableUnloadProtection"))
+            KphAcquireDriverUnloadProtection(NULL, NULL);
+
+        switch (PhGetIntegerSetting(L"KsiClientProcessProtectionLevel"))
+        {
+        case 2:
+            process |= (PROCESS_VM_READ | PROCESS_QUERY_INFORMATION);
+            thread |= (THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION);
+            __fallthrough;
+        case 1:
+            process |= (PROCESS_TERMINATE | PROCESS_SUSPEND_RESUME);
+            thread |= (THREAD_TERMINATE | THREAD_SUSPEND_RESUME | THREAD_RESUME);
+            __fallthrough;
+        case 0:
+        default:
+            break;
+        }
+
+        if (process != 0 || thread != 0)
+            KphStripProtectedProcessMasks(NtCurrentProcess(), process, thread);
     }
 
 CleanupExit:
-    if (ksiServiceName)
-        PhDereferenceObject(ksiServiceName);
-    if (ksiFileName)
-        PhDereferenceObject(ksiFileName);
-    if (fileName)
-        PhDereferenceObject(fileName);
+
+    PhClearReference(&objectName);
+    PhClearReference(&portName);
+    PhClearReference(&altitude);
+    PhClearReference(&ksiServiceName);
+    PhClearReference(&ksiFileName);
+    PhClearReference(&tempDriverDir);
+
+    if (signature)
+        PhFree(signature);
+    if (dynData)
+        PhFree(dynData);
+
+#ifdef DEBUG
+    KsiDebugLogInitialize();
+#endif
 }
 
-VOID PhDestroyKsi(
+NTSTATUS KsiInitializeCallbackThread(
+    _In_opt_ PVOID CallbackContext
+    )
+{
+#ifdef KSI_DEBUG_DELAY_SPLASHSCREEN
+    if (CallbackContext) PhDelayExecution(1000);
+#endif
+
+    KsiConnect(CallbackContext);
+
+    if (CallbackContext)
+    {
+        SendMessage(CallbackContext, TDM_CLICK_BUTTON, IDOK, 0);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+static HRESULT CALLBACK KsiSplashScreenDialogCallbackProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT Notification,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR Context
+    )
+{
+    switch (Notification)
+    {
+    case TDN_CREATED:
+        {
+            NTSTATUS status;
+            HANDLE threadHandle;
+
+            SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+
+            if (NT_SUCCESS(status = PhCreateThreadEx(
+                &threadHandle,
+                KsiInitializeCallbackThread,
+                WindowHandle
+                )))
+            {
+                NtClose(threadHandle);
+            }
+            else
+            {
+                PhShowStatus(WindowHandle, L"Unable to create the window.", status, 0);
+            }
+        }
+        break;
+    case TDN_BUTTON_CLICKED:
+        {
+            INT buttonId = (INT)wParam;
+
+            if (buttonId == IDCANCEL)
+            {
+                return S_FALSE;
+            }
+        }
+        break;
+    case TDN_TIMER:
+        {
+            ULONG ticks = (ULONG)wParam;
+            PPH_STRING timeSpan = PhFormatUInt64(ticks, TRUE);
+            PhMoveReference(&timeSpan, PhConcatStringRefZ(&timeSpan->sr, L" ms..."));
+            SendMessage(WindowHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)timeSpan->Buffer);
+            PhDereferenceObject(timeSpan);
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+VOID KsiShowInitializingSplashScreen(
     VOID
     )
 {
-    PPH_STRING ksiServiceName;
+    TASKDIALOGCONFIG config;
 
-    if (!KphCommsIsConnected())
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_CALLBACK_TIMER;
+    config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pfCallback = KsiSplashScreenDialogCallbackProc;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainInstruction = L"Initializing System Informer kernel driver...";
+    config.pszContent = L"0 ms...";
+    config.cxWidth = 200;
+
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
+}
+
+VOID PhInitializeKsi(
+    VOID
+    )
+{
+    if (!PhGetOwnTokenAttributes().Elevated)
         return;
 
-    // KphCommsStop();
-
-    if (ksiServiceName = PhGetKsiServiceName())
+    if (WindowsVersion < WINDOWS_10)
     {
-        KphServiceStop(&ksiServiceName->sr);
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not supported on this Windows version, the "
+            L"minimum supported version is Windows 10."
+            );
+        return;
     }
+    if (WindowsVersion == WINDOWS_NEW)
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not supported on preview builds. If this is "
+            L"not a preview build, request support by submitting a GitHub issue "
+            L"with the Windows Kernel version."
+            );
+        return;
+    }
+
+    if (PhDoesOldKsiExist())
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            STATUS_PENDING,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The last System Informer update requires a reboot."
+            );
+        return;
+    }
+
+    if (PhIsExecutingInWow64())
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not supported under Wow64, use the native "
+            "binary instead."
+            );
+        return;
+    }
+
+    if (USER_SHARED_DATA->NativeProcessorArchitecture != PROCESSOR_ARCHITECTURE_AMD64 &&
+        USER_SHARED_DATA->NativeProcessorArchitecture != PROCESSOR_ARCHITECTURE_ARM64)
+    {
+        PhShowKsiMessageEx(
+            NULL,
+            TD_ERROR_ICON,
+            0,
+            FALSE,
+            L"Unable to load kernel driver",
+            L"The kernel driver is not supported on this architecture."
+            );
+        return;
+    }
+
+    KsiEnableLoadNative = !!PhGetIntegerSetting(L"KsiEnableLoadNative");
+    KsiEnableLoadFilter = !!PhGetIntegerSetting(L"KsiEnableLoadFilter");
+
+    if (PhGetIntegerSetting(L"KsiEnableSplashScreen"))
+        KsiShowInitializingSplashScreen();
+    else
+        KsiInitializeCallbackThread(NULL);
+}
+
+NTSTATUS PhCleanupKsi(
+    VOID
+    )
+{
+    NTSTATUS status;
+    PPH_STRING ksiServiceName;
+    KPH_CONFIG_PARAMETERS config = { 0 };
+    BOOLEAN shouldUnload;
+
+    if (!KphCommsIsConnected())
+        return STATUS_SUCCESS;
+
+    if (PhGetIntegerSetting(L"KsiEnableUnloadProtection"))
+        KphReleaseDriverUnloadProtection(NULL, NULL);
+
+    if (PhGetIntegerSetting(L"KsiUnloadOnExit"))
+    {
+        ULONG clientCount;
+
+        if (!NT_SUCCESS(status = KphGetConnectedClientCount(&clientCount)))
+            return status;
+
+        shouldUnload = (clientCount == 1);
+    }
+    else
+    {
+        shouldUnload = FALSE;
+    }
+
+    KphCommsStop();
+
+#ifdef DEBUG
+    KsiDebugLogDestroy();
+#endif
+
+    if (!shouldUnload)
+        return STATUS_SUCCESS;
+
+    if (!(ksiServiceName = PhGetKsiServiceName()))
+        return STATUS_UNSUCCESSFUL;
+
+    config.ServiceName = &ksiServiceName->sr;
+    config.EnableNativeLoad = KsiEnableLoadNative;
+    config.EnableFilterLoad = KsiEnableLoadFilter;
+    status = KphServiceStop(&config);
+
+    return status;
 }
 
 _Success_(return)
@@ -379,7 +1166,6 @@ BOOLEAN PhParseKsiSettingsBlob(
     _Out_ PPH_STRING* ServiceName
     )
 {
-    BOOLEAN status = FALSE;
     PPH_STRING directory = NULL;
     PPH_STRING serviceName = NULL;
     PSTR string;

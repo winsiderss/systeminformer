@@ -6,13 +6,13 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include <phapp.h>
-#include <apiimport.h>
 #include <appresolver.h>
+#include <settings.h>
 
 #include <dbghelp.h>
 #include <symprv.h>
@@ -34,11 +34,11 @@ typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING FileName;
     PPH_STRING ErrorMessage;
-    MINIDUMP_TYPE DumpType;
-    WNDPROC DefaultTaskDialogWindowProc;
+    ULONG DumpType;
 
     HANDLE ProcessHandle;
     HANDLE FileHandle;
+    HANDLE KernelFileHandle;
 
     union
     {
@@ -54,6 +54,7 @@ typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
     };
 
     ULONG64 LastTickCount;
+    WNDPROC DefaultTaskDialogWindowProc;
 } PH_PROCESS_MINIDUMP_CONTEXT, *PPH_PROCESS_MINIDUMP_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
@@ -123,6 +124,21 @@ VOID PhpProcessMiniDumpContextDeleteProcedure(
 {
     PPH_PROCESS_MINIDUMP_CONTEXT context = Object;
 
+    if (context->KernelFileHandle)
+    {
+        LARGE_INTEGER fileSize;
+
+        if (NT_SUCCESS(PhGetFileSize(context->KernelFileHandle, &fileSize)))
+        {
+            if (fileSize.QuadPart == 0)
+            {
+                PhSetFileDelete(context->KernelFileHandle);
+            }
+        }
+
+        NtClose(context->KernelFileHandle);
+    }
+
     if (context->FileHandle)
         NtClose(context->FileHandle);
     if (context->ProcessHandle)
@@ -155,9 +171,17 @@ PPH_PROCESS_MINIDUMP_CONTEXT PhpCreateProcessMiniDumpContext(
 
 VOID PhUiCreateDumpFileProcess(
     _In_ HWND WindowHandle,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ MINIDUMP_TYPE DumpType
     )
 {
+    static ACCESS_MASK processAccess[] =
+    {
+        PROCESS_ALL_ACCESS,
+        PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE | PROCESS_VM_READ,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+        PROCESS_QUERY_INFORMATION
+    };
     NTSTATUS status;
     PPH_PROCESS_MINIDUMP_CONTEXT context;
     PPH_STRING fileName;
@@ -175,48 +199,25 @@ VOID PhUiCreateDumpFileProcess(
     context->ProcessId = ProcessItem->ProcessId;
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->FileName = fileName;
+    context->DumpType = DumpType;
 
-    // task manager uses these flags (wj32)
-    if (WindowsVersion >= WINDOWS_10)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(processAccess); i++)
     {
-        context->DumpType =
-            MiniDumpWithFullMemory |
-            MiniDumpWithHandleData |
-            MiniDumpWithUnloadedModules |
-            MiniDumpWithFullMemoryInfo |
-            MiniDumpWithThreadInfo |
-            MiniDumpIgnoreInaccessibleMemory |
-            MiniDumpWithIptTrace;
-
-        if (!NT_SUCCESS(status = PhOpenProcess(
+        if (NT_SUCCESS(status = PhOpenProcess(
             &context->ProcessHandle,
-            PROCESS_ALL_ACCESS,
+            processAccess[i],
             context->ProcessId
             )))
         {
-            goto LimitedDump;
+            break;
         }
     }
-    else
-    {
-LimitedDump:
-        context->DumpType =
-            MiniDumpWithFullMemory |
-            MiniDumpWithHandleData |
-            MiniDumpWithUnloadedModules |
-            MiniDumpWithFullMemoryInfo |
-            MiniDumpWithThreadInfo;
 
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &context->ProcessHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            context->ProcessId
-            )))
-        {
-            PhShowStatus(WindowHandle, L"Unable to open the process", status, 0);
-            PhDereferenceObject(context);
-            return;
-        }
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(WindowHandle, L"Unable to open the process", status, 0);
+        PhDereferenceObject(context);
+        return;
     }
 
 #ifdef _WIN64
@@ -229,7 +230,7 @@ LimitedDump:
         PhGetString(fileName),
         FILE_GENERIC_WRITE | DELETE,
         FILE_ATTRIBUTE_NORMAL,
-        0,
+        FILE_SHARE_DELETE,
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         );
@@ -243,12 +244,12 @@ LimitedDump:
 
     PhCreateThread2(PhpProcessMiniDumpTaskDialogThread, context);
 
-    //DialogBoxParam(
+    //PhDialogBox(
     //    PhInstanceHandle,
     //    MAKEINTRESOURCE(IDD_PROGRESS),
     //    NULL,
     //    PhpProcessMiniDumpDlgProc,
-    //    (LPARAM)context
+    //    context
     //    );
 }
 
@@ -353,6 +354,50 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
             message = PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
         break;
+    case WriteKernelMinidumpCallback:
+        {
+            static PH_STRINGREF kernelDumpFileExt = PH_STRINGREF_INIT(L".kernel.dmp");
+            HANDLE kernelDumpFileHandle;
+            PPH_STRING kernelDumpFileName;
+
+            if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+                break;
+            if (!PhGetOwnTokenAttributes().Elevated)
+                break;
+
+            if (kernelDumpFileName = PhGetBaseNameChangeExtension(&context->FileName->sr, &kernelDumpFileExt))
+            {
+                if (NT_SUCCESS(PhCreateFileWin32(
+                    &kernelDumpFileHandle,
+                    PhGetString(kernelDumpFileName),
+                    FILE_GENERIC_WRITE | DELETE,
+                    FILE_ATTRIBUTE_NORMAL,
+                    0,
+                    FILE_OVERWRITE_IF,
+                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                    )))
+                {
+                    context->KernelFileHandle = kernelDumpFileHandle;
+                    CallbackOutput->Handle = kernelDumpFileHandle;
+                }
+
+                PhDereferenceObject(kernelDumpFileName);
+            }
+        }
+        break;
+    case KernelMinidumpStatusCallback:
+        {
+            PH_FORMAT format[2];
+
+            if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+                break;
+
+            PhInitFormatS(&format[0], L"Processing kernel minidump");
+            PhInitFormatS(&format[1], L"...");
+
+            message = PhFormat(format, RTL_NUMBER_OF(format), 0);
+        }
+        break;
     }
 
     if (message)
@@ -370,7 +415,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
 {
     PPH_PROCESS_MINIDUMP_CONTEXT context = Parameter;
     MINIDUMP_CALLBACK_INFORMATION callbackInfo;
-    HANDLE snapshotHandle = NULL;
+    HANDLE processSnapshotHandle = NULL;
     HANDLE packageTaskHandle = NULL;
 
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
@@ -405,7 +450,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         {
             if (PhShowMessage2(
                 context->WindowHandle,
-                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_YES_BUTTON | TD_NO_BUTTON,
                 TD_WARNING_ICON,
                 L"The 32-bit version of System Informer could not be located.",
                 L"A 64-bit dump will be created instead. Do you want to continue?"
@@ -417,24 +462,46 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
 #endif
 
-    if (context->ProcessItem->PackageFullName)
+    if (context->ProcessItem->IsPackagedProcess)
     {
         // Set the task completion notification (based on taskmgr.exe) (dmex)
         //PhAppResolverPackageStopSessionRedirection(context->ProcessItem->PackageFullName);
         PhAppResolverBeginCrashDumpTaskByHandle(context->ProcessHandle, &packageTaskHandle);
     }
 
-    if (NT_SUCCESS(PhCreateProcessSnapshot(
-        &snapshotHandle,
-        context->ProcessHandle,
-        context->ProcessId
-        )))
+    if (PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
     {
-        context->IsProcessSnapshot = TRUE;
+        if (!PhGetOwnTokenAttributes().Elevated)
+        {
+            PhShowWarning2(
+                context->WindowHandle,
+                L"Unable to create kernel minidump.",
+                L"%s",
+                L"Kernel minidump of processes require administrative privileges. "
+                L"Make sure System Informer is running with administrative privileges."
+                );
+        }
+    }
+    else
+    {
+        if (context->ProcessId != NtCurrentProcessId()) // Don't use snapshots for the current process (dmex)
+        {
+            HANDLE snapshotHandle;
+
+            if (NT_SUCCESS(PhCreateProcessSnapshot(
+                &snapshotHandle,
+                context->ProcessHandle,
+                context->ProcessId
+                )))
+            {
+                processSnapshotHandle = snapshotHandle;
+                context->IsProcessSnapshot = TRUE;
+            }
+        }
     }
 
     if (PhWriteMiniDumpProcess(
-        context->IsProcessSnapshot ? snapshotHandle : context->ProcessHandle,
+        processSnapshotHandle ? processSnapshotHandle : context->ProcessHandle,
         context->ProcessId,
         context->FileHandle,
         context->DumpType,
@@ -450,9 +517,9 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         SendMessage(context->WindowHandle, WM_PH_MINIDUMP_ERROR, 0, (LPARAM)GetLastError());
     }
 
-    if (snapshotHandle)
+    if (processSnapshotHandle)
     {
-        PhFreeProcessSnapshot(snapshotHandle, context->ProcessHandle);
+        PhFreeProcessSnapshot(processSnapshotHandle, context->ProcessHandle);
     }
 
     if (packageTaskHandle)
@@ -469,7 +536,7 @@ Completed:
     }
     else
     {
-        PhDeleteFile(context->FileHandle);
+        PhSetFileDelete(context->FileHandle);
     }
 
     PhDereferenceObject(context);
@@ -516,12 +583,12 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             PhReferenceObject(context);
             PhCreateThread2(PhpProcessMiniDumpThreadStart, context);
 
-            SetTimer(hwndDlg, 1, 500, NULL);
+            PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 500, NULL);
         }
         break;
     case WM_DESTROY:
         {
-            KillTimer(hwndDlg, 1);
+            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
@@ -543,7 +610,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         break;
     case WM_TIMER:
         {
-            if (wParam == 1)
+            if (wParam == PH_WINDOW_TIMER_DEFAULT)
             {
                 ULONG64 currentTickCount;
 
@@ -746,4 +813,124 @@ NTSTATUS PhpProcessMiniDumpTaskDialogThread(
     PhDereferenceObject(context);
 
     return STATUS_SUCCESS;
+}
+
+typedef struct _PH_MINIDUMP_OPTION_ENTRY
+{
+    ULONG Id;
+    MINIDUMP_TYPE Type;
+} PH_MINIDUMP_OPTION_ENTRY, *PPH_MINIDUMP_OPTION_ENTRY;
+
+INT_PTR CALLBACK PhpProcDumpDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_MINIDUMP_OPTION_ENTRY options[] =
+    {
+        { IDC_MINIDUMP_NORMAL, MiniDumpNormal },
+        { IDC_MINIDUMP_WITH_DATA_SEGS, MiniDumpWithDataSegs },
+        { IDC_MINIDUMP_WITH_FULL_MEM, MiniDumpWithFullMemory },
+        { IDC_MINIDUMP_WITH_HANDLE_DATA, MiniDumpWithHandleData },
+        { IDC_MINIDUMP_FILTER_MEMORY, MiniDumpFilterMemory },
+        { IDC_MINIDUMP_SCAN_MEMORY, MiniDumpScanMemory },
+        { IDC_MINIDUMP_WITH_UNLOADED_MODULES, MiniDumpWithUnloadedModules },
+        { IDC_MINIDUMP_WITH_INDIRECT_REFERENCED_MEM, MiniDumpWithIndirectlyReferencedMemory },
+        { IDC_MINIDUMP_FILTER_MODULE_PATHS, MiniDumpFilterModulePaths },
+        { IDC_MINIDUMP_WITH_PROC_THRD_DATA, MiniDumpWithProcessThreadData },
+        { IDC_MINIDUMP_WITH_PRIVATE_RW_MEM, MiniDumpWithPrivateReadWriteMemory },
+        { IDC_MINIDUMP_WITHOUT_OPTIONAL_DATA, MiniDumpWithoutOptionalData },
+        { IDC_MINIDUMP_WITH_FULL_MEM_INFO, MiniDumpWithFullMemoryInfo },
+        { IDC_MINIDUMP_WITH_THRD_INFO, MiniDumpWithThreadInfo },
+        { IDC_MINIDUMP_WITH_CODE_SEGS, MiniDumpWithCodeSegs },
+        { IDC_MINIDUMP_WITHOUT_AUXILIARY_STATE, MiniDumpWithoutAuxiliaryState },
+        { IDC_MINIDUMP_WITH_FULL_AUXILIARY_STATE, MiniDumpWithFullAuxiliaryState },
+        { IDC_MINIDUMP_WITH_PRIVATE_WRITE_COPY_MEM, MiniDumpWithPrivateWriteCopyMemory },
+        { IDC_MINIDUMP_IGNORE_INACCESSIBLE_MEM, MiniDumpIgnoreInaccessibleMemory },
+        { IDC_MINIDUMP_WITH_TOKEN_INFO, MiniDumpWithTokenInformation },
+        { IDC_MINIDUMP_WITH_MODULE_HEADERS, MiniDumpWithModuleHeaders },
+        { IDC_MINIDUMP_FILTER_TRIAGE, MiniDumpFilterTriage },
+        { IDC_MINIDUMP_WITH_AVXX_STATE_CONTEXT, MiniDumpWithAvxXStateContext },
+        { IDC_MINIDUMP_WITH_IPT_TRACE, MiniDumpWithIptTrace },
+        { IDC_MINIDUMP_SCAN_INACCESSIBLE_PARTIAL_PAGES, MiniDumpScanInaccessiblePartialPages },
+        { IDC_MINIDUMP_FILTER_WRITE_COMBINE_MEM, MiniDumpFilterWriteCombinedMemory },
+    };
+    PPH_PROCESS_ITEM processItem;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        processItem = (PPH_PROCESS_ITEM)lParam;
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, processItem);
+    }
+    else
+    {
+        processItem = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhSetApplicationWindowIcon(hwndDlg);
+
+            PhCenterWindow(hwndDlg, NULL);
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_MINIDUMP_NORMAL), BST_CHECKED);
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDOK));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDCANCEL:
+                EndDialog(hwndDlg, IDCANCEL);
+                break;
+            case IDOK:
+                {
+                    MINIDUMP_TYPE dumpType;
+
+                    dumpType = 0;
+
+                    for (ULONG i = 0; i < RTL_NUMBER_OF(options); i++)
+                    {
+                        if (Button_GetCheck(GetDlgItem(hwndDlg, options[i].Id)) == BST_CHECKED)
+                            dumpType |= options[i].Type;
+                    }
+
+                    PhUiCreateDumpFileProcess(hwndDlg, processItem, dumpType);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}
+
+VOID PhShowCreateDumpFileProcessDialog(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PhDialogBox(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_PROCDUMP),
+        WindowHandle,
+        PhpProcDumpDlgProc,
+        ProcessItem
+        );
 }

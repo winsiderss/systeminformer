@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2019-2022
+ *     dmex    2019-2023
  *
  */
 
@@ -22,6 +22,7 @@
 
 #include <accctrl.h>
 #include <lsasup.h>
+#include <mapldr.h>
 
 NTSTATUS PhOpenLsaPolicy(
     _Out_ PLSA_HANDLE PolicyHandle,
@@ -427,7 +428,7 @@ NTSTATUS PhLookupName(
         {
             if (Sid)
             {
-                *Sid = PhAllocateCopy(sids[0].Sid, RtlLengthSid(sids[0].Sid));
+                *Sid = PhAllocateCopy(sids[0].Sid, PhLengthSid(sids[0].Sid));
             }
 
             if (DomainName)
@@ -587,8 +588,37 @@ PPH_STRING PhSidToStringSid(
     }
     else
     {
+        PhDereferenceObject(string);
+
         return NULL;
     }
+}
+
+NTSTATUS PhSidToStringBuffer(
+    _In_ PSID Sid,
+    _Writable_bytes_(BufferLength) PWCHAR Buffer,
+    _In_ USHORT BufferLength,
+    _Out_opt_ PUSHORT ReturnLength
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING unicodeString;
+
+    RtlInitEmptyUnicodeString(&unicodeString, Buffer, BufferLength);
+
+    status = RtlConvertSidToUnicodeString(
+        &unicodeString,
+        Sid,
+        FALSE
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ReturnLength)
+            *ReturnLength = unicodeString.Length;
+    }
+
+    return status;
 }
 
 PPH_STRING PhGetTokenUserString(
@@ -597,12 +627,11 @@ PPH_STRING PhGetTokenUserString(
     )
 {
     PPH_STRING tokenUserString = NULL;
-    PTOKEN_USER tokenUser;
+    PH_TOKEN_USER tokenUser;
 
     if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
     {
-        tokenUserString = PhGetSidFullName(tokenUser->User.Sid, IncludeDomain, NULL);
-        PhFree(tokenUser);
+        tokenUserString = PhGetSidFullName(tokenUser.User.Sid, IncludeDomain, NULL);
     }
 
     return tokenUserString;
@@ -636,6 +665,53 @@ NTSTATUS PhGetAccountPrivileges(
     LsaFreeMemory(accountPrivileges);
 
     *Privileges = privileges;
+
+    return status;
+}
+
+NTSTATUS PhEnumeratePrivileges(
+    _In_ PPH_ENUM_PRIVILEGES Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    LSA_HANDLE policyHandle;
+    LSA_ENUMERATION_HANDLE enumContext;
+    PPOLICY_PRIVILEGE_DEFINITION buffer;
+    ULONG count;
+
+    status = PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    enumContext = 0;
+
+    while (TRUE)
+    {
+        status = LsaEnumeratePrivileges(
+            policyHandle,
+            &enumContext,
+            &buffer,
+            0x100,
+            &count
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        status = Callback(buffer, count, Context);
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        LsaFreeMemory(buffer);
+    }
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+        status = STATUS_SUCCESS;
+
+    LsaClose(policyHandle);
 
     return status;
 }
@@ -675,7 +751,7 @@ NTSTATUS PhGetSidAccountType(
     return status;
 }
 
-PPH_STRING PhGetSidAccountTypeString(
+PCWSTR PhGetSidAccountTypeString(
     _In_ PSID Sid
     )
 {
@@ -686,32 +762,63 @@ PPH_STRING PhGetSidAccountTypeString(
         switch (accountType)
         {
         case LocalUserAccountType:
-            return PhCreateString(L"Local");
+            return L"Local";
         case PrimaryDomainUserAccountType:
         case ExternalDomainUserAccountType:
-            return PhCreateString(L"ActiveDirectory");
+            return L"ActiveDirectory";
         case LocalConnectedUserAccountType:
         case MSAUserAccountType:
-            return PhCreateString(L"MicrosoftAccount");
+            return L"Microsoft";
         case AADUserAccountType:
-            return PhCreateString(L"AzureAD");
+            return L"AzureAD";
         case InternetUserAccountType:
             {
                 SID_IDENTIFIER_AUTHORITY msaAuthority = { 0, 0, 0, 0, 0, 11 };
-                SID_IDENTIFIER_AUTHORITY sidAuthority = ((PISID)Sid)->IdentifierAuthority;
 
-                // TODO: We should be using RtlIdentifierAuthoritySid here but this function
-                // isn't currently used so we'll save the import. (dmex)
-                if (RtlEqualMemory(&sidAuthority, &msaAuthority, sizeof(msaAuthority)))
+                if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &msaAuthority))
                 {
-                    return PhCreateString(L"MicrosoftAccount");
+                    return L"Microsoft";
                 }
+
+                return L"Internet";
             }
             break;
         }
     }
 
-    return PhCreateString(L"Unknown");
+    // If we don't get a result from LsaLookupUserAccountType then return the SID authority (or some other value?)  (dmex)
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NULL_SID_AUTHORITY)) // 0
+    {
+        return L"NULL (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_WORLD_SID_AUTHORITY)) // 1
+    {
+        return L"World (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_LOCAL_SID_AUTHORITY)) // 2
+    {
+        return L"Local (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_NT_AUTHORITY)) // 5
+    {
+        return L"NT (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_APP_PACKAGE_AUTHORITY)) // 15
+    {
+        return L"APP_PACKAGE (Authority)";
+    }
+
+    if (PhEqualIdentifierAuthoritySid(PhIdentifierAuthoritySid(Sid), &(SID_IDENTIFIER_AUTHORITY)SECURITY_MANDATORY_LABEL_AUTHORITY)) // 16
+    {
+        return L"Mandatory label";
+    }
+
+    return L"Unknown";
 }
 
 typedef struct _PH_CAPABILITY_ENTRY
@@ -756,25 +863,25 @@ VOID PhInitializeCapabilitySidCache(
             BYTE capabilitySidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
             PSID capabilityGroupSid = (PSID)capabilityGroupSidBuffer;
             PSID capabilitySid = (PSID)capabilitySidBuffer;
-            UNICODE_STRING capabilityNameUs;
+            UNICODE_STRING capabilityName;
 
             if (PhEndsWithStringRef2(&namePart, L"\r", FALSE))
                 namePart.Length -= sizeof(WCHAR);
 
-            if (!PhStringRefToUnicodeString(&namePart, &capabilityNameUs))
+            if (!PhStringRefToUnicodeString(&namePart, &capabilityName))
                 continue;
 
             if (NT_SUCCESS(RtlDeriveCapabilitySidsFromName_Import()(
-                &capabilityNameUs,
+                &capabilityName,
                 capabilityGroupSid,
                 capabilitySid
                 )))
             {
                 PH_CAPABILITY_ENTRY entry;
 
-                entry.Name = PhCreateStringFromUnicodeString(&capabilityNameUs);
-                entry.CapabilityGroupSid = PhAllocateCopy(capabilityGroupSid, RtlLengthSid(capabilityGroupSid));
-                entry.CapabilitySid = PhAllocateCopy(capabilitySid, RtlLengthSid(capabilitySid));
+                entry.Name = PhCreateStringFromUnicodeString(&capabilityName);
+                entry.CapabilityGroupSid = PhAllocateCopy(capabilityGroupSid, PhLengthSid(capabilityGroupSid));
+                entry.CapabilitySid = PhAllocateCopy(capabilitySid, PhLengthSid(capabilitySid));
 
                 PhAddItemArray(CapabilitySidArrayList, &entry);
             }
@@ -806,12 +913,12 @@ PPH_STRING PhGetCapabilitySidName(
     {
         entry = PhItemArray(&capabilitySidArrayList, i);
 
-        if (RtlEqualSid(entry->CapabilitySid, CapabilitySid))
+        if (PhEqualSid(entry->CapabilitySid, CapabilitySid))
         {
             return PhReferenceObject(entry->Name);
         }
 
-        if (RtlEqualSid(entry->CapabilityGroupSid, CapabilitySid))
+        if (PhEqualSid(entry->CapabilityGroupSid, CapabilitySid))
         {
             return PhReferenceObject(entry->Name);
         }
@@ -835,15 +942,12 @@ typedef struct _PH_CAPABILITY_KEY_CALLBACK
 BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     HANDLE keyHandle;
     PPH_STRING guidString;
     PH_STRINGREF keyName;
-
-    if (!Context)
-        return FALSE;
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
@@ -856,7 +960,7 @@ BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
         0
         )))
     {
-        if (guidString = PhQueryRegistryString(keyHandle, L"LegacyInterfaceClassGuid"))
+        if (guidString = PhQueryRegistryStringZ(keyHandle, L"LegacyInterfaceClassGuid"))
         {
             PH_CAPABILITY_GUID_ENTRY entry;
 
@@ -876,15 +980,12 @@ BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
 BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_CAPABILITY_KEY_CALLBACK context = Context;
     HANDLE keyHandle;
     PH_STRINGREF keyName;
-
-    if (!Context)
-        return FALSE;
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
@@ -912,7 +1013,7 @@ BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
 BOOLEAN NTAPI PhpDeviceAccessEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     HANDLE keyHandle;
@@ -1022,4 +1123,402 @@ BOOLEAN PhBuildTrusteeWithSid(
     ((PTRUSTEE)Trustee)->TrusteeType = TRUSTEE_IS_UNKNOWN;
     ((PTRUSTEE)Trustee)->ptstrName = (LPWCH)Sid;
     return TRUE;
+}
+
+// rev from RtlMapGenericMask (dmex)
+VOID PhMapGenericMask(
+    _Inout_ PACCESS_MASK AccessMask,
+    _In_ PGENERIC_MAPPING GenericMapping
+    )
+{
+    ACCESS_MASK accessMask = *AccessMask;
+
+    if (BooleanFlagOn(accessMask, GENERIC_READ))
+        SetFlag(accessMask, GenericMapping->GenericRead);
+    if (BooleanFlagOn(accessMask, GENERIC_WRITE))
+        SetFlag(accessMask, GenericMapping->GenericWrite);
+    if (BooleanFlagOn(accessMask, GENERIC_EXECUTE))
+        SetFlag(accessMask, GenericMapping->GenericExecute);
+    if (BooleanFlagOn(accessMask, GENERIC_ALL))
+        SetFlag(accessMask, GenericMapping->GenericAll);
+
+    *AccessMask = ClearFlag(accessMask, GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE | GENERIC_ALL);
+}
+
+NTSTATUS PhEnumerateAccounts(
+    _In_ PPH_ENUM_ACCOUNT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static ULONG (WINAPI* NetUserEnum_I)( // NET_API_STATUS
+        _In_ PCWSTR servername,
+        _In_ ULONG level,
+        _In_ ULONG filter,
+        _Out_ PVOID* bufptr,
+        _In_ ULONG prefmaxlen,
+        _Out_ PULONG entriesread,
+        _Out_ PULONG totalentries,
+        _Inout_ PULONG resume_handle
+        );
+    static ULONG (WINAPI* NetApiBufferFree_I)(
+        _Frees_ptr_opt_ PVOID Buffer
+        );
+    typedef struct _USER_INFO_0
+    {
+        PWSTR usri0_name;
+    } USER_INFO_0, *PUSER_INFO_0;
+    #define FILTER_NORMAL_ACCOUNT (0x0002)
+    ULONG status;
+    PUSER_INFO_0 userinfoArray = NULL;
+    ULONG userinfoEntriesRead = 0;
+    ULONG userinfoTotalEntries = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"netapi32.dll"))
+        {
+            NetUserEnum_I = PhGetDllBaseProcedureAddress(baseAddress, "NetUserEnum", 0);
+            NetApiBufferFree_I = PhGetDllBaseProcedureAddress(baseAddress, "NetApiBufferFree", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(NetUserEnum_I && NetApiBufferFree_I))
+        return STATUS_UNSUCCESSFUL;
+
+    NetUserEnum_I(
+        NULL,
+        0,
+        FILTER_NORMAL_ACCOUNT,
+        &userinfoArray,
+        ULONG_MAX,
+        &userinfoEntriesRead,
+        &userinfoTotalEntries,
+        NULL
+        );
+
+    if (userinfoArray)
+    {
+        NetApiBufferFree_I(userinfoArray);
+        userinfoArray = NULL;
+    }
+
+    status = NetUserEnum_I(
+        NULL,
+        0,
+        FILTER_NORMAL_ACCOUNT,
+        &userinfoArray,
+        ULONG_MAX,
+        &userinfoEntriesRead,
+        &userinfoTotalEntries,
+        NULL
+        );
+
+    if (status == ERROR_SUCCESS)
+    {
+        PPH_STRING userName;
+        PPH_STRING userDomainName = NULL;
+
+        if (userName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+        {
+            userDomainName = PhGetBaseDirectory(userName);
+            PhDereferenceObject(userName);
+        }
+
+        if (userDomainName)
+        {
+            for (ULONG i = 0; i < userinfoEntriesRead; i++)
+            {
+                PUSER_INFO_0 entry = PTR_ADD_OFFSET(userinfoArray, sizeof(USER_INFO_0) * i);
+
+                if (entry->usri0_name)
+                {
+                    PPH_STRING usernameString;
+                    PH_STRINGREF usri10String;
+
+                    PhInitializeStringRefLongHint(&usri10String, entry->usri0_name);
+
+                    usernameString = PhConcatStringRef3(
+                        &userDomainName->sr,
+                        &PhNtPathSeperatorString,
+                        &usri10String
+                        );
+
+                    if (!NT_SUCCESS(Callback(usernameString, Context)))
+                    {
+                        PhDereferenceObject(usernameString);
+                        break;
+                    }
+
+                    PhDereferenceObject(usernameString);
+                }
+            }
+
+            PhDereferenceObject(userDomainName);
+        }
+    }
+
+    if (userinfoArray)
+        NetApiBufferFree_I(userinfoArray);
+
+    //LSA_HANDLE policyHandle;
+    //LSA_ENUMERATION_HANDLE enumerationContext = 0;
+    //PLSA_ENUMERATION_INFORMATION buffer;
+    //ULONG count;
+    //PPH_STRING name;
+    //SID_NAME_USE nameUse;
+    //
+    //if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
+    //{
+    //    while (NT_SUCCESS(LsaEnumerateAccounts(
+    //        policyHandle,
+    //        &enumerationContext,
+    //        &buffer,
+    //        0x100,
+    //        &count
+    //        )))
+    //    {
+    //        for (i = 0; i < count; i++)
+    //        {
+    //            name = PhGetSidFullName(buffer[i].Sid, TRUE, &nameUse);
+    //            if (name)
+    //            {
+    //                if (nameUse == SidTypeUser)
+    //                    ComboBox_AddString(ComboBoxHandle, name->Buffer);
+    //                PhDereferenceObject(name);
+    //            }
+    //        }
+    //        LsaFreeMemory(buffer);
+    //    }
+    //
+    //    LsaClose(policyHandle);
+    //}
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+//NTSTATUS PhQueryLogonInformation(
+//    _In_ PWSTR DomainName,
+//    _In_ PWSTR UserName,
+//    _Out_ PUSER_LOGON_INFORMATION* LogonInfo
+//    )
+//{
+//    NTSTATUS status;
+//    PPOLICY_ACCOUNT_DOMAIN_INFO lsaDomainInfo = NULL;
+//    PUSER_LOGON_INFORMATION samLogonInfo = NULL;
+//    LSA_OBJECT_ATTRIBUTES objectAttributes;
+//    LSA_HANDLE lookupPolicyHandle = NULL;
+//    SAM_HANDLE lookupServerHandle = NULL;
+//    SAM_HANDLE lookupDomainHandle = NULL;
+//    SAM_HANDLE lookupUserHandle = NULL;
+//    UNICODE_STRING unicodeString;
+//    PULONG lookupRelativeId = NULL;
+//    PSID_NAME_USE Use = NULL;
+//
+//    RtlInitUnicodeString(&unicodeString, DomainName);
+//    InitializeObjectAttributes(
+//        &objectAttributes,
+//        NULL,
+//        OBJ_CASE_INSENSITIVE,
+//        NULL,
+//        NULL
+//        );
+//
+//    status = LsaOpenPolicy(
+//        &unicodeString,
+//        &objectAttributes,
+//        POLICY_VIEW_LOCAL_INFORMATION,
+//        &lookupPolicyHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = LsaQueryInformationPolicy(
+//        lookupPolicyHandle,
+//        PolicyAccountDomainInformation,
+//        &lsaDomainInfo
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    InitializeObjectAttributes(
+//        &objectAttributes,
+//        NULL,
+//        OBJ_CASE_INSENSITIVE,
+//        NULL,
+//        NULL
+//        );
+//
+//    status = SamConnect(
+//        &unicodeString,
+//        &lookupServerHandle,
+//        SAM_SERVER_CONNECT | SAM_SERVER_LOOKUP_DOMAIN,
+//        &objectAttributes
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = SamOpenDomain(
+//        lookupServerHandle,
+//        DOMAIN_LOOKUP | DOMAIN_READ_OTHER_PARAMETERS,
+//        lsaDomainInfo->DomainSid,
+//        &lookupDomainHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    RtlInitUnicodeString(&unicodeString, UserName);
+//    status = SamLookupNamesInDomain(
+//        lookupDomainHandle,
+//        1,
+//        &unicodeString,
+//        &lookupRelativeId,
+//        &Use
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = SamOpenUser(
+//        lookupDomainHandle,
+//        USER_READ_GENERAL | USER_READ_PREFERENCES |
+//        USER_READ_LOGON | USER_READ_ACCOUNT |
+//        USER_LIST_GROUPS | USER_READ_GROUP_INFORMATION,
+//        lookupRelativeId[0],
+//        &lookupUserHandle
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    status = SamQueryInformationUser(
+//        lookupUserHandle,
+//        UserAllInformation,
+//        &samLogonInfo
+//        );
+//
+//    if (!NT_SUCCESS(status))
+//        goto CleanupExit;
+//
+//    *LogonInfo = PhAllocateCopy(samLogonInfo, sizeof(USER_LOGON_INFORMATION));
+//
+//CleanupExit:
+//    if (samLogonInfo)
+//        SamFreeMemory(samLogonInfo);
+//    if (lookupRelativeId)
+//        SamFreeMemory(lookupRelativeId);
+//    if (Use)
+//        SamFreeMemory(Use);
+//
+//    if (lookupUserHandle)
+//        SamCloseHandle(lookupUserHandle);
+//    if (lookupDomainHandle)
+//        SamCloseHandle(lookupDomainHandle);
+//    if (lookupServerHandle)
+//        SamCloseHandle(lookupServerHandle);
+//
+//    if (lsaDomainInfo)
+//        LsaFreeMemory(lsaDomainInfo);
+//    if (lookupPolicyHandle)
+//        LsaClose(lookupPolicyHandle);
+//
+//    return status;
+//}
+
+NTSTATUS PhCreateServiceSidToBuffer(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
+    _Inout_ PULONG ServiceSidLength
+    )
+{
+    typedef NTSTATUS (NTAPI* _RtlCreateServiceSid)(
+        _In_ PUNICODE_STRING ServiceName,
+        _Out_writes_bytes_opt_(*ServiceSidLength) PSID ServiceSid,
+        _Inout_ PULONG ServiceSidLength
+        );
+    static _RtlCreateServiceSid RtlCreateServiceSid_I = NULL;
+    UNICODE_STRING serviceName;
+    NTSTATUS status;
+
+    if (!RtlCreateServiceSid_I)
+    {
+        if (!(RtlCreateServiceSid_I = PhGetDllProcedureAddress(L"ntdll.dll", "RtlCreateServiceSid", 0)))
+            return STATUS_PROCEDURE_NOT_FOUND;
+    }
+
+    PhStringRefToUnicodeString(ServiceName, &serviceName);
+
+    status = RtlCreateServiceSid_I(
+        &serviceName,
+        ServiceSid,
+        ServiceSidLength
+        );
+
+    return status;
+}
+
+PPH_STRING PhCreateServiceSidToStringSid(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    BYTE serviceSidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
+    ULONG serviceSidLength = sizeof(serviceSidBuffer);
+    PSID serviceSid = (PSID)serviceSidBuffer;
+
+    if (NT_SUCCESS(PhCreateServiceSidToBuffer(ServiceName, serviceSid, &serviceSidLength)))
+    {
+        return PhSidToStringSid(serviceSid);
+    }
+
+    return NULL;
+}
+
+PPH_STRING PhGetAzureDirectoryObjectSid(
+    _In_ PSID ActiveDirectorySid
+    )
+{
+    if (PhEqualIdentifierAuthoritySid(
+        PhIdentifierAuthoritySid(ActiveDirectorySid),
+        PhIdentifierAuthoritySid(PhSeCloudActiveDirectorySid())
+        ))
+    {
+        ULONG subAuthority = *PhSubAuthoritySid(ActiveDirectorySid, 0);
+
+        if (subAuthority == 1)
+        {
+            PPH_STRING string;
+            union
+            {
+                GUID Guid;
+                struct
+                {
+                    ULONG Data1;
+                    ULONG Data2;
+                    ULONG Data3;
+                    ULONG Data4;
+                };
+            } objectGuid;
+
+            objectGuid.Data1 = *PhSubAuthoritySid(ActiveDirectorySid, 1);
+            objectGuid.Data2 = *PhSubAuthoritySid(ActiveDirectorySid, 2);
+            objectGuid.Data3 = *PhSubAuthoritySid(ActiveDirectorySid, 3);
+            objectGuid.Data4 = *PhSubAuthoritySid(ActiveDirectorySid, 4);
+
+            if (string = PhFormatGuid(&objectGuid.Guid))
+            {
+                PhMoveReference(&string, PhSubstring(string, 1, string->Length / sizeof(WCHAR) - 2)); // Strip {}
+                return string;
+            }
+        }
+    }
+
+    return NULL;
 }

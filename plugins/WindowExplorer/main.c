@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     wj32    2011
- *     dmex    2017-2021
+ *     wj32    2011-2016
+ *     dmex    2017-2023
  *
  */
 
 #include "wndexp.h"
-#include "resource.h"
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -48,14 +47,11 @@ static BOOL CALLBACK WepEnumDesktopProc(
 }
 
 VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-
-    if (!menuItem)
-        return;
 
     switch (menuItem->Id)
     {
@@ -118,16 +114,13 @@ VOID NTAPI MenuItemCallback(
 }
 
 VOID NTAPI MainMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     ULONG insertIndex;
     PPH_EMENU_ITEM menuItem;
-
-    if (!menuInfo)
-        return;
 
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_VIEW)
         return;
@@ -148,14 +141,11 @@ VOID NTAPI MainMenuInitializingCallback(
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
-
-    if (!propContext)
-        return;
 
     if (
         propContext->ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID &&
@@ -171,17 +161,14 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
 }
 
 VOID NTAPI ThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_THREAD_ITEM threadItem;
     ULONG insertIndex;
     PPH_EMENU_ITEM menuItem;
-
-    if (!menuInfo)
-        return;
 
     if (menuInfo->u.Thread.NumberOfThreads == 1)
         threadItem = menuInfo->u.Thread.Threads[0];
@@ -225,7 +212,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_ALTERNATE, L"0" },
-                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS, L"0" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS, L"1" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS_INTERNAL, L"0" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_PREVIEW, L"0" },
             };
 
@@ -238,18 +226,18 @@ LOGICAL DllMain(
             info->Author = L"dmex, wj32";
             info->Description = L"View and manipulate windows.";
 
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
-                );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+            //    LoadCallback,
+            //    NULL,
+            //    &PluginLoadCallbackRegistration
+            //    );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+            //    UnloadCallback,
+            //    NULL,
+            //    &PluginUnloadCallbackRegistration
+            //    );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
                 MenuItemCallback,

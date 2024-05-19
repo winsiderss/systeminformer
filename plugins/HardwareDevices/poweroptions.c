@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2024
  *
  */
 
@@ -106,8 +106,9 @@ VOID RaplDevicesSaveList(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_RAPL_LIST, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 BOOLEAN FindRaplDeviceEntry(
@@ -215,13 +216,13 @@ VOID FreeListViewRaplDeviceEntries(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PDV_RAPL_ID param;
 
@@ -309,7 +310,7 @@ VOID FindRaplDevices(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = 0;
+    ULONG deviceIndex = 0;
     PPH_LIST deviceList;
     PWSTR deviceInterfaceList;
     ULONG deviceInterfaceListLength = 0;
@@ -356,7 +357,7 @@ VOID FindRaplDevices(
             deviceInterface[1] = L'?';
 
         deviceEntry = PhAllocateZero(sizeof(RAPL_ENUM_ENTRY));
-        deviceEntry->DeviceIndex = ++index;
+        deviceEntry->DeviceIndex = ++deviceIndex;
         deviceEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
         deviceEntry->DevicePath = PhCreateString(deviceInterface);
         memset(deviceEntry->ChannelIndex, ULONG_MAX, sizeof(deviceEntry->ChannelIndex));
@@ -371,22 +372,18 @@ VOID FindRaplDevices(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            IO_STATUS_BLOCK isb;
             EMI_VERSION version;
 
             memset(&version, 0, sizeof(EMI_VERSION));
 
-            if (NT_SUCCESS(NtDeviceIoControlFile(
+            if (NT_SUCCESS(PhDeviceIoControlFile(
                 deviceHandle,
-                NULL,
-                NULL,
-                NULL,
-                &isb,
                 IOCTL_EMI_GET_VERSION,
                 NULL,
                 0,
                 &version,
-                sizeof(EMI_VERSION)
+                sizeof(EMI_VERSION),
+                NULL
                 )))
             {
                 if (version.EmiVersion == EMI_VERSION_V2)
@@ -402,33 +399,27 @@ VOID FindRaplDevices(
 
                 memset(&metadataSize, 0, sizeof(EMI_METADATA_SIZE));
 
-                if (NT_SUCCESS(NtDeviceIoControlFile(
+                if (NT_SUCCESS(PhDeviceIoControlFile(
                     deviceHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
                     IOCTL_EMI_GET_METADATA_SIZE,
                     NULL,
                     0,
                     &metadataSize,
-                    sizeof(EMI_METADATA_SIZE)
+                    sizeof(EMI_METADATA_SIZE),
+                    NULL
                     )))
                 {
                     metadata = PhAllocate(metadataSize.MetadataSize);
                     memset(metadata, 0, metadataSize.MetadataSize);
 
-                    if (NT_SUCCESS(NtDeviceIoControlFile(
+                    if (NT_SUCCESS(PhDeviceIoControlFile(
                         deviceHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &isb,
                         IOCTL_EMI_GET_METADATA,
                         NULL,
                         0,
                         metadata,
-                        metadataSize.MetadataSize
+                        metadataSize.MetadataSize,
+                        NULL
                         )))
                     {
                         EMI_CHANNEL_V2* channels = metadata->Channels;
@@ -509,7 +500,7 @@ VOID FindRaplDevices(
     PhAcquireQueuedLockShared(&RaplDevicesListLock);
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
     {
-        ULONG index = ULONG_MAX;
+        INT index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
 
@@ -520,7 +511,7 @@ VOID FindRaplDevices(
             Context->ListViewHandle,
             index,
             LVNI_ALL
-            )) != ULONG_MAX)
+            )) != INT_ERROR)
         {
             PDV_RAPL_ID param;
 
@@ -671,7 +662,7 @@ VOID LoadRaplDeviceImages(
     PhStringToInteger64(&indexPartSr, 10, &index);
     PhMoveReference(&deviceIconPath, PhExpandEnvironmentStrings(&dllPartSr));
 
-    if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+    if (PhExtractIconEx(&deviceIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
     {
         HIMAGELIST imageList = PhImageListCreate(
             PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON)
@@ -717,6 +708,7 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
     case WM_INITDIALOG:
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_RAPLDEVICE_LISTVIEW);
+
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -747,7 +739,10 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
                 RaplDevicesSaveList();
 
             FreeListViewRaplDeviceEntries(context);
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
@@ -770,9 +765,9 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
                 if (!PhTryAcquireReleaseQueuedLockExclusive(&RaplDevicesListLock))
                     break;
 
-                if (listView->uChanged & LVIF_STATE)
+                if (FlagOn(listView->uChanged, LVIF_STATE))
                 {
-                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+                    switch (FlagOn(listView->uNewState, LVIS_STATEIMAGEMASK))
                     {
                     case INDEXTOSTATEIMAGEMASK(2): // checked
                         {

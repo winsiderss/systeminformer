@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
@@ -122,7 +122,7 @@ NTSTATUS GraphicsQueryAdapterSegmentLimits(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (PhWindowsVersion >= WINDOWS_8)
+        if (NetWindowsVersion >= WINDOWS_8)
         {
             if (queryStatistics.QueryResult.SegmentInformation.Aperture)
             {
@@ -230,7 +230,7 @@ PPH_STRING GraphicsQueryDeviceDescription(
     _In_ DEVINST DeviceHandle
     )
 {
-    static PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
+    static const PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
     PPH_STRING string;
 
     string = GraphicsQueryDevicePropertyString(
@@ -239,7 +239,7 @@ PPH_STRING GraphicsQueryDeviceDescription(
         );
 
     if (PhIsNullOrEmptyString(string))
-        return PhCreateString2(&defaultName);
+        return PhCreateString2((PPH_STRINGREF)&defaultName);
     else
         return string;
 }
@@ -248,8 +248,6 @@ PPH_STRING GraphicsQueryDeviceInterfaceDescription(
     _In_opt_ PWSTR DeviceInterface
     )
 {
-    static PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
-
     if (DeviceInterface)
     {
         DEVPROPTYPE devicePropertyType;
@@ -273,7 +271,10 @@ PPH_STRING GraphicsQueryDeviceInterfaceDescription(
         }
     }
 
-    return PhCreateString2(&defaultName);
+    {
+        static const PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
+        return PhCreateString2((PPH_STRINGREF)&defaultName);
+    }
 }
 
 _Success_(return)
@@ -424,10 +425,10 @@ ULONG64 GraphicsQueryInstalledMemory(
         CM_REGISTRY_SOFTWARE
         ) == CR_SUCCESS)
     {
-        installedMemory = PhQueryRegistryUlong64(keyHandle, L"HardwareInformation.qwMemorySize");
+        installedMemory = PhQueryRegistryUlong64Z(keyHandle, L"HardwareInformation.qwMemorySize");
 
         if (installedMemory == ULLONG_MAX)
-            installedMemory = PhQueryRegistryUlong(keyHandle, L"HardwareInformation.MemorySize");
+            installedMemory = PhQueryRegistryUlongZ(keyHandle, L"HardwareInformation.MemorySize");
 
         if (installedMemory == ULONG_MAX) // HACK
             installedMemory = ULLONG_MAX;
@@ -435,10 +436,8 @@ ULONG64 GraphicsQueryInstalledMemory(
         // Intel GPU devices incorrectly create the key with type REG_BINARY.
         if (installedMemory == ULLONG_MAX)
         {
-            PH_STRINGREF valueName;
+            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"HardwareInformation.MemorySize");
             PKEY_VALUE_PARTIAL_INFORMATION buffer;
-
-            PhInitializeStringRef(&valueName, L"HardwareInformation.MemorySize");
 
             if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
             {
@@ -514,11 +513,11 @@ BOOLEAN GraphicsQueryDeviceProperties(
 
         if (GraphicsQueryDevicePropertyKey(deviceInstanceHandle, &DEVPKEY_Gpu_Luid, &propertyType, &bufferSize, &buffer))
         {
-            AdapterLuid = (PLUID)buffer;
+            memcpy(AdapterLuid, buffer, sizeof(LUID));
         }
         else
         {
-            memset(AdapterLuid, 0, sizeof(AdapterLuid));
+            memset(AdapterLuid, 0, sizeof(LUID));
         }
     }
 
@@ -583,7 +582,7 @@ BOOLEAN GraphicsQueryDeviceInterfaceLuid(
         return FALSE;
     }
 
-    AdapterLuid = (PLUID)buffer;
+    memcpy(AdapterLuid, buffer, sizeof(LUID));
     return TRUE;
 }
 
@@ -619,7 +618,7 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
         return FALSE;
     }
 
-    if (PhWindowsVersion >= WINDOWS_10)
+    if (NetWindowsVersion >= WINDOWS_10)
     {
         ULONG adapterIndex;
         ULONG adapterIndexSize;
@@ -672,8 +671,8 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
 
         deviceString = PhSubstring(
             locationString,
-            deviceIndex + wcslen(L"device "),
-            deviceIndexLength - wcslen(L"device ")
+            deviceIndex + (RTL_NUMBER_OF(L"device ") - 1),
+            deviceIndexLength - (RTL_NUMBER_OF(L"device ") - 1)
             );
 
         if (PhStringToInteger64(&deviceString->sr, 10, &index))

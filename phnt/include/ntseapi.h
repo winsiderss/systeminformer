@@ -55,7 +55,7 @@
 #if (PHNT_MODE == PHNT_MODE_KERNEL)
 typedef enum _TOKEN_INFORMATION_CLASS
 {
-    TokenUser = 1, // q: TOKEN_USER
+    TokenUser = 1, // q: TOKEN_USER, SE_TOKEN_USER
     TokenGroups, // q: TOKEN_GROUPS
     TokenPrivileges, // q: TOKEN_PRIVILEGES
     TokenOwner, // q; s: TOKEN_OWNER
@@ -80,10 +80,10 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenVirtualizationAllowed, // q; s: ULONG (requires SeCreateTokenPrivilege)
     TokenVirtualizationEnabled, // q; s: ULONG
     TokenIntegrityLevel, // q; s: TOKEN_MANDATORY_LABEL
-    TokenUIAccess, // q; s: ULONG
+    TokenUIAccess, // q; s: ULONG (requires SeTcbPrivilege)
     TokenMandatoryPolicy, // q; s: TOKEN_MANDATORY_POLICY (requires SeTcbPrivilege)
     TokenLogonSid, // q: TOKEN_GROUPS
-    TokenIsAppContainer, // q: ULONG
+    TokenIsAppContainer, // q: ULONG // since WIN8
     TokenCapabilities, // q: TOKEN_GROUPS // 30
     TokenAppContainerSid, // q: TOKEN_APPCONTAINER_INFORMATION
     TokenAppContainerNumber, // q: ULONG
@@ -93,16 +93,16 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenRestrictedDeviceClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     TokenDeviceGroups, // q: TOKEN_GROUPS
     TokenRestrictedDeviceGroups, // q: TOKEN_GROUPS
-    TokenSecurityAttributes, // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION
+    TokenSecurityAttributes, // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION (requires SeTcbPrivilege)
     TokenIsRestricted, // q: ULONG // 40
-    TokenProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL
-    TokenPrivateNameSpace, // q; s: ULONG
-    TokenSingletonAttributes, // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION
-    TokenBnoIsolation, // q: TOKEN_BNO_ISOLATION_INFORMATION
-    TokenChildProcessFlags, // s: ULONG
-    TokenIsLessPrivilegedAppContainer, // q: ULONG
-    TokenIsSandboxed, // q: ULONG
-    TokenIsAppSilo, // TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
+    TokenProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL // since WINBLUE
+    TokenPrivateNameSpace, // q; s: ULONG  (requires SeTcbPrivilege) // since THRESHOLD
+    TokenSingletonAttributes, // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION // since REDSTONE
+    TokenBnoIsolation, // q: TOKEN_BNO_ISOLATION_INFORMATION // since REDSTONE2
+    TokenChildProcessFlags, // s: ULONG  (requires SeTcbPrivilege) // since REDSTONE3
+    TokenIsLessPrivilegedAppContainer, // q: ULONG // since REDSTONE5
+    TokenIsSandboxed, // q: ULONG // since 19H1
+    TokenIsAppSilo, // q: ULONG // since WIN11 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
     MaxTokenInfoClass
 } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
 #endif
@@ -522,7 +522,7 @@ NtAccessCheckByTypeResultList(
 
 // Signing
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WIN8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -546,6 +546,42 @@ NtGetCachedSigningLevel(
     _Inout_opt_ PULONG ThumbprintSize,
     _Out_opt_ PULONG ThumbprintAlgorithm
     );
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+
+// rev
+typedef struct _SE_FILE_CACHE_CLAIM_INFORMATION
+{
+    ULONG Size;
+    PVOID Claim;
+} SE_FILE_CACHE_CLAIM_INFORMATION, *PSE_FILE_CACHE_CLAIM_INFORMATION;
+
+// rev
+typedef struct _SE_SET_FILE_CACHE_INFORMATION
+{
+    ULONG Size;
+    UNICODE_STRING CatalogDirectoryPath;
+    SE_FILE_CACHE_CLAIM_INFORMATION OriginClaimInfo;
+} SE_SET_FILE_CACHE_INFORMATION, *PSE_SET_FILE_CACHE_INFORMATION;
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetCachedSigningLevel2(
+    _In_ ULONG Flags,
+    _In_ SE_SIGNING_LEVEL InputSigningLevel,
+    _In_reads_(SourceFileCount) PHANDLE SourceFiles,
+    _In_ ULONG SourceFileCount,
+    _In_opt_ HANDLE TargetFile,
+    _In_opt_ SE_SET_FILE_CACHE_INFORMATION* CacheInformation
+    );
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
 
 // rev
 NTSYSCALLAPI

@@ -22,6 +22,9 @@
     <Filter Include="Source Files\Graphics">
       <UniqueIdentifier>{54c0ff15-7e21-40df-9fd7-8883d37008fb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Devices">
+      <UniqueIdentifier>{ca3ebda4-541a-4869-9479-40380027e339}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -104,8 +107,11 @@
     <ClCompile Include="gpudetails.c">
       <Filter>Source Files\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="ndiswlan.c">
-      <Filter>Source Files\Network</Filter>
+    <ClCompile Include="devicetree.c">
+      <Filter>Source Files\Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="deviceprops.c">
+      <Filter>Source Files\Devices</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

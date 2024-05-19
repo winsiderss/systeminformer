@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2015-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_MINIINFOP_H
 #define PH_MINIINFOP_H
 
@@ -24,6 +36,10 @@
     SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_ICON, (LPARAM)(Icon))
 
 // Dialog procedure
+
+RTL_ATOM PhMipContainerInitializeWindowClass(
+    VOID
+    );
 
 LRESULT CALLBACK PhMipContainerWndProc(
     _In_ HWND hWnd,

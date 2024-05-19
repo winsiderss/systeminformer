@@ -80,7 +80,7 @@ VOID PhDeleteProviderThread(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgProviderListLock);
-    if ((index = PhFindItemList(PhDbgProviderList, ProviderThread)) != -1)
+    if ((index = PhFindItemList(PhDbgProviderList, ProviderThread)) != ULONG_MAX)
         PhRemoveItemList(PhDbgProviderList, index);
     PhReleaseQueuedLockExclusive(&PhDbgProviderListLock);
 #endif

@@ -5,48 +5,11 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "updater.h"
-
-static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
-{
-    { IDYES, L"Install" }
-};
-
-BOOLEAN UpdaterCheckApplicationDirectory(
-    VOID
-    )
-{
-    static PH_STRINGREF fileNameStringRef = PH_STRINGREF_INIT(L"\\test");
-    HANDLE fileHandle;
-    PPH_STRING fileName;
-
-    fileName = PhGetApplicationDirectoryFileName(&fileNameStringRef, TRUE);
-
-    if (PhIsNullOrEmptyString(fileName))
-        return FALSE;
-
-    if (NT_SUCCESS(PhCreateFile(
-        &fileHandle,
-        &fileName->sr,
-        FILE_GENERIC_WRITE | DELETE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
-        )))
-    {
-        PhDereferenceObject(fileName);
-        NtClose(fileHandle);
-        return TRUE;
-    }
-
-    PhDereferenceObject(fileName);
-    return FALSE;
-}
 
 HRESULT CALLBACK FinalTaskDialogCallbackProc(
     _In_ HWND hwndDlg,
@@ -62,7 +25,20 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            if (!UpdaterCheckApplicationDirectory())
+#ifndef FORCE_NO_STATUS_TIMER
+            if (context->ProgressTimer)
+            {
+                PhKillTimer(hwndDlg, 9000);
+                context->ProgressTimer = FALSE;
+            }
+#endif
+            context->DirectoryElevationRequired = !!UpdateCheckDirectoryElevationRequired();
+
+#ifdef FORCE_ELEVATION_CHECK
+            context->DirectoryElevationRequired = TRUE;
+#endif
+
+            if (context->DirectoryElevationRequired)
             {
                 SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
             }
@@ -79,46 +55,8 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
             }
             else if (buttonId == IDYES)
             {
-                PVOID parameters;
-
-                if (PhIsNullOrEmptyString(context->SetupFilePath))
-                    break;
-
-                parameters = PH_AUTO(PhCreateKsiSettingsBlob());
-                parameters = PH_AUTO(PhConcatStrings(3, L"-update \"", PhGetStringOrEmpty(parameters), L"\""));
-
-                ProcessHacker_PrepareForEarlyShutdown();
-
-                if (PhShellExecuteEx(
-                    hwndDlg,
-                    PhGetString(context->SetupFilePath),
-                    PhGetString(parameters),
-                    SW_SHOW,
-                    PH_SHELL_EXECUTE_NOZONECHECKS | PH_SHELL_EXECUTE_NOASYNC | (UpdaterCheckApplicationDirectory() ? 0 : PH_SHELL_EXECUTE_ADMIN),
-                    0,
-                    NULL
-                    ))
+                if (!NT_SUCCESS(UpdateShellExecute(context, hwndDlg)))
                 {
-                    ProcessHacker_Destroy();
-                }
-                else
-                {
-                    ULONG errorCode = GetLastError();
-
-                    // Install failed, cancel the shutdown.
-                    ProcessHacker_CancelEarlyShutdown();
-
-                    // Show error dialog.
-                    if (errorCode != ERROR_CANCELLED) // Ignore UAC decline.
-                    {
-                        PhShowStatus(hwndDlg, L"Unable to execute the setup.", 0, errorCode);
-
-                        if (context->StartupCheck)
-                            ShowAvailableDialog(context);
-                        else
-                            ShowCheckForUpdatesDialog(context);
-                    }
-
                     return S_FALSE;
                 }
             }
@@ -139,6 +77,10 @@ VOID ShowUpdateInstallDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
+    TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"Install" }
+    };
     TASKDIALOGCONFIG config;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
@@ -153,8 +95,34 @@ VOID ShowUpdateInstallDialog(
     config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
 
     config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = L"Ready to install update?";
-    config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
+    if (Context->SwitchingChannel)
+    {
+        switch (Context->Channel)
+        {
+        case PhReleaseChannel:
+            config.pszMainInstruction = L"Ready to switch to the release channel?";
+            break;
+        //case PhPreviewChannel:
+        //    config.pszMainInstruction = L"Ready to switch to the preview channel?";
+        //    break;
+        case PhCanaryChannel:
+            config.pszMainInstruction = L"Ready to switch to the canary channel?";
+            break;
+        //case PhDeveloperChannel:
+        //    config.pszMainInstruction = L"Ready to switch to the developer channel?";
+        //    break;
+        default:
+            config.pszMainInstruction = L"Ready to switch the channel?";
+            break;
+        }
+
+        config.pszContent = L"The channel has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
+    }
+    else
+    {
+        config.pszMainInstruction = L"Ready to install update?";
+        config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
+    }
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
@@ -239,7 +207,7 @@ VOID ShowNewerVersionDialog(
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
-    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.cxWidth = 200;
@@ -249,7 +217,7 @@ VOID ShowNewerVersionDialog(
     config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"You're running a pre-release build.";
     config.pszContent = PhaFormatString(
-        L"Pre-release build: v%s\r\n",
+        L"Pre-release build: v%s\r\n\r\n<A HREF=\"changelog.txt\">View changelog</A>",
         PhGetStringOrEmpty(Context->CurrentVersionString)
         )->Buffer;
 
@@ -272,15 +240,24 @@ VOID ShowUpdateFailedDialog(
     config.hMainIcon = PhGetApplicationIcon(FALSE);
 
     config.pszWindowTitle = L"System Informer - Updater";
-    config.pszMainInstruction = L"Error downloading the update.";
+    if (Context->SwitchingChannel)
+        config.pszMainInstruction = L"Error downloading the channel.";
+    else
+        config.pszMainInstruction = L"Error downloading the update.";
 
     if (SignatureFailed)
     {
-        config.pszContent = L"Signature check failed. Click Retry to download the update again.";
+        if (Context->SwitchingChannel)
+            config.pszContent = L"Signature check failed. Click Retry to download the channel again.";
+        else
+            config.pszContent = L"Signature check failed. Click Retry to download the update again.";
     }
     else if (HashFailed)
     {
-        config.pszContent = L"Hash check failed. Click Retry to download the update again.";
+        if (Context->SwitchingChannel)
+            config.pszContent = L"Hash check failed. Click Retry to download the channel again.";
+        else
+            config.pszContent = L"Hash check failed. Click Retry to download the update again.";
     }
     else
     {
@@ -293,14 +270,25 @@ VOID ShowUpdateFailedDialog(
                 config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
                 PhDereferenceObject(errorMessage);
             }
+            else if (errorMessage = PhGetStatusMessage(0, Context->ErrorCode))
+            {
+                config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
+                PhDereferenceObject(errorMessage);
+            }
             else
             {
-                config.pszContent = L"Click Retry to download the update again.";
+                if (Context->SwitchingChannel)
+                    config.pszContent = L"Click Retry to download the channel again.";
+                else
+                    config.pszContent = L"Click Retry to download the update again.";
             }
         }
         else
         {
-            config.pszContent = L"Click Retry to download the update again.";
+            if (Context->SwitchingChannel)
+                config.pszContent = L"Click Retry to download the channel again.";
+            else
+                config.pszContent = L"Click Retry to download the update again.";
         }
     }
 

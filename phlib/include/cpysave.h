@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2011-2016
+ *     dmex    2019
+ *
+ */
+
 #ifndef _PH_CPYSAVE_H
 #define _PH_CPYSAVE_H
 
@@ -60,6 +72,13 @@ PhGetListViewItemText(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
     _In_ INT SubItemIndex
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetListViewSelectedItemText(
+    _In_ HWND ListViewHandle
     );
 
 PHLIBAPI

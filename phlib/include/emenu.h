@@ -1,9 +1,19 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_EMENU_H
 #define _PH_EMENU_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define PH_EMENU_DISABLED 0x1
 #define PH_EMENU_CHECKED 0x2
@@ -21,10 +31,10 @@ extern "C" {
 #define PH_EMENU_TEXT_OWNED 0x80000000
 #define PH_EMENU_BITMAP_OWNED 0x40000000
 
-struct _PH_EMENU_ITEM;
+typedef struct _PH_EMENU_ITEM *PPH_EMENU_ITEM;
 
 typedef VOID (NTAPI *PPH_EMENU_ITEM_DELETE_FUNCTION)(
-    _In_ struct _PH_EMENU_ITEM *Item
+    _In_ PPH_EMENU_ITEM Item
     );
 
 typedef struct _PH_EMENU_ITEM
@@ -39,7 +49,7 @@ typedef struct _PH_EMENU_ITEM
     PPH_EMENU_ITEM_DELETE_FUNCTION DeleteFunction;
     PVOID Reserved;
 
-    struct _PH_EMENU_ITEM *Parent;
+    PPH_EMENU_ITEM Parent;
     PPH_LIST Items;
 } PH_EMENU_ITEM, *PPH_EMENU_ITEM;
 
@@ -72,7 +82,10 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     );
 
 PHLIBAPI
-PPH_EMENU_ITEM PhFindEMenuItemEx(
+_Success_(return != NULL)
+PPH_EMENU_ITEM
+NTAPI
+PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
     _In_opt_ PWSTR Text,
@@ -159,7 +172,7 @@ VOID PhLoadResourceEMenuItem(
     _Inout_ PPH_EMENU_ITEM MenuItem,
     _In_ HINSTANCE InstanceHandle,
     _In_ PWSTR Resource,
-    _In_ ULONG SubMenuIndex
+    _In_ INT SubMenuIndex
     );
 
 #define PH_EMENU_SHOW_SEND_COMMAND 0x1
@@ -200,6 +213,19 @@ VOID PhModifyEMenuItem(
     _In_ ULONG OwnedFlags,
     _In_opt_ PWSTR Text,
     _In_opt_ HBITMAP Bitmap
+    );
+
+VOID PhSetHMenuStyle(
+    _In_ HMENU Menu,
+    _In_ BOOLEAN MainMenu
+    );
+
+VOID PhSetHMenuNotify(
+    _In_ HMENU MenuHandle
+    );
+
+VOID PhDeleteHMenu(
+    _In_ HMENU Menu
     );
 
 // Convenience functions
@@ -250,8 +276,6 @@ VOID PhSetEnabledEMenuItem(
         Item->Flags |= PH_EMENU_DISABLED;
 }
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

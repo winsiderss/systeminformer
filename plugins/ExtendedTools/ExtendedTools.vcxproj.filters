@@ -153,6 +153,9 @@
     <ClCompile Include="pooltree.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tpm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -219,6 +222,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="poolmon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tpm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

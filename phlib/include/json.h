@@ -12,9 +12,7 @@
 #ifndef _PH_PHJSON_H
 #define _PH_PHJSON_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 typedef struct _JSON_ARRAY_LIST_OBJECT
 {
@@ -53,6 +51,13 @@ PhGetJsonValueAsString(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetJsonObjectString(
+    _In_ PVOID Object
+    );
+
+PHLIBAPI
 LONGLONG
 NTAPI
 PhGetJsonValueAsInt64(
@@ -66,6 +71,23 @@ NTAPI
 PhGetJsonValueAsUInt64(
     _In_ PVOID Object,
     _In_ PSTR Key
+    );
+
+FORCEINLINE
+ULONG
+PhGetJsonValueAsUlong(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    )
+{
+    return (ULONG)PhGetJsonValueAsUInt64(Object, Key);
+}
+
+PHLIBAPI
+ULONG
+NTAPI
+PhGetJsonUInt32Object(
+    _In_ PVOID Object
     );
 
 PHLIBAPI
@@ -184,7 +206,7 @@ VOID
 NTAPI
 PhAddJsonArrayObject(
     _In_ PVOID Object,
-    _In_ PVOID jsonEntry
+    _In_ PVOID Value
     );
 
 PHLIBAPI
@@ -218,6 +240,19 @@ PhGetJsonArrayIndexObject(
     _In_ ULONG Index
     );
 
+typedef BOOLEAN (NTAPI* PPH_ENUM_JSON_OBJECT_CALLBACK)(
+    _In_ PVOID Object,
+    _In_ PSTR Key,
+    _In_ PVOID Value,
+    _In_opt_ PVOID Context
+    );
+
+VOID PhEnumJsonArrayObject(
+    _In_ PVOID Object,
+    _In_ PPH_ENUM_JSON_OBJECT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
 PHLIBAPI
 PVOID
 NTAPI
@@ -233,7 +268,7 @@ PhLoadJsonObjectFromFile(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhSaveJsonObjectToFile(
     _In_ PPH_STRINGREF FileName,
@@ -254,7 +289,7 @@ NTSTATUS
 NTAPI
 PhLoadXmlObjectFromFile(
     _In_ PPH_STRINGREF FileName,
-    _Out_opt_ PVOID* XmlRootNode
+    _Out_opt_ PVOID* XmlRootObject
     );
 
 PHLIBAPI
@@ -475,8 +510,6 @@ PPH_XML_INTERFACE PhGetXmlInterface(
     _In_ ULONG Version
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

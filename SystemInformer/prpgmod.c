@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -29,16 +29,11 @@
 static PH_STRINGREF EmptyModulesText = PH_STRINGREF_INIT(L"There are no modules to display.");
 
 static VOID NTAPI ModuleAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    if (!modulesContext)
-        return;
-    if (!Parameter)
-        return;
 
     // Parameter contains a pointer to the added module item.
     PhReferenceObject(Parameter);
@@ -46,40 +41,31 @@ static VOID NTAPI ModuleAddedHandler(
 }
 
 static VOID NTAPI ModuleModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    if (!modulesContext)
-        return;
 
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
 static VOID NTAPI ModuleRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    if (!modulesContext)
-        return;
 
     PhPushProviderEventQueue(&modulesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&modulesContext->ProviderRegistration));
 }
 
 static VOID NTAPI ModulesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    if (!modulesContext)
-        return;
 
     PostMessage(modulesContext->WindowHandle, WM_PH_MODULES_UPDATED, PhGetRunIdProvider(&modulesContext->ProviderRegistration), 0);
 }
@@ -235,7 +221,7 @@ BOOLEAN PhpModulesTreeFilterCallback(
     if (Context->ListContext.HideImageKnownDll && moduleItem->ImageKnownDll)
         return FALSE;
 
-    if (PhIsNullOrEmptyString(Context->SearchboxText))
+    if (!Context->SearchMatchHandle)
         return TRUE;
 
     // (dmex) TODO: Add search support for the following fields:
@@ -246,94 +232,94 @@ BOOLEAN PhpModulesTreeFilterCallback(
 
     // module properties
 
-    if (!PhIsNullOrEmptyString(moduleItem->Name))
-    {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->Name->sr))
-            return TRUE;
-    }
-
-    if (!PhIsNullOrEmptyString(moduleItem->FileNameWin32))
-    {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->FileNameWin32->sr))
-            return TRUE;
-    }
-
-    if (!PhIsNullOrEmptyString(moduleItem->VerifySignerName))
-    {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VerifySignerName->sr))
-            return TRUE;
-    }
-
     if (moduleItem->BaseAddressString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->BaseAddressString))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, moduleItem->BaseAddressString))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->Name))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleItem->Name->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->FileName))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleItem->FileName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.CompanyName))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.CompanyName->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleItem->VersionInfo.CompanyName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.FileDescription))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.FileDescription->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleItem->VersionInfo.FileDescription->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.FileVersion))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.FileVersion->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleItem->VersionInfo.FileVersion->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.ProductName))
     {
-        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.ProductName->sr))
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleItem->VersionInfo.ProductName->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(moduleItem->VerifySignerName))
+    {
+        if (PhSearchControlMatch(Context->SearchMatchHandle, &moduleItem->VerifySignerName->sr))
             return TRUE;
     }
 
     if (moduleItem->EntryPointAddressString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->EntryPointAddressString))
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, moduleItem->EntryPointAddressString))
             return TRUE;
     }
 
     if (moduleItem->ParentBaseAddressString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->ParentBaseAddressString))
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, moduleItem->ParentBaseAddressString))
             return TRUE;
     }
 
     switch (moduleItem->LoadReason)
     {
     case LoadReasonStaticDependency:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Static dependency"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Static dependency"))
             return TRUE;
         break;
     case LoadReasonStaticForwarderDependency:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Static forwarder dependency"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Static forwarder dependency"))
             return TRUE;
         break;
     case LoadReasonDynamicForwarderDependency:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Dynamic forwarder dependency"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Dynamic forwarder dependency"))
             return TRUE;
         break;
     case LoadReasonDelayloadDependency:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Delay load dependency"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Delay load dependency"))
             return TRUE;
         break;
     case LoadReasonDynamicLoad:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Dynamic"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Dynamic"))
             return TRUE;
         break;
     case LoadReasonAsImageLoad:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Image"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Image"))
             return TRUE;
         break;
     case LoadReasonAsDataLoad:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Data"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Data"))
             return TRUE;
         break;
     }
@@ -341,16 +327,16 @@ BOOLEAN PhpModulesTreeFilterCallback(
     switch (moduleItem->VerifyResult)
     {
     case VrNoSignature:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"No Signature"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"No Signature"))
             return TRUE;
         break;
     case VrExpired:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Expired"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Expired"))
             return TRUE;
         break;
     case VrRevoked:
     case VrDistrust:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Revoked"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Revoked"))
             return TRUE;
         break;
     }
@@ -358,7 +344,7 @@ BOOLEAN PhpModulesTreeFilterCallback(
     switch (moduleItem->VerifyResult)
     {
     case VrTrusted:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Trusted"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Trusted"))
             return TRUE;
         break;
     case VrNoSignature:
@@ -367,9 +353,34 @@ BOOLEAN PhpModulesTreeFilterCallback(
     case VrDistrust:
     case VrUnknown:
     case VrBadSignature:
-        if (PhWordMatchStringZ(Context->SearchboxText, L"Bad"))
+        if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"Bad"))
             return TRUE;
         break;
+    }
+
+    if (moduleItem->EnclaveBaseAddress)
+    {
+        if (moduleItem->EnclaveBaseAddressString[0])
+        {
+            if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, moduleItem->EnclaveBaseAddressString))
+                return TRUE;
+        }
+
+        switch (moduleItem->EnclaveType)
+        {
+        case ENCLAVE_TYPE_SGX:
+            if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"SGX"))
+                return TRUE;
+            break;
+        case ENCLAVE_TYPE_SGX2:
+            if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"SGX2"))
+                return TRUE;
+            break;
+        case ENCLAVE_TYPE_VBS:
+            if (PhSearchControlMatchZ(Context->SearchMatchHandle, L"VBS"))
+                return TRUE;
+            break;
+        }
     }
 
     return FALSE;
@@ -407,10 +418,10 @@ VOID PhpPopulateTableWithProcessModuleNodes(
             // If this is the first column in the row, add some indentation.
             text = PhaCreateStringEx(
                 NULL,
-                getCellText.Text.Length + Level * sizeof(WCHAR) * sizeof(WCHAR)
+                getCellText.Text.Length + UInt32x32To64(Level, 2) * sizeof(WCHAR)
                 );
-            wmemset(text->Buffer, L' ', Level * sizeof(WCHAR));
-            memcpy(&text->Buffer[Level * 2], getCellText.Text.Buffer, getCellText.Text.Length);
+            wmemset(text->Buffer, L' ', UInt32x32To64(Level, 2));
+            memcpy(&text->Buffer[UInt32x32To64(Level, 2)], getCellText.Text.Buffer, getCellText.Text.Length);
         }
 
         Table[*Index][i] = text;
@@ -549,7 +560,7 @@ VOID PhpProcessModulesSave(
             else
                 mode = PH_EXPORT_MODE_TABS;
 
-            PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
+            PhWriteStringAsUtf8FileStream(fileStream, (PPH_STRINGREF)&PhUnicodeByteOrderMark);
             PhWritePhTextHeader(fileStream);
 
             lines = PhpGetProcessModuleTreeListLines(
@@ -578,6 +589,23 @@ VOID PhpProcessModulesSave(
     }
 
     PhFreeFileDialog(fileDialog);
+}
+
+VOID NTAPI PhpProcessModulesSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_MODULES_CONTEXT modulesContext = Context;
+
+    assert(modulesContext);
+
+    modulesContext->SearchMatchHandle = MatchHandle;
+
+    // Expand any hidden nodes to make search results visible.
+    PhExpandAllModuleNodes(&modulesContext->ListContext, TRUE);
+
+    PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
 }
 
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
@@ -648,11 +676,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             // Initialize the list.
             PhInitializeModuleList(hwndDlg, modulesContext->TreeNewHandle, &modulesContext->ListContext);
-            TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &PhpLoadingText, 0);
+            TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
             PhInitializeProviderEventQueue(&modulesContext->EventQueue, 100);
             modulesContext->LastRunStatus = -1;
             modulesContext->ErrorMessage = NULL;
-            modulesContext->SearchboxText = PhReferenceEmptyString();
             modulesContext->FilterEntry = PhAddTreeNewFilter(&modulesContext->ListContext.TreeFilterSupport, PhpModulesTreeFilterCallback, modulesContext);
             // Initialize the CreateTime for the module timeline. (dmex)
             modulesContext->ListContext.ProcessId = processItem->ProcessId;
@@ -660,7 +687,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->ListContext.HasServices = processItem->ServiceList && processItem->ServiceList->Count != 0;
 
             // Initialize the search box. (dmex)
-            PhCreateSearchControl(hwndDlg, modulesContext->SearchboxHandle, L"Search Modules (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                modulesContext->SearchboxHandle,
+                L"Search Modules (Ctrl+K)",
+                PhpProcessModulesSearchControlCallback,
+                modulesContext
+                );
 
             PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectCreate);
 
@@ -688,7 +721,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     case WM_DESTROY:
         {
             PhRemoveTreeNewFilter(&modulesContext->ListContext.TreeFilterSupport, modulesContext->FilterEntry);
-            if (modulesContext->SearchboxText) PhDereferenceObject(modulesContext->SearchboxText);
 
             PhEmCallObjectOperation(EmModulesContextType, modulesContext, EmObjectDelete);
 
@@ -742,31 +774,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != modulesContext->SearchboxHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(modulesContext->SearchboxHandle));
-
-                    if (!PhEqualString(modulesContext->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        // Cache the current search text for our callback.
-                        PhSwapReference(&modulesContext->SearchboxText, newSearchboxText);
-
-                        // Expand any hidden nodes to make search results visible.
-                        PhExpandAllModuleNodes(&modulesContext->ListContext, TRUE);
-
-                        PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (LOWORD(wParam))
             {
             case ID_SHOWCONTEXTMENU:
@@ -795,10 +802,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (moduleItem)
                     {
+                        PPH_STRING fileNameWin32 = PH_AUTO(PhGetFileName(moduleItem->FileName));
+
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"FileBrowseExecutable",
-                            moduleItem->FileNameWin32->Buffer,
+                            PhGetString(fileNameWin32),
                             FALSE,
                             L"Make sure the Explorer executable file is present."
                             );
@@ -811,10 +820,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (moduleItem)
                     {
+                        PPH_STRING fileNameWin32 = PH_AUTO(PhGetFileName(moduleItem->FileName));
+
                         PhShellExecuteUserString(
                             hwndDlg,
                             L"ProgramInspectExecutables",
-                            moduleItem->FileNameWin32->Buffer,
+                            PhGetString(fileNameWin32),
                             FALSE,
                             L"Make sure the PE Viewer executable file is present."
                             );

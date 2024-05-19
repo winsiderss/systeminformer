@@ -5,14 +5,14 @@
  *
  * Authors:
  *
- *     dmex    2015-2016
+ *     dmex    2015-2023
  *     TETYYS  2015-2016
  *
  */
 
 #include "nettools.h"
 
-RESOLVED_PORT ResolvedPortsTable[] =
+CONST RESOLVED_PORT ResolvedPortsTable[] =
 {
     { L"1ci-smcs", 3091 }, { L"2ping", 15998 }, { L"3com-amp3", 629 }, { L"3com-net-mgmt", 2391 },
     { L"3com-njack-1", 5264 }, { L"3com-njack-2", 5265 }, { L"3Com-nsd", 1742 }, { L"3com-tsmux", 106 },
@@ -1459,7 +1459,7 @@ RESOLVED_PORT ResolvedPortsTable[] =
     { L"visitview", 1631 }, { L"vista-4gl", 24249 }, { L"vistium-share", 1545 }, { L"vitalanalysis", 2474 },
     { L"viziblebrowser", 1868 }, { L"vlsi-lm", 1500 }, { L"vmnet", 175 }, { L"vmodem", 3141 },
     { L"vmpwscs", 214 }, { L"vmrdp", 2179 }, { L"vmsvc", 7024 }, { L"vmsvc-2", 7025 },
-    { L"vmware-fdm", 8182 }, { L"vnas", 577 }, { L"vnetd", 13724 }, { L"vns-tp", 7802 },
+    { L"vSphere-fdm", 8182 }, { L"vnas", 577 }, { L"vnetd", 13724 }, { L"vns-tp", 7802 },
     { L"vnsstr", 3321 }, { L"vnwk-prapi", 2538 }, { L"vnyx", 8699 }, { L"vocaltec-admin", 1796 },
     { L"vocaltec-gold", 6670 }, { L"vocaltec-hos", 25793 }, { L"vocaltec-phone", 22555 }, { L"vocaltec-wconf", 22555 },
     { L"vofr-gateway", 21590 }, { L"voispeed-port", 3541 }, { L"volley", 3625 }, { L"vop", 4433 },
@@ -1584,3 +1584,20 @@ RESOLVED_PORT ResolvedPortsTable[] =
     { L"zion-lm", 1425 }, { L"zmp", 3925 }, { L"zoomcp", 9666 }, { L"zre-disc", 5670 },
     { L"zsecure", 7173 }, { L"zserv", 346 }, { L"zymed-zpp", 2133 }
 };
+
+BOOLEAN LookupPortServiceName(
+    _In_ ULONG Port,
+    _Out_ PPH_STRINGREF ServiceName
+    )
+{
+    for (UINT i = 0; i < RTL_NUMBER_OF(ResolvedPortsTable); i++)
+    {
+        if (Port == ResolvedPortsTable[i].Port)
+        {
+            PhInitializeStringRefLongHint(ServiceName, ResolvedPortsTable[i].Name);
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2024
  *
  */
 
@@ -224,13 +224,13 @@ VOID FreeListViewGraphicsDeviceEntries(
     _In_ PDV_GPU_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PDV_GPU_ID param;
 
@@ -297,7 +297,7 @@ VOID FindGraphicsDevices(
     _In_ PDV_GPU_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = 0;
+    ULONG deviceIndex = 0;
     PPH_LIST deviceList;
     PWSTR deviceInterfaceList;
     ULONG deviceInterfaceListLength = 0;
@@ -352,7 +352,7 @@ VOID FindGraphicsDevices(
                 PGPU_ENUM_ENTRY entry;
 
                 entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
-                entry->DeviceIndex = ++index;
+                entry->DeviceIndex = ++deviceIndex;
                 entry->DevicePath = PhCreateString(deviceInterface);
                 entry->DeviceName = GraphicsQueryDeviceDescription(deviceInstanceHandle);
 
@@ -363,10 +363,10 @@ VOID FindGraphicsDevices(
                     entry->DevicePresent = TRUE;
                     GraphicsCloseAdapterHandle(adapterHandle);
                 }
-     
+
                 if (entry->DevicePresent)
                 {
-                    ULONG deviceIndex;
+                    ULONG adapterIndex;
                     PPH_STRING locationString = NULL;
                     PPH_STRING locationInfoString;
 
@@ -375,14 +375,14 @@ VOID FindGraphicsDevices(
                         &DEVPKEY_Device_LocationInfo
                         );
 
-                    if (locationInfoString && GraphicsQueryDeviceInterfaceAdapterIndex(deviceInterface, &deviceIndex))
+                    if (locationInfoString && GraphicsQueryDeviceInterfaceAdapterIndex(deviceInterface, &adapterIndex))
                     {
                         SIZE_T returnLength;
                         PH_FORMAT format[2];
                         WCHAR formatBuffer[512];
 
                         PhInitFormatS(&format[0], L"GPU ");
-                        PhInitFormatU(&format[1], deviceIndex);
+                        PhInitFormatU(&format[1], adapterIndex);
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
                         {
@@ -459,7 +459,7 @@ VOID FindGraphicsDevices(
     PhAcquireQueuedLockShared(&GraphicsDevicesListLock);
     for (ULONG i = 0; i < GraphicsDevicesList->Count; i++)
     {
-        ULONG index = ULONG_MAX;
+        INT index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_GPU_ENTRY entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
 
@@ -470,7 +470,7 @@ VOID FindGraphicsDevices(
             Context->ListViewHandle,
             index,
             LVNI_ALL
-            )) != ULONG_MAX)
+            )) != INT_ERROR)
         {
             PDV_GPU_ID param;
 
@@ -618,7 +618,7 @@ VOID LoadGraphicsDeviceImages(
 
     dpiValue = PhGetWindowDpi(Context->ListViewHandle);
 
-    if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
+    if (PhExtractIconEx(&deviceIconPath->sr, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
     {
         HIMAGELIST imageList = PhImageListCreate(
             PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
@@ -678,7 +678,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindGraphicsDevices(context);
@@ -698,7 +698,10 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                 GraphicsDevicesSaveList();
 
             FreeListViewGraphicsDeviceEntries(context);
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
@@ -714,7 +717,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDC_SHOW_HIDDEN_ADAPTERS:
+            case IDC_SHOW_HIDDEN_DEVICES:
                 {
                     context->UseAlternateMethod = !context->UseAlternateMethod;
 
@@ -723,6 +726,11 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                     ListView_DeleteAllItems(context->ListViewHandle);
                     FindGraphicsDevices(context);
                     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+
+                    if (ListView_GetItemCount(context->ListViewHandle) == 0)
+                        PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
+                    else
+                        PhSetWindowStyle(context->ListViewHandle, WS_BORDER, 0);
 
                     //ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }
@@ -741,9 +749,9 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                 if (!PhTryAcquireReleaseQueuedLockExclusive(&GraphicsDevicesListLock))
                     break;
 
-                if (listView->uChanged & LVIF_STATE)
+                if (FlagOn(listView->uChanged, LVIF_STATE))
                 {
-                    switch (listView->uNewState & LVIS_STATEIMAGEMASK)
+                    switch (FlagOn(listView->uNewState, LVIS_STATEIMAGEMASK))
                     {
                     case INDEXTOSTATEIMAGEMASK(2): // checked
                         {

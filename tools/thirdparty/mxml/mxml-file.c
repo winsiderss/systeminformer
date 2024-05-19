@@ -223,7 +223,7 @@ mxmlSaveAllocString(
     * return...
     */
 
-    return (strdup(buffer));
+    return (PhDuplicateBytesZSafe(buffer));
   }
 
  /*
@@ -231,7 +231,7 @@ mxmlSaveAllocString(
   * new buffer...
   */
 
-  if ((s = malloc(bytes + 1)) == NULL)
+  if ((s = PhAllocateSafe(bytes + 1)) == NULL)
     return (NULL);
 
   mxmlSaveString(node, s, bytes + 1, cb);
@@ -588,7 +588,7 @@ mxml_add_char(int  ch,			/* I  - Character to add */
     else
       (*bufsize) += 1024;
 
-    if ((newbuffer = realloc(*buffer, *bufsize)) == NULL)
+    if ((newbuffer = PhReAllocateSafe(*buffer, *bufsize)) == NULL)
     {
       mxml_error("Unable to expand string buffer to %d bytes.", *bufsize);
 
@@ -1359,7 +1359,7 @@ mxml_load_data(
   * Read elements and other nodes from the file...
   */
 
-  if ((buffer = malloc(64)) == NULL)
+  if ((buffer = PhAllocateSafe(64)) == NULL)
   {
     mxml_error("Unable to allocate string buffer.");
     return (NULL);
@@ -1381,12 +1381,12 @@ mxml_load_data(
 
   if ((ch = (*getc_cb)(p, &encoding)) == EOF)
   {
-    free(buffer);
+    PhFree(buffer);
     return (NULL);
   }
   else if (ch != '<' && !top)
   {
-    free(buffer);
+    PhFree(buffer);
     mxml_error("XML does not start with '<' (saw '%c').", ch);
     return (NULL);
   }
@@ -2024,7 +2024,7 @@ mxml_load_data(
   * Free the string buffer - we don't need it anymore...
   */
 
-  free(buffer);
+  PhFree(buffer);
 
  /*
   * Find the top element and return it...
@@ -2060,7 +2060,7 @@ mxml_load_data(
 
   mxmlDelete(first);
 
-  free(buffer);
+  PhFree(buffer);
 
   return (NULL);
 }
@@ -2091,7 +2091,7 @@ mxml_parse_element(
   * Initialize the name and value buffers...
   */
 
-  if ((name = malloc(64)) == NULL)
+  if ((name = PhAllocateSafe(64)) == NULL)
   {
     mxml_error("Unable to allocate memory for name.");
     return (EOF);
@@ -2099,9 +2099,9 @@ mxml_parse_element(
 
   namesize = 64;
 
-  if ((value = malloc(64)) == NULL)
+  if ((value = PhAllocateSafe(64)) == NULL)
   {
-    free(name);
+    PhFree(name);
     mxml_error("Unable to allocate memory for value.");
     return (EOF);
   }
@@ -2361,8 +2361,8 @@ mxml_parse_element(
   * Free the name and value buffers and return...
   */
 
-  free(name);
-  free(value);
+  PhFree(name);
+  PhFree(value);
 
   return (ch);
 
@@ -2372,8 +2372,8 @@ mxml_parse_element(
 
   error:
 
-  free(name);
-  free(value);
+  PhFree(name);
+  PhFree(value);
 
   return (EOF);
 }
@@ -2979,7 +2979,7 @@ mxml_write_node(mxml_node_t     *node,	/* I - Node to write */
         else
           col = (int)strlen(newline);
 
-        free(data);
+        PhFree(data);
         break;
       }
 

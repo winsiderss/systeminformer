@@ -10,9 +10,10 @@
  *
  */
 
+#include <kphlibbase.h>
 #include <kphmsg.h>
 
-#define KPH_MESSAGE_VESRSION 1
+#define KPH_MESSAGE_VERSION 4
 
 /**
  * Gets the current system time (UTC).
@@ -23,7 +24,7 @@ VOID KphMsgQuerySystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     )
 {
-#if _KERNEL_MODE
+#ifdef _KERNEL_MODE
     KeQuerySystemTime(SystemTime);
 #else
     do
@@ -45,13 +46,10 @@ VOID KphMsgInit(
     )
 {
     RtlZeroMemory(Message, KPH_MESSAGE_MIN_SIZE);
-    Message->Header.Version = KPH_MESSAGE_VESRSION;
-    Message->Header.MessageId = MessageId;
+    Message->Header.Version = KPH_MESSAGE_VERSION;
     Message->Header.Size = KPH_MESSAGE_MIN_SIZE;
+    Message->Header.MessageId = MessageId;
     KphMsgQuerySystemTime(&Message->Header.TimeStamp);
-
-    Message->_Dyn.Count = 0;
-    RtlZeroMemory(&Message->_Dyn.Entries, sizeof(Message->_Dyn.Entries));
 }
 
 /**
@@ -66,13 +64,7 @@ NTSTATUS KphMsgValidate(
     _In_ PCKPH_MESSAGE Message
     )
 {
-    if ((Message->Header.MessageId <= InvalidKphMsg) ||
-        (Message->Header.MessageId >= MaxKphMsg))
-    {
-        return STATUS_INVALID_MESSAGE;
-    }
-
-    if (Message->Header.Version != KPH_MESSAGE_VESRSION)
+    if (Message->Header.Version != KPH_MESSAGE_VERSION)
     {
         return STATUS_REVISION_MISMATCH;
     }
@@ -81,6 +73,15 @@ NTSTATUS KphMsgValidate(
         (Message->Header.Size > sizeof(KPH_MESSAGE)))
     {
         return STATUS_INVALID_MESSAGE;
+    }
+
+    if (Message->Header.MessageId != KphMsgUnhandled)
+    {
+        if ((Message->Header.MessageId <= InvalidKphMsg) ||
+            (Message->Header.MessageId >= MaxKphMsg))
+        {
+            return STATUS_INVALID_MESSAGE;
+        }
     }
 
     return STATUS_SUCCESS;

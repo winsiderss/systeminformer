@@ -51,6 +51,12 @@ pcre2test.c with CODE_UNIT_WIDTH == 0. */
 #error The use of both EBCDIC and SUPPORT_UNICODE is not supported.
 #endif
 
+#define NOGDI 1
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS 1
+#endif
+#include <ph.h>
+
 /* Standard C headers */
 
 #include <ctype.h>

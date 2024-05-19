@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
@@ -18,9 +18,8 @@
 #include <phappresource.h>
 #include <settings.h>
 
+#include <malloc.h>
 #include <shobjidl.h>
-#include <uxtheme.h>
-#include <vssym32.h>
 
 #include "resource.h"
 #include <toolstatusintf.h>
@@ -31,16 +30,18 @@
 #define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
 #define SETTING_NAME_TOOLBAR_GRAPH_CONFIG (PLUGIN_NAME L".ToolbarGraphConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
-//#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
+#define SETTING_NAME_DELAYED_INITIALIZATION_MAX (PLUGIN_NAME L".DelayConfig")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
 #define SETTING_NAME_TASKBARDISPLAYSTYLE (PLUGIN_NAME L".TaskbarDisplayStyle")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
+#define SETTING_NAME_RESTOREROWAFTERSEARCH (PLUGIN_NAME L".RestoreSelectionAfterSearch")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
+#define MAX_DEFAULT_IMAGELIST_ITEMS 1
 #define MAX_TOOLBAR_ITEMS 13
-#define MAX_STATUSBAR_ITEMS 15
+#define MAX_STATUSBAR_ITEMS 16
 
 #define TIDC_FINDWINDOW (WM_APP + 1)
 #define TIDC_FINDWINDOWTHREAD (WM_APP + 2)
@@ -109,7 +110,8 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG AutoHideMenu : 1;
         ULONG Reserved : 4;
         ULONG SearchAutoFocus : 1;
-        ULONG Spare : 20;
+        ULONG ToolBarLargeIcons : 1;
+        ULONG Spare : 19;
     };
 } TOOLSTATUS_CONFIG;
 
@@ -130,13 +132,14 @@ extern HWND SearchboxHandle;
 
 extern HMENU MainMenu;
 extern HACCEL AcceleratorTable;
-extern PPH_STRING SearchboxText;
+extern ULONG_PTR SearchMatchHandle;
 extern PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics;
 
 extern SIZE ToolBarImageSize;
 extern HIMAGELIST ToolBarImageList;
 extern TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS];
 extern HFONT ToolbarWindowFont;
+extern BOOLEAN ToolbarInitialized;
 
 extern PPH_PLUGIN PluginInstance;
 extern PPH_TN_FILTER_ENTRY ProcessTreeFilterEntry;
@@ -168,16 +171,20 @@ VOID ToolbarLoadSettings(
     _In_ BOOLEAN DpiChanged
     );
 
+VOID ToolbarRemoveButons(
+    VOID
+    );
+
 VOID ToolbarResetSettings(
     VOID
     );
 
 PWSTR ToolbarGetText(
-    _In_ INT CommandID
+    _In_ UINT CommandID
     );
 
 HBITMAP ToolbarGetImage(
-    _In_ INT CommandID,
+    _In_ UINT CommandID,
     _In_ LONG DpiValue
     );
 
@@ -212,6 +219,19 @@ LONG ToolStatusGetWindowFontSize(
 
 // main.c
 
+ULONG_PTR GetSearchMatchHandle(
+    VOID
+    );
+
+VOID RegisterTabSearch(
+    _In_ INT TabIndex,
+    _In_ PWSTR BannerText
+    );
+
+PTOOLSTATUS_TAB_INFO RegisterTabInfo(
+    _In_ INT TabIndex
+    );
+
 HWND GetCurrentTreeNewHandle(
     VOID
     );
@@ -220,11 +240,20 @@ VOID ShowCustomizeMenu(
     _In_ HWND WindowHandle
     );
 
+VOID InvalidateMainWindowLayout(
+    VOID
+    );
+
+VOID NTAPI SearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    );
+
 // options.c
 
 INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -271,6 +300,13 @@ typedef struct _PH_TOOLBAR_GRAPH
     PH_GRAPH_STATE GraphState;
 } PH_TOOLBAR_GRAPH, *PPH_TOOLBAR_GRAPH;
 
+extern ULONG CpuHistoryGraphColor1;
+extern ULONG CpuHistoryGraphColor2;
+extern ULONG PhysicalHistoryGraphColor1;
+extern ULONG CommitHistoryGraph1Color1;
+extern ULONG IoHistoryGraphColor1;
+extern ULONG IoHistoryGraphColor2;
+
 VOID ToolbarGraphLoadSettings(
     VOID
     );
@@ -280,6 +316,10 @@ VOID ToolbarGraphSaveSettings(
     );
 
 VOID ToolbarGraphsInitialize(
+    VOID
+    );
+
+VOID ToolbarGraphsInitializeDpi(
     VOID
     );
 
@@ -365,13 +405,13 @@ VOID StatusBarUpdate(
     );
 
 VOID StatusBarShowMenu(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 // customizetb.c
 
 VOID ToolBarShowCustomizeDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     );
 
 // customizesb.c
@@ -393,11 +433,12 @@ typedef enum _ID_STATUS
     ID_STATUS_NUMBEROFSELECTEDITEMS,
     ID_STATUS_INTERVALSTATUS,
     ID_STATUS_FREEMEMORY,
-    ID_STATUS_SELECTEDWORKINGSET
+    ID_STATUS_SELECTEDWORKINGSET,
+    ID_STATUS_SELECTEDPRIVATEBYTES,
 } ID_STATUS;
 
 VOID StatusBarShowCustomizeDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     );
 
 // Shared by customizetb.c and customizesb.c
@@ -427,11 +468,13 @@ typedef struct _CUSTOMIZE_CONTEXT
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
     COLORREF TextColor;
+
+    LONG WindowDpi;
     INT CXWidth;
     INT ImageWidth;
     INT ImageHeight;
 
-    HWND DialogHandle;
+    HWND WindowHandle;
     HWND AvailableListHandle;
     HWND CurrentListHandle;
     HWND MoveUpButtonHandle;

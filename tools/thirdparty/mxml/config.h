@@ -25,7 +25,7 @@
  */
 
 #define _CRT_SECURE_NO_DEPRECATE
-#define _CRT_SECURE_NO_WARNINGS
+//#define _CRT_SECURE_NO_WARNINGS
 
 
 /*
@@ -54,7 +54,7 @@
 #define open		_open
 #define read	        _read
 #define snprintf 	_snprintf
-#define strdup		_strdup
+#define strdup		PhDuplicateBytesZSafe
 #define vsnprintf 	_vsnprintf
 #define write		_write
 

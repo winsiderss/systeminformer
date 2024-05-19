@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2015
+ *     dmex    2017-2024
+ *
+ */
+
 #ifndef PH_PHPLUG_H
 #define PH_PHPLUG_H
 
@@ -65,13 +77,15 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessStatsNotifyEvent,
     GeneralCallbackSettingsUpdated,
 
+    GeneralCallbackDeviceNotificationEvent, // [device provider thread]
+
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
     PluginCallbackLoad = 0, // PPH_LIST Parameters [main thread] // list of strings, might be NULL
-    PluginCallbackUnload = 1, // [main thread]
+    PluginCallbackUnload = 1, // BOOLEAN SessionEnding [main thread]
     PluginCallbackShowOptions = 2, // HWND ParentWindowHandle [main thread]
     PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main/properties thread]
     PluginCallbackTreeNewMessage = 4, // PPH_PLUGIN_TREENEW_MESSAGE Message [main/properties thread]
@@ -113,6 +127,7 @@ typedef struct _PH_PLUGIN_NOTIFY_EVENT
     // Parameter is:
     // PPH_PROCESS_ITEM for Type = PH_NOTIFY_PROCESS_*
     // PPH_SERVICE_ITEM for Type = PH_NOTIFY_SERVICE_*
+    // PPH_DEVICE_ITEM for type = PH_NOTIFY_DEVICE_*
 
     ULONG Type;
     BOOLEAN Handled;
@@ -263,6 +278,7 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
             HANDLE ProcessId;
             HANDLE ThreadId;
             HANDLE ThreadHandle;
+            HANDLE ProcessHandle;
             PPH_SYMBOL_PROVIDER SymbolProvider;
             BOOLEAN CustomWalk;
         } Initializing;
@@ -358,6 +374,9 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
 // end_phapppub
 
 // begin_phapppub
+typedef struct _PH_NF_ICON_REGISTRATION_DATA *PPH_NF_ICON_REGISTRATION_DATA;
+typedef struct _PH_PLUGIN *PPH_PLUGIN;
+
 /**
  * Creates a notification icon.
  *
@@ -372,14 +391,14 @@ typedef struct _PH_PLUGIN_MINIINFO_POINTERS
  * \param RegistrationData A \ref PH_NF_ICON_REGISTRATION_DATA structure that
  * contains registration information.
  */
-typedef struct _PH_NF_ICON * (NTAPI *PPH_REGISTER_TRAY_ICON)(
-    _In_ struct _PH_PLUGIN * Plugin,
+typedef PPH_PLUGIN (NTAPI *PPH_REGISTER_TRAY_ICON)(
+    _In_ PPH_PLUGIN Plugin,
     _In_ ULONG SubId,
     _In_ GUID Guid,
     _In_opt_ PVOID Context,
     _In_ PWSTR Text,
     _In_ ULONG Flags,
-    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
+    _In_ PPH_NF_ICON_REGISTRATION_DATA RegistrationData
     );
 
 typedef struct _PH_TRAY_ICON_POINTERS
@@ -523,15 +542,13 @@ typedef struct _PH_PLUGIN
 
     PH_AVL_LINKS Links;
 
-    PVOID Reserved;
     PVOID DllBase;
 // end_phapppub
 
     // Private
 
-    //PPH_STRING FileName;
-    ULONG Flags;
     PH_STRINGREF Name;
+    ULONG Flags;
     PH_PLUGIN_INFORMATION Information;
 
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
@@ -555,9 +572,53 @@ PhRegisterPlugin(
 PHAPPAPI
 PPH_PLUGIN
 NTAPI
+PhFindPlugin2(
+    _In_ PPH_STRINGREF Name
+    );
+
+/**
+ * Locates a plugin instance structure.
+ *
+ * \param Name The name of the plugin.
+ *
+ * \return A plugin instance structure, or NULL if the plugin was not found.
+ */
+FORCEINLINE
+PPH_PLUGIN
+NTAPI
 PhFindPlugin(
     _In_ PWSTR Name
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhFindPlugin2(&name);
+}
+
+PHAPPAPI
+PVOID
+NTAPI
+PhGetPluginInterface(
+    _In_ PPH_STRINGREF Name,
+    _In_opt_ ULONG Version
     );
+
+FORCEINLINE
+PVOID
+NTAPI
+PhGetPluginInterfaceZ(
+    _In_ PWSTR Name,
+    _In_opt_ ULONG Version
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhGetPluginInterface(&name, Version);
+}
 
 PHAPPAPI
 PPH_PLUGIN_INFORMATION
@@ -588,9 +649,13 @@ PhPluginReserveIds(
     _In_ ULONG Count
     );
 
-typedef VOID (NTAPI *PPH_PLUGIN_MENU_ITEM_DELETE_FUNCTION)(
-    _In_ struct _PH_PLUGIN_MENU_ITEM *MenuItem
+typedef struct _PH_PLUGIN_MENU_ITEM *PPH_PLUGIN_MENU_ITEM;
+
+_Function_class_(PH_PLUGIN_MENU_ITEM_DELETE_FUNCTION)
+typedef VOID (NTAPI PH_PLUGIN_MENU_ITEM_DELETE_FUNCTION)(
+    _In_ PPH_PLUGIN_MENU_ITEM MenuItem
     );
+typedef PH_PLUGIN_MENU_ITEM_DELETE_FUNCTION *PPH_PLUGIN_MENU_ITEM_DELETE_FUNCTION;
 
 typedef struct _PH_PLUGIN_MENU_ITEM
 {
@@ -606,7 +671,7 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 } PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
 
 // Location
-#define PH_MENU_ITEM_LOCATION_HACKER 0
+#define PH_MENU_ITEM_LOCATION_SYSTEM 0
 #define PH_MENU_ITEM_LOCATION_VIEW 1
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
 #define PH_MENU_ITEM_LOCATION_USERS 3
@@ -768,10 +833,12 @@ PhGetPluginFileName(
     _In_ PPH_PLUGIN Plugin
     );
 
-typedef BOOLEAN (NTAPI* PPH_PLUGIN_ENUMERATE)(
+_Function_class_(PH_PLUGIN_ENUMERATE)
+typedef NTSTATUS (NTAPI PH_PLUGIN_ENUMERATE)(
     _In_ PPH_PLUGIN Information,
     _In_opt_ PVOID Context
     );
+typedef PH_PLUGIN_ENUMERATE *PPH_PLUGIN_ENUMERATE;
 
 PHAPPAPI
 VOID

@@ -65,7 +65,7 @@ VOID ProcessesUpdatedCallback(
         }
         else if (extension->ModuleItem)
         {
-            filePath = extension->ModuleItem->FileNameWin32;
+            filePath = PhGetFileName(extension->ModuleItem->FileName);
         }
         else if (extension->ServiceItem)
         {
@@ -141,14 +141,11 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
-
-    if (!optionsEntry)
-        return;
 
     optionsEntry->CreateSection(
         L"OnlineChecks",
@@ -160,14 +157,11 @@ VOID NTAPI ShowOptionsCallback(
 }
 
 VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-
-    if (!menuItem)
-        return;
 
     switch (menuItem->Id)
     {
@@ -200,7 +194,7 @@ VOID NTAPI MenuItemCallback(
                         menuItem->OwnerWindow,
                         L"-v",
                         SW_SHOW,
-                        0,
+                        PH_SHELL_EXECUTE_DEFAULT,
                         PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                         0,
                         NULL
@@ -363,7 +357,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
     else
         moduleItem = NULL;
 
-    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? moduleItem->FileNameWin32 : NULL);
+    sendToMenu = CreateSendToMenu(FALSE, menuInfo->Menu, moduleItem ? PhGetFileName(moduleItem->FileName) : NULL);
 
     if (!moduleItem)
     {

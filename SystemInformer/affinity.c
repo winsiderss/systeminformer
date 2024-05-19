@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2020-2022
+ *     dmex    2020-2023
  *
  */
 
@@ -17,7 +17,6 @@
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <procprv.h>
 #include <thrdprv.h>
 
@@ -62,12 +61,12 @@ VOID PhShowProcessAffinityDialog(
     context.ProcessItem = ProcessItem;
     context.ThreadItem = ThreadItem;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_AFFINITY),
         ParentWindowHandle,
         PhpProcessAffinityDlgProc,
-        (LPARAM)&context
+        &context
         );
 }
 
@@ -84,12 +83,12 @@ BOOLEAN PhShowProcessAffinityDialog2(
     context.ProcessItem = ProcessItem;
     context.ThreadItem = NULL;
 
-    if (DialogBoxParam(
+    if (PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_AFFINITY),
         ParentWindowHandle,
         PhpProcessAffinityDlgProc,
-        (LPARAM)&context
+        &context
         ) == IDOK)
     {
         *NewAffinityMask = context.NewAffinityMask;
@@ -136,12 +135,12 @@ VOID PhShowThreadAffinityDialog(
         }
     }
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_AFFINITY),
         ParentWindowHandle,
         PhpProcessAffinityDlgProc,
-        (LPARAM)&context
+        &context
         );
 }
 
@@ -538,7 +537,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     for (ULONG i = 0; i < MAXIMUM_PROC_PER_GROUP; i++)
                     {
                         if (Button_GetCheck(context->CpuControlList->Items[i]) == BST_CHECKED)
-                            affinityMask |= (KAFFINITY)1 << i;
+                            affinityMask |= AFFINITY_MASK(i);
                     }
 
                     if (context->GroupComboHandle)
@@ -870,6 +869,47 @@ NTSTATUS PhSetProcessItemPriorityBoost(
     if (NT_SUCCESS(status))
     {
         status = PhSetProcessPriorityBoost(processHandle, PriorityBoost);
+        NtClose(processHandle);
+    }
+
+    return status;
+}
+
+// Note: Workaround for UserNotes plugin dialog overrides (dmex)
+NTSTATUS PhSetProcessItemThrottlingState(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN ThrottlingState
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        ProcessItem->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ThrottlingState)
+        {
+            PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_NORMAL);
+
+            status = PhSetProcessPowerThrottlingState(processHandle, 0, 0);
+        }
+        else
+        {
+            // Taskmgr sets the process priority to idle before enabling 'Eco mode'. (dmex)
+            PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_IDLE);
+
+            status = PhSetProcessPowerThrottlingState(
+                processHandle,
+                POWER_THROTTLING_PROCESS_EXECUTION_SPEED,
+                POWER_THROTTLING_PROCESS_EXECUTION_SPEED
+                );
+        }
+
         NtClose(processHandle);
     }
 

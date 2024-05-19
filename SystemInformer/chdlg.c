@@ -6,13 +6,12 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2015-2021
+ *     dmex    2015-2023
  *
  */
 
 #include <phapp.h>
 #include <settings.h>
-#include <phsettings.h>
 
 typedef struct _PH_CHOICE_DIALOG_CONTEXT
 {
@@ -68,12 +67,12 @@ BOOLEAN PhaChoiceDialog(
     context.SelectedOption = SelectedOption;
     context.SavedChoicesSettingName = SavedChoicesSettingName;
 
-    return DialogBoxParam(
+    return PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CHOOSE),
         ParentWindowHandle,
         PhpChoiceDlgProc,
-        (LPARAM)&context
+        &context
         ) == IDOK;
 }
 

@@ -29,7 +29,7 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -63,7 +63,7 @@ HRESULT CALLBACK CheckingForUpdatesDbCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -73,7 +73,7 @@ HRESULT CALLBACK CheckingForUpdatesDbCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
-            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), GeoLiteUpdateThread, context);
+            PhCreateThread2(GeoLiteUpdateThread, context);
         }
         break;
     }
@@ -89,7 +89,7 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -98,16 +98,23 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
             if ((INT)wParam == IDYES)
             {
                 ProcessHacker_PrepareForEarlyShutdown();
-                PhShellProcessHacker(
-                    PhMainWndHandle,
+
+                if (NT_SUCCESS(PhShellProcessHacker(
+                    context->ParentWindowHandle,
                     NULL,
-                    SW_SHOW,
-                    0,
+                    SW_SHOWNORMAL,
+                    PH_SHELL_EXECUTE_DEFAULT,
                     PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                     0,
                     NULL
-                    );
-                ProcessHacker_Destroy();
+                    )))
+                {
+                    ProcessHacker_Destroy();
+                }
+                else
+                {
+                    ProcessHacker_CancelEarlyShutdown();
+                }
             }
         }
         break;
@@ -124,7 +131,7 @@ HRESULT CALLBACK FinalDbTaskDialogCallbackProc(
     _In_ LONG_PTR dwRefData
     )
 {
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
+    PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
     switch (uMsg)
     {
@@ -151,7 +158,7 @@ HRESULT CALLBACK FinalDbTaskDialogCallbackProc(
 }
 
 VOID ShowDbCheckForUpdatesDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -175,7 +182,7 @@ VOID ShowDbCheckForUpdatesDialog(
 }
 
 VOID ShowDbCheckingForUpdatesDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -197,7 +204,7 @@ VOID ShowDbCheckingForUpdatesDialog(
 }
 
 VOID ShowDbInstallRestartDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
@@ -221,7 +228,7 @@ VOID ShowDbInstallRestartDialog(
 }
 
 VOID ShowDbUpdateFailedDialog(
-    _In_ PPH_UPDATER_CONTEXT Context
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;

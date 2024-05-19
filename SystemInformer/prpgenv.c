@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -158,7 +158,7 @@ VOID PhpClearEnvironmentItems(
 
 VOID PhpSetEnvironmentListStatusMessage(
     _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
-    _In_ ULONG Status
+    _In_ NTSTATUS Status
     )
 {
     if (Context->ProcessItem->State & PH_PROCESS_ITEM_REMOVED || Status == STATUS_PARTIAL_COPY)
@@ -205,11 +205,20 @@ VOID PhpRefreshEnvironmentList(
     userRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_USER, PhaCreateString(L"User"), NULL);
     systemRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM, PhaCreateString(L"System"), NULL);
 
-    status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessItem->ProcessId
-        );
+    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            ProcessItem->ProcessId
+            );
+    }
+    else
+    {
+        PhpSetEnvironmentListStatusMessage(Context, STATUS_PARTIAL_COPY);
+        TreeNew_NodesStructured(Context->TreeNewHandle);
+        return;
+    }
 
     if (!NT_SUCCESS(status))
     {
@@ -644,12 +653,12 @@ INT_PTR PhpShowEditEnvDialog(
     context.Name = Name;
     context.Value = Value;
 
-    result = DialogBoxParam(
+    result = PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_EDITENV),
         ParentWindowHandle,
         PhpEditEnvDlgProc,
-        (LPARAM)&context
+        &context
         );
 
     if (Refresh)
@@ -971,26 +980,19 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
-)
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
 {
     PPH_ENVIRONMENT_CONTEXT context = Context;
     PPHP_PROCESS_ENVIRONMENT_TREENODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)getChildren->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -1017,6 +1019,8 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == ENVIRONMENT_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
+
                     if (context->TreeNewSortColumn < ENVIRONMENT_COLUMN_ITEM_MAXIMUM)
                         sortFunction = sortFunctions[context->TreeNewSortColumn];
                     else
@@ -1036,10 +1040,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -1051,10 +1051,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -1075,10 +1071,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)getNodeColor->Node;
 
             //if (node->HasChildren)
@@ -1125,9 +1117,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -1288,10 +1277,12 @@ VOID PhpInitializeEnvironmentTree(
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
     TreeNew_SetCallback(Context->TreeNewHandle, PhpEnvironmentTreeNewCallback, Context);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_VALUE, TRUE, L"Value", 250, PH_ALIGN_LEFT, 1, 0);
 
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, ENVIRONMENT_COLUMN_ITEM_NAME, NoSortOrder);
 
@@ -1338,22 +1329,39 @@ BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     if (context->HideCmdTypeEnvironment && environmentNode->IsCmdVariable)
         return FALSE;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (!PhIsNullOrEmptyString(environmentNode->NameText))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &environmentNode->NameText->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &environmentNode->NameText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(environmentNode->ValueText))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &environmentNode->ValueText->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &environmentNode->ValueText->sr))
             return TRUE;
     }
 
     return FALSE;
+}
+
+VOID NTAPI PhpProcessEnvironmentSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_ENVIRONMENT_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    // Expand any hidden nodes to make search results visible.
+    PhpExpandAllEnvironmentNodes(context, TRUE);
+
+    PhApplyTreeNewFilters(&context->TreeFilterSupport);
 }
 
 INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
@@ -1384,10 +1392,16 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
             context->ProcessItem = processItem;
 
-            PhCreateSearchControl(hwndDlg, context->SearchWindowHandle, L"Search Environment (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchWindowHandle,
+                L"Search Environment (Ctrl+K)",
+                PhpProcessEnvironmentSearchControlCallback,
+                context
+                );
+
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             PhpInitializeEnvironmentTree(context);
 
@@ -1406,7 +1420,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     case WM_DESTROY:
         {
             PhRemoveTreeNewFilter(&context->TreeFilterSupport, context->TreeFilterEntry);
-            if (context->SearchboxText) PhDereferenceObject(context->SearchboxText);
 
             PhSaveSettingsEnvironmentList(context);
             PhpDeleteEnvironmentTree(context);
@@ -1432,31 +1445,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_HWND(wParam, lParam) != context->SearchWindowHandle)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchWindowHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        // Cache the current search text for our callback.
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        // Expand any hidden nodes to make search results visible.
-                        PhpExpandAllEnvironmentNodes(context, TRUE);
-
-                        PhApplyTreeNewFilters(&context->TreeFilterSupport);
-                    }
-                }
-                break;
-            }
-
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_OPTIONS:

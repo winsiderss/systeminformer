@@ -9,16 +9,35 @@
 
 typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
 typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
+typedef struct _SILO_USER_SHARED_DATA *PSILO_USER_SHARED_DATA;
+typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
+
+#include <ntsxs.h>
 
 // private
-typedef struct _ACTIVATION_CONTEXT_STACK
-{
-    struct _RTL_ACTIVATION_CONTEXT_STACK_FRAME* ActiveFrame;
-    LIST_ENTRY FrameListCache;
-    ULONG Flags;
-    ULONG NextCookieSequenceNumber;
-    ULONG StackId;
-} ACTIVATION_CONTEXT_STACK, *PACTIVATION_CONTEXT_STACK;
+#define KACF_OLDGETSHORTPATHNAME 0x00000001
+#define KACF_VERSIONLIE_NOT_USED 0x00000002
+#define KACF_GETDISKFREESPACE 0x00000008
+#define KACF_FTMFROMCURRENTAPT 0x00000020
+#define KACF_DISALLOWORBINDINGCHANGES 0x00000040
+#define KACF_OLE32VALIDATEPTRS 0x00000080
+#define KACF_DISABLECICERO 0x00000100
+#define KACF_OLE32ENABLEASYNCDOCFILE 0x00000200
+#define KACF_OLE32ENABLELEGACYEXCEPTIONHANDLING 0x00000400
+#define KACF_RPCDISABLENDRCLIENTHARDENING 0x00000800
+#define KACF_RPCDISABLENDRMAYBENULL_SIZEIS 0x00001000
+#define KACF_DISABLEALLDDEHACK_NOT_USED 0x00002000
+#define KACF_RPCDISABLENDR61_RANGE 0x00004000
+#define KACF_RPC32ENABLELEGACYEXCEPTIONHANDLING 0x00008000
+#define KACF_OLE32DOCFILEUSELEGACYNTFSFLAGS 0x00010000
+#define KACF_RPCDISABLENDRCONSTIIDCHECK 0x00020000
+#define KACF_USERDISABLEFORWARDERPATCH 0x00040000
+#define KACF_OLE32DISABLENEW_WMPAINT_DISPATCH 0x00100000
+#define KACF_ADDRESTRICTEDSIDINCOINITIALIZESECURITY 0x00200000
+#define KACF_ALLOCDEBUGINFOFORCRITSECTIONS 0x00400000
+#define KACF_OLEAUT32ENABLEUNSAFELOADTYPELIBRELATIVE 0x00800000
+#define KACF_ALLOWMAXIMIZEDWINDOWGAMMA 0x01000000
+#define KACF_DONOTADDTOCACHE 0x80000000
 
 // private
 typedef struct _API_SET_NAMESPACE
@@ -59,6 +78,28 @@ typedef struct _API_SET_VALUE_ENTRY
     ULONG ValueOffset;
     ULONG ValueLength;
 } API_SET_VALUE_ENTRY, *PAPI_SET_VALUE_ENTRY;
+
+// private
+typedef struct _TELEMETRY_COVERAGE_HEADER
+{
+    UCHAR MajorVersion;
+    UCHAR MinorVersion;
+    struct
+    {
+        USHORT TracingEnabled : 1;
+        USHORT Reserved1 : 15;
+    };
+    ULONG HashTableEntries;
+    ULONG HashIndexMask;
+    ULONG TableUpdateVersion;
+    ULONG TableSizeInBytes;
+    ULONG LastResetTick;
+    ULONG ResetRound;
+    ULONG Reserved2;
+    ULONG RecordedCount;
+    ULONG Reserved3[4];
+    ULONG HashTable[ANYSIZE_ARRAY];
+} TELEMETRY_COVERAGE_HEADER, *PTELEMETRY_COVERAGE_HEADER;
 
 // symbols
 typedef struct _PEB
@@ -118,11 +159,11 @@ typedef struct _PEB
     ULONG AtlThunkSListPtr32;
     PAPI_SET_NAMESPACE ApiSetMap;
     ULONG TlsExpansionCounter;
-    PVOID TlsBitmap;
-    ULONG TlsBitmapBits[2];
+    PRTL_BITMAP TlsBitmap;
+    ULONG TlsBitmapBits[2]; // TLS_MINIMUM_AVAILABLE
 
     PVOID ReadOnlySharedMemoryBase;
-    PVOID SharedData; // HotpatchInformation
+    PSILO_USER_SHARED_DATA SharedData; // HotpatchInformation
     PVOID *ReadOnlyStaticServerData;
 
     PVOID AnsiCodePageData; // PCPTABLEINFO
@@ -142,7 +183,7 @@ typedef struct _PEB
     ULONG MaximumNumberOfHeaps;
     PVOID *ProcessHeaps; // PHEAP
 
-    PVOID GdiSharedHandleTable;
+    PVOID GdiSharedHandleTable; // PGDI_SHARED_MEMORY
     PVOID ProcessStarterHelper;
     ULONG GdiDCAttributeList;
 
@@ -160,22 +201,22 @@ typedef struct _PEB
     GDI_HANDLE_BUFFER GdiHandleBuffer;
     PVOID PostProcessInitRoutine;
 
-    PVOID TlsExpansionBitmap;
-    ULONG TlsExpansionBitmapBits[32];
+    PRTL_BITMAP TlsExpansionBitmap;
+    ULONG TlsExpansionBitmapBits[32]; // TLS_EXPANSION_SLOTS
 
     ULONG SessionId;
 
-    ULARGE_INTEGER AppCompatFlags;
+    ULARGE_INTEGER AppCompatFlags; // KACF_*
     ULARGE_INTEGER AppCompatFlagsUser;
     PVOID pShimData;
     PVOID AppCompatInfo; // APPCOMPAT_EXE_DATA
 
     UNICODE_STRING CSDVersion;
 
-    PVOID ActivationContextData; // ACTIVATION_CONTEXT_DATA
-    PVOID ProcessAssemblyStorageMap; // ASSEMBLY_STORAGE_MAP
-    PVOID SystemDefaultActivationContextData; // ACTIVATION_CONTEXT_DATA
-    PVOID SystemAssemblyStorageMap; // ASSEMBLY_STORAGE_MAP
+    PACTIVATION_CONTEXT_DATA ActivationContextData;
+    PASSEMBLY_STORAGE_MAP ProcessAssemblyStorageMap;
+    PACTIVATION_CONTEXT_DATA SystemDefaultActivationContextData;
+    PASSEMBLY_STORAGE_MAP SystemAssemblyStorageMap;
 
     SIZE_T MinimumStackCommit;
 
@@ -217,12 +258,12 @@ typedef struct _PEB
     PRTL_CRITICAL_SECTION TppWorkerpListLock;
     LIST_ENTRY TppWorkerpList;
     PVOID WaitOnAddressHashTable[128];
-    PVOID TelemetryCoverageHeader; // REDSTONE3
+    PTELEMETRY_COVERAGE_HEADER TelemetryCoverageHeader; // REDSTONE3
     ULONG CloudFileFlags;
     ULONG CloudFileDiagFlags; // REDSTONE4
     CHAR PlaceholderCompatibilityMode;
     CHAR PlaceholderCompatibilityModeReserved[7];
-    struct _LEAP_SECOND_DATA *LeapSecondData; // REDSTONE5
+    PLEAP_SECOND_DATA LeapSecondData; // REDSTONE5
     union
     {
         ULONG LeapSecondFlags;
@@ -265,12 +306,27 @@ typedef struct _TEB_ACTIVE_FRAME_CONTEXT
     PSTR FrameName;
 } TEB_ACTIVE_FRAME_CONTEXT, *PTEB_ACTIVE_FRAME_CONTEXT;
 
+typedef struct _TEB_ACTIVE_FRAME_CONTEXT_EX
+{
+    TEB_ACTIVE_FRAME_CONTEXT BasicContext;
+    PSTR SourceLocation;
+} TEB_ACTIVE_FRAME_CONTEXT_EX, *PTEB_ACTIVE_FRAME_CONTEXT_EX;
+
 typedef struct _TEB_ACTIVE_FRAME
 {
     ULONG Flags;
     struct _TEB_ACTIVE_FRAME *Previous;
     PTEB_ACTIVE_FRAME_CONTEXT Context;
 } TEB_ACTIVE_FRAME, *PTEB_ACTIVE_FRAME;
+
+typedef struct _TEB_ACTIVE_FRAME_EX
+{
+    TEB_ACTIVE_FRAME BasicFrame;
+    PVOID ExtensionIdentifier;
+} TEB_ACTIVE_FRAME_EX, *PTEB_ACTIVE_FRAME_EX;
+
+#define STATIC_UNICODE_BUFFER_LENGTH 261
+#define WIN32_CLIENT_INFO_LENGTH 62
 
 typedef struct _TEB
 {
@@ -330,7 +386,8 @@ typedef struct _TEB
     ULONG GdiClientPID;
     ULONG GdiClientTID;
     PVOID GdiThreadLocalInfo;
-    ULONG_PTR Win32ClientInfo[62];
+    ULONG_PTR Win32ClientInfo[WIN32_CLIENT_INFO_LENGTH];
+
     PVOID glDispatchTable[233];
     ULONG_PTR glReserved1[29];
     PVOID glReserved2;
@@ -342,10 +399,10 @@ typedef struct _TEB
 
     NTSTATUS LastStatusValue;
     UNICODE_STRING StaticUnicodeString;
-    WCHAR StaticUnicodeBuffer[261];
+    WCHAR StaticUnicodeBuffer[STATIC_UNICODE_BUFFER_LENGTH];
 
     PVOID DeallocationStack;
-    PVOID TlsSlots[64];
+    PVOID TlsSlots[TLS_MINIMUM_AVAILABLE];
     LIST_ENTRY TlsLinks;
 
     PVOID Vdm;
@@ -381,7 +438,7 @@ typedef struct _TEB
 
     ULONG GuaranteedStackBytes;
     PVOID ReservedForPerf;
-    PVOID ReservedForOle;
+    PVOID ReservedForOle; // tagSOleTlsData
     ULONG WaitingOnLoaderLock;
     PVOID SavedPriorityState;
     ULONG_PTR ReservedForCodeCoverage;
@@ -447,5 +504,11 @@ typedef struct _TEB
     ULONG SpinCallCount;
     ULONGLONG ExtendedFeatureDisableMask;
 } TEB, *PTEB;
+
+#ifdef _WIN64
+C_ASSERT(sizeof(TEB) == 0x1850); // WIN11
+#else
+C_ASSERT(sizeof(TEB) == 0x1018); // WIN11
+#endif
 
 #endif

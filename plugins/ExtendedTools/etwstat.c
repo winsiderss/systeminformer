@@ -27,7 +27,7 @@ VOID EtpUpdateProcessInformation(
     VOID
     );
 
-BOOLEAN EtDiskExtEnabled = FALSE;
+BOOLEAN EtDiskCountersEnabled = FALSE;
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
 
@@ -71,7 +71,6 @@ VOID EtEtwStatisticsInitialization(
 {
     ULONG sampleCount;
 
-    EtDiskExtEnabled = PhWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64();
     sampleCount = PhGetIntegerSetting(L"SampleCount");
     PhInitializeCircularBuffer_ULONG(&EtDiskReadHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG(&EtDiskWriteHistory, sampleCount);
@@ -83,6 +82,11 @@ VOID EtEtwStatisticsInitialization(
     PhInitializeCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, sampleCount);
 #endif
+
+    if (EtWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+    {
+        EtDiskCountersEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_DISKPERFCOUNTERS);
+    }
 
     EtEtwMonitorInitialization();
 
@@ -199,7 +203,7 @@ VOID EtProcessNetworkEvent(
     if (!networkItem && Event->ProtocolType & PH_UDP_PROTOCOL_TYPE)
     {
         // Note: ETW generates UDP events with the LocalEndpoint set to the LAN endpoint address
-        // of the local adapter the packet was sent or recieved but GetExtendedUdpTable
+        // of the local adapter the packet was sent or received but GetExtendedUdpTable
         // returns some UDP connections with endpoints set to in4addr_any/in6addr_any (zero). (dmex)
 
         if (Event->ProtocolType & PH_IPV4_NETWORK_TYPE)
@@ -249,7 +253,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     // Since Windows 8, we no longer get the correct process/thread IDs in the
     // event headers for disk events. We need to update our process information since
     // etwmon uses our EtThreadIdToProcessId function. (wj32)
-    if (PhWindowsVersion >= WINDOWS_8)
+    if (EtWindowsVersion >= WINDOWS_8 && EtEtwEnabled)
         EtpUpdateProcessInformation();
 
     // ETW is extremely lazy when it comes to flushing buffers, so we must do it manually. (wj32)
@@ -277,7 +281,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 
         block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-        if (EtDiskExtEnabled)
+        if (EtDiskCountersEnabled)
         {
             ULONG64 diskReads = block->ProcessItem->DiskCounters.ReadOperationCount;
             ULONG64 diskWrites = block->ProcessItem->DiskCounters.WriteOperationCount;
@@ -429,7 +433,10 @@ VOID EtpUpdateProcessInformation(
         EtpProcessInformation = NULL;
     }
 
-    PhEnumProcesses(&EtpProcessInformation);
+    if (!PhDuplicateProcessInformation(&EtpProcessInformation))
+    {
+        PhEnumProcesses(&EtpProcessInformation);
+    }
 
     PhReleaseQueuedLockExclusive(&EtpProcessInformationLock);
 }

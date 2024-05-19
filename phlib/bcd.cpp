@@ -5,12 +5,13 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
 #include <ph.h>
 #include <bcd.h>
+#include <mapldr.h>
 
 static PVOID BcdDllBaseAddress = nullptr;
 static decltype(&BcdOpenSystemStore) BcdOpenSystemStore_I = nullptr;
@@ -94,7 +95,7 @@ NTSTATUS PhBcdCloseStore(
 
 NTSTATUS PhBcdOpenObject(
     _In_ HANDLE StoreHandle,
-    _In_ PGUID Identifier,
+    _In_ PCGUID Identifier,
     _Out_ PHANDLE ObjectHandle
     )
 {
@@ -469,7 +470,7 @@ NTSTATUS PhBcdSetBootApplicationOneTime(
         HANDLE objectFirmwareHandle;
 
         // The user might have a third party boot loader where the Windows NT {bootmgr}
-        // is NOT the default {fwbootmgr} entry. So make the reboot seemless/effortless by
+        // is NOT the default {fwbootmgr} entry. So make the reboot seamless/effortless by
         // synchronizing the {fwbootmgr} one-time option to the Windows NT {bootmgr}.
         // This is a QOL optimization so you don't have to manually select Windows
         // first for it to then launch the boot application we already selected. (dmex)
@@ -688,7 +689,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
 
 static VOID PhpBcdEnumerateBootMgrList(
     _In_ HANDLE StoreHandle,
-    _In_ PGUID Identifier,
+    _In_ PCGUID Identifier,
     _In_ ULONG ElementType,
     _In_ PPH_LIST ObjectList
     )

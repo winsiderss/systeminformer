@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -23,6 +23,13 @@ typedef enum _PV_IMPORT_TREE_COLUMN_ITEM
     PV_IMPORT_TREE_COLUMN_ITEM_DLL,
     PV_IMPORT_TREE_COLUMN_ITEM_NAME,
     PV_IMPORT_TREE_COLUMN_ITEM_HINT,
+    PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL,
+    PV_IMPORT_TREE_COLUMN_ITEM_ORDINAL,
+    PV_IMPORT_TREE_COLUMN_ITEM_ORDINALNAME,
+    //PV_IMPORT_TREE_COLUMN_ITEM_FIRSTTHUNK,
+    //PV_IMPORT_TREE_COLUMN_ITEM_ORIGINALTHUNK,
+    //PV_IMPORT_TREE_COLUMN_ITEM_NAMETHUNK,
+    //PV_IMPORT_TREE_COLUMN_ITEM_ADDRESSTHUNK,
     PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM
 } PV_IMPORT_TREE_COLUMN_ITEM;
 
@@ -38,6 +45,9 @@ typedef struct _PV_IMPORT_NODE
     PPH_STRING DllString;
     PPH_STRING NameString;
     PPH_STRING HintString;
+    PPH_STRING SymbolString;
+    PPH_STRING OrdinalString;
+    PPH_STRING OrdinalNameString;
 
     PH_STRINGREF TextCache[PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM];
 } PV_IMPORT_NODE, *PPV_IMPORT_NODE;
@@ -49,7 +59,7 @@ typedef struct _PV_IMPORT_CONTEXT
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
 
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_STRING TreeText;
 
     PH_LAYOUT_MANAGER LayoutManager;
@@ -213,7 +223,7 @@ PPH_STRING PvpQueryModuleOrdinalName(
                                             moduleSymbolProvider,
                                             exportFileName,
                                             (ULONG64)mappedImage.ViewBase,
-                                            (ULONG)mappedImage.Size
+                                            (ULONG)mappedImage.ViewSize
                                             ))
                                         {
                                             // Try find the export name using symbols.
@@ -277,6 +287,7 @@ VOID PvpProcessImports(
                 if (NT_SUCCESS(PhGetMappedImageImportEntry(&importDll, j, &importEntry)))
                 {
                     PPV_IMPORT_NODE importNode;
+                    PPH_STRING importDllName;
 
                     importNode = PhAllocateZero(sizeof(PV_IMPORT_NODE));
                     importNode->UniqueId = ++(*Count);
@@ -290,8 +301,6 @@ VOID PvpProcessImports(
 
                     if (importNode->DllString = PhConvertUtf8ToUtf16(importDll.Name))
                     {
-                        PPH_STRING importDllName;
-
                         if (importDllName = PhApiSetResolveToHost(&importNode->DllString->sr))
                         {
                             PhMoveReference(&importNode->DllString, PhFormatString(
@@ -313,104 +322,45 @@ VOID PvpProcessImports(
 
                     if (importEntry.Name)
                     {
-                        PPH_STRING importName;
-
-                        importName = PhConvertUtf8ToUtf16(importEntry.Name);
-
-                        if (importName->Buffer[0] == L'?')
+                        if (importNode->NameString = PhConvertUtf8ToUtf16(importEntry.Name))
                         {
-                            PPH_STRING undecoratedName;
-
-                            if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, importName->Buffer))
-                                PhMoveReference(&importName, undecoratedName);
+                            if (importNode->NameString->Buffer[0] == L'?')
+                            {
+                                importNode->SymbolString = PhUndecorateSymbolName(PvSymbolProvider, PhGetString(importNode->NameString));
+                            }
                         }
-
-                        importNode->NameString = importName;
                     }
                     else
                     {
-                        PPH_STRING exportDllName;
-                        PPH_STRING exportOrdinalName = NULL;
+                        importNode->OrdinalString = PhFormatUInt64(importEntry.Ordinal, TRUE);
 
-                        if (exportDllName = PhConvertUtf8ToUtf16(importDll.Name))
+                        if (importDllName = PhConvertUtf8ToUtf16(importDll.Name))
                         {
-                            PPH_STRING filePath;
-                            PPH_STRING importDllName;
+                            PPH_STRING apisetFileName;
+                            PPH_STRING importFileName;
 
-                            if (importDllName = PhApiSetResolveToHost(&exportDllName->sr))
+                            if (apisetFileName = PhApiSetResolveToHost(&importDllName->sr))
                             {
-                                PhMoveReference(&exportDllName, importDllName);
+                                PhMoveReference(&importDllName, apisetFileName);
                             }
 
                             // TODO: Add DLL directory to PhSearchFilePath for locating non-system images. (dmex)
 
-                            if (filePath = PhSearchFilePath(exportDllName->Buffer, L".dll"))
+                            if (importFileName = PhSearchFilePath(importDllName->Buffer, L".dll"))
                             {
-                                PhMoveReference(&exportDllName, filePath);
+                                PhMoveReference(&importDllName, importFileName);
                             }
 
-                            exportOrdinalName = PvpQueryModuleOrdinalName(exportDllName, importEntry.Ordinal);
-                            PhDereferenceObject(exportDllName);
-                        }
-
-                        if (exportOrdinalName)
-                        {
-                            importNode->NameString = PhFormatString(
-                                L"%s (Ordinal %u)",
-                                PhGetStringOrEmpty(exportOrdinalName),
-                                importEntry.Ordinal
-                                );
-                            PhDereferenceObject(exportOrdinalName);
-                        }
-                        else
-                        {
-                            importNode->NameString = PhFormatString(
-                                L"(Ordinal %u)",
-                                importEntry.Ordinal
-                                );
+                            importNode->OrdinalNameString = PvpQueryModuleOrdinalName(importDllName, importEntry.Ordinal);
+                            PhDereferenceObject(importDllName);
                         }
                     }
 
-                    if (importDll.MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                     {
-                        ULONG rva;
-                        //PVOID va;
                         WCHAR value[PH_INT64_STR_LEN_1];
 
-                        if (DelayImports)
-                        {
-                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(IMAGE_THUNK_DATA32);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
-                        }
-                        else
-                        {
-                            rva = importDll.Descriptor->FirstThunk + j * sizeof(IMAGE_THUNK_DATA32);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders32->OptionalHeader.ImageBase, rva);
-                        }
-
-                        importNode->Address = rva;
-                        PhPrintPointer(value, (PVOID)(ULONG_PTR)rva);
-                        importNode->AddressString = PhCreateString(value);
-                    }
-                    else
-                    {
-                        ULONG rva;
-                        //PVOID va;
-                        WCHAR value[PH_INT64_STR_LEN_1];
-
-                        if (DelayImports)
-                        {
-                            rva = importDll.DelayDescriptor->ImportAddressTableRVA + j * sizeof(IMAGE_THUNK_DATA64);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
-                        }
-                        else
-                        {
-                            rva = importDll.Descriptor->FirstThunk + j * sizeof(IMAGE_THUNK_DATA64);
-                            //va = PTR_ADD_OFFSET(importDll.MappedImage->NtHeaders->OptionalHeader.ImageBase, rva);
-                        }
-
-                        importNode->Address = rva;
-                        PhPrintPointer(value, (PVOID)(ULONG_PTR)rva);
+                        importNode->Address = PhGetMappedImageImportEntryRva(&importDll, j, DelayImports);
+                        PhPrintPointer(value, (PVOID)importNode->Address);
                         importNode->AddressString = PhCreateString(value);
                     }
 
@@ -442,6 +392,26 @@ NTSTATUS PvpPeImportsEnumerateThread(
 
     PostMessage(Context->DialogHandle, WM_PV_SEARCH_FINISHED, 0, 0);
     return STATUS_SUCCESS;
+}
+
+VOID NTAPI PvpPeImportsSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+)
+{
+    PPV_IMPORT_CONTEXT context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    if (!context->SearchMatchHandle)
+    {
+        //PhExpandAllNodes(TRUE);
+        //PhDeselectAllNodes();
+    }
+
+    PhApplyTreeNewFilters(&context->FilterSupport);
 }
 
 INT_PTR CALLBACK PvPeImportsDlgProc(
@@ -479,10 +449,14 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             context->DialogHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->SearchHandle = GetDlgItem(hwndDlg, IDC_TREESEARCH);
-            context->SearchboxText = PhReferenceEmptyString();
             context->SearchResults = PhCreateList(1);
 
-            PvCreateSearchControl(context->SearchHandle, L"Search Imports (Ctrl+K)");
+            PvCreateSearchControl(
+                context->SearchHandle,
+                L"Search Imports (Ctrl+K)",
+                PvpPeImportsSearchControlCallback,
+                context
+                );
 
             PvInitializeImportTree(context, hwndDlg, context->TreeNewHandle);
             PhAddTreeNewFilter(&context->FilterSupport, PvImportTreeFilterCallback, context);
@@ -497,13 +471,15 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
 
             PhCreateThread2(PvpPeImportsEnumerateThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
             PhSaveSettingsImportList(context);
             PvDeleteImportTree(context);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
@@ -531,33 +507,6 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             case PSN_QUERYINITIALFOCUS:
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->TreeNewHandle);
                 return TRUE;
-            }
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_CMD(wParam, lParam))
-            {
-            case EN_CHANGE:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        if (!PhIsNullOrEmptyString(context->SearchboxText))
-                        {
-                            //PhExpandAllNodes(TRUE);
-                            //PhDeselectAllNodes();
-                        }
-
-                        PhApplyTreeNewFilters(&context->FilterSupport);
-                    }
-                }
-                break;
             }
         }
         break;
@@ -639,9 +588,9 @@ VOID PhLoadSettingsImportList(
     PPH_STRING settings;
     PPH_STRING sortSettings;
 
-    settings = PhGetStringSetting(L"ImageImportsTreeListColumns");
-    sortSettings = PhGetStringSetting(L"ImageImportsTreeListSort");
-    //Context->Flags = PhGetIntegerSetting(L"ImageImportsTreeListFlags");
+    settings = PhGetStringSetting(L"ImageImportTreeListColumns");
+    sortSettings = PhGetStringSetting(L"ImageImportTreeListSort");
+    //Context->Flags = PhGetIntegerSetting(L"ImageImportTreeListFlags");
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -659,8 +608,8 @@ VOID PhSaveSettingsImportList(
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
 
     //PhSetIntegerSetting(L"ImageImportsTreeListFlags", Context->Flags);
-    PhSetStringSetting2(L"ImageImportsTreeListColumns", &settings->sr);
-    PhSetStringSetting2(L"ImageImportsTreeListSort", &sortSettings->sr);
+    PhSetStringSetting2(L"ImageImportTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"ImageImportTreeListSort", &sortSettings->sr);
 
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
@@ -831,29 +780,40 @@ BEGIN_SORT_FUNCTION(Hint)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Symbol)
+{
+    sortResult = PhCompareStringWithNull(node1->SymbolString, node2->SymbolString, FALSE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Ordinal)
+{
+    sortResult = PhCompareStringWithNull(node1->OrdinalString, node2->OrdinalString, FALSE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(OrdinalName)
+{
+    sortResult = PhCompareStringWithNull(node1->OrdinalNameString, node2->OrdinalNameString, FALSE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PvImportTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPV_IMPORT_CONTEXT context = Context;
     PPV_IMPORT_NODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPV_IMPORT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -865,8 +825,13 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
                     SORT_FUNCTION(Dll),
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(Hint),
+                    SORT_FUNCTION(Symbol),
+                    SORT_FUNCTION(Ordinal),
+                    SORT_FUNCTION(OrdinalName),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
+
+                static_assert(RTL_NUMBER_OF(sortFunctions) == PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
                 if (context->TreeNewSortColumn < PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM)
                     sortFunction = sortFunctions[context->TreeNewSortColumn];
@@ -886,10 +851,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPV_IMPORT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -898,10 +859,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPV_IMPORT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -916,15 +873,19 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->DllString);
                 break;
             case PV_IMPORT_TREE_COLUMN_ITEM_NAME:
-                {
-                    if (node->NameString)
-                        getCellText->Text = PhGetStringRef(node->NameString);
-                    else
-                        PhInitializeStringRefLongHint(&getCellText->Text, L"(unnamed)");
-                }
+                getCellText->Text = PhGetStringRef(node->NameString);
                 break;
             case PV_IMPORT_TREE_COLUMN_ITEM_HINT:
                 getCellText->Text = PhGetStringRef(node->HintString);
+                break;
+            case PV_IMPORT_TREE_COLUMN_ITEM_ORDINAL:
+                getCellText->Text = PhGetStringRef(node->OrdinalString);
+                break;
+            case PV_IMPORT_TREE_COLUMN_ITEM_ORDINALNAME:
+                getCellText->Text = PhGetStringRef(node->OrdinalNameString);
+                break;
+            case PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL:
+                getCellText->Text = PhGetStringRef(node->SymbolString);
                 break;
             default:
                 return FALSE;
@@ -936,10 +897,6 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPV_IMPORT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -952,12 +909,32 @@ BOOLEAN NTAPI PvImportTreeNewCallback(
         }
         return TRUE;
     case TreeNewKeyDown:
-    case TreeNewNodeExpanding:
-        return TRUE;
-    case TreeNewLeftDoubleClick:
         {
-           // SendMessage(context->ParentWindowHandle, WM_COMMAND, WM_ACTION, (LPARAM)context);
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                {
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        PPH_STRING text;
+
+                        text = PhGetTreeNewText(hwnd, 0);
+                        PhSetClipboardString(hwnd, &text->sr);
+                        PhDereferenceObject(text);
+                    }
+                }
+                break;
+            case 'A':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
+                break;
+            }
         }
+        return TRUE;
+    case TreeNewNodeExpanding:
+    case TreeNewLeftDoubleClick:
         return TRUE;
     case TreeNewContextMenu:
         {
@@ -1069,6 +1046,9 @@ VOID PvInitializeImportTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_DLL, TRUE, L"DLL", 80, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_DLL, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 250, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_NAME, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_HINT, TRUE, L"Hint", 50, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_HINT, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_ORDINAL, TRUE, L"Ordinal", 80, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_ORDINAL, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_ORDINALNAME, TRUE, L"Ordinal name", 80, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_ORDINALNAME, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL, TRUE, L"Undecorated name", 150, PH_ALIGN_LEFT, PV_IMPORT_TREE_COLUMN_ITEM_SYMBOL, 0, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
@@ -1076,41 +1056,6 @@ VOID PvInitializeImportTree(
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PV_IMPORT_TREE_COLUMN_ITEM_MAXIMUM, PvImportTreeNewPostSortFunction);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, TreeNewHandle, Context->NodeList);
-}
-
-BOOLEAN PvImportWordMatchStringRef(
-    _In_ PPV_IMPORT_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN PvImportWordMatchStringZ(
-    _In_ PPV_IMPORT_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-    return PvImportWordMatchStringRef(Context, &text);
 }
 
 BOOLEAN PvImportTreeFilterCallback(
@@ -1121,43 +1066,61 @@ BOOLEAN PvImportTreeFilterCallback(
     PPV_IMPORT_CONTEXT context = Context;
     PPV_IMPORT_NODE node = (PPV_IMPORT_NODE)Node;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (!PhIsNullOrEmptyString(node->AddressString))
     {
-        if (PvImportWordMatchStringRef(context, &node->AddressString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->AddressString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->DllString))
     {
-        if (PvImportWordMatchStringRef(context, &node->DllString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->DllString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->NameString))
     {
-        if (PvImportWordMatchStringRef(context, &node->NameString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->NameString->sr))
             return TRUE;
     }
     else
     {
         static PH_STRINGREF ImportNameSr = PH_STRINGREF_INIT(L"(unnamed)");
 
-        if (PvImportWordMatchStringRef(context, &ImportNameSr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &ImportNameSr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->HintString))
     {
-        if (PvImportWordMatchStringRef(context, &node->HintString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->HintString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->UniqueIdString))
     {
-        if (PvImportWordMatchStringRef(context, &node->UniqueIdString->sr))
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->UniqueIdString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->SymbolString))
+    {
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->SymbolString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->OrdinalString))
+    {
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->OrdinalString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->OrdinalNameString))
+    {
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->OrdinalNameString->sr))
             return TRUE;
     }
 

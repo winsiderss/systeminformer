@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2024
  *
  */
 
@@ -33,6 +33,8 @@
 #include "../resource.h"
 #include <phfwddef.h>
 #include <appsup.h>
+
+#include <minidumpapiset.h>
 
 // main
 
@@ -72,9 +74,11 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_LIST PluginParameters;
     PPH_STRING SelectTab;
     PPH_STRING SysInfo;
+    PPH_STRING Channel;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;
+extern BOOLEAN PhPortableEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 
@@ -124,14 +128,6 @@ PhUnregisterMessageLoopFilter(
     );
 // end_phapppub
 
-VOID PhInitializeFont(
-    _In_ HWND hwnd
-    );
-
-VOID PhInitializeMonospaceFont(
-    _In_ HWND hwnd
-    );
-
 // plugin
 
 extern PH_AVL_TREE PhPluginsByName;
@@ -154,11 +150,7 @@ VOID PhLoadPlugins(
     );
 
 VOID PhUnloadPlugins(
-    VOID
-    );
-
-struct _PH_PLUGIN *PhFindPlugin2(
-    _In_ PPH_STRINGREF Name
+    _In_ BOOLEAN SessionEnding
     );
 
 // log
@@ -177,6 +169,9 @@ struct _PH_PLUGIN *PhFindPlugin2(
 #define PH_LOG_ENTRY_SERVICE_PAUSE 8
 #define PH_LOG_ENTRY_SERVICE_MODIFIED 9
 #define PH_LOG_ENTRY_SERVICE_LAST 10
+
+#define PH_LOG_ENTRY_DEVICE_REMOVED 11
+#define PH_LOG_ENTRY_DEVICE_ARRIVED 12
 
 #define PH_LOG_ENTRY_MESSAGE 100 // phapppub
 
@@ -203,6 +198,11 @@ typedef struct _PH_LOG_ENTRY
             PPH_STRING Name;
             PPH_STRING DisplayName;
         } Service;
+        struct
+        {
+            PPH_STRING Classification;
+            PPH_STRING Name;
+        } Device;
         PPH_STRING Message;
     };
     UCHAR Buffer[1];
@@ -231,6 +231,12 @@ VOID PhLogServiceEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Name,
     _In_ PPH_STRING DisplayName
+    );
+
+VOID PhLogDeviceEntry(
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Classification,
+    _In_ PPH_STRING Name
     );
 
 // begin_phapppub
@@ -286,6 +292,12 @@ VOID PhUiAnalyzeWaitThread(
 
 VOID PhUiCreateDumpFileProcess(
     _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ MINIDUMP_TYPE DumpType
+    );
+
+VOID PhShowCreateDumpFileProcessDialog(
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
@@ -297,6 +309,10 @@ VOID PhShowAboutDialog(
 
 PPH_STRING PhGetDiagnosticsString(
     VOID
+    );
+
+PPH_STRING PhGetApplicationVersionString(
+    _In_ BOOLEAN LinkToCommit
     );
 
 // affinity
@@ -356,6 +372,14 @@ NTAPI
 PhSetProcessItemPriorityBoost(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ BOOLEAN PriorityBoost
+    );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhSetProcessItemThrottlingState(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN ThrottlingState
     );
 // end_phapppub
 
@@ -485,8 +509,34 @@ HPROPSHEETPAGE PhCreateJobPage(
 
 // kdump
 
+typedef union _PH_LIVE_DUMP_OPTIONS
+{
+    BOOLEAN Flags;
+    struct
+    {
+        BOOLEAN CompressMemoryPages : 1;
+        BOOLEAN IncludeUserSpaceMemory : 1;
+        BOOLEAN IncludeHypervisorPages : 1;
+        BOOLEAN OnlyKernelThreadStacks : 1;
+        BOOLEAN UseDumpStorageStack : 1;
+        BOOLEAN IncludeNonEssentialHypervisorPages : 1;
+        BOOLEAN Spare : 2;
+    };
+} PH_LIVE_DUMP_OPTIONS, *PPH_LIVE_DUMP_OPTIONS;
+
+VOID PhUiCreateLiveDump(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_LIVE_DUMP_OPTIONS Options
+    );
+
 VOID PhShowLiveDumpDialog(
     _In_ HWND ParentWindowHandle
+    );
+
+// ksyscall
+
+PPH_STRING PhGetSystemCallNumberName(
+    _In_ USHORT SystemCallNumber
     );
 
 // logwnd
@@ -540,18 +590,18 @@ VOID PhShowMemoryStringDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
+// memmod
+
+VOID PhShowImagePageModifiedDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
 // mtgndlg
 
 VOID PhShowProcessMitigationPolicyDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId
-    );
-
-// netstk
-
-VOID PhShowNetworkStackDialog(
-    _In_ HWND ParentWindowHandle,
-    _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 // ntobjprp
@@ -574,6 +624,11 @@ HPROPSHEETPAGE PhCreateSemaphorePage(
 HPROPSHEETPAGE PhCreateTimerPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PVOID Context
+    );
+
+HPROPSHEETPAGE PhCreateMappingsPage(
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE SectionHandle
     );
 
 // options
@@ -625,11 +680,17 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
     BOOLEAN UseLinkedToken;
     PWSTR ServiceName;
     BOOLEAN CreateSuspendedProcess;
+    HWND WindowHandle;
+    BOOLEAN CreateUIAccessProcess;
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhShowRunAsDialog(
     _In_ HWND ParentWindowHandle,
     _In_opt_ HANDLE ProcessId
+    );
+
+VOID PhShowRunAsPackageDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 // begin_phapppub
@@ -656,8 +717,8 @@ PhExecuteRunAsCommand2(
     _In_opt_ PWSTR Password,
     _In_opt_ ULONG LogonType,
     _In_opt_ HANDLE ProcessIdWithToken,
-    _In_ ULONG SessionId,
-    _In_ PWSTR DesktopName,
+    _In_opt_ ULONG SessionId,
+    _In_opt_ PWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken
     );
 // end_phapppub
@@ -672,10 +733,11 @@ PhExecuteRunAsCommand3(
     _In_opt_ PWSTR Password,
     _In_opt_ ULONG LogonType,
     _In_opt_ HANDLE ProcessIdWithToken,
-    _In_ ULONG SessionId,
-    _In_ PWSTR DesktopName,
+    _In_opt_ ULONG SessionId,
+    _In_opt_ PWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken,
-    _In_ BOOLEAN CreateSuspendedProcess
+    _In_ BOOLEAN CreateSuspendedProcess,
+    _In_ BOOLEAN CreateUIAccessProcess
     );
 
 NTSTATUS PhRunAsServiceStart(
@@ -689,137 +751,66 @@ NTSTATUS PhInvokeRunAsService(
 // searchbox
 
 // begin_phapppub
+typedef
+VOID
+NTAPI
+PH_SEARCHCONTROL_CALLBACK(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    );
+typedef PH_SEARCHCONTROL_CALLBACK* PPH_SEARCHCONTROL_CALLBACK;
+
 PHAPPAPI
 VOID
 NTAPI
 PhCreateSearchControl(
-    _In_ HWND Parent,
+    _In_ HWND ParentWindowHandle,
     _In_ HWND WindowHandle,
-    _In_opt_ PWSTR BannerText
+    _In_opt_ PWSTR BannerText,
+    _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
+    _In_opt_ PVOID Context
     );
 
 PHAPPAPI
-HBITMAP
+BOOLEAN
 NTAPI
-PhLoadPngImageFromResource(
-    _In_ PVOID DllBase,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
+PhSearchControlMatch(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PPH_STRINGREF Text
     );
 
 PHAPPAPI
-HBITMAP
+BOOLEAN
 NTAPI
-PhLoadPngImageFromFile(
-    _In_ PWSTR FileName,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ BOOLEAN RGBAImage
+PhSearchControlMatchZ(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PWSTR Text
     );
 
-FORCEINLINE
-HFONT
-PhCreateFont(
-    _In_opt_ PWSTR Name,
-    _In_ ULONG Size,
-    _In_ ULONG Weight,
-    _In_ ULONG PitchAndFamily,
-    _In_ LONG dpiValue
-    )
-{
-    return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
-        PitchAndFamily,
-        Name
-        );
-}
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatchLongHintZ(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PWSTR Text
+    );
 
-FORCEINLINE
-HFONT
-PhCreateCommonFont(
-    _In_ LONG Size,
-    _In_ INT Weight,
-    _In_opt_ HWND hwnd,
-    _In_ LONG dpiValue
-    )
-{
-    HFONT fontHandle;
-    LOGFONT logFont;
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatchPointer(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PVOID Pointer
+    );
 
-    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
-        return NULL;
-
-    fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, dpiValue, 72),
-        0,
-        0,
-        0,
-        Weight,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY,
-        DEFAULT_PITCH,
-        logFont.lfFaceName
-        );
-
-    if (!fontHandle)
-        return NULL;
-
-    if (hwnd)
-        SetWindowFont(hwnd, fontHandle, TRUE);
-
-    return fontHandle;
-}
-
-FORCEINLINE
-HFONT
-PhDuplicateFont(
-    _In_ HFONT Font
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-        return CreateFontIndirect(&logFont);
-
-    return NULL;
-}
-
-FORCEINLINE
-HFONT
-PhDuplicateFontWithNewWeight(
-    _In_ HFONT Font,
-    _In_ LONG NewWeight
-    )
-{
-    LOGFONT logFont;
-
-    if (GetObject(Font, sizeof(LOGFONT), &logFont))
-    {
-        logFont.lfWeight = NewWeight;
-        return CreateFontIndirect(&logFont);
-    }
-
-    return NULL;
-}
-
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatchPointerRange(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PVOID Pointer,
+    _In_ SIZE_T Size
+    );
 // end_phapppub
 
 // sessmsg
@@ -880,6 +871,12 @@ VOID PhShowThreadStackDialog(
     _In_ PPH_THREAD_PROVIDER ThreadProvider
     );
 
+// thrdstks
+
+VOID PhShowThreadStacksDialog(
+    VOID
+    );
+
 // tokprp
 
 PPH_STRING PhGetGroupAttributesString(
@@ -889,6 +886,13 @@ PPH_STRING PhGetGroupAttributesString(
 
 PWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
+    );
+
+_Success_(return)
+BOOLEAN PhGetElevationTypeString(
+    _In_ BOOLEAN IsElevated,
+    _In_ TOKEN_ELEVATION_TYPE ElevationType,
+    _Out_ PPH_STRINGREF* ElevationTypeString
     );
 
 VOID PhShowTokenProperties(

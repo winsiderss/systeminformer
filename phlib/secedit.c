@@ -6,21 +6,28 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
 #include <ph.h>
 #include <appresolver.h>
 #include <secedit.h>
+#include <svcsup.h>
 #include <lsasup.h>
+
+#include <aclui.h>
+#include <aclapi.h>
 
 #include <guisup.h>
 #include <hndlinfo.h>
-#include <settings.h>
 #include <seceditp.h>
+#include <secwmi.h>
 
-static ISecurityInformationVtbl PhSecurityInformation_VTable =
+BOOLEAN PhEnableSecurityAdvancedDialog = FALSE;
+BOOLEAN PhEnableSecurityDialogThread = TRUE;
+
+static const ISecurityInformationVtbl PhSecurityInformation_VTable =
 {
     PhSecurityInformation_QueryInterface,
     PhSecurityInformation_AddRef,
@@ -34,7 +41,7 @@ static ISecurityInformationVtbl PhSecurityInformation_VTable =
     PhSecurityInformation_PropertySheetPageCallback
 };
 
-static ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
+static const ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
 {
     PhSecurityInformation2_QueryInterface,
     PhSecurityInformation2_AddRef,
@@ -43,7 +50,7 @@ static ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
     PhSecurityInformation2_LookupSids
 };
 
-static ISecurityInformation3Vtbl PhSecurityInformation_VTable3 =
+static const ISecurityInformation3Vtbl PhSecurityInformation_VTable3 =
 {
     PhSecurityInformation3_QueryInterface,
     PhSecurityInformation3_AddRef,
@@ -52,7 +59,7 @@ static ISecurityInformation3Vtbl PhSecurityInformation_VTable3 =
     PhSecurityInformation3_OpenElevatedEditor
 };
 
-static IDataObjectVtbl PhDataObject_VTable =
+static const IDataObjectVtbl PhDataObject_VTable =
 {
     PhSecurityDataObject_QueryInterface,
     PhSecurityDataObject_AddRef,
@@ -68,7 +75,7 @@ static IDataObjectVtbl PhDataObject_VTable =
     PhSecurityDataObject_EnumDAdvise
 };
 
-static ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
+static const ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
 {
     PhSecurityObjectTypeInfo_QueryInterface,
     PhSecurityObjectTypeInfo_AddRef,
@@ -76,7 +83,7 @@ static ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
     PhSecurityObjectTypeInfo_GetInheritSource
 };
 
-static IEffectivePermissionVtbl PhEffectivePermission_VTable =
+static const IEffectivePermissionVtbl PhEffectivePermission_VTable =
 {
     PhEffectivePermission_QueryInterface,
     PhEffectivePermission_AddRef,
@@ -84,14 +91,38 @@ static IEffectivePermissionVtbl PhEffectivePermission_VTable =
     PhEffectivePermission_GetEffectivePermission
 };
 
+static VOID PhEditSecurityAdvanced(
+    _In_ PVOID Context
+    )
+{
+    PhSecurityInformation* this = (PhSecurityInformation*)Context;
+
+    if (WindowsVersion > WINDOWS_7 && PhEnableSecurityAdvancedDialog)
+        EditSecurityAdvanced(this->WindowHandle, Context, COMBINE_PAGE_ACTIVATION(SI_PAGE_PERM, SI_SHOW_PERM_ACTIVATED));
+    else
+        EditSecurity(this->WindowHandle, Context);
+
+    PhSecurityInformation_Release(Context);
+}
+
+static NTSTATUS PhEditSecurityAdvancedThread(
+    _In_ PVOID Context
+    )
+{
+    PhEditSecurityAdvanced(Context);
+    return STATUS_SUCCESS;
+}
+
 /**
  * Creates a security editor page.
  *
  * \param ObjectName The name of the object.
  * \param ObjectType The type name of the object.
+ * \param OpenObject An optional procedure for opening the object.
+ * \param CloseObject An optional procedure for closing the object.
  * \param Context A user-defined value to pass to the callback functions.
  */
-HPROPSHEETPAGE PhCreateSecurityPage(
+PVOID PhCreateSecurityPage(
     _In_ PWSTR ObjectName,
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
@@ -100,7 +131,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     )
 {
     ISecurityInformation *info;
-    HPROPSHEETPAGE page;
+    PVOID page;
 
     info = PhSecurityInformation_Create(
         NULL,
@@ -108,6 +139,8 @@ HPROPSHEETPAGE PhCreateSecurityPage(
         ObjectType,
         OpenObject,
         CloseObject,
+        NULL,
+        NULL,
         Context,
         TRUE
         );
@@ -119,29 +152,14 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     return page;
 }
 
-static NTSTATUS PhpEditSecurityInformationThread(
-    _In_ PVOID Context
-    )
-{
-    PhSecurityInformation *this = (PhSecurityInformation *)Context;
-
-    // The EditSecurityAdvanced function on Windows 7 doesn't handle the SI_PAGE_TYPE
-    // parameter correctly and also doesn't show the Audit and Owner tabs... (dmex)
-    if (WindowsVersion >= WINDOWS_8 && PhGetIntegerSetting(L"EnableSecurityAdvancedDialog"))
-        EditSecurityAdvanced(this->WindowHandle, Context, COMBINE_PAGE_ACTIVATION(SI_PAGE_PERM, SI_SHOW_PERM_ACTIVATED));
-    else
-        EditSecurity(this->WindowHandle, Context);
-
-    PhSecurityInformation_Release(Context);
-
-    return STATUS_SUCCESS;
-}
-
 /**
  * Displays a security editor dialog.
  *
- * \param hWnd The parent window of the dialog.
+ * \param WindowHandle The parent window of the dialog.
  * \param ObjectName The name of the object.
+ * \param ObjectType The type of object.
+ * \param OpenObject An optional procedure for opening the object.
+ * \param CloseObject An optional procedure for closing the object.
  * \param Context A user-defined value to pass to the callback functions.
  */
 VOID PhEditSecurity(
@@ -161,11 +179,59 @@ VOID PhEditSecurity(
         ObjectType,
         OpenObject,
         CloseObject,
+        NULL,
+        NULL,
         Context,
         FALSE
         );
 
-    PhCreateThread2(PhpEditSecurityInformationThread, info);
+    if (PhEnableSecurityDialogThread)
+        PhCreateThread2(PhEditSecurityAdvancedThread, info);
+    else
+        PhEditSecurityAdvanced(info);
+}
+
+/**
+ * Displays a security editor dialog.
+ *
+ * \param WindowHandle The parent window of the dialog.
+ * \param ObjectName The name of the object.
+ * \param ObjectType The type of object.
+ * \param OpenObject An optional procedure for opening the object.
+ * \param CloseObject An optional procedure for closing the object.
+ * \param GetObjectSecurity A callback function executed to retrieve the security descriptor of the object.
+ * \param SetObjectSecurity A callback function executed to modify the security descriptor of the object.
+ * \param Context A user-defined value to pass to the callback functions.
+ */
+VOID PhEditSecurityEx(
+    _In_opt_ HWND WindowHandle,
+    _In_ PWSTR ObjectName,
+    _In_ PWSTR ObjectType,
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    _In_opt_ PVOID Context
+    )
+{
+    ISecurityInformation *info;
+
+    info = PhSecurityInformation_Create(
+        WindowHandle,
+        ObjectName,
+        ObjectType,
+        OpenObject,
+        CloseObject,
+        GetObjectSecurity,
+        SetObjectSecurity,
+        Context,
+        FALSE
+        );
+
+    if (PhEnableSecurityDialogThread)
+        PhCreateThread2(PhEditSecurityAdvancedThread, info);
+    else
+        PhEditSecurityAdvanced(info);
 }
 
 ISecurityInformation *PhSecurityInformation_Create(
@@ -174,6 +240,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     _In_ PWSTR ObjectType,
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_opt_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
     _In_ BOOLEAN IsPage
     )
@@ -190,6 +258,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->ObjectType = PhCreateString(ObjectType);
     info->OpenObject = OpenObject;
     info->CloseObject = CloseObject;
+    info->GetObjectSecurity = GetObjectSecurity;
+    info->SetObjectSecurity = SetObjectSecurity;
     info->Context = Context;
     info->IsPage = IsPage;
 
@@ -209,6 +279,16 @@ ISecurityInformation *PhSecurityInformation_Create(
 
             if (PhEqualString2(info->ObjectType, L"FileObject", TRUE)) // TODO: Remove PhEqualString2 (dmex)
                 info->AccessEntries[i].dwFlags |= OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
+        }
+    }
+
+    {
+        GENERIC_MAPPING genericMapping;
+
+        if (NT_SUCCESS(PhGetObjectTypeMask(&info->ObjectType->sr, &genericMapping)))
+        {
+            memcpy(&info->GenericMapping, &genericMapping, sizeof(genericMapping));
+            info->HaveGenericMapping = TRUE;
         }
     }
 
@@ -351,25 +431,21 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetObjectInformation(
         ObjectInfo->dwFlags |= SI_ENABLE_EDIT_ATTRIBUTE_CONDITION | SI_MAY_WRITE; // SI_RESET | SI_READONLY
         //if (Folder) ObjectInfo->dwFlags |= SI_CONTAINER;
     }
-
-    if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
     {
         ObjectInfo->dwFlags &= ~(SI_EDIT_OWNER | SI_EDIT_AUDITS);
     }
-
-    if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
     {
         ObjectInfo->dwFlags &= ~SI_EDIT_AUDITS;
         ObjectInfo->dwFlags |= SI_NO_ACL_PROTECT | SI_NO_TREE_APPLY | SI_CONTAINER | SI_OWNER_READONLY;
     }
-
-    if (PhEqualString2(this->ObjectType, L"RdpDefault", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"RdpDefault", TRUE))
     {
         ObjectInfo->dwFlags &= ~SI_EDIT_OWNER;
         ObjectInfo->dwFlags |= SI_NO_ACL_PROTECT | SI_NO_TREE_APPLY;
     }
-
-    if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
     {
         ObjectInfo->dwFlags |= SI_CONTAINER | SI_OWNER_READONLY;
     }
@@ -409,11 +485,27 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
     //}
     //else
     {
-        status = PhStdGetObjectSecurity(
-            &securityDescriptor,
-            RequestedInformation,
-            this
-            );
+        if (this->GetObjectSecurity)
+        {
+            PH_STD_OBJECT_SECURITY objectSecurity;
+
+            objectSecurity.ObjectContext = this;
+            objectSecurity.Context = this->Context;
+
+            status = this->GetObjectSecurity(
+                &securityDescriptor,
+                RequestedInformation,
+                &objectSecurity
+                );
+        }
+        else
+        {
+            status = PhStdGetObjectSecurity(
+                &securityDescriptor,
+                RequestedInformation,
+                this
+                );
+        }
 
         if (!NT_SUCCESS(status))
             return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
@@ -438,11 +530,27 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
     PhSecurityInformation *this = (PhSecurityInformation *)This;
     NTSTATUS status;
 
-    status = PhStdSetObjectSecurity(
-        SecurityDescriptor,
-        SecurityInformation,
-        this
-        );
+    if (this->SetObjectSecurity)
+    {
+        PH_STD_OBJECT_SECURITY objectSecurity;
+
+        objectSecurity.ObjectContext = this;
+        objectSecurity.Context = this->Context;
+
+        status = this->SetObjectSecurity(
+            SecurityDescriptor,
+            SecurityInformation,
+            &objectSecurity
+            );
+    }
+    else
+    {
+        status = PhStdSetObjectSecurity(
+            SecurityDescriptor,
+            SecurityInformation,
+            this
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
@@ -452,7 +560,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetAccessRights(
     _In_ ISecurityInformation *This,
-    _In_ const GUID *ObjectType,
+    _In_ PCGUID ObjectType,
     _In_ ULONG Flags,
     _Out_ PSI_ACCESS *Access,
     _Out_ PULONG Accesses,
@@ -470,7 +578,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetAccessRights(
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
     _In_ ISecurityInformation *This,
-    _In_ const GUID *ObjectType,
+    _In_ PCGUID ObjectType,
     _In_ PUCHAR AceFlags,
     _Inout_ PACCESS_MASK Mask
     )
@@ -487,28 +595,15 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
             FILE_ALL_ACCESS
         };
 
-        RtlMapGenericMask(Mask, &genericMappings);
+        PhMapGenericMask(Mask, &genericMappings);
     }
-
-    // TODO we're supposed to lookup the GenericMapping for the object type. (dmex)
-
-    //POBJECT_TYPES_INFORMATION objectTypes;
-    //POBJECT_TYPE_INFORMATION objectType;
-
-    //if (NT_SUCCESS(PhEnumObjectTypes(&objectTypes)))
-    //{
-    //    objectType = PH_FIRST_OBJECT_TYPE(objectTypes);
-    //
-    //    for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
-    //    {
-    //        RtlMapGenericMask(Mask, &objectType->GenericMapping);
-    //    }
-    //
-    //    PhFree(objectTypes);
-    //}
-
-    // TODO
-    // NtQuerySystemInformation(SystemObjectInformation);
+    else
+    {
+        if (this->HaveGenericMapping)
+        {
+            PhMapGenericMask(Mask, &this->GenericMapping);
+        }
+    }
 
     return S_OK;
 }
@@ -526,9 +621,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
     {
         static SI_INHERIT_TYPE inheritTypes[] =
         {
-            0, 0, L"This namespace only",
-            0, CONTAINER_INHERIT_ACE, L"This namespace and subnamespaces",
-            0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subnamespaces only",
+            { 0, 0, L"This namespace only" },
+            { 0, CONTAINER_INHERIT_ACE, L"This namespace and subnamespaces" },
+            { 0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subnamespaces only" },
         };
 
         *InheritTypes = inheritTypes;
@@ -539,9 +634,9 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
     {
         static SI_INHERIT_TYPE inheritTypes[] =
         {
-            0, 0, L"This folder only",
-            0, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files",
-            0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only",
+            { 0, 0, L"This folder only" },
+            { 0, CONTAINER_INHERIT_ACE, L"This folder, subfolders and files" },
+            { 0, INHERIT_ONLY_ACE | CONTAINER_INHERIT_ACE, L"Subfolders and files only" },
         };
 
         *InheritTypes = inheritTypes;
@@ -549,12 +644,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(
         return S_OK;
     }
 
-    //if (Folder-Container)
-    //*InheritTypes = inheritTypes;
-    //*InheritTypesCount = RTL_NUMBER_OF(inheritTypes);
-    //return S_OK;
-    //else
-    //return E_NOTIMPL;
+    return E_NOTIMPL;
 }
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
@@ -572,7 +662,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
         if (!this->IsPage)
             PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
 
-        PhInitializeWindowTheme(hwnd, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        PhInitializeWindowTheme(hwnd, PhEnableThemeSupport);
     }
 
     return E_NOTIMPL;
@@ -1088,7 +1178,7 @@ ULONG STDMETHODCALLTYPE PhEffectivePermission_Release(
 
 HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     _In_ IEffectivePermission* This,
-    _In_ const GUID* GuidObjectType,
+    _In_ LPCGUID GuidObjectType,
     _In_ PSID UserSid,
     _In_ LPCWSTR ServerName,
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
@@ -1106,18 +1196,15 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     PACCESS_MASK accessRights;
     TRUSTEE trustee;
 
-    status = RtlGetDaclSecurityDescriptor(
+    status = PhGetDaclSecurityDescriptorNotNull(
         SecurityDescriptor,
         &present,
-        &dacl,
-        &defaulted
+        &defaulted,
+        &dacl
         );
 
     if (!NT_SUCCESS(status))
         return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
-    // Note: RtlGetDaclSecurityDescriptor returns success for security descriptors with a NULL dacl. (dmex)
-    if (NT_SUCCESS(status) && !dacl)
-        return HRESULT_FROM_WIN32(PhNtStatusToDosError(STATUS_INVALID_SECURITY_DESCR));
 
     accessRights = (PACCESS_MASK)LocalAlloc(LPTR, sizeof(PACCESS_MASK) + sizeof(ACCESS_MASK));
 
@@ -1201,7 +1288,7 @@ NTSTATUS PhpGetObjectSecurityWithTimeout(
  * \remarks This function may be used for the \a GetObjectSecurity callback in
  * PhCreateSecurityPage() or PhEditSecurity().
  */
-_Callback_ NTSTATUS PhStdGetObjectSecurity(
+NTSTATUS PhStdGetObjectSecurity(
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_opt_ PVOID Context
@@ -1225,17 +1312,12 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
 
     if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
     {
-        status = PhGetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
-        CloseServiceHandle(handle);
+        status = PhGetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        PhCloseServiceHandle(handle);
     }
-    else if (PhEqualString2(this->ObjectType, L"File", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"File", TRUE) || PhEqualString2(this->ObjectType, L"FileObject", TRUE))
     {
         status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
-        NtClose(handle);
-    }
-    else if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
-    {
-        status = PhGetSeObjectSecurity(handle, SE_FILE_OBJECT, SecurityInformation, SecurityDescriptor);
         NtClose(handle);
     }
     else if (
@@ -1293,17 +1375,12 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
     }
     else if (PhEqualString2(this->ObjectType, L"TokenDefault", TRUE))
     {
-        PTOKEN_DEFAULT_DACL defaultDacl = NULL;
+        PTOKEN_DEFAULT_DACL defaultDacl;
 
-        status = PhQueryTokenVariableSize(
+        status = PhGetTokenDefaultDacl(
             handle,
-            TokenDefaultDacl,
             &defaultDacl
             );
-
-        // Note: NtQueryInformationToken returns success for processes with a NULL DefaultDacl. (dmex)
-        if (NT_SUCCESS(status) && !defaultDacl->DefaultDacl)
-            status = STATUS_INVALID_SECURITY_DESCR;
 
         if (NT_SUCCESS(status))
         {
@@ -1323,10 +1400,9 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
                 RtlLengthSecurityDescriptor(securityDescriptor)
                 );
             PhFree(securityDescriptor);
-        }
 
-        if (defaultDacl)
             PhFree(defaultDacl);
+        }
 
         NtClose(handle);
     }
@@ -1398,7 +1474,7 @@ _Callback_ NTSTATUS PhStdGetObjectSecurity(
  * \remarks This function may be used for the \a SetObjectSecurity callback in
  * PhCreateSecurityPage() or PhEditSecurity().
  */
-_Callback_ NTSTATUS PhStdSetObjectSecurity(
+NTSTATUS PhStdSetObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_opt_ PVOID Context
@@ -1422,17 +1498,12 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
 
     if (PhEqualString2(this->ObjectType, L"Service", TRUE) || PhEqualString2(this->ObjectType, L"SCManager", TRUE))
     {
-        status = PhSetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
-        CloseServiceHandle(handle);
+        status = PhSetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        PhCloseServiceHandle(handle);
     }
-    else if (PhEqualString2(this->ObjectType, L"File", TRUE))
+    else if (PhEqualString2(this->ObjectType, L"File", TRUE) || PhEqualString2(this->ObjectType, L"FileObject", TRUE))
     {
         status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        NtClose(handle);
-    }
-    else if (PhEqualString2(this->ObjectType, L"FileObject", TRUE))
-    {
-        status = PhSetSeObjectSecurity(handle, SE_FILE_OBJECT, SecurityInformation, SecurityDescriptor);
         NtClose(handle);
     }
     else if (
@@ -1472,16 +1543,12 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
         BOOLEAN defaulted = FALSE;
         PACL dacl = NULL;
 
-        status = RtlGetDaclSecurityDescriptor(
+        status = PhGetDaclSecurityDescriptorNotNull(
             SecurityDescriptor,
             &present,
-            &dacl,
-            &defaulted
+            &defaulted,
+            &dacl
             );
-
-        // Note: RtlGetDaclSecurityDescriptor returns success for security descriptors with a NULL dacl. (dmex)
-        if (NT_SUCCESS(status) && !dacl)
-            status = STATUS_INVALID_SECURITY_DESCR;
 
         if (NT_SUCCESS(status))
         {
@@ -1502,21 +1569,14 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
     else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
     {
         PPH_STRING powerPolicySddl;
-        SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-        PSID administratorsSid;
 
         // kludge the descriptor into the correct SDDL format required by powercfg (dmex)
         // 1) The owner must always be the built-in domain administrator.
         // 2) The group must always be NT AUTHORITY\SYSTEM.
         // 3) Remove the INHERIT_REQ flag (not required but makes the sddl consistent with powercfg).
 
-        administratorsSid = (PSID)administratorsSidBuffer;
-        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
-        RtlSetOwnerSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
-        RtlSetGroupSecurityDescriptor(SecurityDescriptor, &PhSeLocalSystemSid, TRUE);
+        RtlSetOwnerSecurityDescriptor(SecurityDescriptor, PhSeAdministratorsSid(), TRUE);
+        RtlSetGroupSecurityDescriptor(SecurityDescriptor, (PSID)&PhSeLocalSystemSid, TRUE);
         RtlSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
 
         if (powerPolicySddl = PhGetSecurityDescriptorAsString(
@@ -1535,18 +1595,13 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
     }
     else if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
     {
-        SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
         PSID administratorsSid;
 
         // kludge the descriptor into the correct format required by wmimgmt (dmex)
         // 1) The owner must always be the built-in domain administrator.
         // 2) The group must always be the built-in domain administrator.
 
-        administratorsSid = (PSID)administratorsSidBuffer;
-        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+        administratorsSid = PhSeAdministratorsSid();
         RtlSetOwnerSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
         RtlSetGroupSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
 
@@ -1583,7 +1638,7 @@ NTSTATUS PhGetSeObjectSecurity(
         );
 
     if (win32Result != ERROR_SUCCESS)
-        return NTSTATUS_FROM_WIN32(win32Result);
+        return PhDosErrorToNtStatus(win32Result);
 
     *SecurityDescriptor = PhAllocateCopy(securityDescriptor, RtlLengthSecurityDescriptor(securityDescriptor));
     LocalFree(securityDescriptor);
@@ -1598,7 +1653,7 @@ NTSTATUS PhSetSeObjectSecurity(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
-    ULONG win32Result = NO_ERROR;
+    ULONG win32Result;
     SECURITY_INFORMATION securityInformation = 0;
     BOOLEAN present = FALSE;
     BOOLEAN defaulted = FALSE;
@@ -1607,28 +1662,28 @@ NTSTATUS PhSetSeObjectSecurity(
     PACL dacl = NULL;
     PACL sacl = NULL;
 
-    if (SecurityInformation & OWNER_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, OWNER_SECURITY_INFORMATION))
     {
         if (NT_SUCCESS(RtlGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &defaulted)))
-            securityInformation |= OWNER_SECURITY_INFORMATION;
+            SetFlag(securityInformation, OWNER_SECURITY_INFORMATION);
     }
 
-    if (SecurityInformation & GROUP_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, GROUP_SECURITY_INFORMATION))
     {
         if (NT_SUCCESS(RtlGetGroupSecurityDescriptor(SecurityDescriptor, &group, &defaulted)))
-            securityInformation |= GROUP_SECURITY_INFORMATION;
+            SetFlag(securityInformation, GROUP_SECURITY_INFORMATION);
     }
 
-    if (SecurityInformation & DACL_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION))
     {
         if (NT_SUCCESS(RtlGetDaclSecurityDescriptor(SecurityDescriptor, &present, &dacl, &defaulted)) && present)
-            securityInformation |= DACL_SECURITY_INFORMATION;
+            SetFlag(securityInformation, DACL_SECURITY_INFORMATION);
     }
 
-    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    if (FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION))
     {
         if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(SecurityDescriptor, &present, &sacl, &defaulted)) && present)
-            securityInformation |= SACL_SECURITY_INFORMATION;
+            SetFlag(securityInformation, SACL_SECURITY_INFORMATION);
     }
 
     if (ObjectType == SE_FILE_OBJECT) // probably works with other types but haven't checked (dmex)
@@ -1638,20 +1693,20 @@ NTSTATUS PhSetSeObjectSecurity(
 
         if (NT_SUCCESS(RtlGetControlSecurityDescriptor(SecurityDescriptor, &control, &revision)))
         {
-            if (SecurityInformation & DACL_SECURITY_INFORMATION)
+            if (FlagOn(SecurityInformation, DACL_SECURITY_INFORMATION))
             {
-                if (control & SE_DACL_PROTECTED)
-                    securityInformation |= PROTECTED_DACL_SECURITY_INFORMATION;
+                if (FlagOn(control, SE_DACL_PROTECTED))
+                    SetFlag(securityInformation, PROTECTED_DACL_SECURITY_INFORMATION);
                 else
-                    securityInformation |= UNPROTECTED_DACL_SECURITY_INFORMATION;
+                    SetFlag(securityInformation, UNPROTECTED_DACL_SECURITY_INFORMATION);
             }
 
-            if (SecurityInformation & SACL_SECURITY_INFORMATION)
+            if (FlagOn(SecurityInformation, SACL_SECURITY_INFORMATION))
             {
-                if (control & SE_SACL_PROTECTED)
-                    securityInformation |= PROTECTED_SACL_SECURITY_INFORMATION;
+                if (FlagOn(control, SE_SACL_PROTECTED))
+                    SetFlag(securityInformation, PROTECTED_SACL_SECURITY_INFORMATION);
                 else
-                    securityInformation |= UNPROTECTED_SACL_SECURITY_INFORMATION;
+                    SetFlag(securityInformation, UNPROTECTED_SACL_SECURITY_INFORMATION);
             }
         }
     }
@@ -1667,833 +1722,7 @@ NTSTATUS PhSetSeObjectSecurity(
         );
 
     if (win32Result != ERROR_SUCCESS)
-        return NTSTATUS_FROM_WIN32(win32Result);
+        return PhDosErrorToNtStatus(win32Result);
 
     return STATUS_SUCCESS;
-}
-
-// Power policy security descriptors
-// HACK - nightly build feature testing (dmex)
-// TODO - move definitions to proper locations.
-
-#include <powrprof.h>
-
-ULONG (WINAPI* PowerGetActiveScheme_I)(
-    _In_ HKEY UserRootPowerKey,
-    _Out_ PGUID* ActivePolicyGuid
-    ) = NULL;
-ULONG (WINAPI* PowerSetActiveScheme_I)(
-    _In_ HKEY UserRootPowerKey,
-    _In_ PGUID SchemeGuid
-    ) = NULL;
-ULONG (WINAPI* PowerRestoreDefaultPowerSchemes_I)(
-    VOID
-    ) = NULL;
-// rev
-ULONG (WINAPI* PowerReadSecurityDescriptor)(
-    _In_ POWER_DATA_ACCESSOR AccessFlags,
-    _In_ PGUID PowerGuid,
-    _Out_ PWSTR* StringSecurityDescriptor
-    ) = NULL;
-// rev
-ULONG (WINAPI* PowerWriteSecurityDescriptor)(
-    _In_ POWER_DATA_ACCESSOR AccessFlags,
-    _In_ PGUID PowerGuid,
-    _In_ PWSTR StringSecurityDescriptor
-    ) = NULL;
-
-PVOID PhpInitializePowerPolicyApi(VOID)
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID imageBaseAddress = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        imageBaseAddress = PhLoadLibrary(L"powrprof.dll");
-        PhEndInitOnce(&initOnce);
-    }
-
-    return imageBaseAddress;
-}
-
-NTSTATUS PhpGetPowerPolicySecurityDescriptor(
-    _Out_ PPH_STRING* StringSecurityDescriptor
-    )
-{
-    ULONG status;
-    PVOID imageBaseAddress;
-    PWSTR stringSecurityDescriptor;
-    PGUID policyGuid;
-
-    if (!(imageBaseAddress = PhpInitializePowerPolicyApi()))
-        return STATUS_DLL_NOT_FOUND;
-
-    if (!PowerGetActiveScheme_I)
-        PowerGetActiveScheme_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "PowerGetActiveScheme", 0);
-    if (!PowerReadSecurityDescriptor)
-        PowerReadSecurityDescriptor = PhGetDllBaseProcedureAddress(imageBaseAddress, "PowerReadSecurityDescriptor", 0);
-
-    if (!(PowerGetActiveScheme_I && PowerReadSecurityDescriptor))
-        return STATUS_PROCEDURE_NOT_FOUND;
-
-    // We can use GUIDs for schemes, policies or other values but we only query the default scheme. (dmex)
-    status = PowerGetActiveScheme_I(
-        NULL,
-        &policyGuid
-        );
-
-    if (status != ERROR_SUCCESS)
-        return NTSTATUS_FROM_WIN32(status);
-
-    // PowerReadSecurityDescriptor/PowerWriteSecurityDescriptor both use the same SDDL
-    // format as registry keys and are RPC wrappers for this registry key:
-    // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\SecurityDescriptors
-
-    status = PowerReadSecurityDescriptor(
-        ACCESS_DEFAULT_SECURITY_DESCRIPTOR, // ACCESS_ACTIVE_SCHEME?
-        policyGuid,
-        &stringSecurityDescriptor
-        );
-
-    if (status == ERROR_SUCCESS)
-    {
-        if (StringSecurityDescriptor)
-        {
-            *StringSecurityDescriptor = PhCreateString(stringSecurityDescriptor);
-        }
-
-        LocalFree(stringSecurityDescriptor);
-    }
-
-    LocalFree(policyGuid);
-
-    return NTSTATUS_FROM_WIN32(status);
-}
-
-NTSTATUS PhpSetPowerPolicySecurityDescriptor(
-    _In_ PPH_STRING StringSecurityDescriptor
-    )
-{
-    ULONG status;
-    PVOID imageBaseAddress;
-    PGUID policyGuid;
-
-    if (!(imageBaseAddress = PhpInitializePowerPolicyApi()))
-        return STATUS_DLL_NOT_FOUND;
-
-    if (!PowerGetActiveScheme_I)
-        PowerGetActiveScheme_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "PowerGetActiveScheme", 0);
-    if (!PowerWriteSecurityDescriptor)
-        PowerWriteSecurityDescriptor = PhGetDllBaseProcedureAddress(imageBaseAddress, "PowerWriteSecurityDescriptor", 0);
-
-    if (!(PowerGetActiveScheme_I && PowerWriteSecurityDescriptor))
-        return STATUS_PROCEDURE_NOT_FOUND;
-
-    status = PowerGetActiveScheme_I(
-        NULL,
-        &policyGuid
-        );
-
-    if (status != ERROR_SUCCESS)
-        return NTSTATUS_FROM_WIN32(status);
-
-    status = PowerWriteSecurityDescriptor(
-        ACCESS_DEFAULT_SECURITY_DESCRIPTOR,
-        policyGuid, // Todo: Pass the GUID from the original query.
-        PhGetString(StringSecurityDescriptor)
-        );
-
-    //if (status == ERROR_SUCCESS)
-    //{
-    //    // refresh/reapply the current scheme.
-    //    status = PowerSetActiveScheme_I(NULL, policyGuid);
-    //}
-
-    LocalFree(policyGuid);
-
-    return NTSTATUS_FROM_WIN32(status);
-}
-
-// Terminal server security descriptors
-// HACK - nightly build feature testing (dmex)
-// TODO - move definitions to proper locations.
-
-#include <wtsapi32.h>
-
-BOOL (WINAPI* WTSGetListenerSecurity_I)(
-    _In_ HANDLE ServerHandle,
-    _In_ PVOID Reserved1,
-    _In_ ULONG Reserved2,
-    _In_ PWSTR ListenerName,
-    _In_ SECURITY_INFORMATION SecurityInformation,
-    _Out_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor,
-    _In_ ULONG Length,
-    _Out_ PULONG LengthNeeded
-    ) = NULL;
-
-BOOL (WINAPI* WTSSetListenerSecurity_I)(
-    _In_ HANDLE ServerHandle,
-    _In_ PVOID Reserved1,
-    _In_ ULONG Reserved2,
-    _In_ PWSTR ListenerName,
-    _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    ) = NULL;
-
-PVOID PhpInitializeRemoteDesktopServiceApi(VOID)
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID imageBaseAddress = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        imageBaseAddress = PhLoadLibrary(L"wtsapi32.dll");
-        PhEndInitOnce(&initOnce);
-    }
-
-    return imageBaseAddress;
-}
-
-NTSTATUS PhpGetRemoteDesktopSecurityDescriptor(
-    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
-    )
-{
-    BOOL status;
-    PVOID imageBaseAddress;
-    ULONG securityDescriptorLength = 0;
-    PSECURITY_DESCRIPTOR securityDescriptor = NULL;
-
-    if (!(imageBaseAddress = PhpInitializeRemoteDesktopServiceApi()))
-        return STATUS_DLL_NOT_FOUND;
-
-    if (!WTSGetListenerSecurity_I)
-        WTSGetListenerSecurity_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "WTSGetListenerSecurityW", 0);
-
-    if (!WTSGetListenerSecurity_I)
-        return STATUS_PROCEDURE_NOT_FOUND;
-
-    // Todo: Add support for SI_RESET using the default security descriptor:
-    // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\DefaultSecurity
-
-    status = WTSGetListenerSecurity_I(
-        WTS_CURRENT_SERVER_HANDLE,
-        NULL,
-        0,
-        L"Rdp-Tcp", // or "Console"
-        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
-        securityDescriptor,
-        0,
-        &securityDescriptorLength
-        );
-
-    if (!(!status && securityDescriptorLength))
-        return STATUS_INVALID_SECURITY_DESCR;
-
-    securityDescriptor = PhAllocateZero(securityDescriptorLength);
-
-    status = WTSGetListenerSecurity_I(
-        WTS_CURRENT_SERVER_HANDLE,
-        NULL,
-        0,
-        L"Rdp-Tcp", // or "Console"
-        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
-        securityDescriptor,
-        securityDescriptorLength,
-        &securityDescriptorLength
-        );
-
-    if (status)
-    {
-        if (SecurityDescriptor)
-        {
-            *SecurityDescriptor = securityDescriptor;
-            return STATUS_SUCCESS;
-        }
-    }
-
-    return STATUS_INVALID_SECURITY_DESCR;
-}
-
-NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    )
-{
-    PVOID imageBaseAddress;
-
-    if (!(imageBaseAddress = PhpInitializeRemoteDesktopServiceApi()))
-        return STATUS_DLL_NOT_FOUND;
-
-    if (!WTSSetListenerSecurity_I)
-        WTSSetListenerSecurity_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "WTSSetListenerSecurityW", 0);
-
-    if (!WTSSetListenerSecurity_I)
-        return STATUS_PROCEDURE_NOT_FOUND;
-
-    if (WTSSetListenerSecurity_I(
-        WTS_CURRENT_SERVER_HANDLE,
-        NULL,
-        0,
-        L"RDP-Tcp",
-        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION,
-        SecurityDescriptor
-        ))
-    {
-        return STATUS_SUCCESS;
-    }
-
-    return STATUS_INVALID_SECURITY_DESCR;
-}
-
-// WBEM security descriptors
-// HACK - nightly build feature testing (dmex)
-// TODO - This was located in prpgwmi.c but VS2019
-// complained about LNK1120 even though it linked correctly.
-
-#include <wbemidl.h>
-
-DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
-DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
-
-PVOID PhGetWbemProxDllBase(
-    VOID
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID imageBaseAddress = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PPH_STRING systemDirectory;
-        PPH_STRING systemFileName;
-
-        if (systemDirectory = PhGetSystemDirectory())
-        {
-            if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
-            {
-                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
-                    imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
-
-                PhDereferenceObject(systemFileName);
-            }
-
-            PhDereferenceObject(systemDirectory);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    return imageBaseAddress;
-}
-
-NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
-    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
-    )
-{
-    HRESULT status;
-    PVOID imageBaseAddress;
-    PVOID securityDescriptor = NULL;
-    PVOID securityDescriptorData = NULL;
-    PPH_STRING querySelectString = NULL;
-    BSTR wbemResourceString = NULL;
-    BSTR wbemQueryString = NULL;
-    BSTR wbemMethodString = NULL;
-    IWbemLocator* wbemLocator = NULL;
-    IWbemServices* wbemServices = NULL;
-    IWbemClassObject* wbemClassObject = NULL;
-    IWbemClassObject* wbemGetSDClassObject = 0;
-    VARIANT variantReturnValue = { VT_EMPTY };
-    VARIANT variantArrayValue = { VT_EMPTY };
-
-    if (!(imageBaseAddress = PhGetWbemProxDllBase()))
-        return STATUS_UNSUCCESSFUL;
-
-    status = PhGetClassObjectDllBase(
-        imageBaseAddress,
-        &CLSID_WbemLocator,
-        &IID_IWbemLocator,
-        &wbemLocator
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemResourceString = SysAllocStringLen(L"Root", 4);
-    status = IWbemLocator_ConnectServer(
-        wbemLocator,
-        wbemResourceString,
-        NULL,
-        NULL,
-        NULL,
-        WBEM_FLAG_CONNECT_USE_MAX_WAIT,
-        NULL,
-        NULL,
-        &wbemServices
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemQueryString = SysAllocStringLen(L"__SystemSecurity", 16);
-    status = IWbemServices_GetObject(
-        wbemServices,
-        wbemQueryString,
-        0,
-        NULL,
-        &wbemClassObject,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemMethodString = SysAllocStringLen(L"GetSD", 5);
-    status = IWbemServices_ExecMethod(
-        wbemServices,
-        wbemQueryString,
-        wbemMethodString,
-        0,
-        NULL,
-        wbemClassObject,
-        &wbemGetSDClassObject,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    status = IWbemClassObject_Get(
-        wbemGetSDClassObject,
-        L"ReturnValue",
-        0,
-        &variantReturnValue,
-        NULL,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    if (V_UI4(&variantReturnValue) != ERROR_SUCCESS)
-    {
-        status = HRESULT_FROM_WIN32(V_UI4(&variantReturnValue));
-        goto CleanupExit;
-    }
-
-    status = IWbemClassObject_Get(
-        wbemGetSDClassObject,
-        L"SD",
-        0,
-        &variantArrayValue,
-        NULL,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    status = SafeArrayAccessData(V_ARRAY(&variantArrayValue), &securityDescriptorData);
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    // The Wbem security descriptor is relative but the ACUI
-    // dialog automatically converts the descriptor for us
-    // so we don't have to convert just validate. (dmex)
-
-    if (RtlValidSecurityDescriptor(securityDescriptorData))
-    {
-        securityDescriptor = PhAllocateCopy(
-            securityDescriptorData,
-            RtlLengthSecurityDescriptor(securityDescriptorData)
-            );
-    }
-
-    SafeArrayUnaccessData(V_ARRAY(&variantArrayValue));
-
-CleanupExit:
-    if (wbemGetSDClassObject)
-        IWbemClassObject_Release(wbemGetSDClassObject);
-    if (wbemServices)
-        IWbemServices_Release(wbemServices);
-    if (wbemClassObject)
-        IWbemClassObject_Release(wbemClassObject);
-    if (wbemLocator)
-        IWbemLocator_Release(wbemLocator);
-
-    VariantClear(&variantArrayValue);
-    VariantClear(&variantReturnValue);
-
-    if (wbemMethodString)
-        SysFreeString(wbemMethodString);
-    if (wbemQueryString)
-        SysFreeString(wbemQueryString);
-    if (wbemResourceString)
-        SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
-
-    if (SUCCEEDED(status) && securityDescriptor)
-    {
-        *SecurityDescriptor = securityDescriptor;
-        return STATUS_SUCCESS;
-    }
-
-    if (securityDescriptor)
-    {
-        PhFree(securityDescriptor);
-    }
-
-    if (status == WBEM_E_ACCESS_DENIED)
-        return STATUS_ACCESS_DENIED;
-    if (status == WBEM_E_INVALID_PARAMETER)
-        return STATUS_INVALID_PARAMETER;
-
-    return STATUS_INVALID_SECURITY_DESCR;
-}
-
-NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    )
-{
-    HRESULT status;
-    PVOID imageBaseAddress;
-    PPH_STRING querySelectString = NULL;
-    BSTR wbemResourceString = NULL;
-    BSTR wbemQueryString = NULL;
-    BSTR wbemMethodString = NULL;
-    IWbemLocator* wbemLocator = NULL;
-    IWbemServices* wbemServices = NULL;
-    IWbemClassObject* wbemClassObject = NULL;
-    IWbemClassObject* wbemSetSDClassObject = NULL;
-    PVOID safeArrayData = NULL;
-    LPSAFEARRAY safeArray = NULL;
-    SAFEARRAYBOUND safeArrayBounds;
-    PSECURITY_DESCRIPTOR relativeSecurityDescriptor = 0;
-    ULONG relativeSecurityDescriptorLength = 0;
-    BOOLEAN freeSecurityDescriptor = FALSE;
-    VARIANT variantArrayValue = { VT_EMPTY };
-    VARIANT variantReturnValue = { VT_EMPTY };
-
-    if (!(imageBaseAddress = PhGetWbemProxDllBase()))
-        return STATUS_UNSUCCESSFUL;
-
-    status = PhGetClassObjectDllBase(
-        imageBaseAddress,
-        &CLSID_WbemLocator,
-        &IID_IWbemLocator,
-        &wbemLocator
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemResourceString = SysAllocStringLen(L"Root", 4);
-    status = IWbemLocator_ConnectServer(
-        wbemLocator,
-        wbemResourceString,
-        NULL,
-        NULL,
-        NULL,
-        WBEM_FLAG_CONNECT_USE_MAX_WAIT,
-        NULL,
-        NULL,
-        &wbemServices
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemQueryString = SysAllocStringLen(L"__SystemSecurity", 16);
-    status = IWbemServices_GetObject(
-        wbemServices,
-        wbemQueryString,
-        0,
-        NULL,
-        &wbemClassObject,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    if (RtlValidRelativeSecurityDescriptor(
-        SecurityDescriptor,
-        RtlLengthSecurityDescriptor(SecurityDescriptor),
-        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-        DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION
-        ))
-    {
-        relativeSecurityDescriptor = SecurityDescriptor;
-        relativeSecurityDescriptorLength = RtlLengthSecurityDescriptor(SecurityDescriptor);
-    }
-    else
-    {
-        NTSTATUS ntstatus;
-
-        ntstatus = RtlAbsoluteToSelfRelativeSD(
-            SecurityDescriptor,
-            NULL,
-            &relativeSecurityDescriptorLength
-            );
-
-        if (ntstatus != STATUS_BUFFER_TOO_SMALL)
-        {
-            status = HRESULT_FROM_NT(ntstatus);
-            goto CleanupExit;
-        }
-
-        relativeSecurityDescriptor = PhAllocate(relativeSecurityDescriptorLength);
-        ntstatus = RtlAbsoluteToSelfRelativeSD(
-            SecurityDescriptor,
-            relativeSecurityDescriptor,
-            &relativeSecurityDescriptorLength
-            );
-
-        if (!NT_SUCCESS(ntstatus))
-        {
-            PhFree(relativeSecurityDescriptor);
-            status = HRESULT_FROM_NT(ntstatus);
-            goto CleanupExit;
-        }
-
-        freeSecurityDescriptor = TRUE;
-    }
-
-    safeArrayBounds.lLbound = 0;
-    safeArrayBounds.cElements = relativeSecurityDescriptorLength;
-
-    if (!(safeArray = SafeArrayCreate(VT_UI1, 1, &safeArrayBounds)))
-    {
-        status = STATUS_NO_MEMORY;
-        goto CleanupExit;
-    }
-
-    status = SafeArrayAccessData(safeArray, &safeArrayData);
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    memcpy(
-        safeArrayData,
-        relativeSecurityDescriptor,
-        relativeSecurityDescriptorLength
-        );
-
-    status = SafeArrayUnaccessData(safeArray);
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    V_VT(&variantArrayValue) = VT_ARRAY | VT_UI1;
-    V_ARRAY(&variantArrayValue) = safeArray;
-
-    status = IWbemClassObject_Put(
-        wbemClassObject,
-        L"SD",
-        0,
-        &variantArrayValue,
-        CIM_EMPTY
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemMethodString = SysAllocStringLen(L"SetSD", 5);
-    status = IWbemServices_ExecMethod(
-        wbemServices,
-        wbemQueryString,
-        wbemMethodString,
-        0,
-        NULL,
-        wbemClassObject,
-        &wbemSetSDClassObject,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    status = IWbemClassObject_Get(
-        wbemSetSDClassObject,
-        L"ReturnValue",
-        0,
-        &variantReturnValue,
-        NULL,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    if (V_UI4(&variantReturnValue) != ERROR_SUCCESS)
-    {
-        status = HRESULT_FROM_WIN32(V_UI4(&variantReturnValue));
-    }
-
-CleanupExit:
-    if (wbemSetSDClassObject)
-        IWbemClassObject_Release(wbemSetSDClassObject);
-    if (wbemClassObject)
-        IWbemClassObject_Release(wbemClassObject);
-    if (wbemServices)
-        IWbemServices_Release(wbemServices);
-    if (wbemLocator)
-        IWbemLocator_Release(wbemLocator);
-
-    if (freeSecurityDescriptor && relativeSecurityDescriptor)
-        PhFree(relativeSecurityDescriptor);
-
-    VariantClear(&variantReturnValue);
-    VariantClear(&variantArrayValue);
-    //if (safeArray) SafeArrayDestroy(safeArray);
-
-    if (wbemMethodString)
-        SysFreeString(wbemMethodString);
-    if (wbemQueryString)
-        SysFreeString(wbemQueryString);
-    if (wbemResourceString)
-        SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
-
-    if (SUCCEEDED(status))
-    {
-        return STATUS_SUCCESS;
-    }
-
-    if (status == WBEM_E_ACCESS_DENIED)
-        return STATUS_ACCESS_DENIED;
-    if (status == WBEM_E_INVALID_PARAMETER)
-        return STATUS_INVALID_PARAMETER;
-
-    return STATUS_INVALID_SECURITY_DESCR;
-}
-
-HRESULT PhRestartDefenderOfflineScan(
-    VOID
-    )
-{
-    HRESULT status;
-    PVOID imageBaseAddress;
-    PPH_STRING querySelectString = NULL;
-    BSTR wbemResourceString = NULL;
-    BSTR wbemQueryString = NULL;
-    BSTR wbemMethodString = NULL;
-    IWbemLocator* wbemLocator = NULL;
-    IWbemServices* wbemServices = NULL;
-    IWbemClassObject* wbemClassObject = NULL;
-    IWbemClassObject* wbemStartClassObject = 0;
-    VARIANT variantReturnValue = { VT_EMPTY };
-
-    if (!(imageBaseAddress = PhGetWbemProxDllBase()))
-        return STATUS_UNSUCCESSFUL;
-
-    status = PhGetClassObjectDllBase(
-        imageBaseAddress,
-        &CLSID_WbemLocator,
-        &IID_IWbemLocator,
-        &wbemLocator
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemResourceString = SysAllocStringLen(L"Root\\Microsoft\\Windows\\Defender", 31);
-    status = IWbemLocator_ConnectServer(
-        wbemLocator,
-        wbemResourceString,
-        NULL,
-        NULL,
-        NULL,
-        WBEM_FLAG_CONNECT_USE_MAX_WAIT,
-        NULL,
-        NULL,
-        &wbemServices
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    status = CoSetProxyBlanket(
-        (IUnknown*)wbemServices,
-        RPC_C_AUTHN_WINNT,
-        RPC_C_AUTHZ_NONE,
-        NULL,
-        RPC_C_AUTHN_LEVEL_CALL,
-        RPC_C_IMP_LEVEL_IMPERSONATE,
-        NULL,
-        EOAC_NONE
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemQueryString = SysAllocStringLen(L"MSFT_MpWDOScan", 14);
-    status = IWbemServices_GetObject(
-        wbemServices,
-        wbemQueryString,
-        0,
-        NULL,
-        &wbemClassObject,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    wbemMethodString = SysAllocStringLen(L"Start", 5);
-    status = IWbemServices_ExecMethod(
-        wbemServices,
-        wbemQueryString,
-        wbemMethodString,
-        0,
-        NULL,
-        wbemClassObject,
-        &wbemStartClassObject,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    status = IWbemClassObject_Get(
-        wbemStartClassObject,
-        L"ReturnValue",
-        0,
-        &variantReturnValue,
-        NULL,
-        NULL
-        );
-
-    if (FAILED(status))
-        goto CleanupExit;
-
-    if (V_UI4(&variantReturnValue) != ERROR_SUCCESS)
-    {
-        status = HRESULT_FROM_WIN32(V_UI4(&variantReturnValue));
-        goto CleanupExit;
-    }
-
-CleanupExit:
-    if (wbemStartClassObject)
-        IWbemClassObject_Release(wbemStartClassObject);
-    if (wbemServices)
-        IWbemServices_Release(wbemServices);
-    if (wbemClassObject)
-        IWbemClassObject_Release(wbemClassObject);
-    if (wbemLocator)
-        IWbemLocator_Release(wbemLocator);
-
-    VariantClear(&variantReturnValue);
-
-    if (wbemMethodString)
-        SysFreeString(wbemMethodString);
-    if (wbemQueryString)
-        SysFreeString(wbemQueryString);
-    if (wbemResourceString)
-        SysFreeString(wbemResourceString);
-    if (querySelectString)
-        PhDereferenceObject(querySelectString);
-
-    return status;
 }

@@ -47,6 +47,7 @@ VOID GraphicsDeviceInitialize(
     GraphicsDevicesList = PhCreateList(1);
     GraphicsDeviceEntryType = PhCreateObjectType(L"GraphicsDeviceEntry", 0, GraphicsDeviceEntryDeleteProcedure);
     GraphicsGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
+    GraphicsEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     GraphicsEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     GraphicsEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     GraphicsPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
@@ -243,7 +244,7 @@ VOID GraphicsDevicesUpdate(
                         PhUpdateDelta(&entry->TotalRunningTimeNodesDelta[n], runningTime);
                     }
 
-                    PhQueryPerformanceCounter(&performanceCounter, NULL);
+                    PhQueryPerformanceCounter(&performanceCounter);
                     PhUpdateDelta(&entry->TotalRunningTimeDelta, performanceCounter.QuadPart);
 
                     DOUBLE elapsedTime = (DOUBLE)entry->TotalRunningTimeDelta.Delta * 10000000 / GraphicsTotalRunningTimeFrequency.QuadPart;

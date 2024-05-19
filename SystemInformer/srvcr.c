@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2019
+ *     dmex    2019-2023
  *
  */
 
@@ -28,11 +28,12 @@ VOID PhShowCreateServiceDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CREATESERVICE),
         PhCsForceNoParent ? NULL : ParentWindowHandle,
-        PhpCreateServiceDlgProc
+        PhpCreateServiceDlgProc,
+        NULL
         );
 }
 
@@ -51,9 +52,9 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
+            PhAddComboBoxStringRefs(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
+            PhAddComboBoxStringRefs(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
+            PhAddComboBoxStringRefs(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
 
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), L"Own Process", FALSE);
             PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), L"Demand Start", FALSE);
@@ -79,11 +80,8 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                 break;
             case IDOK:
                 {
-                    NTSTATUS status = STATUS_SUCCESS;
-                    BOOLEAN success = FALSE;
-                    SC_HANDLE scManagerHandle;
+                    NTSTATUS status;
                     SC_HANDLE serviceHandle;
-                    ULONG win32Result = ERROR_SUCCESS;
                     PPH_STRING serviceName;
                     PPH_STRING serviceDisplayName;
                     PPH_STRING serviceTypeString;
@@ -93,53 +91,54 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                     ULONG serviceStartType;
                     ULONG serviceErrorControl;
                     PPH_STRING serviceBinaryPath;
+                    PPH_STRING serviceBinaryEscaped;
 
                     serviceName = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME)));
                     serviceDisplayName = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_DISPLAYNAME)));
-
                     serviceTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
                     serviceStartTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
                     serviceErrorControlString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
+                    serviceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
+
                     serviceType = PhGetServiceTypeInteger(&serviceTypeString->sr);
                     serviceStartType = PhGetServiceStartTypeInteger(&serviceStartTypeString->sr);
                     serviceErrorControl = PhGetServiceErrorControlInteger(&serviceErrorControlString->sr);
 
-                    serviceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
+                    if (PhIsNullOrEmptyString(serviceBinaryPath))
+                    {
+                        PhShowError2(hwndDlg, L"Unable to create the service.", L"%s", L"The binary path is empty.");
+                        break;
+                    }
+
+                    if (!FlagOn(serviceType, SERVICE_DRIVER))
+                    {
+                        serviceBinaryEscaped = PH_AUTO(PhCommandLineQuoteSpaces(&serviceBinaryPath->sr));
+
+                        if (!PhIsNullOrEmptyString(serviceBinaryEscaped))
+                        {
+                            serviceBinaryPath = serviceBinaryEscaped;
+                        }
+                    }
 
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
-                        if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
-                        {
-                            if (serviceHandle = CreateService(
-                                scManagerHandle,
-                                serviceName->Buffer,
-                                serviceDisplayName->Buffer,
-                                SERVICE_CHANGE_CONFIG,
-                                serviceType,
-                                serviceStartType,
-                                serviceErrorControl,
-                                serviceBinaryPath->Buffer,
-                                NULL,
-                                NULL,
-                                NULL,
-                                NULL,
-                                L""
-                                ))
-                            {
-                                EndDialog(hwndDlg, IDOK);
-                                CloseServiceHandle(serviceHandle);
-                                success = TRUE;
-                            }
-                            else
-                            {
-                                win32Result = GetLastError();
-                            }
+                        status = PhCreateService(
+                            &serviceHandle,
+                            PhGetString(serviceName),
+                            PhGetString(serviceDisplayName),
+                            SERVICE_QUERY_CONFIG,
+                            serviceType,
+                            serviceStartType,
+                            serviceErrorControl,
+                            PhGetString(serviceBinaryPath),
+                            NULL,
+                            L""
+                            );
 
-                            CloseServiceHandle(scManagerHandle);
-                        }
-                        else
+                        if (NT_SUCCESS(status))
                         {
-                            win32Result = GetLastError();
+                            EndDialog(hwndDlg, IDOK);
+                            PhCloseServiceHandle(serviceHandle);
                         }
                     }
                     else
@@ -147,12 +146,12 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                         if (PhUiConnectToPhSvc(hwndDlg, FALSE))
                         {
                             status = PhSvcCallCreateService(
-                                serviceName->Buffer,
-                                serviceDisplayName->Buffer,
+                                PhGetString(serviceName),
+                                PhGetString(serviceDisplayName),
                                 serviceType,
                                 serviceStartType,
                                 serviceErrorControl,
-                                serviceBinaryPath->Buffer,
+                                PhGetString(serviceBinaryPath),
                                 NULL,
                                 NULL,
                                 NULL,
@@ -164,18 +163,17 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                             if (NT_SUCCESS(status))
                             {
                                 EndDialog(hwndDlg, IDOK);
-                                success = TRUE;
                             }
                         }
                         else
                         {
                             // User cancelled elevation.
-                            success = TRUE;
+                            status = STATUS_SUCCESS;
                         }
                     }
 
-                    if (!success)
-                        PhShowStatus(hwndDlg, L"Unable to create the service", status, win32Result);
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to create the service.", status, 0);
                 }
                 break;
             case IDC_BROWSE:

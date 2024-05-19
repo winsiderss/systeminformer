@@ -6,17 +6,13 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2019-2021
+ *     dmex    2019-2023
  *
  */
 
 #include <phapp.h>
-#include <phsettings.h>
 #include <lsasup.h>
-
 #include <winsta.h>
-
-#define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
 static PH_KEY_VALUE_PAIR PhpMessageBoxIconPairs[] =
 {
@@ -39,12 +35,12 @@ VOID PhShowSessionSendMessageDialog(
     _In_ ULONG SessionId
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_EDITMESSAGE),
         ParentWindowHandle,
         PhpSessionSendMessageDlgProc,
-        (LPARAM)SessionId
+        UlongToPtr(SessionId)
         );
 }
 

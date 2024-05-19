@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -126,11 +126,12 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -151,11 +152,12 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -173,11 +175,12 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -200,12 +203,13 @@
       <IntelJCCErratum>true</IntelJCCErratum>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -228,12 +232,13 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <GuardEHContMetadata>true</GuardEHContMetadata>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -253,18 +258,20 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
+      <BuildStlModules>false</BuildStlModules>
     </ClCompile>
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="apiimport.c" />
     <ClCompile Include="appresolver.c" />
+    <ClCompile Include="appruntime.c" />
     <ClCompile Include="avltree.c" />
     <ClCompile Include="basesup.c" />
     <ClCompile Include="bcd.cpp" />
@@ -272,6 +279,7 @@
     <ClCompile Include="colorbox.c" />
     <ClCompile Include="cpysave.c" />
     <ClCompile Include="data.c" />
+    <ClCompile Include="directdraw.cpp" />
     <ClCompile Include="dspick.c" />
     <ClCompile Include="emenu.c" />
     <ClCompile Include="error.c" />
@@ -287,9 +295,11 @@
     <ClCompile Include="hexedit.c" />
     <ClCompile Include="hndlinfo.c" />
     <ClCompile Include="http.c" />
+    <ClCompile Include="hvsocketcontrol.c" />
     <ClCompile Include="icotobmp.c" />
     <ClCompile Include="filestream.c" />
     <ClCompile Include="imgcoherency.c" />
+    <ClCompile Include="mapldr.c" />
     <ClCompile Include="json.c" />
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphcomms.c" />
@@ -303,7 +313,9 @@
     <ClCompile Include="ref.c" />
     <ClCompile Include="secdata.c" />
     <ClCompile Include="secedit.c" />
+    <ClCompile Include="secwmi.c" />
     <ClCompile Include="settings.c" />
+    <ClCompile Include="symprv_std.cpp" />
     <ClCompile Include="theme.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="svcsup.c" />
@@ -327,13 +339,16 @@
     <ClInclude Include="include\filestream.h" />
     <ClInclude Include="include\handle.h" />
     <ClInclude Include="include\hndlinfo.h" />
+    <ClInclude Include="include\hvsocketcontrol.h" />
     <ClInclude Include="include\json.h" />
     <ClInclude Include="include\kphcomms.h" />
     <ClInclude Include="include\lsasup.h" />
     <ClInclude Include="include\mapimg.h" />
+    <ClInclude Include="include\mapldr.h" />
     <ClInclude Include="include\phbasesup.h" />
     <ClInclude Include="include\phconfig.h" />
     <ClInclude Include="include\phdata.h" />
+    <ClInclude Include="include\phintrin.h" />
     <ClInclude Include="include\phintrnl.h" />
     <ClInclude Include="include\phnative.h" />
     <ClInclude Include="include\phnativeinl.h" />
@@ -344,6 +359,7 @@
     <ClInclude Include="include\phutil.h" />
     <ClInclude Include="include\provider.h" />
     <ClInclude Include="include\secedit.h" />
+    <ClInclude Include="include\secwmi.h" />
     <ClInclude Include="include\settings.h" />
     <ClInclude Include="include\svcsup.h" />
     <ClInclude Include="include\symprvp.h" />
@@ -379,6 +395,4 @@
     <ClInclude Include="include\workqueuep.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
 </Project>

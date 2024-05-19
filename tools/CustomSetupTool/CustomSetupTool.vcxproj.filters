@@ -39,22 +39,10 @@
     <ClCompile Include="startpage.c">
       <Filter>Source Files\pages</Filter>
     </ClCompile>
-    <ClCompile Include="licencepage.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
-    <ClCompile Include="configpage.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
-    <ClCompile Include="downloadpage.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
-    <ClCompile Include="extractpage.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
-    <ClCompile Include="websetuppage.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
     <ClCompile Include="util.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="install.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

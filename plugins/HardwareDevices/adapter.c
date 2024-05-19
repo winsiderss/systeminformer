@@ -6,22 +6,22 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2024
  *
  */
 
 #include "devices.h"
 
-VOID AdapterEntryDeleteProcedure(
+VOID NetworkEntryDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
 {
     PDV_NETADAPTER_ENTRY entry = Object;
 
-    PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
-    PhRemoveItemList(NetworkAdaptersList, PhFindItemList(NetworkAdaptersList, entry));
-    PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
+    PhAcquireQueuedLockExclusive(&NetworkDevicesListLock);
+    PhRemoveItemList(NetworkDevicesList, PhFindItemList(NetworkDevicesList, entry));
+    PhReleaseQueuedLockExclusive(&NetworkDevicesListLock);
 
     DeleteNetAdapterId(&entry->AdapterId);
     PhClearReference(&entry->AdapterName);
@@ -31,30 +31,30 @@ VOID AdapterEntryDeleteProcedure(
     PhDeleteCircularBuffer_ULONG64(&entry->OutboundBuffer);
 }
 
-VOID NetAdaptersInitialize(
+VOID NetworkDevicesInitialize(
     VOID
     )
 {
-    NetworkAdaptersList = PhCreateList(1);
-    NetAdapterEntryType = PhCreateObjectType(L"NetAdapterEntry", 0, AdapterEntryDeleteProcedure);
+    NetworkDevicesList = PhCreateList(1);
+    NetworkDeviceEntryType = PhCreateObjectType(L"NetworkDeviceEntry", 0, NetworkEntryDeleteProcedure);
 }
 
-VOID NetAdaptersUpdate(
+VOID NetworkDevicesUpdate(
     VOID
     )
 {
     static ULONG runCount = 0; // MUST keep in sync with runCount in process provider
 
-    PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
+    PhAcquireQueuedLockShared(&NetworkDevicesListLock);
 
-    for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
+    for (ULONG i = 0; i < NetworkDevicesList->Count; i++)
     {
         HANDLE deviceHandle = NULL;
         PDV_NETADAPTER_ENTRY entry;
         ULONG64 networkInOctets = 0;
         ULONG64 networkOutOctets = 0;
 
-        entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
+        entry = PhReferenceObjectSafe(NetworkDevicesList->Items[i]);
 
         if (!entry)
             continue;
@@ -189,19 +189,19 @@ VOID NetAdaptersUpdate(
         PhDereferenceObjectDeferDelete(entry);
     }
 
-    PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+    PhReleaseQueuedLockShared(&NetworkDevicesListLock);
 
     runCount++;
 }
 
-VOID NetAdapterUpdateDeviceInfo(
+VOID NetworkDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
     _In_ PDV_NETADAPTER_ENTRY AdapterEntry
     )
 {
     if (PhIsNullOrEmptyString(AdapterEntry->AdapterAlias))
     {
-        AdapterEntry->AdapterAlias = NetworkAdapterGetInterfaceAliasFromLuid(&AdapterEntry->AdapterId);
+        PhMoveReference(&AdapterEntry->AdapterAlias, NetworkAdapterGetInterfaceAliasFromLuid(&AdapterEntry->AdapterId));
     }
 
     if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
@@ -251,12 +251,12 @@ VOID NetAdapterUpdateDeviceInfo(
         {
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryName(deviceHandle);
+                PhMoveReference(&AdapterEntry->AdapterName, NetworkAdapterQueryName(deviceHandle));
             }
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid);
+                PhMoveReference(&AdapterEntry->AdapterName, NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid));
             }
 
             if (!DeviceHandle && deviceHandle)
@@ -270,7 +270,7 @@ VOID NetAdapterUpdateDeviceInfo(
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid);
+                PhMoveReference(&AdapterEntry->AdapterName, NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid));
             }
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
@@ -279,7 +279,7 @@ VOID NetAdapterUpdateDeviceInfo(
                 {
                     if (PhIsNullOrEmptyString(AdapterEntry->AdapterName) && PhCountStringZ(interfaceRow.Description) > 0)
                     {
-                        AdapterEntry->AdapterName = PhCreateString(interfaceRow.Description);
+                        PhMoveReference(&AdapterEntry->AdapterName, PhCreateString(interfaceRow.Description));
                     }
                 }
             }
@@ -294,12 +294,10 @@ VOID InitializeNetAdapterId(
     _In_ PPH_STRING InterfaceGuidString
     )
 {
-    static PH_STRINGREF nativeNamespacePath = PH_STRINGREF_INIT(L"\\??\\");
-
     Id->InterfaceIndex = InterfaceIndex;
     Id->InterfaceLuid = InterfaceLuid;
     PhSetReference(&Id->InterfaceGuidString, InterfaceGuidString);
-    Id->InterfacePath = PhConcatStringRef2(&nativeNamespacePath, &InterfaceGuidString->sr);
+    Id->InterfacePath = PhConcatStringRef2(&PhNtDosDevicesPrefix, &InterfaceGuidString->sr);
 
     if (NT_SUCCESS(PhStringToGuid(&InterfaceGuidString->sr, &Id->InterfaceGuid)))
     {
@@ -346,16 +344,16 @@ PDV_NETADAPTER_ENTRY CreateNetAdapterEntry(
     PDV_NETADAPTER_ENTRY entry;
     ULONG sampleCount;
 
-    entry = PhCreateObjectZero(sizeof(DV_NETADAPTER_ENTRY), NetAdapterEntryType);
+    entry = PhCreateObjectZero(sizeof(DV_NETADAPTER_ENTRY), NetworkDeviceEntryType);
     CopyNetAdapterId(&entry->AdapterId, Id);
 
     sampleCount = PhGetIntegerSetting(L"SampleCount");
     PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, sampleCount);
 
-    PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
-    PhAddItemList(NetworkAdaptersList, entry);
-    PhReleaseQueuedLockExclusive(&NetworkAdaptersListLock);
+    PhAcquireQueuedLockExclusive(&NetworkDevicesListLock);
+    PhAddItemList(NetworkDevicesList, entry);
+    PhReleaseQueuedLockExclusive(&NetworkDevicesListLock);
 
     return entry;
 }

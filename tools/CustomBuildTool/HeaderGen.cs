@@ -33,6 +33,7 @@ namespace CustomBuildTool
             "thrdprv.h",
             "hndlprv.h",
             "memprv.h",
+            "devprv.h",
             "phuisup.h",
             "colmgr.h",
             "proctree.h",
@@ -243,7 +244,7 @@ namespace CustomBuildTool
 
         public bool Equals(HeaderFile other)
         {
-            return this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
+            return other != null && this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

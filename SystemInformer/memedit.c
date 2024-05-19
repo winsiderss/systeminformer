@@ -92,12 +92,12 @@ VOID PhShowMemoryEditorDialog(
         PhSwapReference(&context->Title, Title);
         context->Flags = Flags;
 
-        context->WindowHandle = CreateDialogParam(
+        context->WindowHandle = PhCreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_MEMEDIT),
             NULL,
             PhpMemoryEditorDlgProc,
-            (LPARAM)context
+            context
             );
 
         if (!context->LoadCompleted)
@@ -311,6 +311,8 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         PhaFormatString(L"%u bytes per row", bytesPerRow)->Buffer, FALSE);
                 }
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             context->LoadCompleted = TRUE;
         }
@@ -544,6 +546,12 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             HexEdit_SetSel(context->HexEditHandle, (ULONG)wParam, PtrToUlong(PTR_ADD_OFFSET(wParam, lParam)));
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

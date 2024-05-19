@@ -6,7 +6,8 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2024
+ *     jxy-s   2022
  *
  */
 
@@ -29,18 +30,41 @@
 #define SETTING_NAME_GRAPHICS_LIST (PLUGIN_NAME L".GraphicsList")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION (PLUGIN_NAME L".GraphicsNodesWindowPosition")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE (PLUGIN_NAME L".GraphicsNodesWindowSize")
-
-#define UM_NDIS687
-#define UM_NDIS60
+#define SETTING_NAME_DEVICE_TREE_AUTO_REFRESH (PLUGIN_NAME L".DeviceTreeAutoRefresh")
+#define SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED (PLUGIN_NAME L".DeviceTreeShowDisconnected")
+#define SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED (PLUGIN_NAME L".DeviceTreeHighlightUpperFiltered")
+#define SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED (PLUGIN_NAME L".DeviceTreeHighlightLowerFiltered")
+#define SETTING_NAME_DEVICE_TREE_SORT (PLUGIN_NAME L".DeviceTreeSort")
+#define SETTING_NAME_DEVICE_TREE_COLUMNS (PLUGIN_NAME L".DeviceTreeColumns")
+#define SETTING_NAME_DEVICE_PROBLEM_COLOR (PLUGIN_NAME L".ColorDeviceProblem")
+#define SETTING_NAME_DEVICE_DISABLED_COLOR (PLUGIN_NAME L".ColorDeviceDisabled")
+#define SETTING_NAME_DEVICE_DISCONNECTED_COLOR (PLUGIN_NAME L".ColorDeviceDisconnected")
+#define SETTING_NAME_DEVICE_HIGHLIGHT_COLOR (PLUGIN_NAME L".ColorDeviceHighlight")
+#define SETTING_NAME_DEVICE_INTERFACE_COLOR (PLUGIN_NAME L".ColorDeviceInterface")
+#define SETTING_NAME_DEVICE_DISABLED_INTERFACE_COLOR (PLUGIN_NAME L".ColorDisabledDeviceInterface")
+#define SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME (PLUGIN_NAME L".SortDeviceChildrenByName")
+#define SETTING_NAME_DEVICE_SHOW_ROOT (PLUGIN_NAME L".ShowRootDevice")
+#define SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS (PLUGIN_NAME L".ShowSoftwareComponents")
+#define SETTING_NAME_DEVICE_SHOW_DEVICE_INTERFACES (PLUGIN_NAME L".ShowDeviceInterfaces")
+#define SETTING_NAME_DEVICE_SHOW_DISABLED_DEVICE_INTERFACES (PLUGIN_NAME L".ShowDisabledDeviceInterfaces")
+#define SETTING_NAME_DEVICE_PROPERTIES_POSITION (PLUGIN_NAME L".DevicePropertiesPosition")
+#define SETTING_NAME_DEVICE_PROPERTIES_SIZE (PLUGIN_NAME L".DevicePropertiesSize")
+#define SETTING_NAME_DEVICE_GENERAL_COLUMNS (PLUGIN_NAME L".DeviceGeneralColumns")
+#define SETTING_NAME_DEVICE_PROPERTIES_COLUMNS (PLUGIN_NAME L".DevicePropertiesColumns")
+#define SETTING_NAME_DEVICE_INTERFACES_COLUMNS (PLUGIN_NAME L".DeviceInterfacesColumns")
+#define SETTING_NAME_DEVICE_ARRIVED_COLOR (PLUGIN_NAME L".ColorDeviceArrived")
+#define SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION (PLUGIN_NAME L".DeviceHighlightingDuration")
 
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
-#include <math.h>
+#include <workqueue.h>
+#include <mapldr.h>
 
+#include <math.h>
 #include <cfgmgr32.h>
-#include <nldef.h>
-#include <netioapi.h>
+
+#include <phnet.h>
 
 // d3dkmddi requires the WDK (dmex)
 #if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
@@ -66,14 +90,15 @@ __has_include (<d3dkmthk.h>)
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN NetAdapterEnableNdis;
+extern ULONG NetWindowsVersion;
 
-extern PPH_OBJECT_TYPE NetAdapterEntryType;
-extern PPH_LIST NetworkAdaptersList;
-extern PH_QUEUED_LOCK NetworkAdaptersListLock;
+extern PPH_OBJECT_TYPE NetworkDeviceEntryType;
+extern PPH_LIST NetworkDevicesList;
+extern PH_QUEUED_LOCK NetworkDevicesListLock;
 
-extern PPH_OBJECT_TYPE DiskDriveEntryType;
-extern PPH_LIST DiskDrivesList;
-extern PH_QUEUED_LOCK DiskDrivesListLock;
+extern PPH_OBJECT_TYPE DiskDeviceEntryType;
+extern PPH_LIST DiskDevicesList;
+extern PH_QUEUED_LOCK DiskDevicesListLock;
 
 extern PPH_OBJECT_TYPE RaplDeviceEntryType;
 extern PPH_LIST RaplDevicesList;
@@ -83,10 +108,48 @@ extern PPH_OBJECT_TYPE GraphicsDeviceEntryType;
 extern PPH_LIST GraphicsDevicesList;
 extern PH_QUEUED_LOCK GraphicsDevicesListLock;
 
+#ifdef _DEBUG
+//#define FORCE_DELAY_LABEL_WORKQUEUE
+#endif
+
 // main.c
 
-PPH_STRING TrimString(
-    _In_ PPH_STRING String
+BOOLEAN HardwareDeviceEnableDisable(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance,
+    _In_ BOOLEAN Enable
+    );
+
+BOOLEAN HardwareDeviceRestart(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    );
+
+BOOLEAN HardwareDeviceUninstall(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    );
+
+_Success_(return)
+BOOLEAN HardwareDeviceShowSecurity(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    );
+
+BOOLEAN HardwareDeviceShowProperties(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING DeviceInstance
+    );
+
+#define HW_KEY_INDEX_HARDWARE 4
+#define HW_KEY_INDEX_SOFTWARE 5
+#define HW_KEY_INDEX_USER 6
+#define HW_KEY_INDEX_CONFIG 7
+
+BOOLEAN HardwareDeviceOpenKey(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance,
+    _In_ ULONG KeyIndex
     );
 
 VOID ShowDeviceMenu(
@@ -121,7 +184,8 @@ typedef struct _DV_NETADAPTER_ENTRY
             BOOLEAN CheckedDeviceSupport : 1;
             BOOLEAN DeviceSupported : 1;
             BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN PendingQuery : 1;
+            BOOLEAN Spare : 2;
         };
     };
 
@@ -135,25 +199,35 @@ typedef struct _DV_NETADAPTER_ENTRY
 
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
+
+    volatile LONG JustProcessed;
 } DV_NETADAPTER_ENTRY, *PDV_NETADAPTER_ENTRY;
 
 typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
     PDV_NETADAPTER_ENTRY AdapterEntry;
-    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
-    HWND GraphHandle;
+
+    HWND LabelSendHandle;
+    HWND LabelReceiveHandle;
+    HWND GroupSendHandle;
+    HWND GroupReceiveHandle;
+    HWND GraphSendHandle;
+    HWND GraphReceiveHandle;
 
     HANDLE DetailsWindowThreadHandle;
     HWND DetailsWindowDialogHandle;
     PH_EVENT DetailsWindowInitializedEvent;
 
     PPH_SYSINFO_SECTION SysinfoSection;
-    PH_GRAPH_STATE GraphState;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    LONG GraphPadding;
+
+    PH_GRAPH_STATE GraphSendState;
+    PH_GRAPH_STATE GraphReceiveState;
 
     HWND AdapterNameLabel;
     HWND AdapterTextLabel;
@@ -219,22 +293,17 @@ VOID NetAdaptersLoadList(
     VOID
     );
 
-BOOLEAN HardwareDeviceShowProperties(
-    _In_ HWND WindowHandle,
-    _In_ PPH_STRING DeviceInstance
-    );
-
 // adapter.c
 
-VOID NetAdaptersInitialize(
+VOID NetworkDevicesInitialize(
     VOID
     );
 
-VOID NetAdaptersUpdate(
+VOID NetworkDevicesUpdate(
     VOID
     );
 
-VOID NetAdapterUpdateDeviceInfo(
+VOID NetworkDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
     _In_ PDV_NETADAPTER_ENTRY AdapterEntry
     );
@@ -280,10 +349,16 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     NETADAPTER_DETAILS_INDEX_STATE,
     //NETADAPTER_DETAILS_INDEX_CONNECTIVITY,
 
-    NETADAPTER_DETAILS_INDEX_IPADDRESS,
-    NETADAPTER_DETAILS_INDEX_SUBNET,
-    NETADAPTER_DETAILS_INDEX_GATEWAY,
-    NETADAPTER_DETAILS_INDEX_DNS,
+    NETADAPTER_DETAILS_INDEX_IPV4ADDRESS,
+    NETADAPTER_DETAILS_INDEX_IPV4SUBNET,
+    NETADAPTER_DETAILS_INDEX_IPV4GATEWAY,
+    NETADAPTER_DETAILS_INDEX_IPV4DNS,
+
+    NETADAPTER_DETAILS_INDEX_IPV6ADDRESS,
+    NETADAPTER_DETAILS_INDEX_IPV6TEMPADDRESS,
+    NETADAPTER_DETAILS_INDEX_IPV6GATEWAY,
+    NETADAPTER_DETAILS_INDEX_IPV6DNS,
+
     NETADAPTER_DETAILS_INDEX_DOMAIN,
 
     NETADAPTER_DETAILS_INDEX_LINKSPEED,
@@ -399,9 +474,8 @@ PWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     );
 
-_Success_(return)
-BOOLEAN NetworkAdapterQueryWlanConfig(
-    _In_ PGUID InterfaceGuid
+PPH_STRING NetAdapterFormatBitratePrefix(
+    _In_ ULONG64 Value
     );
 
 // netoptions.c
@@ -445,7 +519,8 @@ typedef struct _DV_DISK_ENTRY
             BOOLEAN UserReference : 1;
             BOOLEAN HaveFirstSample : 1;
             BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN PendingQuery : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
@@ -465,48 +540,67 @@ typedef struct _DV_DISK_ENTRY
     FLOAT ActiveTime;
     ULONG QueueDepth;
     ULONG SplitCount;
+
+    volatile LONG JustProcessed;
 } DV_DISK_ENTRY, *PDV_DISK_ENTRY;
 
 typedef struct _DV_DISK_SYSINFO_CONTEXT
 {
     PDV_DISK_ENTRY DiskEntry;
-    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
-    HWND GraphHandle;
 
-    PPH_SYSINFO_SECTION SysinfoSection;
-    PH_GRAPH_STATE GraphState;
-    PH_LAYOUT_MANAGER LayoutManager;
-    RECT GraphMargin;
-
-    HWND DiskPathLabel;
-    HWND DiskNameLabel;
-    HWND DiskDrivePanelReadLabel;
-    HWND DiskDrivePanelWriteLabel;
-    HWND DiskDrivePanelTotalLabel;
-    HWND DiskDrivePanelActiveLabel;
-    HWND DiskDrivePanelTimeLabel;
-    HWND DiskDrivePanelBytesLabel;
+    HWND LabelReadHandle;
+    HWND LabelWriteHandle;
+    HWND GroupReadHandle;
+    HWND GroupWriteHandle;
+    HWND GraphReadHandle;
+    HWND GraphWriteHandle;
 
     HANDLE DetailsWindowThreadHandle;
     HWND DetailsWindowDialogHandle;
     PH_EVENT DetailsWindowInitializedEvent;
+
+    PPH_SYSINFO_SECTION SysinfoSection;
+    PH_LAYOUT_MANAGER LayoutManager;
+    RECT GraphMargin;
+    LONG GraphPadding;
+
+    PH_GRAPH_STATE GraphReadState;
+    PH_GRAPH_STATE GraphWriteState;
+
+    HWND DiskPathLabel;
+    HWND DiskNameLabel;
+    HWND DiskDevicePanelReadLabel;
+    HWND DiskDevicePanelWriteLabel;
+    HWND DiskDevicePanelTotalLabel;
+    HWND DiskDevicePanelActiveLabel;
+    HWND DiskDevicePanelTimeLabel;
+    HWND DiskDevicePanelBytesLabel;
 } DV_DISK_SYSINFO_CONTEXT, *PDV_DISK_SYSINFO_CONTEXT;
 
 typedef struct _DV_DISK_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
-    BOOLEAN OptionsChanged;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN OptionsChanged : 1;
+            BOOLEAN UseAlternateMethod : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
     PH_LAYOUT_MANAGER LayoutManager;
 } DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
 
-VOID DiskDrivesInitialize(VOID);
+VOID DiskDevicesInitialize(VOID);
 VOID DiskDrivesLoadList(VOID);
-VOID DiskDrivesUpdate(VOID);
+VOID DiskDevicesUpdate(VOID);
 
-VOID DiskDriveUpdateDeviceInfo(
+VOID DiskDeviceUpdateDeviceInfo(
     _In_opt_ HANDLE DeviceHandle,
     _In_ PDV_DISK_ENTRY DiskEntry
     );
@@ -534,7 +628,7 @@ PDV_DISK_ENTRY CreateDiskEntry(
 
 typedef struct _COMMON_PAGE_CONTEXT
 {
-    HWND ParentHandle;
+    //HWND ParentHandle;
 
     PPH_STRING DiskName;
     DV_DISK_ID DiskId;
@@ -548,6 +642,8 @@ typedef struct _DV_DISK_PAGE_CONTEXT
     HWND WindowHandle;
     HWND ListViewHandle;
 
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
     PCOMMON_PAGE_CONTEXT PageContext;
 } DV_DISK_PAGE_CONTEXT, *PDV_DISK_PAGE_CONTEXT;
 
@@ -555,12 +651,15 @@ typedef enum _DISKDRIVE_DETAILS_INDEX
 {
     DISKDRIVE_DETAILS_INDEX_FS_CREATION_TIME,
     DISKDRIVE_DETAILS_INDEX_SERIAL_NUMBER,
+    DISKDRIVE_DETAILS_INDEX_UNIQUEID,
+    DISKDRIVE_DETAILS_INDEX_PARTITIONID,
     DISKDRIVE_DETAILS_INDEX_FILE_SYSTEM,
     DISKDRIVE_DETAILS_INDEX_FS_VERSION,
     DISKDRIVE_DETAILS_INDEX_LFS_VERSION,
 
     DISKDRIVE_DETAILS_INDEX_TOTAL_SIZE,
     DISKDRIVE_DETAILS_INDEX_TOTAL_FREE,
+    DISKDRIVE_DETAILS_INDEX_TOTAL_USED,
     DISKDRIVE_DETAILS_INDEX_TOTAL_SECTORS,
     DISKDRIVE_DETAILS_INDEX_TOTAL_CLUSTERS,
     DISKDRIVE_DETAILS_INDEX_FREE_CLUSTERS,
@@ -670,10 +769,20 @@ typedef enum _DISKDRIVE_DETAILS_INDEX
     DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE_MISS,
     DISKDRIVE_DETAILS_INDEX_ALLOCATE_CACHE_MISS_CLUSTERS,*/
 
-    DISKDRIVE_DETAILS_INDEX_OTHER_EXCEPTIONS
+    DISKDRIVE_DETAILS_INDEX_OTHER_EXCEPTIONS,
+
+    DISKDRIVE_DETAILS_INDEX_RESOURCES_EXHAUSTED,
+    DISKDRIVE_DETAILS_INDEX_VOLUME_TRIM_COUNT,
+    DISKDRIVE_DETAILS_INDEX_VOLUME_TRIM_TIME,
+    DISKDRIVE_DETAILS_INDEX_VOLUME_TRIM_BYTES,
+    DISKDRIVE_DETAILS_INDEX_VOLUME_TRIM_SKIPPED_COUNT,
+    DISKDRIVE_DETAILS_INDEX_VOLUME_TRIM_SKIPPED_BYTES,
+    DISKDRIVE_DETAILS_INDEX_FILE_TRIM_COUNT,
+    DISKDRIVE_DETAILS_INDEX_FILE_TRIM_TIME,
+    DISKDRIVE_DETAILS_INDEX_FILE_TRIM_BYTES,
 } DISKDRIVE_DETAILS_INDEX;
 
-VOID ShowDiskDriveDetailsDialog(
+VOID ShowDiskDeviceDetailsDialog(
     _In_ PDV_DISK_SYSINFO_CONTEXT Context
     );
 
@@ -728,19 +837,19 @@ NTSTATUS DiskDriveQueryImminentFailure(
     _Out_ PPH_LIST* DiskSmartAttributes
     );
 
-typedef struct _NTFS_FILESYSTEM_STATISTICS
+typedef DECLSPEC_ALIGN(64) struct _NTFS_FILESYSTEM_STATISTICS
 {
     FILESYSTEM_STATISTICS FileSystemStatistics;
     NTFS_STATISTICS NtfsStatistics;
 } NTFS_FILESYSTEM_STATISTICS, *PNTFS_FILESYSTEM_STATISTICS;
 
-typedef struct _FAT_FILESYSTEM_STATISTICS
+typedef DECLSPEC_ALIGN(64) struct _FAT_FILESYSTEM_STATISTICS
 {
     FILESYSTEM_STATISTICS FileSystemStatistics;
     NTFS_STATISTICS FatStatistics;
 } FAT_FILESYSTEM_STATISTICS, *PFAT_FILESYSTEM_STATISTICS;
 
-typedef struct _EXFAT_FILESYSTEM_STATISTICS
+typedef DECLSPEC_ALIGN(64) struct _EXFAT_FILESYSTEM_STATISTICS
 {
     FILESYSTEM_STATISTICS FileSystemStatistics;
     EXFAT_STATISTICS ExFatStatistics;
@@ -750,6 +859,31 @@ _Success_(return)
 BOOLEAN DiskDriveQueryFileSystemInfo(
     _In_ HANDLE DeviceHandle,
     _Out_ USHORT* FileSystemType,
+    _Out_ PVOID* FileSystemStatistics
+    );
+
+typedef DECLSPEC_ALIGN(64) struct _NTFS_FILESYSTEM_STATISTICS_EX
+{
+    FILESYSTEM_STATISTICS_EX FileSystemStatistics;
+    NTFS_STATISTICS_EX NtfsStatistics;
+} NTFS_FILESYSTEM_STATISTICS_EX, *PNTFS_FILESYSTEM_STATISTICS_EX;
+
+typedef DECLSPEC_ALIGN(64) struct _FAT_FILESYSTEM_STATISTICS_EX
+{
+    FILESYSTEM_STATISTICS_EX FileSystemStatistics;
+    NTFS_STATISTICS_EX FatStatistics;
+} FAT_FILESYSTEM_STATISTICS_EX, *PFAT_FILESYSTEM_STATISTICS_EX;
+
+typedef DECLSPEC_ALIGN(64) struct _EXFAT_FILESYSTEM_STATISTICS_EX
+{
+    FILESYSTEM_STATISTICS_EX FileSystemStatistics;
+    EXFAT_STATISTICS ExFatStatistics;
+} EXFAT_FILESYSTEM_STATISTICS_EX, *PEXFAT_FILESYSTEM_STATISTICS_EX;
+
+_Success_(return)
+BOOLEAN DiskDriveQueryFileSystemInfoEx(
+    _In_ HANDLE DosDeviceHandle,
+    _Out_ PUSHORT FileSystemType,
     _Out_ PVOID* FileSystemStatistics
     );
 
@@ -776,9 +910,10 @@ NTSTATUS DiskDriveQueryVolumeInformation(
     _Out_ PFILE_FS_VOLUME_INFORMATION* VolumeInfo
     );
 
-NTSTATUS DiskDriveQueryVolumeAttributes(
-    _In_ HANDLE DosDeviceHandle,
-    _Out_ PFILE_FS_ATTRIBUTE_INFORMATION* AttributeInfo
+NTSTATUS DiskDriveQueryUniqueId(
+    _In_ HANDLE DeviceHandle,
+    _Out_ PPH_STRING* UniqueId,
+    _Out_ PPH_STRING* PartitionId
     );
 
 // https://en.wikipedia.org/wiki/S.M.A.R.T.#Known_ATA_S.M.A.R.T._attributes
@@ -919,14 +1054,18 @@ PWSTR SmartAttributeGetText(
 
 // diskgraph.c
 
-VOID DiskDriveSysInfoInitializing(
+VOID DiskDeviceQueueNameUpdate(
+    _In_ PDV_DISK_ENTRY DiskEntry
+    );
+
+VOID DiskDeviceSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_DISK_ENTRY DiskEntry
     );
 
 // netgraph.c
 
-VOID NetAdapterSysInfoInitializing(
+VOID NetworkDeviceSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     );
@@ -1001,9 +1140,15 @@ typedef struct _DV_RAPL_SYSINFO_CONTEXT
     HWND DimmGraphHandle;
     HWND TotalGraphHandle;
 
+    HWND PackageGraphLabelHandle;
+    HWND CoreGraphLabelHandle;
+    HWND DimmGraphLabelHandle;
+    HWND TotalGraphLabelHandle;
+
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    LONG GraphPadding;
 
     PH_GRAPH_STATE ProcessorGraphState;
     PH_GRAPH_STATE CoreGraphState;
@@ -1036,11 +1181,6 @@ VOID RaplDevicesLoadList(
 
 VOID RaplDevicesUpdate(
     VOID
-    );
-
-VOID RaplDeviceUpdateDeviceInfo(
-    _In_opt_ HANDLE DeviceHandle,
-    _In_ PDV_RAPL_ENTRY DiskEntry
     );
 
 VOID InitializeRaplDeviceId(
@@ -1175,6 +1315,7 @@ typedef struct _DV_GPU_SYSINFO_CONTEXT
     RECT GraphMargin;
 
     PPH_STRING Description;
+    LONG SysInfoGraphPadding;
 
     HWND NodeWindowHandle;
     HANDLE NodeWindowThreadHandle;
@@ -1219,6 +1360,7 @@ typedef struct _DV_GPU_OPTIONS_CONTEXT
 } DV_GPU_OPTIONS_CONTEXT, *PDV_GPU_OPTIONS_CONTEXT;
 
 extern BOOLEAN GraphicsGraphShowText;
+extern BOOLEAN GraphicsEnableAvxSupport;
 extern BOOLEAN GraphicsEnableScaleGraph;
 extern BOOLEAN GraphicsEnableScaleText;
 extern BOOLEAN GraphicsPropagateCpuUsage;
@@ -1427,7 +1569,7 @@ BOOLEAN GraphicsQueryDeviceProperties(
     _Out_opt_ PPH_STRING* DriverDate,
     _Out_opt_ PPH_STRING* DriverVersion,
     _Out_opt_ PPH_STRING* LocationInfo,
-    _Out_opt_ ULONG64* InstalledMemory,
+    _Out_opt_ PULONG64 InstalledMemory,
     _Out_opt_ LUID* AdapterLuid
     );
 
@@ -1443,4 +1585,29 @@ VOID GraphicsDeviceShowDetailsDialog(
     _In_ HWND ParentWindowHandle
     );
 
-#endif _DEVICES_H_
+// devicetree.c
+
+VOID InitializeDevicesTab(
+    VOID
+    );
+
+typedef struct DEVICE_PROPERTY_TABLE_ENTRY
+{
+    PH_DEVICE_PROPERTY_CLASS PropClass;
+    PWSTR ColumnName;
+    BOOLEAN ColumnVisible;
+    ULONG ColumnWidth;
+    ULONG ColumnTextFlags;
+} DEVICE_PROPERTY_TABLE_ENTRY, *PDEVICE_PROPERTY_TABLE_ENTRY;
+
+extern const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[];
+extern const ULONG DeviceItemPropertyTableCount;
+
+// deviceprops.c
+
+BOOLEAN DeviceShowProperties(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_DEVICE_ITEM DeviceItem
+    );
+
+#endif

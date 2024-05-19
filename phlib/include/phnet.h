@@ -1,32 +1,59 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2015
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_PHNET_H
 #define _PH_PHNET_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define __WINDOT11_H__ // temporary preprocessor workaround (dmex)
 
+#ifndef PIO_APC_ROUTINE_DEFINED
+#define PIO_APC_ROUTINE_DEFINED 1
+#endif
+
+#ifndef UM_NDIS60
+#define UM_NDIS60 1
+#endif
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <ws2ipdef.h>
+#include <ws2def.h>
 #include <windns.h>
+#include <nldef.h>
 #include <iphlpapi.h>
 #include <mstcpip.h>
+#include <icmpapi.h>
+#include <hvsocket.h>
+
+EXTERN_C CONST DECLSPEC_SELECTANY IN_ADDR  inaddr_any             = { 0x00 };
+EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_any            = { 0x00 };
+EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_v4mappedprefix = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 };
 
 #define PH_IPV4_NETWORK_TYPE 0x1
 #define PH_IPV6_NETWORK_TYPE 0x2
-#define PH_NETWORK_TYPE_MASK 0x3
+#define PH_HV_NETWORK_TYPE   0x4
+#define PH_NETWORK_TYPE_MASK 0x8
 
-#define PH_TCP_PROTOCOL_TYPE 0x10
-#define PH_UDP_PROTOCOL_TYPE 0x20
+#define PH_TCP_PROTOCOL_TYPE  0x10
+#define PH_UDP_PROTOCOL_TYPE  0x20
 #define PH_PROTOCOL_TYPE_MASK 0x30
 
-#define PH_NO_NETWORK_PROTOCOL 0x0
+#define PH_NO_NETWORK_PROTOCOL   0x0
 #define PH_TCP4_NETWORK_PROTOCOL (PH_IPV4_NETWORK_TYPE | PH_TCP_PROTOCOL_TYPE)
 #define PH_TCP6_NETWORK_PROTOCOL (PH_IPV6_NETWORK_TYPE | PH_TCP_PROTOCOL_TYPE)
 #define PH_UDP4_NETWORK_PROTOCOL (PH_IPV4_NETWORK_TYPE | PH_UDP_PROTOCOL_TYPE)
 #define PH_UDP6_NETWORK_PROTOCOL (PH_IPV6_NETWORK_TYPE | PH_UDP_PROTOCOL_TYPE)
+#define PH_HV_NETWORK_PROTOCOL   (PH_HV_NETWORK_TYPE)
 
 typedef struct _PH_IP_ADDRESS
 {
@@ -37,6 +64,7 @@ typedef struct _PH_IP_ADDRESS
         IN_ADDR InAddr;
         UCHAR Ipv6[16];
         IN6_ADDR In6Addr;
+        GUID HvAddr;
     };
 } PH_IP_ADDRESS, *PPH_IP_ADDRESS;
 
@@ -50,13 +78,12 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
     if (Address1->Type != Address2->Type)
         return FALSE;
 
-    // TODO: Remove the below commented code if the ADDR_EQUAL macros work -dmex
     if (Address1->Type == PH_IPV4_NETWORK_TYPE)
     {
         return IN4_ADDR_EQUAL(&Address1->InAddr, &Address2->InAddr);
         // return Address1->Ipv4 == Address2->Ipv4;
     }
-    else
+    else if (Address1->Type == PH_IPV6_NETWORK_TYPE)
     {
         return IN6_ADDR_EQUAL(&Address1->In6Addr, &Address2->In6Addr);
 //#ifdef _WIN64
@@ -70,6 +97,11 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
 //            *(PULONG)(Address1->Ipv6 + 8) == *(PULONG)(Address2->Ipv6 + 8) &&
 //            *(PULONG)(Address1->Ipv6 + 12) == *(PULONG)(Address2->Ipv6 + 12);
 //#endif
+    }
+    else
+    {
+        //return IsEqualGUID(&Address1->HvAddr, &Address2->HvAddr);
+        return !memcmp(&Address1->HvAddr, &Address2->HvAddr, sizeof(GUID));
     }
 }
 
@@ -88,12 +120,19 @@ FORCEINLINE ULONG PhHashIpAddress(
     {
         hash ^= Address->Ipv4;
     }
-    else
+    else if (Address->Type == PH_IPV6_NETWORK_TYPE)
     {
         hash += *(PULONG)(Address->Ipv6);
         hash ^= *(PULONG)(Address->Ipv6 + 4);
         hash += *(PULONG)(Address->Ipv6 + 8);
         hash ^= *(PULONG)(Address->Ipv6 + 12);
+    }
+    else
+    {
+        hash += Address->HvAddr.Data1;
+        hash ^= *(PULONG)(&Address->HvAddr.Data2);
+        hash ^= *(PULONG)(Address->HvAddr.Data4);
+        hash ^= *(PULONG)(Address->HvAddr.Data4 + 4);
     }
 
     return hash;
@@ -121,6 +160,11 @@ FORCEINLINE BOOLEAN PhIsNullIpAddress(
 //        return (*(PULONG)(Address->Ipv6) | *(PULONG)(Address->Ipv6 + 4) |
 //            *(PULONG)(Address->Ipv6 + 8) | *(PULONG)(Address->Ipv6 + 12)) == 0;
 //#endif
+    }
+    else if (Address->Type == PH_HV_NETWORK_TYPE)
+    {
+        //return IsEqualGUID(&Address->HvAddr, &HV_GUID_ZERO);
+        return !memcmp(&Address->HvAddr, &HV_GUID_ZERO, sizeof(GUID));
     }
     else
     {
@@ -297,6 +341,16 @@ PhHttpSocketQueryHeaderUlong(
     _Out_ PULONG HeaderValue
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhHttpSocketQueryHeaderUlong64(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ ULONG QueryValue,
+    _Out_ PULONG64 HeaderValue
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -434,8 +488,6 @@ PhDnsFree(
     _In_ PDNS_RECORD DnsRecordList
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

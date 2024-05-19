@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -52,7 +52,7 @@ BOOLEAN NTAPI ObjectDbEqualFunction(
     PDB_OBJECT object1 = *(PDB_OBJECT *)Entry1;
     PDB_OBJECT object2 = *(PDB_OBJECT *)Entry2;
 
-    return object1->Tag == object2->Tag && PhEqualStringRef(&object1->Key, &object2->Key, TRUE);
+    return object1->Tag == object2->Tag && PhEqualStringRef(&object1->Key, &object2->Key, FALSE);
 }
 
 ULONG NTAPI ObjectDbHashFunction(
@@ -61,7 +61,7 @@ ULONG NTAPI ObjectDbHashFunction(
 {
     PDB_OBJECT object = *(PDB_OBJECT *)Entry;
 
-    return object->Tag + PhHashStringRefEx(&object->Key, TRUE, PH_STRING_HASH_X65599);
+    return object->Tag + PhHashStringRefEx(&object->Key, FALSE, PH_STRING_HASH_X65599);
 }
 
 ULONG GetNumberOfDbObjects(
@@ -165,7 +165,7 @@ VOID SetDbPath(
     _In_ PPH_STRING Path
     )
 {
-    PhSwapReference(&ObjectDbPath, Path);
+    PhSetReference(&ObjectDbPath, Path);
 }
 
 NTSTATUS LoadDb(
@@ -176,15 +176,22 @@ NTSTATUS LoadDb(
     PVOID topNode;
     PVOID currentNode;
 
+    if (PhIsNullOrEmptyString(ObjectDbPath))
+        return STATUS_UNSUCCESSFUL;
+
     status = PhLoadXmlObjectFromFile(&ObjectDbPath->sr, &topNode);
 
     if (!NT_SUCCESS(status))
         return status;
 
     if (!topNode)
+    {
+        // Delete the corrupted file. (dmex)
+        PhDeleteFile(&ObjectDbPath->sr);
         return STATUS_FILE_CORRUPT_ERROR;
+    }
 
-    LockDb();
+    //LockDb();
 
     for (currentNode = PhGetXmlNodeFirstChild(topNode); currentNode; currentNode = PhGetXmlNodeNextChild(currentNode))
     {
@@ -199,6 +206,7 @@ NTSTATUS LoadDb(
         PPH_STRING affinityMask = NULL;
         PPH_STRING pagePriorityPlusOne = NULL;
         PPH_STRING boost = NULL;
+        PPH_STRING efficiency = NULL;
 
         if (PhGetXmlNodeAttributeCount(currentNode) >= 2)
         {
@@ -230,6 +238,8 @@ NTSTATUS LoadDb(
                     PhMoveReference(&pagePriorityPlusOne, PhConvertUtf8ToUtf16(elementValue));
                 else if (PhEqualBytesZ(elementName, "boost", TRUE))
                     PhMoveReference(&boost, PhConvertUtf8ToUtf16(elementValue));
+                else if (PhEqualBytesZ(elementName, "efficiency", TRUE))
+                    PhMoveReference(&efficiency, PhConvertUtf8ToUtf16(elementValue));
             }
         }
 
@@ -300,6 +310,15 @@ NTSTATUS LoadDb(
             object->Boost = !!boostInteger;
         }
 
+        if (object && efficiency)
+        {
+            ULONG64 efficiencyInteger = 0;
+
+            PhStringToInteger64(&efficiency->sr, 10, &efficiencyInteger);
+
+            object->Efficiency = !!efficiencyInteger;
+        }
+
         PhClearReference(&tag);
         PhClearReference(&name);
         PhClearReference(&priorityClass);
@@ -310,11 +329,19 @@ NTSTATUS LoadDb(
         PhClearReference(&affinityMask);
         PhClearReference(&pagePriorityPlusOne);
         PhClearReference(&boost);
+        PhClearReference(&efficiency);
     }
 
-    UnlockDb();
+    //UnlockDb();
 
     PhFreeXmlObject(topNode);
+
+    // Check if we loaded any objects (dmex)
+    if (GetNumberOfDbObjects() == 0)
+    {
+        // Delete the empty DB to improve performance (dmex)
+        PhDeleteFile(&ObjectDbPath->sr);
+    }
 
     return STATUS_SUCCESS;
 }
@@ -363,6 +390,20 @@ NTSTATUS SaveDb(
     ULONG enumerationKey = 0;
     PDB_OBJECT *object;
 
+    if (PhIsNullOrEmptyString(ObjectDbPath))
+        return STATUS_UNSUCCESSFUL;
+
+    // Skip saving the DB when there's no objects (dmex)
+    if (GetNumberOfDbObjects() == 0)
+    {
+        // Delete the empty DB to improve performance (dmex)
+        if (PhDoesFileExist(&ObjectDbPath->sr))
+        {
+            PhDeleteFile(&ObjectDbPath->sr);
+        }
+        return STATUS_SUCCESS;
+    }
+
     topNode = PhCreateXmlNode(NULL, "objects");
 
     LockDb();
@@ -380,6 +421,7 @@ NTSTATUS SaveDb(
         PPH_BYTES objectCommentUtf8;
         PPH_BYTES objectPagePriorityPlusOneUtf8;
         PPH_BYTES objectBoostUtf8;
+        PPH_BYTES objectEfficiencyUtf8;
 
         objectTagUtf8 = FormatValueToUtf8((*object)->Tag);
         objectPriorityClassUtf8 = FormatValueToUtf8((*object)->PriorityClass);
@@ -391,6 +433,7 @@ NTSTATUS SaveDb(
         objectCommentUtf8 = StringRefToUtf8(&(*object)->Comment->sr);
         objectPagePriorityPlusOneUtf8 = FormatValueToUtf8((*object)->PagePriorityPlusOne);
         objectBoostUtf8 = FormatValueToUtf8((*object)->Boost);
+        objectEfficiencyUtf8 = FormatValueToUtf8((*object)->Efficiency);
 
         // Create the setting element.
         objectNode = PhCreateXmlNode(topNode, "object");
@@ -403,6 +446,7 @@ NTSTATUS SaveDb(
         PhSetXmlNodeAttributeText(objectNode, "affinity", objectAffinityMaskUtf8->Buffer);
         PhSetXmlNodeAttributeText(objectNode, "pagepriorityplusone", objectPagePriorityPlusOneUtf8->Buffer);
         PhSetXmlNodeAttributeText(objectNode, "boost", objectBoostUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "efficiency", objectEfficiencyUtf8->Buffer);
 
         // Set the value.
         PhCreateXmlOpaqueNode(objectNode, objectCommentUtf8->Buffer);
@@ -418,6 +462,7 @@ NTSTATUS SaveDb(
         PhDereferenceObject(objectTagUtf8);
         PhDereferenceObject(objectPagePriorityPlusOneUtf8);
         PhDereferenceObject(objectBoostUtf8);
+        PhDereferenceObject(objectEfficiencyUtf8);
     }
 
     UnlockDb();
@@ -430,6 +475,27 @@ NTSTATUS SaveDb(
     PhFreeXmlObject(topNode);
 
     return status;
+}
+
+VOID EnumDb(
+    _In_ PDB_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PDB_OBJECT* object;
+
+    LockDb();
+
+    PhBeginEnumHashtable(ObjectDb, &enumContext);
+
+    while (object = PhNextEnumHashtable(&enumContext))
+    {
+        if (!Callback(*object, Context))
+            break;
+    }
+
+    UnlockDb();
 }
 
 _Success_(return)
@@ -461,7 +527,7 @@ BOOLEAN FindIfeoObject(
     {
         if (CpuPriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
             {
                 *CpuPriorityClass = value;
             }
@@ -473,7 +539,7 @@ BOOLEAN FindIfeoObject(
 
         if (IoPriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
             {
                 *IoPriorityClass = value;
             }
@@ -485,7 +551,7 @@ BOOLEAN FindIfeoObject(
 
         if (PagePriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
             {
                 *PagePriorityClass = value;
             }
@@ -660,15 +726,13 @@ NTSTATUS DeleteIfeoObject(
             status = PhDeleteValueKey(keyHandle, &IfeoPagePriorityClassKeyName);
         }
 
-        priorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoCpuPriorityClassKeyName);
-        ioPriorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoIoPriorityClassKeyName);
-        pagePriorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName);
+        priorityClass = PhQueryRegistryUlong(keyHandle, &IfeoCpuPriorityClassKeyName);
+        ioPriorityClass = PhQueryRegistryUlong(keyHandle, &IfeoIoPriorityClassKeyName);
+        pagePriorityClass = PhQueryRegistryUlong(keyHandle, &IfeoPagePriorityClassKeyName);
 
-        if (
-            priorityClass == ULONG_MAX &&
+        if (priorityClass == ULONG_MAX &&
             ioPriorityClass == ULONG_MAX &&
-            pagePriorityClass == ULONG_MAX
-            )
+            pagePriorityClass == ULONG_MAX)
         {
             NtDeleteKey(keyHandle);
         }
@@ -676,11 +740,9 @@ NTSTATUS DeleteIfeoObject(
         NtClose(keyHandle);
     }
 
-    if (
-        priorityClass == ULONG_MAX &&
+    if (priorityClass == ULONG_MAX &&
         ioPriorityClass == ULONG_MAX &&
-        pagePriorityClass == ULONG_MAX
-        )
+        pagePriorityClass == ULONG_MAX)
     {
         NtDeleteKey(keyRootHandle);
     }

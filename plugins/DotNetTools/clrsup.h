@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2013
- *     dmex    2016-2021
+ *     dmex    2016-2023
  *
  */
 
@@ -19,8 +19,8 @@
 
 typedef struct _CLR_PROCESS_SUPPORT
 {
-    struct ICLRDataTarget* DataTarget;
-    struct IXCLRDataProcess *DataProcess;
+    ICLRDataTarget* DataTarget;
+    IXCLRDataProcess *DataProcess;
     PVOID DacDllBase;
 } CLR_PROCESS_SUPPORT, *PCLR_PROCESS_SUPPORT;
 

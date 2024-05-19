@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "exttools.h"
 #include "poolmon.h"
-#include "commonutil.h"
 
 static HWND EtPoolTagDialogHandle = NULL;
 static HANDLE EtPoolTagDialogThreadHandle = NULL;
@@ -125,24 +124,24 @@ BOOLEAN EtPoolTagTreeFilterCallback(
     PPOOLTAG_ROOT_NODE poolNode = (PPOOLTAG_ROOT_NODE)Node;
     PPOOLTAG_CONTEXT context = Context;
 
-    if (PhIsNullOrEmptyString(context->SearchboxText))
+    if (!context->SearchMatchHandle)
         return TRUE;
 
     if (poolNode->PoolItem->TagString[0] != 0)
     {
-        if (PhWordMatchStringZ(context->SearchboxText, poolNode->PoolItem->TagString))
+        if (PhSearchControlMatchLongHintZ(context->SearchMatchHandle, poolNode->PoolItem->TagString))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(poolNode->PoolItem->BinaryNameString))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &poolNode->PoolItem->BinaryNameString->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &poolNode->PoolItem->BinaryNameString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(poolNode->PoolItem->DescriptionString))
     {
-        if (PhWordMatchStringRef(&context->SearchboxText->sr, &poolNode->PoolItem->DescriptionString->sr))
+        if (PhSearchControlMatch(context->SearchMatchHandle, &poolNode->PoolItem->DescriptionString->sr))
             return TRUE;
     }
 
@@ -163,6 +162,22 @@ VOID NTAPI EtPoolMonProcessesUpdatedCallback(
     }
 
     EtUpdatePoolTagTable(Context);
+}
+
+VOID NTAPI EtPoolMonSearchControlCallback(
+    _In_ ULONG_PTR MatchHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPOOLTAG_CONTEXT context;
+
+    context = Context;
+
+    assert(context);
+
+    context->SearchMatchHandle = MatchHandle;
+
+    PhApplyTreeNewFilters(&context->FilterSupport);
 }
 
 INT_PTR CALLBACK EtPoolMonDlgProc(
@@ -198,7 +213,14 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhCreateSearchControl(hwndDlg, context->SearchboxHandle, L"Search Pool Tags (Ctrl+K)");
+            PhCreateSearchControl(
+                hwndDlg,
+                context->SearchboxHandle,
+                L"Search Pool Tags (Ctrl+K)",
+                EtPoolMonSearchControlCallback,
+                context
+                );
+
             EtInitializePoolTagTree(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -212,7 +234,6 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            context->SearchboxText = PhReferenceEmptyString();
             context->TreeFilterEntry = PhAddTreeNewFilter(
                 &context->FilterSupport,
                 EtPoolTagTreeFilterCallback,
@@ -262,9 +283,6 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             EtDeletePoolTagTree(context);
             EtFreePoolTagDatabase(context);
 
-            if (context->SearchboxText)
-                PhDereferenceObject(context->SearchboxText);
-
             PhFree(context);
 
             PostQuitMessage(0);
@@ -294,22 +312,7 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
                 }
                 break;
             case IDC_POOLSEARCH:
-                {
-                    PPH_STRING newSearchboxText;
-
-                    if (GET_WM_COMMAND_CMD(wParam, lParam) != EN_CHANGE)
-                        break;
-
-                    newSearchboxText = PH_AUTO(PhGetWindowText(context->SearchboxHandle));
-
-                    if (!PhEqualString(context->SearchboxText, newSearchboxText, FALSE))
-                    {
-                        // Cache the current search text for our callback.
-                        PhSwapReference(&context->SearchboxText, newSearchboxText);
-
-                        PhApplyTreeNewFilters(&context->FilterSupport);
-                    }
-                }
+                NOTHING; // handled by search control callback
                 break;
             case IDC_POOL_AUTOSIZE_COLUMNS:
                 {
@@ -394,12 +397,12 @@ NTSTATUS EtShowPoolMonDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtPoolTagDialogHandle = CreateDialogParam(
+    EtPoolTagDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_POOL),
         NULL,
         EtPoolMonDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     PhSetEvent(&EtPoolTagDialogInitializedEvent);

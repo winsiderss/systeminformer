@@ -1,5 +1,20 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_PROCPRPP_H
 #define PH_PROCPRPP_H
+
+#include <phuisup.h>
+#include <colmgr.h>
 
 #include <thrdlist.h>
 #include <modlist.h>
@@ -62,7 +77,7 @@ VOID PhpFlushProcessPropSheetWaitContextData(
     VOID
     );
 
-VOID CALLBACK PhpProcessPropertiesWaitCallback(
+VOID NTAPI PhpProcessPropertiesWaitCallback(
     _In_ PVOID Context,
     _In_ BOOLEAN TimerOrWaitFired
     );
@@ -175,7 +190,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
     );
 #endif
 
-extern PH_STRINGREF PhpLoadingText;
+extern PH_STRINGREF PhProcessPropPageLoadingText;
 
 #define WM_PH_THREADS_UPDATED (WM_APP + 200)
 #define WM_PH_THREAD_SELECTION_CHANGED (WM_APP + 201)
@@ -196,7 +211,7 @@ typedef struct _PH_THREADS_CONTEXT
     HWND TreeNewHandle;
     HWND StatusHandle;
     HWND SearchboxHandle;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY FilterEntry;
     union
     {
@@ -242,7 +257,7 @@ typedef struct _PH_MODULES_CONTEXT
     PH_PROVIDER_EVENT_QUEUE EventQueue;
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY FilterEntry;
 // begin_phapppub
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
@@ -280,10 +295,8 @@ typedef struct _PH_HANDLES_CONTEXT
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY FilterEntry;
-    ULONG64 SearchPointer;
-    BOOLEAN UseSearchPointer;
 // begin_phapppub
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 // end_phapppub
@@ -311,9 +324,7 @@ typedef struct _PH_MEMORY_CONTEXT
     NTSTATUS LastRunStatus;
     PPH_STRING ErrorMessage;
 
-    BOOLEAN UseSearchPointer;
-    ULONG64 SearchPointer;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_TN_FILTER_ENTRY AllocationFilterEntry;
     PPH_TN_FILTER_ENTRY FilterEntry;
 // begin_phapppub
@@ -332,7 +343,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
 
     BOOLEAN GotCycles;
-    BOOLEAN GotWsCounters;
+    BOOLEAN GotCounters;
     BOOLEAN GotUptime;
 
     ULONG PagePriority;
@@ -342,21 +353,36 @@ typedef struct _PH_STATISTICS_CONTEXT
     ULONG GhostCount;
     ULONGLONG RunningTime;
     ULONGLONG SuspendedTime;
+    ULONGLONG NetworkTxRxBytes;
 
-    PPH_STRING Cycles;
     PPH_STRING PrivateWs;
     PPH_STRING ShareableWs;
     PPH_STRING SharedWs;
     PPH_STRING PeakHandles;
     PPH_STRING GdiHandles;
     PPH_STRING UserHandles;
-    PSYSTEM_PROCESS_INFORMATION_EXTENSION ProcessExtension;
+    PPH_STRING PeakGdiHandles;
+    PPH_STRING PeakUserHandles;
 
     PPH_STRING SharedCommitUsage;
     PPH_STRING PrivateCommitUsage;
     PPH_STRING PeakPrivateCommitUsage;
     //PPH_STRING PrivateCommitLimit;
     //PPH_STRING TotalCommitLimit;
+
+    FLOAT CpuUsage; FLOAT CpuUsageMin; FLOAT CpuUsageMax; FLOAT CpuUsageDiff;
+    FLOAT CpuUsageUser; FLOAT CpuUsageUserMin; FLOAT CpuUsageUserMax; FLOAT CpuUsageUserDiff;
+    FLOAT CpuUsageKernel; FLOAT CpuUsageKernelMin; FLOAT CpuUsageKernelMax; FLOAT CpuUsageKernelDiff;
+    FLOAT CpuUsageAverage; FLOAT CpuUsageAverageMin; FLOAT CpuUsageAverageMax; FLOAT CpuUsageAverageDiff;
+    FLOAT CpuUsageRelative; FLOAT CpuUsageRelativeMin; FLOAT CpuUsageRelativeMax; FLOAT CpuUsageRelativeDiff;
+    ULONG64 CycleTime; ULONG64 CycleTimeMin; ULONG64 CycleTimeMax; ULONG64 CycleTimeDiff;
+    ULONG64 CycleTimeDelta; ULONG64 CycleTimeDeltaMin; ULONG64 CycleTimeDeltaMax; ULONG64 CycleTimeDeltaDiff;
+    ULONG64 ContextSwitches; ULONG64 ContextSwitchesMin; ULONG64 ContextSwitchesMax; ULONG64 ContextSwitchesDiff;
+    ULONG64 ContextSwitchesDelta; ULONG64 ContextSwitchesDeltaMin; ULONG64 ContextSwitchesDeltaMax; ULONG64 ContextSwitchesDeltaDiff;
+    ULONG64 KernelTime; ULONG64 KernelTimeMin; ULONG64 KernelTimeMax; ULONG64 KernelTimeDiff;
+    ULONG64 KernelTimeDelta; ULONG64 KernelTimeDeltaMin; ULONG64 KernelTimeDeltaMax; ULONG64 KernelTimeDeltaDiff;
+    ULONG64 UserTime; ULONG64 UserTimeMin; ULONG64 UserTimeMax; ULONG64 UserTimeDiff;
+    ULONG64 UserTimeDelta; ULONG64 UserTimeDeltaMin; ULONG64 UserTimeDeltaMax; ULONG64 UserTimeDeltaDiff;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
 #define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)
@@ -367,6 +393,7 @@ typedef struct _PH_PERFORMANCE_CONTEXT
 
     HWND WindowHandle;
     BOOLEAN Enabled;
+    LONG WindowDpi;
 
     PH_GRAPH_STATE CpuGraphState;
     PH_GRAPH_STATE PrivateGraphState;
@@ -414,7 +441,7 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
     };
 
     PPH_PROCESS_ITEM ProcessItem;
-    PPH_STRING SearchboxText;
+    ULONG_PTR SearchMatchHandle;
     PPH_STRING StatusMessage;
 
     PPH_LIST NodeList;

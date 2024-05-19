@@ -1,13 +1,6 @@
 #ifndef __snprintf_compat_h
 #define __snprintf_compat_h
 
-#pragma warning(push)
-#pragma warning(disable: 4996)
-
-#ifndef WIN32
-#define WIN32
-#endif
-
 /**
  * @file
  * @brief Do not use, json-c internal, may be changed or removed at any time.
@@ -42,9 +35,7 @@ static int json_c_snprintf(char *str, size_t size, const char *format, ...)
 #define snprintf json_c_snprintf
 
 #elif !defined(HAVE_SNPRINTF) /* !HAVE_SNPRINTF */
-#error Need vsnprintf!
+#error snprintf is required but was not found
 #endif /* !HAVE_SNPRINTF && defined(WIN32) */
-
-#pragma warning(pop)
 
 #endif /* __snprintf_compat_h */

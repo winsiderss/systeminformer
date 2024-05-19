@@ -5,16 +5,18 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
 #include <phapp.h>
+#include <mapldr.h>
 
 // CRT delayload support
 // The msvc delayload handler throws exceptions when
 // imports are unavailable instead of returning NULL (dmex)
 
+#ifndef PH_NATIVE_DELAYLOAD
 PH_QUEUED_LOCK PhDelayLoadImportLock = PH_QUEUED_LOCK_INIT;
 ULONG PhDelayLoadOldProtection = PAGE_WRITECOPY;
 ULONG PhDelayLoadLockCount = 0;
@@ -65,17 +67,47 @@ VOID PhDelayLoadImportRelease(
             PhDelayLoadOldProtection,
             &importSectionOldProtection
             );
+
+#ifdef _M_ARM64
+        NtFlushInstructionCache(
+            NtCurrentProcess(),
+            ImportDirectorySectionAddress,
+            ImportDirectorySectionSize
+            );
+#endif
     }
 
     PhReleaseQueuedLockExclusive(&PhDelayLoadImportLock);
 }
+#endif
 
-_Success_(return != NULL)
 PVOID WINAPI __delayLoadHelper2(
-    _In_ PIMAGE_DELAYLOAD_DESCRIPTOR Entry,
-    _Inout_ PVOID* ImportAddress
+    _In_ PIMAGE_DELAYLOAD_DESCRIPTOR DelayloadDescriptor,
+    _In_ PIMAGE_THUNK_DATA ThunkAddress
     )
 {
+#ifdef PH_NATIVE_DELAYLOAD
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID (WINAPI* DelayLoadFailureHook)(
+        _In_ PCSTR DllName,
+        _In_ PCSTR ProcName
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        DelayLoadFailureHook = PhGetModuleProcAddress(L"kernel32.dll", "DelayLoadFailureHook"); // kernelbase.dll
+        PhEndInitOnce(&initOnce);
+    }
+
+    return LdrResolveDelayLoadedAPI(
+        NtCurrentImageBase(),
+        DelayloadDescriptor,
+        NULL,
+        DelayLoadFailureHook,
+        ThunkAddress,
+        0
+        );
+#else
     BOOLEAN importNeedsFree = FALSE;
     PSTR importDllName;
     PVOID procedureAddress;
@@ -88,26 +120,26 @@ PVOID WINAPI __delayLoadHelper2(
     SIZE_T importDirectorySectionSize;
     PVOID importDirectorySectionAddress;
 
-    importDllName = PTR_ADD_OFFSET(PhInstanceHandle, Entry->DllNameRVA);
-    importHandle = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ModuleHandleRVA);
-    importTable = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ImportAddressTableRVA);
-    importNameTable = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ImportNameTableRVA);
+    importDllName = PTR_ADD_OFFSET(NtCurrentImageBase(), DelayloadDescriptor->DllNameRVA);
+    importHandle = PTR_ADD_OFFSET(NtCurrentImageBase(), DelayloadDescriptor->ModuleHandleRVA);
+    importTable = PTR_ADD_OFFSET(NtCurrentImageBase(), DelayloadDescriptor->ImportAddressTableRVA);
+    importNameTable = PTR_ADD_OFFSET(NtCurrentImageBase(), DelayloadDescriptor->ImportNameTableRVA);
 
-    if (!(moduleHandle = *importHandle))
+    if (!(moduleHandle = InterlockedCompareExchangePointer(importHandle, NULL, NULL)))
     {
-        PPH_STRING importDllNameString = PhZeroExtendToUtf16(importDllName);
+        WCHAR importDllNameBuffer[DOS_MAX_PATH_LENGTH] = L"";
 
-        if (!(moduleHandle = PhLoadLibrary(importDllNameString->Buffer)))
+        PhZeroExtendToUtf16Buffer(importDllName, strlen(importDllName), importDllNameBuffer);
+
+        if (!(moduleHandle = PhLoadLibrary(importDllNameBuffer)))
         {
-            PhDereferenceObject(importDllNameString);
             return NULL;
         }
 
-        PhDereferenceObject(importDllNameString);
         importNeedsFree = TRUE;
     }
 
-    importEntry = PTR_ADD_OFFSET(importNameTable, PTR_SUB_OFFSET(ImportAddress, importTable));
+    importEntry = PTR_ADD_OFFSET(importNameTable, PTR_SUB_OFFSET(ThunkAddress, importTable));
 
     if (IMAGE_SNAP_BY_ORDINAL(importEntry->u1.Ordinal))
     {
@@ -116,7 +148,7 @@ PVOID WINAPI __delayLoadHelper2(
     }
     else
     {
-        PIMAGE_IMPORT_BY_NAME importByName = PTR_ADD_OFFSET(PhInstanceHandle, importEntry->u1.AddressOfData);
+        PIMAGE_IMPORT_BY_NAME importByName = PTR_ADD_OFFSET(NtCurrentImageBase(), importEntry->u1.AddressOfData);
         procedureAddress = PhGetDllBaseProcedureAddressWithHint(moduleHandle, importByName->Name, importByName->Hint);
     }
 
@@ -124,7 +156,7 @@ PVOID WINAPI __delayLoadHelper2(
         return NULL;
 
     if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(
-        PhInstanceHandle,
+        NtCurrentImageBase(),
         &imageNtHeaders
         )))
     {
@@ -132,7 +164,7 @@ PVOID WINAPI __delayLoadHelper2(
     }
 
     if (!NT_SUCCESS(PhGetLoaderEntryImageVaToSection(
-        PhInstanceHandle,
+        NtCurrentImageBase(),
         imageNtHeaders,
         importTable,
         &importDirectorySectionAddress,
@@ -143,13 +175,14 @@ PVOID WINAPI __delayLoadHelper2(
     }
 
     PhDelayLoadImportAcquire(importDirectorySectionAddress, importDirectorySectionSize);
-    InterlockedExchangePointer(ImportAddress, procedureAddress);
+    InterlockedExchangePointer((PVOID)ThunkAddress, procedureAddress);
     PhDelayLoadImportRelease(importDirectorySectionAddress, importDirectorySectionSize);
 
     if ((InterlockedExchangePointer(importHandle, moduleHandle) == moduleHandle) && importNeedsFree)
     {
-        FreeLibrary(moduleHandle); // already updated the cache (dmex)
+        PhFreeLibrary(moduleHandle); // already updated the cache (dmex)
     }
 
     return procedureAddress;
+#endif
 }

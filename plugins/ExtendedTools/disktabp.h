@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2015-2021
+ *     dmex    2015-2024
  *
  */
 
@@ -14,7 +14,7 @@
 #define DISKTABP_H
 
 BOOLEAN EtpDiskPageCallback(
-    _In_ struct _PH_MAIN_TAB_PAGE *Page,
+    _In_ PPH_MAIN_TAB_PAGE Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
     _In_opt_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
@@ -30,7 +30,7 @@ ULONG EtpDiskNodeHashtableHashFunction(
     );
 
 VOID EtInitializeDiskTreeList(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 PET_DISK_NODE EtAddDiskNode(
@@ -52,9 +52,9 @@ VOID EtUpdateDiskNode(
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 PPH_STRING EtpGetDiskItemProcessName(
@@ -105,8 +105,8 @@ VOID EtShowDiskContextMenu(
     );
 
 VOID NTAPI EtpDiskItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI EtpDiskItemModifiedHandler(
