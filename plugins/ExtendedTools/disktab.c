@@ -149,7 +149,10 @@ BOOLEAN EtpDiskPageCallback(
                 }
                 else
                 {
-                    TreeNew_SetEmptyText(hwnd, &DiskTreeEmptyText, 0);
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        TreeNew_SetEmptyText(hwnd, &DiskTreeEmptyText, 0);
+                    }
                 }
             }
 
