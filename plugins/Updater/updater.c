@@ -69,6 +69,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     context->StartupCheck = StartupCheck;
     context->Cleanup = TRUE;
     context->PortableMode = !!ProcessHacker_IsPortableMode();
+    context->Channel = PhGetIntegerSetting(L"ReleaseChannel");
 
     return context;
 }

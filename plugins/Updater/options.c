@@ -377,32 +377,72 @@ PPH_STRING PhpUpdaterCommitStringToTime(
     _In_ PPH_STRING Time
     )
 {
-    PPH_STRING result = NULL;
-    SYSTEMTIME time = { 0 };
+    SYSTEMTIME time;
     SYSTEMTIME localTime = { 0 };
-    INT count;
+    PH_STRINGREF yyPart;
+    PH_STRINGREF mmPartSr;
+    PH_STRINGREF ddPartSr;
+    PH_STRINGREF hrPartSr;
+    PH_STRINGREF mnPartSr;
+    PH_STRINGREF ssPartSr;
+    PH_STRINGREF remainingPart;
+    LONG64 year, month, day, hour, minute, second;
 
-    count = swscanf(
-        PhGetString(Time),
-        L"%hu-%hu-%huT%hu:%hu:%huZ",
-        &time.wYear,
-        &time.wMonth,
-        &time.wDay,
-        &time.wHour,
-        &time.wMinute,
-        &time.wSecond
-        );
+    // %hu-%hu-%huT%hu:%hu:%huZ
+    remainingPart = PhGetStringRef(Time);
 
-    if (count == 6)
-    {
-        if (SystemTimeToTzSpecificLocalTime(NULL, &time, &localTime))
-        {
-            //result = PhFormatDateTime(&localTime);
-            result = PhFormatDate(&localTime, NULL);
-        }
-    }
+    if (!PhSplitStringRefAtChar(&remainingPart, L'-', &yyPart, &remainingPart))
+        return NULL;
+    if (!PhSplitStringRefAtChar(&remainingPart, L'-', &mmPartSr, &remainingPart))
+        return NULL;
+    if (!PhSplitStringRefAtChar(&remainingPart, L'T', &ddPartSr, &remainingPart))
+        return NULL;
+    if (!PhSplitStringRefAtChar(&remainingPart, L':', &hrPartSr, &remainingPart))
+        return NULL;
+    if (!PhSplitStringRefAtChar(&remainingPart, L':', &mnPartSr, &remainingPart))
+        return NULL;
+    if (!PhSplitStringRefAtChar(&remainingPart, L'Z', &ssPartSr, &remainingPart))
+        return NULL;
 
-    return result;
+    if (!PhStringToInteger64(&yyPart, 10, &year))
+        return NULL;
+    if (!PhStringToInteger64(&mmPartSr, 10, &month))
+        return NULL;
+    if (!PhStringToInteger64(&ddPartSr, 10, &day))
+        return NULL;
+    if (!PhStringToInteger64(&hrPartSr, 10, &hour))
+        return NULL;
+    if (!PhStringToInteger64(&mnPartSr, 10, &minute))
+        return NULL;
+    if (!PhStringToInteger64(&ssPartSr, 10, &second))
+        return NULL;
+
+    if (year < SHRT_MIN || year > SHRT_MAX)
+        return NULL;
+    if (month < SHRT_MIN || month > SHRT_MAX)
+        return NULL;
+    if (day < SHRT_MIN || day > SHRT_MAX)
+        return NULL;
+    if (hour < SHRT_MIN || hour > SHRT_MAX)
+        return NULL;
+    if (minute < SHRT_MIN || minute > SHRT_MAX)
+        return NULL;
+    if (second < SHRT_MIN || second > SHRT_MAX)
+        return NULL;
+
+    memset(&time, 0, sizeof(SYSTEMTIME));
+    time.wYear = (short)year;
+    time.wMonth = (short)month;
+    time.wDay = (short)day;
+    time.wHour = (short)hour;
+    time.wMinute = (short)minute;
+    time.wSecond = (short)second;
+
+    if (!PhSystemTimeToTzSpecificLocalTime(&time, &localTime))
+        return NULL;
+
+    //return PhFormatDateTime(&localTime);
+    return PhFormatDate(&localTime, NULL);
 }
 
 NTSTATUS NTAPI PhpUpdaterQueryCommitHistoryThread(

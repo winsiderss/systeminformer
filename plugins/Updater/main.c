@@ -51,41 +51,41 @@ VOID NTAPI MainMenuInitializingCallback(
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
-    PPH_EMENU_ITEM channelMenuItem;
-    PPH_EMENU_ITEM releaseMenuItem;
+    //PPH_EMENU_ITEM channelMenuItem;
+    //PPH_EMENU_ITEM releaseMenuItem;
     //PPH_EMENU_ITEM previewMenuItem;
-    PPH_EMENU_ITEM canaryMenuItem;
+    //PPH_EMENU_ITEM canaryMenuItem;
     //PPH_EMENU_ITEM developerMenuItem;
 
     // Check this menu is the Help menu
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_HELP)
         return;
 
-    channelMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM_SWITCH, L"Switch update &channel", NULL);
-    PhInsertEMenuItem(channelMenuItem, releaseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_RELEASE, L"Release", NULL), ULONG_MAX);
-    //PhInsertEMenuItem(channelMenuItem, previewMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_PREVIEW, L"Preview", NULL), ULONG_MAX);
-    PhInsertEMenuItem(channelMenuItem, canaryMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_CANARY, L"Canary", NULL), ULONG_MAX);
-    //PhInsertEMenuItem(channelMenuItem, developerMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_DEVELOPER, L"Developer", NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuInfo->Menu, channelMenuItem, 0);
+    //channelMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM_SWITCH, L"Switch update &channel", NULL);
+    //PhInsertEMenuItem(channelMenuItem, releaseMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_RELEASE, L"Release", NULL), ULONG_MAX);
+    ////PhInsertEMenuItem(channelMenuItem, previewMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_PREVIEW, L"Preview", NULL), ULONG_MAX);
+    //PhInsertEMenuItem(channelMenuItem, canaryMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_CANARY, L"Canary", NULL), ULONG_MAX);
+    ////PhInsertEMenuItem(channelMenuItem, developerMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_SWITCH_DEVELOPER, L"Developer", NULL), ULONG_MAX);
+    //PhInsertEMenuItem(menuInfo->Menu, channelMenuItem, 0);
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM_UPDATE, L"Check for &updates", NULL), 0);
 
-    switch (PhGetIntegerSetting(L"ReleaseChannel"))
-    {
-    case PhReleaseChannel:
-        releaseMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
-        break;
-    //case PhPreviewChannel:
-    //    previewMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+    //switch (PhGetIntegerSetting(L"ReleaseChannel"))
+    //{
+    //case PhReleaseChannel:
+    //    releaseMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
     //    break;
-    case PhCanaryChannel:
-        canaryMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
-        break;
-    //case PhDeveloperChannel:
-    //    developerMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+    ////case PhPreviewChannel:
+    ////    previewMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+    ////    break;
+    //case PhCanaryChannel:
+    //    canaryMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
     //    break;
-    default:
-        break;
-    }
+    ////case PhDeveloperChannel:
+    ////    developerMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+    ////    break;
+    //default:
+    //    break;
+    //}
 }
 
 VOID NTAPI MenuItemCallback(
