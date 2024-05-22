@@ -1389,14 +1389,42 @@ PDNS_RECORD PhDnsQuery(
 
     if (!dnsRecordList && PhDnsApiInitialized())
     {
-        DnsQuery_W_I(
-            DnsQueryMessage,
-            DnsQueryMessageType,
-            DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
-            NULL,
-            &dnsRecordList,
-            NULL
-            );
+        if (DnsServerAddress)
+        {
+            NTSTATUS status;
+            IP4_ARRAY dnsServerAddressList;
+            IN_ADDR dnsQueryServerAddressIpv4;
+            USHORT dnsQueryServerAddressPort;
+
+            status = RtlIpv4StringToAddressEx(
+                DnsServerAddress,
+                TRUE,
+                &dnsQueryServerAddressIpv4,
+                &dnsQueryServerAddressPort
+                );
+            dnsServerAddressList.AddrCount = !!NT_SUCCESS(status);
+            dnsServerAddressList.AddrArray[0] = dnsQueryServerAddressIpv4.s_addr;
+
+            DnsQuery_W_I(
+                DnsQueryMessage,
+                DnsQueryMessageType,
+                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+                &dnsServerAddressList,
+                &dnsRecordList,
+                NULL
+                );
+        }
+        else
+        {
+            DnsQuery_W_I(
+                DnsQueryMessage,
+                DnsQueryMessageType,
+                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+                NULL,
+                &dnsRecordList,
+                NULL
+                );
+        }
     }
 
     return dnsRecordList;
@@ -1413,14 +1441,42 @@ PDNS_RECORD PhDnsQuery2(
 
     if (PhDnsApiInitialized())
     {
-        DnsQuery_W_I(
-            DnsQueryMessage,
-            DnsQueryMessageType,
-            DnsQueryMessageOptions,
-            NULL,
-            &dnsRecordList,
-            NULL
-            );
+        if (DnsServerAddress)
+        {
+            NTSTATUS status;
+            IP4_ARRAY dnsServerAddressList;
+            IN_ADDR dnsQueryServerAddressIpv4 = { 0 };
+            USHORT dnsQueryServerAddressPort = 0;
+
+            status = RtlIpv4StringToAddressEx(
+                DnsServerAddress,
+                FALSE,
+                &dnsQueryServerAddressIpv4,
+                &dnsQueryServerAddressPort
+                );
+            dnsServerAddressList.AddrCount = !!NT_SUCCESS(status);
+            dnsServerAddressList.AddrArray[0] = dnsQueryServerAddressIpv4.s_addr;
+
+            DnsQuery_W_I(
+                DnsQueryMessage,
+                DnsQueryMessageType,
+                DNS_QUERY_BYPASS_CACHE | DNS_QUERY_NO_HOSTS_FILE,
+                &dnsServerAddressList,
+                &dnsRecordList,
+                NULL
+                );
+        }
+        else
+        {
+            DnsQuery_W_I(
+                DnsQueryMessage,
+                DnsQueryMessageType,
+                DnsQueryMessageOptions,
+                NULL,
+                &dnsRecordList,
+                NULL
+                );
+        }
     }
 
     return dnsRecordList;
