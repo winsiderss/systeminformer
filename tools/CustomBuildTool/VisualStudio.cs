@@ -240,35 +240,35 @@ namespace CustomBuildTool
 
             // https://learn.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-community
 
-            this.HasARM64BuildToolsComponents =
-                this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase)) &&
-                this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", StringComparison.OrdinalIgnoreCase));
+            this.HasARM64BuildToolsComponents = this.Packages.Any(p =>
+            {
+                return p.Id.AsSpan().Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase) ||
+                    p.Id.AsSpan().Equals("Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", StringComparison.OrdinalIgnoreCase);
+            });
         }
 
-        //private VisualStudioPackage GetLatestSdkPackage()
-        //{
-        //    var found = this.Packages.FindAll(p =>
-        //    {
-        //        return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
-        //            p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
-        //    });
-        //
-        //    if (found == null)
-        //        return null;
-        //    if (found.Count == 0)
-        //        return null;
-        //
-        //    found.Sort((p1, p2) =>
-        //    {
-        //        if (Version.TryParse(p1.Version, out Version v1) && Version.TryParse(p2.Version, out Version v2))
-        //            return v1.CompareTo(v2);
-        //        else
-        //            return 1;
-        //    });
-        //
-        //    return found[^1];
-        //}
-        //
+        private VisualStudioPackage GetLatestSdkPackage()
+        {
+            var found = this.Packages.FindAll(p =>
+            {
+                return p.Id.AsSpan().StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
+                    p.Id.AsSpan().StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
+            });
+        
+            if (found.Count == 0)
+                return null;
+        
+            found.Sort((p1, p2) =>
+            {
+                if (Version.TryParse(p1.Version, out Version v1) && Version.TryParse(p2.Version, out Version v2))
+                    return v1.CompareTo(v2);
+                else
+                    return 1;
+            });
+        
+            return found[^1];
+        }
+        
         //public string GetWindowsSdkVersion()
         //{
         //    List<string> versions = new List<string>();
@@ -315,16 +315,13 @@ namespace CustomBuildTool
         //    }
         //}
         //
-        //public string GetWindowsSdkFullVersion()
-        //{
-        //    VisualStudioPackage package = GetLatestSdkPackage();
-        //
-        //    if (package == null)
-        //        return string.Empty;
-        //
-        //    return package.Version;
-        //}
-        //
+        public string GetWindowsSdkFullVersion()
+        {
+            VisualStudioPackage package = GetLatestSdkPackage();
+
+            return package == null ? string.Empty : package.Version;
+        }
+
         //public bool HasRequiredDependency
         //{
         //    get

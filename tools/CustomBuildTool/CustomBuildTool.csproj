@@ -10,7 +10,7 @@
     <CodePage>65001</CodePage>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <!--<TrimmerSingleWarn>false</TrimmerSingleWarn>-->
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <ImplicitUsings>enable</ImplicitUsings>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
@@ -23,9 +23,7 @@
     <EventSourceSupport>false</EventSourceSupport>
     <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
-    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <PublishAot>True</PublishAot>
   </PropertyGroup>
@@ -44,23 +42,33 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <Optimize>False</Optimize>
+    <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
+    <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <Optimize>False</Optimize>
+    <MetadataUpdaterSupport>UpdateAndReset</MetadataUpdaterSupport>
+    <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Optimize>True</Optimize>
+    <Optimize>True</Optimize>   
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
     <Optimize>True</Optimize>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="System.Buffers" />
+    <Using Include="System.Collections.Immutable" />
     <Using Include="System.Diagnostics" />
+    <Using Include="System.Globalization" />
     <Using Include="System.IO.Compression" />
     <Using Include="System.Net" />
     <Using Include="System.Net.Http.Headers" />
