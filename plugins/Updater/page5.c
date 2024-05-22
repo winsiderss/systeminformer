@@ -32,13 +32,13 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 context->ProgressTimer = FALSE;
             }
 #endif
-            context->DirectoryElevationRequired = !!UpdateCheckDirectoryElevationRequired();
+            context->ElevationRequired = !!UpdateCheckDirectoryElevationRequired();
 
 #ifdef FORCE_ELEVATION_CHECK
-            context->DirectoryElevationRequired = TRUE;
+            context->ElevationRequired = TRUE;
 #endif
 
-            if (context->DirectoryElevationRequired)
+            if (context->ElevationRequired)
             {
                 SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
             }
