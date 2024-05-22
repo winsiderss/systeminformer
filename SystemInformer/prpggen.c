@@ -333,10 +333,13 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (processItem->QueryHandle)
             {
-                PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32);
-                PH_AUTO(fileNameWin32);
+                if (NT_SUCCESS(PhGetProcessImageFileNameWin32(processItem->QueryHandle, &fileNameWin32)))
+                {
+                    PH_AUTO(fileNameWin32);
+                }
             }
-            else
+
+            if (PhIsNullOrEmptyString(fileNameWin32))
             {
                 fileNameWin32 = processItem->FileName ? PhGetFileName(processItem->FileName) : NULL;
                 PH_AUTO(fileNameWin32);
