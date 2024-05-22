@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2016-2023
+ *     dmex    2016-2024
  *
  */
 
@@ -1486,7 +1486,7 @@ VOID NTAPI MenuItemCallback(
                 if (NT_SUCCESS(status))
                 {
                     object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                    object->Boost = TRUE;
+                    object->Boost = priorityBoostDisabled;
                 }
                 else
                 {
@@ -1522,7 +1522,7 @@ VOID NTAPI MenuItemCallback(
                     if (NT_SUCCESS(status))
                     {
                         object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-                        object->Boost = TRUE;
+                        object->Boost = priorityBoostDisabled;
                     }
                     else
                     {
@@ -1600,7 +1600,7 @@ VOID NTAPI MenuItemCallback(
                 if (NT_SUCCESS(status))
                 {
                     object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                    object->Efficiency = TRUE;
+                    object->Efficiency = efficiencyModeEnabled;
                 }
                 else
                 {
@@ -1647,7 +1647,7 @@ VOID NTAPI MenuItemCallback(
                     if (NT_SUCCESS(status))
                     {
                         object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-                        object->Efficiency = TRUE;
+                        object->Efficiency = efficiencyModeEnabled;
                     }
                     else
                     {
