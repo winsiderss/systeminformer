@@ -99,7 +99,7 @@ NTSTATUS UpdateShellExecute(
         PhGetString(parameters),
         NULL,
         SW_SHOW,
-        Context->DirectoryElevationRequired ? PH_SHELL_EXECUTE_ADMIN : PH_SHELL_EXECUTE_DEFAULT,
+        Context->ElevationRequired ? PH_SHELL_EXECUTE_ADMIN : PH_SHELL_EXECUTE_DEFAULT,
         0,
         NULL
         );
