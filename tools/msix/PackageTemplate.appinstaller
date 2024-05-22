@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AppInstaller 
+    xmlns="http://schemas.microsoft.com/appx/appinstaller/2021"
+    Version="3.0.0.0"
+    Uri="https://systeminformer.sourceforge.io/systeminformer.appinstaller">
+    
+    <MainPackage
+        Name="SystemInformer"
+        Publisher="CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montréal, S=Quebec, C=CA"
+        Version="3.0.0.0"
+        ProcessorArchitecture="x64"
+        Uri="https://systeminformer.sourceforge.io/systeminformer-build-package.msix" />
+        
+    <UpdateSettings>
+        <OnLaunch HoursBetweenUpdateChecks="24" UpdateBlocksActivation="true" ShowPrompt="true" />
+        <ForceUpdateFromAnyVersion>true</ForceUpdateFromAnyVersion>
+        <AutomaticBackgroundTask />
+    </UpdateSettings>
+
+    <UpdateUris>
+        <UpdateUri>https://systeminformer.sourceforge.io/systeminformer.appinstaller</UpdateUri>
+        <UpdateUri>https://systeminformer.com/systeminformer.appinstaller</UpdateUri>
+        <UpdateUri>https://system-informer.com/systeminformer.appinstaller</UpdateUri>
+    </UpdateUris>
+
+    <RepairUris>
+        <RepairUri>https://systeminformer.sourceforge.io/systeminformer.appinstaller</RepairUri>
+        <RepairUri>https://systeminformer.com/systeminformer.appinstaller</RepairUri>
+        <RepairUri>https://system-informer.com/systeminformer.appinstaller</RepairUri>
+    </RepairUris>
+
+</AppInstaller>

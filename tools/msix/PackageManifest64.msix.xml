@@ -6,9 +6,10 @@
     xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
     xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
     xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+    xmlns:uap13="http://schemas.microsoft.com/appx/manifest/uap/windows10/13"
     xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
     xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
-    IgnorableNamespaces="uap rescap uap3 uap5 uap10 desktop desktop6">
+    IgnorableNamespaces="uap rescap uap3 uap5 uap10 uap13 desktop desktop6">
     <Identity Name="SystemInformer" Version="3.0.0.0" ProcessorArchitecture="x64" Publisher="CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montréal, S=Quebec, C=CA" />
     <Properties>
         <DisplayName>System Informer</DisplayName>
@@ -18,6 +19,9 @@
         <uap10:PackageIntegrity>
            <uap10:Content Enforcement="on" />
         </uap10:PackageIntegrity>
+        <uap13:AutoUpdate>
+            <uap13:AppInstaller File="systeminformer.appinstaller" />
+        </uap13:AutoUpdate>
     </Properties>
     <Resources>
         <Resource Language="en-US" />
