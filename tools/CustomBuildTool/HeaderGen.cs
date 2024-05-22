@@ -15,14 +15,14 @@ namespace CustomBuildTool
     public static class HeaderGen
     {
         private static readonly string Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
-        private static readonly string Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
+        private const string Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
 
-        private static readonly string BaseDirectory = "SystemInformer\\include";
-        private static readonly string OutputFile = "..\\sdk\\phapppub.h";
+        private const string BaseDirectory = "SystemInformer\\include";
+        private const string OutputFile = "..\\sdk\\phapppub.h";
 
-        private static readonly string[] Modes = new[] { "phapppub" };
-        private static readonly string[] Files = new[]
-        {
+        private static readonly string[] Modes = ["phapppub"];
+        private static readonly string[] Files =
+        [
             "phapp.h",
             "appsup.h",
             "phfwddef.h",
@@ -54,7 +54,7 @@ namespace CustomBuildTool
             "sysinfo.h",
             "procgrp.h",
             "miniinfo.h"
-        };
+        ];
 
         private static List<HeaderFile> OrderHeaderFiles(List<HeaderFile> headerFiles)
         {
@@ -135,38 +135,43 @@ namespace CustomBuildTool
 
             foreach (string name in Files)
             {
-                string file = BaseDirectory + Path.DirectorySeparatorChar + name;
+                string file = Path.Join([BaseDirectory, name]);
                 List<string> lines = File.ReadAllLines(file).ToList();
 
-                headerFiles.Add(name, new HeaderFile
-                {
-                    Name = name,
-                    Lines = lines
-                });
+                headerFiles.Add(name, new HeaderFile(name, lines));
             }
 
             foreach (HeaderFile h in headerFiles.Values)
             {
-                ILookup<bool, Tuple<string, HeaderFile>> partitions = h.Lines.Select(s =>
+                List<KeyValuePair<string, HeaderFile>> partitions = new List<KeyValuePair<string, HeaderFile>>();
+                List<string> dependencies = new List<string>();
+
+                foreach (string line in h.Lines)
                 {
-                    string trimmed = s.Trim();
+                    string trimmed = line.Trim();
 
                     if (trimmed.StartsWith("#include <", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(">", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (headerFiles.TryGetValue(trimmed.Remove(trimmed.Length - 1).Remove(0, "#include <".Length), out HeaderFile d))
-                            return Tuple.Create(s, d);
+                        string dependencyName = trimmed.AsSpan().Slice("#include <".Length, trimmed.Length - 1 - "#include <".Length).ToString();
+
+                        if (headerFiles.TryGetValue(dependencyName, out HeaderFile dependency))
+                        {
+                            partitions.Add(new KeyValuePair<string, HeaderFile>(line, dependency));
+                            dependencies.Add(dependencyName);
+                        }
                         else
-                            return Tuple.Create<string, HeaderFile>(s, null);
+                        {
+                            partitions.Add(new KeyValuePair<string, HeaderFile>(line, null));
+                        }
                     }
-                    return Tuple.Create<string, HeaderFile>(s, null);
-                })
-                .ToLookup(p => p.Item2 != null);
+                    else
+                    {
+                        partitions.Add(new KeyValuePair<string, HeaderFile>(line, null));
+                    }
+                }
 
-                h.Lines = partitions[false].Select(p => p.Item1).ToList();
-                h.Dependencies = partitions[true].Select(p => p.Item2).Distinct().ToList();
-
-                //foreach (var d in h.Dependencies)
-                //Console.WriteLine("Dependency: " + h.Name + " -> " + d.Name);
+                h.Lines = partitions.Where(p => p.Value == null).Select(p => p.Key).ToList();
+                h.Dependencies = dependencies.Select(dependencyName => headerFiles[dependencyName]).Distinct().ToList();
             }
 
             // Generate the ordering.
@@ -187,10 +192,12 @@ namespace CustomBuildTool
 
             // Process each header file and remove irrelevant content.
             foreach (HeaderFile h in orderedHeaderFiles)
+            {
                 h.Lines = ProcessHeaderLines(h.Lines);
+            }
 
             // Write out the result.
-            using (StreamWriter sw = new StreamWriter(BaseDirectory + Path.DirectorySeparatorChar + OutputFile))
+            using (StreamWriter sw = new StreamWriter(Path.Join([BaseDirectory, OutputFile]), false, Utils.UTF8NoBOM))
             {
                 // Header
                 sw.Write(Header);
@@ -206,7 +213,9 @@ namespace CustomBuildTool
                     sw.WriteLine();
 
                     foreach (string line in h.Lines)
+                    {
                         sw.WriteLine(line);
+                    }
                 }
 
                 // Footer
@@ -217,9 +226,15 @@ namespace CustomBuildTool
 
     public class HeaderFile : IEquatable<HeaderFile>
     {
-        public string Name;
+        public readonly string Name;
         public List<string> Lines;
         public List<HeaderFile> Dependencies;
+
+        public HeaderFile(string Name, List<string> Lines)
+        {
+            this.Name = Name;
+            this.Lines = Lines;
+        }
 
         public override string ToString()
         {
@@ -239,12 +254,12 @@ namespace CustomBuildTool
             if (obj is not HeaderFile file)
                 return false;
 
-            return this.Name.Equals(file.Name, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(this.Name, file.Name, StringComparison.OrdinalIgnoreCase);
         }
 
         public bool Equals(HeaderFile other)
         {
-            return other != null && this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
+            return other != null && string.Equals(this.Name, other.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

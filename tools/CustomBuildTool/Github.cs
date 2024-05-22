@@ -36,7 +36,8 @@ namespace CustomBuildTool
                     ReleaseTag = Version,
                     Name = Version,
                     Draft = true,
-                    Prerelease = true
+                    GenerateReleaseNotes = true,
+                    //Prerelease = true
                 };
 
                 byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, GithubReleasesRequestContext.Default.GithubReleasesRequest);
@@ -205,12 +206,12 @@ namespace CustomBuildTool
                 var buildUpdateRequest = new GithubReleasesRequest
                 {
                     Draft = false,
-                    Prerelease = true
+                    //Prerelease = true
                 };
 
                 byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, GithubReleasesRequestContext.Default.GithubReleasesRequest);
 
-                if (buildPostString == null || buildPostString.LongLength == 0)
+                if (buildPostString.LongLength == 0)
                     return null;
 
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())

@@ -94,9 +94,40 @@ namespace CustomBuildTool
             return output;
         }
 
+        public static bool SetCurrentDirectoryParent(string FileName)
+        {
+            try
+            {
+                DirectoryInfo info = new DirectoryInfo(".");
+
+                while (info.Parent?.Parent != null)
+                {
+                    info = info.Parent;
+
+                    if (File.Exists($"{info.FullName}\\{FileName}"))
+                    {
+                        Directory.SetCurrentDirectory(info.FullName);
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"Unable to find directory: {ex}", ConsoleColor.Red);
+                return false;
+            }
+
+            return File.Exists(FileName);
+        }
+
         public static string GetOutputDirectoryPath()
         {
-            return $"{Build.BuildWorkingFolder}\\build\\output";
+            return GetPath("\\build\\output");
+        }
+
+        public static string GetPath(string FileName)
+        {
+            return Path.Combine([Build.BuildWorkingFolder, FileName]);
         }
 
         public static void CreateOutputDirectory()
@@ -121,15 +152,15 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(VsWhereFilePath))
             {
                 string[] vswherePathArray =
-                {
+                [
                     "%ProgramFiles%\\Microsoft Visual Studio\\Installer\\vswhere.exe",
                     "%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe",
                     "%ProgramW6432%\\Microsoft Visual Studio\\Installer\\vswhere.exe"
-                };
+                ];
 
                 foreach (string path in vswherePathArray)
                 {
-                    string file = Environment.ExpandEnvironmentVariables(path);
+                    string file = Utils.ExpandFullPath(path);
 
                     if (File.Exists(file))
                     {
@@ -157,11 +188,11 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
                 string[] MsBuildPathArray =
-                {
+                [
                     "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
                     "\\MSBuild\\Current\\Bin\\MSBuild.exe",
                     "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
-                };
+                ];
 
                 VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
 
@@ -215,15 +246,15 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(GitFilePath))
             {
                 string[] GitPathArray =
-                {
+                [
                     "%ProgramFiles%\\Git\\bin\\git.exe",
                     "%ProgramFiles(x86)%\\Git\\bin\\git.exe",
                     "%ProgramW6432%\\Git\\bin\\git.exe"
-                };
+                ];
 
                 foreach (string path in GitPathArray)
                 {
-                    string file = Environment.ExpandEnvironmentVariables(path);
+                    string file = Utils.ExpandFullPath(path);
 
                     if (File.Exists(file))
                     {
@@ -284,7 +315,7 @@ namespace CustomBuildTool
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
-            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\Include");
+            string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\Include"]));
 
             if (Directory.Exists(kitsPath))
             {
@@ -320,7 +351,7 @@ namespace CustomBuildTool
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
-            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
+            string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\bin"]));
 
             if (Directory.Exists(kitsPath))
             {
@@ -328,7 +359,7 @@ namespace CustomBuildTool
 
                 foreach (string path in windowsKitsDirectory)
                 {
-                    string name = Path.GetFileName(path);
+                    var name = Path.GetFileName(path);
 
                     if (Version.TryParse(name, out var version))
                     {
@@ -340,7 +371,7 @@ namespace CustomBuildTool
 
                 if (versionList.Count > 0)
                 {
-                    var result = versionList[versionList.Count - 1];
+                    var result = versionList[^1];
 
                     if (!string.IsNullOrWhiteSpace(result.Value))
                     {
@@ -354,9 +385,9 @@ namespace CustomBuildTool
 
         public static string GetWindowsSdkVersion()
         {
-            List<string> versions = new List<string>();
+            List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
-            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
+            string kitsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "\\bin"]));
 
             if (Directory.Exists(kitsPath))
             {
@@ -364,29 +395,24 @@ namespace CustomBuildTool
 
                 foreach (string path in windowsKitsDirectory)
                 {
-                    string name = Path.GetFileName(path);
+                    var name = Path.GetFileName(path.AsSpan());
 
-                    if (Version.TryParse(name, out _))
+                    if (Version.TryParse(name, out var version))
                     {
-                        versions.Add(name);
+                        versionList.Add(new KeyValuePair<Version, string>(version, path));
                     }
                 }
 
-                versions.Sort((p1, p2) =>
-                {
-                    if (Version.TryParse(p1, out Version v1) && Version.TryParse(p2, out Version v2))
-                        return v1.CompareTo(v2);
-                    else
-                        return 1;
-                });
+                versionList.Sort((first, second) => first.Key.CompareTo(second.Key));
 
-                if (versions.Count > 0)
+                if (versionList.Count > 0)
                 {
-                    string result = versions[^1];
+                    var result = versionList[^1];
+                    var value = result.Key.ToString();
 
-                    if (!string.IsNullOrWhiteSpace(result))
+                    if (!string.IsNullOrWhiteSpace(value))
                     {
-                        return result;
+                        return value;
                     }
                 }
             }
@@ -409,14 +435,14 @@ namespace CustomBuildTool
                     return string.Empty;
 
                 DirectoryInfo info = new DirectoryInfo(directory);
-
+                
                 while (info.Parent != null && info.Parent.Parent != null)
                 {
                     info = info.Parent;
 
-                    if (File.Exists($"{info.FullName}\\Common7\\IDE\\devenv.exe"))
+                    if (File.Exists(Path.Join([info.FullName, "\\Common7\\IDE\\devenv.exe"])))
                     {
-                        FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo($"{info.FullName}\\Common7\\IDE\\devenv.exe");
+                        FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo(Path.Join([info.FullName, "\\Common7\\IDE\\devenv.exe"]));
                         return currentInfo.ProductVersion ?? string.Empty;
                     }
                 }
@@ -436,7 +462,7 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(windowsSdkPath))
                 return null;
 
-            string makeAppxPath = $"{windowsSdkPath}\\x64\\MakeAppx.exe";
+            string makeAppxPath = Path.Join([windowsSdkPath, "\\x64\\MakeAppx.exe"]);
 
             if (string.IsNullOrWhiteSpace(makeAppxPath))
                 return null;
@@ -448,7 +474,7 @@ namespace CustomBuildTool
                 if (string.IsNullOrWhiteSpace(sdkRootPath))
                     return null;
 
-                makeAppxPath = Environment.ExpandEnvironmentVariables($"{sdkRootPath}\\x64\\MakeAppx.exe");
+                makeAppxPath = Utils.ExpandFullPath(Path.Join([sdkRootPath, "\\x64\\MakeAppx.exe"]));
 
                 if (!File.Exists(makeAppxPath))
                     return null;
@@ -479,7 +505,7 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(windowsSdkPath))
                 return string.Empty;
 
-            string signToolPath = $"{windowsSdkPath}\\x64\\SignTool.exe";
+            string signToolPath = Path.Join([windowsSdkPath, "\\x64\\SignTool.exe"]);
 
             if (string.IsNullOrWhiteSpace(signToolPath))
                 return string.Empty;
@@ -617,6 +643,27 @@ namespace CustomBuildTool
             {
                 stream.CopyTo(filestream);
             }
+        }
+
+        public static bool IsSpanNullOrWhiteSpace(ReadOnlySpan<char> value)
+        {
+            if (value == null)
+                return true;
+            if (value.IsEmpty)
+                return true;
+            if (value.IsWhiteSpace())
+                return true;
+
+            return false;
+        }
+
+        public static string ExpandFullPath(string Name)
+        {
+            string value = Environment.ExpandEnvironmentVariables(Name);
+
+            value = Path.GetFullPath(value);
+
+            return value;
         }
     }
 
@@ -770,5 +817,43 @@ namespace CustomBuildTool
         BuildVerbose = 32,
         BuildApi = 64,
         BuildMsix = 128,
+
+        Debug = Build32bit | Build64bit | BuildArm64bit | BuildDebug | BuildApi | BuildVerbose,
+        Release = Build32bit | Build64bit | BuildArm64bit | BuildRelease | BuildApi | BuildVerbose,
+        All = Build32bit | Build64bit | BuildArm64bit | BuildDebug | BuildRelease | BuildApi | BuildVerbose,
+    }
+
+    /// <summary>
+    /// https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/interpolated-string-handler
+    /// </summary>
+    [InterpolatedStringHandler]
+    public readonly ref struct LogInterpolatedStringHandler
+    {
+        public readonly StringBuilder builder;
+
+        public LogInterpolatedStringHandler(int literalLength, int formattedCount)
+        {
+            builder = new StringBuilder(literalLength);
+        }
+
+        public void AppendLiteral(string s)
+        {
+            builder.Append(s.AsSpan());
+        }
+
+        public void AppendFormatted<T>(T t)
+        {
+            builder.Append(t?.ToString());
+        }
+
+        public void AppendFormatted<T>(T t, string format) where T : IFormattable
+        {
+            builder.Append(t?.ToString(format, null));
+        }
+
+        internal string GetFormattedText()
+        {
+            return builder.ToString();
+        }
     }
 }

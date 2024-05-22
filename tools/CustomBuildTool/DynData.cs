@@ -226,7 +226,7 @@ typedef struct _KPH_DYNDATA
             Utils.WriteAllText(sourceFile, GenerateSource(BytesToString(config)));
             Program.PrintColorMessage($"Dynamic source -> {sourceFile}", ConsoleColor.Cyan);
 
-            if (OutDir.Length == 0)
+            if (string.IsNullOrWhiteSpace(OutDir))
                 return true;
 
             string configFile = $"{OutDir}\\ksidyn.bin";
@@ -287,27 +287,34 @@ typedef struct _KPH_DYNDATA
             )
         {
             var xml = new XmlDocument();
-            xml.Load(ManifestFile);
-            var dyn = xml.SelectSingleNode("/dyn");
             var configs = new List<DynConfig>(10);
             var configNames = new List<string>(10);
+            var dynConfigType = typeof(DynConfig);
 
-            foreach (XmlNode data in dyn.SelectNodes("data"))
+            xml.Load(ManifestFile);
+
+            var dyn = xml.SelectSingleNode("/dyn");
+            var dataNodes = dyn?.SelectNodes("data");
+
+            foreach (XmlNode data in dataNodes)
             {
                 var config = new DynConfig();
-                var configName = data.Attributes.GetNamedItem("name").Value;
+                var configName = data.Attributes?.GetNamedItem("name")?.Value;
+                var fieldNodes = data.SelectNodes("field");
 
-                //Program.PrintColorMessage(configName, ConsoleColor.Cyan);
+                Program.PrintColorMessage(configName, ConsoleColor.Cyan);
 
-                foreach (XmlNode field in data.SelectNodes("field"))
+                foreach (XmlNode field in fieldNodes)
                 {
-                    var value = field.Attributes.GetNamedItem("value").Value;
-                    var name = field.Attributes.GetNamedItem("name").Value;
-                    var member = typeof(DynConfig).GetField(name);
+                    var attributes = field.Attributes; 
+                    var value = attributes?.GetNamedItem("value")?.Value;
+                    var name = attributes?.GetNamedItem("name")?.Value;
+                    var member = dynConfigType.GetField(name);
 
                     if (value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
                     {
-                        value = Convert.ToUInt64(value, 16).ToString();
+                        var hex = value.AsSpan(2, value.Length - 2); // Remove "0x" prefix
+                        value = ulong.Parse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture).ToString(); // Convert.ToUInt64(value, 16);
                     }
                     else if (value.Equals("-1", StringComparison.OrdinalIgnoreCase) && member.FieldType == typeof(ushort))
                     {
