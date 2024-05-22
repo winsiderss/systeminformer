@@ -701,6 +701,13 @@ PSTR PhGetXmlNodeElementText(
     return (PSTR)mxmlGetElement(XmlNodeObject);
 }
 
+PSTR PhGetXmlNodeCDATAText(
+    _In_ PVOID XmlNodeObject
+    )
+{
+    return (PSTR)mxmlGetCDATA(XmlNodeObject);
+}
+
 PPH_STRING PhGetXmlNodeAttributeText(
     _In_ PVOID XmlNodeObject,
     _In_ PSTR AttributeName
