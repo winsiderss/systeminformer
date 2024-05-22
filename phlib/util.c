@@ -3773,6 +3773,59 @@ PPH_STRING PhGetKnownLocation(
     //        }
     //    }
     //    break;
+    case PH_FOLDERID_ProgramData:
+        {
+            static PH_STRINGREF variableName = PH_STRINGREF_INIT(L"PROGRAMDATA");
+            NTSTATUS status;
+            PH_STRINGREF variableValue;
+            WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
+
+            PhInitializeBufferStringRef(&variableValue, variableBuffer, sizeof(variableBuffer));
+
+            status = PhQueryEnvironmentVariableStringRef(
+                NULL,
+                &variableName,
+                &variableValue
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                PPH_STRING fileName;
+
+                if (AppendPath)
+                {
+                    if (NativeFileName)
+                    {
+                        if (fileName = PhDosPathNameToNtPathName(&variableValue))
+                        {
+                            PhMoveReference(&fileName, PhConcatStringRef2(&fileName->sr, AppendPath));
+                        }
+                        else
+                        {
+                            fileName = NULL;
+                        }
+                    }
+                    else
+                    {
+                        fileName = PhConcatStringRef2(&variableValue, AppendPath);
+                    }
+                }
+                else
+                {
+                    if (NativeFileName)
+                    {
+                        fileName = PhDosPathNameToNtPathName(&variableValue);
+                    }
+                    else
+                    {
+                        fileName = PhCreateString2(&variableValue);
+                    }
+                }
+
+                return fileName;
+            }
+        }
+        break;
     }
 #else
     switch (Folder)
@@ -3809,6 +3862,21 @@ PPH_STRING PhGetKnownLocation(
         break;
     //case PH_FOLDERID_ProgramFiles:
     //    return PhGetKnownFolderPath(&FOLDERID_ProgramFiles, AppendPath);
+    case PH_FOLDERID_ProgramData:
+        {
+            PPH_STRING value;
+
+            if (value = PhGetKnownFolderPath(&FOLDERID_ProgramData, AppendPath))
+            {
+                if (NativeFileName)
+                {
+                    PhMoveReference(&value, PhDosPathNameToNtPathName(&value->sr));
+                }
+
+                return value;
+            }
+        }
+        break;
     }
 #endif
     return NULL;
