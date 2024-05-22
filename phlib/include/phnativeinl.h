@@ -1209,6 +1209,26 @@ PhGetThreadIsTerminated(
 }
 
 FORCEINLINE
+BOOLEAN
+PhGetThreadIsTerminated2(
+    _In_ HANDLE ThreadHandle
+    )
+{
+    NTSTATUS status;
+    LARGE_INTEGER timeout;
+
+    memset(&timeout, 0, sizeof(LARGE_INTEGER));
+
+    status = NtWaitForSingleObject(
+        ThreadHandle,
+        FALSE,
+        &timeout
+        );
+
+    return status == STATUS_WAIT_0;
+}
+
+FORCEINLINE
 NTSTATUS
 PhGetThreadAffinityMask(
     _In_ HANDLE ThreadHandle,
