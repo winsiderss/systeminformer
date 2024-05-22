@@ -1278,6 +1278,30 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_TOOLS_SHUTDOWNWSLPROCESSES:
+        {
+            NTSTATUS status;
+            PPH_STRING perfmonFileName;
+
+            perfmonFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\wsl.exe"));
+
+            status = PhShellExecuteEx(
+                WindowHandle,
+                PhGetString(perfmonFileName),
+                L" --shutdown",
+                NULL,
+                SW_SHOW,
+                0,
+                0,
+                NULL
+                );
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(WindowHandle, L"Unable to shutdown WSL instances.", status, 0);
+            }
+        }
+        break;
     case ID_TOOLS_SCM_PERMISSIONS:
         {
             PhEditSecurity(
@@ -2826,6 +2850,8 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTRESOURCEMONITOR, L"Start &Resource Monitor", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_SHUTDOWNWSLPROCESSES, L"T&erminate WSL processes", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, 0, L"&Permissions", NULL, NULL);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_PWR_PERMISSIONS, L"Current Power Scheme", NULL, NULL), ULONG_MAX);
@@ -4113,15 +4139,10 @@ BOOLEAN PhpShowToastNotification(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PPH_STRING applicationDir;
+        iconFileName = PhGetApplicationDirectoryFileNameZ(L"icon.png", FALSE);
 
-        if (applicationDir = PhGetApplicationDirectoryWin32())
-        {
-            iconFileName = PhConcatStringRefZ(&applicationDir->sr, L"icon.png");
-            if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
-                PhClearReference(&iconFileName);
-            PhDereferenceObject(applicationDir);
-        }
+        if (!PhDoesFileExistWin32(PhGetString(iconFileName)))
+            PhClearReference(&iconFileName);
 
         PhEndInitOnce(&initOnce);
     }
