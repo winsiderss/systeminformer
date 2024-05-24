@@ -10083,7 +10083,7 @@ VOID PhpRtlModulesExToGenericModules(
             {
                 module->BaseInfo.ImageBase = (PVOID)(ULONG64_MAX - BaseAddressHashtable->Count + 1);
             }
-        } 
+        }
 
         // Check if we have a duplicate base address.
         if (PhFindEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase))
@@ -12759,7 +12759,7 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
     PhSetFileBypassIO(destinationHandle, TRUE);
 
     blockSize = PAGE_SIZE;
-    numberOfBytes = fileSize.QuadPart;
+    numberOfBytes = (SIZE_T)fileSize.QuadPart;
 
     while (numberOfBytes != 0)
     {
@@ -12880,7 +12880,7 @@ NTSTATUS PhCopyFileChunkWin32(
 
     if (fileSize.QuadPart >= ULONG_MAX)
     {
-        SIZE_T numberOfBytes = fileSize.QuadPart;
+        SIZE_T numberOfBytes = (SIZE_T)fileSize.QuadPart;
         ULONG blockSize = ULONG_MAX;
 
         // Split into smaller blocks when the length
