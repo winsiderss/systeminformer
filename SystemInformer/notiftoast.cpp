@@ -190,25 +190,29 @@ namespace PH
     using IToastFailedHandler = ITypedEventHandler<ToastNotification*, ToastFailedEventArgs*>;
 
     /*!
-        @brief Process Hacker toast event handler, this class implements the
+        @brief System Informer toast event handler, this class implements the
          handler interfaces for IToastNotification and store the callback
          and context from the C interface.
     */
-    class ToastEventHandler : virtual public IToastActivatedHandler,
-                              virtual public IToastDismissedHandler,
-                              virtual public IToastFailedHandler,
-                              virtual public IUnknown
+    class ToastEventHandler : public RuntimeClass<RuntimeClassFlags<ClassicCom>,
+                                                  IToastActivatedHandler,
+                                                  IToastDismissedHandler,
+                                                  IToastFailedHandler>
     {
     public:
 
         virtual ~ToastEventHandler() = default;
 
-        ToastEventHandler(
+        ToastEventHandler() = default;
+
+        HRESULT RuntimeClassInitialize(
             PPH_TOAST_CALLBACK ToastCallback,
             PVOID Context
-            ) : m_ToastCallback(ToastCallback),
-                m_Context(Context)
+            )
         {
+            m_ToastCallback = ToastCallback;
+            m_Context = Context;
+            return S_OK;
         }
 
         virtual HRESULT STDMETHODCALLTYPE Invoke(
@@ -225,26 +229,6 @@ namespace PH
             _In_ IToastNotification* Sender,
             _In_ IInspectable* Args
             ) override;
-
-        virtual HRESULT STDMETHODCALLTYPE QueryInterface(
-            _In_ REFIID InterfaceId,
-            _COM_Outptr_ void** Interface
-            ) override;
-
-        virtual ULONG STDMETHODCALLTYPE AddRef() override
-        {
-            return ++m_RefCount;
-        }
-
-        virtual ULONG STDMETHODCALLTYPE Release() override
-        {
-            auto res = --m_RefCount;
-            if (res == 0)
-            {
-                delete this;
-            }
-            return res;
-        }
 
         void SetActivatedToken(const EventRegistrationToken& Token)
         {
@@ -263,9 +247,8 @@ namespace PH
 
     private:
 
-        std::atomic<ULONG> m_RefCount = 0;
-        PPH_TOAST_CALLBACK m_ToastCallback;
-        PVOID m_Context;
+        PPH_TOAST_CALLBACK m_ToastCallback{ nullptr };
+        PVOID m_Context{ nullptr };
 
         EventRegistrationToken m_ActivatedToken{};
         EventRegistrationToken m_DismissedToken{};
@@ -274,7 +257,7 @@ namespace PH
     };
 
     /*!
-        @brief Process hacker toast object.
+        @brief System Informer toast object.
     */
     class Toast
     {
@@ -405,7 +388,10 @@ HRESULT PH::Toast::Initialize(
         ComPtr<PH::IToastDismissedHandler> dismissedNotif;
         ComPtr<PH::IToastFailedHandler> failedNotif;
 
-        callbacks = new ToastEventHandler(ToastCallback, Context);
+        RETURN_IF_FAILED(MakeAndInitialize<PH::ToastEventHandler>(
+            &callbacks,
+            ToastCallback,
+            Context));
 
         RETURN_IF_FAILED(callbacks.As(&activatedNotif));
 
@@ -438,41 +424,6 @@ HRESULT PH::Toast::Show()
         return E_NOT_VALID_STATE;
     }
     return m_Notifier->Show(m_Toast.Get());
-}
-
-HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::QueryInterface(
-    _In_ REFIID InterfaceId,
-    _COM_Outptr_ void** Interface
-    )
-{
-    if (InterfaceId == __uuidof(IToastDismissedHandler))
-    {
-        *Interface = static_cast<IToastDismissedHandler*>(this);
-        AddRef();
-        return S_OK;
-    }
-
-    if (InterfaceId == __uuidof(IToastActivatedHandler))
-    {
-        *Interface = static_cast<IToastActivatedHandler*>(this);
-        AddRef();
-        return S_OK;
-    }
-    if (InterfaceId == __uuidof(IToastFailedHandler))
-    {
-        *Interface = static_cast<IToastFailedHandler*>(this);
-        AddRef();
-        return S_OK;
-    }
-    if (InterfaceId == __uuidof(IUnknown))
-    {
-        *Interface = static_cast<void*>(this);
-        AddRef();
-        return S_OK;
-    }
-
-    *Interface = nullptr;
-    return E_NOINTERFACE;
 }
 
 HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
