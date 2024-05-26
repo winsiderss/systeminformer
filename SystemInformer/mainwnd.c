@@ -4232,7 +4232,17 @@ VOID PhMwpClearLastNotificationDetails(
     VOID
     )
 {
-    PhClearReference(&PhMwpLastNotificationDetails.ServiceName);
+    switch (PhMwpLastNotificationType)
+    {
+    case PH_NOTIFY_SERVICE_CREATE:
+    case PH_NOTIFY_SERVICE_START:
+    case PH_NOTIFY_SERVICE_STOP:
+        {
+            if (PhMwpLastNotificationDetails.ServiceName)
+                PhClearReference(&PhMwpLastNotificationDetails.ServiceName);
+        }
+        break;
+    }
 
     PhMwpLastNotificationType = 0;
     memset(&PhMwpLastNotificationDetails, 0, sizeof(PhMwpLastNotificationDetails));
