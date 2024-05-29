@@ -730,7 +730,7 @@ PSTR PhpSettingsSaveCallback(
 #define MXML_WS_AFTER_CLOSE 3
 
     PSTR elementName;
-
+    
     if (!(elementName = PhGetXmlNodeElementText(node)))
         return NULL;
 

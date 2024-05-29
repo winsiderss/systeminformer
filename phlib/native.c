@@ -15,6 +15,7 @@
 #include <kphuser.h>
 #include <lsasup.h>
 #include <mapldr.h>
+#include <settings.h>
 
 #define PH_DEVICE_PREFIX_LENGTH 64
 #define PH_DEVICE_MUP_PREFIX_MAX_COUNT 16
@@ -1156,7 +1157,7 @@ NTSTATUS PhGetProcessPebString(
             return status;
 
         // Read the address of the process parameters.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
@@ -1166,7 +1167,7 @@ NTSTATUS PhGetProcessPebString(
             return status;
 
         // Read the string structure.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters, offset),
             &unicodeString,
@@ -1184,7 +1185,7 @@ NTSTATUS PhGetProcessPebString(
         string = PhCreateStringEx(NULL, unicodeString.Length);
 
         // Read the string contents.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             unicodeString.Buffer,
             string->Buffer,
@@ -1205,7 +1206,7 @@ NTSTATUS PhGetProcessPebString(
         if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress32)))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress32, FIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
@@ -1214,7 +1215,7 @@ NTSTATUS PhGetProcessPebString(
             )))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters32, offset),
             &unicodeString32,
@@ -1232,7 +1233,7 @@ NTSTATUS PhGetProcessPebString(
         string = PhCreateStringEx(NULL, unicodeString32.Length);
 
         // Read the string contents.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(unicodeString32.Buffer),
             string->Buffer,
@@ -1409,7 +1410,7 @@ NTSTATUS PhGetProcessWindowTitle(
             return status;
 
         // Read the address of the process parameters.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
@@ -1419,7 +1420,7 @@ NTSTATUS PhGetProcessWindowTitle(
             return status;
 
         // Read the window flags.
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, WindowFlags)),
             &windowFlags,
@@ -1437,7 +1438,7 @@ NTSTATUS PhGetProcessWindowTitle(
         if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &pebBaseAddress32)))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress32, FIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
@@ -1446,7 +1447,7 @@ NTSTATUS PhGetProcessWindowTitle(
             )))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters32, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, WindowFlags)),
             &windowFlags,
@@ -1535,7 +1536,7 @@ NTSTATUS PhGetProcessEnvironment(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ProcessParameters)),
             &processParameters,
@@ -1544,7 +1545,7 @@ NTSTATUS PhGetProcessEnvironment(
             )))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
             &environmentRemote,
@@ -1564,7 +1565,7 @@ NTSTATUS PhGetProcessEnvironment(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress32, UFIELD_OFFSET(PEB32, ProcessParameters)),
             &processParameters32,
@@ -1573,7 +1574,7 @@ NTSTATUS PhGetProcessEnvironment(
             )))
             return status;
 
-        if (!NT_SUCCESS(status = NtReadVirtualMemory(
+        if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(processParameters32, UFIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Environment)),
             &environmentRemote32,
@@ -1605,7 +1606,7 @@ NTSTATUS PhGetProcessEnvironment(
     if (!environment)
         return STATUS_NO_MEMORY;
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
         ProcessHandle,
         environmentRemote,
         environment,
@@ -2132,7 +2133,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
     // Since ntdll is loaded at the same base address across all processes,
     // we can read the information in.
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
         processHandle,
         elementSize,
         &capturedElementSize,
@@ -2141,7 +2142,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
         )))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
         processHandle,
         elementCount,
         &capturedElementCount,
@@ -2150,7 +2151,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
         )))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
         processHandle,
         eventTrace,
         &capturedEventTracePointer,
@@ -2177,7 +2178,7 @@ NTSTATUS PhGetProcessUnloadedDlls(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
         processHandle,
         capturedEventTracePointer,
         capturedEventTrace,
@@ -5753,7 +5754,7 @@ NTSTATUS PhpEnumProcessModules(
         return status;
 
     // Read the address of the loader data.
-    status = NtReadVirtualMemory(
+    status = PhSafeReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(peb, FIELD_OFFSET(PEB, Ldr)),
         &ldr,
@@ -5769,7 +5770,7 @@ NTSTATUS PhpEnumProcessModules(
         return STATUS_UNSUCCESSFUL;
 
     // Read the loader data.
-    status = NtReadVirtualMemory(
+    status = PhSafeReadVirtualMemory(
         ProcessHandle,
         ldr,
         &pebLdrData,
@@ -5802,7 +5803,7 @@ NTSTATUS PhpEnumProcessModules(
         PVOID addressOfEntry;
 
         addressOfEntry = CONTAINING_RECORD(currentLink, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
@@ -5882,7 +5883,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + sizeof(UNICODE_NULL));
         Entry->FullDllName.Buffer = fullDllNameBuffer;
 
-        if (NT_SUCCESS(status = NtReadVirtualMemory(
+        if (NT_SUCCESS(status = PhSafeReadVirtualMemory(
             ProcessHandle,
             fullDllNameOriginal,
             fullDllNameBuffer,
@@ -5919,7 +5920,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
             baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + sizeof(UNICODE_NULL));
             Entry->BaseDllName.Buffer = baseDllNameBuffer;
 
-            if (NT_SUCCESS(NtReadVirtualMemory(
+            if (NT_SUCCESS(PhSafeReadVirtualMemory(
                 ProcessHandle,
                 baseDllNameOriginal,
                 baseDllNameBuffer,
@@ -5943,7 +5944,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 
         memset(&ldrDagNode, 0, sizeof(LDR_DDAG_NODE));
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhSafeReadVirtualMemory(
             ProcessHandle,
             Entry->DdagNode,
             &ldrDagNode,
@@ -6112,7 +6113,7 @@ NTSTATUS PhpEnumProcessModules32(
         return status;
 
     // Read the address of the loader data.
-    status = NtReadVirtualMemory(
+    status = PhSafeReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(peb, FIELD_OFFSET(PEB32, Ldr)),
         &ldr,
@@ -6128,7 +6129,7 @@ NTSTATUS PhpEnumProcessModules32(
         return STATUS_UNSUCCESSFUL;
 
     // Read the loader data.
-    status = NtReadVirtualMemory(
+    status = PhSafeReadVirtualMemory(
         ProcessHandle,
         UlongToPtr(ldr),
         &pebLdrData,
@@ -6161,7 +6162,7 @@ NTSTATUS PhpEnumProcessModules32(
         ULONG addressOfEntry;
 
         addressOfEntry = PtrToUlong(CONTAINING_RECORD(UlongToPtr(currentLink), LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks));
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(addressOfEntry),
             &currentEntry,
@@ -6260,7 +6261,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
         baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + sizeof(UNICODE_NULL));
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhSafeReadVirtualMemory(
             ProcessHandle,
             nativeEntry.BaseDllName.Buffer,
             baseDllNameBuffer,
@@ -6282,7 +6283,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 
         fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + sizeof(UNICODE_NULL));
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhSafeReadVirtualMemory(
             ProcessHandle,
             nativeEntry.FullDllName.Buffer,
             fullDllNameBuffer,
@@ -6361,7 +6362,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     {
         LDR_DDAG_NODE32 ldrDagNode32 = { 0 };
 
-        if (NT_SUCCESS(NtReadVirtualMemory(
+        if (NT_SUCCESS(PhSafeReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(Entry->DdagNode),
             &ldrDagNode32,
@@ -14374,7 +14375,7 @@ NTSTATUS PhGetProcessHeapSignature(
     if (WindowsVersion >= WINDOWS_7)
     {
         // dt _HEAP SegmentSignature
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x8 : 0x10),
             &heapSignature,
@@ -14405,7 +14406,7 @@ NTSTATUS PhGetProcessHeapFrontEndType(
     if (WindowsVersion >= WINDOWS_10)
     {
         // dt _HEAP FrontEndHeapType
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0ea : 0x1a2),
             &heapFrontEndType,
@@ -14415,7 +14416,7 @@ NTSTATUS PhGetProcessHeapFrontEndType(
     }
     else if (WindowsVersion >= WINDOWS_8_1)
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0d6 : 0x17a),
             &heapFrontEndType,
@@ -14425,7 +14426,7 @@ NTSTATUS PhGetProcessHeapFrontEndType(
     }
     else if (WindowsVersion >= WINDOWS_7)
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0da : 0x182),
             &heapFrontEndType,
@@ -14714,7 +14715,7 @@ NTSTATUS PhGetProcessImageBaseAddress(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebAddress, UFIELD_OFFSET(PEB32, ImageBaseAddress)),
             &imageBaseAddress32,
@@ -14737,7 +14738,7 @@ NTSTATUS PhGetProcessImageBaseAddress(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebAddress, UFIELD_OFFSET(PEB, ImageBaseAddress)),
             &imageBaseAddress,
@@ -14782,7 +14783,7 @@ NTSTATUS PhGetProcessCodePage(
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
 
-            status = NtReadVirtualMemory(
+            status = PhSafeReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ActiveCodePage)),
                 &codePage,
@@ -14798,7 +14799,7 @@ NTSTATUS PhGetProcessCodePage(
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
 
-            status = NtReadVirtualMemory(
+            status = PhSafeReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ActiveCodePage)),
                 &codePage,
@@ -14833,7 +14834,7 @@ NTSTATUS PhGetProcessCodePage(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             nlsAnsiCodePage,
             &codePage,
@@ -15122,7 +15123,7 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     ldrInitBlock = PhAllocate(sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
     memset(ldrInitBlock, 0, sizeof(PS_SYSTEM_DLL_INIT_BLOCK));
 
-    status = NtReadVirtualMemory(
+    status = PhSafeReadVirtualMemory(
         ProcessHandle,
         ldrInitBlockAddress,
         ldrInitBlock,
@@ -15209,7 +15210,7 @@ NTSTATUS PhGetProcessTlsBitMapCounters(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, TlsBitmapBits)),
             bitmapBits,
@@ -15220,7 +15221,7 @@ NTSTATUS PhGetProcessTlsBitMapCounters(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, TlsExpansionBitmapBits)),
             bitmapExpansionBits,
@@ -15239,7 +15240,7 @@ NTSTATUS PhGetProcessTlsBitMapCounters(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, TlsBitmapBits)),
             bitmapBits,
@@ -15250,7 +15251,7 @@ NTSTATUS PhGetProcessTlsBitMapCounters(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, TlsExpansionBitmapBits)),
             bitmapExpansionBits,
@@ -15310,7 +15311,7 @@ NTSTATUS PhGetProcessIsPosix(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ImageSubsystem)),
             &imageSubsystem,
@@ -15326,7 +15327,7 @@ NTSTATUS PhGetProcessIsPosix(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB, ImageSubsystem)),
             &imageSubsystem,
@@ -15376,7 +15377,7 @@ NTSTATUS PhGetThreadLastStatusValue(
 
     if (isWow64)
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, LastStatusValue)),
             LastStatusValue,
@@ -15387,7 +15388,7 @@ NTSTATUS PhGetThreadLastStatusValue(
     else
 #endif
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, LastStatusValue)), // LastErrorValue/ExceptionCode
             LastStatusValue,
@@ -15436,7 +15437,7 @@ NTSTATUS PhGetThreadApartmentState(
 
     if (isWow64)
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForOle)),
             &oletlsDataAddress,
@@ -15447,7 +15448,7 @@ NTSTATUS PhGetThreadApartmentState(
     else
 #endif
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForOle)),
             &oletlsDataAddress,
@@ -15472,7 +15473,7 @@ NTSTATUS PhGetThreadApartmentState(
         apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0xC);
 #endif
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             apartmentStateOffset,
             ApartmentState,
@@ -15535,7 +15536,7 @@ NTSTATUS PhGetThreadApartmentCallState(
 
     if (isWow64)
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForOle)),
             &oletlsDataAddress,
@@ -15546,7 +15547,7 @@ NTSTATUS PhGetThreadApartmentCallState(
     else
 #endif
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForOle)),
             &oletlsDataAddress,
@@ -15612,7 +15613,7 @@ NTSTATUS PhGetThreadApartmentCallState(
 
         if (HR_SUCCESS(CoGetCallState_I(CALL_STATE_TYPE_OUTGOING, &outgoingCallDataOffset)) && outgoingCallDataOffset)
         {
-            NtReadVirtualMemory(
+            PhSafeReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(oletlsDataAddress, outgoingCallDataOffset),
                 &outgoingCallData,
@@ -15623,7 +15624,7 @@ NTSTATUS PhGetThreadApartmentCallState(
 
         if (HR_SUCCESS(CoGetCallState_I(CALL_STATE_TYPE_INCOMING, &incomingCallDataOffset)) && incomingCallDataOffset)
         {
-            NtReadVirtualMemory(
+            PhSafeReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(oletlsDataAddress, incomingCallDataOffset),
                 &incomingCallData,
@@ -15634,7 +15635,7 @@ NTSTATUS PhGetThreadApartmentCallState(
 
         if (HR_SUCCESS(CoGetCallState_I(CALL_STATE_TYPE_ACTIVATION, &outgoingActivationDataOffset)) && outgoingActivationDataOffset)
         {
-            NtReadVirtualMemory(
+            PhSafeReadVirtualMemory(
                 ProcessHandle,
                 PTR_ADD_OFFSET(oletlsDataAddress, outgoingActivationDataOffset),
                 &outgoingActivationData,
@@ -15758,7 +15759,7 @@ NTSTATUS PhGetThreadSocketState(
     {
         ULONG winsockDataAddress = 0;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, WinSockData)),
             &winsockDataAddress,
@@ -15773,7 +15774,7 @@ NTSTATUS PhGetThreadSocketState(
     {
         ULONG_PTR winsockDataAddress = 0;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, WinSockData)),
             &winsockDataAddress,
@@ -15949,7 +15950,7 @@ NTSTATUS PhGetThreadStackLimits(
 
     if (isWow64)
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, NtTib)),
             &ntTib,
@@ -15960,7 +15961,7 @@ NTSTATUS PhGetThreadStackLimits(
     else
 #endif
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, NtTib)),
             &ntTib,
@@ -16016,7 +16017,7 @@ NTSTATUS PhGetThreadStackSize(
 
     if (isWow64)
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, NtTib)),
             &ntTib,
@@ -16027,7 +16028,7 @@ NTSTATUS PhGetThreadStackSize(
     else
 #endif
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, NtTib)),
             &ntTib,
@@ -16114,7 +16115,7 @@ NTSTATUS PhGetThreadIsFiber(
 
     if (isWow64)
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, SameTebFlags)),
             &flags,
@@ -16125,7 +16126,7 @@ NTSTATUS PhGetThreadIsFiber(
     else
 #endif
     {
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, SameTebFlags)),
             &flags,
@@ -17244,6 +17245,74 @@ NTSTATUS PhPrefetchVirtualMemory(
     return status;
 }
 
+NTSTATUS PhSafeReadVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    SIZE_T bytesRead = 0;
+    SIZE_T bytesToRead = BufferSize;
+    PCHAR writeBuffer = (PCHAR)Buffer;
+    PCHAR baseAddress = (PCHAR)BaseAddress;
+    SIZE_T iteration;
+
+    static SYSTEM_BASIC_INFORMATION sbi;
+    MEMORY_WORKING_SET_EX_INFORMATION wsi;
+
+    static BOOL runOnceFlag = FALSE;
+    static BOOL doSafeRead = FALSE;
+    if (!runOnceFlag)
+    {
+        doSafeRead = PhGetIntegerSetting(L"ProcessMemorySafeRead");
+        if (!NT_SUCCESS(status = NtQuerySystemInformation(SystemBasicInformation, &sbi, sizeof(sbi), NULL)))
+        {
+            return status;
+        }
+        runOnceFlag = TRUE;
+    }
+
+    if (!doSafeRead)
+    {
+        return NtReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead);
+    }
+
+    iteration = (UINT_PTR)baseAddress % sbi.PageSize;
+    if (!iteration)
+        iteration = sbi.PageSize;
+
+    do
+    {
+        wsi.VirtualAddress = baseAddress;
+        if (!NT_SUCCESS(status = NtQueryVirtualMemory(ProcessHandle, baseAddress, MemoryWorkingSetExInformation, &wsi, sizeof(wsi), NULL)))
+        {
+            goto WSIFAIL;
+        }
+        if (!wsi.u1.VirtualAttributes.Valid || wsi.u1.VirtualAttributes.Bad)
+        {
+            goto WSIFAIL;
+        }
+
+        NtReadVirtualMemory(ProcessHandle, baseAddress, writeBuffer, iteration > bytesToRead ? bytesToRead : iteration, NULL);
+    WSIFAIL:
+        bytesToRead -= iteration > bytesToRead ? bytesToRead : iteration;
+        writeBuffer += iteration;
+        baseAddress += iteration;
+
+        if (iteration != sbi.PageSize)
+            iteration = sbi.PageSize;
+
+    } while (bytesToRead != 0);
+
+    if (NumberOfBytesRead)
+        *NumberOfBytesRead = BufferSize;
+
+    return status;
+}
+
 // rev from OfferVirtualMemory (dmex)
 //NTSTATUS PhOfferVirtualMemory(
 //    _In_ HANDLE ProcessHandle,
@@ -18269,7 +18338,7 @@ NTSTATUS PhEnumProcessEnclaves(
     LIST_ENTRY enclaveList;
     LDR_SOFTWARE_ENCLAVE enclave;
 
-    status = NtReadVirtualMemory(
+    status = PhSafeReadVirtualMemory(
         ProcessHandle,
         LdrEnclaveList,
         &enclaveList,
@@ -18287,7 +18356,7 @@ NTSTATUS PhEnumProcessEnclaves(
 
         enclaveAddress = CONTAINING_RECORD(link, LDR_SOFTWARE_ENCLAVE, Links);
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             link,
             &enclave,
@@ -18328,7 +18397,7 @@ NTSTATUS PhEnumProcessEnclaveModules(
 
         entryAddress = CONTAINING_RECORD(link, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             entryAddress,
             &entry,
@@ -18372,7 +18441,7 @@ NTSTATUS PhGetProcessLdrTableEntryNames(
     {
         fullDllName = PhAllocate(Entry->FullDllName.Length);
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             Entry->FullDllName.Buffer,
             fullDllName,
@@ -18718,7 +18787,7 @@ NTSTATUS PhIsEcCode(
     if (!NT_SUCCESS(status = PhGetProcessPeb(ProcessHandle, &pebBaseAddress)))
         return status;
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(pebBaseAddress, FIELD_OFFSET(PEB, EcCodeBitMap)),
         &ecCodeBitMap,
@@ -18733,7 +18802,7 @@ NTSTATUS PhIsEcCode(
     // each byte of bitmap indexes 8*4K = 2^15 byte span
     ecCodeBitMap = PTR_ADD_OFFSET(ecCodeBitMap, CodePointer >> 15);
 
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(
+    if (!NT_SUCCESS(status = PhSafeReadVirtualMemory(
         ProcessHandle,
         ecCodeBitMap,
         &bitmap,

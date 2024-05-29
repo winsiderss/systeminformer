@@ -439,7 +439,7 @@ NTSTATUS PhpModuleQueryWorker(
             if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
                 readVirtualMemoryCallback = KphReadVirtualMemoryUnsafe;
             else
-                readVirtualMemoryCallback = NtReadVirtualMemory;
+                readVirtualMemoryCallback = PhSafeReadVirtualMemory;
 
             // Note:
             // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used
