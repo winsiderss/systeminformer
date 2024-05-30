@@ -417,5 +417,10 @@ namespace CustomBuildTool
         {
             NativeMethods.SetErrorMode(NativeMethods.SEM_NOGPFAULTERRORBOX | NativeMethods.SEM_NOOPENFILEERRORBOX);
         }
+
+        public static void SetBasePriority()
+        {
+            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+        }
     }
 }

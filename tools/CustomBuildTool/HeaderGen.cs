@@ -103,7 +103,7 @@ namespace CustomBuildTool
                     bool blockMode = Modes.Any(mode => modes.Contains(mode, StringComparer.OrdinalIgnoreCase));
                     bool lineMode = Modes.Any(mode =>
                     {
-                        int indexOfMarker = text.LastIndexOf("// " + mode, StringComparison.OrdinalIgnoreCase);
+                        int indexOfMarker = text.LastIndexOf($"// {mode}", StringComparison.OrdinalIgnoreCase);
                         if (indexOfMarker == -1)
                             return false;
 
@@ -208,7 +208,7 @@ namespace CustomBuildTool
                     //Console.WriteLine("Header file: " + h.Name);
                     sw.WriteLine();
                     sw.WriteLine("//");
-                    sw.WriteLine("// " + Path.GetFileNameWithoutExtension(h.Name));
+                    sw.WriteLine($"// {Path.GetFileNameWithoutExtension(h.Name)}");
                     sw.WriteLine("//");
                     sw.WriteLine();
 
