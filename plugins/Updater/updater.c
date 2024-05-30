@@ -354,7 +354,7 @@ ULONG64 ParseVersionString(
         (ULONG)majorInteger,
         (ULONG)minorInteger,
         (ULONG)buildInteger,
-        (ULONG)revisionInteger,
+        (ULONG)revisionInteger
         );
 }
 
