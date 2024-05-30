@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2019-2022
+ *     dmex    2019-2023
  *
  */
 
@@ -227,11 +227,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PH_FORMAT format[6];
 
                             // %.2f%% (K: %.2f%%, U: %.2f%%)
-                            PhInitFormatF(&format[0], ((DOUBLE)processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100, PhMaxPrecisionUnit);
+                            PhInitFormatF(&format[0], ((FLOAT)processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[1], L"% (K: ");
-                            PhInitFormatF(&format[2], (DOUBLE)processItem->CpuKernelUsage * 100, PhMaxPrecisionUnit);
+                            PhInitFormatF(&format[2], (FLOAT)processItem->CpuKernelUsage * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[3], L"%, U: ");
-                            PhInitFormatF(&format[4], (DOUBLE)processItem->CpuUserUsage * 100, PhMaxPrecisionUnit);
+                            PhInitFormatF(&format[4], (FLOAT)processItem->CpuUserUsage * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[5], L"%)");
 
                             PhMoveReference(&performanceContext->CpuGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 16));
@@ -258,24 +258,29 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                         if (!performanceContext->PrivateGraphState.Valid)
                         {
+                            FLOAT max = PhCsEnableGraphMaxScale ? 0.f : (FLOAT)processItem->VmCounters.PeakPagefileUsage;
+
                             for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                             {
-                                performanceContext->PrivateGraphState.Data1[i] =
+                                FLOAT data = performanceContext->PrivateGraphState.Data1[i] =
                                     (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i);
+
+                                if (max < data)
+                                    max = data;
                             }
 
-                            if (processItem->VmCounters.PeakPagefileUsage != 0)
+                            if (max != 0)
                             {
                                 // Scale the data.
                                 PhDivideSinglesBySingle(
                                     performanceContext->PrivateGraphState.Data1,
-                                    (FLOAT)processItem->VmCounters.PeakPagefileUsage,
+                                    max,
                                     drawInfo->LineDataCount
                                     );
                             }
 
                             drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = (FLOAT)processItem->VmCounters.PeakPagefileUsage;
+                            drawInfo->LabelYFunctionParameter = max;
 
                             performanceContext->PrivateGraphState.Valid = TRUE;
                         }
@@ -396,11 +401,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             cpuUser = PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
                             // %.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s
-                            PhInitFormatF(&format[0], ((DOUBLE)cpuKernel + cpuUser) * 100, PhMaxPrecisionUnit);
+                            PhInitFormatF(&format[0], ((FLOAT)cpuKernel + cpuUser) * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[1], L"% (K: ");
-                            PhInitFormatF(&format[2], (DOUBLE)cpuKernel * 100, PhMaxPrecisionUnit);
+                            PhInitFormatF(&format[2], (FLOAT)cpuKernel * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[3], L"%, U: ");
-                            PhInitFormatF(&format[4], (DOUBLE)cpuUser * 100, PhMaxPrecisionUnit);
+                            PhInitFormatF(&format[4], (FLOAT)cpuUser * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[5], L"%)\n");
                             PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
 
