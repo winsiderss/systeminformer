@@ -6,6 +6,7 @@
  * Authors:
  *
  *     wj32    2010
+ *     dmex    2025
  *
  */
 
@@ -13,6 +14,8 @@
 #define _PH_CIRCBUF_H
 
 #define PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
+
+#pragma push_macro("T")
 
 #undef T
 #define T ULONG
@@ -33,5 +36,7 @@
 #undef T
 #define T FLOAT
 #include "circbuf_h.h"
+
+#pragma pop_macro("T")
 
 #endif
