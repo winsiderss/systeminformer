@@ -1707,6 +1707,43 @@ PPH_STRING PhFormatDateTime(
     return string;
 }
 
+BOOLEAN PhFormatDateTimeToBuffer(
+    _In_opt_ PSYSTEMTIME DateTime,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    SIZE_T returnLength;
+    INT32 timeBufferSize;
+    INT32 dateBufferSize;
+
+    timeBufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
+    dateBufferSize = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0, NULL);
+
+    returnLength = (timeBufferSize + 1 + dateBufferSize) * sizeof(WCHAR);
+
+    if (returnLength >= BufferLength)
+        goto CleanupExit;
+
+    if (!GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, &Buffer[0], timeBufferSize))
+        goto CleanupExit;
+
+    Buffer[timeBufferSize - 1] = L' ';
+
+    if (!GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, &Buffer[timeBufferSize], dateBufferSize, NULL))
+        goto CleanupExit;
+
+    if (ReturnLength)
+        *ReturnLength = returnLength - sizeof(UNICODE_NULL); // HACK
+    return TRUE;
+
+CleanupExit:
+    if (ReturnLength)
+        *ReturnLength = returnLength;
+    return FALSE;
+}
+
 PPH_STRING PhFormatTimeSpan(
     _In_ ULONG64 Ticks,
     _In_opt_ ULONG Mode
