@@ -84,6 +84,9 @@ VOID PhShowDebugConsole(
         _wfreopen(L"CONOUT$", L"w", stderr);
         _wfreopen(L"CONIN$", L"r", stdin);
 
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+
         PhCreateThreadEx(&DebugConsoleThreadHandle, PhpDebugConsoleThreadStart, NULL);
     }
     else
