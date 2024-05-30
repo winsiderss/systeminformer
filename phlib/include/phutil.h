@@ -567,6 +567,19 @@ PhGenerateRandomAlphaString(
     _In_ SIZE_T Count
     );
 
+FORCEINLINE
+VOID
+PhGenerateRandomAlphaStringRef(
+    _Out_writes_z_(Count) PWSTR Buffer,
+    _In_ SIZE_T Count,
+    _Out_ PPH_STRINGREF String
+    )
+{
+    PhGenerateRandomAlphaString(Buffer, Count);
+    String->Buffer = Buffer;
+    String->Length = (Count * sizeof(WCHAR)) - sizeof(UNICODE_NULL);
+}
+
 PHLIBAPI
 ULONG64
 NTAPI
@@ -654,6 +667,19 @@ PhFormatDateTime(
     );
 
 #define PhaFormatDateTime(DateTime) PH_AUTO_T(PH_STRING, PhFormatDateTime(DateTime))
+
+#define PH_DATETIME_STR_LEN 256
+#define PH_DATETIME_STR_LEN_1 (PH_DATETIME_STR_LEN + 1)
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhFormatDateTimeToBuffer(
+    _In_opt_ PSYSTEMTIME DateTime,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    );
 
 PHLIBAPI
 PPH_STRING
@@ -1863,6 +1889,7 @@ PhHungWindowFromGhostWindow(
 
 PHLIBAPI
 NTSTATUS
+NTAPI
 PhGetFileData(
     _In_ HANDLE FileHandle,
     _Out_ PVOID* Buffer,
