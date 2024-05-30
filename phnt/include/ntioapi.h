@@ -895,6 +895,25 @@ typedef struct _FILE_STAT_INFORMATION
 } FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
 #endif
 
+typedef struct _FILE_STAT_BASIC_INFORMATION 
+{
+    LARGE_INTEGER FileId;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER AllocationSize;
+    LARGE_INTEGER EndOfFile;
+    ULONG FileAttributes;
+    ULONG ReparseTag;
+    ULONG NumberOfLinks;
+    ULONG DeviceType;
+    ULONG DeviceCharacteristics;
+    ULONG Reserved;
+    LARGE_INTEGER VolumeSerialNumber;
+    FILE_ID_128 FileId128;
+} FILE_STAT_BASIC_INFORMATION, *PFILE_STAT_BASIC_INFORMATION;
+
 typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 {
     HANDLE OwnerPartitionHandle;
@@ -939,7 +958,8 @@ typedef struct _FILE_STAT_LX_INFORMATION
 } FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
 #endif
 
-typedef struct _FILE_STORAGE_RESERVE_ID_INFORMATION {
+typedef struct _FILE_STORAGE_RESERVE_ID_INFORMATION
+{
     STORAGE_RESERVE_ID StorageReserveId;
 } FILE_STORAGE_RESERVE_ID_INFORMATION, *PFILE_STORAGE_RESERVE_ID_INFORMATION;
 
@@ -1785,6 +1805,70 @@ typedef enum _DIRECTORY_NOTIFY_INFORMATION_CLASS
     DirectoryNotifyFullInformation, // since 22H2
     DirectoryNotifyMaximumInformation
 } DIRECTORY_NOTIFY_INFORMATION_CLASS, *PDIRECTORY_NOTIFY_INFORMATION_CLASS;
+
+//typedef struct _FILE_NOTIFY_INFORMATION 
+//{
+//    ULONG NextEntryOffset;
+//    ULONG Action;
+//    ULONG FileNameLength;
+//    WCHAR FileName[1];
+//} FILE_NOTIFY_INFORMATION, *PFILE_NOTIFY_INFORMATION;
+
+#if !defined(NTDDI_WIN10_RS5) || (NTDDI_VERSION < NTDDI_WIN10_RS5)
+typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION 
+{
+    ULONG NextEntryOffset;
+    ULONG Action;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastModificationTime;
+    LARGE_INTEGER LastChangeTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER AllocatedLength;
+    LARGE_INTEGER FileSize;
+    ULONG FileAttributes;
+    union 
+    {
+        ULONG ReparsePointTag;
+        ULONG EaSize;
+    };
+    LARGE_INTEGER FileId;
+    LARGE_INTEGER ParentFileId;
+    ULONG FileNameLength;
+    WCHAR FileName[1];
+} FILE_NOTIFY_EXTENDED_INFORMATION, *PFILE_NOTIFY_EXTENDED_INFORMATION;
+#endif
+
+#define FILE_NAME_FLAG_HARDLINK      0    // not part of a name pair
+#define FILE_NAME_FLAG_NTFS          0x01 // NTFS name in a name pair
+#define FILE_NAME_FLAG_DOS           0x02 // DOS name in a name pair
+#define FILE_NAME_FLAG_BOTH          0x03 // NTFS+DOS combined name
+#define FILE_NAME_FLAGS_UNSPECIFIED  0x80 // not specified by file system (do not combine with other flags)
+
+#if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
+typedef struct _FILE_NOTIFY_FULL_INFORMATION 
+{
+    ULONG NextEntryOffset;
+    ULONG Action;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastModificationTime;
+    LARGE_INTEGER LastChangeTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER AllocatedLength;
+    LARGE_INTEGER FileSize;
+    ULONG FileAttributes;
+    union 
+    {
+        ULONG ReparsePointTag;
+        ULONG EaSize;
+    };
+    LARGE_INTEGER FileId;
+    LARGE_INTEGER ParentFileId;
+    USHORT FileNameLength;
+    BYTE FileNameFlags;
+    BYTE Reserved;
+    WCHAR FileName[1];
+} FILE_NOTIFY_FULL_INFORMATION, *PFILE_NOTIFY_FULL_INFORMATION;
+#endif
 
 #if (PHNT_VERSION >= PHNT_REDSTONE3)
 NTSYSCALLAPI
