@@ -41,8 +41,8 @@ namespace CustomBuildTool
         public static int CreateProcess(string FileName, string Arguments, out string OutputString, bool FixNewLines = true)
         {
             int exitcode = int.MaxValue;
-            StringBuilder output = new StringBuilder();
-            StringBuilder error = new StringBuilder();
+            StringBuilder output = new StringBuilder(0x1000);
+            StringBuilder error = new StringBuilder(0x1000);
 
             try
             {
@@ -56,42 +56,15 @@ namespace CustomBuildTool
                     process.StartInfo.StandardErrorEncoding = Utils.UTF8NoBOM;
                     process.StartInfo.StandardOutputEncoding = Utils.UTF8NoBOM;
 
-                    using (AutoResetEvent outputWaitHandle = new AutoResetEvent(false))
-                    using (AutoResetEvent errorWaitHandle = new AutoResetEvent(false))
-                    {
-                        process.OutputDataReceived += (sender, e) =>
-                        {
-                            if (e.Data == null)
-                            {
-                                outputWaitHandle.Set();
-                            }
-                            else
-                            {
-                                output.AppendLine(e.Data);
-                            }
-                        };
-                        process.ErrorDataReceived += (sender, e) =>
-                        {
-                            if (e.Data == null)
-                            {
-                                errorWaitHandle.Set();
-                            }
-                            else
-                            {
-                                error.AppendLine(e.Data);
-                            }
-                        };
+                    process.OutputDataReceived += (_, e) => { output.Append(e.Data); };
+                    process.ErrorDataReceived += (_, e) => { error.Append(e.Data); };
+  
+                    process.Start();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+                    process.WaitForExit();
 
-                        process.Start();
-                        process.BeginOutputReadLine();
-                        process.BeginErrorReadLine();
-                        process.WaitForExit();
-
-                        if (outputWaitHandle.WaitOne() && errorWaitHandle.WaitOne())
-                        {
-                            exitcode = process.ExitCode;
-                        }
-                    }
+                    exitcode = process.ExitCode;
                 }
             }
             catch (Exception ex)
@@ -99,7 +72,7 @@ namespace CustomBuildTool
                 Program.PrintColorMessage($"[CreateProcess] {ex}", ConsoleColor.Red);
             }
 
-            OutputString = output.ToString() + error.ToString();
+            OutputString = (output.ToString().Trim() + error.ToString().Trim());
 
             if (FixNewLines)
             {
@@ -144,7 +117,6 @@ namespace CustomBuildTool
             if (File.Exists(FileName))
                 File.Delete(FileName);
         }
-
 
         public static string ShellExecute(string FileName, string Arguments, bool FixNewLines = true)
         {
@@ -204,6 +176,12 @@ namespace CustomBuildTool
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(DestinationFile))
+            {
+                Program.PrintColorMessage($"[CopyIfNewer-DestinationFile]", ConsoleColor.Yellow);
+                return;
+            }
+
             {
                 string directory = Path.GetDirectoryName(DestinationFile);
 
@@ -237,6 +215,12 @@ namespace CustomBuildTool
             if (!File.Exists(SourceFile))
             {
                 Program.PrintColorMessage($"[CopyVersionIfNewer-FileNotFound] {SourceFile}", ConsoleColor.Yellow);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(DestinationFile))
+            {
+                Program.PrintColorMessage($"[CopyVersionIfNewer-DestinationFile]", ConsoleColor.Yellow);
                 return;
             }
 
@@ -420,7 +404,8 @@ namespace CustomBuildTool
 
         public static void SetBasePriority()
         {
-            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+            //Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+            NativeMethods.SetPriorityClass(NativeMethods.CURRENT_PROCESS, NativeMethods.HIGH_PRIORITY_CLASS);
         }
     }
 }

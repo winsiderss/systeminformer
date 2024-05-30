@@ -16,9 +16,11 @@ namespace CustomBuildTool
         public const uint HRESULT_S_OK = 0u;
         public const uint HRESULT_S_FALSE = 1u;
 
+        public static readonly UIntPtr CURRENT_PROCESS = new UIntPtr(0xffffffffffffffff);
         public static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(unchecked((int)0x80000002));
         public static readonly IntPtr HKEY_CURRENT_USER = new IntPtr(unchecked((int)0x80000001));
         public static readonly uint KEY_READ = 0x20019u;
+        public static readonly uint HIGH_PRIORITY_CLASS = 0x00000080;
 
         public static readonly uint REG_NONE = 0; // No value type
         public static readonly uint REG_SZ = 1; // Unicode nul terminated string
@@ -82,6 +84,10 @@ namespace CustomBuildTool
 
         [LibraryImport("kernel32.dll", EntryPoint = "ExitProcess")]
         public static partial void ExitProcess(int exitCode);
+
+        [LibraryImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool SetPriorityClass(UIntPtr handle, uint priorityClass);
     }
 
 }
