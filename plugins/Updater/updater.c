@@ -331,9 +331,11 @@ ULONG64 ParseVersionString(
     PH_STRINGREF remaining;
     PH_STRINGREF majorPart;
     PH_STRINGREF minorPart;
+    PH_STRINGREF buildPart;
     PH_STRINGREF revisionPart;
     ULONG64 majorInteger = 0;
     ULONG64 minorInteger = 0;
+    ULONG64 buildInteger = 0;
     ULONG64 revisionInteger = 0;
 
     remaining = PhGetStringRef(VersionString);
@@ -341,16 +343,18 @@ ULONG64 ParseVersionString(
     PhSplitStringRefAtChar(&remaining, L'.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &minorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &revisionPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, L'.', &buildPart, &remaining);
 
     PhStringToInteger64(&majorPart, 10, &majorInteger);
     PhStringToInteger64(&minorPart, 10, &minorInteger);
+    PhStringToInteger64(&revisionPart, 10, &buildInteger);
     PhStringToInteger64(&revisionPart, 10, &revisionInteger);
 
     return MAKE_VERSION_ULONGLONG(
         (ULONG)majorInteger,
         (ULONG)minorInteger,
+        (ULONG)buildInteger,
         (ULONG)revisionInteger,
-        0
         );
 }
 
