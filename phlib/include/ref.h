@@ -148,7 +148,7 @@ FORCEINLINE
 VOID
 NTAPI
 PhReferenceObjects(
-    _In_reads_(NumberOfObjects) PVOID *Objects,
+    _In_reads_(NumberOfObjects) const PVOID *Objects,
     _In_ ULONG NumberOfObjects
     )
 {
@@ -166,13 +166,20 @@ FORCEINLINE
 VOID
 NTAPI
 PhDereferenceObjects(
-    _In_reads_(NumberOfObjects) PVOID *Objects,
+    _In_reads_(NumberOfObjects) const PVOID *Objects,
     _In_ ULONG NumberOfObjects
     )
 {
     for (ULONG i = 0; i < NumberOfObjects; i++)
         PhDereferenceObject(Objects[i]);
 }
+
+PHLIBAPI
+ULONG
+NTAPI
+PhGetObjectRefCount(
+    _In_ PVOID Object
+    );
 
 PHLIBAPI
 PPH_OBJECT_TYPE

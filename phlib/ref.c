@@ -298,6 +298,20 @@ _May_raise_ VOID PhDereferenceObjectEx(
 }
 
 /**
+ * Gets an object's reference count.
+ *
+ * \param Object A pointer to an object.
+ *
+ * \return The object's reference count.
+ */
+ULONG PhGetObjectRefCount(
+    _In_ PVOID Object
+    )
+{
+    return PhObjectToObjectHeader(Object)->RefCount;
+}
+
+/**
  * Gets an object's type.
  *
  * \param Object A pointer to an object.
