@@ -695,7 +695,6 @@ EXPORTS
     PhSaveListViewSortColumnsToSetting
     PhSaveListViewGroupStatesToSetting
     PhSaveWindowPlacementToSetting
-    PhSettingsInitialization
     PhSetIntegerStringRefSetting
     PhSetIntegerPairStringRefSetting
     PhSetScalableIntegerPairStringRefSetting
