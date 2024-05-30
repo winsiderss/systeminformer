@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2015
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -177,6 +177,8 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->Type = Information->ServiceStatusProcess.dwServiceType;
         serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
+        serviceItem->Win32ExitCode = Information->ServiceStatusProcess.dwWin32ExitCode;
+        serviceItem->ServiceSpecificExitCode = Information->ServiceStatusProcess.dwServiceSpecificExitCode;
         serviceItem->Flags = Information->ServiceStatusProcess.dwServiceFlags;
         serviceItem->ProcessId = UlongToHandle(Information->ServiceStatusProcess.dwProcessId);
 
@@ -931,6 +933,8 @@ UpdateStart:
                     serviceItem->Type != serviceEntry->ServiceStatusProcess.dwServiceType ||
                     serviceItem->State != serviceEntry->ServiceStatusProcess.dwCurrentState ||
                     serviceItem->ControlsAccepted != serviceEntry->ServiceStatusProcess.dwControlsAccepted ||
+                    serviceItem->Win32ExitCode != serviceEntry->ServiceStatusProcess.dwWin32ExitCode ||
+                    serviceItem->ServiceSpecificExitCode != serviceEntry->ServiceStatusProcess.dwServiceSpecificExitCode ||
                     serviceItem->ProcessId != UlongToHandle(serviceEntry->ServiceStatusProcess.dwProcessId) ||
                     serviceItem->NeedsConfigUpdate ||
                     serviceItem->JustProcessed
@@ -952,6 +956,8 @@ UpdateStart:
                     serviceItem->Type = serviceEntry->ServiceStatusProcess.dwServiceType;
                     serviceItem->State = serviceEntry->ServiceStatusProcess.dwCurrentState;
                     serviceItem->ControlsAccepted = serviceEntry->ServiceStatusProcess.dwControlsAccepted;
+                    serviceItem->Win32ExitCode = serviceEntry->ServiceStatusProcess.dwWin32ExitCode;
+                    serviceItem->ServiceSpecificExitCode = serviceEntry->ServiceStatusProcess.dwServiceSpecificExitCode;
                     serviceItem->ProcessId = UlongToHandle(serviceEntry->ServiceStatusProcess.dwProcessId);
 
                     if (PH_IS_REAL_PROCESS_ID(serviceItem->ProcessId))

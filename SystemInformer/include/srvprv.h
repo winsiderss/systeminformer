@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -42,6 +42,10 @@ typedef struct _PH_SERVICE_ITEM
     // Config
     ULONG StartType;
     ULONG ErrorControl;
+
+    // ExitCode
+    ULONG Win32ExitCode;
+    ULONG ServiceSpecificExitCode;
 
     // Signature
     VERIFY_RESULT VerifyResult;

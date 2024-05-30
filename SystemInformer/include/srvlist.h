@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -33,8 +33,9 @@
 #define PHSVTLC_VERIFIEDSIGNER 12
 #define PHSVTLC_FILENAME 13
 #define PHSVTLC_TIMELINE 14
+#define PHSVTLC_EXITCODE 15
 
-#define PHSVTLC_MAXIMUM 15
+#define PHSVTLC_MAXIMUM 16
 
 #define PHSN_CONFIG 0x1
 #define PHSN_DESCRIPTION 0x2
@@ -58,6 +59,8 @@ typedef struct _PH_SERVICE_NODE
     // Key
     LARGE_INTEGER KeyLastWriteTime;
     PPH_STRING KeyModifiedTimeText;
+    // Exitcode
+    PPH_STRING ExitCodeText;
 // end_phapppub
     PPH_STRING TooltipText;
     ULONG ValidMask;
