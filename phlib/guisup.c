@@ -190,6 +190,14 @@ VOID PhInitializeMonospaceFont(
     if (oldFont) DeleteFont(oldFont);
 }
 
+/**
+ * Opens the theme data for the specified window handle, class list, and window DPI.
+ *
+ * \param WindowHandle The handle to the window for which to open the theme data. Can be NULL.
+ * \param ClassList The class list of the theme to open.
+ * \param WindowDpi The DPI of the window.
+ * \return The handle to the opened theme data, or NULL if the theme data could not be opened.
+ */
 HTHEME PhOpenThemeData(
     _In_opt_ HWND WindowHandle,
     _In_ PCWSTR ClassList,
@@ -591,6 +599,13 @@ LONG PhGetDpiValue(
     return USER_DEFAULT_SCREEN_DPI;
 }
 
+/**
+ * Retrieves the system metrics for the specified index.
+ *
+ * \param Index The index of the system metric to retrieve.
+ * \param DpiValue The DPI value to use for retrieving the system metric. If not provided, the default DPI value will be used.
+ * \return The value of the system metric.
+ */
 LONG PhGetSystemMetrics(
     _In_ INT Index,
     _In_opt_ LONG DpiValue
@@ -2182,6 +2197,14 @@ VOID PhEnumWindows(
     EnumWindows((WNDENUMPROC)Callback, (LPARAM)Context);
 }
 
+/**
+ * Enumerates the child windows of the specified window handle.
+ *
+ * \param WindowHandle The handle of the parent window.
+ * \param Limit The maximum number of child windows to enumerate.
+ * \param Callback The callback function to be called for each child window.
+ * \param Context An optional context parameter to be passed to the callback function.
+ */
 VOID PhEnumChildWindows(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Limit,
@@ -2710,6 +2733,13 @@ BOOLEAN PhGetPhysicallyInstalledSystemMemory(
     return FALSE;
 }
 
+/**
+ * Retrieves the GUI resources used by a session.
+ *
+ * \param Flags The flags to be used for retrieving the GUI resources.
+ * \param Total Pointer to a variable that will receive the total number of GUI resources.
+ * \return Returns the status code indicating the success or failure of the operation.
+ */
 NTSTATUS PhGetSessionGuiResources(
     _In_ ULONG Flags,
     _Out_ PULONG Total
@@ -2718,6 +2748,14 @@ NTSTATUS PhGetSessionGuiResources(
     return PhGetProcessGuiResources(GR_GLOBAL, Flags, Total);
 }
 
+/**
+ * Retrieves the GUI resources used by a process.
+ *
+ * \param ProcessHandle The handle to the process for which to retrieve the GUI resources.
+ * \param Flags The flags to be used for retrieving the GUI resources.
+ * \param Total Pointer to a variable that will receive the total number of GUI resources.
+ * \return Returns the status code indicating the success or failure of the operation.
+ */
 NTSTATUS PhGetProcessGuiResources(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG Flags,
