@@ -131,7 +131,8 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFIEDSIGNER, FALSE, L"Verified signer", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumnEx2(hwnd, PHSVTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
-
+    PhAddTreeNewColumn(hwnd, PHSVTLC_EXITCODE, FALSE, L"Exit code", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    
     TreeNew_SetRedraw(hwnd, TRUE);
 
     TreeNew_SetTriState(hwnd, TRUE);
@@ -293,6 +294,7 @@ VOID PhpRemoveServiceNode(
     PhClearReference(&ServiceNode->Description);
     PhClearReference(&ServiceNode->TooltipText);
     PhClearReference(&ServiceNode->KeyModifiedTimeText);
+    PhClearReference(&ServiceNode->ExitCodeText);
 
     PhDereferenceObject(ServiceNode->ServiceItem);
 
@@ -570,6 +572,12 @@ BEGIN_SORT_FUNCTION(FileName)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ExitCode)
+{
+    sortResult = uintcmp(serviceItem1->Win32ExitCode, serviceItem2->Win32ExitCode);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -608,6 +616,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(VerifiedSigner),
                     SORT_FUNCTION(FileName),
                     SORT_FUNCTION(KeyModifiedTime), // Timeline
+                    SORT_FUNCTION(ExitCode),
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -766,6 +775,33 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 break;
             case PHSVTLC_FILENAME:
                 getCellText->Text = PhGetStringRef(serviceItem->FileName);
+                break;
+            case PHSVTLC_EXITCODE:
+                {
+                    if (serviceItem->Win32ExitCode == ERROR_SERVICE_SPECIFIC_ERROR)
+                    {
+                        PhMoveReference(&node->ExitCodeText, PhFormatUInt64(serviceItem->ServiceSpecificExitCode, FALSE));
+                        getCellText->Text = node->ExitCodeText->sr;
+                    }
+                    else
+                    {
+                        PH_STRING_BUILDER stringBuilder;
+                        PPH_STRING statusMessage;
+
+                        PhInitializeStringBuilder(&stringBuilder, 0x50);
+                        statusMessage = PhGetStatusMessage(0, serviceItem->Win32ExitCode);
+                        PhAppendFormatStringBuilder(&stringBuilder, L"(0x%lx) ", serviceItem->Win32ExitCode);
+
+                        if (!PhIsNullOrEmptyString(statusMessage))
+                        {
+                            PhAppendStringBuilder(&stringBuilder, &statusMessage->sr);
+                            PhClearReference(&statusMessage);
+                        }
+
+                        PhMoveReference(&node->ExitCodeText, PhFinalStringBuilderString(&stringBuilder));
+                        getCellText->Text = node->ExitCodeText->sr;
+                    }
+                }
                 break;
             default:
                 return FALSE;
