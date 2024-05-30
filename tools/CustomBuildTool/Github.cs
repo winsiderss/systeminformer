@@ -67,7 +67,7 @@ namespace CustomBuildTool
 
                             if (!httpTask.Result.IsSuccessStatusCode)
                             {
-                                Program.PrintColorMessage("[CreateRelease-Post] " + httpTask.Result, ConsoleColor.Red);
+                                Program.PrintColorMessage($"[CreateRelease-Post] {httpTask.Result}", ConsoleColor.Red);
                                 return null;
                             }
 
@@ -101,7 +101,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[CreateRelease] " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage($"[CreateRelease] {ex}", ConsoleColor.Red);
             }
 
             return null;

@@ -13,7 +13,7 @@ namespace CustomBuildTool
 {
     public static class BuildConfig
     {
-        public static readonly SortedDictionary<string, int> Build_Channels = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        public static readonly Dictionary<string, int> Build_Channels = new Dictionary<string, int>(4, StringComparer.OrdinalIgnoreCase)
         {
             { "release",   0 }, // PhReleaseChannel
             //{ "preview",   1 }, // PhPreviewChannel

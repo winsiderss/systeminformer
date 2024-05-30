@@ -215,9 +215,9 @@ typedef struct _KPH_DYNDATA
 
         public static bool Execute(string OutDir, bool StrictChecks)
         {
-            string manifestFile = "kphlib\\kphdyn.xml";
-            string headerFile = "kphlib\\include\\kphdyn.h";
-            string sourceFile = "kphlib\\kphdyn.c";
+            string manifestFile = $"{Build.BuildWorkingFolder}\\kphlib\\kphdyn.xml";
+            string headerFile = $"{Build.BuildWorkingFolder}\\kphlib\\include\\kphdyn.h";
+            string sourceFile = $"{Build.BuildWorkingFolder}\\kphlib\\kphdyn.c";
 
             GenerateConfig(manifestFile, out byte[] config);
 

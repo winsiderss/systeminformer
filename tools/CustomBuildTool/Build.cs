@@ -21,9 +21,9 @@ namespace CustomBuildTool
         public static string BuildWorkingFolder = string.Empty;
         public static string BuildBranch = string.Empty;
         public static string BuildCommit = string.Empty;
-        public static string BuildVersion = "1.0.0";
-        public static string BuildLongVersion = "1.0.0.0";
-        public static string BuildMajorVersion = "3.0";
+        public static string BuildVersion = string.Empty;
+        public static string BuildLongVersion = string.Empty;
+        public const string BuildMajorVersion = "3.1";
         public static string BuildCount = string.Empty;
         public static string BuildRevision = string.Empty;
         public static string BuildSourceLink = string.Empty;
@@ -31,6 +31,7 @@ namespace CustomBuildTool
         public static bool InitializeBuildEnvironment()
         {
             Win32.SetErrorMode();
+            Win32.SetBasePriority();
 
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
@@ -232,14 +233,14 @@ namespace CustomBuildTool
                 {
                     Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
                     //Program.PrintColorMessage(Utils.GetWindowsSdkVersion(), ConsoleColor.Green);
-                    Program.PrintColorMessage(Utils.GetWindowsSdkVersion() + " (" + instance.GetWindowsSdkFullVersion() + ")", ConsoleColor.Green, true);
+                    Program.PrintColorMessage($"{Utils.GetWindowsSdkVersion()} ({instance.GetWindowsSdkFullVersion()})", ConsoleColor.Green, true);
                     Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(instance.Name, ConsoleColor.Green);
                     //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.Green, true);
                     HaveArm64BuildTools = instance.HasARM64BuildToolsComponents;
                 }
 
-                Program.PrintColorMessage(Environment.NewLine + "Building... ", ConsoleColor.DarkGray, false);
+                Program.PrintColorMessage($"{Environment.NewLine}Building... ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(BuildLongVersion, ConsoleColor.Green, false);
 
                 if (!string.IsNullOrWhiteSpace(BuildCommit))
@@ -378,7 +379,7 @@ namespace CustomBuildTool
                 "symsrv.dll"
             };
 
-            string windowsSdkPath = Path.GetFullPath(Path.Join([Utils.GetWindowsSdkPath(), "..\\Debuggers\\"]));
+            string windowsSdkPath = Path.GetFullPath(Path.Join([Utils.GetWindowsSdkPath(), "..\\..\\Debuggers\\"]));
 
             if (string.IsNullOrWhiteSpace(windowsSdkPath))
                 return false;
@@ -1263,6 +1264,18 @@ namespace CustomBuildTool
             }
         }
 
+        private static void BuildMsixAppInstaller()
+        {
+            if (File.Exists("tools\\msix\\PackageTemplate.appinstaller"))
+            {
+                string msixAppInstallerString = Utils.ReadAllText("tools\\msix\\PackageTemplate.appinstaller");
+
+                msixAppInstallerString = msixAppInstallerString.Replace("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildLongVersion}\"");
+
+                Utils.WriteAllText("build\\output\\SystemInformer.appinstaller", msixAppInstallerString);
+            }
+        }
+
         private static void BuildMsixPackageMapping(BuildFlags Flags)
         {
             // Create the package mapping file.
@@ -1348,8 +1361,7 @@ namespace CustomBuildTool
                     Win32.CreateDirectory(BuildOutputFolder);
 
                     var result = Utils.ExecuteMsixCommand(
-                        $"pack /o /f tools\\msix\\MsixPackage32.map " +
-                        $"/p {BuildOutputFolder}\\systeminformer-build-package-x32.appx"
+                        $"pack /o /f tools\\msix\\MsixPackage32.map /p {BuildOutputFolder}\\systeminformer-build-package-x32.appx"
                         );
 
                     Program.PrintColorMessage(result, ConsoleColor.DarkGray);
@@ -1364,8 +1376,7 @@ namespace CustomBuildTool
                     Win32.CreateDirectory(BuildOutputFolder);
 
                     var result = Utils.ExecuteMsixCommand(
-                        $"pack /o /f tools\\msix\\MsixPackage64.map " +
-                        $"/p {BuildOutputFolder}\\systeminformer-build-package-x64.msix"
+                        $"pack /o /f tools\\msix\\MsixPackage64.map /p {BuildOutputFolder}\\systeminformer-build-package-x64.msix"
                         );
 
                     Program.PrintColorMessage(result, ConsoleColor.DarkGray);
@@ -1391,8 +1402,7 @@ namespace CustomBuildTool
                 Win32.DeleteFile($"{BuildOutputFolder}\\systeminformer-build-package.msixbundle");
 
                 var result = Utils.ExecuteMsixCommand(
-                    $"bundle /f tools\\msix\\bundle.map " +
-                    $"/p {BuildOutputFolder}\\systeminformer-build-package.msixbundle"
+                    $"bundle /f tools\\msix\\bundle.map /p {BuildOutputFolder}\\systeminformer-build-package.msixbundle"
                     );
 
                 Program.PrintColorMessage($"{result}", ConsoleColor.DarkGray);
@@ -1407,6 +1417,8 @@ namespace CustomBuildTool
                         );
                 }
             }
+
+            BuildMsixAppInstaller();
 
             Win32.DeleteFile("tools\\msix\\MsixManifest32.xml");
             Win32.DeleteFile("tools\\msix\\MsixManifest64.xml");
@@ -1423,13 +1435,14 @@ namespace CustomBuildTool
                 {
                     Build.BuildSourceLink = $"{Build.BuildWorkingFolder}\\sourcelink.json";
                     string directory = Build.BuildWorkingFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
-                    string value =
-                        $"{{ \"documents\": {{ " +
-                        $"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
-                        $"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", " +
-                        $"}} }}";
 
-                    Utils.WriteAllText(Build.BuildSourceLink, value);
+                    StringBuilder sb = new StringBuilder(260);
+                    sb.Append("{{ \"documents\": {{ ");
+                    sb.Append($"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", ");
+                    sb.Append($"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", ");
+                    sb.Append("}} }}");
+
+                    Utils.WriteAllText(Build.BuildSourceLink, sb.ToString());
                 }
             }
             else

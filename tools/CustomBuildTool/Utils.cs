@@ -134,6 +134,8 @@ namespace CustomBuildTool
         {
             string folder = GetOutputDirectoryPath();
 
+            if (string.IsNullOrWhiteSpace(folder))
+                return;
             if (File.Exists(folder))
                 return;
 
@@ -214,12 +216,7 @@ namespace CustomBuildTool
                 {
                     // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
                     string vswhereResult = ExecuteVsWhereCommand(
-                        "-latest " +
-                        "-prerelease " +
-                        "-products * " +
-                        "-requiresAny " +
-                        "-requires Microsoft.Component.MSBuild " +
-                        "-property installationPath "
+                        "-latest -prerelease -products * -requiresAny -requires Microsoft.Component.MSBuild -property installationPath"
                         );
 
                     if (!string.IsNullOrWhiteSpace(vswhereResult))
