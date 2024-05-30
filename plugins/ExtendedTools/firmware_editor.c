@@ -251,7 +251,39 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                 break;
             case IDC_FIRMWARE_WRITE:
                 {
-                    NOTHING;
+                    NTSTATUS status;
+                    PVOID variableValue;
+                    ULONG variableValueLength;
+                    ULONG variableAttributes;
+
+                    status = PhGetFirmwareEnvironmentVariable(
+                        &context->Name->sr,
+                        &context->GuidString->sr,
+                        &variableValue,
+                        &variableValueLength,
+                        &variableAttributes
+                        );
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        PhShowStatus(NULL, L"Unable to update the EFI variable.", status, 0);
+                        return TRUE;
+                    }
+
+                    status = PhSetFirmwareEnvironmentVariable(
+                        &context->Name->sr,
+                        &context->GuidString->sr,
+                        context->VariableValue,
+                        context->VariableValueLength,
+                        variableAttributes
+                        );
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        PhShowStatus(NULL, L"Unable to update the EFI variable.", status, 0);
+                        return TRUE;
+                    }
+
                 }
                 break;
             case IDC_FIRMWARE_REREAD:
