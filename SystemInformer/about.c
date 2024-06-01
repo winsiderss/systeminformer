@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -19,6 +19,7 @@
 #include <modprv.h>
 #include <netprv.h>
 #include <phappres.h>
+#include <phintrnl.h>
 #include <phsettings.h>
 #include <procprv.h>
 #include <settings.h>
@@ -206,6 +207,36 @@ PPH_STRING PhGetDiagnosticsString(
     OBJECT_TYPE_COUNT(PhHandleItemType);
     OBJECT_TYPE_COUNT(PhMemoryItemType);
     OBJECT_TYPE_COUNT(PhImageListItemType);
+
+    PhAppendStringBuilder2(&stringBuilder, L"STATISTIC INFORMATION\r\n");
+
+#define PRINT_STATISTIC(Name) PhAppendFormatStringBuilder(&stringBuilder, \
+    TEXT(#Name) L": %u\r\n", PhLibStatisticsBlock.Name)
+
+    PRINT_STATISTIC(BaseThreadsCreated);
+    PRINT_STATISTIC(BaseThreadsCreateFailed);
+    PRINT_STATISTIC(BaseStringBuildersCreated);
+    PRINT_STATISTIC(BaseStringBuildersResized);
+    PRINT_STATISTIC(RefObjectsCreated);
+    PRINT_STATISTIC(RefObjectsDestroyed);
+    PRINT_STATISTIC(RefObjectsAllocated);
+    PRINT_STATISTIC(RefObjectsFreed);
+    PRINT_STATISTIC(RefObjectsAllocatedFromSmallFreeList);
+    PRINT_STATISTIC(RefObjectsFreedToSmallFreeList);
+    PRINT_STATISTIC(RefObjectsAllocatedFromTypeFreeList);
+    PRINT_STATISTIC(RefObjectsFreedToTypeFreeList);
+    PRINT_STATISTIC(RefObjectsDeleteDeferred);
+    PRINT_STATISTIC(RefAutoPoolsCreated);
+    PRINT_STATISTIC(RefAutoPoolsDestroyed);
+    PRINT_STATISTIC(RefAutoPoolsDynamicAllocated);
+    PRINT_STATISTIC(RefAutoPoolsDynamicResized);
+    PRINT_STATISTIC(QlBlockSpins);
+    PRINT_STATISTIC(QlBlockWaits);
+    PRINT_STATISTIC(QlAcquireExclusiveBlocks);
+    PRINT_STATISTIC(QlAcquireSharedBlocks);
+    PRINT_STATISTIC(WqWorkQueueThreadsCreated);
+    PRINT_STATISTIC(WqWorkQueueThreadsCreateFailed);
+    PRINT_STATISTIC(WqWorkItemsQueued);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
