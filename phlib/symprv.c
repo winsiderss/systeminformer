@@ -449,19 +449,19 @@ VOID PhpSymbolProviderCompleteInitialization(
 #else
         PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x86\\"));
 #endif
-        if (dbgcoreName = PhConcatStringRef2(&winsdkPath->sr, &dbgcoreFileName))
+        if (dbgcoreName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &dbgcoreFileName))
         {
             dbgcoreHandle = PhLoadLibrary(dbgcoreName->Buffer);
             PhDereferenceObject(dbgcoreName);
         }
 
-        if (dbghelpName = PhConcatStringRef2(&winsdkPath->sr, &dbghelpFileName))
+        if (dbghelpName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &dbghelpFileName))
         {
             dbghelpHandle = PhLoadLibrary(dbghelpName->Buffer);
             PhDereferenceObject(dbghelpName);
         }
 
-        if (symsrvName = PhConcatStringRef2(&winsdkPath->sr, &symsrvFileName))
+        if (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &symsrvFileName))
         {
             symsrvHandle = PhLoadLibrary(symsrvName->Buffer);
             PhDereferenceObject(symsrvName);
