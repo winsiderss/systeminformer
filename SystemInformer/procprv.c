@@ -199,7 +199,7 @@ PH_UINT64_DELTA PhIoReadDelta;
 PH_UINT64_DELTA PhIoWriteDelta;
 PH_UINT64_DELTA PhIoOtherDelta;
 
-static BOOLEAN PhProcessStatisticsInitialized = FALSE;
+BOOLEAN PhProcessStatisticsInitialized = FALSE;
 static ULONG PhTimeSequenceNumber = 0;
 static PH_CIRCULAR_BUFFER_ULONG PhTimeHistory;
 
