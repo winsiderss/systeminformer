@@ -420,7 +420,12 @@ VOID PhLoadPlugins(
         if (PhIsPluginDisabled(&PhpDefaultPluginName[i]))
             continue;
 
-        if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]))
+        if (PhPluginsLoadNative)
+            fileName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &pluginsDirectory->sr, &PhpDefaultPluginName[i]);
+        else
+            fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]);
+
+        if (fileName)
         {
             status = PhLoadPlugin(&fileName->sr);
 
@@ -447,17 +452,34 @@ VOID PhLoadPlugins(
 
     if (!PhGetIntegerSetting(L"EnableDefaultSafePlugins"))
     {
-        HANDLE pluginsDirectoryHandle;
+        HANDLE pluginsDirectoryHandle = NULL;
 
-        if (NT_SUCCESS(PhCreateFile(
-            &pluginsDirectoryHandle,
-            &pluginsDirectory->sr,
-            FILE_LIST_DIRECTORY | SYNCHRONIZE,
-            FILE_ATTRIBUTE_DIRECTORY,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-            )))
+        if (PhPluginsLoadNative)
+        {
+            PhCreateFile(
+                &pluginsDirectoryHandle,
+                &pluginsDirectory->sr,
+                FILE_LIST_DIRECTORY | SYNCHRONIZE,
+                FILE_ATTRIBUTE_DIRECTORY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                );
+        }
+        else
+        {
+            PhCreateFileWin32(
+                &pluginsDirectoryHandle,
+                PhGetString(pluginsDirectory),
+                FILE_LIST_DIRECTORY | SYNCHRONIZE,
+                FILE_ATTRIBUTE_DIRECTORY,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                );
+        }
+
+        if (pluginsDirectoryHandle)
         {
             static UNICODE_STRING pluginsSearchPattern = RTL_CONSTANT_STRING(L"*.dll");
 
@@ -846,6 +868,12 @@ VOID PhPluginGetSystemStatistics(
     _Out_ PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
 {
+    if (!PhProcessStatisticsInitialized)
+    {
+        memset(Statistics, 0, sizeof(PH_PLUGIN_SYSTEM_STATISTICS));
+        return;
+    }
+
     Statistics->Performance = &PhPerfInformation;
 
     Statistics->NumberOfProcesses = PhTotalProcesses;
