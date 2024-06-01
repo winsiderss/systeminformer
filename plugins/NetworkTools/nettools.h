@@ -40,11 +40,12 @@
 #define SETTING_NAME_WHOIS_IPV6_SUPPORT (PLUGIN_NAME L".WhoisProtocalSupport")
 #define SETTING_NAME_EXTENDED_TCP_STATS (PLUGIN_NAME L".EnableExtendedTcpStats")
 #define SETTING_NAME_GEOLITE_API_KEY (PLUGIN_NAME L".MaxMindApiKey")
+#define SETTING_NAME_GEOLITE_API_ID (PLUGIN_NAME L".MaxMindApiId")
 #define SETTING_NAME_GEOLITE_DB_TYPE (PLUGIN_NAME L".MaxMindType")
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbInitialized;
-extern BOOLEAN GeoDbDatabaseType;
+extern BOOLEAN GeoLiteDatabaseType;
 extern PH_STRINGREF GeoDbCityFileName;
 extern PH_STRINGREF GeoDbCountryFileName;
 extern PPH_STRING SearchboxText;
@@ -216,8 +217,8 @@ VOID ShowTracertWindowFromAddress(
 // options.c
 
 INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -349,6 +350,10 @@ VOID ShowDbInstallRestartDialog(
     );
 
 VOID ShowDbUpdateFailedDialog(
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
+    );
+
+VOID ShowDbInvalidSettingsDialog(
     _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
     );
 

@@ -45,7 +45,7 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    GeoDbDatabaseType = !!PhGetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE);
+    GeoLiteDatabaseType = !!PhGetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE);
     NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
 }
 
@@ -984,6 +984,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_WHOIS_IPV6_SUPPORT, L"0" },
                 { IntegerSettingType, SETTING_NAME_EXTENDED_TCP_STATS, L"0" },
                 { StringSettingType, SETTING_NAME_GEOLITE_API_KEY, L"" },
+                { StringSettingType, SETTING_NAME_GEOLITE_API_ID, L"" },
                 { IntegerSettingType, SETTING_NAME_GEOLITE_DB_TYPE, L"0" },
             };
 

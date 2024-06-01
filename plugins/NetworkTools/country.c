@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2023
+ *     dmex    2016-2024
  *
  */
 
@@ -14,9 +14,9 @@
 
 BOOLEAN GeoDbInitialized = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
-BOOLEAN GeoDbDatabaseType = FALSE;
+BOOLEAN GeoLiteDatabaseType = FALSE;
 HIMAGELIST GeoImageList = NULL;
-MMDB_s GeoDbCountry = { 0 };
+MMDB_s GeoDbInstance = { 0 };
 PH_STRINGREF GeoDbCityFileName = PH_STRINGREF_INIT(L"GeoLite2-City.mmdb");
 PH_STRINGREF GeoDbCountryFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
 PPH_HASHTABLE NetworkToolsGeoDbCacheHashtable = NULL;
@@ -183,14 +183,14 @@ BOOLEAN NetToolsGeoLiteInitialized(
     {
         PPH_STRING dbpath;
 
-        if (GeoDbDatabaseType)
+        if (GeoLiteDatabaseType)
             dbpath = PhGetApplicationDataFileName(&GeoDbCityFileName, TRUE);
         else
             dbpath = PhGetApplicationDataFileName(&GeoDbCountryFileName, TRUE);
 
         if (dbpath)
         {
-            if (MMDB_open(&dbpath->sr, MMDB_MODE_MMAP, &GeoDbCountry) == MMDB_SUCCESS)
+            if (MMDB_open(&dbpath->sr, MMDB_MODE_MMAP, &GeoDbInstance) == MMDB_SUCCESS)
             {
                 LARGE_INTEGER systemTime;
                 ULONG secondsSince1970;
@@ -201,7 +201,7 @@ BOOLEAN NetToolsGeoLiteInitialized(
                 PhTimeToSecondsSince1970(&systemTime, &secondsSince1970);
 
                 // Check if the Geoip database is older than 6 months (182 days = approx. 6 months).
-                if ((secondsSince1970 - GeoDbCountry.metadata.build_epoch) > (182 * 24 * 60 * 60))
+                if ((secondsSince1970 - GeoDbInstance.metadata.build_epoch) > (182 * 24 * 60 * 60))
                 {
                     GeoDbExpired = TRUE;
                 }
@@ -239,7 +239,7 @@ VOID FreeGeoLiteDb(
 
     if (GeoDbInitialized)
     {
-        MMDB_close(&GeoDbCountry);
+        MMDB_close(&GeoDbInstance);
     }
 }
 
@@ -421,7 +421,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
         ipv4SockAddr.sin_addr = RemoteAddress.InAddr;
 
         mmdb_result = MMDB_lookup_sockaddr(
-            &GeoDbCountry,
+            &GeoDbInstance,
             (struct sockaddr*)&ipv4SockAddr,
             &mmdb_error
             );
@@ -448,7 +448,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
         ipv6SockAddr.sin6_addr = RemoteAddress.In6Addr;
 
         mmdb_result = MMDB_lookup_sockaddr(
-            &GeoDbCountry,
+            &GeoDbInstance,
             (struct sockaddr*)&ipv6SockAddr,
             &mmdb_error
             );
