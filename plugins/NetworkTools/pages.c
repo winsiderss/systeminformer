@@ -40,6 +40,32 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
         {
             if ((INT)wParam == IDOK)
             {
+                {
+                    PPH_STRING key;
+                    PPH_STRING id;
+
+                    key = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
+
+                    if (PhIsNullOrEmptyString(key))
+                    {
+                        PhClearReference(&key);
+                        ShowDbInvalidSettingsDialog(context);
+                        return S_FALSE;
+                    }
+
+                    PhClearReference(&key);
+                    id = PhGetStringSetting(SETTING_NAME_GEOLITE_API_ID);
+
+                    if (PhIsNullOrEmptyString(id))
+                    {
+                        PhClearReference(&key);
+                        ShowDbInvalidSettingsDialog(context);
+                        return S_FALSE;
+                    }
+
+                    PhClearReference(&id);
+                }
+
                 ShowDbCheckingForUpdatesDialog(context);
                 return S_FALSE;
             }
@@ -269,6 +295,25 @@ VOID ShowDbUpdateFailedDialog(
     {
         config.pszContent = L"Click Retry to download the update again.";
     }
+
+    TaskDialogNavigatePage(Context->DialogHandle, &config);
+}
+
+VOID ShowDbInvalidSettingsDialog(
+    _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context
+    )
+{
+    TASKDIALOGCONFIG config;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION;
+    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.pszWindowTitle = L"Network Tools - GeoLite Updater";
+    config.pszMainInstruction = L"Unable to download GeoLite update.";
+    config.pszContent = L"Please check the Options > Network Tools > GeoLite ID or Key are configured before downloading geoLite updates.";
+    config.cxWidth = 200;
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

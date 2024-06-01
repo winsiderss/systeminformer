@@ -95,7 +95,7 @@ PWSTR GeoLiteCreateDatabaseName(
     _In_ PWSTR Format
     )
 {
-    if (GeoDbDatabaseType)
+    if (GeoLiteDatabaseType)
         return PH_AUTO_T(PH_STRING, PhFormatString(Format, L"City"))->Buffer;
     return PH_AUTO_T(PH_STRING, PhFormatString(Format, L"Country"))->Buffer;
 }
@@ -155,23 +155,10 @@ BOOLEAN DownloadUpdateToFile(
 
     PhInitializeHash(&hashContext, Md5HashAlgorithm);
 
-    {
-        PPH_STRING apikeyString = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
-
-        if (PhIsNullOrEmptyString(apikeyString))
-        {
-            Context->ErrorCode = ERROR_INVALID_DATA;
-            goto CleanupExit;
-        }
-
-        httpRequestString = PhFormatString(
-            L"/app/geoip_download?edition_id=%s&license_key=%s&suffix=tar.gz",
-            GeoLiteCreateDatabaseName(L"GeoLite2-%s"),
-            PhGetString(apikeyString)
-            );
-
-        PhClearReference(&apikeyString);
-    }
+    httpRequestString = PhFormatString(
+        L"/geoip/databases/%s/download?suffix=tar.gz",
+        GeoLiteCreateDatabaseName(L"GeoLite2-%s")
+        );
 
     SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
 
@@ -201,6 +188,30 @@ BOOLEAN DownloadUpdateToFile(
     }
 
     SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
+
+    {
+        PPH_STRING key = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
+        PPH_STRING id = PhGetStringSetting(SETTING_NAME_GEOLITE_API_ID);
+
+        if (PhIsNullOrEmptyString(key) || PhIsNullOrEmptyString(id))
+        {
+            Context->ErrorCode = ERROR_GENERIC_COMMAND_FAILED;
+            PhClearReference(&key);
+            PhClearReference(&id);
+            goto CleanupExit;
+        }
+
+        if (!PhHttpSocketSetCredentials(httpContext, PhGetString(id), PhGetString(key)))
+        {
+            Context->ErrorCode = GetLastError();
+            PhClearReference(&key);
+            PhClearReference(&id);
+            goto CleanupExit;
+        }
+
+        PhClearReference(&key);
+        PhClearReference(&id);
+    }
 
     if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
     {
@@ -481,7 +492,7 @@ BOOLEAN MoveUpdateToFile(
 
     // Get the current database filename.
 
-    if (GeoDbDatabaseType)
+    if (GeoLiteDatabaseType)
         existingFileName = PhGetApplicationDataFileName(&GeoDbCityFileName, FALSE);
     else
         existingFileName = PhGetApplicationDataFileName(&GeoDbCountryFileName, FALSE);
