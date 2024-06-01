@@ -903,7 +903,15 @@ VOID PhSetHMenuStyle(
     SetMenuInfo(Menu, &menuInfo);
 }
 
-VOID PhSetHMenuNotify(
+BOOLEAN PhSetHMenuWindow(
+    _In_ HWND WindowHandle,
+    _In_ HMENU MenuHandle
+    )
+{
+    return !!SetMenu(WindowHandle, MenuHandle);
+}
+
+BOOLEAN PhSetHMenuNotify(
     _In_ HMENU MenuHandle
     )
 {
@@ -914,7 +922,7 @@ VOID PhSetHMenuNotify(
     menuInfo.fMask = MIM_STYLE;
     menuInfo.dwStyle = MNS_NOTIFYBYPOS;
 
-    SetMenuInfo(MenuHandle, &menuInfo);
+    return !!SetMenuInfo(MenuHandle, &menuInfo);
 }
 
 VOID PhDeleteHMenu(
@@ -923,4 +931,31 @@ VOID PhDeleteHMenu(
 {
     while (DeleteMenu(Menu, 0, MF_BYPOSITION))
         NOTHING;
+}
+
+_Success_(return)
+BOOLEAN PhGetHMenuStringToBuffer(
+    _In_ HMENU Menu,
+    _In_ ULONG Id,
+    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
+    )
+{
+    MENUITEMINFO menuInfo;
+
+    memset(&menuInfo, 0, sizeof(MENUITEMINFO));
+    menuInfo.cbSize = sizeof(MENUITEMINFO);
+    menuInfo.fMask = MIIM_STRING;
+    menuInfo.dwTypeData = Buffer;
+    menuInfo.cch = (ULONG)BufferLength / sizeof(WCHAR);
+
+    if (GetMenuItemInfo(Menu, Id, TRUE, &menuInfo))
+    {
+        if (ReturnLength)
+            *ReturnLength = menuInfo.cch;
+        return TRUE;
+    }
+
+    return FALSE;
 }
