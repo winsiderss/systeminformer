@@ -275,6 +275,7 @@
 #define IDC_LIST_TRACERT                1030
 #define IDC_REFRESH                     1031
 #define IDC_ENABLE_EXTENDED_TCP         1032
+#define IDC_APIKEYIDBTN                 1033
 #define IDC_HELPLINK                    1036
 #define IDC_KEYTEXT                     1037
 #define IDC_GEOIDTEXT                   1038
