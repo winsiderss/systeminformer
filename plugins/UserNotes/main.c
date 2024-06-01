@@ -354,11 +354,12 @@ PPH_STRING ShowFileDialog(
         NTSTATUS status;
         PH_MAPPED_IMAGE mappedImage;
 
-        status = PhLoadMappedImage(
-            PhGetString(fileName),
-            NULL,
-            &mappedImage
-            );
+        PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+
+        if (!PhIsNullOrEmptyString(fileName))
+            status = PhLoadMappedImageHeaderPageSize(&fileName->sr, NULL, &mappedImage);
+        else
+            status = STATUS_OBJECT_NAME_NOT_FOUND;
 
         if (NT_SUCCESS(status))
         {
