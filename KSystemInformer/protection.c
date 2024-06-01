@@ -1004,7 +1004,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
     PKPH_IMAGE_LOAD_APC firstApc;
     PKPH_IMAGE_LOAD_APC secondApc;
     KPH_IMAGE_LOAD_APC_INIT init;
-#if DBG
+#ifdef DEBUG
     PKPH_THREAD_CONTEXT actor;
 #endif
 
@@ -1015,7 +1015,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
     firstApc = CONTAINING_RECORD(Apc, KPH_IMAGE_LOAD_APC, Apc);
 
     DBG_UNREFERENCED_PARAMETER(NormalRoutine);
-#if DBG
+#ifdef DEBUG
     actor = KphGetCurrentThreadContext();
     NT_ASSERT(actor && actor->ProcessContext);
     NT_ASSERT(actor->ProcessContext->ApcNoopRoutine);
