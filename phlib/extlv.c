@@ -456,6 +456,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_SORTITEMS:
         {
+            BOOL result;
+
             if (context->SortFast)
             {
                 // This sort method is faster than the normal sort because our comparison function
@@ -463,22 +465,28 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 // values. The disadvantage of this method is that default sorting is not available
                 // - if a column doesn't have a comparison function, it doesn't get sorted at all.
 
-                ListView_SortItems(
+                result = (BOOL)CallWindowProc( // ListView_SortItems
+                    oldWndProc,
                     hwnd,
-                    PhpExtendedListViewCompareFastFunc,
-                    (LPARAM)context
+                    LVM_SORTITEMS,
+                    (WPARAM)context,
+                    (LPARAM)(PFNLVCOMPARE)PhpExtendedListViewCompareFastFunc
                     );
             }
             else
             {
-                ListView_SortItemsEx(
+                result = (BOOL)CallWindowProc( // ListView_SortItemsEx
+                    oldWndProc,
                     hwnd,
-                    PhpExtendedListViewCompareFunc,
-                    (LPARAM)context
+                    LVM_SORTITEMSEX,
+                    (WPARAM)context,
+                    (LPARAM)(PFNLVCOMPARE)PhpExtendedListViewCompareFunc
                     );
             }
+
+            return result;
         }
-        return TRUE;
+        break;
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
