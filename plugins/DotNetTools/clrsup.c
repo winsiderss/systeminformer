@@ -1300,28 +1300,45 @@ PVOID DnLoadMscordaccore(
     {
         PPH_STRING directoryName = directoryList->Items[i];
         PPH_STRING fileName;
+        PPH_STRING nativeName;
 
-        fileName = PhConcatStringRef3(
+        fileName = PhConcatStringRef4(
+            &PhWin32ExtendedPathPrefix,
             &directoryPath->sr,
             &directoryName->sr,
             &mscordaccoreName
             );
 
-        if (PhDoesFileExistWin32(PhGetString(fileName)))
+        nativeName = PhDosPathNameToNtPathName(&fileName->sr);
+
+        if (!PhIsNullOrEmptyString(nativeName) && PhDoesFileExist(&nativeName->sr))
         {
             PH_MAPPED_IMAGE mappedImage;
+            ULONG timeDateStamp = ULONG_MAX;
+            ULONG sizeOfImage = ULONG_MAX;
 
-            if (NT_SUCCESS(PhLoadMappedImage(PhGetString(fileName), NULL, &mappedImage)))
+            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&nativeName->sr, NULL, &mappedImage)))
             {
-                if (
-                    dataTargetTimeStamp == mappedImage.NtHeaders->FileHeader.TimeDateStamp &&
-                    dataTargetSizeOfImage == mappedImage.NtHeaders->OptionalHeader.SizeOfImage
-                    )
+                if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                 {
-                    mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
+                    timeDateStamp = mappedImage.NtHeaders32->FileHeader.TimeDateStamp;
+                    sizeOfImage = mappedImage.NtHeaders32->OptionalHeader.SizeOfImage;
+                }
+                else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                {
+                    timeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                    sizeOfImage = mappedImage.NtHeaders->OptionalHeader.SizeOfImage;
                 }
 
                 PhUnloadMappedImage(&mappedImage);
+            }
+
+            if (
+                dataTargetTimeStamp == timeDateStamp &&
+                dataTargetSizeOfImage == sizeOfImage
+                )
+            {
+                mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
             }
         }
 
