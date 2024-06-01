@@ -679,7 +679,6 @@ VOID WepRefreshWindowGeneralInfo(
     PVOID userdataHandle;
     ULONG windowId;
     ULONG windowExtra;
-    HFONT fontHandle;
 
     menuHandle = GetMenu(Context->WindowHandle);
     instanceHandle = (PVOID)GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE);
@@ -762,11 +761,13 @@ VOID WepRefreshWindowGeneralInfo(
     }
     else
     {
-        if (fontHandle = (HFONT)SendMessage(Context->WindowHandle, WM_GETFONT, 0, 0))
+        ULONG_PTR result;
+
+        if (SendMessageTimeout(Context->WindowHandle, WM_GETFONT, 0, 0, SMTO_ABORTIFHUNG, 1000, &result) != 0)
         {
             LOGFONT logFont;
 
-            if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
+            if (GetObject((HFONT)result, sizeof(LOGFONT), &logFont))
                 PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, logFont.lfFaceName);
             else
                 PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, L"N/A");

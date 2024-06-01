@@ -59,6 +59,8 @@ typedef struct _WE_WINDOW_NODE
     PH_STRINGREF TextCache[WEWNTLC_MAXIMUM];
 } WE_WINDOW_NODE, *PWE_WINDOW_NODE;
 
+typedef enum _WE_WINDOW_SELECTOR_TYPE WE_WINDOW_SELECTOR_TYPE;
+
 typedef struct _WE_WINDOW_TREE_CONTEXT
 {
     HWND ParentWindowHandle;
@@ -66,7 +68,7 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
 
-    enum _WE_WINDOW_SELECTOR_TYPE SelectorType;
+    WE_WINDOW_SELECTOR_TYPE SelectorType;
 
     union
     {
