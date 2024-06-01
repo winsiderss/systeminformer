@@ -74,6 +74,7 @@ EXPORTS
     PhCompareStringZNatural
     PhConcatStringRef2
     PhConcatStringRef3
+    PhConcatStringRef4
     PhConcatStrings
     PhConcatStrings_V
     PhConcatStrings2
