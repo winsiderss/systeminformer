@@ -86,6 +86,8 @@ extern PH_UINT64_DELTA PhIoReadDelta;
 extern PH_UINT64_DELTA PhIoWriteDelta;
 extern PH_UINT64_DELTA PhIoOtherDelta;
 
+extern BOOLEAN PhProcessStatisticsInitialized;
+
 extern PH_CIRCULAR_BUFFER_FLOAT PhCpuKernelHistory;
 extern PH_CIRCULAR_BUFFER_FLOAT PhCpuUserHistory;
 //extern PH_CIRCULAR_BUFFER_FLOAT PhCpuOtherHistory;
