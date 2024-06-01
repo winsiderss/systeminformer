@@ -6870,6 +6870,14 @@ NTSTATUS PhSetProcessGroupAffinity(
     return status;
 }
 
+/**
+ * Sets the power throttling state for a specified process.
+ *
+ * \param ProcessHandle The handle to the target process.
+ * \param ControlMask The control mask specifying the power throttling control actions to perform.
+ * \param StateMask The state mask specifying the power throttling states to set.
+ * \return The NTSTATUS code indicating the success or failure of the operation.
+ */
 NTSTATUS PhSetProcessPowerThrottlingState(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG ControlMask,
@@ -7146,7 +7154,8 @@ NTSTATUS PhEnumProcessesEx(
     }
 
     bufferSize = initialBufferSize[classIndex];
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -7160,7 +7169,8 @@ NTSTATUS PhEnumProcessesEx(
         if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -7180,6 +7190,19 @@ NTSTATUS PhEnumProcessesEx(
     return status;
 }
 
+/**
+ * Enumerates the next process.
+ *
+ * \param ProcessHandle The handle to the current process. Pass NULL to start enumeration from the beginning.
+ * \param DesiredAccess The desired access rights for the process handle.
+ * \param Callback The callback function to be called for each enumerated process.
+ * \param Context An optional context parameter to be passed to the callback function.
+ *
+ * \return Returns the status of the enumeration operation.
+ *         If the enumeration is successful, it returns STATUS_SUCCESS.
+ *         If there are no more processes to enumerate, it returns STATUS_NO_MORE_ENTRIES.
+ *         Otherwise, it returns an appropriate NTSTATUS error code.
+ */
 NTSTATUS PhEnumNextProcess(
     _In_opt_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -7241,6 +7264,20 @@ NTSTATUS PhEnumNextProcess(
     return status;
 }
 
+/**
+ * Enumerates the next thread.
+ *
+ * \param ProcessHandle The handle to the process.
+ * \param ThreadHandle The handle to the current thread. Pass NULL to start enumeration from the beginning.
+ * \param DesiredAccess The desired access rights for the thread handle.
+ * \param Callback The callback function to be called for each enumerated thread.
+ * \param Context An optional context parameter to be passed to the callback function.
+ *
+ * \return Returns the status of the enumeration operation.
+ *         If the enumeration is successful, it returns STATUS_SUCCESS.
+ *         If there are no more threads to enumerate, it returns STATUS_NO_MORE_ENTRIES.
+ *         Otherwise, it returns an appropriate NTSTATUS error code.
+ */
 NTSTATUS PhEnumNextThread(
     _In_ HANDLE ProcessHandle,
     _In_opt_ HANDLE ThreadHandle,
@@ -18752,3 +18789,27 @@ NTSTATUS PhIsEcCode(
     return STATUS_SUCCESS;
 }
 #endif
+
+HANDLE PhGetStdHandle(
+    _In_ ULONG StdHandle
+    )
+{
+    if (WindowsVersion < WINDOWS_NEW)
+    {
+        switch (StdHandle)
+        {
+        case STD_INPUT_HANDLE:
+            return NtCurrentPeb()->ProcessParameters->StandardInput;
+        case STD_OUTPUT_HANDLE:
+            return NtCurrentPeb()->ProcessParameters->StandardOutput;
+        case STD_ERROR_HANDLE:
+            return NtCurrentPeb()->ProcessParameters->StandardError;
+        }
+
+        return INVALID_HANDLE_VALUE;
+    }
+    else
+    {
+        return GetStdHandle(StdHandle);
+    }
+}
