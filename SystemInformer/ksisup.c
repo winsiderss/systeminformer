@@ -1218,7 +1218,17 @@ PVOID PhCreateKsiSettingsBlob(
 
     object = PhCreateJsonObject();
 
+#if defined(PH_BUILD_MSIX)
+    PPH_STRING fileName;
+    PH_FORMAT format[4];
+    PhInitFormatS(&format[0], L"\\Drivers");
+    PhInitFormatS(&format[1], L"\\SystemInformer");
+    fileName = PhFormat(format, RTL_NUMBER_OF(format), MAX_PATH);
+    directory = PhGetSystemDirectoryWin32(&fileName->sr);
+    PhDereferenceObject(fileName);
+#else
     directory = PhGetApplicationDirectoryWin32();
+#endif
     value = PhConvertUtf16ToUtf8Ex(directory->Buffer, directory->Length);
     PhDereferenceObject(directory);
 
