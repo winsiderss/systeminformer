@@ -342,6 +342,13 @@ PhGetXmlNodeElementText(
     );
 
 PHLIBAPI
+PSTR
+NTAPI
+PhGetXmlNodeCDATAText(
+    _In_ PVOID XmlNodeObject
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetXmlNodeAttributeText(
