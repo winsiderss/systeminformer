@@ -220,12 +220,26 @@ VOID PhSetHMenuStyle(
     _In_ BOOLEAN MainMenu
     );
 
-VOID PhSetHMenuNotify(
+BOOLEAN PhSetHMenuWindow(
+    _In_ HWND WindowHandle,
+    _In_ HMENU MenuHandle
+    );
+
+BOOLEAN PhSetHMenuNotify(
     _In_ HMENU MenuHandle
     );
 
 VOID PhDeleteHMenu(
     _In_ HMENU Menu
+    );
+
+_Success_(return)
+BOOLEAN PhGetHMenuStringToBuffer(
+    _In_ HMENU Menu,
+    _In_ ULONG Id,
+    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _In_opt_ SIZE_T BufferLength,
+    _Out_opt_ PSIZE_T ReturnLength
     );
 
 // Convenience functions
