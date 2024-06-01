@@ -3544,6 +3544,13 @@ PhIsEcCode(
     );
 #endif
 
+PHLIBAPI
+HANDLE
+NTAPI
+PhGetStdHandle(
+    _In_ ULONG StdHandle
+    );
+
 EXTERN_C_END
 
 #endif
