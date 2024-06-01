@@ -15,8 +15,6 @@
 
 #define PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
 
-#pragma push_macro("T")
-
 #undef T
 #define T ULONG
 #include "circbuf_h.h"
@@ -37,6 +35,6 @@
 #define T FLOAT
 #include "circbuf_h.h"
 
-#pragma pop_macro("T")
+#undef T
 
 #endif
