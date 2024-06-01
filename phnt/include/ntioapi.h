@@ -893,9 +893,8 @@ typedef struct _FILE_STAT_INFORMATION
     ULONG NumberOfLinks;
     ACCESS_MASK EffectiveAccess;
 } FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
-#endif
 
-typedef struct _FILE_STAT_BASIC_INFORMATION 
+typedef struct _FILE_STAT_BASIC_INFORMATION
 {
     LARGE_INTEGER FileId;
     LARGE_INTEGER CreationTime;
@@ -913,6 +912,7 @@ typedef struct _FILE_STAT_BASIC_INFORMATION
     LARGE_INTEGER VolumeSerialNumber;
     FILE_ID_128 FileId128;
 } FILE_STAT_BASIC_INFORMATION, *PFILE_STAT_BASIC_INFORMATION;
+#endif
 
 typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 {
@@ -1806,7 +1806,7 @@ typedef enum _DIRECTORY_NOTIFY_INFORMATION_CLASS
     DirectoryNotifyMaximumInformation
 } DIRECTORY_NOTIFY_INFORMATION_CLASS, *PDIRECTORY_NOTIFY_INFORMATION_CLASS;
 
-//typedef struct _FILE_NOTIFY_INFORMATION 
+//typedef struct _FILE_NOTIFY_INFORMATION
 //{
 //    ULONG NextEntryOffset;
 //    ULONG Action;
@@ -1815,7 +1815,7 @@ typedef enum _DIRECTORY_NOTIFY_INFORMATION_CLASS
 //} FILE_NOTIFY_INFORMATION, *PFILE_NOTIFY_INFORMATION;
 
 #if !defined(NTDDI_WIN10_RS5) || (NTDDI_VERSION < NTDDI_WIN10_RS5)
-typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION 
+typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
 {
     ULONG NextEntryOffset;
     ULONG Action;
@@ -1826,7 +1826,7 @@ typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
     LARGE_INTEGER AllocatedLength;
     LARGE_INTEGER FileSize;
     ULONG FileAttributes;
-    union 
+    union
     {
         ULONG ReparsePointTag;
         ULONG EaSize;
@@ -1845,7 +1845,7 @@ typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
 #define FILE_NAME_FLAGS_UNSPECIFIED  0x80 // not specified by file system (do not combine with other flags)
 
 #if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
-typedef struct _FILE_NOTIFY_FULL_INFORMATION 
+typedef struct _FILE_NOTIFY_FULL_INFORMATION
 {
     ULONG NextEntryOffset;
     ULONG Action;
@@ -1856,7 +1856,7 @@ typedef struct _FILE_NOTIFY_FULL_INFORMATION
     LARGE_INTEGER AllocatedLength;
     LARGE_INTEGER FileSize;
     ULONG FileAttributes;
-    union 
+    union
     {
         ULONG ReparsePointTag;
         ULONG EaSize;
