@@ -80,7 +80,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableShutdownBootMenu", L"1");
     PhpAddIntegerSetting(L"EnableSilentCrashNotify", L"0");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
-    PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"1");
+    PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
     PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
     PhpAddIntegerSetting(L"EnableThreadStackLineInformation", L"1");
