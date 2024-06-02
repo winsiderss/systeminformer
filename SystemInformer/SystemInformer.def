@@ -385,6 +385,7 @@ EXPORTS
     PhEscapeCommandLinePart
     PhEscapeStringForMenuPrefix
     PhExpandEnvironmentStrings
+    PhFileReadAllTextWin32
     PhFinalHash
     PhFormatDate
     PhFormatDateTime
