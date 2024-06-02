@@ -1295,9 +1295,9 @@ PVOID KphpTrackContext(
     object = KphCidReferenceObject(entry);
     if (object)
     {
-        if (KphGetObjectType(object) == ObjectType)
+        if (KphGetObjectType(object) != ObjectType)
         {
-            KphReferenceObject(object);
+            KphDereferenceObject(object);
             object = NULL;
         }
 
