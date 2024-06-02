@@ -23,6 +23,10 @@ VOID ShowGeoLiteConfigDialog(
     _In_ PVOID Parameter
     );
 
+VOID GeoLiteUpdateFromConfigFile(
+    _In_ PPH_STRING FileName
+    );
+
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -103,6 +107,32 @@ INT_PTR CALLBACK OptionsDlgProc(
                     ShowGeoLiteUpdateDialog(WindowHandle);
                 }
                 break;
+            case IDC_GEOCONF:
+                {
+                    static PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"GeoIP.conf files (*.conf)", L"*.conf" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog;
+                    PPH_STRING fileName = NULL;
+
+                    fileDialog = PhCreateOpenFileDialog();
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    if (PhShowFileDialog(WindowHandle, fileDialog))
+                    {
+                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+
+                    if (!PhIsNullOrEmptyString(fileName))
+                    {
+                        GeoLiteUpdateFromConfigFile(fileName);
+                    }
+                }
+                break;
             }
         }
         break;
@@ -152,7 +182,7 @@ INT_PTR CALLBACK OptionsGeoLiteDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                EndDialog(WindowHandle, FALSE);
+                EndDialog(WindowHandle, IDCANCEL);
                 break;
             case IDYES:
                 {
@@ -172,7 +202,7 @@ INT_PTR CALLBACK OptionsGeoLiteDlgProc(
                         PhClearReference(&string);
                     }
 
-                    EndDialog(WindowHandle, FALSE);
+                    EndDialog(WindowHandle, IDOK);
                 }
                 break;
             }
@@ -208,6 +238,69 @@ INT_PTR CALLBACK OptionsGeoLiteDlgProc(
     }
 
     return FALSE;
+}
+
+VOID GeoLiteUpdateFromConfigFile(
+    _In_ PPH_STRING FileName
+    )
+{
+    static PH_STRINGREF skipFileLine = PH_STRINGREF_INIT(L"\n");
+    PPH_STRING content;
+    PH_STRINGREF firstPart;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF namePart;
+    PH_STRINGREF valuePart;
+    PPH_STRING accountString = NULL;
+    PPH_STRING licenseString = NULL;
+
+    content = PhFileReadAllTextWin32(PhGetString(FileName), TRUE);
+
+    if (!PhIsNullOrEmptyString(content))
+        return;
+
+    remainingPart = PhGetStringRef(content);
+
+    while (remainingPart.Length != 0)
+    {
+        PhSplitStringRefAtString(&remainingPart, &skipFileLine, TRUE, &firstPart, &remainingPart);
+
+        if (firstPart.Length != 0)
+        {
+            if (PhSplitStringRefAtChar(&firstPart, L' ', &namePart, &valuePart))
+            {
+                if (PhEqualStringRef2(&namePart, L"AccountID", TRUE))
+                {
+                    accountString = PhCreateString2(&valuePart);
+                }
+
+                if (PhEqualStringRef2(&namePart, L"LicenseKey", TRUE))
+                {
+                    licenseString = PhCreateString2(&valuePart);
+                }
+
+                if (
+                    !PhIsNullOrEmptyString(accountString) &&
+                    !PhIsNullOrEmptyString(licenseString)
+                    )
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    if (
+        !PhIsNullOrEmptyString(accountString) &&
+        !PhIsNullOrEmptyString(licenseString)
+        )
+    {
+        PhSetStringSetting(SETTING_NAME_GEOLITE_API_ID, PhGetStringOrEmpty(accountString));
+        PhSetStringSetting(SETTING_NAME_GEOLITE_API_KEY, PhGetStringOrEmpty(licenseString));
+    }
+
+    PhClearReference(&accountString);
+    PhClearReference(&licenseString);
+    PhClearReference(&content);
 }
 
 VOID ShowGeoLiteConfigDialog(

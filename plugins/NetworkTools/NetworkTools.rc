@@ -71,13 +71,13 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,19,115,10
     EDITTEXT        IDC_KEYTEXT,16,100,184,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
     LTEXT           "MaxMind GeoLite Account ID:",IDC_STATIC,16,89,95,8
-    PUSHBUTTON      "Open GeoIP.conf",IDRETRY,122,146,62,14
+    PUSHBUTTON      "Open GeoIP.conf",IDC_GEOCONF,122,146,62,14
     PUSHBUTTON      "Change",IDC_APIKEYBTN,202,100,50,14
     LTEXT           "Note: You can also download GeoLite updates from the Main menu > Tools > Network Tools > Update GeoLite...",IDC_STATIC,16,167,271,24
     EDITTEXT        IDC_GEOIDTEXT,16,126,184,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
     LTEXT           "MaxMind GeoLite License Key:",IDC_STATIC,16,116,97,8
     PUSHBUTTON      "Change",IDC_APIKEYIDBTN,202,126,50,14
-    PUSHBUTTON      "Download update",IDRETRY2,189,146,62,14
+    PUSHBUTTON      "Download update",IDRETRY,189,146,62,14
     GROUPBOX        "Network Tools",IDC_STATIC,7,7,222,63
     GROUPBOX        "GeoLite Update",IDC_STATIC,7,74,290,118
     COMBOBOX        IDC_GEODBCOMBO,17,147,92,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
