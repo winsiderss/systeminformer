@@ -22,6 +22,7 @@
 #include <procprv.h>
 #include <phsettings.h>
 
+static BOOLEAN ShowCommitInSummary;
 static PPH_SYSINFO_SECTION MemorySection;
 static HWND MemoryDialog;
 static PH_LAYOUT_MANAGER MemoryLayoutManager;
@@ -59,6 +60,7 @@ BOOLEAN PhSipMemorySectionCallback(
     {
     case SysInfoCreate:
         {
+            ShowCommitInSummary = !!PhGetIntegerSetting(L"ShowCommitInSummary");
             MemorySection = Section;
         }
         return TRUE;
@@ -116,7 +118,7 @@ BOOLEAN PhSipMemorySectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
 
-            if (PhGetIntegerSetting(L"ShowCommitInSummary"))
+            if (ShowCommitInSummary)
             {
                 drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
                 Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPrivate, 0, Section->Parameters->WindowDpi);
@@ -219,7 +221,7 @@ BOOLEAN PhSipMemorySectionCallback(
             ULONG usedPages;
             PH_FORMAT format[3];
 
-            if (PhGetIntegerSetting(L"ShowCommitInSummary"))
+            if (ShowCommitInSummary)
             {
                 usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
 
@@ -252,7 +254,7 @@ BOOLEAN PhSipMemorySectionCallback(
             ULONG usedPages;
             PH_FORMAT format[5];
 
-            if (PhGetIntegerSetting(L"ShowCommitInSummary"))
+            if (ShowCommitInSummary)
             {
                 totalPages = PhPerfInformation.CommitLimit;
                 usedPages = PhPerfInformation.CommittedPages;
