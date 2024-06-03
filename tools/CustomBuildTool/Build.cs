@@ -299,8 +299,8 @@ namespace CustomBuildTool
 
         public static bool CopyWow64Files(BuildFlags Flags)
         {
-            string[] Build_Wow64_Files = 
-            [         
+            string[] Build_Wow64_Files =
+            [
                 "SystemInformer.exe",
                 "SystemInformer.pdb",
                 "SystemInformer.sig",
@@ -632,7 +632,7 @@ namespace CustomBuildTool
             Win32.CopyIfNewer("SystemInformer\\sdk\\phapppub.h", "sdk\\include\\phapppub.h");
             Win32.CopyIfNewer("SystemInformer\\sdk\\phdk.h", "sdk\\include\\phdk.h");
             //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h");
-            
+
             // Copy the resource header and prefix types with PHAPP
             {
                 FileInfo sourceFile = new FileInfo("SystemInformer\\resource.h");
