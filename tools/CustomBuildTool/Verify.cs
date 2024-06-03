@@ -234,13 +234,13 @@ namespace CustomBuildTool
 
         private static string GetPath(string FileName)
         {
-            return Path.Combine([Build.BuildWorkingFolder, "\\tools\\CustomSignTool\\Resources\\", FileName]);
+            return Path.Join([Build.BuildWorkingFolder, "\\tools\\CustomSignTool\\Resources\\", FileName]);
         }
 
         private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
         {
             if (
-                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret) && 
+                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret) &&
                 Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Value, out string salt)
                 )
             {
