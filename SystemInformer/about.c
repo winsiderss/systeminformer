@@ -208,9 +208,9 @@ PPH_STRING PhGetDiagnosticsString(
     OBJECT_TYPE_COUNT(PhMemoryItemType);
     OBJECT_TYPE_COUNT(PhImageListItemType);
 
+#ifdef DEBUG
     PhAppendStringBuilder2(&stringBuilder, L"STATISTIC INFORMATION\r\n");
 
-#ifdef DEBUG
 #define PRINT_STATISTIC(Name) PhAppendFormatStringBuilder(&stringBuilder, \
     TEXT(#Name) L": %u\r\n", PhLibStatisticsBlock.Name)
 
