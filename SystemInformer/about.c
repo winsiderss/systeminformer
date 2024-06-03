@@ -210,6 +210,7 @@ PPH_STRING PhGetDiagnosticsString(
 
     PhAppendStringBuilder2(&stringBuilder, L"STATISTIC INFORMATION\r\n");
 
+#ifdef DEBUG
 #define PRINT_STATISTIC(Name) PhAppendFormatStringBuilder(&stringBuilder, \
     TEXT(#Name) L": %u\r\n", PhLibStatisticsBlock.Name)
 
@@ -237,6 +238,7 @@ PPH_STRING PhGetDiagnosticsString(
     PRINT_STATISTIC(WqWorkQueueThreadsCreated);
     PRINT_STATISTIC(WqWorkQueueThreadsCreateFailed);
     PRINT_STATISTIC(WqWorkItemsQueued);
+#endif
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
