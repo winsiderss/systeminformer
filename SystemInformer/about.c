@@ -208,6 +208,7 @@ PPH_STRING PhGetDiagnosticsString(
     OBJECT_TYPE_COUNT(PhMemoryItemType);
     OBJECT_TYPE_COUNT(PhImageListItemType);
 
+#ifdef DEBUG
     PhAppendStringBuilder2(&stringBuilder, L"STATISTIC INFORMATION\r\n");
 
 #define PRINT_STATISTIC(Name) PhAppendFormatStringBuilder(&stringBuilder, \
@@ -237,6 +238,7 @@ PPH_STRING PhGetDiagnosticsString(
     PRINT_STATISTIC(WqWorkQueueThreadsCreated);
     PRINT_STATISTIC(WqWorkQueueThreadsCreateFailed);
     PRINT_STATISTIC(WqWorkItemsQueued);
+#endif
 
     return PhFinalStringBuilderString(&stringBuilder);
 }

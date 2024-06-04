@@ -119,8 +119,6 @@ INT WINAPI wWinMain(
         return 1;
     if (!PhInitializeExceptionPolicy())
         return 1;
-    if (!PhInitializeMitigationPolicy())
-        return 1;
     if (!PhInitializeNamespacePolicy())
         return 1;
     if (!PhInitializeComPolicy())
@@ -214,6 +212,10 @@ INT WINAPI wWinMain(
     {
         PhLoadPlugins();
     }
+
+    // N.B. Must be called after loading plugins since we set Microsoft signed only.
+    if (!PhInitializeMitigationPolicy())
+        return 1;
 
     if (PhStartupParameters.PhSvc)
     {

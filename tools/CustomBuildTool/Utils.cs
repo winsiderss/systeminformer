@@ -127,7 +127,7 @@ namespace CustomBuildTool
 
         public static string GetPath(string FileName)
         {
-            return Path.Combine([Build.BuildWorkingFolder, FileName]);
+            return Path.Join([Build.BuildWorkingFolder, FileName]);
         }
 
         public static void CreateOutputDirectory()
@@ -432,7 +432,7 @@ namespace CustomBuildTool
                     return string.Empty;
 
                 DirectoryInfo info = new DirectoryInfo(directory);
-                
+
                 while (info.Parent != null && info.Parent.Parent != null)
                 {
                     info = info.Parent;
