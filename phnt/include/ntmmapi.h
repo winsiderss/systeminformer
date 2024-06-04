@@ -904,7 +904,7 @@ typedef enum _PARTITION_INFORMATION_CLASS
 #define SystemMemoryPartitionMemoryChargeAttributes 0xB
 #define SystemMemoryPartitionClearAttributes 0xC
 #define SystemMemoryPartitionSetMemoryThresholds 0xD
-#define SystemMemoryPartitionSetMemoryThresholds 0xE
+#define SystemMemoryPartitionMemoryListCommand 0xE
 #define SystemMemoryPartitionMax 0xF
 #endif
 
