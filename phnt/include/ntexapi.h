@@ -3371,7 +3371,11 @@ typedef struct _MEMORY_SCRUB_INFORMATION
 // private
 typedef union _SYSTEM_BAD_PAGE_INFORMATION
 {
+#ifdef _WIN64
     ULONG_PTR PhysicalPageNumber : 52;
+#else
+    ULONG PhysicalPageNumber : 20;
+#endif
     ULONG_PTR Reserved : 10;
     ULONG_PTR Pending : 1;
     ULONG_PTR Poisoned : 1;
