@@ -1124,6 +1124,33 @@ VOID KphpHandleUntrustedImageLoad(
 
     if (KphParameterFlags.DisableImageLoadProtection)
     {
+        //
+        // Image load protections are disable. Do not deny the image load. We
+        // will still mark an untrusted image load. This will restrict access
+        // to the driver.
+        //
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Image load protections are disabled.");
+        goto Exit;
+    }
+
+    if ((Process->NumberOfImageLoads == 1) &&
+        (PsGetProcessSectionBaseAddress(Process->EProcess) == ImageBase))
+    {
+        //
+        // The primary image is being loaded. Rather than deny the image load
+        // we will allow it to go through but will still mark an untrusted
+        // image load. This will restrict access to the driver. But will allow
+        // the process to continue starting.
+        //
+        // N.B. If another untrusted image is loaded other than the primary
+        // image that is critical to starting the process, it will still fail
+        // to start.
+        //
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Image base is the process section base address.");
         goto Exit;
     }
 
