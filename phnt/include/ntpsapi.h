@@ -221,6 +221,10 @@ typedef enum _PROCESSINFOCLASS
     ProcessMembershipInformation, // q: PROCESS_MEMBERSHIP_INFORMATION
     ProcessEffectiveIoPriority, // q: IO_PRIORITY_HINT
     ProcessEffectivePagePriority, // q: ULONG
+    ProcessSchedulerSharedData, // since 24H2
+    ProcessSlistRollbackInformation,
+    ProcessNetworkIoCounters, // q: PROCESS_NETWORK_COUNTERS
+    ProcessFindFirstThreadByTebValue,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -284,6 +288,10 @@ typedef enum _THREADINFOCLASS
     ThreadStrongerBadHandleChecks, // since 22H1
     ThreadEffectiveIoPriority, // q: IO_PRIORITY_HINT
     ThreadEffectivePagePriority, // q: ULONG
+    ThreadUpdateLockOwnership, // since 24H2
+    ThreadSchedulerSharedDataSlot,
+    ThreadTebInformationAtomic, // THREAD_TEB_INFORMATION
+    ThreadIndexInformation, // THREAD_INDEX_INFORMATION
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -1045,6 +1053,12 @@ typedef struct _PROCESS_MEMBERSHIP_INFORMATION
     ULONG ServerSiloId;
 } PROCESS_MEMBERSHIP_INFORMATION, *PPROCESS_MEMBERSHIP_INFORMATION;
 
+typedef struct _PROCESS_NETWORK_COUNTERS
+{
+    ULONG_PTR BytesIn;
+    ULONG_PTR BytesOut;
+} PROCESS_NETWORK_COUNTERS, *PPROCESS_NETWORK_COUNTERS;
+
 // end_private
 
 NTSYSCALLAPI
@@ -1307,6 +1321,13 @@ typedef struct DECLSPEC_ALIGN(8) DECLSPEC_NOINITALL _ARM_NT_CONTEXT {
 } ARM_NT_CONTEXT, *PARM_NT_CONTEXT;
 
 #endif
+
+// private
+typedef struct _THREAD_INDEX_INFORMATION
+{
+    ULONG Index;
+    ULONG Sequence;
+} THREAD_INDEX_INFORMATION, *PTHREAD_INDEX_INFORMATION;
 
 // Processes
 
@@ -1816,6 +1837,7 @@ NtWaitForAlertByThreadId(
 #define ProcThreadAttributeEnableOptionalXStateFeatures 27 // in ULONG64 // since WIN11
 #define ProcThreadAttributeCreateStore 28 // ULONG // rev (diversenok)
 #define ProcThreadAttributeTrustedApp 29
+#define ProcThreadAttributeSveVectorLength 30
 
 #ifndef PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS
 #define PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS \
@@ -1964,6 +1986,8 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeMachineType, // in USHORT // since 21H2
     PsAttributeComponentFilter,
     PsAttributeEnableOptionalXStateFeatures, // since WIN11
+    PsAttributeSupportedMachines, // since 24H2
+    PsAttributeSveVectorLength,
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -2193,6 +2217,7 @@ typedef enum _PS_MITIGATION_OPTION
     PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY,
     PS_MITIGATION_OPTION_REDIRECTION_TRUST, // since 22H1
     PS_MITIGATION_OPTION_RESTRICT_CORE_SHARING,
+    PS_MITIGATION_OPTION_FSCTL_SYSTEM_CALL_DISABLE, // since 24H2
 } PS_MITIGATION_OPTION;
 
 // windows-internals-book:"Chapter 5"
@@ -2396,7 +2421,9 @@ NtCreateThreadEx(
 #define JobObjectThreadImpersonationInformation 47
 #define JobObjectIoPriorityLimit 48 // JOBOBJECT_IO_PRIORITY_LIMIT
 #define JobObjectPagePriorityLimit 49 // JOBOBJECT_PAGE_PRIORITY_LIMIT
-#define MaxJobObjectInfoClass 50
+#define JobObjectServerSiloDiagnosticInformation 50 // since 24H2
+#define JobObjectNetworkAccountingInformation 51
+#define MaxJobObjectInfoClass 52
 
 // rev // extended limit v2
 #define JOB_OBJECT_LIMIT_SILO_READY 0x00400000
@@ -2505,6 +2532,7 @@ typedef struct _SILO_USER_SHARED_DATA
     ULONG SuiteMask;
     ULONG SharedUserSessionId; // since RS2
     BOOLEAN IsMultiSessionSku;
+    BOOLEAN IsStateSeparationEnabled;
     WCHAR NtSystemRoot[260];
     USHORT UserModeGlobalLogger[16];
     ULONG TimeZoneId; // since 21H2

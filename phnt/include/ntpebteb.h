@@ -349,7 +349,11 @@ typedef struct _TEB
     ULONG FpSoftwareStatusRegister;
     PVOID ReservedForDebuggerInstrumentation[16];
 #ifdef _WIN64
-    PVOID SystemReserved1[30];
+    PVOID SystemReserved1[25];
+
+    PVOID HeapFlsData;
+
+    ULONG_PTR RngState[4];
 #else
     PVOID SystemReserved1[26];
 #endif
@@ -362,6 +366,7 @@ typedef struct _TEB
     ACTIVATION_CONTEXT_STACK ActivationStack;
 
     UCHAR WorkingOnBehalfTicket[8];
+
     NTSTATUS ExceptionCode;
 
     PACTIVATION_CONTEXT_STACK ActivationContextStackPointer;
@@ -398,10 +403,12 @@ typedef struct _TEB
     PVOID glContext;
 
     NTSTATUS LastStatusValue;
+
     UNICODE_STRING StaticUnicodeString;
     WCHAR StaticUnicodeBuffer[STATIC_UNICODE_BUFFER_LENGTH];
 
     PVOID DeallocationStack;
+
     PVOID TlsSlots[TLS_MINIMUM_AVAILABLE];
     LIST_ENTRY TlsLinks;
 
@@ -445,8 +452,8 @@ typedef struct _TEB
     PVOID ThreadPoolData;
     PVOID *TlsExpansionSlots;
 #ifdef _WIN64
-    PVOID DeallocationBStore;
-    PVOID BStoreLimit;
+    PVOID ChpeV2CpuAreaInfo; // CHPEV2_CPUAREA_INFO // previously DeallocationBStore
+    PVOID Unused; // previously BStoreLimit
 #endif
     ULONG MuiGeneration;
     ULONG IsImpersonating;
@@ -503,12 +510,18 @@ typedef struct _TEB
     ULONGLONG LastSleepCounter; // Win11
     ULONG SpinCallCount;
     ULONGLONG ExtendedFeatureDisableMask;
+    PVOID SchedulerSharedDataSlot; // 24H2
+    PVOID HeapWalkContext;
+    GROUP_AFFINITY PrimaryGroupAffinity;
+    ULONG Rcu[2];
 } TEB, *PTEB;
 
 #ifdef _WIN64
-C_ASSERT(sizeof(TEB) == 0x1850); // WIN11
+//C_ASSERT(sizeof(TEB) == 0x1850); // WIN11
+C_ASSERT(sizeof(TEB) == 0x1878); // 24H2
 #else
-C_ASSERT(sizeof(TEB) == 0x1018); // WIN11
+//C_ASSERT(sizeof(TEB) == 0x1018); // WIN11
+C_ASSERT(sizeof(TEB) == 0x1038); // 24H2
 #endif
 
 #endif
