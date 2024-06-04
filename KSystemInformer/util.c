@@ -2389,6 +2389,7 @@ NTSTATUS KphGetSigningLevel(
     ULONG thumbprintAlgorithm;
     ANSI_STRING issuer;
     ANSI_STRING subject;
+    BOOLEAN microsoftSigned;
 
     PAGED_CODE_PASSIVE();
 
@@ -2446,6 +2447,21 @@ NTSTATUS KphGetSigningLevel(
         RtlZeroMemory(&subject, sizeof(subject));
     }
 
+    if (!NT_SUCCESS(status) ||
+        !NT_SUCCESS(policyInfo.VerificationStatus) ||
+        BooleanFlagOn(policyInfo.PolicyBits,
+                      (MINCRYPT_POLICY_ERROR_FLAGS |
+                       MINCRYPT_POLICY_3RD_PARTY_ROOT |
+                       MINCRYPT_POLICY_NO_ROOT |
+                       MINCRYPT_POLICY_OTHER_ROOT)))
+    {
+        microsoftSigned = FALSE;
+    }
+    else
+    {
+        microsoftSigned = TRUE;
+    }
+
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   PROTECTION,
                   "CiValidateFileObject: \"%wZ\" 0x%08lx \"%Z\" \"%Z\" "
@@ -2466,7 +2482,22 @@ NTSTATUS KphGetSigningLevel(
                                      NULL,
                                      NULL,
                                      NULL);
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    //
+    // Caching of the signing level failed. If CI tells us this is Microsoft
+    // signed then we'll return that, otherwise return the errant status.
+    //
+
+    if (microsoftSigned)
+    {
+        *SigningLevel = SE_SIGNING_LEVEL_MICROSOFT;
+        status = STATUS_SUCCESS;
+    }
+    else
     {
         *SigningLevel = SE_SIGNING_LEVEL_UNCHECKED;
     }
