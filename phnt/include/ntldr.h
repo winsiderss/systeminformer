@@ -648,6 +648,13 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
     ULONG_PTR Wow64CfgBitMap;
     ULONG_PTR Wow64CfgBitMapSize;
     PS_MITIGATION_AUDIT_OPTIONS_MAP MitigationAuditOptionsMap; // REDSTONE3
+    ULONG_PTR ScpCfgCheckFunction; // since 24H2
+    ULONG_PTR ScpCfgCheckESFunction;
+    ULONG_PTR ScpCfgDispatchFunction;
+    ULONG_PTR ScpCfgDispatchESFunction;
+    ULONG_PTR ScpArm64EcCallCheck;
+    ULONG_PTR ScpArm64EcCfgCheckFunction;
+    ULONG_PTR ScpArm64EcCfgCheckESFunction;
 } PS_SYSTEM_DLL_INIT_BLOCK, *PPS_SYSTEM_DLL_INIT_BLOCK;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)

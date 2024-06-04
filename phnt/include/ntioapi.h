@@ -304,6 +304,8 @@ typedef enum _FILE_INFORMATION_CLASS
     FileId64ExtdBothDirectoryInformation,
     FileIdAllExtdDirectoryInformation,
     FileIdAllExtdBothDirectoryInformation,
+    FileStreamReservationInformation, // FILE_STREAM_RESERVATION_INFORMATION // since 24H2
+    FileMupProviderInfo, // MUP_PROVIDER_INFORMATION
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -989,6 +991,21 @@ typedef struct _FILE_KNOWN_FOLDER_INFORMATION
 {
     FILE_KNOWN_FOLDER_TYPE Type;
 } FILE_KNOWN_FOLDER_INFORMATION, *PFILE_KNOWN_FOLDER_INFORMATION;
+
+// private
+typedef struct _FILE_STREAM_RESERVATION_INFORMATION
+{
+    ULONG_PTR TrackedReservation;
+    ULONG_PTR EnforcedReservation;
+} FILE_STREAM_RESERVATION_INFORMATION, *PFILE_STREAM_RESERVATION_INFORMATION;
+
+// private
+typedef struct _MUP_PROVIDER_INFORMATION
+{
+    ULONG Level;
+    PVOID Buffer;
+    SIZE_T BufferSize;
+} MUP_PROVIDER_INFORMATION, *PMUP_PROVIDER_INFORMATION;
 
 // NtQueryDirectoryFile types
 
