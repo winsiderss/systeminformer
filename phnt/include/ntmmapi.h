@@ -248,7 +248,8 @@ typedef struct _MEMORY_IMAGE_INFORMATION
             ULONG ImagePartialMap : 1;
             ULONG ImageNotExecutable : 1;
             ULONG ImageSigningLevel : 4; // REDSTONE3
-            ULONG Reserved : 26;
+            ULONG ImageExtensionPresent : 1; // since 24H2
+            ULONG Reserved : 25;
         };
     };
 } MEMORY_IMAGE_INFORMATION, *PMEMORY_IMAGE_INFORMATION;
@@ -500,7 +501,9 @@ typedef struct _SECTION_INTERNAL_IMAGE_INFORMATION
             ULONG ImageCetDynamicApisAllowInProc : 1;
             ULONG ImageCetDowngradeReserved1 : 1;
             ULONG ImageCetDowngradeReserved2 : 1;
-            ULONG Reserved : 24;
+            ULONG ImageExportSuppressionInfoPresent : 1;
+            ULONG ImageCfgEnabled : 1;
+            ULONG Reserved : 22;
         };
     };
 } SECTION_INTERNAL_IMAGE_INFORMATION, *PSECTION_INTERNAL_IMAGE_INFORMATION;
@@ -883,6 +886,7 @@ typedef enum _PARTITION_INFORMATION_CLASS
     SystemMemoryPartitionMemoryChargeAttributes,
     SystemMemoryPartitionClearAttributes,
     SystemMemoryPartitionSetMemoryThresholds, // since WIN11
+    SystemMemoryPartitionMemoryListCommand, // since 24H2
     SystemMemoryPartitionMax
 } PARTITION_INFORMATION_CLASS, *PPARTITION_INFORMATION_CLASS;
 #else
@@ -900,7 +904,8 @@ typedef enum _PARTITION_INFORMATION_CLASS
 #define SystemMemoryPartitionMemoryChargeAttributes 0xB
 #define SystemMemoryPartitionClearAttributes 0xC
 #define SystemMemoryPartitionSetMemoryThresholds 0xD
-#define SystemMemoryPartitionMax 0xE
+#define SystemMemoryPartitionMemoryListCommand 0xE
+#define SystemMemoryPartitionMax 0xF
 #endif
 
 // private
