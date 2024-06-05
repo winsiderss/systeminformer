@@ -2760,6 +2760,15 @@ PhGetNamedPipeServerProcessId(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhEnumDirectoryNamedPipe(
+    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetThreadName(
     _In_ HANDLE ThreadHandle,
     _Out_ PPH_STRING *ThreadName
