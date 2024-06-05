@@ -97,7 +97,7 @@ VOID EtEnumerateNamedPipeDirectory(
         objectAttributes.SecurityQualityOfService = &pipeSecurityQos;
 
         status = NtOpenFile(
-            &fileHandle,
+            &pipeHandle,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             &objectAttributes,
             &ioStatusBlock,
