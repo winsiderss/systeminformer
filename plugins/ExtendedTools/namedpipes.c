@@ -71,7 +71,6 @@ VOID EtEnumerateNamedPipeDirectory(
         INT lvItemIndex;
 
         NTSTATUS status;
-        HANDLE fileHandle;
         UNICODE_STRING fileName;
         OBJECT_ATTRIBUTES objectAttributes;
         IO_STATUS_BLOCK ioStatusBlock;
