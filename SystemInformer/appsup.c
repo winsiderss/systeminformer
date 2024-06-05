@@ -44,7 +44,7 @@ BOOLEAN PhGetProcessIsSuspended(
             return FALSE;
     }
 
-    return Process->NumberOfThreads != 0;
+    return Process->UserTime.QuadPart + Process->KernelTime.QuadPart != 0 && Process->NumberOfThreads != 0;
 }
 
 BOOLEAN PhIsProcessSuspended(
