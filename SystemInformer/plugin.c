@@ -752,27 +752,27 @@ PVOID PhGetPluginInterface(
     )
 {
     PPH_PLUGIN plugin;
-    PVOID interface;
+    PVOID iface;
 
     if (plugin = PhFindPlugin2(Name))
     {
-        interface = PhGetPluginInformation(plugin)->Interface;
+        iface = PhGetPluginInformation(plugin)->Interface;
 
         if (Version)
         {
             struct
             {
                 ULONG Version;
-            } *Interface = interface;
+            } *Interface = iface;
 
             if (Interface->Version <= Version)
             {
-                return interface;
+                return iface;
             }
         }
         else
         {
-            return interface;
+            return iface;
         }
     }
 
