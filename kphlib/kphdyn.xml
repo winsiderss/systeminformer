@@ -321,7 +321,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0518" name="EpSectionObject"/>
     </data>
     <!-- Windows 10 -->
-    <data min="10.0.19041.1586" max="10.0.19041.4412">
+    <data min="10.0.19041.1586" max="10.0.19041.4474">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
