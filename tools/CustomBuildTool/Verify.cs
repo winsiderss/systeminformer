@@ -13,21 +13,21 @@ namespace CustomBuildTool
 {
     public static class Verify
     {
-        public static readonly SortedDictionary<string, KeyValuePair<string, string>> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
+        public static readonly SortedDictionary<string, string> KeyName_Vars = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "kph",       new("KPH_BUILD_KEY", "KPH_BUILD_SALT")},
-            { "release",   new("RELEASE_BUILD_KEY", "RELEASE_BUILD_SALT")},
-            { "preview",   new("PREVIEW_BUILD_KEY", "PREVIEW_BUILD_SALT")},
-            { "canary",    new("CANARY_BUILD_KEY", "CANARY_BUILD_SALT")},
-            { "developer", new("DEVELOPER_BUILD_KEY", "DEVELOPER_BUILD_SALT")},
+            { "kph",       "KPH_BUILD_KEY" },
+            { "release",   "RELEASE_BUILD_KEY" },
+            { "preview",   "PREVIEW_BUILD_KEY" },
+            { "canary",    "CANARY_BUILD_KEY" },
+            { "developer", "DEVELOPER_BUILD_KEY" },
         };
 
-        public static bool EncryptFile(string FileName, string OutFileName, string Secret, string Salt)
+        public static bool EncryptFile(string FileName, string OutFileName, string Secret)
         {
             try
             {
                 var fileBytes = Utils.ReadAllBytes(FileName);
-                var encryptedBytes = Encrypt(fileBytes, Secret, Salt);
+                var encryptedBytes = Encrypt(fileBytes, Secret);
                 Utils.WriteAllBytes(OutFileName, encryptedBytes);
             }
             catch (Exception e)
@@ -39,12 +39,12 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool DecryptFile(string FileName, string OutFileName, string Secret, string Salt)
+        public static bool DecryptFile(string FileName, string OutFileName, string Secret)
         {
             try
             {
                 var fileBytes = Utils.ReadAllBytes(FileName);
-                var decryptedBytes = Decrypt(fileBytes, Secret, Salt);
+                var decryptedBytes = Decrypt(fileBytes, Secret);
                 Utils.WriteAllBytes(OutFileName, decryptedBytes);
             }
             catch (Exception e)
@@ -135,7 +135,7 @@ namespace CustomBuildTool
             return !string.IsNullOrWhiteSpace(Signature);
         }
 
-        private static byte[] Encrypt(byte[] Bytes, string Secret, string Salt)
+        private static byte[] Encrypt(byte[] Bytes, string Secret)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(0x1000);
 
@@ -143,7 +143,7 @@ namespace CustomBuildTool
             {
                 using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x1000, true, true))
                 {
-                    using (var rijndael = GetRijndael(Secret, Salt))
+                    using (var rijndael = GetRijndael(Secret))
                     using (var cryptoEncrypt = rijndael.CreateEncryptor())
                     using (MemoryStream blobStream = new MemoryStream(Bytes))
                     using (CryptoStream cryptoStream = new CryptoStream(memoryStream, cryptoEncrypt, CryptoStreamMode.Write, true))
@@ -168,7 +168,7 @@ namespace CustomBuildTool
             return null;
         }
 
-        private static byte[] Decrypt(byte[] Bytes, string Secret, string Salt)
+        private static byte[] Decrypt(byte[] Bytes, string Secret)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(0x1000);
 
@@ -176,7 +176,7 @@ namespace CustomBuildTool
             {
                 using (MemoryStream memoryStream = new MemoryStream(buffer, 0, 0x1000, true, true))
                 {
-                    using (var rijndael = GetRijndael(Secret, Salt))
+                    using (var rijndael = GetRijndael(Secret))
                     using (var cryptoDecrypt = rijndael.CreateDecryptor())
                     using (MemoryStream blobStream = new MemoryStream(Bytes))
                     using (CryptoStream cryptoStream = new CryptoStream(memoryStream, cryptoDecrypt, CryptoStreamMode.Write, true))
@@ -201,7 +201,7 @@ namespace CustomBuildTool
             return null;
         }
 
-        private static Aes GetRijndael(string Secret, string Salt)
+        private static Aes GetRijndael(string Secret)
         {
             using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
                 Secret,
@@ -239,13 +239,10 @@ namespace CustomBuildTool
 
         private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
         {
-            if (
-                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Key, out string secret) &&
-                Win32.GetEnvironmentVariable(KeyName_Vars[KeyName].Value, out string salt)
-                )
+            if (Win32.GetEnvironmentVariable(KeyName_Vars[KeyName], out string secret))
             {
                 byte[] bytes = Utils.ReadAllBytes(GetPath($"{KeyName}.s"));
-                KeyMaterial = Decrypt(bytes, secret, salt);
+                KeyMaterial = Decrypt(bytes, secret);
                 return true;
             }
             else if (File.Exists(GetPath($"{KeyName}.key")))
