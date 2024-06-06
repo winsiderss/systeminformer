@@ -111,13 +111,10 @@ PPH_STRING PhGetProcessItemImageTypeText(
 #endif
     }
 
-    if (architecture == IMAGE_FILE_MACHINE_UNKNOWN)
-        PhGetProcessArchitecture(ProcessItem->QueryHandle, &architecture);
-
     switch (architecture)
     {
     case IMAGE_FILE_MACHINE_I386:
-        arch = L"I386 ";
+        arch = L"i386 ";
         break;
     case IMAGE_FILE_MACHINE_AMD64:
         arch = chpeVersion ? L"AMD64 (ARM64X) " : L"AMD64 ";
