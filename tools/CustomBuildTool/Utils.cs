@@ -120,28 +120,21 @@ namespace CustomBuildTool
             return File.Exists(FileName);
         }
 
-        public static string GetOutputDirectoryPath()
-        {
-            return GetPath("\\build\\output");
-        }
-
-        public static string GetPath(string FileName)
+        public static string GetOutputDirectoryPath(string FileName)
         {
             return Path.Join([Build.BuildWorkingFolder, FileName]);
         }
 
         public static void CreateOutputDirectory()
         {
-            string folder = GetOutputDirectoryPath();
-
-            if (string.IsNullOrWhiteSpace(folder))
+            if (string.IsNullOrWhiteSpace(Build.BuildOutputFolder))
                 return;
-            if (File.Exists(folder))
+            if (File.Exists(Build.BuildOutputFolder))
                 return;
 
             try
             {
-                Directory.CreateDirectory(folder);
+                Directory.CreateDirectory(Build.BuildOutputFolder);
             }
             catch (Exception ex)
             {
@@ -747,33 +740,314 @@ namespace CustomBuildTool
         }
     }
 
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    public class GithubAuthor
+    {
+        [JsonPropertyName("name")]
+        public string name { get; set; }
+
+        [JsonPropertyName("email")]
+        public string email { get; set; }
+
+        [JsonPropertyName("date")]
+        public DateTime date { get; set; }
+
+        [JsonPropertyName("login")]
+        public string login { get; set; }
+
+        [JsonPropertyName("id")]
+        public long id { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string node_id { get; set; }
+
+        [JsonPropertyName("avatar_url")]
+        public string avatar_url { get; set; }
+
+        [JsonPropertyName("gravatar_id")]
+        public string gravatar_id { get; set; }
+
+        [JsonPropertyName("url")]
+        public string url { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string html_url { get; set; }
+
+        [JsonPropertyName("followers_url")]
+        public string followers_url { get; set; }
+
+        [JsonPropertyName("following_url")]
+        public string following_url { get; set; }
+
+        [JsonPropertyName("gists_url")]
+        public string gists_url { get; set; }
+
+        [JsonPropertyName("starred_url")]
+        public string starred_url { get; set; }
+
+        [JsonPropertyName("subscriptions_url")]
+        public string subscriptions_url { get; set; }
+
+        [JsonPropertyName("organizations_url")]
+        public string organizations_url { get; set; }
+
+        [JsonPropertyName("repos_url")]
+        public string repos_url { get; set; }
+
+        [JsonPropertyName("events_url")]
+        public string events_url { get; set; }
+
+        [JsonPropertyName("received_events_url")]
+        public string received_events_url { get; set; }
+
+        [JsonPropertyName("type")]
+        public string type { get; set; }
+
+        [JsonPropertyName("site_admin")]
+        public bool site_admin { get; set; }
+    }
+
+    public class GithubCommit
+    {
+        [JsonPropertyName("author")]
+        public GithubAuthor author { get; set; }
+
+        [JsonPropertyName("committer")]
+        public GithubCommitAuthor committer { get; set; }
+
+        [JsonPropertyName("message")]
+        public string message { get; set; }
+
+        [JsonPropertyName("tree")]
+        public GithubCommitTree tree { get; set; }
+
+        [JsonPropertyName("url")]
+        public string url { get; set; }
+
+        [JsonPropertyName("comment_count")]
+        public int comment_count { get; set; }
+
+        [JsonPropertyName("verification")]
+        public GithubCommitVerification verification { get; set; }
+    }
+
+    public class GithubCommitAuthor
+    {
+        [JsonPropertyName("name")]
+        public string name { get; set; }
+
+        [JsonPropertyName("email")]
+        public string email { get; set; }
+
+        [JsonPropertyName("date")]
+        public DateTime date { get; set; }
+
+        [JsonPropertyName("login")]
+        public string login { get; set; }
+
+        [JsonPropertyName("id")]
+        public int id { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string node_id { get; set; }
+
+        [JsonPropertyName("avatar_url")]
+        public string avatar_url { get; set; }
+
+        [JsonPropertyName("gravatar_id")]
+        public string gravatar_id { get; set; }
+
+        [JsonPropertyName("url")]
+        public string url { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string html_url { get; set; }
+
+        [JsonPropertyName("followers_url")]
+        public string followers_url { get; set; }
+
+        [JsonPropertyName("following_url")]
+        public string following_url { get; set; }
+
+        [JsonPropertyName("gists_url")]
+        public string gists_url { get; set; }
+
+        [JsonPropertyName("starred_url")]
+        public string starred_url { get; set; }
+
+        [JsonPropertyName("subscriptions_url")]
+        public string subscriptions_url { get; set; }
+
+        [JsonPropertyName("organizations_url")]
+        public string organizations_url { get; set; }
+
+        [JsonPropertyName("repos_url")]
+        public string repos_url { get; set; }
+
+        [JsonPropertyName("events_url")]
+        public string events_url { get; set; }
+
+        [JsonPropertyName("received_events_url")]
+        public string received_events_url { get; set; }
+
+        [JsonPropertyName("type")]
+        public string type { get; set; }
+
+        [JsonPropertyName("site_admin")]
+        public bool site_admin { get; set; }
+    }
+
+    //public class GithubFile
+    //{
+    //    [JsonPropertyName("sha")]
+    //    public string sha { get; set; }
+    //
+    //    [JsonPropertyName("filename")]
+    //    public string filename { get; set; }
+    //
+    //    [JsonPropertyName("status")]
+    //    public string status { get; set; }
+    //
+    //    [JsonPropertyName("additions")]
+    //    public int additions { get; set; }
+    //
+    //    [JsonPropertyName("deletions")]
+    //    public int deletions { get; set; }
+    //
+    //    [JsonPropertyName("changes")]
+    //    public int changes { get; set; }
+    //
+    //    [JsonPropertyName("blob_url")]
+    //    public string blob_url { get; set; }
+    //
+    //    [JsonPropertyName("raw_url")]
+    //    public string raw_url { get; set; }
+    //
+    //    [JsonPropertyName("contents_url")]
+    //    public string contents_url { get; set; }
+    //
+    //    [JsonPropertyName("patch")]
+    //    public string patch { get; set; }
+    //}
+    //
+    //public class GithubParent
+    //{
+    //    [JsonPropertyName("sha")]
+    //    public string sha { get; set; }
+    //
+    //    [JsonPropertyName("url")]
+    //    public string url { get; set; }
+    //
+    //    [JsonPropertyName("html_url")]
+    //    public string html_url { get; set; }
+    //}
+
+    public class GithubCommitResponse
+    {
+        [JsonPropertyName("sha")]
+        public string sha { get; set; }
+
+        [JsonPropertyName("node_id")]
+        public string node_id { get; set; }
+
+        [JsonPropertyName("commit")]
+        public GithubCommit commit { get; set; }
+
+        [JsonPropertyName("url")]
+        public string url { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string html_url { get; set; }
+
+        [JsonPropertyName("comments_url")]
+        public string comments_url { get; set; }
+
+        [JsonPropertyName("author")]
+        public GithubAuthor author { get; set; }
+
+        [JsonPropertyName("committer")]
+        public GithubCommitAuthor committer { get; set; }
+
+        //[JsonPropertyName("parents")]
+        //public List<GithubParent> parents { get; set; }
+
+        [JsonPropertyName("stats")]
+        public GithubCommitStats stats { get; set; }
+
+        //[JsonPropertyName("files")]
+        //public List<GithubFile> files { get; set; }
+    }
+
+    public class GithubCommitStats
+    {
+        [JsonPropertyName("total")]
+        public int total { get; set; }
+
+        [JsonPropertyName("additions")]
+        public int additions { get; set; }
+
+        [JsonPropertyName("deletions")]
+        public int deletions { get; set; }
+    }
+
+    public class GithubCommitTree
+    {
+        [JsonPropertyName("sha")]
+        public string sha { get; set; }
+
+        [JsonPropertyName("url")]
+        public string url { get; set; }
+    }
+
+    public class GithubCommitVerification
+    {
+        [JsonPropertyName("verified")]
+        public bool verified { get; set; }
+
+        [JsonPropertyName("reason")]
+        public string reason { get; set; }
+
+        [JsonPropertyName("signature")]
+        public string signature { get; set; }
+
+        [JsonPropertyName("payload")]
+        public string payload { get; set; }
+    }
+
     [JsonSerializable(typeof(BuildUpdateRequest))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
     {
 
     }
 
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
     [JsonSerializable(typeof(GithubReleasesRequest))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
     public partial class GithubReleasesRequestContext : JsonSerializerContext
     {
 
     }
 
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
     [JsonSerializable(typeof(GithubReleasesResponse))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
     public partial class GithubReleasesResponseContext : JsonSerializerContext
     {
 
     }
 
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
     [JsonSerializable(typeof(GithubAssetsResponse))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
     public partial class GithubAssetsResponseContext : JsonSerializerContext
     {
 
     }
+
+    [JsonSerializable(typeof(GithubCommitResponse))]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    public partial class GithubCommitResponseContext : JsonSerializerContext
+    {
+
+    }
+    
 
     public static class Extextensions
     {

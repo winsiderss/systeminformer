@@ -1137,6 +1137,8 @@ PPH_STRING PhGetPhVersion(
     PhInitFormatC(&format[1], L'.');
     PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
     PhInitFormatC(&format[3], L'.');
+    PhInitFormatU(&format[4], PHAPP_VERSION_BUILD);
+    PhInitFormatC(&format[3], L'.');
     PhInitFormatU(&format[4], PHAPP_VERSION_REVISION);
 
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -1164,6 +1166,32 @@ PPH_STRING PhGetPhVersionHash(
     )
 {
     return PhConvertUtf8ToUtf16(PHAPP_VERSION_COMMIT);
+}
+
+PH_RELEASE_CHANNEL PhGetPhReleaseChannel(
+    VOID
+    )
+{
+    return PhGetIntegerSetting(L"ReleaseChannel");
+}
+
+PCWSTR PhGetPhReleaseChannelString(
+    VOID
+    )
+{
+    switch (PhGetIntegerSetting(L"ReleaseChannel"))
+    {
+    case PhReleaseChannel:
+        return L"Release";
+    case PhPreviewChannel:
+        return L"Preview";
+    case PhCanaryChannel:
+        return L"Canary";
+    case PhDeveloperChannel:
+        return L"Developer";
+    }
+
+    return L"Unknown";
 }
 
 VOID PhWritePhTextHeader(

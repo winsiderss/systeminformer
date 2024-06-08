@@ -44,7 +44,7 @@ namespace CustomBuildTool
 
             Build.TimeStart = DateTime.UtcNow;
             Build.BuildWorkingFolder = Environment.CurrentDirectory;
-            Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
+            Build.BuildOutputFolder = Utils.GetOutputDirectoryPath("\\build\\output");
 
             if (Win32.GetEnvironmentVariableSpan("SYSTEM_BUILD", out ReadOnlySpan<char> build_definition))
             {
@@ -82,112 +82,6 @@ namespace CustomBuildTool
             //}
 
             return true;
-        }
-
-        public static void CleanupBuildEnvironment()
-        {
-            try
-            {
-                if (!string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
-                {
-                    string output = Utils.ExecuteGitCommand(BuildWorkingFolder, "clean -x -d -f");
-
-                    Program.PrintColorMessage(output, ConsoleColor.DarkGray);
-                }
-
-                {
-                    if (Directory.Exists(BuildOutputFolder)) // output
-                    {
-                        Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
-                        Directory.Delete(BuildOutputFolder, true);
-                    }
-
-                    if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
-                    {
-                        Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
-                        Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
-                    }
-
-                    //foreach (BuildFile file in BuildConfig.Build_Release_Files)
-                    //{
-                    //    string sourceFile = BuildOutputFolder + file.FileName;
-                    //
-                    //    Win32.DeleteFile(sourceFile);
-                    //}
-                    //
-                    //foreach (string folder in BuildConfig.Build_Sdk_Directories)
-                    //{
-                    //    if (Directory.Exists(folder))
-                    //        Directory.Delete(folder, true);
-                    //}
-
-                    var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
-                    {
-                        AttributesToSkip = FileAttributes.Offline,
-                        RecurseSubdirectories = true,
-                        ReturnSpecialDirectories = false
-                    });
-
-                    foreach (string folder in project_folders)
-                    {
-                        string path = Path.GetFullPath(folder);
-                        var name = Path.GetFileName(path.AsSpan());
-
-                        if (
-                            name.Equals(".vs", StringComparison.OrdinalIgnoreCase) ||
-                            name.Equals("obj", StringComparison.OrdinalIgnoreCase)
-                            )
-                        {
-                            if (Directory.Exists(path))
-                            {
-                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
-
-                                try
-                                {
-                                    Directory.Delete(path, true);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                                }
-                            }
-                        }
-                    }
-
-                    // Delete files with abs
-
-                    var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
-                    {
-                        AttributesToSkip = FileAttributes.Offline,
-                        RecurseSubdirectories = true,
-                        ReturnSpecialDirectories = false
-                    });
-
-                    foreach (string file in res_files)
-                    {
-                        string path = Path.GetFullPath(file);
-                        var name = Path.GetFileName(path.AsSpan());
-
-                        if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
-                        {
-                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
-
-                            try
-                            {
-                                Win32.DeleteFile(path);
-                            }
-                            catch (Exception ex)
-                            {
-                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[Cleanup] {ex}", ConsoleColor.Red);
-            }
         }
 
         public static void SetupBuildEnvironment(bool ShowBuildInfo)
@@ -872,7 +766,7 @@ namespace CustomBuildTool
                     if (!name.UploadCanary)
                         continue;
 
-                    string file = BuildOutputFolder + name.FileName;
+                    string file = Path.Join([BuildOutputFolder, name.FileName]);
 
                     if (File.Exists(file))
                     {
@@ -917,11 +811,11 @@ namespace CustomBuildTool
             if (!string.IsNullOrWhiteSpace(Channel))
                 compilerOptions.Append($"PH_RELEASE_CHANNEL_ID={BuildConfig.Build_Channels[Channel]};");
             if (!string.IsNullOrWhiteSpace(Build.BuildCommit))
-                compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildCommit.AsSpan(0, 7)}\";");
+                compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildCommit.AsSpan(0, 8)}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildRevision))
                 compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{Build.BuildRevision}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildCount))
-                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildCount}\"");
+                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildCount}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\"");
 
@@ -1448,6 +1342,112 @@ namespace CustomBuildTool
             else
             {
                 Win32.DeleteFile(BuildSourceLink);
+            }
+        }
+
+        public static void CleanupBuildEnvironment()
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
+                {
+                    string output = Utils.ExecuteGitCommand(BuildWorkingFolder, "clean -x -d -f");
+
+                    Program.PrintColorMessage(output, ConsoleColor.DarkGray);
+                }
+
+                {
+                    if (Directory.Exists(BuildOutputFolder)) // output
+                    {
+                        Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
+                        Directory.Delete(BuildOutputFolder, true);
+                    }
+
+                    if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
+                    {
+                        Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
+                        Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
+                    }
+
+                    //foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                    //{
+                    //    string sourceFile = BuildOutputFolder + file.FileName;
+                    //
+                    //    Win32.DeleteFile(sourceFile);
+                    //}
+                    //
+                    //foreach (string folder in BuildConfig.Build_Sdk_Directories)
+                    //{
+                    //    if (Directory.Exists(folder))
+                    //        Directory.Delete(folder, true);
+                    //}
+
+                    var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
+                    {
+                        AttributesToSkip = FileAttributes.Offline,
+                        RecurseSubdirectories = true,
+                        ReturnSpecialDirectories = false
+                    });
+
+                    foreach (string folder in project_folders)
+                    {
+                        string path = Path.GetFullPath(folder);
+                        var name = Path.GetFileName(path.AsSpan());
+
+                        if (
+                            name.Equals(".vs", StringComparison.OrdinalIgnoreCase) ||
+                            name.Equals("obj", StringComparison.OrdinalIgnoreCase)
+                            )
+                        {
+                            if (Directory.Exists(path))
+                            {
+                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                                try
+                                {
+                                    Directory.Delete(path, true);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                }
+                            }
+                        }
+                    }
+
+                    // Delete files with abs
+
+                    var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
+                    {
+                        AttributesToSkip = FileAttributes.Offline,
+                        RecurseSubdirectories = true,
+                        ReturnSpecialDirectories = false
+                    });
+
+                    foreach (string file in res_files)
+                    {
+                        string path = Path.GetFullPath(file);
+                        var name = Path.GetFileName(path.AsSpan());
+
+                        if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                            try
+                            {
+                                Win32.DeleteFile(path);
+                            }
+                            catch (Exception ex)
+                            {
+                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[Cleanup] {ex}", ConsoleColor.Red);
             }
         }
     }
