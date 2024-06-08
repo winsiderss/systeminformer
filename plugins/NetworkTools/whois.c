@@ -870,19 +870,6 @@ INT_PTR CALLBACK WhoisDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhSaveWindowPlacementToSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
-            PhDeleteLayoutManager(&context->LayoutManager);
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-            if (context->FontHandle)
-                DeleteFont(context->FontHandle);
-
-            context->WindowHandle = NULL;
-            PhDereferenceObject(context);
-        }
     }
 
     if (!context)
@@ -926,6 +913,15 @@ INT_PTR CALLBACK WhoisDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WHOIS_WINDOW_POSITION, SETTING_NAME_WHOIS_WINDOW_SIZE, hwndDlg);
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->FontHandle)
+                DeleteFont(context->FontHandle);
+
+            PhDereferenceObject(context);
+
             PostQuitMessage(0);
         }
         break;
@@ -1070,6 +1066,8 @@ NTSTATUS NetworkWhoisDialogThreadStart(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID dllhandle = NULL;
+    PNETWORK_WHOIS_CONTEXT context = Parameter;
     BOOL result;
     MSG message;
     HWND windowHandle;
@@ -1077,8 +1075,15 @@ NTSTATUS NetworkWhoisDialogThreadStart(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhLoadLibrary(L"msftedit.dll");
+        dllhandle = PhLoadLibrary(L"msftedit.dll");
         PhEndInitOnce(&initOnce);
+    }
+
+    if (!dllhandle)
+    {
+        PhShowStatus(context->ParentWindowHandle, L"Unable to display the whois window.", 0, ERROR_MOD_NOT_FOUND);
+        PhDereferenceObject(context);
+        return STATUS_SUCCESS;
     }
 
     PhInitializeAutoPool(&autoPool);
