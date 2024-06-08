@@ -13,7 +13,9 @@
 #include <symprv.h>
 
 #include <dbghelp.h>
+#ifndef COM_NO_WINDOWS_H
 #define COM_NO_WINDOWS_H 1
+#endif
 #include "../thirdparty/winsdk/dia2.h"
 #include "../thirdparty/winsdk/dia3.h"
 
