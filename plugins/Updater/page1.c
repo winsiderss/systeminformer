@@ -50,7 +50,7 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
                 break;
             }
 
-            if (PhGetIntegerSetting(L"ReleaseChannel") != channel)
+            if (PhGetPhReleaseChannel() != channel)
             {
                 context->Channel = channel;
                 context->SwitchingChannel = TRUE;
@@ -132,7 +132,7 @@ VOID ShowCheckForUpdatesDialog(
     //        break;
     //    }
     //
-    //    //if (Context->Channel < (PH_RELEASE_CHANNEL)PhGetIntegerSetting(L"ReleaseChannel"))
+    //    //if (Context->Channel < PhGetPhReleaseChannel())
     //    //{
     //    //    config.pszContent = L"Downgrading the channel might cause instability.\r\n\r\nClick Yes to continue.\r\n";
     //    //}

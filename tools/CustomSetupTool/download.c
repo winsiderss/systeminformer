@@ -44,30 +44,6 @@ PPH_STRING SetupGetVersion(
     return PhFormat(format, 7, 16);
 }
 
-ULONG64 ParseVersionString(
-    _Inout_ PPH_STRING VersionString
-    )
-{
-    PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
-    ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
-
-    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(VersionString));
-    PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
-    PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
-    PhSplitStringRefAtChar(&remaining, '.', &revisionPart, &remaining);
-
-    PhStringToInteger64(&majorPart, 10, &majorInteger);
-    PhStringToInteger64(&minorPart, 10, &minorInteger);
-    PhStringToInteger64(&revisionPart, 10, &revisionInteger);
-
-    return MAKE_VERSION_ULONGLONG(
-        (ULONG)majorInteger,
-        (ULONG)minorInteger,
-        (ULONG)revisionInteger,
-        0
-        );
-}
-
 BOOLEAN SetupQueryUpdateData(
     _Inout_ PPH_SETUP_CONTEXT Context
     )

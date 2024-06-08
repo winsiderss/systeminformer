@@ -144,9 +144,10 @@ PPH_STRING UpdaterGetLatestVersionText(
     if (commit && commit->Length > 4)
     {
         version = PhFormatString(
-            L"%lu.%lu.%lu (%s)",
+            L"%lu.%lu.%lu.%lu (%s)",
             majorVersion,
             minorVersion,
+            buildVersion,
             revisionVersion,
             PhGetString(commit)
             );
@@ -158,9 +159,10 @@ PPH_STRING UpdaterGetLatestVersionText(
     else
     {
         version = PhFormatString(
-            L"System Informer %lu.%lu.%lu",
+            L"System Informer %lu.%lu.%lu.%lu",
             majorVersion,
             minorVersion,
+            buildVersion,
             revisionVersion
             );
         PhMoveReference(&version, PhFormatString(
@@ -218,7 +220,7 @@ VOID ShowNewerVersionDialog(
     config.pszMainInstruction = L"You're running a pre-release build.";
     config.pszContent = PhaFormatString(
         L"Pre-release build: v%s\r\n\r\n<A HREF=\"changelog.txt\">View changelog</A>",
-        PhGetStringOrEmpty(Context->CurrentVersionString)
+        PhGetString(PH_AUTO_T(PH_STRING, PhGetPhVersion()))
         )->Buffer;
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);

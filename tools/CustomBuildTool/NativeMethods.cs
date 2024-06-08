@@ -89,5 +89,4 @@ namespace CustomBuildTool
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool SetPriorityClass(UIntPtr handle, uint priorityClass);
     }
-
 }

@@ -242,6 +242,28 @@ PhGetPhVersionHash(
     VOID
     );
 
+typedef enum _PH_RELEASE_CHANNEL
+{
+    PhReleaseChannel = 0,
+    PhPreviewChannel = 1, // unused, reserved
+    PhCanaryChannel = 2,
+    PhDeveloperChannel = 3,
+} PH_RELEASE_CHANNEL, *PPH_RELEASE_CHANNEL;
+
+PHAPPAPI
+PH_RELEASE_CHANNEL
+NTAPI
+PhGetPhReleaseChannel(
+    VOID
+    );
+
+PHAPPAPI
+PCWSTR
+NTAPI
+PhGetPhReleaseChannelString(
+    VOID
+    );
+
 PHAPPAPI
 VOID
 NTAPI
