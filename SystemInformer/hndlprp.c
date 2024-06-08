@@ -1601,9 +1601,11 @@ VOID PhpUpdateHandleGeneral(
 
             if (FlagOn(basicInfo.AllocationAttributes, SEC_COMMIT))
                 sectionType = L"Commit";
+            else if (FlagOn(basicInfo.AllocationAttributes, SEC_FILE))
                 sectionType = L"File";
             else if (FlagOn(basicInfo.AllocationAttributes, SEC_IMAGE))
                 sectionType = L"Image";
+            else if (FlagOn(basicInfo.AllocationAttributes, SEC_RESERVE))
                 sectionType = L"Reserve";
 
             sectionSize = PhaFormatSize(basicInfo.MaximumSize.QuadPart, ULONG_MAX);
