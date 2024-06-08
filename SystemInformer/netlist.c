@@ -844,9 +844,10 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
+            memset(&data, 0, sizeof(PH_TN_COLUMN_MENU_DATA));
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
+            data.DefaultSortColumn = PHNETLC_PROCESS;
             data.DefaultSortOrder = AscendingSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 

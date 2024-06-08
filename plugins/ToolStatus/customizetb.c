@@ -852,7 +852,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 break;
             case IDCANCEL:
                 {
-                    EndDialog(hwndDlg, FALSE);
+                    EndDialog(hwndDlg, IDCANCEL);
                 }
                 break;
             }

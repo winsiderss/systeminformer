@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2020
+ *     dmex    2020-2024
  *
  */
 
@@ -42,7 +42,7 @@ BOOLEAN PhFormatDoubleToUtf8(
         Precision
         );
 
-    if (result.ec == errc::value_too_large)
+    if (result.ec != static_cast<std::errc>(0))
         return FALSE;
 
     returnLength = result.ptr - buffer;

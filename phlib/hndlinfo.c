@@ -1294,7 +1294,7 @@ NTSTATUS PhpGetBestObjectName(
                 PhInitFormatS(&format[1], L" (");
                 PhInitFormatSize(&format[2], basicInfo.MaximumSize.QuadPart);
                 PhInitFormatC(&format[3], ')');
-                bestObjectName = PhFormat(format, 4, 20);
+                bestObjectName = PhFormat(format, 4, 0);
             }
         }
 
