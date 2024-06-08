@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2023
+ *     dmex    2016-2024
  *
  */
 
@@ -137,7 +137,7 @@ NTSTATUS ExtractUpdateToFile(
 }
 
 _Success_(return)
-BOOLEAN DownloadUpdateToFile(
+BOOLEAN GeoLiteDownloadUpdateToFile(
     _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context,
     _Out_ PPH_STRING* UpdateFileName
     )
@@ -481,7 +481,7 @@ CleanupExit:
     return success;
 }
 
-BOOLEAN MoveUpdateToFile(
+BOOLEAN GeoLiteMoveUpdateToFile(
     _In_ PNETWORK_GEODB_UPDATE_CONTEXT Context,
     _In_ PPH_STRING UpdateFileName
     )
@@ -559,7 +559,7 @@ NTSTATUS GeoLiteUpdateThread(
 
     // Download the update into the cache.
 
-    if (!DownloadUpdateToFile(Context, &compressedFileName))
+    if (!GeoLiteDownloadUpdateToFile(Context, &compressedFileName))
         goto CleanupExit;
 
     // Extract the update into the cache.
@@ -581,7 +581,7 @@ NTSTATUS GeoLiteUpdateThread(
 
     // Update the database to the latest version.
 
-    if (!MoveUpdateToFile(Context, updateFileName))
+    if (!GeoLiteMoveUpdateToFile(Context, updateFileName))
         goto CleanupExit;
 
     success = TRUE;
@@ -605,7 +605,7 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
-LRESULT CALLBACK TaskDialogSubclassProc(
+LRESULT CALLBACK GeoLiteDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -655,7 +655,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
-HRESULT CALLBACK TaskDialogBootstrapCallback(
+HRESULT CALLBACK GeoLiteDialogBootstrapCallback(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -682,7 +682,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             // Subclass the Taskdialog.
             context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)GeoLiteDialogSubclassProc);
 
             ShowDbCheckForUpdatesDialog(context);
         }
@@ -708,7 +708,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
-    config.pfCallback = TaskDialogBootstrapCallback;
+    config.pfCallback = GeoLiteDialogBootstrapCallback;
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
@@ -801,33 +801,36 @@ VOID ShowGeoLiteUpdateDialog(
         return;
     }
 
-    PPH_STRING geolitekey = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
+    PPH_STRING key = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
+    PPH_STRING id = PhGetStringSetting(SETTING_NAME_GEOLITE_API_ID);
 
-    if (PhIsNullOrEmptyString(geolitekey))
+    if (PhIsNullOrEmptyString(key) || PhIsNullOrEmptyString(id))
     {
-        PhClearReference(&geolitekey);
+        PhClearReference(&key);
+        PhClearReference(&id);
 
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
         config.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
         config.dwCommonButtons = TDCBF_OK_BUTTON;
         config.pszMainIcon = TD_ERROR_ICON;
         config.hwndParent = ParentWindowHandle;
+        config.pfCallback = GeoLiteMissingKeyTaskDialogCallbackProc;
+        config.cxWidth = 200;
+
         config.pszWindowTitle = L"Network Tools - GeoLite Updater";
         config.pszMainInstruction = L"Unable to download GeoLite database updates.";
         config.pszContent =
-            L"A license key is required to download GeoLite database updates and there are no keys configured.\n\n"
-            L"The license keys are completely free. If you're unsure how to create keys then please review the documentation here: <a href=\"https://support.maxmind.com/hc/en-us/articles/4407111582235-Generate-a-License-Key\">Generate-a-License-Key</a>\n\n"
+            L"A license key and account number are required to download GeoLite database updates and either the key or number are not configured.\n\n"
+            L"GeoLite license keys and accounts are free. If you're unsure how to create keys then please review the documentation here: <a href=\"https://support.maxmind.com/hc/en-us/articles/4407111582235-Generate-a-License-Key\">Generate-a-License-Key</a>\n\n"
             L"Once you've created the key you can copy/paste the text into the Options window > NetworkTools settings and System Informer can start downloading GeoLite database updates.\n\n"
             L"Special thanks to MaxMind (<a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>) for continuing free GeoLite services <3";
-
-        config.pfCallback = GeoLiteMissingKeyTaskDialogCallbackProc;
-        config.cxWidth = 200;
 
         TaskDialogIndirect(&config, NULL, NULL, NULL);
     }
     else
     {
-        PhClearReference(&geolitekey);
+        PhClearReference(&key);
+        PhClearReference(&id);
 
         if (!UpdateDialogThreadHandle)
         {
