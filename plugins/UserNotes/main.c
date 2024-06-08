@@ -1487,7 +1487,7 @@ VOID NTAPI MenuItemCallback(
                 if (NT_SUCCESS(status))
                 {
                     object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                    object->Boost = priorityBoostDisabled;
+                    object->Boost = TRUE;
                 }
                 else
                 {
@@ -1523,7 +1523,7 @@ VOID NTAPI MenuItemCallback(
                     if (NT_SUCCESS(status))
                     {
                         object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-                        object->Boost = priorityBoostDisabled;
+                        object->Boost = TRUE;
                     }
                     else
                     {

@@ -1261,7 +1261,7 @@ VOID PhSaveListViewSortColumnsToSetting(
         PhInitFormatC(&format[1], L',');
         PhInitFormatU(&format[2], sortOrder);
 
-        string = PhFormat(format, RTL_NUMBER_OF(format), 16);
+        string = PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
     else
     {

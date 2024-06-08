@@ -65,6 +65,7 @@ typedef struct _PH_SETTING
 
 PHLIBAPI
 VOID
+NTAPI
 PhSettingsInitialization(
     VOID
     );
@@ -404,6 +405,7 @@ PhGetSetting(
     _In_ PPH_STRINGREF Name
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhLoadWindowPlacementFromSetting(
@@ -412,6 +414,7 @@ PhLoadWindowPlacementFromSetting(
     _In_ HWND WindowHandle
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhSaveWindowPlacementToSetting(
@@ -420,6 +423,7 @@ PhSaveWindowPlacementToSetting(
     _In_ HWND WindowHandle
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhLoadListViewColumnsFromSetting(
@@ -427,6 +431,7 @@ PhLoadListViewColumnsFromSetting(
     _In_ HWND ListViewHandle
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhSaveListViewColumnsToSetting(
@@ -434,6 +439,7 @@ PhSaveListViewColumnsToSetting(
     _In_ HWND ListViewHandle
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhLoadListViewSortColumnsFromSetting(
@@ -441,6 +447,7 @@ PhLoadListViewSortColumnsFromSetting(
     _In_ HWND ListViewHandle
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhSaveListViewSortColumnsToSetting(
@@ -448,6 +455,7 @@ PhSaveListViewSortColumnsToSetting(
     _In_ HWND ListViewHandle
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhLoadListViewGroupStatesFromSetting(
@@ -455,6 +463,7 @@ PhLoadListViewGroupStatesFromSetting(
     _In_ HWND ListViewHandle
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhSaveListViewGroupStatesToSetting(
@@ -462,6 +471,7 @@ PhSaveListViewGroupStatesToSetting(
     _In_ HWND ListViewHandle
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhLoadCustomColorList(
@@ -470,6 +480,7 @@ PhLoadCustomColorList(
     _In_ ULONG CustomColorCount
     );
 
+PHLIBAPI
 VOID
 NTAPI
 PhSaveCustomColorList(

@@ -306,7 +306,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE GetRuntimeClassName(
         __RPC__deref_out_opt HSTRING* className) = 0;
     virtual HRESULT STDMETHODCALLTYPE GetTrustLevel(
-        __RPC__out TrustLevel* trustLevel) = 0;
+        __RPC__out ULONG* trustLevel) = 0;
 };
 #else
 typedef struct IInspectableVtbl
