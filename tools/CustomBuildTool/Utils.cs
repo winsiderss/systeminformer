@@ -15,7 +15,6 @@ namespace CustomBuildTool
     {
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
         private static string GitFilePath;
-        private static string MsBuildFilePath;
         private static string VsWhereFilePath;
 
         /// <summary>
@@ -66,9 +65,9 @@ namespace CustomBuildTool
             return dict;
         }
 
-        public static int ExecuteMsbuildCommand(string Command, out string OutputString)
+        public static int ExecuteMsbuildCommand(string Command, BuildFlags Flags, out string OutputString)
         {
-            string file = GetMsbuildFilePath();
+            string file = GetMsbuildFilePath(Flags);
 
             if (string.IsNullOrWhiteSpace(file))
             {
@@ -178,51 +177,54 @@ namespace CustomBuildTool
             return VsWhereFilePath;
         }
 
-        private static string GetMsbuildFilePath()
+        private static string GetMsbuildFilePath(BuildFlags Flags)
         {
+            string MsBuildFilePath = null;
+            List<string> MsBuildPath = 
+            [
+                "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
+                "\\MSBuild\\Current\\Bin\\MSBuild.exe",
+                "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
+            ];
+
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && RuntimeInformation.OSArchitecture == Architecture.Arm64)
+            {
+                MsBuildPath.Insert(0, "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe");
+            }
+
+            VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
+
+            if (instance != null)
+            {
+                foreach (string path in MsBuildPath)
+                {
+                    string file = Path.Join([instance.Path, path]);
+
+                    if (File.Exists(file))
+                    {
+                        MsBuildFilePath = file;
+                        break;
+                    }
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
-                string[] MsBuildPathArray =
-                [
-                    "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
-                    "\\MSBuild\\Current\\Bin\\MSBuild.exe",
-                    "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
-                ];
+                // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
+                string vswhereResult = ExecuteVsWhereCommand(
+                    "-latest -prerelease -products * -requiresAny -requires Microsoft.Component.MSBuild -property installationPath"
+                    );
 
-                VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
-
-                if (instance != null)
+                if (!string.IsNullOrWhiteSpace(vswhereResult))
                 {
-                    foreach (string path in MsBuildPathArray)
+                    foreach (string path in MsBuildPath)
                     {
-                        string file = instance.Path + path;
+                        string file = Path.Join([vswhereResult, path]);
 
                         if (File.Exists(file))
                         {
                             MsBuildFilePath = file;
                             break;
-                        }
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(MsBuildFilePath))
-                {
-                    // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
-                    string vswhereResult = ExecuteVsWhereCommand(
-                        "-latest -prerelease -products * -requiresAny -requires Microsoft.Component.MSBuild -property installationPath"
-                        );
-
-                    if (!string.IsNullOrWhiteSpace(vswhereResult))
-                    {
-                        foreach (string path in MsBuildPathArray)
-                        {
-                            string file = vswhereResult + path;
-
-                            if (File.Exists(file))
-                            {
-                                MsBuildFilePath = file;
-                                break;
-                            }
                         }
                     }
                 }
@@ -410,9 +412,9 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static string GetVisualStudioVersion()
+        public static string GetVisualStudioVersion(BuildFlags Flags)
         {
-            string msbuild = GetMsbuildFilePath();
+            string msbuild = GetMsbuildFilePath(Flags);
 
             if (string.IsNullOrWhiteSpace(msbuild))
                 return string.Empty;
@@ -660,6 +662,7 @@ namespace CustomBuildTool
     public class BuildUpdateRequest
     {
         [JsonPropertyName("build_id")] public string BuildId { get; set; }
+        [JsonPropertyName("build_display")] public string BuildDisplay { get; set; }
         [JsonPropertyName("build_version")] public string BuildVersion { get; set; }
         [JsonPropertyName("build_commit")] public string BuildCommit { get; set; }
         [JsonPropertyName("build_updated")] public string BuildUpdated { get; set; }
@@ -673,7 +676,6 @@ namespace CustomBuildTool
         [JsonPropertyName("setup_length")] public string SetupLength { get; set; }
         [JsonPropertyName("setup_hash")] public string SetupHash { get; set; }
         [JsonPropertyName("setup_sig")] public string SetupSig { get; set; }
-
 
         [JsonPropertyName("release_bin_url")] public string ReleaseBinUrl { get; set; }
         [JsonPropertyName("release_bin_length")] public string ReleaseBinLength { get; set; }
