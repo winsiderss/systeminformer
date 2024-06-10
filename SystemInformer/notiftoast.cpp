@@ -31,13 +31,6 @@ using namespace ABI::Windows::Foundation;
 using namespace ABI::Windows::UI::Notifications;
 using namespace ABI::Windows::Data::Xml::Dom;
 
-#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
-static decltype(RoGetActivationFactory)* g_RoGetActivationFactory = nullptr;
-static decltype(RoInitialize)* g_RoInitialize = nullptr;
-static decltype(RoUninitialize)* g_RoUninitialize = nullptr;
-static decltype(WindowsCreateStringReference)* g_WindowsCreateStringReference = nullptr;
-#endif
-
 namespace PH
 {
     /*!
@@ -87,46 +80,19 @@ namespace PH
             //
         }
 
-        HRESULT Set(_In_ const wchar_t* String, _In_ size_t Length)
+        HRESULT Set(_In_ PCWSTR String)
         {
-#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
-            if (!g_WindowsCreateStringReference)
-            {
-                return E_NOTIMPL;
-            }
-
-            UINT32 length;
-            RETURN_IF_FAILED(SizeTToUInt32(Length, &length));
-
-            return g_WindowsCreateStringReference(String, length, &m_Header, &m_String);
-#else
-            return PhCreateWindowsRuntimeString(String, &m_String);
-#endif
-        }
-
-        HRESULT Set(_In_ const wchar_t* String)
-        {
-#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
-            if (!g_WindowsCreateStringReference)
-            {
-                return E_NOTIMPL;
-            }
-#endif
-            return Set(String, ::wcslen(String));
+            return PhCreateWindowsRuntimeStringReference(String, &m_String);
         }
 
         HSTRING Get() const
         {
-            return m_String;
+            return HSTRING_FROM_STRING(m_String);
         }
 
     private:
 
-#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
-        HSTRING_HEADER m_Header{};
-#endif
-        HSTRING m_String{ nullptr };
-
+        HSTRING_REFERENCE m_String{};
     };
 
     /*!
@@ -151,33 +117,12 @@ namespace PH
         _COM_Outptr_ I** Interface
         )
     {
-#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
-        if (!g_RoGetActivationFactory)
-        {
-            *Interface = nullptr;
-            return E_NOTIMPL;
-        }
-
-        HStringReference stringRef;
-        HRESULT hr = stringRef.Set(ActivatableClassId, t_SizeDestClass - 1);
-
-        if (HR_FAILED(hr))
-        {
-            *Interface = nullptr;
-            return hr;
-        }
-
-        hr = g_RoGetActivationFactory(stringRef.Get(),
-                                      __uuidof(I),
-                                      reinterpret_cast<void**>(Interface));
-#else
         HRESULT hr = PhGetActivationFactory(
                                       DllName,
                                       ActivatableClassId,
                                       __uuidof(I),
                                       reinterpret_cast<void**>(Interface)
                                       );
-#endif
         if (HR_FAILED(hr))
         {
             *Interface = nullptr;
@@ -530,49 +475,16 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
 _Must_inspect_result_
 HRESULT PhInitializeToastRuntime()
 {
-#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    HRESULT res;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        //
-        // We dynamically import to support OSes that don't have this functionality.
-        //
-        PH::GetModuleProcAddress(&g_RoGetActivationFactory,
-                                 L"combase.dll",
-                                 "RoGetActivationFactory");
-        PH::GetModuleProcAddress(&g_RoInitialize,
-                                 L"combase.dll",
-                                 "RoInitialize");
-        PH::GetModuleProcAddress(&g_RoUninitialize,
-                                 L"combase.dll",
-                                 "RoUninitialize");
-        PH::GetModuleProcAddress(&g_WindowsCreateStringReference,
-                                 L"combase.dll",
-                                 "WindowsCreateStringReference");
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!g_RoGetActivationFactory ||
-        !g_RoInitialize ||
-        !g_RoUninitialize ||
-        !g_WindowsCreateStringReference)
-    {
-        return E_NOTIMPL;
-    }
-
-    res = g_RoInitialize(RO_INIT_MULTITHREADED);
-    if (res == RPC_E_CHANGED_MODE)
-        res = g_RoInitialize(RO_INIT_SINGLETHREADED);
-    if (res == S_FALSE) // already initialized
-        res = S_OK;
-
-    return res;
-#else
+//    HRESULT res;
+//
+//    res = g_RoInitialize(RO_INIT_MULTITHREADED);
+//    if (res == RPC_E_CHANGED_MODE)
+//        res = g_RoInitialize(RO_INIT_SINGLETHREADED);
+//    if (res == S_FALSE) // already initialized
+//        res = S_OK;
+//
+//    return res;
     return S_OK;
-#endif
 }
 
 /*!
@@ -581,12 +493,10 @@ HRESULT PhInitializeToastRuntime()
 */
 VOID PhUninitializeToastRuntime()
 {
-#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
-    if (g_RoInitialize)
-    {
-        g_RoUninitialize();
-    }
-#endif
+    //if (g_RoInitialize)
+    //{
+    //    g_RoUninitialize();
+    //}
 }
 
 /*!
