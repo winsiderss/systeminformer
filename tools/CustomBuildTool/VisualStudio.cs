@@ -14,6 +14,7 @@ namespace CustomBuildTool
     public static unsafe class VisualStudio
     {
         private static readonly List<VisualStudioInstance> VisualStudioInstanceList;
+        private static VisualStudioInstance VisualStudioInstance = null;
 
         static VisualStudio()
         {
@@ -107,13 +108,14 @@ namespace CustomBuildTool
 
         public static VisualStudioInstance GetVisualStudioInstance()
         {
-            if (VisualStudioInstanceList != null)
+            if (VisualStudioInstance == null && VisualStudioInstanceList != null)
             {
                 foreach (VisualStudioInstance instance in VisualStudioInstanceList)
                 {
                     //if (instance.HasRequiredDependency)
                     {
-                        return instance;
+                        VisualStudioInstance = instance;
+                        break;
                     }
                     //else
                     //{
@@ -122,7 +124,7 @@ namespace CustomBuildTool
                 }
             }
 
-            return null;
+            return VisualStudioInstance;
         }
 
         //private static readonly Guid IID_ISetupConfiguration = new Guid("42843719-DB4C-46C2-8E7C-64F1816EFD5B");
@@ -240,24 +242,21 @@ namespace CustomBuildTool
 
             // https://learn.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-community
 
-            this.HasARM64BuildToolsComponents = this.Packages.Any(p =>
-            {
-                return p.Id.AsSpan().Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase) ||
-                    p.Id.AsSpan().Equals("Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", StringComparison.OrdinalIgnoreCase);
-            });
+            var found = this.Packages.FindAll(p => 
+                p.Id.Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase) ||
+                p.Id.Equals("Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", StringComparison.OrdinalIgnoreCase));
+
+            this.HasARM64BuildToolsComponents = found.Count >= 2;
         }
 
         private VisualStudioPackage GetLatestSdkPackage()
         {
-            var found = this.Packages.FindAll(p =>
-            {
-                return p.Id.AsSpan().StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
-                    p.Id.AsSpan().StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
-            });
+            var found = this.Packages.FindAll(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
+                                                   p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase));
         
             if (found.Count == 0)
                 return null;
-        
+
             found.Sort((p1, p2) =>
             {
                 if (Version.TryParse(p1.Version, out Version v1) && Version.TryParse(p2.Version, out Version v2))
