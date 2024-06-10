@@ -2428,10 +2428,32 @@ PhFinalStringBuilderString(
 PHLIBAPI
 VOID
 NTAPI
+PhAppendStringBuilderEx(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_opt_ PWCHAR String,
+    _In_ SIZE_T Length
+    );
+
+/**
+ * Appends a string to the end of a string builder string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param String The string to append.
+ */
+FORCEINLINE
+VOID
+NTAPI
 PhAppendStringBuilder(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ PPH_STRINGREF String
-    );
+    )
+{
+    PhAppendStringBuilderEx(
+        StringBuilder,
+        String->Buffer,
+        String->Length
+        );
+}
 
 /**
  * Appends a string to the end of a string builder string.
@@ -2452,15 +2474,6 @@ PhAppendStringBuilder2(
     PhInitializeStringRef(&string, String);
     PhAppendStringBuilder(StringBuilder, &string);
 }
-
-PHLIBAPI
-VOID
-NTAPI
-PhAppendStringBuilderEx(
-    _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_opt_ PWCHAR String,
-    _In_ SIZE_T Length
-    );
 
 PHLIBAPI
 VOID
