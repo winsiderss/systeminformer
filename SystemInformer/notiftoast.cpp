@@ -60,42 +60,6 @@ namespace PH
     }
 
     /*!
-        @brief Alternate to Windows::WRL::Wrappers::HStringReference which requires some imports
-         from combase.dll, we will dynamically import them through our runtime wrapper. It also
-         throws in some lame cases. Ours won't we'll bail on failure without exceptions.
-    */
-    class HStringReference
-    {
-    public:
-
-        HStringReference() = default;
-
-        ~HStringReference()
-        {
-            //
-            // A HSTRING reference doesn't need cleaned up, it's a "fast-pass" (yeah that's what
-            // the call it in the docs) string. Really it's just a pointer to the actual string
-            // with the length. Saves allocations when passing strings to the runtime.
-            // Guess UNICODE_STRING wasn't cool enough...
-            //
-        }
-
-        HRESULT Set(_In_ PCWSTR String)
-        {
-            return PhCreateWindowsRuntimeStringReference(String, &m_String);
-        }
-
-        HSTRING Get() const
-        {
-            return HSTRING_FROM_STRING(m_String);
-        }
-
-    private:
-
-        HSTRING_REFERENCE m_String{};
-    };
-
-    /*!
         @brief Wrapper around RoGetActivationFactory to make it a little less clunky to use.
 
         @details PhActivateToastRuntime must be called prior to this else the function returns
@@ -139,16 +103,12 @@ namespace PH
          handler interfaces for IToastNotification and store the callback
          and context from the C interface.
     */
-    class ToastEventHandler : public RuntimeClass<RuntimeClassFlags<ClassicCom>,
+    class ToastEventHandler final : public RuntimeClass<RuntimeClassFlags<ClassicCom>,
                                                   IToastActivatedHandler,
                                                   IToastDismissedHandler,
                                                   IToastFailedHandler>
     {
     public:
-
-        virtual ~ToastEventHandler() = default;
-
-        ToastEventHandler() = default;
 
         HRESULT RuntimeClassInitialize(
             PPH_TOAST_CALLBACK ToastCallback,
@@ -160,19 +120,19 @@ namespace PH
             return S_OK;
         }
 
-        virtual HRESULT STDMETHODCALLTYPE Invoke(
+        HRESULT STDMETHODCALLTYPE Invoke(
+            _In_ IToastNotification* Sender,
+            _In_ IInspectable* Args
+            ) override;
+
+        HRESULT STDMETHODCALLTYPE Invoke(
             _In_ IToastNotification* Sender,
             _In_ IToastDismissedEventArgs* Args
             ) override;
 
-        virtual HRESULT STDMETHODCALLTYPE Invoke(
+        HRESULT STDMETHODCALLTYPE Invoke(
             _In_ IToastNotification* Sender,
             _In_ IToastFailedEventArgs* Args
-            ) override;
-
-        virtual HRESULT STDMETHODCALLTYPE Invoke(
-            _In_ IToastNotification* Sender,
-            _In_ IInspectable* Args
             ) override;
 
         void SetActivatedToken(const EventRegistrationToken& Token)
@@ -214,14 +174,15 @@ namespace PH
 
         _Must_inspect_result_
         HRESULT Initialize(
-            _In_ PCWSTR ApplicationId,
-            _In_ PCWSTR ToastXml,
+            _In_ PPH_STRINGREF ApplicationId,
+            _In_ PPH_STRINGREF ToastXml,
             _In_opt_ ULONG TimeoutMilliseconds,
             _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
             _In_opt_ PVOID Context
             );
 
-        HRESULT Show();
+        [[nodiscard]]
+        HRESULT Show() const;
 
     private:
 
@@ -234,14 +195,15 @@ namespace PH
 
 _Must_inspect_result_
 HRESULT PH::Toast::Initialize(
-    _In_ PCWSTR ApplicationId,
-    _In_ PCWSTR ToastXml,
+    _In_ PPH_STRINGREF ApplicationId,
+    _In_ PPH_STRINGREF ToastXml,
     _In_opt_ ULONG TimeoutMilliseconds,
     _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
     _In_opt_ PVOID Context
     )
 {
-    HStringReference stringRef;
+    HSTRING_REFERENCE stringAppIdRef;
+    HSTRING_REFERENCE stringToastXmlRef;
 
     ComPtr<IToastNotificationManagerStatics> manager;
     RETURN_IF_FAILED(PH::RoGetActivationFactory<IToastNotificationManagerStatics>(
@@ -256,9 +218,8 @@ HRESULT PH::Toast::Initialize(
         &factory));
 
     ComPtr<IToastNotifier> notifier;
-    RETURN_IF_FAILED(stringRef.Set(ApplicationId));
-    RETURN_IF_FAILED(manager->CreateToastNotifierWithId(stringRef.Get(),
-                                                        &notifier));
+    RETURN_IF_FAILED(PhCreateWindowsRuntimeStringRef(ApplicationId, &stringAppIdRef));
+    RETURN_IF_FAILED(manager->CreateToastNotifierWithId(HSTRING_FROM_STRING(stringAppIdRef), &notifier));
 
     //
     // Couldn't find a nice way to just create a IXmlDocument... There is
@@ -288,8 +249,8 @@ HRESULT PH::Toast::Initialize(
     // callback from the C interface. Honestly, that's kind of overkill, don't
     // include an image that can't be found.
     //
-    RETURN_IF_FAILED(stringRef.Set(ToastXml));
-    RETURN_IF_FAILED(xmlIo->LoadXml(stringRef.Get()));
+    RETURN_IF_FAILED(PhCreateWindowsRuntimeStringRef(ToastXml, &stringToastXmlRef));
+    RETURN_IF_FAILED(xmlIo->LoadXml(HSTRING_FROM_STRING(stringToastXmlRef)));
 
     ComPtr<IToastNotification> toast;
     RETURN_IF_FAILED(factory->CreateToastNotification(xmlDocument.Get(), &toast));
@@ -339,9 +300,7 @@ HRESULT PH::Toast::Initialize(
             Context));
 
         RETURN_IF_FAILED(callbacks.As(&activatedNotif));
-
         RETURN_IF_FAILED(callbacks.As(&dismissedNotif));
-
         RETURN_IF_FAILED(callbacks.As(&failedNotif));
 
         EventRegistrationToken token;
@@ -362,7 +321,7 @@ HRESULT PH::Toast::Initialize(
     return S_OK;
 }
 
-HRESULT PH::Toast::Show()
+HRESULT PH::Toast::Show() const
 {
     if ((m_Notifier == nullptr) || (m_Toast == nullptr))
     {
@@ -377,32 +336,28 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
     )
 {
     PH_TOAST_REASON phReason = PhToastReasonUnknown;
-
     ToastDismissalReason reason;
-    HRESULT hr = Args->get_Reason(&reason);
-    if (HR_SUCCESS(hr))
+    HRESULT result;
+
+    result = Args->get_Reason(&reason);
+
+    if (HR_SUCCESS(result))
     {
         switch (reason)
         {
-            case ToastDismissalReason_UserCanceled:
-            {
-                phReason = PhToastReasonUserCanceled;
-                break;
-            }
-            case ToastDismissalReason_ApplicationHidden:
-            {
-                phReason = PhToastReasonApplicationHidden;
-                break;
-            }
-            case ToastDismissalReason_TimedOut:
-            {
-                phReason = PhToastReasonTimedOut;
-                break;
-            }
+        case ToastDismissalReason_UserCanceled:
+            phReason = PhToastReasonUserCanceled;
+            break;
+        case ToastDismissalReason_ApplicationHidden:
+            phReason = PhToastReasonApplicationHidden;
+            break;
+        case ToastDismissalReason_TimedOut:
+            phReason = PhToastReasonTimedOut;
+            break;
         }
     }
 
-    m_ToastCallback(S_OK, phReason, m_Context);
+    m_ToastCallback(result, phReason, m_Context);
 
     //
     // Without this the ref is never decremented and the runtime leaks...
@@ -539,9 +494,9 @@ VOID PhUninitializeToastRuntime()
      the caller should free any context.
 */
 _Must_inspect_result_
-HRESULT PhShowToast(
-    _In_ PCWSTR ApplicationId,
-    _In_ PCWSTR ToastXml,
+HRESULT PhShowToastStringRef(
+    _In_ PPH_STRINGREF ApplicationId,
+    _In_ PPH_STRINGREF ToastXml,
     _In_opt_ ULONG TimeoutMilliseconds,
     _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
     _In_opt_ PVOID Context
@@ -555,4 +510,26 @@ HRESULT PhShowToast(
                                        ToastCallback,
                                        Context));
     return toast->Show();
+}
+
+_Must_inspect_result_
+HRESULT PhShowToast(
+    _In_ PCWSTR ApplicationId,
+    _In_ PCWSTR ToastXml,
+    _In_opt_ ULONG TimeoutMilliseconds,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_STRINGREF applicationIdStringRef;
+    PH_STRINGREF toastXmlStringRef;
+
+    PhInitializeStringRefLongHint(&applicationIdStringRef, (PWSTR)ApplicationId);
+    PhInitializeStringRefLongHint(&toastXmlStringRef, (PWSTR)ToastXml);
+
+    return PhShowToastStringRef(&applicationIdStringRef,
+                                &toastXmlStringRef,
+                                TimeoutMilliseconds,
+                                ToastCallback,
+                                Context);
 }
