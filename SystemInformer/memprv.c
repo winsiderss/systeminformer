@@ -398,7 +398,7 @@ VOID PhpUpdateHeapRegions(
     if (NT_SUCCESS(status))
     {
         if (WindowsVersion >= WINDOWS_10)
-            PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
+            PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle, L"RtlQueryProcessDebugInformation request");
 
         if (PhGetIntegerSetting(L"EnableHeapReflection"))
         {
