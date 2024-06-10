@@ -86,6 +86,42 @@ HRESULT PhCreateWindowsRuntimeStringReference(
 #endif
 }
 
+// rev from WindowsCreateStringReference (dmex)
+/**
+ * \brief Creates a new string reference based on the specified string.
+ *
+ * \param SourceString A null-terminated string to use as the source for the new string.
+ * \param Length The count of characters for the string.
+ * \param String A pointer to the newly created string.
+ *
+ * \return Successful or errant status.
+ */
+HRESULT PhCreateWindowsRuntimeStringReferenceEx(
+    _In_ PCWSTR SourceString,
+    _In_ UINT32 Length,
+    _Out_ PVOID String
+    )
+{
+#if (PH_NATIVE_WINDOWS_RUNTIME_STRING)
+    HSTRING stringHandle;
+
+    return WindowsCreateStringReference(
+        SourceString,
+        (UINT32)PhCountStringZ((PWSTR)SourceString),
+        String,
+        &stringHandle
+        );
+#else
+    HSTRING_REFERENCE* string = (HSTRING_REFERENCE*)String;
+
+    string->Flags = HSTRING_REFERENCE_FLAG;
+    string->Length = Length;
+    string->Buffer = SourceString;
+
+    return S_OK;
+#endif
+}
+
 // rev from WindowsCreateString (dmex)
 /**
  * \brief Creates a new string based on the specified string.
