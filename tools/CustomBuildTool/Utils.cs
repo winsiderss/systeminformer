@@ -189,7 +189,7 @@ namespace CustomBuildTool
 
             if (Flags.HasFlag(BuildFlags.BuildArm64bit) && RuntimeInformation.OSArchitecture == Architecture.Arm64)
             {
-                MsBuildPath.Insert(0, "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe");
+                MsBuildPath.Insert(0, "\\MSBuild\\Current\\Bin\\arm64\\MSBuild.exe");
             }
 
             VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
