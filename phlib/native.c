@@ -16737,6 +16737,160 @@ NTSTATUS PhThawProcess(
     return status;
 }
 
+// Process execution request support
+
+static PH_INITONCE PhExecutionRequestInitOnce = PH_INITONCE_INIT;
+static PPH_HASHTABLE PhExecutionRequestHashtable = NULL;
+
+typedef struct _PH_EXECUTIONREQUEST_CACHE_ENTRY
+{
+    HANDLE ProcessId;
+    HANDLE ExecutionRequestHandle;
+} PH_EXECUTIONREQUEST_CACHE_ENTRY, *PPH_EXECUTIONREQUEST_CACHE_ENTRY;
+
+static BOOLEAN NTAPI PhExecutionRequestHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    return
+        ((PPH_EXECUTIONREQUEST_CACHE_ENTRY)Entry1)->ProcessId ==
+        ((PPH_EXECUTIONREQUEST_CACHE_ENTRY)Entry2)->ProcessId;
+}
+
+static ULONG NTAPI PhExecutionRequestHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return HandleToUlong(((PPH_EXECUTIONREQUEST_CACHE_ENTRY)Entry)->ProcessId) / 4;
+}
+
+BOOLEAN PhInitializeExecutionRequestTable(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhExecutionRequestInitOnce))
+    {
+        PhExecutionRequestHashtable = PhCreateHashtable(
+            sizeof(PH_EXECUTIONREQUEST_CACHE_ENTRY),
+            PhExecutionRequestHashtableEqualFunction,
+            PhExecutionRequestHashtableHashFunction,
+            1
+            );
+
+        PhEndInitOnce(&PhExecutionRequestInitOnce);
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhIsProcessExecutionRequired(
+    _In_ HANDLE ProcessId
+    )
+{
+    if (PhInitializeExecutionRequestTable())
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhFindEntryHashtable(PhExecutionRequestHashtable, &entry))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+NTSTATUS PhProcessExecutionRequiredEnable(
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE requestHandle = NULL;
+
+    if (PhInitializeExecutionRequestTable())
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhFindEntryHashtable(PhExecutionRequestHashtable, &entry))
+        {
+            return STATUS_SUCCESS;
+        }
+    }
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_LIMITED_INFORMATION,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    status = PhCreateExecutionRequiredRequest(
+        processHandle,
+        &requestHandle,
+        L"User-initiated request"
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+        entry.ExecutionRequestHandle = requestHandle;
+
+        PhAddEntryHashtable(PhExecutionRequestHashtable, &entry);
+    }
+
+    NtClose(processHandle);
+
+    return status;
+}
+
+NTSTATUS PhProcessExecutionRequiredDisable(
+    _In_ HANDLE ProcessId
+    )
+{
+    HANDLE requestHandle = NULL;
+
+    if (PhInitializeExecutionRequestTable())
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY lookupEntry;
+        PPH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        lookupEntry.ProcessId = ProcessId;
+
+        if (entry = PhFindEntryHashtable(PhExecutionRequestHashtable, &lookupEntry))
+        {
+            requestHandle = entry->ExecutionRequestHandle;
+        }
+    }
+
+    if (requestHandle)
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhRemoveEntryHashtable(PhExecutionRequestHashtable, &entry))
+        {
+            PhDestroyExecutionRequiredRequest(requestHandle);
+        }
+
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
 // KnownDLLs cache support
 
 static PH_INITONCE PhKnownDllsInitOnce = PH_INITONCE_INIT;

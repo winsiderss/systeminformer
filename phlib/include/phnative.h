@@ -3222,6 +3222,27 @@ PhThawProcess(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhIsProcessExecutionRequired(
+    _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhProcessExecutionRequiredEnable(
+    _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhProcessExecutionRequiredDisable(
+    _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhIsKnownDllFileName(
     _In_ PPH_STRING FileName
     );
