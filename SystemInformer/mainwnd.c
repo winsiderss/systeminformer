@@ -4130,9 +4130,11 @@ BOOLEAN PhpShowToastNotification(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PH_STRINGREF iconAppName = PH_STRINGREF_INIT(L"System Informer");
     static PPH_STRING iconFileName = NULL;
-    BOOLEAN result;
+    HRESULT result;
     PPH_STRING toastXml;
+    PH_FORMAT format[7];
 
     if (!PhGetIntegerSetting(L"ToastNotifyEnabled"))
         return FALSE;
@@ -4153,32 +4155,41 @@ BOOLEAN PhpShowToastNotification(
     if (PhInitializeToastRuntime() != S_OK)
         return FALSE;
 
-    toastXml = PhFormatString(
-        L"<toast>\r\n"
-        L"    <visual>\r\n"
-        L"       <binding template=\"ToastImageAndText02\">\r\n"
-        L"            <image id=\"1\" src=\"%s\" alt=\"red graphic\"/>\r\n"
-        L"            <text id=\"1\">%ls</text>\r\n"
-        L"            <text id=\"2\">%ls</text>\r\n"
-        L"        </binding>\r\n"
-        L"    </visual>\r\n"
-        L"</toast>",
-        PhGetString(iconFileName),
-        Title,
-        Text
-        );
+    //toastXml = PhFormatString(
+    //    L"<toast>\r\n"
+    //    L"    <visual>\r\n"
+    //    L"       <binding template=\"ToastImageAndText02\">\r\n"
+    //    L"            <image id=\"1\" src=\"%s\" alt=\"red graphic\"/>\r\n"
+    //    L"            <text id=\"1\">%ls</text>\r\n"
+    //    L"            <text id=\"2\">%ls</text>\r\n"
+    //    L"        </binding>\r\n"
+    //    L"    </visual>\r\n"
+    //    L"</toast>",
+    //    PhGetString(iconFileName),
+    //    Title,
+    //    Text
+    //    );
 
-    result = SUCCEEDED(PhShowToast(
-        L"System Informer",
-        PhGetString(toastXml),
+    PhInitFormatS(&format[0], L"<toast><visual><binding template=\"ToastImageAndText02\"><image id=\"1\" src=\"");
+    PhInitFormatSR(&format[1], iconFileName->sr);
+    PhInitFormatS(&format[2], L"\" alt=\"red graphic\"/><text id=\"1\">");
+    PhInitFormatS(&format[3], Title);
+    PhInitFormatS(&format[4], L"</text><text id=\"2\">");
+    PhInitFormatS(&format[5], Text);
+    PhInitFormatS(&format[6], L"</text></binding></visual></toast>");
+    toastXml = PhFormat(format, RTL_NUMBER_OF(format), 0);
+
+    result = PhShowToastStringRef(
+        &iconAppName,
+        &toastXml->sr,
         Timeout * 1000,
         PhpToastCallback,
         NULL
-        ));
+        );
 
     PhDereferenceObject(toastXml);
 
-    return result;
+    return HR_SUCCESS(result);
 }
 
 VOID PhShowIconNotification(
