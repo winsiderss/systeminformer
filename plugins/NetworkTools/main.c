@@ -45,7 +45,7 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    GeoLiteDatabaseType = !!PhGetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE);
+    GeoLiteDatabaseType = PhGetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE);
     NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
 }
 
