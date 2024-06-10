@@ -14,7 +14,7 @@
 
 BOOLEAN GeoDbInitialized = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
-BOOLEAN GeoLiteDatabaseType = FALSE;
+ULONG GeoLiteDatabaseType = 0;
 HIMAGELIST GeoImageList = NULL;
 MMDB_s GeoDbInstance = { 0 };
 PH_STRINGREF GeoDbCityFileName = PH_STRINGREF_INIT(L"GeoLite2-City.mmdb");
@@ -25,8 +25,8 @@ PH_QUEUED_LOCK NetworkToolsGeoDbCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 typedef struct _GEODB_IPADDR_CACHE_ENTRY
 {
     PH_IP_ADDRESS RemoteAddress;
-    ULONG CountryCode;
     PPH_STRING CountryName;
+    ULONG CountryCode;
 } GEODB_IPADDR_CACHE_ENTRY, *PGEODB_IPADDR_CACHE_ENTRY;
 
 typedef struct _GEODB_GEONAME_CACHE_TABLE
@@ -183,12 +183,17 @@ BOOLEAN NetToolsGeoLiteInitialized(
     {
         PPH_STRING dbpath;
 
-        if (GeoLiteDatabaseType)
-            dbpath = PhGetApplicationDataFileName(&GeoDbCityFileName, TRUE);
-        else
+        switch (GeoLiteDatabaseType)
+        {
+        default:
             dbpath = PhGetApplicationDataFileName(&GeoDbCountryFileName, TRUE);
+            break;
+        case 1:
+            dbpath = PhGetApplicationDataFileName(&GeoDbCityFileName, TRUE);
+            break;
+        }
 
-        if (dbpath)
+        if (!PhIsNullOrEmptyString(dbpath))
         {
             if (MMDB_open(&dbpath->sr, MMDB_MODE_MMAP, &GeoDbInstance) == MMDB_SUCCESS)
             {
@@ -394,8 +399,11 @@ BOOLEAN LookupCountryCodeFromMmdb(
     MMDB_lookup_result_s mmdb_result;
     INT mmdb_error = 0;
 
-    if (!NetToolsGeoLiteInitialized())
-        return FALSE;
+    if (!GeoDbInitialized)
+    {
+        if (!NetToolsGeoLiteInitialized())
+            return FALSE;
+    }
 
     if (RemoteAddress.Type == PH_IPV4_NETWORK_TYPE)
     {

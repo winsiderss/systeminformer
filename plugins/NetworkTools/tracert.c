@@ -149,12 +149,11 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
                     &returnLength
                     ))
                 {
-                    PH_STRINGREF reverseNameString;
-
-                    reverseNameString.Buffer = reverseNameBuffer;
-                    reverseNameString.Length = returnLength - sizeof(UNICODE_NULL);
-
-                    PhAppendStringBuilder(&stringBuilder, &reverseNameString);
+                    PhAppendStringBuilderEx(
+                        &stringBuilder,
+                        reverseNameBuffer,
+                        returnLength - sizeof(UNICODE_NULL)
+                        );
                 }
                 else
                 {

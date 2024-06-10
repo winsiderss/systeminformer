@@ -45,7 +45,7 @@
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbInitialized;
-extern BOOLEAN GeoLiteDatabaseType;
+extern ULONG GeoLiteDatabaseType;
 extern PH_STRINGREF GeoDbCityFileName;
 extern PH_STRINGREF GeoDbCountryFileName;
 extern PPH_STRING SearchboxText;
@@ -61,13 +61,12 @@ extern PPH_STRING SearchboxText;
 #define BITS_IN_ONE_BYTE 8
 #define NDIS_UNIT_OF_MEASUREMENT 100
 
-// The ICMPV6_ECHO_REPLY struct doesn't have a field to access the reply data,
-// so copy the struct and add an additional Data field.
+// The ICMPV6_ECHO_REPLY struct doesn't have a field to access the data. (dmex)
 typedef struct _ICMPV6_ECHO_REPLY2
 {
     IPV6_ADDRESS_EX Address;
     ULONG Status;
-    unsigned int RoundTripTime;
+    ULONG RoundTripTime;
     BYTE Data[ANYSIZE_ARRAY]; // custom
 } ICMPV6_ECHO_REPLY2, *PICMPV6_ECHO_REPLY2;
 
