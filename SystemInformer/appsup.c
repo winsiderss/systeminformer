@@ -44,7 +44,7 @@ BOOLEAN PhGetProcessIsSuspended(
             return FALSE;
     }
 
-    return Process->NumberOfThreads != 0;
+    return Process->UserTime.QuadPart + Process->KernelTime.QuadPart != 0 && Process->NumberOfThreads != 0;
 }
 
 BOOLEAN PhIsProcessSuspended(
@@ -1137,9 +1137,11 @@ PPH_STRING PhGetPhVersion(
     PhInitFormatC(&format[1], L'.');
     PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
     PhInitFormatC(&format[3], L'.');
+    PhInitFormatU(&format[4], PHAPP_VERSION_BUILD);
+    PhInitFormatC(&format[3], L'.');
     PhInitFormatU(&format[4], PHAPP_VERSION_REVISION);
 
-    return PhFormat(format, 5, 16);
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
 VOID PhGetPhVersionNumbers(
@@ -1164,6 +1166,32 @@ PPH_STRING PhGetPhVersionHash(
     )
 {
     return PhConvertUtf8ToUtf16(PHAPP_VERSION_COMMIT);
+}
+
+PH_RELEASE_CHANNEL PhGetPhReleaseChannel(
+    VOID
+    )
+{
+    return PhGetIntegerSetting(L"ReleaseChannel");
+}
+
+PCWSTR PhGetPhReleaseChannelString(
+    VOID
+    )
+{
+    switch (PhGetIntegerSetting(L"ReleaseChannel"))
+    {
+    case PhReleaseChannel:
+        return L"Release";
+    case PhPreviewChannel:
+        return L"Preview";
+    case PhCanaryChannel:
+        return L"Canary";
+    case PhDeveloperChannel:
+        return L"Developer";
+    }
+
+    return L"Unknown";
 }
 
 VOID PhWritePhTextHeader(

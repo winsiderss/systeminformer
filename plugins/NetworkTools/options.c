@@ -59,10 +59,12 @@ INT_PTR CALLBACK OptionsDlgProc(
         break;
     case WM_DESTROY:
         {
+            GeoLiteDatabaseType = ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_GEODBCOMBO));
+
             PhSetIntegerSetting(SETTING_NAME_PING_SIZE, PhGetDialogItemValue(WindowHandle, IDC_PINGPACKETLENGTH));
             PhSetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS, PhGetDialogItemValue(WindowHandle, IDC_MAXHOPS));
             PhSetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_EXTENDED_TCP)) == BST_CHECKED);
-            PhSetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE, ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_GEODBCOMBO)));
+            PhSetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE, GeoLiteDatabaseType);
 
             PhDeleteLayoutManager(&LayoutManager);
         }
@@ -105,6 +107,20 @@ INT_PTR CALLBACK OptionsDlgProc(
             case IDRETRY:
                 {
                     ShowGeoLiteUpdateDialog(WindowHandle);
+                }
+                break;
+            case IDC_GEODBCOMBO:
+                {
+                    switch (GET_WM_COMMAND_CMD(wParam, lParam))
+                    {
+                    case CBN_SELCHANGE:
+                        {
+                            GeoLiteDatabaseType = ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_GEODBCOMBO));
+
+                            PhSetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE, GeoLiteDatabaseType);
+                        }
+                        break;
+                    }    
                 }
                 break;
             case IDC_GEOCONF:

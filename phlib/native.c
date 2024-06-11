@@ -7957,7 +7957,8 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
 
 typedef struct _PHP_PIPE_NAME_HASH
 {
-    ULONG Hash;
+    PPH_STRINGREF Name;
+    ULONG Found;
 } PHP_PIPE_NAME_HASH, *PPHP_PIPE_NAME_HASH;
 
 static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
@@ -7966,14 +7967,20 @@ static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
     _In_ PVOID Context
     )
 {
-    PHP_PIPE_NAME_HASH objectPipe;
+    PPHP_PIPE_NAME_HASH context = Context;
     PH_STRINGREF objectName;
 
     objectName.Length = Information->FileNameLength;
     objectName.Buffer = Information->FileName;
-    objectPipe.Hash = PhHashStringRefEx(&objectName, TRUE, PH_STRING_HASH_X65599);
 
-    PhAddItemArray(Context, &objectPipe);
+    if (
+        PhHashStringRefEx(context->Name, FALSE, PH_STRING_HASH_X65599) ==
+        PhHashStringRefEx(&objectName, FALSE, PH_STRING_HASH_X65599)
+        )
+    {
+        context->Found = TRUE;
+        return FALSE;
+    }
 
     return TRUE;
 }
@@ -8108,74 +8115,36 @@ NTSTATUS PhGetProcessIsDotNetEx(
             return STATUS_SUCCESS;
         }
 
-        // .NET Core 3.0/.NET 5.0
+        // .NET Core 3.0 and above objects
 
         PhInitFormatS(&format[0], L"dotnet-diagnostic-");
         PhInitFormatU(&format[1], HandleToUlong(ProcessId));
 
         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
         {
-            HANDLE directoryHandle;
-            IO_STATUS_BLOCK isb;
-            ULONG pipeNameHash;
-            PH_ARRAY pipeArray;
+            PHP_PIPE_NAME_HASH context;
 
             objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
             objectNameSr.Buffer = formatBuffer;
-            pipeNameHash = PhHashStringRefEx(&objectNameSr, TRUE, PH_STRING_HASH_X65599);
+            PhStringRefToUnicodeString(&objectNameSr, &objectName);
+            context.Name = &objectNameSr;
+            context.Found = FALSE;
 
-            RtlInitUnicodeString(&objectName, DEVICE_NAMED_PIPE);
-            InitializeObjectAttributes(
-                &objectAttributes,
+            status = PhEnumDirectoryNamedPipe(
                 &objectName,
-                OBJ_CASE_INSENSITIVE,
-                NULL,
-                NULL
-                );
-
-            status = NtOpenFile(
-                &directoryHandle,
-                FILE_LIST_DIRECTORY | SYNCHRONIZE,
-                &objectAttributes,
-                &isb,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                PhpDotNetCorePipeHashCallback,
+                &context
                 );
 
             if (NT_SUCCESS(status))
             {
-                static UNICODE_STRING pipeSearchPattern = RTL_CONSTANT_STRING(L"dotnet-diagnostic-*");
-                PhInitializeArray(&pipeArray, sizeof(PHP_PIPE_NAME_HASH), 16);
-
-                status = PhEnumDirectoryFile(
-                    directoryHandle,
-                    &pipeSearchPattern,
-                    PhpDotNetCorePipeHashCallback,
-                    &pipeArray
-                    );
-
-                if (NT_SUCCESS(status))
+                if (!context.Found)
                 {
-                    status = STATUS_UNSUCCESSFUL;
-
-                    for (ULONG i = 0; i < pipeArray.Count; i++)
-                    {
-                        PPHP_PIPE_NAME_HASH entry = PhItemArray(&pipeArray, i);
-
-                        if (entry->Hash == pipeNameHash)
-                        {
-                            status = STATUS_SUCCESS;
-                            break;
-                        }
-                    }
+                    status = STATUS_OBJECT_NAME_NOT_FOUND;
                 }
-
-                PhDeleteArray(&pipeArray);
-                NtClose(directoryHandle);
             }
 
-            // NOTE: The .NET 5 process diagnostics are disabled when querying the pipe file attributes. The pipe will return STATUS_PIPE_NOT_AVAILABLE
-            // for all callers until restarting the process. This also prevents dotnet-counters, dotnet-diagnostics and other tools from working. (dmex)
+            // NOTE: NtQueryAttributesFile and other query functions connect to the pipe and should be avoided. (dmex)
             //
             //FILE_BASIC_INFORMATION fileInfo;
             //
@@ -8192,7 +8161,6 @@ NTSTATUS PhGetProcessIsDotNetEx(
             //    );
             //
             //status = NtQueryAttributesFile(&objectAttributes, &fileInfo)
-            //status == STATUS_PIPE_NOT_AVAILABLE ? status = STATUS_SUCCESS;
         }
 
         if (NT_SUCCESS(status))
@@ -13933,6 +13901,42 @@ NTSTATUS PhGetNamedPipeServerSessionId(
         {
             *ServerSessionId = UlongToHandle(processId);
         }
+    }
+
+    return status;
+}
+
+NTSTATUS PhEnumDirectoryNamedPipe(
+    _In_opt_ PUNICODE_STRING SearchPattern,
+    _In_ PPH_ENUM_DIRECTORY_FILE Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    static CONST UNICODE_STRING objectName = RTL_CONSTANT_STRING(DEVICE_NAMED_PIPE);
+    static CONST OBJECT_ATTRIBUTES objectAttributes = RTL_CONSTANT_OBJECT_ATTRIBUTES((PUNICODE_STRING)&objectName, OBJ_CASE_INSENSITIVE);
+    NTSTATUS status;
+    HANDLE directoryHandle;
+    IO_STATUS_BLOCK isb;
+
+    status = NtOpenFile(
+        &directoryHandle,
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        (POBJECT_ATTRIBUTES)&objectAttributes,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhEnumDirectoryFile(
+            directoryHandle,
+            SearchPattern,
+            Callback,
+            Context
+            );
+
+        NtClose(directoryHandle);
     }
 
     return status;

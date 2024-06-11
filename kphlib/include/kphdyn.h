@@ -11,28 +11,14 @@
 
 #include <kphlibbase.h>
 
-#define KPH_DYN_CONFIGURATION_VERSION 12
-
-#define KPH_DYN_CI_INVALID ((SHORT)-1)
-#define KPH_DYN_CI_V1      ((SHORT)1)
-#define KPH_DYN_CI_V2      ((SHORT)2)
-
-#define KPH_DYN_LX_INVALID ((SHORT)-1)
-#define KPH_DYN_LX_V1      ((SHORT)1)
+#define KPH_DYN_CONFIGURATION_VERSION 13
 
 #define KPH_DYN_SESSION_TOKEN_PUBLIC_KEY_LENGTH 72
 
 #include <pshpack1.h>
 
-typedef struct _KPH_DYN_CONFIGURATION
+typedef struct _KPH_DYN_CONFIGURATION_ARCH
 {
-    USHORT MajorVersion;
-    USHORT MinorVersion;
-    USHORT BuildNumberMin;               // -1 to ignore
-    USHORT RevisionMin;                  // -1 to ignore
-    USHORT BuildNumberMax;               // -1 to ignore
-    USHORT RevisionMax;                  // -1 to ignore
-
     USHORT EgeGuid;                      // dt nt!_ETW_GUID_ENTRY Guid
     USHORT EpObjectTable;                // dt nt!_EPROCESS ObjectTable
     USHORT EreGuidEntry;                 // dt nt!_ETW_REG_ENTRY GuidEntry
@@ -41,7 +27,6 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT OtIndex;                      // dt nt!_OBJECT_TYPE Index
     USHORT ObDecodeShift;                // dt nt!_HANDLE_TABLE_ENTRY ObjectPointerBits
     USHORT ObAttributesShift;            // dt nt!_HANDLE_TABLE_ENTRY Attributes
-    USHORT CiVersion;                    // ci.dll exports version
     USHORT AlpcCommunicationInfo;        // dt nt!_ALPC_PORT CommunicationInfo
     USHORT AlpcOwnerProcess;             // dt nt!_ALPC_PORT OwnerProcess
     USHORT AlpcConnectionPort;           // dt nt!_ALPC_COMMUNICATION_INFO ConnectionPort
@@ -61,7 +46,6 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT KtReadTransferCount;          // dt nt!_KTHREAD ReadTransferCount
     USHORT KtWriteTransferCount;         // dt nt!_KTHREAD WriteTransferCount
     USHORT KtOtherTransferCount;         // dt nt!_KTHREAD OtherTransferCount
-    USHORT LxVersion;                    // lxcore.sys exports version
     USHORT LxPicoProc;                   // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoProcInfo;               // uf lxcore!LxpSyscall_GETPID
     USHORT LxPicoProcInfoPID;            // uf lxcore!LxpSyscall_GETPID
@@ -71,6 +55,18 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT MmControlAreaListHead;        // dt nt!_CONTROL_AREA ListHead
     USHORT MmControlAreaLock;            // dt nt!_CONTROL_AREA ControlAreaLock
     USHORT EpSectionObject;              // dt nt!_EPROCESS SectionObject
+} KPH_DYN_CONFIGURATION_ARCH, *PKPH_DYN_CONFIGURATION_ARCH;
+
+typedef struct _KPH_DYN_CONFIGURATION
+{
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT BuildNumberMin;
+    USHORT RevisionMin;
+    USHORT BuildNumberMax;
+    USHORT RevisionMax;
+    KPH_DYN_CONFIGURATION_ARCH ArchAMD64;
+    KPH_DYN_CONFIGURATION_ARCH ArchARM64;
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
 typedef struct _KPH_DYNDATA

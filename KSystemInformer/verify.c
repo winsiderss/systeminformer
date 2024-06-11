@@ -278,24 +278,32 @@ NTSTATUS KphVerifyBuffer(
                              SignatureLength);
 }
 
+#define KphpVerifyValidFileName(FileName)                                      \
+    (((FileName)->Length > KphpSigExtension.Length) &&                         \
+     ((FileName)->Buffer[0] == L'\\'))
+
 /**
- * \brief Verifies that a file matches the provided signature.
+ * \brief Verifies a file object.
  *
- * \param[in] FileName File name of file to verify.
+ * \param[in] FileObject File object to verify.
+ * \param[in] FileName Optional file name to use for verification, if not
+ * provided the file name is looked up from the file object.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphVerifyFile(
-    _In_ PCUNICODE_STRING FileName
+NTSTATUS KphVerifyFileObject(
+    _In_ PFILE_OBJECT FileObject,
+    _In_opt_ PCUNICODE_STRING FileName
     )
 {
     NTSTATUS status;
+    PCUNICODE_STRING fileName;
+    PUNICODE_STRING localFileName;
     UNICODE_STRING signatureFileName;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE signatureFileHandle;
-    HANDLE fileHandle;
     IO_STATUS_BLOCK ioStatusBlock;
     BYTE signature[MINCRYPT_MAX_HASH_LEN];
     ULONG signatureLength;
@@ -303,23 +311,42 @@ NTSTATUS KphVerifyFile(
 
     PAGED_CODE_PASSIVE();
 
-    signatureFileHandle = NULL;
-    fileHandle = NULL;
+    localFileName = NULL;
     RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
+    signatureFileHandle = NULL;
 
-    if ((FileName->Length <= KphpSigExtension.Length) ||
-        (FileName->Buffer[0] != L'\\'))
+    if (FileName)
+    {
+        fileName = FileName;
+    }
+    else
+    {
+        status = KphGetNameFileObject(FileObject, &localFileName);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          VERIFY,
+                          "KphGetNameFileObject failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        fileName = localFileName;
+    }
+
+    if (!KphpVerifyValidFileName(fileName))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       VERIFY,
                       "File name is invalid \"%wZ\"",
-                      FileName);
+                      fileName);
 
         status = STATUS_OBJECT_NAME_INVALID;
         goto Exit;
     }
 
-    status = RtlDuplicateUnicodeString(0, FileName, &signatureFileName);
+    status = RtlDuplicateUnicodeString(0, fileName, &signatureFileName);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -362,7 +389,7 @@ NTSTATUS KphVerifyFile(
 
     InitializeObjectAttributes(&objectAttributes,
                                &signatureFileName,
-                               OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                NULL,
                                NULL);
 
@@ -374,7 +401,9 @@ NTSTATUS KphVerifyFile(
                            FILE_ATTRIBUTE_NORMAL,
                            FILE_SHARE_READ,
                            FILE_OPEN,
-                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           (FILE_NON_DIRECTORY_FILE |
+                            FILE_SYNCHRONOUS_IO_NONALERT |
+                            FILE_COMPLETE_IF_OPLOCKED),
                            NULL,
                            0,
                            IO_IGNORE_SHARE_ACCESS_CHECK,
@@ -388,6 +417,17 @@ NTSTATUS KphVerifyFile(
                       status);
 
         signatureFileHandle = NULL;
+        goto Exit;
+    }
+    else if (status == STATUS_OPLOCK_BREAK_IN_PROGRESS)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "Failed to open signature file \"%wZ\": %!STATUS!",
+                      &signatureFileName,
+                      status);
+
+        status = STATUS_SHARING_VIOLATION;
         goto Exit;
     }
 
@@ -415,47 +455,16 @@ NTSTATUS KphVerifyFile(
 
     signatureLength = (ULONG)ioStatusBlock.Information;
 
-    InitializeObjectAttributes(&objectAttributes,
-                               (PUNICODE_STRING)FileName,
-                               OBJ_KERNEL_HANDLE,
-                               NULL,
-                               NULL);
-
-    status = KphCreateFile(&fileHandle,
-                           FILE_READ_ACCESS | SYNCHRONIZE,
-                           &objectAttributes,
-                           &ioStatusBlock,
-                           NULL,
-                           FILE_ATTRIBUTE_NORMAL,
-                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                           FILE_OPEN,
-                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-                           NULL,
-                           0,
-                           IO_IGNORE_SHARE_ACCESS_CHECK,
-                           KernelMode);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "KphCreateFile failed: %!STATUS!",
-                      status);
-
-        fileHandle = NULL;
-        goto Exit;
-    }
-
     hashInfo.Algorithm = KphHashAlgorithmSha256;
 
-    status = KphQueryHashInformationFile(fileHandle,
-                                         &hashInfo,
-                                         sizeof(hashInfo),
-                                         KernelMode);
+    status = KphQueryHashInformationFileObject(FileObject,
+                                               &hashInfo,
+                                               sizeof(hashInfo));
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       VERIFY,
-                      "KphHashFileByName failed: %!STATUS!",
+                      "KphQueryHashInformationFileObject failed: %!STATUS!",
                       status);
 
         goto Exit;
@@ -476,16 +485,141 @@ NTSTATUS KphVerifyFile(
 
 Exit:
 
+    if (signatureFileHandle)
+    {
+        ObCloseHandle(signatureFileHandle, KernelMode);
+    }
+
     RtlFreeUnicodeString(&signatureFileName);
+
+    if (localFileName)
+    {
+        KphFreeNameFileObject(localFileName);
+    }
+
+    return status;
+}
+
+/**
+ * \brief Verifies a file by name.
+ *
+ * \param[in] FileName File name to verify.
+ * \param[in] FileObject Optional file object to use for verification. If
+ * provided the opened file object is checked to match. This is useful when the
+ * file object is known but not in a state where you can use it directly.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyFile(
+    _In_ PCUNICODE_STRING FileName,
+    _In_opt_ PFILE_OBJECT FileObject
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    HANDLE fileHandle;
+    PFILE_OBJECT fileObject;
+
+    PAGED_CODE_PASSIVE();
+
+    fileObject = NULL;
+    fileHandle = NULL;
+
+    if (!KphpVerifyValidFileName(FileName))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "File name is invalid \"%wZ\"",
+                      FileName);
+
+        status = STATUS_OBJECT_NAME_INVALID;
+        goto Exit;
+    }
+
+    InitializeObjectAttributes(&objectAttributes,
+                               (PUNICODE_STRING)FileName,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
+                               NULL,
+                               NULL);
+
+    status = KphCreateFile(&fileHandle,
+                           FILE_READ_ACCESS | SYNCHRONIZE,
+                           &objectAttributes,
+                           &ioStatusBlock,
+                           NULL,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           (FILE_NON_DIRECTORY_FILE |
+                            FILE_SYNCHRONOUS_IO_NONALERT |
+                            FILE_COMPLETE_IF_OPLOCKED),
+                           NULL,
+                           0,
+                           IO_IGNORE_SHARE_ACCESS_CHECK,
+                           KernelMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphCreateFile failed: %!STATUS!",
+                      status);
+
+        fileHandle = NULL;
+        goto Exit;
+    }
+    else if (status == STATUS_OPLOCK_BREAK_IN_PROGRESS)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "KphCreateFile failed: %!STATUS!",
+                      status);
+
+        status = STATUS_SHARING_VIOLATION;
+        goto Exit;
+    }
+
+    status = ObReferenceObjectByHandle(fileHandle,
+                                       0,
+                                       *IoFileObjectType,
+                                       KernelMode,
+                                       &fileObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        fileObject = NULL;
+        goto Exit;
+    }
+
+    if (FileObject && !KphIsSameFile(FileObject, fileObject))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "File objects do not match!");
+
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    status = KphVerifyFileObject(fileObject, FileName);
+
+Exit:
+
+    if (fileObject)
+    {
+        ObDereferenceObject(fileObject);
+    }
 
     if (fileHandle)
     {
         ObCloseHandle(fileHandle, KernelMode);
-    }
-
-    if (signatureFileHandle)
-    {
-        ObCloseHandle(signatureFileHandle, KernelMode);
     }
 
     return status;

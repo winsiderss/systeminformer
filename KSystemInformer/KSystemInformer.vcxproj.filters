@@ -126,6 +126,18 @@
     <ClCompile Include="informer_filenc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="informer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_registry.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="session_token.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lsa.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">

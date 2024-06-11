@@ -406,9 +406,9 @@ VOID PhpSymbolProviderCompleteInitialization(
     HANDLE keyHandle;
 
     if (
-        PhGetDllHandle(PhGetStringRefZ(&dbgcoreFileName)) &&
-        PhGetDllHandle(PhGetStringRefZ(&dbghelpFileName)) &&
-        PhGetDllHandle(PhGetStringRefZ(&symsrvFileName))
+        PhGetLoaderEntryDllBase(NULL, &dbgcoreFileName) &&
+        PhGetLoaderEntryDllBase(NULL, &dbghelpFileName) &&
+        PhGetLoaderEntryDllBase(NULL, &symsrvFileName)
         )
     {
         return;
@@ -455,13 +455,13 @@ VOID PhpSymbolProviderCompleteInitialization(
             PhDereferenceObject(dbgcoreName);
         }
 
-        if (dbghelpName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &dbghelpFileName))
+        if (dbgcoreHandle && (dbghelpName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &dbghelpFileName)))
         {
             dbghelpHandle = PhLoadLibrary(dbghelpName->Buffer);
             PhDereferenceObject(dbghelpName);
         }
 
-        if (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &symsrvFileName))
+        if (dbghelpHandle && (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &symsrvFileName)))
         {
             symsrvHandle = PhLoadLibrary(symsrvName->Buffer);
             PhDereferenceObject(symsrvName);
@@ -471,13 +471,44 @@ VOID PhpSymbolProviderCompleteInitialization(
     }
 
     if (!dbgcoreHandle)
+    {
+        PPH_STRING applicationDirectory;
+        PPH_STRING dbgcoreName;
+        PPH_STRING dbghelpName;
+        PPH_STRING symsrvName;
+
+        if (applicationDirectory = PhGetApplicationDirectoryWin32())
+        {
+            if (dbgcoreName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &applicationDirectory->sr, &dbgcoreFileName))
+            {
+                dbgcoreHandle = PhLoadLibrary(dbgcoreName->Buffer);
+                PhDereferenceObject(dbgcoreName);
+            }
+
+            if (dbgcoreHandle && (dbghelpName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &applicationDirectory->sr, &dbghelpFileName)))
+            {
+                dbghelpHandle = PhLoadLibrary(dbghelpName->Buffer);
+                PhDereferenceObject(dbghelpName);
+            }
+
+            if (dbghelpHandle && (symsrvName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &applicationDirectory->sr, &symsrvFileName)))
+            {
+                symsrvHandle = PhLoadLibrary(symsrvName->Buffer);
+                PhDereferenceObject(symsrvName);
+            }
+
+            PhDereferenceObject(applicationDirectory);
+        }
+    }
+
+    if (!dbgcoreHandle)
         dbgcoreHandle = PhLoadLibrary(L"dbgcore.dll");
     if (!dbghelpHandle)
         dbghelpHandle = PhLoadLibrary(L"dbghelp.dll");
     if (!symsrvHandle)
         symsrvHandle = PhLoadLibrary(L"symsrv.dll");
 
-    if (dbghelpHandle)
+    if (dbgcoreHandle && dbghelpHandle && symsrvHandle)
     {
         SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
         SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);

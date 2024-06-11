@@ -39,7 +39,6 @@ static BOOLEAN KphpCidTrackingInitialized = FALSE;
 static KPH_CID_TABLE KphpCidTable;
 static volatile LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
-static BOOLEAN KphpLsassIsKnown = FALSE;
 static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
 static volatile ULONG64 KphpProcessSequence = 0;
 
@@ -552,18 +551,6 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         KphpSystemProcessContext = process;
     }
 
-    if (!KphpLsassIsKnown)
-    {
-        BOOLEAN isLsass;
-
-        status = KphProcessIsLsass(process->EProcess, &isLsass);
-        if (NT_SUCCESS(status) && isLsass)
-        {
-            process->IsLsass = TRUE;
-            KphpLsassIsKnown = TRUE;
-        }
-    }
-
     status = STATUS_SUCCESS;
 
 Exit:
@@ -594,11 +581,6 @@ VOID KSIAPI KphpDeleteProcessContext(
     process = Object;
 
     KphAtomicAssignObjectReference(&process->SessionToken.Atomic, NULL);
-
-    if (process->IsLsass)
-    {
-        KphpLsassIsKnown = FALSE;
-    }
 
     if (process->Protected)
     {
@@ -707,7 +689,7 @@ VOID KphpInitializeWSLThreadContext(
     //
 
     if ((ThreadContext->SubsystemType != SubsystemInformationTypeWSL) ||
-        !Dyn->LxpThreadGetCurrent ||
+        !KphDynLxpThreadGetCurrent ||
         (Dyn->LxPicoThrdInfo == ULONG_MAX) ||
         (Dyn->LxPicoThrdInfoTID == ULONG_MAX) ||
         (Dyn->LxPicoProc == ULONG_MAX) ||
@@ -717,7 +699,7 @@ VOID KphpInitializeWSLThreadContext(
         return;
     }
 
-    if (!Dyn->LxpThreadGetCurrent(&picoContext))
+    if (!KphDynLxpThreadGetCurrent(&picoContext))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       TRACKING,
@@ -1313,9 +1295,9 @@ PVOID KphpTrackContext(
     object = KphCidReferenceObject(entry);
     if (object)
     {
-        if (KphGetObjectType(object) == ObjectType)
+        if (KphGetObjectType(object) != ObjectType)
         {
-            KphReferenceObject(object);
+            KphDereferenceObject(object);
             object = NULL;
         }
 
@@ -2092,9 +2074,11 @@ VOID KphVerifyProcessAndProtectIfAppropriate(
 
     PAGED_CODE_PASSIVE();
 
-    if (Process->ImageFileName && !Process->VerifiedProcess)
+    if (Process->ImageFileName &&
+        Process->FileObject &&
+        !Process->VerifiedProcess)
     {
-        status = KphVerifyFile(Process->ImageFileName);
+        status = KphVerifyFile(Process->ImageFileName, Process->FileObject);
 
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       VERIFY,
@@ -2235,6 +2219,11 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     processState |= KPH_PROCESS_HAS_FILE_OBJECT;
 
+    if (!Process->FileObject->WriteAccess || !Process->FileObject->SharedWrite)
+    {
+        processState |= KPH_PROCESS_NO_WRITABLE_FILE_OBJECT;
+    }
+
     if (!IoGetTransactionParameterBlock(Process->FileObject))
     {
         processState |= KPH_PROCESS_NO_FILE_TRANSACTION;
@@ -2290,38 +2279,6 @@ NTSTATUS KphQueryInformationProcessContext(
 
     switch (InformationClass)
     {
-        case KphProcessContextIsLsass:
-        {
-            BOOLEAN isLsass;
-
-            returnLength = sizeof(BOOLEAN);
-
-            if (!Information || (InformationLength < sizeof(BOOLEAN)))
-            {
-                status = STATUS_INFO_LENGTH_MISMATCH;
-                goto Exit;
-            }
-
-            if (!KphpLsassIsKnown)
-            {
-                status = KphProcessIsLsass(Process->EProcess, &isLsass);
-                if (!NT_SUCCESS(status))
-                {
-                    goto Exit;
-                }
-
-                if (isLsass)
-                {
-                    Process->IsLsass = TRUE;
-                    KphpLsassIsKnown = TRUE;
-                }
-            }
-
-            *(PBOOLEAN)Information = (Process->IsLsass ? TRUE : FALSE);
-
-            status = STATUS_SUCCESS;
-            break;
-        }
         case KphProcessContextWSLProcessId:
         {
             if (Process->SubsystemType != SubsystemInformationTypeWSL)

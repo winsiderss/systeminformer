@@ -55,6 +55,10 @@
 #define WIN32_NO_STATUS
 #endif
 
+#ifndef COM_NO_WINDOWS_H
+#define COM_NO_WINDOWS_H
+#endif
+
 #ifndef __cplusplus
 // This is needed to workaround C17 preprocessor errors when using legacy versions of the Windows SDK. (dmex)
 #ifndef MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS
@@ -68,6 +72,10 @@
 #include <ntstatus.h>
 #include <winioctl.h>
 #include <evntrace.h>
+
+#ifdef COM_NO_WINDOWS_H
+#include <ole2.h>
+#endif
 
 typedef double DOUBLE;
 typedef GUID *PGUID;

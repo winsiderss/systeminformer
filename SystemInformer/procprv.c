@@ -1360,7 +1360,7 @@ VOID PhpFillProcessItem(
 
     // On Windows 8.1 and above, processes without threads are reflected processes
     // which will not terminate if we have a handle open. (wj32)
-    if (Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
+    if (Process->UserTime.QuadPart + Process->KernelTime.QuadPart == 0 && Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
     {
         NtClose(ProcessItem->QueryHandle);
         ProcessItem->QueryHandle = NULL;
@@ -1934,7 +1934,7 @@ VOID PhpGetProcessThreadInformation(
     }
 
     // HACK: Minimal/Reflected processes don't have threads. (dmex)
-    if (Process->NumberOfThreads == 0)
+    if (Process->UserTime.QuadPart + Process->KernelTime.QuadPart == 0 && Process->NumberOfThreads == 0)
     {
         isSuspended = FALSE;
         isPartiallySuspended = FALSE;
@@ -2358,8 +2358,8 @@ VOID PhProcessProviderUpdate(
             PhpAddProcessRecord(processRecord);
             processItem->Record = processRecord;
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &processorQueueLength);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &processorQueueLength);
             PhTotalCpuQueueLength += processorQueueLength;
 
             // Initialize the deltas.
@@ -2425,8 +2425,8 @@ VOID PhProcessProviderUpdate(
             FLOAT kernelCpuUsage;
             FLOAT userCpuUsage;
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &readyThreads);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &readyThreads);
             PhpFillProcessItemExtension(processItem, process);
             PhTotalCpuQueueLength += readyThreads;
 
@@ -3664,15 +3664,13 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
             );
     }
 
-    newentry = PhCreateObjectZero(sizeof(PH_IMAGELIST_ITEM), PhImageListItemType);
+    newentry = PhCreateObject(sizeof(PH_IMAGELIST_ITEM), PhImageListItemType);
     newentry->FileName = PhReferenceObject(FileName);
 
     if (largeIcon && smallIcon)
     {
         newentry->LargeIconIndex = PhImageListAddIcon(PhProcessLargeImageList, largeIcon);
         newentry->SmallIconIndex = PhImageListAddIcon(PhProcessSmallImageList, smallIcon);
-        DestroyIcon(smallIcon);
-        DestroyIcon(largeIcon);
     }
     else
     {
@@ -3684,6 +3682,11 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     PhAddEntryHashtable(PhImageListCacheHashtable, &newentry);
 
     PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
+
+    if (smallIcon)
+        DestroyIcon(smallIcon);
+    if (largeIcon)
+        DestroyIcon(smallIcon);
 
     return newentry;
 }

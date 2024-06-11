@@ -603,8 +603,6 @@ VOID LoadDiskDriveImages(
     PH_STRINGREF indexPartSr;
     ULONG64 index;
     DEVPROPTYPE devicePropertyType;
-    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
     LONG dpiValue;
 
     bufferSize = 0x40;
@@ -702,10 +700,6 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-
-            context->UseAlternateMethod = TRUE;
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), BST_CHECKED);
-            //Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), BST_CHECKED);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindDiskDrives(context);

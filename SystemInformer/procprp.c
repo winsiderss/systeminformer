@@ -543,7 +543,7 @@ VOID PhpCreateProcessPropSheetWaitContext(
         return;
     // On Windows 8.1 and above, processes without threads are reflected processes
     // which will not terminate if we have a handle open. (wj32)
-    if (processItem->NumberOfThreads == 0)
+    if (processItem->UserTime.QuadPart + processItem->KernelTime.QuadPart == 0 && processItem->NumberOfThreads == 0)
         return;
 
     if (!NT_SUCCESS(PhOpenProcess(

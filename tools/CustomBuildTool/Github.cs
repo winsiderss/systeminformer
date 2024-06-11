@@ -49,6 +49,13 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                     httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+                    httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
+                    {
+                        if (sslPolicyErrors != SslPolicyErrors.None)
+                            return false;
+
+                        return cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase);
+                    };
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -120,6 +127,13 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                     httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+                    httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
+                    {
+                        if (sslPolicyErrors != SslPolicyErrors.None)
+                            return false;
+
+                        return cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase);
+                    };
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -218,6 +232,13 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                     httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+                    httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
+                    {
+                        if (sslPolicyErrors != SslPolicyErrors.None)
+                            return false;
+
+                        return cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase);
+                    };
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -299,6 +320,13 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                     httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+                    httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
+                    {
+                        if (sslPolicyErrors != SslPolicyErrors.None)
+                            return false;
+
+                        return cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase);
+                    };
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {

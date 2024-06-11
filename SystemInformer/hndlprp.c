@@ -654,7 +654,6 @@ VOID PhpUpdateHandleGeneral(
     HANDLE processHandle;
     PPH_ACCESS_ENTRY accessEntries;
     ULONG numberOfAccessEntries;
-    OBJECT_BASIC_INFORMATION basicInfo;
     WCHAR string[PH_INT64_STR_LEN_1];
 
     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_NAME], 1, PhGetStringOrEmpty(Context->HandleItem->BestObjectName));
@@ -711,6 +710,8 @@ VOID PhpUpdateHandleGeneral(
         Context->ProcessId
         )))
     {
+        OBJECT_BASIC_INFORMATION basicInfo;
+
         if (NT_SUCCESS(PhGetHandleInformation(
             processHandle,
             Context->HandleItem->Handle,
@@ -1113,7 +1114,6 @@ VOID PhpUpdateHandleGeneral(
     else if (PhEqualString2(Context->HandleItem->TypeName, L"File", TRUE))
     {
         NTSTATUS status;
-        HANDLE processHandle;
 
         if (KphLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
                 &processHandle,
@@ -1486,7 +1486,6 @@ VOID PhpUpdateHandleGeneral(
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Section", TRUE))
     {
         NTSTATUS status;
-        HANDLE processHandle;
         SECTION_BASIC_INFORMATION basicInfo;
         PPH_STRING fileName = NULL;
 
@@ -1600,16 +1599,16 @@ VOID PhpUpdateHandleGeneral(
             PWSTR sectionType = L"Unknown";
             PPH_STRING sectionSize = NULL;
 
-            if (basicInfo.AllocationAttributes & SEC_COMMIT)
+            if (FlagOn(basicInfo.AllocationAttributes, SEC_COMMIT))
                 sectionType = L"Commit";
-            else if (basicInfo.AllocationAttributes & SEC_FILE)
+            else if (FlagOn(basicInfo.AllocationAttributes, SEC_FILE))
                 sectionType = L"File";
-            else if (basicInfo.AllocationAttributes & SEC_IMAGE)
+            else if (FlagOn(basicInfo.AllocationAttributes, SEC_IMAGE))
                 sectionType = L"Image";
-            else if (basicInfo.AllocationAttributes & SEC_RESERVE)
+            else if (FlagOn(basicInfo.AllocationAttributes, SEC_RESERVE))
                 sectionType = L"Reserve";
 
-            sectionSize = PhaFormatSize(basicInfo.MaximumSize.QuadPart, -1);
+            sectionSize = PhaFormatSize(basicInfo.MaximumSize.QuadPart, ULONG_MAX);
 
             if (fileName)
             {
@@ -1617,8 +1616,7 @@ VOID PhpUpdateHandleGeneral(
 
                 if (newFileName = PhResolveDevicePrefix(&fileName->sr))
                 {
-                    PhDereferenceObject(fileName);
-                    fileName = newFileName;
+                    PhMoveReference(&fileName, newFileName);
                 }
             }
 
@@ -1630,7 +1628,6 @@ VOID PhpUpdateHandleGeneral(
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Mutant", TRUE))
     {
         NTSTATUS status;
-        HANDLE processHandle;
         HANDLE mutantHandle = NULL;
 
         if (NT_SUCCESS(status = PhOpenProcess(
@@ -1680,7 +1677,6 @@ VOID PhpUpdateHandleGeneral(
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Process", TRUE))
     {
         NTSTATUS status;
-        HANDLE processHandle;
         NTSTATUS exitStatus = STATUS_PENDING;
         PPH_STRING fileName = NULL;
         PROCESS_BASIC_INFORMATION basicInfo;
@@ -1827,14 +1823,14 @@ VOID PhpUpdateHandleGeneral(
 
         if (exitStatus != STATUS_PENDING)
         {
-            PPH_STRING status;
+            PPH_STRING message;
             PPH_STRING exitcode;
 
-            status = PhGetStatusMessage(exitStatus, 0);
+            message = PhGetStatusMessage(exitStatus, 0);
             exitcode = PhFormatString(
                 L"0x%x (%s)",
                 exitStatus,
-                PhGetStringOrDefault(status, L"Unknown")
+                PhGetStringOrDefault(message, L"Unknown")
                 );
 
             PhSetListViewSubItem(
@@ -1845,13 +1841,12 @@ VOID PhpUpdateHandleGeneral(
                 );
 
             PhDereferenceObject(exitcode);
-            PhClearReference(&status);
+            PhClearReference(&message);
         }
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Thread", TRUE))
     {
         NTSTATUS status;
-        HANDLE processHandle;
         BOOLEAN isTerminated = FALSE;
         PPH_STRING name = NULL;
         KERNEL_USER_TIMES times;
@@ -1992,14 +1987,14 @@ VOID PhpUpdateHandleGeneral(
 
         if (isTerminated)
         {
-            PPH_STRING status;
+            PPH_STRING message;
             PPH_STRING exitcode;
 
-            status = PhGetStatusMessage(exitStatus, 0);
+            message = PhGetStatusMessage(exitStatus, 0);
             exitcode = PhFormatString(
                 L"0x%x (%s)",
                 exitStatus,
-                PhGetStringOrDefault(status, L"Unknown")
+                PhGetStringOrDefault(message, L"Unknown")
                 );
 
             PhSetListViewSubItem(
@@ -2010,7 +2005,7 @@ VOID PhpUpdateHandleGeneral(
                 );
 
             PhDereferenceObject(exitcode);
-            PhClearReference(&status);
+            PhClearReference(&message);
         }
 
         if (NT_SUCCESS(status))

@@ -556,7 +556,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 break;
             case IDCANCEL:
                 {
-                    EndDialog(hwndDlg, FALSE);
+                    EndDialog(hwndDlg, IDCANCEL);
                 }
                 break;
             }

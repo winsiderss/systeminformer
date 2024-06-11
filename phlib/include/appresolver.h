@@ -173,6 +173,12 @@ typedef struct _HSTRING_REFERENCE // Stack
     };
 } HSTRING_REFERENCE;
 
+#ifdef __hstring_h__
+static_assert(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
+#else
+static_assert(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
+#endif
+
 typedef struct _HSTRING_INSTANCE // Heap
 {
     // Header
@@ -211,6 +217,31 @@ PhCreateWindowsRuntimeStringReference(
     _In_ PCWSTR SourceString,
     _Out_ PVOID String
     );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhCreateWindowsRuntimeStringReferenceEx(
+    _In_ PCWSTR SourceString,
+    _In_ UINT32 Length,
+    _Out_ PVOID String
+    );
+
+FORCEINLINE
+HRESULT
+NTAPI
+PhCreateWindowsRuntimeStringRef(
+    _In_ PPH_STRINGREF SourceString,
+    _Out_ PVOID String
+    )
+{
+    if (SourceString->Length >= ULONG_MAX)
+    {
+        return HRESULT_FROM_WIN32(ERROR_OUTOFMEMORY);
+    }
+
+    return PhCreateWindowsRuntimeStringReferenceEx(SourceString->Buffer, (ULONG)SourceString->Length / sizeof(WCHAR), String);
+}
 
 PHLIBAPI
 HRESULT
@@ -306,7 +337,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE GetRuntimeClassName(
         __RPC__deref_out_opt HSTRING* className) = 0;
     virtual HRESULT STDMETHODCALLTYPE GetTrustLevel(
-        __RPC__out TrustLevel* trustLevel) = 0;
+        __RPC__out ULONG* trustLevel) = 0;
 };
 #else
 typedef struct IInspectableVtbl

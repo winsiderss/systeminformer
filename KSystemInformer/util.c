@@ -575,6 +575,49 @@ VOID KphReleaseRWLock(
     FltReleasePushLock(Lock);
 }
 
+/**
+ * \brief Checks if two file objects are associated with the same data.
+ *
+ * \param[in] FirstFileObject The first file object to check.
+ * \param[in] SecondFileObject The second file object to check.
+ *
+ * \return TRUE if the files are the same, FALSE otherwise.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphIsSameFile(
+    _In_ PFILE_OBJECT FirstFileObject,
+    _In_ PFILE_OBJECT SecondFileObject
+    )
+{
+    PSECTION_OBJECT_POINTERS first;
+    PSECTION_OBJECT_POINTERS second;
+
+    NPAGED_CODE_DISPATCH_MAX();
+
+    first = FirstFileObject->SectionObjectPointer;
+    second = SecondFileObject->SectionObjectPointer;
+
+    if (first != second)
+    {
+        return FALSE;
+    }
+
+    if (!first)
+    {
+        return TRUE;
+    }
+
+    if ((first->DataSectionObject != second->DataSectionObject) ||
+        (first->SharedCacheMap != second->SharedCacheMap) ||
+        (first->ImageSectionObject != second->ImageSectionObject))
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 PAGED_FILE();
 
 /**
@@ -1368,149 +1411,6 @@ BOOLEAN KphSinglePrivilegeCheck(
     SeReleaseSubjectContext(&subjectContext);
 
     return accessGranted;
-}
-
-/**
- * \brief Retrieves the process ID of lsass.
- *
- * \param[out] ProcessId Set to the process ID of lsass.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSTATUS KphpGetLsassProcessId(
-    _Out_ PHANDLE ProcessId
-    )
-{
-    NTSTATUS status;
-    PKPH_DYN dyn;
-    HANDLE portHandle;
-    KAPC_STATE apcState;
-    KPH_ALPC_COMMUNICATION_INFORMATION info;
-
-    PAGED_CODE_PASSIVE();
-
-    *ProcessId = NULL;
-
-    //
-    // N.B. This is an optimization. In order to query the process ID of lsass
-    // through the LSA port, we need the dynamic data. Rather than doing the
-    // work to attach to the system process and open the port, if we know we
-    // do not have the dynamic data, exit early.
-    //
-    dyn = KphReferenceDynData();
-    if (!dyn)
-    {
-        return STATUS_NOINTERFACE;
-    }
-
-    //
-    // Attach to system to ensure we get a kernel handle from the following
-    // ZwAlpcConnectPort call. Opening the handle here does not ask for the
-    // object attributes. To keep our imports simple we choose to use this
-    // over the Ex version (might change in the future). Pattern is adopted
-    // from msrpc.sys.
-    //
-
-    KeStackAttachProcess(PsInitialSystemProcess, &apcState);
-
-    status = ZwAlpcConnectPort(&portHandle,
-                               (PUNICODE_STRING)&KphpLsaPortName,
-                               NULL,
-                               NULL,
-                               0,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL,
-                               NULL);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      UTIL,
-                      "ZwAlpcConnectPort failed: %!STATUS!",
-                      status);
-
-        portHandle = NULL;
-        goto Exit;
-    }
-
-    status = KphAlpcQueryInformation(ZwCurrentProcess(),
-                                     portHandle,
-                                     KphAlpcCommunicationInformation,
-                                     &info,
-                                     sizeof(info),
-                                     NULL,
-                                     KernelMode);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      UTIL,
-                      "KphAlpcQueryInformation failed: %!STATUS!",
-                      status);
-        goto Exit;
-    }
-
-    *ProcessId = info.ConnectionPort.OwnerProcessId;
-
-Exit:
-
-    if (portHandle)
-    {
-        ObCloseHandle(portHandle, KernelMode);
-    }
-
-    KeUnstackDetachProcess(&apcState);
-
-    KphDereferenceObject(dyn);
-
-    return status;
-}
-
-/**
- * \brief Checks if a given process is lsass.
- *
- * \param[in] Process The process to check.
- * \param[out] IsLsass TRUE if the process is lsass, FALSE otherwise.
- *
- * \return Successful or errant status.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphProcessIsLsass(
-    _In_ PEPROCESS Process,
-    _Out_ PBOOLEAN IsLsass
-    )
-{
-    NTSTATUS status;
-    HANDLE processId;
-    SECURITY_SUBJECT_CONTEXT subjectContext;
-
-    PAGED_CODE_PASSIVE();
-
-    *IsLsass = FALSE;
-
-    status = KphpGetLsassProcessId(&processId);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    if (processId != PsGetProcessId(Process))
-    {
-        return STATUS_SUCCESS;
-    }
-
-    SeCaptureSubjectContextEx(NULL, Process, &subjectContext);
-
-    *IsLsass = KphSinglePrivilegeCheckEx(SeCreateTokenPrivilege,
-                                         &subjectContext,
-                                         UserMode);
-
-    SeReleaseSubjectContext(&subjectContext);
-
-    return STATUS_SUCCESS;
 }
 
 /**
@@ -2462,4 +2362,145 @@ NTSTATUS KphDominationAndPrivilegeCheck(
     return KphDominationCheck(PsGetThreadProcess(Thread),
                               ProcessTarget,
                               AccessMode);
+}
+
+/**
+ * \brief Retrieves the signing level of a file object.
+ *
+ * \param[in] FileObject The file object to query.
+ * \param[out] SigningLevel Receives the signing level of the file object.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphGetSigningLevel(
+    _In_ PFILE_OBJECT FileObject,
+    _Out_ PSE_SIGNING_LEVEL SigningLevel
+    )
+{
+    NTSTATUS status;
+    ULONG flags;
+    MINCRYPT_POLICY_INFO policyInfo;
+    MINCRYPT_POLICY_INFO timeStampPolicyInfo;
+    LARGE_INTEGER signingTime;
+    UCHAR thumbprint[MINCRYPT_MAX_HASH_LEN];
+    ULONG thumbprintSize;
+    ULONG thumbprintAlgorithm;
+    ANSI_STRING issuer;
+    ANSI_STRING subject;
+    BOOLEAN microsoftSigned;
+
+    PAGED_CODE_PASSIVE();
+
+    status = SeGetCachedSigningLevel(FileObject,
+                                     &flags,
+                                     SigningLevel,
+                                     NULL,
+                                     NULL,
+                                     NULL);
+    if (NT_SUCCESS(status) && (*SigningLevel != SE_SIGNING_LEVEL_UNCHECKED))
+    {
+        return status;
+    }
+
+    //
+    // Invoke CI to update the cache.
+    //
+
+    if (!KphDynCiValidateFileObject || !KphDynCiFreePolicyInfo)
+    {
+        return STATUS_NOINTERFACE;
+    }
+
+    RtlZeroMemory(&policyInfo, sizeof(policyInfo));
+    RtlZeroMemory(&timeStampPolicyInfo, sizeof(timeStampPolicyInfo));
+    thumbprintSize = sizeof(thumbprint);
+    thumbprintAlgorithm = 0;
+
+    status = KphDynCiValidateFileObject(FileObject,
+                                        CI_POLICY_ACCEPT_ANY_ROOT_CERTIFICATE,
+                                        SE_SIGNING_LEVEL_UNCHECKED,
+                                        &policyInfo,
+                                        &timeStampPolicyInfo,
+                                        &signingTime,
+                                        thumbprint,
+                                        &thumbprintSize,
+                                        &thumbprintAlgorithm);
+
+    if (policyInfo.ChainInfo &&
+        RTL_CONTAINS_FIELD(policyInfo.ChainInfo, policyInfo.ChainInfo->Size, ChainElements) &&
+        policyInfo.ChainInfo->ChainElements &&
+        policyInfo.ChainInfo->NumberOfChainElements)
+    {
+        issuer.Buffer = policyInfo.ChainInfo->ChainElements[0].Issuer.Buffer;
+        issuer.Length = policyInfo.ChainInfo->ChainElements[0].Issuer.Length;
+        issuer.MaximumLength = issuer.Length;
+
+        subject.Buffer = policyInfo.ChainInfo->ChainElements[0].Subject.Buffer;
+        subject.Length = policyInfo.ChainInfo->ChainElements[0].Subject.Length;
+        subject.MaximumLength = subject.Length;
+    }
+    else
+    {
+        RtlZeroMemory(&issuer, sizeof(issuer));
+        RtlZeroMemory(&subject, sizeof(subject));
+    }
+
+    if (!NT_SUCCESS(status) ||
+        !NT_SUCCESS(policyInfo.VerificationStatus) ||
+        BooleanFlagOn(policyInfo.PolicyBits,
+                      (MINCRYPT_POLICY_ERROR_FLAGS |
+                       MINCRYPT_POLICY_3RD_PARTY_ROOT |
+                       MINCRYPT_POLICY_NO_ROOT |
+                       MINCRYPT_POLICY_OTHER_ROOT)))
+    {
+        microsoftSigned = FALSE;
+    }
+    else
+    {
+        microsoftSigned = TRUE;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  PROTECTION,
+                  "CiValidateFileObject: \"%wZ\" 0x%08lx \"%Z\" \"%Z\" "
+                  "%!STATUS! %!STATUS!",
+                  &FileObject->FileName,
+                  policyInfo.PolicyBits,
+                  &subject,
+                  &issuer,
+                  policyInfo.VerificationStatus,
+                  status);
+
+    KphDynCiFreePolicyInfo(&policyInfo);
+    KphDynCiFreePolicyInfo(&timeStampPolicyInfo);
+
+    status = SeGetCachedSigningLevel(FileObject,
+                                     &flags,
+                                     SigningLevel,
+                                     NULL,
+                                     NULL,
+                                     NULL);
+    if (NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    //
+    // Caching of the signing level failed. If CI tells us this is Microsoft
+    // signed then we'll return that, otherwise return the errant status.
+    //
+
+    if (microsoftSigned)
+    {
+        *SigningLevel = SE_SIGNING_LEVEL_MICROSOFT;
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        *SigningLevel = SE_SIGNING_LEVEL_UNCHECKED;
+    }
+
+    return status;
 }

@@ -4278,24 +4278,6 @@ FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
  * Appends a string to the end of a string builder string.
  *
  * \param StringBuilder A string builder object.
- * \param String The string to append.
- */
-VOID PhAppendStringBuilder(
-    _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ PPH_STRINGREF String
-    )
-{
-    PhAppendStringBuilderEx(
-        StringBuilder,
-        String->Buffer,
-        String->Length
-        );
-}
-
-/**
- * Appends a string to the end of a string builder string.
- *
- * \param StringBuilder A string builder object.
  * \param String The string to append. Specify NULL to simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */

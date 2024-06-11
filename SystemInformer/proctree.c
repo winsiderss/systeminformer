@@ -1203,8 +1203,11 @@ static VOID PhpUpdateProcessNodeImage(
             }
         }
 
-        if (ProcessNode->ImageMachine == IMAGE_FILE_MACHINE_UNKNOWN && ProcessNode->ProcessItem->QueryHandle)
-            PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->ImageMachine);
+        if (!ProcessNode->ProcessItem->QueryHandle ||
+            !NT_SUCCESS(PhGetProcessArchitecture(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->Architecture)))
+        {
+            ProcessNode->Architecture = IMAGE_FILE_MACHINE_UNKNOWN;
+        }
 
         //if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
         //{
@@ -2340,10 +2343,23 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Architecture)
 {
+    USHORT architecture1;
+    USHORT architecture2;
+
     PhpUpdateProcessNodeImage(node1);
     PhpUpdateProcessNodeImage(node2);
 
-    sortResult = uintcmp(node1->ImageMachine, node2->ImageMachine);
+    if (node1->Architecture != IMAGE_FILE_MACHINE_UNKNOWN)
+        architecture1 = node1->Architecture;
+    else
+        architecture1 = node1->ImageMachine;
+
+    if (node2->Architecture != IMAGE_FILE_MACHINE_UNKNOWN)
+        architecture2 = node2->Architecture;
+    else
+        architecture2 = node2->ImageMachine;
+
+    sortResult = uintcmp(architecture1, architecture2);
 #ifdef _ARM64_
     if (sortResult == 0)
         sortResult = uintcmp(node1->ImageCHPEVersion, node2->ImageCHPEVersion);
@@ -3664,28 +3680,60 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhpUpdateProcessNodeImage(node);
 
-                    switch (node->ImageMachine)
+                    // Use Architecture from PhGetProcessArchitecture if we have it, this supports
+                    // cases where the process is executing as a different architecture than the
+                    // image it was loaded from (ARM64X or .NET).
+                    if (node->Architecture != IMAGE_FILE_MACHINE_UNKNOWN)
                     {
-                    case IMAGE_FILE_MACHINE_I386:
-                        PhInitializeStringRef(&getCellText->Text, L"x86");
-                        break;
-                    case IMAGE_FILE_MACHINE_AMD64:
+                        switch (node->Architecture)
+                        {
+                        case IMAGE_FILE_MACHINE_I386:
+                            PhInitializeStringRef(&getCellText->Text, L"x86");
+                            break;
+                        case IMAGE_FILE_MACHINE_AMD64:
 #ifdef _ARM64_
-                        PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"x64 (ARM64X)" : L"x64");
+                            PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"x64 (ARM64X)" : L"x64");
 #else
-                        PhInitializeStringRef(&getCellText->Text, L"x64");
+                            PhInitializeStringRef(&getCellText->Text, L"x64");
 #endif
-                        break;
-                    case IMAGE_FILE_MACHINE_ARMNT:
-                        PhInitializeStringRef(&getCellText->Text, L"ARM");
-                        break;
-                    case IMAGE_FILE_MACHINE_ARM64:
+                            break;
+                        case IMAGE_FILE_MACHINE_ARMNT:
+                            PhInitializeStringRef(&getCellText->Text, L"ARM");
+                            break;
+                        case IMAGE_FILE_MACHINE_ARM64:
 #ifdef _ARM64_
-                        PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"ARM64 (ARM64X)" : L"ARM64");
+                            PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"ARM64 (ARM64X)" : L"ARM64");
 #else
-                        PhInitializeStringRef(&getCellText->Text, L"ARM64");
+                            PhInitializeStringRef(&getCellText->Text, L"ARM64");
 #endif
-                        break;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        switch (node->ImageMachine)
+                        {
+                        case IMAGE_FILE_MACHINE_I386:
+                            PhInitializeStringRef(&getCellText->Text, L"x86");
+                            break;
+                        case IMAGE_FILE_MACHINE_AMD64:
+#ifdef _ARM64_
+                            PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"x64 (ARM64X)" : L"x64");
+#else
+                            PhInitializeStringRef(&getCellText->Text, L"x64");
+#endif
+                            break;
+                        case IMAGE_FILE_MACHINE_ARMNT:
+                            PhInitializeStringRef(&getCellText->Text, L"ARM");
+                            break;
+                        case IMAGE_FILE_MACHINE_ARM64:
+#ifdef _ARM64_
+                            PhInitializeStringRef(&getCellText->Text, node->ImageCHPEVersion ? L"ARM64 (ARM64X)" : L"ARM64");
+#else
+                            PhInitializeStringRef(&getCellText->Text, L"ARM64");
+#endif
+                            break;
+                        }
                     }
                     break;
                 }

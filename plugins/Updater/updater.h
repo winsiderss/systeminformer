@@ -95,7 +95,6 @@ typedef struct _PH_UPDATER_CONTEXT
     ULONG64 CurrentVersion;
     ULONG64 LatestVersion;
     PPH_STRING SetupFilePath;
-    PPH_STRING CurrentVersionString;
     PPH_STRING Version;
     PPH_STRING RelDate;
     PPH_STRING SetupFileLength;

@@ -26,6 +26,7 @@
     <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
     <SignMode>Off</SignMode>
     <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+    <ResolveNuGetPackages>false</ResolveNuGetPackages>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -261,6 +262,7 @@
     <ClCompile Include="informer_thread.c" />
     <ClCompile Include="knowndll.c" />
     <ClCompile Include="kphobject.c" />
+    <ClCompile Include="lsa.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="object.c" />
     <ClCompile Include="parameters.c" />
@@ -268,7 +270,6 @@
     <ClCompile Include="protection.c" />
     <ClCompile Include="qrydrv.c" />
     <ClCompile Include="session_token.c" />
-    <ClCompile Include="sign.c" />
     <ClCompile Include="system.c" />
     <ClCompile Include="thread.c" />
     <ClCompile Include="util.c" />

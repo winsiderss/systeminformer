@@ -20,6 +20,9 @@ PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2 KphDynPsSetCreateProcessNotifyRoutineE
 PMM_PROTECT_DRIVER_SECTION KphDynMmProtectDriverSection = NULL;
 PPS_GET_PROCESS_SEQUENCE_NUMBER KphDynPsGetProcessSequenceNumber = NULL;
 PPS_GET_PROCESS_START_KEY KphDynPsGetProcessStartKey = NULL;
+PCI_VALIDATE_FILE_OBJECT KphDynCiValidateFileObject = NULL;
+PCI_FREE_POLICY_INFO KphDynCiFreePolicyInfo = NULL;
+PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
@@ -39,6 +42,9 @@ VOID KphDynamicImport(
     KphDynMmProtectDriverSection = (PMM_PROTECT_DRIVER_SECTION)KphGetSystemRoutineAddress(L"MmProtectDriverSection");
     KphDynPsGetProcessSequenceNumber = (PPS_GET_PROCESS_SEQUENCE_NUMBER)KphGetSystemRoutineAddress(L"PsGetProcessSequenceNumber");
     KphDynPsGetProcessStartKey = (PPS_GET_PROCESS_START_KEY)KphGetSystemRoutineAddress(L"PsGetProcessStartKey");
+    KphDynCiValidateFileObject = (PCI_VALIDATE_FILE_OBJECT)KphGetRoutineAddress(L"ci.dll", "CiValidateFileObject");
+    KphDynCiFreePolicyInfo = (PCI_FREE_POLICY_INFO)KphGetRoutineAddress(L"ci.dll", "CiFreePolicyInfo");
+    KphDynLxpThreadGetCurrent = (PLXP_THREAD_GET_CURRENT)KphGetRoutineAddress(L"lxcore.sys", "LxpThreadGetCurrent");
 }
 
 /**

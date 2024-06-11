@@ -29,14 +29,14 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-encrypt"))
             {
-                if (!Verify.EncryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
+                if (!Verify.EncryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"]))
                 {
                     Environment.Exit(1);
                 }
             }
             else if (ProgramArgs.ContainsKey("-decrypt"))
             {
-                if (!Verify.DecryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"], ProgramArgs["-salt"]))
+                if (!Verify.DecryptFile(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"]))
                 {
                     Environment.Exit(1);
                 }

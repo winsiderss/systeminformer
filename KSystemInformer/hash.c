@@ -1884,228 +1884,56 @@ Exit:
     return status;
 }
 
+
 /**
- * \brief Retrieves authenticode info from a PE file.
+ * \brief Queries hash information for a file object.
  *
- * \param[in] FileHandle Handle to PE file to get authenticode info from.
- * \param[out] Information Populated with authenticode info. The signature is
- * allocated and copied into the output. The caller should free this by passing
- * the structure to KphAuthenticodeInfo.
+ * \param[in] FileObject The file to query.
+ * \param[in,out] HashInformation The hash information to populate with the
+ * requested hash algorithms. On input this array contains the requested hash
+ * algorithms to use, and on output the hash information items are populated
+ * with the requested hash values.
+ * \param[in] HashInformationLength The length of the hash information in bytes.
+ * \param[in] AccessMode The mode in which to perform access checks.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphGetAuthenticodeInformation(
-    _In_ HANDLE FileHandle,
-    _Out_allocatesMem_ PKPH_AUTHENTICODE_INFORMATION Information
+NTSTATUS KphQueryHashInformationFileObject(
+    _In_ PFILE_OBJECT FileObject,
+    _Inout_ PKPH_HASH_INFORMATION HashInformation,
+    _In_ ULONG HashInformationLength
     )
 {
     NTSTATUS status;
-    PKPH_HASH_INFORMATION hashInfoSha1;
-    PKPH_HASH_INFORMATION hashInfoSha256;
-    PKPH_HASHING_CONTEXT context;
-    PVOID mappedBase;
-    SIZE_T viewSize;
+    HANDLE fileHandle;
 
     PAGED_CODE_PASSIVE();
 
-    RtlZeroMemory(Information, sizeof(KPH_AUTHENTICODE_INFORMATION));
-
-    mappedBase = NULL;
-    hashInfoSha1 = &Information->HashInfo[KPH_AUTHENTICODE_HASH_SHA1];
-    hashInfoSha256 = &Information->HashInfo[KPH_AUTHENTICODE_HASH_SHA256];
-
-    hashInfoSha1->Algorithm = KphHashAlgorithmSha1Authenticode;
-    hashInfoSha256->Algorithm = KphHashAlgorithmSha256Authenticode;
-
-    context = KphpAllocateHashingContext();
-    if (!context)
-    {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
-
-    status = KphpInitializeFileHashingContext(context,
-                                              FileHandle,
-                                              Information->HashInfo,
-                                              ARRAYSIZE(Information->HashInfo),
-                                              KernelMode);
+    status = ObOpenObjectByPointer(FileObject,
+                                   OBJ_KERNEL_HANDLE,
+                                   NULL,
+                                   0,
+                                   *IoFileObjectType,
+                                   KernelMode,
+                                   &fileHandle);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HASH,
-                      "KphpInitializeFileHashingContext failed: %!STATUS!",
+                      "ObOpenObjectByPointer failed: %!STATUS!",
                       status);
 
-        goto Exit;
+        return status;
     }
 
-    viewSize = 0;
+    status = KphQueryHashInformationFile(fileHandle,
+                                         HashInformation,
+                                         HashInformationLength,
+                                         KernelMode);
 
-    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "KphMapViewInSystem failed: %!STATUS!",
-                      status);
-
-        mappedBase = NULL;
-        goto Exit;
-    }
-
-    __try
-    {
-        status = KphpInitializeAuthenticodeHashing(context,
-                                                   mappedBase,
-                                                   viewSize);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HASH,
-                          "KphpInitializeAuthenticodeHashing failed: %!STATUS!",
-                          status);
-
-            goto Exit;
-        }
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        status = GetExceptionCode();
-        goto Exit;
-    }
-
-    if (!context->RequiresHashing)
-    {
-        goto Finish;
-    }
-
-    for (ULONG i = 0; i < ARRAYSIZE(context->Authenticode.Regions); i++)
-    {
-        PKPH_HASHING_AUTHENTICODE_REGION region;
-        ULONG length;
-        ULONG readSize;
-
-        region = &context->Authenticode.Regions[i];
-
-        if (!region->Start)
-        {
-            break;
-        }
-
-        readSize = 0;
-        length = PtrOffset(region->Start, region->End);
-
-        for (ULONG offset = 0; offset < length; offset += readSize)
-        {
-            PVOID buffer;
-
-            buffer = Add2Ptr(region->Start, offset);
-            readSize = min(length - offset, sizeof(context->Buffer));
-
-            __try
-            {
-                RtlCopyMemory(context->Buffer, buffer, readSize);
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
-
-            KphpProgressEaCacheContext(context);
-
-            status = KphpUpdateHashes(context, buffer, readSize);
-            if (!NT_SUCCESS(status))
-            {
-                KphTracePrint(TRACE_LEVEL_VERBOSE,
-                              HASH,
-                              "KphpUpdateHashes failed: %!STATUS!",
-                              status);
-
-                goto Exit;
-            }
-        }
-    }
-
-    status = KphpFinishHashes(context);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HASH,
-                      "KphpFinishHashes failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-Finish:
-
-    KphpCopyHashes(context,
-                   Information->HashInfo,
-                   ARRAYSIZE(Information->HashInfo));
-
-    if (!context->Authenticode.SecurityBase)
-    {
-        goto Exit;
-    }
-
-    NT_ASSERT(context->Authenticode.SecuritySize > 0);
-
-    Information->Signature = KphAllocatePaged(context->Authenticode.SecuritySize,
-                                              KPH_TAG_AUTHENTICODE_SIG);
-    if (!Information->Signature)
-    {
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
-
-    __try
-    {
-        RtlCopyMemory(Information->Signature,
-                      context->Authenticode.SecurityBase,
-                      context->Authenticode.SecuritySize);
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        status = GetExceptionCode();
-        KphFree(Information->Signature, KPH_TAG_AUTHENTICODE_SIG);
-        Information->Signature = NULL;
-        goto Exit;
-    }
-
-    Information->SignatureLength = context->Authenticode.SecuritySize;
-
-Exit:
-
-    if (mappedBase)
-    {
-        KphUnmapViewInSystem(mappedBase);
-    }
-
-    if (context)
-    {
-        KphpFreeHashingContext(context);
-    }
+    ObCloseHandle(fileHandle, KernelMode);
 
     return status;
-}
-
-/**
- * \brief Frees authenticode info.
- *
- * \param[in] Information Authenticode information to free.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphFreeAuthenticodeInformation(
-    _In_freesMem_ PKPH_AUTHENTICODE_INFORMATION Information
-    )
-{
-    PAGED_CODE_PASSIVE();
-
-    if (Information->Signature)
-    {
-        KphFree(Information->Signature, KPH_TAG_AUTHENTICODE_SIG);
-    }
 }
