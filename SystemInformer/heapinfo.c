@@ -432,7 +432,7 @@ VOID PhpEnumerateProcessHeaps(
 
     if (processHandle)
     {
-        PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle, L"RtlQueryProcessDebugInformation request");
+        PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
     }
 
     if (PhGetIntegerSetting(L"EnableHeapReflection"))

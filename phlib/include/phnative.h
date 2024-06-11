@@ -3187,8 +3187,7 @@ NTSTATUS
 NTAPI
 PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,
-    _Out_ PHANDLE PowerRequestHandle,
-    _In_ PCWSTR ReasonString
+    _Out_ PHANDLE PowerRequestHandle
     );
 
 PHLIBAPI

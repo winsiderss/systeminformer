@@ -645,11 +645,7 @@ NTSTATUS PhTerminateProcessAlternative(
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        status = PhCreateExecutionRequiredRequest(
-            ProcessHandle,
-            &powerRequestHandle,
-            L"RtlExitUserProcess request"
-            );
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
@@ -2341,11 +2337,7 @@ NTSTATUS PhLoadDllProcess(
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        status = PhCreateExecutionRequiredRequest(
-            ProcessHandle,
-            &powerRequestHandle,
-            L"LoadLibraryW request"
-            );
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
@@ -2468,11 +2460,7 @@ NTSTATUS PhUnloadDllProcess(
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        status = PhCreateExecutionRequiredRequest(
-            ProcessHandle,
-            &powerRequestHandle,
-            L"LdrUnloadDll request"
-            );
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
 
         if (!NT_SUCCESS(status))
             return status;
@@ -2638,11 +2626,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        status = PhCreateExecutionRequiredRequest(
-            ProcessHandle,
-            &powerRequestHandle,
-            L"SetEnvironmentVariableW request"
-            );
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
@@ -2791,11 +2775,7 @@ NTSTATUS PhDestroyWindowRemote(
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        status = PhCreateExecutionRequiredRequest(
-            ProcessHandle,
-            &powerRequestHandle,
-            L"DestroyWindow request"
-            );
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
@@ -14948,11 +14928,7 @@ NTSTATUS PhGetProcessConsoleCodePage(
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        status = PhCreateExecutionRequiredRequest(
-            ProcessHandle,
-            &powerRequestHandle,
-            L"GetConsoleCP request"
-            );
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
 
         if (!NT_SUCCESS(status))
             return status;
@@ -16443,14 +16419,12 @@ NTSTATUS PhSetSystemEnvironmentBootToFirmware(
  *
  * \param ProcessHandle A handle to the process for which the power request is to be created.
  * \param PowerRequestHandle A pointer to a variable that receives a handle to the new power request.
- * \param ReasonString An optional comment string to associate with the power request.
  *
  * \return Successful or errant status.
  */
 NTSTATUS PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,
-    _Out_ PHANDLE PowerRequestHandle,
-    _In_ PCWSTR ReasonString
+    _Out_ PHANDLE PowerRequestHandle
     )
 {
     NTSTATUS status;
@@ -16460,8 +16434,7 @@ NTSTATUS PhCreateExecutionRequiredRequest(
 
     memset(&powerRequestReason, 0, sizeof(COUNTED_REASON_CONTEXT));
     powerRequestReason.Version = POWER_REQUEST_CONTEXT_VERSION;
-    powerRequestReason.Flags = POWER_REQUEST_CONTEXT_SIMPLE_STRING;
-    RtlInitUnicodeString(&powerRequestReason.SimpleString, ReasonString);
+    powerRequestReason.Flags = POWER_REQUEST_CONTEXT_NOT_SPECIFIED;
 
     status = NtPowerInformation(
         PlmPowerRequestCreate,
@@ -16834,11 +16807,7 @@ NTSTATUS PhProcessExecutionRequiredEnable(
         return status;
     }
 
-    status = PhCreateExecutionRequiredRequest(
-        processHandle,
-        &requestHandle,
-        L"User-initiated request"
-        );
+    status = PhCreateExecutionRequiredRequest(processHandle, &requestHandle);
 
     if (NT_SUCCESS(status))
     {
