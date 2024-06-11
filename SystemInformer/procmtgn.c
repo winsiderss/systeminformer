@@ -608,33 +608,47 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
             }
         }
         break;
-    case ProcessRedirectionTrustPolicy:
+case ProcessRedirectionTrustPolicy:
+{
+    PPROCESS_MITIGATION_REDIRECTION_TRUST_POLICY data = Data;
+
+    // Ensure data is not NULL
+    if (data)
+    {
+        // Handle Enforce Redirection Trust Policy
+        if (data->EnforceRedirectionTrust && data->AuditRedirectionTrust)
         {
-            PPROCESS_MITIGATION_REDIRECTION_TRUST_POLICY data = Data;
+            if (ShortDescription)
+                *ShortDescription = PhCreateString(L"Junction redirection protection / Audit");
 
-            if (data->EnforceRedirectionTrust)
-            {
-                if (ShortDescription)
-                    *ShortDescription = PhCreateString(L"Junction redirection protection");
+            if (LongDescription)
+                *LongDescription = PhCreateString(L"Prevents the process from following filesystem junctions created by non-admin users and logs the attempt.\r\nLogs attempts by the process to follow filesystem junctions created by non-admin users.\r\n");
 
-                if (LongDescription)
-                    *LongDescription = PhCreateString(L"Prevents the process from following filesystem junctions created by non-admin users and logs the attempt.\r\n");
-
-                result = TRUE;
-            }
-
-            if (data->AuditRedirectionTrust)
-            {
-                if (ShortDescription)
-                    *ShortDescription = PhCreateString(L"Junction redirection protection (Audit)");
-
-                if (LongDescription)
-                    *LongDescription = PhCreateString(L"Logs attempts by the process to follow filesystem junctions created by non-admin users.\r\n");
-
-                result = TRUE;
-            }
+            result = TRUE;
         }
-        break;
+        else if (data->EnforceRedirectionTrust)
+        {
+            if (ShortDescription)
+                *ShortDescription = PhCreateString(L"Junction redirection protection");
+
+            if (LongDescription)
+                *LongDescription = PhCreateString(L"Prevents the process from following filesystem junctions created by non-admin users and logs the attempt.\r\n");
+
+            result = TRUE;
+        }
+        else if (data->AuditRedirectionTrust)
+        {
+            if (ShortDescription)
+                *ShortDescription = PhCreateString(L"Junction redirection protection (Audit)");
+
+            if (LongDescription)
+                *LongDescription = PhCreateString(L"Logs attempts by the process to follow filesystem junctions created by non-admin users.\r\n");
+
+            result = TRUE;
+        }
+    }
+}
+break;
     case ProcessUserPointerAuthPolicy:
         {
             PPROCESS_MITIGATION_USER_POINTER_AUTH_POLICY data = Data;
