@@ -116,6 +116,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                     case CBN_SELCHANGE:
                         {
                             GeoLiteDatabaseType = ComboBox_GetCurSel(GetDlgItem(WindowHandle, IDC_GEODBCOMBO));
+
+                            PhSetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE, GeoLiteDatabaseType);
                         }
                         break;
                     }    

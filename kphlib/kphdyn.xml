@@ -129,7 +129,7 @@ dt nt!_EPROCESS SectionObject
         <field arch="arm64" value="0x0048" name="MmControlAreaLock"/>
         <field arch="arm64" value="0x0298" name="EpSectionObject"/>
     </data>
-    <data min="10.0.22000.556" max="10.0.22621.3672">
+    <data min="10.0.22000.556" max="10.0.22621.3733">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
@@ -282,7 +282,7 @@ dt nt!_EPROCESS SectionObject
         <field arch="arm64" value="0x04d0" name="EpSectionObject"/>
     </data>
     <!-- Windows Server 2022 -->
-    <data min="10.0.20348.587" max="10.0.20348.2461">
+    <data min="10.0.20348.587" max="10.0.20348.2520">
         <field value="0x0028" name="EgeGuid"/>
         <field value="0x0570" name="EpObjectTable"/>
         <field value="0x0020" name="EreGuidEntry"/>
@@ -321,7 +321,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0518" name="EpSectionObject"/>
     </data>
     <!-- Windows 10 -->
-    <data min="10.0.19041.1586" max="10.0.19041.4474">
+    <data min="10.0.19041.1586" max="10.0.19041.4522">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
@@ -663,7 +663,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0048" name="MmControlAreaLock"/>
         <field value="0x03c0" name="EpSectionObject"/>
     </data>
-    <data min="10.0.17763.2746" max="10.0.17763.5830">
+    <data min="10.0.17763.2746" max="10.0.17763.5933">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0418" name="EpObjectTable"/>
@@ -853,7 +853,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0048" name="MmControlAreaLock"/>
         <field value="0x03b8" name="EpSectionObject"/>
     </data>
-    <data min="10.0.14393.5006" max="10.0.14393.5996">
+    <data min="10.0.14393.5006" max="10.0.14393.7070">
         <field value="0x0018" name="EgeGuid"/>
         <field value="0x0418" name="EpObjectTable"/>
         <field value="0x0020" name="EreGuidEntry"/>
