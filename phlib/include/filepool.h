@@ -50,8 +50,10 @@ typedef struct _PH_FP_BLOCK_HEADER
     /** The number of blocks in the entire logical block, or the number
      * of segments in a large allocation. */
     ULONG Span;
-    ULONGLONG Body;
+    QUAD_PTR Body;
 } PH_FP_BLOCK_HEADER, *PPH_FP_BLOCK_HEADER;
+
+C_ASSERT((FIELD_OFFSET(PH_FP_BLOCK_HEADER, Body) % MEMORY_ALLOCATION_ALIGNMENT) == 0);
 
 typedef struct _PH_FP_SEGMENT_HEADER
 {
