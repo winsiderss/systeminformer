@@ -3216,8 +3216,10 @@ typedef struct _PH_HASHTABLE_ENTRY
      */
     ULONG Next;
     /** The beginning of user data. */
-    QUAD Body;
+    QUAD_PTR Body;
 } PH_HASHTABLE_ENTRY, *PPH_HASHTABLE_ENTRY;
+
+C_ASSERT((FIELD_OFFSET(PH_HASHTABLE_ENTRY, Body) % MEMORY_ALLOCATION_ALIGNMENT) == 0);
 
 /**
  * A comparison function used by a hashtable.
@@ -3542,6 +3544,8 @@ typedef struct _PH_FREE_LIST_ENTRY
     SLIST_ENTRY ListEntry;
     QUAD_PTR Body;
 } PH_FREE_LIST_ENTRY, *PPH_FREE_LIST_ENTRY;
+
+C_ASSERT((FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) % MEMORY_ALLOCATION_ALIGNMENT) == 0);
 
 #ifdef _WIN64
 C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, ListEntry) == 0x0);

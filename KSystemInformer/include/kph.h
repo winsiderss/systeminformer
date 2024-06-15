@@ -1318,6 +1318,8 @@ typedef struct _KPH_OBJECT_HEADER
     QUAD Body;
 } KPH_OBJECT_HEADER, *PKPH_OBJECT_HEADER;
 
+C_ASSERT((FIELD_OFFSET(KPH_OBJECT_HEADER, Body) % MEMORY_ALLOCATION_ALIGNMENT) == 0);
+
 #define KphObjectToObjectHeader(x) ((PKPH_OBJECT_HEADER)CONTAINING_RECORD((PCHAR)Object, KPH_OBJECT_HEADER, Body))
 #define KphObjectHeaderToObject(x) ((PVOID)&((PKPH_OBJECT_HEADER)(x))->Body)
 #define KphAddObjectHeaderSize(x) ((SIZE_T)(x) + FIELD_OFFSET(KPH_OBJECT_HEADER, Body))
