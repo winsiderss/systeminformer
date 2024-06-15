@@ -286,6 +286,14 @@ PhUiDetachFromDebuggerProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiSetExecutionRequiredProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiLoadDllProcess(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM Process

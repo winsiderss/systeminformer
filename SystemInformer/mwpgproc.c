@@ -689,6 +689,19 @@ VOID PhMwpInitializeProcessMenu(
             }
         }
 
+        // Execution Required requests
+        if (WindowsVersion < WINDOWS_8)
+        {
+            PhEnableEMenuItem(Menu, ID_MISCELLANEOUS_EXECUTIONREQUIRED, FALSE);
+        }
+        else
+        {
+            if (PhIsProcessExecutionRequired(Processes[0]->ProcessId))
+            {
+                PhSetFlagsEMenuItem(Menu, ID_MISCELLANEOUS_EXECUTIONREQUIRED, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+            }
+        }
+
         if (WindowsVersion < WINDOWS_11)
         {
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_FREEZE))
@@ -924,6 +937,7 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_SETCRITICAL, L"&Critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_DETACHFROMDEBUGGER, L"&Detach from debugger", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_ECOMODE, L"Efficiency mode", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_EXECUTIONREQUIRED, L"Execution required", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_GDIHANDLES, L"GDI &handles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_HEAPS, L"Heaps", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_PAGESMODIFIED, L"Modified pages", NULL, NULL), ULONG_MAX);

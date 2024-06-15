@@ -2920,6 +2920,31 @@ BOOLEAN PhUiSetEcoModeProcess(
     return TRUE;
 }
 
+BOOLEAN PhUiSetExecutionRequiredProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+)
+{
+    NTSTATUS status;
+
+    if (PhIsProcessExecutionRequired(Process->ProcessId))
+    {
+        status = PhProcessExecutionRequiredDisable(Process->ProcessId);
+    }
+    else
+    {
+        status = PhProcessExecutionRequiredEnable(Process->ProcessId);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(WindowHandle, L"create PLM power request for", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiDetachFromDebuggerProcess(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM Process

@@ -16417,8 +16417,8 @@ NTSTATUS PhSetSystemEnvironmentBootToFirmware(
  * Creates a PLM execution request. This is mandatory on Windows 8 and above to prevent
  * processes freezing while querying process information and deadlocking the calling process.
  *
- * \param ProcessHandle A handle to the process in which the thread is to be created.
- * \param PowerRequestHandle A pointer to a variable that receives a handle to the new thread.
+ * \param ProcessHandle A handle to the process for which the power request is to be created.
+ * \param PowerRequestHandle A pointer to a variable that receives a handle to the new power request.
  *
  * \return Successful or errant status.
  */
@@ -16434,8 +16434,7 @@ NTSTATUS PhCreateExecutionRequiredRequest(
 
     memset(&powerRequestReason, 0, sizeof(COUNTED_REASON_CONTEXT));
     powerRequestReason.Version = POWER_REQUEST_CONTEXT_VERSION;
-    powerRequestReason.Flags = POWER_REQUEST_CONTEXT_SIMPLE_STRING;
-    RtlInitUnicodeString(&powerRequestReason.SimpleString, L"QueryDebugInformation request");
+    powerRequestReason.Flags = POWER_REQUEST_CONTEXT_NOT_SPECIFIED;
 
     status = NtPowerInformation(
         PlmPowerRequestCreate,
@@ -16709,6 +16708,156 @@ NTSTATUS PhThawProcess(
     NtClose(processHandle);
 
     return status;
+}
+
+// Process execution request support
+
+static PH_INITONCE PhExecutionRequestInitOnce = PH_INITONCE_INIT;
+static PPH_HASHTABLE PhExecutionRequestHashtable = NULL;
+
+typedef struct _PH_EXECUTIONREQUEST_CACHE_ENTRY
+{
+    HANDLE ProcessId;
+    HANDLE ExecutionRequestHandle;
+} PH_EXECUTIONREQUEST_CACHE_ENTRY, *PPH_EXECUTIONREQUEST_CACHE_ENTRY;
+
+static BOOLEAN NTAPI PhExecutionRequestHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    return
+        ((PPH_EXECUTIONREQUEST_CACHE_ENTRY)Entry1)->ProcessId ==
+        ((PPH_EXECUTIONREQUEST_CACHE_ENTRY)Entry2)->ProcessId;
+}
+
+static ULONG NTAPI PhExecutionRequestHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return HandleToUlong(((PPH_EXECUTIONREQUEST_CACHE_ENTRY)Entry)->ProcessId) / 4;
+}
+
+BOOLEAN PhInitializeExecutionRequestTable(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhExecutionRequestInitOnce))
+    {
+        PhExecutionRequestHashtable = PhCreateHashtable(
+            sizeof(PH_EXECUTIONREQUEST_CACHE_ENTRY),
+            PhExecutionRequestHashtableEqualFunction,
+            PhExecutionRequestHashtableHashFunction,
+            1
+            );
+
+        PhEndInitOnce(&PhExecutionRequestInitOnce);
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhIsProcessExecutionRequired(
+    _In_ HANDLE ProcessId
+    )
+{
+    if (PhInitializeExecutionRequestTable())
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhFindEntryHashtable(PhExecutionRequestHashtable, &entry))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+NTSTATUS PhProcessExecutionRequiredEnable(
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE requestHandle = NULL;
+
+    if (PhInitializeExecutionRequestTable())
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhFindEntryHashtable(PhExecutionRequestHashtable, &entry))
+        {
+            return STATUS_SUCCESS;
+        }
+    }
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_LIMITED_INFORMATION,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    status = PhCreateExecutionRequiredRequest(processHandle, &requestHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+        entry.ExecutionRequestHandle = requestHandle;
+
+        PhAddEntryHashtable(PhExecutionRequestHashtable, &entry);
+    }
+
+    NtClose(processHandle);
+
+    return status;
+}
+
+NTSTATUS PhProcessExecutionRequiredDisable(
+    _In_ HANDLE ProcessId
+    )
+{
+    HANDLE requestHandle = NULL;
+
+    if (PhInitializeExecutionRequestTable())
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY lookupEntry;
+        PPH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        lookupEntry.ProcessId = ProcessId;
+
+        if (entry = PhFindEntryHashtable(PhExecutionRequestHashtable, &lookupEntry))
+        {
+            requestHandle = entry->ExecutionRequestHandle;
+        }
+    }
+
+    if (requestHandle)
+    {
+        PH_EXECUTIONREQUEST_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhRemoveEntryHashtable(PhExecutionRequestHashtable, &entry))
+        {
+            PhDestroyExecutionRequiredRequest(requestHandle);
+        }
+
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
 }
 
 // KnownDLLs cache support
