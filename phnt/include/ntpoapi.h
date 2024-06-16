@@ -594,6 +594,11 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalGetAcpiTimeAndAlarmCapabilities, // since 22H2
     PowerInternalSuspendResumeRequest,
     PowerInternalEnergyEstimationInfo, // since 23H2
+    PowerInternalProvSocIdentifierOperation, // since 24H2
+    PowerInternalGetVmPerfPrioritySupport,
+    PowerInternalGetVmPerfPriorityConfig,
+    PowerInternalNotifyWin32kPowerRequestQueued,
+    PowerInternalNotifyWin32kPowerRequestCompleted,
     PowerInformationInternalMaximum
 } POWER_INFORMATION_LEVEL_INTERNAL;
 
