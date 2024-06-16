@@ -432,13 +432,7 @@ namespace CustomBuildTool
 
         public override bool Equals(object obj)
         {
-            if (obj == null)
-                return false;
-
-            if (obj is not GithubRelease file)
-                return false;
-
-            return this.ReleaseId.Equals(file.ReleaseId, StringComparison.OrdinalIgnoreCase);
+            return obj is GithubRelease file && this.ReleaseId.Equals(file.ReleaseId, StringComparison.OrdinalIgnoreCase);
         }
 
         public bool Equals(GithubRelease other)
@@ -466,16 +460,11 @@ namespace CustomBuildTool
         }
     }
 
-    public class GithubReleaseAsset : IComparable, IComparable<GithubReleaseAsset>, IEquatable<GithubReleaseAsset>
+    public class GithubReleaseAsset(string Filename, string DownloadUrl)
+        : IComparable, IComparable<GithubReleaseAsset>, IEquatable<GithubReleaseAsset>
     {
-        public string Filename { get; private set; }
-        public string DownloadUrl { get; private set; }
-
-        public GithubReleaseAsset(string Filename, string DownloadUrl)
-        {
-            this.Filename = Filename;
-            this.DownloadUrl = DownloadUrl;
-        }
+        public string Filename { get; } = Filename;
+        public string DownloadUrl { get; } = DownloadUrl;
 
         public override string ToString()
         {
@@ -489,13 +478,7 @@ namespace CustomBuildTool
 
         public override bool Equals(object obj)
         {
-            if (obj == null)
-                return false;
-
-            if (obj is not GithubReleaseAsset file)
-                return false;
-
-            return this.Filename.Equals(file.Filename, StringComparison.OrdinalIgnoreCase);
+            return obj is GithubReleaseAsset file && this.Filename.Equals(file.Filename, StringComparison.OrdinalIgnoreCase);
         }
 
         public bool Equals(GithubReleaseAsset other)

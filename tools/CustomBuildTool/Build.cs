@@ -19,15 +19,12 @@ namespace CustomBuildTool
         public static bool HaveArm64BuildTools = true;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildWorkingFolder = string.Empty;
-        public static string BuildBranch = string.Empty;
-        public static string BuildCommit = string.Empty;
-        public static string BuildDisplay = string.Empty;
-        public static string BuildVersion = string.Empty;
-        public const string BuildMajorVersion = "3.1";
-        public static string BuildCount = string.Empty;
-        public static string BuildRevision = string.Empty;
+        public static string BuildCommitHash = string.Empty;
+        public static string BuildShortVersion = string.Empty;
+        public static string BuildLongVersion = string.Empty;
         public static string BuildSourceLink = string.Empty;
-        public static string BuildTag = string.Empty;
+        public const string BuildMajorVersion = "3.1";
+        public const string BuildPatchVersion = "0";
 
         public static bool InitializeBuildEnvironment()
         {
@@ -87,37 +84,24 @@ namespace CustomBuildTool
 
         public static void SetupBuildEnvironment(bool ShowBuildInfo)
         {
-            if (!string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
+            if (Win32.GetEnvironmentVariable("BUILD_SOURCEVERSION", out string buildsource))
             {
-                Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "fetch --unshallow");
-
-                Build.BuildBranch = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "rev-parse --abbrev-ref HEAD");
-                Build.BuildCommit = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "rev-parse HEAD");
-                Build.BuildCount = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, $"rev-list --count {Build.BuildBranch}");
-                Build.BuildTag = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "describe --abbrev=0 --tags --always");
-
-                if (!string.IsNullOrWhiteSpace(Build.BuildTag))
-                {
-                    Build.BuildRevision = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, $"rev-list --count \"{Build.BuildTag}...{Build.BuildBranch}\"");
-                    Build.BuildDisplay = $"{Build.BuildMajorVersion}.{Build.BuildCount}";
-                    Build.BuildVersion = $"{Build.BuildMajorVersion}.{Build.BuildRevision}.{Build.BuildCount}";
-                }
+                Build.BuildCommitHash = buildsource;
+            }
+            else if (!string.IsNullOrWhiteSpace(Utils.GetGitFilePath()))
+            {
+                Build.BuildCommitHash = Utils.ExecuteGitCommand(Build.BuildWorkingFolder, "rev-parse HEAD");
             }
 
-            if (
-                string.IsNullOrWhiteSpace(Build.BuildBranch) ||
-                string.IsNullOrWhiteSpace(Build.BuildCommit) ||
-                string.IsNullOrWhiteSpace(Build.BuildCount) ||
-                string.IsNullOrWhiteSpace(Build.BuildDisplay) ||
-                string.IsNullOrWhiteSpace(Build.BuildVersion)
-                )
+            if (string.IsNullOrEmpty(Build.BuildCommitHash))
             {
-                Build.BuildBranch = string.Empty;
-                Build.BuildCommit = string.Empty;
-                Build.BuildCount = string.Empty;
-                Build.BuildRevision = string.Empty;
-                Build.BuildDisplay = "1.0.0";
-                Build.BuildVersion = "1.0.0.0";
+                Build.BuildShortVersion = "1.0.0";
+                Build.BuildLongVersion = "1.0.0.0";
+            }
+            else
+            {
+                Build.BuildShortVersion = $"{Build.BuildMajorVersion}.{Build.BuildRevision}";
+                Build.BuildLongVersion = $"{Build.BuildMajorVersion}.{Build.BuildPatchVersion}.{Build.BuildRevision}";
             }
 
             if (ShowBuildInfo)
@@ -138,29 +122,34 @@ namespace CustomBuildTool
                 }
 
                 Program.PrintColorMessage($"{Environment.NewLine}Building... ", ConsoleColor.DarkGray, false);
-                Program.PrintColorMessage(Build.BuildVersion, ConsoleColor.Green, false);
+                Program.PrintColorMessage(Build.BuildLongVersion, ConsoleColor.Green, false);
 
-                if (!string.IsNullOrWhiteSpace(Build.BuildCommit))
+                if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
                 {
                     Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Build.BuildCommit.Substring(0, 8), ConsoleColor.DarkYellow, false);
+                    Program.PrintColorMessage(Build.BuildCommitHash.Substring(0, 8), ConsoleColor.DarkYellow, false);
                     Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
                 }
 
-                if (!string.IsNullOrWhiteSpace(Build.BuildBranch))
-                {
-                    Program.PrintColorMessage(" [", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Build.BuildBranch, ConsoleColor.DarkBlue, false);
-                    Program.PrintColorMessage("]", ConsoleColor.DarkGray, false);
-                }
+                //if (!string.IsNullOrWhiteSpace(Build.BuildBranch))
+                //{
+                //    Program.PrintColorMessage(" [", ConsoleColor.DarkGray, false);
+                //    Program.PrintColorMessage(Build.BuildBranch, ConsoleColor.DarkBlue, false);
+                //    Program.PrintColorMessage("]", ConsoleColor.DarkGray, false);
+                //}
 
                 Program.PrintColorMessage(Environment.NewLine, ConsoleColor.DarkGray);
             }
         }
 
-        public static string BuildTimeStamp()
+        public static string BuildTimeSpan()
         {
             return $"[{DateTime.UtcNow - Build.TimeStart:mm\\:ss}] ";
+        }
+
+        public static string BuildRevision
+        {
+            get { return $"{TimeStart.Year % 100}{TimeStart.DayOfYear:D3}"; }
         }
 
         public static string BuildUpdated
@@ -314,7 +303,7 @@ namespace CustomBuildTool
 
         public static bool BuildPublicHeaderFiles()
         {
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building public SDK headers...", ConsoleColor.Cyan);
 
             try
@@ -565,7 +554,7 @@ namespace CustomBuildTool
 
         public static bool BuildSetupExe(string Channel)
         {
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage($"Building build-{Channel}-setup.exe... ", ConsoleColor.Cyan, false);
 
             if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit | BuildFlags.BuildApi, Channel))
@@ -597,7 +586,7 @@ namespace CustomBuildTool
 
         public static bool BuildSdkZip()
         {
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building build-sdk.zip... ", ConsoleColor.Cyan, false);
 
             try
@@ -662,7 +651,7 @@ namespace CustomBuildTool
 
         public static bool BuildBinZip(string Channel)
         {
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage($"Building build-{Channel}-bin.zip... ", ConsoleColor.Cyan, false);
 
             try
@@ -717,7 +706,7 @@ namespace CustomBuildTool
 
         public static bool BuildPdbZip(bool MsixPackageBuild)
         {
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage(MsixPackageBuild ? "Building setup-package-pdb..." : "Building build-pdb.zip...", ConsoleColor.Cyan, false);
 
             try
@@ -762,7 +751,7 @@ namespace CustomBuildTool
 
         public static bool BuildChecksumsFile()
         {
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Building release checksums...", ConsoleColor.Cyan);
 
             try
@@ -818,12 +807,12 @@ namespace CustomBuildTool
                 compilerOptions.Append("PH_BUILD_MSIX;");
             if (!string.IsNullOrWhiteSpace(Channel))
                 compilerOptions.Append($"PH_RELEASE_CHANNEL_ID={BuildConfig.Build_Channels[Channel]};");
-            if (!string.IsNullOrWhiteSpace(Build.BuildCommit))
-                compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildCommit.AsSpan(0, 8)}\";");
+            if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
+                compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildCommitHash.AsSpan(0, 8)}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildRevision))
                 compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{Build.BuildRevision}\";");
-            if (!string.IsNullOrWhiteSpace(Build.BuildCount))
-                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildCount}\";");
+            if (!string.IsNullOrWhiteSpace(Build.BuildPatchVersion))
+                compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{Build.BuildPatchVersion}\";");
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptions.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\"");
 
@@ -840,7 +829,7 @@ namespace CustomBuildTool
         {
             string buildCommandLine = MsbuildCommandString(Solution, Platform, Flags, Channel);
 
-            Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
             Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(Platform, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
@@ -958,7 +947,7 @@ namespace CustomBuildTool
             if (!Win32.GetEnvironmentVariable("BUILD_SF_KEY", out string buildPostSfApiKey))
                 return false;
 
-            Program.PrintColorMessage($"{Environment.NewLine}Uploading build artifacts... {Build.BuildVersion}", ConsoleColor.Cyan);
+            Program.PrintColorMessage($"{Environment.NewLine}Uploading build artifacts... {Build.BuildShortVersion}", ConsoleColor.Cyan);
 
             if (!GetBuildDeployInfo("release", out BuildDeployInfo release))
                 return false;
@@ -974,11 +963,11 @@ namespace CustomBuildTool
             if (githubMirrorUpload == null)
                 return false;
 
-            string canaryBinziplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildDisplay}-canary-bin.zip");
-            string canarySetupexelink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildDisplay}-canary-setup.exe");
+            string canaryBinziplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-bin.zip");
+            string canarySetupexelink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-canary-setup.exe");
 
-            string releaseBinziplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildDisplay}-release-bin.zip");
-            string releaseSetupexelink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildDisplay}-release-setup.exe");
+            string releaseBinziplink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-bin.zip");
+            string releaseSetupexelink = githubMirrorUpload.GetFileUrl($"systeminformer-{Build.BuildShortVersion}-release-setup.exe");
 
             if (string.IsNullOrWhiteSpace(canaryBinziplink) ||
                 string.IsNullOrWhiteSpace(canarySetupexelink) ||
@@ -994,9 +983,9 @@ namespace CustomBuildTool
                 BuildUpdateRequest buildUpdateRequest = new BuildUpdateRequest
                 {
                     BuildUpdated = Build.BuildUpdated,
-                    BuildDisplay = Build.BuildDisplay,
-                    BuildVersion = Build.BuildVersion,
-                    BuildCommit = Build.BuildCommit,
+                    BuildDisplay = Build.BuildShortVersion,
+                    BuildVersion = Build.BuildLongVersion,
+                    BuildCommit = Build.BuildCommitHash,
                     BuildId = buildBuildId,
                     BinUrl = canaryBinziplink,
                     BinLength = canary.BinFileLength.ToString(),
@@ -1065,7 +1054,7 @@ namespace CustomBuildTool
 
         public static GithubRelease BuildDeployUploadGithubConfig()
         {
-            if (!Github.DeleteRelease(Build.BuildDisplay))
+            if (!Github.DeleteRelease(Build.BuildShortVersion))
                 return null;
 
             var mirror = new GithubRelease();
@@ -1074,7 +1063,7 @@ namespace CustomBuildTool
             {
                 // Create a new github release.
 
-                var response = Github.CreateRelease(Build.BuildDisplay);
+                var response = Github.CreateRelease(Build.BuildShortVersion);
 
                 if (response == null)
                 {
@@ -1093,7 +1082,7 @@ namespace CustomBuildTool
 
                     if (File.Exists(sourceFile))
                     {
-                        var result = Github.UploadAssets(Build.BuildDisplay, sourceFile, response.UploadUrl);
+                        var result = Github.UploadAssets(Build.BuildShortVersion, sourceFile, response.UploadUrl);
 
                         if (result == null)
                         {
@@ -1155,7 +1144,7 @@ namespace CustomBuildTool
                     string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
 
                     msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86");
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildVersion);
+                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
                     msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
 
                     Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
@@ -1171,7 +1160,7 @@ namespace CustomBuildTool
                     string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
 
                     msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x64");
-                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildVersion);
+                    msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion);
                     msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc.");
 
                     Utils.WriteAllText("tools\\msix\\MsixManifest64.xml", msixManifestString);
@@ -1185,7 +1174,7 @@ namespace CustomBuildTool
             {
                 string msixAppInstallerString = Utils.ReadAllText("tools\\msix\\PackageTemplate.appinstaller");
 
-                msixAppInstallerString = msixAppInstallerString.Replace("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildVersion}\"");
+                msixAppInstallerString = msixAppInstallerString.Replace("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildLongVersion}\"");
 
                 Utils.WriteAllText("build\\output\\SystemInformer.appinstaller", msixAppInstallerString);
             }
@@ -1346,15 +1335,15 @@ namespace CustomBuildTool
         {
             if (CreateSourceLink)
             {
-                if (!string.IsNullOrEmpty(Build.BuildCommit))
+                if (!string.IsNullOrEmpty(Build.BuildCommitHash))
                 {
                     Build.BuildSourceLink = $"{Build.BuildWorkingFolder}\\sourcelink.json";
                     string directory = Build.BuildWorkingFolder.Replace("\\", "\\\\", StringComparison.OrdinalIgnoreCase);
 
                     StringBuilder sb = new StringBuilder(260);
                     sb.Append("{{ \"documents\": {{ ");
-                    sb.Append($"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", ");
-                    sb.Append($"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommit}/*\", ");
+                    sb.Append($"\"\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*\", ");
+                    sb.Append($"\"{directory}\\\\*\": \"https://raw.githubusercontent.com/winsiderss/systeminformer/{Build.BuildCommitHash}/*\", ");
                     sb.Append("}} }}");
 
                     Utils.WriteAllText(Build.BuildSourceLink, sb.ToString());
