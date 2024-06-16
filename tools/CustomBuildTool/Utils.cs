@@ -661,43 +661,43 @@ namespace CustomBuildTool
 
     public class BuildUpdateRequest
     {
-        [JsonPropertyName("build_id")] public string BuildId { get; set; }
-        [JsonPropertyName("build_display")] public string BuildDisplay { get; set; }
-        [JsonPropertyName("build_version")] public string BuildVersion { get; set; }
-        [JsonPropertyName("build_commit")] public string BuildCommit { get; set; }
-        [JsonPropertyName("build_updated")] public string BuildUpdated { get; set; }
+        [JsonPropertyName("build_id")] public string BuildId { get; init; }
+        [JsonPropertyName("build_display")] public string BuildDisplay { get; init; }
+        [JsonPropertyName("build_version")] public string BuildVersion { get; init; }
+        [JsonPropertyName("build_commit")] public string BuildCommit { get; init; }
+        [JsonPropertyName("build_updated")] public string BuildUpdated { get; init; }
 
-        [JsonPropertyName("bin_url")] public string BinUrl { get; set; }
-        [JsonPropertyName("bin_length")] public string BinLength { get; set; }
-        [JsonPropertyName("bin_hash")] public string BinHash { get; set; }
-        [JsonPropertyName("bin_sig")] public string BinSig { get; set; }
+        [JsonPropertyName("bin_url")] public string BinUrl { get; init; }
+        [JsonPropertyName("bin_length")] public string BinLength { get; init; }
+        [JsonPropertyName("bin_hash")] public string BinHash { get; init; }
+        [JsonPropertyName("bin_sig")] public string BinSig { get; init; }
 
-        [JsonPropertyName("setup_url")] public string SetupUrl { get; set; }
-        [JsonPropertyName("setup_length")] public string SetupLength { get; set; }
-        [JsonPropertyName("setup_hash")] public string SetupHash { get; set; }
-        [JsonPropertyName("setup_sig")] public string SetupSig { get; set; }
+        [JsonPropertyName("setup_url")] public string SetupUrl { get; init; }
+        [JsonPropertyName("setup_length")] public string SetupLength { get; init; }
+        [JsonPropertyName("setup_hash")] public string SetupHash { get; init; }
+        [JsonPropertyName("setup_sig")] public string SetupSig { get; init; }
 
-        [JsonPropertyName("release_bin_url")] public string ReleaseBinUrl { get; set; }
-        [JsonPropertyName("release_bin_length")] public string ReleaseBinLength { get; set; }
-        [JsonPropertyName("release_bin_hash")] public string ReleaseBinHash { get; set; }
-        [JsonPropertyName("release_bin_sig")] public string ReleaseBinSig { get; set; }
+        [JsonPropertyName("release_bin_url")] public string ReleaseBinUrl { get; init; }
+        [JsonPropertyName("release_bin_length")] public string ReleaseBinLength { get; init; }
+        [JsonPropertyName("release_bin_hash")] public string ReleaseBinHash { get; init; }
+        [JsonPropertyName("release_bin_sig")] public string ReleaseBinSig { get; init; }
 
-        [JsonPropertyName("release_setup_url")] public string ReleaseSetupUrl { get; set; }
-        [JsonPropertyName("release_setup_length")] public string ReleaseSetupLength { get; set; }
-        [JsonPropertyName("release_setup_hash")] public string ReleaseSetupHash { get; set; }
-        [JsonPropertyName("release_setup_sig")] public string ReleaseSetupSig { get; set; }
+        [JsonPropertyName("release_setup_url")] public string ReleaseSetupUrl { get; init; }
+        [JsonPropertyName("release_setup_length")] public string ReleaseSetupLength { get; init; }
+        [JsonPropertyName("release_setup_hash")] public string ReleaseSetupHash { get; init; }
+        [JsonPropertyName("release_setup_sig")] public string ReleaseSetupSig { get; init; }
     }
 
     public class GithubReleasesRequest
     {
-        [JsonPropertyName("tag_name")] public string ReleaseTag { get; set; }
-        [JsonPropertyName("target_commitish")] public string Branch { get; set; }
-        [JsonPropertyName("name")] public string Name { get; set; }
-        [JsonPropertyName("body")] public string Description { get; set; }
+        [JsonPropertyName("tag_name")] public string ReleaseTag { get; init; }
+        [JsonPropertyName("target_commitish")] public string Branch { get; init; }
+        [JsonPropertyName("name")] public string Name { get; init; }
+        [JsonPropertyName("body")] public string Description { get; init; }
 
-        [JsonPropertyName("draft")] public bool Draft { get; set; }
-        [JsonPropertyName("prerelease")] public bool Prerelease { get; set; }
-        [JsonPropertyName("generate_release_notes")] public bool GenerateReleaseNotes { get; set; }
+        [JsonPropertyName("draft")] public bool Draft { get; init; }
+        [JsonPropertyName("prerelease")] public bool Prerelease { get; init; }
+        [JsonPropertyName("generate_release_notes")] public bool GenerateReleaseNotes { get; init; }
 
         public override string ToString()
         {
@@ -707,10 +707,10 @@ namespace CustomBuildTool
 
     public class GithubReleasesResponse
     {
-        [JsonPropertyName("id")] public long ID { get; set; }
-        [JsonPropertyName("upload_url")] public string UploadUrl { get; set; }
-        [JsonPropertyName("html_url")] public string HtmlUrl { get; set; }
-        [JsonPropertyName("assets")] public List<GithubAssetsResponse> Assets { get; set; }
+        [JsonPropertyName("id")] public long ID { get; init; }
+        [JsonPropertyName("upload_url")] public string UploadUrl { get; init; }
+        [JsonPropertyName("html_url")] public string HtmlUrl { get; init; }
+        [JsonPropertyName("assets")] public List<GithubAssetsResponse> Assets { get; init; }
         [JsonIgnore] public string ReleaseId { get { return this.ID.ToString(); } }
 
         public override string ToString()
@@ -721,11 +721,11 @@ namespace CustomBuildTool
 
     public class GithubAssetsResponse
     {
-        [JsonPropertyName("name")] public string Name { get; set; }
-        [JsonPropertyName("label")] public string Label { get; set; }
-        [JsonPropertyName("size")] public long Size { get; set; }
-        [JsonPropertyName("state")] public string State { get; set; }
-        [JsonPropertyName("browser_download_url")] public string DownloadUrl { get; set; }
+        [JsonPropertyName("name")] public string Name { get; init; }
+        [JsonPropertyName("label")] public string Label { get; init; }
+        [JsonPropertyName("size")] public long Size { get; init; }
+        [JsonPropertyName("state")] public string State { get; init; }
+        [JsonPropertyName("browser_download_url")] public string DownloadUrl { get; init; }
 
         [JsonIgnore]
         public bool Uploaded
@@ -745,274 +745,274 @@ namespace CustomBuildTool
     public class GithubAuthor
     {
         [JsonPropertyName("name")]
-        public string name { get; set; }
+        public string name { get; init; }
 
         [JsonPropertyName("email")]
-        public string email { get; set; }
+        public string email { get; init; }
 
         [JsonPropertyName("date")]
-        public DateTime date { get; set; }
+        public DateTime date { get; init; }
 
         [JsonPropertyName("login")]
-        public string login { get; set; }
+        public string login { get; init; }
 
         [JsonPropertyName("id")]
-        public long id { get; set; }
+        public long id { get; init; }
 
         [JsonPropertyName("node_id")]
-        public string node_id { get; set; }
+        public string node_id { get; init; }
 
         [JsonPropertyName("avatar_url")]
-        public string avatar_url { get; set; }
+        public string avatar_url { get; init; }
 
         [JsonPropertyName("gravatar_id")]
-        public string gravatar_id { get; set; }
+        public string gravatar_id { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; set; }
+        public string url { get; init; }
 
         [JsonPropertyName("html_url")]
-        public string html_url { get; set; }
+        public string html_url { get; init; }
 
         [JsonPropertyName("followers_url")]
-        public string followers_url { get; set; }
+        public string followers_url { get; init; }
 
         [JsonPropertyName("following_url")]
-        public string following_url { get; set; }
+        public string following_url { get; init; }
 
         [JsonPropertyName("gists_url")]
-        public string gists_url { get; set; }
+        public string gists_url { get; init; }
 
         [JsonPropertyName("starred_url")]
-        public string starred_url { get; set; }
+        public string starred_url { get; init; }
 
         [JsonPropertyName("subscriptions_url")]
-        public string subscriptions_url { get; set; }
+        public string subscriptions_url { get; init; }
 
         [JsonPropertyName("organizations_url")]
-        public string organizations_url { get; set; }
+        public string organizations_url { get; init; }
 
         [JsonPropertyName("repos_url")]
-        public string repos_url { get; set; }
+        public string repos_url { get; init; }
 
         [JsonPropertyName("events_url")]
-        public string events_url { get; set; }
+        public string events_url { get; init; }
 
         [JsonPropertyName("received_events_url")]
-        public string received_events_url { get; set; }
+        public string received_events_url { get; init; }
 
         [JsonPropertyName("type")]
-        public string type { get; set; }
+        public string type { get; init; }
 
         [JsonPropertyName("site_admin")]
-        public bool site_admin { get; set; }
+        public bool site_admin { get; init; }
     }
 
     public class GithubCommit
     {
         [JsonPropertyName("author")]
-        public GithubAuthor author { get; set; }
+        public GithubAuthor author { get; init; }
 
         [JsonPropertyName("committer")]
-        public GithubCommitAuthor committer { get; set; }
+        public GithubCommitAuthor committer { get; init; }
 
         [JsonPropertyName("message")]
-        public string message { get; set; }
+        public string message { get; init; }
 
         [JsonPropertyName("tree")]
-        public GithubCommitTree tree { get; set; }
+        public GithubCommitTree tree { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; set; }
+        public string url { get; init; }
 
         [JsonPropertyName("comment_count")]
-        public int comment_count { get; set; }
+        public int comment_count { get; init; }
 
         [JsonPropertyName("verification")]
-        public GithubCommitVerification verification { get; set; }
+        public GithubCommitVerification verification { get; init; }
     }
 
     public class GithubCommitAuthor
     {
         [JsonPropertyName("name")]
-        public string name { get; set; }
+        public string name { get; init; }
 
         [JsonPropertyName("email")]
-        public string email { get; set; }
+        public string email { get; init; }
 
         [JsonPropertyName("date")]
-        public DateTime date { get; set; }
+        public DateTime date { get; init; }
 
         [JsonPropertyName("login")]
-        public string login { get; set; }
+        public string login { get; init; }
 
         [JsonPropertyName("id")]
-        public int id { get; set; }
+        public int id { get; init; }
 
         [JsonPropertyName("node_id")]
-        public string node_id { get; set; }
+        public string node_id { get; init; }
 
         [JsonPropertyName("avatar_url")]
-        public string avatar_url { get; set; }
+        public string avatar_url { get; init; }
 
         [JsonPropertyName("gravatar_id")]
-        public string gravatar_id { get; set; }
+        public string gravatar_id { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; set; }
+        public string url { get; init; }
 
         [JsonPropertyName("html_url")]
-        public string html_url { get; set; }
+        public string html_url { get; init; }
 
         [JsonPropertyName("followers_url")]
-        public string followers_url { get; set; }
+        public string followers_url { get; init; }
 
         [JsonPropertyName("following_url")]
-        public string following_url { get; set; }
+        public string following_url { get; init; }
 
         [JsonPropertyName("gists_url")]
-        public string gists_url { get; set; }
+        public string gists_url { get; init; }
 
         [JsonPropertyName("starred_url")]
-        public string starred_url { get; set; }
+        public string starred_url { get; init; }
 
         [JsonPropertyName("subscriptions_url")]
-        public string subscriptions_url { get; set; }
+        public string subscriptions_url { get; init; }
 
         [JsonPropertyName("organizations_url")]
-        public string organizations_url { get; set; }
+        public string organizations_url { get; init; }
 
         [JsonPropertyName("repos_url")]
-        public string repos_url { get; set; }
+        public string repos_url { get; init; }
 
         [JsonPropertyName("events_url")]
-        public string events_url { get; set; }
+        public string events_url { get; init; }
 
         [JsonPropertyName("received_events_url")]
-        public string received_events_url { get; set; }
+        public string received_events_url { get; init; }
 
         [JsonPropertyName("type")]
-        public string type { get; set; }
+        public string type { get; init; }
 
         [JsonPropertyName("site_admin")]
-        public bool site_admin { get; set; }
+        public bool site_admin { get; init; }
     }
 
     //public class GithubFile
     //{
     //    [JsonPropertyName("sha")]
-    //    public string sha { get; set; }
+    //    public string sha { get; init; }
     //
     //    [JsonPropertyName("filename")]
-    //    public string filename { get; set; }
+    //    public string filename { get; init; }
     //
     //    [JsonPropertyName("status")]
-    //    public string status { get; set; }
+    //    public string status { get; init; }
     //
     //    [JsonPropertyName("additions")]
-    //    public int additions { get; set; }
+    //    public int additions { get; init; }
     //
     //    [JsonPropertyName("deletions")]
-    //    public int deletions { get; set; }
+    //    public int deletions { get; init; }
     //
     //    [JsonPropertyName("changes")]
-    //    public int changes { get; set; }
+    //    public int changes { get; init; }
     //
     //    [JsonPropertyName("blob_url")]
-    //    public string blob_url { get; set; }
+    //    public string blob_url { get; init; }
     //
     //    [JsonPropertyName("raw_url")]
-    //    public string raw_url { get; set; }
+    //    public string raw_url { get; init; }
     //
     //    [JsonPropertyName("contents_url")]
-    //    public string contents_url { get; set; }
+    //    public string contents_url { get; init; }
     //
     //    [JsonPropertyName("patch")]
-    //    public string patch { get; set; }
+    //    public string patch { get; init; }
     //}
     //
     //public class GithubParent
     //{
     //    [JsonPropertyName("sha")]
-    //    public string sha { get; set; }
+    //    public string sha { get; init; }
     //
     //    [JsonPropertyName("url")]
-    //    public string url { get; set; }
+    //    public string url { get; init; }
     //
     //    [JsonPropertyName("html_url")]
-    //    public string html_url { get; set; }
+    //    public string html_url { get; init; }
     //}
 
     public class GithubCommitResponse
     {
         [JsonPropertyName("sha")]
-        public string sha { get; set; }
+        public string sha { get; init; }
 
         [JsonPropertyName("node_id")]
-        public string node_id { get; set; }
+        public string node_id { get; init; }
 
         [JsonPropertyName("commit")]
-        public GithubCommit commit { get; set; }
+        public GithubCommit commit { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; set; }
+        public string url { get; init; }
 
         [JsonPropertyName("html_url")]
-        public string html_url { get; set; }
+        public string html_url { get; init; }
 
         [JsonPropertyName("comments_url")]
-        public string comments_url { get; set; }
+        public string comments_url { get; init; }
 
         [JsonPropertyName("author")]
-        public GithubAuthor author { get; set; }
+        public GithubAuthor author { get; init; }
 
         [JsonPropertyName("committer")]
-        public GithubCommitAuthor committer { get; set; }
+        public GithubCommitAuthor committer { get; init; }
 
         //[JsonPropertyName("parents")]
-        //public List<GithubParent> parents { get; set; }
+        //public List<GithubParent> parents { get; init; }
 
         [JsonPropertyName("stats")]
-        public GithubCommitStats stats { get; set; }
+        public GithubCommitStats stats { get; init; }
 
         //[JsonPropertyName("files")]
-        //public List<GithubFile> files { get; set; }
+        //public List<GithubFile> files { get; init; }
     }
 
     public class GithubCommitStats
     {
         [JsonPropertyName("total")]
-        public int total { get; set; }
+        public int total { get; init; }
 
         [JsonPropertyName("additions")]
-        public int additions { get; set; }
+        public int additions { get; init; }
 
         [JsonPropertyName("deletions")]
-        public int deletions { get; set; }
+        public int deletions { get; init; }
     }
 
     public class GithubCommitTree
     {
         [JsonPropertyName("sha")]
-        public string sha { get; set; }
+        public string sha { get; init; }
 
         [JsonPropertyName("url")]
-        public string url { get; set; }
+        public string url { get; init; }
     }
 
     public class GithubCommitVerification
     {
         [JsonPropertyName("verified")]
-        public bool verified { get; set; }
+        public bool verified { get; init; }
 
         [JsonPropertyName("reason")]
-        public string reason { get; set; }
+        public string reason { get; init; }
 
         [JsonPropertyName("signature")]
-        public string signature { get; set; }
+        public string signature { get; init; }
 
         [JsonPropertyName("payload")]
-        public string payload { get; set; }
+        public string payload { get; init; }
     }
 
     [JsonSerializable(typeof(BuildUpdateRequest))]
