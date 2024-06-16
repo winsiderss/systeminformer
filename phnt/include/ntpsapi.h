@@ -752,6 +752,8 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
 
 // begin_private
 
+#define PROCESS_WORKING_SET_CONTROL_VERSION 3
+
 typedef enum _PROCESS_WORKING_SET_OPERATION
 {
     ProcessWorkingSetSwap,
