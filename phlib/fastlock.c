@@ -90,7 +90,7 @@ FORCEINLINE ULONG PhpGetSpinCount(
     VOID
     )
 {
-    if ((ULONG)PhSystemBasicInformation.NumberOfProcessors > 1)
+    if (PhSystemBasicInformation.NumberOfProcessors > 1)
         return 4000;
     else
         return 0;
