@@ -470,7 +470,9 @@ NTSTATUS KphSetInformerProcessFilter(
         __try
         {
             ProbeInputType(Filter, KPH_INFORMER_SETTINGS);
-            filter = *Filter;
+            RtlCopyVolatileMemory(&filter,
+                                  Filter,
+                                  sizeof(KPH_INFORMER_SETTINGS));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

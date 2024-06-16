@@ -397,7 +397,7 @@ NTSTATUS KphCopyVirtualMemory(
             }
             else
             {
-                RtlCopyMemory(buffer, sourceAddress, blockSize);
+                RtlCopyVolatileMemory(buffer, sourceAddress, blockSize);
             }
 
             KeUnstackDetachProcess(&apcState);

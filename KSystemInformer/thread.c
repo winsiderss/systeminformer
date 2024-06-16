@@ -52,7 +52,7 @@ NTSTATUS KphOpenThread(
         {
             ProbeOutputType(ThreadHandle, HANDLE);
             ProbeInputType(ClientId, CLIENT_ID);
-            clientId = *ClientId;
+            RtlCopyVolatileMemory(&clientId, ClientId, sizeof(CLIENT_ID));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -343,7 +343,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
             if (Timeout)
             {
                 ProbeInputType(Timeout, LARGE_INTEGER);
-                timeout.QuadPart = Timeout->QuadPart;
+                RtlCopyVolatileMemory(&timeout, Timeout, sizeof(LARGE_INTEGER));
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -524,9 +524,9 @@ NTSTATUS KphSetInformationThread(
         __try
         {
             ProbeForRead(ThreadInformation, ThreadInformationLength, 1);
-            RtlCopyMemory(threadInformation,
-                          ThreadInformation,
-                          ThreadInformationLength);
+            RtlCopyVolatileMemory(threadInformation,
+                                  ThreadInformation,
+                                  ThreadInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
