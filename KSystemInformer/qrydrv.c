@@ -83,7 +83,7 @@ NTSTATUS KphQueryInformationDriver(
         {
             if (DriverInformation)
             {
-                ProbeForWrite(DriverInformation, DriverInformationLength, 1);
+                ProbeOutputBytes(DriverInformation, DriverInformationLength);
             }
 
             if (ReturnLength)

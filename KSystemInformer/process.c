@@ -586,7 +586,7 @@ NTSTATUS KphQueryInformationProcess(
         {
             if (ProcessInformation)
             {
-                ProbeForWrite(ProcessInformation, ProcessInformationLength, 1);
+                ProbeOutputBytes(ProcessInformation, ProcessInformationLength);
             }
 
             if (ReturnLength)
@@ -1026,7 +1026,7 @@ NTSTATUS KphSetInformationProcess(
 
         __try
         {
-            ProbeForRead(ProcessInformation, ProcessInformationLength, 1);
+            ProbeInputBytes(ProcessInformation, ProcessInformationLength);
             RtlCopyVolatileMemory(processInformation,
                                   ProcessInformation,
                                   ProcessInformationLength);

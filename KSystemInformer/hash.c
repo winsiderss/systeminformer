@@ -1835,7 +1835,7 @@ NTSTATUS KphQueryHashInformationFile(
 
         __try
         {
-            ProbeForRead(HashInformation, HashInformationLength, 1);
+            ProbeInputBytes(HashInformation, HashInformationLength);
             RtlCopyVolatileMemory(hashInfo,
                                   HashInformation,
                                   HashInformationLength);
@@ -1866,7 +1866,7 @@ NTSTATUS KphQueryHashInformationFile(
     {
         __try
         {
-            ProbeForWrite(HashInformation, HashInformationLength, 1);
+            ProbeOutputBytes(HashInformation, HashInformationLength);
             RtlCopyMemory(HashInformation, hashInfo, HashInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)

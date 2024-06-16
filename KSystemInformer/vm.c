@@ -371,9 +371,7 @@ NTSTATUS KphCopyVirtualMemory(
             if ((sourceAddress == FromAddress) && (AccessMode != KernelMode))
             {
                 probing = TRUE;
-                ProbeForRead(sourceAddress,
-                             BufferLength,
-                             TYPE_ALIGNMENT(BYTE));
+                ProbeInputBytes(sourceAddress, BufferLength);
                 probing = FALSE;
             }
 
@@ -410,10 +408,7 @@ NTSTATUS KphCopyVirtualMemory(
             if (targetAddress == ToAddress && AccessMode != KernelMode)
             {
                 probing = TRUE;
-#pragma prefast(suppress : 6001)
-                ProbeForWrite(targetAddress,
-                              BufferLength,
-                              TYPE_ALIGNMENT(BYTE));
+                ProbeOutputBytes(targetAddress, BufferLength);
                 probing = FALSE;
             }
 
@@ -731,7 +726,7 @@ NTSTATUS KphQuerySection(
         {
             if (SectionInformation)
             {
-                ProbeForWrite(SectionInformation, SectionInformationLength, 1);
+                ProbeOutputBytes(SectionInformation, SectionInformationLength);
             }
 
             if (ReturnLength)
@@ -903,7 +898,7 @@ NTSTATUS KphQueryVirtualMemory(
         {
             if (MemoryInformation)
             {
-                ProbeForWrite(MemoryInformation, MemoryInformationLength, 1);
+                ProbeOutputBytes(MemoryInformation, MemoryInformationLength);
             }
 
             if (ReturnLength)

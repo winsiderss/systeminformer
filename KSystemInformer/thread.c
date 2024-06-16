@@ -329,7 +329,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     {
         __try
         {
-            ProbeForWrite(BackTrace, FramesToCapture * sizeof(PVOID), 1);
+            ProbeOutputBytes(BackTrace, FramesToCapture * sizeof(PVOID));
 
             ProbeOutputType(CapturedFrames, ULONG);
             *CapturedFrames = 0;
@@ -523,7 +523,7 @@ NTSTATUS KphSetInformationThread(
 
         __try
         {
-            ProbeForRead(ThreadInformation, ThreadInformationLength, 1);
+            ProbeInputBytes(ThreadInformation, ThreadInformationLength);
             RtlCopyVolatileMemory(threadInformation,
                                   ThreadInformation,
                                   ThreadInformationLength);
@@ -731,7 +731,7 @@ NTSTATUS KphQueryInformationThread(
         {
             if (ThreadInformation)
             {
-                ProbeForWrite(ThreadInformation, ThreadInformationLength, 1);
+                ProbeOutputBytes(ThreadInformation, ThreadInformationLength);
             }
 
             if (ReturnLength)
