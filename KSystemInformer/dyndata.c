@@ -376,10 +376,10 @@ NTSTATUS KphActivateDynData(
         __try
         {
             ProbeForRead(DynData, DynDataLength, 1);
-            RtlCopyMemory(dynData, DynData, DynDataLength);
+            RtlCopyVolatileMemory(dynData, DynData, DynDataLength);
 
             ProbeForRead(Signature, DynDataLength, 1);
-            RtlCopyMemory(signature, Signature, SignatureLength);
+            RtlCopyVolatileMemory(signature, Signature, SignatureLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
