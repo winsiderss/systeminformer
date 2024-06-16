@@ -671,7 +671,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
 
     __try
     {
-        ProbeForRead(InputBuffer, KPH_MESSAGE_MIN_SIZE, 1);
+        ProbeInputBytes(InputBuffer, KPH_MESSAGE_MIN_SIZE);
         RtlCopyVolatileMemory(msg, InputBuffer, KPH_MESSAGE_MIN_SIZE);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
@@ -695,9 +695,8 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
     {
         __try
         {
-            ProbeForRead(Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
-                         (msg->Header.Size - KPH_MESSAGE_MIN_SIZE),
-                         1);
+            ProbeInputBytes(Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
+                            (msg->Header.Size - KPH_MESSAGE_MIN_SIZE));
             RtlCopyVolatileMemory(&msg->_Dyn.Buffer[0],
                                   Add2Ptr(InputBuffer, KPH_MESSAGE_MIN_SIZE),
                                   (msg->Header.Size - KPH_MESSAGE_MIN_SIZE));
@@ -777,7 +776,7 @@ NTSTATUS FLTAPI KphpCommsMessageNotifyCallback(
 
     __try
     {
-        ProbeForWrite(InputBuffer, msg->Header.Size, 1);
+        ProbeOutputBytes(InputBuffer, msg->Header.Size);
         RtlCopyMemory(InputBuffer, msg, msg->Header.Size);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)

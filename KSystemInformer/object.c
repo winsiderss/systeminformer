@@ -452,7 +452,7 @@ NTSTATUS KphEnumerateProcessHandles(
     {
         __try
         {
-            ProbeForWrite(Buffer, BufferLength, 1);
+            ProbeOutputBytes(Buffer, BufferLength);
 
             if (ReturnLength)
             {
@@ -972,7 +972,7 @@ NTSTATUS KphQueryInformationObject(
         {
             if (ObjectInformation)
             {
-                ProbeForWrite(ObjectInformation, ObjectInformationLength, 1);
+                ProbeOutputBytes(ObjectInformation, ObjectInformationLength);
             }
 
             if (ReturnLength)
@@ -2208,7 +2208,7 @@ NTSTATUS KphSetInformationObject(
 
         __try
         {
-            ProbeForRead(ObjectInformation, ObjectInformationLength, 1);
+            ProbeInputBytes(ObjectInformation, ObjectInformationLength);
             RtlCopyVolatileMemory(objectInformation,
                                   ObjectInformation,
                                   ObjectInformationLength);

@@ -235,6 +235,14 @@ ProbeForWrite(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 _Pragma("warning(suppress : 6001)")                                           \
 ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
+#define ProbeOutputBytes(pointer, size)                                       \
+_Pragma("warning(suppress : 6001)")                                           \
+ProbeForWrite(pointer, size, TYPE_ALIGNMENT(BYTE))
+
+#define ProbeInputBytes(pointer, size)                                        \
+_Pragma("warning(suppress : 6001)")                                           \
+ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
+
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
 #define RebaseUnicodeString(string, oldBase, newBase)                         \
