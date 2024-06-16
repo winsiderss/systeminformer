@@ -337,7 +337,6 @@ NTSTATUS KsiLoadUnloadService(
 {
 #ifdef _WIN64
     static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
-    static PH_STRINGREF fullServicesFileName = PH_STRINGREF_INIT(L"\\??\\");
     static PH_STRINGREF parametersKeyName = PH_STRINGREF_INIT(L"Parameters");
     NTSTATUS status;
     PPH_STRING fullServiceKeyName;
@@ -371,7 +370,7 @@ NTSTATUS KsiLoadUnloadService(
         {
             if (disposition == REG_CREATED_NEW_KEY)
             {
-                fullServiceFileName = PhConcatStringRef2(&fullServicesFileName, Config->FileName);
+                fullServiceFileName = PhConcatStringRef2(&PhNtDosDevicesPrefix, Config->FileName);
                 PhSetValueKeyZ(serviceKeyHandle, L"ErrorControl", REG_DWORD, &(ULONG){ SERVICE_ERROR_NORMAL }, sizeof(ULONG));
                 PhSetValueKeyZ(serviceKeyHandle, L"Type", REG_DWORD, &(ULONG){ SERVICE_KERNEL_DRIVER }, sizeof(ULONG));
                 PhSetValueKeyZ(serviceKeyHandle, L"Start", REG_DWORD, &(ULONG){ SERVICE_DISABLED }, sizeof(ULONG));
