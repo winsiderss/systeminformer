@@ -1215,19 +1215,7 @@ VOID KphInvalidateLsass(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphCopyVirtualMemory(
-    _In_ PEPROCESS FromProcess,
-    _In_ PVOID FromAddress,
-    _In_ PEPROCESS ToProcess,
-    _Out_writes_bytes_(BufferLength) PVOID ToAddress,
-    _In_ SIZE_T BufferLength,
-    _In_ KPROCESSOR_MODE AccessMode,
-    _Out_ PSIZE_T ReturnLength
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphReadVirtualMemoryUnsafe(
+NTSTATUS KphReadVirtualMemory(
     _In_opt_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,

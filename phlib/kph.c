@@ -624,7 +624,7 @@ NTSTATUS KphTerminateProcess(
     return status;
 }
 
-NTSTATUS KphReadVirtualMemoryUnsafe(
+NTSTATUS KphReadVirtualMemory(
     _In_opt_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,
@@ -638,17 +638,17 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
     KSI_COMMS_INIT_ASSERT();
 
     msg = PhAllocateFromFreeList(&KphMessageFreeList);
-    KphMsgInit(msg, KphMsgReadVirtualMemoryUnsafe);
-    msg->User.ReadVirtualMemoryUnsafe.ProcessHandle = ProcessHandle;
-    msg->User.ReadVirtualMemoryUnsafe.BaseAddress = BaseAddress;
-    msg->User.ReadVirtualMemoryUnsafe.Buffer = Buffer;
-    msg->User.ReadVirtualMemoryUnsafe.BufferSize = BufferSize;
-    msg->User.ReadVirtualMemoryUnsafe.NumberOfBytesRead = NumberOfBytesRead;
+    KphMsgInit(msg, KphMsgReadVirtualMemory);
+    msg->User.ReadVirtualMemory.ProcessHandle = ProcessHandle;
+    msg->User.ReadVirtualMemory.BaseAddress = BaseAddress;
+    msg->User.ReadVirtualMemory.Buffer = Buffer;
+    msg->User.ReadVirtualMemory.BufferSize = BufferSize;
+    msg->User.ReadVirtualMemory.NumberOfBytesRead = NumberOfBytesRead;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.ReadVirtualMemoryUnsafe.Status;
+        status = msg->User.ReadVirtualMemory.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);

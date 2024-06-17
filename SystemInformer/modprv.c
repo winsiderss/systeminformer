@@ -437,7 +437,7 @@ NTSTATUS PhpModuleQueryWorker(
             PPH_READ_VIRTUAL_MEMORY_CALLBACK readVirtualMemoryCallback;
 
             if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
-                readVirtualMemoryCallback = KphReadVirtualMemoryUnsafe;
+                readVirtualMemoryCallback = KphReadVirtualMemory;
             else
                 readVirtualMemoryCallback = NtReadVirtualMemory;
 

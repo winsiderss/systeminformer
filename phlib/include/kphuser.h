@@ -164,7 +164,7 @@ KphTerminateProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphReadVirtualMemoryUnsafe(
+KphReadVirtualMemory(
     _In_opt_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,

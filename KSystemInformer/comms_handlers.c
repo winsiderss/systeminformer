@@ -21,7 +21,7 @@ KPHM_DEFINE_HANDLER(KphpCommsOpenProcess);
 KPHM_DEFINE_HANDLER(KphpCommsOpenProcessToken);
 KPHM_DEFINE_HANDLER(KphpCommsOpenProcessJob);
 KPHM_DEFINE_HANDLER(KphpCommsTerminateProcess);
-KPHM_DEFINE_HANDLER(KphpCommsReadVirtualMemoryUnsafe);
+KPHM_DEFINE_HANDLER(KphpCommsReadVirtualMemory);
 KPHM_DEFINE_HANDLER(KphpCommsOpenThread);
 KPHM_DEFINE_HANDLER(KphpCommsOpenThreadProcess);
 KPHM_DEFINE_HANDLER(KphpCommsCaptureStackBackTraceThread);
@@ -81,7 +81,7 @@ const KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgOpenProcessToken,              KphpCommsOpenProcessToken,              KphpCommsOpenProcessTokenRequires },
 { KphMsgOpenProcessJob,                KphpCommsOpenProcessJob,                KphpCommsOpenProcessJobRequires },
 { KphMsgTerminateProcess,              KphpCommsTerminateProcess,              KphpCommsRequireMaximum },
-{ KphMsgReadVirtualMemoryUnsafe,       KphpCommsReadVirtualMemoryUnsafe,       KphpCommsRequireMaximum },
+{ KphMsgReadVirtualMemory,             KphpCommsReadVirtualMemory,             KphpCommsRequireMaximum },
 { KphMsgOpenThread,                    KphpCommsOpenThread,                    KphpCommsOpenThreadRequires },
 { KphMsgOpenThreadProcess,             KphpCommsOpenThreadProcess,             KphpCommsOpenThreadProcessRequires },
 { KphMsgCaptureStackBackTraceThread,   KphpCommsCaptureStackBackTraceThread,   KphpCommsRequireMedium },
@@ -407,27 +407,27 @@ NTSTATUS KSIAPI KphpCommsTerminateProcess(
 _Function_class_(KPHM_HANDLER)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KSIAPI KphpCommsReadVirtualMemoryUnsafe(
+NTSTATUS KSIAPI KphpCommsReadVirtualMemory(
     _In_ PKPH_CLIENT Client,
     _Inout_ PKPH_MESSAGE Message
     )
 {
-    PKPHM_READ_VIRTUAL_MEMORY_UNSAFE msg;
+    PKPHM_READ_VIRTUAL_MEMORY msg;
 
     PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
-    NT_ASSERT(Message->Header.MessageId == KphMsgReadVirtualMemoryUnsafe);
+    NT_ASSERT(Message->Header.MessageId == KphMsgReadVirtualMemory);
 
     UNREFERENCED_PARAMETER(Client);
 
-    msg = &Message->User.ReadVirtualMemoryUnsafe;
+    msg = &Message->User.ReadVirtualMemory;
 
-    msg->Status = KphReadVirtualMemoryUnsafe(msg->ProcessHandle,
-                                             msg->BaseAddress,
-                                             msg->Buffer,
-                                             msg->BufferSize,
-                                             msg->NumberOfBytesRead,
-                                             UserMode);
+    msg->Status = KphReadVirtualMemory(msg->ProcessHandle,
+                                       msg->BaseAddress,
+                                       msg->Buffer,
+                                       msg->BufferSize,
+                                       msg->NumberOfBytesRead,
+                                       UserMode);
 
     return STATUS_SUCCESS;
 }

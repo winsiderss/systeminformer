@@ -30,7 +30,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgOpenProcessToken,
     KphMsgOpenProcessJob,
     KphMsgTerminateProcess,
-    KphMsgReadVirtualMemoryUnsafe,
+    KphMsgReadVirtualMemory,
     KphMsgOpenThread,
     KphMsgOpenThreadProcess,
     KphMsgCaptureStackBackTraceThread,
@@ -310,7 +310,7 @@ typedef struct _KPH_MESSAGE
             KPHM_OPEN_PROCESS_TOKEN OpenProcessToken;
             KPHM_OPEN_PROCESS_JOB OpenProcessJob;
             KPHM_TERMINATE_PROCESS TerminateProcess;
-            KPHM_READ_VIRTUAL_MEMORY_UNSAFE ReadVirtualMemoryUnsafe;
+            KPHM_READ_VIRTUAL_MEMORY ReadVirtualMemory;
             KPHM_OPEN_THREAD OpenThread;
             KPHM_OPEN_THREAD_PROCESS OpenThreadProcess;
             KPHM_CAPTURE_STACK_BACKTRACE_THREAD CaptureStackBackTraceThread;
