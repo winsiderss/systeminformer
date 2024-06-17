@@ -1098,7 +1098,7 @@ VOID PhSipGetPoolLimits(
 
     if (MmSizeOfPagedPoolInBytes && (KsiLevel() >= KphLevelMed))
     {
-        KphReadVirtualMemoryUnsafe(
+        KphReadVirtualMemory(
             NtCurrentProcess(),
             MmSizeOfPagedPoolInBytes,
             &paged,
@@ -1127,7 +1127,7 @@ VOID PhSipGetPoolLimits(
     }
     else if (WindowsVersion < WINDOWS_8 && MmMaximumNonPagedPoolInBytes && (KsiLevel() >= KphLevelMed))
     {
-        KphReadVirtualMemoryUnsafe(
+        KphReadVirtualMemory(
             NtCurrentProcess(),
             MmMaximumNonPagedPoolInBytes,
             &nonPaged,

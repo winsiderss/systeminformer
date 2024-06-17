@@ -1214,6 +1214,19 @@ MmCreateSection(
     _In_opt_ PFILE_OBJECT FileObject
     );
 
+NTKERNELAPI
+NTSTATUS
+NTAPI
+MmCopyVirtualMemory(
+    _In_ PEPROCESS SourceProcess,
+    _In_reads_bytes_(BufferSize) PVOID SourceAddress,
+    _In_ PEPROCESS TargetProcess,
+    _Out_writes_bytes_(BufferSize) PVOID TargetAddress,
+    _In_ SIZE_T BufferSize,
+    _In_ KPROCESSOR_MODE PreviousMode,
+    _Out_ PSIZE_T ReturnSize
+    );
+
 // CI
 
 #ifndef ALGIDDEF
