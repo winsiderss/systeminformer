@@ -721,6 +721,7 @@ NTSTATUS
 NTAPI
 NtCreateIRTimer(
     _Out_ PHANDLE TimerHandle,
+    _In_ LPVOID Reserved,
     _In_ ACCESS_MASK DesiredAccess
     );
 
