@@ -2257,7 +2257,7 @@ NTSTATUS PhWalkThreadStack(
             }
 
 #if defined(_ARM64_)
-            // Strip andy PAC bits from the addresses.
+            // Strip any PAC bits from the addresses.
             stackFrame.AddrPC.Offset = PAC_DECODE_ADDRESS(stackFrame.AddrPC.Offset);
             stackFrame.AddrReturn.Offset = PAC_DECODE_ADDRESS(stackFrame.AddrReturn.Offset);
             if (contextRecord == &ecContext)
@@ -2298,8 +2298,6 @@ CheckFinalARM64VirtualFrame:
 
             // TODO(jxy-s)
             //
-            // This needs work to handle enter, exit, and inlined thunks.
-            //
             // Much of the stack walk handling for EC code is in dbgeng and not dbghelp. Since we
             // only rely on dbghelp we need some special handling too. The following are known
             // issues with possible solutions. These need more time to investigate:
@@ -2308,8 +2306,8 @@ CheckFinalARM64VirtualFrame:
             //   "virtural frames" are messing up the existing inline frame resolution. For context
             //   dbgeng.dll appears to have "virtual frames" as we do here, but we likely need some
             //   additional handling for inline frames.
-            // - .NET under ARM64 emulation seems eventually walk into strange frames, x64 is known
-            //   to be affected, other arches on ARM64 need tested too. Seems to be a bug in
+            // - .NET under ARM64 emulation seems to eventually walk into strange frames, x64 is
+            //   known to be affected, other arches on ARM64 need tested too. Seems to be a bug in
             //   dbghelp.dll because dbgeng.dll (e.g. windbg.exe) seems to be broken here too.
 
             frameMachine = PhpGetMachineForAddress(SymbolProvider, ProcessHandle, stackFrame.AddrPC.Offset);
