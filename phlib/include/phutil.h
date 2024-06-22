@@ -997,6 +997,13 @@ PhGetSystemRoot(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhGetNtSystemRoot(
+    _Out_ PPH_STRINGREF NtSystemRoot
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetApplicationFileName(
@@ -1289,6 +1296,7 @@ typedef struct _PH_CREATE_PROCESS_AS_USER_INFO
             _In_ PWSTR UserName;
             _In_ PWSTR Password;
             _In_opt_ ULONG LogonType;
+            _In_opt_ ULONG LogonFlags;
         };
         _In_ HANDLE ProcessIdWithToken; // use PH_CREATE_PROCESS_USE_PROCESS_TOKEN
         _In_ ULONG SessionIdWithToken; // use PH_CREATE_PROCESS_USE_SESSION_TOKEN

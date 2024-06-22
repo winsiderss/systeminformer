@@ -759,7 +759,7 @@ VOID PhpProcessQueryStage1(
     // Job
     if (processHandleLimited)
     {
-        if (KphLevel() >= KphLevelMed)
+        if (KsiLevel() >= KphLevelMed)
         {
             HANDLE jobHandle = NULL;
 
@@ -1340,7 +1340,7 @@ VOID PhpFillProcessItem(
     // WSL
     if (WindowsVersion >= WINDOWS_10_22H2 && ProcessItem->QueryHandle)
     {
-        if (ProcessItem->IsSubsystemProcess && KphLevel() >= KphLevelMed)
+        if (ProcessItem->IsSubsystemProcess && KsiLevel() >= KphLevelMed)
         {
             ULONG lxssProcessId;
 
@@ -2709,7 +2709,7 @@ VOID PhProcessProviderUpdate(
                 BOOLEAN isInSignificantJob = FALSE;
                 BOOLEAN isInJob = FALSE;
 
-                if (KphLevel() >= KphLevelMed)
+                if (KsiLevel() >= KphLevelMed)
                 {
                     HANDLE jobHandle = NULL;
 

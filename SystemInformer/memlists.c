@@ -66,7 +66,10 @@ static VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage(PhMemoryListsWindowHandle, MSG_UPDATE, 0, 0);
+    if (PhMemoryListsWindowHandle)
+    {
+        PostMessage(PhMemoryListsWindowHandle, MSG_UPDATE, 0, 0);
+    }
 }
 
 static VOID PhpUpdateMemoryListInfo(
@@ -172,8 +175,7 @@ PPH_STRING PhpCreateCommandStatusString(
     PPH_STRING string;
     PPH_STRING statusString;
 
-    statusString = PhGetStatusMessage(Status, 0);
-    if (statusString)
+    if (statusString = PhGetStatusMessage(Status, 0))
     {
         PH_FORMAT format[3];
 
@@ -242,7 +244,7 @@ VOID NTAPI PhpEmptyWorkingSetsCommand(
     status = PhpMemoryListCommandCommon(ParentWindow, MemoryEmptyWorkingSets);
 
     if (NT_SUCCESS(status))
-        *Message = PhFormatString(L"Working sets emptied.");
+        *Message = PhCreateString(L"Working sets emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty working sets.", status);
 
@@ -262,7 +264,7 @@ VOID NTAPI PhpFlushModifiedListCommand(
     status = PhpMemoryListCommandCommon(ParentWindow, MemoryFlushModifiedList);
 
     if (NT_SUCCESS(status))
-        *Message = PhFormatString(L"Modified page lists emptied.");
+        *Message = PhCreateString(L"Modified page lists emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty modified page lists.", status);
 
@@ -282,7 +284,7 @@ VOID NTAPI PhpPurgeStandbyListCommand(
     status = PhpMemoryListCommandCommon(ParentWindow, MemoryPurgeStandbyList);
 
     if (NT_SUCCESS(status))
-        *Message = PhFormatString(L"Standby lists emptied.");
+        *Message = PhCreateString(L"Standby lists emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty standby lists.", status);
 
@@ -302,7 +304,7 @@ VOID NTAPI PhpPurgeLowPriorityStandbyListCommand(
     status = PhpMemoryListCommandCommon(ParentWindow, MemoryPurgeLowPriorityStandbyList);
 
     if (NT_SUCCESS(status))
-        *Message = PhFormatString(L"Priority 0 standby list emptied.");
+        *Message = PhCreateString(L"Priority 0 standby list emptied.");
     else
         *Message = PhpCreateCommandStatusString(L"Unable to empty priority 0 standby list.", status);
 
@@ -330,11 +332,16 @@ VOID NTAPI PhpCombinMemoryListsCommand(
 
     if (NT_SUCCESS(status))
     {
-        *Message = PhFormatString(
-            L"Memory pages combined: %s (%llu pages)",
-            PhaFormatSize(combineInfo.PagesCombined * PAGE_SIZE, ULONG_MAX)->Buffer,
-            combineInfo.PagesCombined
-            );
+        PH_FORMAT format[5];
+
+        // Memory pages combined: %s (%llu pages)
+        PhInitFormatS(&format[0], L"Memory pages combined: ");
+        PhInitFormatSize(&format[1], combineInfo.PagesCombined * PAGE_SIZE);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatI64U(&format[3], combineInfo.PagesCombined);
+        PhInitFormatS(&format[4], L" pages)");
+
+        *Message = PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
     else
     {
@@ -354,7 +361,7 @@ VOID NTAPI PhpEmptyCompressionStoreCommand(
 {
     NTSTATUS status;
 
-    if (KphLevel() < KphLevelMax)
+    if (KsiLevel() < KphLevelMax)
     {
         // hack(jxy-s): show error presence we're being invoked directly instead of "empty all"
         // if show error is passed, show that the driver is not connected
@@ -434,11 +441,16 @@ VOID NTAPI PhpEmptySystemFileCacheCommand(
 
     if (NT_SUCCESS(status))
     {
-        *Message = PhFormatString(
-            L"System file cache emptied: %s (%llu pages)",
-            PhaFormatSize(cacheInfo.CurrentSize, ULONG_MAX)->Buffer,
-            cacheInfo.CurrentSize / PAGE_SIZE
-            );
+        PH_FORMAT format[5];
+
+        // System file cache emptied: %s (%llu pages)
+        PhInitFormatS(&format[0], L"System file cache emptied: ");
+        PhInitFormatSize(&format[1], cacheInfo.CurrentSize);
+        PhInitFormatS(&format[2], L" (");
+        PhInitFormatI64U(&format[3], cacheInfo.CurrentSize / PAGE_SIZE);
+        PhInitFormatS(&format[4], L" pages)");
+
+        *Message = PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
     else
     {
@@ -545,15 +557,15 @@ VOID PhShowMemoryListCommand(
 
             commands[selectedItem->Id](ParentWindow, &message, &showError);
 
-            if (message)
+            if (!PhIsNullOrEmptyString(message))
             {
                 if (showError)
-                    PhShowError2(ParentWindow, L"Memory Command", message->Buffer);
+                    PhShowError2(ParentWindow, L"Memory Command", PhGetString(message));
                 else
-                    PhShowInformation2(ParentWindow, L"Memory Command", message->Buffer);
-
-                PhDereferenceObject(message);
+                    PhShowInformation2(ParentWindow, L"Memory Command", PhGetString(message));
             }
+
+            PhClearReference(&message);
         }
         else if (!PhGetOwnTokenAttributes().Elevated)
         {
@@ -572,23 +584,21 @@ VOID PhShowMemoryListCommand(
 
                 commands[i](ParentWindow, &message, NULL);
 
-                if (message)
+                if (!PhIsNullOrEmptyString(message))
                 {
                     PhAppendStringBuilder(&stringBuilder, &message->sr);
                     PhAppendStringBuilder2(&stringBuilder, L"\r\n");
-                    PhDereferenceObject(message);
+                    PhClearReference(&message);
                 }
             }
 
             if (stringBuilder.String->Length > 2)
-            {
                 PhRemoveEndStringBuilder(&stringBuilder, 2);
-                message = PhFinalStringBuilderString(&stringBuilder);
 
-                PhShowInformation2(ParentWindow, L"Memory Command", message->Buffer);
-
-                PhDereferenceObject(message);
-            }
+            message = PhFinalStringBuilderString(&stringBuilder);
+            if (!PhIsNullOrEmptyString(message))
+                PhShowInformation2(ParentWindow, L"Memory Command", PhGetString(message));
+            PhClearReference(&message);
         }
     }
 

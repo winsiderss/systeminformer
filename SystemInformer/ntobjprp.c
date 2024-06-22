@@ -560,7 +560,7 @@ VOID PhpEnumerateMappingsEntries(
     HANDLE processHandle;
     CLIENT_ID clientId;
 
-    if (KphLevel() < KphLevelMed)
+    if (KsiLevel() < KphLevelMed)
     {
         PhShowKsiNotConnected(
             Context->WindowHandle,

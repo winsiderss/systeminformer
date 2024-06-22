@@ -31,7 +31,6 @@
  */
 
 #include <ph.h>
-#include <apiimport.h>
 #include <guisup.h>
 #include <treenew.h>
 #include <treenewp.h>

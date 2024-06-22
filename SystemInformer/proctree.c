@@ -1561,7 +1561,7 @@ static VOID PhpUpdateProcessNodeGrantedAccess(
                 processAccess = PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION;
             else if (ProcessNode->ProcessItem->IsProtectedProcess && ProcessNode->ProcessItem->Protection.Type == PsProtectedTypeProtected)
                 processAccess = PROCESS_QUERY_LIMITED_INFORMATION;
-            else if (ProcessNode->ProcessItem->IsSubsystemProcess && KphLevel() != KphLevelMax)
+            else if (ProcessNode->ProcessItem->IsSubsystemProcess && KsiLevel() != KphLevelMax)
                 processAccess = PROCESS_QUERY_LIMITED_INFORMATION;
             else
                 processAccess = MAXIMUM_ALLOWED;
@@ -2697,7 +2697,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
                     cpuUsage *= 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -3579,7 +3579,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     cpuUsage *= 100;
                     cpuUsage = cpuUsage * PhSystemProcessorInformation.NumberOfProcessors;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
 
@@ -3784,7 +3784,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuAverageUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
 
@@ -3811,7 +3811,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuKernelUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
 
@@ -3838,7 +3838,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuUserUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
 
@@ -3878,7 +3878,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             // 64 (100%) | 1024 (100%)
                             PhInitFormatU(&format[0], 64);
                             PhInitFormatS(&format[1], L" (");
-                            PhInitFormatF(&format[2], 100.0, 2);
+                            PhInitFormatF(&format[2], 100.0f, 2);
                             PhInitFormatS(&format[3], L"%) | ");
                             PhInitFormatU(&format[4], node->TlsBitmapCount - TLS_MINIMUM_AVAILABLE);
                             PhInitFormatS(&format[5], L" (");
@@ -3898,7 +3898,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             PhInitFormatS(&format[3], L"%) | ");
                             PhInitFormatU(&format[4], 0);
                             PhInitFormatS(&format[5], L" (");
-                            PhInitFormatF(&format[6], 0.0, 2);
+                            PhInitFormatF(&format[6], 0.0f, 2);
                             PhInitFormatS(&format[7], L"%)");
 
                             PhMoveReference(&node->TlsBitmapDeltaText, PhFormat(format, RTL_NUMBER_OF(format), 0));

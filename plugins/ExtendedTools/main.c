@@ -53,6 +53,7 @@ EXTENDEDTOOLS_INTERFACE PluginInterface =
 
 ULONG EtWindowsVersion = WINDOWS_ANCIENT;
 BOOLEAN EtIsExecutingInWow64 = FALSE;
+ULONG EtSampleCount = 0;
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
 ULONG EtUpdateInterval = 0;
@@ -70,6 +71,7 @@ VOID NTAPI LoadCallback(
 {
     EtWindowsVersion = PhWindowsVersion;
     EtIsExecutingInWow64 = PhIsExecutingInWow64();
+    EtSampleCount = PhGetIntegerSetting(L"SampleCount");
 
     EtLoadSettings();
 

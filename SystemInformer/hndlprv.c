@@ -365,7 +365,7 @@ VOID PhHandleProviderUpdate(
         )))
         goto UpdateExit;
 
-    level = KphLevel();
+    level = KsiLevel();
 
     if ((level >= KphLevelMed))
     {
@@ -441,7 +441,7 @@ VOID PhHandleProviderUpdate(
                     // Also compare the object pointers to make sure a
                     // different object wasn't re-opened with the same
                     // handle value.
-                    if (KphLevel() >= KphLevelMed)
+                    if (KsiLevel() >= KphLevelMed)
                     {
                         found = NT_SUCCESS(KphCompareObjects(
                             handleProvider->ProcessHandle,
@@ -462,7 +462,8 @@ VOID PhHandleProviderUpdate(
                         if (
                             handleItem->Handle == (HANDLE)(*tempHashtableValue)->HandleValue &&
                             handleItem->GrantedAccess == (*tempHashtableValue)->GrantedAccess &&
-                            handleItem->TypeIndex == (*tempHashtableValue)->ObjectTypeIndex
+                            handleItem->TypeIndex == (*tempHashtableValue)->ObjectTypeIndex &&
+                            handleItem->Attributes == (*tempHashtableValue)->HandleAttributes
                             )
                         {
                             found = TRUE;

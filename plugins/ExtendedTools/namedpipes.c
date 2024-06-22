@@ -404,7 +404,7 @@ VOID EtEnumerateNamedPipeHandles(
             continue;
         }
 
-        if (NT_SUCCESS(KphEnumerateProcessHandles2(processHandle, &handles)))
+        if (NT_SUCCESS(KsiEnumerateProcessHandles(processHandle, &handles)))
         {
             for (ULONG i = 0; i < handles->HandleCount; i++)
             {
@@ -479,7 +479,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context->UseKph = KphLevel() >= KphLevelMed;
+            context->UseKph = KsiLevel() >= KphLevelMed;
             context->ListViewWndHandle = GetDlgItem(hwndDlg, IDC_PIPELIST);
 
             PhSetApplicationWindowIcon(hwndDlg);
