@@ -33,7 +33,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiConnectToPhSvc(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ BOOLEAN ConnectOnly
     );
 
@@ -41,7 +41,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiConnectToPhSvcEx(
-    _In_opt_ HWND hWnd,
+    _In_opt_ HWND WindowHandle,
     _In_ PH_PHSVC_MODE Mode,
     _In_ BOOLEAN ConnectOnly
     );
@@ -57,28 +57,28 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiLockComputer(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     );
 
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiLogoffComputer(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     );
 
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSleepComputer(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     );
 
 PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiHibernateComputer(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     );
 
 typedef enum _PH_POWERACTION_TYPE
@@ -138,7 +138,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiConnectSession(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG SessionId
     );
 
@@ -146,7 +146,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiDisconnectSession(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG SessionId
     );
 
@@ -154,7 +154,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiLogoffSession(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG SessionId
     );
 
@@ -162,7 +162,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiTerminateProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     );
@@ -171,7 +171,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiTerminateTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     );
 
@@ -179,7 +179,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSuspendProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     );
@@ -188,7 +188,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSuspendTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     );
 
@@ -196,7 +196,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiResumeProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     );
@@ -205,7 +205,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiResumeTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     );
 
@@ -229,7 +229,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiRestartProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     );
 
@@ -237,7 +237,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiDebugProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     );
 
@@ -245,7 +245,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiReduceWorkingSetProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     );
@@ -254,7 +254,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetVirtualizationProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ BOOLEAN Enable
     );
@@ -279,7 +279,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiDetachFromDebuggerProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     );
 
@@ -295,7 +295,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiLoadDllProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     );
 
@@ -303,7 +303,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetIoPriorityProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses,
     _In_ IO_PRIORITY_HINT IoPriority
@@ -313,7 +313,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetPagePriorityProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ ULONG PagePriority
     );
@@ -322,7 +322,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetPriorityProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses,
     _In_ ULONG PriorityClass
@@ -342,7 +342,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetBoostPriorityProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ BOOLEAN PriorityBoost
     );
@@ -360,7 +360,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiStartService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     );
 
@@ -377,7 +377,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiContinueService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     );
 
@@ -394,7 +394,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiPauseService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     );
 
@@ -411,7 +411,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiStopService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     );
 
@@ -419,7 +419,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiDeleteService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     );
 
@@ -427,7 +427,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiCloseConnections(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_NETWORK_ITEM *Connections,
     _In_ ULONG NumberOfConnections
     );
@@ -436,7 +436,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiTerminateThreads(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,
     _In_ ULONG NumberOfThreads
     );
@@ -445,7 +445,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSuspendThreads(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,
     _In_ ULONG NumberOfThreads
     );
@@ -454,7 +454,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiResumeThreads(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,
     _In_ ULONG NumberOfThreads
     );
@@ -473,7 +473,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetBoostPriorityThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ BOOLEAN PriorityBoost
     );
@@ -492,7 +492,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetPriorityThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ LONG Increment
     );
@@ -501,7 +501,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetIoPriorityThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ IO_PRIORITY_HINT IoPriority
     );
@@ -510,7 +510,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetPagePriorityThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ ULONG PagePriority
     );
@@ -519,7 +519,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiUnloadModule(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_MODULE_ITEM Module
     );
@@ -528,7 +528,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiFreeMemory(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_MEMORY_ITEM MemoryItem,
     _In_ BOOLEAN Free
@@ -538,7 +538,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiCloseHandles(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_HANDLE_ITEM *Handles,
     _In_ ULONG NumberOfHandles,
@@ -549,10 +549,19 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhUiSetAttributesHandle(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_HANDLE_ITEM Handle,
     _In_ ULONG Attributes
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiFlushHeapProcesses(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM* Processes,
+    _In_ ULONG NumberOfProcesses
     );
 // end_phapppub
 
