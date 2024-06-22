@@ -328,6 +328,10 @@ VOID PhLoadSymbolsThreadProvider(
     }
     else
     {
+        PPH_STRING fileName;
+        PVOID imageBase;
+        ULONG imageSize;
+
         // System Idle Process has one thread for each CPU, each having a start address at
         // KiIdleLoop. We need to load symbols for the kernel.
 
