@@ -132,7 +132,7 @@ NTSTATUS PhOpenProcess(
     }
 #endif
 
-    level = KphLevel();
+    level = KsiLevel();
 
     if ((level >= KphLevelMed) && (DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
     {
@@ -216,7 +216,7 @@ NTSTATUS PhOpenThread(
     }
 #endif
 
-    level = KphLevel();
+    level = KsiLevel();
 
     if ((level >= KphLevelMed) && (DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
     {
@@ -284,7 +284,7 @@ NTSTATUS PhOpenThreadProcess(
 
     status = STATUS_UNSUCCESSFUL;
 
-    level = KphLevel();
+    level = KsiLevel();
 
     if ((level == KphLevelMax) ||
         ((level >= KphLevelMed) &&
@@ -329,7 +329,7 @@ NTSTATUS PhOpenProcessToken(
     NTSTATUS status;
     KPH_LEVEL level;
 
-    level = KphLevel();
+    level = KsiLevel();
 
     if ((level >= KphLevelMed) && (DesiredAccess & KPH_TOKEN_READ_ACCESS) == DesiredAccess)
     {
@@ -469,7 +469,7 @@ NTSTATUS PhTerminateProcess(
 {
     NTSTATUS status;
 
-    if (KphLevel() == KphLevelMax)
+    if (KsiLevel() == KphLevelMax)
     {
         status = KphTerminateProcess(
             ProcessHandle,
@@ -1053,7 +1053,7 @@ NTSTATUS PhGetProcessIsBeingDebugged(
         return status;
     }
 
-    if (KphLevel() >= KphLevelLow)
+    if (KsiLevel() >= KphLevelLow)
     {
         KPH_PROCESS_STATE processState;
 
@@ -5424,7 +5424,7 @@ NTSTATUS PhOpenDriver(
     _In_ PPH_STRINGREF ObjectName
     )
 {
-    if (KphLevel() == KphLevelMax)
+    if (KsiLevel() == KphLevelMax)
     {
         UNICODE_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
@@ -5679,7 +5679,7 @@ NTSTATUS PhUnloadDriver(
     PPH_STRING serviceKeyName = NULL;
     KPH_LEVEL level;
 
-    level = KphLevel();
+    level = KsiLevel();
 
     if (!BaseAddress && !Name)
         return STATUS_INVALID_PARAMETER_MIX;
@@ -6526,7 +6526,7 @@ NTSTATUS PhGetProcessQuotaLimits(
         );
 
     // Not implemented (dmex)
-    //if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    //if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     //{
     //    status = KphQueryInformationProcess(
     //        ProcessHandle,
@@ -6554,7 +6554,7 @@ NTSTATUS PhSetProcessQuotaLimits(
         sizeof(QUOTA_LIMITS)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -6585,7 +6585,7 @@ NTSTATUS PhSetProcessEmptyWorkingSet(
         sizeof(QUOTA_LIMITS_EX)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -6678,7 +6678,7 @@ NTSTATUS PhSetProcessPriority(
             sizeof(PROCESS_PRIORITY_CLASS_EX)
             );
 
-        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
         {
             status = KphSetInformationProcess(
                 ProcessHandle,
@@ -6703,7 +6703,7 @@ NTSTATUS PhSetProcessPriority(
             sizeof(PROCESS_PRIORITY_CLASS)
             );
 
-        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
         {
             status = KphSetInformationProcess(
                 ProcessHandle,
@@ -6737,7 +6737,7 @@ NTSTATUS PhSetProcessIoPriority(
         sizeof(IO_PRIORITY_HINT)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -6767,7 +6767,7 @@ NTSTATUS PhSetProcessPagePriority(
         sizeof(PAGE_PRIORITY_INFORMATION)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -6797,7 +6797,6 @@ NTSTATUS PhSetProcessPriorityBoost(
         sizeof(ULONG)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -6830,7 +6829,7 @@ NTSTATUS PhSetProcessAffinityMask(
         sizeof(KAFFINITY)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -6857,7 +6856,7 @@ NTSTATUS PhSetProcessGroupAffinity(
         sizeof(GROUP_AFFINITY)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -6899,7 +6898,7 @@ NTSTATUS PhSetProcessPowerThrottlingState(
         sizeof(POWER_THROTTLING_PROCESS_STATE)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -7054,13 +7053,13 @@ PPH_STRING PhGetKernelFileName2(
 }
 
 /**
- * Gets the file name of the kernel image.
+ * Gets the file name, base address and size of the kernel image.
  *
  * \return A pointer to a string containing the kernel image file name. You must free the string
  * using PhDereferenceObject() when you no longer need it.
  */
 NTSTATUS PhGetKernelFileNameEx(
-    _Out_ PPH_STRING* FileName,
+    _Out_opt_ PPH_STRING* FileName,
     _Out_ PVOID* ImageBase,
     _Out_ ULONG* ImageSize
     )
@@ -7086,13 +7085,25 @@ NTSTATUS PhGetKernelFileNameEx(
         return STATUS_UNSUCCESSFUL;
 
     if (WindowsVersion >= WINDOWS_10)
+    if (FileName)
     {
-        static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
-        *FileName = PhCreateString2(&kernelFileName);
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
+            *FileName = PhCreateString2(&kernelFileName);
+        }
+        else
+        {
+            *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
+        }
     }
-    else
+
+    if (WindowsVersion >= WINDOWS_10_22H2)
     {
-        *FileName = PhConvertUtf8ToUtf16(modules->Modules[0].FullPathName);
+        if (modules->Modules[0].ImageBase == 0)
+        {
+            modules->Modules[0].ImageBase = (PVOID)(ULONG64_MAX - 1);
+        }
     }
 
     *ImageBase = modules->Modules[0].ImageBase;
@@ -7693,7 +7704,7 @@ NTSTATUS PhEnumHandlesGeneric(
     // * On Windows XP and later, NtQuerySystemInformation with SystemExtendedHandleInformation.
     // * Otherwise, NtQuerySystemInformation with SystemHandleInformation can be used.
 
-    if ((KphLevel() >= KphLevelMed) && ProcessHandle)
+    if ((KsiLevel() >= KphLevelMed) && ProcessHandle)
     {
         PKPH_PROCESS_HANDLE_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
@@ -7702,7 +7713,7 @@ NTSTATUS PhEnumHandlesGeneric(
         // Enumerate handles using KSystemInformer. Unlike with NtQuerySystemInformation,
         // this only enumerates handles for a single process and saves a lot of processing.
 
-        if (NT_SUCCESS(status = KphEnumerateProcessHandles2(ProcessHandle, &handles)))
+        if (NT_SUCCESS(status = KsiEnumerateProcessHandles(ProcessHandle, &handles)))
         {
             convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->HandleCount]));
             convertedHandles->NumberOfHandles = handles->HandleCount;
@@ -9269,9 +9280,6 @@ NTSTATUS PhFlushVolumeCache(
 
                 NtClose(volumeHandle);
             }
-
-            if (!NT_SUCCESS(status)) // HACK
-                goto CleanupExit;
         }
     }
 
@@ -10073,11 +10081,9 @@ VOID PhpRtlModulesExToGenericModules(
     _In_ PPH_HASHTABLE BaseAddressHashtable
     )
 {
-    PRTL_PROCESS_MODULE_INFORMATION_EX module;
+    PRTL_PROCESS_MODULE_INFORMATION_EX module = Modules;
     PH_MODULE_INFO moduleInfo;
     BOOLEAN cont;
-
-    module = Modules;
 
     while (module->NextOffset != 0)
     {
@@ -10091,34 +10097,48 @@ VOID PhpRtlModulesExToGenericModules(
         }
 
         // Check if we have a duplicate base address.
-        if (PhFindEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase))
+        if (PhFindEntryHashtable(BaseAddressHashtable, &module->ImageBase))
         {
             continue;
         }
         else
         {
-            PhAddEntryHashtable(BaseAddressHashtable, &module->BaseInfo.ImageBase);
+            PhAddEntryHashtable(BaseAddressHashtable, &module->ImageBase);
         }
 
         RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
 
-        if ((ULONG_PTR)module->BaseInfo.ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
+        if ((ULONG_PTR)module->ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
         else
             moduleInfo.Type = PH_MODULE_TYPE_KERNEL_MODULE;
 
-        moduleInfo.BaseAddress = module->BaseInfo.ImageBase;
-        moduleInfo.Size = module->BaseInfo.ImageSize;
+        moduleInfo.BaseAddress = module->ImageBase;
+        moduleInfo.Size = module->ImageSize;
         moduleInfo.EntryPoint = NULL;
-        moduleInfo.Flags = module->BaseInfo.Flags;
-        moduleInfo.Name = PhConvertUtf8ToUtf16(&module->BaseInfo.FullPathName[module->BaseInfo.OffsetToFileName]);
-        moduleInfo.FileName = PhConvertUtf8ToUtf16(module->BaseInfo.FullPathName);
-        moduleInfo.LoadOrderIndex = module->BaseInfo.LoadOrderIndex;
-        moduleInfo.LoadCount = module->BaseInfo.LoadCount;
+        moduleInfo.Flags = module->Flags;
+        moduleInfo.Name = PhConvertUtf8ToUtf16(&module->FullPathName[module->OffsetToFileName]);
+        moduleInfo.FileName = PhConvertUtf8ToUtf16(module->FullPathName);
+        moduleInfo.LoadOrderIndex = module->LoadOrderIndex;
+        moduleInfo.LoadCount = module->LoadCount;
         moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
         moduleInfo.ParentBaseAddress = NULL;
         moduleInfo.OriginalBaseAddress = NULL;
+
+        if (module->OffsetToFileName == 0)
+        {
+            static PH_STRINGREF driversString = PH_STRINGREF_INIT(L"\\System32\\Drivers\\");
+            PH_STRINGREF systemRoot;
+            PPH_STRING newFileName;
+
+            // We only have the file name, without a path. The driver must be in the default drivers
+            // directory.
+            PhGetSystemRoot(&systemRoot);
+            newFileName = PhConcatStringRef3(&systemRoot, &driversString, &moduleInfo.Name->sr);
+            PhMoveReference(&newFileName, PhDosPathNameToNtPathName(&newFileName->sr));
+            PhMoveReference(&moduleInfo.FileName, newFileName);
+        }
 
         cont = Callback(&moduleInfo, Context);
 
@@ -10344,15 +10364,32 @@ NTSTATUS PhEnumGenericModules(
 
         PVOID modules;
 
-        if (NT_SUCCESS(status = PhEnumKernelModules((PRTL_PROCESS_MODULES *)&modules)))
+        status = PhEnumKernelModulesEx((PRTL_PROCESS_MODULE_INFORMATION_EX*)&modules);
+
+        if (NT_SUCCESS(status))
         {
-            PhpRtlModulesToGenericModules(
+            PhpRtlModulesExToGenericModules(
                 modules,
                 Callback,
                 Context,
                 baseAddressHashtable
                 );
             PhFree(modules);
+        }
+        else
+        {
+            status = PhEnumKernelModules((PRTL_PROCESS_MODULES*)&modules);
+
+            if (NT_SUCCESS(status))
+            {
+                PhpRtlModulesToGenericModules(
+                    modules,
+                    Callback,
+                    Context,
+                    baseAddressHashtable
+                    );
+                PhFree(modules);
+            }
         }
     }
     else
@@ -11254,7 +11291,6 @@ NTSTATUS PhCreateFileWin32Ex(
         );
 
     if (status == STATUS_SHARING_VIOLATION &&
-        KphLevel() >= KphLevelMed &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION)
     {
@@ -11343,7 +11379,7 @@ NTSTATUS PhCreateFileWin32ExAlt(
         );
 
     if (status == STATUS_SHARING_VIOLATION &&
-        KphLevel() >= KphLevelMed &&
+        KsiLevel() >= KphLevelMed &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION)
     {
@@ -11439,7 +11475,7 @@ NTSTATUS PhCreateFile(
         );
 
     if (status == STATUS_SHARING_VIOLATION &&
-        KphLevel() >= KphLevelMed &&
+        KsiLevel() >= KphLevelMed &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION)
     {
@@ -11548,7 +11584,7 @@ NTSTATUS PhCreateFileEx(
         );
 
     if (status == STATUS_SHARING_VIOLATION &&
-        KphLevel() >= KphLevelMed &&
+        KsiLevel() >= KphLevelMed &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
         CreateDisposition == KPH_FILE_READ_DISPOSITION)
     {
@@ -11820,7 +11856,7 @@ NTSTATUS PhReOpenFile(
         );
 
     if (status == STATUS_SHARING_VIOLATION &&
-        KphLevel() >= KphLevelMed &&
+        KsiLevel() >= KphLevelMed &&
         (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess)
     {
         assert(KPH_FILE_READ_DISPOSITION == FILE_OPEN);
@@ -14050,7 +14086,7 @@ NTSTATUS PhSetThreadAffinityMask(
         sizeof(KAFFINITY)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationThread(
             ThreadHandle,
@@ -14077,7 +14113,7 @@ NTSTATUS PhSetThreadBasePriority(
         sizeof(KPRIORITY)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationThread(
             ThreadHandle,
@@ -14111,7 +14147,7 @@ NTSTATUS PhSetThreadIoPriority(
         sizeof(IO_PRIORITY_HINT)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationThread(
             ThreadHandle,
@@ -14141,7 +14177,7 @@ NTSTATUS PhSetThreadPagePriority(
         sizeof(PAGE_PRIORITY_INFORMATION)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationThread(
             ThreadHandle,
@@ -14171,7 +14207,7 @@ NTSTATUS PhSetThreadPriorityBoost(
         sizeof(ULONG)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationThread(
             ThreadHandle,
@@ -14201,7 +14237,7 @@ NTSTATUS PhSetThreadIdealProcessor(
         sizeof(PROCESSOR_NUMBER)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationThread(
             ThreadHandle,
@@ -14231,7 +14267,7 @@ NTSTATUS PhSetThreadGroupAffinity(
         sizeof(GROUP_AFFINITY)
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationThread(
             ThreadHandle,
@@ -15035,7 +15071,7 @@ NTSTATUS PhGetProcessSequenceNumber(
 {
     NTSTATUS status;
 
-    if (KphLevel() >= KphLevelLow)
+    if (KsiLevel() >= KphLevelLow)
     {
         // The driver exposes this information earlier than ProcessSequenceNumber was introduced.
         // Where not available it synthesizes it for informer messages, for consistency use it if
@@ -15064,6 +15100,8 @@ NTSTATUS PhGetProcessSequenceNumber(
         {
             PROCESS_TELEMETRY_ID_INFORMATION telemetryInfo;
 
+            memset(&telemetryInfo, 0, sizeof(PROCESS_TELEMETRY_ID_INFORMATION));
+
             // ProcessTelemetryIdInformation exposes the process sequence number (and process start
             // key) earlier than ProcessSequenceNumber was introduced.
             status = NtQueryInformationProcess(
@@ -15074,12 +15112,20 @@ NTSTATUS PhGetProcessSequenceNumber(
                 NULL
                 );
 
-            // We don't care about the extra information that ProcessTelemetryIdInformation provides.
-            // The sequence number will have been filled in regardless.
             if (status == STATUS_BUFFER_OVERFLOW)
                 status = STATUS_SUCCESS;
 
-            sequenceNumber = telemetryInfo.ProcessSequenceNumber;
+            if (NT_SUCCESS(status))
+            {
+                if (RTL_CONTAINS_FIELD(&telemetryInfo, telemetryInfo.HeaderSize, ProcessSequenceNumber))
+                {
+                    sequenceNumber = telemetryInfo.ProcessSequenceNumber;
+                }
+                else
+                {
+                    status = STATUS_INVALID_INFO_CLASS;
+                }
+            }
         }
 
         if (NT_SUCCESS(status))
@@ -15098,7 +15144,7 @@ NTSTATUS PhGetProcessStartKey(
 {
     NTSTATUS status;
 
-    if (KphLevel() >= KphLevelLow)
+    if (KsiLevel() >= KphLevelLow)
     {
         // The driver exposes this information earlier than ProcessSequenceNumber was introduced.
         // Where not available it synthesizes it for informer messages, for consistency use it if
@@ -15173,7 +15219,7 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
 
     if (NT_SUCCESS(status))
     {
-        if (ldrInitBlock->Size == sizeof(PS_SYSTEM_DLL_INIT_BLOCK))
+        if (RTL_CONTAINS_FIELD(ldrInitBlock, ldrInitBlock->Size, MitigationAuditOptionsMap))
         {
             *SystemDllInitBlock = ldrInitBlock;
         }
@@ -18290,7 +18336,7 @@ NTSTATUS PhQueryVolumeInformationFile(
 
     if (ProcessHandle)
     {
-        if (KphLevel() >= KphLevelMed)
+        if (KsiLevel() >= KphLevelMed)
         {
             status = KphQueryVolumeInformationFile(
                 ProcessHandle,

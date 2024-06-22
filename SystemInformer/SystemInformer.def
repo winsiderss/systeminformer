@@ -738,6 +738,8 @@ EXPORTS
     PhQueryServiceConfig2
     PhQueryServiceStatus
     PhQueryServiceVariableSize
+    PhStartService
+    PhStopService
 
 ; symprv
     PhCreateSymbolProvider
@@ -848,6 +850,6 @@ EXPORTS
     PhDnsFree
 
 ; kphuser
-    KphLevel
-    KphEnumerateProcessHandles2
-    KphQueryHashInformationFile
+    KsiLevel
+    KsiEnumerateProcessHandles
+    KsiQueryHashInformationFile

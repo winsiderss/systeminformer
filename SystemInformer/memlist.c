@@ -773,8 +773,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(OriginalPages)
 {
-    DOUBLE modified1 = memoryItem1->SharedOriginalPages ? (memoryItem1->SharedOriginalPages * 100.0 / (memoryItem1->RegionSize / PAGE_SIZE)) : 0.0;
-    DOUBLE modified2 = memoryItem2->SharedOriginalPages ? (memoryItem2->SharedOriginalPages * 100.0 / (memoryItem2->RegionSize / PAGE_SIZE)) : 0.0;
+    FLOAT modified1 = memoryItem1->SharedOriginalPages ? (memoryItem1->SharedOriginalPages * 100.f / (memoryItem1->RegionSize / PAGE_SIZE)) : 0.0f;
+    FLOAT modified2 = memoryItem2->SharedOriginalPages ? (memoryItem2->SharedOriginalPages * 100.f / (memoryItem2->RegionSize / PAGE_SIZE)) : 0.0f;
 
     sortResult = doublecmp(modified1, modified2);
 }

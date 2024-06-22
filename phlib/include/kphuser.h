@@ -24,7 +24,7 @@ EXTERN_C_START
 #define KPH_PORT_NAME    __TEXT("\\KSystemInformer")
 
 #ifdef DEBUG
-#define KSI_COMMS_INIT_ASSERT() assert(KphCommsIsConnected())
+#define KSI_COMMS_INIT_ASSERT() assert(KphMessageFreeList.Size == sizeof(KPH_MESSAGE))
 #else
 #define KSI_COMMS_INIT_ASSERT()
 #endif
@@ -220,7 +220,7 @@ KphEnumerateProcessHandles(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphEnumerateProcessHandles2(
+KsiEnumerateProcessHandles(
     _In_ HANDLE ProcessHandle,
     _Out_ PKPH_PROCESS_HANDLE_INFORMATION *Handles
     );
@@ -330,7 +330,7 @@ KphLevelEx(
 PHLIBAPI
 KPH_LEVEL
 NTAPI
-KphLevel(
+KsiLevel(
     VOID
     );
 
@@ -603,7 +603,7 @@ KphQueryVirtualMemory(
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphQueryHashInformationFile(
+KsiQueryHashInformationFile(
     _In_ HANDLE FileHandle,
     _Inout_ PKPH_HASH_INFORMATION HashInformation,
     _In_ ULONG HashInformationLength

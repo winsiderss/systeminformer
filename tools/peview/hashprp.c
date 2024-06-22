@@ -510,7 +510,7 @@ VOID PvGetFileHashes(
     *AuthentihashSha1String = NULL;
     *AuthentihashSha256String = NULL;
 
-    if (KphLevel() == KphLevelMax)
+    if (KsiLevel() == KphLevelMax)
     {
         KPH_HASH_INFORMATION hashInfo[7];
 
@@ -522,7 +522,7 @@ VOID PvGetFileHashes(
         hashInfo[5].Algorithm = KphHashAlgorithmSha1Authenticode;
         hashInfo[6].Algorithm = KphHashAlgorithmSha256Authenticode;
 
-        if (NT_SUCCESS(KphQueryHashInformationFile(FileHandle, hashInfo, sizeof(hashInfo))))
+        if (NT_SUCCESS(KsiQueryHashInformationFile(FileHandle, hashInfo, sizeof(hashInfo))))
         {
             *Md5HashString = PhBufferToHexString(hashInfo[0].Hash, hashInfo[0].Length);
             *Sha1HashString = PhBufferToHexString(hashInfo[1].Hash, hashInfo[1].Length);

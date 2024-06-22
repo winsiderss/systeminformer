@@ -1633,7 +1633,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetKernelFileNameEx(
-    _Out_ PPH_STRING* FileName,
+    _Out_opt_ PPH_STRING* FileName,
     _Out_ PVOID* ImageBase,
     _Out_ ULONG* ImageSize
     );

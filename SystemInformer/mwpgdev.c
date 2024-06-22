@@ -113,13 +113,16 @@ VOID NTAPI PhpDeviceProviderCallbackHandler(
     else
         return;
 
-    tree = PhReferenceDeviceTree();
+    if (tree = PhReferenceDeviceTree())
+    {
+        item = PhLookupDeviceItem(tree, &notify->DeviceInstance.InstanceId->sr);
+        if (item && PhpShouldNotifyForDevice(item, type))
+        {
+            PhpNotifyForDevice(item, type);
+        }
 
-    item = PhLookupDeviceItem(tree, &notify->DeviceInstance.InstanceId->sr);
-    if (item && PhpShouldNotifyForDevice(item, type))
-        PhpNotifyForDevice(item, type);
-
-    PhDereferenceObject(tree);
+        PhClearReference(&tree);
+    }
 }
 
 VOID PhMwpInitializeDeviceNotifications(

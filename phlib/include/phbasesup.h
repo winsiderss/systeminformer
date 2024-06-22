@@ -3935,6 +3935,14 @@ PhTlsGetValue(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhTlsGetValueEx(
+    _In_ ULONG Index,
+    _Out_ PVOID* Value
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhTlsSetValue(
     _In_ ULONG Index,
     _In_opt_ PVOID Value
@@ -4504,7 +4512,7 @@ PhGetLastWin32ErrorAsNtStatus(
     VOID
     )
 {
-    return PhDosErrorToNtStatus(GetLastError());
+    return PhDosErrorToNtStatus(PhGetLastError());
 }
 
 // Generic tree definitions

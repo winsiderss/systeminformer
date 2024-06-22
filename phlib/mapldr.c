@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -1773,7 +1773,8 @@ VOID CALLBACK LoaderEntryImageImportThunkWorkQueueCallback(
 
 NTSTATUS PhLoaderEntrySnapImportDirectory(
     _In_ PVOID BaseAddress,
-    _In_ PIMAGE_IMPORT_DESCRIPTOR ImportDirectory
+    _In_ PIMAGE_IMPORT_DESCRIPTOR ImportDirectory,
+    _In_ PSTR ImportDllName
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
@@ -1786,7 +1787,7 @@ NTSTATUS PhLoaderEntrySnapImportDirectory(
     importThunk = PTR_ADD_OFFSET(BaseAddress, ImportDirectory->FirstThunk);
     originalThunk = PTR_ADD_OFFSET(BaseAddress, ImportDirectory->OriginalFirstThunk);
 
-    if (PhEqualBytesZ(importName, "SystemInformer.exe", FALSE))
+    if (PhEqualBytesZ(importName, ImportDllName, FALSE))
     {
         importBaseAddress = PhInstanceHandle;
     }
@@ -1889,6 +1890,7 @@ typedef struct _PH_LOADER_IMPORTS_WORKQUEUE_CONTEXT
 {
     PVOID BaseAddress;
     PIMAGE_IMPORT_DESCRIPTOR ImportDirectory;
+    PSTR ImportName;
 } PH_LOADER_IMPORTS_WORKQUEUE_CONTEXT, *PPH_LOADER_IMPORTS_WORKQUEUE_CONTEXT;
 
 VOID CALLBACK LoaderEntryImageImportsWorkQueueCallback(
@@ -1902,7 +1904,8 @@ VOID CALLBACK LoaderEntryImageImportsWorkQueueCallback(
 
     status = PhLoaderEntrySnapImportDirectory(
         context->BaseAddress,
-        context->ImportDirectory
+        context->ImportDirectory,
+        context->ImportName
         );
 
     if (!NT_SUCCESS(status))
@@ -1916,7 +1919,8 @@ VOID CALLBACK LoaderEntryImageImportsWorkQueueCallback(
 
 static NTSTATUS PhpFixupLoaderEntryImageImports(
     _In_ PVOID BaseAddress,
-    _In_ PIMAGE_NT_HEADERS ImageNtHeader
+    _In_ PIMAGE_NT_HEADERS ImageNtHeader,
+    _In_ PSTR ImportDllName
     )
 {
     NTSTATUS status;
@@ -1994,8 +1998,9 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         PTP_WORK loaderThreadpoolWork;
 
         context = PhAllocateZero(sizeof(PH_LOADER_IMPORTS_WORKQUEUE_CONTEXT));
-        context->ImportDirectory = importDirectory;
         context->BaseAddress = BaseAddress;
+        context->ImportDirectory = importDirectory;
+        context->ImportName = ImportDllName;
 
         status = TpAllocWork(
             &loaderThreadpoolWork,
@@ -2011,7 +2016,8 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 #else
         status = PhLoaderEntrySnapImportDirectory(
             BaseAddress,
-            importDirectory
+            importDirectory,
+            ImportDllName
             );
 
         if (!NT_SUCCESS(status))
@@ -2637,7 +2643,8 @@ NTSTATUS PhLoadPluginImage(
 
     status = PhpFixupLoaderEntryImageImports(
         imageBaseAddress,
-        imageNtHeaders
+        imageNtHeaders,
+        "SystemInformer.exe"
         );
 
     if (!NT_SUCCESS(status))

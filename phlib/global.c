@@ -109,6 +109,7 @@ VOID PhInitializeSystemInformation(
         NULL
         )))
     {
+        basicInfo.PageSize = PAGE_SIZE;
         basicInfo.NumberOfProcessors = 1;
         basicInfo.NumberOfPhysicalPages = ULONG_MAX;
         basicInfo.AllocationGranularity = 0x10000;
@@ -116,6 +117,7 @@ VOID PhInitializeSystemInformation(
         basicInfo.ActiveProcessorsAffinityMask = USHRT_MAX;
     }
 
+    PhSystemBasicInformation.PageSize = (USHORT)basicInfo.PageSize;
     PhSystemBasicInformation.NumberOfProcessors = (USHORT)basicInfo.NumberOfProcessors;
     PhSystemBasicInformation.NumberOfPhysicalPages = basicInfo.NumberOfPhysicalPages;
     PhSystemBasicInformation.AllocationGranularity = basicInfo.AllocationGranularity;

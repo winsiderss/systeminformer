@@ -954,6 +954,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
     _In_ PPV_PE_LAYOUT_CONTEXT Context
     )
 {
+    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L":");
     NTSTATUS status;
     HANDLE fileHandle = NULL;
     HANDLE volumeHandle = NULL;
@@ -970,7 +971,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
     PSTREAM_LAYOUT_ENTRY fileLayoutSteamEntry;
     PFILE_LAYOUT_INFO_ENTRY fileLayoutInfoEntry;
 
-    if (!PhSplitStringRefAtChar(&PvFileName->sr, L':', &firstPart, &lastPart))
+    if (!PhSplitStringRefAtString(&PvFileName->sr, &seperator, FALSE, &firstPart, &lastPart))
         return STATUS_UNSUCCESSFUL;
     if (firstPart.Length != sizeof(L':'))
         return STATUS_UNSUCCESSFUL;
@@ -980,7 +981,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
     //    return PhGetLastWin32ErrorAsNtStatus();
 
     volumeName = PhCreateString2(&firstPart);
-    PhMoveReference(&volumeName, PhConcatStrings(3, L"\\??\\", PhGetStringOrEmpty(volumeName), L":"));
+    PhMoveReference(&volumeName, PhConcatStringRef3(&PhNtDosDevicesPrefix, &volumeName->sr, &seperator));
 
     if (PhDetermineDosPathNameType(&volumeName->sr) != RtlPathTypeRooted)
     {

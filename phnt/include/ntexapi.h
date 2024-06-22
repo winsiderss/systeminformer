@@ -734,6 +734,21 @@ NtSetIRTimer(
 
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateTimer2(
+    _Out_ PHANDLE TimerHandle,
+    _In_opt_ PVOID Reserved1,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG Attributes, // TIMER_TYPE
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+#endif
+
 typedef struct _T2_SET_PARAMETERS_V0
 {
     ULONG Version;
@@ -744,17 +759,6 @@ typedef struct _T2_SET_PARAMETERS_V0
 typedef PVOID PT2_CANCEL_PARAMETERS;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtCreateTimer2(
-    _Out_ PHANDLE TimerHandle,
-    _In_opt_ PVOID Reserved1,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG Attributes,
-    _In_ ACCESS_MASK DesiredAccess
-    );
 
 NTSYSCALLAPI
 NTSTATUS

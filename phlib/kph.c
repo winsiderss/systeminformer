@@ -775,7 +775,7 @@ NTSTATUS KphEnumerateProcessHandles(
     return status;
 }
 
-NTSTATUS KphEnumerateProcessHandles2(
+NTSTATUS KsiEnumerateProcessHandles(
     _In_ HANDLE ProcessHandle,
     _Out_ PKPH_PROCESS_HANDLE_INFORMATION *Handles
     )
@@ -1088,7 +1088,7 @@ KPH_LEVEL KphLevelEx(
     return level;
 }
 
-KPH_LEVEL KphLevel(
+KPH_LEVEL KsiLevel(
     VOID
     )
 {
@@ -1948,7 +1948,7 @@ NTSTATUS KphQueryVirtualMemory(
     return status;
 }
 
-NTSTATUS KphQueryHashInformationFile(
+NTSTATUS KsiQueryHashInformationFile(
     _In_ HANDLE FileHandle,
     _Inout_ PKPH_HASH_INFORMATION HashInformation,
     _In_ ULONG HashInformationLength

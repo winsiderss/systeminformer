@@ -89,6 +89,7 @@ PhExitApplication(
 
 typedef struct _PH_SYSTEM_BASIC_INFORMATION
 {
+    USHORT PageSize;
     USHORT NumberOfProcessors;
     ULONG NumberOfPhysicalPages;
     ULONG AllocationGranularity;

@@ -2077,7 +2077,7 @@ NTSTATUS PhWalkThreadStack(
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
     {
-        if ((KphLevel() >= KphLevelMed) || !ClientId)
+        if ((KsiLevel() >= KphLevelMed) || !ClientId)
         {
             if (!NT_SUCCESS(status = PhOpenThreadProcess(
                 ThreadHandle,
@@ -2143,7 +2143,7 @@ NTSTATUS PhWalkThreadStack(
     }
 
     // Kernel stack walk.
-    if ((Flags & PH_WALK_KERNEL_STACK) && (KphLevel() >= KphLevelMed))
+    if ((Flags & PH_WALK_KERNEL_STACK) && (KsiLevel() >= KphLevelMed))
     {
         PVOID stack[256 - 2]; // See MAX_STACK_DEPTH
         ULONG capturedFrames = 0;

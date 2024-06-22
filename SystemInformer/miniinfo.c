@@ -2036,7 +2036,7 @@ BOOLEAN PhMipCpuListSectionCallback(
             processes = getUsageText->ProcessGroup->Processes;
             cpuUsage = *(PFLOAT)getUsageText->SortData->UserData * 100;
 
-            if (cpuUsage >= 0.01)
+            if (cpuUsage >= 0.01f)
             {
                 PH_FORMAT format[2];
 

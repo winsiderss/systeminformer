@@ -136,7 +136,7 @@ NTSTATUS PhpGetObjectBasicInformation(
 {
     NTSTATUS status;
 
-    if (KphLevel() >= KphLevelMed)
+    if (KsiLevel() >= KphLevelMed)
     {
         status = KphQueryInformationObject(
             ProcessHandle,
@@ -235,7 +235,7 @@ NTSTATUS PhpGetObjectTypeName(
         PPH_STRING oldTypeName;
         KPH_LEVEL level;
 
-        level = KphLevel();
+        level = KsiLevel();
 
         // Get the needed buffer size.
         if (level >= KphLevelMed)
@@ -338,7 +338,7 @@ NTSTATUS PhpGetObjectName(
     // A loop is needed because the I/O subsystem likes to give us the wrong return lengths... (wj32)
     do
     {
-        if (KphLevel() >= KphLevelMed)
+        if (KsiLevel() >= KphLevelMed)
         {
             status = KphQueryInformationObject(
                 ProcessHandle,
@@ -1001,7 +1001,7 @@ NTSTATUS PhpGetBestObjectName(
 
     if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
     {
-        if (KphLevel() >= KphLevelMed)
+        if (KsiLevel() >= KphLevelMed)
         {
             ETWREG_BASIC_INFORMATION basicInfo;
 
@@ -1043,7 +1043,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
 
-        if (PhIsNullOrEmptyString(bestObjectName) && (KphLevel() >= KphLevelMed))
+        if (PhIsNullOrEmptyString(bestObjectName) && (KsiLevel() >= KphLevelMed))
         {
             KPH_FILE_OBJECT_DRIVER fileObjectDriver;
             PPH_STRING driverName;
@@ -1139,7 +1139,7 @@ NTSTATUS PhpGetBestObjectName(
 
         clientId.UniqueThread = NULL;
 
-        if (KphLevel() >= KphLevelMed)
+        if (KsiLevel() >= KphLevelMed)
         {
             PROCESS_BASIC_INFORMATION basicInfo;
 
@@ -1195,7 +1195,7 @@ NTSTATUS PhpGetBestObjectName(
         if (!PhIsNullOrEmptyString(ObjectName))
             goto CleanupExit;
 
-        if (KphLevel() >= KphLevelMed)
+        if (KsiLevel() >= KphLevelMed)
         {
             ULONG returnLength;
             ULONG bufferSize;
@@ -1260,7 +1260,7 @@ NTSTATUS PhpGetBestObjectName(
         {
             SECTION_BASIC_INFORMATION basicInfo;
 
-            if (KphLevel() >= KphLevelMed)
+            if (KsiLevel() >= KphLevelMed)
             {
                 status = KphQueryInformationObject(
                     ProcessHandle,
@@ -1305,7 +1305,7 @@ NTSTATUS PhpGetBestObjectName(
     {
         CLIENT_ID clientId;
 
-        if (KphLevel() >= KphLevelMed)
+        if (KsiLevel() >= KphLevelMed)
         {
             THREAD_BASIC_INFORMATION basicInfo;
 
@@ -1569,7 +1569,7 @@ NTSTATUS PhpGetBestObjectName(
         PPH_STRING name = NULL;
         CLIENT_ID clientId;
 
-        if (KphLevel() < KphLevelMed)
+        if (KsiLevel() < KphLevelMed)
             goto CleanupExit;
 
         status = PhGetProcessBasicInformation(ProcessHandle, &processInfo);
@@ -1796,7 +1796,7 @@ NTSTATUS PhGetHandleInformationEx(
     if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber >= MAX_OBJECT_TYPE_NUMBER)
         return STATUS_INVALID_PARAMETER_3;
 
-    useKph = (KphLevel() >= KphLevelMed);
+    useKph = (KsiLevel() >= KphLevelMed);
 
     // Duplicate the handle if we're not using KPH.
     if (!useKph)

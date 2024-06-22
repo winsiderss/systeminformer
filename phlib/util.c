@@ -735,7 +735,7 @@ INT PhShowMessage2(
     config.pszMainInstruction = Title;
     config.pszContent = message->Buffer;
 
-    if (SUCCEEDED(TaskDialogIndirect(
+    if (HR_SUCCESS(TaskDialogIndirect(
         &config,
         &result,
         NULL,
@@ -793,7 +793,7 @@ BOOLEAN PhShowMessageOneTime(
     config.pszVerificationText = L"Don't show this message again";
     config.cxWidth = 200;
 
-    if (SUCCEEDED(TaskDialogIndirect(
+    if (HR_SUCCESS(TaskDialogIndirect(
         &config,
         &result,
         NULL,
@@ -3095,7 +3095,10 @@ PPH_STRING PhGetBaseName(
     PH_STRINGREF baseNamePart;
 
     if (!PhSplitStringRefAtLastChar(&FileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathPart, &baseNamePart))
+    {
+        //assert(FALSE);
         return PhReferenceObject(FileName);
+    }
 
     return PhCreateString2(&baseNamePart);
 }
@@ -3271,6 +3274,23 @@ VOID PhGetSystemRoot(
     systemRoot.Buffer = localSystemRoot.Buffer;
 }
 
+VOID PhGetNtSystemRoot(
+    _Out_ PPH_STRINGREF NtSystemRoot
+    )
+{
+    static PPH_STRING systemRootNative;
+
+    if (PhIsNullOrEmptyString(systemRootNative))
+    {
+        PH_STRINGREF localSystemRoot;
+
+        PhGetSystemRoot(&localSystemRoot);
+        systemRootNative = PhDosPathNameToNtPathName(&localSystemRoot);
+    }
+
+    *NtSystemRoot = systemRootNative->sr;
+}
+
 /**
  * Retrieves the Windows directory path.
  */
@@ -3327,13 +3347,42 @@ PPH_STRING PhGetApplicationFileName(
         return PhReferenceObject(fileName);
     }
 
+#if (PH_NATIVE_FILENAME)
     if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
     {
         if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
         {
-            PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName);
+            if (!NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
+            {
+                if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+                {
+                    PPH_STRING fullPath;
+
+                    if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
+                    {
+                        PhMoveReference(&fileName, fullPath);
+                    }
+                }
+
+                PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+            }
         }
     }
+#else
+    {
+        if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+        {
+            PPH_STRING fullPath;
+
+            if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
+            {
+                PhMoveReference(&fileName, fullPath);
+            }
+        }
+
+        PhMoveReference(&fileName, PhDosPathNameToNtPathName(&fileName->sr));
+    }
+#endif
 
     if (!InterlockedCompareExchangePointer(
         &cachedFileName,
@@ -3366,16 +3415,7 @@ PPH_STRING PhGetApplicationFileNameWin32(
         return PhReferenceObject(fileName);
     }
 
-    //if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
-    //{
-    //    PPH_STRING fullPath;
-    //
-    //    if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
-    //    {
-    //        PhMoveReference(&fileName, fullPath);
-    //    }
-    //}
-
+#if (PH_NATIVE_FILENAME)
     if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
     {
         if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
@@ -3387,11 +3427,19 @@ PPH_STRING PhGetApplicationFileNameWin32(
             PhMoveReference(&fileName, PhGetFileName(fileName));
         }
     }
+#else
+    {
+        if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+        {
+            PPH_STRING fullPath;
 
-    //if (fileName = PhGetApplicationFileName())
-    //{
-    //    PhMoveReference(&fileName, PhGetFileName(fileName));
-    //}
+            if (NT_SUCCESS(PhGetFullPath(PhGetString(fileName), &fullPath, NULL)))
+            {
+                PhMoveReference(&fileName, fullPath);
+            }
+        }
+    }
+#endif
 
     if (!InterlockedCompareExchangePointer(
         &cachedFileName,
@@ -4620,6 +4668,9 @@ NTSTATUS PhCreateProcessAsUser(
             PROCESS_INFORMATION processInfo = { 0 };
             ULONG newFlags = 0;
 
+            if (!Information->LogonFlags)
+                Information->LogonFlags = LOGON_WITH_PROFILE;
+
             if (Information->CommandLine) // duplicate because CreateProcess modifies the string
                 commandLine = PhCreateString(Information->CommandLine);
 
@@ -4632,7 +4683,7 @@ NTSTATUS PhCreateProcessAsUser(
                 Information->UserName,
                 Information->DomainName,
                 Information->Password,
-                LOGON_WITH_PROFILE,
+                Information->LogonFlags,
                 Information->ApplicationName,
                 PhGetString(commandLine),
                 newFlags,
@@ -5240,7 +5291,7 @@ VOID PhShellExecute(
 
     if (!PhShellExecuteWin32(&info))
     {
-        PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
+        PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, PhGetLastError());
     }
 }
 
@@ -5391,8 +5442,10 @@ VOID PhShellProperties(
     _In_ PWSTR FileName
     )
 {
-    SHELLEXECUTEINFO info = { sizeof(info) };
+    SHELLEXECUTEINFO info;
 
+    memset(&info, 0, sizeof(SHELLEXECUTEINFO));
+    info.cbSize = sizeof(SHELLEXECUTEINFO);
     info.lpFile = FileName;
     info.nShow = SW_SHOW;
     info.fMask = SEE_MASK_INVOKEIDLIST | SEE_MASK_FLAG_NO_UI;
@@ -5401,7 +5454,7 @@ VOID PhShellProperties(
 
     if (!PhShellExecuteWin32(&info))
     {
-        PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, GetLastError());
+        PhShowStatus(WindowHandle, L"Unable to execute the program.", 0, PhGetLastError());
     }
 }
 
@@ -7800,7 +7853,7 @@ HRESULT PhGetClassObject(
         &classFactory
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         status = IClassFactory_CreateInstance(
             classFactory,
@@ -7848,7 +7901,7 @@ HRESULT PhGetActivationFactoryDllBase(
         &activationFactory
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         status = IActivationFactory_QueryInterface(
             activationFactory,
@@ -7892,7 +7945,7 @@ HRESULT PhGetActivationFactory(
         &runtimeClassStringHandle
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         status = RoGetActivationFactory(
             runtimeClassStringHandle,
@@ -7939,14 +7992,14 @@ HRESULT PhActivateInstanceDllBase(
         &activationFactory
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         status = IActivationFactory_ActivateInstance(
             activationFactory,
             &inspectableObject
             );
 
-        if (SUCCEEDED(status))
+        if (HR_SUCCESS(status))
         {
             status = IInspectable_QueryInterface(
                 inspectableObject,
@@ -7995,14 +8048,14 @@ HRESULT PhActivateInstance(
         &runtimeClassStringHandle
         );
 
-    if (SUCCEEDED(status))
+    if (HR_SUCCESS(status))
     {
         status = RoActivateInstance(
             runtimeClassStringHandle,
             &inspectableObject
             );
 
-        if (SUCCEEDED(status))
+        if (HR_SUCCESS(status))
         {
             status = IInspectable_QueryInterface(
                 inspectableObject,

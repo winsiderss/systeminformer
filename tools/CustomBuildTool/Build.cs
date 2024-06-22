@@ -890,10 +890,11 @@ namespace CustomBuildTool
 
         private static bool GetBuildDeployInfo(string Channel, out BuildDeployInfo Info)
         {
-            Info = new BuildDeployInfo();
-
-            Info.BinFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip";
-            Info.SetupFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe";
+            Info = new BuildDeployInfo
+            {
+                BinFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-bin.zip",
+                SetupFilename = $"{BuildOutputFolder}\\systeminformer-build-{Channel}-setup.exe"
+            };
 
             if (!Verify.CreateSigString(Channel, Info.BinFilename, out Info.BinSig))
             {
@@ -1034,7 +1035,7 @@ namespace CustomBuildTool
                 using ByteArrayContent httpContent = new ByteArrayContent(buildPostString);
                 httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-                var httpTask = httpClient.PostAsync("systeminformer.sourceforge.io", httpContent);
+                var httpTask = httpClient.PostAsync(buildPostSfUrl, httpContent);
                 httpTask.Wait();
 
                 if (!httpTask.Result.IsSuccessStatusCode)

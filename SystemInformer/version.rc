@@ -68,13 +68,13 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "CompanyName", "System Informer"
-            VALUE "FileDescription", "System Informer"
+            VALUE "CompanyName", "Winsider Seminars & Solutions, System Informer"
+            VALUE "FileDescription", "Winsider Seminars & Solutions, System Informer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "SystemInformer.exe"
+            VALUE "InternalName", "System Informer.exe"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
-            VALUE "OriginalFilename", "SystemInformer.exe"
-            VALUE "ProductName", "System Informer"
+            VALUE "OriginalFilename", "System Informer.exe"
+            VALUE "ProductName", "Winsider Seminars & Solutions, System Informer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
