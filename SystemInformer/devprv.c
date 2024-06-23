@@ -101,8 +101,9 @@ DEFINE_GUID(GUID_NFCSE_RADIO_MEDIA_DEVICE_INTERFACE, 0xef8ba08f, 0x148d, 0x4116,
 DEFINE_GUID(GUID_BLUETOOTHLE_DEVICE_INTERFACE, 0x781aee18, 0x7733, 0x4ce4, 0xad, 0xd0, 0x91, 0xf4, 0x1c, 0x67, 0xb5, 0x92);
 DEFINE_GUID(GUID_BLUETOOTH_GATT_SERVICE_DEVICE_INTERFACE, 0x6e3bb679, 0x4372, 0x40c8, 0x9e, 0xaa, 0x45, 0x09, 0xdf, 0x26, 0x0c, 0xd8);
 
-DEFINE_DEVPROPKEY(DEVPKEY_GPU_LUID,  0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 0x02);    // DEVPROP_TYPE_GUID
-DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhyId, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 0x03);    // DEVPROP_TYPE_UINT32
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 3); // DEVPROP_TYPE_UINT32
+
 
 #include <SetupAPI.h>
 #include <cfgmgr32.h>
@@ -3460,8 +3461,8 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyStorageDiskNumber, &DEVPKEY_Storage_Disk_Number, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyStoragePartitionNumber, &DEVPKEY_Storage_Partition_Number, PhpDevPropFillUInt32, 0 },
 
-    { PhDevicePropertyGpuLuid, &DEVPKEY_GPU_LUID, PhpDevPropFillUInt64, 0 },
-    { PhDevicePropertyGpuPhyId, &DEVPKEY_Gpu_PhyId, PhpDevPropFillUInt32, 0 },
+    { PhDevicePropertyGpuLuid, &DEVPKEY_Gpu_Luid, PhpDevPropFillUInt64, 0 },
+    { PhDevicePropertyGpuPhysicalAdapterIndex, &DEVPKEY_Gpu_PhysicalAdapterIndex, PhpDevPropFillUInt32, 0 },
 };
 C_ASSERT(RTL_NUMBER_OF(PhpDeviceItemPropertyTable) == PhMaxDeviceProperty);
 

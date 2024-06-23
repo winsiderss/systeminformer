@@ -1254,7 +1254,7 @@ const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
     { PhDevicePropertyStoragePartitionNumber, L"Storage disk partition number", FALSE, 80, 0 },
 
     { PhDevicePropertyGpuLuid, L"GPU LUID", FALSE, 80, 0 },
-    { PhDevicePropertyGpuPhyId, L"GPU PhyID", FALSE, 80, 0 },
+    { PhDevicePropertyGpuPhysicalAdapterIndex, L"GPU physical adapter index", FALSE, 80, 0 },
 };
 C_ASSERT(RTL_NUMBER_OF(DeviceItemPropertyTable) == PhMaxDeviceProperty);
 const ULONG DeviceItemPropertyTableCount = RTL_NUMBER_OF(DeviceItemPropertyTable);
