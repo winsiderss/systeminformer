@@ -467,7 +467,7 @@ typedef struct _PH_DEVICE_NOTIFY
     };
 
 // end_phapppub
-    LIST_ENTRY ListEntry;
+    SLIST_ENTRY ListEntry;
 // begin_phapppub
 } PH_DEVICE_NOTIFY, *PPH_DEVICE_NOTIFY;
 
