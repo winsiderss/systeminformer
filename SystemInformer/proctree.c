@@ -659,7 +659,6 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->JobObjectIdText);
     PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
-    PhClearReference(&ProcessNode->PidHexText);
     PhClearReference(&ProcessNode->CpuCoreUsageText);
     PhClearReference(&ProcessNode->ImageCoherencyText);
     PhClearReference(&ProcessNode->ImageCoherencyStatusText);
@@ -3563,12 +3562,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
                     {
-                        PH_FORMAT format;
-
-                        PhInitFormatIX(&format, HandleToUlong(processItem->ProcessId));
-
-                        PhMoveReference(&node->PidHexText, PhFormat(&format, 1, 0));
-                        getCellText->Text = node->PidHexText->sr;
+                        PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessIdHexString);
                     }
                 }
                 break;

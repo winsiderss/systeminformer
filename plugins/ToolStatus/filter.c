@@ -104,23 +104,10 @@ BOOLEAN ProcessTreeFilterCallback(
                 return TRUE;
         }
 
-         // HACK PidHexText from PH_PROCESS_NODE is not exported (dmex)
+        if (processNode->ProcessItem->ProcessIdHexString[0])
         {
-            PH_FORMAT format;
-            SIZE_T returnLength;
-            PH_STRINGREF processIdHex;
-            WCHAR pidHexText[PH_PTR_STR_LEN_1];
-
-            PhInitFormatIX(&format, HandleToUlong(processNode->ProcessItem->ProcessId));
-
-            if (PhFormatToBuffer(&format, 1, pidHexText, sizeof(pidHexText), &returnLength))
-            {
-                processIdHex.Buffer = pidHexText;
-                processIdHex.Length = returnLength - sizeof(UNICODE_NULL);
-
-                if (PhSearchControlMatch(SearchMatchHandle, &processIdHex))
-                    return TRUE;
-            }
+            if (PhSearchControlMatchLongHintZ(SearchMatchHandle, processNode->ProcessItem->ProcessIdHexString))
+                return TRUE;
         }
     }
 
