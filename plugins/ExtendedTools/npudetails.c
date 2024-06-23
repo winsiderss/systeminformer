@@ -6,55 +6,56 @@
  * Authors:
  *
  *     dmex    2018-2021
+ *     jxy-s   2024
  *
  */
 
 #include "exttools.h"
-#include "gpumon.h"
+#include "npumon.h"
 
-HWND EtGpuDetailsDialogHandle = NULL;
-HANDLE EtGpuDetailsDialogThreadHandle = NULL;
-PH_EVENT EtGpuDetailsInitializedEvent = PH_EVENT_INIT;
+HWND EtNpuDetailsDialogHandle = NULL;
+HANDLE EtNpuDetailsDialogThreadHandle = NULL;
+PH_EVENT EtNpuDetailsInitializedEvent = PH_EVENT_INIT;
 
-typedef enum _GPUADAPTER_DETAILS_INDEX
+typedef enum _NPUADAPTER_DETAILS_INDEX
 {
-    GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION,
-    GPUADAPTER_DETAILS_INDEX_DRIVERDATE,
-    GPUADAPTER_DETAILS_INDEX_DRIVERVERSION,
-    GPUADAPTER_DETAILS_INDEX_WDDMVERSION,
-    GPUADAPTER_DETAILS_INDEX_VENDORID,
-    GPUADAPTER_DETAILS_INDEX_DEVICEID,
-    GPUADAPTER_DETAILS_INDEX_TOTALMEMORY,
-    GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY,
-    GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY,
-    GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH,
-    GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH,
-    GPUADAPTER_DETAILS_INDEX_FANRPM,
-    GPUADAPTER_DETAILS_INDEX_POWERUSAGE,
-    GPUADAPTER_DETAILS_INDEX_TEMPERATURE,
-} GPUADAPTER_DETAILS_INDEX;
+    NPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION,
+    NPUADAPTER_DETAILS_INDEX_DRIVERDATE,
+    NPUADAPTER_DETAILS_INDEX_DRIVERVERSION,
+    NPUADAPTER_DETAILS_INDEX_WDDMVERSION,
+    NPUADAPTER_DETAILS_INDEX_VENDORID,
+    NPUADAPTER_DETAILS_INDEX_DEVICEID,
+    NPUADAPTER_DETAILS_INDEX_TOTALMEMORY,
+    NPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY,
+    NPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY,
+    NPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH,
+    NPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH,
+    NPUADAPTER_DETAILS_INDEX_FANRPM,
+    NPUADAPTER_DETAILS_INDEX_POWERUSAGE,
+    NPUADAPTER_DETAILS_INDEX_TEMPERATURE,
+} NPUADAPTER_DETAILS_INDEX;
 
-VOID EtpGpuDetailsAddListViewItemGroups(
+VOID EtpNpuDetailsAddListViewItemGroups(
     _In_ HWND ListViewHandle,
-    _In_ INT GpuGroupId)
+    _In_ INT NpuGroupId)
 {
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, L"Physical Location", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, L"Driver Date", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, L"Driver Version", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, L"WDDM Version", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_VENDORID, L"Vendor ID", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_DEVICEID, L"Device ID", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, L"Total Memory", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, L"Reserved Memory", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, L"Memory Frequency", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, L"Memory Bandwidth", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, L"PCIE Bandwidth", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_FANRPM, L"Fan RPM", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, L"Power Usage", NULL);
-    PhAddListViewGroupItem(ListViewHandle, GpuGroupId, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, L"Temperature", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, L"Physical Location", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_DRIVERDATE, L"Driver Date", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_DRIVERVERSION, L"Driver Version", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_WDDMVERSION, L"WDDM Version", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_VENDORID, L"Vendor ID", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_DEVICEID, L"Device ID", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_TOTALMEMORY, L"Total Memory", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, L"Reserved Memory", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, L"Memory Frequency", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, L"Memory Bandwidth", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, L"PCIE Bandwidth", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_FANRPM, L"Fan RPM", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, L"Power Usage", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_TEMPERATURE, L"Temperature", NULL);
 }
 
-VOID EtpGpuQueryAdapterDeviceProperties(
+VOID EtpNpuQueryAdapterDeviceProperties(
     _In_ PPH_STRING DeviceName,
     _In_ HWND ListViewHandle)
 {
@@ -65,14 +66,14 @@ VOID EtpGpuQueryAdapterDeviceProperties(
 
     if (EtQueryDeviceProperties(DeviceName, NULL, &driverDate, &driverVersion, &locationInfo, &installedMemory))
     {
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, 1, PhGetStringOrEmpty(driverDate));
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, 1, PhGetStringOrEmpty(driverVersion));
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, 1, PhGetStringOrEmpty(locationInfo));
+        PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_DRIVERDATE, 1, PhGetStringOrEmpty(driverDate));
+        PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_DRIVERVERSION, 1, PhGetStringOrEmpty(driverVersion));
+        PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, 1, PhGetStringOrEmpty(locationInfo));
 
         if (installedMemory != ULLONG_MAX)
         {
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, 1, PhaFormatSize(installedMemory, ULONG_MAX)->Buffer);
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(installedMemory - (EtGpuDedicatedLimit ? EtGpuDedicatedLimit : EtGpuSharedLimit), ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_TOTALMEMORY, 1, PhaFormatSize(installedMemory, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(installedMemory - (EtNpuDedicatedLimit ? EtNpuDedicatedLimit : EtNpuSharedLimit), ULONG_MAX)->Buffer);
         }
 
         PhClearReference(&locationInfo);
@@ -81,7 +82,7 @@ VOID EtpGpuQueryAdapterDeviceProperties(
     }
 }
 
-VOID EtpGpuQueryAdapterRegistryInfo(
+VOID EtpNpuQueryAdapterRegistryInfo(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
@@ -100,7 +101,7 @@ VOID EtpGpuQueryAdapterRegistryInfo(
     }
 }
 
-VOID EtpGpuQueryAdapterDriverModel(
+VOID EtpNpuQueryAdapterDriverModel(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
@@ -118,12 +119,12 @@ VOID EtpGpuQueryAdapterDriverModel(
         ULONG majorVersion = d3dkmtDriverVersion / 1000;
         ULONG minorVersion = (d3dkmtDriverVersion - majorVersion * 1000) / 100;
 
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1,
+        PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1,
             PhaFormatString(L"WDDM %lu.%lu", majorVersion, minorVersion)->Buffer);
     }
 }
 
-VOID EtpGpuQueryAdapterDriverVersion(
+VOID EtpNpuQueryAdapterDriverVersion(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
@@ -168,7 +169,7 @@ VOID EtpGpuQueryAdapterDriverVersion(
     }
 }
 
-VOID EtpGpuQueryAdapterDeviceIds(
+VOID EtpNpuQueryAdapterDeviceIds(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
@@ -186,10 +187,10 @@ VOID EtpGpuQueryAdapterDeviceIds(
         WCHAR value[PH_PTR_STR_LEN_1];
 
         PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.VendorID));
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_VENDORID, 1, value);
+        PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_VENDORID, 1, value);
 
         PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.DeviceID));
-        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_DEVICEID, 1, value);
+        PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_DEVICEID, 1, value);
 
         //PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.SubVendorID));
         //PhPrintPointer(value, UlongToPtr(adapterDeviceId.DeviceIds.SubSystemID));
@@ -198,7 +199,7 @@ VOID EtpGpuQueryAdapterDeviceIds(
     }
 }
 
-VOID EtpGpuQueryAdapterPerfInfo(
+VOID EtpNpuQueryAdapterPerfInfo(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
@@ -220,40 +221,40 @@ VOID EtpGpuQueryAdapterPerfInfo(
         PhInitFormatS(&format[1], L" MHz");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, formatBuffer);
         else
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, PhaFormatString(L"%I64u MHz", adapterPerfData.MemoryFrequency / 1000 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_MEMORYFREQUENCY, 1, PhaFormatString(L"%I64u MHz", adapterPerfData.MemoryFrequency / 1000 / 1000)->Buffer);
 
         PhInitFormatSize(&format[0], adapterPerfData.MemoryBandwidth);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, formatBuffer);
         else
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, PhaFormatSize(adapterPerfData.MemoryBandwidth, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_MEMORYBANDWIDTH, 1, PhaFormatSize(adapterPerfData.MemoryBandwidth, ULONG_MAX)->Buffer);
 
         PhInitFormatSize(&format[0], adapterPerfData.PCIEBandwidth);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, formatBuffer);
         else
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, PhaFormatSize(adapterPerfData.PCIEBandwidth, ULONG_MAX)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_PCIEBANDWIDTH, 1, PhaFormatSize(adapterPerfData.PCIEBandwidth, ULONG_MAX)->Buffer);
 
         PhInitFormatI64U(&format[0], adapterPerfData.FanRPM);
 
         if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_FANRPM, 1, formatBuffer);
         else
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
 
         PhInitFormatI64U(&format[0], adapterPerfData.Power * 100 / 1000);
         PhInitFormatS(&format[1], L"%");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, formatBuffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, formatBuffer);
         else
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
 
-        if (EtGpuFahrenheitEnabled)
+        if (EtNpuFahrenheitEnabled)
         {
             ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
             FLOAT gpuFahrenheitTemp = (FLOAT)(gpuCurrentTemp * 1.8 + 32);
@@ -263,11 +264,11 @@ VOID EtpGpuQueryAdapterPerfInfo(
 
             if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
             {
-                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, formatBuffer);
+                PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, formatBuffer);
             }
             else
             {
-                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(
+                PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(
                     L"%.1f\u00b0F (%lu\u00b0C)",
                     gpuFahrenheitTemp,
                     gpuCurrentTemp
@@ -283,11 +284,11 @@ VOID EtpGpuQueryAdapterPerfInfo(
 
             if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
             {
-                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, formatBuffer);
+                PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, formatBuffer);
             }
             else
             {
-                PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(
+                PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_TEMPERATURE, 1, PhaFormatString(
                     L"%lu\u00b0C",
                     gpuCurrentTemp
                     )->Buffer);
@@ -296,16 +297,16 @@ VOID EtpGpuQueryAdapterPerfInfo(
     }
 }
 
-VOID EtpGpuDetailsEnumAdapters(
+VOID EtpNpuDetailsEnumAdapters(
     _In_ HWND ListViewHandle
     )
 {
-    PETP_GPU_ADAPTER gpuAdapter;
+    PETP_NPU_ADAPTER gpuAdapter;
     D3DKMT_OPENADAPTERFROMDEVICENAME openAdapterFromDeviceName;
 
-    for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+    for (ULONG i = 0; i < EtpNpuAdapterList->Count; i++)
     {
-        gpuAdapter = EtpGpuAdapterList->Items[i];
+        gpuAdapter = EtpNpuAdapterList->Items[i];
 
         memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
         openAdapterFromDeviceName.pDeviceName = PhGetString(gpuAdapter->DeviceInterface);
@@ -321,22 +322,22 @@ VOID EtpGpuDetailsEnumAdapters(
                 continue;
             }
 
-            EtpGpuDetailsAddListViewItemGroups(ListViewHandle, i);
+            EtpNpuDetailsAddListViewItemGroups(ListViewHandle, i);
         }
 
-        EtpGpuQueryAdapterDeviceProperties(gpuAdapter->DeviceInterface, ListViewHandle);
+        EtpNpuQueryAdapterDeviceProperties(gpuAdapter->DeviceInterface, ListViewHandle);
         //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpGpuQueryAdapterDriverModel(openAdapterFromDeviceName.hAdapter, ListViewHandle);
+        EtpNpuQueryAdapterDriverModel(openAdapterFromDeviceName.hAdapter, ListViewHandle);
         //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpGpuQueryAdapterDeviceIds(openAdapterFromDeviceName.hAdapter, ListViewHandle);
+        EtpNpuQueryAdapterDeviceIds(openAdapterFromDeviceName.hAdapter, ListViewHandle);
         //EtQueryAdapterFeatureLevel(openAdapterFromDeviceName.AdapterLuid);
-        EtpGpuQueryAdapterPerfInfo(openAdapterFromDeviceName.hAdapter, ListViewHandle);
+        EtpNpuQueryAdapterPerfInfo(openAdapterFromDeviceName.hAdapter, ListViewHandle);
 
         EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
     }
 }
 
-VOID EtpGpuProcessesUpdatedCallback(
+VOID EtpNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
@@ -344,26 +345,26 @@ VOID EtpGpuProcessesUpdatedCallback(
     PostMessage((HWND)Context, WM_PH_UPDATE_DIALOG, 0, 0);
 }
 
-typedef struct _ET_GPU_DETAILS_CONTEXT
+typedef struct _ET_NPU_DETAILS_CONTEXT
 {
     HWND DialogHandle;
     HWND ListViewHandle;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
     PH_LAYOUT_MANAGER LayoutManager;
-} ET_GPU_DETAILS_CONTEXT, *PET_GPU_DETAILS_CONTEXT;
+} ET_NPU_DETAILS_CONTEXT, *PET_NPU_DETAILS_CONTEXT;
 
-INT_PTR CALLBACK EtpGpuDetailsDlgProc(
+INT_PTR CALLBACK EtpNpuDetailsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    PET_GPU_DETAILS_CONTEXT context = NULL;
+    PET_NPU_DETAILS_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocateZero(sizeof(ET_GPU_DETAILS_CONTEXT));
+        context = PhAllocateZero(sizeof(ET_NPU_DETAILS_CONTEXT));
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
@@ -380,7 +381,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     case WM_INITDIALOG:
         {
             context->DialogHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_GPULIST);
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_NPULIST);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -398,11 +399,11 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            EtpGpuDetailsEnumAdapters(context->ListViewHandle);
+            EtpNpuDetailsEnumAdapters(context->ListViewHandle);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
-                EtpGpuProcessesUpdatedCallback,
+                EtpNpuProcessesUpdatedCallback,
                 hwndDlg,
                 &context->ProcessesUpdatedCallbackRegistration
                 );
@@ -441,7 +442,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
         break;
     case WM_PH_UPDATE_DIALOG:
         {
-            EtpGpuDetailsEnumAdapters(context->ListViewHandle);
+            EtpNpuDetailsEnumAdapters(context->ListViewHandle);
         }
         break;
     case WM_PH_SHOW_DIALOG:
@@ -519,7 +520,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     return FALSE;
 }
 
-NTSTATUS EtGpuDetailsDialogThreadStart(
+NTSTATUS EtNpuDetailsDialogThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -529,25 +530,25 @@ NTSTATUS EtGpuDetailsDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtGpuDetailsDialogHandle = PhCreateDialog(
+    EtNpuDetailsDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_SYSINFO_GPUDETAILS),
+        MAKEINTRESOURCE(IDD_SYSINFO_NPUDETAILS),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : Parameter,
-        EtpGpuDetailsDlgProc,
+        EtpNpuDetailsDlgProc,
         NULL
         );
 
-    PhSetEvent(&EtGpuDetailsInitializedEvent);
+    PhSetEvent(&EtNpuDetailsInitializedEvent);
 
-    ShowWindow(EtGpuDetailsDialogHandle, SW_SHOW);
-    SetForegroundWindow(EtGpuDetailsDialogHandle);
+    ShowWindow(EtNpuDetailsDialogHandle, SW_SHOW);
+    SetForegroundWindow(EtNpuDetailsDialogHandle);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == -1)
             break;
 
-        if (!IsDialogMessage(EtGpuDetailsDialogHandle, &message))
+        if (!IsDialogMessage(EtNpuDetailsDialogHandle, &message))
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -558,32 +559,32 @@ NTSTATUS EtGpuDetailsDialogThreadStart(
 
     PhDeleteAutoPool(&autoPool);
 
-    if (EtGpuDetailsDialogThreadHandle)
+    if (EtNpuDetailsDialogThreadHandle)
     {
-        NtClose(EtGpuDetailsDialogThreadHandle);
-        EtGpuDetailsDialogThreadHandle = NULL;
-        EtGpuDetailsDialogHandle = NULL;
+        NtClose(EtNpuDetailsDialogThreadHandle);
+        EtNpuDetailsDialogThreadHandle = NULL;
+        EtNpuDetailsDialogHandle = NULL;
     }
 
-    PhResetEvent(&EtGpuDetailsInitializedEvent);
+    PhResetEvent(&EtNpuDetailsInitializedEvent);
 
     return STATUS_SUCCESS;
 }
 
-VOID EtShowGpuDetailsDialog(
+VOID EtShowNpuDetailsDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    if (!EtGpuDetailsDialogThreadHandle)
+    if (!EtNpuDetailsDialogThreadHandle)
     {
-        if (!NT_SUCCESS(PhCreateThreadEx(&EtGpuDetailsDialogThreadHandle, EtGpuDetailsDialogThreadStart, ParentWindowHandle)))
+        if (!NT_SUCCESS(PhCreateThreadEx(&EtNpuDetailsDialogThreadHandle, EtNpuDetailsDialogThreadStart, ParentWindowHandle)))
         {
             PhShowError(NULL, L"%s", L"Unable to create the window.");
             return;
         }
 
-        PhWaitForEvent(&EtGpuDetailsInitializedEvent, NULL);
+        PhWaitForEvent(&EtNpuDetailsInitializedEvent, NULL);
     }
 
-    PostMessage(EtGpuDetailsDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
+    PostMessage(EtNpuDetailsDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }

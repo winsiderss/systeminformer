@@ -7,19 +7,20 @@
  *
  *     wj32    2011
  *     dmex    2015-2023
+ *     jxy-s   2024
  *
  */
 
 #include "exttools.h"
-#include "gpusys.h"
+#include "npusys.h"
 
-static PPH_SYSINFO_SECTION GpuSection;
-static HWND GpuDialog;
-static LONG GpuDialogWindowDpi;
-static PH_LAYOUT_MANAGER GpuLayoutManager;
-static RECT GpuGraphMargin;
-static HWND GpuGraphHandle;
-static PH_GRAPH_STATE GpuGraphState;
+static PPH_SYSINFO_SECTION NpuSection;
+static HWND NpuDialog;
+static LONG NpuDialogWindowDpi;
+static PH_LAYOUT_MANAGER NpuLayoutManager;
+static RECT NpuGraphMargin;
+static HWND NpuGraphHandle;
+static PH_GRAPH_STATE NpuGraphState;
 static HWND DedicatedGraphHandle;
 static PH_GRAPH_STATE DedicatedGraphState;
 static HWND SharedGraphHandle;
@@ -30,27 +31,27 @@ static HWND TemperatureGraphHandle;
 static PH_GRAPH_STATE TemperatureGraphState;
 static HWND FanRpmGraphHandle;
 static PH_GRAPH_STATE FanRpmGraphState;
-static HWND GpuPanel;
-static HWND GpuPanelDedicatedUsageLabel;
-static HWND GpuPanelDedicatedLimitLabel;
-static HWND GpuPanelSharedUsageLabel;
-static HWND GpuPanelSharedLimitLabel;
+static HWND NpuPanel;
+static HWND NpuPanelDedicatedUsageLabel;
+static HWND NpuPanelDedicatedLimitLabel;
+static HWND NpuPanelSharedUsageLabel;
+static HWND NpuPanelSharedLimitLabel;
 
-VOID EtGpuSystemInformationInitializing(
+VOID EtNpuSystemInformationInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     )
 {
     PH_SYSINFO_SECTION section;
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
-    PhInitializeStringRef(&section.Name, L"GPU");
+    PhInitializeStringRef(&section.Name, L"NPU");
     section.Flags = 0;
-    section.Callback = EtpGpuSysInfoSectionCallback;
+    section.Callback = EtpNpuSysInfoSectionCallback;
 
-    GpuSection = Pointers->CreateSection(&section);
+    NpuSection = Pointers->CreateSection(&section);
 }
 
-BOOLEAN EtpGpuSysInfoSectionCallback(
+BOOLEAN EtpNpuSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_ PVOID Parameter1,
@@ -61,18 +62,18 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
     {
     case SysInfoDestroy:
         {
-            if (GpuDialog)
+            if (NpuDialog)
             {
-                EtpUninitializeGpuDialog();
-                GpuDialog = NULL;
+                EtpUninitializeNpuDialog();
+                NpuDialog = NULL;
             }
         }
         return TRUE;
     case SysInfoTick:
         {
-            if (GpuDialog)
+            if (NpuDialog)
             {
-                EtpTickGpuDialog();
+                EtpTickNpuDialog();
             }
         }
         return TRUE;
@@ -84,11 +85,11 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             if (view == SysInfoSummaryView || section != Section)
                 return TRUE;
 
-            if (GpuGraphHandle)
+            if (NpuGraphHandle)
             {
-                GpuGraphState.Valid = FALSE;
-                GpuGraphState.TooltipIndex = ULONG_MAX;
-                Graph_Draw(GpuGraphHandle);
+                NpuGraphState.Valid = FALSE;
+                NpuGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(NpuGraphHandle);
             }
 
             if (DedicatedGraphHandle)
@@ -105,7 +106,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 Graph_Draw(SharedGraphHandle);
             }
 
-            if (EtGpuSupported)
+            if (EtNpuSupported)
             {
                 if (PowerUsageGraphHandle)
                 {
@@ -135,8 +136,8 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
             createDialog->Instance = PluginInstance->DllBase;
-            createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_GPU);
-            createDialog->DialogProc = EtpGpuDialogProc;
+            createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_NPU);
+            createDialog->DialogProc = EtpNpuDialogProc;
         }
         return TRUE;
     case SysInfoGraphGetDrawInfo:
@@ -145,11 +146,11 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, Section->Parameters->WindowDpi);
-            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, EtGpuNodeHistory.Count);
+            PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, EtNpuNodeHistory.Count);
 
             if (!Section->GraphState.Valid)
             {
-                PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
+                PhCopyCircularBuffer_FLOAT(&EtNpuNodeHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
 
                 if (EtEnableScaleGraph)
                 {
@@ -203,12 +204,12 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             if (!getTooltipText)
                 break;
 
-            gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
+            gpu = PhGetItemCircularBuffer_FLOAT(&EtNpuNodeHistory, getTooltipText->Index);
 
             // %.2f%%%s\n%s
             PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
             PhInitFormatC(&format[1], L'%');
-            PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGpuGetMaxNodeString(getTooltipText->Index))->sr);
+            PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpNpuGetMaxNodeString(getTooltipText->Index))->sr);
             PhInitFormatC(&format[3], L'\n');
             PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
@@ -224,46 +225,46 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             if (!drawPanel)
                 break;
 
-            drawPanel->Title = PhCreateString(L"GPU");
+            drawPanel->Title = PhCreateString(L"NPU");
 
             // Note: Intel IGP devices don't have dedicated usage/limit values. (dmex)
-            if (EtGpuDedicatedUsage && EtGpuDedicatedLimit)
+            if (EtNpuDedicatedUsage && EtNpuDedicatedLimit)
             {
                 PH_FORMAT format[5];
 
                 // %.2f%%\n%s / %s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
+                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
-                PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
+                PhInitFormatSize(&format[2], EtNpuDedicatedUsage);
                 PhInitFormatS(&format[3], L" / ");
-                PhInitFormatSize(&format[4], EtGpuDedicatedLimit);
+                PhInitFormatSize(&format[4], EtNpuDedicatedLimit);
 
                 drawPanel->SubTitle = PhFormat(format, 5, 64);
 
                 // %.2f%%\n%s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
+                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
-                PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
+                PhInitFormatSize(&format[2], EtNpuDedicatedUsage);
 
                 drawPanel->SubTitleOverflow = PhFormat(format, 3, 64);
             }
-            else if (EtGpuSharedUsage && EtGpuSharedLimit)
+            else if (EtNpuSharedUsage && EtNpuSharedLimit)
             {
                 PH_FORMAT format[5];
 
                 // %.2f%%\n%s / %s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
+                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
-                PhInitFormatSize(&format[2], EtGpuSharedUsage);
+                PhInitFormatSize(&format[2], EtNpuSharedUsage);
                 PhInitFormatS(&format[3], L" / ");
-                PhInitFormatSize(&format[4], EtGpuSharedLimit);
+                PhInitFormatSize(&format[4], EtNpuSharedLimit);
 
                 drawPanel->SubTitle = PhFormat(format, 5, 64);
 
                 // %.2f%%\n%s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
-                PhInitFormatSize(&format[2], EtGpuSharedUsage);
+                PhInitFormatSize(&format[2], EtNpuSharedUsage);
 
                 drawPanel->SubTitleOverflow = PhFormat(format, 3, 64);
             }
@@ -272,7 +273,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[2];
 
                 // %.2f%%\n
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
 
                 drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -284,15 +285,15 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
     return FALSE;
 }
 
-VOID EtpInitializeGpuDialog(
+VOID EtpInitializeNpuDialog(
     VOID
     )
 {
-    PhInitializeGraphState(&GpuGraphState);
+    PhInitializeGraphState(&NpuGraphState);
     PhInitializeGraphState(&DedicatedGraphState);
     PhInitializeGraphState(&SharedGraphState);
 
-    if (EtGpuSupported)
+    if (EtNpuSupported)
     {
         PhInitializeGraphState(&PowerUsageGraphState);
         PhInitializeGraphState(&TemperatureGraphState);
@@ -300,15 +301,15 @@ VOID EtpInitializeGpuDialog(
     }
 }
 
-VOID EtpUninitializeGpuDialog(
+VOID EtpUninitializeNpuDialog(
     VOID
     )
 {
-    PhDeleteGraphState(&GpuGraphState);
+    PhDeleteGraphState(&NpuGraphState);
     PhDeleteGraphState(&DedicatedGraphState);
     PhDeleteGraphState(&SharedGraphState);
 
-    if (EtGpuSupported)
+    if (EtNpuSupported)
     {
         PhDeleteGraphState(&PowerUsageGraphState);
         PhDeleteGraphState(&TemperatureGraphState);
@@ -316,7 +317,7 @@ VOID EtpUninitializeGpuDialog(
     }
 
     // Note: Required for SysInfoViewChanging (dmex)
-    GpuGraphHandle = NULL;
+    NpuGraphHandle = NULL;
     DedicatedGraphHandle = NULL;
     SharedGraphHandle = NULL;
     PowerUsageGraphHandle = NULL;
@@ -324,15 +325,15 @@ VOID EtpUninitializeGpuDialog(
     FanRpmGraphHandle = NULL;
 }
 
-VOID EtpTickGpuDialog(
+VOID EtpTickNpuDialog(
     VOID
     )
 {
-    EtpUpdateGpuGraphs();
-    EtpUpdateGpuPanel();
+    EtpUpdateNpuGraphs();
+    EtpUpdateNpuPanel();
 }
 
-INT_PTR CALLBACK EtpGpuDialogProc(
+INT_PTR CALLBACK EtpNpuDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -346,31 +347,31 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
 
-            EtpInitializeGpuDialog();
+            EtpInitializeNpuDialog();
 
-            GpuDialog = hwndDlg;
-            GpuDialogWindowDpi = PhGetWindowDpi(GpuDialog);
+            NpuDialog = hwndDlg;
+            NpuDialogWindowDpi = PhGetWindowDpi(NpuDialog);
 
-            PhInitializeLayoutManager(&GpuLayoutManager, hwndDlg);
-            PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_GPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            graphItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
-            panelItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            GpuGraphMargin = graphItem->Margin;
+            PhInitializeLayoutManager(&NpuLayoutManager, hwndDlg);
+            PhAddLayoutItem(&NpuLayoutManager, GetDlgItem(hwndDlg, IDC_NPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            graphItem = PhAddLayoutItem(&NpuLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
+            panelItem = PhAddLayoutItem(&NpuLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            NpuGraphMargin = graphItem->Margin;
 
-            SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
-            SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), NpuSection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(hwndDlg, IDC_NPUNAME), NpuSection->Parameters->MediumFont, FALSE);
 
-            PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PH_AUTO_T(PH_STRING, EtpGpuGetNameString())->Buffer);
+            PhSetDialogItemText(hwndDlg, IDC_NPUNAME, PH_AUTO_T(PH_STRING, EtpNpuGetNameString())->Buffer);
 
-            GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), hwndDlg, EtpGpuPanelDialogProc, NULL);
-            ShowWindow(GpuPanel, SW_SHOW);
-            PhAddLayoutItemEx(&GpuLayoutManager, GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+            NpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_NPUPANEL), hwndDlg, EtpNpuPanelDialogProc, NULL);
+            ShowWindow(NpuPanel, SW_SHOW);
+            PhAddLayoutItemEx(&NpuLayoutManager, NpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
 
-            EtpCreateGpuGraphs();
-            EtpUpdateGpuGraphs();
-            EtpUpdateGpuPanel();
+            EtpCreateNpuGraphs();
+            EtpUpdateNpuGraphs();
+            EtpUpdateNpuPanel();
 
-            if (!EtGpuSupported)
+            if (!EtNpuSupported)
             {
                 ShowWindow(GetDlgItem(hwndDlg, IDC_POWER_USAGE_L), SW_HIDE);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_TEMPERATURE_L), SW_HIDE);
@@ -380,59 +381,59 @@ INT_PTR CALLBACK EtpGpuDialogProc(
         break;
     case WM_DESTROY:
         {
-            PhDeleteLayoutManager(&GpuLayoutManager);
+            PhDeleteLayoutManager(&NpuLayoutManager);
         }
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
-            GpuDialogWindowDpi = PhGetWindowDpi(GpuDialog);
+            NpuDialogWindowDpi = PhGetWindowDpi(NpuDialog);
 
-            if (GpuSection->Parameters->LargeFont)
+            if (NpuSection->Parameters->LargeFont)
             {
-                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), NpuSection->Parameters->LargeFont, FALSE);
             }
 
-            if (GpuSection->Parameters->MediumFont)
+            if (NpuSection->Parameters->MediumFont)
             {
-                SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_NPUNAME), NpuSection->Parameters->MediumFont, FALSE);
             }
 
-            EtpLayoutGpuGraphs(hwndDlg);
+            EtpLayoutNpuGraphs(hwndDlg);
         }
         break;
     case WM_SIZE:
         {
-            PhLayoutManagerLayout(&GpuLayoutManager);
-            EtpLayoutGpuGraphs(hwndDlg);
+            PhLayoutManagerLayout(&NpuLayoutManager);
+            EtpLayoutNpuGraphs(hwndDlg);
         }
         break;
     case WM_NOTIFY:
         {
             NMHDR *header = (NMHDR *)lParam;
 
-            if (header->hwndFrom == GpuGraphHandle)
+            if (header->hwndFrom == NpuGraphHandle)
             {
-                EtpNotifyGpuGraph(header);
+                EtpNotifyNpuGraph(header);
             }
             else if (header->hwndFrom == DedicatedGraphHandle)
             {
-                EtpNotifyDedicatedGpuGraph(header);
+                EtpNotifyDedicatedNpuGraph(header);
             }
             else if (header->hwndFrom == SharedGraphHandle)
             {
-                EtpNotifySharedGpuGraph(header);
+                EtpNotifySharedNpuGraph(header);
             }
             else if (header->hwndFrom == PowerUsageGraphHandle)
             {
-                EtpNotifyPowerUsageGpuGraph(header);
+                EtpNotifyPowerUsageNpuGraph(header);
             }
             else if (header->hwndFrom == TemperatureGraphHandle)
             {
-                EtpNotifyTemperatureGpuGraph(header);
+                EtpNotifyTemperatureNpuGraph(header);
             }
             else if (header->hwndFrom == FanRpmGraphHandle)
             {
-                EtpNotifyFanRpmGpuGraph(header);
+                EtpNotifyFanRpmNpuGraph(header);
             }
         }
         break;
@@ -447,7 +448,7 @@ INT_PTR CALLBACK EtpGpuDialogProc(
     return FALSE;
 }
 
-INT_PTR CALLBACK EtpGpuPanelDialogProc(
+INT_PTR CALLBACK EtpNpuPanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -458,10 +459,10 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
-            GpuPanelDedicatedUsageLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDCURRENT_V);
-            GpuPanelDedicatedLimitLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDLIMIT_V);
-            GpuPanelSharedUsageLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDCURRENT_V);
-            GpuPanelSharedLimitLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDLIMIT_V);
+            NpuPanelDedicatedUsageLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDCURRENT_V);
+            NpuPanelDedicatedLimitLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDLIMIT_V);
+            NpuPanelSharedUsageLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDCURRENT_V);
+            NpuPanelSharedLimitLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDLIMIT_V);
         }
         break;
     case WM_COMMAND:
@@ -469,10 +470,10 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_NODES:
-                EtShowGpuNodesDialog(GpuDialog);
+                EtShowNpuNodesDialog(NpuDialog);
                 break;
             case IDC_DETAILS:
-                EtShowGpuDetailsDialog(GpuDialog);
+                EtShowNpuDetailsDialog(NpuDialog);
                 break;
             }
         }
@@ -488,11 +489,11 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
     return FALSE;
 }
 
-VOID EtpCreateGpuGraphs(
+VOID EtpCreateNpuGraphs(
     VOID
     )
 {
-    GpuGraphHandle = CreateWindow(
+    NpuGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -500,12 +501,12 @@ VOID EtpCreateGpuGraphs(
         0,
         3,
         3,
-        GpuDialog,
+        NpuDialog,
         NULL,
         NULL,
         NULL
         );
-    Graph_SetTooltip(GpuGraphHandle, TRUE);
+    Graph_SetTooltip(NpuGraphHandle, TRUE);
 
     DedicatedGraphHandle = CreateWindow(
         PH_GRAPH_CLASSNAME,
@@ -515,7 +516,7 @@ VOID EtpCreateGpuGraphs(
         0,
         3,
         3,
-        GpuDialog,
+        NpuDialog,
         NULL,
         NULL,
         NULL
@@ -530,14 +531,14 @@ VOID EtpCreateGpuGraphs(
         0,
         3,
         3,
-        GpuDialog,
+        NpuDialog,
         NULL,
         NULL,
         NULL
         );
     Graph_SetTooltip(SharedGraphHandle, TRUE);
 
-    if (EtGpuSupported)
+    if (EtNpuSupported)
     {
         PowerUsageGraphHandle = CreateWindow(
             PH_GRAPH_CLASSNAME,
@@ -547,7 +548,7 @@ VOID EtpCreateGpuGraphs(
             0,
             3,
             3,
-            GpuDialog,
+            NpuDialog,
             NULL,
             NULL,
             NULL
@@ -562,7 +563,7 @@ VOID EtpCreateGpuGraphs(
             0,
             3,
             3,
-            GpuDialog,
+            NpuDialog,
             NULL,
             NULL,
             NULL
@@ -577,7 +578,7 @@ VOID EtpCreateGpuGraphs(
             0,
             3,
             3,
-            GpuDialog,
+            NpuDialog,
             NULL,
             NULL,
             NULL
@@ -586,7 +587,7 @@ VOID EtpCreateGpuGraphs(
     }
 }
 
-VOID EtpLayoutGpuGraphs(
+VOID EtpLayoutNpuGraphs(
     _In_ HWND hwnd
     )
 {
@@ -599,14 +600,14 @@ VOID EtpLayoutGpuGraphs(
     ULONG y;
     LONG graphPadding;
 
-    GpuGraphState.Valid = FALSE;
-    GpuGraphState.TooltipIndex = ULONG_MAX;
+    NpuGraphState.Valid = FALSE;
+    NpuGraphState.TooltipIndex = ULONG_MAX;
     DedicatedGraphState.Valid = FALSE;
     DedicatedGraphState.TooltipIndex = ULONG_MAX;
     SharedGraphState.Valid = FALSE;
     SharedGraphState.TooltipIndex = ULONG_MAX;
 
-    if (EtGpuSupported)
+    if (EtNpuSupported)
     {
         PowerUsageGraphState.Valid = FALSE;
         PowerUsageGraphState.TooltipIndex = ULONG_MAX;
@@ -616,15 +617,15 @@ VOID EtpLayoutGpuGraphs(
         FanRpmGraphState.TooltipIndex = ULONG_MAX;
     }
 
-    marginRect = GpuGraphMargin;
-    PhGetSizeDpiValue(&marginRect, GpuDialogWindowDpi, TRUE);
-    graphPadding = PhGetDpi(ET_GPU_PADDING, GpuDialogWindowDpi);
+    marginRect = NpuGraphMargin;
+    PhGetSizeDpiValue(&marginRect, NpuDialogWindowDpi, TRUE);
+    graphPadding = PhGetDpi(ET_NPU_PADDING, NpuDialogWindowDpi);
 
-    GetClientRect(GpuDialog, &clientRect);
-    GetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
+    GetClientRect(NpuDialog, &clientRect);
+    GetClientRect(GetDlgItem(NpuDialog, IDC_NPU_L), &labelRect);
     graphWidth = clientRect.right - marginRect.left - marginRect.right;
 
-    if (EtGpuSupported)
+    if (EtNpuSupported)
         graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 6 - graphPadding * 8) / 6;
     else
         graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 3 - graphPadding * 5) / 3;
@@ -634,7 +635,7 @@ VOID EtpLayoutGpuGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(GpuDialog, IDC_GPU_L),
+        GetDlgItem(NpuDialog, IDC_NPU_L),
         NULL,
         marginRect.left,
         y,
@@ -646,7 +647,7 @@ VOID EtpLayoutGpuGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GpuGraphHandle,
+        NpuGraphHandle,
         NULL,
         marginRect.left,
         y,
@@ -658,7 +659,7 @@ VOID EtpLayoutGpuGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(GpuDialog, IDC_DEDICATED_L),
+        GetDlgItem(NpuDialog, IDC_DEDICATED_L),
         NULL,
         marginRect.left,
         y,
@@ -682,7 +683,7 @@ VOID EtpLayoutGpuGraphs(
 
     deferHandle = DeferWindowPos(
         deferHandle,
-        GetDlgItem(GpuDialog, IDC_SHARED_L),
+        GetDlgItem(NpuDialog, IDC_SHARED_L),
         NULL,
         marginRect.left,
         y,
@@ -704,11 +705,11 @@ VOID EtpLayoutGpuGraphs(
         );
     y += graphHeight + graphPadding;
 
-    if (EtGpuSupported)
+    if (EtNpuSupported)
     {
         deferHandle = DeferWindowPos(
             deferHandle,
-            GetDlgItem(GpuDialog, IDC_POWER_USAGE_L),
+            GetDlgItem(NpuDialog, IDC_POWER_USAGE_L),
             NULL,
             marginRect.left,
             y,
@@ -732,7 +733,7 @@ VOID EtpLayoutGpuGraphs(
 
         deferHandle = DeferWindowPos(
             deferHandle,
-            GetDlgItem(GpuDialog, IDC_TEMPERATURE_L),
+            GetDlgItem(NpuDialog, IDC_TEMPERATURE_L),
             NULL,
             marginRect.left,
             y,
@@ -756,7 +757,7 @@ VOID EtpLayoutGpuGraphs(
 
         deferHandle = DeferWindowPos(
             deferHandle,
-            GetDlgItem(GpuDialog, IDC_FAN_RPM_L),
+            GetDlgItem(NpuDialog, IDC_FAN_RPM_L),
             NULL,
             marginRect.left,
             y,
@@ -781,7 +782,7 @@ VOID EtpLayoutGpuGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
-PPH_STRING EtpGpuPowerUsageGraphLabelYFunction(
+PPH_STRING EtpNpuPowerUsageGraphLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
@@ -796,7 +797,7 @@ PPH_STRING EtpGpuPowerUsageGraphLabelYFunction(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
-PPH_STRING EtpGpuTemperatureGraphLabelYFunction(
+PPH_STRING EtpNpuTemperatureGraphLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
@@ -805,7 +806,7 @@ PPH_STRING EtpGpuTemperatureGraphLabelYFunction(
 {
     PH_FORMAT format[2];
 
-    if (EtGpuFahrenheitEnabled)
+    if (EtNpuFahrenheitEnabled)
     {
         PhInitFormatF(&format[0], (ULONG)(Value * Parameter) * 1.8 + 32, 1);
         PhInitFormatS(&format[1], L"\u00b0F");
@@ -819,7 +820,7 @@ PPH_STRING EtpGpuTemperatureGraphLabelYFunction(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
-PPH_STRING EtpGpuFanRpmGraphLabelYFunction(
+PPH_STRING EtpNpuFanRpmGraphLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
     _In_ FLOAT Value,
@@ -834,7 +835,7 @@ PPH_STRING EtpGpuFanRpmGraphLabelYFunction(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
-VOID EtpNotifyGpuGraph(
+VOID EtpNotifyNpuGraph(
     _In_ NMHDR *Header
     )
 {
@@ -846,17 +847,17 @@ VOID EtpNotifyGpuGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, GpuSection->Parameters->WindowDpi);
+            NpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, NpuSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
-                &GpuGraphState,
+                &NpuGraphState,
                 getDrawInfo,
-                EtGpuNodeHistory.Count
+                EtNpuNodeHistory.Count
                 );
 
-            if (!GpuGraphState.Valid)
+            if (!NpuGraphState.Valid)
             {
-                PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, GpuGraphState.Data1, drawInfo->LineDataCount);
+                PhCopyCircularBuffer_FLOAT(&EtNpuNodeHistory, NpuGraphState.Data1, drawInfo->LineDataCount);
 
                 if (EtEnableScaleGraph)
                 {
@@ -864,7 +865,7 @@ VOID EtpNotifyGpuGraph(
 
                     for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                     {
-                        FLOAT data = GpuGraphState.Data1[i]; // HACK
+                        FLOAT data = NpuGraphState.Data1[i]; // HACK
 
                         if (max < data)
                             max = data;
@@ -872,7 +873,7 @@ VOID EtpNotifyGpuGraph(
 
                     if (max != 0)
                     {
-                        PhDivideSinglesBySingle(GpuGraphState.Data1, max, drawInfo->LineDataCount);
+                        PhDivideSinglesBySingle(NpuGraphState.Data1, max, drawInfo->LineDataCount);
                     }
 
                     if (EtEnableScaleText)
@@ -890,7 +891,7 @@ VOID EtpNotifyGpuGraph(
                     }
                 }
 
-                GpuGraphState.Valid = TRUE;
+                NpuGraphState.Valid = TRUE;
             }
         }
         break;
@@ -900,24 +901,24 @@ VOID EtpNotifyGpuGraph(
 
             if (getTooltipText->Index < getTooltipText->TotalCount)
             {
-                if (GpuGraphState.TooltipIndex != getTooltipText->Index)
+                if (NpuGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     FLOAT gpu;
                     PH_FORMAT format[5];
 
-                    gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
+                    gpu = PhGetItemCircularBuffer_FLOAT(&EtNpuNodeHistory, getTooltipText->Index);
 
                     // %.2f%%%s\n%s
                     PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
                     PhInitFormatC(&format[1], L'%');
-                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGpuGetMaxNodeString(getTooltipText->Index))->sr);
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpNpuGetMaxNodeString(getTooltipText->Index))->sr);
                     PhInitFormatC(&format[3], L'\n');
                     PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
-                    PhMoveReference(&GpuGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    PhMoveReference(&NpuGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                 }
 
-                getTooltipText->Text = PhGetStringRef(GpuGraphState.TooltipText);
+                getTooltipText->Text = PhGetStringRef(NpuGraphState.TooltipText);
             }
         }
         break;
@@ -930,12 +931,12 @@ VOID EtpNotifyGpuGraph(
 
             if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
             {
-                record = EtpGpuReferenceMaxNodeRecord(mouseEvent->Index);
+                record = EtpNpuReferenceMaxNodeRecord(mouseEvent->Index);
             }
 
             if (record)
             {
-                PhShowProcessRecordDialog(GpuDialog, record);
+                PhShowProcessRecordDialog(NpuDialog, record);
                 PhDereferenceProcessRecord(record);
             }
         }
@@ -943,7 +944,7 @@ VOID EtpNotifyGpuGraph(
     }
 }
 
-VOID EtpNotifyDedicatedGpuGraph(
+VOID EtpNotifyDedicatedNpuGraph(
     _In_ NMHDR *Header
     )
 {
@@ -956,26 +957,26 @@ VOID EtpNotifyDedicatedGpuGraph(
             ULONG i;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, GpuSection->Parameters->WindowDpi);
+            NpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, NpuSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &DedicatedGraphState,
                 getDrawInfo,
-                EtGpuDedicatedHistory.Count
+                EtNpuDedicatedHistory.Count
                 );
 
             if (!DedicatedGraphState.Valid)
             {
                 FLOAT max = 0;
 
-                if (EtGpuDedicatedLimit != 0 && !EtEnableScaleGraph)
+                if (EtNpuDedicatedLimit != 0 && !EtEnableScaleGraph)
                 {
-                    max = (FLOAT)EtGpuDedicatedLimit;
+                    max = (FLOAT)EtNpuDedicatedLimit;
                 }
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    FLOAT data = DedicatedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, i);
+                    FLOAT data = DedicatedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtNpuDedicatedHistory, i);
 
                     if (max < data)
                         max = data;
@@ -1007,7 +1008,7 @@ VOID EtpNotifyDedicatedGpuGraph(
                     ULONG64 usedPages;
                     PH_FORMAT format[3];
 
-                    usedPages = PhGetItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, getTooltipText->Index);
+                    usedPages = PhGetItemCircularBuffer_ULONG64(&EtNpuDedicatedHistory, getTooltipText->Index);
 
                     // Dedicated Memory: %s\n%s
                     PhInitFormatSize(&format[0], usedPages);
@@ -1024,7 +1025,7 @@ VOID EtpNotifyDedicatedGpuGraph(
     }
 }
 
-VOID EtpNotifySharedGpuGraph(
+VOID EtpNotifySharedNpuGraph(
     _In_ NMHDR *Header
     )
 {
@@ -1037,26 +1038,26 @@ VOID EtpNotifySharedGpuGraph(
             ULONG i;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, GpuSection->Parameters->WindowDpi);
+            NpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, NpuSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &SharedGraphState,
                 getDrawInfo,
-                EtGpuSharedHistory.Count
+                EtNpuSharedHistory.Count
                 );
 
             if (!SharedGraphState.Valid)
             {
                 FLOAT max = 0;
 
-                //if (EtGpuSharedLimit != 0 && !EtEnableScaleGraph)
+                //if (EtNpuSharedLimit != 0 && !EtEnableScaleGraph)
                 //{
-                //    max = (FLOAT)EtGpuSharedLimit;
+                //    max = (FLOAT)EtNpuSharedLimit;
                 //}
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    FLOAT data = SharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuSharedHistory, i);
+                    FLOAT data = SharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtNpuSharedHistory, i);
 
                     if (max < data)
                         max = data;
@@ -1088,7 +1089,7 @@ VOID EtpNotifySharedGpuGraph(
                     ULONG64 usedPages;
                     PH_FORMAT format[3];
 
-                    usedPages = PhGetItemCircularBuffer_ULONG64(&EtGpuSharedHistory, getTooltipText->Index);
+                    usedPages = PhGetItemCircularBuffer_ULONG64(&EtNpuSharedHistory, getTooltipText->Index);
 
                     // Shared Memory: %s\n%s
                     PhInitFormatSize(&format[0], usedPages);
@@ -1105,7 +1106,7 @@ VOID EtpNotifySharedGpuGraph(
     }
 }
 
-VOID EtpNotifyPowerUsageGpuGraph(
+VOID EtpNotifyPowerUsageNpuGraph(
     _In_ NMHDR* Header
     )
 {
@@ -1118,31 +1119,31 @@ VOID EtpNotifyPowerUsageGpuGraph(
             ULONG i;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPowerUsage"), 0, GpuSection->Parameters->WindowDpi);
+            NpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPowerUsage"), 0, NpuSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &PowerUsageGraphState,
                 getDrawInfo,
-                EtGpuPowerUsageHistory.Count
+                EtNpuPowerUsageHistory.Count
                 );
 
             if (!PowerUsageGraphState.Valid)
             {
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    PowerUsageGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&EtGpuPowerUsageHistory, i);
+                    PowerUsageGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&EtNpuPowerUsageHistory, i);
                 }
 
                 PhDivideSinglesBySingle(
                     PowerUsageGraphState.Data1,
-                    EtGpuPowerUsageLimit,
+                    EtNpuPowerUsageLimit,
                     drawInfo->LineDataCount
                     );
 
                 if (EtEnableScaleText)
                 {
-                    drawInfo->LabelYFunction = EtpGpuPowerUsageGraphLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = EtGpuPowerUsageLimit;
+                    drawInfo->LabelYFunction = EtpNpuPowerUsageGraphLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = EtNpuPowerUsageLimit;
                 }
 
                 PowerUsageGraphState.Valid = TRUE;
@@ -1160,7 +1161,7 @@ VOID EtpNotifyPowerUsageGpuGraph(
                     FLOAT powerUsage;
                     PH_FORMAT format[4];
 
-                    powerUsage = PhGetItemCircularBuffer_FLOAT(&EtGpuPowerUsageHistory, getTooltipText->Index);
+                    powerUsage = PhGetItemCircularBuffer_FLOAT(&EtNpuPowerUsageHistory, getTooltipText->Index);
 
                     PhInitFormatF(&format[0], powerUsage, 1);
                     PhInitFormatC(&format[1], L'%');
@@ -1177,7 +1178,7 @@ VOID EtpNotifyPowerUsageGpuGraph(
     }
 }
 
-VOID EtpNotifyTemperatureGpuGraph(
+VOID EtpNotifyTemperatureNpuGraph(
     _In_ NMHDR* Header
     )
 {
@@ -1190,31 +1191,31 @@ VOID EtpNotifyTemperatureGpuGraph(
             ULONG i;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorTemperature"), 0, GpuSection->Parameters->WindowDpi);
+            NpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorTemperature"), 0, NpuSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &TemperatureGraphState,
                 getDrawInfo,
-                EtGpuTemperatureHistory.Count
+                EtNpuTemperatureHistory.Count
                 );
 
             if (!TemperatureGraphState.Valid)
             {
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    TemperatureGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&EtGpuTemperatureHistory, i);
+                    TemperatureGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&EtNpuTemperatureHistory, i);
                 }
 
                 PhDivideSinglesBySingle(
                     TemperatureGraphState.Data1,
-                    EtGpuTemperatureLimit,
+                    EtNpuTemperatureLimit,
                     drawInfo->LineDataCount
                     );
 
                 if (EtEnableScaleText)
                 {
-                    drawInfo->LabelYFunction = EtpGpuTemperatureGraphLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = EtGpuTemperatureLimit;
+                    drawInfo->LabelYFunction = EtpNpuTemperatureGraphLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = EtNpuTemperatureLimit;
                 }
 
                 TemperatureGraphState.Valid = TRUE;
@@ -1232,9 +1233,9 @@ VOID EtpNotifyTemperatureGpuGraph(
                     FLOAT temp;
                     PH_FORMAT format[3];
 
-                    temp = PhGetItemCircularBuffer_FLOAT(&EtGpuTemperatureHistory, getTooltipText->Index);
+                    temp = PhGetItemCircularBuffer_FLOAT(&EtNpuTemperatureHistory, getTooltipText->Index);
 
-                    if (EtGpuFahrenheitEnabled)
+                    if (EtNpuFahrenheitEnabled)
                     {
                         PhInitFormatF(&format[0], (temp * 1.8 + 32), 1);
                         PhInitFormatS(&format[1], L"\u00b0F\n");
@@ -1257,7 +1258,7 @@ VOID EtpNotifyTemperatureGpuGraph(
     }
 }
 
-VOID EtpNotifyFanRpmGpuGraph(
+VOID EtpNotifyFanRpmNpuGraph(
     _In_ NMHDR* Header
     )
 {
@@ -1270,31 +1271,31 @@ VOID EtpNotifyFanRpmGpuGraph(
             ULONG i;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorFanRpm"), 0, GpuSection->Parameters->WindowDpi);
+            NpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorFanRpm"), 0, NpuSection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &FanRpmGraphState,
                 getDrawInfo,
-                EtGpuFanRpmHistory.Count
+                EtNpuFanRpmHistory.Count
                 );
 
             if (!FanRpmGraphState.Valid)
             {
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    FanRpmGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuFanRpmHistory, i);
+                    FanRpmGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtNpuFanRpmHistory, i);
                 }
 
                 PhDivideSinglesBySingle(
                     FanRpmGraphState.Data1,
-                    (FLOAT)EtGpuFanRpmLimit,
+                    (FLOAT)EtNpuFanRpmLimit,
                     drawInfo->LineDataCount
                     );
 
                 if (EtEnableScaleText)
                 {
-                    drawInfo->LabelYFunction = EtpGpuFanRpmGraphLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = (FLOAT)EtGpuFanRpmLimit;
+                    drawInfo->LabelYFunction = EtpNpuFanRpmGraphLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = (FLOAT)EtNpuFanRpmLimit;
                 }
 
                 FanRpmGraphState.Valid = TRUE;
@@ -1312,7 +1313,7 @@ VOID EtpNotifyFanRpmGpuGraph(
                     ULONG64 rpm;
                     PH_FORMAT format[3];
 
-                    rpm = PhGetItemCircularBuffer_ULONG64(&EtGpuFanRpmHistory, getTooltipText->Index);
+                    rpm = PhGetItemCircularBuffer_ULONG64(&EtNpuFanRpmHistory, getTooltipText->Index);
 
                     PhInitFormatI64U(&format[0], rpm);
                     PhInitFormatS(&format[1], L" RPM\n");
@@ -1329,16 +1330,16 @@ VOID EtpNotifyFanRpmGpuGraph(
 
 }
 
-VOID EtpUpdateGpuGraphs(
+VOID EtpUpdateNpuGraphs(
     VOID
     )
 {
-    GpuGraphState.Valid = FALSE;
-    GpuGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(GpuGraphHandle, 1);
-    Graph_Draw(GpuGraphHandle);
-    Graph_UpdateTooltip(GpuGraphHandle);
-    InvalidateRect(GpuGraphHandle, NULL, FALSE);
+    NpuGraphState.Valid = FALSE;
+    NpuGraphState.TooltipIndex = ULONG_MAX;
+    Graph_MoveGrid(NpuGraphHandle, 1);
+    Graph_Draw(NpuGraphHandle);
+    Graph_UpdateTooltip(NpuGraphHandle);
+    InvalidateRect(NpuGraphHandle, NULL, FALSE);
 
     DedicatedGraphState.Valid = FALSE;
     DedicatedGraphState.TooltipIndex = ULONG_MAX;
@@ -1354,7 +1355,7 @@ VOID EtpUpdateGpuGraphs(
     Graph_UpdateTooltip(SharedGraphHandle);
     InvalidateRect(SharedGraphHandle, NULL, FALSE);
 
-    if (EtGpuSupported)
+    if (EtNpuSupported)
     {
         PowerUsageGraphState.Valid = FALSE;
         PowerUsageGraphState.TooltipIndex = ULONG_MAX;
@@ -1379,50 +1380,50 @@ VOID EtpUpdateGpuGraphs(
     }
 }
 
-VOID EtpUpdateGpuPanel(
+VOID EtpUpdateNpuPanel(
     VOID
     )
 {
     PH_FORMAT format[1];
     WCHAR formatBuffer[512];
 
-    PhInitFormatSize(&format[0], EtGpuDedicatedUsage);
+    PhInitFormatSize(&format[0], EtNpuDedicatedUsage);
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-        PhSetWindowText(GpuPanelDedicatedUsageLabel, formatBuffer);
+        PhSetWindowText(NpuPanelDedicatedUsageLabel, formatBuffer);
     else
-        PhSetWindowText(GpuPanelDedicatedUsageLabel, PhaFormatSize(EtGpuDedicatedUsage, ULONG_MAX)->Buffer);
+        PhSetWindowText(NpuPanelDedicatedUsageLabel, PhaFormatSize(EtNpuDedicatedUsage, ULONG_MAX)->Buffer);
 
-    PhInitFormatSize(&format[0], EtGpuDedicatedLimit);
+    PhInitFormatSize(&format[0], EtNpuDedicatedLimit);
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-        PhSetWindowText(GpuPanelDedicatedLimitLabel, formatBuffer);
+        PhSetWindowText(NpuPanelDedicatedLimitLabel, formatBuffer);
     else
-        PhSetWindowText(GpuPanelDedicatedLimitLabel, PhaFormatSize(EtGpuDedicatedLimit, ULONG_MAX)->Buffer);
+        PhSetWindowText(NpuPanelDedicatedLimitLabel, PhaFormatSize(EtNpuDedicatedLimit, ULONG_MAX)->Buffer);
 
-    PhInitFormatSize(&format[0], EtGpuSharedUsage);
+    PhInitFormatSize(&format[0], EtNpuSharedUsage);
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-        PhSetWindowText(GpuPanelSharedUsageLabel, formatBuffer);
+        PhSetWindowText(NpuPanelSharedUsageLabel, formatBuffer);
     else
-        PhSetWindowText(GpuPanelSharedUsageLabel, PhaFormatSize(EtGpuSharedUsage, ULONG_MAX)->Buffer);
+        PhSetWindowText(NpuPanelSharedUsageLabel, PhaFormatSize(EtNpuSharedUsage, ULONG_MAX)->Buffer);
 
-    PhInitFormatSize(&format[0], EtGpuSharedLimit);
+    PhInitFormatSize(&format[0], EtNpuSharedLimit);
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-        PhSetWindowText(GpuPanelSharedLimitLabel, formatBuffer);
+        PhSetWindowText(NpuPanelSharedLimitLabel, formatBuffer);
     else
-        PhSetWindowText(GpuPanelSharedLimitLabel, PhaFormatSize(EtGpuSharedLimit, ULONG_MAX)->Buffer);
+        PhSetWindowText(NpuPanelSharedLimitLabel, PhaFormatSize(EtNpuSharedLimit, ULONG_MAX)->Buffer);
 }
 
-PPH_PROCESS_RECORD EtpGpuReferenceMaxNodeRecord(
+PPH_PROCESS_RECORD EtpNpuReferenceMaxNodeRecord(
     _In_ LONG Index
     )
 {
     LARGE_INTEGER time;
     ULONG maxProcessId;
 
-    maxProcessId = PhGetItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, Index);
+    maxProcessId = PhGetItemCircularBuffer_ULONG(&EtMaxNpuNodeHistory, Index);
 
     if (!maxProcessId)
         return NULL;
@@ -1433,19 +1434,19 @@ PPH_PROCESS_RECORD EtpGpuReferenceMaxNodeRecord(
     return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
 }
 
-PPH_STRING EtpGpuGetMaxNodeString(
+PPH_STRING EtpNpuGetMaxNodeString(
     _In_ LONG Index
     )
 {
     PPH_PROCESS_RECORD maxProcessRecord;
 
-    if (maxProcessRecord = EtpGpuReferenceMaxNodeRecord(Index))
+    if (maxProcessRecord = EtpNpuReferenceMaxNodeRecord(Index))
     {
         PPH_STRING maxUsageString;
-        FLOAT maxGpuUsage;
+        FLOAT maxNpuUsage;
         PH_FORMAT format[7];
 
-        maxGpuUsage = PhGetItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, Index);
+        maxNpuUsage = PhGetItemCircularBuffer_FLOAT(&EtMaxNpuNodeUsageHistory, Index);
 
         // \n%s (%lu): %.2f%%
         PhInitFormatC(&format[0], L'\n');
@@ -1453,7 +1454,7 @@ PPH_STRING EtpGpuGetMaxNodeString(
         PhInitFormatS(&format[2],L" (");
         PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
         PhInitFormatS(&format[4], L"): ");
-        PhInitFormatF(&format[5], maxGpuUsage * 100, EtMaxPrecisionUnit);
+        PhInitFormatF(&format[5], maxNpuUsage * 100, EtMaxPrecisionUnit);
         PhInitFormatC(&format[6], L'%');
 
         maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -1466,7 +1467,7 @@ PPH_STRING EtpGpuGetMaxNodeString(
     return PhReferenceEmptyString();
 }
 
-PPH_STRING EtpGpuGetNameString(
+PPH_STRING EtpNpuGetNameString(
     VOID
     )
 {
@@ -1474,14 +1475,14 @@ PPH_STRING EtpGpuGetNameString(
     ULONG count;
     PH_STRING_BUILDER sb;
 
-    count = EtGetGpuAdapterCount();
+    count = EtGetNpuAdapterCount();
     PhInitializeStringBuilder(&sb, 100);
 
     for (i = 0; i < count; i++)
     {
         PPH_STRING description;
 
-        description = EtGetGpuAdapterDescription(i);
+        description = EtGetNpuAdapterDescription(i);
 
         if (!PhIsNullOrEmptyString(description))
         {

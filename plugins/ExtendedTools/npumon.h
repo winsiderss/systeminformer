@@ -7,11 +7,12 @@
  *
  *     wj32    2011-2015
  *     dmex    2016-2023
+ *     jxy-s   2024
  *
  */
 
-#ifndef GPUMON_H
-#define GPUMON_H
+#ifndef NPUMON_H
+#define NPUMON_H
 
 // Macros
 
@@ -19,15 +20,15 @@
 
 // Functions
 
-BOOLEAN EtpGpuInitializeD3DStatistics(
+BOOLEAN EtpNpuInitializeD3DStatistics(
     VOID
     );
 
-PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
+PETP_NPU_ADAPTER EtpAllocateNpuAdapter(
     _In_ ULONG NumberOfSegments
     );
 
-VOID NTAPI EtGpuProcessesUpdatedCallback(
+VOID NTAPI EtNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );

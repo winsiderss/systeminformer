@@ -54,6 +54,7 @@ EXTENDEDTOOLS_INTERFACE PluginInterface =
 ULONG EtWindowsVersion = WINDOWS_ANCIENT;
 BOOLEAN EtIsExecutingInWow64 = FALSE;
 BOOLEAN EtGpuFahrenheitEnabled = FALSE;
+BOOLEAN EtNpuFahrenheitEnabled = FALSE;
 ULONG EtSampleCount = 0;
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
@@ -78,6 +79,7 @@ VOID NTAPI LoadCallback(
 
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
+    EtNpuMonitorInitialization();
     EtFramesMonitorInitialization();
 }
 
@@ -294,6 +296,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     if (Parameter)
     {
         EtProcessGpuPropertiesInitializing(Parameter);
+        EtProcessNpuPropertiesInitializing(Parameter);
         EtProcessFramesPropertiesInitializing(Parameter);
         EtProcessEtwPropertiesInitializing(Parameter);
     }
@@ -471,6 +474,8 @@ VOID NTAPI SystemInformationInitializingCallback(
 {
     if (EtGpuEnabled)
         EtGpuSystemInformationInitializing(Parameter);
+    if (EtNpuEnabled)
+        EtNpuSystemInformationInitializing(Parameter);
     if (EtEtwEnabled && PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
         EtEtwSystemInformationInitializing(Parameter);
 }
@@ -482,6 +487,8 @@ VOID NTAPI MiniInformationInitializingCallback(
 {
     if (EtGpuEnabled)
         EtGpuMiniInformationInitializing(Parameter);
+    if (EtNpuEnabled)
+        EtNpuMiniInformationInitializing(Parameter);
     if (EtEtwEnabled)
         EtEtwMiniInformationInitializing(Parameter);
 }
@@ -674,6 +681,25 @@ VOID NTAPI ProcessStatsEventCallback(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Total bytes delta", NULL);
             PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTESDELTA],
                 UlongToPtr(block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTESDELTA]));
+
+            block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NPU] = PhAddListViewGroup(
+                listViewHandle, (INT)ListView_GetGroupCount(listViewHandle), L"NPU");
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALDEDICATED] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NPU], MAXINT, L"Dedicated memory", NULL);
+            PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALDEDICATED],
+                UlongToPtr(block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALDEDICATED]));
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALSHARED] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NPU], MAXINT, L"Shared memory", NULL);
+            PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALSHARED],
+                UlongToPtr(block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALSHARED]));
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALCOMMIT] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NPU], MAXINT, L"Commit memory", NULL);
+            PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALCOMMIT],
+                UlongToPtr(block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALCOMMIT]));
+            block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTAL] = PhAddListViewGroupItem(
+                listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NPU], MAXINT, L"Total memory", NULL);
+            PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTAL],
+                UlongToPtr(block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTAL]));
         }
         break;
     case 2:
@@ -954,6 +980,54 @@ VOID NTAPI ProcessStatsEventCallback(
                             wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
                     }
+                    else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALDEDICATED])
+                    {
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                        PhInitFormatSize(&format[0], block->NpuDedicatedUsage);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
+                    }
+                    else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALSHARED])
+                    {
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                        PhInitFormatSize(&format[0], block->NpuSharedUsage);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
+                    }
+                    else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALCOMMIT])
+                    {
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                        PhInitFormatSize(&format[0], block->NpuCommitUsage);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
+                    }
+                    else if (index == block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTAL])
+                    {
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                        PhInitFormatSize(&format[0], block->NpuDedicatedUsage + block->NpuSharedUsage + block->NpuCommitUsage);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+                        {
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
+                        }
+                    }
                 }
             }
         }
@@ -974,6 +1048,7 @@ VOID EtLoadSettings(
     EtEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
     EtGpuFahrenheitEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT);
+    EtNpuFahrenheitEnabled = EtGpuFahrenheitEnabled;
 }
 
 VOID NTAPI SettingsUpdatedCallback(
@@ -1013,13 +1088,22 @@ VOID EtInitializeProcessBlock(
     PhInitializeCircularBuffer_ULONG64(&Block->NetworkReceiveHistory, EtSampleCount);
 
     PhInitializeCircularBuffer_FLOAT(&Block->GpuHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->MemoryHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->MemorySharedHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->GpuMemoryHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->GpuMemorySharedHistory, EtSampleCount);
     PhInitializeCircularBuffer_ULONG(&Block->GpuCommittedHistory, EtSampleCount);
 
     //Block->GpuTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
     //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
     //Block->GpuTotalNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
+
+    PhInitializeCircularBuffer_FLOAT(&Block->NpuHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->NpuMemoryHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->NpuMemorySharedHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->NpuCommittedHistory, EtSampleCount);
+
+    //Block->GpuTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtNpuTotalNodeCount);
+    //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtNpuTotalNodeCount);
+    //Block->GpuTotalNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtNpuTotalNodeCount);
 
     if (EtFramesEnabled)
     {
@@ -1045,9 +1129,14 @@ VOID EtDeleteProcessBlock(
     PhDeleteCircularBuffer_ULONG64(&Block->NetworkReceiveHistory);
 
     PhDeleteCircularBuffer_ULONG(&Block->GpuCommittedHistory);
-    PhDeleteCircularBuffer_ULONG(&Block->MemorySharedHistory);
-    PhDeleteCircularBuffer_ULONG(&Block->MemoryHistory);
+    PhDeleteCircularBuffer_ULONG(&Block->GpuMemorySharedHistory);
+    PhDeleteCircularBuffer_ULONG(&Block->GpuMemoryHistory);
     PhDeleteCircularBuffer_FLOAT(&Block->GpuHistory);
+
+    PhDeleteCircularBuffer_ULONG(&Block->NpuCommittedHistory);
+    PhDeleteCircularBuffer_ULONG(&Block->NpuMemorySharedHistory);
+    PhDeleteCircularBuffer_ULONG(&Block->NpuMemoryHistory);
+    PhDeleteCircularBuffer_FLOAT(&Block->NpuHistory);
 
     if (EtFramesEnabled)
     {
@@ -1163,9 +1252,11 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPUPERFCOUNTERS, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_NPUPERFCOUNTERS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_DISKPERFCOUNTERS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_NPU_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
                 { IntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_POSITION, L"0,0" },
@@ -1176,6 +1267,8 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_MODULE_SERVICES_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_GPU_NODES_WINDOW_SIZE, L"@96|850,490" },
+                { IntegerPairSettingType, SETTING_NAME_NPU_NODES_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_NPU_NODES_WINDOW_SIZE, L"@96|850,490" },
                 { IntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WSWATCH_WINDOW_SIZE, L"@96|325,266" },
                 { StringSettingType, SETTING_NAME_WSWATCH_COLUMNS, L"" },

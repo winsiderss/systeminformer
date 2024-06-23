@@ -7,96 +7,97 @@
  *
  *     wj32    2011-2015
  *     dmex    2016-2023
+ *     jxy-s   2024
  *
  */
 
-#ifndef GPUSYS_H
-#define GPUSYS_H
+#ifndef NPUSYS_H
+#define NPUSYS_H
 
-#define ET_GPU_PADDING 3
+#define ET_NPU_PADDING 3
 
-BOOLEAN EtpGpuSysInfoSectionCallback(
+BOOLEAN EtpNpuSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2
     );
 
-VOID EtpInitializeGpuDialog(
+VOID EtpInitializeNpuDialog(
     VOID
     );
 
-VOID EtpUninitializeGpuDialog(
+VOID EtpUninitializeNpuDialog(
     VOID
     );
 
-VOID EtpTickGpuDialog(
+VOID EtpTickNpuDialog(
     VOID
     );
 
-INT_PTR CALLBACK EtpGpuDialogProc(
+INT_PTR CALLBACK EtpNpuDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
-INT_PTR CALLBACK EtpGpuPanelDialogProc(
+INT_PTR CALLBACK EtpNpuPanelDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
-VOID EtpCreateGpuGraphs(
+VOID EtpCreateNpuGraphs(
     VOID
     );
 
-VOID EtpLayoutGpuGraphs(
+VOID EtpLayoutNpuGraphs(
     _In_ HWND hwnd
     );
 
-VOID EtpNotifyGpuGraph(
+VOID EtpNotifyNpuGraph(
     _In_ NMHDR *Header
     );
 
-VOID EtpNotifyDedicatedGpuGraph(
+VOID EtpNotifyDedicatedNpuGraph(
     _In_ NMHDR *Header
     );
 
-VOID EtpNotifySharedGpuGraph(
+VOID EtpNotifySharedNpuGraph(
     _In_ NMHDR *Header
     );
 
-VOID EtpNotifyPowerUsageGpuGraph(
+VOID EtpNotifyPowerUsageNpuGraph(
     _In_ NMHDR *Header
     );
 
-VOID EtpNotifyTemperatureGpuGraph(
+VOID EtpNotifyTemperatureNpuGraph(
     _In_ NMHDR *Header
     );
 
-VOID EtpNotifyFanRpmGpuGraph(
+VOID EtpNotifyFanRpmNpuGraph(
     _In_ NMHDR *Header
     );
 
-VOID EtpUpdateGpuGraphs(
+VOID EtpUpdateNpuGraphs(
     VOID
     );
 
-VOID EtpUpdateGpuPanel(
+VOID EtpUpdateNpuPanel(
     VOID
     );
 
-PPH_PROCESS_RECORD EtpGpuReferenceMaxNodeRecord(
+PPH_PROCESS_RECORD EtpNpuReferenceMaxNodeRecord(
     _In_ LONG Index
     );
 
-PPH_STRING EtpGpuGetMaxNodeString(
+PPH_STRING EtpNpuGetMaxNodeString(
     _In_ LONG Index
     );
 
-PPH_STRING EtpGpuGetNameString(
+PPH_STRING EtpNpuGetNameString(
     VOID
     );
 

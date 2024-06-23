@@ -128,6 +128,9 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_NETWORKSENDRATE, L"Network send rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_NETWORKTOTALRATE, L"Network total rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_FPS, L"FPS", 50, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NPU, L"NPU", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NPUDEDICATEDBYTES, L"NPU dedicated bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NPUSHAREDBYTES, L"NPU shared bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
     };
 
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -565,6 +568,52 @@ VOID EtProcessTreeNewMessage(
                     EtFormatDouble(frames, block, message);
                 }
                 break;
+            case ETPRTNC_NPU:
+                {
+                    FLOAT npuUsage = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeFloat,
+                        AggregateLocationProcessItem,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, NpuNodeUtilization),
+                        &npuUsage
+                        );
+
+                    npuUsage *= 100;
+                    EtFormatDouble(npuUsage, block, message);
+                }
+                break;
+            case ETPRTNC_NPUDEDICATEDBYTES:
+                {
+                    ULONG64 npuDedicatedUsage = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        AggregateLocationProcessItem,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, NpuDedicatedUsage),
+                        &npuDedicatedUsage
+                        );
+
+                    EtFormatSize(npuDedicatedUsage, block, message);
+                }
+                break;
+            case ETPRTNC_NPUSHAREDBYTES:
+                {
+                    ULONG64 npuSharedUsage = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        AggregateLocationProcessItem,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, NpuSharedUsage),
+                        &npuSharedUsage
+                        );
+
+                    EtFormatSize(npuSharedUsage, block, message);
+                }
+                break;
             }
 
             if (block->TextCacheLength[message->SubId])
@@ -603,6 +652,10 @@ VOID EtProcessTreeNewMessage(
             block->TextCacheValid[ETPRTNC_NETWORKTOTALRATE] = FALSE;
 
             block->TextCacheValid[ETPRTNC_FPS] = FALSE;
+
+            block->TextCacheValid[ETPRTNC_NPU] = FALSE;
+            block->TextCacheValid[ETPRTNC_NPUDEDICATEDBYTES] = FALSE;
+            block->TextCacheValid[ETPRTNC_NPUSHAREDBYTES] = FALSE;
         }
     }
     else if (message->Message == TreeNewGetHeaderText)
@@ -652,6 +705,9 @@ VOID EtProcessTreeNewMessage(
         case ETPRTNC_NETWORKSENDRATE:
         case ETPRTNC_NETWORKTOTALRATE:
         case ETPRTNC_FPS:
+        case ETPRTNC_NPU:
+        case ETPRTNC_NPUDEDICATEDBYTES:
+        case ETPRTNC_NPUSHAREDBYTES:
             break;
         default:
             return;
@@ -784,6 +840,15 @@ VOID EtProcessTreeNewMessage(
             case ETPRTNC_FPS:
                 decimal += block->FramesPerSecond;
                 break;
+            case ETPRTNC_NPU:
+                decimal += block->NpuNodeUtilization;
+                break;
+            case ETPRTNC_NPUDEDICATEDBYTES:
+                number += block->NpuDedicatedUsage;
+                break;
+            case ETPRTNC_NPUSHAREDBYTES:
+                number += block->NpuSharedUsage;
+                break;
             }
 
             listEntry = listEntry->Flink;
@@ -831,6 +896,8 @@ VOID EtProcessTreeNewMessage(
         case ETPRTNC_NETWORKTOTALBYTESDELTA:
         case ETPRTNC_GPUDEDICATEDBYTES:
         case ETPRTNC_GPUSHAREDBYTES:
+        case ETPRTNC_NPUDEDICATEDBYTES:
+        case ETPRTNC_NPUSHAREDBYTES:
             {
                 PH_FORMAT format[1];
 
@@ -899,6 +966,24 @@ VOID EtProcessTreeNewMessage(
                     break;
 
                 PhInitFormatF(&format[0], decimal, 2);
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                {
+                    getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                    getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
+            }
+            break;
+        case ETPRTNC_NPU:
+            {
+                PH_FORMAT format[2];
+
+                if (decimal == 0.0)
+                    break;
+
+                decimal *= 100;
+                PhInitFormatF(&format[0], decimal, 2);
+                PhInitFormatC(&format[1], L'%');
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
                 {
@@ -1030,6 +1115,15 @@ LONG EtpProcessTreeNewSortFunction(
         break;
     case ETPRTNC_FPS:
         result = singlecmp(block1->FramesPerSecond, block2->FramesPerSecond);
+        break;
+    case ETPRTNC_NPU:
+        result = singlecmp(block1->NpuNodeUtilization, block2->NpuNodeUtilization);
+        break;
+    case ETPRTNC_NPUDEDICATEDBYTES:
+        result = uint64cmp(block1->NpuDedicatedUsage, block2->NpuDedicatedUsage);
+        break;
+    case ETPRTNC_NPUSHAREDBYTES:
+        result = uint64cmp(block1->NpuSharedUsage, block2->NpuSharedUsage);
         break;
     }
 

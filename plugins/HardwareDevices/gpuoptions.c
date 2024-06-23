@@ -26,7 +26,8 @@ typedef struct _GPU_ENUM_ENTRY
             BOOLEAN DevicePresent : 1;
             BOOLEAN DeviceSupported : 1;
             BOOLEAN SoftwareDevice : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN NpuDevice : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
@@ -303,29 +304,61 @@ VOID FindGraphicsDevices(
     ULONG deviceInterfaceListLength = 0;
     PWSTR deviceInterface;
 
-    if (CM_Get_Device_Interface_List_Size(
-        &deviceInterfaceListLength,
-        (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
-        NULL,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+    if (PhWindowsVersion >= WINDOWS_10)
     {
-        return;
+        if (CM_Get_Device_Interface_List_Size(
+            &deviceInterfaceListLength,
+            (PGUID)&GUID_COMPUTE_DEVICE_ARRIVAL,
+            NULL,
+            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+            ) != CR_SUCCESS)
+        {
+            return;
+        }
+    }
+    else
+    {
+        if (CM_Get_Device_Interface_List_Size(
+            &deviceInterfaceListLength,
+            (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
+            NULL,
+            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+            ) != CR_SUCCESS)
+        {
+            return;
+        }
     }
 
     deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
     memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
 
-    if (CM_Get_Device_Interface_List(
-        (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
-        NULL,
-        deviceInterfaceList,
-        deviceInterfaceListLength,
-        CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-        ) != CR_SUCCESS)
+    if (PhWindowsVersion >= WINDOWS_10)
     {
-        PhFree(deviceInterfaceList);
-        return;
+        if (CM_Get_Device_Interface_List(
+            (PGUID)&GUID_COMPUTE_DEVICE_ARRIVAL,
+            NULL,
+            deviceInterfaceList,
+            deviceInterfaceListLength,
+            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+            ) != CR_SUCCESS)
+        {
+            PhFree(deviceInterfaceList);
+            return;
+        }
+    }
+    else
+    {
+        if (CM_Get_Device_Interface_List(
+            (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
+            NULL,
+            deviceInterfaceList,
+            deviceInterfaceListLength,
+            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
+            ) != CR_SUCCESS)
+        {
+            PhFree(deviceInterfaceList);
+            return;
+        }
     }
 
     deviceList = PhCreateList(10);
@@ -358,9 +391,21 @@ VOID FindGraphicsDevices(
 
                 if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
                 {
+                    GX_ADAPTER_ATTRIBUTES adapterAttributes;
+
+                    entry->DevicePresent = TRUE;
+
+                    if (NT_SUCCESS(GraphicsQueryAdapterAttributes(
+                        adapterHandle,
+                        &adapterAttributes
+                        )))
+                    {
+                        entry->NpuDevice = !!adapterAttributes.TypeNpu;
+                    }
+
                     if (GraphicsDeviceIsSoftwareDevice(adapterHandle))
                         entry->SoftwareDevice = TRUE;
-                    entry->DevicePresent = TRUE;
+
                     GraphicsCloseAdapterHandle(adapterHandle);
                 }
 
@@ -381,7 +426,7 @@ VOID FindGraphicsDevices(
                         PH_FORMAT format[2];
                         WCHAR formatBuffer[512];
 
-                        PhInitFormatS(&format[0], L"GPU ");
+                        PhInitFormatS(&format[0], entry->NpuDevice ? L"NPU " : L"GPU ");
                         PhInitFormatU(&format[1], adapterIndex);
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))

@@ -13,6 +13,7 @@
 #include "exttools.h"
 #include "etwsys.h"
 #include "gpusys.h"
+#include "npusys.h"
 #include <toolstatusintf.h>
 
 typedef enum _ETP_TRAY_ICON_ID
@@ -28,6 +29,7 @@ typedef enum _ETP_TRAY_ICON_ID
     ETP_TRAY_ICON_ID_GPUMEMTEXT,
     ETP_TRAY_ICON_ID_GPUTEMP,
     ETP_TRAY_ICON_ID_GPUTEMPTEXT,
+    ETP_TRAY_ICON_ID_NPU,
     ETP_TRAY_ICON_ID_MAXIMUM
 } ETP_TRAY_ICON_ID;
 
@@ -43,6 +45,7 @@ typedef enum _ETP_TRAY_ICON_GUID
     ETP_TRAY_ICON_GUID_GPUMEMTEXT,
     ETP_TRAY_ICON_GUID_GPUTEMP,
     ETP_TRAY_ICON_GUID_GPUTEMPTEXT,
+    ETP_TRAY_ICON_GUID_NPU,
     ETP_TRAY_ICON_GUID_MAXIMUM
 } ETP_TRAY_ICON_GUID;
 
@@ -55,6 +58,21 @@ VOID EtpGpuIconUpdateCallback(
     );
 
 BOOLEAN EtpGpuIconMessageCallback(
+    _In_ PPH_NF_ICON Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    );
+
+VOID EtpNpuIconUpdateCallback(
+    _In_ PPH_NF_ICON Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
+BOOLEAN EtpNpuIconMessageCallback(
     _In_ PPH_NF_ICON Icon,
     _In_ ULONG_PTR WParam,
     _In_ ULONG_PTR LParam,
@@ -151,6 +169,7 @@ BOOLEAN EtTrayIconTransparencyEnabled = FALSE;
 GUID EtpTrayIconGuids[ETP_TRAY_ICON_GUID_MAXIMUM];
 PH_CALLBACK_REGISTRATION EtpMainWindowMessageEventRegistration;
 TB_GRAPH_CONTEXT EtpToolbarGpuHistoryGraphContext = { 0 };
+TB_GRAPH_CONTEXT EtpToolbarNpuHistoryGraphContext = { 0 };
 TB_GRAPH_CONTEXT EtpToolbarDiskHistoryGraphContext = { 0 };
 TB_GRAPH_CONTEXT EtpToolbarNetworkHistoryGraphContext = { 0 };
 
@@ -239,6 +258,18 @@ VOID EtRegisterNotifyIcons(
         NULL,
         L"&GPU history",
         EtGpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
+        &data
+        );
+
+    data.UpdateCallback = EtpNpuIconUpdateCallback;
+    data.MessageCallback = EtpNpuIconMessageCallback;
+    Pointers->RegisterTrayIcon(
+        PluginInstance,
+        ETP_TRAY_ICON_ID_NPU,
+        EtpTrayIconGuids[ETP_TRAY_ICON_GUID_NPU],
+        NULL,
+        L"&NPU history",
+        EtNpuEnabled ? 0 : PH_NF_ICON_UNAVAILABLE,
         &data
         );
 
@@ -467,6 +498,126 @@ BOOLEAN EtpGpuIconMessageCallback(
             PPH_NF_MSG_SHOWMINIINFOSECTION_DATA data = (PVOID)WParam;
 
             data->SectionName = L"GPU";
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID EtpNpuIconUpdateCallback(
+    _In_ PPH_NF_ICON Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    )
+{
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        2,
+        RGB(0x00, 0x00, 0x00),
+
+        16,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    ULONG maxDataCount;
+    ULONG lineDataCount;
+    PFLOAT lineData1;
+    HBITMAP bitmap;
+    PVOID bits;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HANDLE maxNpuProcessId;
+    PPH_PROCESS_ITEM maxNpuProcessItem;
+    PH_FORMAT format[8];
+
+    // Icon
+
+    Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
+    maxDataCount = drawInfo.Width / 2 + 1;
+    lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!lineData1)
+    {
+        SelectBitmap(hdc, oldBitmap);
+        *NewIconOrBitmap = bitmap;
+        *Flags = PH_NF_UPDATE_IS_BITMAP;
+        *NewText = PhReferenceEmptyString();
+        return;
+    }
+
+    lineDataCount = min(maxDataCount, EtNpuNodeHistory.Count);
+    PhCopyCircularBuffer_FLOAT(&EtNpuNodeHistory, lineData1, lineDataCount);
+
+    drawInfo.LineDataCount = lineDataCount;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
+
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
+    SelectBitmap(hdc, oldBitmap);
+    *NewIconOrBitmap = bitmap;
+    *Flags = PH_NF_UPDATE_IS_BITMAP;
+
+    // Text
+
+    if (EtMaxNpuNodeHistory.Count != 0)
+        maxNpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&EtMaxNpuNodeHistory, 0));
+    else
+        maxNpuProcessId = NULL;
+
+    if (maxNpuProcessId)
+        maxNpuProcessItem = PhReferenceProcessItem(maxNpuProcessId);
+    else
+        maxNpuProcessItem = NULL;
+
+    PhInitFormatS(&format[0], L"NPU usage: ");
+    PhInitFormatF(&format[1], EtNpuNodeUsage * 100, EtMaxPrecisionUnit);
+    PhInitFormatC(&format[2], '%');
+
+    if (maxNpuProcessItem)
+    {
+        PhInitFormatC(&format[3], '\n');
+        PhInitFormatSR(&format[4], maxNpuProcessItem->ProcessName->sr);
+        PhInitFormatS(&format[5], L": ");
+        PhInitFormatF(&format[6], EtGetProcessBlock(maxNpuProcessItem)->NpuNodeUtilization * 100, EtMaxPrecisionUnit);
+        PhInitFormatC(&format[7], '%');
+    }
+
+    *NewText = PhFormat(format, maxNpuProcessItem ? 8 : 3, 128);
+    if (maxNpuProcessItem) PhDereferenceObject(maxNpuProcessItem);
+
+    _freea(lineData1);
+}
+
+BOOLEAN EtpNpuIconMessageCallback(
+    _In_ PPH_NF_ICON Icon,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam,
+    _In_opt_ PVOID Context
+    )
+{
+    switch (LOWORD(LParam))
+    {
+    case PH_NF_MSG_SHOWMINIINFOSECTION:
+        {
+            PPH_NF_MSG_SHOWMINIINFOSECTION_DATA data = (PVOID)WParam;
+
+            data->SectionName = L"NPU";
         }
         return TRUE;
     }
@@ -1369,7 +1520,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarGpuHistoryGraphMessageCallba
                     // %.2f%%%s\n%s
                     PhInitFormatF(&format[0], gpuUsage * 100, EtMaxPrecisionUnit);
                     PhInitFormatC(&format[1], L'%');
-                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGpuGetMaxNodeString(getTooltipText->Index))->sr);
                     PhInitFormatC(&format[3], L'\n');
                     PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
@@ -1395,7 +1546,96 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarGpuHistoryGraphMessageCallba
                 {
                     if (mouseEvent->Index < mouseEvent->TotalCount)
                     {
-                        record = EtpReferenceMaxNodeRecord(mouseEvent->Index);
+                        record = EtpGpuReferenceMaxNodeRecord(mouseEvent->Index);
+                    }
+
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
+                }
+            }
+        }
+        break;
+    }
+}
+
+TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarNpuHistoryGraphMessageCallback)
+{
+    switch (Header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PTB_GRAPH_CONTEXT context = (PTB_GRAPH_CONTEXT)Context;
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            if (context->GraphDpi == 0)
+            {
+                context->GraphDpi = PhGetWindowDpi(GraphHandle);
+                context->GraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+            }
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X;
+            PhSiSetColorsGraphDrawInfo(drawInfo, context->GraphColor1, 0, context->GraphDpi);
+
+            if (ProcessesUpdatedCount != 3)
+                break;
+
+            PhGraphStateGetDrawInfo(GraphState, getDrawInfo, EtNpuNodeHistory.Count);
+
+            if (!GraphState->Valid)
+            {
+                PhCopyCircularBuffer_FLOAT(&EtNpuNodeHistory, GraphState->Data1, drawInfo->LineDataCount);
+
+                GraphState->Valid = TRUE;
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)Header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (GraphState->TooltipIndex != getTooltipText->Index)
+                {
+                    FLOAT gpuUsage;
+                    PH_FORMAT format[5];
+
+                    gpuUsage = PhGetItemCircularBuffer_FLOAT(&EtNpuNodeHistory, getTooltipText->Index);
+
+                    // %.2f%%%s\n%s
+                    PhInitFormatF(&format[0], gpuUsage * 100, EtMaxPrecisionUnit);
+                    PhInitFormatC(&format[1], L'%');
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpNpuGetMaxNodeString(getTooltipText->Index))->sr);
+                    PhInitFormatC(&format[3], L'\n');
+                    PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                    PhMoveReference(&GraphState->TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
+                }
+
+                getTooltipText->Text = PhGetStringRef(GraphState->TooltipText);
+            }
+        }
+        break;
+    case GCN_MOUSEEVENT:
+        {
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+            PPH_PROCESS_RECORD record = NULL;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            {
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"NPU");
+                }
+                else
+                {
+                    if (mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = EtpNpuReferenceMaxNodeRecord(mouseEvent->Index);
                     }
 
                     if (record)
@@ -1703,6 +1943,7 @@ VOID EtToolbarGraphsInitializeDpi(
     )
 {
     memset(&EtpToolbarGpuHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
+    memset(&EtpToolbarNpuHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
     memset(&EtpToolbarDiskHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
     memset(&EtpToolbarNetworkHistoryGraphContext, 0, sizeof(TB_GRAPH_CONTEXT));
 }
@@ -1746,6 +1987,15 @@ VOID EtRegisterToolbarGraphs(
         ToolStatusInterface->RegisterToolbarGraph(
             PluginInstance,
             6,
+            L"NPU history",
+            EtNpuEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
+            &EtpToolbarNpuHistoryGraphContext,
+            EtpToolbarNpuHistoryGraphMessageCallback
+            );
+
+        ToolStatusInterface->RegisterToolbarGraph(
+            PluginInstance,
+            7,
             L"Disk history",
             EtEtwEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
             &EtpToolbarDiskHistoryGraphContext,
@@ -1754,7 +2004,7 @@ VOID EtRegisterToolbarGraphs(
 
         ToolStatusInterface->RegisterToolbarGraph(
             PluginInstance,
-            7,
+            8,
             L"Network history",
             EtEtwEnabled ? 0 : TOOLSTATUS_GRAPH_UNAVAILABLE,
             &EtpToolbarNetworkHistoryGraphContext,

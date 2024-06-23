@@ -10,6 +10,7 @@
  */
 
 #include "devices.h"
+#include <devguid.h>
 
 PPH_OBJECT_TYPE GraphicsSysinfoEntryType = NULL;
 BOOLEAN GraphicsEnableAvxSupport = FALSE;
@@ -19,6 +20,23 @@ PPH_STRING GraphicsDeviceGetAdapterDescription(
     )
 {
     ULONG deviceIndex;
+    D3DKMT_HANDLE adapterHandle;
+    BOOLEAN npuDevice = FALSE;
+
+    if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(DevicePath))))
+    {
+        GX_ADAPTER_ATTRIBUTES adapterSttributes;
+
+        if (NT_SUCCESS(GraphicsQueryAdapterAttributes(
+            adapterHandle,
+            &adapterSttributes
+            )))
+        {
+            npuDevice = !!adapterSttributes.TypeNpu;
+        }
+
+        GraphicsCloseAdapterHandle(adapterHandle);
+    }
 
     if (GraphicsQueryDeviceInterfaceAdapterIndex(
         PhGetString(DevicePath),
@@ -29,7 +47,7 @@ PPH_STRING GraphicsDeviceGetAdapterDescription(
         PH_FORMAT format[2];
         WCHAR formatBuffer[512];
 
-        PhInitFormatS(&format[0], L"GPU ");
+        PhInitFormatS(&format[0], npuDevice ? L"NPU " : L"GPU ");
         PhInitFormatU(&format[1], deviceIndex);
 
         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
@@ -48,7 +66,7 @@ PPH_STRING GraphicsDeviceGetAdapterDescription(
     }
     else
     {
-        return PhCreateString(L"GPU");
+        return PhCreateString(npuDevice ? L"NPU" : L"GPU");
     }
 }
 
@@ -1332,6 +1350,7 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
         {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
+            PPH_STRING adapterDescription;
             PPH_STRING description;
 
             context->GpuDialog = hwndDlg;
@@ -1348,10 +1367,14 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
 
+            adapterDescription = PH_AUTO_T(PH_STRING, GraphicsDeviceGetAdapterDescription(context->DeviceEntry->Id.DevicePath));
+
+            PhSetDialogItemText(hwndDlg, IDC_TITLE, PhGetString(adapterDescription));
+
             if (GraphicsQueryDeviceProperties(PhGetString(context->DeviceEntry->Id.DevicePath), &description, NULL, NULL, NULL, NULL, NULL))
                 PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PhGetString(PH_AUTO_T(PH_STRING, description)));
             else
-                PhSetDialogItemText(hwndDlg, IDC_GPUNAME, L"GPU");
+                PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PhGetString(adapterDescription));
 
             context->GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_GPUDEVICE_PANEL), hwndDlg, GraphicsDevicePanelDialogProc, context);
             ShowWindow(context->GpuPanel, SW_SHOW);
