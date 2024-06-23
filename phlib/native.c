@@ -19012,3 +19012,139 @@ HANDLE PhGetStdHandle(
         return GetStdHandle(StdHandle);
     }
 }
+
+NTSTATUS PhFlushProcessHeapsRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInformation;
+    PVOID rtlExitUserThread = NULL;
+    PVOID rtlFlushHeaps = NULL;
+    HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
+    PPH_PROCESS_RUNTIME_LIBRARY runtimeLibrary;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+
+    status = PhGetProcessRuntimeLibrary(
+        ProcessHandle,
+        &runtimeLibrary,
+#ifdef _WIN64
+        &isWow64
+#else
+        NULL
+#endif
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlExitUserThread",
+        0,
+        &rtlExitUserThread,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &runtimeLibrary->NtdllFileName,
+        "RtlFlushHeaps",
+        0,
+        &rtlFlushHeaps,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    status = PhCreateUserThread(
+        ProcessHandle,
+        NULL,
+        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+        0,
+        0,
+        0,
+        rtlExitUserThread,
+        LongToPtr(STATUS_SUCCESS),
+        &threadHandle,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+#ifdef _WIN64
+    if (isWow64)
+    {
+        status = RtlQueueApcWow64Thread(
+            threadHandle,
+            rtlFlushHeaps,
+            NULL,
+            NULL,
+            NULL
+            );
+    }
+    else
+    {
+#endif
+        status = NtQueueApcThread(
+            threadHandle,
+            rtlFlushHeaps,
+            NULL,
+            NULL,
+            NULL
+            );
+#ifdef _WIN64
+    }
+#endif
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtResumeThread(threadHandle, NULL); // Execute the pending APC (dmex)
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetThreadBasicInformation(threadHandle, &basicInformation);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = basicInformation.ExitStatus;
+
+CleanupExit:
+
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    return status;
+}
