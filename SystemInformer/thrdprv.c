@@ -328,7 +328,7 @@ VOID PhLoadSymbolsThreadProvider(
     }
     else
     {
-        PPH_STRING fileName;
+        PPH_STRING fileName = NULL;
         PVOID imageBase;
         ULONG imageSize;
 

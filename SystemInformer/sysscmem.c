@@ -1042,7 +1042,7 @@ NTSTATUS PhSipLoadMmAddresses(
     _In_ PVOID Parameter
     )
 {
-    PPH_STRING kernelFileName;
+    PPH_STRING kernelFileName = NULL;
     PVOID kernelImageBase;
     ULONG kernelImageSize;
     PPH_SYMBOL_PROVIDER symbolProvider;
