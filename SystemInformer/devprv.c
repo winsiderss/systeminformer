@@ -12,11 +12,9 @@
 #include <phapp.h>
 #include <phplug.h>
 #include <settings.h>
-#include <mapldr.h>
 #include <secedit.h>
 
 #include <devprv.h>
-
 #include <devquery.h>
 
 DEFINE_GUID(GUID_DEVINTERFACE_A2DP_SIDEBAND_AUDIO, 0xf3b1362f, 0xc9f4, 0x4dd1, 0x9d, 0x55, 0xe0, 0x20, 0x38, 0xa1, 0x29, 0xfb);
@@ -120,13 +118,13 @@ PPH_OBJECT_TYPE PhDeviceTreeType = NULL;
 PPH_OBJECT_TYPE PhDeviceItemType = NULL;
 PPH_OBJECT_TYPE PhDeviceNotifyType = NULL;
 static PPH_OBJECT_TYPE PhpDeviceInfoType = NULL;
-static PPH_DEVICE_TREE PhpDeviceTree = NULL;
 static PH_FAST_LOCK PhpDeviceTreeLock = PH_FAST_LOCK_INIT;
+static PPH_DEVICE_TREE PhpDeviceTree = NULL;
 static HCMNOTIFICATION PhpDeviceNotification = NULL;
 static HCMNOTIFICATION PhpDeviceInterfaceNotification = NULL;
-static PH_FAST_LOCK PhpDeviceNotifyLock = PH_FAST_LOCK_INIT;
-static HANDLE PhpDeviceNotifyEvent = NULL;
-static LIST_ENTRY PhpDeviceNotifyList = { 0 };
+static PH_CALLBACK_REGISTRATION ServiceProviderUpdatedRegistration;
+static SLIST_HEADER PhDeviceNotifyListHead;
+static PH_FREE_LIST PhDeviceNotifyFreeList;
 
 #if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
 // Note: This propkey is required for building with 22H1 and older Windows SDK (dmex)
@@ -877,7 +875,7 @@ BOOLEAN PhpGetDevicePropertyString(
         return TRUE;
     }
 
-    PhDereferenceObject(string);
+    PhClearReference(&string);
     return FALSE;
 }
 
@@ -937,8 +935,7 @@ BOOLEAN PhpGetDeviceInterfacePropertyString(
         return TRUE;
     }
 
-    PhDereferenceObject(string);
-
+    PhClearReference(&string);
     return FALSE;
 }
 
@@ -996,7 +993,7 @@ BOOLEAN PhpGetClassPropertyString(
         return TRUE;
     }
 
-    PhDereferenceObject(string);
+    PhClearReference(&string);
     return FALSE;
 }
 
@@ -3041,7 +3038,7 @@ PPH_STRING PhpDevSysPowerPowerDataString(
 
     string = PhFormat(format, count, 20);
 
-    PhDereferenceObject(capabilities);
+    PhClearReference(&capabilities);
 
     return string;
 }
@@ -3491,12 +3488,12 @@ PPH_DEVICE_ITEM PhReferenceDeviceItem2(
     _In_ PPH_STRINGREF InstanceId
     )
 {
-    PPH_DEVICE_TREE deviceTree;
+    PPH_DEVICE_TREE tree;
     PPH_DEVICE_ITEM deviceItem;
 
-    deviceTree = PhReferenceDeviceTree();
-    PhSetReference(&deviceItem, PhLookupDeviceItem(deviceTree, InstanceId));
-    PhDereferenceObject(deviceTree);
+    tree = PhReferenceDeviceTree();
+    PhSetReference(&deviceItem, PhLookupDeviceItem(tree, InstanceId));
+    PhClearReference(&tree);
 
     return deviceItem;
 }
@@ -3532,16 +3529,16 @@ VOID PhpDeviceItemDeleteProcedure(
         {
             if (prop->Type == PhDevicePropertyTypeString)
             {
-                PhDereferenceObject(prop->String);
+                PhClearReference(&prop->String);
             }
             else if (prop->Type == PhDevicePropertyTypeStringList)
             {
                 for (ULONG j = 0; j < prop->StringList->Count; j++)
                 {
-                    PhDereferenceObject(prop->StringList->Items[j]);
+                    PhClearReference(&prop->StringList->Items[j]);
                 }
 
-                PhDereferenceObject(prop->StringList);
+                PhClearReference(&prop->StringList);
             }
             else if (prop->Type == PhDevicePropertyTypeBinary)
             {
@@ -3571,7 +3568,7 @@ VOID PhpDeviceTreeDeleteProcedure(
 
         item = tree->DeviceList->Items[i];
 
-        PhDereferenceObject(item);
+        PhClearReference(&item);
     }
 
     for (ULONG i = 0; i < tree->DeviceInterfaceList->Count; i++)
@@ -3580,12 +3577,12 @@ VOID PhpDeviceTreeDeleteProcedure(
 
         item = tree->DeviceInterfaceList->Items[i];
 
-        PhDereferenceObject(item);
+        PhClearReference(&item);
     }
 
-    PhDereferenceObject(tree->DeviceList);
-    PhDereferenceObject(tree->DeviceInterfaceList);
-    PhDereferenceObject(tree->DeviceInfo);
+    PhClearReference(&tree->DeviceList);
+    PhClearReference(&tree->DeviceInterfaceList);
+    PhClearReference(&tree->DeviceInfo);
 }
 
 VOID PhpDeviceNotifyDeleteProcedure(
@@ -3599,7 +3596,7 @@ VOID PhpDeviceNotifyDeleteProcedure(
         notify->Action == PhDeviceNotifyInstanceStarted ||
         notify->Action == PhDeviceNotifyInstanceRemoved)
     {
-        PhDereferenceObject(notify->DeviceInstance.InstanceId);
+        PhClearReference(&notify->DeviceInstance.InstanceId);
     }
 }
 
@@ -3926,7 +3923,6 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
     SIZE_T interfaceClassListCount;
 
     tree = PhCreateObjectZero(sizeof(PH_DEVICE_TREE), PhDeviceTreeType);
-
     tree->DeviceList = PhCreateList(250);
     tree->DeviceInterfaceList = PhCreateList(1024);
     tree->DeviceInfo = PhCreateObject(sizeof(PH_DEVINFO), PhpDeviceInfoType);
@@ -4060,6 +4056,8 @@ PPH_DEVICE_TREE PhpPublishDeviceTree(
     PPH_DEVICE_TREE oldTree;
 
     newTree = PhpCreateDeviceTree();
+    PhReferenceObject(newTree);
+
     PhAcquireFastLockExclusive(&PhpDeviceTreeLock);
     oldTree = PhpDeviceTree;
     PhpDeviceTree = newTree;
@@ -4067,78 +4065,35 @@ PPH_DEVICE_TREE PhpPublishDeviceTree(
 
     PhClearReference(&oldTree);
 
-    return PhReferenceObject(newTree);
+    return newTree;
 }
 
 VOID PhpDeviceNotify(
-    _In_ PLIST_ENTRY List
+    _In_ PSLIST_ENTRY List
     )
 {
     PPH_DEVICE_TREE deviceTree;
+    PPH_DEVICE_NOTIFY entry;
 
     // We process device notifications in blocks so that bursts of device changes
-    // don't each trigger a new tree each time.
+    // don't each trigger a new tree each time. THe internal is determined by the
+    // interval update and the Service Provider Updated Event. (500ms/1000ms)
 
-    deviceTree = PhpPublishDeviceTree();
-
-    while (!IsListEmpty(List))
+    if (deviceTree = PhpPublishDeviceTree())
     {
-        PPH_DEVICE_NOTIFY entry;
-
-        entry = CONTAINING_RECORD(RemoveHeadList(List), PH_DEVICE_NOTIFY, ListEntry);
-
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent), entry);
-
-        PhDereferenceObject(entry);
-    }
-
-    PhDereferenceObject(deviceTree);
-}
-
-_Function_class_(PUSER_THREAD_START_ROUTINE)
-NTSTATUS NTAPI PhpDeviceNotifyWorker(
-    _In_ PVOID ThreadParameter
-    )
-{
-    PH_AUTO_POOL autoPool;
-
-    PhSetThreadName(NtCurrentThread(), L"DeviceNotifyWorker");
-
-    PhInitializeAutoPool(&autoPool);
-
-    for (;;)
-    {
-        LIST_ENTRY list;
-
-        // delay to process events in blocks
-        PhDelayExecution(1000);
-
-        PhAcquireFastLockExclusive(&PhpDeviceNotifyLock);
-
-        if (IsListEmpty(&PhpDeviceNotifyList))
+        while (List)
         {
-            NtResetEvent(PhpDeviceNotifyEvent, NULL);
-            PhReleaseFastLockExclusive(&PhpDeviceNotifyLock);
-            NtWaitForSingleObject(PhpDeviceNotifyEvent, FALSE, NULL);
-            continue;
+            entry = CONTAINING_RECORD(List, PH_DEVICE_NOTIFY, ListEntry);
+            List = List->Next;
+
+            // Restore TypeIndex and Flags.
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent), entry);
+
+            PhFreeToFreeList(&PhDeviceNotifyFreeList, entry);
         }
-
-        // drain the list
-        list = PhpDeviceNotifyList;
-        list.Flink->Blink = &list;
-        list.Blink->Flink = &list;
-        InitializeListHead(&PhpDeviceNotifyList);
-
-        PhReleaseFastLockExclusive(&PhpDeviceNotifyLock);
-
-        PhpDeviceNotify(&list);
-
-        PhDrainAutoPool(&autoPool);
     }
 
-    PhDeleteAutoPool(&autoPool);
-
-    return STATUS_SUCCESS;
+    PhClearReference(&deviceTree);
 }
 
 _Function_class_(PCM_NOTIFY_CALLBACK)
@@ -4150,57 +4105,84 @@ ULONG CALLBACK PhpCmNotifyCallback(
     _In_ ULONG EventDataSize
     )
 {
-    PPH_DEVICE_NOTIFY entry = PhCreateObjectZero(sizeof(PH_DEVICE_NOTIFY), PhDeviceNotifyType);
+    PPH_DEVICE_NOTIFY entry;
 
     switch (Action)
     {
     case CM_NOTIFY_ACTION_DEVICEINTERFACEARRIVAL:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInterfaceArrival;
             RtlCopyMemory(&entry->DeviceInterface.ClassGuid, &EventData->u.DeviceInterface.ClassGuid, sizeof(GUID));
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
     case CM_NOTIFY_ACTION_DEVICEINTERFACEREMOVAL:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInterfaceRemoval;
             RtlCopyMemory(&entry->DeviceInterface.ClassGuid, &EventData->u.DeviceInterface.ClassGuid, sizeof(GUID));
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
     case CM_NOTIFY_ACTION_DEVICEINSTANCEENUMERATED:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInstanceEnumerated;
             entry->DeviceInstance.InstanceId = PhCreateString(EventData->u.DeviceInstance.InstanceId);
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
     case CM_NOTIFY_ACTION_DEVICEINSTANCESTARTED:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInstanceStarted;
             entry->DeviceInstance.InstanceId = PhCreateString(EventData->u.DeviceInstance.InstanceId);
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
     case CM_NOTIFY_ACTION_DEVICEINSTANCEREMOVED:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInstanceRemoved;
             entry->DeviceInstance.InstanceId = PhCreateString(EventData->u.DeviceInstance.InstanceId);
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
-    default:
-        return ERROR_SUCCESS;
     }
 
-    PhAcquireFastLockExclusive(&PhpDeviceNotifyLock);
-    InsertTailList(&PhpDeviceNotifyList, &entry->ListEntry);
-    NtSetEvent(PhpDeviceNotifyEvent, NULL);
-    PhReleaseFastLockExclusive(&PhpDeviceNotifyLock);
-
     return ERROR_SUCCESS;
+}
+
+static VOID NTAPI ServiceProviderUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PSLIST_ENTRY list;
+
+    // drain the list
+
+    if (list = RtlInterlockedFlushSList(&PhDeviceNotifyListHead))
+    {
+        PhpDeviceNotify(list);
+    }
 }
 
 BOOLEAN PhpDeviceProviderInitialization(
     VOID
     )
 {
-    NTSTATUS status;
     CM_NOTIFY_FILTER cmFilter;
 
     if (WindowsVersion < WINDOWS_10 || !PhGetIntegerSetting(L"EnableDeviceSupport"))
@@ -4211,15 +4193,11 @@ BOOLEAN PhpDeviceProviderInitialization(
     PhDeviceNotifyType = PhCreateObjectType(L"DeviceNotify", 0, PhpDeviceNotifyDeleteProcedure);
     PhpDeviceInfoType = PhCreateObjectType(L"DeviceInfo", 0, PhpDeviceInfoDeleteProcedure);
 
-    InitializeListHead(&PhpDeviceNotifyList);
-    if (!NT_SUCCESS(status = NtCreateEvent(&PhpDeviceNotifyEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE)))
-        return FALSE;
-    if (!NT_SUCCESS(status = PhCreateThread2(PhpDeviceNotifyWorker, NULL)))
-        return FALSE;
+    PhInitializeSListHead(&PhDeviceNotifyListHead);
+    PhInitializeFreeList(&PhDeviceNotifyFreeList, sizeof(PH_DEVICE_NOTIFY), 16);
 
     RtlZeroMemory(&cmFilter, sizeof(CM_NOTIFY_FILTER));
     cmFilter.cbSize = sizeof(CM_NOTIFY_FILTER);
-
     cmFilter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINSTANCE;
     cmFilter.Flags = CM_NOTIFY_FILTER_FLAG_ALL_DEVICE_INSTANCES;
     if (CM_Register_Notification(
@@ -4232,6 +4210,8 @@ BOOLEAN PhpDeviceProviderInitialization(
         return FALSE;
     }
 
+    RtlZeroMemory(&cmFilter, sizeof(CM_NOTIFY_FILTER));
+    cmFilter.cbSize = sizeof(CM_NOTIFY_FILTER);
     cmFilter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
     cmFilter.Flags = CM_NOTIFY_FILTER_FLAG_ALL_INTERFACE_CLASSES;
     if (CM_Register_Notification(
@@ -4243,6 +4223,13 @@ BOOLEAN PhpDeviceProviderInitialization(
     {
         return FALSE;
     }
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent),
+        ServiceProviderUpdatedCallback,
+        NULL,
+        &ServiceProviderUpdatedRegistration
+        );
 
     return TRUE;
 }
@@ -4282,7 +4269,9 @@ PPH_DEVICE_TREE PhReferenceDeviceTreeEx(
     PhReleaseFastLockShared(&PhpDeviceTreeLock);
 
     if (ForceRefresh || !deviceTree)
+    {
         PhMoveReference(&deviceTree, PhpPublishDeviceTree());
+    }
 
     return deviceTree;
 }
