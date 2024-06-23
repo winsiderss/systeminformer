@@ -101,6 +101,9 @@ DEFINE_GUID(GUID_NFCSE_RADIO_MEDIA_DEVICE_INTERFACE, 0xef8ba08f, 0x148d, 0x4116,
 DEFINE_GUID(GUID_BLUETOOTHLE_DEVICE_INTERFACE, 0x781aee18, 0x7733, 0x4ce4, 0xad, 0xd0, 0x91, 0xf4, 0x1c, 0x67, 0xb5, 0x92);
 DEFINE_GUID(GUID_BLUETOOTH_GATT_SERVICE_DEVICE_INTERFACE, 0x6e3bb679, 0x4372, 0x40c8, 0x9e, 0xaa, 0x45, 0x09, 0xdf, 0x26, 0x0c, 0xd8);
 
+DEFINE_DEVPROPKEY(DEVPKEY_GPU_LUID,  0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 0x02);    // DEVPROP_TYPE_GUID
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhyId, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 0x03);    // DEVPROP_TYPE_UINT32
+
 #include <SetupAPI.h>
 #include <cfgmgr32.h>
 #include <wdmguid.h>
@@ -329,6 +332,98 @@ BOOLEAN PhpGetClassPropertyUInt64(
         Flags
         );
     if (result && (devicePropertyType == DEVPROP_TYPE_UINT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetDevicePropertyInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PLONG64 Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(LONG64);
+
+    result = SetupDiGetDevicePropertyW(
+        DeviceInfoSet,
+        DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(LONG64),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_INT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetDeviceInterfacePropertyInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PLONG64 Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(LONG64);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(LONG64),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_INT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetClassPropertyInt64(
+    _In_ const GUID* ClassGuid,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _In_ ULONG Flags,
+    _Out_ PLONG64 Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(LONG64);
+
+    result = SetupDiGetClassPropertyW(
+        ClassGuid,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(LONG64),
+        &requiredLength,
+        Flags
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_INT64))
     {
         return TRUE;
     }
@@ -1585,6 +1680,87 @@ VOID NTAPI PhpDevPropFillUInt64Hex(
         PhInitFormatI64X(&format[1], Property->UInt64);
 
         Property->AsString = PhFormat(format, ARRAYSIZE(format), 10);
+    }
+}
+
+VOID PhpDevPropFillInt64Common(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = PhDevicePropertyTypeInt64;
+
+    if (DeviceInfoData->Interface)
+    {
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyInt64(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->Int64
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyInt64(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->Int64
+                );
+        }
+    }
+    else
+    {
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyInt64(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->Int64
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyInt64(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->Int64
+                );
+        }
+    }
+}
+
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillInt64Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
+
+    if (Property->Valid)
+    {
+        PH_FORMAT format[1];
+
+        PhInitFormatI64D(&format[0], Property->Int64);
+
+        Property->AsString = PhFormat(format, ARRAYSIZE(format), 1);
     }
 }
 
@@ -3283,6 +3459,9 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyStorageSystemCritical, &DEVPKEY_Storage_System_Critical, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyStorageDiskNumber, &DEVPKEY_Storage_Disk_Number, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyStoragePartitionNumber, &DEVPKEY_Storage_Partition_Number, PhpDevPropFillUInt32, 0 },
+
+    { PhDevicePropertyGpuLuid, &DEVPKEY_GPU_LUID, PhpDevPropFillUInt64, 0 },
+    { PhDevicePropertyGpuPhyId, &DEVPKEY_Gpu_PhyId, PhpDevPropFillUInt32, 0 },
 };
 C_ASSERT(RTL_NUMBER_OF(PhpDeviceItemPropertyTable) == PhMaxDeviceProperty);
 
