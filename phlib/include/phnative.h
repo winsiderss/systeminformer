@@ -3581,6 +3581,11 @@ PhGetStdHandle(
     _In_ ULONG StdHandle
     );
 
+NTSTATUS PhFlushProcessHeapsRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
 EXTERN_C_END
 
 #endif
