@@ -920,7 +920,7 @@ VOID PhSipUpdateMemoryPanel(
         if (paged != MAXSIZE_T)
             pagedLimit = PhaFormatSize(paged, ULONG_MAX)->Buffer;
         else
-            pagedLimit = KphLevel() ? L"no symbols" : L"no driver";
+            pagedLimit = KsiLevel() ? L"no symbols" : L"no driver";
 
         if (nonPaged != MAXSIZE_T)
             nonPagedLimit = PhaFormatSize(nonPaged, ULONG_MAX)->Buffer;
@@ -929,7 +929,7 @@ VOID PhSipUpdateMemoryPanel(
     }
     else
     {
-        if (KphLevel())
+        if (KsiLevel())
         {
             pagedLimit = L"no symbols";
             nonPagedLimit = L"N/A";
@@ -1096,7 +1096,7 @@ VOID PhSipGetPoolLimits(
     SIZE_T paged = MAXSIZE_T;
     SIZE_T nonPaged = MAXSIZE_T;
 
-    if (MmSizeOfPagedPoolInBytes && (KphLevel() >= KphLevelMed))
+    if (MmSizeOfPagedPoolInBytes && (KsiLevel() >= KphLevelMed))
     {
         KphReadVirtualMemoryUnsafe(
             NtCurrentProcess(),
@@ -1125,7 +1125,7 @@ VOID PhSipGetPoolLimits(
             nonPaged = (SIZE_T)(16ULL * 1024ULL * 1024ULL * 1024ULL);
         }
     }
-    else if (WindowsVersion < WINDOWS_8 && MmMaximumNonPagedPoolInBytes && (KphLevel() >= KphLevelMed))
+    else if (WindowsVersion < WINDOWS_8 && MmMaximumNonPagedPoolInBytes && (KsiLevel() >= KphLevelMed))
     {
         KphReadVirtualMemoryUnsafe(
             NtCurrentProcess(),
