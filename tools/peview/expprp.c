@@ -1090,5 +1090,17 @@ BOOLEAN PvExportTreeFilterCallback(
             return TRUE;
     }
 
+    if (!PhIsNullOrEmptyString(node->ForwardString))
+    {
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->ForwardString->sr))
+            return TRUE;
+    }
+
+    if (!PhIsNullOrEmptyString(node->SymbolString))
+    {
+        if (PvSearchControlMatch(context->SearchMatchHandle, &node->SymbolString->sr))
+            return TRUE;
+    }
+
     return FALSE;
 }
