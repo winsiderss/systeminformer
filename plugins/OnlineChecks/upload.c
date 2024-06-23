@@ -151,7 +151,7 @@ NTSTATUS HashFileAndResetPosition(
     IO_PRIORITY_HINT ioPriority;
     BYTE buffer[PAGE_SIZE];
 
-    if (KphLevel() == KphLevelMax)
+    if (KsiLevel() == KphLevelMax)
     {
         KPH_HASH_INFORMATION hash;
 
@@ -173,7 +173,7 @@ NTSTATUS HashFileAndResetPosition(
 
         if (hash.Algorithm != MaxKphHashAlgorithm)
         {
-            status = KphQueryHashInformationFile(FileHandle, &hash, sizeof(hash));
+            status = KsiQueryHashInformationFile(FileHandle, &hash, sizeof(hash));
             if (NT_SUCCESS(status))
             {
                 *HashString = PhBufferToHexString(hash.Hash, hash.Length);
