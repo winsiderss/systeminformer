@@ -477,6 +477,9 @@ static int __cdecl DeviceTreeSortFunction(
         case PhDevicePropertyTypeUInt64:
             sortResult = uint64cmp(lhs->UInt64, rhs->UInt64);
             break;
+        case PhDevicePropertyTypeInt64:
+            sortResult = int64cmp(lhs->Int64, rhs->Int64);
+            break;
         case PhDevicePropertyTypeUInt32:
             sortResult = uint64cmp(lhs->UInt32, rhs->UInt32);
             break;
@@ -1249,6 +1252,9 @@ const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
     { PhDevicePropertyStorageSystemCritical, L"Storage system critical", FALSE, 80, 0 },
     { PhDevicePropertyStorageDiskNumber, L"Storage disk number", FALSE, 80, 0 },
     { PhDevicePropertyStoragePartitionNumber, L"Storage disk partition number", FALSE, 80, 0 },
+
+    { PhDevicePropertyGpuLuid, L"GPU LUID", FALSE, 80, 0 },
+    { PhDevicePropertyGpuPhyId, L"GPU PhyID", FALSE, 80, 0 },
 };
 C_ASSERT(RTL_NUMBER_OF(DeviceItemPropertyTable) == PhMaxDeviceProperty);
 const ULONG DeviceItemPropertyTableCount = RTL_NUMBER_OF(DeviceItemPropertyTable);
