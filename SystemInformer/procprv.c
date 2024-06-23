@@ -1104,7 +1104,13 @@ VOID PhpFillProcessItem(
 
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
+        PH_FORMAT format;
+
         PhPrintUInt32(ProcessItem->ProcessIdString, HandleToUlong(ProcessItem->ProcessId));
+
+        PhInitFormatIX(&format, HandleToULong(ProcessItem->ProcessId));
+        PhFormatToBuffer(&format, 1, ProcessItem->ProcessIdHexString, sizeof(ProcessItem->ProcessIdHexString), NULL);
+
         //PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
         //PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
     }

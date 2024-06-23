@@ -357,6 +357,7 @@ PPH_THREAD_ITEM PhCreateThreadItem(
     )
 {
     PPH_THREAD_ITEM threadItem;
+    PH_FORMAT format;
 
     threadItem = PhCreateObject(
         PhEmGetObjectSize(EmThreadItemType, sizeof(PH_THREAD_ITEM)),
@@ -366,6 +367,9 @@ PPH_THREAD_ITEM PhCreateThreadItem(
     threadItem->ThreadId = ThreadId;
 
     PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
+
+    PhInitFormatIX(&format, HandleToUlong(ThreadId));
+    PhFormatToBuffer(&format, 1, threadItem->ThreadIdHexString, sizeof(threadItem->ThreadIdHexString), NULL);
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 

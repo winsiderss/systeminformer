@@ -1593,16 +1593,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_TIDHEX:
                 {
-                    PH_FORMAT format;
-                    SIZE_T returnLength;
-
-                    PhInitFormatIX(&format, HandleToUlong(threadItem->ThreadId));
-
-                    if (PhFormatToBuffer(&format, 1, node->ThreadIdHexText, sizeof(node->ThreadIdHexText), &returnLength))
-                    {
-                        getCellText->Text.Buffer = node->ThreadIdHexText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                    }
+                    PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdHexString);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES:
