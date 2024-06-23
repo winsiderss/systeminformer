@@ -2298,6 +2298,8 @@ BEGIN_SORT_FUNCTION(Protection)
     // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX)
     // are placed below processes we are able to query (e.g. 0 and above).
     sortResult = charcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
+    if (sortResult == 0)
+        sortResult = charcmp((CHAR)processItem1->IsSecureProcess, (CHAR)processItem2->IsSecureProcess);
 }
 END_SORT_FUNCTION
 
