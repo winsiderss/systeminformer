@@ -1293,7 +1293,7 @@ NTSTATUS PhpGetModuleCoherency(
             RemoteImageBase,
             RemoteImageSize,
             RemoteImageBaseStatus,
-            IsKernelModule ? KphReadVirtualMemoryUnsafe : NtReadVirtualMemory
+            IsKernelModule ? KphReadVirtualMemoryUnsafe : PhSafeReadVirtualMemory
             );
 
         status = PhpInspectForImageCoherency(ProcessHandle, context, ImageCoherency);

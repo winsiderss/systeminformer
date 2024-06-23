@@ -949,7 +949,7 @@ NTSTATUS PhGetProcessDefaultHeap(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ProcessHeap)),
             &processHeapsPtr32,
@@ -981,7 +981,7 @@ NTSTATUS PhGetProcessDefaultHeap(
         if (!NT_SUCCESS(status))
             return status;
 
-        status = NtReadVirtualMemory(
+        status = PhSafeReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(basicInfo.PebBaseAddress, UFIELD_OFFSET(PEB, ProcessHeap)),
             &processHeapsPtr,
@@ -1015,7 +1015,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //
 //    if (WindowsVersion >= WINDOWS_10_20H1)
 //    {
-//        status = NtReadVirtualMemory(
+//        status = PhSafeReadVirtualMemory(
 //            ProcessHandle,
 //            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0xEA : 0x1A2),
 //            &frontEndHeapType,
@@ -1054,7 +1054,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //
 //    if (WindowsVersion >= WINDOWS_10_20H1)
 //    {
-//        status = NtReadVirtualMemory(
+//        status = PhSafeReadVirtualMemory(
 //            ProcessHandle,
 //            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x1F4 : 0x238),
 //            heapCounters,
@@ -1095,7 +1095,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //
 //    if (WindowsVersion >= WINDOWS_10_20H1)
 //    {
-//        status = NtReadVirtualMemory(
+//        status = PhSafeReadVirtualMemory(
 //            ProcessHandle,
 //            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x80 : 0x80),
 //            heapCounters,
@@ -1131,7 +1131,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //
 //    if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
 //    {
-//        if (NT_SUCCESS(NtReadVirtualMemory(
+//        if (NT_SUCCESS(PhSafeReadVirtualMemory(
 //            ProcessHandle,
 //            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, UFIELD_OFFSET(PEB, NumberOfHeaps)),
 //            &numberOfHeaps,
@@ -1142,8 +1142,8 @@ NTSTATUS PhGetProcessDefaultHeap(
 //            processHeaps = PhAllocateZero(numberOfHeaps * sizeof(PVOID));
 //
 //            if (
-//                NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(basicInfo.PebBaseAddress, UFIELD_OFFSET(PEB, ProcessHeaps)), &processHeapsPtr, sizeof(PVOID), NULL)) &&
-//                NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, processHeapsPtr, processHeaps, numberOfHeaps * sizeof(PVOID), NULL))
+//                NT_SUCCESS(PhSafeReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(basicInfo.PebBaseAddress, UFIELD_OFFSET(PEB, ProcessHeaps)), &processHeapsPtr, sizeof(PVOID), NULL)) &&
+//                NT_SUCCESS(PhSafeReadVirtualMemory(ProcessHandle, processHeapsPtr, processHeaps, numberOfHeaps * sizeof(PVOID), NULL))
 //                )
 //            {
 //                for (ULONG i = 0; i < numberOfHeaps; i++)
@@ -1185,7 +1185,7 @@ NTSTATUS PhGetProcessDefaultHeap(
 //
 //    if (NT_SUCCESS(PhGetProcessPeb32(ProcessHandle, &peb32)) && peb32 != 0)
 //    {
-//        if (NT_SUCCESS(NtReadVirtualMemory(
+//        if (NT_SUCCESS(PhSafeReadVirtualMemory(
 //            ProcessHandle,
 //            PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, NumberOfHeaps)),
 //            &numberOfHeaps,
@@ -1196,8 +1196,8 @@ NTSTATUS PhGetProcessDefaultHeap(
 //            processHeaps32 = PhAllocateZero(numberOfHeaps * sizeof(ULONG));
 //
 //            if (
-//                NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ProcessHeaps)), &processHeapsPtr32, sizeof(ULONG), NULL)) &&
-//                NT_SUCCESS(NtReadVirtualMemory(ProcessHandle, UlongToPtr(processHeapsPtr32), processHeaps32, numberOfHeaps * sizeof(ULONG), NULL))
+//                NT_SUCCESS(PhSafeReadVirtualMemory(ProcessHandle, PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ProcessHeaps)), &processHeapsPtr32, sizeof(ULONG), NULL)) &&
+//                NT_SUCCESS(PhSafeReadVirtualMemory(ProcessHandle, UlongToPtr(processHeapsPtr32), processHeaps32, numberOfHeaps * sizeof(ULONG), NULL))
 //                )
 //            {
 //                for (ULONG i = 0; i < numberOfHeaps; i++)

@@ -769,7 +769,7 @@ NTSTATUS PhLoadRemoteMappedImage(
     _Out_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
     )
 {
-    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, ViewSize, NtReadVirtualMemory, RemoteMappedImage);
+    return PhLoadRemoteMappedImageEx(ProcessHandle, ViewBase, ViewSize, PhSafeReadVirtualMemory, RemoteMappedImage);
 }
 
 NTSTATUS PhLoadRemoteMappedImagePageSize(
@@ -1152,7 +1152,7 @@ NTSTATUS PhGetRemoteMappedImageDebugEntryByType(
     _Out_ PPVOID DataBuffer
     )
 {
-    return PhGetRemoteMappedImageDebugEntryByTypeEx(RemoteMappedImage, Type, NtReadVirtualMemory, DataLength, DataBuffer);
+    return PhGetRemoteMappedImageDebugEntryByTypeEx(RemoteMappedImage, Type, PhSafeReadVirtualMemory, DataLength, DataBuffer);
 }
 
 NTSTATUS PhGetRemoteMappedImageDebugEntryByTypeEx(
@@ -1238,7 +1238,7 @@ NTSTATUS PhGetRemoteMappedImageGuardFlags(
     _Out_ PULONG GuardFlags
     )
 {
-    return PhGetRemoteMappedImageGuardFlagsEx(RemoteMappedImage, NtReadVirtualMemory, GuardFlags);
+    return PhGetRemoteMappedImageGuardFlagsEx(RemoteMappedImage, PhSafeReadVirtualMemory, GuardFlags);
 }
 
 NTSTATUS PhGetRemoteMappedImageGuardFlagsEx(
@@ -5503,7 +5503,7 @@ NTSTATUS PhGetRemoteMappedImageCHPEVersion(
     _Out_ PULONG CHPEVersion
     )
 {
-    return PhGetRemoteMappedImageCHPEVersionEx(RemoteMappedImage, NtReadVirtualMemory, CHPEVersion);
+    return PhGetRemoteMappedImageCHPEVersionEx(RemoteMappedImage, PhSafeReadVirtualMemory, CHPEVersion);
 }
 
 NTSTATUS PhGetRemoteMappedImageCHPEVersionEx(

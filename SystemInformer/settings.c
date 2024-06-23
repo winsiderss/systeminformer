@@ -201,6 +201,7 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(L"PageFileWindowSize", L"@96|500,300");
     PhpAddStringSetting(L"PageFileListViewColumns", L"");
     PhpAddStringSetting(L"PluginManagerTreeListColumns", L"");
+    PhpAddIntegerSetting(L"ProcessMemorySafeRead", L"0"); // bool 1 or 0
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
     PhpAddStringSetting(L"ProcessTreeColumnSetConfig", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");
