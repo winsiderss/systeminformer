@@ -235,7 +235,7 @@ typedef enum _PH_DEVICE_PROPERTY_CLASS
     PhDevicePropertyStoragePartitionNumber,
 
     PhDevicePropertyGpuLuid,
-    PhDevicePropertyGpuPhyId,
+    PhDevicePropertyGpuPhysicalAdapterIndex,
 
     PhMaxDeviceProperty
 } PH_DEVICE_PROPERTY_CLASS, *PPH_DEVICE_PROPERTY_CLASS;
