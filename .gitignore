@@ -45,6 +45,7 @@
 # Visual C++ cache folders
 ipch/
 .vs/
+*/packages/
 
 # Visual Studio profiler
 *.psess
