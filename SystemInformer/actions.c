@@ -6034,7 +6034,8 @@ BOOLEAN PhUiFlushHeapProcesses(
 
         status = PhOpenProcess(
             &processHandle,
-            PROCESS_CREATE_THREAD,
+            PROCESS_CREATE_THREAD | PROCESS_QUERY_LIMITED_INFORMATION |
+            PROCESS_SET_LIMITED_INFORMATION | PROCESS_VM_READ,
             Processes[i]->ProcessId
             );
 
