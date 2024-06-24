@@ -216,6 +216,7 @@ PKPH_OBJECT_TYPE KphGetObjectType(
  */
 _Requires_lock_not_held_(*ObjectRef)
 _Acquires_lock_(*ObjectRef)
+FORCEINLINE
 VOID KphpAtomicAcquireObjectLockShared(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
@@ -251,6 +252,7 @@ VOID KphpAtomicAcquireObjectLockShared(
  */
 _Requires_lock_held_(*ObjectRef)
 _Releases_lock_(*ObjectRef)
+FORCEINLINE
 VOID KphpAtomicReleaseObjectLockShared(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
@@ -271,6 +273,7 @@ VOID KphpAtomicReleaseObjectLockShared(
  */
 _Requires_lock_not_held_(*ObjectRef)
 _Acquires_lock_(*ObjectRef)
+FORCEINLINE
 VOID KphpAtomicAcquireObjectLockExclusive(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
@@ -313,6 +316,7 @@ VOID KphpAtomicAcquireObjectLockExclusive(
  */
 _Requires_lock_held_(*ObjectRef)
 _Releases_lock_(*ObjectRef)
+FORCEINLINE
 VOID KphpAtomicReleaseObjectLockExclusive(
     _Inout_ PKPH_ATOMIC_OBJECT_REF ObjectRef
     )
