@@ -2599,7 +2599,7 @@ BOOLEAN PhUiDebugProcess(
 
     if (PhIsNullOrEmptyString(debuggerCommand))
     {
-        PhShowError(WindowHandle, L"%s", L"Unable to locate the debugger.");
+        PhShowStatus(WindowHandle, L"Unable to locate the debugger.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
         return FALSE;
     }
 

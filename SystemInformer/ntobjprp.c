@@ -644,7 +644,7 @@ VOID PhpShowProcessForMapping(
     }
     else
     {
-        PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+        PhShowStatus(hwndDlg, L"The process does not exist.", STATUS_INVALID_CID, 0);
     }
 }
 
