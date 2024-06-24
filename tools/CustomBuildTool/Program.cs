@@ -131,8 +131,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
                     Environment.Exit(1);
 
-                if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //    Environment.Exit(1);
                 if (!Build.CopyTextFiles(true))
                     Environment.Exit(1);
 
@@ -183,8 +183,8 @@ namespace CustomBuildTool
 
                 if (!Build.ResignFiles())
                     Environment.Exit(1);
-                if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //    Environment.Exit(1);
                 if (!Build.CopyTextFiles(true))
                     Environment.Exit(1);
 
@@ -224,8 +224,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
                     Environment.Exit(1);
 
-                if (!Build.CopyDebugEngineFiles(flags))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(flags))
+                //    Environment.Exit(1);
                 if (!Build.CopyWow64Files(flags)) // required after plugin build (dmex)
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(true))
@@ -246,8 +246,8 @@ namespace CustomBuildTool
                 if (!Build.BuildSolution("plugins\\Plugins.sln", BuildFlags.Release))
                     Environment.Exit(1);
 
-                if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
-                    Environment.Exit(1);
+                //if (!Build.CopyDebugEngineFiles(BuildFlags.Release))
+                //    Environment.Exit(1);
                 if (!Build.CopyWow64Files(BuildFlags.Release))
                     Environment.Exit(1);
                 if (!Build.CopyTextFiles(true))
