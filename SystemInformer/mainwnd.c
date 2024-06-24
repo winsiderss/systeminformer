@@ -1754,6 +1754,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_MISCELLANEOUS_FLUSHHEAPS:
+        {
+            PPH_PROCESS_ITEM* processes;
+            ULONG numberOfProcesses;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            PhReferenceObjects(processes, numberOfProcesses);
+            PhUiFlushHeapProcesses(WindowHandle, processes, numberOfProcesses);
+            PhDereferenceObjects(processes, numberOfProcesses);
+            PhFree(processes);
+        }
+        break;
     case ID_PRIORITY_REALTIME:
     case ID_PRIORITY_HIGH:
     case ID_PRIORITY_ABOVENORMAL:
