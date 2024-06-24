@@ -288,27 +288,45 @@ VOID PhLoadSettingsProcessTreeUpdateMask(
     VOID
     )
 {
+#ifdef PH_TREELIST_COLUMN_ARRAY
     PH_TREENEW_COLUMN column;
 
     if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_USERNAME, &column) && column.Visible)
+        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+    else
+        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+#else
+    ULONG columnVisible[4] =
+    {
+        PHPRTLC_USERNAME,
+        PHPRTLC_CFGUARD,
+        PHPRTLC_CET,
+        PHPRTLC_CPUAVERAGE
+    };
+
+    if (!TreeNew_GetVisibleColumnArray(ProcessTreeListHandle, RTL_NUMBER_OF(columnVisible), columnVisible))
+        return;
+
+    if (columnVisible[0])
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME);
 
-    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CFGUARD, &column) && column.Visible)
+    if (columnVisible[1])
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CFGUARD);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CFGUARD);
 
-    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CET, &column) && column.Visible)
+    if (columnVisible[2])
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CET);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CET);
 
-    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CPUAVERAGE, &column) && column.Visible)
+    if (columnVisible[3])
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+#endif
 
     PhInitializeProcessTreeColumnHeaderCache();
 }
