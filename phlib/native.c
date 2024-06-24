@@ -6797,6 +6797,7 @@ NTSTATUS PhSetProcessPriorityBoost(
         sizeof(ULONG)
         );
 
+    if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
             ProcessHandle,
@@ -7084,7 +7085,6 @@ NTSTATUS PhGetKernelFileNameEx(
     if (status == STATUS_SUCCESS || modules->NumberOfModules < 1)
         return STATUS_UNSUCCESSFUL;
 
-    if (WindowsVersion >= WINDOWS_10)
     if (FileName)
     {
         if (WindowsVersion >= WINDOWS_10)
