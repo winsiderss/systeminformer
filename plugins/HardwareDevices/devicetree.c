@@ -50,6 +50,7 @@ static ULONG DeviceHighlightingDuration = 0;
 static PPH_OBJECT_TYPE DeviceTreeType = NULL;
 static BOOLEAN DeviceTabCreated = FALSE;
 static HWND DeviceTreeHandle = NULL;
+static ULONG DeviceTreeVisibleColumns[PhMaxDeviceProperty] = { 0 };
 static PH_CALLBACK_REGISTRATION DeviceNotifyRegistration = { 0 };
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration = { 0 };
 static PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration = { 0 };
@@ -413,6 +414,9 @@ BOOLEAN NTAPI DeviceTreeFilterCallback(
     {
         PPH_DEVICE_PROPERTY prop;
 
+        if (!DeviceTreeVisibleColumns[i])
+            continue;
+
         prop = PhGetDeviceProperty(node->DeviceItem, i);
 
         if (PhIsNullOrEmptyString(prop->AsString))
@@ -567,6 +571,20 @@ VOID DeviceTreeGetSelectedDeviceItems(
 
     *NumberOfDevices = (ULONG)array.Count;
     *Devices = PhFinalArrayItems(&array);
+}
+
+VOID DeviceTreeUpdateVisibleColumns(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < PhMaxDeviceProperty; i++)
+        DeviceTreeVisibleColumns[i] = i;
+
+    TreeNew_GetVisibleColumnArray(
+        DeviceTreeHandle,
+        PhMaxDeviceProperty,
+        DeviceTreeVisibleColumns
+        );
 }
 
 BOOLEAN NTAPI DeviceTreeCallback(
@@ -966,6 +984,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 );
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
+            DeviceTreeUpdateVisibleColumns();
         }
         return TRUE;
     }
@@ -1313,6 +1332,8 @@ VOID DevicesTreeInitialize(
     TreeNew_SetRedraw(DeviceTreeHandle, TRUE);
 
     TreeNew_SetTriState(DeviceTreeHandle, TRUE);
+
+    DeviceTreeUpdateVisibleColumns();
 
     if (PhGetIntegerSetting(L"TreeListCustomRowSize"))
     {
