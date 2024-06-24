@@ -2083,6 +2083,22 @@ ULONG_PTR PhTnpOnUserMessage(
             return PhTnpCopyColumn(Context, index, (PPH_TREENEW_COLUMN)LParam);
         }
         break;
+    case TNM_GETVISIBLECOLUMNARRAY:
+        {
+            ULONG count = (ULONG)WParam;
+            PULONG visible = (PULONG)LParam;
+
+            for (ULONG i = 0; i < count; i++)
+            {
+                if (visible[i] >= Context->AllocatedColumns)
+                    return FALSE;
+
+                visible[i] = Context->Columns[visible[i]]->Visible;
+            }
+
+            return TRUE;
+        }
+        break;
     }
 
     return 0;

@@ -434,7 +434,8 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 #define TNM_SETCOLUMNTEXTCACHE (WM_USER + 48)
 #define TNM_ENSUREVISIBLEINDEX (WM_USER + 49)
 #define TNM_GETVISIBLECOLUMN (WM_USER + 50)
-#define TNM_LAST (WM_USER + 51)
+#define TNM_GETVISIBLECOLUMNARRAY (WM_USER + 51)
+#define TNM_LAST (WM_USER + 52)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -579,6 +580,9 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 
 #define TreeNew_GetVisibleColumn(hWnd, Index, Column) \
     SendMessage((hWnd), TNM_GETVISIBLECOLUMN, (WPARAM)(Index), (LPARAM)(Column))
+
+#define TreeNew_GetVisibleColumnArray(hWnd, Count, ColumnArray) \
+    ((BOOLEAN)SendMessage((hWnd), TNM_GETVISIBLECOLUMNARRAY, (WPARAM)(Count), (LPARAM)(ColumnArray)))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {
