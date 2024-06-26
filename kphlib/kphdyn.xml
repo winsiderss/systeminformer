@@ -129,7 +129,7 @@ dt nt!_EPROCESS SectionObject
         <field arch="arm64" value="0x0048" name="MmControlAreaLock"/>
         <field arch="arm64" value="0x0298" name="EpSectionObject"/>
     </data>
-    <data min="10.0.22000.556" max="10.0.22621.3733">
+    <data min="10.0.22000.556" max="10.0.22621.3810">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
@@ -321,7 +321,7 @@ dt nt!_EPROCESS SectionObject
         <field value="0x0518" name="EpSectionObject"/>
     </data>
     <!-- Windows 10 -->
-    <data min="10.0.19041.1586" max="10.0.19041.4522">
+    <data min="10.0.19041.1586" max="10.0.19041.4597">
         <!-- amd64 -->
         <field arch="amd64" value="0x0028" name="EgeGuid"/>
         <field arch="amd64" value="0x0570" name="EpObjectTable"/>
