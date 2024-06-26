@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2022
+ *     dmex    2016-2024
  *
  */
 
@@ -65,7 +65,7 @@ typedef struct _PROCESS_EXTENSION
     LIST_ENTRY ListEntry;
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING Comment;
-    PPH_STRING CurrentAffinityString;
+    PPH_STRING Affinity;
     union
     {
         BOOLEAN Flags;
@@ -78,7 +78,7 @@ typedef struct _PROCESS_EXTENSION
             BOOLEAN SkipIoPriority : 1;
             BOOLEAN SkipBoostPriority : 1;
             BOOLEAN SkipEfficiency : 1;
-            BOOLEAN Spare : 1;
+            BOOLEAN ValidAffinity : 1;
         };
     };
 } PROCESS_EXTENSION, *PPROCESS_EXTENSION;
@@ -118,6 +118,10 @@ VOID InvalidateProcessComments(
     );
 
 VOID InvalidateServiceComments(
+    VOID
+    );
+
+VOID InvalidateProcessAffinity(
     VOID
     );
 

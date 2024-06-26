@@ -1230,6 +1230,7 @@ VOID NTAPI MenuItemCallback(
                 if (changed)
                 {
                     SaveDb();
+                    InvalidateProcessAffinity();
                 }
             }
         }
@@ -1285,6 +1286,7 @@ VOID NTAPI MenuItemCallback(
 
             UnlockDb();
             SaveDb();
+            InvalidateProcessAffinity();
         }
         break;
     case PROCESS_AFFINITY_SAVE_FOR_THIS_COMMAND_LINE_ID:
@@ -1340,6 +1342,7 @@ VOID NTAPI MenuItemCallback(
 
                 UnlockDb();
                 SaveDb();
+                InvalidateProcessAffinity();
             }
         }
         break;
@@ -1892,6 +1895,65 @@ VOID UpdateServiceComment(
     }
 }
 
+VOID UpdateProcessAffinity(
+    _In_ PPH_PROCESS_NODE Node,
+    _In_ PPROCESS_EXTENSION Extension
+    )
+{
+    if (!Extension->ValidAffinity)
+    {
+        KAFFINITY affinityMask;
+
+        if (Node->ProcessItem->QueryHandle && NT_SUCCESS(GetProcessAffinity(Node->ProcessItem->QueryHandle, &affinityMask)))
+        {
+            PH_FORMAT format[1];
+            SIZE_T returnLength;
+            WCHAR formatBuffer[0x80];
+
+            PhInitFormatIX(&format[0], affinityMask);
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+            {
+                PhMoveReference(&Extension->Affinity, PhCreateStringEx(formatBuffer, returnLength - sizeof(UNICODE_NULL)));
+            }
+            else
+            {
+                PhClearReference(&Extension->Affinity);
+            }
+        }
+        else
+        {
+            PhClearReference(&Extension->Affinity);
+        }
+
+        Extension->ValidAffinity = TRUE;
+    }
+}
+
+VOID InvalidateProcessAffinity(
+    VOID
+    )
+{
+    PLIST_ENTRY listEntry;
+
+    PhAcquireQueuedLockExclusive(&ProcessListLock);
+
+    listEntry = ProcessListHead.Flink;
+
+    while (listEntry != &ProcessListHead)
+    {
+        PPROCESS_EXTENSION extension;
+
+        extension = CONTAINING_RECORD(listEntry, PROCESS_EXTENSION, ListEntry);
+
+        extension->ValidAffinity = FALSE;
+
+        listEntry = listEntry->Flink;
+    }
+
+    PhReleaseQueuedLockExclusive(&ProcessListLock);
+}
+
 VOID TreeNewMessageCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1927,21 +1989,11 @@ VOID TreeNewMessageCallback(
                     break;
                 case AFFINITY_COLUMN_ID:
                     {
-                        KAFFINITY affinityMask;
-                        PPH_PROCESS_ITEM processItem = node->ProcessItem;
                         PPROCESS_EXTENSION extension;
-                        extension = GetProcessObjectExtension(node->ProcessItem);
-                        if (processItem->QueryHandle && NT_SUCCESS(GetProcessAffinity(processItem->QueryHandle, &affinityMask)))
-                        {
-                            PhMoveReference(&extension->CurrentAffinityString, PhFormatString(
-                                L"0x%lX",
-                                affinityMask));
-                            getCellText->Text = PhGetStringRef(extension->CurrentAffinityString);
 
-                        }else{
-                            PhInitializeStringRef(&getCellText->Text, L"");
-                        }
-                        
+                        extension = GetProcessObjectExtension(node->ProcessItem);
+                        UpdateProcessAffinity(node, extension);
+                        getCellText->Text = PhGetStringRef(extension->Affinity);
                     }
                     break;
                 }
@@ -2267,7 +2319,10 @@ static LONG NTAPI ProcessAffinitySortFunction(
     PPROCESS_EXTENSION extension1 = GetProcessObjectExtension(node1->ProcessItem);
     PPROCESS_EXTENSION extension2 = GetProcessObjectExtension(node2->ProcessItem);
 
-    return PhCompareStringWithNull(extension1->CurrentAffinityString, extension2->CurrentAffinityString, TRUE);
+    UpdateProcessAffinity(node1, extension1);
+    UpdateProcessAffinity(node2, extension2);
+
+    return PhCompareStringWithNull(extension1->Affinity, extension2->Affinity, TRUE);
 }
 
 VOID ProcessTreeNewInitializingCallback(
@@ -2286,13 +2341,11 @@ VOID ProcessTreeNewInitializingCallback(
     column.Width = 120;
     column.Alignment = PH_ALIGN_LEFT;
 
-
     memset(&affinity, 0, sizeof(PH_TREENEW_COLUMN));
     affinity.Text = L"Affinity";
     affinity.Width = 120;
     affinity.Alignment = PH_ALIGN_LEFT;
-    
-    
+        
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ProcessCommentSortFunction);
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &affinity, AFFINITY_COLUMN_ID, NULL, ProcessAffinitySortFunction);
 }
@@ -2408,6 +2461,7 @@ VOID ProcessModifiedCallback(
 
     extension = GetProcessObjectExtension(processItem);
     extension->Valid = FALSE;
+    extension->ValidAffinity = FALSE;
 }
 
 VOID ProcessesUpdatedCallback(
@@ -2618,7 +2672,8 @@ VOID ProcessItemDeleteCallback(
     PPROCESS_EXTENSION extension = Extension;
 
     PhClearReference(&extension->Comment);
-    PhClearReference(&extension->CurrentAffinityString);
+    PhClearReference(&extension->Affinity);
+
     PhAcquireQueuedLockExclusive(&ProcessListLock);
     RemoveEntryList(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ProcessListLock);
