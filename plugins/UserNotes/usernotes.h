@@ -58,12 +58,14 @@ typedef enum _USERNOTES_COMMAND_ID
 } USERNOTES_COMMAND_ID;
 
 #define COMMENT_COLUMN_ID 1
+#define AFFINITY_COLUMN_ID 2
 
 typedef struct _PROCESS_EXTENSION
 {
     LIST_ENTRY ListEntry;
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING Comment;
+    PPH_STRING CurrentAffinityString;
     union
     {
         BOOLEAN Flags;

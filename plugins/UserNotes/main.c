@@ -1925,7 +1925,27 @@ VOID TreeNewMessageCallback(
                         getCellText->Text = PhGetStringRef(extension->Comment);
                     }
                     break;
+                case AFFINITY_COLUMN_ID:
+                    {
+                        KAFFINITY affinityMask;
+                        PPH_PROCESS_ITEM processItem = node->ProcessItem;
+                        PPROCESS_EXTENSION extension;
+                        extension = GetProcessObjectExtension(node->ProcessItem);
+                        if (processItem->QueryHandle && NT_SUCCESS(GetProcessAffinity(processItem->QueryHandle, &affinityMask)))
+                        {
+                            PhMoveReference(&extension->CurrentAffinityString, PhFormatString(
+                                L"0x%lX",
+                                affinityMask));
+                            getCellText->Text = PhGetStringRef(extension->CurrentAffinityString);
+
+                        }else{
+                            PhInitializeStringRef(&getCellText->Text, L"");
+                        }
+                        
+                    }
+                    break;
                 }
+    
             }
             else if (message->TreeNewHandle == ServiceTreeNewHandle)
             {
@@ -2234,6 +2254,22 @@ static LONG NTAPI ProcessCommentSortFunction(
     return PhCompareStringWithNull(extension1->Comment, extension2->Comment, TRUE);
 }
 
+static LONG NTAPI ProcessAffinitySortFunction(
+    _In_ PVOID Node1,
+    _In_ PVOID Node2,
+    _In_ ULONG SubId,
+    _In_ PH_SORT_ORDER SortOrder,
+    _In_ PVOID Context
+    )
+{
+    PPH_PROCESS_NODE node1 = Node1;
+    PPH_PROCESS_NODE node2 = Node2;
+    PPROCESS_EXTENSION extension1 = GetProcessObjectExtension(node1->ProcessItem);
+    PPROCESS_EXTENSION extension2 = GetProcessObjectExtension(node2->ProcessItem);
+
+    return PhCompareStringWithNull(extension1->CurrentAffinityString, extension2->CurrentAffinityString, TRUE);
+}
+
 VOID ProcessTreeNewInitializingCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -2241,6 +2277,7 @@ VOID ProcessTreeNewInitializingCallback(
 {
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
+    PH_TREENEW_COLUMN affinity;
 
     ProcessTreeNewHandle = info->TreeNewHandle;
 
@@ -2249,7 +2286,15 @@ VOID ProcessTreeNewInitializingCallback(
     column.Width = 120;
     column.Alignment = PH_ALIGN_LEFT;
 
+
+    memset(&affinity, 0, sizeof(PH_TREENEW_COLUMN));
+    affinity.Text = L"Affinity";
+    affinity.Width = 120;
+    affinity.Alignment = PH_ALIGN_LEFT;
+    
+    
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COMMENT_COLUMN_ID, NULL, ProcessCommentSortFunction);
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &affinity, AFFINITY_COLUMN_ID, NULL, ProcessAffinitySortFunction);
 }
 
 VOID GetProcessHighlightingColorCallback(
@@ -2573,6 +2618,7 @@ VOID ProcessItemDeleteCallback(
     PPROCESS_EXTENSION extension = Extension;
 
     PhClearReference(&extension->Comment);
+    PhClearReference(&extension->CurrentAffinityString);
     PhAcquireQueuedLockExclusive(&ProcessListLock);
     RemoveEntryList(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ProcessListLock);
