@@ -24,12 +24,13 @@
 #include <shlobj.h>
 
 #include "resource.h"
-#include "db.h"
 
 #define PLUGIN_NAME L"ProcessHacker.OnlineChecks"
 #define SETTING_NAME_VIRUSTOTAL_SCAN_ENABLED (PLUGIN_NAME L".EnableVirusTotalScanning")
 #define SETTING_NAME_VIRUSTOTAL_HIGHLIGHT_DETECTIONS (PLUGIN_NAME L".VirusTotalHighlightDetection")
 #define SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION (PLUGIN_NAME L".VirusTotalDefautAction")
+#define SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT (PLUGIN_NAME L".VirusTotalDefautPAT")
+#define SETTING_NAME_HYBRIDANAL_DEFAULT_PAT (PLUGIN_NAME L".HybridAnalysisDefautPAT")
 
 #define UM_UPLOAD (WM_APP + 1)
 #define UM_EXISTS (WM_APP + 2)
@@ -111,7 +112,7 @@ typedef struct _UPLOAD_CONTEXT
     HWND DialogHandle;
     WNDPROC DialogWindowProc;
 
-    ITaskbarList3* TaskbarListClass;
+    HANDLE TaskbarListClass;
 
     PPH_STRING FileSize;
     PPH_STRING ErrorString;
@@ -195,6 +196,7 @@ VOID VirusTotalShowErrorDialog(
 
 #define MENUITEM_JOTTI_UPLOAD 120
 #define MENUITEM_JOTTI_UPLOAD_SERVICE 121
+#define MENUITEM_JOTTI_UPLOAD_FILE 122
 
 VOID UploadToOnlineService(
     _In_ PPH_STRING FileName,
@@ -213,36 +215,11 @@ typedef enum _NETWORK_COLUMN_ID
     COLUMN_ID_VIUSTOTAL_SERVICE = 3
 } NETWORK_COLUMN_ID;
 
-_Success_(return >= 0)
 NTSTATUS HashFileAndResetPosition(
     _In_ HANDLE FileHandle,
     _In_ PLARGE_INTEGER FileSize,
     _In_ PH_HASH_ALGORITHM Algorithm,
     _Out_ PPH_STRING *HashString
-    );
-
-typedef struct _VIRUSTOTAL_API_RESULT
-{
-    BOOLEAN Found;
-    INT64 Positives;
-    INT64 Total;
-    PPH_STRING FileHash;
-} VIRUSTOTAL_API_RESULT, *PVIRUSTOTAL_API_RESULT;
-
-extern PPH_LIST VirusTotalList;
-extern BOOLEAN VirusTotalScanningEnabled;
-
-PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
-    _In_ PPH_STRING FileName,
-    _In_ PPROCESS_EXTENSION Extension
-    );
-
-PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalGetCachedResult(
-    _In_ PPH_STRING FileName
-    );
-
-PPH_BYTES VirusTotalGetCachedDbHash(
-    _In_ PPH_STRINGREF CachedHash
     );
 
 typedef struct _VT_SYSINT_FILE_REPORT_RESULT
@@ -312,20 +289,6 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
 
 VOID VirusTotalFreeFileReScan(
     _In_ PVIRUSTOTAL_API_RESPONSE FileReScan
-    );
-
-VOID InitializeVirusTotalProcessMonitor(
-    VOID
-    );
-
-VOID CleanupVirusTotalProcessMonitor(
-    VOID
-    );
-
-NTSTATUS QueryServiceFileName(
-    _In_ PPH_STRINGREF ServiceName,
-    _Out_ PPH_STRING *ServiceFileName,
-    _Out_ PPH_STRING *ServiceBinaryPath
     );
 
 #endif
