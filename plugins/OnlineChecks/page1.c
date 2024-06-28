@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016
+ *     dmex    2016-2024
  *
  */
 
@@ -29,7 +29,7 @@ HRESULT CALLBACK TaskDialogProcessingCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             if (context->TaskbarListClass)
-                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_INDETERMINATE);
+                PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_INDETERMINATE);
 
             PhReferenceObject(context);
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), UploadCheckThreadStart, context);
