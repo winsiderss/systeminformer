@@ -144,11 +144,6 @@ BOOLEAN PhSipMemorySectionCallback(
                         }
                     }
 
-                    for (i = 0; i < drawInfo->LineDataCount; i++)
-                    {
-                        Section->GraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
-                    }
-
                     if (PhPerfInformation.CommitLimit != 0)
                     {
                         // Scale the data.
