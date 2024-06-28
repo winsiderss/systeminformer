@@ -2126,6 +2126,8 @@ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
     {
         ULONG i;
 
+        PhInitializeSListHead(&PhpCallWithTimeoutThreadListHead);
+
         for (i = 0; i < PH_QUERY_HACK_MAX_THREADS; i++)
         {
             threadContext = PhAllocate(sizeof(PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT));
