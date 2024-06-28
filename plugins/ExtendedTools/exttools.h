@@ -54,6 +54,7 @@ extern HWND NetworkTreeNewHandle;
 
 EXTERN_C ULONG EtWindowsVersion;
 EXTERN_C BOOLEAN EtIsExecutingInWow64;
+EXTERN_C BOOLEAN EtGpuFahrenheitEnabled;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
 extern USHORT EtMaxPrecisionUnit;

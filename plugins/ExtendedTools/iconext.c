@@ -1232,7 +1232,7 @@ VOID EtpGpuTemperatureIconUpdateCallback(
     // Text
 
     PhInitFormatS(&format[0], L"GPU temperature: ");
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
+    if (EtGpuFahrenheitEnabled)
     {
         PhInitFormatF(&format[1], (EtGpuTemperature * 1.8 + 32), 1);
         PhInitFormatS(&format[2], L"\u00b0F");
@@ -1282,14 +1282,10 @@ VOID EtpGpuTemperatureTextIconUpdateCallback(
 
     Icon->Pointers->BeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
 
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
-    {
+    if (EtGpuFahrenheitEnabled)
         PhInitFormatF(&format[0], (EtGpuTemperature * 1.8 + 32), 0);
-    }
     else
-    {
         PhInitFormatF(&format[0], EtGpuTemperature, 0);
-    }
     text = PhFormat(format, 1, 10);
 
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
@@ -1309,7 +1305,7 @@ VOID EtpGpuTemperatureTextIconUpdateCallback(
     // Text
 
     PhInitFormatS(&format[0], L"GPU temperature: ");
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
+    if (EtGpuFahrenheitEnabled)
     {
         PhInitFormatF(&format[1], (EtGpuTemperature * 1.8 + 32), 1);
         PhInitFormatS(&format[2], L"\u00b0F");

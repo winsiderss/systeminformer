@@ -253,7 +253,7 @@ VOID EtpQueryAdapterPerfInfo(
         else
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
 
-        if (PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT))
+        if (EtGpuFahrenheitEnabled)
         {
             ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
             FLOAT gpuFahrenheitTemp = (FLOAT)(gpuCurrentTemp * 1.8 + 32);
