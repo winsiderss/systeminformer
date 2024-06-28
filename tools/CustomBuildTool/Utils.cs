@@ -686,6 +686,11 @@ namespace CustomBuildTool
 
             return EnvironmentBlock;
         }
+
+        public static string GetBuildLogPath(string Solution, string Platform, BuildFlags Flags)
+        {
+            return $"{Path.GetFileNameWithoutExtension(Solution)}{(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")}{Platform}";
+        }
     }
 
     public class BuildUpdateRequest
