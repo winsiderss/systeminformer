@@ -838,6 +838,7 @@ namespace CustomBuildTool
             commandLine.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
             commandLine.Append($"/p:ExternalCompilerOptions=\"{compilerOptions.ToString()}\" ");
             commandLine.Append($"/p:ExternalLinkerOptions=\"{linkerOptions.ToString()}\" ");
+            commandLine.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
             commandLine.Append(Solution);
 
             return commandLine.ToString();
