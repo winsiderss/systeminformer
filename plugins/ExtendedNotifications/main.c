@@ -18,8 +18,8 @@
 #include "resource.h"
 
 VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI ShowOptionsCallback(
