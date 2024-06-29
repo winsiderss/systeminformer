@@ -1425,7 +1425,7 @@ VOID KphpApplyImageProtections(
     fileObject = NULL;
     fileName = NULL;
 
-    if (FileObject->WriteAccess || FileObject->SharedWrite)
+    if (FileObject->WriteAccess)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       PROTECTION,
