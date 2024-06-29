@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2018-2024
+ *
+ */
+
 #ifndef _PH_PHNATINL_H
 #define _PH_PHNATINL_H
 
@@ -599,6 +611,7 @@ PhGetProcessIsCFGuardEnabled(
     PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
 
     policyInfo.Policy = ProcessControlFlowGuardPolicy;
+    policyInfo.ControlFlowGuardPolicy.Flags = 0;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -628,6 +641,7 @@ PhGetProcessIsXFGuardEnabled(
     PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
 
     policyInfo.Policy = ProcessControlFlowGuardPolicy;
+    policyInfo.ControlFlowGuardPolicy.Flags = 0;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -737,6 +751,26 @@ PhGetProcessAppMemoryInformation(
     }
 
     return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetProcessMitigationPolicyInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_MITIGATION_POLICY Policy,
+    _Out_ PPROCESS_MITIGATION_POLICY_INFORMATION MitigationPolicy
+    )
+{
+    memset(MitigationPolicy, 0, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+    MitigationPolicy->Policy = Policy;
+
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessMitigationPolicy,
+        MitigationPolicy,
+        sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
+        NULL
+        );
 }
 
 FORCEINLINE

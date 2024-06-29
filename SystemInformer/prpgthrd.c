@@ -344,6 +344,12 @@ BOOLEAN PhpThreadTreeFilterCallback(
             return TRUE;
     }
 
+    if (threadItem->ThreadIdHexString[0])
+    {
+        if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadItem->ThreadIdHexString))
+            return TRUE;
+    }
+
     if (threadItem->LxssThreadIdString[0])
     {
         if (PhSearchControlMatchLongHintZ(Context->SearchMatchHandle, threadItem->LxssThreadIdString))

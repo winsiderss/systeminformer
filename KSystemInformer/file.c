@@ -121,7 +121,7 @@ NTSTATUS KphQueryInformationFile(
     {
         __try
         {
-            ProbeForWrite(FileInformation, FileInformationLength, 1);
+            ProbeOutputBytes(FileInformation, FileInformationLength);
             ProbeOutputType(IoStatusBlock, IO_STATUS_BLOCK);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -271,7 +271,7 @@ NTSTATUS KphQueryVolumeInformationFile(
     {
         __try
         {
-            ProbeForWrite(FsInformation, FsInformationLength, 1);
+            ProbeOutputBytes(FsInformation, FsInformationLength);
             ProbeOutputType(IoStatusBlock, IO_STATUS_BLOCK);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)

@@ -328,28 +328,23 @@ VOID PhLoadSymbolsThreadProvider(
     }
     else
     {
+        PPH_STRING fileName;
+        PVOID imageBase;
+        ULONG imageSize;
+
         // System Idle Process has one thread for each CPU, each having a start address at
         // KiIdleLoop. We need to load symbols for the kernel.
 
-        PRTL_PROCESS_MODULES kernelModules;
-
-        if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
+        if (NT_SUCCESS(PhGetKernelFileNameEx(&fileName, &imageBase, &imageSize)))
         {
-            if (kernelModules->NumberOfModules > 0)
-            {
-                PPH_STRING fileName = PhConvertUtf8ToUtf16(kernelModules->Modules[0].FullPathName);
+            PhLoadModuleSymbolProvider(
+                ThreadProvider->SymbolProvider,
+                fileName,
+                (ULONG64)imageBase,
+                imageSize
+                );
 
-                PhLoadModuleSymbolProvider(
-                    ThreadProvider->SymbolProvider,
-                    fileName,
-                    (ULONG64)kernelModules->Modules[0].ImageBase,
-                    kernelModules->Modules[0].ImageSize
-                    );
-
-                PhDereferenceObject(fileName);
-            }
-
-            PhFree(kernelModules);
+            PhDereferenceObject(fileName);
         }
     }
 
@@ -371,6 +366,7 @@ PPH_THREAD_ITEM PhCreateThreadItem(
     threadItem->ThreadId = ThreadId;
 
     PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
+    PhPrintUInt32IX(threadItem->ThreadIdHexString, HandleToUlong(ThreadId));
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 
@@ -968,14 +964,12 @@ VOID PhpThreadProviderUpdate(
             // Is it a GUI thread?
             if (threadItem->ThreadId)
             {
-                GUITHREADINFO info = { sizeof(GUITHREADINFO) };
-
-                threadItem->IsGuiThread = !!GetGUIThreadInfo(HandleToUlong(threadItem->ThreadId), &info);
+                threadItem->IsGuiThread = PhGetThreadWin32Thread(threadItem->ThreadId);
             }
 
             if (WindowsVersion >= WINDOWS_10_22H2 && threadItem->ThreadHandle)
             {
-                if (KphLevel() >= KphLevelMed) // threadItem->IsSubsystemProcess
+                if (KsiLevel() >= KphLevelMed) // threadItem->IsSubsystemProcess
                 {
                     ULONG lxssThreadId;
 
@@ -1214,7 +1208,7 @@ VOID PhpThreadProviderUpdate(
                     modified = TRUE;
             }
 
-            if (!threadItem->ThreadHandle || KphLevel() < KphLevelMed ||
+            if (!threadItem->ThreadHandle || KsiLevel() < KphLevelMed ||
                 !NT_SUCCESS(KphQueryInformationThread(
                     threadItem->ThreadHandle,
                     KphThreadIoCounters,

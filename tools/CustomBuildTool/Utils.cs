@@ -13,6 +13,7 @@ namespace CustomBuildTool
 {
     public static class Utils
     {
+        private static Dictionary<string, string> EnvironmentBlock = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
         private static string GitFilePath;
         private static string VsWhereFilePath;
@@ -656,6 +657,39 @@ namespace CustomBuildTool
             value = Path.GetFullPath(value);
 
             return value;
+        }
+
+        public static Dictionary<string, string> GetSystemEnvironmentBlock()
+        {
+            if (EnvironmentBlock.Count == 0)
+            {
+                if (NativeMethods.CreateEnvironmentBlock(out IntPtr block, IntPtr.Zero, false))
+                {
+                    IntPtr offset = block;
+
+                    while (offset != IntPtr.Zero)
+                    {
+                        string variable = Marshal.PtrToStringUni(offset);
+
+                        if (string.IsNullOrEmpty(variable))
+                            break;
+
+                        string[] parts = variable.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        EnvironmentBlock.Add(parts[0], parts[1]);
+
+                        offset = new IntPtr(offset.ToInt64() + (variable.Length + 1) * sizeof(char));
+                    }
+
+                    NativeMethods.DestroyEnvironmentBlock(block);
+                }
+            }
+
+            return EnvironmentBlock;
+        }
+
+        public static string GetBuildLogPath(string Solution, string Platform, BuildFlags Flags)
+        {
+            return $"{Path.GetFileNameWithoutExtension(Solution)}{(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")}{Platform}";
         }
     }
 

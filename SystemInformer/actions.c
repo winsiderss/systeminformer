@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2023
+ *     dmex    2017-2024
  *
  */
 
@@ -24,7 +24,6 @@
 #include <kphuser.h>
 #include <ksisup.h>
 #include <mapldr.h>
-#include <secedit.h>
 #include <secwmi.h>
 #include <settings.h>
 #include <svcsup.h>
@@ -48,7 +47,6 @@ static PH_STRINGREF DangerousProcesses[] =
     PH_STRINGREF_INIT(L"smss.exe"), PH_STRINGREF_INIT(L"wininit.exe"), PH_STRINGREF_INIT(L"winlogon.exe")
 };
 
-static PPH_STRING DebuggerCommand = NULL;
 static volatile LONG PhSvcReferenceCount = 0;
 static PH_PHSVC_MODE PhSvcCurrentMode;
 static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
@@ -129,35 +127,21 @@ BOOLEAN PhpShowElevatePrompt(
  * Shows an error, prompts for elevation, and executes a command.
  *
  * \param WindowHandle The window to display user interface components on.
- * \param Message A message describing the operation that failed.
- * \param Status A NTSTATUS value.
- * \param Command The arguments to pass to the new instance of
- * the application, if required.
- * \param Success A variable which receives TRUE if the elevated
+ * \param Connected A variable which receives TRUE if the elevated
  * action succeeded or FALSE if the action failed.
  *
  * \return TRUE if the user was prompted for elevation, otherwise
  * FALSE, in which case you need to show your own error message.
  */
 _Success_(return)
-BOOLEAN PhpShowErrorAndElevateAction(
+BOOLEAN PhpElevationLevelAndConnectToPhSvc(
     _In_ HWND WindowHandle,
-    _In_ PWSTR Message,
-    _In_ NTSTATUS Status,
-    _In_ PWSTR Command,
-    _Out_opt_ PBOOLEAN Success
+    _Out_opt_ PBOOLEAN Connected
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PH_ACTION_ELEVATION_LEVEL elevationLevel;
-    INT button = IDNO;
 
-    if (!(
-        Status == STATUS_ACCESS_DENIED ||
-        Status == STATUS_PRIVILEGE_NOT_HELD ||
-        (NT_NTWIN32(Status) && WIN32_FROM_NTSTATUS(Status) == ERROR_ACCESS_DENIED)
-        ))
-        return FALSE;
+    *Connected = FALSE;
 
     if (PhGetOwnTokenAttributes().Elevated)
         return FALSE;
@@ -167,51 +151,23 @@ BOOLEAN PhpShowErrorAndElevateAction(
     if (elevationLevel == NeverElevateAction)
         return FALSE;
 
-    if (elevationLevel == PromptElevateAction)
+    // Try to connect now so we can avoid prompting the user.
+    if (PhUiConnectToPhSvc(WindowHandle, TRUE))
     {
-        if (!PhpShowElevatePrompt(WindowHandle, Message, NULL, &button))
-            return FALSE;
+        *Connected = TRUE;
+        return TRUE;
     }
 
-    if (elevationLevel == AlwaysElevateAction || button == IDYES)
+    if (
+        elevationLevel == PromptElevateAction ||
+        elevationLevel == AlwaysElevateAction
+        )
     {
-        HANDLE processHandle;
-        LARGE_INTEGER timeout;
-        PROCESS_BASIC_INFORMATION basicInfo;
-
-        status = PhShellProcessHacker(
-            WindowHandle,
-            Command,
-            SW_SHOW,
-            PH_SHELL_EXECUTE_ADMIN,
-            PH_SHELL_APP_PROPAGATE_PARAMETERS,
-            0,
-            &processHandle
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
-            status = NtWaitForSingleObject(processHandle, FALSE, &timeout);
-
-            if (
-                status == STATUS_WAIT_0 &&
-                NT_SUCCESS(status = PhGetProcessBasicInformation(processHandle, &basicInfo))
-                )
-            {
-                status = basicInfo.ExitStatus;
-            }
-
-            NtClose(processHandle);
-        }
+        *Connected = PhUiConnectToPhSvc(WindowHandle, FALSE);
+        return TRUE;
     }
 
-    if (Success)
-        *Success = NT_SUCCESS(status);
-    if (!NT_SUCCESS(status))
-        PhShowStatus(WindowHandle, Message, status, 0);
-
-    return TRUE;
+    return FALSE;
 }
 
 /**
@@ -241,11 +197,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
 
     *Connected = FALSE;
 
-    if (!(
-        Status == STATUS_ACCESS_DENIED ||
-        Status == STATUS_PRIVILEGE_NOT_HELD ||
-        (NT_NTWIN32(Status) && WIN32_FROM_NTSTATUS(Status) == ERROR_ACCESS_DENIED)
-        ))
+    if (!(Status == STATUS_ACCESS_DENIED || Status == STATUS_PRIVILEGE_NOT_HELD))
         return FALSE;
 
     if (PhGetOwnTokenAttributes().Elevated)
@@ -272,9 +224,10 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
     if (elevationLevel == AlwaysElevateAction || button == IDYES)
     {
         *Connected = PhUiConnectToPhSvc(WindowHandle, FALSE);
+        return TRUE;
     }
 
-    return TRUE;
+    return FALSE;
 }
 
 /**
@@ -524,31 +477,31 @@ VOID PhUiDisconnectFromPhSvc(
 }
 
 BOOLEAN PhUiLockComputer(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     )
 {
     if (LockWorkStation())
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to lock the computer.", 0, GetLastError());
+        PhShowStatus(WindowHandle, L"Unable to lock the computer.", 0, PhGetLastError());
 
     return FALSE;
 }
 
 BOOLEAN PhUiLogoffComputer(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     )
 {
     if (ExitWindowsEx(EWX_LOGOFF, 0))
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to log off the computer.", 0, GetLastError());
+        PhShowStatus(WindowHandle, L"Unable to log off the computer.", 0, GetLastError());
 
     return FALSE;
 }
 
 BOOLEAN PhUiSleepComputer(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     )
 {
     NTSTATUS status;
@@ -561,13 +514,13 @@ BOOLEAN PhUiSleepComputer(
         )))
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to sleep the computer.", status, 0);
+        PhShowStatus(WindowHandle, L"Unable to sleep the computer.", status, 0);
 
     return FALSE;
 }
 
 BOOLEAN PhUiHibernateComputer(
-    _In_ HWND hWnd
+    _In_ HWND WindowHandle
     )
 {
     NTSTATUS status;
@@ -580,7 +533,7 @@ BOOLEAN PhUiHibernateComputer(
         )))
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to hibernate the computer.", status, 0);
+        PhShowStatus(WindowHandle, L"Unable to hibernate the computer.", status, 0);
 
     return FALSE;
 }
@@ -1272,7 +1225,7 @@ VOID PhUiCreateSessionMenu(
 }
 
 BOOLEAN PhUiConnectSession(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG SessionId
     )
 {
@@ -1285,7 +1238,7 @@ BOOLEAN PhUiConnectSession(
         return TRUE;
 
     while (PhaChoiceDialog(
-        hWnd,
+        WindowHandle,
         L"Connect to session",
         L"Password:",
         NULL,
@@ -1312,7 +1265,7 @@ BOOLEAN PhUiConnectSession(
         }
         else
         {
-            if (!PhShowContinueStatus(hWnd, L"Unable to connect to the session", 0, GetLastError()))
+            if (!PhShowContinueStatus(WindowHandle, L"Unable to connect to the session", 0, GetLastError()))
                 break;
         }
     }
@@ -1327,25 +1280,25 @@ BOOLEAN PhUiConnectSession(
 }
 
 BOOLEAN PhUiDisconnectSession(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG SessionId
     )
 {
     if (WinStationDisconnect(NULL, SessionId, FALSE))
         return TRUE;
     else
-        PhShowStatus(hWnd, L"Unable to disconnect the session", 0, GetLastError());
+        PhShowStatus(WindowHandle, L"Unable to disconnect the session", 0, GetLastError());
 
     return FALSE;
 }
 
 BOOLEAN PhUiLogoffSession(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ ULONG SessionId
     )
 {
     if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-        hWnd,
+        WindowHandle,
         L"logoff",
         L"the user",
         NULL,
@@ -1355,7 +1308,7 @@ BOOLEAN PhUiLogoffSession(
         if (WinStationReset(NULL, SessionId, FALSE))
             return TRUE;
         else
-            PhShowStatus(hWnd, L"Unable to logoff the session", 0, GetLastError());
+            PhShowStatus(WindowHandle, L"Unable to logoff the session", 0, GetLastError());
     }
 
     return FALSE;
@@ -1405,7 +1358,7 @@ static BOOLEAN PhpIsDangerousProcess(
 /**
  * Checks if the user wants to proceed with an operation.
  *
- * \param hWnd A handle to the parent window.
+ * \param WindowHandle A handle to the parent window.
  * \param Verb A verb describing the action.
  * \param Message A message containing additional information
  * about the action.
@@ -1419,7 +1372,7 @@ static BOOLEAN PhpIsDangerousProcess(
  * otherwise FALSE.
  */
 static BOOLEAN PhpShowContinueMessageProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
     _In_opt_ PWSTR Message,
     _In_ BOOLEAN WarnOnlyIfDangerous,
@@ -1488,7 +1441,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
         if (!dangerous)
         {
             cont = PhShowConfirmMessage(
-                hWnd,
+                WindowHandle,
                 Verb,
                 object,
                 Message,
@@ -1498,7 +1451,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
         else if (!critical)
         {
             cont = PhShowConfirmMessage(
-                hWnd,
+                WindowHandle,
                 Verb,
                 object,
                 PhaConcatStrings(
@@ -1534,7 +1487,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
             }
 
             cont = PhShowConfirmMessage(
-                hWnd,
+                WindowHandle,
                 Verb,
                 object,
                 message->Buffer,
@@ -1554,7 +1507,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
  * Shows an error message to the user and checks
  * if the user wants to continue.
  *
- * \param hWnd A handle to the parent window.
+ * \param WindowHandle A handle to the parent window.
  * \param Verb A verb describing the action which
  * resulted in an error.
  * \param Process The process item which the action
@@ -1569,7 +1522,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
  * executing an action on multiple processes.
  */
 static BOOLEAN PhpShowErrorProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ NTSTATUS Status,
@@ -1579,7 +1532,7 @@ static BOOLEAN PhpShowErrorProcess(
     if (!PH_IS_FAKE_PROCESS_ID(Process->ProcessId))
     {
         return PhShowContinueStatus(
-            hWnd,
+            WindowHandle,
             PhaFormatString(
             L"Unable to %s %s (PID %lu)",
             Verb,
@@ -1593,7 +1546,7 @@ static BOOLEAN PhpShowErrorProcess(
     else
     {
         return PhShowContinueStatus(
-            hWnd,
+            WindowHandle,
             PhaFormatString(
             L"Unable to %s %s",
             Verb,
@@ -1606,7 +1559,7 @@ static BOOLEAN PhpShowErrorProcess(
 }
 
 BOOLEAN PhUiTerminateProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     )
@@ -1616,7 +1569,7 @@ BOOLEAN PhUiTerminateProcesses(
     ULONG i;
 
     if (!PhpShowContinueMessageProcesses(
-        hWnd,
+        WindowHandle,
         L"terminate",
         L"Terminating a process will cause unsaved data to be lost.",
         FALSE,
@@ -1661,7 +1614,7 @@ BOOLEAN PhUiTerminateProcesses(
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaConcatStrings2(L"Unable to terminate ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
                 &connected
@@ -1672,7 +1625,7 @@ BOOLEAN PhUiTerminateProcesses(
                     if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessTerminate, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(hWnd, L"terminate", Processes[i], status, 0);
+                        PhpShowErrorProcess(WindowHandle, L"terminate", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -1683,7 +1636,7 @@ BOOLEAN PhUiTerminateProcesses(
             }
             else
             {
-                if (!PhpShowErrorProcess(hWnd, L"terminate", Processes[i], status, 0))
+                if (!PhpShowErrorProcess(WindowHandle, L"terminate", Processes[i], status, 0))
                     break;
             }
         }
@@ -1693,7 +1646,7 @@ BOOLEAN PhUiTerminateProcesses(
 }
 
 BOOLEAN PhpUiTerminateTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ PVOID Processes,
     _Inout_ PBOOLEAN Success
@@ -1729,7 +1682,7 @@ BOOLEAN PhpUiTerminateTreeProcess(
     {
         *Success = FALSE;
 
-        if (!PhpShowErrorProcess(hWnd, L"terminate", Process, status, 0))
+        if (!PhpShowErrorProcess(WindowHandle, L"terminate", Process, status, 0))
             return FALSE;
     }
 
@@ -1749,7 +1702,7 @@ BOOLEAN PhpUiTerminateTreeProcess(
                     // Check the sequence number to make sure it is a descendant.
                     if (processItem->ProcessSequenceNumber >= Process->ProcessSequenceNumber)
                     {
-                        if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                        if (!PhpUiTerminateTreeProcess(WindowHandle, processItem, Processes, Success))
                         {
                             PhDereferenceObject(processItem);
                             return FALSE;
@@ -1761,7 +1714,7 @@ BOOLEAN PhpUiTerminateTreeProcess(
                     // Check the creation time to make sure it is a descendant.
                     if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
                     {
-                        if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                        if (!PhpUiTerminateTreeProcess(WindowHandle, processItem, Processes, Success))
                         {
                             PhDereferenceObject(processItem);
                             return FALSE;
@@ -1778,7 +1731,7 @@ BOOLEAN PhpUiTerminateTreeProcess(
 }
 
 BOOLEAN PhUiTerminateTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     )
 {
@@ -1790,7 +1743,7 @@ BOOLEAN PhUiTerminateTreeProcess(
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             L"terminate",
             PhaConcatStrings2(Process->ProcessName->Buffer, L" and its descendants")->Buffer,
             L"Terminating a process tree will cause the process and its descendants to be terminated.",
@@ -1807,18 +1760,18 @@ BOOLEAN PhUiTerminateTreeProcess(
 
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
     {
-        PhShowStatus(hWnd, L"Unable to enumerate processes", status, 0);
+        PhShowStatus(WindowHandle, L"Unable to enumerate processes", status, 0);
         return FALSE;
     }
 
-    PhpUiTerminateTreeProcess(hWnd, Process, processes, &success);
+    PhpUiTerminateTreeProcess(WindowHandle, Process, processes, &success);
     PhFree(processes);
 
     return success;
 }
 
 BOOLEAN PhUiSuspendProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     )
@@ -1828,7 +1781,7 @@ BOOLEAN PhUiSuspendProcesses(
     ULONG i;
 
     if (!PhpShowContinueMessageProcesses(
-        hWnd,
+        WindowHandle,
         L"suspend",
         NULL,
         TRUE,
@@ -1859,7 +1812,7 @@ BOOLEAN PhUiSuspendProcesses(
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaConcatStrings2(L"Unable to suspend ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
                 &connected
@@ -1870,7 +1823,7 @@ BOOLEAN PhUiSuspendProcesses(
                     if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessSuspend, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(hWnd, L"suspend", Processes[i], status, 0);
+                        PhpShowErrorProcess(WindowHandle, L"suspend", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -1881,7 +1834,7 @@ BOOLEAN PhUiSuspendProcesses(
             }
             else
             {
-                if (!PhpShowErrorProcess(hWnd, L"suspend", Processes[i], status, 0))
+                if (!PhpShowErrorProcess(WindowHandle, L"suspend", Processes[i], status, 0))
                     break;
             }
         }
@@ -1891,7 +1844,7 @@ BOOLEAN PhUiSuspendProcesses(
 }
 
 BOOLEAN PhpUiSuspendTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ PVOID Processes,
     _Inout_ PBOOLEAN Success
@@ -1923,7 +1876,7 @@ BOOLEAN PhpUiSuspendTreeProcess(
     {
         *Success = FALSE;
 
-        if (!PhpShowErrorProcess(hWnd, L"suspend", Process, status, 0))
+        if (!PhpShowErrorProcess(WindowHandle, L"suspend", Process, status, 0))
             return FALSE;
     }
 
@@ -1943,7 +1896,7 @@ BOOLEAN PhpUiSuspendTreeProcess(
                     // Check the sequence number to make sure it is a descendant.
                     if (processItem->ProcessSequenceNumber >= Process->ProcessSequenceNumber)
                     {
-                        if (!PhpUiSuspendTreeProcess(hWnd, processItem, Processes, Success))
+                        if (!PhpUiSuspendTreeProcess(WindowHandle, processItem, Processes, Success))
                         {
                             PhDereferenceObject(processItem);
                             return FALSE;
@@ -1955,7 +1908,7 @@ BOOLEAN PhpUiSuspendTreeProcess(
                     // Check the creation time to make sure it is a descendant.
                     if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
                     {
-                        if (!PhpUiSuspendTreeProcess(hWnd, processItem, Processes, Success))
+                        if (!PhpUiSuspendTreeProcess(WindowHandle, processItem, Processes, Success))
                         {
                             PhDereferenceObject(processItem);
                             return FALSE;
@@ -1972,7 +1925,7 @@ BOOLEAN PhpUiSuspendTreeProcess(
 }
 
 BOOLEAN PhUiSuspendTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     )
 {
@@ -1984,7 +1937,7 @@ BOOLEAN PhUiSuspendTreeProcess(
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             L"suspend",
             PhaConcatStrings2(Process->ProcessName->Buffer, L" and its descendants")->Buffer,
             L"Suspending a process tree will cause the process and its descendants to be suspend.",
@@ -2001,18 +1954,18 @@ BOOLEAN PhUiSuspendTreeProcess(
 
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
     {
-        PhShowStatus(hWnd, L"Unable to enumerate processes", status, 0);
+        PhShowStatus(WindowHandle, L"Unable to enumerate processes", status, 0);
         return FALSE;
     }
 
-    PhpUiSuspendTreeProcess(hWnd, Process, processes, &success);
+    PhpUiSuspendTreeProcess(WindowHandle, Process, processes, &success);
     PhFree(processes);
 
     return success;
 }
 
 BOOLEAN PhUiResumeProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     )
@@ -2022,7 +1975,7 @@ BOOLEAN PhUiResumeProcesses(
     ULONG i;
 
     if (!PhpShowContinueMessageProcesses(
-        hWnd,
+        WindowHandle,
         L"resume",
         NULL,
         TRUE,
@@ -2053,7 +2006,7 @@ BOOLEAN PhUiResumeProcesses(
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaConcatStrings2(L"Unable to resume ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
                 &connected
@@ -2064,7 +2017,7 @@ BOOLEAN PhUiResumeProcesses(
                     if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessResume, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(hWnd, L"resume", Processes[i], status, 0);
+                        PhpShowErrorProcess(WindowHandle, L"resume", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -2075,7 +2028,7 @@ BOOLEAN PhUiResumeProcesses(
             }
             else
             {
-                if (!PhpShowErrorProcess(hWnd, L"resume", Processes[i], status, 0))
+                if (!PhpShowErrorProcess(WindowHandle, L"resume", Processes[i], status, 0))
                     break;
             }
         }
@@ -2085,7 +2038,7 @@ BOOLEAN PhUiResumeProcesses(
 }
 
 BOOLEAN PhpUiResumeTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ PVOID Processes,
     _Inout_ PBOOLEAN Success
@@ -2117,7 +2070,7 @@ BOOLEAN PhpUiResumeTreeProcess(
     {
         *Success = FALSE;
 
-        if (!PhpShowErrorProcess(hWnd, L"resume", Process, status, 0))
+        if (!PhpShowErrorProcess(WindowHandle, L"resume", Process, status, 0))
             return FALSE;
     }
 
@@ -2137,7 +2090,7 @@ BOOLEAN PhpUiResumeTreeProcess(
                     // Check the sequence number to make sure it is a descendant.
                     if (processItem->ProcessSequenceNumber >= Process->ProcessSequenceNumber)
                     {
-                        if (!PhpUiResumeTreeProcess(hWnd, processItem, Processes, Success))
+                        if (!PhpUiResumeTreeProcess(WindowHandle, processItem, Processes, Success))
                         {
                             PhDereferenceObject(processItem);
                             return FALSE;
@@ -2149,7 +2102,7 @@ BOOLEAN PhpUiResumeTreeProcess(
                     // Check the creation time to make sure it is a descendant.
                     if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
                     {
-                        if (!PhpUiResumeTreeProcess(hWnd, processItem, Processes, Success))
+                        if (!PhpUiResumeTreeProcess(WindowHandle, processItem, Processes, Success))
                         {
                             PhDereferenceObject(processItem);
                             return FALSE;
@@ -2166,7 +2119,7 @@ BOOLEAN PhpUiResumeTreeProcess(
 }
 
 BOOLEAN PhUiResumeTreeProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     )
 {
@@ -2178,7 +2131,7 @@ BOOLEAN PhUiResumeTreeProcess(
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             L"resume",
             PhaConcatStrings2(Process->ProcessName->Buffer, L" and its descendants")->Buffer,
             L"Resuming a process tree will cause the process and its descendants to be resumed.",
@@ -2195,11 +2148,11 @@ BOOLEAN PhUiResumeTreeProcess(
 
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
     {
-        PhShowStatus(hWnd, L"Unable to enumerate processes", status, 0);
+        PhShowStatus(WindowHandle, L"Unable to enumerate processes", status, 0);
         return FALSE;
     }
 
-    PhpUiResumeTreeProcess(hWnd, Process, processes, &success);
+    PhpUiResumeTreeProcess(WindowHandle, Process, processes, &success);
     PhFree(processes);
 
     return success;
@@ -2261,7 +2214,7 @@ BOOLEAN PhUiThawTreeProcess(
 }
 
 BOOLEAN PhUiRestartProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     )
 {
@@ -2285,7 +2238,7 @@ BOOLEAN PhUiRestartProcess(
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             L"restart",
             Process->ProcessName->Buffer,
             L"The process will be restarted with the same command line, "
@@ -2455,7 +2408,7 @@ BOOLEAN PhUiRestartProcess(
     if (!NT_SUCCESS(status) && tokenIsUIAccessEnabled) // Try UIAccess (dmex)
     {
         status = PhShellExecuteEx(
-            hWnd,
+            WindowHandle,
             PhGetString(fileNameWin32),
             PhGetString(commandLine),
             PhGetString(currentDirectory),
@@ -2574,7 +2527,7 @@ CleanupExit:
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"restart", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"restart", Process, status, 0);
         return FALSE;
     }
 
@@ -2583,7 +2536,7 @@ CleanupExit:
 
 // Contributed by evilpie (#2981421)
 BOOLEAN PhUiDebugProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     )
 {
@@ -2593,6 +2546,7 @@ BOOLEAN PhUiDebugProcess(
 #endif
     NTSTATUS status;
     BOOLEAN cont = FALSE;
+    PPH_STRING debuggerCommand = NULL;
     PH_STRING_BUILDER commandLineBuilder;
     HANDLE keyHandle;
     PPH_STRING debugger;
@@ -2602,7 +2556,7 @@ BOOLEAN PhUiDebugProcess(
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             L"debug",
             Process->ProcessName->Buffer,
             L"Debugging a process may result in loss of data.",
@@ -2636,23 +2590,22 @@ BOOLEAN PhUiDebugProcess(
             if (PhSplitStringRefAtChar(&debugger->sr, L'"', &dummy, &commandPart) &&
                 PhSplitStringRefAtChar(&commandPart, L'"', &commandPart, &dummy))
             {
-                DebuggerCommand = PhCreateString2(&commandPart);
+                debuggerCommand = PhCreateString2(&commandPart);
             }
         }
 
         NtClose(keyHandle);
     }
 
-    if (PhIsNullOrEmptyString(DebuggerCommand))
+    if (PhIsNullOrEmptyString(debuggerCommand))
     {
-        PhShowError(hWnd, L"%s", L"Unable to locate the debugger.");
+        PhShowStatus(WindowHandle, L"Unable to locate the debugger.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
         return FALSE;
     }
 
-    PhInitializeStringBuilder(&commandLineBuilder, DebuggerCommand->Length + 30);
-
+    PhInitializeStringBuilder(&commandLineBuilder, debuggerCommand->Length + 30);
     PhAppendCharStringBuilder(&commandLineBuilder, L'"');
-    PhAppendStringBuilder(&commandLineBuilder, &DebuggerCommand->sr);
+    PhAppendStringBuilder(&commandLineBuilder, &debuggerCommand->sr);
     PhAppendCharStringBuilder(&commandLineBuilder, L'"');
     PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %lu", HandleToUlong(Process->ProcessId));
 
@@ -2668,10 +2621,11 @@ BOOLEAN PhUiDebugProcess(
         );
 
     PhDeleteStringBuilder(&commandLineBuilder);
+    PhDereferenceObject(debuggerCommand);
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"debug", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"debug", Process, status, 0);
         return FALSE;
     }
 
@@ -2679,7 +2633,7 @@ BOOLEAN PhUiDebugProcess(
 }
 
 BOOLEAN PhUiReduceWorkingSetProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses
     )
@@ -2694,11 +2648,11 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
 
         status = PhOpenProcess(
             &processHandle,
-            PROCESS_SET_QUOTA,
+            PROCESS_CREATE_THREAD,
             Processes[i]->ProcessId
             );
 
-        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        if ((status == STATUS_ACCESS_DENIED) && (KsiLevel() == KphLevelMax))
         {
             status = PhOpenProcess(
                 &processHandle,
@@ -2717,7 +2671,7 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
         {
             success = FALSE;
 
-            if (!PhpShowErrorProcess(hWnd, L"reduce the working set of", Processes[i], status, 0))
+            if (!PhpShowErrorProcess(WindowHandle, L"reduce the working set of", Processes[i], status, 0))
                 break;
         }
     }
@@ -2726,7 +2680,7 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
 }
 
 BOOLEAN PhUiSetVirtualizationProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ BOOLEAN Enable
     )
@@ -2739,7 +2693,7 @@ BOOLEAN PhUiSetVirtualizationProcess(
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             L"set",
             L"virtualization for the process",
             L"Enabling or disabling virtualization for a process may "
@@ -2776,7 +2730,7 @@ BOOLEAN PhUiSetVirtualizationProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"set virtualization for", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"set virtualization for", Process, status, 0);
         return FALSE;
     }
 
@@ -2946,7 +2900,7 @@ BOOLEAN PhUiSetExecutionRequiredProcess(
 }
 
 BOOLEAN PhUiDetachFromDebuggerProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     )
 {
@@ -2982,13 +2936,13 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 
     if (status == STATUS_PORT_NOT_SET)
     {
-        PhShowInformation2(hWnd, L"The process is not being debugged.", L"%s", L"");
+        PhShowInformation2(WindowHandle, L"The process is not being debugged.", L"%s", L"");
         return FALSE;
     }
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"detach debugger from", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"detach debugger from", Process, status, 0);
         return FALSE;
     }
 
@@ -2996,7 +2950,7 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 }
 
 BOOLEAN PhUiLoadDllProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
     )
 {
@@ -3015,7 +2969,7 @@ BOOLEAN PhUiLoadDllProcess(
     PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_DONTADDTORECENT);
     PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
 
-    if (!PhShowFileDialog(hWnd, fileDialog))
+    if (!PhShowFileDialog(WindowHandle, fileDialog))
     {
         PhFreeFileDialog(fileDialog);
         return FALSE;
@@ -3058,7 +3012,7 @@ BOOLEAN PhUiLoadDllProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"load the DLL into", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"load the DLL into", Process, status, 0);
         return FALSE;
     }
 
@@ -3066,7 +3020,7 @@ BOOLEAN PhUiLoadDllProcess(
 }
 
 BOOLEAN PhUiSetIoPriorityProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses,
     _In_ IO_PRIORITY_HINT IoPriority
@@ -3108,7 +3062,7 @@ BOOLEAN PhUiSetIoPriorityProcesses(
 
             // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaConcatStrings2(L"Unable to set the I/O priority of ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
                 &connected
@@ -3119,7 +3073,7 @@ BOOLEAN PhUiSetIoPriorityProcesses(
                     if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessIoPriority, IoPriority)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(hWnd, L"set the I/O priority of", Processes[i], status, 0);
+                        PhpShowErrorProcess(WindowHandle, L"set the I/O priority of", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -3130,7 +3084,7 @@ BOOLEAN PhUiSetIoPriorityProcesses(
             }
             else
             {
-                if (!PhpShowErrorProcess(hWnd, L"set the I/O priority of", Processes[i], status, 0))
+                if (!PhpShowErrorProcess(WindowHandle, L"set the I/O priority of", Processes[i], status, 0))
                     break;
             }
         }
@@ -3140,7 +3094,7 @@ BOOLEAN PhUiSetIoPriorityProcesses(
 }
 
 BOOLEAN PhUiSetPagePriorityProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ ULONG PagePriority
     )
@@ -3169,7 +3123,7 @@ BOOLEAN PhUiSetPagePriorityProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"set the page priority of", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"set the page priority of", Process, status, 0);
         return FALSE;
     }
 
@@ -3177,7 +3131,7 @@ BOOLEAN PhUiSetPagePriorityProcess(
 }
 
 BOOLEAN PhUiSetPriorityProcesses(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
     _In_ ULONG NumberOfProcesses,
     _In_ ULONG PriorityClass
@@ -3220,7 +3174,7 @@ BOOLEAN PhUiSetPriorityProcesses(
 
             // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaConcatStrings2(L"Unable to set the priority of ", Processes[i]->ProcessName->Buffer)->Buffer,
                 status,
                 &connected
@@ -3231,7 +3185,7 @@ BOOLEAN PhUiSetPriorityProcesses(
                     if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[i]->ProcessId, PhSvcControlProcessPriority, PriorityClass)))
                         success = TRUE;
                     else
-                        PhpShowErrorProcess(hWnd, L"set the priority of", Processes[i], status, 0);
+                        PhpShowErrorProcess(WindowHandle, L"set the priority of", Processes[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -3242,7 +3196,7 @@ BOOLEAN PhUiSetPriorityProcesses(
             }
             else
             {
-                if (!PhpShowErrorProcess(hWnd, L"set the priority of", Processes[i], status, 0))
+                if (!PhpShowErrorProcess(WindowHandle, L"set the priority of", Processes[i], status, 0))
                     break;
             }
         }
@@ -3289,7 +3243,7 @@ BOOLEAN PhUiSetBoostPriorityProcesses(
 }
 
 BOOLEAN PhUiSetBoostPriorityProcess(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
     _In_ BOOLEAN PriorityBoost
     )
@@ -3309,15 +3263,632 @@ BOOLEAN PhUiSetBoostPriorityProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"set the boost priority of", Process, status, 0);
+        PhpShowErrorProcess(WindowHandle, L"set the boost priority of", Process, status, 0);
         return FALSE;
     }
 
     return TRUE;
 }
 
+#pragma region Service Progress Dialog
+FORCEINLINE
+VOID
+TaskDialog_NavigatePage(
+    _In_ HWND WindowHandle,
+    _In_ TASKDIALOGCONFIG* Config)
+{
+    assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL));
+
+    SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)Config);
+}
+
+typedef struct _PH_UI_SERVICE_PROGRESS_DIALOG
+{
+    HWND WindowHandle;
+    HWND ParentWindowHandle;
+
+    PCWSTR Object;
+    PCWSTR Verb;
+    PCWSTR Message;
+
+    PPH_STRING StatusMessage;
+    PPH_STRING StatusContent;
+
+    PPH_LIST ServiceItemList;
+
+    volatile LONG RequireElevation;
+    struct
+    {
+        BOOLEAN Flags;
+        union
+        {
+            BOOLEAN Warning : 1;
+            BOOLEAN Spare : 7;
+        };
+    };
+
+    WNDPROC OldWndProc;
+    PUSER_THREAD_START_ROUTINE ActionCallback;
+    PHSVC_API_CONTROLSERVICE_COMMAND ActionCommand;
+} PH_UI_SERVICE_PROGRESS_DIALOG, *PPH_UI_SERVICE_PROGRESS_DIALOG;
+
+typedef struct _PH_UI_SERVICE_ITEM
+{
+    NTSTATUS Status;
+    PPH_SERVICE_ITEM Service;
+} PH_UI_SERVICE_ITEM, *PPH_UI_SERVICE_ITEM;
+
+#define WM_PHSVC_ERROR (WM_APP + 1)
+#define WM_PHSVC_EXIT (WM_APP + 2)
+
+VOID PhUiNavigateServiceProgressDialogPage(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
+    );
+#pragma endregion
+
+HRESULT CALLBACK PhpUiServiceErrorDialogCallbackProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR Context
+    )
+{
+    PPH_UI_SERVICE_PROGRESS_DIALOG context = (PPH_UI_SERVICE_PROGRESS_DIALOG)Context;
+
+    switch (WindowMessage)
+    {
+    case TDN_NAVIGATED:
+        {
+            if (InterlockedCompareExchange(&context->RequireElevation, FALSE, FALSE))
+            {
+                SendMessage(WindowHandle, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
+            }
+        }
+        break;
+    case TDN_BUTTON_CLICKED:
+        {
+            ULONG buttonId = (ULONG)wParam;
+
+            if (buttonId == IDYES)
+            {
+                PhUiNavigateServiceProgressDialogPage(context);
+                return S_FALSE;
+            }
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+VOID PhUiNavigateServiceErrorDialogPage(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
+    _In_ PPH_STRING MainInstruction,
+    _In_opt_ PPH_STRING MainContent
+    )
+{
+    TASKDIALOGCONFIG config;
+    TASKDIALOG_BUTTON buttons[2];
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = TD_ERROR_ICON;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.pfCallback = PhpUiServiceErrorDialogCallbackProc;
+    config.pszMainInstruction = PhGetString(MainInstruction);
+    if (MainContent) config.pszContent = PhGetString(MainContent);
+    config.cxWidth = 200;
+
+    buttons[0].nButtonID = IDYES;
+    buttons[0].pszButtonText = L"Continue";
+    buttons[1].nButtonID = IDNO;
+    buttons[1].pszButtonText = L"Cancel";
+
+    if (InterlockedCompareExchange(&Context->RequireElevation, FALSE, FALSE))
+    {
+        config.cButtons = 2;
+        config.pButtons = buttons;
+        config.nDefaultButton = IDYES;
+    }
+
+    TaskDialog_NavigatePage(Context->WindowHandle, &config);
+}
+
+VOID PhUiNavigateServiceCompleteDialogPage(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
+    )
+{
+    PostMessage(Context->WindowHandle, WM_PHSVC_EXIT, 0, 0);
+}
+
+VOID PhUiNavigateServiceErrorDialogPageFromThread(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
+    )
+{
+    PostMessage(Context->WindowHandle, WM_PHSVC_ERROR, 0, 0);
+}
+
+NTSTATUS PhpUiServicePendingStartCallback(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
+    )
+{
+    PPH_LIST serviceErrorList = PhCreateList(1);
+
+    if (InterlockedCompareExchange(&Context->RequireElevation, FALSE, FALSE))
+    {
+        NTSTATUS status;
+        BOOLEAN connected;
+
+        if (PhpElevationLevelAndConnectToPhSvc(Context->WindowHandle, &connected) && connected)
+        {
+            for (ULONG i = 0; i < Context->ServiceItemList->Count; i++)
+            {
+                PPH_SERVICE_ITEM serviceItem = Context->ServiceItemList->Items[i];
+
+                status = PhSvcCallControlService(
+                    PhGetString(serviceItem->Name),
+                    Context->ActionCommand
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    ULONG index;
+
+                    index = PhFindItemList(Context->ServiceItemList, serviceItem);
+
+                    if (index != ULONG_MAX)
+                    {
+                        PhRemoveItemList(Context->ServiceItemList, index);
+                        PhDereferenceObject(serviceItem);
+                    }
+                }
+                else
+                {
+                    PhAddItemList(serviceErrorList, LongToPtr(status));
+                }
+            }
+
+            PhUiDisconnectFromPhSvc();
+        }
+        else
+        {
+            PhUiNavigateServiceCompleteDialogPage(Context);
+            goto CleanupExit;
+        }
+    }
+    else
+    {
+        for (ULONG i = 0; i < Context->ServiceItemList->Count; i++)
+        {
+            PPH_SERVICE_ITEM serviceItem = Context->ServiceItemList->Items[i];
+            NTSTATUS status;
+
+            status = Context->ActionCallback(serviceItem);
+
+            if (NT_SUCCESS(status))
+            {
+                ULONG index;
+
+                index = PhFindItemList(Context->ServiceItemList, serviceItem);
+
+                if (index != ULONG_MAX)
+                {
+                    PhRemoveItemList(Context->ServiceItemList, index);
+                    PhDereferenceObject(serviceItem);
+                }
+            }
+            else
+            {
+                PhAddItemList(serviceErrorList, LongToPtr(status));
+            }
+        }
+    }
+
+    InterlockedExchange(&Context->RequireElevation, FALSE);
+
+    if (serviceErrorList->Count)
+    {
+        for (ULONG i = 0; i < serviceErrorList->Count; i++)
+        {
+            NTSTATUS status = PtrToLong(serviceErrorList->Items[i]);
+
+            if (status == STATUS_ACCESS_DENIED || status == STATUS_PRIVILEGE_NOT_HELD)
+            {
+                InterlockedExchange(&Context->RequireElevation, TRUE);
+                break;
+            }
+        }
+    }
+
+    if (Context->ServiceItemList->Count)
+    {
+        PH_STRING_BUILDER stringBuilder;
+
+        PhInitializeStringBuilder(&stringBuilder, 0x50);
+
+        for (ULONG i = 0; i < Context->ServiceItemList->Count; i++)
+        {
+            PPH_STRING serviceName = NULL;
+            PPH_STRING statusMessage = NULL;
+
+            if (!PhIsNullOrEmptyString(((PPH_SERVICE_ITEM)Context->ServiceItemList->Items[i])->Name))
+            {
+                serviceName = ((PPH_SERVICE_ITEM)Context->ServiceItemList->Items[i])->Name;
+            }
+
+            if (i < serviceErrorList->Count)
+            {
+                statusMessage = PhGetStatusMessage(PtrToLong(serviceErrorList->Items[i]), 0);
+            }
+
+            if (!PhIsNullOrEmptyString(serviceName))
+                PhAppendStringBuilder(&stringBuilder, &serviceName->sr);
+            PhAppendStringBuilder2(&stringBuilder, L": ");
+
+            PhAppendFormatStringBuilder(&stringBuilder, L"(0x%lx) ", PtrToLong(serviceErrorList->Items[i]));
+
+            if (!PhIsNullOrEmptyString(statusMessage))
+            {
+                PhAppendStringBuilder(&stringBuilder, &statusMessage->sr);
+                PhClearReference(&statusMessage);
+            }
+
+            PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+        }
+
+        if (stringBuilder.String->Length != 0)
+        {
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
+        }
+
+        if (InterlockedCompareExchange(&Context->RequireElevation, FALSE, FALSE))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n");
+            PhAppendStringBuilder2(&stringBuilder, L"You will need to provide administrator permission. "
+                L"Click Continue to complete this operation.");
+        }
+
+        {
+            PPH_STRING message;
+            PPH_STRING content;
+
+            message = PhFormatString(L"Unable to %s services:", Context->Verb);
+            content = PhFinalStringBuilderString(&stringBuilder);
+
+            InterlockedExchangePointer(&Context->StatusMessage, message);
+            InterlockedExchangePointer(&Context->StatusContent, content);
+
+            PhUiNavigateServiceErrorDialogPageFromThread(Context);
+        }
+    }
+    else
+    {
+        PhUiNavigateServiceCompleteDialogPage(Context);
+    }
+
+CleanupExit:
+    PhClearReference(&serviceErrorList);
+
+    PhDereferenceObject(Context);
+
+    return STATUS_SUCCESS;
+}
+
+HRESULT CALLBACK PhpUiServiceProgressDialogCallbackProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR Context
+    )
+{
+    PPH_UI_SERVICE_PROGRESS_DIALOG context = (PPH_UI_SERVICE_PROGRESS_DIALOG)Context;
+
+    switch (WindowMessage)
+    {
+    case TDN_NAVIGATED:
+        {
+            SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+
+            PhReferenceObject(context);
+            PhCreateThread2(PhpUiServicePendingStartCallback, context);
+        }
+        break;
+    case TDN_BUTTON_CLICKED:
+        {
+            return S_FALSE;
+        }
+    }
+
+    return S_OK;
+}
+
+VOID PhUiNavigateServiceProgressDialogPage(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
+    )
+{
+    TASKDIALOGCONFIG config;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = TD_INFORMATION_ICON;
+    config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.pfCallback = PhpUiServiceProgressDialogCallbackProc;
+    config.pszMainInstruction = PhaConcatStrings(5, L"Attempting to ", Context->Verb, L" ", Context->Object, L"...")->Buffer;
+    config.cxWidth = 200;
+
+    TaskDialog_NavigatePage(Context->WindowHandle, &config);
+}
+
+HRESULT CALLBACK PhpUiServiceConfirmDialogCallbackProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR Context
+    )
+{
+    PPH_UI_SERVICE_PROGRESS_DIALOG context = (PPH_UI_SERVICE_PROGRESS_DIALOG)Context;
+
+    switch (WindowMessage)
+    {
+    case TDN_BUTTON_CLICKED:
+        {
+            ULONG buttonId = (ULONG)wParam;
+
+            if (buttonId == IDYES)
+            {
+                PhUiNavigateServiceProgressDialogPage(context);
+                return S_FALSE;
+            }
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+VOID PhpShowServiceProgressInitializeText(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
+    _Out_ PPH_STRING* Verb,
+    _Out_ PPH_STRING* VerbCaps,
+    _Out_ PPH_STRING* Action
+    )
+{
+    if (Context->ServiceItemList->Count == 1)
+        Context->Object = L"the selected service";
+    else
+        Context->Object = L"the selected services";
+
+    // Make sure the verb is all lowercase.
+    *Verb = PhaLowerString(PhaCreateString((PWSTR)Context->Verb));
+
+    // "terminate" -> "Terminate"
+    *VerbCaps = PhaDuplicateString(*Verb);
+    if (!PhIsNullOrEmptyString(*VerbCaps)) (*VerbCaps)->Buffer[0] = PhUpcaseUnicodeChar((*VerbCaps)->Buffer[0]);
+
+    // "terminate", "the process" -> "terminate the process"
+    *Action = PhaConcatStrings(3, (*Verb)->Buffer, L" ", Context->Object);
+}
+
+VOID PhShowServiceProgressDialogConfirmMessage(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
+    )
+{
+    TASKDIALOGCONFIG config;
+    TASKDIALOG_BUTTON buttons[2];
+    PPH_STRING verb;
+    PPH_STRING verbCaps;
+    PPH_STRING action;
+
+    PhpShowServiceProgressInitializeText(Context, &verb, &verbCaps, &action);
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.pszWindowTitle = PhApplicationName;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.pfCallback = PhpUiServiceConfirmDialogCallbackProc;
+    config.pszMainIcon = Context->Warning ? TD_WARNING_ICON : TD_INFORMATION_ICON;
+    config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
+    if (Context->Message) config.pszContent = PhaConcatStrings2((PWSTR)Context->Message, L" Are you sure you want to continue?")->Buffer;
+
+    buttons[0].nButtonID = IDYES;
+    buttons[0].pszButtonText = verbCaps->Buffer;
+    buttons[1].nButtonID = IDNO;
+    buttons[1].pszButtonText = L"Cancel";
+
+    config.cButtons = 2;
+    config.pButtons = buttons;
+    config.nDefaultButton = IDYES;
+    config.cxWidth = 200;
+
+    TaskDialog_NavigatePage(Context->WindowHandle, &config);
+}
+
+static LRESULT CALLBACK PhpUiServiceProgressDialogWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPH_UI_SERVICE_PROGRESS_DIALOG context;
+    WNDPROC oldWndProc;
+
+    context = PhGetWindowContext(WindowHandle, MAXCHAR);
+
+    if (!context)
+        return 0;
+
+    oldWndProc = context->OldWndProc;
+
+    switch (WindowMessage)
+    {
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhRemoveWindowContext(WindowHandle, MAXCHAR);
+        }
+        break;
+    case WM_PHSVC_ERROR:
+        {
+            PPH_STRING message;
+            PPH_STRING content;
+
+            message = context->StatusMessage;
+            content = context->StatusContent;
+            context->StatusMessage = NULL;
+            context->StatusContent = NULL;
+
+            PhUiNavigateServiceErrorDialogPage(
+                context,
+                message,
+                content
+                );
+        }
+        goto DefaultWndProc;
+    case WM_PHSVC_EXIT:
+        {
+            SendMessage(WindowHandle, TDM_CLICK_BUTTON, IDCANCEL, 0);
+        }
+        goto DefaultWndProc;
+    }
+
+    return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+
+DefaultWndProc:
+    return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
+}
+
+HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR Context
+    )
+{
+    PPH_UI_SERVICE_PROGRESS_DIALOG context = (PPH_UI_SERVICE_PROGRESS_DIALOG)Context;
+
+    switch (WindowMessage)
+    {
+    case TDN_CREATED:
+        {
+            context->WindowHandle = WindowHandle;
+
+            PhSetApplicationWindowIcon(WindowHandle);
+
+            PhCenterWindow(WindowHandle, context->ParentWindowHandle);
+
+            context->OldWndProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+            PhSetWindowContext(WindowHandle, MAXCHAR, context);
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpUiServiceProgressDialogWndProc);
+
+            PhShowServiceProgressDialogConfirmMessage(context);
+        }
+        break;
+    }
+
+    return S_OK;
+}
+
+NTSTATUS PhShowServiceProgressDialogThread(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
+    )
+{
+    PH_AUTO_POOL autoPool;
+    TASKDIALOGCONFIG config;
+
+    PhInitializeAutoPool(&autoPool);
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
+    config.pfCallback = PhpUiServiceInitializeDialogCallbackProc;
+    config.lpCallbackData = (LONG_PTR)Context;
+    config.pszContent = L"Initializing...";
+    config.cxWidth = 200;
+
+    TaskDialogIndirect(&config, NULL, NULL, NULL);
+
+    PhDeleteAutoPool(&autoPool);
+    PhDereferenceObject(Context);
+
+    return STATUS_SUCCESS;
+}
+
+static VOID PhServiceProgressContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_UI_SERVICE_PROGRESS_DIALOG context = Object;
+
+    PhDereferenceObjects(context->ServiceItemList->Items, context->ServiceItemList->Count);
+    PhDereferenceObject(context->ServiceItemList);
+}
+
+PPH_UI_SERVICE_PROGRESS_DIALOG PhCreateServiceProgressContext(
+    VOID
+    )
+{
+    static PPH_OBJECT_TYPE PhServiceProgressObjectType = NULL;
+    static PH_INITONCE PhServiceProgressTypeInitOnce = PH_INITONCE_INIT;
+    PPH_UI_SERVICE_PROGRESS_DIALOG context;
+
+    if (PhBeginInitOnce(&PhServiceProgressTypeInitOnce))
+    {
+        PhServiceProgressObjectType = PhCreateObjectType(L"ServiceProgressObjectType", 0, PhServiceProgressContextDeleteProcedure);
+        PhEndInitOnce(&PhServiceProgressTypeInitOnce);
+    }
+
+    context = PhCreateObject(sizeof(PH_UI_SERVICE_PROGRESS_DIALOG), PhServiceProgressObjectType);
+    memset(context, 0, sizeof(PH_UI_SERVICE_PROGRESS_DIALOG));
+
+    return context;
+}
+
+VOID PhShowServiceProgressDialog(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR Verb,
+    _In_ PCWSTR Message,
+    _In_ BOOLEAN Warning,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices,
+    _In_ PUSER_THREAD_START_ROUTINE ActionCallback,
+    _In_ PHSVC_API_CONTROLSERVICE_COMMAND ActionCommand
+    )
+{
+    PPH_UI_SERVICE_PROGRESS_DIALOG context;
+
+    if (NumberOfServices == 0)
+        return;
+
+    PhReferenceObjects(Services, NumberOfServices);
+
+    context = PhCreateServiceProgressContext();
+    context->ParentWindowHandle = WindowHandle;
+    context->Verb = Verb;
+    context->Message = Message;
+    context->Warning = Warning;
+    context->ActionCallback = ActionCallback;
+    context->ActionCommand = ActionCommand;
+    context->ServiceItemList = PhCreateList(NumberOfServices);
+    PhAddItemsList(context->ServiceItemList, Services, NumberOfServices);
+
+    PhCreateThread2(PhShowServiceProgressDialogThread, context);
+}
+
 static BOOLEAN PhpShowContinueMessageServices(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
     _In_ PWSTR Message,
     _In_ BOOLEAN Warning,
@@ -3343,7 +3914,7 @@ static BOOLEAN PhpShowContinueMessageServices(
         }
 
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             Verb,
             object,
             Message,
@@ -3358,8 +3929,55 @@ static BOOLEAN PhpShowContinueMessageServices(
     return cont;
 }
 
+static NTSTATUS PhpCHeckServiceStatus(_In_ SC_HANDLE ServiceHandle, ULONG CurrentState, ULONG WaitForState)
+{
+    NTSTATUS status;
+    SERVICE_STATUS_PROCESS serviceStatus;
+    ULONG checkpoint;
+
+    status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (serviceStatus.dwCurrentState == WaitForState)
+        return STATUS_SUCCESS;
+
+    checkpoint = serviceStatus.dwCheckPoint;
+
+    while (
+        serviceStatus.dwCurrentState == SERVICE_START_PENDING ||
+        serviceStatus.dwCurrentState == SERVICE_STOP_PENDING ||
+        serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING ||
+        serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING
+        )
+    {
+        PhDelayExecution(serviceStatus.dwWaitHint);
+
+        status = PhQueryServiceStatus(ServiceHandle, &serviceStatus);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (serviceStatus.dwCurrentState == WaitForState)
+            return STATUS_SUCCESS;
+
+        if (checkpoint == serviceStatus.dwCheckPoint && (
+            serviceStatus.dwCurrentState == SERVICE_START_PENDING ||
+            serviceStatus.dwCurrentState == SERVICE_STOP_PENDING ||
+            serviceStatus.dwCurrentState == SERVICE_CONTINUE_PENDING ||
+            serviceStatus.dwCurrentState == SERVICE_PAUSE_PENDING
+            ))
+        {
+
+        }
+
+        checkpoint = serviceStatus.dwCheckPoint;
+    }
+}
+
 static BOOLEAN PhpShowErrorService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
     _In_ PPH_SERVICE_ITEM Service,
     _In_ NTSTATUS Status,
@@ -3367,7 +3985,7 @@ static BOOLEAN PhpShowErrorService(
     )
 {
     return PhShowContinueStatus(
-        hWnd,
+        WindowHandle,
         PhaFormatString(
         L"Unable to %s %s.",
         Verb,
@@ -3376,6 +3994,29 @@ static BOOLEAN PhpShowErrorService(
         Status,
         Win32Result
         );
+}
+
+static NTSTATUS PhUiServiceStartCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    NTSTATUS status;
+    SC_HANDLE serviceHandle;
+
+    status = PhOpenService(
+        &serviceHandle,
+        SERVICE_START,
+        PhGetString(ServiceItem->Name)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhStartService(serviceHandle, 0, NULL);
+
+        PhCloseServiceHandle(serviceHandle);
+    }
+
+    return status;
 }
 
 BOOLEAN PhUiStartServices(
@@ -3387,6 +4028,23 @@ BOOLEAN PhUiStartServices(
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG i;
+
+#ifdef PH_SERVICE_PROGRESS_DIALOG
+    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    {
+        PhShowServiceProgressDialog(
+            WindowHandle,
+            L"start",
+            L"Starting a service might prevent the system from functioning properly.",
+            FALSE,
+            Services,
+            NumberOfServices,
+            PhUiServiceStartCallback,
+            PhSvcControlServiceStart
+            );
+        return FALSE;
+    }
+#endif
 
     if (!PhpShowContinueMessageServices(
         WindowHandle,
@@ -3486,7 +4144,7 @@ BOOLEAN PhUiStartServices(
 }
 
 BOOLEAN PhUiStartService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     )
 {
@@ -3511,7 +4169,7 @@ BOOLEAN PhUiStartService(
         BOOLEAN connected;
 
         if (PhpShowErrorAndConnectToPhSvc(
-            hWnd,
+            WindowHandle,
             PhaConcatStrings2(L"Unable to start ", PhGetString(Service->Name))->Buffer,
             status,
             &connected
@@ -3522,18 +4180,41 @@ BOOLEAN PhUiStartService(
                 if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Service->Name), PhSvcControlServiceStart)))
                     success = TRUE;
                 else
-                    PhpShowErrorService(hWnd, L"start", Service, status, 0);
+                    PhpShowErrorService(WindowHandle, L"start", Service, status, 0);
 
                 PhUiDisconnectFromPhSvc();
             }
         }
         else
         {
-            PhpShowErrorService(hWnd, L"start", Service, status, 0);
+            PhpShowErrorService(WindowHandle, L"start", Service, status, 0);
         }
     }
 
     return success;
+}
+
+static NTSTATUS PhUiServiceContinueCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    NTSTATUS status;
+    SC_HANDLE serviceHandle;
+
+    status = PhOpenService(
+        &serviceHandle,
+        SERVICE_PAUSE_CONTINUE,
+        PhGetString(ServiceItem->Name)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhContinueService(serviceHandle);
+
+        PhCloseServiceHandle(serviceHandle);
+    }
+
+    return status;
 }
 
 BOOLEAN PhUiContinueServices(
@@ -3545,6 +4226,23 @@ BOOLEAN PhUiContinueServices(
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG i;
+
+#ifdef PH_SERVICE_PROGRESS_DIALOG
+    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    {
+        PhShowServiceProgressDialog(
+            WindowHandle,
+            L"continue",
+            L"Continuing a service might prevent the system from functioning properly.",
+            FALSE,
+            Services,
+            NumberOfServices,
+            PhUiServiceContinueCallback,
+            PhSvcControlServiceContinue
+            );
+        return FALSE;
+    }
+#endif
 
     if (!PhpShowContinueMessageServices(
         WindowHandle,
@@ -3646,13 +4344,30 @@ BOOLEAN PhUiContinueServices(
 }
 
 BOOLEAN PhUiContinueService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     )
 {
     SC_HANDLE serviceHandle;
     NTSTATUS status;
     BOOLEAN success = FALSE;
+
+#ifdef PH_SERVICE_PROGRESS_DIALOG
+    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    {
+        PhShowServiceProgressDialog(
+            WindowHandle,
+            L"continue",
+            L"Continuing a service might prevent the system from functioning properly.",
+            FALSE,
+            &Service,
+            1,
+            PhUiServiceContinueCallback,
+            PhSvcControlServiceContinue
+            );
+        return FALSE;
+    }
+#endif
 
     status = PhOpenService(&serviceHandle, SERVICE_PAUSE_CONTINUE, PhGetString(Service->Name));
 
@@ -3671,7 +4386,7 @@ BOOLEAN PhUiContinueService(
         BOOLEAN connected;
 
         if (PhpShowErrorAndConnectToPhSvc(
-            hWnd,
+            WindowHandle,
             PhaConcatStrings2(L"Unable to continue ", PhGetString(Service->Name))->Buffer,
             status,
             &connected
@@ -3682,18 +4397,41 @@ BOOLEAN PhUiContinueService(
                 if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Service->Name), PhSvcControlServiceContinue)))
                     success = TRUE;
                 else
-                    PhpShowErrorService(hWnd, L"continue", Service, status, 0);
+                    PhpShowErrorService(WindowHandle, L"continue", Service, status, 0);
 
                 PhUiDisconnectFromPhSvc();
             }
         }
         else
         {
-            PhpShowErrorService(hWnd, L"continue", Service, status, 0);
+            PhpShowErrorService(WindowHandle, L"continue", Service, status, 0);
         }
     }
 
     return success;
+}
+
+static NTSTATUS PhUiServicePauseCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    NTSTATUS status;
+    SC_HANDLE serviceHandle;
+
+    status = PhOpenService(
+        &serviceHandle,
+        SERVICE_PAUSE_CONTINUE,
+        PhGetString(ServiceItem->Name)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhPauseService(serviceHandle);
+
+        PhCloseServiceHandle(serviceHandle);
+    }
+
+    return status;
 }
 
 BOOLEAN PhUiPauseServices(
@@ -3705,6 +4443,23 @@ BOOLEAN PhUiPauseServices(
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG i;
+
+#ifdef PH_SERVICE_PROGRESS_DIALOG
+    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    {
+        PhShowServiceProgressDialog(
+            WindowHandle,
+            L"pause",
+            L"Pausing a service might prevent the system from functioning properly.",
+            FALSE,
+            Services,
+            NumberOfServices,
+            PhUiServicePauseCallback,
+            PhSvcControlServicePause
+            );
+        return FALSE;
+    }
+#endif
 
     if (!PhpShowContinueMessageServices(
         WindowHandle,
@@ -3806,13 +4561,30 @@ BOOLEAN PhUiPauseServices(
 }
 
 BOOLEAN PhUiPauseService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     )
 {
     SC_HANDLE serviceHandle;
     NTSTATUS status;
     BOOLEAN success = FALSE;
+
+#ifdef PH_SERVICE_PROGRESS_DIALOG
+    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    {
+        PhShowServiceProgressDialog(
+            WindowHandle,
+            L"pause",
+            L"Pausing a service might prevent the system from functioning properly.",
+            FALSE,
+            &Service,
+            1,
+            PhUiServicePauseCallback,
+            PhSvcControlServicePause
+            );
+        return FALSE;
+    }
+#endif
 
     status = PhOpenService(&serviceHandle, SERVICE_PAUSE_CONTINUE, PhGetString(Service->Name));
 
@@ -3831,7 +4603,7 @@ BOOLEAN PhUiPauseService(
         BOOLEAN connected;
 
         if (PhpShowErrorAndConnectToPhSvc(
-            hWnd,
+            WindowHandle,
             PhaConcatStrings2(L"Unable to pause ", Service->Name->Buffer)->Buffer,
             status,
             &connected
@@ -3842,18 +4614,41 @@ BOOLEAN PhUiPauseService(
                 if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Service->Name), PhSvcControlServicePause)))
                     success = TRUE;
                 else
-                    PhpShowErrorService(hWnd, L"pause", Service, status, 0);
+                    PhpShowErrorService(WindowHandle, L"pause", Service, status, 0);
 
                 PhUiDisconnectFromPhSvc();
             }
         }
         else
         {
-            PhpShowErrorService(hWnd, L"pause", Service, status, 0);
+            PhpShowErrorService(WindowHandle, L"pause", Service, status, 0);
         }
     }
 
     return success;
+}
+
+static NTSTATUS PhUiServiceStopCallback(
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    NTSTATUS status;
+    SC_HANDLE serviceHandle;
+
+    status = PhOpenService(
+        &serviceHandle,
+        SERVICE_STOP,
+        PhGetString(ServiceItem->Name)
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhStopService(serviceHandle);
+
+        PhCloseServiceHandle(serviceHandle);
+    }
+
+    return status;
 }
 
 BOOLEAN PhUiStopServices(
@@ -3865,6 +4660,23 @@ BOOLEAN PhUiStopServices(
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG i;
+
+#ifdef PH_SERVICE_PROGRESS_DIALOG
+    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    {
+        PhShowServiceProgressDialog(
+            WindowHandle,
+            L"stop",
+            L"Stopping a service might prevent the system from functioning properly.",
+            FALSE,
+            Services,
+            NumberOfServices,
+            PhUiServiceStopCallback,
+            PhSvcControlServiceStop
+            );
+        return FALSE;
+    }
+#endif
 
     if (!PhpShowContinueMessageServices(
         WindowHandle,
@@ -3966,13 +4778,30 @@ BOOLEAN PhUiStopServices(
 }
 
 BOOLEAN PhUiStopService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     )
 {
     SC_HANDLE serviceHandle;
     NTSTATUS status;
     BOOLEAN success = FALSE;
+
+#ifdef PH_SERVICE_PROGRESS_DIALOG
+    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
+    {
+        PhShowServiceProgressDialog(
+            WindowHandle,
+            L"stop",
+            L"Stopping a service might prevent the system from functioning properly.",
+            FALSE,
+            &Service,
+            1,
+            PhUiServiceStopCallback,
+            PhSvcControlServiceStop
+            );
+        return FALSE;
+    }
+#endif
 
     status = PhOpenService(&serviceHandle, SERVICE_STOP, PhGetString(Service->Name));
 
@@ -3991,7 +4820,7 @@ BOOLEAN PhUiStopService(
         BOOLEAN connected;
 
         if (PhpShowErrorAndConnectToPhSvc(
-            hWnd,
+            WindowHandle,
             PhaConcatStrings2(L"Unable to stop ", PhGetString(Service->Name))->Buffer,
             status,
             &connected
@@ -4002,14 +4831,14 @@ BOOLEAN PhUiStopService(
                 if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Service->Name), PhSvcControlServiceStop)))
                     success = TRUE;
                 else
-                    PhpShowErrorService(hWnd, L"stop", Service, status, 0);
+                    PhpShowErrorService(WindowHandle, L"stop", Service, status, 0);
 
                 PhUiDisconnectFromPhSvc();
             }
         }
         else
         {
-            PhpShowErrorService(hWnd, L"stop", Service, status, 0);
+            PhpShowErrorService(WindowHandle, L"stop", Service, status, 0);
         }
     }
 
@@ -4017,7 +4846,7 @@ BOOLEAN PhUiStopService(
 }
 
 BOOLEAN PhUiDeleteService(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
     )
 {
@@ -4027,7 +4856,7 @@ BOOLEAN PhUiDeleteService(
 
     // Warnings cannot be disabled for service deletion.
     if (!PhShowConfirmMessage(
-        hWnd,
+        WindowHandle,
         L"delete",
         Service->Name->Buffer,
         L"Deleting a service can prevent the system from starting "
@@ -4053,7 +4882,7 @@ BOOLEAN PhUiDeleteService(
         BOOLEAN connected;
 
         if (PhpShowErrorAndConnectToPhSvc(
-            hWnd,
+            WindowHandle,
             PhaConcatStrings2(L"Unable to delete ", PhGetString(Service->Name))->Buffer,
             status,
             &connected
@@ -4064,14 +4893,14 @@ BOOLEAN PhUiDeleteService(
                 if (NT_SUCCESS(status = PhSvcCallControlService(PhGetString(Service->Name), PhSvcControlServiceDelete)))
                     success = TRUE;
                 else
-                    PhpShowErrorService(hWnd, L"delete", Service, status, 0);
+                    PhpShowErrorService(WindowHandle, L"delete", Service, status, 0);
 
                 PhUiDisconnectFromPhSvc();
             }
         }
         else
         {
-            PhpShowErrorService(hWnd, L"delete", Service, status, 0);
+            PhpShowErrorService(WindowHandle, L"delete", Service, status, 0);
         }
     }
 
@@ -4079,7 +4908,7 @@ BOOLEAN PhUiDeleteService(
 }
 
 BOOLEAN PhUiCloseConnections(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_NETWORK_ITEM *Connections,
     _In_ ULONG NumberOfConnections
     )
@@ -4096,7 +4925,7 @@ BOOLEAN PhUiCloseConnections(
     if (!SetTcpEntry_I)
     {
         PhShowError(
-            hWnd,
+            WindowHandle,
             L"%s",
             L"This feature is not supported by your operating system."
             );
@@ -4129,7 +4958,7 @@ BOOLEAN PhUiCloseConnections(
                 result = ERROR_ACCESS_DENIED;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 L"Unable to close the TCP connection",
                 PhDosErrorToNtStatus(result),
                 &connected
@@ -4140,7 +4969,7 @@ BOOLEAN PhUiCloseConnections(
                     if (NT_SUCCESS(status = PhSvcCallSetTcpEntry(&tcpRow)))
                         success = TRUE;
                     else
-                        PhShowStatus(hWnd, L"Unable to close the TCP connection", status, 0);
+                        PhShowStatus(WindowHandle, L"Unable to close the TCP connection", status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -4152,7 +4981,7 @@ BOOLEAN PhUiCloseConnections(
             else
             {
                 if (PhShowMessage2(
-                    hWnd,
+                    WindowHandle,
                     TD_OK_BUTTON,
                     TD_ERROR_ICON,
                     L"Unable to close the TCP connection.",
@@ -4167,7 +4996,7 @@ BOOLEAN PhUiCloseConnections(
 }
 
 static BOOLEAN PhpShowContinueMessageThreads(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
     _In_ PWSTR Message,
     _In_ BOOLEAN Warning,
@@ -4193,7 +5022,7 @@ static BOOLEAN PhpShowContinueMessageThreads(
         }
 
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             Verb,
             object,
             Message,
@@ -4209,7 +5038,7 @@ static BOOLEAN PhpShowContinueMessageThreads(
 }
 
 static BOOLEAN PhpShowErrorThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ NTSTATUS Status,
@@ -4217,7 +5046,7 @@ static BOOLEAN PhpShowErrorThread(
     )
 {
     return PhShowContinueStatus(
-        hWnd,
+        WindowHandle,
         PhaFormatString(
         L"Unable to %s thread %lu",
         Verb,
@@ -4229,7 +5058,7 @@ static BOOLEAN PhpShowErrorThread(
 }
 
 BOOLEAN PhUiTerminateThreads(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,
     _In_ ULONG NumberOfThreads
     )
@@ -4239,7 +5068,7 @@ BOOLEAN PhUiTerminateThreads(
     ULONG i;
 
     if (!PhpShowContinueMessageThreads(
-        hWnd,
+        WindowHandle,
         L"terminate",
         L"Terminating a thread may cause the process to stop working.",
         FALSE,
@@ -4274,7 +5103,7 @@ BOOLEAN PhUiTerminateThreads(
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaFormatString(L"Unable to terminate thread %lu", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
@@ -4285,7 +5114,7 @@ BOOLEAN PhUiTerminateThreads(
                     if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[i]->ThreadId, PhSvcControlThreadTerminate, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorThread(hWnd, L"terminate", Threads[i], status, 0);
+                        PhpShowErrorThread(WindowHandle, L"terminate", Threads[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -4296,7 +5125,7 @@ BOOLEAN PhUiTerminateThreads(
             }
             else
             {
-                if (!PhpShowErrorThread(hWnd, L"terminate", Threads[i], status, 0))
+                if (!PhpShowErrorThread(WindowHandle, L"terminate", Threads[i], status, 0))
                     break;
             }
         }
@@ -4306,7 +5135,7 @@ BOOLEAN PhUiTerminateThreads(
 }
 
 BOOLEAN PhUiSuspendThreads(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,
     _In_ ULONG NumberOfThreads
     )
@@ -4337,7 +5166,7 @@ BOOLEAN PhUiSuspendThreads(
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaFormatString(L"Unable to suspend thread %lu", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
@@ -4348,7 +5177,7 @@ BOOLEAN PhUiSuspendThreads(
                     if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[i]->ThreadId, PhSvcControlThreadSuspend, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorThread(hWnd, L"suspend", Threads[i], status, 0);
+                        PhpShowErrorThread(WindowHandle, L"suspend", Threads[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -4359,7 +5188,7 @@ BOOLEAN PhUiSuspendThreads(
             }
             else
             {
-                if (!PhpShowErrorThread(hWnd, L"suspend", Threads[i], status, 0))
+                if (!PhpShowErrorThread(WindowHandle, L"suspend", Threads[i], status, 0))
                     break;
             }
         }
@@ -4369,7 +5198,7 @@ BOOLEAN PhUiSuspendThreads(
 }
 
 BOOLEAN PhUiResumeThreads(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,
     _In_ ULONG NumberOfThreads
     )
@@ -4400,7 +5229,7 @@ BOOLEAN PhUiResumeThreads(
             success = FALSE;
 
             if (!cancelled && PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaFormatString(L"Unable to resume thread %lu", HandleToUlong(Threads[i]->ThreadId))->Buffer,
                 status,
                 &connected
@@ -4411,7 +5240,7 @@ BOOLEAN PhUiResumeThreads(
                     if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[i]->ThreadId, PhSvcControlThreadResume, 0)))
                         success = TRUE;
                     else
-                        PhpShowErrorThread(hWnd, L"resume", Threads[i], status, 0);
+                        PhpShowErrorThread(WindowHandle, L"resume", Threads[i], status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -4422,7 +5251,7 @@ BOOLEAN PhUiResumeThreads(
             }
             else
             {
-                if (!PhpShowErrorThread(hWnd, L"resume", Threads[i], status, 0))
+                if (!PhpShowErrorThread(WindowHandle, L"resume", Threads[i], status, 0))
                     break;
             }
         }
@@ -4471,7 +5300,7 @@ BOOLEAN PhUiSetBoostPriorityThreads(
 }
 
 BOOLEAN PhUiSetBoostPriorityThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ BOOLEAN PriorityBoost
     )
@@ -4491,7 +5320,7 @@ BOOLEAN PhUiSetBoostPriorityThread(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorThread(hWnd, L"set the boost priority of", Thread, status, 0);
+        PhpShowErrorThread(WindowHandle, L"set the boost priority of", Thread, status, 0);
         return FALSE;
     }
 
@@ -4544,7 +5373,7 @@ BOOLEAN PhUiSetPriorityThreads(
 }
 
 BOOLEAN PhUiSetPriorityThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ LONG Increment
     )
@@ -4564,7 +5393,7 @@ BOOLEAN PhUiSetPriorityThread(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorThread(hWnd, L"set the priority of", Thread, status, 0);
+        PhpShowErrorThread(WindowHandle, L"set the priority of", Thread, status, 0);
         return FALSE;
     }
 
@@ -4572,7 +5401,7 @@ BOOLEAN PhUiSetPriorityThread(
 }
 
 BOOLEAN PhUiSetIoPriorityThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ IO_PRIORITY_HINT IoPriority
     )
@@ -4599,7 +5428,7 @@ BOOLEAN PhUiSetIoPriorityThread(
 
         // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
         if (PhpShowErrorAndConnectToPhSvc(
-            hWnd,
+            WindowHandle,
             PhaFormatString(L"Unable to set the I/O priority of thread %lu", HandleToUlong(Thread->ThreadId))->Buffer,
             status,
             &connected
@@ -4610,14 +5439,14 @@ BOOLEAN PhUiSetIoPriorityThread(
                 if (NT_SUCCESS(status = PhSvcCallControlThread(Thread->ThreadId, PhSvcControlThreadIoPriority, IoPriority)))
                     success = TRUE;
                 else
-                    PhpShowErrorThread(hWnd, L"set the I/O priority of", Thread, status, 0);
+                    PhpShowErrorThread(WindowHandle, L"set the I/O priority of", Thread, status, 0);
 
                 PhUiDisconnectFromPhSvc();
             }
         }
         else
         {
-            PhpShowErrorThread(hWnd, L"set the I/O priority of", Thread, status, 0);
+            PhpShowErrorThread(WindowHandle, L"set the I/O priority of", Thread, status, 0);
         }
     }
 
@@ -4625,7 +5454,7 @@ BOOLEAN PhUiSetIoPriorityThread(
 }
 
 BOOLEAN PhUiSetPagePriorityThread(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM Thread,
     _In_ ULONG PagePriority
     )
@@ -4646,7 +5475,7 @@ BOOLEAN PhUiSetPagePriorityThread(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorThread(hWnd, L"set the page priority of", Thread, status, 0);
+        PhpShowErrorThread(WindowHandle, L"set the page priority of", Thread, status, 0);
         return FALSE;
     }
 
@@ -4654,7 +5483,7 @@ BOOLEAN PhUiSetPagePriorityThread(
 }
 
 BOOLEAN PhUiUnloadModule(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_MODULE_ITEM Module
     )
@@ -4693,7 +5522,7 @@ BOOLEAN PhUiUnloadModule(
         }
 
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             verb,
             Module->Name->Buffer,
             message,
@@ -4765,14 +5594,14 @@ BOOLEAN PhUiUnloadModule(
 
             if (status == STATUS_DLL_NOT_FOUND)
             {
-                PhShowError(hWnd, L"%s", L"Unable to find the module to unload.");
+                PhShowError(WindowHandle, L"%s", L"Unable to find the module to unload.");
                 return FALSE;
             }
 
             if (!NT_SUCCESS(status))
             {
                 PhShowStatus(
-                    hWnd,
+                    WindowHandle,
                     PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer,
                     status,
                     0
@@ -4791,7 +5620,7 @@ BOOLEAN PhUiUnloadModule(
             BOOLEAN connected;
 
             if (PhpShowErrorAndConnectToPhSvc(
-                hWnd,
+                WindowHandle,
                 PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer,
                 status,
                 &connected
@@ -4802,7 +5631,7 @@ BOOLEAN PhUiUnloadModule(
                     if (NT_SUCCESS(status = PhSvcCallUnloadDriver(Module->BaseAddress, Module->Name->Buffer)))
                         success = TRUE;
                     else
-                        PhShowStatus(hWnd, PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer, status, 0);
+                        PhShowStatus(WindowHandle, PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer, status, 0);
 
                     PhUiDisconnectFromPhSvc();
                 }
@@ -4810,7 +5639,7 @@ BOOLEAN PhUiUnloadModule(
             else
             {
                 PhShowStatus(
-                    hWnd,
+                    WindowHandle,
                     PhaConcatStrings(
                     3,
                     L"Unable to unload ",
@@ -4844,7 +5673,7 @@ BOOLEAN PhUiUnloadModule(
         if (!NT_SUCCESS(status))
         {
             PhShowStatus(
-                hWnd,
+                WindowHandle,
                 PhaFormatString(L"Unable to unmap the section view at 0x%p", Module->BaseAddress)->Buffer,
                 status,
                 0
@@ -4862,7 +5691,7 @@ BOOLEAN PhUiUnloadModule(
 }
 
 BOOLEAN PhUiFreeMemory(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_MEMORY_ITEM MemoryItem,
     _In_ BOOLEAN Free
@@ -4897,7 +5726,7 @@ BOOLEAN PhUiFreeMemory(
         }
 
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             verb,
             L"the memory region",
             message,
@@ -4963,7 +5792,7 @@ BOOLEAN PhUiFreeMemory(
         }
 
         PhShowStatus(
-            hWnd,
+            WindowHandle,
             message,
             status,
             0
@@ -4975,7 +5804,7 @@ BOOLEAN PhUiFreeMemory(
 }
 
 static BOOLEAN PhpShowErrorHandle(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
     _In_ PPH_HANDLE_ITEM Handle,
     _In_ NTSTATUS Status,
@@ -4989,7 +5818,7 @@ static BOOLEAN PhpShowErrorHandle(
     if (!PhIsNullOrEmptyString(Handle->BestObjectName))
     {
         return PhShowContinueStatus(
-            hWnd,
+            WindowHandle,
             PhaFormatString(
             L"Unable to %s handle \"%s\" (%s)",
             Verb,
@@ -5003,7 +5832,7 @@ static BOOLEAN PhpShowErrorHandle(
     else
     {
         return PhShowContinueStatus(
-            hWnd,
+            WindowHandle,
             PhaFormatString(
             L"Unable to %s handle %s",
             Verb,
@@ -5016,7 +5845,7 @@ static BOOLEAN PhpShowErrorHandle(
 }
 
 BOOLEAN PhUiCloseHandles(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_HANDLE_ITEM *Handles,
     _In_ ULONG NumberOfHandles,
@@ -5034,7 +5863,7 @@ BOOLEAN PhUiCloseHandles(
     if (Warn && PhGetIntegerSetting(L"EnableWarnings"))
     {
         cont = PhShowConfirmMessage(
-            hWnd,
+            WindowHandle,
             L"close",
             NumberOfHandles == 1 ? L"the selected handle" : L"the selected handles",
             L"Closing handles may cause system instability and data corruption.",
@@ -5074,15 +5903,10 @@ BOOLEAN PhUiCloseHandles(
                 }
             }
 
-            policyInfo.Policy = ProcessStrictHandleCheckPolicy;
-            policyInfo.StrictHandleCheckPolicy.Flags = 0;
-
-            if (NT_SUCCESS(NtQueryInformationProcess(
+            if (NT_SUCCESS(PhGetProcessMitigationPolicyInformation(
                 processHandle,
-                ProcessMitigationPolicy,
-                &policyInfo,
-                sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
-                NULL
+                ProcessStrictHandleCheckPolicy,
+                &policyInfo
                 )))
             {
                 if (policyInfo.StrictHandleCheckPolicy.Flags != 0)
@@ -5095,7 +5919,7 @@ BOOLEAN PhUiCloseHandles(
         if (critical && strict)
         {
             cont = PhShowConfirmMessage(
-                hWnd,
+                WindowHandle,
                 L"close",
                 L"critical process handle(s)",
                 L"You are about to close one or more handles for a critical process with strict handle checks enabled. This will shut down the operating system immediately.\r\n\r\n",
@@ -5123,7 +5947,7 @@ BOOLEAN PhUiCloseHandles(
                 success = FALSE;
 
                 if (!PhpShowErrorHandle(
-                    hWnd,
+                    WindowHandle,
                     L"close",
                     Handles[i],
                     status,
@@ -5137,7 +5961,7 @@ BOOLEAN PhUiCloseHandles(
     }
     else
     {
-        PhShowStatus(hWnd, L"Unable to open the process", status, 0);
+        PhShowStatus(WindowHandle, L"Unable to open the process", status, 0);
         return FALSE;
     }
 
@@ -5145,7 +5969,7 @@ BOOLEAN PhUiCloseHandles(
 }
 
 BOOLEAN PhUiSetAttributesHandle(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
     _In_ PPH_HANDLE_ITEM Handle,
     _In_ ULONG Attributes
@@ -5154,10 +5978,10 @@ BOOLEAN PhUiSetAttributesHandle(
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (KphLevel() < KphLevelMax)
+    if (KsiLevel() < KphLevelMax)
     {
         PhShowKsiNotConnected(
-            hWnd,
+            WindowHandle,
             L"Setting handle attributes requires a connection to the kernel driver."
             );
         return FALSE;
@@ -5187,9 +6011,48 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorHandle(hWnd, L"set attributes of", Handle, status, 0);
+        PhpShowErrorHandle(WindowHandle, L"set attributes of", Handle, status, 0);
         return FALSE;
     }
 
     return TRUE;
+}
+
+BOOLEAN PhUiFlushHeapProcesses(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfProcesses; i++)
+    {
+        NTSTATUS status;
+        HANDLE processHandle;
+
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_CREATE_THREAD | PROCESS_QUERY_LIMITED_INFORMATION |
+            PROCESS_SET_LIMITED_INFORMATION | PROCESS_VM_READ,
+            Processes[i]->ProcessId
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            status = PhFlushProcessHeapsRemote(processHandle, PhTimeoutFromMillisecondsEx(4000));
+            NtClose(processHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorProcess(WindowHandle, L"flush the process heap(s) of", Processes[i], status, 0))
+                break;
+        }
+    }
+
+    return success;
 }

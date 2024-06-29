@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2021
+ *     dmex    2016-2024
  *
  */
 
@@ -34,7 +34,7 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
         {
             if (context->TaskbarListClass)
             {
-                ITaskbarList3_SetProgressState(context->TaskbarListClass, PhMainWndHandle, TBPF_NOPROGRESS);
+                PhTaskbarListSetProgressState(context->TaskbarListClass, context->DialogHandle, TBPF_NOPROGRESS);
             }
         }
         break;

@@ -50,6 +50,7 @@ static ULONG DeviceHighlightingDuration = 0;
 static PPH_OBJECT_TYPE DeviceTreeType = NULL;
 static BOOLEAN DeviceTabCreated = FALSE;
 static HWND DeviceTreeHandle = NULL;
+static ULONG DeviceTreeVisibleColumns[PhMaxDeviceProperty] = { 0 };
 static PH_CALLBACK_REGISTRATION DeviceNotifyRegistration = { 0 };
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration = { 0 };
 static PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration = { 0 };
@@ -413,6 +414,9 @@ BOOLEAN NTAPI DeviceTreeFilterCallback(
     {
         PPH_DEVICE_PROPERTY prop;
 
+        if (!DeviceTreeVisibleColumns[i])
+            continue;
+
         prop = PhGetDeviceProperty(node->DeviceItem, i);
 
         if (PhIsNullOrEmptyString(prop->AsString))
@@ -476,6 +480,9 @@ static int __cdecl DeviceTreeSortFunction(
             break;
         case PhDevicePropertyTypeUInt64:
             sortResult = uint64cmp(lhs->UInt64, rhs->UInt64);
+            break;
+        case PhDevicePropertyTypeInt64:
+            sortResult = int64cmp(lhs->Int64, rhs->Int64);
             break;
         case PhDevicePropertyTypeUInt32:
             sortResult = uint64cmp(lhs->UInt32, rhs->UInt32);
@@ -564,6 +571,20 @@ VOID DeviceTreeGetSelectedDeviceItems(
 
     *NumberOfDevices = (ULONG)array.Count;
     *Devices = PhFinalArrayItems(&array);
+}
+
+VOID DeviceTreeUpdateVisibleColumns(
+    VOID
+    )
+{
+    for (ULONG i = 0; i < PhMaxDeviceProperty; i++)
+        DeviceTreeVisibleColumns[i] = i;
+
+    TreeNew_GetVisibleColumnArray(
+        DeviceTreeHandle,
+        PhMaxDeviceProperty,
+        DeviceTreeVisibleColumns
+        );
 }
 
 BOOLEAN NTAPI DeviceTreeCallback(
@@ -963,6 +984,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 );
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
+            DeviceTreeUpdateVisibleColumns();
         }
         return TRUE;
     }
@@ -1249,6 +1271,9 @@ const DEVICE_PROPERTY_TABLE_ENTRY DeviceItemPropertyTable[] =
     { PhDevicePropertyStorageSystemCritical, L"Storage system critical", FALSE, 80, 0 },
     { PhDevicePropertyStorageDiskNumber, L"Storage disk number", FALSE, 80, 0 },
     { PhDevicePropertyStoragePartitionNumber, L"Storage disk partition number", FALSE, 80, 0 },
+
+    { PhDevicePropertyGpuLuid, L"GPU LUID", FALSE, 80, 0 },
+    { PhDevicePropertyGpuPhysicalAdapterIndex, L"GPU physical adapter index", FALSE, 80, 0 },
 };
 C_ASSERT(RTL_NUMBER_OF(DeviceItemPropertyTable) == PhMaxDeviceProperty);
 const ULONG DeviceItemPropertyTableCount = RTL_NUMBER_OF(DeviceItemPropertyTable);
@@ -1307,6 +1332,8 @@ VOID DevicesTreeInitialize(
     TreeNew_SetRedraw(DeviceTreeHandle, TRUE);
 
     TreeNew_SetTriState(DeviceTreeHandle, TRUE);
+
+    DeviceTreeUpdateVisibleColumns();
 
     if (PhGetIntegerSetting(L"TreeListCustomRowSize"))
     {

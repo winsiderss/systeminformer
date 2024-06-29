@@ -1754,6 +1754,18 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_MISCELLANEOUS_FLUSHHEAPS:
+        {
+            PPH_PROCESS_ITEM* processes;
+            ULONG numberOfProcesses;
+
+            PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+            PhReferenceObjects(processes, numberOfProcesses);
+            PhUiFlushHeapProcesses(WindowHandle, processes, numberOfProcesses);
+            PhDereferenceObjects(processes, numberOfProcesses);
+            PhFree(processes);
+        }
+        break;
     case ID_PRIORITY_REALTIME:
     case ID_PRIORITY_HIGH:
     case ID_PRIORITY_ABOVENORMAL:
@@ -1917,6 +1929,10 @@ VOID PhMwpOnCommand(
                     SetFocus(PhMwpProcessTreeNewHandle);
                     PhSelectAndEnsureVisibleProcessNode(processNode);
                 }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
+                }
             }
         }
         break;
@@ -2009,14 +2025,14 @@ VOID PhMwpOnCommand(
                     }
                     else
                     {
-                        PhShowError(WindowHandle, L"%s", L"The service does not exist.");
+                        PhShowStatus(WindowHandle, L"The service does not exist.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
                     }
 
                     NtClose(keyHandle);
                 }
                 else
                 {
-                    PhShowError(WindowHandle, L"%s", L"The service does not exist.");
+                    PhShowStatus(WindowHandle, L"The service does not exist.", STATUS_OBJECT_NAME_NOT_FOUND, 0);
                 }
             }
         }
@@ -2077,6 +2093,10 @@ VOID PhMwpOnCommand(
                     PhMwpSelectPage(PhMwpProcessesPage->Index);
                     SetFocus(PhMwpProcessTreeNewHandle);
                     PhSelectAndEnsureVisibleProcessNode(processNode);
+                }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
                 }
             }
         }
@@ -3886,7 +3906,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
             }
             else
             {
-                PhShowError(PhMainWndHandle, L"%s", L"The process does not exist.");
+                PhShowStatus(PhMainWndHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
             }
         }
         break;
@@ -3907,7 +3927,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
             }
             else
             {
-                PhShowError(PhMainWndHandle, L"%s", L"The process does not exist.");
+                PhShowStatus(PhMainWndHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
             }
         }
         break;
@@ -3926,7 +3946,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
             }
             else
             {
-                PhShowError(PhMainWndHandle, L"%s", L"The process does not exist.");
+                PhShowStatus(PhMainWndHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
             }
         }
         break;

@@ -12,11 +12,9 @@
 #include <phapp.h>
 #include <phplug.h>
 #include <settings.h>
-#include <mapldr.h>
 #include <secedit.h>
 
 #include <devprv.h>
-
 #include <devquery.h>
 
 DEFINE_GUID(GUID_DEVINTERFACE_A2DP_SIDEBAND_AUDIO, 0xf3b1362f, 0xc9f4, 0x4dd1, 0x9d, 0x55, 0xe0, 0x20, 0x38, 0xa1, 0x29, 0xfb);
@@ -102,6 +100,12 @@ DEFINE_GUID(GUID_NFC_RADIO_MEDIA_DEVICE_INTERFACE,  0x4d51e930, 0x750d, 0x4a36, 
 DEFINE_GUID(GUID_NFCSE_RADIO_MEDIA_DEVICE_INTERFACE, 0xef8ba08f, 0x148d, 0x4116, 0x83, 0xef, 0xa2, 0x67, 0x9d, 0xfc, 0x3f, 0xa5);
 DEFINE_GUID(GUID_BLUETOOTHLE_DEVICE_INTERFACE, 0x781aee18, 0x7733, 0x4ce4, 0xad, 0xd0, 0x91, 0xf4, 0x1c, 0x67, 0xb5, 0x92);
 DEFINE_GUID(GUID_BLUETOOTH_GATT_SERVICE_DEVICE_INTERFACE, 0x6e3bb679, 0x4372, 0x40c8, 0x9e, 0xaa, 0x45, 0x09, 0xdf, 0x26, 0x0c, 0xd8);
+DEFINE_GUID(GUID_BUS_TYPE_TREE, 0x4E815EE1, 0x20F8, 0x41EF, 0x8C, 0xFF, 0x3C, 0x28, 0x3F, 0x02, 0xD7, 0x22);
+DEFINE_GUID(GUID_TREE_TPM_SERVICE_FDTPM, 0x36deaa79, 0xc5dd, 0x447c, 0x95, 0xe6, 0xb3, 0x85, 0x95, 0x89, 0x29, 0x1a);
+DEFINE_GUID(GUID_TREE_TPM_SERVICE_STPM, 0x1F75CF6D, 0xF709, 0x4C0C, 0x8B, 0xCB, 0x0C, 0xDC, 0xA1, 0x28, 0x9D, 0xDD);
+
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 3); // DEVPROP_TYPE_UINT32
 
 #include <SetupAPI.h>
 #include <cfgmgr32.h>
@@ -120,13 +124,13 @@ PPH_OBJECT_TYPE PhDeviceTreeType = NULL;
 PPH_OBJECT_TYPE PhDeviceItemType = NULL;
 PPH_OBJECT_TYPE PhDeviceNotifyType = NULL;
 static PPH_OBJECT_TYPE PhpDeviceInfoType = NULL;
-static PPH_DEVICE_TREE PhpDeviceTree = NULL;
 static PH_FAST_LOCK PhpDeviceTreeLock = PH_FAST_LOCK_INIT;
+static PPH_DEVICE_TREE PhpDeviceTree = NULL;
 static HCMNOTIFICATION PhpDeviceNotification = NULL;
 static HCMNOTIFICATION PhpDeviceInterfaceNotification = NULL;
-static PH_FAST_LOCK PhpDeviceNotifyLock = PH_FAST_LOCK_INIT;
-static HANDLE PhpDeviceNotifyEvent = NULL;
-static LIST_ENTRY PhpDeviceNotifyList = { 0 };
+static PH_CALLBACK_REGISTRATION ServiceProviderUpdatedRegistration;
+static SLIST_HEADER PhDeviceNotifyListHead;
+static PH_FREE_LIST PhDeviceNotifyFreeList;
 
 #if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
 // Note: This propkey is required for building with 22H1 and older Windows SDK (dmex)
@@ -331,6 +335,98 @@ BOOLEAN PhpGetClassPropertyUInt64(
         Flags
         );
     if (result && (devicePropertyType == DEVPROP_TYPE_UINT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetDevicePropertyInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PLONG64 Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(LONG64);
+
+    result = SetupDiGetDevicePropertyW(
+        DeviceInfoSet,
+        DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(LONG64),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_INT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetDeviceInterfacePropertyInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PLONG64 Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(LONG64);
+
+    result = SetupDiGetDeviceInterfacePropertyW(
+        DeviceInfoSet,
+        DeviceInterfaceData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(LONG64),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_INT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
+BOOLEAN PhpGetClassPropertyInt64(
+    _In_ const GUID* ClassGuid,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _In_ ULONG Flags,
+    _Out_ PLONG64 Value
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(LONG64);
+
+    result = SetupDiGetClassPropertyW(
+        ClassGuid,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(LONG64),
+        &requiredLength,
+        Flags
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_INT64))
     {
         return TRUE;
     }
@@ -877,7 +973,7 @@ BOOLEAN PhpGetDevicePropertyString(
         return TRUE;
     }
 
-    PhDereferenceObject(string);
+    PhClearReference(&string);
     return FALSE;
 }
 
@@ -937,8 +1033,7 @@ BOOLEAN PhpGetDeviceInterfacePropertyString(
         return TRUE;
     }
 
-    PhDereferenceObject(string);
-
+    PhClearReference(&string);
     return FALSE;
 }
 
@@ -996,7 +1091,7 @@ BOOLEAN PhpGetClassPropertyString(
         return TRUE;
     }
 
-    PhDereferenceObject(string);
+    PhClearReference(&string);
     return FALSE;
 }
 
@@ -1591,6 +1686,87 @@ VOID NTAPI PhpDevPropFillUInt64Hex(
     }
 }
 
+VOID PhpDevPropFillInt64Common(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = PhDevicePropertyTypeInt64;
+
+    if (DeviceInfoData->Interface)
+    {
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyInt64(
+                &DeviceInfoData->InterfaceData.InterfaceClassGuid,
+                PropertyKey,
+                DICLASSPROP_INTERFACE,
+                &Property->Int64
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDeviceInterfacePropertyInt64(
+                DeviceInfoSet,
+                &DeviceInfoData->InterfaceData,
+                PropertyKey,
+                &Property->Int64
+                );
+        }
+    }
+    else
+    {
+        if (Flags & DEVPROP_FILL_FLAG_CLASS)
+        {
+            Property->Valid = PhpGetClassPropertyInt64(
+                &DeviceInfoData->DeviceData.ClassGuid,
+                PropertyKey,
+                DICLASSPROP_INSTALLER,
+                &Property->Int64
+                );
+        }
+        else
+        {
+            Property->Valid = PhpGetDevicePropertyInt64(
+                DeviceInfoSet,
+                &DeviceInfoData->DeviceData,
+                PropertyKey,
+                &Property->Int64
+                );
+        }
+    }
+}
+
+_Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)
+VOID NTAPI PhpDevPropFillInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PPH_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PPH_DEVICE_PROPERTY Property,
+    _In_ ULONG Flags
+    )
+{
+    PhpDevPropFillInt64Common(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
+
+    if (Property->Valid)
+    {
+        PH_FORMAT format[1];
+
+        PhInitFormatI64D(&format[0], Property->Int64);
+
+        Property->AsString = PhFormat(format, ARRAYSIZE(format), 1);
+    }
+}
+
 VOID PhpDevPropFillUInt32Common(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PPH_DEVINFO_DATA DeviceInfoData,
@@ -2127,6 +2303,9 @@ PH_DEFINE_WELL_KNOWN_GUID(GUID_NFC_RADIO_MEDIA_DEVICE_INTERFACE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_NFCSE_RADIO_MEDIA_DEVICE_INTERFACE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_BLUETOOTHLE_DEVICE_INTERFACE);
 PH_DEFINE_WELL_KNOWN_GUID(GUID_BLUETOOTH_GATT_SERVICE_DEVICE_INTERFACE);
+PH_DEFINE_WELL_KNOWN_GUID(GUID_BUS_TYPE_TREE);
+PH_DEFINE_WELL_KNOWN_GUID(GUID_TREE_TPM_SERVICE_FDTPM);
+PH_DEFINE_WELL_KNOWN_GUID(GUID_TREE_TPM_SERVICE_STPM);
 
 static PH_INITONCE PhpWellKnownGuidsInitOnce = PH_INITONCE_INIT;
 static const PH_WELL_KNOWN_GUID* PhpWellKnownGuids[] =
@@ -2427,6 +2606,9 @@ static const PH_WELL_KNOWN_GUID* PhpWellKnownGuids[] =
     &PH_WELL_KNOWN_GUID_NFCSE_RADIO_MEDIA_DEVICE_INTERFACE,
     &PH_WELL_KNOWN_GUID_BLUETOOTHLE_DEVICE_INTERFACE,
     &PH_WELL_KNOWN_GUID_BLUETOOTH_GATT_SERVICE_DEVICE_INTERFACE,
+    &PH_WELL_KNOWN_GUID_BUS_TYPE_TREE,
+    &PH_WELL_KNOWN_GUID_TREE_TPM_SERVICE_FDTPM,
+    &PH_WELL_KNOWN_GUID_TREE_TPM_SERVICE_STPM,
 };
 
 static int __cdecl PhpWellKnownGuidSortFunction(
@@ -3041,7 +3223,7 @@ PPH_STRING PhpDevSysPowerPowerDataString(
 
     string = PhFormat(format, count, 20);
 
-    PhDereferenceObject(capabilities);
+    PhClearReference(&capabilities);
 
     return string;
 }
@@ -3286,6 +3468,9 @@ static const PH_DEVICE_PROPERTY_TABLE_ENTRY PhpDeviceItemPropertyTable[] =
     { PhDevicePropertyStorageSystemCritical, &DEVPKEY_Storage_System_Critical, PhpDevPropFillBoolean, 0 },
     { PhDevicePropertyStorageDiskNumber, &DEVPKEY_Storage_Disk_Number, PhpDevPropFillUInt32, 0 },
     { PhDevicePropertyStoragePartitionNumber, &DEVPKEY_Storage_Partition_Number, PhpDevPropFillUInt32, 0 },
+
+    { PhDevicePropertyGpuLuid, &DEVPKEY_Gpu_Luid, PhpDevPropFillUInt64, 0 },
+    { PhDevicePropertyGpuPhysicalAdapterIndex, &DEVPKEY_Gpu_PhysicalAdapterIndex, PhpDevPropFillUInt32, 0 },
 };
 C_ASSERT(RTL_NUMBER_OF(PhpDeviceItemPropertyTable) == PhMaxDeviceProperty);
 
@@ -3491,12 +3676,12 @@ PPH_DEVICE_ITEM PhReferenceDeviceItem2(
     _In_ PPH_STRINGREF InstanceId
     )
 {
-    PPH_DEVICE_TREE deviceTree;
+    PPH_DEVICE_TREE tree;
     PPH_DEVICE_ITEM deviceItem;
 
-    deviceTree = PhReferenceDeviceTree();
-    PhSetReference(&deviceItem, PhLookupDeviceItem(deviceTree, InstanceId));
-    PhDereferenceObject(deviceTree);
+    tree = PhReferenceDeviceTree();
+    PhSetReference(&deviceItem, PhLookupDeviceItem(tree, InstanceId));
+    PhClearReference(&tree);
 
     return deviceItem;
 }
@@ -3532,16 +3717,16 @@ VOID PhpDeviceItemDeleteProcedure(
         {
             if (prop->Type == PhDevicePropertyTypeString)
             {
-                PhDereferenceObject(prop->String);
+                PhClearReference(&prop->String);
             }
             else if (prop->Type == PhDevicePropertyTypeStringList)
             {
                 for (ULONG j = 0; j < prop->StringList->Count; j++)
                 {
-                    PhDereferenceObject(prop->StringList->Items[j]);
+                    PhClearReference(&prop->StringList->Items[j]);
                 }
 
-                PhDereferenceObject(prop->StringList);
+                PhClearReference(&prop->StringList);
             }
             else if (prop->Type == PhDevicePropertyTypeBinary)
             {
@@ -3571,7 +3756,7 @@ VOID PhpDeviceTreeDeleteProcedure(
 
         item = tree->DeviceList->Items[i];
 
-        PhDereferenceObject(item);
+        PhClearReference(&item);
     }
 
     for (ULONG i = 0; i < tree->DeviceInterfaceList->Count; i++)
@@ -3580,12 +3765,12 @@ VOID PhpDeviceTreeDeleteProcedure(
 
         item = tree->DeviceInterfaceList->Items[i];
 
-        PhDereferenceObject(item);
+        PhClearReference(&item);
     }
 
-    PhDereferenceObject(tree->DeviceList);
-    PhDereferenceObject(tree->DeviceInterfaceList);
-    PhDereferenceObject(tree->DeviceInfo);
+    PhClearReference(&tree->DeviceList);
+    PhClearReference(&tree->DeviceInterfaceList);
+    PhClearReference(&tree->DeviceInfo);
 }
 
 VOID PhpDeviceNotifyDeleteProcedure(
@@ -3599,7 +3784,7 @@ VOID PhpDeviceNotifyDeleteProcedure(
         notify->Action == PhDeviceNotifyInstanceStarted ||
         notify->Action == PhDeviceNotifyInstanceRemoved)
     {
-        PhDereferenceObject(notify->DeviceInstance.InstanceId);
+        PhClearReference(&notify->DeviceInstance.InstanceId);
     }
 }
 
@@ -3926,7 +4111,6 @@ PPH_DEVICE_TREE PhpCreateDeviceTree(
     SIZE_T interfaceClassListCount;
 
     tree = PhCreateObjectZero(sizeof(PH_DEVICE_TREE), PhDeviceTreeType);
-
     tree->DeviceList = PhCreateList(250);
     tree->DeviceInterfaceList = PhCreateList(1024);
     tree->DeviceInfo = PhCreateObject(sizeof(PH_DEVINFO), PhpDeviceInfoType);
@@ -4060,6 +4244,8 @@ PPH_DEVICE_TREE PhpPublishDeviceTree(
     PPH_DEVICE_TREE oldTree;
 
     newTree = PhpCreateDeviceTree();
+    PhReferenceObject(newTree);
+
     PhAcquireFastLockExclusive(&PhpDeviceTreeLock);
     oldTree = PhpDeviceTree;
     PhpDeviceTree = newTree;
@@ -4067,78 +4253,35 @@ PPH_DEVICE_TREE PhpPublishDeviceTree(
 
     PhClearReference(&oldTree);
 
-    return PhReferenceObject(newTree);
+    return newTree;
 }
 
 VOID PhpDeviceNotify(
-    _In_ PLIST_ENTRY List
+    _In_ PSLIST_ENTRY List
     )
 {
     PPH_DEVICE_TREE deviceTree;
+    PPH_DEVICE_NOTIFY entry;
 
     // We process device notifications in blocks so that bursts of device changes
-    // don't each trigger a new tree each time.
+    // don't each trigger a new tree each time. THe internal is determined by the
+    // interval update and the Service Provider Updated Event. (500ms/1000ms)
 
-    deviceTree = PhpPublishDeviceTree();
-
-    while (!IsListEmpty(List))
+    if (deviceTree = PhpPublishDeviceTree())
     {
-        PPH_DEVICE_NOTIFY entry;
-
-        entry = CONTAINING_RECORD(RemoveHeadList(List), PH_DEVICE_NOTIFY, ListEntry);
-
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent), entry);
-
-        PhDereferenceObject(entry);
-    }
-
-    PhDereferenceObject(deviceTree);
-}
-
-_Function_class_(PUSER_THREAD_START_ROUTINE)
-NTSTATUS NTAPI PhpDeviceNotifyWorker(
-    _In_ PVOID ThreadParameter
-    )
-{
-    PH_AUTO_POOL autoPool;
-
-    PhSetThreadName(NtCurrentThread(), L"DeviceNotifyWorker");
-
-    PhInitializeAutoPool(&autoPool);
-
-    for (;;)
-    {
-        LIST_ENTRY list;
-
-        // delay to process events in blocks
-        PhDelayExecution(1000);
-
-        PhAcquireFastLockExclusive(&PhpDeviceNotifyLock);
-
-        if (IsListEmpty(&PhpDeviceNotifyList))
+        while (List)
         {
-            NtResetEvent(PhpDeviceNotifyEvent, NULL);
-            PhReleaseFastLockExclusive(&PhpDeviceNotifyLock);
-            NtWaitForSingleObject(PhpDeviceNotifyEvent, FALSE, NULL);
-            continue;
+            entry = CONTAINING_RECORD(List, PH_DEVICE_NOTIFY, ListEntry);
+            List = List->Next;
+
+            // Restore TypeIndex and Flags.
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent), entry);
+
+            PhFreeToFreeList(&PhDeviceNotifyFreeList, entry);
         }
-
-        // drain the list
-        list = PhpDeviceNotifyList;
-        list.Flink->Blink = &list;
-        list.Blink->Flink = &list;
-        InitializeListHead(&PhpDeviceNotifyList);
-
-        PhReleaseFastLockExclusive(&PhpDeviceNotifyLock);
-
-        PhpDeviceNotify(&list);
-
-        PhDrainAutoPool(&autoPool);
     }
 
-    PhDeleteAutoPool(&autoPool);
-
-    return STATUS_SUCCESS;
+    PhClearReference(&deviceTree);
 }
 
 _Function_class_(PCM_NOTIFY_CALLBACK)
@@ -4150,57 +4293,84 @@ ULONG CALLBACK PhpCmNotifyCallback(
     _In_ ULONG EventDataSize
     )
 {
-    PPH_DEVICE_NOTIFY entry = PhCreateObjectZero(sizeof(PH_DEVICE_NOTIFY), PhDeviceNotifyType);
+    PPH_DEVICE_NOTIFY entry;
 
     switch (Action)
     {
     case CM_NOTIFY_ACTION_DEVICEINTERFACEARRIVAL:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInterfaceArrival;
             RtlCopyMemory(&entry->DeviceInterface.ClassGuid, &EventData->u.DeviceInterface.ClassGuid, sizeof(GUID));
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
     case CM_NOTIFY_ACTION_DEVICEINTERFACEREMOVAL:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInterfaceRemoval;
             RtlCopyMemory(&entry->DeviceInterface.ClassGuid, &EventData->u.DeviceInterface.ClassGuid, sizeof(GUID));
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
     case CM_NOTIFY_ACTION_DEVICEINSTANCEENUMERATED:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInstanceEnumerated;
             entry->DeviceInstance.InstanceId = PhCreateString(EventData->u.DeviceInstance.InstanceId);
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
     case CM_NOTIFY_ACTION_DEVICEINSTANCESTARTED:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInstanceStarted;
             entry->DeviceInstance.InstanceId = PhCreateString(EventData->u.DeviceInstance.InstanceId);
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
     case CM_NOTIFY_ACTION_DEVICEINSTANCEREMOVED:
         {
+            entry = PhAllocateFromFreeList(&PhDeviceNotifyFreeList);
+            memset(entry, 0, sizeof(PH_DEVICE_NOTIFY));
             entry->Action = PhDeviceNotifyInstanceRemoved;
             entry->DeviceInstance.InstanceId = PhCreateString(EventData->u.DeviceInstance.InstanceId);
+
+            InterlockedPushEntrySList(&PhDeviceNotifyListHead, &entry->ListEntry);
         }
         break;
-    default:
-        return ERROR_SUCCESS;
     }
 
-    PhAcquireFastLockExclusive(&PhpDeviceNotifyLock);
-    InsertTailList(&PhpDeviceNotifyList, &entry->ListEntry);
-    NtSetEvent(PhpDeviceNotifyEvent, NULL);
-    PhReleaseFastLockExclusive(&PhpDeviceNotifyLock);
-
     return ERROR_SUCCESS;
+}
+
+static VOID NTAPI ServiceProviderUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PSLIST_ENTRY list;
+
+    // drain the list
+
+    if (list = RtlInterlockedFlushSList(&PhDeviceNotifyListHead))
+    {
+        PhpDeviceNotify(list);
+    }
 }
 
 BOOLEAN PhpDeviceProviderInitialization(
     VOID
     )
 {
-    NTSTATUS status;
     CM_NOTIFY_FILTER cmFilter;
 
     if (WindowsVersion < WINDOWS_10 || !PhGetIntegerSetting(L"EnableDeviceSupport"))
@@ -4211,15 +4381,11 @@ BOOLEAN PhpDeviceProviderInitialization(
     PhDeviceNotifyType = PhCreateObjectType(L"DeviceNotify", 0, PhpDeviceNotifyDeleteProcedure);
     PhpDeviceInfoType = PhCreateObjectType(L"DeviceInfo", 0, PhpDeviceInfoDeleteProcedure);
 
-    InitializeListHead(&PhpDeviceNotifyList);
-    if (!NT_SUCCESS(status = NtCreateEvent(&PhpDeviceNotifyEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE)))
-        return FALSE;
-    if (!NT_SUCCESS(status = PhCreateThread2(PhpDeviceNotifyWorker, NULL)))
-        return FALSE;
+    PhInitializeSListHead(&PhDeviceNotifyListHead);
+    PhInitializeFreeList(&PhDeviceNotifyFreeList, sizeof(PH_DEVICE_NOTIFY), 16);
 
     RtlZeroMemory(&cmFilter, sizeof(CM_NOTIFY_FILTER));
     cmFilter.cbSize = sizeof(CM_NOTIFY_FILTER);
-
     cmFilter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINSTANCE;
     cmFilter.Flags = CM_NOTIFY_FILTER_FLAG_ALL_DEVICE_INSTANCES;
     if (CM_Register_Notification(
@@ -4232,6 +4398,8 @@ BOOLEAN PhpDeviceProviderInitialization(
         return FALSE;
     }
 
+    RtlZeroMemory(&cmFilter, sizeof(CM_NOTIFY_FILTER));
+    cmFilter.cbSize = sizeof(CM_NOTIFY_FILTER);
     cmFilter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
     cmFilter.Flags = CM_NOTIFY_FILTER_FLAG_ALL_INTERFACE_CLASSES;
     if (CM_Register_Notification(
@@ -4243,6 +4411,13 @@ BOOLEAN PhpDeviceProviderInitialization(
     {
         return FALSE;
     }
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent),
+        ServiceProviderUpdatedCallback,
+        NULL,
+        &ServiceProviderUpdatedRegistration
+        );
 
     return TRUE;
 }
@@ -4282,7 +4457,9 @@ PPH_DEVICE_TREE PhReferenceDeviceTreeEx(
     PhReleaseFastLockShared(&PhpDeviceTreeLock);
 
     if (ForceRefresh || !deviceTree)
+    {
         PhMoveReference(&deviceTree, PhpPublishDeviceTree());
+    }
 
     return deviceTree;
 }

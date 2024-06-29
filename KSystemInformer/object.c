@@ -452,7 +452,7 @@ NTSTATUS KphEnumerateProcessHandles(
     {
         __try
         {
-            ProbeForWrite(Buffer, BufferLength, 1);
+            ProbeOutputBytes(Buffer, BufferLength);
 
             if (ReturnLength)
             {
@@ -972,7 +972,7 @@ NTSTATUS KphQueryInformationObject(
         {
             if (ObjectInformation)
             {
-                ProbeForWrite(ObjectInformation, ObjectInformationLength, 1);
+                ProbeOutputBytes(ObjectInformation, ObjectInformationLength);
             }
 
             if (ReturnLength)
@@ -2168,11 +2168,14 @@ NTSTATUS KphSetInformationObject(
     )
 {
     NTSTATUS status;
+    PVOID objectInformation;
+    BYTE stackBuffer[64];
     PEPROCESS process;
     KAPC_STATE apcState;
 
     PAGED_CODE_PASSIVE();
 
+    objectInformation = NULL;
     process = NULL;
 
     if (!ObjectInformation)
@@ -2183,15 +2186,42 @@ NTSTATUS KphSetInformationObject(
 
     if (AccessMode != KernelMode)
     {
+        if (ObjectInformationLength <= ARRAYSIZE(stackBuffer))
+        {
+            RtlZeroMemory(stackBuffer, ARRAYSIZE(stackBuffer));
+            objectInformation = stackBuffer;
+        }
+        else
+        {
+            objectInformation = KphAllocatePaged(ObjectInformationLength,
+                                                 KPH_TAG_OBJECT_INFO);
+            if (!objectInformation)
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "Failed to allocate object info buffer.");
+
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
+            }
+        }
+
         __try
         {
-            ProbeForRead(ObjectInformation, ObjectInformationLength, 1);
+            ProbeInputBytes(ObjectInformation, ObjectInformationLength);
+            RtlCopyVolatileMemory(objectInformation,
+                                  ObjectInformation,
+                                  ObjectInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             status = GetExceptionCode();
             goto Exit;
         }
+    }
+    else
+    {
+        objectInformation = ObjectInformation;
     }
 
     status = ObReferenceObjectByHandle(ProcessHandle,
@@ -2228,28 +2258,14 @@ NTSTATUS KphSetInformationObject(
     {
         case KphObjectHandleFlagInformation:
         {
-            OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
-
-            if (ObjectInformationLength < sizeof(handleFlagInfo))
+            if (ObjectInformationLength < sizeof(OBJECT_HANDLE_FLAG_INFORMATION))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
                 goto Exit;
             }
 
-            __try
-            {
-                RtlCopyMemory(&handleFlagInfo,
-                              ObjectInformation,
-                              sizeof(handleFlagInfo));
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                status = GetExceptionCode();
-                goto Exit;
-            }
-
             KeStackAttachProcess(process, &apcState);
-            status = ObSetHandleAttributes(Handle, &handleFlagInfo, KernelMode);
+            status = ObSetHandleAttributes(Handle, objectInformation, KernelMode);
             KeUnstackDetachProcess(&apcState);
 
             break;
@@ -2262,6 +2278,13 @@ NTSTATUS KphSetInformationObject(
     }
 
 Exit:
+
+    if (objectInformation &&
+        (objectInformation != ObjectInformation) &&
+        (objectInformation != stackBuffer))
+    {
+        KphFree(objectInformation, KPH_TAG_OBJECT_QUERY);
+    }
 
     if (process)
     {

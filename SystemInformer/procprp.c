@@ -904,7 +904,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         PropContext->ProcessItem->IsInJob &&
         // There's no way the job page can function without KPH since it needs
         // to open a handle to the job.
-        (KphLevel() >= KphLevelMed)
+        (KsiLevel() >= KphLevelMed)
         )
     {
         PhAddProcessPropPage2(

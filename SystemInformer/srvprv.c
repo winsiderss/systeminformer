@@ -1110,6 +1110,7 @@ VOID CALLBACK PhServiceNotifyNonPollCallback(
 
     PhpResetServiceNonPollGate();
     NtSetEvent(PhNonPollEventHandle, NULL);
+    NtSetEventBoostPriority(PhNonPollEventHandle);
 }
 
 VOID PhDestroyServiceNotifyContext(

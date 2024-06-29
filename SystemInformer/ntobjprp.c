@@ -560,7 +560,7 @@ VOID PhpEnumerateMappingsEntries(
     HANDLE processHandle;
     CLIENT_ID clientId;
 
-    if (KphLevel() < KphLevelMed)
+    if (KsiLevel() < KphLevelMed)
     {
         PhShowKsiNotConnected(
             Context->WindowHandle,
@@ -644,7 +644,7 @@ VOID PhpShowProcessForMapping(
     }
     else
     {
-        PhShowError(hwndDlg, L"%s", L"The process does not exist.");
+        PhShowStatus(hwndDlg, L"The process does not exist.", STATUS_INVALID_CID, 0);
     }
 }
 

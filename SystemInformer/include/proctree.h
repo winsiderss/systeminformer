@@ -281,7 +281,6 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING JobObjectIdText;
     PPH_STRING ProtectionText;
     PPH_STRING DesktopInfoText;
-    PPH_STRING PidHexText;
     PPH_STRING CpuCoreUsageText;
     PPH_STRING ImageCoherencyText;
     PPH_STRING ImageCoherencyStatusText;

@@ -298,8 +298,8 @@ NTSTATUS KphpVerifySessionToken(
 
         __try
         {
-            ProbeForRead(Signature, SignatureLength, 1);
-            RtlCopyMemory(signature, Signature, SignatureLength);
+            ProbeInputBytes(Signature, SignatureLength);
+            RtlCopyVolatileMemory(signature, Signature, SignatureLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

@@ -1657,7 +1657,7 @@ NTSTATUS PhEnumCsrProcessHandles(
         if (stop)
             break;
 
-        if (NT_SUCCESS(KphEnumerateProcessHandles2(csrProcessHandles[i], &handles)))
+        if (NT_SUCCESS(KsiEnumerateProcessHandles(csrProcessHandles[i], &handles)))
         {
             for (j = 0; j < handles->HandleCount; j++)
             {

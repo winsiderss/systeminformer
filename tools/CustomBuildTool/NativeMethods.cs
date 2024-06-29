@@ -17,6 +17,7 @@ namespace CustomBuildTool
         public const uint HRESULT_S_FALSE = 1u;
 
         public static readonly UIntPtr CURRENT_PROCESS = new UIntPtr(0xffffffffffffffff);
+        public static readonly IntPtr CURRENT_TOKEN = new IntPtr(-5);
         public static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(unchecked((int)0x80000002));
         public static readonly IntPtr HKEY_CURRENT_USER = new IntPtr(unchecked((int)0x80000001));
         public static readonly uint KEY_READ = 0x20019u;
@@ -29,6 +30,14 @@ namespace CustomBuildTool
         public static readonly uint REG_DWORD = 4; // 32-bit number
         public static readonly uint REG_MULTI_SZ = 7; // Multiple Unicode strings
         public static readonly uint REG_QWORD = 11; // 64-bit number
+
+        [LibraryImport("userenv.dll", EntryPoint = "CreateEnvironmentBlock", StringMarshalling = StringMarshalling.Utf16)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, [MarshalAs(UnmanagedType.Bool)] bool bInherit);
+
+        [LibraryImport("userenv.dll", EntryPoint = "DestroyEnvironmentBlock", StringMarshalling = StringMarshalling.Utf16)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool DestroyEnvironmentBlock(IntPtr lpEnvironment);
 
         [LibraryImport("advapi32.dll", EntryPoint = "RegOpenKeyExW", StringMarshalling = StringMarshalling.Utf16)]
         public static partial uint RegOpenKeyEx(IntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, IntPtr* KeyHandle);

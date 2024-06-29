@@ -607,7 +607,7 @@ NTSTATUS KphAlpcQueryInformation(
         {
             if (AlpcInformation)
             {
-                ProbeForWrite(AlpcInformation, AlpcInformationLength, 1);
+                ProbeOutputBytes(AlpcInformation, AlpcInformationLength);
             }
 
             if (ReturnLength)

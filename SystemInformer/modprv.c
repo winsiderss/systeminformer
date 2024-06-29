@@ -431,13 +431,13 @@ NTSTATUS PhpModuleQueryWorker(
             moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
             moduleItem->Type == PH_MODULE_TYPE_ENCLAVE_MODULE ||
             (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE &&
-            (KphLevel() == KphLevelMax)))
+            (KsiLevel() == KphLevelMax)))
         {
             PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
             PPH_READ_VIRTUAL_MEMORY_CALLBACK readVirtualMemoryCallback;
 
             if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
-                readVirtualMemoryCallback = KphReadVirtualMemoryUnsafe;
+                readVirtualMemoryCallback = KphReadVirtualMemory;
             else
                 readVirtualMemoryCallback = NtReadVirtualMemory;
 
@@ -607,7 +607,7 @@ NTSTATUS PhpModuleQueryWorker(
             data->ModuleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
             data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
         {
-            if (data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE && (KphLevel() < KphLevelMax))
+            if (data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE && (KsiLevel() < KphLevelMax))
             {
                 // The driver wasn't available or we failed verification preventing
                 // us from checking driver coherency. Pass a special value so we

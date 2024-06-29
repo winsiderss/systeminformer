@@ -52,7 +52,7 @@ NTSTATUS KphOpenThread(
         {
             ProbeOutputType(ThreadHandle, HANDLE);
             ProbeInputType(ClientId, CLIENT_ID);
-            clientId = *ClientId;
+            RtlCopyVolatileMemory(&clientId, ClientId, sizeof(CLIENT_ID));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -329,7 +329,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     {
         __try
         {
-            ProbeForWrite(BackTrace, FramesToCapture * sizeof(PVOID), 1);
+            ProbeOutputBytes(BackTrace, FramesToCapture * sizeof(PVOID));
 
             ProbeOutputType(CapturedFrames, ULONG);
             *CapturedFrames = 0;
@@ -343,7 +343,7 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
             if (Timeout)
             {
                 ProbeInputType(Timeout, LARGE_INTEGER);
-                timeout.QuadPart = Timeout->QuadPart;
+                RtlCopyVolatileMemory(&timeout, Timeout, sizeof(LARGE_INTEGER));
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -523,10 +523,10 @@ NTSTATUS KphSetInformationThread(
 
         __try
         {
-            ProbeForRead(ThreadInformation, ThreadInformationLength, 1);
-            RtlCopyMemory(threadInformation,
-                          ThreadInformation,
-                          ThreadInformationLength);
+            ProbeInputBytes(ThreadInformation, ThreadInformationLength);
+            RtlCopyVolatileMemory(threadInformation,
+                                  ThreadInformation,
+                                  ThreadInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -731,7 +731,7 @@ NTSTATUS KphQueryInformationThread(
         {
             if (ThreadInformation)
             {
-                ProbeForWrite(ThreadInformation, ThreadInformationLength, 1);
+                ProbeOutputBytes(ThreadInformation, ThreadInformationLength);
             }
 
             if (ReturnLength)

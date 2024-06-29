@@ -108,7 +108,7 @@ VOID PhpInitializeHandleMenu(
 
     // Remove irrelevant menu items.
 
-    level = KphLevel();
+    level = KsiLevel();
 
     if (level >= KphLevelMed)
     {
@@ -338,7 +338,7 @@ NTSTATUS PhpProcessHandleOpenCallback(
         NtClose(processHandle);
     }
 
-    if (!NT_SUCCESS(status) && KphLevel() >= KphLevelMax)
+    if (!NT_SUCCESS(status) && KsiLevel() >= KphLevelMax)
     {
         if (NT_SUCCESS(status = PhOpenProcess(
             &processHandle,

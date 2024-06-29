@@ -31,6 +31,7 @@
 // object
 
 #define KPH_TAG_OBJECT_QUERY                    '0OpK'
+#define KPH_TAG_OBJECT_INFO                     '1OpK'
 
 // process
 

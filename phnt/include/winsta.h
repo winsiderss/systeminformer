@@ -1167,4 +1167,14 @@ WinStationFreePropertyValue(
     _In_ PVOID PropertyBuffer
     );
 
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationIsSessionRemoteable(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _Out_ PBOOLEAN IsRemote
+    );
+
 #endif

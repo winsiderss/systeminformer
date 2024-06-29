@@ -1327,7 +1327,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     cpuUsage = threadItem->CpuUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -1593,16 +1593,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_TIDHEX:
                 {
-                    PH_FORMAT format;
-                    SIZE_T returnLength;
-
-                    PhInitFormatIX(&format, HandleToUlong(threadItem->ThreadId));
-
-                    if (PhFormatToBuffer(&format, 1, node->ThreadIdHexText, sizeof(node->ThreadIdHexText), &returnLength))
-                    {
-                        getCellText->Text.Buffer = node->ThreadIdHexText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                    }
+                    PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdHexString);
                 }
                 break;
             case PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES:
@@ -1612,7 +1603,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     cpuUsage = threadItem->CpuUsage * 100;
                     cpuUsage *= PhSystemProcessorInformation.NumberOfProcessors; // linux style (dmex)
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -1881,7 +1872,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     cpuUsage = threadItem->CpuUserUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -1916,7 +1907,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                     cpuUsage = threadItem->CpuKernelUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;

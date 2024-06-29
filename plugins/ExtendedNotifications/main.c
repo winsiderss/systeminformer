@@ -18,8 +18,8 @@
 #include "resource.h"
 
 VOID NTAPI LoadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI ShowOptionsCallback(
@@ -508,8 +508,8 @@ VOID FixControlStates(
     _In_ HWND ListBox
     )
 {
-    ULONG i;
-    ULONG count;
+    INT i;
+    INT count;
 
     i = ListBox_GetCurSel(ListBox);
     count = ListBox_GetCount(ListBox);
@@ -553,7 +553,7 @@ INT_PTR HandleCommonMessages(
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == LBN_SELCHANGE)
                     {
-                        ULONG i;
+                        INT i;
 
                         i = ListBox_GetCurSel(ListBox);
 
@@ -641,7 +641,7 @@ INT_PTR HandleCommonMessages(
 
                     i = ListBox_GetCurSel(ListBox);
 
-                    if (i != LB_ERR)
+                    if (i != (ULONG)((INT)LB_ERR))
                     {
                         entry = FilterList->Items[i];
                         FreeFilterEntry(entry);
@@ -665,7 +665,7 @@ INT_PTR HandleCommonMessages(
 
                     i = ListBox_GetCurSel(ListBox);
 
-                    if (i != LB_ERR && i != 0)
+                    if (i != (ULONG)((INT)LB_ERR) && i != 0)
                     {
                         entry = FilterList->Items[i];
 
@@ -692,7 +692,7 @@ INT_PTR HandleCommonMessages(
 
                     i = ListBox_GetCurSel(ListBox);
 
-                    if (i != LB_ERR && i != FilterList->Count - 1)
+                    if (i != (ULONG)((INT)LB_ERR) && i != FilterList->Count - 1)
                     {
                         entry = FilterList->Items[i];
 

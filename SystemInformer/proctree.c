@@ -288,27 +288,45 @@ VOID PhLoadSettingsProcessTreeUpdateMask(
     VOID
     )
 {
+#ifdef PH_TREELIST_COLUMN_ARRAY
     PH_TREENEW_COLUMN column;
 
     if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_USERNAME, &column) && column.Visible)
+        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+    else
+        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+#else
+    ULONG columnVisible[4] =
+    {
+        PHPRTLC_USERNAME,
+        PHPRTLC_CFGUARD,
+        PHPRTLC_CET,
+        PHPRTLC_CPUAVERAGE
+    };
+
+    if (!TreeNew_GetVisibleColumnArray(ProcessTreeListHandle, RTL_NUMBER_OF(columnVisible), columnVisible))
+        return;
+
+    if (columnVisible[0])
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME);
 
-    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CFGUARD, &column) && column.Visible)
+    if (columnVisible[1])
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CFGUARD);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CFGUARD);
 
-    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CET, &column) && column.Visible)
+    if (columnVisible[2])
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CET);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CET);
 
-    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CPUAVERAGE, &column) && column.Visible)
+    if (columnVisible[3])
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+#endif
 
     PhInitializeProcessTreeColumnHeaderCache();
 }
@@ -659,7 +677,6 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->JobObjectIdText);
     PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
-    PhClearReference(&ProcessNode->PidHexText);
     PhClearReference(&ProcessNode->CpuCoreUsageText);
     PhClearReference(&ProcessNode->ImageCoherencyText);
     PhClearReference(&ProcessNode->ImageCoherencyStatusText);
@@ -1561,7 +1578,7 @@ static VOID PhpUpdateProcessNodeGrantedAccess(
                 processAccess = PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION;
             else if (ProcessNode->ProcessItem->IsProtectedProcess && ProcessNode->ProcessItem->Protection.Type == PsProtectedTypeProtected)
                 processAccess = PROCESS_QUERY_LIMITED_INFORMATION;
-            else if (ProcessNode->ProcessItem->IsSubsystemProcess && KphLevel() != KphLevelMax)
+            else if (ProcessNode->ProcessItem->IsSubsystemProcess && KsiLevel() != KphLevelMax)
                 processAccess = PROCESS_QUERY_LIMITED_INFORMATION;
             else
                 processAccess = MAXIMUM_ALLOWED;
@@ -2298,6 +2315,8 @@ BEGIN_SORT_FUNCTION(Protection)
     // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX)
     // are placed below processes we are able to query (e.g. 0 and above).
     sortResult = charcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
+    if (sortResult == 0)
+        sortResult = charcmp((CHAR)processItem1->IsSecureProcess, (CHAR)processItem2->IsSecureProcess);
 }
 END_SORT_FUNCTION
 
@@ -2697,7 +2716,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
                     cpuUsage *= 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
                         SIZE_T returnLength;
@@ -3561,12 +3580,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
                     {
-                        PH_FORMAT format;
-
-                        PhInitFormatIX(&format, HandleToUlong(processItem->ProcessId));
-
-                        PhMoveReference(&node->PidHexText, PhFormat(&format, 1, 0));
-                        getCellText->Text = node->PidHexText->sr;
+                        PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessIdHexString);
                     }
                 }
                 break;
@@ -3579,7 +3593,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     cpuUsage *= 100;
                     cpuUsage = cpuUsage * PhSystemProcessorInformation.NumberOfProcessors;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
 
@@ -3784,7 +3798,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuAverageUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
 
@@ -3811,7 +3825,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuKernelUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
 
@@ -3838,7 +3852,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     cpuUsage = processItem->CpuUserUsage * 100;
 
-                    if (cpuUsage >= 0.01)
+                    if (cpuUsage >= 0.01f)
                     {
                         PH_FORMAT format;
 
@@ -3878,7 +3892,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             // 64 (100%) | 1024 (100%)
                             PhInitFormatU(&format[0], 64);
                             PhInitFormatS(&format[1], L" (");
-                            PhInitFormatF(&format[2], 100.0, 2);
+                            PhInitFormatF(&format[2], 100.0f, 2);
                             PhInitFormatS(&format[3], L"%) | ");
                             PhInitFormatU(&format[4], node->TlsBitmapCount - TLS_MINIMUM_AVAILABLE);
                             PhInitFormatS(&format[5], L" (");
@@ -3898,7 +3912,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             PhInitFormatS(&format[3], L"%) | ");
                             PhInitFormatU(&format[4], 0);
                             PhInitFormatS(&format[5], L" (");
-                            PhInitFormatF(&format[6], 0.0, 2);
+                            PhInitFormatF(&format[6], 0.0f, 2);
                             PhInitFormatS(&format[7], L"%)");
 
                             PhMoveReference(&node->TlsBitmapDeltaText, PhFormat(format, RTL_NUMBER_OF(format), 0));

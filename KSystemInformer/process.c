@@ -53,7 +53,7 @@ NTSTATUS KphOpenProcess(
         {
             ProbeOutputType(ProcessHandle, HANDLE);
             ProbeInputType(ClientId, CLIENT_ID);
-            clientId = *ClientId;
+            RtlCopyVolatileMemory(&clientId, ClientId, sizeof(CLIENT_ID));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -586,7 +586,7 @@ NTSTATUS KphQueryInformationProcess(
         {
             if (ProcessInformation)
             {
-                ProbeForWrite(ProcessInformation, ProcessInformationLength, 1);
+                ProbeOutputBytes(ProcessInformation, ProcessInformationLength);
             }
 
             if (ReturnLength)
@@ -1026,10 +1026,10 @@ NTSTATUS KphSetInformationProcess(
 
         __try
         {
-            ProbeForRead(ProcessInformation, ProcessInformationLength, 1);
-            RtlCopyMemory(processInformation,
-                          ProcessInformation,
-                          ProcessInformationLength);
+            ProbeInputBytes(ProcessInformation, ProcessInformationLength);
+            RtlCopyVolatileMemory(processInformation,
+                                  ProcessInformation,
+                                  ProcessInformationLength);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

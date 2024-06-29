@@ -234,6 +234,9 @@ typedef enum _PH_DEVICE_PROPERTY_CLASS
     PhDevicePropertyStorageDiskNumber,
     PhDevicePropertyStoragePartitionNumber,
 
+    PhDevicePropertyGpuLuid,
+    PhDevicePropertyGpuPhysicalAdapterIndex,
+
     PhMaxDeviceProperty
 } PH_DEVICE_PROPERTY_CLASS, *PPH_DEVICE_PROPERTY_CLASS;
 
@@ -241,6 +244,7 @@ typedef enum _PH_DEVICE_PROPERTY_TYPE
 {
     PhDevicePropertyTypeString,
     PhDevicePropertyTypeUInt64,
+    PhDevicePropertyTypeInt64,
     PhDevicePropertyTypeUInt32,
     PhDevicePropertyTypeInt32,
     PhDevicePropertyTypeNTSTATUS,
@@ -272,6 +276,7 @@ typedef struct _PH_DEVICE_PROPERTY
     {
         PPH_STRING String;
         ULONG64 UInt64;
+        LONG64 Int64;
         ULONG UInt32;
         LONG Int32;
         NTSTATUS Status;
@@ -467,7 +472,7 @@ typedef struct _PH_DEVICE_NOTIFY
     };
 
 // end_phapppub
-    LIST_ENTRY ListEntry;
+    SLIST_ENTRY ListEntry;
 // begin_phapppub
 } PH_DEVICE_NOTIFY, *PPH_DEVICE_NOTIFY;
 

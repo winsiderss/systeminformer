@@ -875,7 +875,23 @@ typedef struct _RTL_PROCESS_MODULES
 typedef struct _RTL_PROCESS_MODULE_INFORMATION_EX
 {
     USHORT NextOffset;
-    RTL_PROCESS_MODULE_INFORMATION BaseInfo;
+    union
+    {
+        RTL_PROCESS_MODULE_INFORMATION BaseInfo;
+        struct
+        {
+            PVOID Section;
+            PVOID MappedBase;
+            PVOID ImageBase;
+            ULONG ImageSize;
+            ULONG Flags;
+            USHORT LoadOrderIndex;
+            USHORT InitOrderIndex;
+            USHORT LoadCount;
+            USHORT OffsetToFileName;
+            UCHAR FullPathName[256];
+        };
+    };
     ULONG ImageChecksum;
     ULONG TimeDateStamp;
     PVOID DefaultBase;

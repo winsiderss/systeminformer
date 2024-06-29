@@ -53,6 +53,8 @@ EXTENDEDTOOLS_INTERFACE PluginInterface =
 
 ULONG EtWindowsVersion = WINDOWS_ANCIENT;
 BOOLEAN EtIsExecutingInWow64 = FALSE;
+BOOLEAN EtGpuFahrenheitEnabled = FALSE;
+ULONG EtSampleCount = 0;
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
 ULONG EtUpdateInterval = 0;
@@ -70,6 +72,7 @@ VOID NTAPI LoadCallback(
 {
     EtWindowsVersion = PhWindowsVersion;
     EtIsExecutingInWow64 = PhIsExecutingInWow64();
+    EtSampleCount = PhGetIntegerSetting(L"SampleCount");
 
     EtLoadSettings();
 
@@ -970,6 +973,7 @@ VOID EtLoadSettings(
     EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
     EtEnableAvxSupport = !!PhGetIntegerSetting(L"EnableAvxSupport");
     EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
+    EtGpuFahrenheitEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT);
 }
 
 VOID NTAPI SettingsUpdatedCallback(
@@ -999,22 +1003,19 @@ VOID EtInitializeProcessBlock(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    ULONG sampleCount;
-
     memset(Block, 0, sizeof(ET_PROCESS_BLOCK));
     Block->ProcessItem = ProcessItem;
     PhInitializeQueuedLock(&Block->TextCacheLock);
 
-    sampleCount = PhGetIntegerSetting(L"SampleCount");
-    PhInitializeCircularBuffer_ULONG64(&Block->DiskReadHistory, sampleCount);
-    PhInitializeCircularBuffer_ULONG64(&Block->DiskWriteHistory, sampleCount);
-    PhInitializeCircularBuffer_ULONG64(&Block->NetworkSendHistory, sampleCount);
-    PhInitializeCircularBuffer_ULONG64(&Block->NetworkReceiveHistory, sampleCount);
+    PhInitializeCircularBuffer_ULONG64(&Block->DiskReadHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&Block->DiskWriteHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&Block->NetworkSendHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&Block->NetworkReceiveHistory, EtSampleCount);
 
-    PhInitializeCircularBuffer_FLOAT(&Block->GpuHistory, sampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->MemoryHistory, sampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->MemorySharedHistory, sampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->GpuCommittedHistory, sampleCount);
+    PhInitializeCircularBuffer_FLOAT(&Block->GpuHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->MemoryHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->MemorySharedHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG(&Block->GpuCommittedHistory, EtSampleCount);
 
     //Block->GpuTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
     //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
@@ -1022,13 +1023,13 @@ VOID EtInitializeProcessBlock(
 
     if (EtFramesEnabled)
     {
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesPerSecondHistory, sampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesLatencyHistory, sampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesDisplayLatencyHistory, sampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsBetweenPresentsHistory, sampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsInPresentApiHistory, sampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilRenderCompleteHistory, sampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilDisplayedHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesPerSecondHistory, EtSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesLatencyHistory, EtSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesDisplayLatencyHistory, EtSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsBetweenPresentsHistory, EtSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsInPresentApiHistory, EtSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilRenderCompleteHistory, EtSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilDisplayedHistory, EtSampleCount);
     }
 
     InsertTailList(&EtProcessBlockListHead, &Block->ListEntry);

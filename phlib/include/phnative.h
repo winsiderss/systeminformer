@@ -1633,7 +1633,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetKernelFileNameEx(
-    _Out_ PPH_STRING* FileName,
+    _Out_opt_ PPH_STRING* FileName,
     _Out_ PVOID* ImageBase,
     _Out_ ULONG* ImageSize
     );
@@ -3579,6 +3579,11 @@ HANDLE
 NTAPI
 PhGetStdHandle(
     _In_ ULONG StdHandle
+    );
+
+NTSTATUS PhFlushProcessHeapsRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PLARGE_INTEGER Timeout
     );
 
 EXTERN_C_END

@@ -111,7 +111,9 @@ typedef enum _WAIT_TYPE
 {
     WaitAll,
     WaitAny,
-    WaitNotification
+    WaitNotification,
+    WaitDequeue,
+    WaitDpc,
 } WAIT_TYPE;
 
 // Strings

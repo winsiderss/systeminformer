@@ -34,6 +34,8 @@
 #define PH_THREAD_STACK_NATIVE_MACHINE IMAGE_FILE_MACHINE_I386
 #endif
 
+#define PAC_DECODE_ADDRESS(address) (address & ~(USER_SHARED_DATA->UserPointerAuthMask))
+
 typedef struct _PH_SYMBOL_MODULE
 {
     LIST_ENTRY ListEntry;
@@ -362,6 +364,7 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
         }
         return TRUE;
     case CBA_READ_MEMORY:
+#ifndef _ARM64_
         {
             PIMAGEHLP_CBA_READ_MEMORY callbackData = (PIMAGEHLP_CBA_READ_MEMORY)CallbackData;
 
@@ -379,6 +382,7 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
                 }
             }
         }
+#endif
         return FALSE;
     case CBA_DEFERRED_SYMBOL_LOAD_CANCEL:
         {
@@ -2073,7 +2077,7 @@ NTSTATUS PhWalkThreadStack(
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
     {
-        if ((KphLevel() >= KphLevelMed) || !ClientId)
+        if ((KsiLevel() >= KphLevelMed) || !ClientId)
         {
             if (!NT_SUCCESS(status = PhOpenThreadProcess(
                 ThreadHandle,
@@ -2139,7 +2143,7 @@ NTSTATUS PhWalkThreadStack(
     }
 
     // Kernel stack walk.
-    if ((Flags & PH_WALK_KERNEL_STACK) && (KphLevel() >= KphLevelMed))
+    if ((Flags & PH_WALK_KERNEL_STACK) && (KsiLevel() >= KphLevelMed))
     {
         PVOID stack[256 - 2]; // See MAX_STACK_DEPTH
         ULONG capturedFrames = 0;
@@ -2185,6 +2189,8 @@ NTSTATUS PhWalkThreadStack(
         CONTEXT context;
 #if defined(_ARM64_)
         ARM64EC_NT_CONTEXT ecContext;
+        STACKFRAME_EX virtualFrame;
+        ULONG virtualMachine;
 #endif
 
         contextRecord = &context;
@@ -2198,6 +2204,11 @@ NTSTATUS PhWalkThreadStack(
 
         memset(&stackFrame, 0, sizeof(STACKFRAME_EX));
         stackFrame.StackFrameSize = sizeof(STACKFRAME_EX);
+
+#if defined(_ARM64_)
+        memset(&virtualFrame, 0, sizeof(STACKFRAME_EX));
+        virtualFrame.AddrReturn.Offset = MAXULONG64;
+#endif
 
         // Program counter, Stack pointer, Frame pointer
 #if defined(_ARM64_)
@@ -2237,34 +2248,67 @@ NTSTATUS PhWalkThreadStack(
                 NULL,
                 NULL
                 ))
+            {
+#if defined(_ARM64_)
+                goto CheckFinalARM64VirtualFrame;
+#else
                 break;
+#endif
+            }
+
+#if defined(_ARM64_)
+            // Strip any PAC bits from the addresses.
+            stackFrame.AddrPC.Offset = PAC_DECODE_ADDRESS(stackFrame.AddrPC.Offset);
+            stackFrame.AddrReturn.Offset = PAC_DECODE_ADDRESS(stackFrame.AddrReturn.Offset);
+            if (contextRecord == &ecContext)
+            {
+                ecContext.Pc = PAC_DECODE_ADDRESS(ecContext.Pc);
+                ecContext.Lr = PAC_DECODE_ADDRESS(ecContext.Lr);
+            }
+            else
+            {
+                context.Pc = PAC_DECODE_ADDRESS(context.Pc);
+                context.Lr = PAC_DECODE_ADDRESS(context.Lr);
+            }
+#endif
 
             // If we have an invalid instruction pointer, break.
             if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == -1)
+            {
+#if defined(_ARM64_)
+CheckFinalARM64VirtualFrame:
+                // If we're in the middle of processing a virtual frame and reach here we still
+                // need to process the virtual frame (it is the final frame). Do not do this for
+                // ARM64EC since it will point to narnia (the final fame is already processed).
+                if (!virtualFrame.AddrReturn.Offset && virtualMachine != IMAGE_FILE_MACHINE_ARM64EC)
+                {
+                    // Convert the stack frame and execute the callback.
+
+                    PhpConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
+
+                    if (!Callback(&threadStackFrame, Context))
+                        goto ResumeExit;
+                }
+#endif
                 break;
+            }
 
 #if defined(_ARM64_)
             USHORT frameMachine;
 
             // TODO(jxy-s)
             //
-            // This needs work to handle enter, exit, and inlined thunks.
-            //
             // Much of the stack walk handling for EC code is in dbgeng and not dbghelp. Since we
             // only rely on dbghelp we need some special handling too. The following are known
             // issues with possible solutions. These need more time to investigate:
             //
-            // - ARM64EC <-> x64 enter and exit thunks work (the frames will be shown) but the
-            //   return address is lost for certain frames. The frame calling into the entry thunk
-            //   will not have a return address displayed. And the frame of the exit thunk will
-            //   also not have a return address displayed. The ARM64EC ABI defines the handling of
-            //   return addresses in the context. We likely need more state tracking to remembr the
-            //   context around these frames. Then manually fix them ourselves.
-            // - ARM64EC <-> ARM64EC "inlined thunks" do not work. The loader will inline an
-            //   ARM64EC call when it identifies no emulation switching is necessary. This causes
-            //   us to fail to walk past these frames. For use to handle this we likely need to
-            //   extract more metadata from the PE file to be able to identify inlining of these
-            //   push thunks and walk past them ourselves.
+            // - ARM64EC (Inline frame) seem to be missing. Probably needs special handling or the
+            //   "virtural frames" are messing up the existing inline frame resolution. For context
+            //   dbgeng.dll appears to have "virtual frames" as we do here, but we likely need some
+            //   additional handling for inline frames.
+            // - .NET under ARM64 emulation seems to eventually walk into strange frames, x64 is
+            //   known to be affected, other arches on ARM64 need tested too. Seems to be a bug in
+            //   dbghelp.dll because dbgeng.dll (e.g. windbg.exe) seems to be broken here too.
 
             frameMachine = PhpGetMachineForAddress(SymbolProvider, ProcessHandle, stackFrame.AddrPC.Offset);
 
@@ -2283,6 +2327,31 @@ NTSTATUS PhWalkThreadStack(
                     PhEcContextToNativeContext(&context, &ecContext);
                     contextRecord = &context;
                 }
+            }
+
+            if (!virtualFrame.AddrReturn.Offset)
+            {
+                // We stored a frame without a return address to process later, do it now.
+                virtualFrame.AddrReturn = stackFrame.AddrPC;
+
+                // Convert the stack frame and execute the callback.
+
+                PhpConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
+
+                if (!Callback(&threadStackFrame, Context))
+                    goto ResumeExit;
+
+                virtualFrame.AddrReturn.Offset = MAXULONG64;
+            }
+
+            if (!stackFrame.AddrReturn.Offset)
+            {
+                // Track this as a temporary virtual frame and continue to try to resolve the next
+                // frame. If we do, during the next loop we will use use the the program counter as
+                // the return address and invoke the callback.
+                virtualFrame = stackFrame;
+                virtualMachine = machine;
+                continue;
             }
 #endif
 
@@ -2345,6 +2414,13 @@ SkipUserStack:
                 NULL
                 ))
                 break;
+
+
+            // TODO(jxy-s)
+            //
+            // Restore CHPE frame detection and fix x86 stack walking on ARM64. Even dbgeng.dll
+            // seems to struggle here but it will at least show CHPE frames. We use to have support
+            // for this I removed it in the last chunk of ARM64 fixes since I wasn't happy with it. 
 
             // If we have an invalid instruction pointer, break.
             if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == -1)

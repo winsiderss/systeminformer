@@ -235,6 +235,14 @@ ProbeForWrite(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 _Pragma("warning(suppress : 6001)")                                           \
 ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
+#define ProbeOutputBytes(pointer, size)                                       \
+_Pragma("warning(suppress : 6001)")                                           \
+ProbeForWrite(pointer, size, TYPE_ALIGNMENT(BYTE))
+
+#define ProbeInputBytes(pointer, size)                                        \
+_Pragma("warning(suppress : 6001)")                                           \
+ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
+
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
 #define RebaseUnicodeString(string, oldBase, newBase)                         \
@@ -1207,19 +1215,7 @@ VOID KphInvalidateLsass(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphCopyVirtualMemory(
-    _In_ PEPROCESS FromProcess,
-    _In_ PVOID FromAddress,
-    _In_ PEPROCESS ToProcess,
-    _Out_writes_bytes_(BufferLength) PVOID ToAddress,
-    _In_ SIZE_T BufferLength,
-    _In_ KPROCESSOR_MODE AccessMode,
-    _Out_ PSIZE_T ReturnLength
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphReadVirtualMemoryUnsafe(
+NTSTATUS KphReadVirtualMemory(
     _In_opt_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,

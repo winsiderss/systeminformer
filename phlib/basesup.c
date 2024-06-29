@@ -167,7 +167,6 @@ NTSTATUS PhpBaseThreadStart(
 
 #ifdef DEBUG
     dbg.ClientId = NtCurrentTeb()->ClientId;
-
     dbg.StartAddress = context.StartAddress;
     dbg.Parameter = context.Parameter;
     dbg.CurrentAutoPool = NULL;
