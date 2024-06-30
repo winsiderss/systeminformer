@@ -1368,7 +1368,7 @@ VOID PhpFillProcessItem(
     }
 }
 
-FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
+VOID PhpUpdateDynamicInfoProcessItem(
     _Inout_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PSYSTEM_PROCESS_INFORMATION Process
     )
@@ -1382,6 +1382,16 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
         if (NT_SUCCESS(PhGetProcessPriority(ProcessItem->QueryHandle, &priorityClass)))
         {
             ProcessItem->PriorityClass = priorityClass;
+        }
+
+        if (WindowsVersion >= WINDOWS_11_24H2)
+        {
+            PROCESS_NETWORK_COUNTERS networkCounters;
+
+            if (NT_SUCCESS(PhGetProcesNetworkIoCounters(ProcessItem->QueryHandle, &networkCounters)))
+            {
+                ProcessItem->NetworkCounters = networkCounters;
+            }
         }
     }
     else

@@ -283,6 +283,7 @@ typedef struct _PH_PROCESS_ITEM
     PPH_STRING UserName;
 
     PROCESS_DISK_COUNTERS DiskCounters;
+    PROCESS_NETWORK_COUNTERS NetworkCounters;
     ULONGLONG ContextSwitches;
 
     ULONGLONG ProcessSequenceNumber;

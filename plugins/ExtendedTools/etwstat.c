@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2019-2022
+ *     dmex    2019-2024
  *
  */
 
@@ -200,23 +200,38 @@ VOID EtProcessNetworkEvent(
         Event->ClientId.UniqueProcess
         );
 
-    if (!networkItem && Event->ProtocolType & PH_UDP_PROTOCOL_TYPE)
+    if (!networkItem && FlagOn(Event->ProtocolType, PH_UDP_PROTOCOL_TYPE))
     {
+        PH_IP_ENDPOINT networkEndpoint;
+
         // Note: ETW generates UDP events with the LocalEndpoint set to the LAN endpoint address
         // of the local adapter the packet was sent or received but GetExtendedUdpTable
         // returns some UDP connections with endpoints set to in4addr_any/in6addr_any (zero). (dmex)
 
-        if (Event->ProtocolType & PH_IPV4_NETWORK_TYPE)
-            memset(&Event->LocalEndpoint.Address.InAddr, 0, sizeof(IN_ADDR)); // same as in4addr_any
-        else
-            memset(&Event->LocalEndpoint.Address.In6Addr, 0, sizeof(IN6_ADDR)); // same as in6addr_any
+        memset(&networkEndpoint, 0, sizeof(PH_IP_ENDPOINT));
+        networkEndpoint.Address.Type = Event->LocalEndpoint.Address.Type;
+        networkEndpoint.Port = Event->LocalEndpoint.Port;
 
         networkItem = PhReferenceNetworkItem(
             Event->ProtocolType,
-            &Event->LocalEndpoint,
+            &networkEndpoint,
             &Event->RemoteEndpoint,
             Event->ClientId.UniqueProcess
             );
+
+        if (!networkItem)
+        {
+            memset(&networkEndpoint, 0, sizeof(PH_IP_ENDPOINT));
+            networkEndpoint.Address.Type = Event->RemoteEndpoint.Address.Type;
+            networkEndpoint.Port = Event->RemoteEndpoint.Port;
+
+            networkItem = PhReferenceNetworkItem(
+                Event->ProtocolType,
+                &Event->LocalEndpoint,
+                &networkEndpoint,
+                Event->ClientId.UniqueProcess
+                );
+        }
     }
 
     if (networkItem)
@@ -296,6 +311,17 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                 block->DiskReadRaw = diskReadRaw;
             if (block->DiskWriteRaw < diskWriteRaw)
                 block->DiskWriteRaw = diskWriteRaw;
+
+            if (EtWindowsVersion >= WINDOWS_11_24H2)
+            {
+                ULONG64 networkReadRaw = block->ProcessItem->NetworkCounters.BytesIn;
+                ULONG64 networkWriteRaw = block->ProcessItem->NetworkCounters.BytesOut;
+
+                if (block->NetworkReceiveRaw < networkReadRaw)
+                    block->NetworkReceiveRaw = networkReadRaw;
+                if (block->NetworkSendRaw < networkWriteRaw)
+                    block->NetworkSendRaw = networkWriteRaw;
+            }
         }
 
         PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
