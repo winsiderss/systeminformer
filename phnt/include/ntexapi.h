@@ -5111,7 +5111,10 @@ typedef struct _KUSER_SHARED_DATA
 
     //
     // Number of physical pages in the system. This can dynamically change as
-    // physical memory can be added or removed from a running system.
+    // physical memory can be added or removed from a running system.  This
+    // cell is too small to hold the non-truncated value on very large memory
+    // machines so code that needs the full value should access
+    // FullNumberOfPhysicalPages instead.
     //
 
     ULONG NumberOfPhysicalPages;
@@ -5183,7 +5186,9 @@ typedef struct _KUSER_SHARED_DATA
             ULONG DbgMultiSessionSku        : 1;
             ULONG DbgMultiUsersInSessionSku : 1;
             ULONG DbgStateSeparationEnabled : 1;
-            ULONG SpareBits                 : 21;
+            ULONG DbgSplitTokenEnabled      : 1;
+            ULONG DbgShadowAdminEnabled     : 1;
+            ULONG SpareBits                 : 19;
         } DUMMYSTRUCTNAME2;
     } DUMMYUNIONNAME2;
 
@@ -5213,7 +5218,9 @@ typedef struct _KUSER_SHARED_DATA
     ULONG Reserved2;
 
     //
-    //
+    // Full 64 bit version of the number of physical pages in the system.
+    // This can dynamically change as physical memory can be added or removed
+    // from a running system.
     //
 
     ULONGLONG FullNumberOfPhysicalPages;
@@ -5385,18 +5392,18 @@ typedef struct _KUSER_SHARED_DATA
         struct
         {
             //
-            // A boolean indicating whether performance counter queries
-            // can read the counter directly (bypassing the system call).
+            // A bitfield indicating whether performance counter queries can
+            // read the counter directly (bypassing the system call) and flags.
             //
 
             volatile UCHAR QpcBypassEnabled;
 
             //
-            // Shift applied to the raw counter value to derive the
-            // QPC count.
+            // Reserved, leave as zero for backward compatibility. Was shift
+            // applied to the raw counter value to derive QPC count.
             //
 
-            UCHAR QpcShift;
+            UCHAR QpcReserved;
         };
     };
 
@@ -5404,7 +5411,7 @@ typedef struct _KUSER_SHARED_DATA
     LARGE_INTEGER TimeZoneBiasEffectiveEnd;
 
     //
-    // Extended processor state configuration
+    // Extended processor state configuration (AMD64 and x86).
     //
 
     XSTATE_CONFIGURATION XState;
@@ -5414,7 +5421,16 @@ typedef struct _KUSER_SHARED_DATA
 
     ULONG64 UserPointerAuthMask;
 
-    ULONG InternsReserved[210];
+    //
+    // Extended processor state configuration (ARM64). The reserved space for
+    // other architectures is not available for reuse.
+    //
+
+#if defined(_ARM64_)
+    XSTATE_CONFIGURATION XStateArm64;
+#else
+    ULONG Reserved10[210];
+#endif
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
 
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated) == 0x0);
@@ -5494,7 +5510,7 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveGroupCount) == 0x3c4);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved9) == 0x3c5);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcData) == 0x3c6);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBypassEnabled) == 0x3c6);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcShift) == 0x3c7);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcReserved) == 0x3c7);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveStart) == 0x3c8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveEnd) == 0x3d0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
@@ -5507,6 +5523,11 @@ C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x728);
 #else
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x720);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x730);
+#if defined(_ARM64_)
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64) == 0x738);
+#else
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10) == 0x738);
+#endif
 #if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
 C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0xa80);
 #endif
