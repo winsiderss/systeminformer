@@ -2416,3 +2416,49 @@ NTSTATUS KphGetSigningLevel(
 
     return status;
 }
+
+/**
+ * \brief Retrieves image headers from a mapped image.
+ *
+ * \details Extends RtlImageNtHeaderEx and verifies that the optional headers
+ * are within the region. The caller should still check that the optional
+ * headers contains a given field with RTL_CONTAINS_FIELD.
+ *
+ * \param[in] Base The base address of the image.
+ * \param[in] Size The size of the image.
+ * \param[out] Headers Receives the image headers.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphImageNtHeader(
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PKPH_IMAGE_NT_HEADERS Headers
+    )
+{
+    NTSTATUS status;
+    ULONG64 size;
+
+    PAGED_CODE();
+
+    status = RtlImageNtHeaderEx(0, Base, Size, &Headers->Headers);
+    if (!NT_SUCCESS(status))
+    {
+        Headers->Headers = NULL;
+        return status;
+    }
+
+    size = PtrOffset(Base, Headers->Headers);
+    size += RTL_SIZEOF_THROUGH_FIELD(IMAGE_NT_HEADERS, FileHeader);
+    size += Headers->Headers->FileHeader.SizeOfOptionalHeader;
+
+    if (size > Size)
+    {
+        Headers->Headers = NULL;
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    return STATUS_SUCCESS;
+}
