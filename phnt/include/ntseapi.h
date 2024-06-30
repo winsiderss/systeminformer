@@ -103,8 +103,61 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenIsLessPrivilegedAppContainer, // q: ULONG // since REDSTONE5
     TokenIsSandboxed, // q: ULONG // since 19H1
     TokenIsAppSilo, // q: ULONG // since WIN11 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
+    TokenLoggingInformation, // TOKEN_LOGGING_INFORMATION // since 24H2
     MaxTokenInfoClass
 } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
+#else
+#define TOKEN_INFORMATION_CLASS ULONG
+//#define TokenUser 1 // q: TOKEN_USER, SE_TOKEN_USER
+//#define TokenGroups 2 // q: TOKEN_GROUPS
+//#define TokenPrivileges 3 // q: TOKEN_PRIVILEGES
+//#define TokenOwner 4 // q; s: TOKEN_OWNER
+#define TokenPrimaryGroup 5 // q; s: TOKEN_PRIMARY_GROUP
+#define TokenDefaultDacl 6 // q; s: TOKEN_DEFAULT_DACL
+#define TokenSource 7 // q: TOKEN_SOURCE
+//#define TokenType 8 // q: TOKEN_TYPE
+#define TokenImpersonationLevel 9 // q: SECURITY_IMPERSONATION_LEVEL
+#define TokenStatistics 10 // q: TOKEN_STATISTICS // 10
+#define TokenRestrictedSids 11 // q: TOKEN_GROUPS
+#define TokenSessionId 12 // q; s: ULONG (requires SeTcbPrivilege)
+#define TokenGroupsAndPrivileges 13 // q: TOKEN_GROUPS_AND_PRIVILEGES
+#define TokenSessionReference 14 // s: ULONG (requires SeTcbPrivilege)
+#define TokenSandBoxInert 15 // q: ULONG
+#define TokenAuditPolicy 16 // q; s: TOKEN_AUDIT_POLICY (requires SeSecurityPrivilege/SeTcbPrivilege)
+#define TokenOrigin 17 // q; s: TOKEN_ORIGIN (requires SeTcbPrivilege)
+#define TokenElevationType 18 // q: TOKEN_ELEVATION_TYPE
+#define TokenLinkedToken 19 // q; s: TOKEN_LINKED_TOKEN (requires SeCreateTokenPrivilege)
+#define TokenElevation 20 // q: TOKEN_ELEVATION // 20
+#define TokenHasRestrictions 21 // q: ULONG
+#define TokenAccessInformation 22 // q: TOKEN_ACCESS_INFORMATION
+#define TokenVirtualizationAllowed 23 // q; s: ULONG (requires SeCreateTokenPrivilege)
+#define TokenVirtualizationEnabled 24 // q; s: ULONG
+#define TokenIntegrityLevel 25 // q; s: TOKEN_MANDATORY_LABEL
+#define TokenUIAccess 26 // q; s: ULONG (requires SeTcbPrivilege)
+#define TokenMandatoryPolicy 27 // q; s: TOKEN_MANDATORY_POLICY (requires SeTcbPrivilege)
+#define TokenLogonSid 28 // q: TOKEN_GROUPS
+#define TokenIsAppContainer 29 // q: ULONG // since WIN8
+#define TokenCapabilities 30 // q: TOKEN_GROUPS // 30
+//#define TokenAppContainerSid 31 // q: TOKEN_APPCONTAINER_INFORMATION
+#define TokenAppContainerNumber 32 // q: ULONG
+#define TokenUserClaimAttributes 33 // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+#define TokenDeviceClaimAttributes 34 // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+#define TokenRestrictedUserClaimAttributes 35 // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+#define TokenRestrictedDeviceClaimAttributes 36 // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+#define TokenDeviceGroups 37 // q: TOKEN_GROUPS
+#define TokenRestrictedDeviceGroups 38 // q: TOKEN_GROUPS
+#define TokenSecurityAttributes 39 // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION (requires SeTcbPrivilege)
+#define TokenIsRestricted 40 // q: ULONG // 40
+#define TokenProcessTrustLevel 41 // q: TOKEN_PROCESS_TRUST_LEVEL // since WINBLUE
+#define TokenPrivateNameSpace 42// q; s: ULONG  (requires SeTcbPrivilege) // since THRESHOLD
+#define TokenSingletonAttributes 43 // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION // since REDSTONE
+#define TokenBnoIsolation 44 // q: TOKEN_BNO_ISOLATION_INFORMATION // since REDSTONE2
+#define TokenChildProcessFlags 45 // s: ULONG  (requires SeTcbPrivilege) // since REDSTONE3
+#define TokenIsLessPrivilegedAppContainer 46 // q: ULONG // since REDSTONE5
+#define TokenIsSandboxed 47 // q: ULONG // since 19H1
+#define TokenIsAppSilo 48 // q: ULONG // since 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
+#define TokenLoggingInformation 49 // TOKEN_LOGGING_INFORMATION // since 24H2
+#define MaxTokenInfoClass 50
 #endif
 
 // Types
