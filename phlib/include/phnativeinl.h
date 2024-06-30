@@ -775,6 +775,22 @@ PhGetProcessMitigationPolicyInformation(
 
 FORCEINLINE
 NTSTATUS
+PhGetProcesNetworkIoCounters(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPROCESS_NETWORK_COUNTERS NetworkIoCounters
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessNetworkIoCounters,
+        NetworkIoCounters,
+        sizeof(PROCESS_NETWORK_COUNTERS),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetProcessPowerThrottlingState(
     _In_ HANDLE ProcessHandle,
     _Out_ PPOWER_THROTTLING_PROCESS_STATE PowerThrottlingState
