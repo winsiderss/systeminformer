@@ -300,10 +300,10 @@ typedef enum _FILE_INFORMATION_CLASS
     FileCaseSensitiveInformationForceAccessCheck, // q; s: FILE_CASE_SENSITIVE_INFORMATION
     FileKnownFolderInformation, // q; s: FILE_KNOWN_FOLDER_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since WIN11
     FileStatBasicInformation, // since 23H2
-    FileId64ExtdDirectoryInformation,
-    FileId64ExtdBothDirectoryInformation,
-    FileIdAllExtdDirectoryInformation,
-    FileIdAllExtdBothDirectoryInformation,
+    FileId64ExtdDirectoryInformation, // FILE_ID_64_EXTD_DIR_INFORMATION
+    FileId64ExtdBothDirectoryInformation, // FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
+    FileIdAllExtdDirectoryInformation, // FILE_ID_ALL_EXTD_DIR_INFORMATION
+    FileIdAllExtdBothDirectoryInformation, // FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
     FileStreamReservationInformation, // FILE_STREAM_RESERVATION_INFORMATION // since 24H2
     FileMupProviderInfo, // MUP_PROVIDER_INFORMATION
     FileMaximumInformation
@@ -845,6 +845,13 @@ typedef struct _FILE_ID_EXTD_DIR_INFORMATION
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_EXTD_DIR_INFORMATION, *PFILE_ID_EXTD_DIR_INFORMATION;
 
+#define FileIdExtdDirectoryInformationDefinition {                  \
+    FileIdExtdDirectoryInformation,                                 \
+    FIELD_OFFSET(FILE_ID_EXTD_DIR_INFORMATION, NextEntryOffset),    \
+    FIELD_OFFSET(FILE_ID_EXTD_DIR_INFORMATION, FileName),           \
+    FIELD_OFFSET(FILE_ID_EXTD_DIR_INFORMATION, FileNameLength)      \
+}
+
 typedef struct _FILE_LINK_ENTRY_FULL_ID_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -879,6 +886,119 @@ typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
     WCHAR ShortName[12];
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_EXTD_BOTH_DIR_INFORMATION, *PFILE_ID_EXTD_BOTH_DIR_INFORMATION;
+
+#define FileIdExtdBothDirectoryInformationDefinition {                  \
+    FileIdExtdBothDirectoryInformation,                                 \
+    FIELD_OFFSET(FILE_ID_EXTD_BOTH_DIR_INFORMATION, NextEntryOffset),   \
+    FIELD_OFFSET(FILE_ID_EXTD_BOTH_DIR_INFORMATION, FileName),          \
+    FIELD_OFFSET(FILE_ID_EXTD_BOTH_DIR_INFORMATION, FileNameLength)     \
+}
+
+typedef struct _FILE_ID_64_EXTD_DIR_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG FileIndex;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER EndOfFile;
+    LARGE_INTEGER AllocationSize;
+    ULONG FileAttributes;
+    ULONG FileNameLength;
+    ULONG EaSize;
+    ULONG ReparsePointTag;
+    LARGE_INTEGER FileId;
+    _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
+} FILE_ID_64_EXTD_DIR_INFORMATION, *PFILE_ID_64_EXTD_DIR_INFORMATION;
+
+#define FileId64ExtdDirectoryInformationDefinition {                    \
+    FileId64ExtdDirectoryInformation,                                   \
+    FIELD_OFFSET(FILE_ID_64_EXTD_DIR_INFORMATION, NextEntryOffset),     \
+    FIELD_OFFSET(FILE_ID_64_EXTD_DIR_INFORMATION, FileName),            \
+    FIELD_OFFSET(FILE_ID_64_EXTD_DIR_INFORMATION, FileNameLength)       \
+}
+
+typedef struct _FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG FileIndex;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER EndOfFile;
+    LARGE_INTEGER AllocationSize;
+    ULONG FileAttributes;
+    ULONG FileNameLength;
+    ULONG EaSize;
+    ULONG ReparsePointTag;
+    LARGE_INTEGER FileId;
+    CCHAR ShortNameLength;
+    WCHAR ShortName[12];
+    _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
+} FILE_ID_64_EXTD_BOTH_DIR_INFORMATION, *PFILE_ID_64_EXTD_BOTH_DIR_INFORMATION;
+
+#define FileId64ExtdBothDirectoryInformationDefinition {                    \
+    FileId64ExtdBothDirectoryInformation,                                   \
+    FIELD_OFFSET(FILE_ID_64_EXTD_BOTH_DIR_INFORMATION, NextEntryOffset),    \
+    FIELD_OFFSET(FILE_ID_64_EXTD_BOTH_DIR_INFORMATION, FileName),           \
+    FIELD_OFFSET(FILE_ID_64_EXTD_BOTH_DIR_INFORMATION, FileNameLength)      \
+}
+
+typedef struct _FILE_ID_ALL_EXTD_DIR_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG FileIndex;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER EndOfFile;
+    LARGE_INTEGER AllocationSize;
+    ULONG FileAttributes;
+    ULONG FileNameLength;
+    ULONG EaSize;
+    ULONG ReparsePointTag;
+    LARGE_INTEGER FileId;
+    FILE_ID_128 FileId128;
+    _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
+} FILE_ID_ALL_EXTD_DIR_INFORMATION, *PFILE_ID_ALL_EXTD_DIR_INFORMATION;
+
+#define FileIdAllExtdDirectoryInformationDefinition {                    \
+    FileIdAllExtdDirectoryInformation,                                   \
+    FIELD_OFFSET(FILE_ID_ALL_EXTD_DIR_INFORMATION, NextEntryOffset),     \
+    FIELD_OFFSET(FILE_ID_ALL_EXTD_DIR_INFORMATION, FileName),            \
+    FIELD_OFFSET(FILE_ID_ALL_EXTD_DIR_INFORMATION, FileNameLength)       \
+}
+
+typedef struct _FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG FileIndex;
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    LARGE_INTEGER EndOfFile;
+    LARGE_INTEGER AllocationSize;
+    ULONG FileAttributes;
+    ULONG FileNameLength;
+    ULONG EaSize;
+    ULONG ReparsePointTag;
+    LARGE_INTEGER FileId;
+    FILE_ID_128 FileId128;
+    CCHAR ShortNameLength;
+    WCHAR ShortName[12];
+    _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
+} FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION, *PFILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION;
+
+#define FileIdAllExtdBothDirectoryInformationDefinition {                    \
+    FileIdAllExtdBothDirectoryInformation,                                   \
+    FIELD_OFFSET(FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION, NextEntryOffset),    \
+    FIELD_OFFSET(FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION, FileName),           \
+    FIELD_OFFSET(FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION, FileNameLength)      \
+}
 
 #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
 typedef struct _FILE_STAT_INFORMATION
@@ -1004,10 +1124,18 @@ typedef struct _MUP_PROVIDER_INFORMATION
 {
     ULONG Level;
     PVOID Buffer;
-    SIZE_T BufferSize;
+    PULONG BufferSize;
 } MUP_PROVIDER_INFORMATION, *PMUP_PROVIDER_INFORMATION;
 
 // NtQueryDirectoryFile types
+
+typedef struct _FILE_INFORMATION_DEFINITION
+{
+    FILE_INFORMATION_CLASS Class;
+    ULONG NextEntryOffset;
+    ULONG FileNameOffset;
+    ULONG FileNameLengthOffset;
+} FILE_INFORMATION_DEFINITION, *PFILE_INFORMATION_DEFINITION;
 
 typedef struct _FILE_DIRECTORY_INFORMATION
 {
@@ -1024,6 +1152,13 @@ typedef struct _FILE_DIRECTORY_INFORMATION
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_DIRECTORY_INFORMATION, *PFILE_DIRECTORY_INFORMATION;
 
+#define FileDirectoryInformationDefinition {                    \
+    FileDirectoryInformation,                                   \
+    FIELD_OFFSET(FILE_DIRECTORY_INFORMATION, NextEntryOffset),  \
+    FIELD_OFFSET(FILE_DIRECTORY_INFORMATION, FileName),         \
+    FIELD_OFFSET(FILE_DIRECTORY_INFORMATION, FileNameLength)    \
+}
+
 typedef struct _FILE_FULL_DIR_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -1039,6 +1174,13 @@ typedef struct _FILE_FULL_DIR_INFORMATION
     ULONG EaSize;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_FULL_DIR_INFORMATION, *PFILE_FULL_DIR_INFORMATION;
+
+#define FileFullDirectoryInformationDefinition {                \
+    FileFullDirectoryInformation,                               \
+    FIELD_OFFSET(FILE_FULL_DIR_INFORMATION, NextEntryOffset),   \
+    FIELD_OFFSET(FILE_FULL_DIR_INFORMATION, FileName),          \
+    FIELD_OFFSET(FILE_FULL_DIR_INFORMATION, FileNameLength)     \
+}
 
 typedef struct _FILE_ID_FULL_DIR_INFORMATION
 {
@@ -1057,6 +1199,13 @@ typedef struct _FILE_ID_FULL_DIR_INFORMATION
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_FULL_DIR_INFORMATION, *PFILE_ID_FULL_DIR_INFORMATION;
 
+#define FileIdFullDirectoryInformationDefinition {              \
+    FileIdFullDirectoryInformation,                             \
+    FIELD_OFFSET(FILE_ID_FULL_DIR_INFORMATION, NextEntryOffset),\
+    FIELD_OFFSET(FILE_ID_FULL_DIR_INFORMATION, FileName),       \
+    FIELD_OFFSET(FILE_ID_FULL_DIR_INFORMATION, FileNameLength)  \
+}
+
 typedef struct _FILE_BOTH_DIR_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -1074,6 +1223,13 @@ typedef struct _FILE_BOTH_DIR_INFORMATION
     WCHAR ShortName[12];
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_BOTH_DIR_INFORMATION, *PFILE_BOTH_DIR_INFORMATION;
+
+#define FileBothDirectoryInformationDefinition {                \
+    FileBothDirectoryInformation,                               \
+    FIELD_OFFSET(FILE_BOTH_DIR_INFORMATION, NextEntryOffset),   \
+    FIELD_OFFSET(FILE_BOTH_DIR_INFORMATION, FileName),          \
+    FIELD_OFFSET(FILE_BOTH_DIR_INFORMATION, FileNameLength)     \
+}
 
 typedef struct _FILE_ID_BOTH_DIR_INFORMATION
 {
@@ -1094,6 +1250,13 @@ typedef struct _FILE_ID_BOTH_DIR_INFORMATION
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_BOTH_DIR_INFORMATION, *PFILE_ID_BOTH_DIR_INFORMATION;
 
+#define FileIdBothDirectoryInformationDefinition {              \
+    FileIdBothDirectoryInformation,                             \
+    FIELD_OFFSET(FILE_ID_BOTH_DIR_INFORMATION, NextEntryOffset),\
+    FIELD_OFFSET(FILE_ID_BOTH_DIR_INFORMATION, FileName),       \
+    FIELD_OFFSET(FILE_ID_BOTH_DIR_INFORMATION, FileNameLength)  \
+}
+
 typedef struct _FILE_NAMES_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -1101,6 +1264,13 @@ typedef struct _FILE_NAMES_INFORMATION
     ULONG FileNameLength;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_NAMES_INFORMATION, *PFILE_NAMES_INFORMATION;
+
+#define FileNamesInformationDefinition {                    \
+    FileNamesInformation,                                   \
+    FIELD_OFFSET(FILE_NAMES_INFORMATION, NextEntryOffset),  \
+    FIELD_OFFSET(FILE_NAMES_INFORMATION, FileName),         \
+    FIELD_OFFSET(FILE_NAMES_INFORMATION, FileNameLength)    \
+}
 
 typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
 {
@@ -1123,6 +1293,13 @@ typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
 #define FILE_ID_GLOBAL_TX_DIR_INFO_FLAG_WRITELOCKED 0x00000001
 #define FILE_ID_GLOBAL_TX_DIR_INFO_FLAG_VISIBLE_TO_TX 0x00000002
 #define FILE_ID_GLOBAL_TX_DIR_INFO_FLAG_VISIBLE_OUTSIDE_TX 0x00000004
+
+#define FileIdGlobalTxDirectoryInformationDefinition {                  \
+    FileIdGlobalTxDirectoryInformation,                                 \
+    FIELD_OFFSET(FILE_ID_GLOBAL_TX_DIR_INFORMATION, NextEntryOffset),   \
+    FIELD_OFFSET(FILE_ID_GLOBAL_TX_DIR_INFORMATION, FileName),          \
+    FIELD_OFFSET(FILE_ID_GLOBAL_TX_DIR_INFORMATION, FileNameLength)     \
+}
 
 typedef struct _FILE_OBJECTID_INFORMATION
 {
@@ -1439,9 +1616,55 @@ NtFlushBuffersFile(
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
 
+//  Flag definitions for NtFlushBuffersFileEx
+//
+//  If none of the below flags are specified the following will occur for a
+//  given file handle:
+//      - Write any modified data for the given file from the Windows in-memory
+//        cache.
+//      - Commit all pending metadata changes for the given file from the
+//        Windows in-memory cache.
+//      - Send a SYNC command to the underlying storage device to commit all
+//        written data in the devices cache to persistent storage.
+//
+//  If a volume handle is specified:
+//      - Write all modified data for all files on the volume from the Windows
+//        in-memory cache.
+//      - Commit all pending metadata changes for all files on the volume from
+//        the Windows in-memory cache.
+//      - Send a SYNC command to the underlying storage device to commit all
+//        written data in the devices cache to persistent storage.
+//
+//  This is equivalent to how NtFlushBuffersFile has always worked.
+//
+
+//  If set, this operation will write the data for the given file from the
+//  Windows in-memory cache.  This will NOT commit any associated metadata
+//  changes.  This will NOT send a SYNC to the storage device to flush its
+//  cache.  Not supported on volume handles.
+//
 #define FLUSH_FLAGS_FILE_DATA_ONLY 0x00000001
+//
+//  If set, this operation will commit both the data and metadata changes for
+//  the given file from the Windows in-memory cache.  This will NOT send a SYNC
+//  to the storage device to flush its cache.  Not supported on volume handles.
+//
 #define FLUSH_FLAGS_NO_SYNC 0x00000002
+//
+//  If set, this operation will write the data for the given file from the
+//  Windows in-memory cache.  It will also try to skip updating the timestamp
+//  as much as possible.  This will send a SYNC to the storage device to flush its
+//  cache.  Not supported on volume or directory handles.
+//
 #define FLUSH_FLAGS_FILE_DATA_SYNC_ONLY 0x00000004 // REDSTONE1
+//
+//  If set, this operation will write the data for the given file from the
+//  Windows in-memory cache.  It will also try to skip updating the timestamp
+//  as much as possible.  This will send a SYNC to the storage device to flush its
+//  cache.  Not supported on volume or directory handles.
+//
+#define FLUSH_FLAGS_FLUSH_AND_PURGE 0x00000008 // 24H2
+
 
 #if (PHNT_VERSION >= PHNT_WIN8)
 NTSYSCALLAPI
