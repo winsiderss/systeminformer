@@ -245,6 +245,9 @@ ProbeForRead(pointer, size, TYPE_ALIGNMENT(BYTE))
 
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
+#define RebasePtr(pointer, oldBase, newBase)                                  \
+Add2Ptr(newBase, PtrOffset(oldBase, pointer))
+
 #define RebaseUnicodeString(string, oldBase, newBase)                         \
 if ((string)->Buffer)                                                         \
 {                                                                             \
@@ -634,7 +637,7 @@ VOID KphCleanupDynData(
 _Must_inspect_result_
 PVOID KphObpDecodeObject(
     _In_ PKPH_DYN Dyn,
-    _In_ PVOID Object
+    _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     );
 
 _Must_inspect_result_
@@ -2379,7 +2382,6 @@ NTSTATUS KphHttpBuildRequest(
     _Inout_ PULONG Length
     );
 
-// download
 // download
 
 typedef PVOID KPH_DOWNLOAD_HANDLE;

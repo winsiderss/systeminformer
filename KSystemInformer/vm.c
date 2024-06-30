@@ -104,7 +104,7 @@ NTSTATUS KphpQuerySectionMappings(
         goto Exit;
     }
 
-    returnLength = FIELD_OFFSET(KPH_SECTION_MAPPINGS_INFORMATION, Mappings);
+    returnLength = UFIELD_OFFSET(KPH_SECTION_MAPPINGS_INFORMATION, Mappings);
 
     for (PLIST_ENTRY link = listHead->Flink;
          link != listHead;
