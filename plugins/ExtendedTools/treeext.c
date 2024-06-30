@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2011-2023
+ *     dmex    2011-2024
  *
  */
 
@@ -93,7 +93,7 @@ VOID EtProcessTreeNewInitializing(
     _In_ PVOID Parameter
     )
 {
-    static COLUMN_INFO columns[] =
+    const static COLUMN_INFO columns[] =
     {
         { ETPRTNC_DISKREADS, L"Disk reads", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_DISKWRITES, L"Disk writes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
@@ -1040,7 +1040,7 @@ VOID EtNetworkTreeNewInitializing(
     _In_ PVOID Parameter
     )
 {
-    static COLUMN_INFO columns[] =
+    const static COLUMN_INFO columns[] =
     {
         { ETNETNC_RECEIVES, L"Receives", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETNETNC_SENDS, L"Sends", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
