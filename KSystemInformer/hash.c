@@ -82,15 +82,9 @@ typedef struct _KPH_HASHING_EACACHE_CONTEXT
     REQUEST_OPLOCK_OUTPUT_BUFFER OplockOutput;
 } KPH_HASHING_EACACHE_CONTEXT, *PKPH_HASHING_EACACHE_CONTEXT;
 
-typedef struct _KPH_HASHING_AUTHENTICODE_REGION
-{
-    PVOID Start;
-    PVOID End;
-} KPH_HASHING_AUTHENTICODE_REGION, *PKPH_HASHING_AUTHENTICODE_REGION;
-
 typedef struct _KPH_HASHING_AUTHENTICODE_CONTEXT
 {
-    KPH_HASHING_AUTHENTICODE_REGION Regions[4];
+    KPH_MEMORY_REGION Regions[4];
     PVOID SecurityBase;
     ULONG SecuritySize;
 } KPH_HASHING_AUTHENTICODE_CONTEXT, *PKPH_HASHING_AUTHENTICODE_CONTEXT;
@@ -702,7 +696,7 @@ NTSTATUS KphpUpdateHash(
     for (ULONG i = 0; i < ARRAYSIZE(Context->Authenticode.Regions); i++)
     {
         NTSTATUS status;
-        PKPH_HASHING_AUTHENTICODE_REGION region;
+        PKPH_MEMORY_REGION region;
         PVOID start;
         PVOID end;
         PVOID buffer;
@@ -1439,18 +1433,16 @@ VerifyRegions:
 
     for (ULONG i = 0; i < ARRAYSIZE(Context->Authenticode.Regions); i++)
     {
-        PKPH_HASHING_AUTHENTICODE_REGION region;
+        PKPH_MEMORY_REGION region;
 
         region = &Context->Authenticode.Regions[i];
 
-        if (region->Start)
+        if (!region->Start)
         {
             break;
         }
 
-        if ((region->End < region->Start) ||
-            (region->Start < MappedBase) || (region->End < MappedBase) ||
-            (region->Start >= mappedEnd) || (region->End > mappedEnd))
+        if (!KphIsValidMemoryRegion(region, MappedBase, mappedEnd))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,
@@ -1463,9 +1455,12 @@ VerifyRegions:
 
     if (securityBase)
     {
-        if ((securityEnd < securityBase) ||
-            (securityBase < MappedBase) || (securityEnd < MappedBase) ||
-            (securityBase >= mappedEnd) || (securityEnd > mappedEnd))
+        KPH_MEMORY_REGION securityRegion;
+
+        securityRegion.Start = securityBase;
+        securityRegion.End = securityEnd;
+
+        if (!KphIsValidMemoryRegion(&securityRegion, MappedBase, mappedEnd))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HASH,

@@ -263,6 +263,25 @@ typedef struct _KPH_FILE_VERSION
     USHORT Revision;
 } KPH_FILE_VERSION, *PKPH_FILE_VERSION;
 
+typedef struct _KPH_MEMORY_REGION
+{
+    PVOID Start;
+    PVOID End;
+} KPH_MEMORY_REGION, *PKPH_MEMORY_REGION;
+
+_Must_inspect_result_
+FORCEINLINE
+BOOLEAN KphIsValidMemoryRegion(
+    _In_ PKPH_MEMORY_REGION Region,
+    _In_ PVOID Start,
+    _In_ PVOID End
+    )
+{
+    return ((Region->Start <= Region->End) &&
+            (Region->Start >= Start) &&
+            (Region->End <= End));
+}
+
 // main
 
 extern PDRIVER_OBJECT KphDriverObject;
