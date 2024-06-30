@@ -3600,8 +3600,14 @@ HRESULT CALLBACK PhpUiServiceProgressDialogCallbackProc(
         break;
     case TDN_BUTTON_CLICKED:
         {
-            return S_FALSE;
+            ULONG buttonId = (ULONG)wParam;
+
+            if (buttonId != IDCANCEL)
+            {
+                return S_FALSE;
+            }
         }
+        break;
     }
 
     return S_OK;
@@ -3726,7 +3732,7 @@ static LRESULT CALLBACK PhpUiServiceProgressDialogWndProc(
     context = PhGetWindowContext(WindowHandle, MAXCHAR);
 
     if (!context)
-        return 0;
+        goto DefaultWndProc;
 
     oldWndProc = context->OldWndProc;
 
@@ -3743,21 +3749,22 @@ static LRESULT CALLBACK PhpUiServiceProgressDialogWndProc(
             PPH_STRING message;
             PPH_STRING content;
 
-            message = context->StatusMessage;
-            content = context->StatusContent;
-            context->StatusMessage = NULL;
-            context->StatusContent = NULL;
+            message = InterlockedExchangePointer(&context->StatusMessage, NULL);
+            content = InterlockedExchangePointer(&context->StatusContent, NULL);
 
             PhUiNavigateServiceErrorDialogPage(
                 context,
                 message,
                 content
                 );
+
+            PhClearReference(&message);
+            PhClearReference(&content);
         }
         goto DefaultWndProc;
     case WM_PHSVC_EXIT:
         {
-            SendMessage(WindowHandle, TDM_CLICK_BUTTON, IDCANCEL, 0);
+            CallWindowProc(oldWndProc, WindowHandle, TDM_CLICK_BUTTON, IDCANCEL, 0);
         }
         goto DefaultWndProc;
     }
@@ -3788,9 +3795,9 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
 
             PhCenterWindow(WindowHandle, context->ParentWindowHandle);
 
-            context->OldWndProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+            context->OldWndProc = PhGetWindowProcedure(WindowHandle);
             PhSetWindowContext(WindowHandle, MAXCHAR, context);
-            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)PhpUiServiceProgressDialogWndProc);
+            PhSetWindowProcedure(WindowHandle, PhpUiServiceProgressDialogWndProc);
 
             PhShowServiceProgressDialogConfirmMessage(context);
         }
@@ -3929,7 +3936,10 @@ static BOOLEAN PhpShowContinueMessageServices(
     return cont;
 }
 
-static NTSTATUS PhpCHeckServiceStatus(_In_ SC_HANDLE ServiceHandle, ULONG CurrentState, ULONG WaitForState)
+static NTSTATUS PhpCheckServiceStatus(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ ULONG CurrentState,
+    _In_ ULONG WaitForState)
 {
     NTSTATUS status;
     SERVICE_STATUS_PROCESS serviceStatus;
@@ -4029,7 +4039,6 @@ BOOLEAN PhUiStartServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-#ifdef PH_SERVICE_PROGRESS_DIALOG
     if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
     {
         PhShowServiceProgressDialog(
@@ -4044,7 +4053,6 @@ BOOLEAN PhUiStartServices(
             );
         return FALSE;
     }
-#endif
 
     if (!PhpShowContinueMessageServices(
         WindowHandle,
@@ -4227,7 +4235,6 @@ BOOLEAN PhUiContinueServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-#ifdef PH_SERVICE_PROGRESS_DIALOG
     if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
     {
         PhShowServiceProgressDialog(
@@ -4242,7 +4249,6 @@ BOOLEAN PhUiContinueServices(
             );
         return FALSE;
     }
-#endif
 
     if (!PhpShowContinueMessageServices(
         WindowHandle,
@@ -4352,23 +4358,6 @@ BOOLEAN PhUiContinueService(
     NTSTATUS status;
     BOOLEAN success = FALSE;
 
-#ifdef PH_SERVICE_PROGRESS_DIALOG
-    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
-    {
-        PhShowServiceProgressDialog(
-            WindowHandle,
-            L"continue",
-            L"Continuing a service might prevent the system from functioning properly.",
-            FALSE,
-            &Service,
-            1,
-            PhUiServiceContinueCallback,
-            PhSvcControlServiceContinue
-            );
-        return FALSE;
-    }
-#endif
-
     status = PhOpenService(&serviceHandle, SERVICE_PAUSE_CONTINUE, PhGetString(Service->Name));
 
     if (NT_SUCCESS(status))
@@ -4444,7 +4433,6 @@ BOOLEAN PhUiPauseServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-#ifdef PH_SERVICE_PROGRESS_DIALOG
     if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
     {
         PhShowServiceProgressDialog(
@@ -4459,7 +4447,6 @@ BOOLEAN PhUiPauseServices(
             );
         return FALSE;
     }
-#endif
 
     if (!PhpShowContinueMessageServices(
         WindowHandle,
@@ -4569,23 +4556,6 @@ BOOLEAN PhUiPauseService(
     NTSTATUS status;
     BOOLEAN success = FALSE;
 
-#ifdef PH_SERVICE_PROGRESS_DIALOG
-    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
-    {
-        PhShowServiceProgressDialog(
-            WindowHandle,
-            L"pause",
-            L"Pausing a service might prevent the system from functioning properly.",
-            FALSE,
-            &Service,
-            1,
-            PhUiServicePauseCallback,
-            PhSvcControlServicePause
-            );
-        return FALSE;
-    }
-#endif
-
     status = PhOpenService(&serviceHandle, SERVICE_PAUSE_CONTINUE, PhGetString(Service->Name));
 
     if (NT_SUCCESS(status))
@@ -4661,7 +4631,6 @@ BOOLEAN PhUiStopServices(
     BOOLEAN cancelled = FALSE;
     ULONG i;
 
-#ifdef PH_SERVICE_PROGRESS_DIALOG
     if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
     {
         PhShowServiceProgressDialog(
@@ -4676,7 +4645,6 @@ BOOLEAN PhUiStopServices(
             );
         return FALSE;
     }
-#endif
 
     if (!PhpShowContinueMessageServices(
         WindowHandle,
@@ -4785,23 +4753,6 @@ BOOLEAN PhUiStopService(
     SC_HANDLE serviceHandle;
     NTSTATUS status;
     BOOLEAN success = FALSE;
-
-#ifdef PH_SERVICE_PROGRESS_DIALOG
-    if (PhGetIntegerSetting(L"EnableServiceProgressDialog"))
-    {
-        PhShowServiceProgressDialog(
-            WindowHandle,
-            L"stop",
-            L"Stopping a service might prevent the system from functioning properly.",
-            FALSE,
-            &Service,
-            1,
-            PhUiServiceStopCallback,
-            PhSvcControlServiceStop
-            );
-        return FALSE;
-    }
-#endif
 
     status = PhOpenService(&serviceHandle, SERVICE_STOP, PhGetString(Service->Name));
 
