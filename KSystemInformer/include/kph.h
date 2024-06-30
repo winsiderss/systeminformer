@@ -895,22 +895,33 @@ NTSTATUS KphQueryInformationThread(
 
 // util
 
+#pragma deprecated(memcmp)
+#pragma deprecated(RtlCompareMemory)
+#pragma deprecated(RtlEqualMemory)
+
 _Must_inspect_result_
+FORCEINLINE
 INT KphCompareMemory(
     _In_reads_bytes_(Length) PVOID Buffer1,
     _In_reads_bytes_(Length) PVOID Buffer2,
     _In_ SIZE_T Length
-    );
-#pragma deprecated(memcmp)
-#pragma deprecated(RtlCompareMemory)
+    )
+{
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return memcmp(Buffer1, Buffer2, Length);
+}
 
 _Must_inspect_result_
+FORCEINLINE
 BOOLEAN KphEqualMemory(
     _In_reads_bytes_(Length) PVOID Buffer1,
     _In_reads_bytes_(Length) PVOID Buffer2,
     _In_ SIZE_T Length
-    );
-#pragma deprecated(RtlEqualMemory)
+    )
+{
+#pragma warning(suppress: 4995) // suppress deprecation warning
+    return (memcmp(Buffer1, Buffer2, Length) == 0);
+}
 
 _Must_inspect_result_
 PVOID KphSearchMemory(
