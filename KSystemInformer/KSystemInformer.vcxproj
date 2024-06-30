@@ -254,6 +254,7 @@
     <ClCompile Include="file.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="http.c" />
+    <ClCompile Include="imgcoherency.c" />
     <ClCompile Include="informer_debug.c" />
     <ClCompile Include="informer_file.c" />
     <ClCompile Include="informer_fileop.c" />
