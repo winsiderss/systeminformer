@@ -66,9 +66,6 @@
     <ClCompile Include="comms_handlers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sign.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="hash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -117,9 +114,6 @@
     <ClCompile Include="parameters.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="kphtoken.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="informer_fileop.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -136,6 +130,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="lsa.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="imgcoherency.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -161,9 +158,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\pooltags.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\cid_table.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\informer_filep.h">

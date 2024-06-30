@@ -1942,6 +1942,17 @@ NTSTATUS KphStripProtectedProcessMasks(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+// imgcoherency
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCheckImageCoherency(
+    _In_ PVOID ImageBase,
+    _In_ SIZE_T ImageSize,
+    _In_ PVOID DataBase,
+    _In_ SIZE_T DataSize
+    );
+
 // verify
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
