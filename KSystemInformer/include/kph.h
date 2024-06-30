@@ -1231,6 +1231,21 @@ NTSTATUS KphGetSigningLevel(
     _Out_ PSE_SIGNING_LEVEL SigningLevel
     );
 
+typedef union _KPH_IMAGE_NT_HEADERS
+{
+    PIMAGE_NT_HEADERS Headers;
+    PIMAGE_NT_HEADERS32 Headers32;
+    PIMAGE_NT_HEADERS64 Headers64;
+} KPH_IMAGE_NT_HEADERS, *PKPH_IMAGE_NT_HEADERS;
+
+_IRQL_requires_max_(APC_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphImageNtHeader(
+    _In_ PVOID Base,
+    _In_ ULONG64 Size,
+    _Out_ PKPH_IMAGE_NT_HEADERS Headers
+    );
+
 // lsa
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

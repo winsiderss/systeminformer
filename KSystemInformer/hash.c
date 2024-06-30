@@ -1337,12 +1337,7 @@ NTSTATUS KphpInitializeAuthenticodeHashing(
 {
     NTSTATUS status;
     PVOID mappedEnd;
-    union
-    {
-        PIMAGE_NT_HEADERS Headers;
-        PIMAGE_NT_HEADERS32 Headers32;
-        PIMAGE_NT_HEADERS64 Headers64;
-    } image;
+    KPH_IMAGE_NT_HEADERS image;
     PIMAGE_DATA_DIRECTORY securityDir;
     PVOID securityBase;
     ULONG securitySize;
@@ -1359,19 +1354,42 @@ NTSTATUS KphpInitializeAuthenticodeHashing(
 
     NT_ASSERT(MappedBase <= mappedEnd);
 
-    status = RtlImageNtHeaderEx(0, MappedBase, ViewSize, &image.Headers);
+    status = KphImageNtHeader(MappedBase, ViewSize, &image);
     if (!NT_SUCCESS(status))
     {
         goto Exit;
     }
 
+    if (!RTL_CONTAINS_FIELD(&image.Headers->OptionalHeader,
+                            image.Headers->FileHeader.SizeOfOptionalHeader,
+                            Magic))
+    {
+        Context->Authenticode.Regions[0].Start = MappedBase;
+        Context->Authenticode.Regions[0].End = mappedEnd;
+        status = STATUS_SUCCESS;
+        goto VerifyRegions;
+    }
+
     if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
+        if (!RTL_CONTAINS_FIELD(&image.Headers32->OptionalHeader,
+                                image.Headers->FileHeader.SizeOfOptionalHeader,
+                                CheckSum))
+        {
+            Context->Authenticode.Regions[0].Start = MappedBase;
+            Context->Authenticode.Regions[0].End = mappedEnd;
+            status = STATUS_SUCCESS;
+            goto VerifyRegions;
+        }
+
         Context->Authenticode.Regions[0].Start = MappedBase;
         Context->Authenticode.Regions[0].End = &image.Headers32->OptionalHeader.CheckSum;
 
         Context->Authenticode.Regions[1].Start = &image.Headers32->OptionalHeader.Subsystem;
-        if (image.Headers32->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
+        if (!RTL_CONTAINS_FIELD(&image.Headers32->OptionalHeader,
+                                image.Headers->FileHeader.SizeOfOptionalHeader,
+                                NumberOfRvaAndSizes) ||
+            (image.Headers32->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY))
         {
             Context->Authenticode.Regions[1].End = mappedEnd;
             status = STATUS_SUCCESS;
@@ -1383,11 +1401,24 @@ NTSTATUS KphpInitializeAuthenticodeHashing(
     }
     else if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
+        if (!RTL_CONTAINS_FIELD(&image.Headers64->OptionalHeader,
+                                image.Headers->FileHeader.SizeOfOptionalHeader,
+                                CheckSum))
+        {
+            Context->Authenticode.Regions[0].Start = MappedBase;
+            Context->Authenticode.Regions[0].End = mappedEnd;
+            status = STATUS_SUCCESS;
+            goto VerifyRegions;
+        }
+
         Context->Authenticode.Regions[0].Start = MappedBase;
         Context->Authenticode.Regions[0].End = &image.Headers64->OptionalHeader.CheckSum;
 
         Context->Authenticode.Regions[1].Start = &image.Headers64->OptionalHeader.Subsystem;
-        if (image.Headers64->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
+        if (!RTL_CONTAINS_FIELD(&image.Headers64->OptionalHeader,
+                                image.Headers->FileHeader.SizeOfOptionalHeader,
+                                NumberOfRvaAndSizes) ||
+            (image.Headers64->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY))
         {
             Context->Authenticode.Regions[1].End = mappedEnd;
             status = STATUS_SUCCESS;
