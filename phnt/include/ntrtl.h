@@ -2352,18 +2352,74 @@ RtlNextUnicodePrefix(
 
 // Compression
 
+#define COMPRESSION_FORMAT_NONE          (0x0000)
+#define COMPRESSION_FORMAT_DEFAULT       (0x0001)
+#define COMPRESSION_FORMAT_LZNT1         (0x0002)
+#define COMPRESSION_FORMAT_XPRESS        (0x0003)
+#define COMPRESSION_FORMAT_XPRESS_HUFF   (0x0004)
+#define COMPRESSION_FORMAT_XP10          (0x0005)
+#define COMPRESSION_FORMAT_LZ4           (0x0006)
+#define COMPRESSION_FORMAT_DEFLATE       (0x0007)
+#define COMPRESSION_FORMAT_ZLIB          (0x0008)
+#define COMPRESSION_FORMAT_MAX           (0x0008)
+
+#define COMPRESSION_ENGINE_STANDARD      (0x0000)
+#define COMPRESSION_ENGINE_MAXIMUM       (0x0100)
+#define COMPRESSION_ENGINE_HIBER         (0x0200)
+#define COMPRESSION_ENGINE_MAX           (0x0200)
+
+#define COMPRESSION_FORMAT_MASK          (0x00FF)
+#define COMPRESSION_ENGINE_MASK          (0xFF00)
+#define COMPRESSION_FORMAT_ENGINE_MASK   (COMPRESSION_FORMAT_MASK | COMPRESSION_ENGINE_MASK)
+
 typedef struct _COMPRESSED_DATA_INFO
 {
-    USHORT CompressionFormatAndEngine; // COMPRESSION_FORMAT_* and COMPRESSION_ENGINE_*
+    //
+    //  Code for the compression format (and engine) as
+    //  defined in ntrtl.h.  Note that COMPRESSION_FORMAT_NONE
+    //  and COMPRESSION_FORMAT_DEFAULT are invalid if
+    //  any of the described chunks are compressed.
+    //
+
+    USHORT CompressionFormatAndEngine;
+
+    //
+    //  Since chunks and compression units are expected to be
+    //  powers of 2 in size, we express then log2.  So, for
+    //  example (1 << ChunkShift) == ChunkSizeInBytes.  The
+    //  ClusterShift indicates how much space must be saved
+    //  to successfully compress a compression unit - each
+    //  successfully compressed compression unit must occupy
+    //  at least one cluster less in bytes than an uncompressed
+    //  compression unit.
+    //
 
     UCHAR CompressionUnitShift;
     UCHAR ChunkShift;
     UCHAR ClusterShift;
     UCHAR Reserved;
 
+    //
+    //  This is the number of entries in the CompressedChunkSizes
+    //  array.
+    //
+
     USHORT NumberOfChunks;
 
-    ULONG CompressedChunkSizes[1];
+    //
+    //  This is an array of the sizes of all chunks resident
+    //  in the compressed data buffer.  There must be one entry
+    //  in this array for each chunk possible in the uncompressed
+    //  buffer size.  A size of FSRTL_CHUNK_SIZE indicates the
+    //  corresponding chunk is uncompressed and occupies exactly
+    //  that size.  A size of 0 indicates that the corresponding
+    //  chunk contains nothing but binary 0's, and occupies no
+    //  space in the compressed data.  All other sizes must be
+    //  less than FSRTL_CHUNK_SIZE, and indicate the exact size
+    //  of the compressed data in bytes.
+    //
+
+    ULONG CompressedChunkSizes[ANYSIZE_ARRAY];
 } COMPRESSED_DATA_INFO, *PCOMPRESSED_DATA_INFO;
 
 NTSYSAPI
@@ -4668,7 +4724,8 @@ typedef struct _RTL_SEGMENT_HEAP_MEMORY_SOURCE
 
 #define SEGMENT_HEAP_PARAMETERS_VERSION         3
 #define SEGMENT_HEAP_FLG_USE_PAGE_HEAP          0x1
-#define SEGMENT_HEAP_PARAMS_VALID_FLAGS         SEGMENT_HEAP_FLG_USE_PAGE_HEAP
+#define SEGMENT_HEAP_FLG_NO_LFH                 0x2
+#define SEGMENT_HEAP_PARAMS_VALID_FLAGS         0x3
 
 typedef struct _RTL_SEGMENT_HEAP_PARAMETERS
 {
@@ -4724,6 +4781,24 @@ typedef struct _RTL_HEAP_PARAMETERS
 #define HEAP_CLASS_7 0x00007000 // CSR shared heap
 #define HEAP_CLASS_8 0x00008000 // CSR port heap
 #define HEAP_CLASS_MASK 0x0000f000
+
+#define HEAP_MAXIMUM_TAG 0x0FFF
+#define HEAP_GLOBAL_TAG 0x0800
+#define HEAP_PSEUDO_TAG_FLAG 0x8000
+#define HEAP_TAG_SHIFT 18
+#define HEAP_TAG_MASK (HEAP_MAXIMUM_TAG << HEAP_TAG_SHIFT)
+
+#define HEAP_CREATE_SEGMENT_HEAP 0x00000100
+//
+// Only applies to segment heap. Applies pointer obfuscation which is
+// generally excessive and unnecessary but is necessary for certain insecure
+// heaps in win32k.
+//
+// Specifying HEAP_CREATE_HARDENED prevents the heap from using locks as
+// pointers would potentially be exposed in heap metadata lock variables.
+// Callers are therefore responsible for synchronizing access to hardened heaps.
+//
+#define HEAP_CREATE_HARDENED 0x00000200
 
 _Must_inspect_result_
 NTSYSAPI
@@ -5550,6 +5625,21 @@ RtlConvertUlongToLuid(
     return tempLuid;
 }
 
+FORCEINLINE
+LONGLONG
+NTAPI_INLINE
+RtlConvertLuidToLonglong(
+    _In_ LUID Luid
+    )
+{
+    LONGLONG tempLuid;
+
+    tempLuid = Luid.LowPart;
+    tempLuid += ((LONGLONG)(Luid.HighPart) << 32);
+
+    return tempLuid;
+}
+
 NTSYSAPI
 VOID
 NTAPI
@@ -5829,6 +5919,8 @@ RtlNtStatusToDosError(
     _In_ NTSTATUS Status
     );
 
+_When_(Status < 0, _Out_range_(>, 0))
+_When_(Status >= 0, _Out_range_(==, 0))
 NTSYSAPI
 ULONG
 NTAPI
@@ -7490,6 +7582,16 @@ RtlGetAce(
     _In_ ULONG AceIndex,
     _Outptr_ PVOID *Ace
     );
+
+#if (PHNT_VERSION >= PHNT_WIN11_24H2)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetAcesBufferSize(
+    _In_ PACL Acl,
+    _Out_ PULONG AcesBufferSize
+    );
+#endif
 
 NTSYSAPI
 BOOLEAN
@@ -10281,8 +10383,10 @@ NtCopyFileChunk(
     _In_opt_ PULONG DestKey,
     _In_ ULONG Flags
     );
-
 #endif
+
+#define COPY_FILE_CHUNK_DUPLICATE_EXTENTS 0x00000001L // 24H2
+#define VALID_COPY_FILE_CHUNK_FLAGS (COPY_FILE_CHUNK_DUPLICATE_EXTENTS)
 
 #if (PHNT_VERSION >= PHNT_WIN11)
 // rev
