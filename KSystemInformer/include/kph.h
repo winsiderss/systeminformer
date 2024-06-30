@@ -1043,6 +1043,7 @@ NTSTATUS KphQueryRegistryULong(
     _Out_ PULONG Value
     );
 
+#define KPH_MAP_DATA     0x00000000ul
 #define KPH_MAP_IMAGE    0x00000001ul
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)

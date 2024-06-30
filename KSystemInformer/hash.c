@@ -1692,7 +1692,10 @@ NTSTATUS KphpHashFile(
 
     viewSize = 0;
 
-    status = KphMapViewInSystem(FileHandle, 0, &mappedBase, &viewSize);
+    status = KphMapViewInSystem(FileHandle,
+                                KPH_MAP_DATA,
+                                &mappedBase,
+                                &viewSize);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
