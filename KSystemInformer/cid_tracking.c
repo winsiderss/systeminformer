@@ -751,6 +751,7 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
 {
     PKPH_CID_APC apc;
     PKPH_DYN dyn;
+    PTEB teb;
 
     PAGED_CODE();
 
@@ -763,10 +764,21 @@ VOID KSIAPI KphpInitializeThreadContextSpecialApc(
 
     NT_ASSERT(apc->Thread->EThread == KeGetCurrentThread());
 
-    //
-    // Populates the cached sub-process tag.
-    //
-    (VOID)KphGetCurrentThreadSubProcessTag();
+    teb = PsGetCurrentThreadTeb();
+    if (teb)
+    {
+        __try
+        {
+            apc->Thread->SubProcessTag = teb->SubProcessTag;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          TRACKING,
+                          "Failed to populate SubProcessTag: %!STATUS!",
+                          GetExceptionCode());
+        }
+    }
 
     dyn = KphReferenceDynData();
     if (dyn)
