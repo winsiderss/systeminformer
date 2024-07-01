@@ -557,8 +557,7 @@ NTSTATUS KphAcquireReference(
     {
         LONG count;
 
-        count = Reference->Count;
-        MemoryBarrier();
+        count = ReadAcquire(&Reference->Count);
 
         if (count == LONG_MAX)
         {
@@ -611,8 +610,7 @@ NTSTATUS KphReleaseReference(
     {
         LONG count;
 
-        count = Reference->Count;
-        MemoryBarrier();
+        count = ReadAcquire(&Reference->Count);
 
         if (count == 0)
         {

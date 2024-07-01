@@ -208,8 +208,7 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
 
     for (;;)
     {
-        expected = *Target;
-        MemoryBarrier();
+        expected = ReadSizeTAcquire(Target);
 
         if (Value <= expected)
         {

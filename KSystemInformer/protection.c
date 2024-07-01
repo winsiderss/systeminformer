@@ -2056,8 +2056,7 @@ LONG KphGetDriverUnloadProtectionCount(
 
     PAGED_CODE();
 
-    count = KphpDriverUnloadProtectionRef.Count;
-    MemoryBarrier();
+    count = ReadAcquire(&KphpDriverUnloadProtectionRef.Count);
 
     return count;
 }
