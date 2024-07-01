@@ -3300,6 +3300,46 @@ typedef struct _OPLOCK_KEY_CONTEXT
 
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+// pub
+#define SUPPORTED_FS_FEATURES_OFFLOAD_READ    0x00000001
+#define SUPPORTED_FS_FEATURES_OFFLOAD_WRITE   0x00000002
+
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
+
+// pub
+#define SUPPORTED_FS_FEATURES_QUERY_OPEN      0x00000004
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+
+// pub
+#define SUPPORTED_FS_FEATURES_BYPASS_IO       0x00000008
+
+// pub
+#define SUPPORTED_FS_FEATURES_VALID_MASK      (SUPPORTED_FS_FEATURES_OFFLOAD_READ |\
+                                               SUPPORTED_FS_FEATURES_OFFLOAD_WRITE |\
+                                               SUPPORTED_FS_FEATURES_QUERY_OPEN |\
+                                               SUPPORTED_FS_FEATURES_BYPASS_IO)
+
+#else // (PHNT_VERSION >= PHNT_WIN11)
+
+// pub
+#define SUPPORTED_FS_FEATURES_VALID_MASK      (SUPPORTED_FS_FEATURES_OFFLOAD_READ |\
+                                               SUPPORTED_FS_FEATURES_OFFLOAD_WRITE |\
+                                               SUPPORTED_FS_FEATURES_QUERY_OPEN)
+
+#endif // (PHNT_VERSION >= PHNT_WIN11)
+
+#else // (PHNT_VERSION >= PHNT_REDSTONE2)
+
+// pub
+#define SUPPORTED_FS_FEATURES_VALID_MASK      (SUPPORTED_FS_FEATURES_OFFLOAD_READ |\
+                                               SUPPORTED_FS_FEATURES_OFFLOAD_WRITE)
+
+#endif // (PHNT_VERSION >= PHNT_REDSTONE2)
+#endif // (PHNT_VERSION >= PHNT_WIN8)
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif
