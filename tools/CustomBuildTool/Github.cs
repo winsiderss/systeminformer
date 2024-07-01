@@ -49,13 +49,7 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                     httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
-                    {
-                        if (sslPolicyErrors != SslPolicyErrors.None)
-                            return false;
-
-                        return cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase);
-                    };
+                    httpClientHandler.ServerCertificateCustomValidationCallback = CertValidationCallback;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -127,13 +121,7 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                     httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
-                    {
-                        if (sslPolicyErrors != SslPolicyErrors.None)
-                            return false;
-
-                        return cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase);
-                    };
+                    httpClientHandler.ServerCertificateCustomValidationCallback = CertValidationCallback;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -232,13 +220,7 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                     httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
-                    {
-                        if (sslPolicyErrors != SslPolicyErrors.None)
-                            return false;
-
-                        return cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase);
-                    };
+                    httpClientHandler.ServerCertificateCustomValidationCallback = CertValidationCallback;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -320,13 +302,7 @@ namespace CustomBuildTool
                 {
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
                     httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
-                    httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) =>
-                    {
-                        if (sslPolicyErrors != SslPolicyErrors.None)
-                            return false;
-
-                        return cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase);
-                    };
+                    httpClientHandler.ServerCertificateCustomValidationCallback = CertValidationCallback;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
@@ -385,6 +361,23 @@ namespace CustomBuildTool
             }
 
             return null;
+        }
+
+        private static bool CertValidationCallback(
+            HttpRequestMessage Rquest,
+            X509Certificate Cert,
+            X509Chain Chain,
+            SslPolicyErrors Errors
+            )
+        {
+            if (Errors != SslPolicyErrors.None)
+                return false;
+
+            if (Cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            Program.PrintColorMessage($"[CertValidationCallback] {Cert.Subject}", ConsoleColor.Red);
+            return false;
         }
     }
 
