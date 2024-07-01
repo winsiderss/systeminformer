@@ -1050,35 +1050,35 @@ namespace CustomBuildTool
     }
 
     [JsonSerializable(typeof(BuildUpdateRequest))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
     {
 
     }
 
     [JsonSerializable(typeof(GithubReleasesRequest))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubReleasesRequestContext : JsonSerializerContext
     {
 
     }
 
     [JsonSerializable(typeof(GithubReleasesResponse))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubReleasesResponseContext : JsonSerializerContext
     {
 
     }
 
     [JsonSerializable(typeof(GithubAssetsResponse))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubAssetsResponseContext : JsonSerializerContext
     {
 
     }
 
     [JsonSerializable(typeof(GithubCommitResponse))]
-    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     public partial class GithubCommitResponseContext : JsonSerializerContext
     {
 
