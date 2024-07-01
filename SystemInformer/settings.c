@@ -362,6 +362,10 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"KsiDynDataNoEmbedded", L"0");
     PhpAddIntegerSetting(L"KsiClientProcessProtectionLevel", L"0");
     PhpAddStringSetting(L"KsiPreviousTemporaryDriverFile", L"");
+    PhpAddIntegerSetting(L"KsiEnableFsFeatureOffloadRead", L"1");  // SUPPORTED_FS_FEATURES_OFFLOAD_READ
+    PhpAddIntegerSetting(L"KsiEnableFsFeatureOffloadWrite", L"1"); // SUPPORTED_FS_FEATURES_OFFLOAD_WRITE
+    PhpAddIntegerSetting(L"KsiEnableFsFeatureQueryOpen", L"1");    // SUPPORTED_FS_FEATURES_QUERY_OPEN
+    PhpAddIntegerSetting(L"KsiEnableFsFeatureBypassIO", L"1");     // SUPPORTED_FS_FEATURES_BYPASS_IO
 }
 
 VOID PhUpdateCachedSettings(

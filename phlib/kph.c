@@ -143,6 +143,71 @@ CreateAndConnectEnd:
     return status;
 }
 
+NTSTATUS KphpSetParametersService(
+    _In_ PKPH_CONFIG_PARAMETERS Config
+    )
+{
+#ifdef _WIN64
+    NTSTATUS status;
+    HANDLE servicesKeyHandle = NULL;
+    ULONG disposition;
+    SIZE_T returnLength;
+    PH_STRINGREF servicesKeyName;
+    PH_FORMAT format[2];
+    WCHAR servicesKeyNameBuffer[MAX_PATH];
+
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
+    PhInitFormatSR(&format[1], *Config->ServiceName);
+
+    if (!PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        servicesKeyNameBuffer,
+        sizeof(servicesKeyNameBuffer),
+        &returnLength
+        ))
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    servicesKeyName.Buffer = servicesKeyNameBuffer;
+    servicesKeyName.Length = returnLength - sizeof(UNICODE_NULL);
+
+    status = PhCreateKey(
+        &servicesKeyHandle,
+        KEY_WRITE | DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &servicesKeyName,
+        0,
+        0,
+        &disposition
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhSetValueKeyZ(
+        servicesKeyHandle,
+        L"SupportedFeatures",
+        REG_DWORD,
+        &Config->FsSupportedFeatures,
+        sizeof(ULONG)
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+CleanupExit:
+
+    if (servicesKeyHandle)
+        NtClose(servicesKeyHandle);
+
+    return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
+}
+
 NTSTATUS KphSetParameters(
     _In_ PKPH_CONFIG_PARAMETERS Config
     )
@@ -155,6 +220,11 @@ NTSTATUS KphSetParameters(
     PH_STRINGREF parametersKeyName;
     PH_FORMAT format[3];
     WCHAR parametersKeyNameBuffer[MAX_PATH];
+
+    // Services key parameters.
+    status = KphpSetParametersService(Config);
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (!Config->PortName && !Config->Altitude && !Config->Flags.Flags)
     {
