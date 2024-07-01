@@ -363,6 +363,12 @@ namespace CustomBuildTool
             return null;
         }
 
+        private static readonly string[] TrustedSubjects =
+        {
+            "CN=*.github.com",
+            "CN=*.github.com, O=\"GitHub, Inc.\", L=San Francisco, S=California, C=US",
+        };
+
         private static bool CertValidationCallback(
             HttpRequestMessage Rquest,
             X509Certificate Cert,
@@ -373,7 +379,7 @@ namespace CustomBuildTool
             if (Errors != SslPolicyErrors.None)
                 return false;
 
-            if (Cert.Subject.Equals("CN=*.github.com", StringComparison.OrdinalIgnoreCase))
+            if (TrustedSubjects.Contains(Cert.Subject))
                 return true;
 
             Program.PrintColorMessage($"[CertValidationCallback] {Cert.Subject}", ConsoleColor.Red);
