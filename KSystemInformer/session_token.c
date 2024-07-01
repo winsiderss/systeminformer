@@ -707,8 +707,7 @@ BOOLEAN KphpSessionTokenPrivilegeCheck(
 
     KeQuerySystemTime(&systemTime);
 
-    useCount = Token->UseCount;
-    MemoryBarrier();
+    useCount = ReadAcquire(&Token->UseCount);
 
     if (Token->AccessToken.Expiry.QuadPart <= systemTime.QuadPart)
     {
@@ -745,8 +744,7 @@ BOOLEAN KphpSessionTokenPrivilegeCheck(
             break;
         }
 
-        useCount = Token->UseCount;
-        MemoryBarrier();
+        useCount = ReadAcquire(&Token->UseCount);
     }
 
 Exit:

@@ -156,8 +156,7 @@ VOID KphCidTableDelete(
 
     NPAGED_CODE_DISPATCH_MAX();
 
-    tableCode = Table->Table;
-    MemoryBarrier();
+    tableCode = ReadULongPtrAcquire(&Table->Table);
 
     if (!tableCode)
     {
@@ -261,8 +260,7 @@ PKPH_CID_TABLE_ENTRY KphpCidLookupEntry(
     //
     // N.B. Capture the volatile table pointer. This is a lock-free lookup.
     //
-    table = Table->Table;
-    MemoryBarrier();
+    table = ReadULongPtrAcquire(&Table->Table);
 
     switch (table & KPH_CID_TABLE_LEVEL_MASK)
     {
@@ -381,8 +379,7 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
     // We are the chosen one. Go expand the tree.
     //
 
-    table = Table->Table;
-    MemoryBarrier();
+    table = ReadULongPtrAcquire(&Table->Table);
 
     level = (table & KPH_CID_TABLE_LEVEL_MASK);
 
@@ -594,8 +591,7 @@ VOID KphpCidEnumerate(
 
     NPAGED_CODE_DISPATCH_MAX();
 
-    table = Table->Table;
-    MemoryBarrier();
+    table = ReadULongPtrAcquire(&Table->Table);
 
     if (!table)
     {
