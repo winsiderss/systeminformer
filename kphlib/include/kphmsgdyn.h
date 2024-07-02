@@ -27,65 +27,65 @@ typedef struct _KPHM_SIZED_BUFFER
     PBYTE Buffer;
 } KPHM_SIZED_BUFFER, *PKPHM_SIZED_BUFFER;
 
-VOID KphMsgDynClear(
+VOID NTAPI KphMsgDynClear(
     _Inout_ PKPH_MESSAGE Message
     );
 
-VOID KphMsgDynClearLast(
+VOID NTAPI KphMsgDynClearLast(
     _Inout_ PKPH_MESSAGE Message
     );
 
-USHORT KphMsgDynRemaining(
+USHORT NTAPI KphMsgDynRemaining(
     _In_ PCKPH_MESSAGE Message
     );
 
 _Must_inspect_result_
-NTSTATUS KphMsgDynAddUnicodeString(
+NTSTATUS NTAPI KphMsgDynAddUnicodeString(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _In_ PCUNICODE_STRING String
     );
 
-NTSTATUS KphMsgDynGetUnicodeString(
+NTSTATUS NTAPI KphMsgDynGetUnicodeString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _Out_ PUNICODE_STRING String
     );
 
 _Must_inspect_result_
-NTSTATUS KphMsgDynAddAnsiString(
+NTSTATUS NTAPI KphMsgDynAddAnsiString(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _In_ PCANSI_STRING String
     );
 
-NTSTATUS KphMsgDynGetAnsiString(
+NTSTATUS NTAPI KphMsgDynGetAnsiString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _Out_ PANSI_STRING String
     );
 
 _Must_inspect_result_
-NTSTATUS KphMsgDynAddStackTrace(
+NTSTATUS NTAPI KphMsgDynAddStackTrace(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _In_ PKPHM_STACK_TRACE StackTrace
     );
 
-NTSTATUS KphMsgDynGetStackTrace(
+NTSTATUS NTAPI KphMsgDynGetStackTrace(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _Out_ PKPHM_STACK_TRACE StackTrace
     );
 
 _Must_inspect_result_
-NTSTATUS KphMsgDynAddSizedBuffer(
+NTSTATUS NTAPI KphMsgDynAddSizedBuffer(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _In_ PKPHM_SIZED_BUFFER SizedBuffer
     );
 
-NTSTATUS KphMsgDynGetSizedBuffer(
+NTSTATUS NTAPI KphMsgDynGetSizedBuffer(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _Out_ PKPHM_SIZED_BUFFER SizedBuffer
