@@ -363,8 +363,6 @@ namespace CustomBuildTool
                 {
                     if (Flags.HasFlag(BuildFlags.BuildDebug))
                     {
-                        if (Flags.HasFlag(BuildFlags.Build32bit))
-                            Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\i386\\{file}", $"bin\\Debug32\\{file}");
                         if (Flags.HasFlag(BuildFlags.Build64bit))
                             Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\amd64\\{file}", $"bin\\Debug64\\{file}");
                         if (Flags.HasFlag(BuildFlags.BuildArm64bit))
@@ -373,8 +371,6 @@ namespace CustomBuildTool
 
                     if (Flags.HasFlag(BuildFlags.BuildRelease))
                     {
-                        if (Flags.HasFlag(BuildFlags.Build32bit))
-                            Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\i386\\{file}", $"bin\\Release32\\{file}");
                         if (Flags.HasFlag(BuildFlags.Build64bit))
                             Win32.CopyVersionIfNewer($"KSystemInformer\\bin-signed\\amd64\\{file}", $"bin\\Release64\\{file}");
                         if (Flags.HasFlag(BuildFlags.BuildArm64bit))
@@ -385,50 +381,7 @@ namespace CustomBuildTool
             catch (Exception ex)
             {
                 Program.PrintColorMessage($"[ERROR] (CopyKernelDriver) {ex}", ConsoleColor.Red);
-            }
-
-            if (Flags.HasFlag(BuildFlags.BuildDebug))
-            {
-                if (Flags.HasFlag(BuildFlags.Build32bit))
-                {
-                    files.Add("bin\\Debug32\\SystemInformer.exe");
-                }
-
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                {
-                    files.Add("bin\\Debug64\\SystemInformer.exe");
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                {
-                    files.Add("bin\\DebugARM64\\SystemInformer.exe");
-                }
-            }
-
-            if (Flags.HasFlag(BuildFlags.BuildRelease))
-            {
-                if (Flags.HasFlag(BuildFlags.Build32bit))
-                {
-                    files.Add("bin\\Release32\\SystemInformer.exe");
-                }
-
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                {
-                    files.Add("bin\\Release64\\SystemInformer.exe");
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                {
-                    files.Add("bin\\ReleaseARM64\\SystemInformer.exe");
-                }
-            }
-
-            foreach (string file in files)
-            {
-                var fileName = $"{BuildWorkingFolder}\\{file}";
-
-                if (File.Exists(fileName) && !Verify.CreateSigFile("kph", fileName, BuildCanary))
-                    return false;
+                return false;
             }
 
             return true;

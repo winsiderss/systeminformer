@@ -46,10 +46,10 @@
             <Path>$(IntDir)$(MSBuildProjectName).log</Path>
         </BuildLog>
         <PostBuildEvent>
-            <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
+            <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -kph-sign $(OutDir)$(TargetName)$(TargetExt)</Command>
         </PostBuildEvent>
         <ResourceCompile>
-            <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>         
+            <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
         </ResourceCompile>
     </ItemDefinitionGroup>
