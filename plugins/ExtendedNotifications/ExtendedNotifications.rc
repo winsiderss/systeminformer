@@ -25,17 +25,17 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\r\n"
     "\0"
@@ -178,13 +178,13 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "CompanyName", "§¥ƨƭè₥ Ìñƒôř₥èř"
-            VALUE "FileDescription", "§¥ƨƭè₥ Ìñƒôř₥èř"
+            VALUE "CompanyName", "System Informer"
+            VALUE "FileDescription", "System Informer"
             VALUE "FileVersion", "3.7.0.0"
             VALUE "InternalName", "ExtendedNotifications.dll"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "ExtendedNotifications.dll"
-            VALUE "ProductName", "⟆Ⴘ⟆𝜏∈ⲙ ᓰﬡ⨍ᗝᖇⲙ∈ᖇ"
+            VALUE "ProductName", "System Informer"
             VALUE "ProductVersion", "3.7.0.0"
         END
     END
