@@ -675,7 +675,7 @@ namespace CustomBuildTool
                             break;
 
                         string[] parts = variable.Split('=', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                        EnvironmentBlock.Add(parts[0], parts[1]);
+                        EnvironmentBlock.Add(parts[0], parts.Length <= 1 ? string.Empty : parts[1]);
 
                         offset = new IntPtr(offset.ToInt64() + (variable.Length + 1) * sizeof(char));
                     }
