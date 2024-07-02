@@ -70,12 +70,12 @@ BEGIN
         BLOCK "000004b0"
         BEGIN
             VALUE "CompanyName", "System Informer"
-            VALUE "FileDescription", "PE Viewer"
+            VALUE "FileDescription", "System Informer - PE Viewer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "peview.exe"
             VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "peview.exe"
-            VALUE "ProductName", "PE Viewer"
+            VALUE "ProductName", "System Informer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
