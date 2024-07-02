@@ -43,7 +43,6 @@ namespace CustomBuildTool
             int exitcode = int.MaxValue;
             StringBuilder output = new StringBuilder(0x1000);
             StringBuilder error = new StringBuilder(0x1000);
-            var block = Utils.GetSystemEnvironmentBlock();
 
             try
             {
@@ -56,13 +55,6 @@ namespace CustomBuildTool
                     process.StartInfo.RedirectStandardError = true;
                     process.StartInfo.StandardErrorEncoding = Utils.UTF8NoBOM;
                     process.StartInfo.StandardOutputEncoding = Utils.UTF8NoBOM;
-
-                    if (block.Count > 0)
-                    {
-                        process.StartInfo.Environment.Clear();
-                        foreach (var i in block)
-                            process.StartInfo.Environment.Add(i);
-                    }
 
                     process.OutputDataReceived += (_, e) => { output.Append(e.Data); };
                     process.ErrorDataReceived += (_, e) => { error.Append(e.Data); };
@@ -107,7 +99,7 @@ namespace CustomBuildTool
                 Share = FileShare.None
             };
 
-            using (FileStream file = new FileStream(FileName, options)) 
+            using (FileStream file = new FileStream(FileName, options))
             {
                 file.Close();
             }
