@@ -241,8 +241,8 @@ typedef struct _NETWORK_EXTENSION
         };
     };
 
-    PH_STRINGREF LocalServiceName;
-    PH_STRINGREF RemoteServiceName;
+    PPH_STRINGREF LocalServiceName;
+    PPH_STRINGREF RemoteServiceName;
 
     PPH_STRING RemoteCountryName;
     INT CountryIconIndex;
@@ -251,10 +251,12 @@ typedef struct _NETWORK_EXTENSION
     ULONG64 NumberOfBytesIn;
     ULONG64 NumberOfLostPackets;
     ULONG SampleRtt;
+    ULONG VarianceRtt;
 
     PPH_STRING BytesIn;
     PPH_STRING BytesOut;
-    PPH_STRING PacketLossText;
+    PPH_STRING LossText;
+    PPH_STRING JitterText;
     PPH_STRING LatencyText;
 } NETWORK_EXTENSION, *PNETWORK_EXTENSION;
 
@@ -267,6 +269,7 @@ typedef enum _NETWORK_COLUMN_ID
     NETWORK_COLUMN_ID_BYTES_IN,
     NETWORK_COLUMN_ID_BYTES_OUT,
     NETWORK_COLUMN_ID_PACKETLOSS,
+    NETWORK_COLUMN_ID_JITTER,
     NETWORK_COLUMN_ID_LATENCY
 } NETWORK_COLUMN_ID;
 
@@ -367,7 +370,7 @@ extern CONST RESOLVED_PORT ResolvedPortsTable[6265];
 
 BOOLEAN LookupPortServiceName(
     _In_ ULONG Port,
-    _Out_ PPH_STRINGREF ServiceName
+    _Out_ PPH_STRINGREF* ServiceName
     );
 
 #endif

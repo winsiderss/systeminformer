@@ -275,5 +275,8 @@
     <Image Include="resources\unknown.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\dll.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

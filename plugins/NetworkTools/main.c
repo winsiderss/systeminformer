@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2013-2023
+ *     dmex    2013-2024
  *
  */
 
@@ -384,17 +384,19 @@ LONG NTAPI NetworkServiceSortFunction(
     case NETWORK_COLUMN_ID_REMOTE_COUNTRY:
         return PhCompareStringWithNullSortOrder(extension1->RemoteCountryName, extension2->RemoteCountryName, SortOrder, TRUE);
     case NETWORK_COLUMN_ID_LOCAL_SERVICE:
-        return PhCompareStringRefWithNullSortOrder(&extension1->LocalServiceName, &extension2->LocalServiceName, SortOrder, TRUE);
+        return PhCompareStringRefWithNullSortOrder(extension1->LocalServiceName, extension2->LocalServiceName, SortOrder, TRUE);
     case NETWORK_COLUMN_ID_REMOTE_SERVICE:
-        return PhCompareStringRefWithNullSortOrder(&extension1->RemoteServiceName, &extension2->RemoteServiceName, SortOrder, TRUE);
+        return PhCompareStringRefWithNullSortOrder(extension1->RemoteServiceName, extension2->RemoteServiceName, SortOrder, TRUE);
     case NETWORK_COLUMN_ID_BYTES_IN:
         return uint64cmp(extension1->NumberOfBytesIn, extension2->NumberOfBytesIn);
     case NETWORK_COLUMN_ID_BYTES_OUT:
         return uint64cmp(extension1->NumberOfBytesOut, extension2->NumberOfBytesOut);
     case NETWORK_COLUMN_ID_PACKETLOSS:
         return uint64cmp(extension1->NumberOfLostPackets, extension2->NumberOfLostPackets);
+    case NETWORK_COLUMN_ID_JITTER:
+        return uintcmp(extension1->VarianceRtt, extension2->VarianceRtt);
     case NETWORK_COLUMN_ID_LATENCY:
-        return uint64cmp(extension1->SampleRtt, extension2->SampleRtt);
+        return uintcmp(extension1->SampleRtt, extension2->SampleRtt);
     }
 
     return 0;
@@ -402,14 +404,13 @@ LONG NTAPI NetworkServiceSortFunction(
 
 VOID NTAPI NetworkTreeNewInitializingCallback(
     _In_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PH_TREENEW_COLUMN column;
 
-    if (Context)
-        *(HWND*)Context = info->TreeNewHandle;
+    *(HWND*)Context = info->TreeNewHandle;
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"Country";
@@ -449,6 +450,12 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_PACKETLOSS, NULL, NetworkServiceSortFunction);
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
+    column.Text = L"Jitter (ms)";
+    column.Width = 80;
+    column.Alignment = PH_ALIGN_LEFT;
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, NETWORK_COLUMN_ID_JITTER, NULL, NetworkServiceSortFunction);
+
+    memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"Latency (ms)";
     column.Width = 80;
     column.Alignment = PH_ALIGN_LEFT;
@@ -465,7 +472,6 @@ VOID NTAPI NetworkItemCreateCallback(
     PNETWORK_EXTENSION extension = Extension;
 
     memset(extension, 0, sizeof(NETWORK_EXTENSION));
-
     extension->NetworkItem = networkItem;
     extension->CountryIconIndex = INT_ERROR;
 
@@ -499,8 +505,10 @@ VOID NTAPI NetworkItemDeleteCallback(
         PhDereferenceObject(extension->BytesIn);
     if (extension->BytesOut)
         PhDereferenceObject(extension->BytesOut);
-    if (extension->PacketLossText)
-        PhDereferenceObject(extension->PacketLossText);
+    if (extension->LossText)
+        PhDereferenceObject(extension->LossText);
+    if (extension->JitterText)
+        PhDereferenceObject(extension->JitterText);
     if (extension->LatencyText)
         PhDereferenceObject(extension->LatencyText);
 }
@@ -608,7 +616,7 @@ VOID UpdateNetworkNode(
         {
             if (!Extension->LocalValid)
             {
-                PH_STRINGREF localServiceName;
+                PPH_STRINGREF localServiceName;
 
                 if (LookupPortServiceName(Node->NetworkItem->LocalEndpoint.Port, &localServiceName))
                 {
@@ -623,7 +631,7 @@ VOID UpdateNetworkNode(
         {
             if (!Extension->RemoteValid)
             {
-                PH_STRINGREF remoteServiceName;
+                PPH_STRINGREF remoteServiceName;
 
                 if (LookupPortServiceName(Node->NetworkItem->RemoteEndpoint.Port, &remoteServiceName))
                 {
@@ -655,10 +663,19 @@ VOID UpdateNetworkNode(
     case NETWORK_COLUMN_ID_PACKETLOSS:
         {
             if (Extension->NumberOfLostPackets)
-                PhMoveReference(&Extension->PacketLossText, PhFormatUInt64(Extension->NumberOfLostPackets, TRUE));
+                PhMoveReference(&Extension->LossText, PhFormatUInt64(Extension->NumberOfLostPackets, TRUE));
 
-            if (!NetworkExtensionEnabled && !Extension->PacketLossText && PhGetOwnTokenAttributes().Elevated)
-                PhMoveReference(&Extension->PacketLossText, PhCreateString(L"Extended TCP statisitics are disabled"));
+            if (!NetworkExtensionEnabled && !Extension->LossText && PhGetOwnTokenAttributes().Elevated)
+                PhMoveReference(&Extension->LossText, PhCreateString(L"Extended TCP statisitics are disabled"));
+        }
+        break;
+    case NETWORK_COLUMN_ID_JITTER:
+        {
+            if (Extension->VarianceRtt)
+                PhMoveReference(&Extension->JitterText, PhFormatUInt64(Extension->VarianceRtt, TRUE));
+
+            if (!NetworkExtensionEnabled && !Extension->JitterText && PhGetOwnTokenAttributes().Elevated)
+                PhMoveReference(&Extension->JitterText, PhCreateString(L"Extended TCP statisitics are disabled"));
         }
         break;
     case NETWORK_COLUMN_ID_LATENCY:
@@ -674,14 +691,11 @@ VOID UpdateNetworkNode(
 }
 
 VOID NTAPI TreeNewMessageCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
-
-    if (!message)
-        return;
 
     switch (message->Message)
     {
@@ -702,10 +716,10 @@ VOID NTAPI TreeNewMessageCallback(
                     break;
                 case NETWORK_COLUMN_ID_LOCAL_SERVICE:
                     {
-                        if (extension->LocalServiceName.Length)
+                        if (extension->LocalServiceName && extension->LocalServiceName->Length)
                         {
-                            getCellText->Text.Buffer = extension->LocalServiceName.Buffer;
-                            getCellText->Text.Length = extension->LocalServiceName.Length;
+                            getCellText->Text.Buffer = extension->LocalServiceName->Buffer;
+                            getCellText->Text.Length = extension->LocalServiceName->Length;
                         }
                         else
                         {
@@ -715,10 +729,10 @@ VOID NTAPI TreeNewMessageCallback(
                     break;
                 case NETWORK_COLUMN_ID_REMOTE_SERVICE:
                     {
-                        if (extension->RemoteServiceName.Length)
+                        if (extension->RemoteServiceName && extension->RemoteServiceName->Length)
                         {
-                            getCellText->Text.Buffer = extension->RemoteServiceName.Buffer;
-                            getCellText->Text.Length = extension->RemoteServiceName.Length;
+                            getCellText->Text.Buffer = extension->RemoteServiceName->Buffer;
+                            getCellText->Text.Length = extension->RemoteServiceName->Length;
                         }
                         else
                         {
@@ -733,7 +747,10 @@ VOID NTAPI TreeNewMessageCallback(
                     getCellText->Text = PhGetStringRef(extension->BytesOut);
                     break;
                 case NETWORK_COLUMN_ID_PACKETLOSS:
-                    getCellText->Text = PhGetStringRef(extension->PacketLossText);
+                    getCellText->Text = PhGetStringRef(extension->LossText);
+                    break;
+                case NETWORK_COLUMN_ID_JITTER:
+                    getCellText->Text = PhGetStringRef(extension->JitterText);
                     break;
                 case NETWORK_COLUMN_ID_LATENCY:
                     getCellText->Text = PhGetStringRef(extension->LatencyText);
@@ -820,8 +837,6 @@ VOID ProcessesUpdatedCallback(
     static ULONG ProcessesUpdatedCount = 0;
     PLIST_ENTRY listEntry;
 
-    NetworkToolsGeoIpFlushCache();
-
     if (!NetworkExtensionEnabled)
         return;
 
@@ -830,6 +845,8 @@ VOID ProcessesUpdatedCallback(
         ProcessesUpdatedCount++;
         return;
     }
+
+    NetworkToolsGeoIpFlushCache();
 
     for (
         listEntry = NetworkExtensionListHead.Flink;
@@ -891,9 +908,12 @@ VOID ProcessesUpdatedCallback(
                 {
                     extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
                     extension->SampleRtt = pathRod.SampleRtt;
+                    extension->VarianceRtt = pathRod.RttVar;
 
-                    if (extension->SampleRtt == ULONG_MAX) // HACK
+                    if (extension->SampleRtt == ULONG_MAX)
                         extension->SampleRtt = 0;
+                    if (extension->VarianceRtt == ULONG_MAX)
+                        extension->VarianceRtt = 0;
                 }
             }
         }
@@ -946,9 +966,12 @@ VOID ProcessesUpdatedCallback(
                 {
                     extension->NumberOfLostPackets = UInt32Add32To64(pathRod.FastRetran, pathRod.PktsRetrans);
                     extension->SampleRtt = pathRod.SampleRtt;
+                    extension->VarianceRtt = pathRod.RttVar;
 
                     if (extension->SampleRtt == ULONG_MAX)
                         extension->SampleRtt = 0;
+                    if (extension->VarianceRtt == ULONG_MAX)
+                        extension->VarianceRtt = 0;
                 }
             }
         }
