@@ -208,4 +208,9 @@ typedef struct _IMAGE_BDD_DYNAMIC_RELOCATION {
 #define IMAGE_FUNCTION_OVERRIDE_ARM64_THUNK     3
 #endif
 
+#if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+#define IMAGE_DLLCHARACTERISTICS_EX_FORWARD_CFI_COMPAT                          0x40
+#define IMAGE_DLLCHARACTERISTICS_EX_HOTPATCH_COMPATIBLE                         0x80
+#endif
+
 #endif
