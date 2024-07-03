@@ -1973,7 +1973,7 @@ BOOLEAN PhStackWalk(
     return FALSE;
 }
 
-BOOLEAN PhWriteMiniDumpProcess(
+HRESULT PhWriteMiniDumpProcess(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId,
     _In_ HANDLE FileHandle,
@@ -1987,11 +1987,10 @@ BOOLEAN PhWriteMiniDumpProcess(
 
     if (!MiniDumpWriteDump_I)
     {
-        SetLastError(ERROR_PROC_NOT_FOUND);
-        return FALSE;
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
     }
 
-    return !!MiniDumpWriteDump_I(
+    if (!MiniDumpWriteDump_I(
         ProcessHandle,
         HandleToUlong(ProcessId),
         FileHandle,
@@ -1999,7 +1998,12 @@ BOOLEAN PhWriteMiniDumpProcess(
         ExceptionParam,
         UserStreamParam,
         CallbackParam
-        );
+        ))
+    {
+        return (HRESULT)PhGetLastError();
+    }
+
+    return S_OK;
 }
 
 /**

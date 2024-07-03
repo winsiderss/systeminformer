@@ -278,7 +278,7 @@ PhStackWalk(
     );
 
 PHLIBAPI
-BOOLEAN
+HRESULT
 NTAPI
 PhWriteMiniDumpProcess(
     _In_ HANDLE ProcessHandle,
